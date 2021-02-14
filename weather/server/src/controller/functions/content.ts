@@ -41,16 +41,12 @@ export const current_air_quality_observation = functions.https.onRequest(async (
   try {
     const apiObservations = await getCurrentAirNowObservation(AIR_NOW_API_KEY, ZIP_CODE, MILES);
     const observations = airNowManager.observationListFromApi(apiObservations);
-    switch (PARAMETER_NAME) {
-      case "O3":
-        response.status(200).send(airNowManager.getOzoneObservation(observations));
-        break;
-      default:
-      // Fall through. Default is PM2.5.
-      case "PM2.5":
-        response.status(200).send(airNowManager.getPM25Observation(observations));
-        break;
+    let observation = airNowManager.getPM25Observation(observations); // PM2.5
+    if (PARAMETER_NAME === "O3") {
+      observation = airNowManager.getOzoneObservation(observations);  // Ozone
     }
+    console.info(JSON.stringify(observation));
+    response.status(200).send(observation);
   }
   catch (error) {
     console.error(error)
