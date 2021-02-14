@@ -1,5 +1,6 @@
 #pragma once
 #include "secrets.h"
+#define ARDUINOJSON_USE_LONG_LONG 1
 #include <ArduinoJson.h>          //https://github.com/bblanchon/ArduinoJson
 
 typedef struct OpenWeatherMapCurrentData {

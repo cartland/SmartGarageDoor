@@ -2,6 +2,7 @@
 #include <Adafruit_GFX.h>    // Core graphics library
 #include <Adafruit_EPD.h>
 #include <Adafruit_NeoPixel.h>
+#define ARDUINOJSON_USE_LONG_LONG 1
 #include <ArduinoJson.h>        //https://github.com/bblanchon/ArduinoJson
 #include <SPI.h>
 #include <WiFiNINA.h>
