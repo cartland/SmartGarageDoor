@@ -9,6 +9,7 @@
 
 #include "secrets.h"
 #include "OpenWeatherMap.h"
+#include "AirQualityApi.h"
 
 #include "Fonts/meteocons48pt7b.h"
 #include "Fonts/meteocons24pt7b.h"
@@ -26,7 +27,7 @@
 
 #define SRAM_CS     8
 #define EPD_CS      10
-#define EPD_DC      9  
+#define EPD_DC      9
 #define EPD_RESET -1
 #define EPD_BUSY -1
 
@@ -38,6 +39,9 @@ Adafruit_IL91874 gfx(264, 176 ,EPD_DC, EPD_RESET, EPD_CS, SRAM_CS, EPD_BUSY);
 AirliftOpenWeatherMap owclient(&Serial);
 OpenWeatherMapCurrentData owcdata;
 OpenWeatherMapForecastData owfdata[3];
+
+AirQualityApi airQualityApi(&Serial);
+AirQualityObservation airQualityData;
 
 Adafruit_NeoPixel neopixel = Adafruit_NeoPixel(1, NEOPIXELPIN, NEO_GRB + NEO_KHZ800);
 
@@ -93,7 +97,7 @@ int8_t readButtons(void) {
 }
 
 bool wifi_connect(){
-  
+
   Serial.print("Connecting to WiFi... ");
 
   WiFi.setPins(SPIWIFI_SS, SPIWIFI_ACK, ESP32_RESETN, ESP32_GPIO0, &SPIWIFI);
@@ -111,7 +115,7 @@ bool wifi_connect(){
   }
 
   neopixel.setPixelColor(0, neopixel.Color(0, 0, 255));
-  neopixel.show(); 
+  neopixel.show();
   if(WiFi.begin(WIFI_SSID, WIFI_PASSWORD) == WL_CONNECT_FAILED)
   {
     Serial.println("WiFi connection failed!");
@@ -120,7 +124,7 @@ bool wifi_connect(){
   }
 
   int wifitimeout = 15;
-  int wifistatus; 
+  int wifistatus;
   while ((wifistatus = WiFi.status()) != WL_CONNECTED && wifitimeout > 0) {
     delay(1000);
     Serial.print(".");
@@ -131,11 +135,11 @@ bool wifi_connect(){
     Serial.println("WiFi connection timeout with error " + String(wifistatus));
     displayError("WiFi connection timeout with error " + String(wifistatus));
     neopixel.setPixelColor(0, neopixel.Color(0, 0, 0));
-    neopixel.show(); 
+    neopixel.show();
     return false;
   }
   neopixel.setPixelColor(0, neopixel.Color(0, 0, 0));
-  neopixel.show(); 
+  neopixel.show();
   Serial.println("Connected");
   return true;
 }
@@ -171,7 +175,7 @@ void wget(String &host, String &path, int port, char *buff)
     bool capture = false;
     int linelength = 0;
     char lastc = '\0';
-    while(true) 
+    while(true)
     {
       while (client.available()) {
         char c = client.read();
@@ -197,7 +201,7 @@ void wget(String &host, String &path, int port, char *buff)
         lastc = c;
         bytes++;
       }
-    
+
       // if the server's disconnected, stop the client:
       if (!client.connected()) {
         //Serial.println();
@@ -215,7 +219,7 @@ void wget(String &host, String &path, int port, char *buff)
     buff[0] = '\0';
   }
   neopixel.setPixelColor(0, neopixel.Color(0, 0, 0));
-  neopixel.show(); 
+  neopixel.show();
 }
 
 int getStringLength(String s)
@@ -255,7 +259,7 @@ void displayError(String str)
 {
     // show error on display
     neopixel.setPixelColor(0, neopixel.Color(255, 0, 0));
-    neopixel.show(); 
+    neopixel.show();
 
     Serial.println(str);
 
@@ -271,6 +275,23 @@ void displayError(String str)
     neopixel.show();
 }
 
+void displayHeadingAqi(AirQualityObservation &airQualityObservation)
+{
+  // AQI Value.
+  float aqi = airQualityObservation.AQI;
+  char aqiValStr[10];
+  sprintf(aqiValStr, "%f", aqi);
+  gfx.setFont(&FreeSans18pt7b);
+  gfx.setCursor((gfx.width()-getStringLength(aqiValStr))/2,30);
+  gfx.print(aqiValStr);
+
+  // AQI Label.
+  char aqiLabel[4] = "AQI";
+  gfx.setFont(&FreeSansBold12pt7b);
+  gfx.setCursor((gfx.width()-getStringLength(aqiLabel))/2,60);
+  gfx.print(aqiLabel);
+}
+
 void displayHeading(OpenWeatherMapCurrentData &owcdata)
 {
 
@@ -283,7 +304,7 @@ void displayHeading(OpenWeatherMapCurrentData &owcdata)
   gfx.setFont(&FreeSans18pt7b);
   gfx.setCursor((gfx.width()-getStringLength(datestr))/2,30);
   gfx.print(datestr);
-  
+
   // city
   strftime(datestr,80,"%A",timeinfo);
   gfx.setFont(&FreeSansBold12pt7b);
@@ -310,13 +331,13 @@ void displayForecastDays(OpenWeatherMapCurrentData &owcdata, OpenWeatherMapForec
     gfx.setFont(&FreeSans9pt7b);
     gfx.setCursor(i*gfx.width()/3 + (gfx.width()/3-getStringLength(datestr))/2,94);
     gfx.print(datestr);
-    
+
     // weather icon
     String wicon = owclient.getMeteoconIcon(owfdata[i].icon);
     gfx.setFont(&meteocons20pt7b);
     gfx.setCursor(i*gfx.width()/3 + (gfx.width()/3-getStringLength(wicon))/2,134);
     gfx.print(wicon);
-  
+
     // weather main description
     gfx.setFont(&FreeSans9pt7b);
     gfx.setCursor(i*gfx.width()/3 + (gfx.width()/3-getStringLength(owfdata[i].main))/2,154);
@@ -332,9 +353,9 @@ void displayForecastDays(OpenWeatherMapCurrentData &owcdata, OpenWeatherMapForec
     gfx.setCursor(i*gfx.width()/3 + (gfx.width()/3-getStringLength(String(itemp)))/2,172);
     gfx.print(itemp);
     gfx.drawCircle(i*gfx.width()/3 + (gfx.width()/3-getStringLength(String(itemp)))/2 + getStringLength(String(itemp)) + 6,163,3,color);
-    gfx.drawCircle(i*gfx.width()/3 + (gfx.width()/3-getStringLength(String(itemp)))/2 + getStringLength(String(itemp)) + 6,163,2,color); 
-    gfx.setTextColor(EPD_BLACK);   
-  }  
+    gfx.drawCircle(i*gfx.width()/3 + (gfx.width()/3-getStringLength(String(itemp)))/2 + getStringLength(String(itemp)) + 6,163,2,color);
+    gfx.setTextColor(EPD_BLACK);
+  }
 }
 
 void displayForecast(OpenWeatherMapCurrentData &owcdata, OpenWeatherMapForecastData owfdata[], int count = 3)
@@ -342,7 +363,7 @@ void displayForecast(OpenWeatherMapCurrentData &owcdata, OpenWeatherMapForecastD
   gfx.powerUp();
   gfx.clearBuffer();
   neopixel.setPixelColor(0, neopixel.Color(0, 255, 0));
-  neopixel.show();  
+  neopixel.show();
 
   gfx.setTextColor(EPD_BLACK);
   displayHeading(owcdata);
@@ -351,15 +372,15 @@ void displayForecast(OpenWeatherMapCurrentData &owcdata, OpenWeatherMapForecastD
   gfx.display();
   gfx.powerDown();
   neopixel.setPixelColor(0, neopixel.Color(0, 0, 0));
-  neopixel.show(); 
+  neopixel.show();
 }
 
-void displayAllWeather(OpenWeatherMapCurrentData &owcdata, OpenWeatherMapForecastData owfdata[], int count = 3)
+void displayAllWeather(AirQualityObservation &airQualityData, OpenWeatherMapCurrentData &owcdata, OpenWeatherMapForecastData owfdata[], int count = 3)
 {
   gfx.powerUp();
   gfx.clearBuffer();
   neopixel.setPixelColor(0, neopixel.Color(0, 255, 0));
-  neopixel.show();  
+  neopixel.show();
 
   gfx.setTextColor(EPD_BLACK);
 
@@ -373,7 +394,7 @@ void displayAllWeather(OpenWeatherMapCurrentData &owcdata, OpenWeatherMapForecas
   gfx.setFont(&FreeSans9pt7b);
   gfx.setCursor((gfx.width()-getStringLength(datestr))/2,14);
   gfx.print(datestr);
-  
+
   // weather icon
   String wicon = owclient.getMeteoconIcon(owcdata.icon);
   gfx.setFont(&meteocons24pt7b);
@@ -390,45 +411,57 @@ void displayAllWeather(OpenWeatherMapCurrentData &owcdata, OpenWeatherMapForecas
   int itemp = owcdata.temp + .5;
   int color = EPD_BLACK;
   if((OWM_METRIC && (int)itemp >= METRIC_HOT)|| (!OWM_METRIC && (int)itemp >= ENGLISH_HOT))
-    color = EPD_RED;
+   color = EPD_RED;
   gfx.setTextColor(color);
   gfx.setCursor(gfx.width()/3 + (gfx.width()/3-getStringLength(String(itemp)))/2,58);
   gfx.print(itemp);
   gfx.setTextColor(EPD_BLACK);
-
   // draw temperature degree as a circle (not available as font character
   gfx.drawCircle(gfx.width()/3 + (gfx.width()/3 + getStringLength(String(itemp)))/2 + 8, 58-30,4,color);
   gfx.drawCircle(gfx.width()/3 + (gfx.width()/3 + getStringLength(String(itemp)))/2 + 8, 58-30,3,color);
 
-  // draw moon
-  // draw Moon Phase
-  float moonphase = getMoonPhase(owcdata.observationTime);
-  int moonage = 29.5305882 * moonphase;
-  //Serial.println("moon age: " + String(moonage));
-  // convert to appropriate icon
-  String moonstr = String((char)((int)'A' + (int)(moonage*25./30)));
-  gfx.setFont(&moon_phases20pt7b);
-  // font lines look a little thin at this size, drawing it a few times to thicken the lines
-  gfx.setCursor(2*gfx.width()/3 + (gfx.width()/3-getStringLength(moonstr))/2,56);
-  gfx.print(moonstr);  
-  gfx.setCursor(2*gfx.width()/3 + (gfx.width()/3-getStringLength(moonstr))/2+1,56);
-  gfx.print(moonstr);  
-  gfx.setCursor(2*gfx.width()/3 + (gfx.width()/3-getStringLength(moonstr))/2,56-1);
-  gfx.print(moonstr);  
+//  // draw moon
+//  // draw Moon Phase
+//  float moonphase = getMoonPhase(owcdata.observationTime);
+//  int moonage = 29.5305882 * moonphase;
+//  //Serial.println("moon age: " + String(moonage));
+//  // convert to appropriate icon
+//  String moonstr = String((char)((int)'A' + (int)(moonage*25./30)));
+//  gfx.setFont(&moon_phases20pt7b);
+//  // font lines look a little thin at this size, drawing it a few times to thicken the lines
+//  gfx.setCursor(2*gfx.width()/3 + (gfx.width()/3-getStringLength(moonstr))/2,56);
+//  gfx.print(moonstr);
+//  gfx.setCursor(2*gfx.width()/3 + (gfx.width()/3-getStringLength(moonstr))/2+1,56);
+//  gfx.print(moonstr);
+//  gfx.setCursor(2*gfx.width()/3 + (gfx.width()/3-getStringLength(moonstr))/2,56-1);
+//  gfx.print(moonstr);
 
-  // draw moon phase name
-  int currentphase = moonphase * 28. + .5;
-  gfx.setFont(); // system font (smallest available)
-  gfx.setCursor(2*gfx.width()/3 + max(0,(gfx.width()/3 - getStringLength(moonphasenames[currentphase]))/2),62);
-  gfx.print(moonphasenames[currentphase]);
+//  // draw moon phase name
+//  int currentphase = moonphase * 28. + .5;
+//  gfx.setFont(); // system font (smallest available)
+//  gfx.setCursor(2*gfx.width()/3 + max(0,(gfx.width()/3 - getStringLength(moonphasenames[currentphase]))/2),62);
+//  gfx.print(moonphasenames[currentphase]);
 
+
+  // AQI
+  gfx.setTextColor(EPD_BLACK);
+  // AQI Value.
+  String aqiValue = String((int)(airQualityData.AQI + .5));
+  gfx.setFont(&FreeSansBold24pt7b);
+  gfx.setCursor(2*gfx.width()/3 + (gfx.width()/3-getStringLength(aqiValue))/2,56);
+  gfx.print(aqiValue);
+  // AQI Type.
+  String aqiType = airQualityData.ParameterName;
+  gfx.setFont(&FreeSans9pt7b);
+  gfx.setCursor(2*gfx.width()/3 + (gfx.width()/3-getStringLength(aqiType))/2,72);
+  gfx.print(aqiType);
 
   displayForecastDays(owcdata, owfdata, count);
   gfx.display();
   gfx.powerDown();
   neopixel.setPixelColor(0, neopixel.Color(0, 0, 0));
-  neopixel.show(); 
-  
+  neopixel.show();
+
 }
 
 void displayCurrentConditions(OpenWeatherMapCurrentData &owcdata)
@@ -436,7 +469,7 @@ void displayCurrentConditions(OpenWeatherMapCurrentData &owcdata)
   gfx.powerUp();
   gfx.clearBuffer();
   neopixel.setPixelColor(0, neopixel.Color(0, 255, 0));
-  neopixel.show();  
+  neopixel.show();
 
   gfx.setTextColor(EPD_BLACK);
   displayHeading(owcdata);
@@ -462,24 +495,24 @@ void displayCurrentConditions(OpenWeatherMapCurrentData &owcdata)
   gfx.setCursor(gfx.width()/2 + (gfx.width()/2-getStringLength(String(itemp)))/2,130);
   gfx.print(itemp);
   gfx.setTextColor(EPD_BLACK);
-  
+
   // draw temperature degree as a circle (not available as font character
   gfx.drawCircle(gfx.width()/2 + (gfx.width()/2 + getStringLength(String(itemp)))/2 + 10, 130-26,4,color);
   gfx.drawCircle(gfx.width()/2 + (gfx.width()/2 + getStringLength(String(itemp)))/2 + 10, 130-26,3,color);
-  
+
   gfx.display();
   gfx.powerDown();
   neopixel.setPixelColor(0, neopixel.Color(0, 0, 0));
-  neopixel.show(); 
+  neopixel.show();
 }
 
 void displaySunMoon(OpenWeatherMapCurrentData &owcdata)
 {
-  
+
   gfx.powerUp();
   gfx.clearBuffer();
   neopixel.setPixelColor(0, neopixel.Color(0, 255, 0));
-  neopixel.show();  
+  neopixel.show();
 
   gfx.setTextColor(EPD_BLACK);
   displayHeading(owcdata);
@@ -541,13 +574,13 @@ void displaySunMoon(OpenWeatherMapCurrentData &owcdata)
   gfx.display();
   gfx.powerDown();
   neopixel.setPixelColor(0, neopixel.Color(0, 0, 0));
-  neopixel.show(); 
+  neopixel.show();
 }
 
 void setup() {
   neopixel.begin();
   neopixel.show();
-  
+
   gfx.begin();
   Serial.println("ePaper display initialized");
   gfx.setRotation(2);
@@ -557,12 +590,13 @@ void setup() {
 
 void loop() {
   char data[4000];
+  char aqiData[4000];
   static uint32_t timer = millis();
   static uint8_t lastbutton = 1;
   static bool firsttime = true;
 
   int button = readButtons();
-  
+
   // update weather data at specified interval or when button 4 is pressed
   if((millis() >= (timer + 1000*60*UPDATE_INTERVAL)) || (button == 4) || firsttime)
   {
@@ -577,7 +611,7 @@ void loop() {
       if(retry < 0)
       {
         displayError("Can not connect to WiFi, press reset to restart");
-        while(1);      
+        while(1);
       }
     }
     String urlc = owclient.buildUrlCurrent(OWM_KEY,OWM_LOCATION);
@@ -590,7 +624,7 @@ void loop() {
       if(strlen(data) == 0 && retry < 0)
       {
         displayError("Can not get weather data, press reset to restart");
-        while(1);      
+        while(1);
       }
     }
     while(strlen(data) == 0);
@@ -607,7 +641,45 @@ void loop() {
       }
       delay(5000);
     }
-  
+
+
+    bool ozone = false;
+    retry = 2;
+    do
+    {
+      retry--;
+      String url_quality = airQualityApi.buildUrlCurrent(ozone);
+      Serial.print(ozone ? "Ozone - " : "PM2.5 Reading - ");
+      Serial.println(url_quality);
+      wget(url_quality, 80, aqiData);
+      if(strlen(aqiData) == 0 && retry < 0)
+      {
+        displayError("Can not get air quality data, press reset to restart");
+        while(1);
+      }
+      if (strlen(aqiData) == 0) {
+        Serial.print("Switch ozone... ");
+        ozone = !ozone; // Try the other data type.
+      }
+      Serial.println(ozone ? "Next: Ozone" : "Next: PM2.5 Reading");
+    }
+    while(strlen(aqiData) == 0);
+    Serial.println("aqiData retrieved:");
+    Serial.println(aqiData);
+    delay(1000);
+    retry = 2;
+    while(!airQualityApi.updateCurrent(airQualityData,aqiData))
+    {
+      retry--;
+      if(retry < 0)
+      {
+        displayError(airQualityApi.getError());
+        while(1);
+      }
+      delay(5000);
+    }
+
+
     String urlf = owclient.buildUrlForecast(OWM_KEY,OWM_LOCATION);
     Serial.println(urlf);
     wget(urlf,80,data);
@@ -631,8 +703,8 @@ void loop() {
 
     switch(lastbutton)
     {
-      case 1:        
-        displayAllWeather(owcdata,owfdata,3);
+      case 1:
+        displayAllWeather(airQualityData,owcdata,owfdata,3);
         break;
       case 2:
         displayCurrentConditions(owcdata);
@@ -650,7 +722,7 @@ void loop() {
   Serial.print("Button "); Serial.print(button); Serial.println(" pressed");
 
   if (button == 1) {
-    displayAllWeather(owcdata,owfdata,3);
+    displayAllWeather(airQualityData,owcdata,owfdata,3);
     lastbutton = button;
   }
   if (button == 2) {
@@ -662,7 +734,7 @@ void loop() {
     displaySunMoon(owcdata);
     lastbutton = button;
   }
-  
+
   // wait until button is released
   while (readButtons()) {
     delay(10);
