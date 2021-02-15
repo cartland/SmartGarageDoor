@@ -506,7 +506,7 @@ void displayCurrentConditions(AirQualityObservation &airQualityData, OpenWeather
   neopixel.show();
 }
 
-void displaySunMoon(AirQualityObservation &airQualityData, OpenWeatherMapCurrentData &owcdata)
+void displayTempIconAqi(AirQualityObservation &airQualityData, OpenWeatherMapCurrentData &owcdata)
 {
   String text = "";
   int x, y;
@@ -659,7 +659,7 @@ void loop() {
   char data[4000];
   char aqiData[4000];
   static uint32_t timer = millis();
-  static uint8_t lastbutton = 3;
+  static uint8_t lastbutton = 1;
   static bool firsttime = true;
 
   int button = readButtons();
@@ -771,13 +771,13 @@ void loop() {
     switch(lastbutton)
     {
       case 1:
-        displayAllWeather(airQualityData,owcdata,owfdata,3);
+        displayTempIconAqi(airQualityData, owcdata);
         break;
       case 2:
         displayCurrentConditions(airQualityData, owcdata);
         break;
       case 3:
-        displaySunMoon(airQualityData, owcdata);
+        displayAllWeather(airQualityData,owcdata,owfdata,3);
         break;
     }
   }
@@ -789,7 +789,7 @@ void loop() {
   Serial.print("Button "); Serial.print(button); Serial.println(" pressed");
 
   if (button == 1) {
-    displayAllWeather(airQualityData,owcdata,owfdata,3);
+    displayTempIconAqi(airQualityData, owcdata);
     lastbutton = button;
   }
   if (button == 2) {
@@ -798,7 +798,7 @@ void loop() {
     lastbutton = button;
   }
   if (button == 3) {
-    displaySunMoon(airQualityData, owcdata);
+    displayAllWeather(airQualityData,owcdata,owfdata,3);
     lastbutton = button;
   }
 
