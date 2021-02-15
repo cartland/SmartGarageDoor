@@ -520,17 +520,20 @@ void loop() {
   // Update weather data at specified interval or when button 4 is pressed.
   if ((millis() >= (timer + 1000*60*UPDATE_INTERVAL)) || (button == 4) || firsttime) {
     char data[4000];
+    String error = "";
+    String errors = "";
     Serial.println("getting weather data");
     firsttime = false;
     timer = millis();
-
     // Connect to WiFi.
     int retry = 6;
     while(!wifi_connect()) {
       delay(5000);
       retry--;
       if (retry < 0) {
-        displayError("Can not connect to WiFi, press reset to restart");
+        error = "Can not connect to WiFi, press reset to restart";
+        errors = errors + error + '\n';
+        displayError(errors);
         return;
       }
     }
@@ -544,17 +547,21 @@ void loop() {
       wget(urlc, 80, data);
     } while((strlen(data) == 0) && (retry >= 0));
     if (strlen(data) == 0) {
-      Serial.println("Can not get weather data, press reset to restart");
-      displayError("Can not get weather data, press reset to restart");
+      error = "Can not get weather data, press reset to restart";
+      errors = errors + error + '\n';
+      Serial.println(error);
     } else {
       Serial.print("Weather Data: ");
       Serial.println(data);
     }
-    retry = 6;
+    retry = 0;
     while (!owclient.updateCurrent(owcdata, data)) {
       retry--;
       if (retry < 0) {
-        displayError(owclient.getError());
+        error = "Can not connect to WiFi, press reset to restart";
+        errors = errors + error + '\n';
+        Serial.println(error);
+        displayError(errors);
         return;
       }
       delay(5000);
@@ -575,14 +582,15 @@ void loop() {
       }
     } while ((strlen(data) == 0) && retry >= 0);
     if (strlen(data) == 0) {
-      Serial.println("Can not get air quality data, press reset to restart");
-      displayError("Can not get air quality data, press reset to restart");
+      error = "Can not get air quality data, press reset to restart";
+      errors = errors + error + '\n';
+      Serial.println(error);
     } else {
       Serial.print("Air Quality Data: ");
       Serial.println(data);
     }
     delay(1000);
-    retry = 2;
+    retry = 0;
     while (!airQualityApi.updateCurrent(airQualityData, data)) {
       retry--;
       if (retry < 0) {
@@ -598,19 +606,19 @@ void loop() {
     Serial.print("Forecast Data: ");
     Serial.println(data);
     if (!owclient.updateForecast(owfdata[0], data, 0)) {
-      String error = owclient.getError();
+      error = owclient.getError();
+      errors = errors + error + '\n';
       Serial.println(error);
-      displayError(error);
     }
     if (!owclient.updateForecast(owfdata[1], data, 2)) {
-      String error = owclient.getError();
+      error = owclient.getError();
+      errors = errors + error + '\n';
       Serial.println(error);
-      displayError(error);
     }
     if (!owclient.updateForecast(owfdata[2], data, 4)) {
-      String error = owclient.getError();
+      error = owclient.getError();
+      errors = errors + error + '\n';
       Serial.println(error);
-      displayError(error);
     }
     switch (lastbutton) {
       case 1:
@@ -623,6 +631,9 @@ void loop() {
         displayForecast(airQualityData,owcdata,owfdata,3);
         break;
     }
+    Serial.println("errors");
+    Serial.println(errors);
+    displayError(errors);
   }
 
   // If no buttons are pressed, we are done with the loop.

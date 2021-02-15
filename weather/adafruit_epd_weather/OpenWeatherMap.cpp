@@ -139,7 +139,7 @@ bool AirliftOpenWeatherMap::updateCurrent(OpenWeatherMapCurrentData &data, Strin
 
 bool AirliftOpenWeatherMap::updateForecast(OpenWeatherMapForecastData &data, String json, int day)
 {
-  Serial->println("updateForecast, day: " + day);
+  Serial->println("updateForecast, day: " + String(day));
   DynamicJsonDocument doc(5000);
 
   DeserializationError error = deserializeJson(doc, json);
