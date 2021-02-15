@@ -102,9 +102,9 @@ bool wifi_connect() {
 }
 
 void wget(String &url, int port, char *buff) {
-  int pos1 = url.indexOf("/",0);
-  int pos2 = url.indexOf("/",8);
-  String host = url.substring(pos1+2,pos2);
+  int pos1 = url.indexOf("/", 0);
+  int pos2 = url.indexOf("/", 8);
+  String host = url.substring(pos1 + 2, pos2);
   String path = url.substring(pos2);
   Serial.println("to wget(" + host + "," + path + "," + port + ")");
   wget(host, path, port, buff);
@@ -432,8 +432,7 @@ void displayTemperature(AirQualityObservation &airQualityData, OpenWeatherMapCur
   neopixel.show();
 }
 
-void displayForecast(AirQualityObservation &airQualityData, OpenWeatherMapCurrentData &owcdata, OpenWeatherMapForecastData owfdata[], int count = 3)
-{
+void displayForecast(AirQualityObservation &airQualityData, OpenWeatherMapCurrentData &owcdata, OpenWeatherMapForecastData owfdata[], int count = 3) {
   // Set LED to Green while updating display.
   neopixel.setPixelColor(0, neopixel.Color(0, 255, 0));
   neopixel.show();
@@ -599,16 +598,19 @@ void loop() {
     Serial.print("Forecast Data: ");
     Serial.println(data);
     if (!owclient.updateForecast(owfdata[0], data, 0)) {
-      displayError(owclient.getError());
-      return;
+      String error = owclient.getError();
+      Serial.println(error);
+      displayError(error);
     }
     if (!owclient.updateForecast(owfdata[1], data, 2)) {
-      displayError(owclient.getError());
-      return;
+      String error = owclient.getError();
+      Serial.println(error);
+      displayError(error);
     }
     if (!owclient.updateForecast(owfdata[2], data, 4)) {
-      displayError(owclient.getError());
-      return;
+      String error = owclient.getError();
+      Serial.println(error);
+      displayError(error);
     }
     switch (lastbutton) {
       case 1:

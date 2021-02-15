@@ -101,7 +101,6 @@ bool AirliftOpenWeatherMap::updateCurrent(OpenWeatherMapCurrentData &data, Strin
 {
   Serial->println("updateCurrent()");
   DynamicJsonDocument doc(2000);
-  //StaticJsonDocument<2000> doc;
 
   DeserializationError error = deserializeJson(doc, json);
   if (error) {
@@ -110,15 +109,6 @@ bool AirliftOpenWeatherMap::updateCurrent(OpenWeatherMapCurrentData &data, Strin
     setError(String("deserializeJson() failed: ") + error.c_str());
     return false;
   }
-
-  // TODO: Check for errors in the data.
-  //  int code = (int) doc["cod"];
-  //  if(code != 200)
-  //  {
-  //    Serial->println(String("OpenWeatherMap error: ") + (const char *)doc["message"]);
-  //    setError(String("OpenWeatherMap error: ") + (const char *)doc["message"]);
-  //    return false;
-  //  }
 
   data.lat = (float) doc["lat"];
   data.lon = (float) doc["lon"];
@@ -149,9 +139,8 @@ bool AirliftOpenWeatherMap::updateCurrent(OpenWeatherMapCurrentData &data, Strin
 
 bool AirliftOpenWeatherMap::updateForecast(OpenWeatherMapForecastData &data, String json, int day)
 {
-  Serial->println("updateForecast()");
+  Serial->println("updateForecast, day: " + day);
   DynamicJsonDocument doc(5000);
-  //StaticJsonDocument<5000> doc;
 
   DeserializationError error = deserializeJson(doc, json);
   if (error) {
@@ -162,8 +151,7 @@ bool AirliftOpenWeatherMap::updateForecast(OpenWeatherMapForecastData &data, Str
   }
 
   int code = (int) doc["cod"];
-  if(code != 200)
-  {
+  if (code != 200) {
     Serial->println(String("OpenWeatherMap error: ") + (const char *)doc["message"]);
     setError(String("OpenWeatherMap error: ") + (const char *)doc["message"]);
     return false;

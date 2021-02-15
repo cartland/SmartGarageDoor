@@ -22,7 +22,6 @@ class AirQualityApi {
     Stream *Serial;
     String currentKey;
     String currentParent;
-    //OpenWeatherMapCurrentData *data;
     uint8_t weatherItemCounter = 0;
     bool metric = true;
     String language;

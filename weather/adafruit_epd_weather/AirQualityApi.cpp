@@ -6,11 +6,9 @@ String AirQualityApi::buildUrlCurrent(bool ozone) {
   return baseUrl + "?zipCode=" + ZIP_CODE + "&miles=" + String(DISTANCE_MILES) + "&airNowApiKey=" + AIR_NOW_API_KEY + "&parameterName=" + parameterName;
 }
 
-bool AirQualityApi::updateCurrent(AirQualityObservation &data, String json)
-{
+bool AirQualityApi::updateCurrent(AirQualityObservation &data, String json) {
   Serial->println("AirQualityApi updateCurrent()");
   DynamicJsonDocument doc(2000);
-  //StaticJsonDocument<2000> doc;
 
   Serial->println(json);
   DeserializationError error = deserializeJson(doc, json);
@@ -21,16 +19,6 @@ bool AirQualityApi::updateCurrent(AirQualityObservation &data, String json)
     return false;
   }
 
-  // TODO: Check for errors in the data.
-  //  Serial->print("Checking Code - ");
-  //  int code = (int) doc["cod"];
-  //  if(code != 200)
-  //  {
-  //    Serial->print("Code Error - " + String(code));
-  //    Serial->println(String("AirQualityApi error: ") + (const char *)doc["message"]);
-  //    setError(String("AirQualityApi error: ") + (const char *)doc["message"]);
-  //    return false;
-  //  }
   data.DateObserved = (const char*) doc["DateObserved"];    // "2021-02-13"
   data.HourObserved = (int) doc["HourObserved"];            // 22
   data.LocalTimeZone = (const char*) doc["LocalTimeZone"];  // "PST"
