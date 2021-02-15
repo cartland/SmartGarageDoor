@@ -543,13 +543,14 @@ void loop() {
     {
       retry--;
       wget(urlc, 80, data);
-      if (strlen(data) == 0 && retry < 0) {
-        displayError("Can not get weather data, press reset to restart");
-        return;
-      }
-    } while(strlen(data) == 0);
-    Serial.println("data retrieved:");
-    Serial.println(data);
+    } while((strlen(data) == 0) && (retry >= 0));
+    if (strlen(data) == 0) {
+      Serial.println("Can not get weather data, press reset to restart");
+      displayError("Can not get weather data, press reset to restart");
+    } else {
+      Serial.print("Weather Data: ");
+      Serial.println(data);
+    }
     retry = 6;
     while (!owclient.updateCurrent(owcdata, data)) {
       retry--;
@@ -561,26 +562,26 @@ void loop() {
     }
     // Update air quality data.
     bool ozone = false;
-    retry = 2;
+    retry = 6;
     do
     {
       retry--;
       String url_quality = airQualityApi.buildUrlCurrent(ozone);
-      Serial.print(ozone ? "Ozone - " : "PM2.5 Reading - ");
+      Serial.println(ozone ? "Requesting Ozone Air Quality Data" : "Requesting PM2.5 Air Quality Data");
       Serial.println(url_quality);
       wget(url_quality, 80, data);
-      if (strlen(data) == 0 && retry < 0) {
-        displayError("Can not get air quality data, press reset to restart");
-        return;
-      }
       if (strlen(data) == 0) {
-        Serial.print("Switch ozone... ");
+        Serial.print("Switch PM2.5 / ozone... ");
         ozone = !ozone; // Try the other data type.
       }
-      Serial.println(ozone ? "Next: Ozone" : "Next: PM2.5 Reading");
-    } while (strlen(data) == 0);
-    Serial.println("data retrieved:");
-    Serial.println(data);
+    } while ((strlen(data) == 0) && retry >= 0);
+    if (strlen(data) == 0) {
+      Serial.println("Can not get air quality data, press reset to restart");
+      displayError("Can not get air quality data, press reset to restart");
+    } else {
+      Serial.print("Air Quality Data: ");
+      Serial.println(data);
+    }
     delay(1000);
     retry = 2;
     while (!airQualityApi.updateCurrent(airQualityData, data)) {
@@ -595,7 +596,7 @@ void loop() {
     String urlf = owclient.buildUrlForecast(OWM_API_KEY, "San Francisco,CA,US");
     Serial.println(urlf);
     wget(urlf, 80, data);
-    Serial.println("data retrieved:");
+    Serial.print("Forecast Data: ");
     Serial.println(data);
     if (!owclient.updateForecast(owfdata[0], data, 0)) {
       displayError(owclient.getError());
