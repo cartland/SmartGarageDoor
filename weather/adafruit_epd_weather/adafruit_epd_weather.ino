@@ -294,207 +294,31 @@ void displayHeadingAqi(AirQualityObservation &airQualityObservation)
 
 void displayHeading(OpenWeatherMapCurrentData &owcdata)
 {
+  String text;
+  int x, y;
+  int middleColumn = gfx.width() / 2;
+  int dateHeight = 30;
+  int cityHeight = 60;
 
+  // Date.
   time_t local = owcdata.observationTime + owcdata.timezone;
   struct tm *timeinfo = gmtime(&local);
   char datestr[80];
-  // date
-  //strftime(datestr,80,"%a, %d %b %Y",timeinfo);
   strftime(datestr,80,"%a, %b %d",timeinfo);
+  text = String(datestr);
   gfx.setFont(&FreeSans18pt7b);
-  gfx.setCursor((gfx.width()-getStringLength(datestr))/2,30);
-  gfx.print(datestr);
+  x = middleColumn - (getStringLength(text) / 2);
+  y = dateHeight;
+  gfx.setCursor(x, y);
+  gfx.print(text);
 
-  // city
-  strftime(datestr,80,"%A",timeinfo);
+  // City.
+  text = owcdata.cityName;
   gfx.setFont(&FreeSansBold12pt7b);
-  gfx.setCursor((gfx.width()-getStringLength(owcdata.cityName))/2,60);
-  gfx.print(owcdata.cityName);
-}
-
-void displayForecastDays(OpenWeatherMapCurrentData &owcdata, OpenWeatherMapForecastData owfdata[], int count = 3)
-{
-  for(int i=0; i < count; i++)
-  {
-    // day
-
-    time_t local = owfdata[i].observationTime + owcdata.timezone;
-    struct tm *timeinfo = gmtime(&local);
-    char strbuff[80];
-    strftime(strbuff,80,"%I",timeinfo);
-    String datestr = String(atoi(strbuff));
-    strftime(strbuff,80,"%p",timeinfo);
-    // convert AM/PM to lowercase
-    strbuff[0] = tolower(strbuff[0]);
-    strbuff[1] = tolower(strbuff[1]);
-    datestr = datestr + " " + String(strbuff);
-    gfx.setFont(&FreeSans9pt7b);
-    gfx.setCursor(i*gfx.width()/3 + (gfx.width()/3-getStringLength(datestr))/2,94);
-    gfx.print(datestr);
-
-    // weather icon
-    String wicon = owclient.getMeteoconIcon(owfdata[i].icon);
-    gfx.setFont(&meteocons20pt7b);
-    gfx.setCursor(i*gfx.width()/3 + (gfx.width()/3-getStringLength(wicon))/2,134);
-    gfx.print(wicon);
-
-    // weather main description
-    gfx.setFont(&FreeSans9pt7b);
-    gfx.setCursor(i*gfx.width()/3 + (gfx.width()/3-getStringLength(owfdata[i].main))/2,154);
-    gfx.print(owfdata[i].main);
-
-    // temperature
-    int itemp = (int)(owfdata[i].temp + .5);
-    gfx.setTextColor(EPD_BLACK);
-    gfx.setFont(&FreeSans9pt7b);
-    gfx.setCursor(i*gfx.width()/3 + (gfx.width()/3-getStringLength(String(itemp)))/2,172);
-    gfx.print(itemp);
-    gfx.drawCircle(i*gfx.width()/3 + (gfx.width()/3-getStringLength(String(itemp)))/2 + getStringLength(String(itemp)) + 6,163,3,EPD_BLACK);
-    gfx.drawCircle(i*gfx.width()/3 + (gfx.width()/3-getStringLength(String(itemp)))/2 + getStringLength(String(itemp)) + 6,163,2,EPD_BLACK);
-    gfx.setTextColor(EPD_BLACK);
-  }
-}
-
-void displayForecast(OpenWeatherMapCurrentData &owcdata, OpenWeatherMapForecastData owfdata[], int count = 3)
-{
-  gfx.powerUp();
-  gfx.clearBuffer();
-  neopixel.setPixelColor(0, neopixel.Color(0, 255, 0));
-  neopixel.show();
-
-  gfx.setTextColor(EPD_BLACK);
-  displayHeading(owcdata);
-
-  displayForecastDays(owcdata, owfdata, count);
-  gfx.display();
-  gfx.powerDown();
-  neopixel.setPixelColor(0, neopixel.Color(0, 0, 0));
-  neopixel.show();
-}
-
-void displayAllWeather(AirQualityObservation &airQualityData, OpenWeatherMapCurrentData &owcdata, OpenWeatherMapForecastData owfdata[], int count = 3)
-{
-  gfx.powerUp();
-  gfx.clearBuffer();
-  neopixel.setPixelColor(0, neopixel.Color(0, 255, 0));
-  neopixel.show();
-
-  gfx.setTextColor(EPD_BLACK);
-
-  // date string
-  time_t local = owcdata.observationTime + owcdata.timezone;
-  struct tm *timeinfo = gmtime(&local);
-  char datestr[80];
-  // date
-  //strftime(datestr,80,"%a, %d %b %Y",timeinfo);
-  strftime(datestr,80,"%a, %b %d %Y",timeinfo);
-  gfx.setFont(&FreeSans9pt7b);
-  gfx.setCursor((gfx.width()-getStringLength(datestr))/2,14);
-  gfx.print(datestr);
-
-  // weather icon
-  String wicon = owclient.getMeteoconIcon(owcdata.icon);
-  gfx.setFont(&meteocons24pt7b);
-  gfx.setCursor((gfx.width()/3-getStringLength(wicon))/2,56);
-  gfx.print(wicon);
-
-  // weather main description
-  gfx.setFont(&FreeSans9pt7b);
-  gfx.setCursor((gfx.width()/3-getStringLength(owcdata.main))/2,72);
-  gfx.print(owcdata.main);
-
-  // temperature
-  gfx.setFont(&FreeSansBold24pt7b);
-  int itemp = owcdata.temp + .5;
-  gfx.setTextColor(EPD_BLACK);
-  gfx.setCursor(gfx.width()/3 + (gfx.width()/3-getStringLength(String(itemp)))/2,58);
-  gfx.print(itemp);
-  gfx.setTextColor(EPD_BLACK);
-  // draw temperature degree as a circle (not available as font character
-  gfx.drawCircle(gfx.width()/3 + (gfx.width()/3 + getStringLength(String(itemp)))/2 + 8, 58-30,4,EPD_BLACK);
-  gfx.drawCircle(gfx.width()/3 + (gfx.width()/3 + getStringLength(String(itemp)))/2 + 8, 58-30,3,EPD_BLACK);
-
-//  // draw moon
-//  // draw Moon Phase
-//  float moonphase = getMoonPhase(owcdata.observationTime);
-//  int moonage = 29.5305882 * moonphase;
-//  //Serial.println("moon age: " + String(moonage));
-//  // convert to appropriate icon
-//  String moonstr = String((char)((int)'A' + (int)(moonage*25./30)));
-//  gfx.setFont(&moon_phases20pt7b);
-//  // font lines look a little thin at this size, drawing it a few times to thicken the lines
-//  gfx.setCursor(2*gfx.width()/3 + (gfx.width()/3-getStringLength(moonstr))/2,56);
-//  gfx.print(moonstr);
-//  gfx.setCursor(2*gfx.width()/3 + (gfx.width()/3-getStringLength(moonstr))/2+1,56);
-//  gfx.print(moonstr);
-//  gfx.setCursor(2*gfx.width()/3 + (gfx.width()/3-getStringLength(moonstr))/2,56-1);
-//  gfx.print(moonstr);
-
-//  // draw moon phase name
-//  int currentphase = moonphase * 28. + .5;
-//  gfx.setFont(); // system font (smallest available)
-//  gfx.setCursor(2*gfx.width()/3 + max(0,(gfx.width()/3 - getStringLength(moonphasenames[currentphase]))/2),62);
-//  gfx.print(moonphasenames[currentphase]);
-
-
-  // AQI
-  gfx.setTextColor(EPD_BLACK);
-  // AQI Value.
-  String aqiValue = String((int)(airQualityData.AQI + .5));
-  gfx.setFont(&FreeSansBold24pt7b);
-  gfx.setCursor(2*gfx.width()/3 + (gfx.width()/3-getStringLength(aqiValue))/2,56);
-  gfx.print(aqiValue);
-  // AQI Type.
-  String aqiType = airQualityData.ParameterName;
-  gfx.setFont(&FreeSans9pt7b);
-  gfx.setCursor(2*gfx.width()/3 + (gfx.width()/3-getStringLength(aqiType))/2,72);
-  gfx.print(aqiType);
-
-  displayForecastDays(owcdata, owfdata, count);
-  gfx.display();
-  gfx.powerDown();
-  neopixel.setPixelColor(0, neopixel.Color(0, 0, 0));
-  neopixel.show();
-
-}
-
-void displayCurrentConditions(AirQualityObservation &airQualityData, OpenWeatherMapCurrentData &owcdata)
-{
-  gfx.powerUp();
-  gfx.clearBuffer();
-  neopixel.setPixelColor(0, neopixel.Color(0, 255, 0));
-  neopixel.show();
-
-  gfx.setTextColor(EPD_BLACK);
-  displayHeading(owcdata);
-
-  // weather icon
-  String wicon = owclient.getMeteoconIcon(owcdata.icon);
-  gfx.setFont(&meteocons48pt7b);
-  gfx.setCursor((gfx.width()/2-getStringLength(wicon))/2,156);
-  gfx.print(wicon);
-
-  // weather main description
-  gfx.setFont(&FreeSans9pt7b);
-  gfx.setCursor(gfx.width()/2 + (gfx.width()/2-getStringLength(owcdata.main))/2,160);
-  gfx.print(owcdata.main);
-
-  // temperature
-  gfx.setFont(&FreeSansBold24pt7b);
-  int itemp = owcdata.temp + .5;
-  gfx.setTextColor(EPD_BLACK);
-  gfx.setCursor(gfx.width()/2 + (gfx.width()/2-getStringLength(String(itemp)))/2,130);
-  gfx.print(itemp);
-  gfx.setTextColor(EPD_BLACK);
-
-  // draw temperature degree as a circle (not available as font character
-  gfx.drawCircle(gfx.width()/2 + (gfx.width()/2 + getStringLength(String(itemp)))/2 + 10, 130-26,4,EPD_BLACK);
-  gfx.drawCircle(gfx.width()/2 + (gfx.width()/2 + getStringLength(String(itemp)))/2 + 10, 130-26,3,EPD_BLACK);
-
-  gfx.display();
-  gfx.powerDown();
-  neopixel.setPixelColor(0, neopixel.Color(0, 0, 0));
-  neopixel.show();
+  x = middleColumn - (getStringLength(text) / 2);
+  y = cityHeight;
+  gfx.setCursor(x, y);
+  gfx.print(text);
 }
 
 void displayTempIconAqi(AirQualityObservation &airQualityData, OpenWeatherMapCurrentData &owcdata)
@@ -635,6 +459,113 @@ void displayTempIconAqi(AirQualityObservation &airQualityData, OpenWeatherMapCur
   neopixel.show();
 }
 
+void displayTemperature(AirQualityObservation &airQualityData, OpenWeatherMapCurrentData &owcdata)
+{
+  gfx.powerUp();
+  gfx.clearBuffer();
+  neopixel.setPixelColor(0, neopixel.Color(0, 255, 0));
+  neopixel.show();
+
+  gfx.setTextColor(EPD_BLACK);
+  displayHeading(owcdata);
+
+  // weather icon
+  String wicon = owclient.getMeteoconIcon(owcdata.icon);
+  gfx.setFont(&meteocons48pt7b);
+  gfx.setCursor((gfx.width()/2-getStringLength(wicon))/2,156);
+  gfx.print(wicon);
+
+  // weather main description
+  gfx.setFont(&FreeSans9pt7b);
+  gfx.setCursor(gfx.width()/2 + (gfx.width()/2-getStringLength(owcdata.main))/2,160);
+  gfx.print(owcdata.main);
+
+  // temperature
+  gfx.setFont(&FreeSansBold24pt7b);
+  int itemp = owcdata.temp + .5;
+  gfx.setTextColor(EPD_BLACK);
+  gfx.setCursor(gfx.width()/2 + (gfx.width()/2-getStringLength(String(itemp)))/2,130);
+  gfx.print(itemp);
+  gfx.setTextColor(EPD_BLACK);
+
+  // draw temperature degree as a circle (not available as font character
+  gfx.drawCircle(gfx.width()/2 + (gfx.width()/2 + getStringLength(String(itemp)))/2 + 10, 130-26,4,EPD_BLACK);
+  gfx.drawCircle(gfx.width()/2 + (gfx.width()/2 + getStringLength(String(itemp)))/2 + 10, 130-26,3,EPD_BLACK);
+
+  gfx.display();
+  gfx.powerDown();
+  neopixel.setPixelColor(0, neopixel.Color(0, 0, 0));
+  neopixel.show();
+}
+
+void displayForecast(AirQualityObservation &airQualityData, OpenWeatherMapCurrentData &owcdata, OpenWeatherMapForecastData owfdata[], int count = 3)
+{
+  gfx.powerUp();
+  gfx.clearBuffer();
+  neopixel.setPixelColor(0, neopixel.Color(0, 255, 0));
+  neopixel.show();
+
+  gfx.setTextColor(EPD_BLACK);
+  displayHeading(owcdata);
+
+  // Display forecast.
+  int columnSeparation = gfx.width() / count;
+  int timeHeight = 94;
+  int dataPositionHeight = 130;
+  String text;
+  int x, y;
+  for(int i = 0; i < count; i++) {
+    // Date.
+    time_t local = owfdata[i].observationTime + owcdata.timezone;
+    struct tm *timeinfo = gmtime(&local);
+    char strbuff[80];
+    strftime(strbuff,80,"%I",timeinfo);
+    text = String(atoi(strbuff));
+    strftime(strbuff,80,"%p",timeinfo);
+    // Convert AM/PM to lowercase.
+    strbuff[0] = tolower(strbuff[0]);
+    strbuff[1] = tolower(strbuff[1]);
+    text = text + " " + String(strbuff);
+    gfx.setFont(&FreeSans9pt7b);
+    x = i*columnSeparation + (columnSeparation - getStringLength(text))/2;
+    y = timeHeight;
+    gfx.setCursor(x, y);
+    gfx.print(text);
+
+    // Weather icon.
+    text = owclient.getMeteoconIcon(owfdata[i].icon);
+    gfx.setFont(&meteocons20pt7b);
+    x = i*columnSeparation + (columnSeparation - getStringLength(text))/2;
+    y = dataPositionHeight;
+    gfx.setCursor(x, y);
+    gfx.print(text);
+
+    // Weather description.
+    text = owfdata[i].main;
+    gfx.setFont(&FreeSans9pt7b);
+    x = i*columnSeparation + (columnSeparation - getStringLength(text))/2;
+    y = dataPositionHeight + 20;
+    gfx.setCursor(x, y);
+    gfx.print(text);
+
+    // Temperature.
+    int itemp = (int)(owfdata[i].temp + .5);
+    text = String(itemp);
+    gfx.setFont(&FreeSans9pt7b);
+    x = i*columnSeparation + (columnSeparation - getStringLength(text))/2;
+    y = dataPositionHeight + 38;
+    gfx.setCursor(x, y);
+    gfx.print(text);
+    gfx.drawCircle(x + getStringLength(text) + 6, y-9, 3, EPD_BLACK);
+    gfx.drawCircle(x + getStringLength(text) + 6, y-9, 2, EPD_BLACK);
+  }
+
+  gfx.display();
+  gfx.powerDown();
+  neopixel.setPixelColor(0, neopixel.Color(0, 0, 0));
+  neopixel.show();
+}
+
 void setup() {
   neopixel.begin();
   neopixel.show();
@@ -763,10 +694,10 @@ void loop() {
         displayTempIconAqi(airQualityData, owcdata);
         break;
       case 2:
-        displayCurrentConditions(airQualityData, owcdata);
+        displayTemperature(airQualityData, owcdata);
         break;
       case 3:
-        displayAllWeather(airQualityData,owcdata,owfdata,3);
+        displayForecast(airQualityData,owcdata,owfdata,3);
         break;
     }
   }
@@ -782,12 +713,11 @@ void loop() {
     lastbutton = button;
   }
   if (button == 2) {
-    //displayForecast(owcdata,owfdata,3);
-    displayCurrentConditions(airQualityData,owcdata);
+    displayTemperature(airQualityData,owcdata);
     lastbutton = button;
   }
   if (button == 3) {
-    displayAllWeather(airQualityData,owcdata,owfdata,3);
+    displayForecast(airQualityData,owcdata,owfdata,3);
     lastbutton = button;
   }
 
