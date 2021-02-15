@@ -647,8 +647,6 @@ void setup() {
 }
 
 void loop() {
-  char data[4000];
-  char aqiData[4000];
   static uint32_t timer = millis();
   static uint8_t lastbutton = 1;
   static bool firsttime = true;
@@ -658,6 +656,7 @@ void loop() {
   // update weather data at specified interval or when button 4 is pressed
   if((millis() >= (timer + 1000*60*UPDATE_INTERVAL)) || (button == 4) || firsttime)
   {
+    char data[4000];
     Serial.println("getting weather data");
     firsttime = false;
     timer = millis();
@@ -669,7 +668,7 @@ void loop() {
       if(retry < 0)
       {
         displayError("Can not connect to WiFi, press reset to restart");
-        while(1);
+        return;
       }
     }
     String urlc = owclient.buildUrlCurrent();
@@ -682,7 +681,7 @@ void loop() {
       if(strlen(data) == 0 && retry < 0)
       {
         displayError("Can not get weather data, press reset to restart");
-        while(1);
+        return;
       }
     }
     while(strlen(data) == 0);
@@ -695,7 +694,7 @@ void loop() {
       if(retry < 0)
       {
         displayError(owclient.getError());
-        while(1);
+        return;
       }
       delay(5000);
     }
@@ -709,30 +708,30 @@ void loop() {
       String url_quality = airQualityApi.buildUrlCurrent(ozone);
       Serial.print(ozone ? "Ozone - " : "PM2.5 Reading - ");
       Serial.println(url_quality);
-      wget(url_quality, 80, aqiData);
-      if(strlen(aqiData) == 0 && retry < 0)
+      wget(url_quality, 80, data);
+      if(strlen(data) == 0 && retry < 0)
       {
         displayError("Can not get air quality data, press reset to restart");
-        while(1);
+        return;
       }
-      if (strlen(aqiData) == 0) {
+      if (strlen(data) == 0) {
         Serial.print("Switch ozone... ");
         ozone = !ozone; // Try the other data type.
       }
       Serial.println(ozone ? "Next: Ozone" : "Next: PM2.5 Reading");
     }
-    while(strlen(aqiData) == 0);
-    Serial.println("aqiData retrieved:");
-    Serial.println(aqiData);
+    while(strlen(data) == 0);
+    Serial.println("data retrieved:");
+    Serial.println(data);
     delay(1000);
     retry = 2;
-    while(!airQualityApi.updateCurrent(airQualityData,aqiData))
+    while(!airQualityApi.updateCurrent(airQualityData,data))
     {
       retry--;
       if(retry < 0)
       {
         displayError(airQualityApi.getError());
-        while(1);
+        return;
       }
       delay(5000);
     }
@@ -745,17 +744,17 @@ void loop() {
     if(!owclient.updateForecast(owfdata[0],data,0))
     {
       displayError(owclient.getError());
-      while(1);
+      return;
     }
     if(!owclient.updateForecast(owfdata[1],data,2))
     {
       displayError(owclient.getError());
-      while(1);
+      return;
     }
     if(!owclient.updateForecast(owfdata[2],data,4))
     {
       displayError(owclient.getError());
-      while(1);
+      return;
     }
 
     switch(lastbutton)
