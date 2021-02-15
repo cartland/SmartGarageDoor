@@ -345,15 +345,12 @@ void displayForecastDays(OpenWeatherMapCurrentData &owcdata, OpenWeatherMapForec
 
     // temperature
     int itemp = (int)(owfdata[i].temp + .5);
-    int color = EPD_BLACK;
-    if((int)itemp >= TEMPERATURE_HOT)
-      color = EPD_RED;
-    gfx.setTextColor(color);
+    gfx.setTextColor(EPD_BLACK);
     gfx.setFont(&FreeSans9pt7b);
     gfx.setCursor(i*gfx.width()/3 + (gfx.width()/3-getStringLength(String(itemp)))/2,172);
     gfx.print(itemp);
-    gfx.drawCircle(i*gfx.width()/3 + (gfx.width()/3-getStringLength(String(itemp)))/2 + getStringLength(String(itemp)) + 6,163,3,color);
-    gfx.drawCircle(i*gfx.width()/3 + (gfx.width()/3-getStringLength(String(itemp)))/2 + getStringLength(String(itemp)) + 6,163,2,color);
+    gfx.drawCircle(i*gfx.width()/3 + (gfx.width()/3-getStringLength(String(itemp)))/2 + getStringLength(String(itemp)) + 6,163,3,EPD_BLACK);
+    gfx.drawCircle(i*gfx.width()/3 + (gfx.width()/3-getStringLength(String(itemp)))/2 + getStringLength(String(itemp)) + 6,163,2,EPD_BLACK);
     gfx.setTextColor(EPD_BLACK);
   }
 }
@@ -409,16 +406,13 @@ void displayAllWeather(AirQualityObservation &airQualityData, OpenWeatherMapCurr
   // temperature
   gfx.setFont(&FreeSansBold24pt7b);
   int itemp = owcdata.temp + .5;
-  int color = EPD_BLACK;
-  if((int)itemp >= TEMPERATURE_HOT)
-   color = EPD_RED;
-  gfx.setTextColor(color);
+  gfx.setTextColor(EPD_BLACK);
   gfx.setCursor(gfx.width()/3 + (gfx.width()/3-getStringLength(String(itemp)))/2,58);
   gfx.print(itemp);
   gfx.setTextColor(EPD_BLACK);
   // draw temperature degree as a circle (not available as font character
-  gfx.drawCircle(gfx.width()/3 + (gfx.width()/3 + getStringLength(String(itemp)))/2 + 8, 58-30,4,color);
-  gfx.drawCircle(gfx.width()/3 + (gfx.width()/3 + getStringLength(String(itemp)))/2 + 8, 58-30,3,color);
+  gfx.drawCircle(gfx.width()/3 + (gfx.width()/3 + getStringLength(String(itemp)))/2 + 8, 58-30,4,EPD_BLACK);
+  gfx.drawCircle(gfx.width()/3 + (gfx.width()/3 + getStringLength(String(itemp)))/2 + 8, 58-30,3,EPD_BLACK);
 
 //  // draw moon
 //  // draw Moon Phase
@@ -488,17 +482,14 @@ void displayCurrentConditions(AirQualityObservation &airQualityData, OpenWeather
   // temperature
   gfx.setFont(&FreeSansBold24pt7b);
   int itemp = owcdata.temp + .5;
-  int color = EPD_BLACK;
-  if((int)itemp >= TEMPERATURE_HOT)
-    color = EPD_RED;
-  gfx.setTextColor(color);
+  gfx.setTextColor(EPD_BLACK);
   gfx.setCursor(gfx.width()/2 + (gfx.width()/2-getStringLength(String(itemp)))/2,130);
   gfx.print(itemp);
   gfx.setTextColor(EPD_BLACK);
 
   // draw temperature degree as a circle (not available as font character
-  gfx.drawCircle(gfx.width()/2 + (gfx.width()/2 + getStringLength(String(itemp)))/2 + 10, 130-26,4,color);
-  gfx.drawCircle(gfx.width()/2 + (gfx.width()/2 + getStringLength(String(itemp)))/2 + 10, 130-26,3,color);
+  gfx.drawCircle(gfx.width()/2 + (gfx.width()/2 + getStringLength(String(itemp)))/2 + 10, 130-26,4,EPD_BLACK);
+  gfx.drawCircle(gfx.width()/2 + (gfx.width()/2 + getStringLength(String(itemp)))/2 + 10, 130-26,3,EPD_BLACK);
 
   gfx.display();
   gfx.powerDown();
@@ -746,8 +737,7 @@ void loop() {
       delay(5000);
     }
 
-
-    String urlf = owclient.buildUrlForecast(OWM_API_KEY,OWM_LOCATION);
+    String urlf = owclient.buildUrlForecast(OWM_API_KEY,"San Francisco,CA,US");
     Serial.println(urlf);
     wget(urlf,80,data);
     Serial.println("data retrieved:");
