@@ -346,7 +346,7 @@ void displayForecastDays(OpenWeatherMapCurrentData &owcdata, OpenWeatherMapForec
     // temperature
     int itemp = (int)(owfdata[i].temp + .5);
     int color = EPD_BLACK;
-    if((OWM_METRIC && itemp >= METRIC_HOT)|| (!OWM_METRIC && itemp >= ENGLISH_HOT))
+    if((int)itemp >= TEMPERATURE_HOT)
       color = EPD_RED;
     gfx.setTextColor(color);
     gfx.setFont(&FreeSans9pt7b);
@@ -410,7 +410,7 @@ void displayAllWeather(AirQualityObservation &airQualityData, OpenWeatherMapCurr
   gfx.setFont(&FreeSansBold24pt7b);
   int itemp = owcdata.temp + .5;
   int color = EPD_BLACK;
-  if((OWM_METRIC && (int)itemp >= METRIC_HOT)|| (!OWM_METRIC && (int)itemp >= ENGLISH_HOT))
+  if((int)itemp >= TEMPERATURE_HOT)
    color = EPD_RED;
   gfx.setTextColor(color);
   gfx.setCursor(gfx.width()/3 + (gfx.width()/3-getStringLength(String(itemp)))/2,58);
@@ -489,7 +489,7 @@ void displayCurrentConditions(OpenWeatherMapCurrentData &owcdata)
   gfx.setFont(&FreeSansBold24pt7b);
   int itemp = owcdata.temp + .5;
   int color = EPD_BLACK;
-  if((OWM_METRIC && (int)itemp >= METRIC_HOT)|| (!OWM_METRIC && (int)itemp >= ENGLISH_HOT))
+  if((int)itemp >= TEMPERATURE_HOT)
     color = EPD_RED;
   gfx.setTextColor(color);
   gfx.setCursor(gfx.width()/2 + (gfx.width()/2-getStringLength(String(itemp)))/2,130);

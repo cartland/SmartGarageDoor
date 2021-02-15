@@ -6,7 +6,7 @@ String AirliftOpenWeatherMap::buildUrlCurrent() {
 }
 
 String AirliftOpenWeatherMap::buildUrlForecast(String appId, String location) {
-  String units = OWM_METRIC ? "metric" : "imperial";
+  String units = OWM_UNITS;
   return "http://api.openweathermap.org/data/2.5/forecast?q=" + location + "&cnt=6&appid=" + appId + "&units=" + units + "&lang=" + String(OWM_LANGUAGE);
 }
 
@@ -119,23 +119,23 @@ bool AirliftOpenWeatherMap::updateCurrent(OpenWeatherMapCurrentData &data, Strin
   //    setError(String("OpenWeatherMap error: ") + (const char *)doc["message"]);
   //    return false;
   //  }
-  
+
   data.lat = (float) doc["lat"];
   data.lon = (float) doc["lon"];
-  
-  data.main = (const char*) doc["main"];  
+
+  data.main = (const char*) doc["main"];
   data.description = (const char*) doc["description"];
   data.icon = (const char*) doc["icon"];
-  
+
   data.cityName = (const char*) doc["cityName"];
   data.visibility = (uint16_t) doc["visibility"];
   data.timezone = (time_t) doc["timezone"];
-  
+
   data.country = (const char*) doc["country"];
   data.observationTime = (time_t) doc["observationTime"];
   data.sunrise = (time_t) doc["sunrise"];
   data.sunset = (time_t) doc["sunset"];
-  
+
   data.temp = (float) doc["temp"];
   data.pressure = (uint16_t) doc["pressure"];
   data.humidity = (uint8_t) doc["humidity"];
@@ -177,7 +177,7 @@ bool AirliftOpenWeatherMap::updateForecast(OpenWeatherMapForecastData &data, Str
   data.tempMin = (float) doc["list"][day]["main"]["temp_min"];
   data.tempMax = (float) doc["list"][day]["main"]["temp_max"];
 
-  data.main = (const char*) doc["list"][day]["weather"][0]["main"];  
+  data.main = (const char*) doc["list"][day]["weather"][0]["main"];
   data.description = (const char*) doc["list"][day]["weather"][0]["description"];
   data.icon = (const char*) doc["list"][day]["weather"][0]["icon"];
   return true;
