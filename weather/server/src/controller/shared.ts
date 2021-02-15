@@ -1,5 +1,6 @@
 /**
- * Copyright 2018 Google LLC. All Rights Reserved.
+ * Copyright curl -H "Content-Type: application/json" http://localhost:5000/weather-escape/us-central1/current_weather\?zipCountry\=10011,us\&units\=imperial\&language\=en\&owmApiKey\=88c0c6b7b0375087d95b9dee7cce88d3
+. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,5 +16,7 @@
  */
 
 import { AirNowManager } from '../model/AirNowManager';
+import { OpenWeatherMapManager } from '../model/OpenWeatherMapManager';
 
 export const airNowManager = new AirNowManager();
+export const owmManager = new OpenWeatherMapManager();

@@ -614,7 +614,7 @@ void loop() {
         while(1);
       }
     }
-    String urlc = owclient.buildUrlCurrent(OWM_KEY,OWM_LOCATION);
+    String urlc = owclient.buildUrlCurrent();
     Serial.println(urlc);
     retry = 6;
     do
@@ -680,7 +680,7 @@ void loop() {
     }
 
 
-    String urlf = owclient.buildUrlForecast(OWM_KEY,OWM_LOCATION);
+    String urlf = owclient.buildUrlForecast(OWM_API_KEY,OWM_LOCATION);
     Serial.println(urlf);
     wget(urlf,80,data);
     Serial.println("data retrieved:");

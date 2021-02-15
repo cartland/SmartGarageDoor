@@ -1,8 +1,8 @@
 #include "OpenWeatherMap.h"
 
-String AirliftOpenWeatherMap::buildUrlCurrent(String appId, String location) {
-  String units = OWM_METRIC ? "metric" : "imperial";
-  return "http://api.openweathermap.org/data/2.5/weather?q=" + location + "&appid=" + appId + "&units=" + units + "&lang=" + String(OWM_LANGUAGE);
+String AirliftOpenWeatherMap::buildUrlCurrent() {
+  String baseUrl = OWM_CURRENT_URL;
+  return baseUrl + "?zipCountry=" + OWM_ZIP_COUNTRY + "&units=" + OWM_UNITS + "&language=" + OWM_LANGUAGE + "&owmApiKey=" + OWM_API_KEY;
 }
 
 String AirliftOpenWeatherMap::buildUrlForecast(String appId, String location) {
@@ -111,38 +111,39 @@ bool AirliftOpenWeatherMap::updateCurrent(OpenWeatherMapCurrentData &data, Strin
     return false;
   }
 
-  int code = (int) doc["cod"];
-  if(code != 200)
-  {
-    Serial->println(String("OpenWeatherMap error: ") + (const char *)doc["message"]);
-    setError(String("OpenWeatherMap error: ") + (const char *)doc["message"]);
-    return false;
-  }
+  // TODO: Check for errors in the data.
+  //  int code = (int) doc["cod"];
+  //  if(code != 200)
+  //  {
+  //    Serial->println(String("OpenWeatherMap error: ") + (const char *)doc["message"]);
+  //    setError(String("OpenWeatherMap error: ") + (const char *)doc["message"]);
+  //    return false;
+  //  }
   
-  data.lat = (float) doc["coord"]["lat"];
-  data.lon = (float) doc["coord"]["lon"];
+  data.lat = (float) doc["lat"];
+  data.lon = (float) doc["lon"];
   
-  data.main = (const char*) doc["weather"][0]["main"];  
-  data.description = (const char*) doc["weather"][0]["description"];
-  data.icon = (const char*) doc["weather"][0]["icon"];
+  data.main = (const char*) doc["main"];  
+  data.description = (const char*) doc["description"];
+  data.icon = (const char*) doc["icon"];
   
-  data.cityName = (const char*) doc["name"];
+  data.cityName = (const char*) doc["cityName"];
   data.visibility = (uint16_t) doc["visibility"];
   data.timezone = (time_t) doc["timezone"];
   
-  data.country = (const char*) doc["sys"]["country"];
-  data.observationTime = (time_t) doc["dt"];
-  data.sunrise = (time_t) doc["sys"]["sunrise"];
-  data.sunset = (time_t) doc["sys"]["sunset"];
+  data.country = (const char*) doc["country"];
+  data.observationTime = (time_t) doc["observationTime"];
+  data.sunrise = (time_t) doc["sunrise"];
+  data.sunset = (time_t) doc["sunset"];
   
-  data.temp = (float) doc["main"]["temp"];
-  data.pressure = (uint16_t) doc["main"]["pressure"];
-  data.humidity = (uint8_t) doc["main"]["humidity"];
-  data.tempMin = (float) doc["main"]["temp_min"];
-  data.tempMax = (float) doc["main"]["temp_max"];
+  data.temp = (float) doc["temp"];
+  data.pressure = (uint16_t) doc["pressure"];
+  data.humidity = (uint8_t) doc["humidity"];
+  data.tempMin = (float) doc["tempMin"];
+  data.tempMax = (float) doc["tempMax"];
 
-  data.windSpeed = (float) doc["wind"]["speed"];
-  data.windDeg = (float) doc["wind"]["deg"];
+  data.windSpeed = (float) doc["windSpeed"];
+  data.windDeg = (float) doc["windDeg"];
   return true;
 }
 

@@ -105,7 +105,7 @@ class AirliftOpenWeatherMap{
 
   public:
     AirliftOpenWeatherMap(Stream *serial){Serial = serial;};
-    String buildUrlCurrent(String appId, String locationParameter);
+    String buildUrlCurrent();
     String buildUrlForecast(String appId, String locationParameter);
     bool updateCurrent(OpenWeatherMapCurrentData &data,String json);
     bool updateForecast(OpenWeatherMapForecastData &data,String json, int day = 0);
@@ -118,5 +118,4 @@ class AirliftOpenWeatherMap{
     String getError(){return _error;}
 
     String getMeteoconIcon(String icon);
-
 };

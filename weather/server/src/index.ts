@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC. All Rights Reserved.
+ * Copyright 2021 Chris Cartland. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import * as firebase from 'firebase-admin';
 
 firebase.initializeApp();
 
-import { current_air_quality_observation } from './controller/functions/content'
+import { current_air_quality_observation, current_weather } from './controller/functions/content'
 
 /*
  * This file is the main entrace for Cloud Functions for Firebase.
@@ -29,4 +29,7 @@ import { current_air_quality_observation } from './controller/functions/content'
 // by only exporting the function that is needed by the particular instance.
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'current_air_quality_observation') {
   exports.current_air_quality_observation = current_air_quality_observation;
+}
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'current_weather') {
+  exports.current_weather = current_weather;
 }
