@@ -464,7 +464,7 @@ void displayAllWeather(AirQualityObservation &airQualityData, OpenWeatherMapCurr
 
 }
 
-void displayCurrentConditions(OpenWeatherMapCurrentData &owcdata)
+void displayCurrentConditions(AirQualityObservation &airQualityData, OpenWeatherMapCurrentData &owcdata)
 {
   gfx.powerUp();
   gfx.clearBuffer();
@@ -506,8 +506,10 @@ void displayCurrentConditions(OpenWeatherMapCurrentData &owcdata)
   neopixel.show();
 }
 
-void displaySunMoon(OpenWeatherMapCurrentData &owcdata)
+void displaySunMoon(AirQualityObservation &airQualityData, OpenWeatherMapCurrentData &owcdata)
 {
+  String text = "";
+  int x, y;
 
   gfx.powerUp();
   gfx.clearBuffer();
@@ -517,20 +519,85 @@ void displaySunMoon(OpenWeatherMapCurrentData &owcdata)
   gfx.setTextColor(EPD_BLACK);
   displayHeading(owcdata);
 
-  // draw Moon Phase
-  float moonphase = getMoonPhase(owcdata.observationTime);
-  int moonage = 29.5305882 * moonphase;
-  // convert to appropriate icon
-  String moonstr = String((char)((int)'A' + (int)(moonage*25./30)));
-  gfx.setFont(&moon_phases36pt7b);
-  gfx.setCursor((gfx.width()/3-getStringLength(moonstr))/2,140);
-  gfx.print(moonstr);
+  int dataPositionHeight = 120;
+  int topLabelOffset = 40;
+  int bottomLabelOffset = 16;
+  int leftColumn = gfx.width()/5;
+  int middleColumn = gfx.width()/2;
+  int rightColumn = gfx.width()*4/5;
 
-  // draw moon phase name
-  int currentphase = moonphase * 28. + .5;
+  // Temperature Label.
+  text = "Temp";
   gfx.setFont(&FreeSans9pt7b);
-  gfx.setCursor(gfx.width()/3 + max(0,(gfx.width()*2/3 - getStringLength(moonphasenames[currentphase]))/2),110);
-  gfx.print(moonphasenames[currentphase]);
+  x = leftColumn - getStringLength(text)/2;
+  y = dataPositionHeight - topLabelOffset;
+  gfx.setCursor(x, y);
+  gfx.print(text);
+  // Temperature.
+  text = String((int)(owcdata.temp + .5));
+  gfx.setFont(&FreeSansBold24pt7b);
+  x = leftColumn - getStringLength(text)/2;
+  y = dataPositionHeight;
+  gfx.setCursor(x, y);
+  gfx.print(text);
+  // Temperature degree symbol (not available as a font).
+  text = String((int)(owcdata.temp + .5));
+  x = leftColumn + getStringLength(text)/2 + 8;
+  y = dataPositionHeight - 30;
+  gfx.drawCircle(x, y, 4, EPD_BLACK);
+  gfx.drawCircle(x, y, 3, EPD_BLACK);
+  // Temperature Type.
+  String tempUnits = "";
+  if (OWM_UNITS == "imperial") {
+    tempUnits = "F";
+  } else if (OWM_UNITS == "metric") {
+    tempUnits = "C";
+  } else {
+    tempUnits = "K";
+  }
+  text = tempUnits;
+  gfx.setFont(&FreeSans9pt7b);
+  x = leftColumn - getStringLength(text)/2;
+  y = dataPositionHeight + bottomLabelOffset;
+  gfx.setCursor(x, y);
+  gfx.print(text);
+
+  // Weather icon.
+  text = owclient.getMeteoconIcon(owcdata.icon);
+  gfx.setFont(&meteocons24pt7b);
+  x = middleColumn - getStringLength(text)/2;
+  y = dataPositionHeight;
+  gfx.setCursor(x, y);
+  gfx.print(text);
+  // Weather description.
+  text = owcdata.main;
+  gfx.setFont(&FreeSans9pt7b);
+  x = middleColumn - getStringLength(text)/2;
+  y = dataPositionHeight + bottomLabelOffset;
+  gfx.setCursor(x, y);
+  gfx.print(text);
+
+  // AQI Label.
+  text = "AQI";
+  gfx.setFont(&FreeSans9pt7b);
+  x = rightColumn - getStringLength(text)/2;
+  y = dataPositionHeight - topLabelOffset;
+  gfx.setCursor(x, y);
+  gfx.print(text);
+  // AQI Value.
+  text = String((int)(airQualityData.AQI + .5));
+  gfx.setFont(&FreeSansBold24pt7b);
+  x = rightColumn - getStringLength(text)/2;
+  y = dataPositionHeight;
+  gfx.setCursor(x, y);
+  gfx.print(text);
+  // AQI Type.
+  text = airQualityData.ParameterName;
+  gfx.setFont(&FreeSans9pt7b);
+  x = rightColumn - getStringLength(text)/2;
+  y = dataPositionHeight + bottomLabelOffset;
+  gfx.setCursor(x, y);
+  gfx.print(text);
 
   // draw sunrise/sunset
 
@@ -560,16 +627,16 @@ void displaySunMoon(OpenWeatherMapCurrentData &owcdata)
 
   // draw sunrise icon
   // sun icon is "B"
-  String wicon = "B";
+  String sunriseIcon = "B";
   gfx.setFont(&meteocons16pt7b);
-  gfx.setCursor(xpos - getStringLength(wicon) - 12,174);
-  gfx.print(wicon);
+  gfx.setCursor(xpos - getStringLength(sunriseIcon) - 12,174);
+  gfx.print(sunriseIcon);
 
   // draw sunset icon
   // sunset icon is "A"
-  wicon = "A";
+  String sunsetIcon = "A";
   gfx.setCursor(xpos + datestrlen + 12,174);
-  gfx.print(wicon);
+  gfx.print(sunsetIcon);
 
   gfx.display();
   gfx.powerDown();
@@ -592,7 +659,7 @@ void loop() {
   char data[4000];
   char aqiData[4000];
   static uint32_t timer = millis();
-  static uint8_t lastbutton = 1;
+  static uint8_t lastbutton = 3;
   static bool firsttime = true;
 
   int button = readButtons();
@@ -707,10 +774,10 @@ void loop() {
         displayAllWeather(airQualityData,owcdata,owfdata,3);
         break;
       case 2:
-        displayCurrentConditions(owcdata);
+        displayCurrentConditions(airQualityData, owcdata);
         break;
       case 3:
-        displaySunMoon(owcdata);
+        displaySunMoon(airQualityData, owcdata);
         break;
     }
   }
@@ -727,11 +794,11 @@ void loop() {
   }
   if (button == 2) {
     //displayForecast(owcdata,owfdata,3);
-    displayCurrentConditions(owcdata);
+    displayCurrentConditions(airQualityData,owcdata);
     lastbutton = button;
   }
   if (button == 3) {
-    displaySunMoon(owcdata);
+    displaySunMoon(airQualityData, owcdata);
     lastbutton = button;
   }
 
