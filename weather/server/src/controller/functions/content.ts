@@ -40,8 +40,11 @@ export const current_air_quality_observation = functions.https.onRequest(async (
   const MILES = <string>request.query['miles'];
   // const PARAMETER_NAME = <string>request.query['parameterName'];
   try {
+    // 1. FETCH from external API.
     const fetchData = await AirNowNetwork.getCurrentAirNowObservation(AIR_NOW_API_KEY, ZIP_CODE, MILES);
+    // 2. SAVE in database.
     await AirNowDatabase.saveAirNowObservations(ZIP_CODE, fetchData);
+    // 3. RETRIEVE from database.
     let externalData = await AirNowDatabase.getCurrentAirNowObservation(ZIP_CODE, 'PM2.5');
     if (!externalData) {
       externalData = await AirNowDatabase.getCurrentAirNowObservation(ZIP_CODE, 'O3');
@@ -49,6 +52,7 @@ export const current_air_quality_observation = functions.https.onRequest(async (
     if (!externalData) {
       externalData = await AirNowDatabase.getCurrentAirNowObservation(ZIP_CODE, 'PM10');
     }
+    // 4. RESPOND with formatted data.
     const responseData = airNowManager.observationFromApi(externalData);
     console.info(JSON.stringify(responseData));
     response.status(200).send(responseData);
@@ -77,9 +81,13 @@ export const current_weather = functions.https.onRequest(async (request, respons
   const UNITS = <string>request.query['units'];
   const LANGUAGE = <string>request.query['language'];
   try {
+    // 1. FETCH from external API.
     const fetchData = await OWMNetwork.fetchCurrentOpenWeatherMapObservation(OWM_API_KEY, ZIP_COUNTRY, UNITS, LANGUAGE);
+    // 2. SAVE in database.
     await OWMDatabase.saveOpenWeatherMapObservation(ZIP_COUNTRY, fetchData);
+    // 3. RETRIEVE from database.
     const externalData = await OWMDatabase.getCurrentOpenWeatherMapObservation(ZIP_COUNTRY);
+    // 4. RESPOND with formatted data.
     const responseData = owmManager.clientDataFromRemoteData(externalData);
     console.info(JSON.stringify(responseData));
     response.status(200).send(responseData);
