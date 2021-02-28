@@ -1,14 +1,17 @@
 import * as firebase from 'firebase-admin';
 import { OWMCurrentWeather } from '../model/OpenWeatherMapManager';
 
-const AIR_NOW_CURRENT_OBSERVATIONS = 'airNowObservationsCurrent';
-const AIR_NOW_ALL_OBSERVATIONS = 'airNowObservationsAll';
+const OWM_CURRENT_OBSERVATIONS = 'openWeatherMapObservationsCurrent';
+const OWM_ALL_OBSERVATIONS = 'openWeatherMapObservationsAll';
+
+const ZIP_COUNTRY_KEY = 'FIRESTORE_zipCountry';
+const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 
 const convertToFirestore = (externalData: OWMCurrentWeather, zipCountry: string, seconds: number): any => {
   const firestoreData = {};
   Object.assign(firestoreData, externalData);
-  firestoreData["zipCountry"] = zipCountry;
-  firestoreData["databaseTimestampSeconds"] = seconds;
+  firestoreData[ZIP_COUNTRY_KEY] = zipCountry;
+  firestoreData[DATABASE_TIMESTAMP_SECONDS_KEY] = seconds;
   return firestoreData;
 }
 
@@ -22,17 +25,17 @@ export const saveOpenWeatherMapObservation = async (zipCountry: string, external
   const seconds = firebase.firestore.Timestamp.now().seconds;
   const firestoreData = convertToFirestore(externalData, zipCountry, seconds);
   // Set observation for zipCountry. This is the "current" value for the location.
-  await firebase.app().firestore().collection(AIR_NOW_CURRENT_OBSERVATIONS)
+  await firebase.app().firestore().collection(OWM_CURRENT_OBSERVATIONS)
     .doc(zipCountry).set(firestoreData);
   // Add historical observation to database.
-  const allRes = await firebase.app().firestore().collection(AIR_NOW_ALL_OBSERVATIONS)
+  const allRes = await firebase.app().firestore().collection(OWM_ALL_OBSERVATIONS)
     .add(firestoreData);
   console.debug('saveOpenWeatherMapObservation:',
-    AIR_NOW_CURRENT_OBSERVATIONS, zipCountry, AIR_NOW_ALL_OBSERVATIONS, allRes.id);
+    OWM_CURRENT_OBSERVATIONS, zipCountry, OWM_ALL_OBSERVATIONS, allRes.id);
 }
 
 export const getCurrentOpenWeatherMapObservation = async (zipCountry: string): Promise<OWMCurrentWeather> => {
-  const currentRef = await firebase.app().firestore().collection(AIR_NOW_CURRENT_OBSERVATIONS)
+  const currentRef = await firebase.app().firestore().collection(OWM_CURRENT_OBSERVATIONS)
     .doc(zipCountry).get();
   return convertFromFirestore(currentRef.data());
 }

@@ -15,11 +15,10 @@
  */
 
 import * as functions from 'firebase-functions';
-import * as https from 'https';
-import * as url from 'url';
-import { AirNowApiObservation } from '../../model/AirNowManager';
 import * as OWMNetwork from '../../network/OWMNetwork';
+import * as AirNowNetwork from '../../network/AirNowNetwork';
 import * as OWMDatabase from '../../database/OWMDatabase';
+import * as AirNowDatabase from '../../database/AirNowDatabase';
 import { airNowManager, owmManager } from '../shared'
 
 /**
@@ -39,58 +38,23 @@ export const current_air_quality_observation = functions.https.onRequest(async (
   const AIR_NOW_API_KEY = <string>request.query['airNowApiKey'];
   const ZIP_CODE = <string>request.query['zipCode'];
   const MILES = <string>request.query['miles'];
-  const PARAMETER_NAME = <string>request.query['parameterName'];
+  // const PARAMETER_NAME = <string>request.query['parameterName'];
   try {
-    const apiObservations = await getCurrentAirNowObservation(AIR_NOW_API_KEY, ZIP_CODE, MILES);
-    const observations = airNowManager.observationListFromApi(apiObservations);
-    let observation = airNowManager.getPM25Observation(observations); // PM2.5
-    if (PARAMETER_NAME === "O3") {
-      observation = airNowManager.getOzoneObservation(observations);  // Ozone
+    const fetchData = await AirNowNetwork.getCurrentAirNowObservation(AIR_NOW_API_KEY, ZIP_CODE, MILES);
+    await AirNowDatabase.saveAirNowObservations(ZIP_CODE, fetchData);
+    let externalData = await AirNowDatabase.getCurrentAirNowObservation(ZIP_CODE, 'PM2.5');
+    if (!externalData) {
+      externalData = await AirNowDatabase.getCurrentAirNowObservation(ZIP_CODE, 'O3');
     }
-    console.info(JSON.stringify(observation));
-    response.status(200).send(observation);
+    const responseData = airNowManager.observationFromApi(externalData);
+    console.info(JSON.stringify(responseData));
+    response.status(200).send(responseData);
   }
   catch (error) {
     console.error(error)
     response.status(500).send(error)
   }
 });
-
-/**
- * Request data from AirNowApi.gov.
- *
- * @param airNowApiKey API key from airnowapi.org.
- * @param zipCode US ZIP Code.
- * @param miles Maximum distance from Zip Code.
- */
-const getCurrentAirNowObservation = async (airNowApiKey: string, zipCode: string, miles: string) => {
-  return new Promise<AirNowApiObservation[]>(function (resolve, reject) {
-    const airNowUrl = new url.URL("https://www.airnowapi.org/aq/observation/zipCode/current/");
-    airNowUrl.searchParams.append('format', 'application/json');
-    airNowUrl.searchParams.append('zipCode', zipCode);
-    airNowUrl.searchParams.append('distance', miles);
-    airNowUrl.searchParams.append('API_KEY', airNowApiKey);
-    https.get(airNowUrl.href, (res) => {
-      const body = [];
-      res.on('data', function (chunk) {
-        body.push(chunk);
-      });
-      res.on('end', function () {
-        try {
-          const fullBody = Buffer.concat(body).toString();
-          if (res.statusCode >= 400) {
-            reject(fullBody);
-            return;
-          }
-          const observations: AirNowApiObservation[] = JSON.parse(fullBody);
-          resolve(observations);
-        } catch (e) {
-          reject(e);
-        }
-      });
-    });
-  });
-}
 
 /**
  * Get the current weather.
