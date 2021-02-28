@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import * as firebase from 'firebase-admin';
 import * as functions from 'firebase-functions';
 import * as https from 'https';
 import * as url from 'url';
@@ -109,6 +110,8 @@ export const current_weather = functions.https.onRequest(async (request, respons
   const UNITS = <string>request.query['units'];
   const LANGUAGE = <string>request.query['language'];
   try {
+    const fetchData = await fetchCurrentOpenWeatherMapObservation(OWM_API_KEY, ZIP_COUNTRY, UNITS, LANGUAGE);
+    await saveOpenWeatherMapObservation(ZIP_COUNTRY, fetchData);
     const externalData = await getCurrentOpenWeatherMapObservation(OWM_API_KEY, ZIP_COUNTRY, UNITS, LANGUAGE);
     const responseData = owmManager.clientDataFromRemoteData(externalData);
     console.info(JSON.stringify(responseData));
@@ -128,7 +131,7 @@ export const current_weather = functions.https.onRequest(async (request, respons
  * @param units "imperial" for Farenheit, "metric" for Celcius, "standard" for Kelvin.
  * @param language Example: "en".
  */
-const getCurrentOpenWeatherMapObservation = async (owmApiKey: string, zipCountry: string, units: string, language: string) => {
+const fetchCurrentOpenWeatherMapObservation = async (owmApiKey: string, zipCountry: string, units: string, language: string) => {
   return new Promise<OWMCurrentWeather>(function (resolve, reject) {
     const owmUrl = new url.URL("https://api.openweathermap.org/data/2.5/weather");
     owmUrl.searchParams.append('mode', 'json');
@@ -150,7 +153,7 @@ const getCurrentOpenWeatherMapObservation = async (owmApiKey: string, zipCountry
             return;
           }
           const owmData: OWMCurrentWeather = JSON.parse(fullBody);
-          if (owmData.cod != 200) {
+          if (owmData.cod !== 200) {
             console.error("Expected respond 'cod' 200, found: " + owmData.cod);
             reject(owmData);
             return;
@@ -162,4 +165,26 @@ const getCurrentOpenWeatherMapObservation = async (owmApiKey: string, zipCountry
       });
     });
   });
+}
+
+const saveOpenWeatherMapObservation = async (zipCountry: string, externalData: OWMCurrentWeather) => {
+  const seconds = firebase.firestore.Timestamp.now().seconds;
+  const firestoreData = {};
+  Object.assign(firestoreData, externalData);
+  firestoreData["databaseTimestampSeconds"] = seconds;
+  firestoreData["zipCountry"] = zipCountry;
+  const airNowObservations = firebase.app().firestore().collection('airNowObservations');
+  const res = await airNowObservations.add(firestoreData);
+  await airNowObservations.doc(zipCountry).set(firestoreData);
+  console.debug('Added airNowObservations with ID:', res.id, 'Updated Current');
+}
+
+const getCurrentOpenWeatherMapObservation = async (owmApiKey: string, zipCountry: string, units: string, language: string): Promise<OWMCurrentWeather> => {
+  const airNowObservations = firebase.app().firestore().collection('airNowObservations');
+  const currentRef = await airNowObservations.doc(zipCountry).get();
+  const current = currentRef.data();
+  const result = {} as OWMCurrentWeather;
+  Object.assign(result, current);
+  console.debug('getCurrentOpenWeatherMapObservation: Return result', result, current);
+  return result;
 }
