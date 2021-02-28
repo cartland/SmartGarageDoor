@@ -18,7 +18,6 @@ export const fetchCurrentOpenWeatherMapObservation = async (owmApiKey: string, z
     owmUrl.searchParams.append('units', units);
     owmUrl.searchParams.append('lang', language);
     owmUrl.searchParams.append('appid', owmApiKey);
-    console.debug(owmUrl.href);
     https.get(owmUrl.href, (res) => {
       const body = [];
       res.on('data', function (chunk) {

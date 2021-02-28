@@ -15,10 +15,10 @@
  */
 
 import * as functions from 'firebase-functions';
-import * as OWMNetwork from '../../network/OWMNetwork';
+import * as AirNowDatabase from '../../database/AirNowDatabase';
 import * as AirNowNetwork from '../../network/AirNowNetwork';
 import * as OWMDatabase from '../../database/OWMDatabase';
-import * as AirNowDatabase from '../../database/AirNowDatabase';
+import * as OWMNetwork from '../../network/OWMNetwork';
 import { airNowManager, owmManager } from '../shared'
 
 /**
@@ -45,6 +45,9 @@ export const current_air_quality_observation = functions.https.onRequest(async (
     let externalData = await AirNowDatabase.getCurrentAirNowObservation(ZIP_CODE, 'PM2.5');
     if (!externalData) {
       externalData = await AirNowDatabase.getCurrentAirNowObservation(ZIP_CODE, 'O3');
+    }
+    if (!externalData) {
+      externalData = await AirNowDatabase.getCurrentAirNowObservation(ZIP_CODE, 'PM10');
     }
     const responseData = airNowManager.observationFromApi(externalData);
     console.info(JSON.stringify(responseData));
