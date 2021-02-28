@@ -17,9 +17,11 @@
 import * as functions from 'firebase-functions';
 import * as AirNowDatabase from '../../database/AirNowDatabase';
 import * as AirNowNetwork from '../../network/AirNowNetwork';
+import * as IQAirDatabase from '../../database/IQAirDatabase';
+import * as IQAirNetwork from '../../network/IQAirNetwork';
 import * as OWMDatabase from '../../database/OWMDatabase';
 import * as OWMNetwork from '../../network/OWMNetwork';
-import { airNowManager, owmManager } from '../shared'
+import { airNowManager, iqAirManager, owmManager } from '../shared';
 
 /**
  * Get the current air quality observations.
@@ -35,27 +37,43 @@ import { airNowManager, owmManager } from '../shared'
  * curl -H "Content-Type: application/json" http://localhost:5000/weather-escape/us-central1/current_air_quality_observation\?zipCode\=10011\&miles\=5\&airNowApiKey\=AIR_NOW_API_KEY
  */
 export const current_air_quality_observation = functions.https.onRequest(async (request, response) => {
+  // Air Now API parameters.
   const AIR_NOW_API_KEY = <string>request.query['airNowApiKey'];
   const ZIP_CODE = <string>request.query['zipCode'];
   const MILES = <string>request.query['miles'];
-  // const PARAMETER_NAME = <string>request.query['parameterName'];
+
+  // IQAir API parameters.
+  const IQA_API_KEY = <string>request.query['iqaApiKey'];
+  const LAT = <string>request.query['lat'];
+  const LON = <string>request.query['lon'];
   try {
     // 1. FETCH from external API.
-    const fetchData = await AirNowNetwork.getCurrentAirNowObservation(AIR_NOW_API_KEY, ZIP_CODE, MILES);
+    const airNowFetchData = await AirNowNetwork.getCurrentAirNowObservation(AIR_NOW_API_KEY, ZIP_CODE, MILES);
+    const iqAirFetchData = await IQAirNetwork.getCurrentIQAirObservation(IQA_API_KEY, LAT, LON);
     // 2. SAVE in database.
-    await AirNowDatabase.saveAirNowObservations(ZIP_CODE, fetchData);
+    await AirNowDatabase.saveAirNowObservations(ZIP_CODE, airNowFetchData);
+    await IQAirDatabase.saveIQAirObservation(LAT, LON, iqAirFetchData);
     // 3. RETRIEVE from database.
-    let externalData = await AirNowDatabase.getCurrentAirNowObservation(ZIP_CODE, 'PM2.5');
-    if (!externalData) {
-      externalData = await AirNowDatabase.getCurrentAirNowObservation(ZIP_CODE, 'O3');
+    let airNowExternalData = await AirNowDatabase.getCurrentAirNowObservation(ZIP_CODE, 'PM2.5');
+    if (!airNowExternalData) {
+      airNowExternalData = await AirNowDatabase.getCurrentAirNowObservation(ZIP_CODE, 'O3');
     }
-    if (!externalData) {
-      externalData = await AirNowDatabase.getCurrentAirNowObservation(ZIP_CODE, 'PM10');
+    if (!airNowExternalData) {
+      airNowExternalData = await AirNowDatabase.getCurrentAirNowObservation(ZIP_CODE, 'PM10');
     }
+    const iqAirExternalData = await IQAirDatabase.getCurrentIQAirObservation(LAT, LON);
     // 4. RESPOND with formatted data.
-    const responseData = airNowManager.observationFromApi(externalData);
-    console.info(JSON.stringify(responseData));
-    response.status(200).send(responseData);
+    const airNowResponseData = airNowManager.observationFromApi(airNowExternalData);
+    const iqAirResponseData = iqAirManager.observationFromApi(iqAirExternalData);
+    if (airNowResponseData.DateObserved.length > 0) {
+      console.info('Returning Air Now Data', JSON.stringify(airNowResponseData));
+      console.debug('Not returning IQAir data', JSON.stringify(iqAirResponseData));
+      response.status(200).send(airNowResponseData);
+    } else {
+      console.info('Returning IQAir data', JSON.stringify(iqAirResponseData));
+      console.debug('Not returning Air Now Data', JSON.stringify(airNowResponseData));
+      response.status(200).send(iqAirResponseData);
+    }
   }
   catch (error) {
     console.error(error)

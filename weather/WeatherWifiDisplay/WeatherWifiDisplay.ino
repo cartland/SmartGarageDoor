@@ -31,7 +31,7 @@
 #define NEOPIXELPIN   40
 
 // This is for the 2.7" tricolor EPD
-Adafruit_IL91874 gfx(264, 176 ,EPD_DC, EPD_RESET, EPD_CS, SRAM_CS, EPD_BUSY);
+Adafruit_IL91874 gfx(264, 176 , EPD_DC, EPD_RESET, EPD_CS, SRAM_CS, EPD_BUSY);
 
 AirliftOpenWeatherMap owclient(&Serial);
 OpenWeatherMapCurrentData owcdata;
@@ -140,7 +140,7 @@ void wget(String &host, String &path, int port, char *buff) {
         } else if (capture) {
           buff[capturepos++] = c;
         } else {
-          if((c != '\n') && (c != '\r')) {
+          if ((c != '\n') && (c != '\r')) {
             linelength++;
           }
         }
@@ -166,8 +166,8 @@ void wget(String &host, String &path, int port, char *buff) {
 }
 
 /**
- * Get string length based on string and current gfx settings.
- */
+   Get string length based on string and current gfx settings.
+*/
 int getStringLength(String s) {
   int16_t  x = 0, y = 0;
   uint16_t w, h;
@@ -176,8 +176,8 @@ int getStringLength(String s) {
 }
 
 /**
- * Show error on the display.
- */
+   Show error on the display.
+*/
 void displayError(String str) {
   // Turn LED red when displaying an error.
   neopixel.setPixelColor(0, neopixel.Color(255, 0, 0));
@@ -188,7 +188,7 @@ void displayError(String str) {
   gfx.powerUp();
   gfx.clearBuffer();
   gfx.setTextWrap(true);
-  gfx.setCursor(10,60);
+  gfx.setCursor(10, 60);
   gfx.setFont(&FreeSans12pt7b);
   gfx.print(str);
   gfx.display();
@@ -198,8 +198,8 @@ void displayError(String str) {
 }
 
 /**
- * Display date and city heading.
- */
+   Display date and city heading.
+*/
 void displayHeading(OpenWeatherMapCurrentData &owcdata) {
   String text;
   int x, y;
@@ -210,7 +210,7 @@ void displayHeading(OpenWeatherMapCurrentData &owcdata) {
   time_t local = owcdata.observationTime + owcdata.timezone;
   struct tm *timeinfo = gmtime(&local);
   char datestr[80];
-  strftime(datestr,80,"%a, %b %d",timeinfo);
+  strftime(datestr, 80, "%a, %b %d", timeinfo);
   text = String(datestr);
   gfx.setFont(&FreeSans18pt7b);
   x = middleColumn - (getStringLength(text) / 2);
@@ -248,24 +248,24 @@ void displayTempIconAqi(AirQualityObservation &airQualityData, OpenWeatherMapCur
   int rightColumn = gfx.width() * 4 / 5;
   int sunriseSunsetTextHeight = 166;
   int sunriseSunsetIconHeight = 174;
-  
+
   // Temperature Label.
   text = "Temp";
   gfx.setFont(&FreeSans9pt7b);
-  x = leftColumn - getStringLength(text)/2;
+  x = leftColumn - getStringLength(text) / 2;
   y = dataPositionHeight - topLabelOffset;
   gfx.setCursor(x, y);
   gfx.print(text);
   // Temperature.
   text = String((int)(owcdata.temp + .5));
   gfx.setFont(&FreeSansBold24pt7b);
-  x = leftColumn - getStringLength(text)/2;
+  x = leftColumn - getStringLength(text) / 2;
   y = dataPositionHeight;
   gfx.setCursor(x, y);
   gfx.print(text);
   // Temperature degree symbol (not available as a font).
   text = String((int)(owcdata.temp + .5));
-  x = leftColumn + getStringLength(text)/2 + 8;
+  x = leftColumn + getStringLength(text) / 2 + 8;
   y = dataPositionHeight - 30;
   gfx.drawCircle(x, y, 4, EPD_BLACK);
   gfx.drawCircle(x, y, 3, EPD_BLACK);
@@ -280,7 +280,7 @@ void displayTempIconAqi(AirQualityObservation &airQualityData, OpenWeatherMapCur
   }
   text = tempUnits;
   gfx.setFont(&FreeSans9pt7b);
-  x = leftColumn - getStringLength(text)/2;
+  x = leftColumn - getStringLength(text) / 2;
   y = dataPositionHeight + bottomLabelOffset;
   gfx.setCursor(x, y);
   gfx.print(text);
@@ -288,14 +288,14 @@ void displayTempIconAqi(AirQualityObservation &airQualityData, OpenWeatherMapCur
   // Weather icon.
   text = owclient.getMeteoconIcon(owcdata.icon);
   gfx.setFont(&meteocons24pt7b);
-  x = middleColumn - getStringLength(text)/2;
+  x = middleColumn - getStringLength(text) / 2;
   y = dataPositionHeight;
   gfx.setCursor(x, y);
   gfx.print(text);
   // Weather description.
   text = owcdata.main;
   gfx.setFont(&FreeSans9pt7b);
-  x = middleColumn - getStringLength(text)/2;
+  x = middleColumn - getStringLength(text) / 2;
   y = dataPositionHeight + bottomLabelOffset;
   gfx.setCursor(x, y);
   gfx.print(text);
@@ -303,21 +303,21 @@ void displayTempIconAqi(AirQualityObservation &airQualityData, OpenWeatherMapCur
   // AQI Label.
   text = "AQI";
   gfx.setFont(&FreeSans9pt7b);
-  x = rightColumn - getStringLength(text)/2;
+  x = rightColumn - getStringLength(text) / 2;
   y = dataPositionHeight - topLabelOffset;
   gfx.setCursor(x, y);
   gfx.print(text);
   // AQI Value.
   text = String((int)(airQualityData.AQI + .5));
   gfx.setFont(&FreeSansBold24pt7b);
-  x = rightColumn - getStringLength(text)/2;
+  x = rightColumn - getStringLength(text) / 2;
   y = dataPositionHeight;
   gfx.setCursor(x, y);
   gfx.print(text);
   // AQI Type.
   text = airQualityData.ParameterName;
   gfx.setFont(&FreeSans9pt7b);
-  x = rightColumn - getStringLength(text)/2;
+  x = rightColumn - getStringLength(text) / 2;
   y = dataPositionHeight + bottomLabelOffset;
   gfx.setCursor(x, y);
   gfx.print(text);
@@ -449,14 +449,14 @@ void displayForecast(AirQualityObservation &airQualityData, OpenWeatherMapCurren
   int dataPositionHeight = 130;
   String text;
   int x, y;
-  for(int i = 0; i < count; i++) {
+  for (int i = 0; i < count; i++) {
     // Date.
     time_t local = owfdata[i].observationTime + owcdata.timezone;
     struct tm *timeinfo = gmtime(&local);
     char strbuff[80];
-    strftime(strbuff,80,"%I",timeinfo);
+    strftime(strbuff, 80, "%I", timeinfo);
     text = String(atoi(strbuff));
-    strftime(strbuff,80,"%p",timeinfo);
+    strftime(strbuff, 80, "%p", timeinfo);
     // Convert AM/PM to lowercase.
     strbuff[0] = tolower(strbuff[0]);
     strbuff[1] = tolower(strbuff[1]);
@@ -491,8 +491,8 @@ void displayForecast(AirQualityObservation &airQualityData, OpenWeatherMapCurren
     y = dataPositionHeight + 38;
     gfx.setCursor(x, y);
     gfx.print(text);
-    gfx.drawCircle(x + getStringLength(text) + 6, y-9, 3, EPD_BLACK);
-    gfx.drawCircle(x + getStringLength(text) + 6, y-9, 2, EPD_BLACK);
+    gfx.drawCircle(x + getStringLength(text) + 6, y - 9, 3, EPD_BLACK);
+    gfx.drawCircle(x + getStringLength(text) + 6, y - 9, 2, EPD_BLACK);
   }
 
   gfx.display();
@@ -518,7 +518,7 @@ void loop() {
   int button = readButtons();
 
   // Update weather data at specified interval or when button 4 is pressed.
-  if ((millis() >= (timer + 1000*60*UPDATE_INTERVAL)) || (button == 4) || firsttime) {
+  if ((millis() >= (timer + 1000 * 60 * UPDATE_INTERVAL)) || (button == 4) || firsttime) {
     char data[4000];
     String error = "";
     String errors = "";
@@ -527,7 +527,7 @@ void loop() {
     timer = millis();
     // Connect to WiFi.
     int retry = 6;
-    while(!wifi_connect()) {
+    while (!wifi_connect()) {
       delay(5000);
       retry--;
       if (retry < 0) {
@@ -545,7 +545,7 @@ void loop() {
     {
       retry--;
       wget(urlc, 80, data);
-    } while((strlen(data) == 0) && (retry >= 0));
+    } while ((strlen(data) == 0) && (retry >= 0));
     if (strlen(data) == 0) {
       error = "Can not get weather data, press reset to restart";
       errors = errors + error + '\n';
@@ -628,7 +628,7 @@ void loop() {
         displayTemperature(airQualityData, owcdata);
         break;
       case 3:
-        displayForecast(airQualityData,owcdata,owfdata,3);
+        displayForecast(airQualityData, owcdata, owfdata, 3);
         break;
     }
     Serial.println("errors");
@@ -647,11 +647,11 @@ void loop() {
     lastbutton = button;
   }
   if (button == 2) {
-    displayTemperature(airQualityData,owcdata);
+    displayTemperature(airQualityData, owcdata);
     lastbutton = button;
   }
   if (button == 3) {
-    displayForecast(airQualityData,owcdata,owfdata,3);
+    displayForecast(airQualityData, owcdata, owfdata, 3);
     lastbutton = button;
   }
   // Wait until button is released.

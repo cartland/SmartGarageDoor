@@ -3,7 +3,9 @@
 String AirQualityApi::buildUrlCurrent(bool ozone) {
   String baseUrl = AIR_QUALITY_CURRENT_URL;
   String parameterName = ozone ? "O3" : "PM2.5";
-  return baseUrl + "?zipCode=" + ZIP_CODE + "&miles=" + String(DISTANCE_MILES) + "&airNowApiKey=" + AIR_NOW_API_KEY + "&parameterName=" + parameterName;
+  return baseUrl 
+  + "?airNowApiKey=" + AIR_NOW_API_KEY + "&zipCode=" + ZIP_CODE + "&miles=" + String(DISTANCE_MILES) + "&parameterName=" + parameterName
+  + "&iqaApiKey" + String(IQA_API_KEY) + "&lat=" + String(IQA_LAT) + "&lon=" + String(IQA_LON);
 }
 
 bool AirQualityApi::updateCurrent(AirQualityObservation &data, String json) {

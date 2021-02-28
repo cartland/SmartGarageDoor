@@ -16,7 +16,9 @@
  */
 
 import { AirNowManager } from '../model/AirNowManager';
+import { IQAirManager } from '../model/IQAirManager';
 import { OpenWeatherMapManager } from '../model/OpenWeatherMapManager';
 
 export const airNowManager = new AirNowManager();
+export const iqAirManager = new IQAirManager();
 export const owmManager = new OpenWeatherMapManager();

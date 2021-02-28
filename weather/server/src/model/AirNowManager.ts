@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { AirQualityObservation } from './AirQualityObservation';
 
 /**
  * Current Observation data from AirNowApi.org.
@@ -39,26 +40,6 @@ export interface AirNowApiCategory {
 }
 
 /**
- * Air quality data returned by the server.
- *
- * No nested fields.
- * Data is cleaned up before serving (remove trailing whitespace).
- */
-export interface AirQualityObservation {
-  DateObserved: string,   // "2021-02-13"
-  HourObserved: number,   // 22
-  LocalTimeZone: string,  // "PST"
-  ReportingArea: string,  // "San Francisco"
-  StateCode: string,      // "CA"
-  Latitude: number,       // 37.75
-  Longitude: number,      // -122.43
-  ParameterName: string,  // "PM2.5", "O3"
-  AQI: number,            // 19
-  CategoryNumber: number, // 1
-  CategoryName: string,   // "Good"
-}
-
-/**
  * Manage data from AirNow API.
  */
 export class AirNowManager {
@@ -70,17 +51,17 @@ export class AirNowManager {
    */
   observationFromApi(data: AirNowApiObservation): AirQualityObservation {
     return <AirQualityObservation>{
-      DateObserved: data.DateObserved.trim(),
+      DateObserved: data.DateObserved ? data.DateObserved.trim() : '',
       HourObserved: data.HourObserved,
-      LocalTimeZone: data.LocalTimeZone.trim(),
-      ReportingArea: data.ReportingArea.trim(),
-      StateCode: data.StateCode.trim(),
+      LocalTimeZone: data.LocalTimeZone ? data.LocalTimeZone.trim() : '',
+      ReportingArea: data.ReportingArea ? data.ReportingArea.trim() : '',
+      StateCode: data.StateCode ? data.StateCode.trim() : '',
       Latitude: data.Latitude,
       Longitude: data.Longitude,
       ParameterName: data.ParameterName,
       AQI: data.AQI,
-      CategoryNumber: data.Category.Number,
-      CategoryName: data.Category.Name
+      CategoryNumber: data.Category ? data.Category.Number : 0,
+      CategoryName: data.Category ? data.Category.Name : ''
     }
   }
 
