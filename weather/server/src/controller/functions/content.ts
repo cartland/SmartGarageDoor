@@ -23,6 +23,8 @@ import * as OWMDatabase from '../../database/OWMDatabase';
 import * as OWMNetwork from '../../network/OWMNetwork';
 import { airNowManager, iqAirManager, owmManager } from '../shared';
 
+// TODO: Merge all data into 1 API request.
+
 /**
  * Get the current air quality observations.
  *
