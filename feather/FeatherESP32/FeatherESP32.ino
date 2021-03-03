@@ -6,7 +6,7 @@
 #include "WiFiGet.h"
 #include "ServerApi.h"
 
-const uint32_t MAX_LOOPS = 2;
+const uint32_t MAX_LOOPS = 0;
 
 ServerApi serverApi(&Serial);
 
@@ -26,18 +26,27 @@ void loop() {
   static uint32_t loopsCompleted = 0;
   static boolean firsttime = true;
   static boolean finished = false;
+  static uint32_t delaySeconds = 1;
 
-  if (loopsCompleted >= MAX_LOOPS) {
+  // If MAX_LOOPS == 0, never finish.
+  if ((MAX_LOOPS > 0) && (loopsCompleted >= MAX_LOOPS)) {
     if (!finished) {
       Serial.println("Finished!");
     }
     finished = true;
-    delay(10 * 1000);
+    delay(delaySeconds * 1000);
     return;
   }
   if (!firsttime) {
-    Serial.println("Waiting 10 seconds...");
-    delay(10 * 1000);
+    Serial.print("Waiting ");
+    Serial.print(String(delaySeconds));
+    Serial.println(" seconds...");
+    delay(delaySeconds * 1000);
+    delaySeconds = delaySeconds * 2;
+    int minutesInDay = 60 * 60 * 24;
+    if (delaySeconds > minutesInDay) {
+      delaySeconds = minutesInDay;
+    }
   }
   firsttime = false;
   Serial.print("-> Making URL request: ");

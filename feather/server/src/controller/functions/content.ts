@@ -16,10 +16,12 @@
 
 import * as functions from 'firebase-functions';
 
+import * as Database from '../../database/Database';
+
 /**
  * Get the current air quality observations.
  *
- * curl -H "Content-Type: application/json" http://localhost:5000/escape-echo/us-central1/echo?key1=value1&key2=value2
+ * curl -H "Content-Type: application/json" http://localhost:5000/escape-echo/us-central1/echo?key1=value1&key2=value2 --data '{"key3":"value3","key4":"value4"}'
  */
 export const echo = functions.https.onRequest(async (request, response) => {
   // Echo query parameters and body.
@@ -28,8 +30,10 @@ export const echo = functions.https.onRequest(async (request, response) => {
     body: request.body
   };
   try {
+    await Database.save(data);
+    const retrievedData = await Database.getCurrent();
     // RESPOND with formatted data.
-    response.status(200).send(data);
+    response.status(200).send(retrievedData);
   }
   catch (error) {
     console.error(error)
