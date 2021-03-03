@@ -26,7 +26,9 @@ void loop() {
   static uint32_t loopsCompleted = 0;
   static boolean firsttime = true;
   static boolean finished = false;
-  static uint32_t delaySeconds = 1;
+  static long delaySeconds = 60 * 10; // 10 minutes.
+  const long MAX_DELAY_SECONDS = 60 * 60 * 24; // 1 day.
+  const bool DOUBLE_DELAY_EACH_TIME = false;
 
   // If MAX_LOOPS == 0, never finish.
   if ((MAX_LOOPS > 0) && (loopsCompleted >= MAX_LOOPS)) {
@@ -41,11 +43,12 @@ void loop() {
     Serial.print("Waiting ");
     Serial.print(String(delaySeconds));
     Serial.println(" seconds...");
+    if (delaySeconds > MAX_DELAY_SECONDS) {
+      delaySeconds = MAX_DELAY_SECONDS;
+    }
     delay(delaySeconds * 1000);
-    delaySeconds = delaySeconds * 2;
-    int minutesInDay = 60 * 60 * 24;
-    if (delaySeconds > minutesInDay) {
-      delaySeconds = minutesInDay;
+    if (DOUBLE_DELAY_EACH_TIME) {
+      delaySeconds = delaySeconds * 2;
     }
   }
   firsttime = false;
