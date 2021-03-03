@@ -1,6 +1,6 @@
 /**
- * GET requests.
- */
+   GET requests.
+*/
 
 #include <WiFiMulti.h>
 
@@ -20,14 +20,14 @@ String wifiSetup(String wifiSSID, String wifiPassword) {
 }
 
 /**
- * Usage:
- * 
+   Usage:
+
   const uint16_t port = 443;
   char buf[4000];
   String urlc = URL;
   wget(urlc, 80, buf);
   Serial.println(buf);
- */
+*/
 void wget(String &url, int port, char *buff) {
   int pos1 = url.indexOf("/", 0);
   int pos2 = url.indexOf("/", 8);

@@ -1,11 +1,14 @@
 /**
- * Feather ESP32 WiFi GET request to a URL.
- */
+   Feather ESP32 WiFi GET request to a URL.
+*/
 
 #include "secrets.h"
 #include "WiFiGet.h"
+#include "ServerApi.h"
 
 const uint32_t MAX_LOOPS = 2;
+
+ServerApi serverApi(&Serial);
 
 void setup() {
   Serial.begin(115200);
@@ -38,11 +41,11 @@ void loop() {
   }
   firsttime = false;
   Serial.print("-> Making URL request: ");
-  Serial.println(URL);
+  String url = serverApi.buildUrl();
+  Serial.println(url);
   const uint16_t port = 443;
   char buf[4000];
-  String urlc = URL;
-  wget(urlc, 80, buf);
+  wget(url, 80, buf);
   Serial.println(buf);
   loopsCompleted++;
 }
