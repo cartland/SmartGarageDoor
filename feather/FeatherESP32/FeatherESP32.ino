@@ -6,6 +6,10 @@
 #include "WiFiGet.h"
 #include "ServerApi.h"
 
+// Analog input to measure battery voltage.
+// https://learn.adafruit.com/adafruit-huzzah32-esp32-feather/power-management
+#define A13 35
+
 const uint32_t MAX_LOOPS = 0;
 
 ServerApi serverApi(&Serial);
@@ -17,17 +21,19 @@ const long morseCodeShort = 100;
 const long morseCodeChar = 200;
 const long morseCodeEnd = 500;
 
-void blinkDash() {
+void blinkOn(long duration) {
   digitalWrite(LED_BUILTIN, HIGH);
-  delay(morseCodeLong);
+  delay(duration);
   digitalWrite(LED_BUILTIN, LOW);
+}
+
+void blinkDash() {
+  blinkOn(morseCodeLong);
   delay(morseCodeLong);
 }
 
 void blinkDot() {
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(morseCodeShort);
-  digitalWrite(LED_BUILTIN, LOW);
+  blinkOn(morseCodeShort);
   delay(morseCodeLong);
 }
 
@@ -48,6 +54,37 @@ void blinkOK() {
   int LETTER_K[3] = {1, 0, 1};
   blinkMorseCode(LETTER_K, 3); // "K"
   delay(morseCodeEnd);
+}
+
+void blinkingDelay(long ms) {
+  long block = 10 * 1000; // Blink once per block.
+  long duration = 100; // Blink duration.
+  while (ms > 0) {
+    if (ms < block) { // Delay is smaller than the block.
+      if (ms < duration) { // Delay is smaller than the blink duration.
+        blinkOn(ms); // Blink for the remainder of the delay, then return.
+        ms = 0;
+        return;
+      }
+      // Delay is smaller than the block, but larger than the blink duration.
+      blinkOn(duration); // Delay for the blink duration.
+      ms = ms - duration;
+      delay(ms); // Delay for the remaining time, then return.
+      return;
+    }
+    blinkOn(duration); // Blink for the normal blink duration.
+    ms = ms - duration;
+    delay(block); // Delay for the block size.
+    ms = ms - block;
+  }
+}
+
+float readBatteryVoltage() {
+  float ADAFRUIT_MULTIPLIER = 2.0;
+  float MAX_INPUT = 4095.0;
+  float MAX_VOLTAGE = 3.3;
+  float ADC_REFERENCE_VOLTAGE = 1.1;
+  return (analogRead(A13) / MAX_INPUT) * MAX_VOLTAGE * ADC_REFERENCE_VOLTAGE * ADAFRUIT_MULTIPLIER;
 }
 
 void setup() {
@@ -90,7 +127,7 @@ void loop() {
     if (delaySeconds > MAX_DELAY_SECONDS) {
       delaySeconds = MAX_DELAY_SECONDS;
     }
-    delay(delaySeconds * 1000);
+    blinkingDelay(delaySeconds * 1000);
     if (DOUBLE_DELAY_EACH_TIME) {
       delaySeconds = delaySeconds * 2;
     }
@@ -98,7 +135,8 @@ void loop() {
   firsttime = false;
   digitalWrite(LED_BUILTIN, HIGH); // LED on when network request starts.
   Serial.print("-> Making URL request: ");
-  String url = serverApi.buildUrl(session);
+  String batteryVoltage = String(readBatteryVoltage());
+  String url = serverApi.buildUrl(session, batteryVoltage);
   Serial.println(url);
   const uint16_t port = 443;
   char buf[4000];

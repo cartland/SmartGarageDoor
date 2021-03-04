@@ -1,15 +1,15 @@
 #include "ServerApi.h"
 
-String ServerApi::buildUrl(String session) {
+String ServerApi::buildUrl(String session, String batteryVoltage) {
   String baseUrl = URL;
   String buildTimestamp = __TIMESTAMP__;
   // Convert "Wed Mar  3 00:28:41 2021" to "Wed%20Mar%20%203%2000%3A28%3A41%202021"
   buildTimestamp.replace(" ", "%20");
   long deviceTimestamp = millis();
   if (session.length() > 0) {
-    return baseUrl + "?buildTimestamp=" + buildTimestamp + "&deviceTimestamp=" + deviceTimestamp + "&session=" + session;
+    return baseUrl + "?buildTimestamp=" + buildTimestamp + "&deviceTimestamp=" + deviceTimestamp + "&batteryVoltage=" + batteryVoltage + "&session=" + session;
   }
-  return baseUrl + "?buildTimestamp=" + buildTimestamp + "&deviceTimestamp=" + deviceTimestamp;
+  return baseUrl + "?buildTimestamp=" + buildTimestamp + "&deviceTimestamp=" + deviceTimestamp + "&batteryVoltage=" + batteryVoltage;
 }
 
 bool ServerApi::parseData(ServerResponse &data, String json) {

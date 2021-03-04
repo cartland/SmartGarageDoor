@@ -19,7 +19,7 @@ class ServerApi {
     ServerApi(Stream *serial) {
       Serial = serial;
     };
-    String buildUrl(String session);
+    String buildUrl(String session, String batteryVoltage);
     bool parseData(ServerResponse &data, String json);
     void setError(String error) {
       _error = error;
