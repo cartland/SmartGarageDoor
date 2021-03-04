@@ -3,8 +3,6 @@ import * as firebase from 'firebase-admin';
 const UPDATE_CURRENT = 'updateCurrent';
 const UPDATE_ALL = 'updateAll';
 
-const CURRENT_KEY = "current";
-
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 
 const convertToFirestore = (externalData: any, seconds: number): any => {
@@ -20,11 +18,11 @@ const convertFromFirestore = (firestoreData: any): any => {
   return result;
 }
 
-export const save = async (data: any) => {
+export const save = async (session: string, data: any) => {
   const seconds = firebase.firestore.Timestamp.now().seconds;
   const firestoreData = convertToFirestore(data, seconds);
   // Set the 'current' data.
-  await firebase.app().firestore().collection(UPDATE_CURRENT).doc(CURRENT_KEY).set(firestoreData);
+  await firebase.app().firestore().collection(UPDATE_CURRENT).doc(session).set(firestoreData);
   // Add historical observation to database.
   const allRes = await firebase.app().firestore()
     .collection(UPDATE_ALL)
@@ -32,8 +30,8 @@ export const save = async (data: any) => {
   console.debug('save:', UPDATE_CURRENT, UPDATE_ALL, allRes.id);
 }
 
-export const getCurrent = async (): Promise<any> => {
+export const getCurrent = async (session: string): Promise<any> => {
   const currentRef = await firebase.app().firestore().collection(UPDATE_CURRENT)
-    .doc(CURRENT_KEY).get();
+    .doc(session).get();
   return convertFromFirestore(currentRef.data());
 }

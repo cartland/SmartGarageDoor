@@ -9,6 +9,8 @@
 const uint32_t MAX_LOOPS = 0;
 
 ServerApi serverApi(&Serial);
+ServerResponse serverdata;
+String session = "";
 
 void setup() {
   Serial.begin(115200);
@@ -53,11 +55,23 @@ void loop() {
   }
   firsttime = false;
   Serial.print("-> Making URL request: ");
-  String url = serverApi.buildUrl();
+  String url = serverApi.buildUrl(session);
   Serial.println(url);
   const uint16_t port = 443;
   char buf[4000];
   wget(url, 80, buf);
-  Serial.println(buf);
+  String json = buf;
+  Serial.println(json);
+  bool success = serverApi.parseData(serverdata, json);
+  if (!success) {
+    Serial.println("Failed to parse server data. No session provided.");
+  }
+  session = serverdata.session;
+  if (session.length() <= 0) {
+    Serial.println("No session ID.");
+  } else {
+    Serial.print("Session ID: ");
+    Serial.println(serverdata.session);
+  }
   loopsCompleted++;
 }

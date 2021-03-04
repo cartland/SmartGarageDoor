@@ -7,6 +7,7 @@
 typedef struct ServerResponse {
   String version;
   int code;
+  String session;
 } ServerResponse;
 
 class ServerApi {
@@ -18,7 +19,7 @@ class ServerApi {
     ServerApi(Stream *serial) {
       Serial = serial;
     };
-    String buildUrl();
+    String buildUrl(String session);
     bool parseData(ServerResponse &data, String json);
     void setError(String error) {
       _error = error;

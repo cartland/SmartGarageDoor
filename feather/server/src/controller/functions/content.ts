@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
+import { v4 as uuidv4 } from 'uuid';
+
 import * as functions from 'firebase-functions';
 
 import * as Database from '../../database/Database';
+
+const SESSION_PARAM_KEY = "session";
 
 /**
  * Get the current air quality observations.
@@ -29,9 +33,19 @@ export const echo = functions.https.onRequest(async (request, response) => {
     queryParams: request.query,
     body: request.body
   };
+  // The session ID allows a client to tell the server that multiple requests
+  // come from the same session.
+  if (SESSION_PARAM_KEY in request.query) {
+    // If the client sends a session ID, respond with the session ID.
+    data[SESSION_PARAM_KEY] = request.query[SESSION_PARAM_KEY];
+  } else {
+    // If the client does not send a session ID, create a session ID.
+    data[SESSION_PARAM_KEY] = uuidv4();
+  }
+  const session = data[SESSION_PARAM_KEY];
   try {
-    await Database.save(data);
-    const retrievedData = await Database.getCurrent();
+    await Database.save(session, data);
+    const retrievedData = await Database.getCurrent(session);
     // RESPOND with formatted data.
     response.status(200).send(retrievedData);
   }
