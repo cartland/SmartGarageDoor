@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feather Sessions</title>
+
+  <!-- update the version number as needed -->
+  <script defer src="/__/firebase/8.2.9/firebase-app.js"></script>
+  <!-- include only the Firebase features as you need -->
+  <script defer src="/__/firebase/8.2.9/firebase-firestore.js"></script>
+  <script defer src="/__/firebase/8.2.9/firebase-functions.js"></script>
+  <script defer src="/__/firebase/8.2.9/firebase-analytics.js"></script>
+  <!--
+      initialize the SDK after all desired features are loaded, set useEmulator to false
+      to avoid connecting the SDK to running emulators.
+    -->
+  <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+
+  <style media="screen">
+  </style>
+</head>
+
+<script>
+
+</script>
+</head>
+
+<div id="chartContainer" style="height: 300px; width: 100%;"></div>
+<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+
+<body>
+  <script>
+
+
+    document.addEventListener('DOMContentLoaded', function () {
+      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+      // // The Firebase SDK is initialized and available here!
+      //
+      // firebase.functions().httpsCallable('yourFunction')().then(() => { });
+      // firebase.analytics(); // call to activate
+      //
+      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+      var chart = new CanvasJS.Chart("chartContainer", {
+        animationEnabled: true,
+        theme: "light2",
+        title: {
+          text: "Battery Voltage Over Time"
+        },
+        data: []
+      });
+      chart.render();
+
+      let start = new Date('2021-03-01');
+      let end = new Date('2021-03-11');
+
+      firebase.firestore().collection("updateAll")
+        .orderBy("FIRESTORE_databaseTimestamp", "asc")
+        .onSnapshot((doc) => {
+          const observations = {};
+          // {
+          //   "sessionId": [{
+          //     "utcSeconds": 1614824009,
+          //     "batteryVoltage": 3.7,
+          //   }]
+          // };
+          for (let lineNumber = 0; lineNumber < doc.docs.length; lineNumber++) {
+            const line = doc.docs[lineNumber];
+            const data = line.data();
+            // Check to make sure all of the relevant data fields exist.
+            if (!('session' in data)
+              || !('FIRESTORE_databaseTimestamp' in data)
+              || !('seconds' in data['FIRESTORE_databaseTimestamp'])
+              || !('queryParams' in data)
+              || !('batteryVoltage' in data['queryParams'])
+            ) {
+              // Skip.
+              continue;
+            }
+            const session = data['session'];
+            if (!(session in observations)) {
+              observations[session] = [];
+            }
+            const seconds = parseInt(data['FIRESTORE_databaseTimestamp']['seconds']);
+            const voltage = parseFloat(data['queryParams']['batteryVoltage'])
+            observations[session].push({
+              'utcSeconds': seconds,
+              'batteryVoltage': voltage,
+            });
+          }
+          for (const session of Object.keys(observations)) {
+            observations[session].sort((a, b) => {
+              return a['utcSeconds'] - b['utcSeconds'];
+            });
+          }
+          chart.options.data = [];
+          for (const session of Object.keys(observations)) {
+            const sessionObservations = observations[session];
+            const numberOfPointsInSession = sessionObservations.length;
+            if (numberOfPointsInSession < 2) {
+              continue;
+            }
+            const lineData = {
+              type: "line",
+              indexLabelFontSize: 16,
+              dataPoints: []
+            };
+            for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
+              const utcSeconds = sessionObservations[observationIndex]['utcSeconds'];
+              const x = new Date(0);
+              x.setUTCSeconds(utcSeconds);
+              const y = sessionObservations[observationIndex]['batteryVoltage'];
+              const point = {
+                x: x,
+                y: y
+              };
+              if (observationIndex === 0) {
+                point['indexLabel'] = session.substring(0, 5) + '...';
+              }
+              lineData.dataPoints.push(point);
+            }
+            chart.options.data.push(lineData);
+          }
+          console.log(chart.options.data);
+          chart.render();
+        });
+    });
+  </script>
+</body>
+
+</html>
