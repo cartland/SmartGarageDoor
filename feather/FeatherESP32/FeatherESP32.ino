@@ -22,6 +22,7 @@ void setup() {
   String ipAddress = wifiSetup(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("WiFi connected to IP address ");
   Serial.println(ipAddress);
+  pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {
@@ -54,6 +55,7 @@ void loop() {
     }
   }
   firsttime = false;
+  digitalWrite(LED_BUILTIN, HIGH); // LED on when network request starts.
   Serial.print("-> Making URL request: ");
   String url = serverApi.buildUrl(session);
   Serial.println(url);
@@ -73,5 +75,6 @@ void loop() {
     Serial.print("Session ID: ");
     Serial.println(serverdata.session);
   }
+  digitalWrite(LED_BUILTIN, LOW); // LED off when network request completes.
   loopsCompleted++;
 }
