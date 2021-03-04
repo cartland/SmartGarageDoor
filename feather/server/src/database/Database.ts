@@ -3,12 +3,15 @@ import * as firebase from 'firebase-admin';
 const UPDATE_CURRENT = 'updateCurrent';
 const UPDATE_ALL = 'updateAll';
 
+const DATABASE_TIMESTAMP_KEY = 'FIRESTORE_databaseTimestamp';
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 
-const convertToFirestore = (externalData: any, seconds: number): any => {
+const convertToFirestore = (externalData: any): any => {
   const firestoreData = {};
   Object.assign(firestoreData, externalData);
-  firestoreData[DATABASE_TIMESTAMP_SECONDS_KEY] = seconds;
+  const now = firebase.firestore.Timestamp.now();
+  firestoreData[DATABASE_TIMESTAMP_KEY] = now;
+  firestoreData[DATABASE_TIMESTAMP_SECONDS_KEY] = now.seconds;
   return firestoreData;
 }
 
@@ -19,8 +22,7 @@ const convertFromFirestore = (firestoreData: any): any => {
 }
 
 export const save = async (session: string, data: any) => {
-  const seconds = firebase.firestore.Timestamp.now().seconds;
-  const firestoreData = convertToFirestore(data, seconds);
+  const firestoreData = convertToFirestore(data);
   // Set the 'current' data.
   await firebase.app().firestore().collection(UPDATE_CURRENT).doc(session).set(firestoreData);
   // Add historical observation to database.
