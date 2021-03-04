@@ -83,7 +83,9 @@ float readBatteryVoltage() {
   float ADAFRUIT_MULTIPLIER = 2.0;
   float MAX_INPUT = 4095.0;
   float MAX_VOLTAGE = 3.3;
-  float ADC_REFERENCE_VOLTAGE = 1.1;
+  // https://cuddletech.com/?p=1030 
+  // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/adc.html#overview
+  float ADC_REFERENCE_VOLTAGE = 1.1; // 1100mV ADC Reference Voltage
   return (analogRead(A13) / MAX_INPUT) * MAX_VOLTAGE * ADC_REFERENCE_VOLTAGE * ADAFRUIT_MULTIPLIER;
 }
 
