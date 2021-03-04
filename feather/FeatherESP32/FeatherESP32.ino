@@ -12,17 +12,58 @@ ServerApi serverApi(&Serial);
 ServerResponse serverdata;
 String session = "";
 
+const long morseCodeLong = 400;
+const long morseCodeShort = 100;
+const long morseCodeChar = 200;
+const long morseCodeEnd = 500;
+
+void blinkDash() {
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(morseCodeLong);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(morseCodeLong);
+}
+
+void blinkDot() {
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(morseCodeShort);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(morseCodeLong);
+}
+
+void blinkMorseCode(int sequence[], int len) {
+  for (int i = 0; i < len; i++) {
+    if (sequence[i]) {
+      blinkDash();
+    } else {
+      blinkDot();
+    }
+  }
+}
+
+void blinkOK() {
+  int LETTER_O[3] = {1, 1, 1};
+  blinkMorseCode(LETTER_O, 3); // "O"
+  delay(morseCodeChar);
+  int LETTER_K[3] = {1, 0, 1};
+  blinkMorseCode(LETTER_K, 3); // "K"
+  delay(morseCodeEnd);
+}
+
 void setup() {
   Serial.begin(115200);
   delay(100);
   Serial.println(""); // First line is usually lost. Print empty line.
+
+  pinMode(LED_BUILTIN, OUTPUT);
+  blinkOK();
+
   Serial.println("==========");
   Serial.println(String(__TIMESTAMP__));
   Serial.println("Connecting to WiFi access point...");
   String ipAddress = wifiSetup(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("WiFi connected to IP address ");
   Serial.println(ipAddress);
-  pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {
