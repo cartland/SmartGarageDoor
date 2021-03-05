@@ -16,18 +16,16 @@
     -->
   <script defer src="/__/firebase/init.js?useEmulator=true"></script>
 
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
 </head>
-
-<script>
-
-</script>
-</head>
-
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
-<canvas id="lineChart"></canvas>
 
 <body>
+
+  <div class="chart-container" style="position: relative; height:40vh; width:80vw">
+    <canvas id="lineChart"></canvas>
+  </div>
+
   <script>
 
     // Top level variable for debugging.
@@ -99,14 +97,14 @@
           title: {
             text: 'Battery Voltage Over Time by Session',
             display: true,
-            fontSize: 32,
+            fontSize: 24,
           },
           scales: {
             xAxes: [{
               scaleLabel: {
                 display: true,
                 labelString: 'Time',
-                fontSize: 32,
+                fontSize: 24,
               },
               type: 'linear',
               position: 'bottom',
@@ -122,7 +120,7 @@
               scaleLabel: {
                 display: true,
                 labelString: 'Voltage',
-                fontSize: 32,
+                fontSize: 24,
               },
             }]
           },
