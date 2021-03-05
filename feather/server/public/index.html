@@ -10,16 +10,12 @@
   <script defer src="/__/firebase/8.2.9/firebase-app.js"></script>
   <!-- include only the Firebase features as you need -->
   <script defer src="/__/firebase/8.2.9/firebase-firestore.js"></script>
-  <script defer src="/__/firebase/8.2.9/firebase-functions.js"></script>
-  <script defer src="/__/firebase/8.2.9/firebase-analytics.js"></script>
   <!--
       initialize the SDK after all desired features are loaded, set useEmulator to false
       to avoid connecting the SDK to running emulators.
     -->
   <script defer src="/__/firebase/init.js?useEmulator=true"></script>
 
-  <style media="screen">
-  </style>
 </head>
 
 <script>
@@ -27,45 +23,147 @@
 </script>
 </head>
 
-<div id="chartContainer" style="height: 300px; width: 100%;"></div>
-<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+<canvas id="lineChart"></canvas>
 
 <body>
   <script>
 
+    // Top level variable for debugging.
+    var scatterChart;
+
+    const COLOR_OPACITY = 'AA'; // Slightly transparent.
+    const COLORS = [
+      '#E74C3C' + COLOR_OPACITY,
+      '#9B59B6' + COLOR_OPACITY,
+      '#3498DB' + COLOR_OPACITY,
+      '#1ABC9C' + COLOR_OPACITY,
+      '#F4D03F' + COLOR_OPACITY,
+      '#E67E22' + COLOR_OPACITY,
+    ];
+
+    /**
+     * Formats date and time. Time must be provided in local timezone.
+     * YYYY-MM-DD hh:mm
+     */
+    function myDateFormat(date, seconds) {
+      var DD = date.getDay();
+      var MM = date.getMonth() + 1;
+      var YYYY = date.getFullYear();
+      var hh = date.getHours();
+      var min = date.getMinutes();
+      var ss = date.getSeconds();
+      if (DD < 10) {
+        DD = '0' + DD;
+      }
+      if (MM < 10) {
+        MM = '0' + MM;
+      }
+      if (hh < 10) {
+        hh = '0' + hh;
+      }
+      if (min < 10) {
+        min = '0' + min;
+      }
+      if (ss < 10) {
+        ss = '0' + ss;
+      }
+      if (seconds) {
+        return YYYY + '-' + MM + '-' + DD + ' ' + hh + ':' + min + ':' + ss;
+      }
+      return YYYY + '-' + MM + '-' + DD + ' ' + hh + ':' + min;
+    }
+
+    /**
+     * Convert UTC milliseconds to local timezone Date object.
+     */
+    function utcSecondsToLocalDateFormat(milliseconds, showSeconds) {
+      const x = new Date(0);
+      x.setUTCMilliseconds(milliseconds + 60 * x.getTimezoneOffset());
+      return myDateFormat(x, showSeconds);
+    }
 
     document.addEventListener('DOMContentLoaded', function () {
       // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
       // // The Firebase SDK is initialized and available here!
-      //
-      // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-      // firebase.analytics(); // call to activate
-      //
       // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
 
-      var chart = new CanvasJS.Chart("chartContainer", {
-        animationEnabled: true,
-        theme: "light2",
-        title: {
-          text: "Battery Voltage Over Time"
+      var ctx = document.getElementById('lineChart').getContext('2d');
+      scatterChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          datasets: []
         },
-        data: []
+        options: {
+          title: {
+            text: 'Battery Voltage Over Time by Session',
+            display: true,
+            fontSize: 32,
+          },
+          scales: {
+            xAxes: [{
+              scaleLabel: {
+                display: true,
+                labelString: 'Time',
+                fontSize: 32,
+              },
+              type: 'linear',
+              position: 'bottom',
+              ticks: {
+                callback: (value, index, values) => {
+                  const milliseconds = value;
+                  const showSeconds = false;
+                  return utcSecondsToLocalDateFormat(milliseconds, showSeconds);
+                }
+              }
+            }],
+            yAxes: [{
+              scaleLabel: {
+                display: true,
+                labelString: 'Voltage',
+                fontSize: 32,
+              },
+            }]
+          },
+          tooltips: {
+            titleAlign: 'center',
+            callbacks: {
+              label: function (tooltipItem, data) {
+                return data.datasets[tooltipItem.datasetIndex].label;
+              },
+              title: function (tooltipItem, data) {
+                const item = tooltipItem[0];
+                return [
+                  item.value + ' V',
+                ];
+              },
+              footer: function (tooltipItem, data) {
+                const item = tooltipItem[0];
+                const showSeconds = true;
+                return [
+                  utcSecondsToLocalDateFormat(item.xLabel, showSeconds),
+                ];
+              },
+              labelColor: function (tooltipItem, data) {
+                const color = COLORS[tooltipItem.datasetIndex % COLORS.length];
+                return {
+                  borderColor: color,
+                  backgroundColor: color,
+                };
+              },
+            }
+          },
+          onClick: (arr, elements) => {
+            console.log(arr, elements);
+          },
+        }
       });
-      chart.render();
-
-      let start = new Date('2021-03-01');
-      let end = new Date('2021-03-11');
 
       firebase.firestore().collection("updateAll")
         .orderBy("FIRESTORE_databaseTimestamp", "asc")
         .onSnapshot((doc) => {
           const observations = {};
-          // {
-          //   "sessionId": [{
-          //     "utcSeconds": 1614824009,
-          //     "batteryVoltage": 3.7,
-          //   }]
-          // };
           for (let lineNumber = 0; lineNumber < doc.docs.length; lineNumber++) {
             const line = doc.docs[lineNumber];
             const data = line.data();
@@ -76,7 +174,7 @@
               || !('queryParams' in data)
               || !('batteryVoltage' in data['queryParams'])
             ) {
-              // Skip.
+              // Skip data that is missing necessary fields.
               continue;
             }
             const session = data['session'];
@@ -95,36 +193,62 @@
               return a['utcSeconds'] - b['utcSeconds'];
             });
           }
-          chart.options.data = [];
+          let minUtcSeconds = undefined;
+          let maxUtcSeconds = undefined;
+          scatterChart.config.data.datasets = [];
           for (const session of Object.keys(observations)) {
             const sessionObservations = observations[session];
             const numberOfPointsInSession = sessionObservations.length;
             if (numberOfPointsInSession < 2) {
               continue;
             }
-            const lineData = {
-              type: "line",
-              indexLabelFontSize: 16,
-              dataPoints: []
-            };
+            const lineData = [];
             for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
               const utcSeconds = sessionObservations[observationIndex]['utcSeconds'];
+              if (typeof minUtcSeconds === 'undefined') {
+                minUtcSeconds = utcSeconds;
+              }
+              if (typeof maxUtcSeconds === 'undefined') {
+                maxUtcSeconds = utcSeconds;
+              }
+              if (utcSeconds < minUtcSeconds) {
+                minUtcSeconds = utcSeconds;
+              }
+              if (utcSeconds > maxUtcSeconds) {
+                maxUtcSeconds = utcSeconds;
+              }
               const x = new Date(0);
               x.setUTCSeconds(utcSeconds);
               const y = sessionObservations[observationIndex]['batteryVoltage'];
               const point = {
                 x: x,
-                y: y
+                y: y,
               };
-              if (observationIndex === 0) {
-                point['indexLabel'] = session.substring(0, 5) + '...';
-              }
-              lineData.dataPoints.push(point);
+              lineData.push(point);
             }
-            chart.options.data.push(lineData);
+            const color = COLORS[scatterChart.config.data.datasets.length % COLORS.length];
+            scatterChart.config.data.datasets.push({
+              label: session.substring(0, 5),
+              data: lineData,
+              borderColor: color,
+              backgroundColor: '#00000000',
+            });
           }
-          console.log(chart.options.data);
-          chart.render();
+          console.log(scatterChart.config.data.datasets);
+
+          // The step size for time looks better if the number fits nicely into a clock.
+          // Good examples: 15 minutes, 30 minutes, 1 hour
+          const minStepSizeMillis = 60 * 60 * 1000; // 1 hour.
+          const utcSecondsRange = maxUtcSeconds - minUtcSeconds;
+          // Only start scaling up if the range is 10X longer than the minStep.
+          const scale = Math.max(
+            1, // Make sure the the scale is an integer 1 or larger.
+            Math.floor((utcSecondsRange * 1000 / minStepSizeMillis) / (10 / 2))
+          );
+          // As we cover large time scales, we want the chart to step over bigger numbers.
+          const newStepSize = scale * minStepSizeMillis;
+          scatterChart.options.scales.xAxes[0].ticks.stepSize = newStepSize;
+          scatterChart.update();
         });
     });
   </script>
