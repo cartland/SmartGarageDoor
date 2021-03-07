@@ -17,10 +17,10 @@
 
 #include "Arduino.h"
 
-#define morseCodeLong 400
-#define morseCodeShort 100
-#define morseCodeChar 200
-#define morseCodeEnd 500
+#define MORSE_CODE_DASH_MILLIS 400
+#define MORSE_CODE_DOT_MILLIS 100
+#define MORSE_CODE_CHAR_PAUSE_MILLIS 200
+#define MORSE_CODE_WORD_PAUSE_MILLIS 500
 
 void blinkOn(int pin, long duration);
 

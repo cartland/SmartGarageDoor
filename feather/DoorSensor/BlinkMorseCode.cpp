@@ -23,13 +23,13 @@ void blinkOn(int pin, long duration) {
 }
 
 void blinkDash(int pin) {
-  blinkOn(pin, morseCodeLong);
-  delay(morseCodeLong);
+  blinkOn(pin, MORSE_CODE_DASH_MILLIS);
+  delay(MORSE_CODE_DASH_MILLIS);
 }
 
 void blinkDot(int pin) {
-  blinkOn(pin, morseCodeShort);
-  delay(morseCodeLong);
+  blinkOn(pin, MORSE_CODE_DOT_MILLIS);
+  delay(MORSE_CODE_DASH_MILLIS);
 }
 
 void blinkMorseCode(int pin, int sequence[], int len) {
@@ -45,8 +45,8 @@ void blinkMorseCode(int pin, int sequence[], int len) {
 void blinkOK(int pin) {
   int LETTER_O[3] = {1, 1, 1};
   blinkMorseCode(pin, LETTER_O, 3); // "O"
-  delay(morseCodeChar);
+  delay(MORSE_CODE_CHAR_PAUSE_MILLIS);
   int LETTER_K[3] = {1, 0, 1};
   blinkMorseCode(pin, LETTER_K, 3); // "K"
-  delay(morseCodeEnd);
+  delay(MORSE_CODE_WORD_PAUSE_MILLIS);
 }
