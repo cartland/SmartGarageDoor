@@ -9,3 +9,9 @@
   * Board: ESP32 -> Adafruit ESP32 Feather
 * Port: cu.SLAB_USBtoUART
 
+# AirLift
+* https://learn.adafruit.com/adafruit-metro-m4-express-airlift-wifi/update-the-uf2-bootloader
+
+# ESP32
+* Update firmware https://learn.adafruit.com/upgrading-esp32-firmware/overview
+  * https://learn.adafruit.com/upgrading-esp32-firmware/upgrade-an-airlift-all-in-one-board
