@@ -16,12 +16,15 @@
 
 #include "secrets.h"
 #include "BlinkMorseCode.h"
+#include "Debouncer.h"
 
 #define SENSOR_PIN_A 2
 #define SENSOR_PIN_B 3
 #define LED_PIN_A 6
 #define LED_PIN_B 7
 #define DEBOUNCE_MILLIS 500
+
+Debouncer debouncer(&Serial, DEBOUNCE_MILLIS);
 
 void onStateAChanged(int value) {
   Serial.print("State A Changed: ");
@@ -48,48 +51,27 @@ void setup() {
 }
 
 void loop() {
-  static int stateA = 0;
-  static int stateB = 0;
-  static int lastSensorA = 0;
-  static int lastSensorB = 0;
-  static unsigned long debounceTimeA = 0;
-  static unsigned long debounceTimeB = 0;
-
   unsigned long currentTime = millis();
 
-  int newSensorA = digitalRead(SENSOR_PIN_A);
-  int newSensorB = digitalRead(SENSOR_PIN_B);
-
-  if (newSensorA != lastSensorA) {
-    debounceTimeA = currentTime;
+  bool changedA = debouncer.debounceUpdate(SENSOR_PIN_A, currentTime);
+  int debouncedA = debouncer.debounceGet(SENSOR_PIN_A);
+  if (changedA) {
+    onStateAChanged(debouncedA);
   }
-  if (newSensorB != lastSensorB) {
-    debounceTimeB = currentTime;
-  }
-
-  if (currentTime - debounceTimeA > DEBOUNCE_MILLIS) {
-    if (stateA != newSensorA) {
-      onStateAChanged(newSensorA);
-    }
-    stateA = newSensorA;
-  }
-  if (stateA == 1) {
+  if (debouncedA == 1) {
     digitalWrite(LED_PIN_A, HIGH);
   } else {
     digitalWrite(LED_PIN_A, LOW);
   }
-  if (currentTime - debounceTimeB > DEBOUNCE_MILLIS) {
-    if (stateB != newSensorB) {
-      onStateBChanged(newSensorB);
-    }
-    stateB = newSensorB;
+
+  bool changedB = debouncer.debounceUpdate(SENSOR_PIN_B, currentTime);
+  int debouncedB = debouncer.debounceGet(SENSOR_PIN_B);
+  if (changedB) {
+    onStateAChanged(debouncedB);
   }
-  if (stateB == 1) {
+  if (debouncedB == 1) {
     digitalWrite(LED_PIN_B, LOW);
   } else {
     digitalWrite(LED_PIN_B, HIGH);
   }
-
-  lastSensorA = newSensorA;
-  lastSensorB = newSensorB;
 }
