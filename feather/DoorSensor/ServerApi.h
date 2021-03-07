@@ -13,34 +13,37 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
 #pragma once
 
-#include "Arduino.h"
+#include "secrets.h"
+#define ARDUINOJSON_USE_LONG_LONG 1
+#include <ArduinoJson.h>          //https://github.com/bblanchon/ArduinoJson
 
-#define DEBOUNCER_MAX_PIN_COUNT 32
-#define DEBOUNCER_INVALID -1
+typedef struct ClientParams {
+  String session;
+  String batteryVoltage;
+  String sensorA;
+  String sensorB;
+} ClientParams;
 
-class Debouncer {
+typedef struct ServerResponse {
+  String version;
+  int code;
+  String session;
+} ServerResponse;
+
+class ServerApi {
   private:
     Stream *Serial;
     String _error;
-    unsigned long debounceDuration;
-    int state[DEBOUNCER_MAX_PIN_COUNT];
-    int lastRead[DEBOUNCER_MAX_PIN_COUNT];
-    unsigned long debounceTime[DEBOUNCER_MAX_PIN_COUNT];
 
   public:
-    Debouncer(Stream *serial, unsigned long duration) {
+    ServerApi(Stream *serial) {
       Serial = serial;
-      debounceDuration = duration;
-      for (int i = 0; i < DEBOUNCER_MAX_PIN_COUNT; i++) {
-        state[i] = DEBOUNCER_INVALID;
-        lastRead[i] = DEBOUNCER_INVALID;
-        debounceTime[i] = 0;
-      }
     };
-    bool debounceUpdate(int SENSOR_PIN, unsigned long currentTime);
-    int debounceGet(int SENSOR_PIN);
+    String buildUrl(ClientParams params);
+    bool parseData(ServerResponse &data, String json);
     void setError(String error) {
       _error = error;
     }
