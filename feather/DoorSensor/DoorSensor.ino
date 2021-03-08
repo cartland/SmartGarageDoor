@@ -140,8 +140,8 @@ void loop() {
   batteryVoltage = readBatteryVoltage();
   if (changedA) {
     Serial.print("Sensor A Changed: ");
-    Serial.println(debouncedA);
-    Serial.print("Battery voltage: ");
+    Serial.print(debouncedA);
+    Serial.print(" - Battery voltage: ");
     Serial.println(batteryVoltage);
     ClientParams params;
     params.session = session;
@@ -149,11 +149,12 @@ void loop() {
     params.sensorA = String(debouncedA);
     params.sensorB = "";
     updateServerSensorData(params);
+    Serial.println();
   }
   if (changedB) {
     Serial.print("Sensor B Changed: ");
-    Serial.println(debouncedB);
-    Serial.print("Battery voltage: ");
+    Serial.print(debouncedB);
+    Serial.print(" - Battery voltage: ");
     Serial.println(batteryVoltage);
     ClientParams params;
     params.session = session;
@@ -161,5 +162,6 @@ void loop() {
     params.sensorA = "";
     params.sensorB = String(debouncedB);
     updateServerSensorData(params);
+    Serial.println();
   }
 }
