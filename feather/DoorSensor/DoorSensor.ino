@@ -22,10 +22,10 @@
 
 #define SENSOR_PIN_A 2
 #define SENSOR_PIN_B 3
-#define SWITCH_OPEN 1
-#define SWITCH_CLOSED 0
 #define SIGNAL_HIGH 1
 #define SIGNAL_LOW 0
+#define SWITCH_OPEN SIGNAL_HIGH
+#define SWITCH_CLOSED SIGNAL_LOW
 #define LED_PIN_A 6
 #define LED_PIN_B 7
 #define DEBOUNCE_MILLIS 50
@@ -42,44 +42,7 @@ ServerResponse serverdata;
 String session = "";
 float batteryVoltage = 0.0f;
 
-void onStateAChanged(int value) {
-  Serial.print("State A Changed: ");
-  Serial.println(value);
-  ClientParams params;
-  params.session = session;
-  params.batteryVoltage = "";
-  params.sensorA = String(value);
-  params.sensorB = "";
-  String url = serverApi.buildUrl(params);
-  Serial.print("Request URL: ");
-  Serial.println(url);
-  const uint16_t port = 443;
-  char buf[4000];
-  wget(url, port, buf);
-  String json = buf;
-  Serial.println(json);
-  bool success = serverApi.parseData(serverdata, json);
-  if (!success) {
-    Serial.println("Failed to parse server data.");
-    return;
-  }
-  session = serverdata.session;
-  if (session.length() <= 0) {
-    Serial.println("No session ID.");
-  } else {
-    Serial.print("Session ID: ");
-    Serial.println(serverdata.session);
-  }
-}
-
-void onStateBChanged(int value) {
-  Serial.print("State B Changed: ");
-  Serial.println(value);
-  ClientParams params;
-  params.session = session;
-  params.batteryVoltage = "";
-  params.sensorA = "";
-  params.sensorB = String(value);
+void updateServerSensorData(ClientParams params) {
   String url = serverApi.buildUrl(params);
   Serial.print("Request URL: ");
   Serial.println(url);
@@ -133,18 +96,33 @@ void loop() {
   } else {
     digitalWrite(LED_PIN_A, LOW);
   }
-  if (changedA) {
-    onStateAChanged(debouncedA);
-  }
 
   bool changedB = debouncer.debounceUpdate(SENSOR_PIN_B, currentTime);
   int debouncedB = debouncer.debounceGet(SENSOR_PIN_B);
-  if (debouncedB == SIGNAL_HIGH) {
-    digitalWrite(LED_PIN_B, LOW);
-  } else {
+  if (debouncedB == SWITCH_CLOSED) {
     digitalWrite(LED_PIN_B, HIGH);
+  } else {
+    digitalWrite(LED_PIN_B, LOW);
+  }
+
+  if (changedA) {
+    Serial.print("Sensor A Changed: ");
+    Serial.println(debouncedA);
+    ClientParams params;
+    params.session = session;
+    params.batteryVoltage = "";
+    params.sensorA = String(debouncedA);
+    params.sensorB = "";
+    updateServerSensorData(params);
   }
   if (changedB) {
-    onStateBChanged(debouncedB);
+    Serial.print("Sensor B Changed: ");
+    Serial.println(debouncedB);
+    ClientParams params;
+    params.session = session;
+    params.batteryVoltage = "";
+    params.sensorA = "";
+    params.sensorB = String(debouncedB);
+    updateServerSensorData(params);
   }
 }
