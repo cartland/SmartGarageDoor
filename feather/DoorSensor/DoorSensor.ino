@@ -174,8 +174,8 @@ void loop() {
     ClientParams params;
     params.session = session;
     params.batteryVoltage = String(batteryVoltage);
-    params.sensorA = "";
-    params.sensorB = "";
+    params.sensorA = String(debouncedA);
+    params.sensorB = String(debouncedB);
     updateServerSensorData(params);
     lastNetworkRequestTime = currentTime;
     Serial.println();
