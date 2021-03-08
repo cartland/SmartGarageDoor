@@ -16,18 +16,16 @@
 
 #pragma once
 
-// You need to enable one of the following and remove (comment out) the others.
+#include "WiFiGet.h"
 
-// Tested with Adafruit Metro M4 Express AirLift (WiFi) - Lite
-#define USE_WIFI_NINA true
 // Tested with Assembled Feather HUZZAH w/ ESP8266 WiFi With Stacking Headers
-#define USE_MULTI_WIFI false
+// https://www.adafruit.com/product/3213
+// https://github.com/espressif/arduino-esp32/blob/master/docs/arduino-ide/boards_manager.md
+#if USE_MULTI_WIFI
+#include <WiFiMulti.h>
 
-#include <Arduino.h>
+bool wifiMultiSetup(String wifiSSID, String wifiPassword);
 
-#include "WiFiGetMulti.h"
-#include "WiFiGetNina.h"
+void wgetWifiMulti(String &host, String &path, int port, char *buff);
 
-bool wifiSetup(String wifiSSID, String wifiPassword);
-
-void wget(String &url, int port, char *buff);
+#endif
