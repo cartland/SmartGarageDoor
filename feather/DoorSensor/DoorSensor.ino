@@ -58,6 +58,8 @@ ServerApi serverApi(&Serial);
 ClientParams params;
 ServerResponse serverdata;
 String session = "";
+unsigned long HEARTBEAT_INTERVAL = 1000 * 60 * 10; // 10 minutes.
+unsigned long lastNetworkRequestTime = 0;
 float batteryVoltage = 0.0;
 
 float readBatteryVoltage() {
@@ -149,6 +151,7 @@ void loop() {
     params.sensorA = String(debouncedA);
     params.sensorB = "";
     updateServerSensorData(params);
+    lastNetworkRequestTime = currentTime;
     Serial.println();
   }
   if (changedB) {
@@ -162,6 +165,19 @@ void loop() {
     params.sensorA = "";
     params.sensorB = String(debouncedB);
     updateServerSensorData(params);
+    lastNetworkRequestTime = currentTime;
+    Serial.println();
+  }
+  if (currentTime - lastNetworkRequestTime > HEARTBEAT_INTERVAL) {
+    Serial.print("Heartbeat - Battery voltage: ");
+    Serial.println(batteryVoltage);
+    ClientParams params;
+    params.session = session;
+    params.batteryVoltage = String(batteryVoltage);
+    params.sensorA = "";
+    params.sensorB = "";
+    updateServerSensorData(params);
+    lastNetworkRequestTime = currentTime;
     Serial.println();
   }
 }
