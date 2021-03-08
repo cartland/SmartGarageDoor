@@ -22,3 +22,25 @@
 #define WIFI_SSID "WIFI_SSID"
 #define WIFI_PASSWORD "WIFI_PASSWORD"
 #define URL "https://example.com/path?key1=value2&key2=value2"
+
+// Exactly one of the following must be true!!!
+// * USE_ADAFRUIT_HUZZAH32_ESP32_FEATHER
+// Adafruit HUZZAH32 - ESP32 Feather
+#define USE_ADAFRUIT_HUZZAH32_ESP32_FEATHER true
+// * USE_ADAFRUIT_METRO_M4_EXPRESS_AIRLIFT
+// Adafruit Metro M4 Express AirLift
+#define USE_ADAFRUIT_METRO_M4_EXPRESS_AIRLIFT false
+
+// Tested with Assembled Feather HUZZAH w/ ESP8266 WiFi With Stacking Headers
+#if USE_ADAFRUIT_HUZZAH32_ESP32_FEATHER
+#define USE_MULTI_WIFI true
+#else
+#define USE_MULTI_WIFI false
+#endif
+
+#if USE_ADAFRUIT_METRO_M4_EXPRESS_AIRLIFT
+// Tested with Adafruit Metro M4 Express AirLift (WiFi) - Lite
+#define USE_WIFI_NINA true
+#else
+#define USE_WIFI_NINA false
+#endif
