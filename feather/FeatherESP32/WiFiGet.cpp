@@ -8,7 +8,15 @@
 
 WiFiMulti WiFiMulti;
 
+String wifiMultiSetup(String wifiSSID, String wifiPassword);
+void wgetWifiMulti(String &host, String &path, int port, char *buff);
+
 String wifiSetup(String wifiSSID, String wifiPassword) {
+  // WiFiMulti version.
+  return wifiMultiSetup(wifiSSID, wifiPassword);
+}
+
+String wifiMultiSetup(String wifiSSID, String wifiPassword) {
   WiFiMulti.addAP(wifiSSID.c_str(), wifiPassword.c_str());
   Serial.println("Looking for WiFi...");
   while (WiFiMulti.run() != WL_CONNECTED) {
@@ -34,10 +42,10 @@ void wget(String &url, int port, char *buff) {
   String host = url.substring(pos1 + 2, pos2);
   String path = url.substring(pos2);
   Serial.println("Parsed: wget(" + host + "," + path + "," + port + ")");
-  wget(host, path, port, buff);
+  wgetWifiMulti(host, path, port, buff);
 }
 
-void wget(String &host, String &path, int port, char *buff) {
+void wgetWifiMulti(String &host, String &path, int port, char *buff) {
   Serial.println("Preparing GET request...");
   Serial.print("Connecting to host: ");
   Serial.print(host);
