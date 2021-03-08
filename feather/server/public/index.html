@@ -217,6 +217,17 @@
             const sessionObservations = observations[session];
             const numberOfPointsInSession = sessionObservations.length;
             if (numberOfPointsInSession < 2) {
+              console.log('Skipping session', session,
+                ' because there are fewer than 2 data points');
+              continue;
+            }
+            const firstObservation = sessionObservations[0];
+            const firstUtcSeconds = firstObservation['utcSeconds'];
+            const lastObservation = sessionObservations[sessionObservations.length - 1];
+            const lastUtcSeconds = lastObservation['utcSeconds'];
+            if (lastUtcSeconds - firstUtcSeconds < 60 * 10) {
+              console.log('Skipping session', session,
+                ' because first and last are less than 10 minutes apart', firstUtcSeconds, lastUtcSeconds);
               continue;
             }
             const lineData = [];
