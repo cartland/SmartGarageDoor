@@ -28,7 +28,7 @@
 #define SIGNAL_LOW 0
 #define LED_PIN_A 6
 #define LED_PIN_B 7
-#define DEBOUNCE_MILLIS 500
+#define DEBOUNCE_MILLIS 50
 
 // Analog input to measure battery voltage.
 // https://learn.adafruit.com/adafruit-huzzah32-esp32-feather/power-management
