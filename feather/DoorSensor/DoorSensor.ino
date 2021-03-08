@@ -128,23 +128,23 @@ void loop() {
 
   bool changedA = debouncer.debounceUpdate(SENSOR_PIN_A, currentTime);
   int debouncedA = debouncer.debounceGet(SENSOR_PIN_A);
-  if (changedA) {
-    onStateAChanged(debouncedA);
-  }
   if (debouncedA == SWITCH_CLOSED) {
     digitalWrite(LED_PIN_A, HIGH);
   } else {
     digitalWrite(LED_PIN_A, LOW);
   }
+  if (changedA) {
+    onStateAChanged(debouncedA);
+  }
 
   bool changedB = debouncer.debounceUpdate(SENSOR_PIN_B, currentTime);
   int debouncedB = debouncer.debounceGet(SENSOR_PIN_B);
-  if (changedB) {
-    onStateBChanged(debouncedB);
-  }
   if (debouncedB == SIGNAL_HIGH) {
     digitalWrite(LED_PIN_B, LOW);
   } else {
     digitalWrite(LED_PIN_B, HIGH);
+  }
+  if (changedB) {
+    onStateBChanged(debouncedB);
   }
 }
