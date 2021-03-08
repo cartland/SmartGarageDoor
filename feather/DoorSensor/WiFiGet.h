@@ -16,12 +16,7 @@
 
 #pragma once
 
-// You need to enable one of the following and remove (comment out) the others.
-
-// Tested with Adafruit Metro M4 Express AirLift (WiFi) - Lite
-#define USE_WIFI_NINA true
-// Tested with Assembled Feather HUZZAH w/ ESP8266 WiFi With Stacking Headers
-#define USE_MULTI_WIFI false
+#include "secrets.h"
 
 #include <Arduino.h>
 

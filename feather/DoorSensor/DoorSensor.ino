@@ -31,8 +31,20 @@
 #define DEBOUNCE_MILLIS 50
 
 // Analog input to measure battery voltage.
+//
+// https://learn.adafruit.com/adafruit-huzzah32-esp32-feather/pinouts
 // https://learn.adafruit.com/adafruit-huzzah32-esp32-feather/power-management
 #define A13 35
+
+#if USE_ADAFRUIT_HUZZAH32_ESP32_FEATHER
+// Use A13 on Adafruit HUZZAH32 - ESP32 Feather.
+#define VOLTAGE_INPUT_PIN A13
+#endif
+
+#if USE_ADAFRUIT_METRO_M4_EXPRESS_AIRLIFT
+// Use A0 on Adafruit Metro M4 Express AirLift.
+#define VOLTAGE_INPUT_PIN A0
+#endif
 
 Debouncer debouncer(&Serial, DEBOUNCE_MILLIS);
 
@@ -40,7 +52,17 @@ ServerApi serverApi(&Serial);
 ClientParams params;
 ServerResponse serverdata;
 String session = "";
-float batteryVoltage = 0.0f;
+float batteryVoltage = 0.0;
+
+float readBatteryVoltage() {
+  float ADAFRUIT_MULTIPLIER = 2.0;
+  float MAX_ANALOG_READ_VOLTAGE_INPUT = 4095.0;
+  float MAX_VOLTAGE = 3.3;
+  // https://cuddletech.com/?p=1030
+  // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/adc.html#overview
+  float ADC_REFERENCE_VOLTAGE = 1.1; // 1100mV ADC Reference Voltage
+  return (analogRead(VOLTAGE_INPUT_PIN) / MAX_ANALOG_READ_VOLTAGE_INPUT) * MAX_VOLTAGE * ADC_REFERENCE_VOLTAGE * ADAFRUIT_MULTIPLIER;
+}
 
 void updateServerSensorData(ClientParams params) {
   String url = serverApi.buildUrl(params);
@@ -105,12 +127,15 @@ void loop() {
     digitalWrite(LED_PIN_B, LOW);
   }
 
+  batteryVoltage = readBatteryVoltage();
   if (changedA) {
     Serial.print("Sensor A Changed: ");
     Serial.println(debouncedA);
+    Serial.print("Battery voltage: ");
+    Serial.println(batteryVoltage);
     ClientParams params;
     params.session = session;
-    params.batteryVoltage = "";
+    params.batteryVoltage = String(batteryVoltage);
     params.sensorA = String(debouncedA);
     params.sensorB = "";
     updateServerSensorData(params);
@@ -118,9 +143,11 @@ void loop() {
   if (changedB) {
     Serial.print("Sensor B Changed: ");
     Serial.println(debouncedB);
+    Serial.print("Battery voltage: ");
+    Serial.println(batteryVoltage);
     ClientParams params;
     params.session = session;
-    params.batteryVoltage = "";
+    params.batteryVoltage = String(batteryVoltage);
     params.sensorA = "";
     params.sensorB = String(debouncedB);
     updateServerSensorData(params);

@@ -100,9 +100,16 @@ void wgetWifiNINA(String &host, String &path, int port, char *buff) {
         bytes++;
       }
       // If the server is disconnected, stop the client.
-      // Also, stop after 1000 loops. Sometimes the server doesn't disconnect.
-      if (!client.connected() || loopCount > 1000) {
+      if (!client.connected()) {
         Serial.println("Done with GET request. Disconnecting from the server.");
+        client.stop();
+        buff[capturepos] = '\0';
+        Serial.println("Captured " + String(capturepos) + " bytes.");
+        return;
+      }
+      // Also, stop after 10000 loops. Sometimes the server doesn't disconnect.
+      if (loopCount > 10000) {
+        Serial.println("Client abandoning the GET request. Disconnecting from the server.");
         client.stop();
         buff[capturepos] = '\0';
         Serial.println("Captured " + String(capturepos) + " bytes.");
