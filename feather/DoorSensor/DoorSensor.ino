@@ -62,6 +62,9 @@ unsigned long HEARTBEAT_INTERVAL = 1000 * 60 * 10; // 10 minutes.
 unsigned long lastNetworkRequestTime = 0;
 float batteryVoltage = 0.0;
 
+const unsigned long BLINK_PERIOD_MS = 1000 * 10; // 10 seconds.
+const unsigned long BLINK_DURATION_MS = 500; // 500 ms.
+
 float readBatteryVoltage() {
   float ADAFRUIT_MULTIPLIER = 2.0;
   float MAX_ANALOG_READ_VOLTAGE_INPUT = 4095.0;
@@ -73,6 +76,7 @@ float readBatteryVoltage() {
 }
 
 void updateServerSensorData(ClientParams params) {
+  digitalWrite(LED_BUILTIN, HIGH); // Blink a little while contacting the server.
   String url = serverApi.buildUrl(params);
   Serial.print("Request URL: ");
   Serial.println(url);
@@ -83,7 +87,9 @@ void updateServerSensorData(ClientParams params) {
   const uint16_t port = 443;
 #endif
   char buf[4000];
+  digitalWrite(LED_BUILTIN, LOW);
   wget(url, port, buf);
+  digitalWrite(LED_BUILTIN, HIGH);
   String json = buf;
   Serial.println(json);
   bool success = serverApi.parseData(serverdata, json);
@@ -98,6 +104,7 @@ void updateServerSensorData(ClientParams params) {
     Serial.print("Session ID: ");
     Serial.println(serverdata.session);
   }
+  digitalWrite(LED_BUILTIN, LOW);
 }
 
 void setup() {
@@ -171,6 +178,7 @@ void loop() {
   if (currentTime - lastNetworkRequestTime > HEARTBEAT_INTERVAL) {
     Serial.print("Heartbeat - Battery voltage: ");
     Serial.println(batteryVoltage);
+    digitalWrite(LED_BUILTIN, HIGH);
     ClientParams params;
     params.session = session;
     params.batteryVoltage = String(batteryVoltage);
@@ -178,6 +186,14 @@ void loop() {
     params.sensorB = String(debouncedB);
     updateServerSensorData(params);
     lastNetworkRequestTime = currentTime;
+    digitalWrite(LED_BUILTIN, LOW);
     Serial.println();
+  }
+
+  unsigned long blinkTime = currentTime % BLINK_PERIOD_MS;
+  if (blinkTime < BLINK_DURATION_MS) {
+    digitalWrite(LED_BUILTIN, HIGH);
+  } else {
+    digitalWrite(LED_BUILTIN, LOW);
   }
 }
