@@ -100,9 +100,8 @@ void setup() {
   Serial.println("==========");
   Serial.println(String(__TIMESTAMP__));
   Serial.println("Connecting to WiFi access point...");
-  String ipAddress = wifiSetup(WIFI_SSID, WIFI_PASSWORD);
-  Serial.print("WiFi connected to IP address ");
-  Serial.println(ipAddress);
+  bool success = wifiSetup(WIFI_SSID, WIFI_PASSWORD);
+  Serial.println("WiFi connected!");
 }
 
 void loop() {
