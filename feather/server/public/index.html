@@ -206,7 +206,7 @@
           for (const session of Object.keys(observations)) {
             const sessionObservations = observations[session];
             const numberOfPointsInSession = sessionObservations.length;
-            if (numberOfPointsInSession < 2) {
+            if (numberOfPointsInSession < 10) {
               continue;
             }
             const lineData = [];
