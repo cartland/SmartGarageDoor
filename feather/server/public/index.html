@@ -216,7 +216,7 @@
           for (const session of Object.keys(observations)) {
             const sessionObservations = observations[session];
             const numberOfPointsInSession = sessionObservations.length;
-            if (numberOfPointsInSession < 10) {
+            if (numberOfPointsInSession < 2) {
               continue;
             }
             const lineData = [];
@@ -237,6 +237,9 @@
               const x = new Date(0);
               x.setUTCSeconds(utcSeconds);
               const y = sessionObservations[observationIndex]['batteryVoltage'];
+              if (y < 2) {
+                continue; // Ignore test data.
+              }
               const point = {
                 x: x,
                 y: y,
