@@ -30,6 +30,10 @@
 #define LED_PIN_B 7
 #define DEBOUNCE_MILLIS 500
 
+// Analog input to measure battery voltage.
+// https://learn.adafruit.com/adafruit-huzzah32-esp32-feather/power-management
+#define A13 35
+
 Debouncer debouncer(&Serial, DEBOUNCE_MILLIS);
 
 ServerApi serverApi(&Serial);
@@ -38,7 +42,8 @@ ServerResponse serverdata;
 String session = "";
 float batteryVoltage = 0.0f;
 
-void onStateAChanged(int value) {
+void onStateAChanged(int value)
+{
   Serial.print("State A Changed: ");
   Serial.println(value);
   ClientParams params;
@@ -55,20 +60,25 @@ void onStateAChanged(int value) {
   String json = buf;
   Serial.println(json);
   bool success = serverApi.parseData(serverdata, json);
-  if (!success) {
+  if (!success)
+  {
     Serial.println("Failed to parse server data.");
     return;
   }
   session = serverdata.session;
-  if (session.length() <= 0) {
+  if (session.length() <= 0)
+  {
     Serial.println("No session ID.");
-  } else {
+  }
+  else
+  {
     Serial.print("Session ID: ");
     Serial.println(serverdata.session);
   }
 }
 
-void onStateBChanged(int value) {
+void onStateBChanged(int value)
+{
   Serial.print("State B Changed: ");
   Serial.println(value);
   ClientParams params;
@@ -85,20 +95,25 @@ void onStateBChanged(int value) {
   String json = buf;
   Serial.println(json);
   bool success = serverApi.parseData(serverdata, json);
-  if (!success) {
+  if (!success)
+  {
     Serial.println("Failed to parse server data.");
     return;
   }
   session = serverdata.session;
-  if (session.length() <= 0) {
+  if (session.length() <= 0)
+  {
     Serial.println("No session ID.");
-  } else {
+  }
+  else
+  {
     Serial.print("Session ID: ");
     Serial.println(serverdata.session);
   }
 }
 
-void setup() {
+void setup()
+{
   Serial.begin(115200);
   delay(100);
   Serial.println(""); // First line is usually lost. Print empty line.
@@ -112,35 +127,47 @@ void setup() {
   Serial.println(String(__TIMESTAMP__));
 
   bool success = wifiSetup(WIFI_SSID, WIFI_PASSWORD);
-  if (success) {
+  if (success)
+  {
     Serial.println("Successfully connected to WiFi.");
-  } else {
+  }
+  else
+  {
     Serial.println("Failed to connect to WiFi.");
   }
 }
 
-void loop() {
+void loop()
+{
   unsigned long currentTime = millis();
 
   bool changedA = debouncer.debounceUpdate(SENSOR_PIN_A, currentTime);
   int debouncedA = debouncer.debounceGet(SENSOR_PIN_A);
-  if (changedA) {
+  if (changedA)
+  {
     onStateAChanged(debouncedA);
   }
-  if (debouncedA == SWITCH_CLOSED) {
+  if (debouncedA == SWITCH_CLOSED)
+  {
     digitalWrite(LED_PIN_A, HIGH);
-  } else {
+  }
+  else
+  {
     digitalWrite(LED_PIN_A, LOW);
   }
 
   bool changedB = debouncer.debounceUpdate(SENSOR_PIN_B, currentTime);
   int debouncedB = debouncer.debounceGet(SENSOR_PIN_B);
-  if (changedB) {
+  if (changedB)
+  {
     onStateBChanged(debouncedB);
   }
-  if (debouncedB == SIGNAL_HIGH) {
+  if (debouncedB == SIGNAL_HIGH)
+  {
     digitalWrite(LED_PIN_B, LOW);
-  } else {
+  }
+  else
+  {
     digitalWrite(LED_PIN_B, HIGH);
   }
 }

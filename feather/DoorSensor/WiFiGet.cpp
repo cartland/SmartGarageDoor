@@ -16,11 +16,15 @@
 
 #include "WiFiGet.h"
 
-WiFiSSLClient client;
 
+
+
+#ifdef USE_WIFI_NINA // Check WiFiGet.h
+// WiFiNINA
+WiFiSSLClient client;
 int status = WL_IDLE_STATUS;
 
-bool wifiSetup(String wifiSSID, String wifiPassword) {
+bool WiFiNINASetup(String wifiSSID, String wifiPassword) {
   // Check for WiFi module.
   if (WiFi.status() == WL_NO_MODULE) {
     Serial.println("Error: Communication with WiFi module failed!");
@@ -56,25 +60,7 @@ bool wifiSetup(String wifiSSID, String wifiPassword) {
   return true;
 }
 
-/**
-   Usage:
-
-  const uint16_t port = 443;
-  char buf[4000];
-  String urlc = URL;
-  wget(urlc, 80, buf);
-  Serial.println(buf);
-*/
-void wget(String &url, int port, char *buff) {
-  int pos1 = url.indexOf("/", 0);
-  int pos2 = url.indexOf("/", 8);
-  String host = url.substring(pos1 + 2, pos2);
-  String path = url.substring(pos2);
-  Serial.println("Parsed: wget(" + host + "," + path + "," + port + ")");
-  wget(host, path, port, buff);
-}
-
-void wget(String &host, String &path, int port, char *buff) {
+void wgetWifiNINA(String &host, String &path, int port, char *buff) {
   Serial.print("wget host: ");
   Serial.print(host);
   Serial.print(", path: ");
@@ -132,4 +118,34 @@ void wget(String &host, String &path, int port, char *buff) {
     buff[0] = '\0';
   }
   Serial.println("Done with GET request.");
+}
+#endif // #ifdef USE_WIFI_NINA
+
+
+
+
+bool wifiSetup(String wifiSSID, String wifiPassword) {
+  #ifdef USE_WIFI_NINA
+  return WiFiNINASetup(wifiSSID, wifiPassword);
+  #else
+  return false;
+  #endif
+}
+
+/**
+   Usage:
+
+  const uint16_t port = 443;
+  char buf[4000];
+  String urlc = URL;
+  wget(urlc, 80, buf);
+  Serial.println(buf);
+*/
+void wget(String &url, int port, char *buff) {
+  int pos1 = url.indexOf("/", 0);
+  int pos2 = url.indexOf("/", 8);
+  String host = url.substring(pos1 + 2, pos2);
+  String path = url.substring(pos2);
+  Serial.println("Parsed: wget(" + host + "," + path + "," + port + ")");
+  wgetWifiNINA(host, path, port, buff);
 }
