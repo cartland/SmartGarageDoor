@@ -20,14 +20,10 @@
 #include "WiFiGet.h"
 #include "ServerApi.h"
 
-#define SENSOR_PIN_A 2
-#define SENSOR_PIN_B 3
 #define SIGNAL_HIGH 1
 #define SIGNAL_LOW 0
 #define SWITCH_OPEN SIGNAL_HIGH
 #define SWITCH_CLOSED SIGNAL_LOW
-#define LED_PIN_A 6
-#define LED_PIN_B 7
 #define DEBOUNCE_MILLIS 50
 
 // Analog input to measure battery voltage.
@@ -38,12 +34,22 @@
 
 #if USE_ADAFRUIT_HUZZAH32_ESP32_FEATHER
 // Use A13 on Adafruit HUZZAH32 - ESP32 Feather.
+// https://learn.adafruit.com/adafruit-huzzah32-esp32-feather/pinouts
 #define VOLTAGE_INPUT_PIN A13
+#define SENSOR_PIN_A 14
+#define SENSOR_PIN_B 32
+#define LED_PIN_A 15
+#define LED_PIN_B 33
 #endif
 
 #if USE_ADAFRUIT_METRO_M4_EXPRESS_AIRLIFT
 // Use A0 on Adafruit Metro M4 Express AirLift.
+// https://learn.adafruit.com/adafruit-metro-m4-express-airlift-wifi/pinouts-2
 #define VOLTAGE_INPUT_PIN A0
+#define SENSOR_PIN_A 2 // Pull down switch with pull-up resitor.
+#define SENSOR_PIN_B 3 // Pull down switch with pull-up resitor.
+#define LED_PIN_A 6
+#define LED_PIN_B 7
 #endif
 
 Debouncer debouncer(&Serial, DEBOUNCE_MILLIS);
@@ -99,7 +105,6 @@ void setup() {
   blinkOK(LED_BUILTIN);
   Serial.println("==========");
   Serial.println(String(__TIMESTAMP__));
-
   bool success = wifiSetup(WIFI_SSID, WIFI_PASSWORD);
   if (success) {
     Serial.println("Successfully connected to WiFi.");
