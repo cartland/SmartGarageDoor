@@ -74,7 +74,12 @@ void updateServerSensorData(ClientParams params) {
   String url = serverApi.buildUrl(params);
   Serial.print("Request URL: ");
   Serial.println(url);
+#if USE_ADAFRUIT_HUZZAH32_ESP32_FEATHER
+  const uint16_t port = 80;
+#endif
+#if USE_ADAFRUIT_METRO_M4_EXPRESS_AIRLIFT
   const uint16_t port = 443;
+#endif
   char buf[4000];
   wget(url, port, buf);
   String json = buf;

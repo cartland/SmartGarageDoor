@@ -139,9 +139,9 @@ void loop() {
   String batteryVoltage = String(readBatteryVoltage());
   String url = serverApi.buildUrl(session, batteryVoltage);
   Serial.println(url);
-  const uint16_t port = 443;
+  const uint16_t port = 80;
   char buf[4000];
-  wget(url, 80, buf);
+  wget(url, port, buf);
   String json = buf;
   Serial.println(json);
   bool success = serverApi.parseData(serverdata, json);
