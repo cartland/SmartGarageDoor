@@ -20,25 +20,35 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
 
   <style>
-    #chartContainer {
+    .chart-container {
       padding-left: 0;
       padding-right: 0;
       margin-left: auto;
       margin-right: auto;
+      padding-bottom: 100px;
     }
   </style>
 </head>
 
 <body>
 
-  <div id="chartContainer" class="chart-container" style="position: relative; height:40vh; width:80vw">
-    <canvas id="lineChart"></canvas>
+  <p>
+  <div id="voltageChartContainer" class="chart-container" style="position: relative; height:40vh; width:80vw">
+    <canvas id="voltageChart"></canvas>
   </div>
+  </p>
+
+  <p>
+  <div id="sensorChartContainer" class="chart-container" style="position: relative; height:40vh; width:80vw">
+    <canvas id="sensorChart"></canvas>
+  </div>
+  </p>
 
   <script>
 
     // Top level variable for debugging.
-    var scatterChart;
+    var voltageChart;
+    var sensorChart;
 
     const COLOR_OPACITY = 'AA'; // Slightly transparent.
     const COLORS = [
@@ -251,9 +261,9 @@
       for (const session of Object.keys(observations)) {
         const sessionObservations = observations[session];
         const numberOfPointsInSession = sessionObservations.length;
-        if (numberOfPointsInSession < 1) {
-          console.log('Skipping session', session,
-            ' because there are fewer than 1 data point');
+        if (numberOfPointsInSession < 4) {
+          console.debug('Skipping session', session,
+            ' because there are fewer than 4 data points');
           continue;
         }
         const firstObservation = sessionObservations[0];
@@ -271,7 +281,10 @@
           }
           outputObservations.push(sessionObservations[observationIndex]);
         }
-        filteredSensorObservations[session] = outputObservations;
+        // Do not include session if no data exists.
+        if (outputObservations.length > 0) {
+          filteredSensorObservations[session] = outputObservations;
+        }
       }
       return filteredSensorObservations;
     }
@@ -362,13 +375,46 @@
       scatterChart.update();
     }
 
+    function displaySensorObservations(scatterChart, observations, sensorName) {
+      scatterChart.config.data.datasets = [];
+      for (const session of Object.keys(observations)) {
+        const sessionObservations = observations[session];
+        const numberOfPointsInSession = sessionObservations.length;
+        const lineData = [];
+        for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
+          const utcSeconds = sessionObservations[observationIndex].utcSeconds;
+          const x = new Date(0);
+          x.setUTCSeconds(utcSeconds);
+          const y = sessionObservations[observationIndex][sensorName];
+          const point = {
+            x: x,
+            y: y,
+          };
+          lineData.push(point);
+        }
+        const color = COLORS[scatterChart.config.data.datasets.length % COLORS.length];
+        scatterChart.config.data.datasets.push({
+          label: session.substring(0, 5),
+          data: lineData,
+          borderColor: color,
+          backgroundColor: '#00000000',
+        });
+      }
+      const dateRange = getDateRange(observations);
+      const utcSecondsRange = dateRange.maxUtcSeconds - dateRange.minUtcSeconds;
+      scatterChart.options.scales.xAxes[0].ticks.stepSize = getGraphStepSize(utcSecondsRange);
+      scatterChart.update();
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
       // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
       // // The Firebase SDK is initialized and available here!
       // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
 
-      var ctx = document.getElementById('lineChart').getContext('2d');
-      scatterChart = createVoltageChart(ctx);
+      const voltageChartContext = document.getElementById('voltageChart').getContext('2d');
+      voltageChart = createVoltageChart(voltageChartContext);
+      const sensorChartContext = document.getElementById('sensorChart').getContext('2d');
+      sensorChart = createVoltageChart(sensorChartContext);
 
       const nowMillis = getCurrentUtcTimeMillis();
       let start = new Date(0);
@@ -380,12 +426,10 @@
         .orderBy("FIRESTORE_databaseTimestamp", "asc")
         .onSnapshot((doc) => {
           const observations = parseObservations(doc);
-          console.log('observation sessions', Object.keys(observations));
           const voltageObservations = filterVoltageObservations(observations);
-          console.log('voltage sessions', Object.keys(voltageObservations));
-          const sensorObservations = filterVoltageObservations(observations, 'sensorA');
-          console.log('sensor sessions', Object.keys(sensorObservations));
-          displayVoltageObservations(scatterChart, voltageObservations);
+          const sensorObservations = filterSensorObservations(observations, 'sensorA');
+          displayVoltageObservations(voltageChart, voltageObservations);
+          displaySensorObservations(sensorChart, sensorObservations, 'sensorA');
         });
     });
   </script>
