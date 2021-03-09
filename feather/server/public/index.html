@@ -95,13 +95,8 @@
       return new Date().getTime();
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
-      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-      // // The Firebase SDK is initialized and available here!
-      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-
-      var ctx = document.getElementById('lineChart').getContext('2d');
-      scatterChart = new Chart(ctx, {
+    function createChart(ctx) {
+      return new Chart(ctx, {
         type: 'line',
         data: {
           datasets: []
@@ -170,6 +165,151 @@
           },
         }
       });
+    }
+
+    function parseVoltageObservations(doc) {
+      const observations = {};
+      for (let lineNumber = 0; lineNumber < doc.docs.length; lineNumber++) {
+        const line = doc.docs[lineNumber];
+        const data = line.data();
+        // Check to make sure all of the relevant data fields exist.
+        if (!('session' in data)
+          || !('FIRESTORE_databaseTimestamp' in data)
+          || !('seconds' in data['FIRESTORE_databaseTimestamp'])
+          || !('queryParams' in data)
+          || !('batteryVoltage' in data['queryParams'])
+        ) {
+          // Skip data that is missing necessary fields.
+          continue;
+        }
+        const session = data['session'];
+        if (!(session in observations)) {
+          observations[session] = [];
+        }
+        const utcSeconds = parseInt(data['FIRESTORE_databaseTimestamp']['seconds']);
+        const voltage = parseFloat(data['queryParams']['batteryVoltage'])
+        observations[session].push({
+          utcSeconds: utcSeconds,
+          batteryVoltage: voltage,
+        });
+      }
+      for (const session of Object.keys(observations)) {
+        observations[session].sort((a, b) => {
+          return a['utcSeconds'] - b['utcSeconds'];
+        });
+      }
+      return observations;
+    }
+
+    function filterVoltageObservations(observations) {
+      const filteredVoltageObservations = {};
+      for (const session of Object.keys(observations)) {
+        const sessionObservations = observations[session];
+        const numberOfPointsInSession = sessionObservations.length;
+        if (numberOfPointsInSession < 2) {
+          console.log('Skipping session', session,
+            ' because there are fewer than 2 data points');
+          continue;
+        }
+        const firstObservation = sessionObservations[0];
+        const firstUtcSeconds = firstObservation.utcSeconds;
+        const lastObservation = sessionObservations[sessionObservations.length - 1];
+        const lastUtcSeconds = lastObservation.utcSeconds;
+        if (lastUtcSeconds - firstUtcSeconds < 60 * 10) {
+          console.log('Skipping session', session,
+            ' because first and last are less than 10 minutes apart', firstUtcSeconds, lastUtcSeconds);
+          continue;
+        }
+        outputObservations = [];
+        for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
+          const batteryVoltage = sessionObservations[observationIndex]['batteryVoltage'];
+          if (batteryVoltage < 2) {
+            continue; // Ignore data that is too small.
+          }
+          outputObservations.push(sessionObservations[observationIndex]);
+        }
+        filteredVoltageObservations[session] = outputObservations;
+      }
+      return filteredVoltageObservations;
+    }
+
+    function getDateRange(observations) {
+      let minUtcSeconds = undefined;
+      let maxUtcSeconds = undefined;
+      for (const session of Object.keys(observations)) {
+        const sessionObservations = observations[session];
+        for (let observationIndex = 0; observationIndex < sessionObservations.length; observationIndex++) {
+          const utcSeconds = sessionObservations[observationIndex].utcSeconds;
+          if (typeof minUtcSeconds === 'undefined') {
+            minUtcSeconds = utcSeconds;
+          }
+          if (typeof maxUtcSeconds === 'undefined') {
+            maxUtcSeconds = utcSeconds;
+          }
+          if (utcSeconds < minUtcSeconds) {
+            minUtcSeconds = utcSeconds;
+          }
+          if (utcSeconds > maxUtcSeconds) {
+            maxUtcSeconds = utcSeconds;
+          }
+        }
+      }
+      return {
+        minUtcSeconds: minUtcSeconds,
+        maxUtcSeconds: maxUtcSeconds,
+      };
+    }
+
+    function displayVoltageObservations(scatterChart, observations) {
+      scatterChart.config.data.datasets = [];
+      for (const session of Object.keys(observations)) {
+        const sessionObservations = observations[session];
+        const numberOfPointsInSession = sessionObservations.length;
+        const lineData = [];
+        for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
+          const utcSeconds = sessionObservations[observationIndex].utcSeconds;
+          const x = new Date(0);
+          x.setUTCSeconds(utcSeconds);
+          const y = sessionObservations[observationIndex].batteryVoltage;
+          const point = {
+            x: x,
+            y: y,
+          };
+          lineData.push(point);
+        }
+        const color = COLORS[scatterChart.config.data.datasets.length % COLORS.length];
+        scatterChart.config.data.datasets.push({
+          label: session.substring(0, 5),
+          data: lineData,
+          borderColor: color,
+          backgroundColor: '#00000000',
+        });
+      }
+      console.log(scatterChart.config.data.datasets);
+
+      // The step size for time looks better if the number fits nicely into a clock.
+      // Good examples: 15 minutes, 30 minutes, 1 hour
+      const minStepSizeMillis = 60 * 60 * 1000; // 1 hour.
+      const dateRange = getDateRange(observations);
+      const utcSecondsRange = dateRange.maxUtcSeconds - dateRange.minUtcSeconds;
+      // Only start scaling up if the range is 10X longer than the minStep.
+      const scale = Math.max(
+        1, // Make sure the the scale is an integer 1 or larger.
+        Math.floor((utcSecondsRange * 1000 / minStepSizeMillis) / (10 / 2))
+      );
+      // As we cover large time scales, we want the chart to step over bigger numbers.
+      const newStepSize = scale * minStepSizeMillis;
+      scatterChart.options.scales.xAxes[0].ticks.stepSize = newStepSize;
+      scatterChart.update();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+      // // The Firebase SDK is initialized and available here!
+      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+      var ctx = document.getElementById('lineChart').getContext('2d');
+      scatterChart = createChart(ctx);
 
       const nowMillis = getCurrentUtcTimeMillis();
       let start = new Date(0);
@@ -180,106 +320,9 @@
         .where('FIRESTORE_databaseTimestamp', '>', start)
         .orderBy("FIRESTORE_databaseTimestamp", "asc")
         .onSnapshot((doc) => {
-          const observations = {};
-          for (let lineNumber = 0; lineNumber < doc.docs.length; lineNumber++) {
-            const line = doc.docs[lineNumber];
-            const data = line.data();
-            // Check to make sure all of the relevant data fields exist.
-            if (!('session' in data)
-              || !('FIRESTORE_databaseTimestamp' in data)
-              || !('seconds' in data['FIRESTORE_databaseTimestamp'])
-              || !('queryParams' in data)
-              || !('batteryVoltage' in data['queryParams'])
-            ) {
-              // Skip data that is missing necessary fields.
-              continue;
-            }
-            const session = data['session'];
-            if (!(session in observations)) {
-              observations[session] = [];
-            }
-            const seconds = parseInt(data['FIRESTORE_databaseTimestamp']['seconds']);
-            const voltage = parseFloat(data['queryParams']['batteryVoltage'])
-            observations[session].push({
-              'utcSeconds': seconds,
-              'batteryVoltage': voltage,
-            });
-          }
-          for (const session of Object.keys(observations)) {
-            observations[session].sort((a, b) => {
-              return a['utcSeconds'] - b['utcSeconds'];
-            });
-          }
-          let minUtcSeconds = undefined;
-          let maxUtcSeconds = undefined;
-          scatterChart.config.data.datasets = [];
-          for (const session of Object.keys(observations)) {
-            const sessionObservations = observations[session];
-            const numberOfPointsInSession = sessionObservations.length;
-            if (numberOfPointsInSession < 2) {
-              console.log('Skipping session', session,
-                ' because there are fewer than 2 data points');
-              continue;
-            }
-            const firstObservation = sessionObservations[0];
-            const firstUtcSeconds = firstObservation['utcSeconds'];
-            const lastObservation = sessionObservations[sessionObservations.length - 1];
-            const lastUtcSeconds = lastObservation['utcSeconds'];
-            if (lastUtcSeconds - firstUtcSeconds < 60 * 10) {
-              console.log('Skipping session', session,
-                ' because first and last are less than 10 minutes apart', firstUtcSeconds, lastUtcSeconds);
-              continue;
-            }
-            const lineData = [];
-            for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
-              const utcSeconds = sessionObservations[observationIndex]['utcSeconds'];
-              if (typeof minUtcSeconds === 'undefined') {
-                minUtcSeconds = utcSeconds;
-              }
-              if (typeof maxUtcSeconds === 'undefined') {
-                maxUtcSeconds = utcSeconds;
-              }
-              if (utcSeconds < minUtcSeconds) {
-                minUtcSeconds = utcSeconds;
-              }
-              if (utcSeconds > maxUtcSeconds) {
-                maxUtcSeconds = utcSeconds;
-              }
-              const x = new Date(0);
-              x.setUTCSeconds(utcSeconds);
-              const y = sessionObservations[observationIndex]['batteryVoltage'];
-              if (y < 2) {
-                continue; // Ignore test data.
-              }
-              const point = {
-                x: x,
-                y: y,
-              };
-              lineData.push(point);
-            }
-            const color = COLORS[scatterChart.config.data.datasets.length % COLORS.length];
-            scatterChart.config.data.datasets.push({
-              label: session.substring(0, 5),
-              data: lineData,
-              borderColor: color,
-              backgroundColor: '#00000000',
-            });
-          }
-          console.log(scatterChart.config.data.datasets);
-
-          // The step size for time looks better if the number fits nicely into a clock.
-          // Good examples: 15 minutes, 30 minutes, 1 hour
-          const minStepSizeMillis = 60 * 60 * 1000; // 1 hour.
-          const utcSecondsRange = maxUtcSeconds - minUtcSeconds;
-          // Only start scaling up if the range is 10X longer than the minStep.
-          const scale = Math.max(
-            1, // Make sure the the scale is an integer 1 or larger.
-            Math.floor((utcSecondsRange * 1000 / minStepSizeMillis) / (10 / 2))
-          );
-          // As we cover large time scales, we want the chart to step over bigger numbers.
-          const newStepSize = scale * minStepSizeMillis;
-          scatterChart.options.scales.xAxes[0].ticks.stepSize = newStepSize;
-          scatterChart.update();
+          let observations = parseVoltageObservations(doc);
+          observations = filterVoltageObservations(observations);
+          displayVoltageObservations(scatterChart, observations);
         });
     });
   </script>
