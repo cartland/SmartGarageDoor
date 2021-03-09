@@ -37,10 +37,14 @@
     <canvas id="voltageChart"></canvas>
   </div>
   </p>
-
   <p>
-  <div id="sensorChartContainer" class="chart-container" style="position: relative; height:40vh; width:80vw">
-    <canvas id="sensorChart"></canvas>
+  <div id="sensorChartContainerA" class="chart-container" style="position: relative; height:40vh; width:80vw">
+    <canvas id="sensorChartA"></canvas>
+  </div>
+  </p>
+  <p>
+  <div id="sensorChartContainerB" class="chart-container" style="position: relative; height:40vh; width:80vw">
+    <canvas id="sensorChartB"></canvas>
   </div>
   </p>
 
@@ -177,7 +181,7 @@
       });
     }
 
-    function createSensorChart(ctx) {
+    function createSensorChart(ctx, title) {
       return new Chart(ctx, {
         type: 'line',
         data: {
@@ -185,7 +189,7 @@
         },
         options: {
           title: {
-            text: 'Sensor Data Over Time by Session and Sensor',
+            text: title ? title : 'Sensor Data Over Time by Session and Sensor',
             display: true,
             fontSize: 24,
           },
@@ -222,9 +226,7 @@
               },
               title: function (tooltipItem, data) {
                 const item = tooltipItem[0];
-                const sensorName = data.datasets[item.datasetIndex].data[item.index].sensorName;
                 return [
-                  sensorName,
                   '' + item.value,
                 ];
               },
@@ -330,21 +332,6 @@
       return filteredVoltageObservations;
     }
 
-    function createSensorSessionObservations(observations, sensorNames) {
-      const output = {};
-      for (let i = 0; i < sensorNames.length; i++) {
-        const sensorName = sensorNames[i];
-        const filteredSensorObservations = filterSensorObservations(observations, sensorName);
-        const sensorSessionObservations = {};
-        for (const session of Object.keys(filteredSensorObservations)) {
-          const sensorSession = session.substring(0, 5) + '[' + sensorName + ']';
-          sensorSessionObservations[sensorSession] = filteredSensorObservations[session];
-        }
-        Object.assign(output, sensorSessionObservations);
-      }
-      return output;
-    }
-
     function filterSensorObservations(observations, sensorName) {
       const filteredSensorObservations = {};
       for (const session of Object.keys(observations)) {
@@ -373,7 +360,6 @@
           if (!found) {
             continue; // Skip data without sensor data.
           }
-          sessionObservations[observationIndex]['__SENSOR_NAME__'] = sensorName;
           outputObservations.push(sessionObservations[observationIndex]);
         }
         // Do not include session if no data exists.
@@ -470,7 +456,7 @@
       scatterChart.update();
     }
 
-    function displaySensorObservations(scatterChart, observations) {
+    function displaySensorObservations(scatterChart, observations, sensorName) {
       scatterChart.config.data.datasets = [];
       for (const session of Object.keys(observations)) {
         const sessionObservations = observations[session];
@@ -480,19 +466,17 @@
           const utcSeconds = sessionObservations[observationIndex].utcSeconds;
           const x = new Date(0);
           x.setUTCSeconds(utcSeconds);
-          const sensorName = sessionObservations[observationIndex]['__SENSOR_NAME__'];
           const y = sessionObservations[observationIndex][sensorName];
           const point = {
             x: x,
             y: y,
-            sensorName: sensorName,
           };
           lineData.push(point);
         }
         const color = COLORS[scatterChart.config.data.datasets.length % COLORS.length];
-        const maxCharLength = 15;
+        const label = session.substring(0, 5) + '[' + sensorName + ']';
         scatterChart.config.data.datasets.push({
-          label: session.substring(0, maxCharLength) + (session.length > maxCharLength ? '...' : ''),
+          label: label,
           data: lineData,
           borderColor: color,
           backgroundColor: '#00000000',
@@ -511,24 +495,39 @@
 
       const voltageChartContext = document.getElementById('voltageChart').getContext('2d');
       voltageChart = createVoltageChart(voltageChartContext);
-      const sensorChartContext = document.getElementById('sensorChart').getContext('2d');
-      sensorChart = createSensorChart(sensorChartContext);
+      const sensorChartContextA = document.getElementById('sensorChartA').getContext('2d');
+      sensorChartA = createSensorChart(sensorChartContextA, 'Sensor A Data by Session');
+      const sensorChartContextB = document.getElementById('sensorChartB').getContext('2d');
+      sensorChartB = createSensorChart(sensorChartContextB, 'Sensor B Data by Session');
 
       const nowMillis = getCurrentUtcTimeMillis();
-      let start = new Date(0);
-      const MAX_WINDOW_RANGE_MILLIS = 1000 * 60 * 60 * 72; // 72 hours.
-      start.setUTCMilliseconds(nowMillis - MAX_WINDOW_RANGE_MILLIS);
 
+      const voltageBeginDate = new Date(0);
+      const VOLTAGE_MAX_WINDOW_RANGE_MILLIS = 1000 * 60 * 60 * 72; // 72 hours.
+      voltageBeginDate.setUTCMilliseconds(nowMillis - VOLTAGE_MAX_WINDOW_RANGE_MILLIS);
       firebase.firestore().collection("updateAll")
-        .where('FIRESTORE_databaseTimestamp', '>', start)
-        .orderBy("FIRESTORE_databaseTimestamp", "asc")
+        .where('FIRESTORE_databaseTimestamp', '>', voltageBeginDate)
+        .orderBy('FIRESTORE_databaseTimestamp', 'asc')
         .onSnapshot((doc) => {
           const observations = parseObservations(doc);
           const voltageObservations = filterVoltageObservations(observations);
-          const sensorObservations = createSensorSessionObservations(observations, ['sensorA']);
           displayVoltageObservations(voltageChart, voltageObservations);
-          displaySensorObservations(sensorChart, sensorObservations);
         });
+
+      const sensorBeginDate = new Date(0);
+      const SENSOR_MAX_WINDOW_RANGE_MILLIS = 1000 * 60 * 60 * 12; // 12 hours.
+      sensorBeginDate.setUTCMilliseconds(nowMillis - SENSOR_MAX_WINDOW_RANGE_MILLIS);
+      firebase.firestore().collection("updateAll")
+        .where('FIRESTORE_databaseTimestamp', '>', sensorBeginDate)
+        .orderBy('FIRESTORE_databaseTimestamp', 'asc')
+        .onSnapshot((doc) => {
+          const observations = parseObservations(doc);
+          const sensorObservationsA = filterSensorObservations(observations, 'sensorA');
+          const sensorObservationsB = filterSensorObservations(observations, 'sensorB');
+          displaySensorObservations(sensorChartA, sensorObservationsA, 'sensorA');
+          displaySensorObservations(sensorChartB, sensorObservationsA, 'sensorB');
+        });
+
     });
   </script>
 </body>
