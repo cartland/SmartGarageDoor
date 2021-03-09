@@ -167,7 +167,7 @@
       });
     }
 
-    function parseVoltageObservations(doc) {
+    function parseObservations(doc) {
       const observations = {};
       for (let lineNumber = 0; lineNumber < doc.docs.length; lineNumber++) {
         const line = doc.docs[lineNumber];
@@ -229,6 +229,9 @@
         }
         outputObservations = [];
         for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
+          if (!('batteryVoltage' in sessionObservations[observationIndex])) {
+            continue; // Skip if this observation does not have voltage data.
+          }
           const batteryVoltage = sessionObservations[observationIndex]['batteryVoltage'];
           if (batteryVoltage < 2) {
             continue; // Ignore data that is too small.
@@ -238,6 +241,36 @@
         filteredVoltageObservations[session] = outputObservations;
       }
       return filteredVoltageObservations;
+    }
+
+    function filterSensorObservations(observations, sensorName) {
+      const filteredSensorObservations = {};
+      for (const session of Object.keys(observations)) {
+        const sessionObservations = observations[session];
+        const numberOfPointsInSession = sessionObservations.length;
+        if (numberOfPointsInSession < 1) {
+          console.log('Skipping session', session,
+            ' because there are fewer than 1 data point');
+          continue;
+        }
+        const firstObservation = sessionObservations[0];
+        const firstUtcSeconds = firstObservation.utcSeconds;
+        const lastObservation = sessionObservations[sessionObservations.length - 1];
+        const lastUtcSeconds = lastObservation.utcSeconds;
+        outputObservations = [];
+        for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
+          let found = false;
+          if (sensorName in sessionObservations[observationIndex]) {
+            found = true;
+          }
+          if (!found) {
+            continue; // Skip data without sensor data.
+          }
+          outputObservations.push(sessionObservations[observationIndex]);
+        }
+        filteredSensorObservations[session] = outputObservations;
+      }
+      return filteredSensorObservations;
     }
 
     function getDateRange(observations) {
@@ -327,9 +360,11 @@
         .where('FIRESTORE_databaseTimestamp', '>', start)
         .orderBy("FIRESTORE_databaseTimestamp", "asc")
         .onSnapshot((doc) => {
-          let observations = parseVoltageObservations(doc);
-          observations = filterVoltageObservations(observations);
-          displayVoltageObservations(scatterChart, observations);
+          const observations = parseObservations(doc);
+          const voltageObservations = filterVoltageObservations(observations);
+          const sensorObservations = filterVoltageObservations(observations, 'sensorA');
+          console.log('sensorObservations', sensorObservations);
+          displayVoltageObservations(scatterChart, voltageObservations);
         });
     });
   </script>
