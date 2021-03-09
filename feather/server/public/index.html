@@ -320,11 +320,11 @@
       const OPTIONS = [SEC, MIN, TEN_MIN, THIRTY_MIN,
         HOUR, TWO_HOUR, THREE_HOUR, SIX_HOUR, TWELVE_HOUR,
         DAY, TWO_DAY, THREE_HOUR, WEEK];
-
       const utcMillisecondsRange = 1000 * utcSecondsRange;
       for (let i = 0; i < OPTIONS.length; i++) {
         const option = OPTIONS[i];
-        if (utcMillisecondsRange < option * 4) {
+        if (utcMillisecondsRange < option * 6) {
+          console.log('Graph Step Size (ms)', option);
           return option;
         }
       }
