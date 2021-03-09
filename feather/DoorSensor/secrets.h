@@ -23,6 +23,9 @@
 #define WIFI_PASSWORD "WIFI_PASSWORD"
 #define URL "https://example.com/path?key1=value2&key2=value2"
 
+#define USE_SENSOR_A true
+#define USE_SENSOR_B true
+
 // Exactly one of the following must be true!!!
 // * USE_ADAFRUIT_HUZZAH32_ESP32_FEATHER
 // Adafruit HUZZAH32 - ESP32 Feather

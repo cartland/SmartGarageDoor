@@ -132,6 +132,12 @@ void loop() {
 
   bool changedA = debouncer.debounceUpdate(SENSOR_PIN_A, currentTime);
   int debouncedA = debouncer.debounceGet(SENSOR_PIN_A);
+  String debouncedAString = String(debouncedA);
+#if USE_SENSOR_A
+#else
+  changedA = false;
+  debouncedAString = "";
+#endif
   if (debouncedA == SWITCH_CLOSED) {
     digitalWrite(LED_PIN_A, HIGH);
   } else {
@@ -140,6 +146,12 @@ void loop() {
 
   bool changedB = debouncer.debounceUpdate(SENSOR_PIN_B, currentTime);
   int debouncedB = debouncer.debounceGet(SENSOR_PIN_B);
+  String debouncedBString = String(debouncedB);
+#if USE_SENSOR_B
+#else
+  changedB = false;
+  debouncedBString = "";
+#endif
   if (debouncedB == SWITCH_CLOSED) {
     digitalWrite(LED_PIN_B, HIGH);
   } else {
@@ -149,13 +161,13 @@ void loop() {
   batteryVoltage = readBatteryVoltage();
   if (changedA) {
     Serial.print("Sensor A Changed: ");
-    Serial.print(debouncedA);
+    Serial.print(debouncedAString);
     Serial.print(" - Battery voltage: ");
     Serial.println(batteryVoltage);
     ClientParams params;
     params.session = session;
     params.batteryVoltage = String(batteryVoltage);
-    params.sensorA = String(debouncedA);
+    params.sensorA = debouncedAString;
     params.sensorB = "";
     updateServerSensorData(params);
     lastNetworkRequestTime = currentTime;
@@ -163,27 +175,27 @@ void loop() {
   }
   if (changedB) {
     Serial.print("Sensor B Changed: ");
-    Serial.print(debouncedB);
+    Serial.print(debouncedBString);
     Serial.print(" - Battery voltage: ");
     Serial.println(batteryVoltage);
     ClientParams params;
     params.session = session;
     params.batteryVoltage = String(batteryVoltage);
     params.sensorA = "";
-    params.sensorB = String(debouncedB);
+    params.sensorB = debouncedBString;
     updateServerSensorData(params);
     lastNetworkRequestTime = currentTime;
     Serial.println();
   }
-  if (currentTime - lastNetworkRequestTime > HEARTBEAT_INTERVAL) {
+  if (currentTime - lastNetworkRequestTime > HEARTBEAT_INTERVAL || lastNetworkRequestTime == 0) {
     Serial.print("Heartbeat - Battery voltage: ");
     Serial.println(batteryVoltage);
     digitalWrite(LED_BUILTIN, HIGH);
     ClientParams params;
     params.session = session;
     params.batteryVoltage = String(batteryVoltage);
-    params.sensorA = String(debouncedA);
-    params.sensorB = String(debouncedB);
+    params.sensorA = debouncedAString;
+    params.sensorB = debouncedBString;
     updateServerSensorData(params);
     lastNetworkRequestTime = currentTime;
     digitalWrite(LED_BUILTIN, LOW);
