@@ -177,6 +177,80 @@
       });
     }
 
+    function createSensorChart(ctx) {
+      return new Chart(ctx, {
+        type: 'line',
+        data: {
+          datasets: []
+        },
+        options: {
+          title: {
+            text: 'Sensor Data Over Time by Session and Sensor',
+            display: true,
+            fontSize: 24,
+          },
+          scales: {
+            xAxes: [{
+              scaleLabel: {
+                display: true,
+                labelString: getTimeAxisLabel(),
+                fontSize: 24,
+              },
+              type: 'linear',
+              position: 'bottom',
+              ticks: {
+                callback: (value, index, values) => {
+                  const milliseconds = value;
+                  const showSeconds = false;
+                  return utcSecondsToLocalDateFormat(milliseconds, showSeconds);
+                }
+              }
+            }],
+            yAxes: [{
+              scaleLabel: {
+                display: true,
+                labelString: 'Sensor Value',
+                fontSize: 24,
+              },
+            }]
+          },
+          tooltips: {
+            titleAlign: 'center',
+            callbacks: {
+              label: function (tooltipItem, data) {
+                return data.datasets[tooltipItem.datasetIndex].label;
+              },
+              title: function (tooltipItem, data) {
+                const item = tooltipItem[0];
+                const sensorName = data.datasets[item.datasetIndex].data[item.index].sensorName;
+                return [
+                  sensorName,
+                  '' + item.value,
+                ];
+              },
+              footer: function (tooltipItem, data) {
+                const item = tooltipItem[0];
+                const showSeconds = true;
+                return [
+                  utcSecondsToLocalDateFormat(item.xLabel, showSeconds),
+                ];
+              },
+              labelColor: function (tooltipItem, data) {
+                const color = COLORS[tooltipItem.datasetIndex % COLORS.length];
+                return {
+                  borderColor: color,
+                  backgroundColor: color,
+                };
+              },
+            }
+          },
+          onClick: (arr, elements) => {
+            console.log(arr, elements);
+          },
+        }
+      });
+    }
+
     function parseObservations(doc) {
       const observations = {};
       for (let lineNumber = 0; lineNumber < doc.docs.length; lineNumber++) {
@@ -256,6 +330,21 @@
       return filteredVoltageObservations;
     }
 
+    function createSensorSessionObservations(observations, sensorNames) {
+      const output = {};
+      for (let i = 0; i < sensorNames.length; i++) {
+        const sensorName = sensorNames[i];
+        const filteredSensorObservations = filterSensorObservations(observations, sensorName);
+        const sensorSessionObservations = {};
+        for (const session of Object.keys(filteredSensorObservations)) {
+          const sensorSession = session.substring(0, 5) + '[' + sensorName + ']';
+          sensorSessionObservations[sensorSession] = filteredSensorObservations[session];
+        }
+        Object.assign(output, sensorSessionObservations);
+      }
+      return output;
+    }
+
     function filterSensorObservations(observations, sensorName) {
       const filteredSensorObservations = {};
       for (const session of Object.keys(observations)) {
@@ -270,6 +359,11 @@
         const firstUtcSeconds = firstObservation.utcSeconds;
         const lastObservation = sessionObservations[sessionObservations.length - 1];
         const lastUtcSeconds = lastObservation.utcSeconds;
+        if (lastUtcSeconds - firstUtcSeconds < 60 * 10) {
+          console.debug('Skipping session', session,
+            ' because first and last are less than 10 minutes apart', firstUtcSeconds, lastUtcSeconds);
+          continue;
+        }
         outputObservations = [];
         for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
           let found = false;
@@ -279,6 +373,7 @@
           if (!found) {
             continue; // Skip data without sensor data.
           }
+          sessionObservations[observationIndex]['__SENSOR_NAME__'] = sensorName;
           outputObservations.push(sessionObservations[observationIndex]);
         }
         // Do not include session if no data exists.
@@ -375,7 +470,7 @@
       scatterChart.update();
     }
 
-    function displaySensorObservations(scatterChart, observations, sensorName) {
+    function displaySensorObservations(scatterChart, observations) {
       scatterChart.config.data.datasets = [];
       for (const session of Object.keys(observations)) {
         const sessionObservations = observations[session];
@@ -385,16 +480,19 @@
           const utcSeconds = sessionObservations[observationIndex].utcSeconds;
           const x = new Date(0);
           x.setUTCSeconds(utcSeconds);
+          const sensorName = sessionObservations[observationIndex]['__SENSOR_NAME__'];
           const y = sessionObservations[observationIndex][sensorName];
           const point = {
             x: x,
             y: y,
+            sensorName: sensorName,
           };
           lineData.push(point);
         }
         const color = COLORS[scatterChart.config.data.datasets.length % COLORS.length];
+        const maxCharLength = 15;
         scatterChart.config.data.datasets.push({
-          label: session.substring(0, 5),
+          label: session.substring(0, maxCharLength) + (session.length > maxCharLength ? '...' : ''),
           data: lineData,
           borderColor: color,
           backgroundColor: '#00000000',
@@ -414,7 +512,7 @@
       const voltageChartContext = document.getElementById('voltageChart').getContext('2d');
       voltageChart = createVoltageChart(voltageChartContext);
       const sensorChartContext = document.getElementById('sensorChart').getContext('2d');
-      sensorChart = createVoltageChart(sensorChartContext);
+      sensorChart = createSensorChart(sensorChartContext);
 
       const nowMillis = getCurrentUtcTimeMillis();
       let start = new Date(0);
@@ -427,9 +525,9 @@
         .onSnapshot((doc) => {
           const observations = parseObservations(doc);
           const voltageObservations = filterVoltageObservations(observations);
-          const sensorObservations = filterSensorObservations(observations, 'sensorA');
+          const sensorObservations = createSensorSessionObservations(observations, ['sensorA']);
           displayVoltageObservations(voltageChart, voltageObservations);
-          displaySensorObservations(sensorChart, sensorObservations, 'sensorA');
+          displaySensorObservations(sensorChart, sensorObservations);
         });
     });
   </script>
