@@ -303,6 +303,34 @@
       };
     }
 
+    function getGraphStepSize(utcSecondsRange) {
+      const SEC = 1000;
+      const MIN = 60 * SEC;
+      const TEN_MIN = 10 * MIN;
+      const THIRTY_MIN = 30 * MIN;
+      const HOUR = 60 * MIN;
+      const TWO_HOUR = 2 * HOUR;
+      const THREE_HOUR = 3 * HOUR;
+      const SIX_HOUR = 6 * HOUR;
+      const TWELVE_HOUR = 12 * HOUR;
+      const DAY = 24 * HOUR;
+      const TWO_DAY = 2 * DAY;
+      const THREE_DAY = 3 * DAY;
+      const WEEK = 7 * DAY;
+      const OPTIONS = [SEC, MIN, TEN_MIN, THIRTY_MIN,
+        HOUR, TWO_HOUR, THREE_HOUR, SIX_HOUR, TWELVE_HOUR,
+        DAY, TWO_DAY, THREE_HOUR, WEEK];
+
+      const utcMillisecondsRange = 1000 * utcSecondsRange;
+      for (let i = 0; i < OPTIONS.length; i++) {
+        const option = OPTIONS[i];
+        if (utcMillisecondsRange < option * 4) {
+          return option;
+        }
+      }
+      return OPTIONS[OPTIONS.length - 1];
+    }
+
     function displayVoltageObservations(scatterChart, observations) {
       scatterChart.config.data.datasets = [];
       for (const session of Object.keys(observations)) {
@@ -328,20 +356,9 @@
           backgroundColor: '#00000000',
         });
       }
-
-      // The step size for time looks better if the number fits nicely into a clock.
-      // Good examples: 15 minutes, 30 minutes, 1 hour
-      const minStepSizeMillis = 60 * 60 * 1000; // 1 hour.
       const dateRange = getDateRange(observations);
       const utcSecondsRange = dateRange.maxUtcSeconds - dateRange.minUtcSeconds;
-      // Only start scaling up if the range is 10X longer than the minStep.
-      const scale = Math.max(
-        1, // Make sure the the scale is an integer 1 or larger.
-        Math.floor((utcSecondsRange * 1000 / minStepSizeMillis) / (10 / 2))
-      );
-      // As we cover large time scales, we want the chart to step over bigger numbers.
-      const newStepSize = scale * minStepSizeMillis;
-      scatterChart.options.scales.xAxes[0].ticks.stepSize = newStepSize;
+      scatterChart.options.scales.xAxes[0].ticks.stepSize = getGraphStepSize(utcSecondsRange);
       scatterChart.update();
     }
 
