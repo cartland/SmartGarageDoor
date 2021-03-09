@@ -95,7 +95,7 @@
       return new Date().getTime();
     }
 
-    function createChart(ctx) {
+    function createVoltageChart(ctx) {
       return new Chart(ctx, {
         type: 'line',
         data: {
@@ -309,7 +309,7 @@
       // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
 
       var ctx = document.getElementById('lineChart').getContext('2d');
-      scatterChart = createChart(ctx);
+      scatterChart = createVoltageChart(ctx);
 
       const nowMillis = getCurrentUtcTimeMillis();
       let start = new Date(0);
