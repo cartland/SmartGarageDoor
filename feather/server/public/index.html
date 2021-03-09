@@ -177,7 +177,6 @@
           || !('FIRESTORE_databaseTimestamp' in data)
           || !('seconds' in data['FIRESTORE_databaseTimestamp'])
           || !('queryParams' in data)
-          || !('batteryVoltage' in data['queryParams'])
         ) {
           // Skip data that is missing necessary fields.
           continue;
@@ -187,11 +186,19 @@
           observations[session] = [];
         }
         const utcSeconds = parseInt(data['FIRESTORE_databaseTimestamp']['seconds']);
-        const voltage = parseFloat(data['queryParams']['batteryVoltage'])
-        observations[session].push({
-          utcSeconds: utcSeconds,
-          batteryVoltage: voltage,
-        });
+        const parsedData = {
+          utcSeconds: utcSeconds
+        };
+        if ('batteryVoltage' in data['queryParams']) {
+          parsedData['batteryVoltage'] = parseFloat(data['queryParams']['batteryVoltage']);
+        }
+        if ('sensorA' in data['queryParams']) {
+          parsedData['sensorA'] = parseFloat(data['queryParams']['sensorA']);
+        }
+        if ('sensorB' in data['queryParams']) {
+          parsedData['sensorB'] = parseFloat(data['queryParams']['sensorB']);
+        }
+        observations[session].push(parsedData);
       }
       for (const session of Object.keys(observations)) {
         observations[session].sort((a, b) => {
