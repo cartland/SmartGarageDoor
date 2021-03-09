@@ -25,28 +25,22 @@
       padding-right: 0;
       margin-left: auto;
       margin-right: auto;
-      margin-bottom: 100px;
+      margin-bottom: 40vh;
     }
   </style>
 </head>
 
 <body>
 
-  <p>
   <div id="voltageChartContainer" class="chart-container" style="position: relative; height:40vh; width:80vw">
     <canvas id="voltageChart"></canvas>
   </div>
-  </p>
-  <p>
   <div id="sensorChartContainerA" class="chart-container" style="position: relative; height:40vh; width:80vw">
     <canvas id="sensorChartA"></canvas>
   </div>
-  </p>
-  <p>
   <div id="sensorChartContainerB" class="chart-container" style="position: relative; height:40vh; width:80vw">
     <canvas id="sensorChartB"></canvas>
   </div>
-  </p>
 
   <script>
 
@@ -480,6 +474,7 @@
           data: lineData,
           borderColor: color,
           backgroundColor: '#00000000',
+          steppedLine: true,
         });
       }
       const dateRange = getDateRange(observations);
@@ -515,7 +510,7 @@
         });
 
       const sensorBeginDate = new Date(0);
-      const SENSOR_MAX_WINDOW_RANGE_MILLIS = 1000 * 60 * 60 * 12; // 12 hours.
+      const SENSOR_MAX_WINDOW_RANGE_MILLIS = 1000 * 60 * 60 * 1; // 1 hours.
       sensorBeginDate.setUTCMilliseconds(nowMillis - SENSOR_MAX_WINDOW_RANGE_MILLIS);
       firebase.firestore().collection("updateAll")
         .where('FIRESTORE_databaseTimestamp', '>', sensorBeginDate)
@@ -525,7 +520,7 @@
           const sensorObservationsA = filterSensorObservations(observations, 'sensorA');
           const sensorObservationsB = filterSensorObservations(observations, 'sensorB');
           displaySensorObservations(sensorChartA, sensorObservationsA, 'sensorA');
-          displaySensorObservations(sensorChartB, sensorObservationsA, 'sensorB');
+          displaySensorObservations(sensorChartB, sensorObservationsB, 'sensorB');
         });
 
     });
