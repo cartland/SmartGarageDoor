@@ -214,7 +214,7 @@
         const sessionObservations = observations[session];
         const numberOfPointsInSession = sessionObservations.length;
         if (numberOfPointsInSession < 2) {
-          console.log('Skipping session', session,
+          console.debug('Skipping session', session,
             ' because there are fewer than 2 data points');
           continue;
         }
@@ -223,7 +223,7 @@
         const lastObservation = sessionObservations[sessionObservations.length - 1];
         const lastUtcSeconds = lastObservation.utcSeconds;
         if (lastUtcSeconds - firstUtcSeconds < 60 * 10) {
-          console.log('Skipping session', session,
+          console.debug('Skipping session', session,
             ' because first and last are less than 10 minutes apart', firstUtcSeconds, lastUtcSeconds);
           continue;
         }
@@ -238,7 +238,10 @@
           }
           outputObservations.push(sessionObservations[observationIndex]);
         }
-        filteredVoltageObservations[session] = outputObservations;
+        // Do not include session if no data exists.
+        if (outputObservations.length > 0) {
+          filteredVoltageObservations[session] = outputObservations;
+        }
       }
       return filteredVoltageObservations;
     }
@@ -325,7 +328,6 @@
           backgroundColor: '#00000000',
         });
       }
-      console.log(scatterChart.config.data.datasets);
 
       // The step size for time looks better if the number fits nicely into a clock.
       // Good examples: 15 minutes, 30 minutes, 1 hour
@@ -361,9 +363,11 @@
         .orderBy("FIRESTORE_databaseTimestamp", "asc")
         .onSnapshot((doc) => {
           const observations = parseObservations(doc);
+          console.log('observation sessions', Object.keys(observations));
           const voltageObservations = filterVoltageObservations(observations);
+          console.log('voltage sessions', Object.keys(voltageObservations));
           const sensorObservations = filterVoltageObservations(observations, 'sensorA');
-          console.log('sensorObservations', sensorObservations);
+          console.log('sensor sessions', Object.keys(sensorObservations));
           displayVoltageObservations(scatterChart, voltageObservations);
         });
     });
