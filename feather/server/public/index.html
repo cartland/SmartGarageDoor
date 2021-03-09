@@ -50,32 +50,24 @@
       '#E67E22' + COLOR_OPACITY,
     ];
 
+    function NN(number) {
+      if (number < 10) {
+        return '0' + number;
+      }
+      return '' + number;
+    }
+
     /**
      * Formats date and time. Time must be provided in local timezone.
      * YYYY-MM-DD hh:mm
      */
     function myDateFormat(date, seconds) {
-      var DD = date.getDay();
-      var MM = date.getMonth() + 1;
+      var DD = NN(date.getDate());
+      var MM = NN(date.getMonth() + 1);
       var YYYY = date.getFullYear();
-      var hh = date.getHours();
-      var min = date.getMinutes();
-      var ss = date.getSeconds();
-      if (DD < 10) {
-        DD = '0' + DD;
-      }
-      if (MM < 10) {
-        MM = '0' + MM;
-      }
-      if (hh < 10) {
-        hh = '0' + hh;
-      }
-      if (min < 10) {
-        min = '0' + min;
-      }
-      if (ss < 10) {
-        ss = '0' + ss;
-      }
+      var hh = NN(date.getHours());
+      var min = NN(date.getMinutes());
+      var ss = NN(date.getSeconds());
       if (seconds) {
         return YYYY + '-' + MM + '-' + DD + ' ' + hh + ':' + min + ':' + ss;
       }
@@ -95,6 +87,14 @@
       return new Date().getTime();
     }
 
+    function getTimeAxisLabel() {
+      const hourOffset = new Date(0).getTimezoneOffset() / 60;
+      if (hourOffset < 0) {
+        return 'Time (GMT-' + hourOffset + ')';
+      }
+      return 'Time (GMT+' + hourOffset + ')';
+    }
+
     function createVoltageChart(ctx) {
       return new Chart(ctx, {
         type: 'line',
@@ -111,7 +111,7 @@
             xAxes: [{
               scaleLabel: {
                 display: true,
-                labelString: 'Time',
+                labelString: getTimeAxisLabel(),
                 fontSize: 24,
               },
               type: 'linear',
