@@ -41,6 +41,7 @@
 #define LED_PIN_A 15
 #define LED_PIN_B 33
 #define RST_PIN 27 // https://www.instructables.com/two-ways-to-reset-arduino-in-software/
+#define WIFI_PORT 80
 #endif
 
 #if USE_ADAFRUIT_METRO_M4_EXPRESS_AIRLIFT
@@ -52,6 +53,7 @@
 #define LED_PIN_A 6
 #define LED_PIN_B 7
 #define RST_PIN 8 // https://www.instructables.com/two-ways-to-reset-arduino-in-software/
+#define WIFI_PORT 443
 #endif
 
 Debouncer debouncer(&Serial, DEBOUNCE_MILLIS);
@@ -103,12 +105,7 @@ bool updateServerSensorData(ClientParams params) {
   String url = serverApi.buildUrl(params);
   Serial.print("Request URL: ");
   Serial.println(url);
-#if USE_ADAFRUIT_HUZZAH32_ESP32_FEATHER
-  const uint16_t port = 80;
-#endif
-#if USE_ADAFRUIT_METRO_M4_EXPRESS_AIRLIFT
-  const uint16_t port = 443;
-#endif
+  const uint16_t port = WIFI_PORT;
   char buf[4000];
   digitalWrite(LED_BUILTIN, LOW);
   wget(url, port, buf);
