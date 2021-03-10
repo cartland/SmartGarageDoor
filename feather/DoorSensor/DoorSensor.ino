@@ -40,6 +40,7 @@
 #define SENSOR_PIN_B 32
 #define LED_PIN_A 15
 #define LED_PIN_B 33
+#define RST_PIN 27 // https://www.instructables.com/two-ways-to-reset-arduino-in-software/
 #endif
 
 #if USE_ADAFRUIT_METRO_M4_EXPRESS_AIRLIFT
@@ -50,6 +51,7 @@
 #define SENSOR_PIN_B 3 // Pull down switch with pull-up resitor.
 #define LED_PIN_A 6
 #define LED_PIN_B 7
+#define RST_PIN 8 // https://www.instructables.com/two-ways-to-reset-arduino-in-software/
 #endif
 
 Debouncer debouncer(&Serial, DEBOUNCE_MILLIS);
@@ -65,6 +67,27 @@ float batteryVoltage = 0.0;
 const unsigned long BLINK_PERIOD_MS = 1000 * 10; // 10 seconds.
 const unsigned long BLINK_DURATION_MS = 500; // 500 ms.
 
+// https://www.instructables.com/two-ways-to-reset-arduino-in-software/
+void resetDevice() {
+  pinMode(RST_PIN, OUTPUT);
+  digitalWrite(RST_PIN, LOW);
+}
+
+void fail(String msg, int delaySeconds) {
+  Serial.print("Failure: ");
+  Serial.println(msg);
+  Serial.print("Restarting device after ");
+  Serial.print(delaySeconds);
+  Serial.println(" seconds...");
+  for (int i = 0; i < delaySeconds; i++) {
+    delay(1000);
+    Serial.print('.');
+  }
+  Serial.println();
+  Serial.println("Resetting now!");
+  resetDevice();
+}
+
 float readBatteryVoltage() {
   float ADAFRUIT_MULTIPLIER = 2.0;
   float MAX_ANALOG_READ_VOLTAGE_INPUT = 4095.0;
@@ -75,7 +98,7 @@ float readBatteryVoltage() {
   return (analogRead(VOLTAGE_INPUT_PIN) / MAX_ANALOG_READ_VOLTAGE_INPUT) * MAX_VOLTAGE * ADC_REFERENCE_VOLTAGE * ADAFRUIT_MULTIPLIER;
 }
 
-void updateServerSensorData(ClientParams params) {
+bool updateServerSensorData(ClientParams params) {
   digitalWrite(LED_BUILTIN, HIGH); // Blink a little while contacting the server.
   String url = serverApi.buildUrl(params);
   Serial.print("Request URL: ");
@@ -94,8 +117,8 @@ void updateServerSensorData(ClientParams params) {
   Serial.println(json);
   bool success = serverApi.parseData(serverdata, json);
   if (!success) {
-    Serial.println("Failed to parse server data.");
-    return;
+    digitalWrite(LED_BUILTIN, LOW);
+    return false;
   }
   session = serverdata.session;
   if (session.length() <= 0) {
@@ -105,9 +128,16 @@ void updateServerSensorData(ClientParams params) {
     Serial.println(serverdata.session);
   }
   digitalWrite(LED_BUILTIN, LOW);
+  return true;
 }
 
 void setup() {
+  // https://www.instructables.com/two-ways-to-reset-arduino-in-software/
+  // Write PIN high immediately in order to avoid resetting the device.
+  digitalWrite(RST_PIN, HIGH);
+  delay(200);
+  pinMode(RST_PIN, OUTPUT);
+
   Serial.begin(115200);
   delay(100);
   Serial.println(""); // First line is usually lost. Print empty line.
@@ -123,7 +153,7 @@ void setup() {
   if (success) {
     Serial.println("Successfully connected to WiFi.");
   } else {
-    Serial.println("Failed to connect to WiFi.");
+    fail("Failed to connect to WiFi.", 5);
   }
 }
 
@@ -159,6 +189,7 @@ void loop() {
   }
 
   batteryVoltage = readBatteryVoltage();
+  bool networkSuccess = false;
   if (changedA) {
     Serial.print("Sensor A Changed: ");
     Serial.print(debouncedAString);
@@ -169,7 +200,10 @@ void loop() {
     params.batteryVoltage = String(batteryVoltage);
     params.sensorA = debouncedAString;
     params.sensorB = "";
-    updateServerSensorData(params);
+    networkSuccess = updateServerSensorData(params);
+    if (!networkSuccess) {
+      fail("Server update failed", 60);
+    }
     lastNetworkRequestTime = currentTime;
     Serial.println();
   }
@@ -183,7 +217,10 @@ void loop() {
     params.batteryVoltage = String(batteryVoltage);
     params.sensorA = "";
     params.sensorB = debouncedBString;
-    updateServerSensorData(params);
+    networkSuccess = updateServerSensorData(params);
+    if (!networkSuccess) {
+      fail("Server update failed", 60);
+    }
     lastNetworkRequestTime = currentTime;
     Serial.println();
   }
@@ -196,7 +233,10 @@ void loop() {
     params.batteryVoltage = String(batteryVoltage);
     params.sensorA = debouncedAString;
     params.sensorB = debouncedBString;
-    updateServerSensorData(params);
+    networkSuccess = updateServerSensorData(params);
+    if (!networkSuccess) {
+      fail("Server update failed", 60);
+    }
     lastNetworkRequestTime = currentTime;
     digitalWrite(LED_BUILTIN, LOW);
     Serial.println();

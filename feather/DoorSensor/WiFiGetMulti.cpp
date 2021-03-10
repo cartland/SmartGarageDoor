@@ -20,11 +20,22 @@
 WiFiMulti WiFiMulti;
 
 bool wifiMultiSetup(String wifiSSID, String wifiPassword) {
+  Serial.println("Using WiFiMulti");
   WiFiMulti.addAP(wifiSSID.c_str(), wifiPassword.c_str());
-  Serial.println("Looking for WiFi...");
+  unsigned int retryCount = 0;
+  Serial.print("Looking for WiFi SSID: ");
+  Serial.println(wifiSSID.c_str());
   while (WiFiMulti.run() != WL_CONNECTED) {
+    if (retryCount > WIFI_CONNECT_RETRY_MAX) {
+      Serial.println();
+      Serial.print("Tried to connect to WiFi ");
+      Serial.print(retryCount);
+      Serial.println(" times.");
+      return false;
+    }
     Serial.print(".");
     delay(500);
+    retryCount++;
   }
   Serial.println("");
   return true;
@@ -41,6 +52,7 @@ void wgetWifiMulti(String &host, String &path, int port, char *buff) {
   Serial.println("...");
   WiFiClient client;
   client.stop();
+  unsigned long loopCount = 0;
   if (client.connect(host.c_str(), port)) {
     Serial.println("Making GET request...");
     client.println(String("GET ") + path + String(" HTTP/1.0"));
@@ -78,6 +90,15 @@ void wgetWifiMulti(String &host, String &path, int port, char *buff) {
         Serial.println("Captured " + String(capturepos) + " bytes.");
         break;
       }
+      // Also, stop after 10000 loops. Sometimes the server doesn't disconnect.
+      if (loopCount > 10000) {
+        Serial.println("Client abandoning the GET request. Disconnecting from the server.");
+        client.stop();
+        buff[capturepos] = '\0';
+        Serial.println("Captured " + String(capturepos) + " bytes.");
+        return;
+      }
+      loopCount++;
     }
   } else {
     Serial.println("Problem connecting to " + host + ":" + String(port));

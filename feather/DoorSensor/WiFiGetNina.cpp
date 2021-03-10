@@ -22,6 +22,7 @@ WiFiSSLClient client;
 int status = WL_IDLE_STATUS;
 
 bool WiFiNINASetup(String wifiSSID, String wifiPassword) {
+  Serial.println("Using WiFiNINA");
   // Check for WiFi module.
   if (WiFi.status() == WL_NO_MODULE) {
     Serial.println("Error: Communication with WiFi module failed!");
@@ -32,13 +33,22 @@ bool WiFiNINASetup(String wifiSSID, String wifiPassword) {
     Serial.println("Warning: Please upgrade the firmware");
   }
 
+  unsigned int retryCount = 0;
   Serial.print("Attempting to connect to WiFi SSID: ");
   Serial.println(wifiSSID.c_str());
   while (status != WL_CONNECTED) {
+    if (retryCount > WIFI_CONNECT_RETRY_MAX) {
+      Serial.println();
+      Serial.print("Tried to connect to WiFi ");
+      Serial.print(retryCount);
+      Serial.println(" times.");
+      return false;
+    }
     // Connect to WPA/WPA2 network.
     status = WiFi.begin(wifiSSID.c_str(), wifiPassword.c_str());
     Serial.print(".");
     delay(500);
+    retryCount++;
   }
   Serial.println("");
 

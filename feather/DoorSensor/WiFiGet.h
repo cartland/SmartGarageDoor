@@ -23,6 +23,8 @@
 #include "WiFiGetMulti.h"
 #include "WiFiGetNina.h"
 
+#define WIFI_CONNECT_RETRY_MAX 0
+
 bool wifiSetup(String wifiSSID, String wifiPassword);
 
 void wget(String &url, int port, char *buff);
