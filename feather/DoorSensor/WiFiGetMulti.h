@@ -26,6 +26,6 @@
 
 bool wifiMultiSetup(String wifiSSID, String wifiPassword);
 
-void wgetWifiMulti(String &host, String &path, int port, char *buff);
+bool wgetWifiMulti(String &host, String &path, int port, char *buff);
 
 #endif

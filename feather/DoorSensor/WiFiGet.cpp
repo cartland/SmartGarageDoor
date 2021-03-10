@@ -34,16 +34,16 @@ bool wifiSetup(String wifiSSID, String wifiPassword) {
   wget(urlc, 80, buf);
   Serial.println(buf);
 */
-void wget(String &url, int port, char *buff) {
+bool wget(String &url, int port, char *buff) {
   int pos1 = url.indexOf("/", 0);
   int pos2 = url.indexOf("/", 8);
   String host = url.substring(pos1 + 2, pos2);
   String path = url.substring(pos2);
   Serial.println("Parsed: wget(" + host + "," + path + "," + port + ")");
 #if USE_WIFI_NINA
-  wgetWifiNINA(host, path, port, buff);
+  return wgetWifiNINA(host, path, port, buff);
 #endif
 #if USE_MULTI_WIFI
-  wgetWifiMulti(host, path, port, buff);
+  return wgetWifiMulti(host, path, port, buff);
 #endif
 }

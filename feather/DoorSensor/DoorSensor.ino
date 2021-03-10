@@ -107,9 +107,7 @@ bool updateServerSensorData(ClientParams params) {
   Serial.println(url);
   const uint16_t port = WIFI_PORT;
   char buf[4000];
-  digitalWrite(LED_BUILTIN, LOW);
   wget(url, port, buf);
-  digitalWrite(LED_BUILTIN, HIGH);
   String json = buf;
   Serial.println(json);
   bool success = serverApi.parseData(serverdata, json);

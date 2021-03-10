@@ -25,5 +25,5 @@
 
 bool WiFiNINASetup(String wifiSSID, String wifiPassword);
 
-void wgetWifiNINA(String &host, String &path, int port, char *buff);
+bool wgetWifiNINA(String &host, String &path, int port, char *buff);
 #endif

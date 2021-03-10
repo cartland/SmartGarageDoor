@@ -67,7 +67,7 @@ bool WiFiNINASetup(String wifiSSID, String wifiPassword) {
   return true;
 }
 
-void wgetWifiNINA(String &host, String &path, int port, char *buff) {
+bool wgetWifiNINA(String &host, String &path, int port, char *buff) {
   Serial.print("wget host: ");
   Serial.print(host);
   Serial.print(", path: ");
@@ -91,6 +91,7 @@ void wgetWifiNINA(String &host, String &path, int port, char *buff) {
     int linelength = 0;
     char lastc = '\0';
     unsigned long loopCount = 0;
+    int lastCapturepos = 0;
     while (true) {
       while (client.available()) {
         char c = client.read();
@@ -117,7 +118,7 @@ void wgetWifiNINA(String &host, String &path, int port, char *buff) {
         client.stop();
         buff[capturepos] = '\0';
         Serial.println("Captured " + String(capturepos) + " bytes.");
-        return;
+        return true;
       }
       // Also, stop after 100000 loops. Sometimes the server doesn't disconnect.
       // 10,000 loops is common. Make sure the timeout is higher.
@@ -126,14 +127,25 @@ void wgetWifiNINA(String &host, String &path, int port, char *buff) {
         client.stop();
         buff[capturepos] = '\0';
         Serial.println("Captured " + String(capturepos) + " bytes.");
-        return;
+        return false;
+      }
+      if (loopCount % 10000 == 0) {
+        if (capturepos > 0 && lastCapturepos == capturepos) {
+          Serial.println("Existing early. The server stopped sending data.");
+          client.stop();
+          buff[capturepos] = '\0';
+          Serial.println("Captured " + String(capturepos) + " bytes.");
+          return true;
+        }
+        lastCapturepos = capturepos;
+        Serial.println("...captured " + String(capturepos) + " bytes so far...");
       }
       loopCount++;
     }
   } else {
     Serial.println("Problem connecting to " + host + ":" + String(port));
     buff[0] = '\0';
+    return false;
   }
-  Serial.println("Done with GET request.");
 }
 #endif
