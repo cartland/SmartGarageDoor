@@ -85,13 +85,16 @@ void wgetWifiMulti(String &host, String &path, int port, char *buff) {
       // If the server is disconnected, stop the client.
       if (!client.connected()) {
         Serial.println("Done with GET request. Disconnecting from the server.");
+        Serial.print("loopCount: ");
+        Serial.println(loopCount);
         client.stop();
         buff[capturepos] = '\0';
         Serial.println("Captured " + String(capturepos) + " bytes.");
         break;
       }
-      // Also, stop after 10000 loops. Sometimes the server doesn't disconnect.
-      if (loopCount > 10000) {
+      // Also, stop after 100000 loops. Sometimes the server doesn't disconnect.
+      // 10,000 loops is common. Make sure the timeout is higher.
+      if (loopCount > 100000) {
         Serial.println("Client abandoning the GET request. Disconnecting from the server.");
         client.stop();
         buff[capturepos] = '\0';
