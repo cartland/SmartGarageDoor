@@ -226,8 +226,12 @@ void loop() {
     ClientParams params;
     params.session = session;
     params.batteryVoltage = String(batteryVoltage);
-    params.sensorA = debouncedAString;
-    params.sensorB = debouncedBString;
+    if (debouncedA != DEBOUNCER_INVALID) {
+      params.sensorA = debouncedAString;
+    }
+    if (debouncedB != DEBOUNCER_INVALID) {
+      params.sensorB = debouncedBString;
+    }
     networkSuccess = updateServerSensorData(params);
     if (!networkSuccess) {
       fail("Server update failed", 60);
