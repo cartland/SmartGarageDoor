@@ -288,23 +288,25 @@
       return observations;
     }
 
+    const MIN_VOLTAGE_COUNT = -1;
+    const MIN_VOLTAGE_TIME_RANGE_SECONDS = -1;
     function filterVoltageObservations(observations) {
       const filteredVoltageObservations = {};
       for (const session of Object.keys(observations)) {
         const sessionObservations = observations[session];
         const numberOfPointsInSession = sessionObservations.length;
-        if (numberOfPointsInSession < 2) {
-          console.debug('Skipping session', session,
-            ' because there are fewer than 2 data points');
+        if (MIN_VOLTAGE_COUNT > 0 && numberOfPointsInSession < MIN_VOLTAGE_COUNT) {
+          console.debug('Skipping voltage session', session,
+            ' because there are fewer than', MIN_VOLTAGE_COUNT, 'data points');
           continue;
         }
         const firstObservation = sessionObservations[0];
         const firstUtcSeconds = firstObservation.utcSeconds;
         const lastObservation = sessionObservations[sessionObservations.length - 1];
         const lastUtcSeconds = lastObservation.utcSeconds;
-        if (lastUtcSeconds - firstUtcSeconds < 60 * 10) {
-          console.debug('Skipping session', session,
-            ' because first and last are less than 10 minutes apart', firstUtcSeconds, lastUtcSeconds);
+        if (MIN_VOLTAGE_TIME_RANGE_SECONDS > 0 && lastUtcSeconds - firstUtcSeconds < MIN_VOLTAGE_TIME_RANGE_SECONDS) {
+          console.debug('Skipping voltage session', session,
+            ' because first and last are less than', MIN_VOLTAGE_TIME_RANGE_SECONDS, 'seconds apart');
           continue;
         }
         outputObservations = [];
@@ -326,23 +328,25 @@
       return filteredVoltageObservations;
     }
 
+    const MIN_SENSOR_COUNT = -1;
+    const MIN_SENSOR_TIME_RANGE_SECONDS = -1;
     function filterSensorObservations(observations, sensorName) {
       const filteredSensorObservations = {};
       for (const session of Object.keys(observations)) {
         const sessionObservations = observations[session];
         const numberOfPointsInSession = sessionObservations.length;
-        if (numberOfPointsInSession < 4) {
-          console.debug('Skipping session', session,
-            ' because there are fewer than 4 data points');
+        if (MIN_SENSOR_COUNT > 0 && numberOfPointsInSession < MIN_SENSOR_COUNT) {
+          console.debug('Skipping sensor session', session,
+            ' because there are fewer than', MIN_SENSOR_COUNT, 'data points');
           continue;
         }
         const firstObservation = sessionObservations[0];
         const firstUtcSeconds = firstObservation.utcSeconds;
         const lastObservation = sessionObservations[sessionObservations.length - 1];
         const lastUtcSeconds = lastObservation.utcSeconds;
-        if (lastUtcSeconds - firstUtcSeconds < 60 * 10) {
-          console.debug('Skipping session', session,
-            ' because first and last are less than 10 minutes apart', firstUtcSeconds, lastUtcSeconds);
+        if (MIN_SENSOR_TIME_RANGE_SECONDS > 0 && lastUtcSeconds - firstUtcSeconds < MIN_SENSOR_TIME_RANGE_SECONDS) {
+          console.debug('Skipping sensor session', session,
+            ' because first and last are less than', MIN_SENSOR_TIME_RANGE_SECONDS, 'seconds apart');
           continue;
         }
         outputObservations = [];
