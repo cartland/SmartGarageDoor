@@ -78,6 +78,18 @@ void resetDevice() {
 void fail(String msg, int delaySeconds) {
   Serial.print("Failure: ");
   Serial.println(msg);
+
+  Serial.println("Attempting to notify server of the error...");
+  ClientParams params;
+  params.session = session;
+  params.error = msg;
+  bool networkSuccess = updateServerSensorData(params);
+  if (networkSuccess) {
+    Serial.println("Successfully notified server.");
+  } else {
+    Serial.println("Failed to notify server.");
+  }
+
   Serial.print("Restarting device after ");
   Serial.print(delaySeconds);
   Serial.println(" seconds...");

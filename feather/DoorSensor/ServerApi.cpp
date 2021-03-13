@@ -34,6 +34,10 @@ String ServerApi::buildUrl(ClientParams params) {
   if (params.sensorB.length() > 0) {
     url = url + String("&sensorB=") + params.sensorB;
   }
+  if (params.error.length() > 0) {
+    params.error.replace(" ", "%20");
+    url = url + String("&error=") + params.error;
+  }
   return url;
 }
 

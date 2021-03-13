@@ -25,6 +25,7 @@ typedef struct ClientParams {
   String batteryVoltage;
   String sensorA;
   String sensorB;
+  String error;
 } ClientParams;
 
 typedef struct ServerResponse {
