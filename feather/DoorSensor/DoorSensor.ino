@@ -24,7 +24,7 @@
 #define SIGNAL_LOW 0
 #define SWITCH_OPEN SIGNAL_HIGH
 #define SWITCH_CLOSED SIGNAL_LOW
-#define DEBOUNCE_MILLIS 250
+#define DEBOUNCE_MILLIS 50
 
 // Analog input to measure battery voltage.
 //
