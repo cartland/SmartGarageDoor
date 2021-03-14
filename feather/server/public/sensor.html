@@ -32,20 +32,13 @@
 
 <body>
 
-  <div id="voltageChartContainer" class="chart-container" style="position: relative; height:40vh; width:80vw">
-    <canvas id="voltageChart"></canvas>
-  </div>
-  <div id="sensorChartContainerA" class="chart-container" style="position: relative; height:40vh; width:80vw">
-    <canvas id="sensorChartA"></canvas>
-  </div>
   <div id="sensorChartContainerB" class="chart-container" style="position: relative; height:40vh; width:80vw">
-    <canvas id="sensorChartB"></canvas>
+    <canvas id="sensorChart"></canvas>
   </div>
 
   <script>
 
     // Top level variable for debugging.
-    var voltageChart;
     var sensorChart;
 
     const COLOR_OPACITY = 'AA'; // Slightly transparent.
@@ -101,78 +94,6 @@
         return 'Time (GMT' + hourOffset + ')';
       }
       return 'Time (GMT+' + hourOffset + ')';
-    }
-
-    function createVoltageChart(ctx) {
-      return new Chart(ctx, {
-        type: 'line',
-        data: {
-          datasets: []
-        },
-        options: {
-          title: {
-            text: 'Battery Voltage Over Time by Session',
-            display: true,
-            fontSize: 24,
-          },
-          scales: {
-            xAxes: [{
-              scaleLabel: {
-                display: true,
-                labelString: getTimeAxisLabel(),
-                fontSize: 24,
-              },
-              type: 'linear',
-              position: 'bottom',
-              ticks: {
-                callback: (value, index, values) => {
-                  const milliseconds = value;
-                  const showSeconds = false;
-                  return utcSecondsToLocalDateFormat(milliseconds, showSeconds);
-                }
-              }
-            }],
-            yAxes: [{
-              scaleLabel: {
-                display: true,
-                labelString: 'Voltage',
-                fontSize: 24,
-              },
-            }]
-          },
-          tooltips: {
-            titleAlign: 'center',
-            callbacks: {
-              label: function (tooltipItem, data) {
-                return data.datasets[tooltipItem.datasetIndex].label;
-              },
-              title: function (tooltipItem, data) {
-                const item = tooltipItem[0];
-                return [
-                  item.value + ' V',
-                ];
-              },
-              footer: function (tooltipItem, data) {
-                const item = tooltipItem[0];
-                const showSeconds = true;
-                return [
-                  utcSecondsToLocalDateFormat(item.xLabel, showSeconds),
-                ];
-              },
-              labelColor: function (tooltipItem, data) {
-                const color = COLORS[tooltipItem.datasetIndex % COLORS.length];
-                return {
-                  borderColor: color,
-                  backgroundColor: color,
-                };
-              },
-            }
-          },
-          onClick: (arr, elements) => {
-            console.log(arr, elements);
-          },
-        }
-      });
     }
 
     function createSensorChart(ctx, title) {
@@ -288,46 +209,6 @@
       return observations;
     }
 
-    const MIN_VOLTAGE_COUNT = -1;
-    const MIN_VOLTAGE_TIME_RANGE_SECONDS = -1;
-    function filterVoltageObservations(observations) {
-      const filteredVoltageObservations = {};
-      for (const session of Object.keys(observations)) {
-        const sessionObservations = observations[session];
-        const numberOfPointsInSession = sessionObservations.length;
-        if (MIN_VOLTAGE_COUNT > 0 && numberOfPointsInSession < MIN_VOLTAGE_COUNT) {
-          console.debug('Skipping voltage session', session,
-            ' because there are fewer than', MIN_VOLTAGE_COUNT, 'data points');
-          continue;
-        }
-        const firstObservation = sessionObservations[0];
-        const firstUtcSeconds = firstObservation.utcSeconds;
-        const lastObservation = sessionObservations[sessionObservations.length - 1];
-        const lastUtcSeconds = lastObservation.utcSeconds;
-        if (MIN_VOLTAGE_TIME_RANGE_SECONDS > 0 && lastUtcSeconds - firstUtcSeconds < MIN_VOLTAGE_TIME_RANGE_SECONDS) {
-          console.debug('Skipping voltage session', session,
-            ' because first and last are less than', MIN_VOLTAGE_TIME_RANGE_SECONDS, 'seconds apart');
-          continue;
-        }
-        outputObservations = [];
-        for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
-          if (!('batteryVoltage' in sessionObservations[observationIndex])) {
-            continue; // Skip if this observation does not have voltage data.
-          }
-          const batteryVoltage = sessionObservations[observationIndex]['batteryVoltage'];
-          if (batteryVoltage < 2) {
-            continue; // Ignore data that is too small.
-          }
-          outputObservations.push(sessionObservations[observationIndex]);
-        }
-        // Do not include session if no data exists.
-        if (outputObservations.length > 0) {
-          filteredVoltageObservations[session] = outputObservations;
-        }
-      }
-      return filteredVoltageObservations;
-    }
-
     const MIN_SENSOR_COUNT = -1;
     const MIN_SENSOR_TIME_RANGE_SECONDS = -1;
     function filterSensorObservations(observations, sensorName) {
@@ -351,14 +232,9 @@
         }
         outputObservations = [];
         for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
-          let found = false;
-          if (sensorName in sessionObservations[observationIndex]) {
-            found = true;
+          if (!sensorName || sensorName in sessionObservations[observationIndex]) {
+            outputObservations.push(sessionObservations[observationIndex]);
           }
-          if (!found) {
-            continue; // Skip data without sensor data.
-          }
-          outputObservations.push(sessionObservations[observationIndex]);
         }
         // Do not include session if no data exists.
         if (outputObservations.length > 0) {
@@ -423,64 +299,34 @@
       return OPTIONS[OPTIONS.length - 1];
     }
 
-    function displayVoltageObservations(scatterChart, observations) {
+    function displaySensorObservations(scatterChart, observations, sensorNameArray) {
       scatterChart.config.data.datasets = [];
-      for (const session of Object.keys(observations)) {
-        const sessionObservations = observations[session];
-        const numberOfPointsInSession = sessionObservations.length;
-        const lineData = [];
-        for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
-          const utcSeconds = sessionObservations[observationIndex].utcSeconds;
-          const x = new Date(0);
-          x.setUTCSeconds(utcSeconds);
-          const y = sessionObservations[observationIndex].batteryVoltage;
-          const point = {
-            x: x,
-            y: y,
-          };
-          lineData.push(point);
+      for (const sensorName of sensorNameArray) {
+        for (const session of Object.keys(observations)) {
+          const sessionObservations = observations[session];
+          const numberOfPointsInSession = sessionObservations.length;
+          const lineData = [];
+          for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
+            const utcSeconds = sessionObservations[observationIndex].utcSeconds;
+            const x = new Date(0);
+            x.setUTCSeconds(utcSeconds);
+            const y = sessionObservations[observationIndex][sensorName];
+            const point = {
+              x: x,
+              y: y,
+            };
+            lineData.push(point);
+          }
+          const color = COLORS[scatterChart.config.data.datasets.length % COLORS.length];
+          const label = session.substring(0, 6) + '[' + sensorName + ']';
+          scatterChart.config.data.datasets.push({
+            label: label,
+            data: lineData,
+            borderColor: color,
+            backgroundColor: '#00000000',
+            steppedLine: true,
+          });
         }
-        const color = COLORS[scatterChart.config.data.datasets.length % COLORS.length];
-        scatterChart.config.data.datasets.push({
-          label: session.substring(0, 5),
-          data: lineData,
-          borderColor: color,
-          backgroundColor: '#00000000',
-          lineTension: 0,
-        });
-      }
-      const dateRange = getDateRange(observations);
-      const utcSecondsRange = dateRange.maxUtcSeconds - dateRange.minUtcSeconds;
-      scatterChart.options.scales.xAxes[0].ticks.stepSize = getGraphStepSize(utcSecondsRange);
-      scatterChart.update();
-    }
-
-    function displaySensorObservations(scatterChart, observations, sensorName) {
-      scatterChart.config.data.datasets = [];
-      for (const session of Object.keys(observations)) {
-        const sessionObservations = observations[session];
-        const numberOfPointsInSession = sessionObservations.length;
-        const lineData = [];
-        for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
-          const utcSeconds = sessionObservations[observationIndex].utcSeconds;
-          const x = new Date(0);
-          x.setUTCSeconds(utcSeconds);
-          const y = sessionObservations[observationIndex][sensorName];
-          const point = {
-            x: x,
-            y: y,
-          };
-          lineData.push(point);
-        }
-        const color = COLORS[scatterChart.config.data.datasets.length % COLORS.length];
-        const label = session.substring(0, 5) + '[' + sensorName + ']';
-        scatterChart.config.data.datasets.push({
-          label: label,
-          data: lineData,
-          borderColor: color,
-          backgroundColor: '#00000000',
-          steppedLine: true,
-        });
       }
       const dateRange = getDateRange(observations);
       const utcSecondsRange = dateRange.maxUtcSeconds - dateRange.minUtcSeconds;
@@ -493,41 +339,42 @@
       // // The Firebase SDK is initialized and available here!
       // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
 
-      const voltageChartContext = document.getElementById('voltageChart').getContext('2d');
-      voltageChart = createVoltageChart(voltageChartContext);
-      const sensorChartContextA = document.getElementById('sensorChartA').getContext('2d');
-      sensorChartA = createSensorChart(sensorChartContextA, 'Sensor A Data by Session');
-      const sensorChartContextB = document.getElementById('sensorChartB').getContext('2d');
-      sensorChartB = createSensorChart(sensorChartContextB, 'Sensor B Data by Session');
+      const sensorChartContextB = document.getElementById('sensorChart').getContext('2d');
+      sensorChart = createSensorChart(sensorChartContextB, 'Sensor Data by Session');
 
       const nowMillis = getCurrentUtcTimeMillis();
 
-      const voltageBeginDate = new Date(0);
-      const VOLTAGE_MAX_WINDOW_RANGE_MILLIS = 1000 * 60 * 60 * 72; // 72 hours.
-      voltageBeginDate.setUTCMilliseconds(nowMillis - VOLTAGE_MAX_WINDOW_RANGE_MILLIS);
-      firebase.firestore().collection("updateAll")
-        .where('FIRESTORE_databaseTimestamp', '>', voltageBeginDate)
-        .orderBy('FIRESTORE_databaseTimestamp', 'asc')
-        .onSnapshot((doc) => {
-          const observations = parseObservations(doc);
-          const voltageObservations = filterVoltageObservations(observations);
-          displayVoltageObservations(voltageChart, voltageObservations);
-        });
-
       const sensorBeginDate = new Date(0);
-      const SENSOR_MAX_WINDOW_RANGE_MILLIS = 1000 * 60 * 60 * 1; // 1 hours.
-      sensorBeginDate.setUTCMilliseconds(nowMillis - SENSOR_MAX_WINDOW_RANGE_MILLIS);
-      firebase.firestore().collection("updateAll")
-        .where('FIRESTORE_databaseTimestamp', '>', sensorBeginDate)
-        .orderBy('FIRESTORE_databaseTimestamp', 'asc')
-        .onSnapshot((doc) => {
-          const observations = parseObservations(doc);
-          const sensorObservationsA = filterSensorObservations(observations, 'sensorA');
-          const sensorObservationsB = filterSensorObservations(observations, 'sensorB');
-          displaySensorObservations(sensorChartA, sensorObservationsA, 'sensorA');
-          displaySensorObservations(sensorChartB, sensorObservationsB, 'sensorB');
-        });
 
+      const queryString = window.location.search;
+      const urlParams = new URLSearchParams(queryString);
+      const buildTimestampString = urlParams.get('build');
+      const rangeMinutesString = urlParams.get('range');
+      const sensorString = urlParams.get('sensor');
+      let query = firebase.firestore().collection("updateAll");
+      if (buildTimestampString) {
+        query = query.where('queryParams.buildTimestamp', '==', buildTimestampString);
+      }
+      if (rangeMinutesString) {
+        const rangeMinutes = parseInt(rangeMinutesString);
+        const rangeMillis = 1000 * 60 * rangeMinutes;
+        sensorBeginDate.setUTCMilliseconds(nowMillis - rangeMillis);
+        query = query.where('FIRESTORE_databaseTimestamp', '>', sensorBeginDate)
+      } else {
+        const SENSOR_MAX_WINDOW_RANGE_MILLIS = 1000 * 60 * 60; // 1 hour.
+        sensorBeginDate.setUTCMilliseconds(nowMillis - SENSOR_MAX_WINDOW_RANGE_MILLIS);
+        query = query.where('FIRESTORE_databaseTimestamp', '>', sensorBeginDate)
+      }
+      query = query.orderBy('FIRESTORE_databaseTimestamp', 'asc');
+      query.onSnapshot((doc) => {
+        const observations = parseObservations(doc);
+        const sensorObservationsB = filterSensorObservations(observations, sensorString);
+        if (sensorString) {
+          displaySensorObservations(sensorChart, sensorObservationsB, [sensorString]);
+        } else {
+          displaySensorObservations(sensorChart, sensorObservationsB, ['sensorA', 'sensorB']);
+        }
+      });
     });
   </script>
 </body>

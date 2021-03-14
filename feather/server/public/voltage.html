@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feather Sessions</title>
+
+  <!-- update the version number as needed -->
+  <script defer src="/__/firebase/8.2.9/firebase-app.js"></script>
+  <!-- include only the Firebase features as you need -->
+  <script defer src="/__/firebase/8.2.9/firebase-firestore.js"></script>
+  <!--
+      initialize the SDK after all desired features are loaded, set useEmulator to false
+      to avoid connecting the SDK to running emulators.
+    -->
+  <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+
+  <style>
+    .chart-container {
+      padding-left: 0;
+      padding-right: 0;
+      margin-left: auto;
+      margin-right: auto;
+      margin-bottom: 40vh;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="voltageChartContainer" class="chart-container" style="position: relative; height:40vh; width:80vw">
+    <canvas id="voltageChart"></canvas>
+  </div>
+
+  <script>
+
+    // Top level variable for debugging.
+    var voltageChart;
+    var sensorChart;
+
+    const COLOR_OPACITY = 'AA'; // Slightly transparent.
+    const COLORS = [
+      '#E74C3C' + COLOR_OPACITY,
+      '#9B59B6' + COLOR_OPACITY,
+      '#3498DB' + COLOR_OPACITY,
+      '#1ABC9C' + COLOR_OPACITY,
+      '#F4D03F' + COLOR_OPACITY,
+      '#E67E22' + COLOR_OPACITY,
+    ];
+
+    function NN(number) {
+      if (number < 10) {
+        return '0' + number;
+      }
+      return '' + number;
+    }
+
+    /**
+     * Formats date and time. Time must be provided in local timezone.
+     * YYYY-MM-DD hh:mm
+     */
+    function myDateFormat(date, seconds) {
+      var DD = NN(date.getDate());
+      var MM = NN(date.getMonth() + 1);
+      var YYYY = date.getFullYear();
+      var hh = NN(date.getHours());
+      var min = NN(date.getMinutes());
+      var ss = NN(date.getSeconds());
+      if (seconds) {
+        return YYYY + '-' + MM + '-' + DD + ' ' + hh + ':' + min + ':' + ss;
+      }
+      return YYYY + '-' + MM + '-' + DD + ' ' + hh + ':' + min;
+    }
+
+    /**
+     * Convert UTC milliseconds to local timezone Date object.
+     */
+    function utcSecondsToLocalDateFormat(milliseconds, showSeconds) {
+      const x = new Date(0);
+      x.setUTCMilliseconds(milliseconds + 60 * x.getTimezoneOffset());
+      return myDateFormat(x, showSeconds);
+    }
+
+    function getCurrentUtcTimeMillis() {
+      return new Date().getTime();
+    }
+
+    function getTimeAxisLabel() {
+      const hourOffset = -(new Date(0).getTimezoneOffset() / 60);
+      if (hourOffset < 0) {
+        return 'Time (GMT' + hourOffset + ')';
+      }
+      return 'Time (GMT+' + hourOffset + ')';
+    }
+
+    function createVoltageChart(ctx) {
+      return new Chart(ctx, {
+        type: 'line',
+        data: {
+          datasets: []
+        },
+        options: {
+          title: {
+            text: 'Voltage Over Time by Session',
+            display: true,
+            fontSize: 24,
+          },
+          scales: {
+            xAxes: [{
+              scaleLabel: {
+                display: true,
+                labelString: getTimeAxisLabel(),
+                fontSize: 24,
+              },
+              type: 'linear',
+              position: 'bottom',
+              ticks: {
+                callback: (value, index, values) => {
+                  const milliseconds = value;
+                  const showSeconds = false;
+                  return utcSecondsToLocalDateFormat(milliseconds, showSeconds);
+                }
+              }
+            }],
+            yAxes: [{
+              scaleLabel: {
+                display: true,
+                labelString: 'Voltage',
+                fontSize: 24,
+              },
+            }]
+          },
+          tooltips: {
+            titleAlign: 'center',
+            callbacks: {
+              label: function (tooltipItem, data) {
+                return data.datasets[tooltipItem.datasetIndex].label;
+              },
+              title: function (tooltipItem, data) {
+                const item = tooltipItem[0];
+                return [
+                  item.value + ' V',
+                ];
+              },
+              footer: function (tooltipItem, data) {
+                const item = tooltipItem[0];
+                const showSeconds = true;
+                return [
+                  utcSecondsToLocalDateFormat(item.xLabel, showSeconds),
+                ];
+              },
+              labelColor: function (tooltipItem, data) {
+                const color = COLORS[tooltipItem.datasetIndex % COLORS.length];
+                return {
+                  borderColor: color,
+                  backgroundColor: color,
+                };
+              },
+            }
+          },
+          onClick: (arr, elements) => {
+            console.log(arr, elements);
+          },
+        }
+      });
+    }
+
+    function parseObservations(doc) {
+      const observations = {};
+      for (let lineNumber = 0; lineNumber < doc.docs.length; lineNumber++) {
+        const line = doc.docs[lineNumber];
+        const data = line.data();
+        // Check to make sure all of the relevant data fields exist.
+        if (!('session' in data)
+          || !('FIRESTORE_databaseTimestamp' in data)
+          || !('seconds' in data['FIRESTORE_databaseTimestamp'])
+          || !('queryParams' in data)
+        ) {
+          // Skip data that is missing necessary fields.
+          continue;
+        }
+        const session = data['session'];
+        if (!(session in observations)) {
+          observations[session] = [];
+        }
+        const utcSeconds = parseInt(data['FIRESTORE_databaseTimestamp']['seconds']);
+        const parsedData = {
+          utcSeconds: utcSeconds
+        };
+        if ('batteryVoltage' in data['queryParams']) {
+          parsedData['batteryVoltage'] = parseFloat(data['queryParams']['batteryVoltage']);
+        }
+        if ('sensorA' in data['queryParams']) {
+          parsedData['sensorA'] = parseFloat(data['queryParams']['sensorA']);
+        }
+        if ('sensorB' in data['queryParams']) {
+          parsedData['sensorB'] = parseFloat(data['queryParams']['sensorB']);
+        }
+        observations[session].push(parsedData);
+      }
+      for (const session of Object.keys(observations)) {
+        observations[session].sort((a, b) => {
+          return a['utcSeconds'] - b['utcSeconds'];
+        });
+      }
+      return observations;
+    }
+
+    const MIN_VOLTAGE_COUNT = -1;
+    const MIN_VOLTAGE_TIME_RANGE_SECONDS = -1;
+    function filterVoltageObservations(observations) {
+      const filteredVoltageObservations = {};
+      for (const session of Object.keys(observations)) {
+        const sessionObservations = observations[session];
+        const numberOfPointsInSession = sessionObservations.length;
+        if (MIN_VOLTAGE_COUNT > 0 && numberOfPointsInSession < MIN_VOLTAGE_COUNT) {
+          console.debug('Skipping voltage session', session,
+            ' because there are fewer than', MIN_VOLTAGE_COUNT, 'data points');
+          continue;
+        }
+        const firstObservation = sessionObservations[0];
+        const firstUtcSeconds = firstObservation.utcSeconds;
+        const lastObservation = sessionObservations[sessionObservations.length - 1];
+        const lastUtcSeconds = lastObservation.utcSeconds;
+        if (MIN_VOLTAGE_TIME_RANGE_SECONDS > 0 && lastUtcSeconds - firstUtcSeconds < MIN_VOLTAGE_TIME_RANGE_SECONDS) {
+          console.debug('Skipping voltage session', session,
+            ' because first and last are less than', MIN_VOLTAGE_TIME_RANGE_SECONDS, 'seconds apart');
+          continue;
+        }
+        outputObservations = [];
+        for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
+          if (!('batteryVoltage' in sessionObservations[observationIndex])) {
+            continue; // Skip if this observation does not have voltage data.
+          }
+          const batteryVoltage = sessionObservations[observationIndex]['batteryVoltage'];
+          if (batteryVoltage < 2) {
+            continue; // Ignore data that is too small.
+          }
+          outputObservations.push(sessionObservations[observationIndex]);
+        }
+        // Do not include session if no data exists.
+        if (outputObservations.length > 0) {
+          filteredVoltageObservations[session] = outputObservations;
+        }
+      }
+      return filteredVoltageObservations;
+    }
+
+    function getDateRange(observations) {
+      let minUtcSeconds = undefined;
+      let maxUtcSeconds = undefined;
+      for (const session of Object.keys(observations)) {
+        const sessionObservations = observations[session];
+        for (let observationIndex = 0; observationIndex < sessionObservations.length; observationIndex++) {
+          const utcSeconds = sessionObservations[observationIndex].utcSeconds;
+          if (typeof minUtcSeconds === 'undefined') {
+            minUtcSeconds = utcSeconds;
+          }
+          if (typeof maxUtcSeconds === 'undefined') {
+            maxUtcSeconds = utcSeconds;
+          }
+          if (utcSeconds < minUtcSeconds) {
+            minUtcSeconds = utcSeconds;
+          }
+          if (utcSeconds > maxUtcSeconds) {
+            maxUtcSeconds = utcSeconds;
+          }
+        }
+      }
+      return {
+        minUtcSeconds: minUtcSeconds,
+        maxUtcSeconds: maxUtcSeconds,
+      };
+    }
+
+    function getGraphStepSize(utcSecondsRange) {
+      const SEC = 1000;
+      const MIN = 60 * SEC;
+      const TEN_MIN = 10 * MIN;
+      const THIRTY_MIN = 30 * MIN;
+      const HOUR = 60 * MIN;
+      const TWO_HOUR = 2 * HOUR;
+      const THREE_HOUR = 3 * HOUR;
+      const SIX_HOUR = 6 * HOUR;
+      const TWELVE_HOUR = 12 * HOUR;
+      const DAY = 24 * HOUR;
+      const TWO_DAY = 2 * DAY;
+      const THREE_DAY = 3 * DAY;
+      const WEEK = 7 * DAY;
+      const OPTIONS = [SEC, MIN, TEN_MIN, THIRTY_MIN,
+        HOUR, TWO_HOUR, THREE_HOUR, SIX_HOUR, TWELVE_HOUR,
+        DAY, TWO_DAY, THREE_HOUR, WEEK];
+      const utcMillisecondsRange = 1000 * utcSecondsRange;
+      for (let i = 0; i < OPTIONS.length; i++) {
+        const option = OPTIONS[i];
+        if (utcMillisecondsRange < option * 6) {
+          console.log('Graph Step Size (ms)', option);
+          return option;
+        }
+      }
+      return OPTIONS[OPTIONS.length - 1];
+    }
+
+    function displayVoltageObservations(scatterChart, observations) {
+      scatterChart.config.data.datasets = [];
+      for (const session of Object.keys(observations)) {
+        const sessionObservations = observations[session];
+        const numberOfPointsInSession = sessionObservations.length;
+        const lineData = [];
+        for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
+          const utcSeconds = sessionObservations[observationIndex].utcSeconds;
+          const x = new Date(0);
+          x.setUTCSeconds(utcSeconds);
+          const y = sessionObservations[observationIndex].batteryVoltage;
+          const point = {
+            x: x,
+            y: y,
+          };
+          lineData.push(point);
+        }
+        const color = COLORS[scatterChart.config.data.datasets.length % COLORS.length];
+        scatterChart.config.data.datasets.push({
+          label: session.substring(0, 5),
+          data: lineData,
+          borderColor: color,
+          backgroundColor: '#00000000',
+          lineTension: 0,
+        });
+      }
+      const dateRange = getDateRange(observations);
+      const utcSecondsRange = dateRange.maxUtcSeconds - dateRange.minUtcSeconds;
+      scatterChart.options.scales.xAxes[0].ticks.stepSize = getGraphStepSize(utcSecondsRange);
+      scatterChart.update();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+      // // The Firebase SDK is initialized and available here!
+      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+      const voltageChartContext = document.getElementById('voltageChart').getContext('2d');
+      voltageChart = createVoltageChart(voltageChartContext);
+
+      const nowMillis = getCurrentUtcTimeMillis();
+
+      const voltageBeginDate = new Date(0);
+
+
+      const queryString = window.location.search;
+      const urlParams = new URLSearchParams(queryString);
+      const buildTimestampString = urlParams.get('build');
+      const rangeMinutesString = urlParams.get('range');
+      let query = firebase.firestore().collection("updateAll");
+      if (buildTimestampString) {
+        query = query.where('queryParams.buildTimestamp', '==', buildTimestampString);
+      }
+      if (rangeMinutesString) {
+        const rangeMinutes = parseInt(rangeMinutesString);
+        const rangeMillis = 1000 * 60 * rangeMinutes;
+        voltageBeginDate.setUTCMilliseconds(nowMillis - rangeMillis);
+        query = query.where('FIRESTORE_databaseTimestamp', '>', voltageBeginDate)
+      } else {
+        const VOLTAGE_MAX_WINDOW_RANGE_MILLIS = 1000 * 60 * 60 * 72; // 72 hours.
+        voltageBeginDate.setUTCMilliseconds(nowMillis - VOLTAGE_MAX_WINDOW_RANGE_MILLIS);
+        query = query.where('FIRESTORE_databaseTimestamp', '>', voltageBeginDate)
+      }
+      query = query.orderBy('FIRESTORE_databaseTimestamp', 'asc');
+      query.onSnapshot((doc) => {
+        const observations = parseObservations(doc);
+        const voltageObservations = filterVoltageObservations(observations);
+        displayVoltageObservations(voltageChart, voltageObservations);
+      });
+
+    });
+  </script>
+</body>
+
+</html>

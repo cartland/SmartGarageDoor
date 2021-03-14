@@ -16,7 +16,15 @@
     "rewrites": [
       {
         "source": "/",
-        "destination": "/index.html"
+        "destination": "/voltage.html"
+      },
+      {
+        "source": "/voltage",
+        "destination": "/voltage.html"
+      },
+      {
+        "source": "/sensor",
+        "destination": "/sensor.html"
       }
     ]
   },
