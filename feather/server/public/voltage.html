@@ -305,6 +305,10 @@
       return OPTIONS[OPTIONS.length - 1];
     }
 
+    function abbreviateSession(session) {
+      return session.substring(0, 6);
+    }
+
     function displayVoltageObservations(scatterChart, observations) {
       scatterChart.config.data.datasets = [];
       for (const session of Object.keys(observations)) {
@@ -324,7 +328,7 @@
         }
         const color = COLORS[scatterChart.config.data.datasets.length % COLORS.length];
         scatterChart.config.data.datasets.push({
-          label: session.substring(0, 5),
+          label: abbreviateSession(session),
           data: lineData,
           borderColor: color,
           backgroundColor: '#00000000',

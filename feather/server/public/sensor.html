@@ -299,6 +299,10 @@
       return OPTIONS[OPTIONS.length - 1];
     }
 
+    function abbreviateSession(session) {
+      return session.substring(0, 6);
+    }
+
     function displaySensorObservations(scatterChart, observations, sensorNameArray) {
       scatterChart.config.data.datasets = [];
       for (const sensorName of sensorNameArray) {
@@ -318,7 +322,7 @@
             lineData.push(point);
           }
           const color = COLORS[scatterChart.config.data.datasets.length % COLORS.length];
-          const label = session.substring(0, 6) + '[' + sensorName + ']';
+          const label = abbreviateSession(session) + '[' + sensorName + ']';
           scatterChart.config.data.datasets.push({
             label: label,
             data: lineData,
