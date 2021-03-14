@@ -1,4 +1,19 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "updateAll",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "queryParams.buildTimestamp",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "FIRESTORE_databaseTimestamp",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }
