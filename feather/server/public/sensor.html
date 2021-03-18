@@ -19,6 +19,10 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
 
+  <script src="util.js"></script>
+  <script src="observations.js"></script>
+  <script src="sensor.js"></script>
+
   <style>
     .chart-container {
       padding-left: 0;
@@ -41,310 +45,13 @@
     // Top level variable for debugging.
     var sensorChart;
 
-    const COLOR_OPACITY = 'AA'; // Slightly transparent.
-    const COLORS = [
-      '#E74C3C' + COLOR_OPACITY,
-      '#9B59B6' + COLOR_OPACITY,
-      '#3498DB' + COLOR_OPACITY,
-      '#1ABC9C' + COLOR_OPACITY,
-      '#F4D03F' + COLOR_OPACITY,
-      '#E67E22' + COLOR_OPACITY,
-    ];
-
-    function NN(number) {
-      if (number < 10) {
-        return '0' + number;
-      }
-      return '' + number;
-    }
-
-    /**
-     * Formats date and time. Time must be provided in local timezone.
-     * YYYY-MM-DD hh:mm
-     */
-    function myDateFormat(date, seconds) {
-      var DD = NN(date.getDate());
-      var MM = NN(date.getMonth() + 1);
-      var YYYY = date.getFullYear();
-      var hh = NN(date.getHours());
-      var min = NN(date.getMinutes());
-      var ss = NN(date.getSeconds());
-      if (seconds) {
-        return YYYY + '-' + MM + '-' + DD + ' ' + hh + ':' + min + ':' + ss;
-      }
-      return YYYY + '-' + MM + '-' + DD + ' ' + hh + ':' + min;
-    }
-
-    /**
-     * Convert UTC milliseconds to local timezone Date object.
-     */
-    function utcSecondsToLocalDateFormat(milliseconds, showSeconds) {
-      const x = new Date(0);
-      x.setUTCMilliseconds(milliseconds + 60 * x.getTimezoneOffset());
-      return myDateFormat(x, showSeconds);
-    }
-
-    function getCurrentUtcTimeMillis() {
-      return new Date().getTime();
-    }
-
-    function getTimeAxisLabel() {
-      const hourOffset = -(new Date(0).getTimezoneOffset() / 60);
-      if (hourOffset < 0) {
-        return 'Time (GMT' + hourOffset + ')';
-      }
-      return 'Time (GMT+' + hourOffset + ')';
-    }
-
-    function createSensorChart(ctx, title) {
-      return new Chart(ctx, {
-        type: 'line',
-        data: {
-          datasets: []
-        },
-        options: {
-          title: {
-            text: title ? title : 'Sensor Data Over Time by Session and Sensor',
-            display: true,
-            fontSize: 24,
-          },
-          scales: {
-            xAxes: [{
-              scaleLabel: {
-                display: true,
-                labelString: getTimeAxisLabel(),
-                fontSize: 24,
-              },
-              type: 'linear',
-              position: 'bottom',
-              ticks: {
-                callback: (value, index, values) => {
-                  const milliseconds = value;
-                  const showSeconds = false;
-                  return utcSecondsToLocalDateFormat(milliseconds, showSeconds);
-                }
-              }
-            }],
-            yAxes: [{
-              scaleLabel: {
-                display: true,
-                labelString: 'Sensor Value',
-                fontSize: 24,
-              },
-            }]
-          },
-          tooltips: {
-            titleAlign: 'center',
-            callbacks: {
-              label: function (tooltipItem, data) {
-                return data.datasets[tooltipItem.datasetIndex].label;
-              },
-              title: function (tooltipItem, data) {
-                const item = tooltipItem[0];
-                return [
-                  '' + item.value,
-                ];
-              },
-              footer: function (tooltipItem, data) {
-                const item = tooltipItem[0];
-                const showSeconds = true;
-                return [
-                  utcSecondsToLocalDateFormat(item.xLabel, showSeconds),
-                ];
-              },
-              labelColor: function (tooltipItem, data) {
-                const color = COLORS[tooltipItem.datasetIndex % COLORS.length];
-                return {
-                  borderColor: color,
-                  backgroundColor: color,
-                };
-              },
-            }
-          },
-          onClick: (arr, elements) => {
-            console.log(arr, elements);
-          },
-        }
-      });
-    }
-
-    function parseObservations(doc) {
-      const observations = {};
-      for (let lineNumber = 0; lineNumber < doc.docs.length; lineNumber++) {
-        const line = doc.docs[lineNumber];
-        const data = line.data();
-        // Check to make sure all of the relevant data fields exist.
-        if (!('session' in data)
-          || !('FIRESTORE_databaseTimestamp' in data)
-          || !('seconds' in data['FIRESTORE_databaseTimestamp'])
-          || !('queryParams' in data)
-        ) {
-          // Skip data that is missing necessary fields.
-          continue;
-        }
-        const session = data['session'];
-        if (!(session in observations)) {
-          observations[session] = [];
-        }
-        const utcSeconds = parseInt(data['FIRESTORE_databaseTimestamp']['seconds']);
-        const parsedData = {
-          utcSeconds: utcSeconds
-        };
-        if ('batteryVoltage' in data['queryParams']) {
-          parsedData['batteryVoltage'] = parseFloat(data['queryParams']['batteryVoltage']);
-        }
-        if ('sensorA' in data['queryParams']) {
-          parsedData['sensorA'] = parseFloat(data['queryParams']['sensorA']);
-        }
-        if ('sensorB' in data['queryParams']) {
-          parsedData['sensorB'] = parseFloat(data['queryParams']['sensorB']);
-        }
-        observations[session].push(parsedData);
-      }
-      for (const session of Object.keys(observations)) {
-        observations[session].sort((a, b) => {
-          return a['utcSeconds'] - b['utcSeconds'];
-        });
-      }
-      return observations;
-    }
-
-    const MIN_SENSOR_COUNT = -1;
-    const MIN_SENSOR_TIME_RANGE_SECONDS = -1;
-    function filterSensorObservations(observations, sensorName) {
-      const filteredSensorObservations = {};
-      for (const session of Object.keys(observations)) {
-        const sessionObservations = observations[session];
-        const numberOfPointsInSession = sessionObservations.length;
-        if (MIN_SENSOR_COUNT > 0 && numberOfPointsInSession < MIN_SENSOR_COUNT) {
-          console.debug('Skipping sensor session', session,
-            ' because there are fewer than', MIN_SENSOR_COUNT, 'data points');
-          continue;
-        }
-        const firstObservation = sessionObservations[0];
-        const firstUtcSeconds = firstObservation.utcSeconds;
-        const lastObservation = sessionObservations[sessionObservations.length - 1];
-        const lastUtcSeconds = lastObservation.utcSeconds;
-        if (MIN_SENSOR_TIME_RANGE_SECONDS > 0 && lastUtcSeconds - firstUtcSeconds < MIN_SENSOR_TIME_RANGE_SECONDS) {
-          console.debug('Skipping sensor session', session,
-            ' because first and last are less than', MIN_SENSOR_TIME_RANGE_SECONDS, 'seconds apart');
-          continue;
-        }
-        outputObservations = [];
-        for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
-          if (!sensorName || sensorName in sessionObservations[observationIndex]) {
-            outputObservations.push(sessionObservations[observationIndex]);
-          }
-        }
-        // Do not include session if no data exists.
-        if (outputObservations.length > 0) {
-          filteredSensorObservations[session] = outputObservations;
-        }
-      }
-      return filteredSensorObservations;
-    }
-
-    function getDateRange(observations) {
-      let minUtcSeconds = undefined;
-      let maxUtcSeconds = undefined;
-      for (const session of Object.keys(observations)) {
-        const sessionObservations = observations[session];
-        for (let observationIndex = 0; observationIndex < sessionObservations.length; observationIndex++) {
-          const utcSeconds = sessionObservations[observationIndex].utcSeconds;
-          if (typeof minUtcSeconds === 'undefined') {
-            minUtcSeconds = utcSeconds;
-          }
-          if (typeof maxUtcSeconds === 'undefined') {
-            maxUtcSeconds = utcSeconds;
-          }
-          if (utcSeconds < minUtcSeconds) {
-            minUtcSeconds = utcSeconds;
-          }
-          if (utcSeconds > maxUtcSeconds) {
-            maxUtcSeconds = utcSeconds;
-          }
-        }
-      }
-      return {
-        minUtcSeconds: minUtcSeconds,
-        maxUtcSeconds: maxUtcSeconds,
-      };
-    }
-
-    function getGraphStepSize(utcSecondsRange) {
-      const SEC = 1000;
-      const MIN = 60 * SEC;
-      const TEN_MIN = 10 * MIN;
-      const THIRTY_MIN = 30 * MIN;
-      const HOUR = 60 * MIN;
-      const TWO_HOUR = 2 * HOUR;
-      const THREE_HOUR = 3 * HOUR;
-      const SIX_HOUR = 6 * HOUR;
-      const TWELVE_HOUR = 12 * HOUR;
-      const DAY = 24 * HOUR;
-      const TWO_DAY = 2 * DAY;
-      const THREE_DAY = 3 * DAY;
-      const WEEK = 7 * DAY;
-      const OPTIONS = [SEC, MIN, TEN_MIN, THIRTY_MIN,
-        HOUR, TWO_HOUR, THREE_HOUR, SIX_HOUR, TWELVE_HOUR,
-        DAY, TWO_DAY, THREE_HOUR, WEEK];
-      const utcMillisecondsRange = 1000 * utcSecondsRange;
-      for (let i = 0; i < OPTIONS.length; i++) {
-        const option = OPTIONS[i];
-        if (utcMillisecondsRange < option * 6) {
-          console.log('Graph Step Size (ms)', option);
-          return option;
-        }
-      }
-      return OPTIONS[OPTIONS.length - 1];
-    }
-
-    function abbreviateSession(session) {
-      return session.substring(0, 6);
-    }
-
-    function displaySensorObservations(scatterChart, observations, sensorNameArray) {
-      scatterChart.config.data.datasets = [];
-      for (const sensorName of sensorNameArray) {
-        for (const session of Object.keys(observations)) {
-          const sessionObservations = observations[session];
-          const numberOfPointsInSession = sessionObservations.length;
-          const lineData = [];
-          for (let observationIndex = 0; observationIndex < numberOfPointsInSession; observationIndex++) {
-            const utcSeconds = sessionObservations[observationIndex].utcSeconds;
-            const x = new Date(0);
-            x.setUTCSeconds(utcSeconds);
-            const y = sessionObservations[observationIndex][sensorName];
-            const point = {
-              x: x,
-              y: y,
-            };
-            lineData.push(point);
-          }
-          const color = COLORS[scatterChart.config.data.datasets.length % COLORS.length];
-          const label = abbreviateSession(session) + '[' + sensorName + ']';
-          scatterChart.config.data.datasets.push({
-            label: label,
-            data: lineData,
-            borderColor: color,
-            backgroundColor: '#00000000',
-            steppedLine: true,
-          });
-        }
-      }
-      const dateRange = getDateRange(observations);
-      const utcSecondsRange = dateRange.maxUtcSeconds - dateRange.minUtcSeconds;
-      scatterChart.options.scales.xAxes[0].ticks.stepSize = getGraphStepSize(utcSecondsRange);
-      scatterChart.update();
-    }
-
     document.addEventListener('DOMContentLoaded', function () {
       // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
       // // The Firebase SDK is initialized and available here!
       // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
 
-      const sensorChartContextB = document.getElementById('sensorChart').getContext('2d');
-      sensorChart = createSensorChart(sensorChartContextB, 'Sensor Data by Session');
+      const sensorChartContext = document.getElementById('sensorChart').getContext('2d');
+      sensorChart = createSensorChart(sensorChartContext, 'Sensor Data by Session');
 
       const nowMillis = getCurrentUtcTimeMillis();
 
@@ -372,11 +79,11 @@
       query = query.orderBy('FIRESTORE_databaseTimestamp', 'asc');
       query.onSnapshot((doc) => {
         const observations = parseObservations(doc);
-        const sensorObservationsB = filterSensorObservations(observations, sensorString);
+        const sensorObservations = filterSensorObservations(observations, sensorString);
         if (sensorString) {
-          displaySensorObservations(sensorChart, sensorObservationsB, [sensorString]);
+          displaySensorObservations(sensorChart, sensorObservations, [sensorString]);
         } else {
-          displaySensorObservations(sensorChart, sensorObservationsB, ['sensorA', 'sensorB']);
+          displaySensorObservations(sensorChart, sensorObservations, ['sensorA', 'sensorB']);
         }
       });
     });

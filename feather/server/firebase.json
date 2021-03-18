@@ -16,7 +16,7 @@
     "rewrites": [
       {
         "source": "/",
-        "destination": "/voltage.html"
+        "destination": "/dashboard.html"
       },
       {
         "source": "/voltage",
