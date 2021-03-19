@@ -140,4 +140,3 @@ function displaySensorObservations(scatterChart, observations, sensorNameArray) 
   scatterChart.options.scales.xAxes[0].ticks.stepSize = getGraphStepSize(utcSecondsRange);
   scatterChart.update();
 }
-

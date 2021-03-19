@@ -15,6 +15,7 @@
  */
 
 import * as firebase from 'firebase-admin';
+import * as functions from 'firebase-functions';
 
 firebase.initializeApp();
 
@@ -30,3 +31,9 @@ import { echo } from './controller/functions/content'
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'echo') {
   exports.echo = echo;
 }
+
+exports.updateDoor = functions.firestore
+  .document('v1/door')
+  .onUpdate((change, context) => {
+    console.log(change.after.data());
+  });

@@ -46,6 +46,16 @@ function getCurrentUtcTimeMillis() {
   return new Date().getTime();
 }
 
+function getDurationFromMillis(millis) {
+  const seconds = Math.floor((millis / 1000) % 60);
+  const minutes = Math.floor((millis / (1000 * 60)) % 60);
+  const hours = Math.floor(millis / (1000 * 60 * 60));
+  var hh = NN(hours);
+  var min = NN(minutes);
+  var ss = NN(seconds);
+  return hh + ':' + min + ':' + ss;
+}
+
 function getTimeAxisLabel() {
   const hourOffset = -(new Date(0).getTimezoneOffset() / 60);
   if (hourOffset < 0) {

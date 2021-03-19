@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feather Sessions</title>
+
+  <!-- update the version number as needed -->
+  <script defer src="/__/firebase/8.2.9/firebase-app.js"></script>
+  <!-- include only the Firebase features as you need -->
+  <script defer src="/__/firebase/8.2.9/firebase-firestore.js"></script>
+  <!--
+      initialize the SDK after all desired features are loaded, set useEmulator to false
+      to avoid connecting the SDK to running emulators.
+    -->
+  <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+
+  <script src="util.js"></script>
+  <script src="observations.js"></script>
+  <script src="sensor.js"></script>
+  <script src="door.js"></script>
+
+  <style>
+    .chart-container {
+      padding-left: 0;
+      padding-right: 0;
+      margin-left: auto;
+      margin-right: auto;
+      margin-bottom: 40vh;
+    }
+
+    body {
+      display: grid;
+      height: 100vh;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    main {
+      padding: 2rem;
+      text-align: center;
+      font-size: 2.5em;
+    }
+
+    footer {
+      padding: 2rem;
+      background: lightgrey;
+      text-align: center;
+    }
+
+    .parent {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="parent">
+    <main id="main" class="coral section">Loading...</main>
+    <footer id="footer" class="purple section">Coming Soon</footer>
+  </div>
+
+  <script>
+
+    // Top level variable for debugging.
+    var main = document.getElementById('main');
+    var footer = document.getElementById('footer');
+
+    var STATE_ERROR = 'ERROR';
+    var STATE_UNKNOWN = 'UNKNOWN';
+    var STATE_CLOSED = 'CLOSED';
+    var STATE_OPENING = 'OPENING';
+    var STATE_OPEN_UNCONFIRMED = 'OPEN_UNCONFIRMED';
+    var STATE_OPEN_NOT_ALIGNED = 'OPEN_NOT_ALIGNED';
+    var STATE_OPEN = 'OPEN';
+    var STATE_CLOSING = 'CLOSING';
+    var STATE_OPEN_DOOR_DID_NOT_CLOSE = 'OPEN_DOOR_DID_NOT_CLOSE';
+    var STATE_ERROR_BOTH_SENSORS_ACTIVE = 'ERROR_BOTH_SENSORS_ACTIVE';
+    var userMessages = {};
+
+    userMessages[STATE_ERROR] = { innerHTML: 'Error', background: 'coral' };
+    userMessages[STATE_UNKNOWN] = { innerHTML: 'Unknown Status', background: 'coral' };
+    userMessages[STATE_CLOSED] = { innerHTML: 'Door Closed', background: 'lightgreen' };
+    userMessages[STATE_OPENING] = { innerHTML: 'Opening...', background: 'coral' };
+    userMessages[STATE_OPEN_UNCONFIRMED] = { innerHTML: 'Open (unconfirmed)', background: 'coral' };
+    userMessages[STATE_OPEN_NOT_ALIGNED] = { innerHTML: 'Open (sensor not aligned)', background: 'coral' };
+    userMessages[STATE_OPEN] = { innerHTML: 'Door Open', background: 'lightcoral' };
+    userMessages[STATE_CLOSING] = { innerHTML: 'Closing...', background: 'coral' };
+    userMessages[STATE_OPEN_DOOR_DID_NOT_CLOSE] = { innerHTML: 'Open (door did not close)', background: 'coral' };
+    userMessages[STATE_ERROR_BOTH_SENSORS_ACTIVE] = { innerHTML: 'Error (both sensors active)', background: 'coral' };
+
+    document.addEventListener('DOMContentLoaded', function () {
+      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+      // // The Firebase SDK is initialized and available here!
+      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+      const nowMillis = getCurrentUtcTimeMillis();
+
+      const sensorBeginDate = new Date(0);
+
+      const queryString = window.location.search;
+      const urlParams = new URLSearchParams(queryString);
+      const buildTimestampString = urlParams.get('build');
+      const rangeMinutesString = urlParams.get('range');
+      const sensorString = urlParams.get('sensor');
+      let query = firebase.firestore().collection("updateAll");
+      if (buildTimestampString) {
+        query = query.where('queryParams.buildTimestamp', '==', buildTimestampString);
+      }
+      if (rangeMinutesString) {
+        const rangeMinutes = parseInt(rangeMinutesString);
+        const rangeMillis = 1000 * 60 * rangeMinutes;
+        sensorBeginDate.setUTCMilliseconds(nowMillis - rangeMillis);
+        query = query.where('FIRESTORE_databaseTimestamp', '>', sensorBeginDate)
+      } else {
+        const SENSOR_MAX_WINDOW_RANGE_MILLIS = 1000 * 60 * 60; // 1 hour.
+        sensorBeginDate.setUTCMilliseconds(nowMillis - SENSOR_MAX_WINDOW_RANGE_MILLIS);
+        query = query.where('FIRESTORE_databaseTimestamp', '>', sensorBeginDate)
+      }
+      query = query.orderBy('FIRESTORE_databaseTimestamp', 'asc');
+      query.onSnapshot((doc) => {
+        const observations = parseObservations(doc);
+        const status = getDoorStatus(observations, 'sensorA', 'sensorB');
+        console.log(status);
+        var state = STATE_UNKNOWN;
+        if (status.hasOwnProperty('state')) {
+          state = status.state;
+        }
+        main.innerHTML = userMessages[state].innerHTML;
+        main.style.background = userMessages[state].background;
+        if (status.message) {
+          footer.innerHTML = status.message;
+          footer.style.display = '';
+        } else {
+          footer.style.display = 'none';
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>
