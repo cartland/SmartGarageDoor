@@ -94,7 +94,7 @@
     userMessages[STATE_UNKNOWN] = { innerHTML: 'Unknown Status', background: 'coral' };
     userMessages[STATE_CLOSED] = { innerHTML: 'Door Closed', background: 'lightgreen' };
     userMessages[STATE_OPENING] = { innerHTML: 'Opening...', background: 'coral' };
-    userMessages[STATE_OPEN_UNCONFIRMED] = { innerHTML: 'Open (unconfirmed)', background: 'coral' };
+    userMessages[STATE_OPEN_UNCONFIRMED] = { innerHTML: 'Open (moving)', background: 'coral' };
     userMessages[STATE_OPEN_NOT_ALIGNED] = { innerHTML: 'Open (sensor not aligned)', background: 'coral' };
     userMessages[STATE_OPEN] = { innerHTML: 'Door Open', background: 'lightcoral' };
     userMessages[STATE_CLOSING] = { innerHTML: 'Closing...', background: 'coral' };
@@ -133,6 +133,9 @@
       query = query.orderBy('FIRESTORE_databaseTimestamp', 'asc');
       query.onSnapshot((doc) => {
         const observations = parseObservations(doc);
+        if (!observations || observations.length <= 0) {
+          console.error('No observations');
+        }
         const status = getDoorStatus(observations, 'sensorA', 'sensorB');
         console.log(status);
         var state = STATE_UNKNOWN;
