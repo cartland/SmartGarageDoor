@@ -46,7 +46,13 @@
     }
 
     footer {
-      padding: 2rem;
+      padding: 1rem;
+      background: lightgrey;
+      text-align: center;
+    }
+
+    #duration {
+      padding: 1rem;
       background: lightgrey;
       text-align: center;
     }
@@ -62,6 +68,7 @@
   <div class="parent">
     <main id="main" class="coral section">Loading...</main>
     <footer id="footer" class="purple section">Coming Soon</footer>
+    <footer id="duration" class="purple section"></footer>
   </div>
 
   <script>
@@ -69,6 +76,7 @@
     // Top level variable for debugging.
     var main = document.getElementById('main');
     var footer = document.getElementById('footer');
+    var duration = document.getElementById('duration');
 
     var STATE_ERROR = 'ERROR';
     var STATE_UNKNOWN = 'UNKNOWN';
@@ -99,6 +107,7 @@
       // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
 
       const nowMillis = getCurrentUtcTimeMillis();
+      var timeSinceUpdateInterval = null;
 
       const sensorBeginDate = new Date(0);
 
@@ -132,11 +141,25 @@
         }
         main.innerHTML = userMessages[state].innerHTML;
         main.style.background = userMessages[state].background;
-        if (status.message) {
-          footer.innerHTML = status.message;
+        if (status.messages) {
+          footer.innerHTML = status.messages.join('<br />');
           footer.style.display = '';
         } else {
           footer.style.display = 'none';
+        }
+        if (status.lastUpdatedMillis) {
+          const lastUpdatedMillis = status.lastUpdatedMillis;
+          console.log('lastUpdateMillis', lastUpdatedMillis);
+          clearInterval(timeSinceUpdateInterval);
+          const f = () => {
+            const nowMillis = getCurrentUtcTimeMillis();
+            const durationMillis = nowMillis - lastUpdatedMillis;
+            const durationString = getDurationFromMillis(durationMillis);
+            duration.innerHTML = 'Time since last update: ' + durationString;
+            duration.style.display = '';
+          };
+          f();
+          timeSinceUpdateInterval = setInterval(f, 1000);
         }
       });
     });

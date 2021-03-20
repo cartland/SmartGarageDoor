@@ -6,6 +6,7 @@ function getDoorStatus(observations, sensorClosedName, sensorOpenName) {
     closed: false,
     state: STATE_UNKNOWN,
     message: '',
+    lastUpdatedMillis: null,
   };
   const closedSensorHistory = getHistoryWithDurations(recent.sensorClosedData, nowMillis);
   if (closedSensorHistory.length <= 0) {
@@ -19,6 +20,14 @@ function getDoorStatus(observations, sensorClosedName, sensorOpenName) {
     output.state = STATE_OPEN;
     output.closed = false;
   }
+  const lastUpdatedMillis = closedSensorHistory[0].timeMilliseconds;
+  output.lastUpdatedMillis = lastUpdatedMillis;
+  const d = new Date(0);
+  d.setUTCMilliseconds(lastUpdatedMillis);
+  const lastUpdatedString = myDateFormat(d, true);
+  output.messages = [
+    'Last updated ' + lastUpdatedString,
+  ];
   return output;
 }
 
