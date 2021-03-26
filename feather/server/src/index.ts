@@ -20,6 +20,7 @@ import * as functions from 'firebase-functions';
 firebase.initializeApp();
 
 import { echo } from './controller/functions/content'
+import { nextEvent } from './controller/functions/events'
 
 /*
  * This file is the main entrace for Cloud Functions for Firebase.
@@ -30,6 +31,10 @@ import { echo } from './controller/functions/content'
 // by only exporting the function that is needed by the particular instance.
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'echo') {
   exports.echo = echo;
+}
+
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'nextEvent') {
+  exports.nextEvent = nextEvent;
 }
 
 exports.updateDoor = functions.firestore
