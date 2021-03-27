@@ -20,11 +20,9 @@ import * as functions from 'firebase-functions';
 
 import * as SensorEventDatabase from '../../database/SensorEventDatabase';
 
-import { SensorEvent, Unknown } from '../../model/SensorEvent';
 import { SensorSnapshot } from '../../model/SensorSnapshot';
 
 import { getNewEventOrNull } from '../../controller/EventInterpreter';
-import { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } from 'node:constants';
 
 const SESSION_PARAM_KEY = "session";
 const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
