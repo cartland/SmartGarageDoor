@@ -44,5 +44,14 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'updateEvents') 
     .onWrite(async (change, context) => {
       const data = change.after.data();
       await updateEvent(data);
+      return null;
     });
 }
+
+exports.checkForDoorErrors = functions.pubsub.schedule('every 1 minutes').onRun(async (context) => {
+  const buildTimestampString = 'Sat Mar 13 14:45:00 2021';
+  const data = {};
+  data['buildTimestamp'] = buildTimestampString;
+  await updateEvent(data);
+  return null;
+});
