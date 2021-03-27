@@ -32,7 +32,9 @@ const CURRENT_EVENT_KEY = 'currentEvent';
 const PREVIOUS_EVENT_KEY = 'previousEvent';
 
 export async function updateEvent(data, scheduledJob: boolean) {
-  if (!data || !data.queryParams || !(BUILD_TIMESTAMP_PARAM_KEY in data.queryParams)) {
+  if (!data || !(BUILD_TIMESTAMP_PARAM_KEY in data)) {
+    console.log('scheduledJob:', scheduledJob,
+      'Skipping updateEvent() because data does not have buildTimestamp', data);
     return;
   }
   const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
