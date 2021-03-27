@@ -35,7 +35,7 @@ export function Unknown(timestampSeconds: number): SensorEvent {
   return <SensorEvent>{
     type: SensorEventType.Unknown,
     timestampSeconds: timestampSeconds,
-    message: 'Unknown',
+    message: 'No sensor data.',
   };
 }
 
@@ -43,7 +43,7 @@ export function ErrorSensorConflict(timestampSeconds: number): SensorEvent {
   return <SensorEvent>{
     type: SensorEventType.ErrorSensorConflict,
     timestampSeconds: timestampSeconds,
-    message: 'Conflict between open and close sensors',
+    message: 'The sensors say the door is both open and closed at the same time.',
   };
 }
 
@@ -51,7 +51,7 @@ export function Closed(timestampSeconds: number): SensorEvent {
   return <SensorEvent>{
     type: SensorEventType.Closed,
     timestampSeconds: timestampSeconds,
-    message: 'Closed',
+    message: 'The door is closed.',
   };
 }
 
@@ -59,7 +59,7 @@ export function Closing(timestampSeconds: number): SensorEvent {
   return <SensorEvent>{
     type: SensorEventType.Closing,
     timestampSeconds: timestampSeconds,
-    message: 'Closing',
+    message: 'The door is closing.',
   };
 }
 
@@ -67,7 +67,7 @@ export function ClosingTooLong(timestampSeconds: number): SensorEvent {
   return <SensorEvent>{
     type: SensorEventType.ClosingTooLong,
     timestampSeconds: timestampSeconds,
-    message: 'Closing (check sensor)',
+    message: 'The door was closing but never closed.',
   };
 }
 
@@ -75,7 +75,7 @@ export function Open(timestampSeconds: number): SensorEvent {
   return <SensorEvent>{
     type: SensorEventType.Open,
     timestampSeconds: timestampSeconds,
-    message: 'Open',
+    message: 'The door is open.',
   };
 }
 
@@ -83,7 +83,7 @@ export function Opening(timestampSeconds: number): SensorEvent {
   return <SensorEvent>{
     type: SensorEventType.Opening,
     timestampSeconds: timestampSeconds,
-    message: 'Opening',
+    message: 'The door is opening.',
   };
 }
 
@@ -91,6 +91,6 @@ export function OpeningTooLong(timestampSeconds: number): SensorEvent {
   return <SensorEvent>{
     type: SensorEventType.OpeningTooLong,
     timestampSeconds: timestampSeconds,
-    message: 'Opening (check sensor)',
+    message: 'The door was opening but never successfully opened.',
   };
 }
