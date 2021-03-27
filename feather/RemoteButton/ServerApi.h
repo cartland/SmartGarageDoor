@@ -22,9 +22,7 @@
 
 typedef struct ClientParams {
   String session;
-  String batteryVoltage;
-  String sensorA;
-  String sensorB;
+  String buttonAckToken;
   String error;
 } ClientParams;
 
@@ -32,6 +30,7 @@ typedef struct ServerResponse {
   String version;
   int code;
   String session;
+  String buttonAckToken;
 } ServerResponse;
 
 class ServerApi {

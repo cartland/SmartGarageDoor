@@ -25,14 +25,8 @@ String ServerApi::buildUrl(ClientParams params) {
   if (params.session.length() > 0) {
     url = url + String("&session=") + params.session;
   }
-  if (params.batteryVoltage.length() > 0) {
-    url = url + String("&batteryVoltage=") + params.batteryVoltage;
-  }
-  if (params.sensorA.length() > 0) {
-    url = url + String("&sensorA=") + params.sensorA;
-  }
-  if (params.sensorB.length() > 0) {
-    url = url + String("&sensorB=") + params.sensorB;
+  if (params.buttonAckToken.length() > 0) {
+    url = url + String("&buttonAckToken=") + params.buttonAckToken;
   }
   if (params.error.length() > 0) {
     params.error.replace(" ", "%20");
