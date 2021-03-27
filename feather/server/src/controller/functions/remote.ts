@@ -66,9 +66,10 @@ export const remoteButton = functions.https.onRequest(async (request, response) 
   try {
     await REMOTE_BUTTON_REQUEST_DATABASE.save(buildTimestamp, data);
     const oldCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
-    if (buttonAckToken === oldCommand[BUTTON_ACK_TOKEN_PARAM_KEY]) {
+    if (!(BUTTON_ACK_TOKEN_PARAM_KEY in oldCommand) || buttonAckToken === oldCommand[BUTTON_ACK_TOKEN_PARAM_KEY]) {
       const noopCommand = <RemoteButtonCommand>{
         session: session,
+        buildTimestamp: buildTimestamp,
         buttonAckToken: '',
       }
       await REMOTE_BUTTON_COMMAND_DATABASE.save(buildTimestamp, noopCommand);

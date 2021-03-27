@@ -16,5 +16,6 @@
 
 export interface RemoteButtonCommand {
   session: string,
+  buildTimestamp: string,
   buttonAckToken: string,
 }
