@@ -66,8 +66,8 @@ bool pingServer(ClientParams params) {
   String newButtonAckToken = serverdata.buttonAckToken;
   if (newButtonAckToken.length() > 0 && newButtonAckToken != buttonAckToken) {
     pushRemoteButton(PUSH_REMOTE_BUTTON_DURATION_MILLIS);
-    buttonAckToken = newButtonAckToken;
   }
+  buttonAckToken = newButtonAckToken;
   digitalWrite(LED_BUILTIN, LOW);
   return true;
 }
