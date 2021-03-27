@@ -15,7 +15,6 @@
  */
 
 import * as firebase from 'firebase-admin';
-import * as functions from 'firebase-functions';
 
 firebase.initializeApp();
 
@@ -36,9 +35,3 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'echo') {
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'nextEvent') {
   exports.nextEvent = nextEvent;
 }
-
-exports.updateDoor = functions.firestore
-  .document('v1/door')
-  .onUpdate((change, context) => {
-    console.log(change.after.data());
-  });

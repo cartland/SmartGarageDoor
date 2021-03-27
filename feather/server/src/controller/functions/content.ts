@@ -19,8 +19,22 @@ import { v4 as uuidv4 } from 'uuid';
 import * as functions from 'firebase-functions';
 
 import * as Database from '../../database/Database';
+import * as SensorEventDatabase from '../../database/SensorEventDatabase';
+
+import { SensorSnapshot } from '../../model/SensorSnapshot';
+
+import { getNewEventOrNull } from '../../controller/EventInterpreter';
+
 
 const SESSION_PARAM_KEY = "session";
+const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
+
+const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
+const QUERY_PARAMS_KEY = 'queryParams';
+const SENSOR_A_KEY = 'sensorA';
+const SENSOR_B_KEY = 'sensorB';
+const CURRENT_EVENT_KEY = 'currentEvent';
+const PREVIOUS_EVENT_KEY = 'previousEvent';
 
 /**
  * Get the current air quality observations.
@@ -43,10 +57,17 @@ export const echo = functions.https.onRequest(async (request, response) => {
     data[SESSION_PARAM_KEY] = uuidv4();
   }
   const session = data[SESSION_PARAM_KEY];
+  // The build timestamp is unique to each device.
+  if (BUILD_TIMESTAMP_PARAM_KEY in request.query) {
+    data[BUILD_TIMESTAMP_PARAM_KEY] = request.query[BUILD_TIMESTAMP_PARAM_KEY];
+  } else {
+    // Skip.
+  }
+
   try {
     await Database.save(session, data);
     const retrievedData = await Database.getCurrent(session);
-    // RESPOND with formatted data.
+    await updateEvent(retrievedData);
     response.status(200).send(retrievedData);
   }
   catch (error) {
@@ -54,3 +75,40 @@ export const echo = functions.https.onRequest(async (request, response) => {
     response.status(500).send(error)
   }
 });
+
+async function updateEvent(data) {
+  if (!(BUILD_TIMESTAMP_PARAM_KEY in data)) {
+    return;
+  }
+  const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
+  const sensorSnapshot = <SensorSnapshot>{
+    sensorA: '',
+    sensorB: '',
+    timestampSeconds: null,
+  };
+  if (DATABASE_TIMESTAMP_SECONDS_KEY in data) {
+    sensorSnapshot.timestampSeconds = data[DATABASE_TIMESTAMP_SECONDS_KEY];
+  } else {
+    console.error('Missing timestamp key:', DATABASE_TIMESTAMP_SECONDS_KEY, 'data:', data);
+  }
+  if (QUERY_PARAMS_KEY in data) {
+    const queryParams = data[QUERY_PARAMS_KEY];
+    if (SENSOR_A_KEY in queryParams) {
+      sensorSnapshot.sensorA = queryParams[SENSOR_A_KEY];
+    }
+    if (SENSOR_B_KEY in queryParams) {
+      sensorSnapshot.sensorB = queryParams[SENSOR_B_KEY];
+    }
+  }
+  const oldData = await SensorEventDatabase.getCurrent(buildTimestamp);
+  let oldEvent = null;
+  if (CURRENT_EVENT_KEY in oldData) {
+    oldEvent = oldData[CURRENT_EVENT_KEY];
+  }
+  const newEvent = getNewEventOrNull(oldEvent, sensorSnapshot, sensorSnapshot.timestampSeconds);
+  if (newEvent !== null) {
+    data[PREVIOUS_EVENT_KEY] = oldEvent;
+    data[CURRENT_EVENT_KEY] = newEvent;
+    await SensorEventDatabase.save(buildTimestamp, data);
+  }
+}
