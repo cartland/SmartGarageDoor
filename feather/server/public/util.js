@@ -47,13 +47,22 @@ function getCurrentUtcTimeMillis() {
 }
 
 function getDurationFromMillis(millis) {
+  var negative = false;
+  if (millis < 0) {
+    negative = true;
+    millis = -millis;
+  }
   const seconds = Math.floor((millis / 1000) % 60);
   const minutes = Math.floor((millis / (1000 * 60)) % 60);
   const hours = Math.floor(millis / (1000 * 60 * 60));
   var hh = NN(hours);
   var min = NN(minutes);
   var ss = NN(seconds);
-  return hh + ':' + min + ':' + ss;
+  if (negative && (millis / 1000) >= 1) {
+    return '-' + hh + ':' + min + ':' + ss;
+  } else {
+    return hh + ':' + min + ':' + ss;
+  }
 }
 
 function getTimeAxisLabel() {
