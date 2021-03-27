@@ -52,7 +52,7 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'updateEvents') 
 exports.checkForDoorErrors = functions.pubsub.schedule('every 1 minutes').onRun(async (context) => {
   const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
   const buildTimestampString = 'Sat Mar 13 14:45:00 2021';
-  const scheduledJob = false; // TODO: Set to true after test.
+  const scheduledJob = true;
   const data = {};
   data[BUILD_TIMESTAMP_PARAM_KEY] = buildTimestampString;
   await updateEvent(data, scheduledJob);
