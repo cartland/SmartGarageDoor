@@ -91,10 +91,11 @@
     <main id="main" class="coral section">Loading...</main>
     <footer id="messageDiv" class="section"></footer>
 
-    <footer id="last_movement" class="section"></footer>
-    <footer id="duration_since_last_movement" class="dynamic"></footer>
     <footer id="last_check_in" class="section"></footer>
     <footer id="duration_since_last_check_in" class="dynamic"></footer>
+
+    <footer id="last_movement" class="section"></footer>
+    <footer id="duration_since_last_movement" class="dynamic"></footer>
   </div>
 
   <script>
@@ -171,11 +172,6 @@
           console.log('lastUpdateMillis', lastUpdatedMillis, lastMovement);
           last_movement.innerHTML = 'Last change: ' + lastMovement;
           last_movement.style.display = '';
-          if (data && data.previousEvent && data.previousEvent.timestampSeconds) {
-            const previousUpdatedMillis = data.previousEvent.timestampSeconds * 1000;
-            const previousMovement = utcMillisecondsToLocalDateFormat(previousUpdatedMillis, true);
-            messages.push('Previous change: ' + previousMovement);
-          }
           clearInterval(timeSinceMovementInterval);
           const f = () => {
             const nowMillis = getCurrentUtcTimeMillis();
