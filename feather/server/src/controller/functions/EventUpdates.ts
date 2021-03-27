@@ -31,7 +31,7 @@ const SENSOR_B_KEY = 'sensorB';
 const CURRENT_EVENT_KEY = 'currentEvent';
 const PREVIOUS_EVENT_KEY = 'previousEvent';
 
-export async function updateEvent(data) {
+export async function updateEvent(data, scheduledJob: boolean) {
   if (!data || !data.queryParams || !(BUILD_TIMESTAMP_PARAM_KEY in data.queryParams)) {
     return;
   }
@@ -57,10 +57,10 @@ export async function updateEvent(data) {
   }
   const now = firebase.firestore.Timestamp.now();
   const timestampSeconds = now.seconds;
-  await updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds);
+  await updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds, scheduledJob);
 }
 
-async function updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds) {
+async function updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds, scheduledJob: boolean) {
   const oldData = await SensorEventDatabase.getCurrent(buildTimestamp);
   let oldEvent = null;
   if (CURRENT_EVENT_KEY in oldData) {
@@ -74,7 +74,11 @@ async function updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds
     data[CURRENT_EVENT_KEY] = newEvent;
     await SensorEventDatabase.save(buildTimestamp, data);
   } else {
-    // Saving the old data again will update FIRESTORE_databaseTimestamp and FIRESTORE_databaseTimestampSeconds.
-    await SensorEventDatabase.save(buildTimestamp, oldData);
+    if (scheduledJob) {
+      // Do nothing. Do not update database during scheduled check unless it results in a new event.
+    } else {
+      // Saving the old data again will update FIRESTORE_databaseTimestamp and FIRESTORE_databaseTimestampSeconds.
+      await SensorEventDatabase.save(buildTimestamp, oldData);
+    }
   }
 }

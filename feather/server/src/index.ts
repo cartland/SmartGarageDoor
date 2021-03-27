@@ -43,15 +43,20 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'updateEvents') 
     .document('updateAll/{docId}')
     .onWrite(async (change, context) => {
       const data = change.after.data();
-      await updateEvent(data);
+      const scheduledJob = false;
+      await updateEvent(data, scheduledJob);
       return null;
     });
 }
 
 exports.checkForDoorErrors = functions.pubsub.schedule('every 1 minutes').onRun(async (context) => {
+  const QUERY_PARAMS_KEY = 'queryParams';
+  const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
   const buildTimestampString = 'Sat Mar 13 14:45:00 2021';
+  const scheduledJob = true;
   const data = {};
-  data['buildTimestamp'] = buildTimestampString;
-  await updateEvent(data);
+  data[QUERY_PARAMS_KEY] = {};
+  data[QUERY_PARAMS_KEY][BUILD_TIMESTAMP_PARAM_KEY] = buildTimestampString;
+  await updateEvent(data, scheduledJob);
   return null;
 });
