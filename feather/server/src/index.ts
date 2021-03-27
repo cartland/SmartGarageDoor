@@ -15,11 +15,13 @@
  */
 
 import * as firebase from 'firebase-admin';
+import * as functions from 'firebase-functions';
 
 firebase.initializeApp();
 
 import { echo } from './controller/functions/content'
 import { nextEvent } from './controller/functions/events'
+import { updateEvent } from './controller/functions/EventUpdates';
 
 /*
  * This file is the main entrace for Cloud Functions for Firebase.
@@ -34,4 +36,13 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'echo') {
 
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'nextEvent') {
   exports.nextEvent = nextEvent;
+}
+
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'updateEvents') {
+  exports.updateEvents = functions.firestore
+    .document('updateAll/{docId}')
+    .onWrite(async (change, context) => {
+      const data = change.after.data();
+      await updateEvent(data);
+    });
 }
