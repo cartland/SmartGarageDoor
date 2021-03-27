@@ -24,7 +24,7 @@ function createSensorChart(ctx, title) {
             callback: (value, index, values) => {
               const milliseconds = value;
               const showSeconds = false;
-              return utcSecondsToLocalDateFormat(milliseconds, showSeconds);
+              return utcMillisecondsToLocalDateFormat(milliseconds, showSeconds);
             }
           }
         }],
@@ -52,7 +52,7 @@ function createSensorChart(ctx, title) {
             const item = tooltipItem[0];
             const showSeconds = true;
             return [
-              utcSecondsToLocalDateFormat(item.xLabel, showSeconds),
+              utcMillisecondsToLocalDateFormat(item.xLabel, showSeconds),
             ];
           },
           labelColor: function (tooltipItem, data) {

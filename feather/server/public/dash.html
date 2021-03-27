@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feather Sessions</title>
+
+  <!-- update the version number as needed -->
+  <script defer src="/__/firebase/8.2.9/firebase-app.js"></script>
+  <!-- include only the Firebase features as you need -->
+  <script defer src="/__/firebase/8.2.9/firebase-firestore.js"></script>
+  <!--
+      initialize the SDK after all desired features are loaded, set useEmulator to false
+      to avoid connecting the SDK to running emulators.
+    -->
+  <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+
+  <script src="util.js"></script>
+  <script src="observations.js"></script>
+  <script src="sensor.js"></script>
+  <script src="door.js"></script>
+
+  <style>
+    .chart-container {
+      padding-left: 0;
+      padding-right: 0;
+      margin-left: auto;
+      margin-right: auto;
+      margin-bottom: 40vh;
+    }
+
+    body {
+      display: grid;
+      height: 100vh;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    main {
+      padding: 2rem;
+      text-align: center;
+      font-size: 2.5em;
+    }
+
+    #messageDiv {
+      font-style: italic;
+    }
+
+    .dynamic {
+      font-style: italic;
+    }
+
+    footer {
+      background: lightgrey;
+      text-align: center;
+    }
+
+    .section {
+      padding-top: 0.5em;
+    }
+
+    .parent {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="parent">
+    <main id="main" class="coral section">Loading...</main>
+    <footer id="messageDiv" class="section"></footer>
+
+    <footer id="last_movement" class="section"></footer>
+    <footer id="duration_since_last_movement" class="dynamic"></footer>
+    <footer id="last_check_in" class="section"></footer>
+    <footer id="duration_since_last_check_in" class="dynamic"></footer>
+  </div>
+
+  <script>
+
+    // Top level variable for debugging.
+    var main = document.getElementById('main');
+    var messageDiv = document.getElementById('messageDiv');
+    var last_movement = document.getElementById('last_movement');
+    var duration_since_last_movement = document.getElementById('duration_since_last_movement');
+    var last_check_in = document.getElementById('last_check_in');
+    var duration_since_last_check_in = document.getElementById('duration_since_last_check_in');
+
+    // var STATE_ERROR = 'ERROR';
+    var STATE_UNKNOWN = 'UNKNOWN';
+    var STATE_CLOSED = 'CLOSED';
+    var STATE_OPENING = 'OPENING';
+    var STATE_OPENING_TOO_LONG = 'OPENING_TOO_LONG';
+    // var STATE_OPEN_NOT_ALIGNED = 'OPEN_NOT_ALIGNED';
+    var STATE_OPEN = 'OPEN';
+    var STATE_CLOSING = 'CLOSING';
+    var STATE_CLOSING_TOO_LONG = 'CLOSING_TOO_LONG';
+    var STATE_ERROR_SENSOR_CONFLICT = 'ERROR_SENSOR_CONFLICT';
+    var userMessages = {};
+
+    // userMessages[STATE_ERROR] = { innerHTML: 'Error', background: 'coral' };
+    userMessages[STATE_UNKNOWN] = { innerHTML: 'Unknown Status', background: 'coral' };
+    userMessages[STATE_CLOSED] = { innerHTML: 'Door Closed', background: 'lightgreen' };
+    userMessages[STATE_OPENING] = { innerHTML: 'Opening...', background: 'coral' };
+    userMessages[STATE_OPENING_TOO_LONG] = { innerHTML: 'Open (moving)', background: 'coral' };
+    // userMessages[STATE_OPEN_NOT_ALIGNED] = { innerHTML: 'Open (sensor not aligned)', background: 'coral' };
+    userMessages[STATE_OPEN] = { innerHTML: 'Door Open', background: 'lightcoral' };
+    userMessages[STATE_CLOSING] = { innerHTML: 'Closing...', background: 'coral' };
+    userMessages[STATE_CLOSING_TOO_LONG] = { innerHTML: 'Open (door did not close)', background: 'coral' };
+    userMessages[STATE_ERROR_SENSOR_CONFLICT] = { innerHTML: 'Error (both sensors active)', background: 'coral' };
+
+    document.addEventListener('DOMContentLoaded', function () {
+      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+      // // The Firebase SDK is initialized and available here!
+      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+      const nowMillis = getCurrentUtcTimeMillis();
+      var timeSinceMovementInterval = null;
+      var timeSinceCheckInInterval = null;
+
+      const sensorBeginDate = new Date(0);
+
+      const queryString = window.location.search;
+      const urlParams = new URLSearchParams(queryString);
+
+      const buildTimestampString = 'Sat Mar 13 14:45:00 2021';
+      let query = firebase.firestore().collection('eventsCurrent').doc(buildTimestampString);
+      query.onSnapshot((doc) => {
+        if (!doc.exists) {
+          return;
+        }
+        const data = doc.data();
+        if (!data || !data.hasOwnProperty('currentEvent')) {
+          return;
+        }
+        console.log(data);
+        var state = STATE_UNKNOWN;
+        if (data.currentEvent.hasOwnProperty('type')) {
+          state = data.currentEvent.type;
+        }
+        main.innerHTML = userMessages[state].innerHTML;
+        main.style.background = userMessages[state].background;
+        const messages = [];
+        if (data.currentEvent.message) {
+          messages.push(data.currentEvent.message);
+        }
+        if (data.currentEvent.timestampSeconds) {
+          const lastUpdatedMillis = data.currentEvent.timestampSeconds * 1000;
+          const lastMovement = utcMillisecondsToLocalDateFormat(lastUpdatedMillis, true);
+          console.log('lastUpdateMillis', lastUpdatedMillis, lastMovement);
+          last_movement.innerHTML = 'Last change: ' + lastMovement;
+          last_movement.style.display = '';
+          if (data && data.previousEvent && data.previousEvent.timestampSeconds) {
+            const previousUpdatedMillis = data.previousEvent.timestampSeconds * 1000;
+            const previousMovement = utcMillisecondsToLocalDateFormat(previousUpdatedMillis, true);
+            messages.push('Previous change: ' + previousMovement);
+          }
+          clearInterval(timeSinceMovementInterval);
+          const f = () => {
+            const nowMillis = getCurrentUtcTimeMillis();
+            const durationMillis = nowMillis - lastUpdatedMillis;
+            const durationString = getDurationFromMillis(durationMillis);
+            duration_since_last_movement.innerHTML = 'Time since last change: ' + durationString;
+            duration_since_last_movement.style.display = '';
+          };
+          f();
+          timeSinceMovementInterval = setInterval(f, 1000);
+        }
+        if (data.FIRESTORE_databaseTimestampSeconds) {
+          const lastCheckInMillis = data.FIRESTORE_databaseTimestampSeconds * 1000;
+          const lastCheckIn = utcMillisecondsToLocalDateFormat(lastCheckInMillis, true);
+          console.log('lastCheckInMillis', lastCheckInMillis, lastCheckIn);
+          last_check_in.innerHTML = 'Last check-in: ' + lastCheckIn;
+          last_check_in.style.display = '';
+          clearInterval(timeSinceCheckInInterval);
+          const f = () => {
+            const nowMillis = getCurrentUtcTimeMillis();
+            const durationMillis = nowMillis - lastCheckInMillis;
+            const durationString = getDurationFromMillis(durationMillis);
+            duration_since_last_check_in.innerHTML = 'Time since last check-in: ' + durationString;
+            duration_since_last_check_in.style.display = '';
+            if (durationMillis > 1000 * 60 * 15) { // 15 minutes.
+              duration_since_last_check_in.style.background = 'coral';
+            } else {
+              duration_since_last_check_in.style.background = '';
+            }
+          };
+          f();
+          timeSinceCheckInInterval = setInterval(f, 1000);
+        }
+        if (messages.length > 0) {
+          messageDiv.innerHTML = messages.join('<br />');
+          messageDiv.style.display = '';
+        } else {
+          messageDiv.style.display = 'none';
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>

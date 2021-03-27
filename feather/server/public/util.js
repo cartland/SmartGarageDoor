@@ -36,7 +36,7 @@ function myDateFormat(date, seconds) {
 /**
  * Convert UTC milliseconds to local timezone Date object.
  */
-function utcSecondsToLocalDateFormat(milliseconds, showSeconds) {
+function utcMillisecondsToLocalDateFormat(milliseconds, showSeconds) {
   const x = new Date(0);
   x.setUTCMilliseconds(milliseconds + 60 * x.getTimezoneOffset());
   return myDateFormat(x, showSeconds);
