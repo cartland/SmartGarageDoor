@@ -81,6 +81,12 @@ void setup() {
   blinkOK(LED_BUILTIN);
   Serial.println("==========");
   Serial.println(String(__TIMESTAMP__));
+  bool success = wifiSetup(WIFI_SSID, WIFI_PASSWORD);
+  if (success) {
+    Serial.println("Successfully connected to WiFi.");
+  } else {
+    Serial.println("Failed to connect to WiFi.");
+  }
 }
 
 void loop() {
