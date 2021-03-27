@@ -49,5 +49,6 @@ bool ServerApi::parseData(ServerResponse &data, String json) {
   data.version = (const char*) doc["version"];
   data.code = (int) doc["version"];
   data.session = (const char*) doc["session"];
+  data.buttonAckToken = (const char*) doc["buttonAckToken"];
   return true;
 }

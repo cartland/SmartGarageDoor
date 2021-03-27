@@ -64,7 +64,16 @@ bool pingServer(ClientParams params) {
   }
   // If the server provided a new buttonAckToken, push the button.
   String newButtonAckToken = serverdata.buttonAckToken;
+  if (buttonAckToken.length() > 0) {
+    Serial.print("Old buttonAckToken: ");
+    Serial.println(buttonAckToken);
+  }
+  if (newButtonAckToken.length() > 0) {
+    Serial.print("Received buttonAckToken: ");
+    Serial.println(newButtonAckToken);
+  }
   if (newButtonAckToken.length() > 0 && newButtonAckToken != buttonAckToken) {
+    Serial.println("PUSHING BUTTON");
     pushRemoteButton(PUSH_REMOTE_BUTTON_DURATION_MILLIS);
   }
   buttonAckToken = newButtonAckToken;
