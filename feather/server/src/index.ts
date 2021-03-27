@@ -21,6 +21,7 @@ firebase.initializeApp();
 
 import { echo } from './controller/functions/content'
 import { remoteButton, addRemoteButtonCommand } from './controller/functions/remote'
+import { serverConfig } from './controller/functions/config'
 import { nextEvent } from './controller/functions/events'
 import { updateEvent } from './controller/functions/EventUpdates';
 
@@ -45,6 +46,10 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'remoteButton') 
 
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'addRemoteButtonCommand') {
   exports.addRemoteButtonCommand = addRemoteButtonCommand;
+}
+
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'serverConfig') {
+  exports.serverConfig = serverConfig;
 }
 
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'updateEvents') {
