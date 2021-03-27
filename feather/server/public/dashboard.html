@@ -1,4 +1,21 @@
 <!DOCTYPE html>
+<!--
+/**
+ * Copyright 2021 Chris Cartland. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+-->
 <html>
 
 <head>
@@ -45,16 +62,21 @@
       font-size: 2.5em;
     }
 
+    #messageDiv {
+      font-style: italic;
+    }
+
+    .dynamic {
+      font-style: italic;
+    }
+
     footer {
-      padding: 1rem;
       background: lightgrey;
       text-align: center;
     }
 
-    #duration {
-      padding: 1rem;
-      background: lightgrey;
-      text-align: center;
+    .section {
+      padding-top: 0.5em;
     }
 
     .parent {
@@ -67,39 +89,46 @@
 <body>
   <div class="parent">
     <main id="main" class="coral section">Loading...</main>
-    <footer id="footer" class="purple section">Coming Soon</footer>
-    <footer id="duration" class="purple section"></footer>
+    <footer id="messageDiv" class="section"></footer>
+
+    <footer id="last_movement" class="section"></footer>
+    <footer id="duration_since_last_movement" class="dynamic"></footer>
+    <footer id="last_check_in" class="section"></footer>
+    <footer id="duration_since_last_check_in" class="dynamic"></footer>
   </div>
 
   <script>
 
     // Top level variable for debugging.
     var main = document.getElementById('main');
-    var footer = document.getElementById('footer');
-    var duration = document.getElementById('duration');
+    var messageDiv = document.getElementById('messageDiv');
+    var last_movement = document.getElementById('last_movement');
+    var duration_since_last_movement = document.getElementById('duration_since_last_movement');
+    var last_check_in = document.getElementById('last_check_in');
+    var duration_since_last_check_in = document.getElementById('duration_since_last_check_in');
 
-    var STATE_ERROR = 'ERROR';
+    // var STATE_ERROR = 'ERROR';
     var STATE_UNKNOWN = 'UNKNOWN';
     var STATE_CLOSED = 'CLOSED';
     var STATE_OPENING = 'OPENING';
-    var STATE_OPEN_UNCONFIRMED = 'OPEN_UNCONFIRMED';
-    var STATE_OPEN_NOT_ALIGNED = 'OPEN_NOT_ALIGNED';
+    var STATE_OPENING_TOO_LONG = 'OPENING_TOO_LONG';
+    // var STATE_OPEN_NOT_ALIGNED = 'OPEN_NOT_ALIGNED';
     var STATE_OPEN = 'OPEN';
     var STATE_CLOSING = 'CLOSING';
-    var STATE_OPEN_DOOR_DID_NOT_CLOSE = 'OPEN_DOOR_DID_NOT_CLOSE';
-    var STATE_ERROR_BOTH_SENSORS_ACTIVE = 'ERROR_BOTH_SENSORS_ACTIVE';
+    var STATE_CLOSING_TOO_LONG = 'CLOSING_TOO_LONG';
+    var STATE_ERROR_SENSOR_CONFLICT = 'ERROR_SENSOR_CONFLICT';
     var userMessages = {};
 
-    userMessages[STATE_ERROR] = { innerHTML: 'Error', background: 'coral' };
+    // userMessages[STATE_ERROR] = { innerHTML: 'Error', background: 'coral' };
     userMessages[STATE_UNKNOWN] = { innerHTML: 'Unknown Status', background: 'coral' };
     userMessages[STATE_CLOSED] = { innerHTML: 'Door Closed', background: 'lightgreen' };
     userMessages[STATE_OPENING] = { innerHTML: 'Opening...', background: 'coral' };
-    userMessages[STATE_OPEN_UNCONFIRMED] = { innerHTML: 'Open (moving)', background: 'coral' };
-    userMessages[STATE_OPEN_NOT_ALIGNED] = { innerHTML: 'Open (sensor not aligned)', background: 'coral' };
+    userMessages[STATE_OPENING_TOO_LONG] = { innerHTML: 'Open (moving)', background: 'coral' };
+    // userMessages[STATE_OPEN_NOT_ALIGNED] = { innerHTML: 'Open (sensor not aligned)', background: 'coral' };
     userMessages[STATE_OPEN] = { innerHTML: 'Door Open', background: 'lightcoral' };
     userMessages[STATE_CLOSING] = { innerHTML: 'Closing...', background: 'coral' };
-    userMessages[STATE_OPEN_DOOR_DID_NOT_CLOSE] = { innerHTML: 'Open (door did not close)', background: 'coral' };
-    userMessages[STATE_ERROR_BOTH_SENSORS_ACTIVE] = { innerHTML: 'Error (both sensors active)', background: 'coral' };
+    userMessages[STATE_CLOSING_TOO_LONG] = { innerHTML: 'Open (door did not close)', background: 'coral' };
+    userMessages[STATE_ERROR_SENSOR_CONFLICT] = { innerHTML: 'Error (both sensors active)', background: 'coral' };
 
     document.addEventListener('DOMContentLoaded', function () {
       // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
@@ -107,62 +136,84 @@
       // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
 
       const nowMillis = getCurrentUtcTimeMillis();
-      var timeSinceUpdateInterval = null;
+      var timeSinceMovementInterval = null;
+      var timeSinceCheckInInterval = null;
 
       const sensorBeginDate = new Date(0);
 
       const queryString = window.location.search;
       const urlParams = new URLSearchParams(queryString);
-      const buildTimestampString = urlParams.get('build');
-      const rangeMinutesString = urlParams.get('range');
-      const sensorString = urlParams.get('sensor');
-      let query = firebase.firestore().collection("updateAll");
-      if (buildTimestampString) {
-        query = query.where('queryParams.buildTimestamp', '==', buildTimestampString);
-      }
-      if (rangeMinutesString) {
-        const rangeMinutes = parseInt(rangeMinutesString);
-        const rangeMillis = 1000 * 60 * rangeMinutes;
-        sensorBeginDate.setUTCMilliseconds(nowMillis - rangeMillis);
-        query = query.where('FIRESTORE_databaseTimestamp', '>', sensorBeginDate)
-      } else {
-        const SENSOR_MAX_WINDOW_RANGE_MILLIS = 1000 * 60 * 60; // 1 hour.
-        sensorBeginDate.setUTCMilliseconds(nowMillis - SENSOR_MAX_WINDOW_RANGE_MILLIS);
-        query = query.where('FIRESTORE_databaseTimestamp', '>', sensorBeginDate)
-      }
-      query = query.orderBy('FIRESTORE_databaseTimestamp', 'asc');
+
+      const buildTimestampString = 'Sat Mar 13 14:45:00 2021';
+      let query = firebase.firestore().collection('eventsCurrent').doc(buildTimestampString);
       query.onSnapshot((doc) => {
-        const observations = parseObservations(doc);
-        if (!observations || observations.length <= 0) {
-          console.error('No observations');
+        if (!doc.exists) {
+          return;
         }
-        const status = getDoorStatus(observations, 'sensorA', 'sensorB');
-        console.log(status);
+        const data = doc.data();
+        if (!data || !data.hasOwnProperty('currentEvent')) {
+          return;
+        }
+        console.log(data);
         var state = STATE_UNKNOWN;
-        if (status.hasOwnProperty('state')) {
-          state = status.state;
+        if (data.currentEvent.hasOwnProperty('type')) {
+          state = data.currentEvent.type;
         }
         main.innerHTML = userMessages[state].innerHTML;
         main.style.background = userMessages[state].background;
-        if (status.messages) {
-          footer.innerHTML = status.messages.join('<br />');
-          footer.style.display = '';
-        } else {
-          footer.style.display = 'none';
+        const messages = [];
+        if (data.currentEvent.message) {
+          messages.push(data.currentEvent.message);
         }
-        if (status.lastUpdatedMillis) {
-          const lastUpdatedMillis = status.lastUpdatedMillis;
-          console.log('lastUpdateMillis', lastUpdatedMillis);
-          clearInterval(timeSinceUpdateInterval);
+        if (data.currentEvent.timestampSeconds) {
+          const lastUpdatedMillis = data.currentEvent.timestampSeconds * 1000;
+          const lastMovement = utcMillisecondsToLocalDateFormat(lastUpdatedMillis, true);
+          console.log('lastUpdateMillis', lastUpdatedMillis, lastMovement);
+          last_movement.innerHTML = 'Last change: ' + lastMovement;
+          last_movement.style.display = '';
+          if (data && data.previousEvent && data.previousEvent.timestampSeconds) {
+            const previousUpdatedMillis = data.previousEvent.timestampSeconds * 1000;
+            const previousMovement = utcMillisecondsToLocalDateFormat(previousUpdatedMillis, true);
+            messages.push('Previous change: ' + previousMovement);
+          }
+          clearInterval(timeSinceMovementInterval);
           const f = () => {
             const nowMillis = getCurrentUtcTimeMillis();
             const durationMillis = nowMillis - lastUpdatedMillis;
             const durationString = getDurationFromMillis(durationMillis);
-            duration.innerHTML = 'Time since last update: ' + durationString;
-            duration.style.display = '';
+            duration_since_last_movement.innerHTML = 'Time since last change: ' + durationString;
+            duration_since_last_movement.style.display = '';
           };
           f();
-          timeSinceUpdateInterval = setInterval(f, 1000);
+          timeSinceMovementInterval = setInterval(f, 1000);
+        }
+        if (data.FIRESTORE_databaseTimestampSeconds) {
+          const lastCheckInMillis = data.FIRESTORE_databaseTimestampSeconds * 1000;
+          const lastCheckIn = utcMillisecondsToLocalDateFormat(lastCheckInMillis, true);
+          console.log('lastCheckInMillis', lastCheckInMillis, lastCheckIn);
+          last_check_in.innerHTML = 'Last check-in: ' + lastCheckIn;
+          last_check_in.style.display = '';
+          clearInterval(timeSinceCheckInInterval);
+          const f = () => {
+            const nowMillis = getCurrentUtcTimeMillis();
+            const durationMillis = nowMillis - lastCheckInMillis;
+            const durationString = getDurationFromMillis(durationMillis);
+            duration_since_last_check_in.innerHTML = 'Time since last check-in: ' + durationString;
+            duration_since_last_check_in.style.display = '';
+            if (durationMillis > 1000 * 60 * 15) { // 15 minutes.
+              duration_since_last_check_in.style.background = 'coral';
+            } else {
+              duration_since_last_check_in.style.background = '';
+            }
+          };
+          f();
+          timeSinceCheckInInterval = setInterval(f, 1000);
+        }
+        if (messages.length > 0) {
+          messageDiv.innerHTML = messages.join('<br />');
+          messageDiv.style.display = '';
+        } else {
+          messageDiv.style.display = 'none';
         }
       });
     });
