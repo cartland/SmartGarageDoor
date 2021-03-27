@@ -110,5 +110,8 @@ async function updateEvent(data) {
     data[PREVIOUS_EVENT_KEY] = oldEvent;
     data[CURRENT_EVENT_KEY] = newEvent;
     await SensorEventDatabase.save(buildTimestamp, data);
+  } else {
+    // Saving the old data again will update FIRESTORE_databaseTimestamp and FIRESTORE_databaseTimestampSeconds.
+    await SensorEventDatabase.save(buildTimestamp, oldData);
   }
 }
