@@ -179,6 +179,12 @@
             const durationString = getDurationFromMillis(durationMillis);
             duration_since_last_movement.innerHTML = 'Time since last change: ' + durationString;
             duration_since_last_movement.style.display = '';
+            if (state !== STATE_CLOSED && durationMillis > 1000 * 60 * 15) { // 15 minutes.
+              // Change the color if the garage is not closed for a long time.
+              duration_since_last_movement.style.background = 'coral';
+            } else {
+              duration_since_last_movement.style.background = '';
+            }
           };
           f();
           timeSinceMovementInterval = setInterval(f, 1000);
