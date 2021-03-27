@@ -16,9 +16,7 @@
 
 import * as functions from 'firebase-functions';
 
-import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
-
-const CONFIG_DATABASE = new TimeSeriesDatabase('configCurrent', 'configAll');
+import { Config } from '../../database/ServerConfigDatabase';
 
 /**
  * curl -H "Content-Type: application/json" http://localhost:5000/escape-echo/us-central1/remoteButton?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
@@ -29,7 +27,7 @@ export const serverConfig = functions.https.onRequest(async (request, response) 
     body: request.body
   };
   if (request.method === 'GET') {
-    const config = await CONFIG_DATABASE.getCurrent('current');
+    const config = await Config.get();
     response.status(200).send(config);
     return;
   }
@@ -38,8 +36,8 @@ export const serverConfig = functions.https.onRequest(async (request, response) 
     return;
   }
   try {
-    await CONFIG_DATABASE.save('current', data);
-    const config = await CONFIG_DATABASE.getCurrent('current');
+    await Config.set(data);
+    const config = await Config.get();
     response.status(200).send(config);
   }
   catch (error) {

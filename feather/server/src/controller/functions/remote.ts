@@ -20,6 +20,8 @@ import * as functions from 'firebase-functions';
 
 import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
 
+import { Config } from '../../database/ServerConfigDatabase';
+
 import { RemoteButtonCommand } from '../../model/RemoteButtonCommand';
 
 const REMOTE_BUTTON_COMMAND_DATABASE = new TimeSeriesDatabase('remoteButtonCommandCurrent', 'remoteButtonCommandAll');
@@ -34,7 +36,11 @@ const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
  * curl -H "Content-Type: application/json" http://localhost:5000/escape-echo/us-central1/remoteButton?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
  */
 export const remoteButton = functions.https.onRequest(async (request, response) => {
-  // Echo query parameters and body.
+  const config = await Config.get();
+  if (!Config.isRemoteButtonEnabled(config)) {
+    response.status(400).send({ error: 'Disabled' });
+    return;
+  }
   const data = {
     queryParams: request.query,
     body: request.body
@@ -89,6 +95,11 @@ export const remoteButton = functions.https.onRequest(async (request, response) 
  * curl -H "Content-Type: application/json" http://localhost:5000/escape-echo/us-central1/addRemoteButtonCommand?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
  */
 export const addRemoteButtonCommand = functions.https.onRequest(async (request, response) => {
+  const config = await Config.get();
+  if (!Config.isRemoteButtonEnabled(config)) {
+    response.status(400).send({ error: 'Disabled' });
+    return;
+  }
   // Echo query parameters and body.
   const data = {
     queryParams: request.query,
