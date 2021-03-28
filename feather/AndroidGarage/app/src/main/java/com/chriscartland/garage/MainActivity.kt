@@ -82,7 +82,7 @@ class MainActivity : AppCompatActivity() {
                         "backgroundColor" to getColor(R.color.color_door_moving)
                 ),
                 "OPENING_TOO_LONG" to mapOf(
-                        "text" to "Check door (did not open)",
+                        "text" to "Check door",
                         "backgroundColor" to getColor(R.color.color_door_error)
                 ),
                 "OPEN" to mapOf(
@@ -94,11 +94,11 @@ class MainActivity : AppCompatActivity() {
                         "backgroundColor" to getColor(R.color.color_door_moving)
                 ),
                 "CLOSING_TOO_LONG" to mapOf(
-                        "text" to "Check door (did not close)",
+                        "text" to "Check door",
                         "backgroundColor" to getColor(R.color.color_door_error)
                 ),
                 "ERROR_SENSOR_CONFLICT" to mapOf(
-                        "text" to "Error (sensor conflict)",
+                        "text" to "Error",
                         "backgroundColor" to getColor(R.color.color_door_error)
                 )
         )

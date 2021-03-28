@@ -19,8 +19,8 @@
         android:textSize="48sp"
         android:textColor="@color/white"
         android:padding="16dp"
-        android:text="${status}"
-        tools:text="Door Open" />
+        android:background="@color/color_door_error"
+        tools:text="Unknown Status" />
 
     <TextView
         android:id="@+id/status_message"
