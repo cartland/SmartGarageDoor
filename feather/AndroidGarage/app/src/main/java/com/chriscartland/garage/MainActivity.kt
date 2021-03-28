@@ -4,18 +4,23 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.chriscartland.garage.databinding.ActivityMainBinding
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var binding: ActivityMainBinding
+
     private val db = Firebase.firestore
     private var doorListener: ListenerRegistration? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        val view = binding.root
+        setContentView(view)
 
         val configRef = db.collection("configCurrent").document("current")
         configRef.addSnapshotListener { snapshot, e ->
@@ -43,7 +48,7 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "buildTimestamp: $buildTimestamp")
         doorListener?.remove()
         if (buildTimestamp == null) {
-            findViewById<TextView>(R.id.status_title).text = ""
+            binding.statusTitle.text = ""
             return
         }
         Log.d(TAG, "Listening to events for buildTimestamp: $buildTimestamp")
@@ -69,10 +74,12 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "type: $type")
         Log.d(TAG, "message: $message")
         Log.d(TAG, "timestampSeconds: $timestampSeconds")
-        findViewById<TextView>(R.id.status_title).text = type
-        findViewById<TextView>(R.id.status_message).text = message
-        findViewById<TextView>(R.id.last_check_in_time).text = lastCheckInTime.toString()
-        findViewById<TextView>(R.id.last_change_time).text = timestampSeconds.toString()
+        binding.statusTitle.text = type
+        binding.statusMessage.text = message
+        binding.lastCheckInTime.text = lastCheckInTime.toString()
+        binding.timeSinceLastCheckIn.text = "TODO"
+        binding.lastChangeTime.text = timestampSeconds.toString()
+        binding.timeSinceLastChange.text = "TODO"
     }
 
     companion object {
