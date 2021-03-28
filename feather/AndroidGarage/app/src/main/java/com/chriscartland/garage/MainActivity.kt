@@ -2,8 +2,8 @@ package com.chriscartland.garage
 
 import android.os.Bundle
 import android.util.Log
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.databinding.DataBindingUtil
 import com.chriscartland.garage.databinding.ActivityMainBinding
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ktx.firestore
@@ -18,8 +18,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = DataBindingUtil.setContentView(
-            this, R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        val view = binding.root
+        setContentView(view)
 
         val configRef = db.collection("configCurrent").document("current")
         configRef.addSnapshotListener { snapshot, e ->
@@ -73,7 +74,7 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "type: $type")
         Log.d(TAG, "message: $message")
         Log.d(TAG, "timestampSeconds: $timestampSeconds")
-        binding.status = type
+        binding.statusTitle.text = type
         binding.statusMessage.text = message
         binding.lastCheckInTime.text = lastCheckInTime.toString()
         binding.timeSinceLastCheckIn.text = "TODO"
