@@ -1,12 +1,15 @@
 package com.chriscartland.garage
 
 import android.os.Bundle
+import android.text.format.DateFormat
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.chriscartland.garage.databinding.ActivityMainBinding
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import java.util.Date
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -69,38 +72,38 @@ class MainActivity : AppCompatActivity() {
 
     private fun initUserMessages() {
         userMessages = mapOf(
-                "UNKNOWN" to mapOf(
-                        "text" to "Unknown Status",
-                        "backgroundColor" to getColor(R.color.color_door_error)
-                ),
-                "CLOSED" to mapOf(
-                        "text" to "Door Closed",
-                        "backgroundColor" to getColor(R.color.color_door_closed)
-                ),
-                "OPENING" to mapOf(
-                        "text" to "Opening...",
-                        "backgroundColor" to getColor(R.color.color_door_moving)
-                ),
-                "OPENING_TOO_LONG" to mapOf(
-                        "text" to "Check door",
-                        "backgroundColor" to getColor(R.color.color_door_error)
-                ),
-                "OPEN" to mapOf(
-                        "text" to "Door Open",
-                        "backgroundColor" to getColor(R.color.color_door_open)
-                ),
-                "CLOSING" to mapOf(
-                        "text" to "Closing...",
-                        "backgroundColor" to getColor(R.color.color_door_moving)
-                ),
-                "CLOSING_TOO_LONG" to mapOf(
-                        "text" to "Check door",
-                        "backgroundColor" to getColor(R.color.color_door_error)
-                ),
-                "ERROR_SENSOR_CONFLICT" to mapOf(
-                        "text" to "Error",
-                        "backgroundColor" to getColor(R.color.color_door_error)
-                )
+            "UNKNOWN" to mapOf(
+                "text" to "Unknown Status",
+                "backgroundColor" to getColor(R.color.color_door_error)
+            ),
+            "CLOSED" to mapOf(
+                "text" to "Door Closed",
+                "backgroundColor" to getColor(R.color.color_door_closed)
+            ),
+            "OPENING" to mapOf(
+                "text" to "Opening...",
+                "backgroundColor" to getColor(R.color.color_door_moving)
+            ),
+            "OPENING_TOO_LONG" to mapOf(
+                "text" to "Check door",
+                "backgroundColor" to getColor(R.color.color_door_error)
+            ),
+            "OPEN" to mapOf(
+                "text" to "Door Open",
+                "backgroundColor" to getColor(R.color.color_door_open)
+            ),
+            "CLOSING" to mapOf(
+                "text" to "Closing...",
+                "backgroundColor" to getColor(R.color.color_door_moving)
+            ),
+            "CLOSING_TOO_LONG" to mapOf(
+                "text" to "Check door",
+                "backgroundColor" to getColor(R.color.color_door_error)
+            ),
+            "ERROR_SENSOR_CONFLICT" to mapOf(
+                "text" to "Error",
+                "backgroundColor" to getColor(R.color.color_door_error)
+            )
         )
     }
 
@@ -116,13 +119,45 @@ class MainActivity : AppCompatActivity() {
         binding.statusTitle.text = userMessages[type]?.get("text") as? String ?: "Unknown Status"
         getColor(R.color.color_door_error)
         binding.statusTitle.setBackgroundColor(
-                userMessages[type]?.get("backgroundColor") as? Int ?: getColor(R.color.color_door_error)
+            userMessages[type]?.get("backgroundColor") as? Int ?: getColor(R.color.color_door_error)
         )
         binding.statusMessage.text = message
-        binding.lastCheckInTime.text = lastCheckInTime.toString()
-        binding.timeSinceLastCheckIn.text = "TODO"
-        binding.lastChangeTime.text = timestampSeconds.toString()
-        binding.timeSinceLastChange.text = "TODO"
+
+        if (lastCheckInTime != null) {
+            val lastCheckInTimeString = DateFormat.format("yyyy-MM-dd hh:mm:ss a",  Date(lastCheckInTime * 1000))
+            binding.lastCheckInTime.text = "Last check-in: $lastCheckInTimeString"
+            updateLastCheckInTime(lastCheckInTime)
+        } else {
+            binding.lastCheckInTime.text = ""
+            binding.timeSinceLastCheckIn.text = ""
+        }
+        if (timestampSeconds != null) {
+            val lastChangeTimeString = DateFormat.format("yyyy-MM-dd hh:mm:ss a", Date(timestampSeconds * 1000))
+            binding.lastChangeTime.text = "Last change: $lastChangeTimeString"
+            updateLastChangeTime(timestampSeconds)
+        }
+    }
+
+    private fun updateLastCheckInTime(lastCheckInTime: Long) {
+        val now = Date()
+        val s = if ((now.time / 1000) - lastCheckInTime > 0) {
+            (now.time / 1000) - lastCheckInTime
+        } else {
+            0
+        }
+        val timeSinceLastCheckInString = String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
+        binding.timeSinceLastCheckIn.text = "Time since last check-in: $timeSinceLastCheckInString"
+    }
+
+    private fun updateLastChangeTime(lastChangeTime: Long) {
+        val now = Date()
+        val s = if ((now.time / 1000) - lastChangeTime > 0) {
+            (now.time / 1000) - lastChangeTime
+        } else {
+            0
+        }
+        val timeSinceLastChangeString = String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
+        binding.timeSinceLastChange.text = "Time since last change: $timeSinceLastChangeString"
     }
 
     companion object {
