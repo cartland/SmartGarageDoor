@@ -46,7 +46,7 @@ export const serverConfig = functions.https.onRequest(async (request, response) 
   }
   const configSecretKey = functionConfig['serverconfig']['key'];
   const requestConfigKey = request.get('X-ServerConfigKey');
-  if (requestConfigKey.length <= 0) {
+  if (!requestConfigKey || requestConfigKey.length <= 0) {
     response.status(401).send({ error: 'Unauthorized.' });
     return;
   }
