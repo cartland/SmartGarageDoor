@@ -35,6 +35,25 @@ export const serverConfig = functions.https.onRequest(async (request, response) 
     response.status(400).send({ error: 'Invalid request.' });
     return;
   }
+  const functionConfig = functions.config();
+  if (!functionConfig
+    || !('serverconfig' in functionConfig)
+    || !('key' in functionConfig['serverconfig'])) {
+    const error = 'Deploy Firebase Functions config with serverconfig.key';
+    console.error(error);
+    response.status(500).send({ error: error });
+    return;
+  }
+  const configSecretKey = functionConfig['serverconfig']['key'];
+  const requestConfigKey = request.get('X-ServerConfigKey');
+  if (requestConfigKey.length <= 0) {
+    response.status(401).send({ error: 'Unauthorized.' });
+    return;
+  }
+  if (configSecretKey !== requestConfigKey) {
+    response.status(403).send({ error: 'Forbidden.' });
+    return;
+  }
   try {
     await Config.set(data);
     const config = await Config.get();
