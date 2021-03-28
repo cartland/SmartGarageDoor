@@ -6,6 +6,7 @@
     <color name="almost_black">#FF111111</color>
     <color name="dark_grey_blue">#192365</color>
     <color name="almost_black_blue">#0C1132</color>
+    <color name="almost_white">#FFDDDDDD</color>
     <color name="color_door_closed">#2E7D32</color>
     <color name="color_door_moving">#0277BD</color>
     <color name="color_door_open">#B71C1C</color>

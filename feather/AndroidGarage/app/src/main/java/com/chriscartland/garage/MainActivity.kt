@@ -1,6 +1,8 @@
 package com.chriscartland.garage
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.format.DateFormat
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
@@ -138,26 +140,57 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    val h: Handler = Handler(Looper.getMainLooper())
+    var checkInRunnable: Runnable? = null
+    var changeRunnable: Runnable? = null
+
     private fun updateLastCheckInTime(lastCheckInTime: Long) {
-        val now = Date()
-        val s = if ((now.time / 1000) - lastCheckInTime > 0) {
-            (now.time / 1000) - lastCheckInTime
-        } else {
-            0
+        checkInRunnable?.let {
+            h.removeCallbacks(it)
         }
-        val timeSinceLastCheckInString = String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
-        binding.timeSinceLastCheckIn.text = "Time since last check-in: $timeSinceLastCheckInString"
+        checkInRunnable = object : Runnable {
+            override fun run() {
+                val now = Date()
+                val s = if ((now.time / 1000) - lastCheckInTime > 0) {
+                    (now.time / 1000) - lastCheckInTime
+                } else {
+                    0
+                }
+                val timeSinceLastCheckInString =
+                    String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
+                binding.timeSinceLastCheckIn.text =
+                    "Time since last check-in: $timeSinceLastCheckInString"
+                h.postDelayed(this, 1000)
+            }
+        }
+        checkInRunnable?.let {
+            it.run()
+            h.postDelayed(it, 1000)
+        }
     }
 
     private fun updateLastChangeTime(lastChangeTime: Long) {
-        val now = Date()
-        val s = if ((now.time / 1000) - lastChangeTime > 0) {
-            (now.time / 1000) - lastChangeTime
-        } else {
-            0
+        changeRunnable?.let {
+            h.removeCallbacks(it)
         }
-        val timeSinceLastChangeString = String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
-        binding.timeSinceLastChange.text = "Time since last change: $timeSinceLastChangeString"
+        changeRunnable = object : Runnable {
+            override fun run() {
+                val now = Date()
+                val s = if ((now.time / 1000) - lastChangeTime > 0) {
+                    (now.time / 1000) - lastChangeTime
+                } else {
+                    0
+                }
+                val timeSinceLastChangeString = String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
+                binding.timeSinceLastChange.text = "Time since last change: $timeSinceLastChangeString"
+                h.postDelayed(this, 1000)
+            }
+        }
+        changeRunnable?.let {
+            it.run()
+            h.postDelayed(it, 1000)
+        }
+
     }
 
     companion object {

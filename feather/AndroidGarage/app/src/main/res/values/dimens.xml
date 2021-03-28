@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="section_padding">16dp</dimen>
+    <dimen name="title_text_size">48sp</dimen>
+    <dimen name="title_text_padding">16dp</dimen>
+</resources>
