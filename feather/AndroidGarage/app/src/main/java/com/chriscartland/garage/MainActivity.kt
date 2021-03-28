@@ -2,7 +2,6 @@ package com.chriscartland.garage
 
 import android.os.Bundle
 import android.util.Log
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.chriscartland.garage.databinding.ActivityMainBinding
 import com.google.firebase.firestore.ListenerRegistration
@@ -12,15 +11,18 @@ import com.google.firebase.ktx.Firebase
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private lateinit var userMessages: Map<String, Map<String, *>>
 
     private val db = Firebase.firestore
     private var doorListener: ListenerRegistration? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
+        initUserMessages()
 
         val configRef = db.collection("configCurrent").document("current")
         configRef.addSnapshotListener { snapshot, e ->
@@ -65,6 +67,43 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun initUserMessages() {
+        userMessages = mapOf(
+                "UNKNOWN" to mapOf(
+                        "text" to "Unknown Status",
+                        "backgroundColor" to getColor(R.color.color_door_error)
+                ),
+                "CLOSED" to mapOf(
+                        "text" to "Door Closed",
+                        "backgroundColor" to getColor(R.color.color_door_closed)
+                ),
+                "OPENING" to mapOf(
+                        "text" to "Opening...",
+                        "backgroundColor" to getColor(R.color.color_door_moving)
+                ),
+                "OPENING_TOO_LONG" to mapOf(
+                        "text" to "Check door (did not open)",
+                        "backgroundColor" to getColor(R.color.color_door_error)
+                ),
+                "OPEN" to mapOf(
+                        "text" to "Door Open",
+                        "backgroundColor" to getColor(R.color.color_door_open)
+                ),
+                "CLOSING" to mapOf(
+                        "text" to "Closing...",
+                        "backgroundColor" to getColor(R.color.color_door_moving)
+                ),
+                "CLOSING_TOO_LONG" to mapOf(
+                        "text" to "Check door (did not close)",
+                        "backgroundColor" to getColor(R.color.color_door_error)
+                ),
+                "ERROR_SENSOR_CONFLICT" to mapOf(
+                        "text" to "Error (sensor conflict)",
+                        "backgroundColor" to getColor(R.color.color_door_error)
+                )
+        )
+    }
+
     private fun handleEventDataChanged(data: Map<*, *>) {
         val lastCheckInTime = data?.get("FIRESTORE_databaseTimestampSeconds") as? Long
         val currentEvent = data?.get("currentEvent") as? Map<*, *>
@@ -74,7 +113,11 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "type: $type")
         Log.d(TAG, "message: $message")
         Log.d(TAG, "timestampSeconds: $timestampSeconds")
-        binding.statusTitle.text = type
+        binding.statusTitle.text = userMessages[type]?.get("text") as? String ?: "Unknown Status"
+        getColor(R.color.color_door_error)
+        binding.statusTitle.setBackgroundColor(
+                userMessages[type]?.get("backgroundColor") as? Int ?: getColor(R.color.color_door_error)
+        )
         binding.statusMessage.text = message
         binding.lastCheckInTime.text = lastCheckInTime.toString()
         binding.timeSinceLastCheckIn.text = "TODO"

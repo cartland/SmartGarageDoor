@@ -7,4 +7,8 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="color_door_closed">#2E7D32</color>
+    <color name="color_door_moving">#0277BD</color>
+    <color name="color_door_open">#B71C1C</color>
+    <color name="color_door_error">#F57F17</color>
 </resources>

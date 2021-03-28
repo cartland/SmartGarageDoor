@@ -8,7 +8,6 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
 
-
     <TextView
         android:id="@+id/status_title"
         android:layout_width="match_parent"
@@ -18,6 +17,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         android:textSize="48sp"
+        android:textColor="@color/white"
         android:padding="16dp"
         android:text="${status}"
         tools:text="Door Open" />
