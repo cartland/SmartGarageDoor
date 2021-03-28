@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "587667443259",
+    "project_id": "escape-echo",
+    "storage_bucket": "escape-echo.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:587667443259:android:411463c72c3fd57b45d61e",
+        "android_client_info": {
+          "package_name": "com.chriscartland.garage"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "587667443259-45k0kd1o30ho35ni5uv0vg9cqsl2eb7a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCcJW9ipng_Hs4Qv1ROxz58fGLPRIXFyGQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "587667443259-45k0kd1o30ho35ni5uv0vg9cqsl2eb7a.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
