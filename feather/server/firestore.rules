@@ -12,5 +12,9 @@ service cloud.firestore {
       allow write: if false;
       allow read: if true;
     }
+    match /configCurrent/{document=**} {
+      allow write: if false;
+      allow read: if true;
+    }
   }
 }
