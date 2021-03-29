@@ -119,7 +119,6 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "message: $message")
         Log.d(TAG, "timestampSeconds: $timestampSeconds")
         binding.statusTitle.text = userMessages[type]?.get("text") as? String ?: "Unknown Status"
-        getColor(R.color.color_door_error)
         binding.statusTitle.setBackgroundColor(
             userMessages[type]?.get("backgroundColor") as? Int ?: getColor(R.color.color_door_error)
         )
@@ -131,12 +130,15 @@ class MainActivity : AppCompatActivity() {
             updateLastCheckInTime(lastCheckInTime)
         } else {
             binding.lastCheckInTime.text = ""
-            binding.timeSinceLastCheckIn.text = ""
+            updateLastCheckInTime(null)
         }
         if (timestampSeconds != null) {
             val lastChangeTimeString = DateFormat.format("yyyy-MM-dd hh:mm:ss a", Date(timestampSeconds * 1000))
             binding.lastChangeTime.text = "Last change: $lastChangeTimeString"
             updateLastChangeTime(timestampSeconds)
+        } else {
+            binding.lastChangeTime.text = null
+            updateLastChangeTime(null)
         }
     }
 
@@ -144,7 +146,14 @@ class MainActivity : AppCompatActivity() {
     var checkInRunnable: Runnable? = null
     var changeRunnable: Runnable? = null
 
-    private fun updateLastCheckInTime(lastCheckInTime: Long) {
+    private fun updateLastCheckInTime(lastCheckInTime: Long?) {
+        if (lastCheckInTime == null) {
+            binding.timeSinceLastCheckIn.text = ""
+            checkInRunnable?.let {
+                h.removeCallbacks(it)
+            }
+            return
+        }
         checkInRunnable?.let {
             h.removeCallbacks(it)
         }
@@ -169,7 +178,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateLastChangeTime(lastChangeTime: Long) {
+    private fun updateLastChangeTime(lastChangeTime: Long?) {
+        if (lastChangeTime == null) {
+            binding.timeSinceLastChange.text = ""
+            changeRunnable?.let {
+                h.removeCallbacks(it)
+            }
+            return
+        }
         changeRunnable?.let {
             h.removeCallbacks(it)
         }
