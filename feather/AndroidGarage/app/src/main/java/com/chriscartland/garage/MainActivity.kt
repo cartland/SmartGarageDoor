@@ -169,6 +169,10 @@ class MainActivity : AppCompatActivity() {
                     String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
                 binding.timeSinceLastCheckIn.text =
                     "Time since last check-in: $timeSinceLastCheckInString"
+                val CHECK_IN_THRESHOLD_SECONDS = 60 * 15
+                if (s > CHECK_IN_THRESHOLD_SECONDS) {
+                    binding.timeSinceLastCheckIn.setBackgroundColor(getColor(R.color.color_door_error))
+                }
                 h.postDelayed(this, 1000)
             }
         }
