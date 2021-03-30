@@ -66,7 +66,6 @@ export class TimeSeriesDatabase {
       .where(TimeSeriesDatabase.DATABASE_TIMESTAMP_SECONDS_KEY, '<', cutoffTimestampSeconds)
       .get();
     snapshot.forEach(doc => {
-      console.info('Delete from collection: ', this.collectionAll, ', doc ID:', doc.ref.id);
       if (dryRun) {
         // Do nothing.
       } else {
@@ -76,10 +75,7 @@ export class TimeSeriesDatabase {
     });
     const deleteCount = snapshot.docs.length;
     if (deleteCount > 0) {
-      if (dryRun) {
-        console.debug('Dry run!');
-      }
-      console.info('Deleted items from collection:', this.collectionAll, ', count:', deleteCount)
+      console.info('DB Delete. Dry run:', dryRun, ', collection:', this.collectionAll, ', count:', deleteCount)
     }
     return deleteCount;
   }

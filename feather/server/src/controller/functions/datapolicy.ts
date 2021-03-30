@@ -27,7 +27,6 @@ export const dataRetentionPolicy = functions.pubsub.schedule('every 1 minutes').
   const cutoffSeconds = cutoffMillis / 1000;
   const dryRun = true;  /* TODO: Enable deletion. */
   const deleteCount = await deleteOldData(cutoffSeconds, dryRun);
-  console.log('Data retention policy ran, Dry run:', dryRun, ', Deleted:', deleteCount);
 });
 
 export const deleteData = functions.https.onRequest(async (request, response) => {
@@ -56,17 +55,17 @@ async function deleteOldData(cutoffTimestampSeconds: number, dryRunArg: boolean)
   }
   let dryRun = false;
   if (dryRunArg) {
-    console.log('deleteOldData: Dry run requested!');
+    console.log('deleteOldData: Dry run requested');
     dryRun = true;
   }
   if (Config.isDeleteOldDataEnabledDryRun(config)) {
-    console.log('deleteOldData: Dry run is configured!');
+    console.log('deleteOldData: Dry run is configured');
     dryRun = true;
   }
   if (dryRun) {
-    console.log('deleteOldData: Doing dry run!');
+    console.log('deleteOldData: Doing dry run');
   } else {
-    console.log('deleteOldData: Deleting actual data!');
+    console.log('deleteOldData: Deleting data!');
   }
   return await RAW_DATA.deleteAllBefore(cutoffTimestampSeconds, dryRun);
 }
