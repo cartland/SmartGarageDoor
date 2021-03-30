@@ -22,13 +22,15 @@ import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
 
 const RAW_DATA = new TimeSeriesDatabase('updateCurrent', 'updateAll');
 
-export const dataRetentionPolicy = functions.pubsub.schedule('every 1 days').onRun(async (context) => {
-  const cutoffMillis = new Date().getTime() - 1000 * 60 * 60 * 24 * 14; // 2 weeks.
-  const cutoffSeconds = cutoffMillis / 1000;
-  const dryRunRequested = false;
-  const deleteCount = await deleteOldData(cutoffSeconds, dryRunRequested);
-  return null;
-});
+export const dataRetentionPolicy = functions.pubsub
+  .schedule('0 0 * * *').timeZone('America/Los_Angeles') // California midnight every day.
+  .onRun(async (context) => {
+    const cutoffMillis = new Date().getTime() - 1000 * 60 * 60 * 24 * 14; // 2 weeks.
+    const cutoffSeconds = cutoffMillis / 1000;
+    const dryRunRequested = false;
+    const deleteCount = await deleteOldData(cutoffSeconds, dryRunRequested);
+    return null;
+  });
 
 export const deleteData = functions.https.onRequest(async (request, response) => {
   let cutoffTimestampSeconds: number = null;
