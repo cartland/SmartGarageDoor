@@ -62,22 +62,47 @@ export class TimeSeriesDatabase {
   }
 
   async deleteAllBefore(cutoffTimestampSeconds: number, dryRun: boolean): Promise<number> {
-    const snapshot = await firebase.app().firestore().collection(this.collectionAll)
-      .where(TimeSeriesDatabase.DATABASE_TIMESTAMP_SECONDS_KEY, '<', cutoffTimestampSeconds)
-      .get();
-    snapshot.forEach(async doc => {
-      if (dryRun) {
-        // Do nothing.
-      } else {
-        await doc.ref.delete();
-      }
-      return null;
-    });
-    const deleteCount = snapshot.docs.length;
+    const query = firebase.app().firestore().collection(this.collectionAll)
+      .where(TimeSeriesDatabase.DATABASE_TIMESTAMP_SECONDS_KEY, '<', cutoffTimestampSeconds);
+    let deleteCount = 0;
+    if (dryRun) {
+      // Do nothing.
+      const snapshot = await query.get();
+      deleteCount = snapshot.docs.length;
+    } else {
+      deleteCount = await new Promise((resolve, reject) => {
+        const batchSize = 500
+        const limitedQuery = query.limit(batchSize);
+        deleteQueryBatch(firebase.app().firestore(), limitedQuery, 0, resolve).catch(reject);
+      });
+    }
     if (deleteCount > 0) {
       console.info('DB Delete. Dry run:', dryRun, ', collection:', this.collectionAll, ', count:', deleteCount)
     }
     return deleteCount;
   }
+}
 
+async function deleteQueryBatch(db, query, count, resolve) {
+  const snapshot = await query.get();
+
+  const batchSize = snapshot.size;
+  if (batchSize === 0) {
+    // When there are no documents left, we are done
+    resolve(count);
+    return;
+  }
+
+  // Delete documents in a batch
+  const batch = db.batch();
+  snapshot.docs.forEach((doc) => {
+    batch.delete(doc.ref);
+  });
+  await batch.commit();
+
+  // Recurse on the next process tick, to avoid
+  // exploding the stack.
+  process.nextTick(async () => {
+    await deleteQueryBatch(db, query, count + batchSize, resolve);
+  });
 }
