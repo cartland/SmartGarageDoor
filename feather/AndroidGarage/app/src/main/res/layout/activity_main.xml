@@ -101,4 +101,17 @@
         app:layout_constraintTop_toBottomOf="@+id/last_change_time"
         tools:text="Time since last change: 01:46:12" />
 
+    <TextView
+        android:id="@+id/version_code_text_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        android:textStyle="italic"
+        android:padding="@dimen/version_text_padding"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:text="Version code: 1.0.0" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -18,6 +18,7 @@
 package com.chriscartland.garage
 
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -48,6 +49,23 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
+
+        packageManager.getPackageInfo(packageName, 0).let {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                binding.versionCodeTextView.text = getString(
+                    R.string.version_code_string,
+                    it.versionName,
+                    it.longVersionCode
+                )
+            } else {
+                binding.versionCodeTextView.text = getString(
+                    R.string.version_code_string,
+                    it.versionName,
+                    it.versionCode
+                )
+            }
+        }
+
 
         val configRef = db.collection("configCurrent").document("current")
         configListener = configRef.addSnapshotListener { snapshot, e ->
