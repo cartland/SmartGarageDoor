@@ -70,19 +70,32 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         packageManager.getPackageInfo(packageName, 0).let {
+            val textView = binding.versionCodeTextView
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                binding.versionCodeTextView.text = getString(
+                textView.text = getString(
                     R.string.version_code_string,
                     it.versionName,
                     it.longVersionCode
                 )
             } else {
-                binding.versionCodeTextView.text = getString(
+                textView.text = getString(
                     R.string.version_code_string,
                     it.versionName,
                     it.versionCode
                 )
             }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        configListener?.remove()
+        doorListener?.remove()
+        checkInRunnable?.let {
+            h.removeCallbacks(it)
+        }
+        changeRunnable?.let {
+            h.removeCallbacks(it)
         }
     }
 
@@ -121,29 +134,33 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateStatusTitle(door: Door) {
         val data = getStatusTitleAndColor(door, this)
-        binding.statusTitle.text = data.first
-        binding.statusTitle.setBackgroundColor(data.second)
+        val textView = binding.statusTitle
+        textView.text = data.first
+        textView.setBackgroundColor(data.second)
     }
 
     private fun updateStatusMessage(door: Door) {
-        binding.statusMessage.text = door.message
+        val textView = binding.statusMessage
+        textView.text = door.message
     }
 
     private fun updateLastCheckInTime(door: Door) {
         val lastCheckInTime = door.lastCheckInTimeSeconds
+        val textView = binding.lastCheckInTime
         if (lastCheckInTime != null) {
             val lastCheckInTimeString =
                 DateFormat.format("yyyy-MM-dd hh:mm:ss a", Date(lastCheckInTime * 1000))
-            binding.lastCheckInTime.text = getString(R.string.last_check_in_time, lastCheckInTimeString)
+            textView.text = getString(R.string.last_check_in_time, lastCheckInTimeString)
         } else {
-            binding.lastCheckInTime.text = ""
+            textView.text = ""
         }
     }
 
     private fun updateTimeSinceLastCheckIn(door: Door) {
         val lastCheckInTime = door.lastCheckInTimeSeconds
+        val textView = binding.timeSinceLastCheckIn
         if (lastCheckInTime == null) {
-            binding.timeSinceLastCheckIn.text = ""
+            textView.text = ""
             checkInRunnable?.let {
                 h.removeCallbacks(it)
             }
@@ -158,11 +175,11 @@ class MainActivity : AppCompatActivity() {
                 val s = ((now.time / 1000) - lastCheckInTime).coerceAtLeast(0)
                 val timeSinceLastCheckInString =
                     String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
-                binding.timeSinceLastCheckIn.text = getString(R.string.time_since_last_check_in, timeSinceLastCheckInString)
+                textView.text = getString(R.string.time_since_last_check_in, timeSinceLastCheckInString)
                 if (s > CHECK_IN_THRESHOLD_SECONDS) {
-                    binding.timeSinceLastCheckIn.setBackgroundColor(getColor(R.color.color_door_error))
+                    textView.setBackgroundColor(getColor(R.color.color_door_error))
                 } else {
-                    binding.timeSinceLastCheckIn.setBackgroundColor(getColor(R.color.black))
+                    textView.setBackgroundColor(getColor(R.color.black))
                 }
                 h.postDelayed(this, 1000)
             }
@@ -175,19 +192,21 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateLastChangeTime(door: Door) {
         val lastChangeTime = door.lastChangeTimeSeconds
+        val textView = binding.lastChangeTime
         if (lastChangeTime != null) {
             val lastChangeTimeString =
                 DateFormat.format("yyyy-MM-dd hh:mm:ss a", Date(lastChangeTime * 1000))
-            binding.lastChangeTime.text = getString(R.string.last_change_time, lastChangeTimeString)
+            textView.text = getString(R.string.last_change_time, lastChangeTimeString)
         } else {
-            binding.lastChangeTime.text = null
+            textView.text = null
         }
     }
 
     private fun updateTimeSinceLastChange(door: Door) {
         val lastChangeTime = door.lastChangeTimeSeconds
+        val textView = binding.timeSinceLastChange
         if (lastChangeTime == null) {
-            binding.timeSinceLastChange.text = ""
+            textView.text = ""
             changeRunnable?.let {
                 h.removeCallbacks(it)
             }
@@ -201,12 +220,11 @@ class MainActivity : AppCompatActivity() {
                 val now = Date()
                 val s = ((now.time / 1000) - lastChangeTime).coerceAtLeast(0)
                 val timeSinceLastChangeString = String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
-                binding.timeSinceLastChange.text = getString(R.string.time_since_last_change, timeSinceLastChangeString)
-                val states = DoorState.values()
+                textView.text = getString(R.string.time_since_last_change, timeSinceLastChangeString)
                 if (door.state != DoorState.CLOSED && s > DOOR_NOT_CLOSED_THRESHOLD_SECONDS) {
-                    binding.timeSinceLastCheckIn.setBackgroundColor(getColor(R.color.color_door_error))
+                    textView.setBackgroundColor(getColor(R.color.color_door_error))
                 } else {
-                    binding.timeSinceLastCheckIn.setBackgroundColor(getColor(R.color.black))
+                    textView.setBackgroundColor(getColor(R.color.black))
                 }
                 h.postDelayed(this, 1000)
             }
