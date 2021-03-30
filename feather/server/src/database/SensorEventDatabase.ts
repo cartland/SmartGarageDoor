@@ -14,44 +14,21 @@
  * limitations under the License.
  */
 
-import * as firebase from 'firebase-admin';
+const COLLECTION_CURRENT = 'eventsCurrent';
+const COLLECTION_ALL = 'eventsAll';
 
-import { SensorEvent } from '../model/SensorEvent';
+import { TimeSeriesDatabase } from './TimeSeriesDatabase';
 
-const EVENTS_ALL = 'eventsAll';
-const EVENTS_CURRENT = 'eventsCurrent'
+class SensorEventDatabase {
+  DB = new TimeSeriesDatabase(COLLECTION_CURRENT, COLLECTION_ALL);
 
-const DATABASE_TIMESTAMP_KEY = 'FIRESTORE_databaseTimestamp';
-const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
+  async set(buildTimestamp: string, data: any) {
+    await this.DB.save(buildTimestamp, data);
+  }
 
-const convertToFirestore = (externalData: any): any => {
-  const firestoreData = {};
-  Object.assign(firestoreData, externalData);
-  const now = firebase.firestore.Timestamp.now();
-  firestoreData[DATABASE_TIMESTAMP_KEY] = now;
-  firestoreData[DATABASE_TIMESTAMP_SECONDS_KEY] = now.seconds;
-  return firestoreData;
-}
+  async get(buildTimestamp: string): Promise<any> {
+    return this.DB.getCurrent(buildTimestamp);
+  }
+};
 
-const convertFromFirestore = (firestoreData: any): any => {
-  const result = {} as any;
-  Object.assign(result, firestoreData);
-  return result;
-}
-
-export const save = async (deviceBuildTimestamp: string, data: any) => {
-  const firestoreData = convertToFirestore(data);
-  // Set the 'current' data.
-  await firebase.app().firestore().collection(EVENTS_CURRENT).doc(deviceBuildTimestamp).set(firestoreData);
-  // Add historical observation to database.
-  const allRes = await firebase.app().firestore()
-    .collection(EVENTS_ALL)
-    .add(firestoreData);
-  console.debug('save:', EVENTS_CURRENT, EVENTS_ALL, allRes.id);
-}
-
-export const getCurrent = async (deviceBuildTimestamp: string): Promise<any> => {
-  const currentRef = await firebase.app().firestore().collection(EVENTS_CURRENT)
-    .doc(deviceBuildTimestamp).get();
-  return convertFromFirestore(currentRef.data());
-}
+export const DATABASE = new SensorEventDatabase();

@@ -34,7 +34,20 @@ class ServerConfig {
     }
     return false;
   }
+
+  isDeleteOldDataEnabled(config): boolean {
+    if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('deleteOldDataEnabled')) {
+      return config.body.deleteOldDataEnabled;
+    }
+    return false;
+  }
+
+  isDeleteOldDataEnabledDryRun(config): boolean {
+    if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('deleteOldDataEnabledDryRun')) {
+      return config.body.deleteOldDataEnabledDryRun;
+    }
+    return false;
+  }
 };
 
 export const Config = new ServerConfig();
-

@@ -61,4 +61,27 @@ export class TimeSeriesDatabase {
     return TimeSeriesDatabase.convertFromFirestore(currentRef.data());
   }
 
+  async deleteAllBefore(cutoffTimestampSeconds: number, dryRun: boolean): Promise<number> {
+    const snapshot = await firebase.app().firestore().collection(this.collectionAll)
+      .where(TimeSeriesDatabase.DATABASE_TIMESTAMP_SECONDS_KEY, '<', cutoffTimestampSeconds)
+      .get();
+    snapshot.forEach(doc => {
+      console.info('Delete from collection: ', this.collectionAll, ', doc ID:', doc.ref.id);
+      if (dryRun) {
+        // Do nothing.
+      } else {
+        // TODO: Start deleting.
+        // doc.ref.delete();
+      }
+    });
+    const deleteCount = snapshot.docs.length;
+    if (deleteCount > 0) {
+      if (dryRun) {
+        console.debug('Dry run!');
+      }
+      console.info('Deleted items from collection:', this.collectionAll, ', count:', deleteCount)
+    }
+    return deleteCount;
+  }
+
 }

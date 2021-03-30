@@ -52,8 +52,8 @@ export const echo = functions.https.onRequest(async (request, response) => {
   }
 
   try {
-    await Database.save(session, data);
-    const retrievedData = await Database.getCurrent(session);
+    await Database.DATABASE.set(session, data);
+    const retrievedData = await Database.DATABASE.get(session);
     response.status(200).send(retrievedData);
   }
   catch (error) {

@@ -22,6 +22,7 @@ firebase.initializeApp();
 import { echo } from './controller/functions/content'
 import { remoteButton, addRemoteButtonCommand } from './controller/functions/remote'
 import { serverConfig } from './controller/functions/config'
+import { dataRetentionPolicy, deleteData } from './controller/functions/datapolicy'
 import { nextEvent } from './controller/functions/events'
 import { updateEvent } from './controller/functions/EventUpdates';
 
@@ -72,3 +73,7 @@ exports.checkForDoorErrors = functions.pubsub.schedule('every 1 minutes').onRun(
   await updateEvent(data, scheduledJob);
   return null;
 });
+
+exports.dataRetentionPolicy = dataRetentionPolicy;
+
+exports.deleteOldData = deleteData;

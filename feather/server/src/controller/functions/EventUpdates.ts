@@ -63,7 +63,7 @@ export async function updateEvent(data, scheduledJob: boolean) {
 }
 
 async function updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds, scheduledJob: boolean) {
-  const oldData = await SensorEventDatabase.getCurrent(buildTimestamp);
+  const oldData = await SensorEventDatabase.DATABASE.get(buildTimestamp);
   let oldEvent = null;
   if (CURRENT_EVENT_KEY in oldData) {
     oldEvent = oldData[CURRENT_EVENT_KEY];
@@ -74,13 +74,13 @@ async function updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds
     data[BUILD_TIMESTAMP_PARAM_KEY] = buildTimestamp;
     data[PREVIOUS_EVENT_KEY] = oldEvent;
     data[CURRENT_EVENT_KEY] = newEvent;
-    await SensorEventDatabase.save(buildTimestamp, data);
+    await SensorEventDatabase.DATABASE.set(buildTimestamp, data);
   } else {
     if (scheduledJob) {
       // Do nothing. Do not update database during scheduled check unless it results in a new event.
     } else {
       // Saving the old data again will update FIRESTORE_databaseTimestamp and FIRESTORE_databaseTimestampSeconds.
-      await SensorEventDatabase.save(buildTimestamp, oldData);
+      await SensorEventDatabase.DATABASE.set(buildTimestamp, oldData);
     }
   }
 }

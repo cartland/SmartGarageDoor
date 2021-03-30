@@ -76,10 +76,10 @@ export const nextEvent = functions.https.onRequest(async (request, response) => 
     timestampSeconds = parseInt(String(request.query[TIMESTAMP_SECONDS_PARAM_KEY]));
   }
   try {
-    const oldEvent = await SensorEventDatabase.getCurrent(buildTimestamp);
+    const oldEvent = await SensorEventDatabase.DATABASE.get(buildTimestamp);
     const newEvent = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     if (newEvent !== null) {
-      await SensorEventDatabase.save(buildTimestamp, newEvent);
+      await SensorEventDatabase.DATABASE.set(buildTimestamp, newEvent);
     }
     data[OLD_EVENT_KEY] = oldEvent;
     data[NEW_EVENT_KEY] = newEvent;
