@@ -45,11 +45,30 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
 
+        handleDoorChanged(Door(message = getString(R.string.loading_config)))
+        val configRef = db.collection("configCurrent").document("current")
+        configListener = configRef.addSnapshotListener { snapshot, e ->
+            if (e != null) {
+                Log.w(TAG, "Config listener failed.", e)
+                return@addSnapshotListener
+            }
+            if (snapshot != null && snapshot.exists()) {
+                val data = snapshot.data as Map<*, *>?
+                Log.d(TAG, "Config data: $data")
+                val buildTimestamp = data?.fromConfigDataToBuildTimestamp()
+                handleConfigData(buildTimestamp)
+            } else {
+                Log.d(TAG, "Config data: null")
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
         packageManager.getPackageInfo(packageName, 0).let {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 binding.versionCodeTextView.text = getString(
@@ -65,31 +84,16 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
-
-
-        val configRef = db.collection("configCurrent").document("current")
-        configListener = configRef.addSnapshotListener { snapshot, e ->
-            if (e != null) {
-                Log.w(TAG, "Config listener failed.", e)
-                return@addSnapshotListener
-            }
-            if (snapshot != null && snapshot.exists()) {
-                val data = snapshot.data as Map<*, *>?
-                Log.d(TAG, "Config data: $data")
-                handleConfigData(data)
-            } else {
-                Log.d(TAG, "Config data: null")
-            }
-        }
     }
 
-    private fun handleConfigData(data: Map<*, *>?) {
-        val buildTimestamp = data?.fromConfigDataToBuildTimestamp()
+    private fun handleConfigData(buildTimestamp: String?) {
         Log.d(TAG, "buildTimestamp: $buildTimestamp")
         doorListener?.remove()
-        if (buildTimestamp == null) {
-            handleEventDataChanged(null)
+        if (buildTimestamp.isNullOrEmpty()) {
+            handleDoorChanged(Door(message = getString(R.string.missing_config)))
             return
+        } else {
+            handleDoorChanged(Door(message = getString(R.string.loading_data)))
         }
         Log.d(TAG, "Listening to events for buildTimestamp: $buildTimestamp")
         val eventRef = db.collection("eventsCurrent").document(buildTimestamp)
@@ -100,13 +104,13 @@ class MainActivity : AppCompatActivity() {
             }
             if (snapshot != null && snapshot.exists()) {
                 val data = snapshot.data as Map<*, *>?
-                handleEventDataChanged(data)
+                val doorStatus = data?.toDoorStatus() ?: Door(message = getString(R.string.empty_data))
+                handleDoorChanged(doorStatus)
             }
         }
     }
 
-    private fun handleEventDataChanged(data: Map<*, *>?) {
-        val doorStatus = data?.toDoorStatus() ?: Door()
+    private fun handleDoorChanged(doorStatus: Door) {
         updateStatusTitle(doorStatus)
         updateStatusMessage(doorStatus)
         updateLastCheckInTime(doorStatus)
