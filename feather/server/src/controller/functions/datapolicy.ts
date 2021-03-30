@@ -22,8 +22,7 @@ import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
 
 const RAW_DATA = new TimeSeriesDatabase('updateCurrent', 'updateAll');
 
-// TODO: Update to once per day.
-export const dataRetentionPolicy = functions.pubsub.schedule('every 1 minutes').onRun(async (context) => {
+export const dataRetentionPolicy = functions.pubsub.schedule('every 1 days').onRun(async (context) => {
   const cutoffMillis = new Date().getTime() - 1000 * 60 * 60 * 24 * 14; // 2 weeks.
   const cutoffSeconds = cutoffMillis / 1000;
   const dryRunRequested = false;
