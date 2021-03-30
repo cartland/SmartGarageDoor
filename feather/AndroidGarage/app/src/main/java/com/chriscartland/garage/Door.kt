@@ -17,25 +17,20 @@
 
 package com.chriscartland.garage
 
-import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.ext.junit.runners.AndroidJUnit4
+data class Door(
+    val state: DoorState? = null,
+    val message: String? = null,
+    val lastCheckInTimeSeconds: Long? = null,
+    val lastChangeTimeSeconds: Long? = null
+)
 
-import org.junit.Test
-import org.junit.runner.RunWith
-
-import org.junit.Assert.*
-
-/**
- * Instrumented test, which will execute on an Android device.
- *
- * See [testing documentation](http://d.android.com/tools/testing).
- */
-@RunWith(AndroidJUnit4::class)
-class ExampleInstrumentedTest {
-    @Test
-    fun useAppContext() {
-        // Context of the app under test.
-        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("com.chriscartland.garage", appContext.packageName)
-    }
+enum class DoorState {
+    UNKNOWN,
+    CLOSED,
+    OPENING,
+    OPENING_TOO_LONG,
+    OPEN,
+    CLOSING,
+    CLOSING_TOO_LONG,
+    ERROR_SENSOR_CONFLICT
 }
