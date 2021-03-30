@@ -76,9 +76,7 @@ export class TimeSeriesDatabase {
         deleteQueryBatch(firebase.app().firestore(), limitedQuery, 0, resolve).catch(reject);
       });
     }
-    if (deleteCount > 0) {
-      console.info('DB Delete. Dry run:', dryRun, ', collection:', this.collectionAll, ', count:', deleteCount)
-    }
+    console.info('DB Delete. Dry run:', dryRun, ', collection:', this.collectionAll, ', count:', deleteCount)
     return deleteCount;
   }
 }
