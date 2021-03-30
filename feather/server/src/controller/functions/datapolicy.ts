@@ -25,8 +25,8 @@ const RAW_DATA = new TimeSeriesDatabase('updateCurrent', 'updateAll');
 export const dataRetentionPolicy = functions.pubsub.schedule('every 1 minutes').onRun(async (context) => {
   const cutoffMillis = new Date().getTime() - 1000 * 60 * 60 * 24 * 14; // 2 weeks.
   const cutoffSeconds = cutoffMillis / 1000;
-  const dryRun = true;  /* TODO: Enable deletion. */
-  const deleteCount = await deleteOldData(cutoffSeconds, dryRun);
+  const dryRunRequested = false;
+  const deleteCount = await deleteOldData(cutoffSeconds, dryRunRequested);
 });
 
 export const deleteData = functions.https.onRequest(async (request, response) => {
@@ -47,21 +47,20 @@ export const deleteData = functions.https.onRequest(async (request, response) =>
   await response.status(200).send(result);
 });
 
-async function deleteOldData(cutoffTimestampSeconds: number, dryRunArg: boolean): Promise<number> {
+async function deleteOldData(cutoffTimestampSeconds: number, dryRunRequested: boolean): Promise<number> {
   const config = await Config.get();
   if (!Config.isDeleteOldDataEnabled(config)) {
     console.log('deleteOldData: Deleting data is disabled');
     return 0;
   }
-  let dryRun = false;
-  if (dryRunArg) {
+  if (dryRunRequested) {
     console.log('deleteOldData: Dry run requested');
-    dryRun = true;
   }
-  if (Config.isDeleteOldDataEnabledDryRun(config)) {
+  const dryRunConfig = Config.isDeleteOldDataEnabledDryRun(config);
+  if (dryRunConfig) {
     console.log('deleteOldData: Dry run is configured');
-    dryRun = true;
   }
+  const dryRun = dryRunRequested || dryRunConfig;
   if (dryRun) {
     console.log('deleteOldData: Doing dry run');
   } else {

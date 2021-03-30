@@ -65,12 +65,11 @@ export class TimeSeriesDatabase {
     const snapshot = await firebase.app().firestore().collection(this.collectionAll)
       .where(TimeSeriesDatabase.DATABASE_TIMESTAMP_SECONDS_KEY, '<', cutoffTimestampSeconds)
       .get();
-    snapshot.forEach(doc => {
+    snapshot.forEach(async doc => {
       if (dryRun) {
         // Do nothing.
       } else {
-        // TODO: Start deleting.
-        // doc.ref.delete();
+        await doc.ref.delete();
       }
     });
     const deleteCount = snapshot.docs.length;
