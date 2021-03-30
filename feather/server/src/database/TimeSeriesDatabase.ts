@@ -71,6 +71,7 @@ export class TimeSeriesDatabase {
       } else {
         await doc.ref.delete();
       }
+      return null;
     });
     const deleteCount = snapshot.docs.length;
     if (deleteCount > 0) {

@@ -27,6 +27,7 @@ export const dataRetentionPolicy = functions.pubsub.schedule('every 1 minutes').
   const cutoffSeconds = cutoffMillis / 1000;
   const dryRunRequested = false;
   const deleteCount = await deleteOldData(cutoffSeconds, dryRunRequested);
+  return null;
 });
 
 export const deleteData = functions.https.onRequest(async (request, response) => {
