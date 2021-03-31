@@ -20,11 +20,19 @@ import { Config } from '../../database/ServerConfigDatabase';
 
 import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
 
-const RAW_DATA = new TimeSeriesDatabase('updateCurrent', 'updateAll');
+const UPDATE_DATABASE = new TimeSeriesDatabase('updateCurrent', 'updateAll');
+const EVENT_DATABASE = new TimeSeriesDatabase('eventsCurrent', 'eventsAll');
+const REMOTE_REQUEST_DATABASE = new TimeSeriesDatabase('remoteButtonRequestCurrent', 'remoteButtonRequestAll');
+const REMOTE_COMMAND_DATABASE = new TimeSeriesDatabase('remoteButtonCommandCurrent', 'remoteButtonCommandAll');
 
 export const dataRetentionPolicy = functions.pubsub
   .schedule('0 0 * * *').timeZone('America/Los_Angeles') // California midnight every day.
   .onRun(async (context) => {
+    const config = await Config.get();
+    if (!Config.isDeleteOldDataEnabled(config)) {
+      console.log('Deleting data is disabled');
+      return null;
+    }
     const cutoffMillis = new Date().getTime() - 1000 * 60 * 60 * 24 * 14; // 2 weeks.
     const cutoffSeconds = cutoffMillis / 1000;
     const dryRunRequested = false;
@@ -33,6 +41,12 @@ export const dataRetentionPolicy = functions.pubsub
   });
 
 export const deleteData = functions.https.onRequest(async (request, response) => {
+  const config = await Config.get();
+  if (!Config.isDeleteOldDataEnabled(config)) {
+    console.log('Deleting data is disabled');
+    response.status(400).send({ error: 'Disabled' });
+    return;
+  }
   let cutoffTimestampSeconds: number = null;
   let dryRun = false;
   if ('dryRun' in request.query) {
@@ -45,16 +59,16 @@ export const deleteData = functions.https.onRequest(async (request, response) =>
   const deleteCount = await deleteOldData(cutoffTimestampSeconds, dryRun);
   const result = {
     dryRun: dryRun,
-    count: deleteCount
+    summary: deleteCount
   };
   await response.status(200).send(result);
 });
 
-async function deleteOldData(cutoffTimestampSeconds: number, dryRunRequested: boolean): Promise<number> {
+async function deleteOldData(cutoffTimestampSeconds: number, dryRunRequested: boolean): Promise<object> {
   const config = await Config.get();
   if (!Config.isDeleteOldDataEnabled(config)) {
     console.log('deleteOldData: Deleting data is disabled');
-    return 0;
+    return {};
   }
   if (dryRunRequested) {
     console.log('deleteOldData: Dry run requested');
@@ -69,5 +83,15 @@ async function deleteOldData(cutoffTimestampSeconds: number, dryRunRequested: bo
   } else {
     console.log('deleteOldData: Deleting data!');
   }
-  return await RAW_DATA.deleteAllBefore(cutoffTimestampSeconds, dryRun);
+  const updateCount = await UPDATE_DATABASE.deleteAllBefore(cutoffTimestampSeconds, dryRun);
+  const eventCount = await EVENT_DATABASE.deleteAllBefore(cutoffTimestampSeconds, dryRun);
+  const requestCount = await REMOTE_REQUEST_DATABASE.deleteAllBefore(cutoffTimestampSeconds, dryRun);
+  const commandCount = await REMOTE_COMMAND_DATABASE.deleteAllBefore(cutoffTimestampSeconds, dryRun);
+  const summary = {
+    updatesDeleted: updateCount,
+    eventsDeleted: eventCount,
+    requestsDeleted: requestCount,
+    commandsDeleted: commandCount
+  };
+  return summary
 }
