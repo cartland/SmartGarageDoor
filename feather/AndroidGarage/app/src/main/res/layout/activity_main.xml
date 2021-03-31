@@ -114,6 +114,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
+        android:background="@color/almost_black"
         tools:text="Version code: 1.0.0" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
