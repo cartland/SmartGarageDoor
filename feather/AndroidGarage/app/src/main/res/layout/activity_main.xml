@@ -51,6 +51,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/status_title"
+        android:text="@string/loading_config"
         tools:text="The door is open." />
 
     <TextView

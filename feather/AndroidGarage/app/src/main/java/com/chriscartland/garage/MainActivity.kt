@@ -39,6 +39,20 @@ class MainActivity : AppCompatActivity() {
     private var configListener: ListenerRegistration? = null
     private var doorListener: ListenerRegistration? = null
 
+    private var loadingState = LoadingState.DEFAULT
+        set(value) {
+            field = value
+            onLoadingStateChanged(field)
+        }
+
+    enum class LoadingState {
+        DEFAULT,
+        LOADING_CONFIG,
+        NO_CONFIG,
+        LOADING_DATA,
+        LOADED_DATA
+    }
+
     private val h: Handler = Handler(Looper.getMainLooper())
     private var checkInRunnable: Runnable? = null
     private var changeRunnable: Runnable? = null
@@ -49,7 +63,7 @@ class MainActivity : AppCompatActivity() {
         val view = binding.root
         setContentView(view)
 
-        handleDoorChanged(Door(message = getString(R.string.loading_config)))
+        loadingState = LoadingState.LOADING_CONFIG
         val configRef = db.collection("configCurrent").document("current")
         configListener = configRef.addSnapshotListener { snapshot, e ->
             if (e != null) {
@@ -99,14 +113,27 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun onLoadingStateChanged(state: LoadingState) {
+        Log.d(TAG, "onLoadingStateChanged: ${state.name}");
+        when (state) {
+            LoadingState.DEFAULT -> {}
+            LoadingState.NO_CONFIG -> {
+                handleDoorChanged(Door(message = getString(R.string.missing_config)))
+            }
+            LoadingState.LOADING_CONFIG -> {}
+            LoadingState.LOADING_DATA -> {}
+            LoadingState.LOADED_DATA -> {}
+        }
+    }
+
     private fun handleConfigData(buildTimestamp: String?) {
         Log.d(TAG, "buildTimestamp: $buildTimestamp")
         doorListener?.remove()
         if (buildTimestamp.isNullOrEmpty()) {
-            handleDoorChanged(Door(message = getString(R.string.missing_config)))
+            loadingState = LoadingState.NO_CONFIG
             return
         } else {
-            handleDoorChanged(Door(message = getString(R.string.loading_data)))
+            loadingState = LoadingState.LOADING_DATA
         }
         Log.d(TAG, "Listening to events for buildTimestamp: $buildTimestamp")
         val eventRef = db.collection("eventsCurrent").document(buildTimestamp)
@@ -119,6 +146,7 @@ class MainActivity : AppCompatActivity() {
                 val data = snapshot.data as Map<*, *>?
                 val doorStatus = data?.toDoorStatus() ?: Door(message = getString(R.string.empty_data))
                 handleDoorChanged(doorStatus)
+                loadingState = LoadingState.LOADED_DATA
             }
         }
     }
