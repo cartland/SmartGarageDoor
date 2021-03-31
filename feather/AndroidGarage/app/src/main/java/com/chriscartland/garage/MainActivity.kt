@@ -62,27 +62,27 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
+        updatePackageVersionUI()
+    }
 
-        loadingState = LoadingState.LOADING_CONFIG
-        val configRef = db.collection("configCurrent").document("current")
-        configListener = configRef.addSnapshotListener { snapshot, e ->
-            if (e != null) {
-                Log.w(TAG, "Config listener failed.", e)
-                return@addSnapshotListener
-            }
-            if (snapshot != null && snapshot.exists()) {
-                val data = snapshot.data as Map<*, *>?
-                Log.d(TAG, "Config data: $data")
-                val buildTimestamp = data?.fromConfigDataToBuildTimestamp()
-                handleConfigData(buildTimestamp)
-            } else {
-                Log.d(TAG, "Config data: null")
-            }
+    override fun onStart() {
+        super.onStart()
+        loadConfig()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        configListener?.remove()
+        doorListener?.remove()
+        checkInRunnable?.let {
+            h.removeCallbacks(it)
+        }
+        changeRunnable?.let {
+            h.removeCallbacks(it)
         }
     }
 
-    override fun onResume() {
-        super.onResume()
+    private fun updatePackageVersionUI() {
         packageManager.getPackageInfo(packageName, 0).let {
             val textView = binding.versionCodeTextView
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -101,15 +101,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    private fun loadConfig() {
         configListener?.remove()
-        doorListener?.remove()
-        checkInRunnable?.let {
-            h.removeCallbacks(it)
-        }
-        changeRunnable?.let {
-            h.removeCallbacks(it)
+        loadingState = LoadingState.LOADING_CONFIG
+        val configRef = db.collection("configCurrent").document("current")
+        configListener = configRef.addSnapshotListener { snapshot, e ->
+            if (e != null) {
+                Log.w(TAG, "Config listener failed.", e)
+                return@addSnapshotListener
+            }
+            if (snapshot != null && snapshot.exists()) {
+                val data = snapshot.data as Map<*, *>?
+                Log.d(TAG, "Config data: $data")
+                val buildTimestamp = data?.fromConfigDataToBuildTimestamp()
+                handleConfigData(buildTimestamp)
+            } else {
+                Log.d(TAG, "Config data: null")
+            }
         }
     }
 
