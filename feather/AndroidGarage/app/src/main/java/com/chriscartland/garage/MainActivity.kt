@@ -102,11 +102,11 @@ class MainActivity : AppCompatActivity() {
             .setTitle(R.string.button_confirmation_title)
             .setMessage(R.string.button_confirmation_message)
             .setIcon(android.R.drawable.ic_dialog_alert)
-            .setPositiveButton(R.string.yes,
+            .setPositiveButton(R.string.confirm_push_button,
                 { dialog, whichButton ->
                     pushRemoteButton(this, config)
                 })
-            .setNegativeButton(R.string.no, null).show()
+            .setNegativeButton(R.string.cancel_push_button, null).show()
     }
 
     private fun pushRemoteButton(context: Context, config: ServerConfig) {
