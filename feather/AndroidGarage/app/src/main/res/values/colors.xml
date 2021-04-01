@@ -29,4 +29,5 @@
     <color name="color_door_open">#B71C1C</color>
     <color name="color_door_error">#F57F17</color>
     <color name="color_background">#757575</color>
+    <color name="red">#F44336</color>
 </resources>

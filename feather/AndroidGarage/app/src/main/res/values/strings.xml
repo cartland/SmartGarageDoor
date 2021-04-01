@@ -26,4 +26,9 @@
     <string name="empty_data">No data.</string>
     <string name="missing_config">Missing server configuration.</string>
     <string name="loading_config">Loading configuration...</string>
+    <string name="push_button">Open / Close Garage</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="button_confirmation_title">Do you really want to push the garage door button?</string>
+    <string name="button_confirmation_message">CAUTION: Pushing the button will cause the garage door to move.\n• Check to make sure no one is near the door.\n• Do not leave the garage unattended.\n\n\You will not be able to push the button again for 30 seconds.</string>
 </resources>

@@ -31,28 +31,40 @@
         android:id="@+id/status_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@color/color_door_error"
+        android:padding="@dimen/title_text_padding"
         android:textAlignment="center"
+        android:textColor="@color/white"
+        android:textSize="@dimen/title_text_size"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:textSize="@dimen/title_text_size"
-        android:textColor="@color/white"
-        android:padding="@dimen/title_text_padding"
-        android:background="@color/color_door_error"
         tools:text="Unknown Status" />
+
+    <Button
+        android:id="@+id/button"
+        android:text="@string/push_button"
+        android:textColor="@color/white"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="onPushButton"
+        android:background="@color/red"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/status_title" />
 
     <TextView
         android:id="@+id/status_message"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textAlignment="center"
-        android:textStyle="italic"
-        android:textColor="@color/white"
         android:paddingTop="@dimen/section_padding"
+        android:text="@string/loading_config"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        android:textStyle="italic"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/status_title"
-        android:text="@string/loading_config"
+        app:layout_constraintTop_toBottomOf="@+id/button"
         tools:text="The door is open." />
 
     <TextView
