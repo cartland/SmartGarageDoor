@@ -41,6 +41,16 @@
         app:layout_constraintTop_toTopOf="parent"
         tools:text="Unknown Status" />
 
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        android:visibility="gone"
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+        android:indeterminateTint="@color/white"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/status_title"
+        android:indeterminate="true"/>
+
     <Button
         android:id="@+id/sign_in_button"
         android:layout_width="wrap_content"

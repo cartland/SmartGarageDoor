@@ -246,6 +246,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun disableButtonTemporarily() {
         Log.d(TAG, "disableButtonTemporarily")
+        showProgressBar()
         binding.button.isEnabled = false
         binding.button.setBackgroundColor(getColor(R.color.almost_black_blue))
         buttonRunnable?.let {
@@ -254,6 +255,7 @@ class MainActivity : AppCompatActivity() {
         buttonRunnable = object : Runnable {
             override fun run() {
                 resetButton()
+                resetProgressBar()
             }
         }
         buttonRunnable?.let {
@@ -317,6 +319,11 @@ class MainActivity : AppCompatActivity() {
         changeRunnable?.let {
             h.removeCallbacks(it)
         }
+        buttonRunnable?.let {
+            h.removeCallbacks(it)
+        }
+        resetProgressBar()
+        resetButton()
     }
 
     private fun updatePackageVersionUI() {
@@ -463,12 +470,21 @@ class MainActivity : AppCompatActivity() {
 
     private fun handleDoorChanged(doorStatus: Door) {
         Log.d(TAG, "handleDoorChanged")
+        resetProgressBar()
         updateStatusTitle(doorStatus)
         updateStatusMessage(doorStatus)
         updateLastCheckInTime(doorStatus)
         updateLastChangeTime(doorStatus)
         updateTimeSinceLastCheckIn(doorStatus)
         updateTimeSinceLastChange(doorStatus)
+    }
+
+    private fun showProgressBar() {
+        binding.progressBar.visibility = View.VISIBLE
+    }
+
+    private fun resetProgressBar() {
+        binding.progressBar.visibility = View.GONE
     }
 
     private fun updateStatusTitle(door: Door) {
