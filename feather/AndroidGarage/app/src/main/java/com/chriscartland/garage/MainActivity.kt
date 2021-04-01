@@ -53,7 +53,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var googleSignInClient: GoogleSignInClient
-    private var userIdToken: String? = null
 
     private val db = Firebase.firestore
     private var configListener: ListenerRegistration? = null
@@ -185,12 +184,25 @@ class MainActivity : AppCompatActivity() {
     private fun pushRemoteButton(context: Context, config: ServerConfig) {
         Log.d(TAG, "pushRemoteButton")
         disableButtonTemporarily()
+        auth.currentUser?.getIdToken(true)?.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val idToken = task.result?.token
+                if (idToken == null) {
+                    Log.e(TAG, "No ID Token");
+                    return@addOnCompleteListener
+                }
+                sendRemoteButtonRequest(context, config, idToken)
+            }
+        }
+    }
+
+    private fun sendRemoteButtonRequest(context: Context, config: ServerConfig, idToken: String) {
+        Log.d(TAG, "sendRemoteButtonRequest")
         val queue = Volley.newRequestQueue(context)
         val buildTimestamp = config.remoteButtonBuildTimestamp
         val host = config.host
         val path = config.path
         val key = config.remoteButtonPushKey
-        val idToken = userIdToken
         val buttonAckToken = createButtonAckToken()
         val url = "$host/$path?buildTimestamp=$buildTimestamp&buttonAckToken=$buttonAckToken"
         if (buildTimestamp.isNullOrEmpty()) {
@@ -266,11 +278,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun onUserUpdated(currentUser: FirebaseUser?) {
         Log.d(TAG, "onUserUpdated: ${currentUser?.email}")
-        currentUser?.getIdToken(true)?.addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                userIdToken = task.result?.token
-            }
-        }
         updateUserUI()
     }
 
