@@ -42,16 +42,29 @@
         tools:text="Unknown Status" />
 
     <Button
-        android:id="@+id/button"
-        android:text="@string/push_button"
-        android:textColor="@color/white"
+        android:id="@+id/sign_in_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:onClick="onPushButton"
-        android:background="@color/red"
+        android:layout_marginTop="@dimen/button_margin"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/status_title" />
+        app:layout_constraintTop_toBottomOf="@+id/status_title"
+        android:onClick="onSignInClicked"
+        android:textColor="@color/white"
+        android:text="@string/sign_in" />
+
+    <Button
+        android:id="@+id/button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/button_margin"
+        android:background="@color/red"
+        android:onClick="onPushButton"
+        android:text="@string/push_button"
+        android:textColor="@color/white"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/sign_in_button" />
 
     <TextView
         android:id="@+id/status_message"
@@ -114,6 +127,31 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/last_change_time"
         tools:text="Time since last change: 01:46:12" />
+
+    <TextView
+        android:id="@+id/user_email"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/version_text_padding"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        app:layout_constraintBottom_toTopOf="@+id/sign_out_button"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:text="@string/fake_email" />
+
+    <Button
+        android:id="@+id/sign_out_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/disclaimer"
+        android:onClick="onSignOutClicked"
+        android:textColor="@color/white"
+        android:visibility="gone"
+        android:text="@string/sign_out" />
 
     <TextView
         android:id="@+id/disclaimer"

@@ -18,6 +18,7 @@
 package com.chriscartland.garage
 
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -31,6 +32,14 @@ import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.chriscartland.garage.databinding.ActivityMainBinding
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -41,6 +50,10 @@ import java.util.Date
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+
+    private lateinit var auth: FirebaseAuth
+    private lateinit var googleSignInClient: GoogleSignInClient
+
 
     private val db = Firebase.firestore
     private var configListener: ListenerRegistration? = null
@@ -89,6 +102,66 @@ class MainActivity : AppCompatActivity() {
         setContentView(view)
         updatePackageVersionUI()
         resetButton() // TODO: Manage button UI in XML.
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.web_client_id))
+            .requestEmail()
+            .build()
+        googleSignInClient = GoogleSignIn.getClient(this, gso)
+        auth = Firebase.auth
+    }
+
+    fun onSignInClicked(view: View) {
+        Log.d(TAG, "onSignInClicked")
+        signIn()
+    }
+
+    fun onSignOutClicked(view: View) {
+        Log.d(TAG, "onSignOutClicked")
+        signOut()
+    }
+
+    private fun signIn() {
+        Log.d(TAG, "signIn")
+        val signInIntent = googleSignInClient.signInIntent
+        startActivityForResult(signInIntent, RC_SIGN_IN)
+    }
+
+    private fun signOut() {
+        auth.signOut()
+        updateUserUI(auth.currentUser)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        Log.d(TAG, "onActivityResult")
+        if (requestCode == RC_SIGN_IN) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+            try {
+                val account = task.getResult(ApiException::class.java)!!
+                Log.d(TAG, "firebaseAuthWithGoogle:" + account.id)
+                firebaseAuthWithGoogle(account.idToken!!)
+            } catch (e: ApiException) {
+                Log.w(TAG, "Google sign in failed", e)
+            }
+        }
+    }
+
+    private fun firebaseAuthWithGoogle(idToken: String) {
+        Log.d(TAG, "firebaseAuthWithGoogle")
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    // Sign in success, update UI with the signed-in user's information
+                    Log.d(TAG, "signInWithCredential:success")
+                    val user = auth.currentUser
+                    updateUserUI(user)
+                } else {
+                    // If sign in fails, display a message to the user.
+                    Log.w(TAG, "signInWithCredential:failure", task.exception)
+                    updateUserUI(null)
+                }
+            }
     }
 
     fun onPushButton(view: View) {
@@ -184,6 +257,33 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         Log.d(TAG, "onResume")
         loadConfig()
+        val currentUser = auth.currentUser
+        updateUserUI(currentUser)
+    }
+
+    private fun updateUserUI(currentUser: FirebaseUser?) {
+        Log.d(TAG, "updateUserUI: ${currentUser?.email}")
+        binding.signInButton.visibility = if (currentUser == null) {
+            View.VISIBLE
+        } else {
+            View.GONE
+        }
+        binding.signOutButton.visibility = if (currentUser != null) {
+            View.VISIBLE
+        } else {
+            View.GONE
+        }
+        binding.userEmail.visibility = if (currentUser == null) {
+            View.GONE
+        } else {
+            View.VISIBLE
+        }
+        binding.userEmail.text = if (currentUser == null) {
+            ""
+        } else {
+            currentUser.email
+        }
+        updateButtonUI()
     }
 
     override fun onStop() {
@@ -285,7 +385,17 @@ class MainActivity : AppCompatActivity() {
             }
         }
         registerDoorOpenNotifications(buildTimestamp)
-        binding.button.visibility = if (config.remoteButtonEnabled) {
+        updateButtonUI()
+    }
+
+    private fun updateButtonUI() {
+        val config = serverConfig
+        val currentUser = auth.currentUser
+        binding.button.visibility = if (
+            config != null
+            && config.remoteButtonEnabled
+            && currentUser != null
+        ) {
             View.VISIBLE
         } else {
             View.GONE
@@ -492,6 +602,8 @@ class MainActivity : AppCompatActivity() {
         const val CHECK_IN_THRESHOLD_SECONDS = 60 * 15
         const val DOOR_NOT_CLOSED_THRESHOLD_SECONDS = 60 * 15
         const val FCM_DOOR_OPEN_TOPIC = "com.chriscartland.garage.FCM_DOOR_OPEN_TOPIC"
+
+        const val RC_SIGN_IN = 1
     }
 }
 

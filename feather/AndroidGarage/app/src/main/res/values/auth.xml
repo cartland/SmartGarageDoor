@@ -17,9 +17,5 @@
   -->
 
 <resources>
-    <dimen name="section_padding">16dp</dimen>
-    <dimen name="title_text_size">48sp</dimen>
-    <dimen name="title_text_padding">16dp</dimen>
-    <dimen name="version_text_padding">16dp</dimen>
-    <dimen name="button_margin">16dp</dimen>
+    <string name="web_client_id" translatable="false">587667443259-45k0kd1o30ho35ni5uv0vg9cqsl2eb7a.apps.googleusercontent.com</string>
 </resources>

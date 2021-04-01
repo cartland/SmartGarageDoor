@@ -14,6 +14,30 @@
       },
       "oauth_client": [
         {
+          "client_id": "587667443259-5lnlpclukf4eeviqt89ejqldsbj3lcsi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.chriscartland.garage",
+            "certificate_hash": "67db400aed46e3eb8e1ea32579469fbc76617900"
+          }
+        },
+        {
+          "client_id": "587667443259-79qgaktushr8kff5lpid0r71agoqt5ce.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.chriscartland.garage",
+            "certificate_hash": "1f6939242d00613fb0a8f3108650fcc5d50e5923"
+          }
+        },
+        {
+          "client_id": "587667443259-crsauc6e5pubpludnd0mgrhngq3p1mss.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.chriscartland.garage",
+            "certificate_hash": "a7224aef2092f345d014e73bbc007943b5cd82ff"
+          }
+        },
+        {
           "client_id": "587667443259-45k0kd1o30ho35ni5uv0vg9cqsl2eb7a.apps.googleusercontent.com",
           "client_type": 3
         }
