@@ -29,6 +29,7 @@ import com.chriscartland.garage.databinding.ActivityMainBinding
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.messaging.ktx.messaging
 import java.util.Date
 
 class MainActivity : AppCompatActivity() {
@@ -51,6 +52,19 @@ class MainActivity : AppCompatActivity() {
         NO_CONFIG,
         LOADING_DATA,
         LOADED_DATA
+    }
+
+    private var fcmState = FCMState.DEFAULT
+        set(value) {
+            field = value
+            Log.d(TAG, fcmState.name)
+        }
+
+    enum class FCMState {
+        DEFAULT,
+        SUBSCRIBE_TO_DOOR_OPEN_IN_PROGRESS,
+        SUBSCRIBE_TO_DOOR_OPEN_SUCCESS,
+        SUBSCRIBE_TO_DOOR_OPEN_FAILED
     }
 
     private val h: Handler = Handler(Looper.getMainLooper())
@@ -157,6 +171,45 @@ class MainActivity : AppCompatActivity() {
                 loadingState = LoadingState.LOADED_DATA
             }
         }
+        registerDoorOpenNotifications(buildTimestamp)
+    }
+
+    private fun registerDoorOpenNotifications(buildTimestamp: String) {
+        val newFcmTopic = buildTimestamp.toDoorOpenFcmTopic()
+        val sharedPref = getPreferences(Context.MODE_PRIVATE)
+        val oldFcmTopic = sharedPref.getString(FCM_DOOR_OPEN_TOPIC, "")
+        if (oldFcmTopic != null && newFcmTopic != oldFcmTopic) {
+            Firebase.messaging.unsubscribeFromTopic(oldFcmTopic)
+        }
+        with (sharedPref.edit()) {
+            putString(FCM_DOOR_OPEN_TOPIC, newFcmTopic)
+            apply()
+        }
+        Log.i(TAG, "Old FCM Topic: $oldFcmTopic, New FCM Topic: $newFcmTopic")
+        fcmState = FCMState.SUBSCRIBE_TO_DOOR_OPEN_IN_PROGRESS
+        Firebase.messaging.subscribeToTopic(newFcmTopic)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    fcmState = FCMState.SUBSCRIBE_TO_DOOR_OPEN_SUCCESS
+                } else {
+                    fcmState = FCMState.SUBSCRIBE_TO_DOOR_OPEN_FAILED
+                    Log.e(TAG, task.exception.toString())
+                }
+
+            }
+        Firebase.messaging.token
+            .addOnCompleteListener { task ->
+                if (!task.isSuccessful) {
+                    Log.w(TAG, "Fetching FCM registration token failed", task.exception)
+                    return@addOnCompleteListener
+                }
+                val token = task.result
+                if (token == null) {
+                    Log.d(TAG, "Fetching FCM registration token null")
+                } else {
+                    Log.d(FCMService.TAG, "FCM Instance Token: $token")
+                }
+            }
     }
 
     private fun handleDoorChanged(doorStatus: Door) {
@@ -317,7 +370,14 @@ class MainActivity : AppCompatActivity() {
 
         const val CHECK_IN_THRESHOLD_SECONDS = 60 * 15
         const val DOOR_NOT_CLOSED_THRESHOLD_SECONDS = 60 * 15
+        const val FCM_DOOR_OPEN_TOPIC = "com.chriscartland.garage.FCM_DOOR_OPEN_TOPIC"
     }
+}
+
+private fun String.toDoorOpenFcmTopic(): String {
+    val re = Regex("[^a-zA-Z0-9-_.~%]")
+    val filtered = re.replace(this, ".")
+    return "door_open-$filtered"
 }
 
 private fun Map<*, *>.fromConfigDataToBuildTimestamp(): String? {
