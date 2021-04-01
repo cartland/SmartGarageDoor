@@ -216,37 +216,53 @@ export function isEventOld(currentEvent: SensorEvent, now: number): boolean {
 }
 
 export function getMessageFromEvent(buildTimestamp: string, currentEvent: SensorEvent, now: number): Message {
+  const eventDurationSeconds = now - currentEvent.timestampSeconds;
+  const durationMinutes = Math.floor(eventDurationSeconds / 60);
+  const durationHours = Math.floor(durationMinutes / 60);
+  let durationString = '';
+  if (durationMinutes < 60) {
+    durationString = durationMinutes.toString() + ' minutes';
+  } else {
+    durationString = durationHours.toString() + ' hours';
+  }
+  const message = <Message>{};
+  message.notification = <Notification>{};
+  message.topic = buildTimestampToFcmTopic(buildTimestamp);
   let type = currentEvent.type;
   switch (type) {
     case SensorEventType.Unknown:
-      return null;
+      message.notification.title = 'Unknown door status';
+      message.notification.body = 'Error not resolved for longer than ' + durationString;
+      return message;
     case SensorEventType.ErrorSensorConflict:
-      return null;
+      message.notification.title = 'Door error';
+      message.notification.body = 'Door error for longer than ' + durationString;
+      return message;
     case SensorEventType.Closed:
       return null;
     case SensorEventType.Closing:
-      return null;
+      message.notification.title = 'Door not closed';
+      message.notification.body = 'Door did not close for more than ' + durationString;
+      return message;
     case SensorEventType.ClosingTooLong:
-      return null;
+      message.notification.title = 'Door not closed';
+      message.notification.body = 'Door did not close for more than ' + durationString;
+      return message;
     case SensorEventType.Open:
-      const eventDurationSeconds = now - currentEvent.timestampSeconds;
-      const durationMinutes = Math.floor(eventDurationSeconds / 60);
-      const durationHours = Math.floor(durationMinutes / 60);
-      const message = <Message>{};
-      message.notification = <Notification>{};
-      message.notification.body = 'Garage door open';
-      if (durationMinutes > 0) {
-        message.notification.title = 'Open for more than ' + durationHours + ' hours.';
-      } else {
-        message.notification.title = 'Open for more than ' + durationMinutes + ' minutes.';
-      }
-      message.topic = buildTimestampToFcmTopic(buildTimestamp);
+      message.notification.title = 'Garage door open';
+      message.notification.body = 'Open for more than ' + durationString;
       return message;
     case SensorEventType.Opening:
-      return null;
+      message.notification.title = 'Door not closed';
+      message.notification.body = 'Door not closed for more than ' + durationString;
+      return message;
     case SensorEventType.OpeningTooLong:
-      return null;
+      message.notification.title = 'Door not closed';
+      message.notification.body = 'Door not closed for more than ' + durationString;
+      return message;
     default:
-      return null;
+      message.notification.title = 'Unknown door status';
+      message.notification.body = 'Door error for longer than ' + durationString;
+      return message;
   }
 }
