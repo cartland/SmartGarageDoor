@@ -107,13 +107,14 @@ export const addRemoteButtonCommand = functions.https.onRequest(async (request, 
     return;
   }
   const googleIdToken = request.get('X-GoogleIdToken');
+  console.log('googleIdToken:', googleIdToken);
   if (!googleIdToken || googleIdToken.length <= 0) {
     response.status(401).send({ error: 'Unauthorized.' });
     return;
   }
   const decodedToken = await firebase.auth().verifyIdToken(googleIdToken)
   const email = decodedToken.email
-  console.log(email);
+  console.log('email:', email);
   if (Config.getRemoteButtonPushKey(config) !== buttonPushKeyHeader) {
     response.status(403).send({ error: 'Forbidden.' });
     return;

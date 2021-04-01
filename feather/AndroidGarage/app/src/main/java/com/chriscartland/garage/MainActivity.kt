@@ -214,6 +214,7 @@ class MainActivity : AppCompatActivity() {
                 val params: MutableMap<String, String> = HashMap()
                 params["X-RemoteButtonPushKey"] = key ?: ""
                 params["X-GoogleIdToken"] = userIdToken ?: ""
+                Log.d(TAG, "userIdToken: $userIdToken")
                 return params
             }
         }
