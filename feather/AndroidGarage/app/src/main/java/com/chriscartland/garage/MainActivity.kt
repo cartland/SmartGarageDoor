@@ -79,8 +79,8 @@ class MainActivity : AppCompatActivity() {
         updatePackageVersionUI()
     }
 
-    override fun onStart() {
-        super.onStart()
+    override fun onResume() {
+        super.onResume()
         loadConfig()
     }
 
