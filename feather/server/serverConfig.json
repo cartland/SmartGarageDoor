@@ -1,6 +1,13 @@
 {
-  "buildTimestamp": "Sat Mar 27 15:20:34 2021",
+  "buildTimestamp": "Sat Mar 13 14:45:00 2021",
   "deleteOldDataEnabled": true,
-  "deleteOldDataEnabledDryRun": true,
-  "remoteButtonEnabled": true
+  "deleteOldDataEnabledDryRun": false,
+  "remoteButtonEnabled": true,
+  "remoteButtonBuildTimestamp": "Sat%20Mar%2027%2015:20:34%202021",
+  "remoteButtonPushKey": "requiredKey",
+  "host": "https://example.com",
+  "path": "addRemoteButtonCommand",
+  "remoteButtonAuthorizedEmails": [
+    "email@example.com"
+  ]
 }
