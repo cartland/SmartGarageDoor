@@ -100,6 +100,15 @@ export const addRemoteButtonCommand = functions.https.onRequest(async (request, 
     response.status(400).send({ error: 'Disabled' });
     return;
   }
+  const buttonPushKeyHeader = request.get('X-RemoteButtonPushKey');
+  if (!buttonPushKeyHeader || buttonPushKeyHeader.length <= 0) {
+    response.status(401).send({ error: 'Unauthorized.' });
+    return;
+  }
+  if (Config.getRemoteButtonPushKey(config) !== buttonPushKeyHeader) {
+    response.status(403).send({ error: 'Forbidden.' });
+    return;
+  }
   // Echo query parameters and body.
   const data = {
     queryParams: request.query,

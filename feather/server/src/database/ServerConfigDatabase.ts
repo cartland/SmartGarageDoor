@@ -28,6 +28,13 @@ class ServerConfig {
     return Config.DATABASE.getCurrent(Config.CURRENT_KEY);
   }
 
+  getRemoteButtonPushKey(config): string {
+    if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('remoteButtonPushKey')) {
+      return config.body.remoteButtonPushKey;
+    }
+    return null;
+  }
+
   isRemoteButtonEnabled(config): boolean {
     if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('remoteButtonEnabled')) {
       return config.body.remoteButtonEnabled;
