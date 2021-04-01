@@ -82,6 +82,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d(TAG, "onCreate")
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
@@ -90,6 +91,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun onPushButton(view: View) {
+        Log.d(TAG, "onPushButton")
         val config = serverConfig
         if (config == null) {
             Log.e(TAG, "Cannot push button without server configuration")
@@ -107,6 +109,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun pushRemoteButton(context: Context, config: ServerConfig) {
+        Log.d(TAG, "pushRemoteButton")
         disableButtonTemporarily()
         val queue = Volley.newRequestQueue(context)
         val buildTimestamp = config.remoteButtonBuildTimestamp
@@ -141,6 +144,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun disableButtonTemporarily() {
+        Log.d(TAG, "disableButtonTemporarily")
         binding.button.isEnabled = false
         binding.button.setBackgroundColor(getColor(R.color.almost_black_blue))
         buttonRunnable?.let {
@@ -158,17 +162,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun resetButton() {
+        Log.d(TAG, "resetButton")
         binding.button.isEnabled = true
         binding.button.setBackgroundColor(getColor(R.color.red))
     }
 
     override fun onResume() {
         super.onResume()
+        Log.d(TAG, "onResume")
         loadConfig()
     }
 
     override fun onStop() {
         super.onStop()
+        Log.d(TAG, "onStop")
         configListener?.remove()
         doorListener?.remove()
         checkInRunnable?.let {
@@ -180,6 +187,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updatePackageVersionUI() {
+        Log.d(TAG, "updatePackageVersionUI")
         packageManager.getPackageInfo(packageName, 0).let {
             val textView = binding.versionCodeTextView
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -199,6 +207,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadConfig() {
+        Log.d(TAG, "loadConfig")
         configListener?.remove()
         loadingState = LoadingState.LOADING_CONFIG
         val configRef = db.collection("configCurrent").document("current")
@@ -232,6 +241,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleConfigData(config: ServerConfig?) {
+        Log.d(TAG, "handleConfigData")
         serverConfig = config
         Log.d(TAG, "Config ${config?.toString()}")
         val buildTimestamp = config?.buildTimestamp
@@ -261,6 +271,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun registerDoorOpenNotifications(buildTimestamp: String) {
+        Log.d(TAG, "registerDoorOpenNotifications")
         val newFcmTopic = buildTimestamp.toDoorOpenFcmTopic()
         val sharedPref = getPreferences(Context.MODE_PRIVATE)
         val oldFcmTopic = sharedPref.getString(FCM_DOOR_OPEN_TOPIC, "")
@@ -299,6 +310,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleDoorChanged(doorStatus: Door) {
+        Log.d(TAG, "handleDoorChanged")
         updateStatusTitle(doorStatus)
         updateStatusMessage(doorStatus)
         updateLastCheckInTime(doorStatus)
@@ -411,6 +423,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getStatusTitleAndColor(door: Door, context: Context): Pair<String, Int> {
+        Log.d(TAG, "getStatusTitleAndColor")
         return when (door.state) {
             null -> Pair(
                 "Unknown Status",
