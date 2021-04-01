@@ -30,5 +30,6 @@
     <string name="yes">Yes</string>
     <string name="no">No</string>
     <string name="button_confirmation_title">Do you really want to push the garage door button?</string>
-    <string name="button_confirmation_message">CAUTION: Pushing the button will cause the garage door to move.\n• Check to make sure no one is near the door.\n• Do not leave the garage unattended.\n\n\You will not be able to push the button again for 30 seconds.</string>
+    <string name="button_confirmation_message">CAUTION: Pushing the button will cause the garage door to move.\n\n• Check to make sure no one is near the door.\n• Do not leave the garage unattended.\n\n\You will not be able to push the button again for 30 seconds.</string>
+    <string name="disclaimer">Disclaimer: This app does not make any guarantees about the accuracy of the information. Be careful.</string>
 </resources>

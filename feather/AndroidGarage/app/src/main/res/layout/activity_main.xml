@@ -116,6 +116,21 @@
         tools:text="Time since last change: 01:46:12" />
 
     <TextView
+        android:id="@+id/disclaimer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/almost_black"
+        android:padding="@dimen/version_text_padding"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        android:textStyle="italic"
+        app:layout_constraintBottom_toTopOf="@+id/version_code_text_view"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        android:text="@string/disclaimer" />
+
+    <TextView
         android:id="@+id/version_code_text_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
