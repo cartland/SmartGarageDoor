@@ -53,7 +53,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var googleSignInClient: GoogleSignInClient
-
+    private var userIdToken: String? = null
 
     private val db = Firebase.firestore
     private var configListener: ListenerRegistration? = null
@@ -128,7 +128,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun signOut() {
         auth.signOut()
-        updateUserUI(auth.currentUser)
+        onUserUpdated(auth.currentUser)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -155,11 +155,11 @@ class MainActivity : AppCompatActivity() {
                     // Sign in success, update UI with the signed-in user's information
                     Log.d(TAG, "signInWithCredential:success")
                     val user = auth.currentUser
-                    updateUserUI(user)
+                    onUserUpdated(user)
                 } else {
                     // If sign in fails, display a message to the user.
                     Log.w(TAG, "signInWithCredential:failure", task.exception)
-                    updateUserUI(null)
+                    onUserUpdated(null)
                 }
             }
     }
@@ -213,6 +213,7 @@ class MainActivity : AppCompatActivity() {
             override fun getHeaders(): Map<String, String> {
                 val params: MutableMap<String, String> = HashMap()
                 params["X-RemoteButtonPushKey"] = key ?: ""
+                params["X-GoogleIdToken"] = userIdToken ?: ""
                 return params
             }
         }
@@ -258,11 +259,21 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "onResume")
         loadConfig()
         val currentUser = auth.currentUser
-        updateUserUI(currentUser)
+        onUserUpdated(currentUser)
     }
 
-    private fun updateUserUI(currentUser: FirebaseUser?) {
-        Log.d(TAG, "updateUserUI: ${currentUser?.email}")
+    private fun onUserUpdated(currentUser: FirebaseUser?) {
+        Log.d(TAG, "onUserUpdated: ${currentUser?.email}")
+        currentUser?.getIdToken(true)?.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                userIdToken = task.result?.token
+            }
+        }
+        updateUserUI()
+    }
+
+    private fun updateUserUI() {
+        val currentUser = auth.currentUser
         binding.signInButton.visibility = if (currentUser == null) {
             View.VISIBLE
         } else {

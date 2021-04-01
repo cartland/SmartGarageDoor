@@ -16,6 +16,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 
+import * as firebase from 'firebase-admin';
 import * as functions from 'firebase-functions';
 
 import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
@@ -30,7 +31,7 @@ const REMOTE_BUTTON_REQUEST_DATABASE = new TimeSeriesDatabase('remoteButtonReque
 const SESSION_PARAM_KEY = "session";
 const BUTTON_ACK_TOKEN_PARAM_KEY = "buttonAckToken";
 const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
-
+const EMAIL_PARAM_KEY = "email"
 
 /**
  * curl -H "Content-Type: application/json" http://localhost:5000/escape-echo/us-central1/remoteButton?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
@@ -105,6 +106,14 @@ export const addRemoteButtonCommand = functions.https.onRequest(async (request, 
     response.status(401).send({ error: 'Unauthorized.' });
     return;
   }
+  const googleIdToken = request.get('X-GoogleIdToken');
+  if (!googleIdToken || googleIdToken.length <= 0) {
+    response.status(401).send({ error: 'Unauthorized.' });
+    return;
+  }
+  const decodedToken = await firebase.auth().verifyIdToken(googleIdToken)
+  const email = decodedToken.email
+  console.log(email);
   if (Config.getRemoteButtonPushKey(config) !== buttonPushKeyHeader) {
     response.status(403).send({ error: 'Forbidden.' });
     return;
@@ -136,6 +145,7 @@ export const addRemoteButtonCommand = functions.https.onRequest(async (request, 
   } else {
     // Skip.
   }
+  data[EMAIL_PARAM_KEY] = email;
   const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
   try {
     await REMOTE_BUTTON_COMMAND_DATABASE.save(buildTimestamp, data);
