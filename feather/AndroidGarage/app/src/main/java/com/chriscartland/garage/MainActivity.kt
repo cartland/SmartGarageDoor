@@ -46,6 +46,7 @@ class MainActivity : AppCompatActivity() {
     private var configListener: ListenerRegistration? = null
     private var doorListener: ListenerRegistration? = null
 
+    private var appVersion: AppVersion? = null
     private var serverConfig: ServerConfig? = null
 
     private var loadingState = LoadingState.DEFAULT
@@ -115,14 +116,16 @@ class MainActivity : AppCompatActivity() {
         val buildTimestamp = config.remoteButtonBuildTimestamp
         val host = config.host
         val path = config.path
-        val key = config.doorButtonKey ?: ""
-        val url = "$host/$path?buildTimestamp=$buildTimestamp&buttonAckToken=android"
+        val key = config.doorButtonKey
+        val buttonAckToken = createButtonAckToken()
+        val url = "$host/$path?buildTimestamp=$buildTimestamp&buttonAckToken=$buttonAckToken"
         if (buildTimestamp == null) {
             Log.e(TAG, "pushRemoteButton: No remoteButtonBuildTimestamp")
         }
         if (host == null) { Log.e(TAG, "pushRemoteButton: No host") }
         if (path == null) { Log.e(TAG, "pushRemoteButton: No path") }
         if (key == null) { Log.e(TAG, "pushRemoteButton: No key") }
+        if (buttonAckToken == null) { Log.e(TAG, "pushRemoteButton: No buttonAckToken") }
         Log.d(TAG, url)
         val stringRequest = object : StringRequest(
             Method.POST,
@@ -136,11 +139,21 @@ class MainActivity : AppCompatActivity() {
             }) {
             override fun getHeaders(): Map<String, String> {
                 val params: MutableMap<String, String> = HashMap()
-                params["X-RemoteButtonPushKey"] = key
+                params["X-RemoteButtonPushKey"] = key ?: ""
                 return params
             }
         }
         queue.add(stringRequest)
+    }
+
+    private fun createButtonAckToken(): String {
+        val now = Date()
+        val humandReadable = DateFormat.format("yyyy-MM-dd hh:mm:ss a", now).toString()
+        val timestampMillis = now.time
+        val buttonAckTokenData = "android-$appVersion-$humandReadable-$timestampMillis"
+        val re = Regex("[^a-zA-Z0-9-_.]")
+        val filtered = re.replace(buttonAckTokenData, ".")
+        return filtered
     }
 
     private fun disableButtonTemporarily() {
@@ -190,19 +203,23 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "updatePackageVersionUI")
         packageManager.getPackageInfo(packageName, 0).let {
             val textView = binding.versionCodeTextView
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                textView.text = getString(
-                    R.string.version_code_string,
-                    it.versionName,
-                    it.longVersionCode
+            val newAppVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                AppVersion(
+                    versionCode = it.longVersionCode,
+                    versionName = it.versionName
                 )
             } else {
-                textView.text = getString(
-                    R.string.version_code_string,
-                    it.versionName,
-                    it.versionCode
+                AppVersion(
+                    versionCode = it.versionCode.toLong(),
+                    versionName = it.versionName
                 )
             }
+            textView.text = getString(
+                R.string.version_code_string,
+                newAppVersion.versionName ?: "",
+                newAppVersion.versionCode ?: 0L
+            )
+            appVersion = newAppVersion
         }
     }
 
