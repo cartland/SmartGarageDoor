@@ -22,5 +22,6 @@ data class ServerConfig(
     val doorButtonKey: String? = null,
     val remoteButtonBuildTimestamp: String? = null,
     val host: String? = null,
-    val path: String? = null
+    val path: String? = null,
+    val remoteButtonEnabled: Boolean = false
 )

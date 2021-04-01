@@ -285,6 +285,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
         registerDoorOpenNotifications(buildTimestamp)
+        binding.button.visibility = if (config.remoteButtonEnabled) {
+            View.VISIBLE
+        } else {
+            View.GONE
+        }
     }
 
     private fun registerDoorOpenNotifications(buildTimestamp: String) {
@@ -522,11 +527,13 @@ private fun Map<*, *>.toServerConfig(): ServerConfig? {
     val remoteButtonBuildTimestamp = body["remoteButtonBuildTimestamp"] as? String?
     val host = body["host"] as? String?
     val path = body["path"] as? String?
+    val remoteButtonEnabled = body["remoteButtonEnabled"] as? Boolean ?: false
     return ServerConfig(
         buildTimestamp = buildTimestamp,
         doorButtonKey = doorButtonKey ,
         remoteButtonBuildTimestamp =remoteButtonBuildTimestamp,
         host = host,
-        path = path
+        path = path,
+        remoteButtonEnabled = remoteButtonEnabled
     )
 }
