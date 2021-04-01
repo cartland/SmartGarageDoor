@@ -190,16 +190,18 @@ class MainActivity : AppCompatActivity() {
         val host = config.host
         val path = config.path
         val key = config.doorButtonKey
+        val idToken = userIdToken
         val buttonAckToken = createButtonAckToken()
         val url = "$host/$path?buildTimestamp=$buildTimestamp&buttonAckToken=$buttonAckToken"
-        if (buildTimestamp == null) {
+        if (buildTimestamp.isNullOrEmpty()) {
             Log.e(TAG, "pushRemoteButton: No remoteButtonBuildTimestamp")
         }
-        if (host == null) { Log.e(TAG, "pushRemoteButton: No host") }
-        if (path == null) { Log.e(TAG, "pushRemoteButton: No path") }
-        if (key == null) { Log.e(TAG, "pushRemoteButton: No key") }
-        if (buttonAckToken == null) { Log.e(TAG, "pushRemoteButton: No buttonAckToken") }
-        Log.d(TAG, url)
+        if (host.isNullOrEmpty() == null) { Log.e(TAG, "pushRemoteButton: No host") }
+        if (path.isNullOrEmpty()) { Log.e(TAG, "pushRemoteButton: No path") }
+        if (key.isNullOrEmpty()) { Log.e(TAG, "pushRemoteButton: No key") }
+        if (idToken.isNullOrEmpty()) { Log.e(TAG, "pushRemoteButton: No ID token") }
+        if (buttonAckToken.isNullOrEmpty()) { Log.e(TAG, "pushRemoteButton: No buttonAckToken") }
+        Log.d(TAG, "url: $url, key: $key, idToken: $idToken")
         val stringRequest = object : StringRequest(
             Method.POST,
             url,
@@ -213,8 +215,7 @@ class MainActivity : AppCompatActivity() {
             override fun getHeaders(): Map<String, String> {
                 val params: MutableMap<String, String> = HashMap()
                 params["X-RemoteButtonPushKey"] = key ?: ""
-                params["X-GoogleIdToken"] = userIdToken ?: ""
-                Log.d(TAG, "userIdToken: $userIdToken")
+                params["X-AuthTokenGoogle"] = idToken ?: ""
                 return params
             }
         }

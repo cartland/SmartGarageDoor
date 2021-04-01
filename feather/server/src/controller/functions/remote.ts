@@ -101,20 +101,24 @@ export const addRemoteButtonCommand = functions.https.onRequest(async (request, 
     response.status(400).send({ error: 'Disabled' });
     return;
   }
-  const buttonPushKeyHeader = request.get('X-RemoteButtonPushKey');
-  if (!buttonPushKeyHeader || buttonPushKeyHeader.length <= 0) {
-    response.status(401).send({ error: 'Unauthorized.' });
-    return;
-  }
-  const googleIdToken = request.get('X-GoogleIdToken');
+  const googleIdToken = request.get('X-AuthTokenGoogle');
   console.log('googleIdToken:', googleIdToken);
-  if (!googleIdToken || googleIdToken.length <= 0) {
-    response.status(401).send({ error: 'Unauthorized.' });
+  // if (!googleIdToken || googleIdToken.length <= 0) {
+  //   response.status(401).send({ error: 'Unauthorized token.' });
+  //   return;
+  // }
+  let email = "";
+  if (googleIdToken && googleIdToken.length > 0) {
+    const decodedToken = await firebase.auth().verifyIdToken(googleIdToken);
+    email = decodedToken.email;
+    console.log('email:', email);
+  }
+  const buttonPushKeyHeader = request.get('X-RemoteButtonPushKey');
+  console.log('buttonPushKeyHeader', buttonPushKeyHeader);
+  if (!buttonPushKeyHeader || buttonPushKeyHeader.length <= 0) {
+    response.status(401).send({ error: 'Unauthorized key.' });
     return;
   }
-  const decodedToken = await firebase.auth().verifyIdToken(googleIdToken)
-  const email = decodedToken.email
-  console.log('email:', email);
   if (Config.getRemoteButtonPushKey(config) !== buttonPushKeyHeader) {
     response.status(403).send({ error: 'Forbidden.' });
     return;
