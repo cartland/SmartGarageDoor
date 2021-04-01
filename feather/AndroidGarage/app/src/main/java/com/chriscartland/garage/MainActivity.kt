@@ -189,7 +189,7 @@ class MainActivity : AppCompatActivity() {
         val buildTimestamp = config.remoteButtonBuildTimestamp
         val host = config.host
         val path = config.path
-        val key = config.doorButtonKey
+        val key = config.remoteButtonPushKey
         val idToken = userIdToken
         val buttonAckToken = createButtonAckToken()
         val url = "$host/$path?buildTimestamp=$buildTimestamp&buttonAckToken=$buttonAckToken"
@@ -648,14 +648,14 @@ private fun Map<*, *>.toDoorStatus(): Door {
 private fun Map<*, *>.toServerConfig(): ServerConfig? {
     val body = this["body"] as? Map<*, *> ?: return null
     val buildTimestamp = body["buildTimestamp"] as? String?
-    val doorButtonKey = body["doorButtonKey"] as? String?
+    val remoteButtonPushKey = body["remoteButtonPushKey"] as? String?
     val remoteButtonBuildTimestamp = body["remoteButtonBuildTimestamp"] as? String?
     val host = body["host"] as? String?
     val path = body["path"] as? String?
     val remoteButtonEnabled = body["remoteButtonEnabled"] as? Boolean ?: false
     return ServerConfig(
         buildTimestamp = buildTimestamp,
-        doorButtonKey = doorButtonKey ,
+        remoteButtonPushKey = remoteButtonPushKey,
         remoteButtonBuildTimestamp =remoteButtonBuildTimestamp,
         host = host,
         path = path,

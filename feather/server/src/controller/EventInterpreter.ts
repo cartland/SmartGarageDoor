@@ -228,7 +228,7 @@ export function getMessageFromEvent(buildTimestamp: string, currentEvent: Sensor
   const message = <Message>{};
   message.notification = <Notification>{};
   message.topic = buildTimestampToFcmTopic(buildTimestamp);
-  let type = currentEvent.type;
+  const type = currentEvent.type;
   switch (type) {
     case SensorEventType.Unknown:
       message.notification.title = 'Unknown door status';

@@ -35,6 +35,13 @@ class ServerConfig {
     return null;
   }
 
+  getRemoteButtonAuthorizedEmails(config): string[] {
+    if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('remoteButtonAuthorizedEmails')) {
+      return config.body.remoteButtonAuthorizedEmails;
+    }
+    return null;
+  }
+
   isRemoteButtonEnabled(config): boolean {
     if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('remoteButtonEnabled')) {
       return config.body.remoteButtonEnabled;

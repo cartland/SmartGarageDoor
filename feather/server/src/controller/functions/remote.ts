@@ -22,6 +22,7 @@ import * as functions from 'firebase-functions';
 import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
 
 import { Config } from '../../database/ServerConfigDatabase';
+import { isAuthorizedToPushRemoteButton } from '../../controller/Auth';
 
 import { RemoteButtonCommand } from '../../model/RemoteButtonCommand';
 
@@ -101,26 +102,35 @@ export const addRemoteButtonCommand = functions.https.onRequest(async (request, 
     response.status(400).send({ error: 'Disabled' });
     return;
   }
-  const googleIdToken = request.get('X-AuthTokenGoogle');
-  console.log('googleIdToken:', googleIdToken);
-  // if (!googleIdToken || googleIdToken.length <= 0) {
-  //   response.status(401).send({ error: 'Unauthorized token.' });
-  //   return;
-  // }
-  let email = "";
-  if (googleIdToken && googleIdToken.length > 0) {
-    const decodedToken = await firebase.auth().verifyIdToken(googleIdToken);
-    email = decodedToken.email;
-    console.log('email:', email);
-  }
   const buttonPushKeyHeader = request.get('X-RemoteButtonPushKey');
-  console.log('buttonPushKeyHeader', buttonPushKeyHeader);
   if (!buttonPushKeyHeader || buttonPushKeyHeader.length <= 0) {
-    response.status(401).send({ error: 'Unauthorized key.' });
+    const result = { error: 'Unauthorized (key).' };
+    console.error(result);
+    response.status(401).send(result);
     return;
   }
   if (Config.getRemoteButtonPushKey(config) !== buttonPushKeyHeader) {
-    response.status(403).send({ error: 'Forbidden.' });
+    const result = { error: 'Forbidden (key).' };
+    console.error(result);
+    response.status(403).send(result);
+    return;
+  }
+  const googleIdToken = request.get('X-AuthTokenGoogle');
+  console.log('googleIdToken:', googleIdToken);
+  if (!googleIdToken || googleIdToken.length <= 0) {
+    const result = { error: 'Unauthorized (token).' };
+    console.error(result);
+    response.status(401).send(result);
+    return;
+  }
+  const decodedToken = await firebase.auth().verifyIdToken(googleIdToken);
+  const email = decodedToken.email;
+  console.log('email:', email);
+  const authorizedEmails = Config.getRemoteButtonAuthorizedEmails(config);
+  if (!isAuthorizedToPushRemoteButton(email, authorizedEmails)) {
+    const result = { error: 'Forbidden (user).' };
+    console.error(result);
+    response.status(403).send(result);
     return;
   }
   // Echo query parameters and body.
