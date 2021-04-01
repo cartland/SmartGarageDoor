@@ -20,7 +20,8 @@ import {
 } from '../model/SensorEvent';
 
 import { SensorSnapshot } from '../model/SensorSnapshot';
-
+import { Message, Notification } from '../model/FCM';
+import { buildTimestampToFcmTopic } from '../model/FcmTopic';
 
 const TOO_LONG_DURATION_SECONDS = 60;
 const TOO_LONG_OPEN_SECONDS = 15 * 60;
@@ -207,4 +208,45 @@ export function getNewEventOrNull(oldEvent: SensorEvent, sensorSnapshot: SensorS
       return Unknown(timestampSeconds);
   }
   // Unreachable code. Switch statement must return a value.
+}
+
+export function isEventOld(currentEvent: SensorEvent, now: number): boolean {
+  const eventDurationSeconds = now - currentEvent.timestampSeconds;
+  return eventDurationSeconds > TOO_LONG_OPEN_SECONDS;
+}
+
+export function getMessageFromEvent(buildTimestamp: string, currentEvent: SensorEvent, now: number): Message {
+  let type = currentEvent.type;
+  switch (type) {
+    case SensorEventType.Unknown:
+      return null;
+    case SensorEventType.ErrorSensorConflict:
+      return null;
+    case SensorEventType.Closed:
+      return null;
+    case SensorEventType.Closing:
+      return null;
+    case SensorEventType.ClosingTooLong:
+      return null;
+    case SensorEventType.Open:
+      const eventDurationSeconds = now - currentEvent.timestampSeconds;
+      const durationMinutes = Math.floor(eventDurationSeconds / 60);
+      const durationHours = Math.floor(durationMinutes / 60);
+      const message = <Message>{};
+      message.notification = <Notification>{};
+      message.notification.body = 'Garage door open';
+      if (durationMinutes > 0) {
+        message.notification.title = 'Open for more than ' + durationHours + ' hours.';
+      } else {
+        message.notification.title = 'Open for more than ' + durationMinutes + ' minutes.';
+      }
+      message.topic = buildTimestampToFcmTopic(buildTimestamp);
+      return message;
+    case SensorEventType.Opening:
+      return null;
+    case SensorEventType.OpeningTooLong:
+      return null;
+    default:
+      return null;
+  }
 }

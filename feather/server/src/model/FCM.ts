@@ -19,7 +19,7 @@ export interface Message {
   topic: string,
 }
 
-interface Notification {
+export interface Notification {
   body: string,
   title: string,
 }

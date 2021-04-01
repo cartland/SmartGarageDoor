@@ -15,6 +15,6 @@
  */
 
 export function buildTimestampToFcmTopic(buildTimestamp: string): string {
-  var re = /[^a-zA-Z0-9-_.~%]/g;
+  const re = /[^a-zA-Z0-9-_.~%]/g;
   return 'door_open-' + buildTimestamp.replace(re, '.');
 }

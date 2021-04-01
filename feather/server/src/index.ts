@@ -24,7 +24,10 @@ import { remoteButton, addRemoteButtonCommand } from './controller/functions/rem
 import { serverConfig } from './controller/functions/config'
 import { dataRetentionPolicy, deleteData } from './controller/functions/datapolicy'
 import { nextEvent } from './controller/functions/events'
-import { updateEvent } from './controller/functions/EventUpdates';
+import { updateEvent, sendFCMForOldData } from './controller/functions/EventUpdates';
+import { TimeSeriesDatabase } from './database/TimeSeriesDatabase';
+
+const EVENT_DATABASE = new TimeSeriesDatabase('eventsCurrent', 'eventsAll');
 
 /*
  * This file is the main entrace for Cloud Functions for Firebase.
@@ -72,6 +75,20 @@ exports.checkForDoorErrors = functions.pubsub.schedule('every 1 minutes').onRun(
   data[BUILD_TIMESTAMP_PARAM_KEY] = buildTimestampString;
   await updateEvent(data, scheduledJob);
   return null;
+});
+
+exports.checkForOpenDoorsJob = functions.pubsub.schedule('every 5 minutes').onRun(async (context) => {
+  const buildTimestamp = 'Sat Mar 13 14:45:00 2021';
+  const eventData = await EVENT_DATABASE.getCurrent(buildTimestamp);
+  await sendFCMForOldData(buildTimestamp, eventData);
+  return null;
+});
+
+exports.checkForOpenDoors = functions.https.onRequest(async (request, response) => {
+  const buildTimestamp = 'Sat Mar 13 14:45:00 2021';
+  const eventData = await EVENT_DATABASE.getCurrent(buildTimestamp);
+  const result = await sendFCMForOldData(buildTimestamp, eventData);
+  response.status(200).send(result);
 });
 
 exports.dataRetentionPolicy = dataRetentionPolicy;

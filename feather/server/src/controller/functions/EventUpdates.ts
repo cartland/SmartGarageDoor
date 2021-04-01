@@ -17,19 +17,26 @@
 import * as firebase from 'firebase-admin';
 
 import * as SensorEventDatabase from '../../database/SensorEventDatabase';
+import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
 
 import { SensorSnapshot } from '../../model/SensorSnapshot';
 
-import { getNewEventOrNull } from '../../controller/EventInterpreter';
+import { getNewEventOrNull, isEventOld, getMessageFromEvent } from '../../controller/EventInterpreter';
+import { SensorEvent } from '../../model/SensorEvent';
+import { Message } from '../../model/FCM';
+
+const NOTIFICATIONS_DATABASE = new TimeSeriesDatabase('notificationsCurrent', 'notificationsAll');
 
 const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
-
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 const QUERY_PARAMS_KEY = 'queryParams';
 const SENSOR_A_KEY = 'sensorA';
 const SENSOR_B_KEY = 'sensorB';
 const CURRENT_EVENT_KEY = 'currentEvent';
 const PREVIOUS_EVENT_KEY = 'previousEvent';
+const NOTIFICATION_CURRENT_EVENT_KEY = 'notificationCurrentEvent';
+const NOTIFICATION_MESSAGE_KEY = 'message';
+const TIMESTAMP_SECONDS_KEY = 'timestampSeconds';
 
 export async function updateEvent(data, scheduledJob: boolean) {
   if (!data || !(BUILD_TIMESTAMP_PARAM_KEY in data)) {
@@ -83,4 +90,49 @@ async function updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds
       await SensorEventDatabase.DATABASE.set(buildTimestamp, oldData);
     }
   }
+}
+
+export async function sendFCMForOldData(buildTimestamp: string, eventData): Promise<Message> {
+  if (!(CURRENT_EVENT_KEY in eventData)) {
+    console.log('Latest event does not have key:', CURRENT_EVENT_KEY);
+    return null;
+  }
+  const currentEvent: SensorEvent = eventData[CURRENT_EVENT_KEY];
+  if (!currentEvent) {
+    console.log('Latest event does not have current event');
+    return null;
+  }
+  const now = firebase.firestore.Timestamp.now();
+  const timestampSeconds = now.seconds;
+  if (!isEventOld(currentEvent, timestampSeconds)) {
+    return null;
+  }
+  const message = getMessageFromEvent(buildTimestamp, currentEvent, timestampSeconds);
+  if (!message) {
+    return null;
+  }
+  const oldNotificationData = await NOTIFICATIONS_DATABASE.getCurrent(buildTimestamp);
+  if (NOTIFICATION_CURRENT_EVENT_KEY in oldNotificationData
+    && TIMESTAMP_SECONDS_KEY in oldNotificationData[NOTIFICATION_CURRENT_EVENT_KEY]) {
+    const oldTimestampSeconds = oldNotificationData[NOTIFICATION_CURRENT_EVENT_KEY][TIMESTAMP_SECONDS_KEY];
+    const newTimestampSeconds = currentEvent.timestampSeconds;
+    console.log('oldTimestampSeconds', oldTimestampSeconds, 'new', currentEvent.timestampSeconds);
+    if (oldTimestampSeconds === newTimestampSeconds) {
+      return null;
+    }
+  }
+  const data = {};
+  data[NOTIFICATION_CURRENT_EVENT_KEY] = currentEvent;
+  data[NOTIFICATION_MESSAGE_KEY] = message;
+  await NOTIFICATIONS_DATABASE.save(buildTimestamp, data);
+  console.log('Sending notification', message);
+  await firebase.messaging().send(message)
+    .then((response) => {
+      // Response is a message ID string.
+      console.log('Successfully sent message:', response);
+    })
+    .catch((error) => {
+      console.log('Error sending message:', error);
+    });
+  return message;
 }
