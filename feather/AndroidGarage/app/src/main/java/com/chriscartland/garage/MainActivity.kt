@@ -107,6 +107,9 @@ class MainActivity : AppCompatActivity() {
             .build()
         googleSignInClient = GoogleSignIn.getClient(this, gso)
         auth = Firebase.auth
+        loadConfig()
+        val currentUser = auth.currentUser
+        onUserUpdated(currentUser)
     }
 
     fun onSignInClicked(view: View) {
@@ -273,9 +276,6 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         Log.d(TAG, "onResume")
-        loadConfig()
-        val currentUser = auth.currentUser
-        onUserUpdated(currentUser)
     }
 
     private fun onUserUpdated(currentUser: FirebaseUser?) {
@@ -311,6 +311,10 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         Log.d(TAG, "onStop")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
         configListener?.remove()
         doorListener?.remove()
         checkInRunnable?.let {
