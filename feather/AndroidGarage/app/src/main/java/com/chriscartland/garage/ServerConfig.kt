@@ -23,5 +23,6 @@ data class ServerConfig(
     val remoteButtonBuildTimestamp: String? = null,
     val host: String? = null,
     val path: String? = null,
-    val remoteButtonEnabled: Boolean = false
+    val remoteButtonEnabled: Boolean = false,
+    val remoteButtonAuthorizedEmails: Array<String>? = null
 )

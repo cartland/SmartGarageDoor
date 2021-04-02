@@ -422,6 +422,7 @@ class MainActivity : AppCompatActivity() {
             config != null
             && config.remoteButtonEnabled
             && currentUser != null
+            && config.remoteButtonAuthorizedEmails?.contains(currentUser.email) == true
         ) {
             View.VISIBLE
         } else {
@@ -676,12 +677,14 @@ private fun Map<*, *>.toServerConfig(): ServerConfig? {
     val host = body["host"] as? String?
     val path = body["path"] as? String?
     val remoteButtonEnabled = body["remoteButtonEnabled"] as? Boolean ?: false
+    val remoteButtonAuthorizedEmails = (body["remoteButtonAuthorizedEmails"] as? ArrayList<String>)?.toTypedArray()
     return ServerConfig(
         buildTimestamp = buildTimestamp,
         remoteButtonPushKey = remoteButtonPushKey,
         remoteButtonBuildTimestamp =remoteButtonBuildTimestamp,
         host = host,
         path = path,
-        remoteButtonEnabled = remoteButtonEnabled
+        remoteButtonEnabled = remoteButtonEnabled,
+        remoteButtonAuthorizedEmails = remoteButtonAuthorizedEmails
     )
 }
