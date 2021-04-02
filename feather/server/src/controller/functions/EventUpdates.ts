@@ -23,7 +23,7 @@ import { SensorSnapshot } from '../../model/SensorSnapshot';
 
 import { getNewEventOrNull, isEventOld, getMessageFromEvent } from '../../controller/EventInterpreter';
 import { SensorEvent } from '../../model/SensorEvent';
-import { Message } from '../../model/FCM';
+import { TopicMessage } from '../../model/FCM';
 
 const NOTIFICATIONS_DATABASE = new TimeSeriesDatabase('notificationsCurrent', 'notificationsAll');
 
@@ -92,7 +92,7 @@ async function updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds
   }
 }
 
-export async function sendFCMForOldData(buildTimestamp: string, eventData): Promise<Message> {
+export async function sendFCMForOldData(buildTimestamp: string, eventData): Promise<TopicMessage> {
   if (!(CURRENT_EVENT_KEY in eventData)) {
     console.log('Latest event does not have key:', CURRENT_EVENT_KEY);
     return null;

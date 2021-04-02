@@ -20,7 +20,7 @@ import {
 } from '../model/SensorEvent';
 
 import { SensorSnapshot } from '../model/SensorSnapshot';
-import { Message, Notification } from '../model/FCM';
+import { AndroidMessagePriority, TopicMessage, Notification, NotificationPriority, AndroidConfig, AndroidNotification } from '../model/FCM';
 import { buildTimestampToFcmTopic } from '../model/FcmTopic';
 
 const TOO_LONG_DURATION_SECONDS = 60;
@@ -215,7 +215,7 @@ export function isEventOld(currentEvent: SensorEvent, now: number): boolean {
   return eventDurationSeconds > TOO_LONG_OPEN_SECONDS;
 }
 
-export function getMessageFromEvent(buildTimestamp: string, currentEvent: SensorEvent, now: number): Message {
+export function getMessageFromEvent(buildTimestamp: string, currentEvent: SensorEvent, now: number): TopicMessage {
   const eventDurationSeconds = now - currentEvent.timestampSeconds;
   const durationMinutes = Math.floor(eventDurationSeconds / 60);
   const durationHours = Math.floor(durationMinutes / 60);
@@ -225,9 +225,14 @@ export function getMessageFromEvent(buildTimestamp: string, currentEvent: Sensor
   } else {
     durationString = durationHours.toString() + ' hours';
   }
-  const message = <Message>{};
+  const message = <TopicMessage>{};
   message.notification = <Notification>{};
+  message.android = <AndroidConfig>{};
+  message.android.notification = <AndroidNotification>{};
   message.topic = buildTimestampToFcmTopic(buildTimestamp);
+  message.android.collapse_key = 'door_not_closed';
+  message.android.priority = AndroidMessagePriority.HIGH;
+  message.android.notification.notification_priority = NotificationPriority.PRIORITY_MAX;
   const type = currentEvent.type;
   switch (type) {
     case SensorEventType.Unknown:
