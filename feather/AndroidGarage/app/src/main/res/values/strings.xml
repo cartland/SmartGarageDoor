@@ -31,7 +31,7 @@
     <string name="cancel_push_button">Cancel</string>
     <string name="button_confirmation_title">Do you really want to push the garage door button?</string>
     <string name="button_confirmation_message">CAUTION: Pushing the button will cause the garage door to move.\n\n• Check to make sure no one is near the door.\n• Do not leave the garage unattended.\n\n\You will not be able to push the button again for 30 seconds.</string>
-    <string name="disclaimer">This app may contain incorrect data. For safety, please do not rely on the app.</string>
+    <string name="disclaimer">This app may contain incorrect data.</string>
     <string name="sign_in">Sign In</string>
     <string name="sign_out">Sign Out</string>
     <string name="fake_email">email@example.com</string>
