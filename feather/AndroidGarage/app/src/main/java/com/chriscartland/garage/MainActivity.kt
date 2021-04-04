@@ -380,7 +380,7 @@ class MainActivity : AppCompatActivity() {
         when (state) {
             LoadingState.DEFAULT -> {}
             LoadingState.NO_CONFIG -> {
-                handleDoorChanged(Door(message = getString(R.string.missing_config)))
+                handleDoorChanged(DoorData(message = getString(R.string.missing_config)))
             }
             LoadingState.LOADING_CONFIG -> {}
             LoadingState.LOADING_DATA -> {}
@@ -409,8 +409,7 @@ class MainActivity : AppCompatActivity() {
                 return@addSnapshotListener
             }
             if (snapshot != null && snapshot.exists()) {
-                val data = snapshot.data as Map<*, *>?
-                val doorStatus = data?.toDoorStatus() ?: Door(message = getString(R.string.empty_data))
+                val doorStatus = snapshot?.toDoorData() ?: DoorData(message = getString(R.string.empty_data))
                 handleDoorChanged(doorStatus)
                 loadingState = LoadingState.LOADED_DATA
             }
@@ -473,15 +472,15 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
-    private fun handleDoorChanged(doorStatus: Door) {
+    private fun handleDoorChanged(doorData: DoorData) {
         Log.d(TAG, "handleDoorChanged")
         resetProgressBar()
-        updateStatusTitle(doorStatus)
-        updateStatusMessage(doorStatus)
-        updateLastCheckInTime(doorStatus)
-        updateLastChangeTime(doorStatus)
-        updateTimeSinceLastCheckIn(doorStatus)
-        updateTimeSinceLastChange(doorStatus)
+        updateStatusTitle(doorData)
+        updateStatusMessage(doorData)
+        updateLastCheckInTime(doorData)
+        updateLastChangeTime(doorData)
+        updateTimeSinceLastCheckIn(doorData)
+        updateTimeSinceLastChange(doorData)
     }
 
     private fun showProgressBar() {
@@ -492,20 +491,20 @@ class MainActivity : AppCompatActivity() {
         binding.progressBar.visibility = View.GONE
     }
 
-    private fun updateStatusTitle(door: Door) {
-        val data = getStatusTitleAndColor(door, this)
+    private fun updateStatusTitle(doorData: DoorData) {
+        val data = getStatusTitleAndColor(doorData, this)
         val textView = binding.statusTitle
         textView.text = data.first
         textView.setBackgroundColor(data.second)
     }
 
-    private fun updateStatusMessage(door: Door) {
+    private fun updateStatusMessage(doorData: DoorData) {
         val textView = binding.statusMessage
-        textView.text = door.message
+        textView.text = doorData.message
     }
 
-    private fun updateLastCheckInTime(door: Door) {
-        val lastCheckInTime = door.lastCheckInTimeSeconds
+    private fun updateLastCheckInTime(doorData: DoorData) {
+        val lastCheckInTime = doorData.lastCheckInTimeSeconds
         val textView = binding.lastCheckInTime
         if (lastCheckInTime != null) {
             val lastCheckInTimeString =
@@ -516,8 +515,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateTimeSinceLastCheckIn(door: Door) {
-        val lastCheckInTime = door.lastCheckInTimeSeconds
+    private fun updateTimeSinceLastCheckIn(doorData: DoorData) {
+        val lastCheckInTime = doorData.lastCheckInTimeSeconds
         val textView = binding.timeSinceLastCheckIn
         if (lastCheckInTime == null) {
             textView.text = ""
@@ -550,8 +549,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateLastChangeTime(door: Door) {
-        val lastChangeTime = door.lastChangeTimeSeconds
+    private fun updateLastChangeTime(doorData: DoorData) {
+        val lastChangeTime = doorData.lastChangeTimeSeconds
         val textView = binding.lastChangeTime
         if (lastChangeTime != null) {
             val lastChangeTimeString =
@@ -562,8 +561,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateTimeSinceLastChange(door: Door) {
-        val lastChangeTime = door.lastChangeTimeSeconds
+    private fun updateTimeSinceLastChange(doorData: DoorData) {
+        val lastChangeTime = doorData.lastChangeTimeSeconds
         val textView = binding.timeSinceLastChange
         if (lastChangeTime == null) {
             textView.text = ""
@@ -581,7 +580,7 @@ class MainActivity : AppCompatActivity() {
                 val s = ((now.time / 1000) - lastChangeTime).coerceAtLeast(0)
                 val timeSinceLastChangeString = String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
                 textView.text = getString(R.string.time_since_last_change, timeSinceLastChangeString)
-                if (door.state != DoorState.CLOSED && s > DOOR_NOT_CLOSED_THRESHOLD_SECONDS) {
+                if (doorData.state != DoorState.CLOSED && s > DOOR_NOT_CLOSED_THRESHOLD_SECONDS) {
                     textView.setBackgroundColor(getColor(R.color.color_door_error))
                 } else {
                     textView.setBackgroundColor(getColor(R.color.black))
@@ -595,9 +594,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun getStatusTitleAndColor(door: Door, context: Context): Pair<String, Int> {
+    private fun getStatusTitleAndColor(doorData: DoorData, context: Context): Pair<String, Int> {
         Log.d(TAG, "getStatusTitleAndColor")
-        return when (door.state) {
+        return when (doorData.state) {
             null -> Pair(
                 "Unknown Status",
                 context.getColor(R.color.color_door_error)
@@ -652,25 +651,6 @@ private fun String.toDoorOpenFcmTopic(): String {
     val re = Regex("[^a-zA-Z0-9-_.~%]")
     val filtered = re.replace(this, ".")
     return "door_open-$filtered"
-}
-
-private fun Map<*, *>.toDoorStatus(): Door {
-    val currentEvent = this["currentEvent"] as? Map<*, *>
-    val type = currentEvent?.get("type") as? String ?: ""
-    val state = try {
-        DoorState.valueOf(type)
-    } catch (e: IllegalArgumentException) {
-        DoorState.UNKNOWN
-    }
-    val message = currentEvent?.get("message") as? String ?: ""
-    val timestampSeconds = currentEvent?.get("timestampSeconds") as? Long?
-    val lastCheckInTime = this["FIRESTORE_databaseTimestampSeconds"] as? Long?
-    return Door(
-        state = state,
-        message = message,
-        lastChangeTimeSeconds = timestampSeconds,
-        lastCheckInTimeSeconds = lastCheckInTime
-    )
 }
 
 private fun Map<*, *>.toServerConfig(): ServerConfig? {

@@ -17,20 +17,24 @@
 
 package com.chriscartland.garage
 
-data class Door(
-    val state: DoorState? = null,
-    val message: String? = null,
-    val lastCheckInTimeSeconds: Long? = null,
-    val lastChangeTimeSeconds: Long? = null
-)
+import androidx.lifecycle.MediatorLiveData
+import androidx.lifecycle.ViewModel
+import com.google.firebase.firestore.DocumentReference
 
-enum class DoorState {
-    UNKNOWN,
-    CLOSED,
-    OPENING,
-    OPENING_TOO_LONG,
-    OPEN,
-    CLOSING,
-    CLOSING_TOO_LONG,
-    ERROR_SENSOR_CONFLICT
+
+class DoorViewModel : ViewModel() {
+
+    val doorData: MediatorLiveData<DoorData?> = MediatorLiveData()
+
+    fun setDoorStatusDocumentReference(documentReference: DocumentReference) {
+        doorStatusFirestore.documentReference = documentReference
+    }
+
+    private val doorStatusFirestore: FirestoreDocumentReferenceLiveData =
+        FirestoreDocumentReferenceLiveData(null)
+    init {
+        doorData.addSource(doorStatusFirestore) { value ->
+            doorData.value = value?.toDoorData()
+        }
+    }
 }

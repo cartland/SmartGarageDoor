@@ -30,17 +30,17 @@ import com.google.firebase.firestore.ListenerRegistration
  * https://firebase.googleblog.com/2017/12/using-android-architecture-components.html
  */
 class FirestoreDocumentReferenceLiveData(
-    documentReference: DocumentReference
+    documentReference: DocumentReference?
 ) : LiveData<DocumentSnapshot?>() {
 
     private var listenerRegistration: ListenerRegistration? = null
 
-    private var documentReference: DocumentReference = documentReference
+    var documentReference: DocumentReference? = documentReference
         set(value) {
             field = value
             if (listenerRegistration != null) {
                 listenerRegistration?.remove()
-                listenerRegistration = value.addSnapshotListener(listener)
+                listenerRegistration = value?.addSnapshotListener(listener)
             }
         }
 
@@ -61,7 +61,7 @@ class FirestoreDocumentReferenceLiveData(
     override fun onActive() {
         super.onActive()
         Log.d(TAG, "onActive")
-        listenerRegistration = documentReference.addSnapshotListener(listener)
+        listenerRegistration = documentReference?.addSnapshotListener(listener)
     }
 
     override fun onInactive() {
