@@ -28,6 +28,8 @@ import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
@@ -49,6 +51,7 @@ import java.util.Date
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var doorViewModel: DoorViewModel
     private lateinit var binding: ActivityMainBinding
 
     private lateinit var auth: FirebaseAuth
@@ -56,7 +59,7 @@ class MainActivity : AppCompatActivity() {
 
     private val db = Firebase.firestore
     private var configListener: ListenerRegistration? = null
-    private var doorListener: ListenerRegistration? = null
+//    private var doorListener: ListenerRegistration? = null
 
     private var appVersion: AppVersion? = null
     private var serverConfig: ServerConfig? = null
@@ -66,14 +69,6 @@ class MainActivity : AppCompatActivity() {
             field = value
             onLoadingStateChanged(field)
         }
-
-    enum class LoadingState {
-        DEFAULT,
-        LOADING_CONFIG,
-        NO_CONFIG,
-        LOADING_DATA,
-        LOADED_DATA
-    }
 
     private var fcmState = FCMState.DEFAULT
         set(value) {
@@ -99,6 +94,19 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
+
+        doorViewModel = ViewModelProvider(this).get(DoorViewModel::class.java)
+        doorViewModel.doorData.observe(this, Observer {
+            handleDoorChanged(it ?: DoorData())
+        })
+        doorViewModel.doorLoadingState.observe(this, Observer {
+            loadingState = when (it) {
+                DoorLoadingState.DEFAULT -> LoadingState.NO_CONFIG
+                DoorLoadingState.LOADING_DATA -> LoadingState.LOADING_DATA
+                DoorLoadingState.LOADED_DATA -> LoadingState.LOADED_DATA
+            }
+        })
+
         updatePackageVersionUI()
         resetButton() // TODO: Manage button UI in XML.
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -316,7 +324,7 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         configListener?.remove()
-        doorListener?.remove()
+//        doorListener?.remove()
         checkInRunnable?.let {
             h.removeCallbacks(it)
         }
@@ -394,26 +402,27 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "Config ${config?.toString()}")
         val buildTimestamp = config?.buildTimestamp
         Log.d(TAG, "buildTimestamp: $buildTimestamp")
-        doorListener?.remove()
+//        doorListener?.remove()
         if (buildTimestamp.isNullOrEmpty()) {
-            loadingState = LoadingState.NO_CONFIG
+//            loadingState = LoadingState.NO_CONFIG
             return
-        } else {
-            loadingState = LoadingState.LOADING_DATA
+//        } else {
+//            loadingState = LoadingState.LOADING_DATA
         }
-        Log.d(TAG, "Listening to events for buildTimestamp: $buildTimestamp")
+//        Log.d(TAG, "Listening to events for buildTimestamp: $buildTimestamp")
         val eventRef = db.collection("eventsCurrent").document(buildTimestamp)
-        doorListener = eventRef.addSnapshotListener { snapshot, e ->
-            if (e != null) {
-                Log.w(TAG, "Event listener failed.", e)
-                return@addSnapshotListener
-            }
-            if (snapshot != null && snapshot.exists()) {
-                val doorStatus = snapshot?.toDoorData() ?: DoorData(message = getString(R.string.empty_data))
-                handleDoorChanged(doorStatus)
-                loadingState = LoadingState.LOADED_DATA
-            }
-        }
+//        doorListener = eventRef.addSnapshotListener { snapshot, e ->
+//            if (e != null) {
+//                Log.w(TAG, "Event listener failed.", e)
+//                return@addSnapshotListener
+//            }
+//            if (snapshot != null && snapshot.exists()) {
+//                val doorStatus = snapshot?.toDoorData() ?: DoorData(message = getString(R.string.empty_data))
+//                handleDoorChanged(doorStatus)
+//                loadingState = LoadingState.LOADED_DATA
+//            }
+//        }
+        doorViewModel.setDoorStatusDocumentReference(eventRef)
         registerDoorOpenNotifications(buildTimestamp)
         updateButtonUI()
     }

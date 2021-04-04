@@ -33,12 +33,14 @@ class FirestoreDocumentReferenceLiveData(
     documentReference: DocumentReference?
 ) : LiveData<DocumentSnapshot?>() {
 
+    private var active = false
     private var listenerRegistration: ListenerRegistration? = null
 
     var documentReference: DocumentReference? = documentReference
         set(value) {
             field = value
-            if (listenerRegistration != null) {
+            Log.d(TAG, "setter: documentReference")
+            if (active) {
                 listenerRegistration?.remove()
                 listenerRegistration = value?.addSnapshotListener(listener)
             }
@@ -46,7 +48,7 @@ class FirestoreDocumentReferenceLiveData(
 
     private val listener: EventListener<DocumentSnapshot?> = Listener(this)
     private class Listener(
-        val liveData: LiveData<DocumentSnapshot?>
+        val liveData: FirestoreDocumentReferenceLiveData
     ) : EventListener<DocumentSnapshot?> {
         override fun onEvent(value: DocumentSnapshot?, error: FirebaseFirestoreException?) {
             if (error != null) {
@@ -61,17 +63,19 @@ class FirestoreDocumentReferenceLiveData(
     override fun onActive() {
         super.onActive()
         Log.d(TAG, "onActive")
+        active = true
         listenerRegistration = documentReference?.addSnapshotListener(listener)
     }
 
     override fun onInactive() {
         super.onInactive()
         Log.d(TAG, "onInactive")
+        active = false
         listenerRegistration?.remove()
         listenerRegistration = null
     }
 
     companion object {
-        val TAG = FirestoreDocumentReferenceLiveData::class.java.simpleName
+        val TAG: String = FirestoreDocumentReferenceLiveData::class.java.simpleName
     }
 }

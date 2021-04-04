@@ -17,24 +17,39 @@
 
 package com.chriscartland.garage
 
+import android.util.Log
 import androidx.lifecycle.MediatorLiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.google.firebase.firestore.DocumentReference
 
 
 class DoorViewModel : ViewModel() {
 
+    val doorLoadingState = MutableLiveData<DoorLoadingState>()
+
     val doorData: MediatorLiveData<DoorData?> = MediatorLiveData()
 
     fun setDoorStatusDocumentReference(documentReference: DocumentReference) {
+        Log.d(TAG, "setDoorStatusDocumentReference")
         doorStatusFirestore.documentReference = documentReference
+        doorLoadingState.value = DoorLoadingState.LOADING_DATA
     }
 
     private val doorStatusFirestore: FirestoreDocumentReferenceLiveData =
         FirestoreDocumentReferenceLiveData(null)
+
     init {
+        Log.d(TAG, "init")
+        doorLoadingState.value = DoorLoadingState.DEFAULT
         doorData.addSource(doorStatusFirestore) { value ->
+            Log.d(TAG, "Received Firestore update for door")
             doorData.value = value?.toDoorData()
+            doorLoadingState.value = DoorLoadingState.LOADED_DATA
         }
+    }
+
+    companion object {
+        val TAG: String = DoorViewModel::class.java.simpleName
     }
 }
