@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage
 
+import android.content.Context
+import android.util.Log
 import com.google.firebase.firestore.DocumentSnapshot
 
 data class DoorData(
@@ -55,4 +57,46 @@ fun DocumentSnapshot.toDoorData(): DoorData {
         lastChangeTimeSeconds = timestampSeconds,
         lastCheckInTimeSeconds = lastCheckInTime
     )
+}
+
+fun getStatusTitleAndColor(doorData: DoorData, context: Context): Pair<String, Int> {
+    Log.d(MainActivity.TAG, "getStatusTitleAndColor")
+    return when (doorData.state) {
+        null -> Pair(
+            "Unknown Status",
+            context.getColor(R.color.color_door_error)
+        )
+        DoorState.UNKNOWN -> Pair(
+            "Unknown Status",
+            context.getColor(R.color.color_door_error)
+        )
+        DoorState.CLOSED -> Pair(
+            "Door Closed",
+            context.getColor(R.color.color_door_closed)
+        )
+        DoorState.OPENING -> Pair(
+            "Opening...",
+            context.getColor(R.color.color_door_moving)
+        )
+        DoorState.OPENING_TOO_LONG -> Pair(
+            "Check door",
+            context.getColor(R.color.color_door_error)
+        )
+        DoorState.OPEN -> Pair(
+            "Door Open",
+            context.getColor(R.color.color_door_open)
+        )
+        DoorState.CLOSING -> Pair(
+            "Closing...",
+            context.getColor(R.color.color_door_moving)
+        )
+        DoorState.CLOSING_TOO_LONG -> Pair(
+            "Check door",
+            context.getColor(R.color.color_door_error)
+        )
+        DoorState.ERROR_SENSOR_CONFLICT -> Pair(
+            "Error",
+            context.getColor(R.color.color_door_error)
+        )
+    }
 }

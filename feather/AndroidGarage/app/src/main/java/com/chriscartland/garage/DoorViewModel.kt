@@ -17,8 +17,12 @@
 
 package com.chriscartland.garage
 
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.google.firebase.firestore.DocumentReference
 
@@ -30,6 +34,8 @@ class DoorViewModel : ViewModel() {
         LOADING_DATA,
         LOADED_DATA
     }
+
+    val appVersion: MutableLiveData<AppVersion> = MutableLiveData<AppVersion>()
 
     val configData: MediatorLiveData<Pair<ServerConfig?, State>> = MediatorLiveData()
     private val configDataFirestore: FirestoreDocumentReferenceLiveData =
@@ -47,6 +53,24 @@ class DoorViewModel : ViewModel() {
         Log.d(TAG, "setDoorStatusDocumentReference")
         doorStatusFirestore.documentReference = documentReference
         doorData.value = Pair(null, State.LOADING_DATA)
+    }
+
+    fun updatePackageVersion(packageManager: PackageManager, packageName: String) {
+        Log.d(MainActivity.TAG, "updatePackageVersionUI")
+        packageManager.getPackageInfo(packageName, 0).let {
+            val newAppVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                AppVersion(
+                    versionCode = it.longVersionCode,
+                    versionName = it.versionName
+                )
+            } else {
+                AppVersion(
+                    versionCode = it.versionCode.toLong(),
+                    versionName = it.versionName
+                )
+            }
+            appVersion.value = newAppVersion
+        }
     }
 
     init {

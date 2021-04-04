@@ -19,7 +19,6 @@ package com.chriscartland.garage
 
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -55,8 +54,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var googleSignInClient: GoogleSignInClient
-
-    private var appVersion: AppVersion? = null
 
     private var fcmState = FCMState.DEFAULT
         set(value) {
@@ -109,8 +106,16 @@ class MainActivity : AppCompatActivity() {
         doorViewModel.setConfigDataDocumentReference(
             Firebase.firestore.collection("configCurrent").document("current")
         )
+        doorViewModel.appVersion.observe(this, Observer { appVersion ->
+            val textView = binding.versionCodeTextView
+            textView.text = getString(
+                R.string.version_code_string,
+                appVersion.versionName ?: "",
+                appVersion.versionCode ?: 0L
+            )
+        })
+        doorViewModel.updatePackageVersion(packageManager, packageName)
 
-        updatePackageVersionUI()
         resetButton() // TODO: Manage button UI in XML.
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -252,6 +257,7 @@ class MainActivity : AppCompatActivity() {
         val now = Date()
         val humandReadable = DateFormat.format("yyyy-MM-dd hh:mm:ss a", now).toString()
         val timestampMillis = now.time
+        val appVersion = doorViewModel.appVersion.value
         val buttonAckTokenData = "android-$appVersion-$humandReadable-$timestampMillis"
         val re = Regex("[^a-zA-Z0-9-_.]")
         val filtered = re.replace(buttonAckTokenData, ".")
@@ -337,30 +343,6 @@ class MainActivity : AppCompatActivity() {
         }
         resetProgressBar()
         resetButton()
-    }
-
-    private fun updatePackageVersionUI() {
-        Log.d(TAG, "updatePackageVersionUI")
-        packageManager.getPackageInfo(packageName, 0).let {
-            val textView = binding.versionCodeTextView
-            val newAppVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                AppVersion(
-                    versionCode = it.longVersionCode,
-                    versionName = it.versionName
-                )
-            } else {
-                AppVersion(
-                    versionCode = it.versionCode.toLong(),
-                    versionName = it.versionName
-                )
-            }
-            textView.text = getString(
-                R.string.version_code_string,
-                newAppVersion.versionName ?: "",
-                newAppVersion.versionCode ?: 0L
-            )
-            appVersion = newAppVersion
-        }
     }
 
     private fun handleConfigData(config: ServerConfig?) {
@@ -551,48 +533,6 @@ class MainActivity : AppCompatActivity() {
         changeRunnable?.let {
             it.run()
             h.postDelayed(it, 1000)
-        }
-    }
-
-    private fun getStatusTitleAndColor(doorData: DoorData, context: Context): Pair<String, Int> {
-        Log.d(TAG, "getStatusTitleAndColor")
-        return when (doorData.state) {
-            null -> Pair(
-                "Unknown Status",
-                context.getColor(R.color.color_door_error)
-            )
-            DoorState.UNKNOWN -> Pair(
-                "Unknown Status",
-                context.getColor(R.color.color_door_error)
-            )
-            DoorState.CLOSED -> Pair(
-                "Door Closed",
-                context.getColor(R.color.color_door_closed)
-            )
-            DoorState.OPENING -> Pair(
-                "Opening...",
-                context.getColor(R.color.color_door_moving)
-            )
-            DoorState.OPENING_TOO_LONG -> Pair(
-                "Check door",
-                context.getColor(R.color.color_door_error)
-            )
-            DoorState.OPEN -> Pair(
-                "Door Open",
-                context.getColor(R.color.color_door_open)
-            )
-            DoorState.CLOSING -> Pair(
-                "Closing...",
-                context.getColor(R.color.color_door_moving)
-            )
-            DoorState.CLOSING_TOO_LONG -> Pair(
-                "Check door",
-                context.getColor(R.color.color_door_error)
-            )
-            DoorState.ERROR_SENSOR_CONFLICT -> Pair(
-                "Error",
-                context.getColor(R.color.color_door_error)
-            )
         }
     }
 
