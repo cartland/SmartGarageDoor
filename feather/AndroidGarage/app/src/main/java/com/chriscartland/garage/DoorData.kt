@@ -37,14 +37,6 @@ enum class DoorState {
     ERROR_SENSOR_CONFLICT
 }
 
-enum class LoadingState {
-    DEFAULT,
-    LOADING_CONFIG,
-    NO_CONFIG,
-    LOADING_DATA,
-    LOADED_DATA
-}
-
 fun DocumentSnapshot.toDoorData(): DoorData {
     val data = this.data as? Map<*, *> ?: return DoorData()
     val currentEvent = data["currentEvent"] as? Map<*, *>

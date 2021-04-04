@@ -42,7 +42,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.ktx.messaging
@@ -51,19 +50,13 @@ import java.util.Date
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var doorViewModel: DoorViewModel
     private lateinit var binding: ActivityMainBinding
+    private lateinit var doorViewModel: DoorViewModel
 
     private lateinit var auth: FirebaseAuth
     private lateinit var googleSignInClient: GoogleSignInClient
 
-    private val db = Firebase.firestore
-    private var configListener: ListenerRegistration? = null
-
     private var appVersion: AppVersion? = null
-    private var serverConfig: ServerConfig? = null
-
-    private var loadingState = LoadingState.DEFAULT
 
     private var fcmState = FCMState.DEFAULT
         set(value) {
@@ -103,25 +96,29 @@ class MainActivity : AppCompatActivity() {
                     handleDoorChanged(doorData ?: DoorData())
                 }
             }
-            loadingState = when (state) {
-                DoorViewModel.State.DEFAULT -> LoadingState.NO_CONFIG
-                DoorViewModel.State.LOADING_DATA -> LoadingState.LOADING_DATA
-                DoorViewModel.State.LOADED_DATA -> LoadingState.LOADED_DATA
-            }
-
         })
-//        doorViewModel.doorLoadingState.observe(this, Observer {
-//        })
+        doorViewModel.configData.observe(this, Observer { (configData, state) ->
+            when (state) {
+                DoorViewModel.State.DEFAULT -> {}
+                DoorViewModel.State.LOADING_DATA -> {}
+                DoorViewModel.State.LOADED_DATA -> {
+                    handleConfigData(configData)
+                }
+            }
+        })
+        doorViewModel.setConfigDataDocumentReference(
+            Firebase.firestore.collection("configCurrent").document("current")
+        )
 
         updatePackageVersionUI()
         resetButton() // TODO: Manage button UI in XML.
+
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.web_client_id))
             .requestEmail()
             .build()
         googleSignInClient = GoogleSignIn.getClient(this, gso)
         auth = Firebase.auth
-        loadConfig()
         val currentUser = auth.currentUser
         onUserUpdated(currentUser)
     }
@@ -182,7 +179,7 @@ class MainActivity : AppCompatActivity() {
 
     fun onPushButton(view: View) {
         Log.d(TAG, "onPushButton")
-        val config = serverConfig
+        val config: ServerConfig? = doorViewModel.configData.value?.first
         if (config == null) {
             Log.e(TAG, "Cannot push button without server configuration")
             return
@@ -329,7 +326,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        configListener?.remove()
         checkInRunnable?.let {
             h.removeCallbacks(it)
         }
@@ -367,57 +363,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadConfig() {
-        Log.d(TAG, "loadConfig")
-        configListener?.remove()
-        loadingState = LoadingState.LOADING_CONFIG
-        val configRef = db.collection("configCurrent").document("current")
-        configListener = configRef.addSnapshotListener { snapshot, e ->
-            if (e != null) {
-                Log.w(TAG, "Config listener failed.", e)
-                return@addSnapshotListener
-            }
-            if (snapshot != null && snapshot.exists()) {
-                val data = snapshot.data as Map<*, *>?
-                Log.d(TAG, "Config data: $data")
-                val config = data?.toServerConfig()
-                handleConfigData(config)
-            } else {
-                Log.d(TAG, "Config data: null")
-            }
-        }
-    }
-
-//    private fun onLoadingStateChanged(state: LoadingState) {
-//        Log.d(TAG, "onLoadingStateChanged: ${state.name}");
-//        when (state) {
-//            LoadingState.DEFAULT -> {}
-//            LoadingState.NO_CONFIG -> {
-//                handleDoorChanged(DoorData(message = getString(R.string.missing_config)))
-//            }
-//            LoadingState.LOADING_CONFIG -> {}
-//            LoadingState.LOADING_DATA -> {}
-//            LoadingState.LOADED_DATA -> {}
-//        }
-//    }
-
     private fun handleConfigData(config: ServerConfig?) {
-        Log.d(TAG, "handleConfigData")
-        serverConfig = config
-        Log.d(TAG, "Config ${config?.toString()}")
+        Log.d(TAG, "handleConfigData: ${config?.toString()}")
         val buildTimestamp = config?.buildTimestamp
-        Log.d(TAG, "buildTimestamp: $buildTimestamp")
         if (buildTimestamp.isNullOrEmpty()) {
+            Log.d(TAG, "Not a valid config. buildTimestamp is null or empty.")
+            doorViewModel.setDoorStatusDocumentReference(null)
             return
         }
-        val eventRef = db.collection("eventsCurrent").document(buildTimestamp)
-        doorViewModel.setDoorStatusDocumentReference(eventRef)
+        doorViewModel.setDoorStatusDocumentReference(
+            Firebase.firestore.collection("eventsCurrent").document(buildTimestamp)
+        )
         registerDoorOpenNotifications(buildTimestamp)
         updateButtonUI()
     }
 
     private fun updateButtonUI() {
-        val config = serverConfig
+        val config = doorViewModel.configData.value?.first
         val currentUser = auth.currentUser
         binding.button.visibility = if (
             config != null
@@ -649,24 +611,4 @@ private fun String.toDoorOpenFcmTopic(): String {
     val re = Regex("[^a-zA-Z0-9-_.~%]")
     val filtered = re.replace(this, ".")
     return "door_open-$filtered"
-}
-
-private fun Map<*, *>.toServerConfig(): ServerConfig? {
-    val body = this["body"] as? Map<*, *> ?: return null
-    val buildTimestamp = body["buildTimestamp"] as? String?
-    val remoteButtonPushKey = body["remoteButtonPushKey"] as? String?
-    val remoteButtonBuildTimestamp = body["remoteButtonBuildTimestamp"] as? String?
-    val host = body["host"] as? String?
-    val path = body["path"] as? String?
-    val remoteButtonEnabled = body["remoteButtonEnabled"] as? Boolean ?: false
-    val remoteButtonAuthorizedEmails = (body["remoteButtonAuthorizedEmails"] as? ArrayList<String>)?.toTypedArray()
-    return ServerConfig(
-        buildTimestamp = buildTimestamp,
-        remoteButtonPushKey = remoteButtonPushKey,
-        remoteButtonBuildTimestamp =remoteButtonBuildTimestamp,
-        host = host,
-        path = path,
-        remoteButtonEnabled = remoteButtonEnabled,
-        remoteButtonAuthorizedEmails = remoteButtonAuthorizedEmails
-    )
 }

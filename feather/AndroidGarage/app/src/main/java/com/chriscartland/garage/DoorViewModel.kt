@@ -19,7 +19,6 @@ package com.chriscartland.garage
 
 import android.util.Log
 import androidx.lifecycle.MediatorLiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.google.firebase.firestore.DocumentReference
 
@@ -32,25 +31,35 @@ class DoorViewModel : ViewModel() {
         LOADED_DATA
     }
 
-//    val doorLoadingState = MutableLiveData<State>()
-    val doorData: MediatorLiveData<Pair<DoorData?, State>> = MediatorLiveData()
-    fun setDoorStatusDocumentReference(documentReference: DocumentReference) {
-        Log.d(TAG, "setDoorStatusDocumentReference")
-        doorStatusFirestore.documentReference = documentReference
-//        doorLoadingState.value = State.LOADING_DATA
-        doorData.value = Pair(null, State.LOADING_DATA)
+    val configData: MediatorLiveData<Pair<ServerConfig?, State>> = MediatorLiveData()
+    private val configDataFirestore: FirestoreDocumentReferenceLiveData =
+        FirestoreDocumentReferenceLiveData(null)
+    fun setConfigDataDocumentReference(documentReference: DocumentReference?) {
+        Log.d(TAG, "setServerConfigDocumentReference")
+        configDataFirestore.documentReference = documentReference
+        configData.value = Pair(null, State.LOADING_DATA)
     }
+
+    val doorData: MediatorLiveData<Pair<DoorData?, State>> = MediatorLiveData()
     private val doorStatusFirestore: FirestoreDocumentReferenceLiveData =
         FirestoreDocumentReferenceLiveData(null)
+    fun setDoorStatusDocumentReference(documentReference: DocumentReference?) {
+        Log.d(TAG, "setDoorStatusDocumentReference")
+        doorStatusFirestore.documentReference = documentReference
+        doorData.value = Pair(null, State.LOADING_DATA)
+    }
 
     init {
         Log.d(TAG, "init")
-//        doorLoadingState.value = State.DEFAULT
         doorData.value = Pair(null, State.DEFAULT)
         doorData.addSource(doorStatusFirestore) { value ->
-            Log.d(TAG, "Received Firestore update for door")
+            Log.d(TAG, "Received Firestore update for DoorData")
             doorData.value = Pair(value?.toDoorData(), State.LOADED_DATA)
-//            doorLoadingState.value = State.LOADED_DATA
+        }
+        configData.value = Pair(null, State.DEFAULT)
+        configData.addSource(configDataFirestore) { value ->
+            Log.d(TAG, "Received Firestore update for ServerConfig")
+            configData.value = Pair(value?.toServerConfig(), State.LOADED_DATA)
         }
     }
 
