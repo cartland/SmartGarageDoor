@@ -26,26 +26,31 @@ import com.google.firebase.firestore.DocumentReference
 
 class DoorViewModel : ViewModel() {
 
-    val doorLoadingState = MutableLiveData<DoorLoadingState>()
+    enum class State {
+        DEFAULT,
+        LOADING_DATA,
+        LOADED_DATA
+    }
 
-    val doorData: MediatorLiveData<DoorData?> = MediatorLiveData()
-
+//    val doorLoadingState = MutableLiveData<State>()
+    val doorData: MediatorLiveData<Pair<DoorData?, State>> = MediatorLiveData()
     fun setDoorStatusDocumentReference(documentReference: DocumentReference) {
         Log.d(TAG, "setDoorStatusDocumentReference")
         doorStatusFirestore.documentReference = documentReference
-        doorLoadingState.value = DoorLoadingState.LOADING_DATA
+//        doorLoadingState.value = State.LOADING_DATA
+        doorData.value = Pair(null, State.LOADING_DATA)
     }
-
     private val doorStatusFirestore: FirestoreDocumentReferenceLiveData =
         FirestoreDocumentReferenceLiveData(null)
 
     init {
         Log.d(TAG, "init")
-        doorLoadingState.value = DoorLoadingState.DEFAULT
+//        doorLoadingState.value = State.DEFAULT
+        doorData.value = Pair(null, State.DEFAULT)
         doorData.addSource(doorStatusFirestore) { value ->
             Log.d(TAG, "Received Firestore update for door")
-            doorData.value = value?.toDoorData()
-            doorLoadingState.value = DoorLoadingState.LOADED_DATA
+            doorData.value = Pair(value?.toDoorData(), State.LOADED_DATA)
+//            doorLoadingState.value = State.LOADED_DATA
         }
     }
 

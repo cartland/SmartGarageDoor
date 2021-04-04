@@ -59,16 +59,11 @@ class MainActivity : AppCompatActivity() {
 
     private val db = Firebase.firestore
     private var configListener: ListenerRegistration? = null
-//    private var doorListener: ListenerRegistration? = null
 
     private var appVersion: AppVersion? = null
     private var serverConfig: ServerConfig? = null
 
     private var loadingState = LoadingState.DEFAULT
-        set(value) {
-            field = value
-            onLoadingStateChanged(field)
-        }
 
     private var fcmState = FCMState.DEFAULT
         set(value) {
@@ -96,16 +91,27 @@ class MainActivity : AppCompatActivity() {
         setContentView(view)
 
         doorViewModel = ViewModelProvider(this).get(DoorViewModel::class.java)
-        doorViewModel.doorData.observe(this, Observer {
-            handleDoorChanged(it ?: DoorData())
-        })
-        doorViewModel.doorLoadingState.observe(this, Observer {
-            loadingState = when (it) {
-                DoorLoadingState.DEFAULT -> LoadingState.NO_CONFIG
-                DoorLoadingState.LOADING_DATA -> LoadingState.LOADING_DATA
-                DoorLoadingState.LOADED_DATA -> LoadingState.LOADED_DATA
+        doorViewModel.doorData.observe(this, Observer { (doorData, state) ->
+            when (state) {
+                DoorViewModel.State.DEFAULT -> {
+                    handleDoorChanged(DoorData(message = getString(R.string.missing_config)))
+                }
+                DoorViewModel.State.LOADING_DATA -> {
+                    handleDoorChanged(DoorData(message = getString(R.string.loading_data)))
+                }
+                DoorViewModel.State.LOADED_DATA -> {
+                    handleDoorChanged(doorData ?: DoorData())
+                }
             }
+            loadingState = when (state) {
+                DoorViewModel.State.DEFAULT -> LoadingState.NO_CONFIG
+                DoorViewModel.State.LOADING_DATA -> LoadingState.LOADING_DATA
+                DoorViewModel.State.LOADED_DATA -> LoadingState.LOADED_DATA
+            }
+
         })
+//        doorViewModel.doorLoadingState.observe(this, Observer {
+//        })
 
         updatePackageVersionUI()
         resetButton() // TODO: Manage button UI in XML.
@@ -324,7 +330,6 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         configListener?.remove()
-//        doorListener?.remove()
         checkInRunnable?.let {
             h.removeCallbacks(it)
         }
@@ -383,18 +388,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun onLoadingStateChanged(state: LoadingState) {
-        Log.d(TAG, "onLoadingStateChanged: ${state.name}");
-        when (state) {
-            LoadingState.DEFAULT -> {}
-            LoadingState.NO_CONFIG -> {
-                handleDoorChanged(DoorData(message = getString(R.string.missing_config)))
-            }
-            LoadingState.LOADING_CONFIG -> {}
-            LoadingState.LOADING_DATA -> {}
-            LoadingState.LOADED_DATA -> {}
-        }
-    }
+//    private fun onLoadingStateChanged(state: LoadingState) {
+//        Log.d(TAG, "onLoadingStateChanged: ${state.name}");
+//        when (state) {
+//            LoadingState.DEFAULT -> {}
+//            LoadingState.NO_CONFIG -> {
+//                handleDoorChanged(DoorData(message = getString(R.string.missing_config)))
+//            }
+//            LoadingState.LOADING_CONFIG -> {}
+//            LoadingState.LOADING_DATA -> {}
+//            LoadingState.LOADED_DATA -> {}
+//        }
+//    }
 
     private fun handleConfigData(config: ServerConfig?) {
         Log.d(TAG, "handleConfigData")
@@ -402,26 +407,10 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "Config ${config?.toString()}")
         val buildTimestamp = config?.buildTimestamp
         Log.d(TAG, "buildTimestamp: $buildTimestamp")
-//        doorListener?.remove()
         if (buildTimestamp.isNullOrEmpty()) {
-//            loadingState = LoadingState.NO_CONFIG
             return
-//        } else {
-//            loadingState = LoadingState.LOADING_DATA
         }
-//        Log.d(TAG, "Listening to events for buildTimestamp: $buildTimestamp")
         val eventRef = db.collection("eventsCurrent").document(buildTimestamp)
-//        doorListener = eventRef.addSnapshotListener { snapshot, e ->
-//            if (e != null) {
-//                Log.w(TAG, "Event listener failed.", e)
-//                return@addSnapshotListener
-//            }
-//            if (snapshot != null && snapshot.exists()) {
-//                val doorStatus = snapshot?.toDoorData() ?: DoorData(message = getString(R.string.empty_data))
-//                handleDoorChanged(doorStatus)
-//                loadingState = LoadingState.LOADED_DATA
-//            }
-//        }
         doorViewModel.setDoorStatusDocumentReference(eventRef)
         registerDoorOpenNotifications(buildTimestamp)
         updateButtonUI()
