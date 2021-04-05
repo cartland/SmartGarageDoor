@@ -37,7 +37,6 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
@@ -52,7 +51,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var doorViewModel: DoorViewModel
 
-    private lateinit var auth: FirebaseAuth
     private lateinit var googleSignInClient: GoogleSignInClient
 
     private var fcmState = FCMState.DEFAULT
@@ -123,8 +121,7 @@ class MainActivity : AppCompatActivity() {
             .requestEmail()
             .build()
         googleSignInClient = GoogleSignIn.getClient(this, gso)
-        auth = Firebase.auth
-        val currentUser = auth.currentUser
+        val currentUser = Firebase.auth.currentUser
         onUserUpdated(currentUser)
     }
 
@@ -145,8 +142,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun signOut() {
-        auth.signOut()
-        onUserUpdated(auth.currentUser)
+        Firebase.auth.signOut()
+        onUserUpdated(Firebase.auth.currentUser)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -167,12 +164,12 @@ class MainActivity : AppCompatActivity() {
     private fun firebaseAuthWithGoogle(idToken: String) {
         Log.d(TAG, "firebaseAuthWithGoogle")
         val credential = GoogleAuthProvider.getCredential(idToken, null)
-        auth.signInWithCredential(credential)
+        Firebase.auth.signInWithCredential(credential)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
                     // Sign in success, update UI with the signed-in user's information
                     Log.d(TAG, "signInWithCredential:success")
-                    val user = auth.currentUser
+                    val user = Firebase.auth.currentUser
                     onUserUpdated(user)
                 } else {
                     // If sign in fails, display a message to the user.
@@ -203,7 +200,7 @@ class MainActivity : AppCompatActivity() {
     private fun pushRemoteButton(context: Context, config: ServerConfig) {
         Log.d(TAG, "pushRemoteButton")
         disableButtonTemporarily()
-        auth.currentUser?.getIdToken(true)?.addOnCompleteListener { task ->
+        Firebase.auth.currentUser?.getIdToken(true)?.addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 val idToken = task.result?.token
                 if (idToken == null) {
@@ -301,7 +298,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateUserUI() {
-        val currentUser = auth.currentUser
+        val currentUser = Firebase.auth.currentUser
         binding.signInButton.visibility = if (currentUser == null) {
             View.VISIBLE
         } else {
@@ -362,7 +359,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateButtonUI() {
         val config = doorViewModel.configData.value?.first
-        val currentUser = auth.currentUser
+        val currentUser = Firebase.auth.currentUser
         binding.button.visibility = if (
             config != null
             && config.remoteButtonEnabled
