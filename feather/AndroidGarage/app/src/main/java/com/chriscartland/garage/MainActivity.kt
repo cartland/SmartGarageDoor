@@ -27,6 +27,7 @@ import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.android.volley.Response
@@ -70,9 +71,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate")
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        val view = binding.root
-        setContentView(view)
+        binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
+        binding.lifecycleOwner = this
+        setContentView(binding.root)
 
         doorViewModel = ViewModelProvider(this).get(DoorViewModel::class.java)
         doorViewModel.doorData.observe(this, Observer { (doorData, state) ->
@@ -111,6 +112,7 @@ class MainActivity : AppCompatActivity() {
         doorViewModel.updatePackageVersion(packageManager, packageName)
 
         authViewModel = ViewModelProvider(this).get(AuthViewModel::class.java)
+        binding.authViewModel = authViewModel
         authViewModel.firebaseUser.observe(this, Observer<FirebaseUser?> {
             updateUserUI()
         })
@@ -258,27 +260,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateUserUI() {
-        val currentUser = authViewModel.firebaseUser.value
-        binding.signInButton.visibility = if (currentUser == null) {
-            View.VISIBLE
-        } else {
-            View.GONE
-        }
-        binding.signOutButton.visibility = if (currentUser != null) {
-            View.VISIBLE
-        } else {
-            View.GONE
-        }
-        binding.userEmail.visibility = if (currentUser == null) {
-            View.GONE
-        } else {
-            View.VISIBLE
-        }
-        binding.userEmail.text = if (currentUser == null) {
-            ""
-        } else {
-            currentUser.email
-        }
         updateButtonUI()
     }
 
