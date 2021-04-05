@@ -34,11 +34,8 @@ import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.chriscartland.garage.databinding.ActivityMainBinding
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -50,8 +47,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var doorViewModel: DoorViewModel
-
-    private lateinit var googleSignInClient: GoogleSignInClient
+    private lateinit var authViewModel: AuthViewModel
 
     private var fcmState = FCMState.DEFAULT
         set(value) {
@@ -114,70 +110,38 @@ class MainActivity : AppCompatActivity() {
         })
         doorViewModel.updatePackageVersion(packageManager, packageName)
 
-        resetButton() // TODO: Manage button UI in XML.
-
+        authViewModel = ViewModelProvider(this).get(AuthViewModel::class.java)
+        authViewModel.firebaseUser.observe(this, Observer<FirebaseUser?> {
+            updateUserUI()
+        })
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.web_client_id))
             .requestEmail()
             .build()
-        googleSignInClient = GoogleSignIn.getClient(this, gso)
-        val currentUser = Firebase.auth.currentUser
-        onUserUpdated(currentUser)
+        val googleSignInClient = GoogleSignIn.getClient(this, gso)
+        authViewModel.updateGoogleSignInClient(googleSignInClient)
+
+        resetButton() // TODO: Manage button UI in XML.
     }
 
     fun onSignInClicked(view: View) {
         Log.d(TAG, "onSignInClicked")
-        signIn()
+        authViewModel.getSignInIntent()?.let {
+            startActivityForResult(it, RC_SIGN_IN)
+        }
     }
 
     fun onSignOutClicked(view: View) {
         Log.d(TAG, "onSignOutClicked")
-        signOut()
-    }
-
-    private fun signIn() {
-        Log.d(TAG, "signIn")
-        val signInIntent = googleSignInClient.signInIntent
-        startActivityForResult(signInIntent, RC_SIGN_IN)
-    }
-
-    private fun signOut() {
-        Firebase.auth.signOut()
-        onUserUpdated(Firebase.auth.currentUser)
-        googleSignInClient.signOut()
+        authViewModel.signOut()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         Log.d(TAG, "onActivityResult")
         if (requestCode == RC_SIGN_IN) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-            try {
-                val account = task.getResult(ApiException::class.java)!!
-                Log.d(TAG, "firebaseAuthWithGoogle:" + account.id)
-                firebaseAuthWithGoogle(account.idToken!!)
-            } catch (e: ApiException) {
-                Log.w(TAG, "Google sign in failed", e)
-            }
+            authViewModel.handleActivitySignIn(this, data)
         }
-    }
-
-    private fun firebaseAuthWithGoogle(idToken: String) {
-        Log.d(TAG, "firebaseAuthWithGoogle")
-        val credential = GoogleAuthProvider.getCredential(idToken, null)
-        Firebase.auth.signInWithCredential(credential)
-            .addOnCompleteListener(this) { task ->
-                if (task.isSuccessful) {
-                    // Sign in success, update UI with the signed-in user's information
-                    Log.d(TAG, "signInWithCredential:success")
-                    val user = Firebase.auth.currentUser
-                    onUserUpdated(user)
-                } else {
-                    // If sign in fails, display a message to the user.
-                    Log.w(TAG, "signInWithCredential:failure", task.exception)
-                    onUserUpdated(null)
-                }
-            }
     }
 
     fun onPushButton(view: View) {
@@ -293,13 +257,8 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "onResume")
     }
 
-    private fun onUserUpdated(currentUser: FirebaseUser?) {
-        Log.d(TAG, "onUserUpdated: ${currentUser?.email}")
-        updateUserUI()
-    }
-
     private fun updateUserUI() {
-        val currentUser = Firebase.auth.currentUser
+        val currentUser = authViewModel.firebaseUser.value
         binding.signInButton.visibility = if (currentUser == null) {
             View.VISIBLE
         } else {
@@ -360,7 +319,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateButtonUI() {
         val config = doorViewModel.configData.value?.first
-        val currentUser = Firebase.auth.currentUser
+        val currentUser = authViewModel.firebaseUser.value
         binding.button.visibility = if (
             config != null
             && config.remoteButtonEnabled
