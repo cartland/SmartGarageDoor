@@ -36,7 +36,6 @@ import com.android.volley.toolbox.Volley
 import com.chriscartland.garage.databinding.ActivityMainBinding
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -48,7 +47,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var doorViewModel: DoorViewModel
-    private lateinit var authViewModel: AuthViewModel
 
     private var fcmState = FCMState.DEFAULT
         set(value) {
@@ -76,7 +74,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         doorViewModel = ViewModelProvider(this).get(DoorViewModel::class.java)
+        binding.doorViewModel = doorViewModel
         doorViewModel.doorData.observe(this, Observer { (doorData, state) ->
+            Log.d(TAG, "doorData: ${doorData}")
             when (state) {
                 DoorViewModel.State.DEFAULT -> {
                     handleDoorChanged(DoorData(message = getString(R.string.missing_config)))
@@ -90,6 +90,7 @@ class MainActivity : AppCompatActivity() {
             }
         })
         doorViewModel.configData.observe(this, Observer { (configData, state) ->
+            Log.d(TAG, "configData: ${configData}")
             when (state) {
                 DoorViewModel.State.DEFAULT -> {}
                 DoorViewModel.State.LOADING_DATA -> {}
@@ -102,6 +103,7 @@ class MainActivity : AppCompatActivity() {
             Firebase.firestore.collection("configCurrent").document("current")
         )
         doorViewModel.appVersion.observe(this, Observer { appVersion ->
+            Log.d(TAG, "appVersion: ${appVersion}")
             val textView = binding.versionCodeTextView
             textView.text = getString(
                 R.string.version_code_string,
@@ -109,40 +111,47 @@ class MainActivity : AppCompatActivity() {
                 appVersion.versionCode ?: 0L
             )
         })
+        doorViewModel.firebaseUser.observe(this, Observer {
+            Log.d(TAG, "firebaseUser: ${it?.email}")
+        })
+        doorViewModel.remoteButtonEnabled.observe(this, Observer { enabled ->
+            Log.d(TAG, "remoteButtonEnabled: ${enabled}")
+            if (enabled) {
+                binding.button.isEnabled = true
+                binding.button.setBackgroundColor(getColor(R.color.red))
+            } else {
+                binding.button.isEnabled = false
+                binding.button.setBackgroundColor(getColor(R.color.almost_black_blue))
+            }
+        })
         doorViewModel.updatePackageVersion(packageManager, packageName)
 
-        authViewModel = ViewModelProvider(this).get(AuthViewModel::class.java)
-        binding.authViewModel = authViewModel
-        authViewModel.firebaseUser.observe(this, Observer<FirebaseUser?> {
-            updateUserUI()
-        })
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.web_client_id))
             .requestEmail()
             .build()
         val googleSignInClient = GoogleSignIn.getClient(this, gso)
-        authViewModel.updateGoogleSignInClient(googleSignInClient)
-
-        resetButton() // TODO: Manage button UI in XML.
+        doorViewModel.updateGoogleSignInClient(googleSignInClient)
+        doorViewModel.enableRemoteButton()
     }
 
     fun onSignInClicked(view: View) {
         Log.d(TAG, "onSignInClicked")
-        authViewModel.getSignInIntent()?.let {
+        doorViewModel.getSignInIntent()?.let {
             startActivityForResult(it, RC_SIGN_IN)
         }
     }
 
     fun onSignOutClicked(view: View) {
         Log.d(TAG, "onSignOutClicked")
-        authViewModel.signOut()
+        doorViewModel.signOut()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         Log.d(TAG, "onActivityResult")
         if (requestCode == RC_SIGN_IN) {
-            authViewModel.handleActivitySignIn(this, data)
+            doorViewModel.handleActivitySignIn(this, data)
         }
     }
 
@@ -231,14 +240,13 @@ class MainActivity : AppCompatActivity() {
     private fun disableButtonTemporarily() {
         Log.d(TAG, "disableButtonTemporarily")
         showProgressBar()
-        binding.button.isEnabled = false
-        binding.button.setBackgroundColor(getColor(R.color.almost_black_blue))
+        doorViewModel.disableRemoteButton()
         buttonRunnable?.let {
             h.removeCallbacks(it)
         }
         buttonRunnable = object : Runnable {
             override fun run() {
-                resetButton()
+                doorViewModel.enableRemoteButton()
                 resetProgressBar()
             }
         }
@@ -248,19 +256,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun resetButton() {
-        Log.d(TAG, "resetButton")
-        binding.button.isEnabled = true
-        binding.button.setBackgroundColor(getColor(R.color.red))
-    }
-
     override fun onResume() {
         super.onResume()
         Log.d(TAG, "onResume")
-    }
-
-    private fun updateUserUI() {
-        updateButtonUI()
     }
 
     override fun onStop() {
@@ -280,7 +278,7 @@ class MainActivity : AppCompatActivity() {
             h.removeCallbacks(it)
         }
         resetProgressBar()
-        resetButton()
+        doorViewModel.enableRemoteButton()
     }
 
     private fun handleConfigData(config: ServerConfig?) {
@@ -295,22 +293,6 @@ class MainActivity : AppCompatActivity() {
             Firebase.firestore.collection("eventsCurrent").document(buildTimestamp)
         )
         registerDoorOpenNotifications(buildTimestamp)
-        updateButtonUI()
-    }
-
-    private fun updateButtonUI() {
-        val config = doorViewModel.configData.value?.first
-        val currentUser = authViewModel.firebaseUser.value
-        binding.button.visibility = if (
-            config != null
-            && config.remoteButtonEnabled
-            && currentUser != null
-            && config.remoteButtonAuthorizedEmails?.contains(currentUser.email) == true
-        ) {
-            View.VISIBLE
-        } else {
-            View.GONE
-        }
     }
 
     private fun registerDoorOpenNotifications(buildTimestamp: String) {

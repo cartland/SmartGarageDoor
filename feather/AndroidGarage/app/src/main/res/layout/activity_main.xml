@@ -21,9 +21,6 @@
     <data>
         <import type="android.view.View"/>
         <variable
-            name="authViewModel"
-            type="com.chriscartland.garage.AuthViewModel" />
-        <variable
             name="doorViewModel"
             type="com.chriscartland.garage.DoorViewModel" />
     </data>
@@ -71,7 +68,7 @@
             app:layout_constraintTop_toBottomOf="@+id/status_title"
             android:onClick="onSignInClicked"
             android:textColor="@color/white"
-            android:visibility="@{authViewModel.firebaseUser == null ? View.VISIBLE : View.GONE}"
+            android:visibility="@{doorViewModel.firebaseUser == null ? View.VISIBLE : View.GONE}"
             android:text="@string/sign_in" />
 
         <Button
@@ -83,6 +80,7 @@
             android:onClick="onPushButton"
             android:text="@string/push_button"
             android:textColor="@color/white"
+            android:visibility="@{doorViewModel.showRemoteButton ? View.VISIBLE : View.GONE}"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/sign_in_button" />
@@ -160,8 +158,8 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
-            android:visibility="@{authViewModel.firebaseUser == null ? View.GONE : View.VISIBLE}"
-            android:text="@{authViewModel.firebaseUser.email}"
+            android:visibility="@{doorViewModel.firebaseUser == null ? View.GONE : View.VISIBLE}"
+            android:text="@{doorViewModel.firebaseUser.email}"
             tools:text="@string/fake_email" />
 
         <Button
@@ -174,7 +172,7 @@
             app:layout_constraintBottom_toTopOf="@+id/disclaimer"
             android:onClick="onSignOutClicked"
             android:textColor="@color/white"
-            android:visibility="@{authViewModel.firebaseUser == null ? View.GONE : View.VISIBLE}"
+            android:visibility="@{doorViewModel.firebaseUser == null ? View.GONE : View.VISIBLE}"
             android:text="@string/sign_out" />
 
         <TextView

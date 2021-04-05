@@ -17,14 +17,22 @@
 
 package com.chriscartland.garage
 
+import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.ktx.Firebase
 
 
 class DoorViewModel : ViewModel() {
@@ -73,6 +81,69 @@ class DoorViewModel : ViewModel() {
         }
     }
 
+    val showRemoteButton = MediatorLiveData<Boolean>()
+
+    val remoteButtonEnabled = MutableLiveData<Boolean>()
+
+    fun enableRemoteButton() {
+        Log.d(TAG, "enableRemoteButton")
+        remoteButtonEnabled.value = true
+    }
+
+    fun disableRemoteButton() {
+        Log.d(TAG, "disableRemoteButton")
+        remoteButtonEnabled.value = false
+    }
+
+    val firebaseUser = MutableLiveData<FirebaseUser?>()
+
+    private var googleSignInClient: GoogleSignInClient? = null
+
+    fun updateGoogleSignInClient(googleSignInClient: GoogleSignInClient) {
+        this.googleSignInClient = googleSignInClient
+    }
+
+    fun handleActivitySignIn(activity: Activity, data: Intent?) {
+        Log.d(TAG, "handleActivitySignIn")
+        if (data == null) {
+            return
+        }
+        val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+        try {
+            val account = task.getResult(ApiException::class.java) ?: return
+            val idToken = account.idToken ?: return
+            firebaseAuthWithGoogle(activity, idToken)
+        } catch (e: ApiException) {
+            Log.w(TAG, "Google sign in failed", e)
+        }
+    }
+
+    private fun firebaseAuthWithGoogle(activity: Activity, idToken: String) {
+        Log.d(TAG, "firebaseAuthWithGoogle")
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        Firebase.auth.signInWithCredential(credential)
+            .addOnCompleteListener(activity) { task ->
+                if (task.isSuccessful) {
+                    // Sign in success, update UI with the signed-in user's information
+                    Log.d(TAG, "signInWithCredential:success")
+                    val user = Firebase.auth.currentUser
+                    firebaseUser.value = user
+                } else {
+                    // If sign in fails, display a message to the user.
+                    Log.w(TAG, "signInWithCredential:failure", task.exception)
+                    firebaseUser.value = null
+                }
+            }
+    }
+
+    fun getSignInIntent() = googleSignInClient?.signInIntent
+
+    fun signOut() {
+        Firebase.auth.signOut()
+        googleSignInClient?.signOut()
+        firebaseUser.value = null
+    }
+
     init {
         Log.d(TAG, "init")
         doorData.value = Pair(null, State.DEFAULT)
@@ -85,6 +156,21 @@ class DoorViewModel : ViewModel() {
             Log.d(TAG, "Received Firestore update for ServerConfig")
             configData.value = Pair(value?.toServerConfig(), State.LOADED_DATA)
         }
+        showRemoteButton.addSource(firebaseUser) { firebaseUser ->
+            showRemoteButton.value = shouldShowRemoteButton()
+        }
+        showRemoteButton.addSource(configData) { (value, state) ->
+            showRemoteButton.value = shouldShowRemoteButton()
+        }
+    }
+
+    fun shouldShowRemoteButton(): Boolean {
+        val config = configData.value?.first
+        val user = firebaseUser.value
+        return config != null
+                && config.remoteButtonEnabled
+                && user != null
+                && config.remoteButtonAuthorizedEmails?.contains(user.email) == true
     }
 
     companion object {
