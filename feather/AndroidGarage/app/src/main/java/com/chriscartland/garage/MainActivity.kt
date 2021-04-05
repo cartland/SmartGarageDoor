@@ -144,6 +144,7 @@ class MainActivity : AppCompatActivity() {
     private fun signOut() {
         Firebase.auth.signOut()
         onUserUpdated(Firebase.auth.currentUser)
+        googleSignInClient.signOut()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
