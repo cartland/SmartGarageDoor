@@ -25,8 +25,8 @@ import android.util.Log
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.identity.BeginSignInRequest
+import com.google.android.gms.auth.api.identity.SignInClient
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
@@ -109,24 +109,17 @@ class DoorViewModel : ViewModel() {
 
     val firebaseUser = MutableLiveData<FirebaseUser?>()
 
-    private var googleSignInClient: GoogleSignInClient? = null
+    var oneTapSignInClient: SignInClient? = null
+    var oneTapSignInRequest: BeginSignInRequest? = null
 
-    fun updateGoogleSignInClient(googleSignInClient: GoogleSignInClient) {
-        this.googleSignInClient = googleSignInClient
-    }
-
-    fun handleActivitySignIn(activity: Activity, data: Intent?) {
-        Log.d(TAG, "handleActivitySignIn")
-        if (data == null) {
-            return
-        }
-        val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+    fun handleOneTapSignIn(activity: Activity, data: Intent?) {
         try {
-            val account = task.getResult(ApiException::class.java) ?: return
-            val idToken = account.idToken ?: return
+            val oneTapClient = oneTapSignInClient ?: return
+            val credential = oneTapClient.getSignInCredentialFromIntent(data)
+            val idToken = credential.googleIdToken ?: return
             firebaseAuthWithGoogle(activity, idToken)
         } catch (e: ApiException) {
-            Log.w(TAG, "Google sign in failed", e)
+            Log.e(TAG, "ApiException: handleOneTapSignIn ${e.message}")
         }
     }
 
@@ -148,11 +141,9 @@ class DoorViewModel : ViewModel() {
             }
     }
 
-    fun getSignInIntent() = googleSignInClient?.signInIntent
-
     fun signOut() {
         Firebase.auth.signOut()
-        googleSignInClient?.signOut()
+        oneTapSignInClient?.signOut()
         firebaseUser.value = null
     }
 

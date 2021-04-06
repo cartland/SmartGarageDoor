@@ -19,6 +19,7 @@ package com.chriscartland.garage
 
 import android.content.Context
 import android.content.Intent
+import android.content.IntentSender
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -34,8 +35,11 @@ import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.chriscartland.garage.databinding.ActivityMainBinding
+import com.google.android.gms.auth.api.identity.BeginSignInRequest
+import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -106,21 +110,47 @@ class MainActivity : AppCompatActivity() {
             Log.d(TAG, "firebaseUser: ${it?.email}")
         })
         doorViewModel.updatePackageVersion(packageManager, packageName)
-
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(getString(R.string.web_client_id))
-            .requestEmail()
-            .build()
-        val googleSignInClient = GoogleSignIn.getClient(this, gso)
-        doorViewModel.updateGoogleSignInClient(googleSignInClient)
         doorViewModel.enableRemoteButton()
+
+        doorViewModel.oneTapSignInClient = Identity.getSignInClient(this)
+        doorViewModel.oneTapSignInRequest = BeginSignInRequest.builder()
+            .setGoogleIdTokenRequestOptions(
+                BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
+                    .setSupported(true)
+                    .setServerClientId(getString(R.string.web_client_id))
+                    .setFilterByAuthorizedAccounts(false)
+                    .build())
+            .setAutoSelectEnabled(true)
+            .build()
+        if (doorViewModel.firebaseUser.value == null) {
+            signIn()
+        }
     }
 
     fun onSignInClicked(view: View) {
         Log.d(TAG, "onSignInClicked")
-        doorViewModel.getSignInIntent()?.let {
-            startActivityForResult(it, RC_SIGN_IN)
-        }
+        signIn()
+    }
+
+    fun signIn() {
+        val signInClient = doorViewModel.oneTapSignInClient ?: return
+        val signInRequest = doorViewModel.oneTapSignInRequest ?: return
+        Log.d(TAG, "beginSignIn")
+        signInClient.beginSignIn(signInRequest)
+            .addOnSuccessListener(this) { result ->
+                try {
+                    startIntentSenderForResult(
+                        result.pendingIntent.intentSender, RC_ONE_TAP_SIGN_IN,
+                        null, 0, 0, 0, null)
+                } catch (e: IntentSender.SendIntentException) {
+                    Log.e(TAG, "Couldn't start One Tap UI: ${e.localizedMessage}")
+                }
+            }
+            .addOnFailureListener(this) { e ->
+                // No saved credentials found. Launch the One Tap sign-up flow, or
+                // do nothing and continue presenting the signed-out UI.
+                Log.d(TAG, e.localizedMessage)
+            }
     }
 
     fun onSignOutClicked(view: View) {
@@ -131,8 +161,10 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         Log.d(TAG, "onActivityResult")
-        if (requestCode == RC_SIGN_IN) {
-            doorViewModel.handleActivitySignIn(this, data)
+        when (requestCode) {
+            RC_ONE_TAP_SIGN_IN -> {
+                doorViewModel.handleOneTapSignIn(this, data)
+            }
         }
     }
 
@@ -435,7 +467,7 @@ class MainActivity : AppCompatActivity() {
         const val DOOR_NOT_CLOSED_THRESHOLD_SECONDS = 60 * 15
         const val FCM_DOOR_OPEN_TOPIC = "com.chriscartland.garage.FCM_DOOR_OPEN_TOPIC"
 
-        const val RC_SIGN_IN = 1
+        const val RC_ONE_TAP_SIGN_IN = 1
     }
 }
 
