@@ -102,15 +102,6 @@ class MainActivity : AppCompatActivity() {
         doorViewModel.setConfigDataDocumentReference(
             Firebase.firestore.collection("configCurrent").document("current")
         )
-        doorViewModel.appVersion.observe(this, Observer { appVersion ->
-            Log.d(TAG, "appVersion: ${appVersion}")
-            val textView = binding.versionCodeTextView
-            textView.text = getString(
-                R.string.version_code_string,
-                appVersion.versionName ?: "",
-                appVersion.versionCode ?: 0L
-            )
-        })
         doorViewModel.firebaseUser.observe(this, Observer {
             Log.d(TAG, "firebaseUser: ${it?.email}")
         })
