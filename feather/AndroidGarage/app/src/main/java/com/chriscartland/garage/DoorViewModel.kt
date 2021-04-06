@@ -95,6 +95,18 @@ class DoorViewModel : ViewModel() {
         remoteButtonEnabled.value = false
     }
 
+    val progressBarVisible = MediatorLiveData<Boolean>()
+
+    fun showProgressBar() {
+        Log.d(TAG, "showProgressBar")
+        progressBarVisible.value = true
+    }
+
+    fun hideProgressBar() {
+        Log.d(TAG, "hideProgressBar")
+        progressBarVisible.value = false
+    }
+
     val firebaseUser = MutableLiveData<FirebaseUser?>()
 
     private var googleSignInClient: GoogleSignInClient? = null

@@ -166,10 +166,9 @@ class MainActivity : AppCompatActivity() {
             .setTitle(R.string.button_confirmation_title)
             .setMessage(R.string.button_confirmation_message)
             .setIcon(android.R.drawable.ic_dialog_alert)
-            .setPositiveButton(R.string.confirm_push_button,
-                { dialog, whichButton ->
-                    pushRemoteButton(this, config)
-                })
+            .setPositiveButton(R.string.confirm_push_button) { dialog, whichButton ->
+                pushRemoteButton(this, config)
+            }
             .setNegativeButton(R.string.cancel_push_button, null).show()
     }
 
@@ -239,7 +238,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun disableButtonTemporarily() {
         Log.d(TAG, "disableButtonTemporarily")
-        showProgressBar()
+        doorViewModel.showProgressBar()
         doorViewModel.disableRemoteButton()
         buttonRunnable?.let {
             h.removeCallbacks(it)
@@ -247,7 +246,7 @@ class MainActivity : AppCompatActivity() {
         buttonRunnable = object : Runnable {
             override fun run() {
                 doorViewModel.enableRemoteButton()
-                resetProgressBar()
+                doorViewModel.hideProgressBar()
             }
         }
         buttonRunnable?.let {
@@ -277,8 +276,8 @@ class MainActivity : AppCompatActivity() {
         buttonRunnable?.let {
             h.removeCallbacks(it)
         }
-        resetProgressBar()
         doorViewModel.enableRemoteButton()
+        doorViewModel.hideProgressBar()
     }
 
     private fun handleConfigData(config: ServerConfig?) {
@@ -336,21 +335,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun handleDoorChanged(doorData: DoorData) {
         Log.d(TAG, "handleDoorChanged")
-        resetProgressBar()
+        doorViewModel.hideProgressBar()
         updateStatusTitle(doorData)
         updateStatusMessage(doorData)
         updateLastCheckInTime(doorData)
         updateLastChangeTime(doorData)
         updateTimeSinceLastCheckIn(doorData)
         updateTimeSinceLastChange(doorData)
-    }
-
-    private fun showProgressBar() {
-        binding.progressBar.visibility = View.VISIBLE
-    }
-
-    private fun resetProgressBar() {
-        binding.progressBar.visibility = View.GONE
     }
 
     private fun updateStatusTitle(doorData: DoorData) {
