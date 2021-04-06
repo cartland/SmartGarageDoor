@@ -114,16 +114,6 @@ class MainActivity : AppCompatActivity() {
         doorViewModel.firebaseUser.observe(this, Observer {
             Log.d(TAG, "firebaseUser: ${it?.email}")
         })
-        doorViewModel.remoteButtonEnabled.observe(this, Observer { enabled ->
-            Log.d(TAG, "remoteButtonEnabled: ${enabled}")
-            if (enabled) {
-                binding.button.isEnabled = true
-                binding.button.setBackgroundColor(getColor(R.color.red))
-            } else {
-                binding.button.isEnabled = false
-                binding.button.setBackgroundColor(getColor(R.color.almost_black_blue))
-            }
-        })
         doorViewModel.updatePackageVersion(packageManager, packageName)
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
