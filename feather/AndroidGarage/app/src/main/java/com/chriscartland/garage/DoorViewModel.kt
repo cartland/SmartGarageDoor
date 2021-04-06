@@ -28,6 +28,7 @@ import androidx.lifecycle.ViewModel
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.SignInClient
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
@@ -109,6 +110,9 @@ class DoorViewModel : ViewModel() {
 
     val firebaseUser = MutableLiveData<FirebaseUser?>()
 
+    var showOneTapUI = MutableLiveData<Boolean>().also {
+        it.value = true
+    }
     var oneTapSignInClient: SignInClient? = null
     var oneTapSignInRequest: BeginSignInRequest? = null
 
@@ -120,6 +124,21 @@ class DoorViewModel : ViewModel() {
             firebaseAuthWithGoogle(activity, idToken)
         } catch (e: ApiException) {
             Log.e(TAG, "ApiException: handleOneTapSignIn ${e.message}")
+            when (e.statusCode) {
+                CommonStatusCodes.CANCELED -> {
+                    Log.d(TAG, "One-tap dialog was closed.")
+                    // Don't re-prompt the user.
+                    showOneTapUI.value = false
+                }
+                CommonStatusCodes.NETWORK_ERROR -> {
+                    Log.d(TAG, "One-tap encountered a network error.")
+                    showOneTapUI.value = true
+                }
+                else -> {
+                    Log.d(TAG, "Couldn't get credential from result." +
+                            " (${e.localizedMessage})")
+                }
+            }
         }
     }
 
