@@ -63,39 +63,39 @@ fun getStatusTitleAndColor(doorData: DoorData, context: Context): Pair<String, I
     Log.d(MainActivity.TAG, "getStatusTitleAndColor")
     return when (doorData.state) {
         null -> Pair(
-            "Unknown Status",
+            context.getString(R.string.title_door_error),
             context.getColor(R.color.color_door_error)
         )
         DoorState.UNKNOWN -> Pair(
-            "Unknown Status",
+            context.getString(R.string.title_door_error),
             context.getColor(R.color.color_door_error)
         )
         DoorState.CLOSED -> Pair(
-            "Door Closed",
+            context.getString(R.string.title_door_closed),
             context.getColor(R.color.color_door_closed)
         )
         DoorState.OPENING -> Pair(
-            "Opening...",
-            context.getColor(R.color.color_door_moving)
+            context.getString(R.string.title_door_opening),
+            context.getColor(R.color.color_door_opening)
         )
         DoorState.OPENING_TOO_LONG -> Pair(
-            "Check door",
+            context.getString(R.string.title_door_opening_too_long),
             context.getColor(R.color.color_door_error)
         )
         DoorState.OPEN -> Pair(
-            "Door Open",
+            context.getString(R.string.title_door_open),
             context.getColor(R.color.color_door_open)
         )
         DoorState.CLOSING -> Pair(
-            "Closing...",
-            context.getColor(R.color.color_door_moving)
+            context.getString(R.string.title_door_closing),
+            context.getColor(R.color.color_door_closing)
         )
         DoorState.CLOSING_TOO_LONG -> Pair(
-            "Check door",
+            context.getString(R.string.title_door_closing_too_long),
             context.getColor(R.color.color_door_error)
         )
         DoorState.ERROR_SENSOR_CONFLICT -> Pair(
-            "Error",
+            context.getString(R.string.title_door_sensor_conflict),
             context.getColor(R.color.color_door_error)
         )
     }

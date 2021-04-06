@@ -35,4 +35,12 @@
     <string name="sign_in">Sign In</string>
     <string name="sign_out">Sign Out</string>
     <string name="fake_email">email@example.com</string>
+    <string name="title_door_error">Unknown Status</string>
+    <string name="title_door_closed">Door Closed</string>
+    <string name="title_door_opening">Opening...</string>
+    <string name="title_door_opening_too_long">Check Door</string>
+    <string name="title_door_open">Door Open</string>
+    <string name="title_door_closing">Closing...</string>
+    <string name="title_door_closing_too_long">Check Door</string>
+    <string name="title_door_sensor_conflict">Error</string>
 </resources>
