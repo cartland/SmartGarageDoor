@@ -92,6 +92,12 @@ class MainActivity : AppCompatActivity() {
         )
         doorViewModel.firebaseUser.observe(this, Observer {
             Log.d(TAG, "firebaseUser: ${it?.email}")
+            val signedIn = (it != null)
+            val sharedPref = getPreferences(Context.MODE_PRIVATE)
+            with (sharedPref.edit()) {
+                putBoolean(SIGNED_IN_KEY, signedIn)
+                apply()
+            }
         })
         doorViewModel.updatePackageVersion(packageManager, packageName)
         doorViewModel.enableRemoteButton()
@@ -106,17 +112,30 @@ class MainActivity : AppCompatActivity() {
                     .build())
             .setAutoSelectEnabled(true)
             .build()
-        if (doorViewModel.firebaseUser.value == null) {
-            signIn()
-        }
+        signIn(clicked = false)
     }
 
     fun onSignInClicked(view: View) {
         Log.d(TAG, "onSignInClicked")
-        signIn()
+        signIn(clicked = true)
     }
 
-    fun signIn() {
+    fun signIn(clicked: Boolean) {
+        if (!clicked) {
+            val sharedPref = getPreferences(Context.MODE_PRIVATE)
+            val signedIn = sharedPref.getBoolean(SIGNED_IN_KEY, false)
+            if (signedIn) {
+                val user = Firebase.auth.currentUser
+                doorViewModel.firebaseUser.value = user
+                return
+            }
+        }
+        if (!(clicked || doorViewModel.showOneTapUI.value == true)) {
+            Log.d(TAG, "signIn: Skipping sign in, not clicked, and showOneTapUI is not true")
+            val user = Firebase.auth.currentUser
+            doorViewModel.firebaseUser.value = user
+            return
+        }
         val signInClient = doorViewModel.oneTapSignInClient ?: return
         val signInRequest = doorViewModel.oneTapSignInRequest ?: return
         Log.d(TAG, "beginSignIn")
@@ -379,5 +398,6 @@ class MainActivity : AppCompatActivity() {
         const val DOOR_NOT_CLOSED_THRESHOLD_SECONDS = 60 * 15
 
         const val RC_ONE_TAP_SIGN_IN = 1
+        const val SIGNED_IN_KEY = "com.chriscartland.garage.SIGNED_IN_KEY"
     }
 }
