@@ -62,7 +62,8 @@ class MainActivity : AppCompatActivity() {
 
         doorViewModel = ViewModelProvider(this).get(DoorViewModel::class.java)
         binding.doorViewModel = doorViewModel
-        doorViewModel.doorData.observe(this, Observer { (doorData, state) ->
+        doorViewModel.statusColorMap = getStatusTitleColorMap(this)
+        doorViewModel.doorDataState.observe(this, Observer { (doorData, state) ->
             Log.d(TAG, "doorData: ${doorData}")
             when (state) {
                 DoorViewModel.State.DEFAULT -> {
@@ -76,7 +77,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
-        doorViewModel.configData.observe(this, Observer { (configData, state) ->
+        doorViewModel.configDataState.observe(this, Observer { (configData, state) ->
             Log.d(TAG, "configData: ${configData}")
             when (state) {
                 DoorViewModel.State.DEFAULT -> {}
@@ -153,7 +154,7 @@ class MainActivity : AppCompatActivity() {
 
     fun onPushButton(view: View) {
         Log.d(TAG, "onPushButton")
-        val config: ServerConfig? = doorViewModel.configData.value?.first
+        val config: ServerConfig? = doorViewModel.configDataState.value?.first
         if (config == null) {
             Log.e(TAG, "Cannot push button without server configuration")
             return
@@ -293,36 +294,15 @@ class MainActivity : AppCompatActivity() {
     private fun handleDoorChanged(doorData: DoorData) {
         Log.d(TAG, "handleDoorChanged")
         doorViewModel.hideProgressBar()
-        updateStatusTitle(doorData)
-        updateStatusMessage(doorData)
-        updateLastCheckInTime(doorData)
-        updateLastChangeTime(doorData)
+        updateStatusColor(doorData)
         updateTimeSinceLastCheckIn(doorData)
         updateTimeSinceLastChange(doorData)
     }
 
-    private fun updateStatusTitle(doorData: DoorData) {
-        val data = getStatusTitleAndColor(doorData, this)
+    private fun updateStatusColor(doorData: DoorData) {
+        val (title, color) = doorViewModel.statusColorMap[doorData.state] ?: return
         val textView = binding.statusTitle
-        textView.text = data.first
-        textView.setBackgroundColor(data.second)
-    }
-
-    private fun updateStatusMessage(doorData: DoorData) {
-        val textView = binding.statusMessage
-        textView.text = doorData.message
-    }
-
-    private fun updateLastCheckInTime(doorData: DoorData) {
-        val lastCheckInTime = doorData.lastCheckInTimeSeconds
-        val textView = binding.lastCheckInTime
-        if (lastCheckInTime != null) {
-            val lastCheckInTimeString =
-                DateFormat.format("yyyy-MM-dd hh:mm:ss a", Date(lastCheckInTime * 1000))
-            textView.text = getString(R.string.last_check_in_time, lastCheckInTimeString)
-        } else {
-            textView.text = ""
-        }
+        textView.setBackgroundColor(color)
     }
 
     private fun updateTimeSinceLastCheckIn(doorData: DoorData) {
@@ -356,18 +336,6 @@ class MainActivity : AppCompatActivity() {
         checkInRunnable?.let {
             it.run()
             h.postDelayed(it, 1000)
-        }
-    }
-
-    private fun updateLastChangeTime(doorData: DoorData) {
-        val lastChangeTime = doorData.lastChangeTimeSeconds
-        val textView = binding.lastChangeTime
-        if (lastChangeTime != null) {
-            val lastChangeTimeString =
-                DateFormat.format("yyyy-MM-dd hh:mm:ss a", Date(lastChangeTime * 1000))
-            textView.text = getString(R.string.last_change_time, lastChangeTimeString)
-        } else {
-            textView.text = null
         }
     }
 

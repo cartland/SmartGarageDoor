@@ -59,44 +59,40 @@ fun DocumentSnapshot.toDoorData(): DoorData {
     )
 }
 
-fun getStatusTitleAndColor(doorData: DoorData, context: Context): Pair<String, Int> {
-    Log.d(MainActivity.TAG, "getStatusTitleAndColor")
-    return when (doorData.state) {
-        null -> Pair(
+fun getStatusTitleColorMap(context: Context): Map<DoorState, Pair<String, Int>> {
+    Log.d(MainActivity.TAG, "getStatusTitleColorMap")
+    return mapOf(
+        DoorState.UNKNOWN to Pair(
             context.getString(R.string.title_door_error),
             context.getColor(R.color.color_door_error)
-        )
-        DoorState.UNKNOWN -> Pair(
-            context.getString(R.string.title_door_error),
-            context.getColor(R.color.color_door_error)
-        )
-        DoorState.CLOSED -> Pair(
+        ),
+        DoorState.CLOSED to Pair(
             context.getString(R.string.title_door_closed),
             context.getColor(R.color.color_door_closed)
-        )
-        DoorState.OPENING -> Pair(
+        ),
+        DoorState.OPENING to Pair(
             context.getString(R.string.title_door_opening),
             context.getColor(R.color.color_door_opening)
-        )
-        DoorState.OPENING_TOO_LONG -> Pair(
+        ),
+        DoorState.OPENING_TOO_LONG to Pair(
             context.getString(R.string.title_door_opening_too_long),
             context.getColor(R.color.color_door_error)
-        )
-        DoorState.OPEN -> Pair(
+        ),
+        DoorState.OPEN to Pair(
             context.getString(R.string.title_door_open),
             context.getColor(R.color.color_door_open)
-        )
-        DoorState.CLOSING -> Pair(
+        ),
+        DoorState.CLOSING to Pair(
             context.getString(R.string.title_door_closing),
             context.getColor(R.color.color_door_closing)
-        )
-        DoorState.CLOSING_TOO_LONG -> Pair(
+        ),
+        DoorState.CLOSING_TOO_LONG to Pair(
             context.getString(R.string.title_door_closing_too_long),
             context.getColor(R.color.color_door_error)
-        )
-        DoorState.ERROR_SENSOR_CONFLICT -> Pair(
+        ),
+        DoorState.ERROR_SENSOR_CONFLICT to Pair(
             context.getString(R.string.title_door_sensor_conflict),
             context.getColor(R.color.color_door_error)
         )
-    }
+    )
 }
