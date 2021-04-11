@@ -31,7 +31,7 @@ ServerApi serverApi(&Serial);
 ServerResponse serverdata;
 String session = "";
 String buttonAckToken = "NO_BUTTON_ACK_TOKEN";
-unsigned long HEARTBEAT_INTERVAL = 1000 * 10; // 10 seconds.
+unsigned long HEARTBEAT_INTERVAL = 1000 * 5; // 5 seconds.
 unsigned long PUSH_REMOTE_BUTTON_DURATION_MILLIS = 500;
 
 void pushRemoteButton(unsigned long durationMillis) {
