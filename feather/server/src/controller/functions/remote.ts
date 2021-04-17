@@ -171,12 +171,13 @@ export const addRemoteButtonCommand = functions.https.onRequest(async (request, 
     const now = firebase.firestore.Timestamp.now();
     const nowSeconds = now.seconds;
     const timeSinceLastRemoteButtonCommandSeconds = nowSeconds - oldTimestampSeconds;
-    if (timeSinceLastRemoteButtonCommandSeconds > REMOTE_BUTTON_MIN_PERIOD_SECONDS) {
-      console.log('Time since remote button press is greater than minimum',
-        timeSinceLastRemoteButtonCommandSeconds, '>', REMOTE_BUTTON_MIN_PERIOD_SECONDS);
-    } else {
+    if (timeSinceLastRemoteButtonCommandSeconds < REMOTE_BUTTON_MIN_PERIOD_SECONDS) {
       console.log('Time since remote button press is less than minimum',
         timeSinceLastRemoteButtonCommandSeconds, '<', REMOTE_BUTTON_MIN_PERIOD_SECONDS);
+      const result = { error: 'Conflict (too many recent requests).' };
+      console.error(result);
+      response.status(409).send(result);
+      return;
     }
     // Submit new remote button command.
     await REMOTE_BUTTON_COMMAND_DATABASE.save(buildTimestamp, data);
