@@ -29,10 +29,13 @@ import { RemoteButtonCommand } from '../../model/RemoteButtonCommand';
 const REMOTE_BUTTON_COMMAND_DATABASE = new TimeSeriesDatabase('remoteButtonCommandCurrent', 'remoteButtonCommandAll');
 const REMOTE_BUTTON_REQUEST_DATABASE = new TimeSeriesDatabase('remoteButtonRequestCurrent', 'remoteButtonRequestAll');
 
+const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 const SESSION_PARAM_KEY = "session";
 const BUTTON_ACK_TOKEN_PARAM_KEY = "buttonAckToken";
 const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
-const EMAIL_PARAM_KEY = "email"
+const EMAIL_PARAM_KEY = "email";
+
+const REMOTE_BUTTON_MIN_PERIOD_SECONDS = 20;
 
 /**
  * curl -H "Content-Type: application/json" http://localhost:5000/escape-echo/us-central1/remoteButton?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
@@ -163,6 +166,19 @@ export const addRemoteButtonCommand = functions.https.onRequest(async (request, 
   data[EMAIL_PARAM_KEY] = email;
   const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
   try {
+    const oldCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
+    const oldTimestampSeconds = oldCommand[DATABASE_TIMESTAMP_SECONDS_KEY];
+    const now = firebase.firestore.Timestamp.now();
+    const nowSeconds = now.seconds;
+    const timeSinceLastRemoteButtonCommandSeconds = nowSeconds - oldTimestampSeconds;
+    if (timeSinceLastRemoteButtonCommandSeconds > REMOTE_BUTTON_MIN_PERIOD_SECONDS) {
+      console.log('Time since remote button press is greater than minimum',
+        timeSinceLastRemoteButtonCommandSeconds, '>', REMOTE_BUTTON_MIN_PERIOD_SECONDS);
+    } else {
+      console.log('Time since remote button press is less than minimum',
+        timeSinceLastRemoteButtonCommandSeconds, '<', REMOTE_BUTTON_MIN_PERIOD_SECONDS);
+    }
+    // Submit new remote button command.
     await REMOTE_BUTTON_COMMAND_DATABASE.save(buildTimestamp, data);
     const updatedCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
     response.status(200).send(updatedCommand);
