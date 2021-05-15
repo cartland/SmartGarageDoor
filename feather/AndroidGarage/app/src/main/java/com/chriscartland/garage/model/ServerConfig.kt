@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage
+package com.chriscartland.garage.model
 
 import com.google.firebase.firestore.DocumentSnapshot
 
@@ -42,7 +42,7 @@ fun DocumentSnapshot.toServerConfig(): ServerConfig {
     return ServerConfig(
         buildTimestamp = buildTimestamp,
         remoteButtonPushKey = remoteButtonPushKey,
-        remoteButtonBuildTimestamp =remoteButtonBuildTimestamp,
+        remoteButtonBuildTimestamp = remoteButtonBuildTimestamp,
         host = host,
         path = path,
         remoteButtonEnabled = remoteButtonEnabled,

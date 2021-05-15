@@ -15,10 +15,11 @@
  *
  */
 
-package com.chriscartland.garage
+package com.chriscartland.garage.repository
 
 import android.util.Log
 import androidx.lifecycle.LiveData
+import com.chriscartland.garage.MainActivity
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.EventListener
@@ -46,7 +47,10 @@ class FirestoreDocumentReferenceLiveData(
             }
         }
 
-    private val listener: EventListener<DocumentSnapshot?> = Listener(this)
+    private val listener: EventListener<DocumentSnapshot?> =
+        Listener(
+            this
+        )
     private class Listener(
         val liveData: FirestoreDocumentReferenceLiveData
     ) : EventListener<DocumentSnapshot?> {

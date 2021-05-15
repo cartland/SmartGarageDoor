@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage
+package com.chriscartland.garage.model
 
 class AppVersion(
     val versionCode: Long,

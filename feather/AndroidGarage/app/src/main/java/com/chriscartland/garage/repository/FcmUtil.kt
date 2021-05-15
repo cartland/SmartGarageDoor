@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage
+package com.chriscartland.garage.repository
 
 import android.app.Activity
 import android.content.Context
@@ -67,6 +67,6 @@ private fun String.toDoorOpenFcmTopic(): String {
     return "door_open-$filtered"
 }
 
-private val TAG: String = "NotificationManager"
+private val TAG: String = "FcmUtil"
 
-const val FCM_DOOR_OPEN_TOPIC = "com.chriscartland.garage.FCM_DOOR_OPEN_TOPIC"
+const val FCM_DOOR_OPEN_TOPIC = "com.chriscartland.garage.repository.FCM_DOOR_OPEN_TOPIC"

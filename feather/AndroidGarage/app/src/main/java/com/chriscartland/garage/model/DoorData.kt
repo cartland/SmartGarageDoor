@@ -15,10 +15,12 @@
  *
  */
 
-package com.chriscartland.garage
+package com.chriscartland.garage.model
 
 import android.content.Context
 import android.util.Log
+import com.chriscartland.garage.MainActivity
+import com.chriscartland.garage.R
 import com.google.firebase.firestore.DocumentSnapshot
 
 data class DoorData(

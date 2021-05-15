@@ -22,7 +22,7 @@
         <import type="android.view.View"/>
         <variable
             name="doorViewModel"
-            type="com.chriscartland.garage.DoorViewModel" />
+            type="com.chriscartland.garage.viewmodel.DoorViewModel" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout

@@ -35,6 +35,12 @@ import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.chriscartland.garage.databinding.ActivityMainBinding
+import com.chriscartland.garage.model.DoorData
+import com.chriscartland.garage.model.DoorState
+import com.chriscartland.garage.model.ServerConfig
+import com.chriscartland.garage.model.getStatusTitleColorMap
+import com.chriscartland.garage.repository.updateOpenDoorFcmSubscription
+import com.chriscartland.garage.viewmodel.DoorViewModel
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.firebase.auth.ktx.auth
@@ -62,15 +68,24 @@ class MainActivity : AppCompatActivity() {
 
         doorViewModel = ViewModelProvider(this).get(DoorViewModel::class.java)
         binding.doorViewModel = doorViewModel
-        doorViewModel.statusColorMap = getStatusTitleColorMap(this)
+        doorViewModel.statusColorMap =
+            getStatusTitleColorMap(this)
         doorViewModel.doorDataState.observe(this, Observer { (doorData, state) ->
             Log.d(TAG, "doorData: ${doorData}")
             when (state) {
                 DoorViewModel.State.DEFAULT -> {
-                    handleDoorChanged(DoorData(message = getString(R.string.missing_config)))
+                    handleDoorChanged(
+                        DoorData(
+                            message = getString(R.string.missing_config)
+                        )
+                    )
                 }
                 DoorViewModel.State.LOADING_DATA -> {
-                    handleDoorChanged(DoorData(message = getString(R.string.loading_data)))
+                    handleDoorChanged(
+                        DoorData(
+                            message = getString(R.string.loading_data)
+                        )
+                    )
                 }
                 DoorViewModel.State.LOADED_DATA -> {
                     handleDoorChanged(doorData ?: DoorData())
@@ -307,7 +322,10 @@ class MainActivity : AppCompatActivity() {
         doorViewModel.setDoorStatusDocumentReference(
             Firebase.firestore.collection("eventsCurrent").document(buildTimestamp)
         )
-        updateOpenDoorFcmSubscription(this, buildTimestamp)
+        updateOpenDoorFcmSubscription(
+            this,
+            buildTimestamp
+        )
     }
 
     private fun handleDoorChanged(doorData: DoorData) {
