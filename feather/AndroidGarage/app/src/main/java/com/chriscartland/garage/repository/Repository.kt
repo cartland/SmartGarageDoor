@@ -17,5 +17,35 @@
 
 package com.chriscartland.garage.repository
 
+import android.content.pm.PackageManager
+import android.os.Build
+import android.util.Log
+import androidx.lifecycle.MutableLiveData
+import com.chriscartland.garage.model.AppVersion
+
 class Repository {
+
+    val appVersion: MutableLiveData<AppVersion> = MutableLiveData()
+
+    fun updatePackageVersion(packageManager: PackageManager, packageName: String) {
+        Log.d(TAG, "updatePackageVersionUI")
+        packageManager.getPackageInfo(packageName, 0).let {
+            val newAppVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                AppVersion(
+                    versionCode = it.longVersionCode,
+                    versionName = it.versionName
+                )
+            } else {
+                AppVersion(
+                    versionCode = it.versionCode.toLong(),
+                    versionName = it.versionName
+                )
+            }
+            appVersion.value = newAppVersion
+        }
+    }
+
+    companion object {
+        val TAG: String = Repository::class.java.simpleName
+    }
 }

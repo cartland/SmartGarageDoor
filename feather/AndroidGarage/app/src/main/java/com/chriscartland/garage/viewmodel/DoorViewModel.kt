@@ -18,14 +18,17 @@
 package com.chriscartland.garage.viewmodel
 
 import android.app.Activity
+import android.app.Application
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.text.format.DateFormat
 import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.chriscartland.garage.App
 import com.chriscartland.garage.repository.FirestoreDocumentReferenceLiveData
 import com.chriscartland.garage.MainActivity
 import com.chriscartland.garage.model.AppVersion
@@ -46,15 +49,19 @@ import com.google.firebase.ktx.Firebase
 import java.util.Date
 
 
-class DoorViewModel : ViewModel() {
+class DoorViewModel(val app: App) : AndroidViewModel(app) {
+
+    val appVersion = app.repository.appVersion
+
+    fun updatePackageVersion(packageManager: PackageManager, packageName: String) =
+        app.repository.updatePackageVersion(packageManager, packageName)
+
 
     enum class State {
         DEFAULT,
         LOADING_DATA,
         LOADED_DATA
     }
-
-    val appVersion: MutableLiveData<AppVersion> = MutableLiveData<AppVersion>()
 
     val configDataState: MediatorLiveData<Pair<ServerConfig?, State>> = MediatorLiveData()
     private val configDataFirestore: FirestoreDocumentReferenceLiveData =
@@ -98,24 +105,6 @@ class DoorViewModel : ViewModel() {
     private fun DoorData.toLastChangeTimeString(): String {
         val lastChangeTime = this.lastChangeTimeSeconds ?: return ""
         return DateFormat.format("yyyy-MM-dd hh:mm:ss a", Date(lastChangeTime * 1000)).toString()
-    }
-
-    fun updatePackageVersion(packageManager: PackageManager, packageName: String) {
-        Log.d(MainActivity.TAG, "updatePackageVersionUI")
-        packageManager.getPackageInfo(packageName, 0).let {
-            val newAppVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                AppVersion(
-                    versionCode = it.longVersionCode,
-                    versionName = it.versionName
-                )
-            } else {
-                AppVersion(
-                    versionCode = it.versionCode.toLong(),
-                    versionName = it.versionName
-                )
-            }
-            appVersion.value = newAppVersion
-        }
     }
 
     val showRemoteButton = MediatorLiveData<Boolean>()
