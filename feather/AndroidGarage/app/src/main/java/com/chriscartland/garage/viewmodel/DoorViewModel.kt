@@ -18,25 +18,19 @@
 package com.chriscartland.garage.viewmodel
 
 import android.app.Activity
-import android.app.Application
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
 import android.text.format.DateFormat
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import com.chriscartland.garage.App
-import com.chriscartland.garage.repository.FirestoreDocumentReferenceLiveData
-import com.chriscartland.garage.MainActivity
-import com.chriscartland.garage.model.AppVersion
 import com.chriscartland.garage.model.DoorData
 import com.chriscartland.garage.model.DoorState
-import com.chriscartland.garage.model.ServerConfig
 import com.chriscartland.garage.model.toDoorData
-import com.chriscartland.garage.model.toServerConfig
+import com.chriscartland.garage.repository.FirestoreDocumentReferenceLiveData
+import com.chriscartland.garage.repository.Repository
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.SignInClient
 import com.google.android.gms.common.api.ApiException
@@ -56,28 +50,13 @@ class DoorViewModel(val app: App) : AndroidViewModel(app) {
     fun updatePackageVersion(packageManager: PackageManager, packageName: String) =
         app.repository.updatePackageVersion(packageManager, packageName)
 
+    val configDataState = app.repository.configDataState
 
-    enum class State {
-        DEFAULT,
-        LOADING_DATA,
-        LOADED_DATA
-    }
+    fun setConfigDataDocumentReference(documentReference: DocumentReference?) =
+        app.repository.setConfigDataDocumentReference(documentReference)
 
-    val configDataState: MediatorLiveData<Pair<ServerConfig?, State>> = MediatorLiveData()
-    private val configDataFirestore: FirestoreDocumentReferenceLiveData =
-        FirestoreDocumentReferenceLiveData(
-            null
-        )
-    fun setConfigDataDocumentReference(documentReference: DocumentReference?) {
-        Log.d(TAG, "setServerConfigDocumentReference")
-        configDataFirestore.documentReference = documentReference
-        configDataState.value = Pair(
-            null,
-            State.LOADING_DATA
-        )
-    }
 
-    val doorDataState: MediatorLiveData<Pair<DoorData?, State>> = MediatorLiveData()
+    val doorDataState: MediatorLiveData<Pair<DoorData?, Repository.State>> = MediatorLiveData()
     private val doorStatusFirestore: FirestoreDocumentReferenceLiveData =
         FirestoreDocumentReferenceLiveData(
             null
@@ -87,7 +66,7 @@ class DoorViewModel(val app: App) : AndroidViewModel(app) {
         doorStatusFirestore.documentReference = documentReference
         doorDataState.value = Pair(
             null,
-            State.LOADING_DATA
+            Repository.State.LOADING_DATA
         )
     }
 
@@ -196,13 +175,13 @@ class DoorViewModel(val app: App) : AndroidViewModel(app) {
         Log.d(TAG, "init")
         doorDataState.value = Pair(
             null,
-            State.DEFAULT
+            Repository.State.DEFAULT
         )
         doorDataState.addSource(doorStatusFirestore) { value ->
             Log.d(TAG, "Received Firestore update for DoorData")
             val doorData = value?.toDoorData() ?: return@addSource
             doorDataState.value = Pair(doorData,
-                State.LOADED_DATA
+                Repository.State.LOADED_DATA
             )
             val state = doorData.state ?: DoorState.UNKNOWN
             val (title, color) = statusColorMap[state] ?: return@addSource
@@ -210,16 +189,6 @@ class DoorViewModel(val app: App) : AndroidViewModel(app) {
             message.value = doorData.message ?: ""
             lastCheckInTimeString.value = doorData?.toLastCheckInTimeString()
             lastChangeTimeString.value = doorData?.toLastChangeTimeString()
-        }
-        configDataState.value = Pair(
-            null,
-            State.DEFAULT
-        )
-        configDataState.addSource(configDataFirestore) { value ->
-            Log.d(TAG, "Received Firestore update for ServerConfig")
-            configDataState.value = Pair(value?.toServerConfig(),
-                State.LOADED_DATA
-            )
         }
         showRemoteButton.addSource(firebaseUser) { firebaseUser ->
             showRemoteButton.value = shouldShowRemoteButton()

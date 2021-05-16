@@ -20,8 +20,13 @@ package com.chriscartland.garage.repository
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import com.chriscartland.garage.model.AppVersion
+import com.chriscartland.garage.model.ServerConfig
+import com.chriscartland.garage.model.toServerConfig
+import com.chriscartland.garage.viewmodel.DoorViewModel
+import com.google.firebase.firestore.DocumentReference
 
 class Repository {
 
@@ -45,7 +50,41 @@ class Repository {
         }
     }
 
+    val configDataState: MediatorLiveData<Pair<ServerConfig?, State>> = MediatorLiveData()
+    private val configDataFirestore: FirestoreDocumentReferenceLiveData =
+        FirestoreDocumentReferenceLiveData(
+            null
+        )
+
+    fun setConfigDataDocumentReference(documentReference: DocumentReference?) {
+        Log.d(DoorViewModel.TAG, "setServerConfigDocumentReference")
+        configDataFirestore.documentReference = documentReference
+        configDataState.value = Pair(
+            null,
+            State.LOADING_DATA
+        )
+    }
+
+    init {
+        configDataState.value = Pair(
+            null,
+            State.DEFAULT
+        )
+        configDataState.addSource(configDataFirestore) { value ->
+            Log.d(DoorViewModel.TAG, "Received Firestore update for ServerConfig")
+            configDataState.value = Pair(value?.toServerConfig(),
+                State.LOADED_DATA
+            )
+        }
+    }
+
     companion object {
         val TAG: String = Repository::class.java.simpleName
+    }
+
+    enum class State {
+        DEFAULT,
+        LOADING_DATA,
+        LOADED_DATA
     }
 }
