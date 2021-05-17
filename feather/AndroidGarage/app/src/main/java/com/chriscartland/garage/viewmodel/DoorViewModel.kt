@@ -18,6 +18,7 @@
 package com.chriscartland.garage.viewmodel
 
 import android.app.Activity
+import android.app.Application
 import android.content.Intent
 import android.text.format.DateFormat
 import android.util.Log
@@ -40,7 +41,9 @@ import com.google.firebase.ktx.Firebase
 import java.util.Date
 
 
-class DoorViewModel(val app: App) : AndroidViewModel(app) {
+class DoorViewModel(application: Application) : AndroidViewModel(application) {
+
+    val app = application as App
 
     val appVersion = app.repository.appVersionManager.appVersion
 
