@@ -15,19 +15,10 @@
  *
  */
 
-package com.chriscartland.garage.repository
+package com.chriscartland.garage.model
 
-class Repository(
-    appVersionManager: AppVersionManager,
-    firestoreConfigManager: FirestoreConfigManager
-) {
-
-    val appVersion = appVersionManager.appVersion
-
-    val config = firestoreConfigManager.config
-
-    companion object {
-        val TAG: String = Repository::class.java.simpleName
-    }
-
+enum class LoadingState {
+    DEFAULT,
+    LOADING_DATA,
+    LOADED_DATA
 }

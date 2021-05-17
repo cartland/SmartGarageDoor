@@ -19,7 +19,10 @@ package com.chriscartland.garage
 
 import android.app.Application
 import com.chriscartland.garage.repository.AppVersionManager
+import com.chriscartland.garage.repository.FirestoreConfigManager
 import com.chriscartland.garage.repository.Repository
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 class App : Application() {
 
@@ -31,6 +34,9 @@ class App : Application() {
             AppVersionManager(
                 packageManager,
                 packageName
+            ),
+            FirestoreConfigManager(
+                Firebase.firestore.collection("configCurrent").document("current")
             )
         )
     }

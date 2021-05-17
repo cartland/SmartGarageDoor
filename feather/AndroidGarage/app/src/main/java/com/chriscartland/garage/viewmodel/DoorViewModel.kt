@@ -29,7 +29,7 @@ import com.chriscartland.garage.model.DoorData
 import com.chriscartland.garage.model.DoorState
 import com.chriscartland.garage.model.toDoorData
 import com.chriscartland.garage.repository.FirestoreDocumentReferenceLiveData
-import com.chriscartland.garage.repository.Repository
+import com.chriscartland.garage.model.LoadingState
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.SignInClient
 import com.google.android.gms.common.api.ApiException
@@ -46,13 +46,9 @@ class DoorViewModel(val app: App) : AndroidViewModel(app) {
 
     val appVersion = app.repository.appVersion
 
-    val configDataState = app.repository.configDataState
+    val configDataState = app.repository.config
 
-    fun setConfigDataDocumentReference(documentReference: DocumentReference?) =
-        app.repository.setConfigDataDocumentReference(documentReference)
-
-
-    val doorDataState: MediatorLiveData<Pair<DoorData?, Repository.State>> = MediatorLiveData()
+    val doorDataState: MediatorLiveData<Pair<DoorData?, LoadingState>> = MediatorLiveData()
     private val doorStatusFirestore: FirestoreDocumentReferenceLiveData =
         FirestoreDocumentReferenceLiveData(
             null
@@ -62,7 +58,7 @@ class DoorViewModel(val app: App) : AndroidViewModel(app) {
         doorStatusFirestore.documentReference = documentReference
         doorDataState.value = Pair(
             null,
-            Repository.State.LOADING_DATA
+            LoadingState.LOADING_DATA
         )
     }
 
@@ -171,13 +167,13 @@ class DoorViewModel(val app: App) : AndroidViewModel(app) {
         Log.d(TAG, "init")
         doorDataState.value = Pair(
             null,
-            Repository.State.DEFAULT
+            LoadingState.DEFAULT
         )
         doorDataState.addSource(doorStatusFirestore) { value ->
             Log.d(TAG, "Received Firestore update for DoorData")
             val doorData = value?.toDoorData() ?: return@addSource
             doorDataState.value = Pair(doorData,
-                Repository.State.LOADED_DATA
+                LoadingState.LOADED_DATA
             )
             val state = doorData.state ?: DoorState.UNKNOWN
             val (title, color) = statusColorMap[state] ?: return@addSource

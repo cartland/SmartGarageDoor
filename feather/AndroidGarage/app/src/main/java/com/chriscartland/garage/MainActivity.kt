@@ -39,7 +39,7 @@ import com.chriscartland.garage.model.DoorData
 import com.chriscartland.garage.model.DoorState
 import com.chriscartland.garage.model.ServerConfig
 import com.chriscartland.garage.model.getStatusTitleColorMap
-import com.chriscartland.garage.repository.Repository
+import com.chriscartland.garage.model.LoadingState
 import com.chriscartland.garage.repository.updateOpenDoorFcmSubscription
 import com.chriscartland.garage.viewmodel.DoorViewModel
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
@@ -74,21 +74,21 @@ class MainActivity : AppCompatActivity() {
         doorViewModel.doorDataState.observe(this, Observer { (doorData, state) ->
             Log.d(TAG, "doorData: ${doorData}")
             when (state) {
-                Repository.State.DEFAULT -> {
+                LoadingState.DEFAULT -> {
                     handleDoorChanged(
                         DoorData(
                             message = getString(R.string.missing_config)
                         )
                     )
                 }
-                Repository.State.LOADING_DATA -> {
+                LoadingState.LOADING_DATA -> {
                     handleDoorChanged(
                         DoorData(
                             message = getString(R.string.loading_data)
                         )
                     )
                 }
-                Repository.State.LOADED_DATA -> {
+                LoadingState.LOADED_DATA -> {
                     handleDoorChanged(doorData ?: DoorData())
                 }
             }
@@ -96,16 +96,13 @@ class MainActivity : AppCompatActivity() {
         doorViewModel.configDataState.observe(this, Observer { (configData, state) ->
             Log.d(TAG, "configData: ${configData}")
             when (state) {
-                Repository.State.DEFAULT -> {}
-                Repository.State.LOADING_DATA -> {}
-                Repository.State.LOADED_DATA -> {
+                LoadingState.DEFAULT -> {}
+                LoadingState.LOADING_DATA -> {}
+                LoadingState.LOADED_DATA -> {
                     handleConfigData(configData)
                 }
             }
         })
-        doorViewModel.setConfigDataDocumentReference(
-            Firebase.firestore.collection("configCurrent").document("current")
-        )
         doorViewModel.firebaseUser.observe(this, Observer {
             Log.d(TAG, "firebaseUser: ${it?.email}")
             val signedIn = (it != null)

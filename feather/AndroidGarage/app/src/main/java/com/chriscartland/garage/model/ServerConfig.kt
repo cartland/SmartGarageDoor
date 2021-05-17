@@ -17,8 +17,6 @@
 
 package com.chriscartland.garage.model
 
-import com.google.firebase.firestore.DocumentSnapshot
-
 data class ServerConfig(
     val buildTimestamp: String? = null,
     val remoteButtonPushKey: String? = null,
@@ -28,24 +26,3 @@ data class ServerConfig(
     val remoteButtonEnabled: Boolean = false,
     val remoteButtonAuthorizedEmails: Array<String>? = null
 )
-
-fun DocumentSnapshot.toServerConfig(): ServerConfig {
-    val data = this.data as? Map<*, *> ?: return ServerConfig()
-    val body = data["body"] as? Map<*, *> ?: return ServerConfig()
-    val buildTimestamp = body["buildTimestamp"] as? String?
-    val remoteButtonPushKey = body["remoteButtonPushKey"] as? String?
-    val remoteButtonBuildTimestamp = body["remoteButtonBuildTimestamp"] as? String?
-    val host = body["host"] as? String?
-    val path = body["path"] as? String?
-    val remoteButtonEnabled = body["remoteButtonEnabled"] as? Boolean ?: false
-    val remoteButtonAuthorizedEmails = (body["remoteButtonAuthorizedEmails"] as? ArrayList<String>)?.toTypedArray()
-    return ServerConfig(
-        buildTimestamp = buildTimestamp,
-        remoteButtonPushKey = remoteButtonPushKey,
-        remoteButtonBuildTimestamp = remoteButtonBuildTimestamp,
-        host = host,
-        path = path,
-        remoteButtonEnabled = remoteButtonEnabled,
-        remoteButtonAuthorizedEmails = remoteButtonAuthorizedEmails
-    )
-}
