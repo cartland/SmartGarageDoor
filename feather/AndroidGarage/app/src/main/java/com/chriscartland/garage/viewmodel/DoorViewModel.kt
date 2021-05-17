@@ -56,21 +56,13 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
         app.repository.firestoreDoorManager.doorReference = documentReference
     }
 
-    lateinit var statusColorMap: Map<DoorState, Pair<String, Int>>
     val statusTitle = MediatorLiveData<String>()
     val message = MediatorLiveData<String>()
-
     val lastCheckInTimeString = MediatorLiveData<String>()
-    private fun DoorData.toLastCheckInTimeString(): String {
-        val lastCheckInTime = this.lastCheckInTimeSeconds ?: return ""
-        return DateFormat.format("yyyy-MM-dd hh:mm:ss a", Date(lastCheckInTime * 1000)).toString()
-    }
-
     val lastChangeTimeString = MediatorLiveData<String>()
-    private fun DoorData.toLastChangeTimeString(): String {
-        val lastChangeTime = this.lastChangeTimeSeconds ?: return ""
-        return DateFormat.format("yyyy-MM-dd hh:mm:ss a", Date(lastChangeTime * 1000)).toString()
-    }
+
+    lateinit var statusColorMap: Map<DoorState, Pair<String, Int>>
+
 
     val showRemoteButton = MediatorLiveData<Boolean>()
 
@@ -215,4 +207,14 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         val TAG: String = DoorViewModel::class.java.simpleName
     }
+}
+
+private fun DoorData.toLastCheckInTimeString(): String {
+    val lastCheckInTime = this.lastCheckInTimeSeconds ?: return ""
+    return DateFormat.format("yyyy-MM-dd hh:mm:ss a", Date(lastCheckInTime * 1000)).toString()
+}
+
+private fun DoorData.toLastChangeTimeString(): String {
+    val lastChangeTime = this.lastChangeTimeSeconds ?: return ""
+    return DateFormat.format("yyyy-MM-dd hh:mm:ss a", Date(lastChangeTime * 1000)).toString()
 }
