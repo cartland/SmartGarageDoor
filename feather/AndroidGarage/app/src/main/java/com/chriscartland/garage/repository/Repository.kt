@@ -18,16 +18,12 @@
 package com.chriscartland.garage.repository
 
 class Repository(
-    appVersionManager: AppVersionManager,
-    firestoreConfigManager: FirestoreConfigManager
+    val appVersionManager: AppVersionManager,
+    val firestoreConfigManager: FirestoreConfigManager,
+    val firestoreDoorManager: FirestoreDoorManager
 ) {
-
-    val appVersion = appVersionManager.appVersion
-
-    val config = firestoreConfigManager.config
 
     companion object {
         val TAG: String = Repository::class.java.simpleName
     }
-
 }

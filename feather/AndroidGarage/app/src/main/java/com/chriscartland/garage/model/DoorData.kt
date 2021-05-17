@@ -41,26 +41,6 @@ enum class DoorState {
     ERROR_SENSOR_CONFLICT
 }
 
-fun DocumentSnapshot.toDoorData(): DoorData {
-    val data = this.data as? Map<*, *> ?: return DoorData()
-    val currentEvent = data["currentEvent"] as? Map<*, *>
-    val type = currentEvent?.get("type") as? String ?: ""
-    val state = try {
-        DoorState.valueOf(type)
-    } catch (e: IllegalArgumentException) {
-        DoorState.UNKNOWN
-    }
-    val message = currentEvent?.get("message") as? String ?: ""
-    val timestampSeconds = currentEvent?.get("timestampSeconds") as? Long?
-    val lastCheckInTime = data["FIRESTORE_databaseTimestampSeconds"] as? Long?
-    return DoorData(
-        state = state,
-        message = message,
-        lastChangeTimeSeconds = timestampSeconds,
-        lastCheckInTimeSeconds = lastCheckInTime
-    )
-}
-
 fun getStatusTitleColorMap(context: Context): Map<DoorState, Pair<String, Int>> {
     Log.d(MainActivity.TAG, "getStatusTitleColorMap")
     return mapOf(

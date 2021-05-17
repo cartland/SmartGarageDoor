@@ -27,8 +27,6 @@ import androidx.lifecycle.MutableLiveData
 import com.chriscartland.garage.App
 import com.chriscartland.garage.model.DoorData
 import com.chriscartland.garage.model.DoorState
-import com.chriscartland.garage.model.toDoorData
-import com.chriscartland.garage.repository.FirestoreDocumentReferenceLiveData
 import com.chriscartland.garage.model.LoadingState
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.SignInClient
@@ -44,35 +42,28 @@ import java.util.Date
 
 class DoorViewModel(val app: App) : AndroidViewModel(app) {
 
-    val appVersion = app.repository.appVersion
+    val appVersion = app.repository.appVersionManager.appVersion
 
-    val configDataState = app.repository.config
+    val configDataState = app.repository.firestoreConfigManager.config
 
-    val doorDataState: MediatorLiveData<Pair<DoorData?, LoadingState>> = MediatorLiveData()
-    private val doorStatusFirestore: FirestoreDocumentReferenceLiveData =
-        FirestoreDocumentReferenceLiveData(
-            null
-        )
+    val doorDataState = app.repository.firestoreDoorManager.door
+
     fun setDoorStatusDocumentReference(documentReference: DocumentReference?) {
         Log.d(TAG, "setDoorStatusDocumentReference")
-        doorStatusFirestore.documentReference = documentReference
-        doorDataState.value = Pair(
-            null,
-            LoadingState.LOADING_DATA
-        )
+        app.repository.firestoreDoorManager.doorReference = documentReference
     }
 
     lateinit var statusColorMap: Map<DoorState, Pair<String, Int>>
-    val statusTitle = MutableLiveData<String>()
-    val message = MutableLiveData<String>()
+    val statusTitle = MediatorLiveData<String>()
+    val message = MediatorLiveData<String>()
 
-    val lastCheckInTimeString = MutableLiveData<String>()
+    val lastCheckInTimeString = MediatorLiveData<String>()
     private fun DoorData.toLastCheckInTimeString(): String {
         val lastCheckInTime = this.lastCheckInTimeSeconds ?: return ""
         return DateFormat.format("yyyy-MM-dd hh:mm:ss a", Date(lastCheckInTime * 1000)).toString()
     }
 
-    val lastChangeTimeString = MutableLiveData<String>()
+    val lastChangeTimeString = MediatorLiveData<String>()
     private fun DoorData.toLastChangeTimeString(): String {
         val lastChangeTime = this.lastChangeTimeSeconds ?: return ""
         return DateFormat.format("yyyy-MM-dd hh:mm:ss a", Date(lastChangeTime * 1000)).toString()
@@ -165,22 +156,41 @@ class DoorViewModel(val app: App) : AndroidViewModel(app) {
 
     init {
         Log.d(TAG, "init")
-        doorDataState.value = Pair(
-            null,
-            LoadingState.DEFAULT
-        )
-        doorDataState.addSource(doorStatusFirestore) { value ->
-            Log.d(TAG, "Received Firestore update for DoorData")
-            val doorData = value?.toDoorData() ?: return@addSource
-            doorDataState.value = Pair(doorData,
-                LoadingState.LOADED_DATA
-            )
-            val state = doorData.state ?: DoorState.UNKNOWN
-            val (title, color) = statusColorMap[state] ?: return@addSource
-            statusTitle.value = title
-            message.value = doorData.message ?: ""
-            lastCheckInTimeString.value = doorData?.toLastCheckInTimeString()
-            lastChangeTimeString.value = doorData?.toLastChangeTimeString()
+        statusTitle.addSource(doorDataState) { (doorData, loading) ->
+            Log.d(TAG, "Updating title")
+            statusTitle.value = when (loading) {
+                LoadingState.NO_DATA -> { "" }
+                LoadingState.LOADING_DATA -> { "" }
+                LoadingState.LOADED_DATA -> {
+                    val state = doorData?.state ?: DoorState.UNKNOWN
+                    val (title, color) = statusColorMap[state] ?: return@addSource
+                    title
+                }
+            }
+        }
+        message.addSource(doorDataState) { (doorData, loading) ->
+            Log.d(TAG, "Updating message")
+            message.value = when (loading) {
+                LoadingState.NO_DATA -> { "" }
+                LoadingState.LOADING_DATA -> { "" }
+                LoadingState.LOADED_DATA -> { doorData?.message ?: "" }
+            }
+        }
+        lastCheckInTimeString.addSource(doorDataState) { (doorData, loading) ->
+            Log.d(TAG, "Updating lastCheckInTimeString")
+            lastCheckInTimeString.value = when (loading) {
+                LoadingState.NO_DATA -> { "" }
+                LoadingState.LOADING_DATA -> { "" }
+                LoadingState.LOADED_DATA -> { doorData?.toLastCheckInTimeString() }
+            }
+        }
+        lastChangeTimeString.addSource(doorDataState) { (doorData, loading) ->
+            Log.d(TAG, "Updating lastChangeTimeString")
+            lastChangeTimeString.value = when (loading) {
+                LoadingState.NO_DATA -> { "" }
+                LoadingState.LOADING_DATA -> { "" }
+                LoadingState.LOADED_DATA -> { doorData?.toLastChangeTimeString() }
+            }
         }
         showRemoteButton.addSource(firebaseUser) { firebaseUser ->
             showRemoteButton.value = shouldShowRemoteButton()

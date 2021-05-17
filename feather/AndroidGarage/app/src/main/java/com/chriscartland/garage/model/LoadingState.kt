@@ -18,7 +18,7 @@
 package com.chriscartland.garage.model
 
 enum class LoadingState {
-    DEFAULT,
+    NO_DATA,
     LOADING_DATA,
     LOADED_DATA
 }

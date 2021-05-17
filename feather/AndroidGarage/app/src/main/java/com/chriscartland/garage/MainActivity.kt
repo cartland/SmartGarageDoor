@@ -74,7 +74,7 @@ class MainActivity : AppCompatActivity() {
         doorViewModel.doorDataState.observe(this, Observer { (doorData, state) ->
             Log.d(TAG, "doorData: ${doorData}")
             when (state) {
-                LoadingState.DEFAULT -> {
+                LoadingState.NO_DATA -> {
                     handleDoorChanged(
                         DoorData(
                             message = getString(R.string.missing_config)
@@ -96,7 +96,7 @@ class MainActivity : AppCompatActivity() {
         doorViewModel.configDataState.observe(this, Observer { (configData, state) ->
             Log.d(TAG, "configData: ${configData}")
             when (state) {
-                LoadingState.DEFAULT -> {}
+                LoadingState.NO_DATA -> {}
                 LoadingState.LOADING_DATA -> {}
                 LoadingState.LOADED_DATA -> {
                     handleConfigData(configData)
