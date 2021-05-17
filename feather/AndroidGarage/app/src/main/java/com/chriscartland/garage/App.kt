@@ -18,6 +18,7 @@
 package com.chriscartland.garage
 
 import android.app.Application
+import com.chriscartland.garage.repository.AppVersionManager
 import com.chriscartland.garage.repository.Repository
 
 class App : Application() {
@@ -26,6 +27,11 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        repository = Repository()
+        repository = Repository(
+            AppVersionManager(
+                packageManager,
+                packageName
+            )
+        )
     }
 }

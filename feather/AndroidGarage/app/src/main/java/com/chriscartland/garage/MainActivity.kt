@@ -115,7 +115,6 @@ class MainActivity : AppCompatActivity() {
                 apply()
             }
         })
-        doorViewModel.updatePackageVersion(packageManager, packageName)
         doorViewModel.enableRemoteButton()
 
         doorViewModel.oneTapSignInClient = Identity.getSignInClient(this)

@@ -17,38 +17,17 @@
 
 package com.chriscartland.garage.repository
 
-import android.content.pm.PackageManager
-import android.os.Build
 import android.util.Log
 import androidx.lifecycle.MediatorLiveData
-import androidx.lifecycle.MutableLiveData
-import com.chriscartland.garage.model.AppVersion
 import com.chriscartland.garage.model.ServerConfig
 import com.chriscartland.garage.model.toServerConfig
-import com.chriscartland.garage.viewmodel.DoorViewModel
 import com.google.firebase.firestore.DocumentReference
 
-class Repository {
+class Repository(
+    appVersionManager: AppVersionManager
+) {
 
-    val appVersion: MutableLiveData<AppVersion> = MutableLiveData()
-
-    fun updatePackageVersion(packageManager: PackageManager, packageName: String) {
-        Log.d(TAG, "updatePackageVersionUI")
-        packageManager.getPackageInfo(packageName, 0).let {
-            val newAppVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                AppVersion(
-                    versionCode = it.longVersionCode,
-                    versionName = it.versionName
-                )
-            } else {
-                AppVersion(
-                    versionCode = it.versionCode.toLong(),
-                    versionName = it.versionName
-                )
-            }
-            appVersion.value = newAppVersion
-        }
-    }
+    val appVersion = appVersionManager.appVersion
 
     val configDataState: MediatorLiveData<Pair<ServerConfig?, State>> = MediatorLiveData()
     private val configDataFirestore: FirestoreDocumentReferenceLiveData =
@@ -57,7 +36,7 @@ class Repository {
         )
 
     fun setConfigDataDocumentReference(documentReference: DocumentReference?) {
-        Log.d(DoorViewModel.TAG, "setServerConfigDocumentReference")
+        Log.d(TAG, "setServerConfigDocumentReference")
         configDataFirestore.documentReference = documentReference
         configDataState.value = Pair(
             null,
@@ -71,7 +50,7 @@ class Repository {
             State.DEFAULT
         )
         configDataState.addSource(configDataFirestore) { value ->
-            Log.d(DoorViewModel.TAG, "Received Firestore update for ServerConfig")
+            Log.d(TAG, "Received Firestore update for ServerConfig")
             configDataState.value = Pair(value?.toServerConfig(),
                 State.LOADED_DATA
             )

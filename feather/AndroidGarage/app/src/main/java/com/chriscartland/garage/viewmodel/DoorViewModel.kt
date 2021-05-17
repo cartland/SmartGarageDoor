@@ -19,7 +19,6 @@ package com.chriscartland.garage.viewmodel
 
 import android.app.Activity
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.text.format.DateFormat
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
@@ -46,9 +45,6 @@ import java.util.Date
 class DoorViewModel(val app: App) : AndroidViewModel(app) {
 
     val appVersion = app.repository.appVersion
-
-    fun updatePackageVersion(packageManager: PackageManager, packageName: String) =
-        app.repository.updatePackageVersion(packageManager, packageName)
 
     val configDataState = app.repository.configDataState
 
