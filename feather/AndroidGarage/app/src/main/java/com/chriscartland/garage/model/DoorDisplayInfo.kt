@@ -17,20 +17,8 @@
 
 package com.chriscartland.garage.model
 
-data class DoorData(
-    val state: DoorState? = null,
-    val message: String? = null,
-    val lastCheckInTimeSeconds: Long? = null,
-    val lastChangeTimeSeconds: Long? = null
+data class DoorDisplayInfo(
+    val status: String,
+    val color: Int
 )
 
-enum class DoorState {
-    UNKNOWN,
-    CLOSED,
-    OPENING,
-    OPENING_TOO_LONG,
-    OPEN,
-    CLOSING,
-    CLOSING_TOO_LONG,
-    ERROR_SENSOR_CONFLICT
-}

@@ -27,6 +27,7 @@ import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import com.chriscartland.garage.App
 import com.chriscartland.garage.model.DoorData
+import com.chriscartland.garage.model.DoorDisplayInfo
 import com.chriscartland.garage.model.DoorState
 import com.chriscartland.garage.model.LoadingState
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
@@ -61,7 +62,7 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
     val lastCheckInTimeString = MediatorLiveData<String>()
     val lastChangeTimeString = MediatorLiveData<String>()
 
-    lateinit var statusColorMap: Map<DoorState, Pair<String, Int>>
+    lateinit var stateToDoorDisplayInfo: Map<DoorState, DoorDisplayInfo>
 
 
     val showRemoteButton = MediatorLiveData<Boolean>()
@@ -158,7 +159,8 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
                 LoadingState.LOADING_DATA -> { "" }
                 LoadingState.LOADED_DATA -> {
                     val state = doorData?.state ?: DoorState.UNKNOWN
-                    val (title, color) = statusColorMap[state] ?: return@addSource
+                    val doorDisplayInfo = stateToDoorDisplayInfo[state] ?: return@addSource
+                    val title = doorDisplayInfo.status
                     title
                 }
             }

@@ -38,7 +38,7 @@ import com.chriscartland.garage.databinding.ActivityMainBinding
 import com.chriscartland.garage.model.DoorData
 import com.chriscartland.garage.model.DoorState
 import com.chriscartland.garage.model.ServerConfig
-import com.chriscartland.garage.model.getStatusTitleColorMap
+import com.chriscartland.garage.model.DoorDisplayInfo
 import com.chriscartland.garage.model.LoadingState
 import com.chriscartland.garage.repository.updateOpenDoorFcmSubscription
 import com.chriscartland.garage.viewmodel.DoorViewModel
@@ -69,8 +69,7 @@ class MainActivity : AppCompatActivity() {
 
         doorViewModel = ViewModelProvider(this).get(DoorViewModel::class.java)
         binding.doorViewModel = doorViewModel
-        doorViewModel.statusColorMap =
-            getStatusTitleColorMap(this)
+        doorViewModel.stateToDoorDisplayInfo = getStateToDoorDisplayInfoMap(this)
         doorViewModel.doorDataState.observe(this, Observer { (doorData, state) ->
             Log.d(TAG, "doorData: ${doorData}")
             when (state) {
@@ -334,7 +333,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateStatusColor(doorData: DoorData) {
-        val (title, color) = doorViewModel.statusColorMap[doorData.state] ?: return
+        val doorDisplayInfo = doorViewModel.stateToDoorDisplayInfo[doorData.state] ?: return
+        val color = doorDisplayInfo.color
         val textView = binding.statusTitle
         textView.setBackgroundColor(color)
     }
@@ -415,4 +415,45 @@ class MainActivity : AppCompatActivity() {
         const val RC_ONE_TAP_SIGN_IN = 1
         const val SIGNED_IN_KEY = "com.chriscartland.garage.SIGNED_IN_KEY"
     }
+}
+
+fun getStateToDoorDisplayInfoMap(context: Context): Map<DoorState, DoorDisplayInfo> {
+    Log.d(
+        MainActivity.TAG,
+        "getStatusTitleColorMap"
+    )
+    return mapOf(
+        DoorState.UNKNOWN to DoorDisplayInfo(
+            status = context.getString(R.string.title_door_error),
+            color = context.getColor(R.color.color_door_error)
+        ),
+        DoorState.CLOSED to DoorDisplayInfo(
+            status = context.getString(R.string.title_door_closed),
+            color = context.getColor(R.color.color_door_closed)
+        ),
+        DoorState.OPENING to DoorDisplayInfo(
+            status = context.getString(R.string.title_door_opening),
+            color = context.getColor(R.color.color_door_opening)
+        ),
+        DoorState.OPENING_TOO_LONG to DoorDisplayInfo(
+            status = context.getString(R.string.title_door_opening_too_long),
+            color = context.getColor(R.color.color_door_error)
+        ),
+        DoorState.OPEN to DoorDisplayInfo(
+            status = context.getString(R.string.title_door_open),
+            color = context.getColor(R.color.color_door_open)
+        ),
+        DoorState.CLOSING to DoorDisplayInfo(
+            status = context.getString(R.string.title_door_closing),
+            color = context.getColor(R.color.color_door_closing)
+        ),
+        DoorState.CLOSING_TOO_LONG to DoorDisplayInfo(
+            status = context.getString(R.string.title_door_closing_too_long),
+            color = context.getColor(R.color.color_door_error)
+        ),
+        DoorState.ERROR_SENSOR_CONFLICT to DoorDisplayInfo(
+            status = context.getString(R.string.title_door_sensor_conflict),
+            color = context.getColor(R.color.color_door_error)
+        )
+    )
 }
