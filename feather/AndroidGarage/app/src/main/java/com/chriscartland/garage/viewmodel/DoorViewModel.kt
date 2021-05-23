@@ -62,9 +62,6 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
     val lastCheckInTimeString = MediatorLiveData<String>()
     val lastChangeTimeString = MediatorLiveData<String>()
 
-    lateinit var stateToDoorDisplayInfo: Map<DoorState, DoorDisplayInfo>
-
-
     val showRemoteButton = MediatorLiveData<Boolean>()
 
     val remoteButtonEnabled = MutableLiveData<Boolean>()
@@ -159,7 +156,7 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
                 LoadingState.LOADING_DATA -> { "" }
                 LoadingState.LOADED_DATA -> {
                     val state = doorData?.state ?: DoorState.UNKNOWN
-                    val doorDisplayInfo = stateToDoorDisplayInfo[state] ?: return@addSource
+                    val doorDisplayInfo = DoorDisplayInfo.fromDoorState(app, state) ?: return@addSource
                     val title = doorDisplayInfo.status
                     title
                 }

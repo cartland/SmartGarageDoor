@@ -17,8 +17,50 @@
 
 package com.chriscartland.garage.model
 
+import android.content.Context
+import com.chriscartland.garage.R
+
 data class DoorDisplayInfo(
     val status: String,
     val color: Int
-)
-
+) {
+    companion object {
+        fun fromDoorState(context: Context, doorState: DoorState?) : DoorDisplayInfo? {
+            return when (doorState) {
+                DoorState.UNKNOWN -> DoorDisplayInfo(
+                    status = context.getString(R.string.title_door_error),
+                    color = context.getColor(R.color.color_door_error)
+                )
+                DoorState.CLOSED -> DoorDisplayInfo(
+                    status = context.getString(R.string.title_door_closed),
+                    color = context.getColor(R.color.color_door_closed)
+                )
+                DoorState.OPENING -> DoorDisplayInfo(
+                    status = context.getString(R.string.title_door_opening),
+                    color = context.getColor(R.color.color_door_opening)
+                )
+                DoorState.OPENING_TOO_LONG -> DoorDisplayInfo(
+                    status = context.getString(R.string.title_door_opening_too_long),
+                    color = context.getColor(R.color.color_door_error)
+                )
+                DoorState.OPEN -> DoorDisplayInfo(
+                    status = context.getString(R.string.title_door_open),
+                    color = context.getColor(R.color.color_door_open)
+                )
+                DoorState.CLOSING -> DoorDisplayInfo(
+                    status = context.getString(R.string.title_door_closing),
+                    color = context.getColor(R.color.color_door_closing)
+                )
+                DoorState.CLOSING_TOO_LONG -> DoorDisplayInfo(
+                    status = context.getString(R.string.title_door_closing_too_long),
+                    color = context.getColor(R.color.color_door_error)
+                )
+                DoorState.ERROR_SENSOR_CONFLICT -> DoorDisplayInfo(
+                    status = context.getString(R.string.title_door_sensor_conflict),
+                    color = context.getColor(R.color.color_door_error)
+                )
+                null -> null
+            }
+        }
+    }
+}
