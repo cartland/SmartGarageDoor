@@ -19,6 +19,7 @@ package com.chriscartland.garage.repository
 
 import android.util.Log
 import androidx.lifecycle.MediatorLiveData
+import com.chriscartland.garage.model.Loading
 import com.chriscartland.garage.model.LoadingState
 import com.chriscartland.garage.model.ServerConfig
 import com.google.firebase.firestore.DocumentReference
@@ -28,17 +29,17 @@ class FirestoreConfigManager(
     configReference: DocumentReference
 ) {
 
-    val config: MediatorLiveData<Pair<ServerConfig?, LoadingState>> = MediatorLiveData()
+    val loadingConfig: MediatorLiveData<Loading<ServerConfig>> = MediatorLiveData()
 
     init {
         Log.d(TAG, "init")
-        config.value = Pair(
+        loadingConfig.value = Loading(
             null,
             LoadingState.LOADING_DATA
         )
-        config.addSource(FirestoreDocumentReferenceLiveData(configReference)) { value ->
+        loadingConfig.addSource(FirestoreDocumentReferenceLiveData(configReference)) { value ->
             Log.d(Repository.TAG, "Received Firestore update for ServerConfig")
-            config.value = Pair(
+            loadingConfig.value = Loading(
                 value?.toServerConfig(),
                 LoadingState.LOADED_DATA
             )

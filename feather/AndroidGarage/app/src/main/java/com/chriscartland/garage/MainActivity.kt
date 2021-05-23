@@ -36,10 +36,10 @@ import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.chriscartland.garage.databinding.ActivityMainBinding
 import com.chriscartland.garage.model.DoorData
-import com.chriscartland.garage.model.DoorState
-import com.chriscartland.garage.model.ServerConfig
 import com.chriscartland.garage.model.DoorDisplayInfo
+import com.chriscartland.garage.model.DoorState
 import com.chriscartland.garage.model.LoadingState
+import com.chriscartland.garage.model.ServerConfig
 import com.chriscartland.garage.repository.updateOpenDoorFcmSubscription
 import com.chriscartland.garage.viewmodel.DoorViewModel
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
@@ -69,7 +69,7 @@ class MainActivity : AppCompatActivity() {
 
         doorViewModel = ViewModelProvider(this).get(DoorViewModel::class.java)
         binding.doorViewModel = doorViewModel
-        doorViewModel.doorDataState.observe(this, Observer { (doorData, state) ->
+        doorViewModel.loadingDoor.observe(this, Observer { (doorData, state) ->
             Log.d(TAG, "doorData: ${doorData}")
             when (state) {
                 LoadingState.NO_DATA -> {
@@ -91,7 +91,9 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
-        doorViewModel.configDataState.observe(this, Observer { (configData, state) ->
+        doorViewModel.loadingConfig.observe(this, Observer { loadingConfig ->
+            val configData = loadingConfig.data
+            val state = loadingConfig.loading
             Log.d(TAG, "configData: ${configData}")
             when (state) {
                 LoadingState.NO_DATA -> {}
@@ -183,7 +185,7 @@ class MainActivity : AppCompatActivity() {
 
     fun onPushButton(view: View) {
         Log.d(TAG, "onPushButton")
-        val config: ServerConfig? = doorViewModel.configDataState.value?.first
+        val config: ServerConfig? = doorViewModel.loadingConfig.value?.data
         if (config == null) {
             Log.e(TAG, "Cannot push button without server configuration")
             return

@@ -17,9 +17,7 @@
 
 package com.chriscartland.garage.model
 
-data class DoorData(
-    val state: DoorState? = null,
-    val message: String? = null,
-    val lastCheckInTimeSeconds: Long? = null,
-    val lastChangeTimeSeconds: Long? = null
+data class Loading<T>(
+    val data: T?,
+    val loading: LoadingState
 )

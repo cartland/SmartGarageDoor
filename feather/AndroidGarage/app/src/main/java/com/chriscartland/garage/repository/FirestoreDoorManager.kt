@@ -21,19 +21,20 @@ import android.util.Log
 import androidx.lifecycle.MediatorLiveData
 import com.chriscartland.garage.model.DoorData
 import com.chriscartland.garage.model.DoorState
+import com.chriscartland.garage.model.Loading
 import com.chriscartland.garage.model.LoadingState
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 
 class FirestoreDoorManager {
 
-    val door: MediatorLiveData<Pair<DoorData?, LoadingState>> = MediatorLiveData()
+    val loadingDoor: MediatorLiveData<Loading<DoorData>> = MediatorLiveData()
 
     var doorReference: DocumentReference? = null
         set(value) {
             field = value
             firestoreLiveData.documentReference = value
-            door.value = Pair(
+            loadingDoor.value = Loading(
                 null,
                 if (value == null) { LoadingState.NO_DATA } else { LoadingState.LOADING_DATA }
             )
@@ -43,21 +44,21 @@ class FirestoreDoorManager {
 
     init {
         Log.d(TAG, "init")
-        door.value = Pair(
+        loadingDoor.value = Loading(
             null,
             LoadingState.LOADING_DATA
         )
-        door.addSource(firestoreLiveData) { value ->
+        loadingDoor.addSource(firestoreLiveData) { value ->
             Log.d(TAG, "Received Firestore update")
             if (doorReference == null) {
                 // Door data is invalid if there is no document reference.
-                door.value = Pair(
+                loadingDoor.value = Loading(
                     null,
                     LoadingState.NO_DATA
                 )
                 return@addSource
             }
-            door.value = Pair(
+            loadingDoor.value = Loading(
                 value?.toDoorData(),
                 LoadingState.LOADED_DATA
             )

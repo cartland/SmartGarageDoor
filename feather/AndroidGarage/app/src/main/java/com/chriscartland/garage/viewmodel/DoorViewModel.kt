@@ -48,9 +48,9 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
 
     val appVersion = app.repository.appVersionManager.appVersion
 
-    val configDataState = app.repository.firestoreConfigManager.config
+    val loadingConfig = app.repository.firestoreConfigManager.loadingConfig
 
-    val doorDataState = app.repository.firestoreDoorManager.door
+    val loadingDoor = app.repository.firestoreDoorManager.loadingDoor
 
     fun setDoorStatusDocumentReference(documentReference: DocumentReference?) {
         Log.d(TAG, "setDoorStatusDocumentReference")
@@ -149,7 +149,9 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         Log.d(TAG, "init")
-        statusTitle.addSource(doorDataState) { (doorData, loading) ->
+        statusTitle.addSource(loadingDoor) { loadingDoor ->
+            val doorData = loadingDoor.data
+            val loading = loadingDoor.loading
             Log.d(TAG, "Updating title")
             statusTitle.value = when (loading) {
                 LoadingState.NO_DATA -> { "" }
@@ -162,7 +164,9 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
-        message.addSource(doorDataState) { (doorData, loading) ->
+        message.addSource(loadingDoor) { loadingDoor ->
+            val doorData = loadingDoor.data
+            val loading = loadingDoor.loading
             Log.d(TAG, "Updating message")
             message.value = when (loading) {
                 LoadingState.NO_DATA -> { "" }
@@ -170,7 +174,9 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
                 LoadingState.LOADED_DATA -> { doorData?.message ?: "" }
             }
         }
-        lastCheckInTimeString.addSource(doorDataState) { (doorData, loading) ->
+        lastCheckInTimeString.addSource(loadingDoor) { loadingDoor ->
+            val doorData = loadingDoor.data
+            val loading = loadingDoor.loading
             Log.d(TAG, "Updating lastCheckInTimeString")
             lastCheckInTimeString.value = when (loading) {
                 LoadingState.NO_DATA -> { "" }
@@ -178,7 +184,9 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
                 LoadingState.LOADED_DATA -> { doorData?.toLastCheckInTimeString() }
             }
         }
-        lastChangeTimeString.addSource(doorDataState) { (doorData, loading) ->
+        lastChangeTimeString.addSource(loadingDoor) { loadingDoor ->
+            val doorData = loadingDoor.data
+            val loading = loadingDoor.loading
             Log.d(TAG, "Updating lastChangeTimeString")
             lastChangeTimeString.value = when (loading) {
                 LoadingState.NO_DATA -> { "" }
@@ -189,13 +197,13 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
         showRemoteButton.addSource(firebaseUser) { firebaseUser ->
             showRemoteButton.value = shouldShowRemoteButton()
         }
-        showRemoteButton.addSource(configDataState) { (value, state) ->
+        showRemoteButton.addSource(loadingConfig) { (value, state) ->
             showRemoteButton.value = shouldShowRemoteButton()
         }
     }
 
     fun shouldShowRemoteButton(): Boolean {
-        val config = configDataState.value?.first
+        val config = loadingConfig.value?.data
         val user = firebaseUser.value
         return config != null
                 && config.remoteButtonEnabled
