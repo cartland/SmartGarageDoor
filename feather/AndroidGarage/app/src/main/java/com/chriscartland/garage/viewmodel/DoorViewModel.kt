@@ -30,6 +30,7 @@ import com.chriscartland.garage.model.DoorData
 import com.chriscartland.garage.model.DoorDisplayInfo
 import com.chriscartland.garage.model.DoorState
 import com.chriscartland.garage.model.LoadingState
+import com.chriscartland.garage.model.ServerConfig
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.SignInClient
 import com.google.android.gms.common.api.ApiException
@@ -38,6 +39,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import java.util.Date
 
@@ -147,6 +149,19 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
         firebaseUser.value = null
     }
 
+    private fun onServerConfigChanged(config: ServerConfig?) {
+        Log.d(TAG, "handleConfigData: ${config?.toString()}")
+        val buildTimestamp = config?.buildTimestamp
+        if (buildTimestamp.isNullOrEmpty()) {
+            Log.d(TAG, "Not a valid config. buildTimestamp is null or empty.")
+            setDoorStatusDocumentReference(null)
+            return
+        }
+        setDoorStatusDocumentReference(
+            Firebase.firestore.collection("eventsCurrent").document(buildTimestamp)
+        )
+    }
+
     init {
         Log.d(TAG, "init")
         statusTitle.addSource(loadingDoor) { loadingDoor ->
@@ -199,6 +214,18 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
         }
         showRemoteButton.addSource(loadingConfig) { (value, state) ->
             showRemoteButton.value = shouldShowRemoteButton()
+        }
+        loadingConfig.observeForever { loadingConfig ->
+            val configData = loadingConfig.data
+            val state = loadingConfig.loading
+            Log.d(TAG, "configData: ${configData}")
+            when (state) {
+                LoadingState.NO_DATA -> {}
+                LoadingState.LOADING_DATA -> {}
+                LoadingState.LOADED_DATA -> {
+                    onServerConfigChanged(configData)
+                }
+            }
         }
     }
 

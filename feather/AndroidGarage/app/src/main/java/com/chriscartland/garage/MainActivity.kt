@@ -45,7 +45,6 @@ import com.chriscartland.garage.viewmodel.DoorViewModel
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import java.util.Date
 
@@ -69,7 +68,9 @@ class MainActivity : AppCompatActivity() {
 
         doorViewModel = ViewModelProvider(this).get(DoorViewModel::class.java)
         binding.doorViewModel = doorViewModel
-        doorViewModel.loadingDoor.observe(this, Observer { (doorData, state) ->
+        doorViewModel.loadingDoor.observe(this, Observer { loadingDoor ->
+            val doorData = loadingDoor.data
+            val state = loadingDoor.loading
             Log.d(TAG, "doorData: ${doorData}")
             when (state) {
                 LoadingState.NO_DATA -> {
@@ -99,7 +100,11 @@ class MainActivity : AppCompatActivity() {
                 LoadingState.NO_DATA -> {}
                 LoadingState.LOADING_DATA -> {}
                 LoadingState.LOADED_DATA -> {
-                    handleConfigData(configData)
+                    val buildTimestamp = configData?.buildTimestamp ?: return@Observer
+                    updateOpenDoorFcmSubscription(
+                        this,
+                        buildTimestamp
+                    )
                 }
             }
         })
@@ -306,23 +311,6 @@ class MainActivity : AppCompatActivity() {
         }
         doorViewModel.enableRemoteButton()
         doorViewModel.hideProgressBar()
-    }
-
-    private fun handleConfigData(config: ServerConfig?) {
-        Log.d(TAG, "handleConfigData: ${config?.toString()}")
-        val buildTimestamp = config?.buildTimestamp
-        if (buildTimestamp.isNullOrEmpty()) {
-            Log.d(TAG, "Not a valid config. buildTimestamp is null or empty.")
-            doorViewModel.setDoorStatusDocumentReference(null)
-            return
-        }
-        doorViewModel.setDoorStatusDocumentReference(
-            Firebase.firestore.collection("eventsCurrent").document(buildTimestamp)
-        )
-        updateOpenDoorFcmSubscription(
-            this,
-            buildTimestamp
-        )
     }
 
     private fun handleDoorChanged(doorData: DoorData) {
