@@ -35,11 +35,13 @@ class AppVersionManager(
         packageManager.getPackageInfo(packageName, 0).let {
             val newAppVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 AppVersion(
+                    packageName = packageName,
                     versionCode = it.longVersionCode,
                     versionName = it.versionName
                 )
             } else {
                 AppVersion(
+                    packageName = packageName,
                     versionCode = it.versionCode.toLong(),
                     versionName = it.versionName
                 )

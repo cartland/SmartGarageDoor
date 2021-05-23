@@ -17,9 +17,10 @@
 
 package com.chriscartland.garage.model
 
-class AppVersion(
+data class AppVersion(
+    val packageName: String,
     val versionCode: Long,
     val versionName: String
 ) {
-    override fun toString(): String = "${versionCode.toString()}-$versionName"
+    override fun toString(): String = "$packageName-${versionCode.toString()}-$versionName"
 }
