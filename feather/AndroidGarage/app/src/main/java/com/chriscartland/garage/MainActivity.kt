@@ -316,16 +316,8 @@ class MainActivity : AppCompatActivity() {
     private fun handleDoorChanged(doorData: DoorData) {
         Log.d(TAG, "handleDoorChanged")
         doorViewModel.hideProgressBar()
-        updateStatusColor(doorData)
         updateTimeSinceLastCheckIn(doorData)
         updateTimeSinceLastChange(doorData)
-    }
-
-    private fun updateStatusColor(doorData: DoorData) {
-        val doorDisplayInfo = DoorDisplayInfo.fromDoorState(this, doorData.state) ?: return
-        val color = doorDisplayInfo.color
-        val textView = binding.statusTitle
-        textView.setBackgroundColor(color)
     }
 
     private fun updateTimeSinceLastCheckIn(doorData: DoorData) {

@@ -35,6 +35,8 @@
     <string name="sign_in">Sign In</string>
     <string name="sign_out">Sign Out</string>
     <string name="fake_email">email@example.com</string>
+    <string name="title_no_data">No Data</string>
+    <string name="title_loading">Loading</string>
     <string name="title_door_error">Unknown Status</string>
     <string name="title_door_closed">Door Closed</string>
     <string name="title_door_opening">Opening...</string>

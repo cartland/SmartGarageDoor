@@ -59,7 +59,6 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
         app.repository.firestoreDoorManager.doorReference = documentReference
     }
 
-    val statusTitle = MediatorLiveData<String>()
     val message = MediatorLiveData<String>()
     val lastCheckInTimeString = MediatorLiveData<String>()
     val lastChangeTimeString = MediatorLiveData<String>()
@@ -164,21 +163,6 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         Log.d(TAG, "init")
-        statusTitle.addSource(loadingDoor) { loadingDoor ->
-            val doorData = loadingDoor.data
-            val loading = loadingDoor.loading
-            Log.d(TAG, "Updating title")
-            statusTitle.value = when (loading) {
-                LoadingState.NO_DATA -> { "" }
-                LoadingState.LOADING_DATA -> { "" }
-                LoadingState.LOADED_DATA -> {
-                    val state = doorData?.state ?: DoorState.UNKNOWN
-                    val doorDisplayInfo = DoorDisplayInfo.fromDoorState(app, state) ?: return@addSource
-                    val title = doorDisplayInfo.status
-                    title
-                }
-            }
-        }
         message.addSource(loadingDoor) { loadingDoor ->
             val doorData = loadingDoor.data
             val loading = loadingDoor.loading

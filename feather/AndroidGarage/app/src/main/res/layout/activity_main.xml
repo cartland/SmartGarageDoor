@@ -35,10 +35,10 @@
         tools:context=".MainActivity">
 
         <TextView
+            app:doorStatusTitle="@{doorViewModel.loadingDoor}"
             android:id="@+id/status_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/color_door_error"
             android:padding="@dimen/title_text_padding"
             android:textAlignment="center"
             android:textColor="@color/white"
@@ -46,7 +46,6 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            android:text="@{doorViewModel.statusTitle}"
             tools:text="Unknown Status" />
 
         <ProgressBar

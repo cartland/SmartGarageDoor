@@ -25,7 +25,21 @@ data class DoorDisplayInfo(
     val color: Int
 ) {
     companion object {
-        fun fromDoorState(context: Context, doorState: DoorState?) : DoorDisplayInfo? {
+        fun fromLoadingDoorData(context: Context, loadingDoor: Loading<DoorData>) : DoorDisplayInfo {
+            return when (loadingDoor.loading) {
+                LoadingState.NO_DATA -> DoorDisplayInfo(
+                    status = context.getString(R.string.title_no_data),
+                    color = context.getColor(R.color.color_door_error)
+                )
+                LoadingState.LOADING_DATA -> DoorDisplayInfo(
+                    status = context.getString(R.string.title_loading),
+                    color = context.getColor(R.color.color_door_error)
+                )
+                LoadingState.LOADED_DATA -> fromDoorState(context, loadingDoor.data?.state)
+            }
+        }
+
+        fun fromDoorState(context: Context, doorState: DoorState?) : DoorDisplayInfo {
             return when (doorState) {
                 DoorState.UNKNOWN -> DoorDisplayInfo(
                     status = context.getString(R.string.title_door_error),
@@ -59,7 +73,10 @@ data class DoorDisplayInfo(
                     status = context.getString(R.string.title_door_sensor_conflict),
                     color = context.getColor(R.color.color_door_error)
                 )
-                null -> null
+                null -> DoorDisplayInfo(
+                    status = context.getString(R.string.title_door_error),
+                    color = context.getColor(R.color.color_door_error)
+                )
             }
         }
     }

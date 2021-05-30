@@ -15,17 +15,17 @@
  *
  */
 
-package com.chriscartland.garage
+package com.chriscartland.garage.viewmodel
 
-import android.util.Log
-import com.google.firebase.messaging.FirebaseMessagingService
+import android.widget.TextView
+import androidx.databinding.BindingAdapter
+import com.chriscartland.garage.model.DoorData
+import com.chriscartland.garage.model.DoorDisplayInfo
+import com.chriscartland.garage.model.Loading
 
-class FCMService : FirebaseMessagingService() {
-    override fun onNewToken(token: String) {
-        Log.d(TAG, "FCM Instance Token: $token")
-    }
-
-    companion object {
-        val TAG: String = FCMService::class.java.simpleName
-    }
+@BindingAdapter("app:doorStatusTitle")
+fun doorStatusTitle(view: TextView, loadingDoor: Loading<DoorData>) {
+    val doorDisplayInfo = DoorDisplayInfo.fromLoadingDoorData(view.context, loadingDoor)
+    view.setBackgroundColor(doorDisplayInfo.color)
+    view.text = doorDisplayInfo.status
 }
