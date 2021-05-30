@@ -47,11 +47,11 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
 
     val app = application as App
 
-    val appVersion = app.repository.appVersionManager.appVersion
+    val appVersion = app.repository.appVersion
 
-    val loadingConfig = app.repository.firestoreConfigManager.loadingConfig
+    val loadingConfig = app.repository.loadingConfig
 
-    val loadingDoor = app.repository.firestoreDoorManager.loadingDoor
+    val loadingDoor = app.repository.loadingDoor
 
     val message = MediatorLiveData<String>()
 

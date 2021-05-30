@@ -23,6 +23,12 @@ class Repository(
     val firestoreDoorManager: FirestoreDoorManager
 ) {
 
+    val appVersion = appVersionManager.appVersion
+
+    val loadingConfig = firestoreConfigManager.loadingConfig
+
+    val loadingDoor = firestoreDoorManager.loadingDoor
+
     companion object {
         val TAG: String = Repository::class.java.simpleName
     }
