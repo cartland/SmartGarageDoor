@@ -310,9 +310,6 @@ class MainActivity : AppCompatActivity() {
     companion object {
         val TAG: String = MainActivity::class.java.simpleName
 
-        const val CHECK_IN_THRESHOLD_SECONDS = 60 * 15
-        const val DOOR_NOT_CLOSED_THRESHOLD_SECONDS = 60 * 15
-
         const val RC_ONE_TAP_SIGN_IN = 1
         const val SIGNED_IN_KEY = "com.chriscartland.garage.SIGNED_IN_KEY"
     }
