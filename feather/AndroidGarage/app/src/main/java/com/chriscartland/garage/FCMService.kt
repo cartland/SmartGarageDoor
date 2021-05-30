@@ -19,10 +19,44 @@ package com.chriscartland.garage
 
 import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService
+import com.google.firebase.messaging.RemoteMessage
 
 class FCMService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         Log.d(TAG, "FCM Instance Token: $token")
+    }
+
+    override fun onMessageReceived(remoteMessage: RemoteMessage) {
+        // Not getting messages here? See why this may be: https://goo.gl/39bRNJ
+        Log.d(TAG, "onMessageReceived, from: ${remoteMessage.from}")
+
+        // Check if message contains a data payload.
+        if (remoteMessage.data.isNotEmpty()) {
+            Log.d(TAG, "Message data payload: ${remoteMessage.data}")
+
+            if (/* Check if data needs to be processed by long running job */ true) {
+                // For long-running tasks (10 seconds or more) use WorkManager.
+                scheduleJob()
+            } else {
+                // Handle message within 10 seconds
+                handleNow()
+            }
+        } else {
+            Log.d(TAG, "Message data payload is empty")
+        }
+
+        // Check if message contains a notification payload.
+        remoteMessage.notification?.let {
+            Log.d(TAG, "Message Notification Body: ${it.body}")
+        }
+    }
+
+    private fun scheduleJob() {
+        Log.d(TAG, "scheduleJob...")
+    }
+
+    private fun handleNow() {
+        Log.d(TAG, "handleNow...")
     }
 
     companion object {
