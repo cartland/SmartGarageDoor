@@ -36,8 +36,6 @@ import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.chriscartland.garage.databinding.ActivityMainBinding
 import com.chriscartland.garage.model.DoorData
-import com.chriscartland.garage.model.DoorDisplayInfo
-import com.chriscartland.garage.model.DoorState
 import com.chriscartland.garage.model.LoadingState
 import com.chriscartland.garage.model.ServerConfig
 import com.chriscartland.garage.repository.updateOpenDoorFcmSubscription
@@ -55,8 +53,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var doorViewModel: DoorViewModel
 
     private val h: Handler = Handler(Looper.getMainLooper())
-    private var checkInRunnable: Runnable? = null
-    private var changeRunnable: Runnable? = null
+    private var runEachSecond: Runnable? = null
     private var buttonRunnable: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -130,6 +127,27 @@ class MainActivity : AppCompatActivity() {
             .setAutoSelectEnabled(true)
             .build()
         signIn(clicked = false)
+        updateEverySecond()
+    }
+
+    private fun updateEverySecond() {
+        // Remove any previously running callbacks.
+        runEachSecond?.let {
+            h.removeCallbacks(it)
+        }
+        // This callback will be run every second.
+        runEachSecond = object : Runnable {
+            override fun run() {
+                // Pass the current time to the ViewModel.
+                val now = Date()
+                doorViewModel.onUpdateTime(now)
+                h.postDelayed(this, 1000)
+            }
+        }
+        // Run it now to start the cycle.
+        runEachSecond?.let {
+            it.run()
+        }
     }
 
     fun onSignInClicked(view: View) {
@@ -300,10 +318,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        checkInRunnable?.let {
-            h.removeCallbacks(it)
-        }
-        changeRunnable?.let {
+        runEachSecond?.let {
             h.removeCallbacks(it)
         }
         buttonRunnable?.let {
@@ -316,75 +331,6 @@ class MainActivity : AppCompatActivity() {
     private fun handleDoorChanged(doorData: DoorData) {
         Log.d(TAG, "handleDoorChanged")
         doorViewModel.hideProgressBar()
-        updateTimeSinceLastCheckIn(doorData)
-        updateTimeSinceLastChange(doorData)
-    }
-
-    private fun updateTimeSinceLastCheckIn(doorData: DoorData) {
-        val lastCheckInTime = doorData.lastCheckInTimeSeconds
-        val textView = binding.timeSinceLastCheckIn
-        if (lastCheckInTime == null) {
-            textView.text = ""
-            checkInRunnable?.let {
-                h.removeCallbacks(it)
-            }
-            return
-        }
-        checkInRunnable?.let {
-            h.removeCallbacks(it)
-        }
-        checkInRunnable = object : Runnable {
-            override fun run() {
-                val now = Date()
-                val s = ((now.time / 1000) - lastCheckInTime).coerceAtLeast(0)
-                val timeSinceLastCheckInString =
-                    String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
-                textView.text = getString(R.string.time_since_last_check_in, timeSinceLastCheckInString)
-                if (s > CHECK_IN_THRESHOLD_SECONDS) {
-                    textView.setBackgroundColor(getColor(R.color.color_door_error))
-                } else {
-                    textView.setBackgroundColor(getColor(R.color.black))
-                }
-                h.postDelayed(this, 1000)
-            }
-        }
-        checkInRunnable?.let {
-            it.run()
-            h.postDelayed(it, 1000)
-        }
-    }
-
-    private fun updateTimeSinceLastChange(doorData: DoorData) {
-        val lastChangeTime = doorData.lastChangeTimeSeconds
-        val textView = binding.timeSinceLastChange
-        if (lastChangeTime == null) {
-            textView.text = ""
-            changeRunnable?.let {
-                h.removeCallbacks(it)
-            }
-            return
-        }
-        changeRunnable?.let {
-            h.removeCallbacks(it)
-        }
-        changeRunnable = object : Runnable {
-            override fun run() {
-                val now = Date()
-                val s = ((now.time / 1000) - lastChangeTime).coerceAtLeast(0)
-                val timeSinceLastChangeString = String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
-                textView.text = getString(R.string.time_since_last_change, timeSinceLastChangeString)
-                if (doorData.state != DoorState.CLOSED && s > DOOR_NOT_CLOSED_THRESHOLD_SECONDS) {
-                    textView.setBackgroundColor(getColor(R.color.color_door_error))
-                } else {
-                    textView.setBackgroundColor(getColor(R.color.black))
-                }
-                h.postDelayed(this, 1000)
-            }
-        }
-        changeRunnable?.let {
-            it.run()
-            h.postDelayed(it, 1000)
-        }
     }
 
     companion object {

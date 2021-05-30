@@ -114,6 +114,7 @@
             tools:text="Last check-in: 2021-03-27 22:25:44" />
 
         <TextView
+            app:checkInAge="@{doorViewModel.checkInAge}"
             android:id="@+id/time_since_last_check_in"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -139,6 +140,7 @@
             tools:text="Last change: 2021-03-27 20:45:43" />
 
         <TextView
+            app:changeAge="@{doorViewModel.changeAge}"
             android:id="@+id/time_since_last_change"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

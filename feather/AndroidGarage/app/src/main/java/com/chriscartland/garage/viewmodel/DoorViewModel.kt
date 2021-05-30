@@ -27,8 +27,7 @@ import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import com.chriscartland.garage.App
 import com.chriscartland.garage.model.DoorData
-import com.chriscartland.garage.model.DoorDisplayInfo
-import com.chriscartland.garage.model.DoorState
+import com.chriscartland.garage.model.DoorDataAge
 import com.chriscartland.garage.model.LoadingState
 import com.chriscartland.garage.model.ServerConfig
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
@@ -61,7 +60,10 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
 
     val message = MediatorLiveData<String>()
     val lastCheckInTimeString = MediatorLiveData<String>()
+    val checkInAge = MutableLiveData<DoorDataAge>()
+
     val lastChangeTimeString = MediatorLiveData<String>()
+    val changeAge = MediatorLiveData<DoorDataAge>()
 
     val showRemoteButton = MediatorLiveData<Boolean>()
 
@@ -87,6 +89,41 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
     fun hideProgressBar() {
         Log.d(TAG, "hideProgressBar")
         progressBarVisible.value = false
+    }
+
+    fun onUpdateTime(now: Date) {
+        updateTimeSinceLastCheckIn(now)
+        updateTimeSinceLastChange(now)
+    }
+
+    private fun updateTimeSinceLastCheckIn(now: Date) {
+        val lastCheckInTime = loadingDoor.value?.data?.lastCheckInTimeSeconds
+        checkInAge.value = if (lastCheckInTime == null) {
+            DoorDataAge(
+                ageSeconds = 0,
+                doorData = null
+            )
+        } else {
+            DoorDataAge(
+                ageSeconds = ((now.time / 1000) - lastCheckInTime).coerceAtLeast(0),
+                doorData = loadingDoor.value?.data
+            )
+        }
+    }
+
+    private fun updateTimeSinceLastChange(now: Date) {
+        val lastChangeTime = loadingDoor.value?.data?.lastChangeTimeSeconds
+        changeAge.value = if (lastChangeTime == null) {
+            DoorDataAge(
+                ageSeconds = 0,
+                doorData = null
+            )
+        } else {
+            DoorDataAge(
+                ageSeconds = ((now.time / 1000) - lastChangeTime).coerceAtLeast(0),
+                doorData = loadingDoor.value?.data
+            )
+        }
     }
 
     val firebaseUser = MutableLiveData<FirebaseUser?>()
