@@ -66,28 +66,7 @@ class MainActivity : AppCompatActivity() {
         doorViewModel = ViewModelProvider(this).get(DoorViewModel::class.java)
         binding.doorViewModel = doorViewModel
         doorViewModel.loadingDoor.observe(this, Observer { loadingDoor ->
-            val doorData = loadingDoor.data
-            val state = loadingDoor.loading
-            Log.d(TAG, "doorData: ${doorData}")
-            when (state) {
-                LoadingState.NO_DATA -> {
-                    handleDoorChanged(
-                        DoorData(
-                            message = getString(R.string.missing_config)
-                        )
-                    )
-                }
-                LoadingState.LOADING_DATA -> {
-                    handleDoorChanged(
-                        DoorData(
-                            message = getString(R.string.loading_data)
-                        )
-                    )
-                }
-                LoadingState.LOADED_DATA -> {
-                    handleDoorChanged(doorData ?: DoorData())
-                }
-            }
+            doorViewModel.hideProgressBar()
         })
         doorViewModel.loadingConfig.observe(this, Observer { loadingConfig ->
             val configData = loadingConfig.data
@@ -325,11 +304,6 @@ class MainActivity : AppCompatActivity() {
             h.removeCallbacks(it)
         }
         doorViewModel.enableRemoteButton()
-        doorViewModel.hideProgressBar()
-    }
-
-    private fun handleDoorChanged(doorData: DoorData) {
-        Log.d(TAG, "handleDoorChanged")
         doorViewModel.hideProgressBar()
     }
 
