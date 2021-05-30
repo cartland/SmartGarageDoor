@@ -47,10 +47,8 @@ class FirestoreDocumentReferenceLiveData(
             }
         }
 
-    private val listener: EventListener<DocumentSnapshot?> =
-        Listener(
-            this
-        )
+    private val listener: EventListener<DocumentSnapshot?> = Listener(this)
+
     private class Listener(
         val liveData: FirestoreDocumentReferenceLiveData
     ) : EventListener<DocumentSnapshot?> {
