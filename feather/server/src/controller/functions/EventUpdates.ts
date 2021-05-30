@@ -21,7 +21,7 @@ import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
 
 import { SensorSnapshot } from '../../model/SensorSnapshot';
 
-import { getNewEventOrNull, isEventOld, getMessageFromEvent } from '../../controller/EventInterpreter';
+import { getNewEventOrNull, isEventOld, getMessageFromEvent, getFCMDataFromEvent } from '../../controller/EventInterpreter';
 import { SensorEvent } from '../../model/SensorEvent';
 import { TopicMessage } from '../../model/FCM';
 
@@ -82,6 +82,7 @@ async function updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds
     data[PREVIOUS_EVENT_KEY] = oldEvent;
     data[CURRENT_EVENT_KEY] = newEvent;
     await SensorEventDatabase.DATABASE.set(buildTimestamp, data);
+    await sendFCMForSensorEvent(buildTimestamp, newEvent);
   } else {
     if (scheduledJob) {
       // Do nothing. Do not update database during scheduled check unless it results in a new event.
@@ -125,6 +126,23 @@ export async function sendFCMForOldData(buildTimestamp: string, eventData): Prom
   data[NOTIFICATION_CURRENT_EVENT_KEY] = currentEvent;
   data[NOTIFICATION_MESSAGE_KEY] = message;
   await NOTIFICATIONS_DATABASE.save(buildTimestamp, data);
+  console.log('Sending notification', message);
+  await firebase.messaging().send(message)
+    .then((response) => {
+      // Response is a message ID string.
+      console.log('Successfully sent message:', response);
+    })
+    .catch((error) => {
+      console.log('Error sending message:', error);
+    });
+  return message;
+}
+
+export async function sendFCMForSensorEvent(buildTimestamp: string, sensorEvent: SensorEvent): Promise<TopicMessage> {
+  const message = getFCMDataFromEvent(buildTimestamp, sensorEvent);
+  if (!message) {
+    return null;
+  }
   console.log('Sending notification', message);
   await firebase.messaging().send(message)
     .then((response) => {

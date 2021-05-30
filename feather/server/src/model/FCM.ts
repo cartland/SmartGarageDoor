@@ -17,6 +17,7 @@
 // https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages#resource:-message
 export interface TopicMessage {
   name: string,
+  data: { [key: string]: string },
   notification: Notification,
   android: AndroidConfig,
   // webpush: WebpushConfig,
@@ -32,7 +33,7 @@ export interface TopicMessage {
 // https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages#resource:-message
 export interface TokenMessage {
   name: string,
-  data: object,
+  data: { [key: string]: string },
   notification: Notification,
   android: AndroidConfig,
   // webpush: WebpushConfig,
@@ -48,7 +49,7 @@ export interface TokenMessage {
 // https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages#resource:-message
 export interface ConditionMessage {
   name: string,
-  data: object,
+  data: { [key: string]: string },
   notification: Notification,
   android: AndroidConfig,
   // webpush: WebpushConfig,

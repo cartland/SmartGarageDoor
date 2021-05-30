@@ -20,6 +20,14 @@ export interface SensorEvent {
   message: string,
 }
 
+export function SensorEventAsStringMap(sensorEvent: SensorEvent): { [key: string]: string } {
+  const map: { [key: string]: string } = {};
+  map['type'] = sensorEvent.type;
+  map['timestampSeconds'] = String(sensorEvent.timestampSeconds);
+  map['message'] = sensorEvent.message;
+  return map;
+}
+
 export enum SensorEventType {
   Unknown = 'UNKNOWN',
   ErrorSensorConflict = 'ERROR_SENSOR_CONFLICT',

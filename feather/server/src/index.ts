@@ -69,7 +69,7 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'updateEvents') 
 
 exports.checkForDoorErrors = functions.pubsub.schedule('every 1 minutes').onRun(async (context) => {
   const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
-  const buildTimestampString = 'Sat Mar 13 14:45:00 2021';
+  const buildTimestampString = 'Sat Mar 13 14:45:00 2021'; // TODO: Use config.
   const scheduledJob = true;
   const data = {};
   data[BUILD_TIMESTAMP_PARAM_KEY] = buildTimestampString;
@@ -78,14 +78,14 @@ exports.checkForDoorErrors = functions.pubsub.schedule('every 1 minutes').onRun(
 });
 
 exports.checkForOpenDoorsJob = functions.pubsub.schedule('every 5 minutes').onRun(async (context) => {
-  const buildTimestamp = 'Sat Mar 13 14:45:00 2021';
+  const buildTimestamp = 'Sat Mar 13 14:45:00 2021';  // TODO: Use config.
   const eventData = await EVENT_DATABASE.getCurrent(buildTimestamp);
   await sendFCMForOldData(buildTimestamp, eventData);
   return null;
 });
 
 exports.checkForOpenDoors = functions.https.onRequest(async (request, response) => {
-  const buildTimestamp = 'Sat Mar 13 14:45:00 2021';
+  const buildTimestamp = 'Sat Mar 13 14:45:00 2021';  // TODO: Use config.
   const eventData = await EVENT_DATABASE.getCurrent(buildTimestamp);
   const result = await sendFCMForOldData(buildTimestamp, eventData);
   response.status(200).send(result);

@@ -15,7 +15,7 @@
  */
 
 import {
-  SensorEvent, SensorEventType,
+  SensorEvent, SensorEventType, SensorEventAsStringMap,
   Unknown, ErrorSensorConflict, Closed, Closing, ClosingTooLong, Open, Opening, OpeningTooLong
 } from '../model/SensorEvent';
 
@@ -270,4 +270,11 @@ export function getMessageFromEvent(buildTimestamp: string, currentEvent: Sensor
       message.notification.body = 'Door error for longer than ' + durationString;
       return message;
   }
+}
+
+export function getFCMDataFromEvent(buildTimestamp: string, currentEvent: SensorEvent): TopicMessage {
+  const message = <TopicMessage>{};
+  message.topic = buildTimestampToFcmTopic(buildTimestamp);
+  message.data = SensorEventAsStringMap(currentEvent);
+  return message;
 }
