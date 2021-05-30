@@ -53,12 +53,8 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
 
     val loadingDoor = app.repository.firestoreDoorManager.loadingDoor
 
-    fun setDoorStatusDocumentReference(documentReference: DocumentReference?) {
-        Log.d(TAG, "setDoorStatusDocumentReference")
-        app.repository.firestoreDoorManager.doorReference = documentReference
-    }
-
     val message = MediatorLiveData<String>()
+
     val lastCheckInTimeString = MediatorLiveData<String>()
     val checkInAge = MutableLiveData<DoorDataAge>()
 
@@ -69,6 +65,30 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
 
     val remoteButtonEnabled = MutableLiveData<Boolean>()
 
+    val progressBarVisible = MediatorLiveData<Boolean>()
+
+    val firebaseUser = MutableLiveData<FirebaseUser?>()
+
+    var showOneTapUI = MutableLiveData<Boolean>().also {
+        it.value = true
+    }
+    var oneTapSignInClient: SignInClient? = null
+    var oneTapSignInRequest: BeginSignInRequest? = null
+
+    fun shouldShowRemoteButton(): Boolean {
+        val config = loadingConfig.value?.data
+        val user = firebaseUser.value
+        return config != null
+                && config.remoteButtonEnabled
+                && user != null
+                && config.remoteButtonAuthorizedEmails?.contains(user.email) == true
+    }
+
+    fun setDoorStatusDocumentReference(documentReference: DocumentReference?) {
+        Log.d(TAG, "setDoorStatusDocumentReference")
+        app.repository.firestoreDoorManager.doorReference = documentReference
+    }
+
     fun enableRemoteButton() {
         Log.d(TAG, "enableRemoteButton")
         remoteButtonEnabled.value = true
@@ -78,8 +98,6 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
         Log.d(TAG, "disableRemoteButton")
         remoteButtonEnabled.value = false
     }
-
-    val progressBarVisible = MediatorLiveData<Boolean>()
 
     fun showProgressBar() {
         Log.d(TAG, "showProgressBar")
@@ -125,14 +143,6 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
     }
-
-    val firebaseUser = MutableLiveData<FirebaseUser?>()
-
-    var showOneTapUI = MutableLiveData<Boolean>().also {
-        it.value = true
-    }
-    var oneTapSignInClient: SignInClient? = null
-    var oneTapSignInRequest: BeginSignInRequest? = null
 
     fun handleOneTapSignIn(activity: Activity, data: Intent?) {
         try {
@@ -248,15 +258,6 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
-    }
-
-    fun shouldShowRemoteButton(): Boolean {
-        val config = loadingConfig.value?.data
-        val user = firebaseUser.value
-        return config != null
-                && config.remoteButtonEnabled
-                && user != null
-                && config.remoteButtonAuthorizedEmails?.contains(user.email) == true
     }
 
     companion object {
