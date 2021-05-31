@@ -84,10 +84,11 @@ private fun <K, V> Map<K, V>.toDoorData(): DoorData? {
     }
     val message = currentEvent["message"] as? String ?: ""
     val timestampSeconds = (currentEvent["timestampSeconds"] as? String?)?.toLong()
+    val checkInTimestampSeconds = (currentEvent["checkInTimestampSeconds"] as? String?)?.toLong()
     return DoorData(
         state = state,
         message = message,
         lastChangeTimeSeconds = timestampSeconds,
-        lastCheckInTimeSeconds = timestampSeconds
+        lastCheckInTimeSeconds = checkInTimestampSeconds
     )
 }
