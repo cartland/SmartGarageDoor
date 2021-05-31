@@ -35,6 +35,7 @@ export enum SensorEventType {
   Closing = 'CLOSING',
   ClosingTooLong = 'CLOSING_TOO_LONG',
   Open = 'OPEN',
+  OpenMisaligned = 'OPEN_MISALIGNED',
   Opening = 'OPENING',
   OpeningTooLong = 'OPENING_TOO_LONG',
 }
@@ -85,6 +86,14 @@ export function Open(timestampSeconds: number): SensorEvent {
     timestampSeconds: timestampSeconds,
     message: 'The door is open.',
   };
+}
+
+export function OpenMisaligned(timestampSeconds: number): SensorEvent {
+  return <SensorEvent>{
+    type: SensorEventType.OpenMisaligned,
+    timestampSeconds: timestampSeconds,
+    message: 'The door is open (misaligned).',
+  }
 }
 
 export function Opening(timestampSeconds: number): SensorEvent {

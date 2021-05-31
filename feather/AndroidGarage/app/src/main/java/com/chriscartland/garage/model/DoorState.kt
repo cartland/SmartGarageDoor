@@ -23,6 +23,7 @@ enum class DoorState {
     OPENING,
     OPENING_TOO_LONG,
     OPEN,
+    OPEN_MISALIGNED,
     CLOSING,
     CLOSING_TOO_LONG,
     ERROR_SENSOR_CONFLICT

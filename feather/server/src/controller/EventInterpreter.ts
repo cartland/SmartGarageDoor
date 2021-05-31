@@ -16,7 +16,7 @@
 
 import {
   SensorEvent, SensorEventType, SensorEventAsStringMap,
-  Unknown, ErrorSensorConflict, Closed, Closing, ClosingTooLong, Open, Opening, OpeningTooLong
+  Unknown, ErrorSensorConflict, Closed, Closing, ClosingTooLong, Open, OpenMisaligned, Opening, OpeningTooLong
 } from '../model/SensorEvent';
 
 import { SensorSnapshot } from '../model/SensorSnapshot';
@@ -24,6 +24,7 @@ import { AndroidMessagePriority, TopicMessage, Notification, NotificationPriorit
 import { buildTimestampToFcmTopic } from '../model/FcmTopic';
 
 const TOO_LONG_DURATION_SECONDS = 60;
+const TOO_SHORT_DURATION_SECONDS = 3;
 const TOO_LONG_OPEN_SECONDS = 15 * 60;
 
 export function getNewEventOrNull(oldEvent: SensorEvent, sensorSnapshot: SensorSnapshot, timestampSeconds: number): SensorEvent {
@@ -154,9 +155,27 @@ export function getNewEventOrNull(oldEvent: SensorEvent, sensorSnapshot: SensorS
       if (closedSensor !== CLOSED && openSensor === OPEN) {
         return null; // No change.
       }
+      // Open too short.
+      if (openSensor === NOT_OPEN && oldEventDurationSeconds < TOO_SHORT_DURATION_SECONDS) {
+        return OpenMisaligned(timestampSeconds);
+      }
       // Closing.
       if (openSensor === NOT_OPEN) {
         return Closing(timestampSeconds);
+      }
+      return null; // No change.
+    case SensorEventType.OpenMisaligned:
+      // ErrorSensorConflict.
+      if (closedSensor === CLOSED && openSensor === OPEN) {
+        return ErrorSensorConflict(timestampSeconds);
+      }
+      // Closed.
+      if (closedSensor === CLOSED && openSensor !== OPEN) {
+        return Closed(timestampSeconds);
+      }
+      // Open.
+      if (closedSensor !== CLOSED && openSensor === OPEN) {
+        return Open(timestampSeconds);
       }
       return null; // No change.
     case SensorEventType.Opening:
