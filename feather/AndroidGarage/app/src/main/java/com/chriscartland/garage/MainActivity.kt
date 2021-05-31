@@ -286,6 +286,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         Log.d(TAG, "onResume")
+        doorViewModel.refreshData()
     }
 
     override fun onStop() {

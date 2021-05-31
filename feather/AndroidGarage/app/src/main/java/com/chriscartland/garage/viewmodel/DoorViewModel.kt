@@ -86,7 +86,13 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setDoorStatusDocumentReference(documentReference: DocumentReference?) {
         Log.d(TAG, "setDoorStatusDocumentReference")
-        app.repository.firestoreDoorManager.doorReference = documentReference
+        app.repository.setDoorStatusDocumentReference(documentReference)
+        refreshData()
+    }
+
+    fun refreshData() {
+        Log.d(TAG, "refreshData")
+        app.repository.refreshData()
     }
 
     fun enableRemoteButton() {

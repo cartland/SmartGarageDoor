@@ -20,6 +20,7 @@ package com.chriscartland.garage
 import android.util.Log
 import com.chriscartland.garage.model.DoorData
 import com.chriscartland.garage.model.DoorState
+import com.chriscartland.garage.repository.Repository
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
@@ -65,6 +66,7 @@ class FCMService : FirebaseMessagingService() {
         if (doorData == null) {
             return
         }
+        Log.d(Repository.TAG, "Writing data from FCM to local database")
         val app = application as App
         app.repository.setDoorData(doorData)
     }

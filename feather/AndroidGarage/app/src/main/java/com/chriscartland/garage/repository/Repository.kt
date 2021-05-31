@@ -21,6 +21,7 @@ import android.util.Log
 import com.chriscartland.garage.disk.LocalDataSource
 import com.chriscartland.garage.model.DoorData
 import com.chriscartland.garage.model.LoadingState
+import com.google.firebase.firestore.DocumentReference
 
 class Repository(
     val localDataSource: LocalDataSource,
@@ -29,30 +30,39 @@ class Repository(
     val firestoreDoorManager: FirestoreDoorManager
 ) {
 
-    fun setDoorData(doorData: DoorData) {
-        localDataSource.updateDoorData(doorData)
-    }
-
     val appVersion = appVersionManager.appVersion
 
     val loadingConfig = firestoreConfigManager.loadingConfig
 
-    private val loadingDoor = firestoreDoorManager.loadingDoor
-
     val doorData = localDataSource.doorData
 
+    fun setDoorData(doorData: DoorData) {
+        localDataSource.updateDoorData(doorData)
+    }
+
+    fun setDoorStatusDocumentReference(documentReference: DocumentReference?) {
+        firestoreDoorManager.setDoorStatusDocumentReference(documentReference)
+    }
+
+    fun refreshData() {
+        Log.d(TAG, "refreshData")
+        firestoreDoorManager.refreshData()
+    }
+
     init {
-        loadingDoor.observeForever { loadingDoor ->
+        firestoreDoorManager.loadingDoor.observeForever { loadingDoor ->
             if (loadingDoor.loading != LoadingState.LOADED_DATA) {
                 Log.d(TAG, "Door data is not loaded: ${loadingDoor}")
                 return@observeForever
             }
-            Log.d(TAG, "Door data is updated: ${loadingDoor}")
+            Log.d(TAG, "Door data is loaded: ${loadingDoor}")
             val doorData = loadingDoor.data
             if (doorData == null) {
+                Log.d(TAG, "Door data is null")
                 return@observeForever
             }
-            localDataSource.updateDoorData(doorData)
+            Log.d(TAG, "Writing data from Firestore to local database")
+            setDoorData(doorData)
         }
     }
 

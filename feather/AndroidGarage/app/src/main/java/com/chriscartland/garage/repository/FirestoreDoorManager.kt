@@ -30,17 +30,32 @@ class FirestoreDoorManager {
 
     val loadingDoor: MediatorLiveData<Loading<DoorData>> = MediatorLiveData()
 
-    var doorReference: DocumentReference? = null
-        set(value) {
-            field = value
-            firestoreLiveData.documentReference = value
-            loadingDoor.value = Loading(
-                null,
-                if (value == null) { LoadingState.NO_DATA } else { LoadingState.LOADING_DATA }
-            )
-        }
+    private var doorReference: DocumentReference? = null
 
-    private val firestoreLiveData = FirestoreDocumentReferenceLiveData(null)
+    fun refreshData() {
+        Log.d(TAG, "refreshData")
+        val request = doorReference?.get() ?: return
+        request
+            .addOnSuccessListener { document ->
+                Log.d(TAG, "refreshData: onSuccess")
+                if (document != null) {
+                    Log.d(TAG, "refreshData: DocumentSnapshot data: ${document.data}")
+                    loadingDoor.value = Loading(
+                        document.toDoorData(),
+                        LoadingState.LOADED_DATA
+                    )
+                } else {
+                    Log.w(TAG, "refreshData: No document.")
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.d(TAG, "refreshData: onFailure", exception)
+            }
+    }
+
+    fun setDoorStatusDocumentReference(documentReference: DocumentReference?) {
+        doorReference = documentReference
+    }
 
     init {
         Log.d(TAG, "init")
@@ -48,25 +63,10 @@ class FirestoreDoorManager {
             null,
             LoadingState.LOADING_DATA
         )
-        loadingDoor.addSource(firestoreLiveData) { value ->
-            Log.d(TAG, "Received Firestore update")
-            if (doorReference == null) {
-                // Door data is invalid if there is no document reference.
-                loadingDoor.value = Loading(
-                    null,
-                    LoadingState.NO_DATA
-                )
-                return@addSource
-            }
-            loadingDoor.value = Loading(
-                value?.toDoorData(),
-                LoadingState.LOADED_DATA
-            )
-        }
     }
 
     companion object {
-        val TAG: String = FirestoreConfigManager::class.java.simpleName
+        val TAG: String = FirestoreDoorManager::class.java.simpleName
     }
 }
 

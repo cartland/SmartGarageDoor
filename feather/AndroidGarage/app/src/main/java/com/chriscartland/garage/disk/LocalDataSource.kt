@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.disk
 
+import android.util.Log
 import com.chriscartland.garage.AppExecutors
 import com.chriscartland.garage.db.AppDatabase
 import com.chriscartland.garage.model.DoorData
@@ -30,17 +31,19 @@ class LocalDataSource private constructor(
     val doorData = appDatabase.doorDataDao().getDoorData()
 
     fun updateDoorData(doorData: DoorData) {
-        executor.execute({
+        Log.d(TAG, "updateDoorData")
+        executor.execute {
             appDatabase.runInTransaction {
                 // Delete existing subscriptions.
                 appDatabase.doorDataDao().deleteAll()
                 // Put new subscriptions data into localDataSource.
                 appDatabase.doorDataDao().insert(doorData)
             }
-        })
+        }
     }
 
     companion object {
+        val TAG: String = LocalDataSource::class.java.simpleName
 
         @Volatile
         private var INSTANCE: LocalDataSource? = null
