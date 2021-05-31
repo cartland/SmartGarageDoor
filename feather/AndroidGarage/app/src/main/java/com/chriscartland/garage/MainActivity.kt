@@ -35,7 +35,6 @@ import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.chriscartland.garage.databinding.ActivityMainBinding
-import com.chriscartland.garage.model.DoorData
 import com.chriscartland.garage.model.LoadingState
 import com.chriscartland.garage.model.ServerConfig
 import com.chriscartland.garage.repository.updateOpenDoorFcmSubscription
@@ -45,7 +44,6 @@ import com.google.android.gms.auth.api.identity.Identity
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import java.util.Date
-
 
 class MainActivity : AppCompatActivity() {
 
@@ -65,7 +63,7 @@ class MainActivity : AppCompatActivity() {
 
         doorViewModel = ViewModelProvider(this).get(DoorViewModel::class.java)
         binding.doorViewModel = doorViewModel
-        doorViewModel.loadingDoor.observe(this, Observer { loadingDoor ->
+        doorViewModel.doorData.observe(this, Observer {
             doorViewModel.hideProgressBar()
         })
         doorViewModel.loadingConfig.observe(this, Observer { loadingConfig ->

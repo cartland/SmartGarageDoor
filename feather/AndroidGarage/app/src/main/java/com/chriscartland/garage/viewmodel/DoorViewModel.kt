@@ -51,7 +51,7 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
 
     val loadingConfig = app.repository.loadingConfig
 
-    val loadingDoor = app.repository.loadingDoor
+    val doorData = app.repository.doorData
 
     val message = MediatorLiveData<String>()
 
@@ -115,7 +115,7 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun updateTimeSinceLastCheckIn(now: Date) {
-        val lastCheckInTime = loadingDoor.value?.data?.lastCheckInTimeSeconds
+        val lastCheckInTime = doorData.value?.lastCheckInTimeSeconds
         checkInAge.value = if (lastCheckInTime == null) {
             DoorDataAge(
                 ageSeconds = 0,
@@ -124,13 +124,13 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             DoorDataAge(
                 ageSeconds = ((now.time / 1000) - lastCheckInTime).coerceAtLeast(0),
-                doorData = loadingDoor.value?.data
+                doorData = doorData.value
             )
         }
     }
 
     private fun updateTimeSinceLastChange(now: Date) {
-        val lastChangeTime = loadingDoor.value?.data?.lastChangeTimeSeconds
+        val lastChangeTime = doorData.value?.lastChangeTimeSeconds
         changeAge.value = if (lastChangeTime == null) {
             DoorDataAge(
                 ageSeconds = 0,
@@ -139,7 +139,7 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             DoorDataAge(
                 ageSeconds = ((now.time / 1000) - lastChangeTime).coerceAtLeast(0),
-                doorData = loadingDoor.value?.data
+                doorData = doorData.value
             )
         }
     }
@@ -210,35 +210,17 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         Log.d(TAG, "init")
-        message.addSource(loadingDoor) { loadingDoor ->
-            val doorData = loadingDoor.data
-            val loading = loadingDoor.loading
+        message.addSource(doorData) { doorData ->
             Log.d(TAG, "Updating message")
-            message.value = when (loading) {
-                LoadingState.NO_DATA -> { "" }
-                LoadingState.LOADING_DATA -> { "" }
-                LoadingState.LOADED_DATA -> { doorData?.message ?: "" }
-            }
+            message.value = doorData?.message ?: ""
         }
-        lastCheckInTimeString.addSource(loadingDoor) { loadingDoor ->
-            val doorData = loadingDoor.data
-            val loading = loadingDoor.loading
+        lastCheckInTimeString.addSource(doorData) { doorData ->
             Log.d(TAG, "Updating lastCheckInTimeString")
-            lastCheckInTimeString.value = when (loading) {
-                LoadingState.NO_DATA -> { "" }
-                LoadingState.LOADING_DATA -> { "" }
-                LoadingState.LOADED_DATA -> { doorData?.toLastCheckInTimeString() }
-            }
+            lastCheckInTimeString.value = doorData?.toLastCheckInTimeString()
         }
-        lastChangeTimeString.addSource(loadingDoor) { loadingDoor ->
-            val doorData = loadingDoor.data
-            val loading = loadingDoor.loading
+        lastChangeTimeString.addSource(doorData) { doorData ->
             Log.d(TAG, "Updating lastChangeTimeString")
-            lastChangeTimeString.value = when (loading) {
-                LoadingState.NO_DATA -> { "" }
-                LoadingState.LOADING_DATA -> { "" }
-                LoadingState.LOADED_DATA -> { doorData?.toLastChangeTimeString() }
-            }
+            lastChangeTimeString.value = doorData?.toLastChangeTimeString()
         }
         showRemoteButton.addSource(firebaseUser) { firebaseUser ->
             showRemoteButton.value = shouldShowRemoteButton()

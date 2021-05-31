@@ -18,6 +18,8 @@
 package com.chriscartland.garage
 
 import android.app.Application
+import com.chriscartland.garage.db.AppDatabase
+import com.chriscartland.garage.disk.LocalDataSource
 import com.chriscartland.garage.repository.AppVersionManager
 import com.chriscartland.garage.repository.FirestoreConfigManager
 import com.chriscartland.garage.repository.FirestoreDoorManager
@@ -27,19 +29,31 @@ import com.google.firebase.ktx.Firebase
 
 class App : Application() {
 
+    private val executors = AppExecutors()
+
+    private val db: AppDatabase
+        get() = AppDatabase.getDatabase(this)
+
+    private val localDataSource: LocalDataSource
+        get() = LocalDataSource.getInstance(executors, db)
+
+    private val appVersionManager: AppVersionManager
+        get() = AppVersionManager(packageManager, packageName)
+
+    private val firestoreConfigManager: FirestoreConfigManager
+        get() = FirestoreConfigManager(
+            Firebase.firestore.collection("configCurrent").document("current")
+        )
+
     lateinit var repository: Repository
 
     override fun onCreate() {
         super.onCreate()
-        repository = Repository(
-            AppVersionManager(
-                packageManager,
-                packageName
-            ),
-            FirestoreConfigManager(
-                Firebase.firestore.collection("configCurrent").document("current")
-            ),
-            FirestoreDoorManager()
+        repository = Repository.getInstance(
+            localDataSource = localDataSource,
+            appVersionManager = appVersionManager,
+            firestoreConfigManager = firestoreConfigManager,
+            firestoreDoorManager = FirestoreDoorManager()
         )
     }
 }

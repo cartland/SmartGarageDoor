@@ -65,13 +65,8 @@ class FCMService : FirebaseMessagingService() {
         if (doorData == null) {
             return
         }
-        // TODO: Save door Data to database.
-        // Cannot save directly to LiveData on a background thread.
-//        val app = application as App
-//        app.repository.loadingDoor.value = Loading(
-//            data = doorData,
-//            loading = LoadingState.LOADED_DATA
-//        )
+        val app = application as App
+        app.repository.setDoorData(doorData)
     }
 
     companion object {
@@ -88,7 +83,7 @@ private fun <K, V> Map<K, V>.toDoorData(): DoorData? {
         DoorState.UNKNOWN
     }
     val message = currentEvent["message"] as? String ?: ""
-    val timestampSeconds = currentEvent?.get("timestampSeconds") as? Long?
+    val timestampSeconds = (currentEvent["timestampSeconds"] as? String?)?.toLong()
     return DoorData(
         state = state,
         message = message,

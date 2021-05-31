@@ -24,14 +24,13 @@ import com.chriscartland.garage.model.DoorData
 import com.chriscartland.garage.model.DoorDataAge
 import com.chriscartland.garage.model.DoorDisplayInfo
 import com.chriscartland.garage.model.DoorState
-import com.chriscartland.garage.model.Loading
 
 const val CHECK_IN_THRESHOLD_SECONDS = 60 * 15
 const val DOOR_NOT_CLOSED_THRESHOLD_SECONDS = 60 * 15
 
 @BindingAdapter("app:doorStatusTitle")
-fun doorStatusTitle(view: TextView, loadingDoor: Loading<DoorData>) {
-    val doorDisplayInfo = DoorDisplayInfo.fromLoadingDoorData(view.context, loadingDoor)
+fun doorStatusTitle(view: TextView, doorData: DoorData?) {
+    val doorDisplayInfo = DoorDisplayInfo.fromDoorState(view.context, doorData?.state)
     view.setBackgroundColor(doorDisplayInfo.color)
     view.text = doorDisplayInfo.status
 }

@@ -15,16 +15,20 @@
  *
  */
 
-package com.chriscartland.garage.model
+package com.chriscartland.garage
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 
-@Entity
-data class DoorData(
-    @PrimaryKey val uid: Int = 0,
-    val state: DoorState? = null,
-    val message: String? = null,
-    val lastCheckInTimeSeconds: Long? = null,
-    val lastChangeTimeSeconds: Long? = null
-)
+/**
+ * Global executor pools for the whole application.
+ *
+ * Grouping tasks like this avoids the effects of task starvation (e.g. disk reads don't wait behind
+ * webservice requests).
+ */
+class AppExecutors {
+    var diskIO: Executor =
+        Executors.newSingleThreadExecutor()
+    var networkIO: Executor =
+        Executors.newFixedThreadPool(3)
+}

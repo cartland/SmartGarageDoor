@@ -15,16 +15,23 @@
  *
  */
 
-package com.chriscartland.garage.model
+package com.chriscartland.garage.db
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+import androidx.lifecycle.LiveData
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import com.chriscartland.garage.model.DoorData
 
-@Entity
-data class DoorData(
-    @PrimaryKey val uid: Int = 0,
-    val state: DoorState? = null,
-    val message: String? = null,
-    val lastCheckInTimeSeconds: Long? = null,
-    val lastChangeTimeSeconds: Long? = null
-)
+@Dao
+interface DoorDataDao {
+    @Query("SELECT * FROM doordata LIMIT 1")
+    fun getDoorData(): LiveData<DoorData>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insert(doorData: DoorData)
+
+    @Query("DELETE FROM doordata")
+    fun deleteAll()
+}

@@ -17,19 +17,64 @@
 
 package com.chriscartland.garage.repository
 
+import android.util.Log
+import com.chriscartland.garage.disk.LocalDataSource
+import com.chriscartland.garage.model.DoorData
+import com.chriscartland.garage.model.LoadingState
+
 class Repository(
+    val localDataSource: LocalDataSource,
     val appVersionManager: AppVersionManager,
     val firestoreConfigManager: FirestoreConfigManager,
     val firestoreDoorManager: FirestoreDoorManager
 ) {
 
+    fun setDoorData(doorData: DoorData) {
+        localDataSource.updateDoorData(doorData)
+    }
+
     val appVersion = appVersionManager.appVersion
 
     val loadingConfig = firestoreConfigManager.loadingConfig
 
-    val loadingDoor = firestoreDoorManager.loadingDoor
+    private val loadingDoor = firestoreDoorManager.loadingDoor
+
+    val doorData = localDataSource.doorData
+
+    init {
+        loadingDoor.observeForever { loadingDoor ->
+            if (loadingDoor.loading != LoadingState.LOADED_DATA) {
+                Log.d(TAG, "Door data is not loaded: ${loadingDoor}")
+                return@observeForever
+            }
+            Log.d(TAG, "Door data is updated: ${loadingDoor}")
+            val doorData = loadingDoor.data
+            if (doorData == null) {
+                return@observeForever
+            }
+            localDataSource.updateDoorData(doorData)
+        }
+    }
 
     companion object {
         val TAG: String = Repository::class.java.simpleName
+
+        @Volatile
+        private var INSTANCE: Repository? = null
+
+        fun getInstance(
+            localDataSource: LocalDataSource,
+            appVersionManager: AppVersionManager,
+            firestoreConfigManager: FirestoreConfigManager,
+            firestoreDoorManager: FirestoreDoorManager
+        ): Repository =
+            INSTANCE ?: synchronized(this) {
+                INSTANCE ?: Repository(
+                    localDataSource,
+                    appVersionManager,
+                    firestoreConfigManager,
+                    firestoreDoorManager
+                ).also { INSTANCE = it }
+            }
     }
 }
