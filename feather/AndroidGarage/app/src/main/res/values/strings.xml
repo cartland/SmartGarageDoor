@@ -42,6 +42,7 @@
     <string name="title_door_opening">Opening...</string>
     <string name="title_door_opening_too_long">Check Door</string>
     <string name="title_door_open">Door Open</string>
+    <string name="title_door_open_misaligned">Door Open</string>
     <string name="title_door_closing">Closing...</string>
     <string name="title_door_closing_too_long">Check Door</string>
     <string name="title_door_sensor_conflict">Error</string>

@@ -61,6 +61,10 @@ data class DoorDisplayInfo(
                     status = context.getString(R.string.title_door_open),
                     color = context.getColor(R.color.color_door_open)
                 )
+                DoorState.OPEN_MISALIGNED -> DoorDisplayInfo(
+                    status = context.getString(R.string.title_door_open_misaligned),
+                    color = context.getColor(R.color.color_door_open)
+                )
                 DoorState.CLOSING -> DoorDisplayInfo(
                     status = context.getString(R.string.title_door_closing),
                     color = context.getColor(R.color.color_door_closing)
