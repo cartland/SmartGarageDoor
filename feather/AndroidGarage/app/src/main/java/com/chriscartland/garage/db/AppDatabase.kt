@@ -23,7 +23,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.chriscartland.garage.model.DoorData
 
-@Database(entities = arrayOf(DoorData::class), version = 1)
+@Database(entities = arrayOf(DoorData::class), version = 2)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun doorDataDao(): DoorDataDao
@@ -37,15 +37,19 @@ abstract class AppDatabase : RoomDatabase() {
             // If the INSTANCE is not null, then return it.
             // If it is null, then create the database, assign INSTANCE, and return it.
             return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: Room.databaseBuilder(
-                    context,
-                    AppDatabase::class.java,
-                    "database"
-                ).build().also { instance ->
+                INSTANCE ?: buildDatabase(context).also { instance ->
                     // The also {} block will return the instance for getDatabase().
                     INSTANCE = instance
                 }
             }
+        }
+
+        private fun buildDatabase(context: Context): AppDatabase {
+            return Room.databaseBuilder(
+                context,
+                AppDatabase::class.java,
+                "database"
+            ).fallbackToDestructiveMigration().build()
         }
     }
 }
