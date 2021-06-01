@@ -25,6 +25,8 @@ import com.chriscartland.garage.model.Loading
 import com.chriscartland.garage.model.LoadingState
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.perf.ktx.performance
 
 class FirestoreDoorManager {
 
@@ -35,22 +37,24 @@ class FirestoreDoorManager {
     fun refreshData() {
         Log.d(TAG, "refreshData")
         val request = doorReference?.get() ?: return
-        request
-            .addOnSuccessListener { document ->
-                Log.d(TAG, "refreshData: onSuccess")
-                if (document != null) {
-                    Log.d(TAG, "refreshData: DocumentSnapshot data: ${document.data}")
-                    loadingDoor.value = Loading(
-                        document.toDoorData(),
-                        LoadingState.LOADED_DATA
-                    )
-                } else {
-                    Log.w(TAG, "refreshData: No document.")
-                }
+        val refreshTrace = Firebase.performance.newTrace(TRACE_FIRESTORE_REFRESH_REQUEST)
+        refreshTrace.start()
+        request.addOnSuccessListener { document ->
+            Log.d(TAG, "refreshData: onSuccess")
+            refreshTrace.stop()
+            if (document != null) {
+                Log.d(TAG, "refreshData: DocumentSnapshot data: ${document.data}")
+                loadingDoor.value = Loading(
+                    document.toDoorData(),
+                    LoadingState.LOADED_DATA
+                )
+            } else {
+                Log.w(TAG, "refreshData: No document.")
             }
-            .addOnFailureListener { exception ->
-                Log.d(TAG, "refreshData: onFailure", exception)
-            }
+        }.addOnFailureListener { exception ->
+            Log.d(TAG, "refreshData: onFailure", exception)
+            refreshTrace.stop()
+        }
     }
 
     fun setDoorStatusDocumentReference(documentReference: DocumentReference?) {
@@ -67,6 +71,8 @@ class FirestoreDoorManager {
 
     companion object {
         val TAG: String = FirestoreDoorManager::class.java.simpleName
+
+        const val TRACE_FIRESTORE_REFRESH_REQUEST: String = "TRACE_FIRESTORE_REFRESH_REQUEST"
     }
 }
 

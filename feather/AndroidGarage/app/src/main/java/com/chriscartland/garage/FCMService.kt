@@ -66,7 +66,7 @@ class FCMService : FirebaseMessagingService() {
         if (doorData == null) {
             return
         }
-        Log.d(Repository.TAG, "Writing data from FCM to local database")
+        Log.d(Repository.TAG, "setDoorData: Writing data from FCM to local database")
         val app = application as App
         app.repository.setDoorData(doorData)
     }

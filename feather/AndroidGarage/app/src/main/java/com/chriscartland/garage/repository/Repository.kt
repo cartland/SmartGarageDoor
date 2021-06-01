@@ -37,6 +37,7 @@ class Repository(
     val doorData = localDataSource.doorData
 
     fun setDoorData(doorData: DoorData) {
+        Log.d(TAG, "setDoorData")
         localDataSource.updateDoorData(doorData)
     }
 
@@ -61,7 +62,7 @@ class Repository(
                 Log.d(TAG, "Door data is null")
                 return@observeForever
             }
-            Log.d(TAG, "Writing data from Firestore to local database")
+            Log.d(TAG, "setDoorData: Writing data from Firestore to local database")
             setDoorData(doorData)
         }
     }
