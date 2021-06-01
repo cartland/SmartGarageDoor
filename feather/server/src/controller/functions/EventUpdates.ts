@@ -87,14 +87,10 @@ async function updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds
     if (scheduledJob) {
       // Do nothing. Do not update database during scheduled check unless it results in a new event.
     } else {
+      // Update the old data with the current timestamp "check in" time.
+      oldEvent.checkInTimestampSeconds = timestampSeconds;
       // Saving the old data again will update FIRESTORE_databaseTimestamp and FIRESTORE_databaseTimestampSeconds.
       await SensorEventDatabase.DATABASE.set(buildTimestamp, oldData);
-      // Pull the data with the updated timestamp.
-      const newData = await SensorEventDatabase.DATABASE.get(buildTimestamp);
-      if (!(DATABASE_TIMESTAMP_SECONDS_KEY in newData)) {
-        console.error('Missing timestamp key:', DATABASE_TIMESTAMP_SECONDS_KEY, 'data:', newData);
-      }
-      oldEvent.checkInTimestampSeconds = newData[DATABASE_TIMESTAMP_SECONDS_KEY];
       // Send old event with updated check-in timestamp.
       await sendFCMForSensorEvent(buildTimestamp, oldEvent);
     }
