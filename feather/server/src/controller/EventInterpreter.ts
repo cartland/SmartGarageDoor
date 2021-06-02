@@ -295,5 +295,8 @@ export function getFCMDataFromEvent(buildTimestamp: string, currentEvent: Sensor
   const message = <TopicMessage>{};
   message.topic = buildTimestampToFcmTopic(buildTimestamp);
   message.data = SensorEventAsStringMap(currentEvent);
+  message.android = <AndroidConfig>{};
+  message.android.collapse_key = 'sensor_event_update';
+  message.android.priority = AndroidMessagePriority.HIGH;
   return message;
 }
