@@ -31,8 +31,46 @@ const SENSOR_A_PARAM_KEY = "sensorA";
 const SENSOR_B_PARAM_KEY = "sensorB";
 const TIMESTAMP_SECONDS_PARAM_KEY = "timestampSeconds";
 
+const CURRENT_EVENT_DATA_KEY = "currentEventData";
 const NEW_EVENT_KEY = "newEvent";
 const OLD_EVENT_KEY = "oldEvent";
+
+/**
+ * curl -H "Content-Type: application/json" http://localhost:5001/escape-echo/us-central1/currentEventData?session=ABC&buildTimestamp=123
+ */
+export const currentEventData = functions.https.onRequest(async (request, response) => {
+  // Echo query parameters and body.
+  const data = {
+    queryParams: request.query,
+    body: request.body
+  };
+  // The session ID allows a client to tell the server that multiple requests
+  // come from the same session.
+  if (SESSION_PARAM_KEY in request.query) {
+    // If the client sends a session ID, respond with the session ID.
+    data[SESSION_PARAM_KEY] = request.query[SESSION_PARAM_KEY];
+  } else {
+    // If the client does not send a session ID, create a session ID.
+    data[SESSION_PARAM_KEY] = uuidv4();
+  }
+
+  if (BUILD_TIMESTAMP_PARAM_KEY in request.query) {
+    data[BUILD_TIMESTAMP_PARAM_KEY] = request.query[BUILD_TIMESTAMP_PARAM_KEY];
+  } else {
+    // Skip.
+  }
+  const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
+
+  try {
+    const currentData = await SensorEventDatabase.DATABASE.get(buildTimestamp);
+    data[CURRENT_EVENT_DATA_KEY] = currentData;
+    response.status(200).send(data);
+  }
+  catch (error) {
+    console.error(error)
+    response.status(500).send(error)
+  }
+});
 
 /**
  * curl -H "Content-Type: application/json" http://localhost:5000/escape-echo/us-central1/event?session=ABC

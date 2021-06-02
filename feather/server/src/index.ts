@@ -23,7 +23,7 @@ import { echo } from './controller/functions/content'
 import { remoteButton, addRemoteButtonCommand, checkForRemoteButtonErrors } from './controller/functions/remote'
 import { serverConfig } from './controller/functions/config'
 import { dataRetentionPolicy, deleteData } from './controller/functions/datapolicy'
-import { nextEvent } from './controller/functions/events'
+import { currentEventData, nextEvent } from './controller/functions/events'
 import { updateEvent, sendFCMForOldData } from './controller/functions/EventUpdates';
 import { TimeSeriesDatabase } from './database/TimeSeriesDatabase';
 
@@ -38,6 +38,10 @@ const EVENT_DATABASE = new TimeSeriesDatabase('eventsCurrent', 'eventsAll');
 // by only exporting the function that is needed by the particular instance.
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'echo') {
   exports.echo = echo;
+}
+
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'currentEventData') {
+  exports.currentEventData = currentEventData;
 }
 
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'nextEvent') {
