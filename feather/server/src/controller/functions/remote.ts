@@ -205,7 +205,7 @@ export const addRemoteButtonCommand = functions.https.onRequest(async (request, 
 });
 
 export const checkForRemoteButtonErrors = functions.pubsub
-  .schedule('0 0 * * *').timeZone('America/Los_Angeles') // California after midnight every day.
+  .schedule('every 10 minutes').timeZone('America/Los_Angeles') // California after midnight every day.
   .onRun(async (context) => {
     // TODO: Use config.
     // const config = await Config.get();
