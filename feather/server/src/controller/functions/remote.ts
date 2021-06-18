@@ -38,6 +38,9 @@ const EMAIL_PARAM_KEY = "email";
 const REMOTE_BUTTON_MIN_PERIOD_SECONDS = 20;
 const REMOTE_BUTTON_COMMAND_TIMEOUT_SECONDS = 30;
 
+const REMOTE_BUTTON_REQUEST_ERROR_SECONDS = 60 * 10;
+const REMOTE_BUTTON_REQUEST_ERROR_DATABASE = new TimeSeriesDatabase('remoteButtonRequestErrorCurrent', 'remoteButtonRequestErrorAll');
+
 /**
  * curl -H "Content-Type: application/json" http://localhost:5000/escape-echo/us-central1/remoteButton?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
  */
@@ -200,3 +203,47 @@ export const addRemoteButtonCommand = functions.https.onRequest(async (request, 
     response.status(500).send(error)
   }
 });
+
+export const checkForRemoteButtonErrors = functions.pubsub
+  .schedule('0 0 * * *').timeZone('America/Los_Angeles') // California after midnight every day.
+  .onRun(async (context) => {
+    // TODO: Use config.
+    // const config = await Config.get();
+    // const buildTimestamp = Config.getRemoteButtonBuildTimestamp(config);
+    const buildTimestamp = 'Sat Apr 10 23:57:32 2021';
+    if (!buildTimestamp) {
+      const result = { error: 'No remote button build timestamp in config: ' + buildTimestamp };
+      console.error(result.error);
+      await REMOTE_BUTTON_REQUEST_ERROR_DATABASE.save(buildTimestamp, result);
+      return null;
+    }
+    const remoteButtonRequest = await REMOTE_BUTTON_REQUEST_DATABASE.getCurrent(buildTimestamp);
+    if (!remoteButtonRequest) {
+      const result = { error: 'No remote button requests found for build timestamp: ' + buildTimestamp };
+      console.error(result.error);
+      await REMOTE_BUTTON_REQUEST_ERROR_DATABASE.save(buildTimestamp, result);
+      return null;
+    }
+    const secondsSinceDatabaseUpdate =
+      firebase.firestore.Timestamp.now().seconds - remoteButtonRequest[DATABASE_TIMESTAMP_SECONDS_KEY];
+    if (isNaN(secondsSinceDatabaseUpdate)) {
+      const result = {
+        error: 'Could not compute seconds since last database update'
+      };
+      console.error(result.error);
+      await REMOTE_BUTTON_REQUEST_ERROR_DATABASE.save(buildTimestamp, result);
+      return null;
+    }
+    if (secondsSinceDatabaseUpdate > REMOTE_BUTTON_REQUEST_ERROR_SECONDS) {
+      const result = {
+        error: 'Seconds since remote button status was checked is greater than expected: ' +
+          secondsSinceDatabaseUpdate + ' > ' + REMOTE_BUTTON_REQUEST_ERROR_SECONDS
+      };
+      console.error(result.error);
+      Object.assign(result, remoteButtonRequest);
+      await REMOTE_BUTTON_REQUEST_ERROR_DATABASE.save(buildTimestamp, result);
+      return null;
+    }
+    console.log('checkForRemoteButtonErrors did not find any errors');
+    return null;
+  });

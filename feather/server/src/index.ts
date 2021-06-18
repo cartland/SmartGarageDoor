@@ -20,7 +20,7 @@ import * as functions from 'firebase-functions';
 firebase.initializeApp();
 
 import { echo } from './controller/functions/content'
-import { remoteButton, addRemoteButtonCommand } from './controller/functions/remote'
+import { remoteButton, addRemoteButtonCommand, checkForRemoteButtonErrors } from './controller/functions/remote'
 import { serverConfig } from './controller/functions/config'
 import { dataRetentionPolicy, deleteData } from './controller/functions/datapolicy'
 import { nextEvent } from './controller/functions/events'
@@ -90,6 +90,8 @@ exports.checkForOpenDoors = functions.https.onRequest(async (request, response) 
   const result = await sendFCMForOldData(buildTimestamp, eventData);
   response.status(200).send(result);
 });
+
+exports.checkForRemoteButtonErrors = checkForRemoteButtonErrors;
 
 exports.dataRetentionPolicy = dataRetentionPolicy;
 

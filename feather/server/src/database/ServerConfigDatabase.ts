@@ -49,6 +49,13 @@ class ServerConfig {
     return false;
   }
 
+  getRemoteButtonBuildTimestamp(config): string {
+    if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('remoteButtonBuildTimestamp')) {
+      return config.body.remoteButtonBuildTimestamp;
+    }
+    return null;
+  }
+
   isDeleteOldDataEnabled(config): boolean {
     if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('deleteOldDataEnabled')) {
       return config.body.deleteOldDataEnabled;
