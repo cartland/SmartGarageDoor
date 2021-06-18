@@ -37,8 +37,6 @@ import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.DocumentReference
-import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import java.util.Date
 
@@ -75,6 +73,13 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
     var oneTapSignInClient: SignInClient? = null
     var oneTapSignInRequest: BeginSignInRequest? = null
 
+    var buildTimestamp: String? = null
+        set(value) {
+            field = value
+            Log.d(TAG, "Setting buildTimestamp $value")
+            refreshData()
+        }
+
     fun shouldShowRemoteButton(): Boolean {
         val config = loadingConfig.value?.data
         val user = firebaseUser.value
@@ -84,15 +89,14 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
                 && config.remoteButtonAuthorizedEmails?.contains(user.email) == true
     }
 
-    fun setDoorStatusDocumentReference(documentReference: DocumentReference?) {
-        Log.d(TAG, "setDoorStatusDocumentReference")
-        app.repository.setDoorStatusDocumentReference(documentReference)
-        refreshData()
-    }
-
     fun refreshData() {
         Log.d(TAG, "refreshData")
-        app.repository.refreshData()
+        val bt = buildTimestamp
+        if (bt == null) {
+            Log.w(TAG, "Will not refresh data when buildTimestamp is null")
+            return
+        }
+        app.repository.refreshData(app, bt)
     }
 
     fun enableRemoteButton() {
@@ -171,7 +175,7 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
                 else -> {
                     Log.d(
                         TAG, "Couldn't get credential from result." +
-                            " (${e.localizedMessage})")
+                                " (${e.localizedMessage})")
                 }
             }
         }
@@ -203,15 +207,14 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun onServerConfigChanged(config: ServerConfig?) {
         Log.d(TAG, "handleConfigData: ${config?.toString()}")
-        val buildTimestamp = config?.buildTimestamp
-        if (buildTimestamp.isNullOrEmpty()) {
+        val bt = config?.buildTimestamp
+        if (bt.isNullOrEmpty()) {
             Log.d(TAG, "Not a valid config. buildTimestamp is null or empty.")
-            setDoorStatusDocumentReference(null)
+            buildTimestamp = null
             return
         }
-        setDoorStatusDocumentReference(
-            Firebase.firestore.collection("eventsCurrent").document(buildTimestamp)
-        )
+        Log.d(TAG, "onServerConfigChanged: Setting buildTimestamp: $bt")
+        buildTimestamp = bt
     }
 
     init {

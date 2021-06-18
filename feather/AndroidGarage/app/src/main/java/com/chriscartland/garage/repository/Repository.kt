@@ -17,17 +17,17 @@
 
 package com.chriscartland.garage.repository
 
+import android.content.Context
 import android.util.Log
 import com.chriscartland.garage.disk.LocalDataSource
+import com.chriscartland.garage.internet.RemoteDataSource
 import com.chriscartland.garage.model.DoorData
-import com.chriscartland.garage.model.LoadingState
-import com.google.firebase.firestore.DocumentReference
 
 class Repository(
     val localDataSource: LocalDataSource,
     val appVersionManager: AppVersionManager,
     val firestoreConfigManager: FirestoreConfigManager,
-    val firestoreDoorManager: FirestoreDoorManager
+    val remoteDataSource: RemoteDataSource
 ) {
 
     val appVersion = appVersionManager.appVersion
@@ -41,28 +41,13 @@ class Repository(
         localDataSource.updateDoorData(doorData)
     }
 
-    fun setDoorStatusDocumentReference(documentReference: DocumentReference?) {
-        firestoreDoorManager.setDoorStatusDocumentReference(documentReference)
-    }
-
-    fun refreshData() {
+    fun refreshData(context: Context, buildTimestamp: String) {
         Log.d(TAG, "refreshData")
-        firestoreDoorManager.refreshData()
+        remoteDataSource.refreshDoorData(context, buildTimestamp)
     }
 
     init {
-        firestoreDoorManager.loadingDoor.observeForever { loadingDoor ->
-            if (loadingDoor.loading != LoadingState.LOADED_DATA) {
-                Log.d(TAG, "Door data is not loaded: ${loadingDoor}")
-                return@observeForever
-            }
-            Log.d(TAG, "Door data is loaded: ${loadingDoor}")
-            val doorData = loadingDoor.data
-            if (doorData == null) {
-                Log.d(TAG, "Door data is null")
-                return@observeForever
-            }
-            Log.d(TAG, "setDoorData: Writing data from Firestore to local database")
+        remoteDataSource.doorData.observeForever { doorData ->
             setDoorData(doorData)
         }
     }
@@ -77,14 +62,14 @@ class Repository(
             localDataSource: LocalDataSource,
             appVersionManager: AppVersionManager,
             firestoreConfigManager: FirestoreConfigManager,
-            firestoreDoorManager: FirestoreDoorManager
+            remoteDataSource: RemoteDataSource
         ): Repository =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Repository(
                     localDataSource,
                     appVersionManager,
                     firestoreConfigManager,
-                    firestoreDoorManager
+                    remoteDataSource
                 ).also { INSTANCE = it }
             }
     }

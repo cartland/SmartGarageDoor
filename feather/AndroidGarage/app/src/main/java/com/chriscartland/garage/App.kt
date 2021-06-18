@@ -20,9 +20,9 @@ package com.chriscartland.garage
 import android.app.Application
 import com.chriscartland.garage.db.AppDatabase
 import com.chriscartland.garage.disk.LocalDataSource
+import com.chriscartland.garage.internet.RemoteDataSource
 import com.chriscartland.garage.repository.AppVersionManager
 import com.chriscartland.garage.repository.FirestoreConfigManager
-import com.chriscartland.garage.repository.FirestoreDoorManager
 import com.chriscartland.garage.repository.Repository
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -40,6 +40,9 @@ class App : Application() {
     private val appVersionManager: AppVersionManager
         get() = AppVersionManager(packageManager, packageName)
 
+    private val remoteDataSource: RemoteDataSource
+        get() = RemoteDataSource.getInstance(executors)
+
     private val firestoreConfigManager: FirestoreConfigManager
         get() = FirestoreConfigManager(
             Firebase.firestore.collection("configCurrent").document("current")
@@ -53,7 +56,7 @@ class App : Application() {
             localDataSource = localDataSource,
             appVersionManager = appVersionManager,
             firestoreConfigManager = firestoreConfigManager,
-            firestoreDoorManager = FirestoreDoorManager()
+            remoteDataSource = remoteDataSource
         )
     }
 }
