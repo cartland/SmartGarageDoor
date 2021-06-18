@@ -36,6 +36,7 @@ const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
 const EMAIL_PARAM_KEY = "email";
 
 const REMOTE_BUTTON_MIN_PERIOD_SECONDS = 20;
+const REMOTE_BUTTON_COMMAND_TIMEOUT_SECONDS = 30;
 
 /**
  * curl -H "Content-Type: application/json" http://localhost:5000/escape-echo/us-central1/remoteButton?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
@@ -75,9 +76,21 @@ export const remoteButton = functions.https.onRequest(async (request, response) 
   }
   const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
   try {
+    // Save the request. This is mostly for logging purposes.
     await REMOTE_BUTTON_REQUEST_DATABASE.save(buildTimestamp, data);
+    // Get the remote button command from the database. We need to return this value.
     const oldCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
-    if (!(BUTTON_ACK_TOKEN_PARAM_KEY in oldCommand) || buttonAckToken === oldCommand[BUTTON_ACK_TOKEN_PARAM_KEY]) {
+    const timeSinceLastRemoteButtonCommandSeconds =
+      firebase.firestore.Timestamp.now().seconds - oldCommand[DATABASE_TIMESTAMP_SECONDS_KEY];
+    // We must stop returning the button command if any of the following are true:
+    // Condition 1) The command does not contain an ACK token, OR
+    // Condition 2) The client sends a request with the ACK token, OR
+    // Condition 3) The command is too old.
+    const shouldStopSendingRemoteButtonCommand =
+      !(BUTTON_ACK_TOKEN_PARAM_KEY in oldCommand) // Condition 1.
+      || buttonAckToken === oldCommand[BUTTON_ACK_TOKEN_PARAM_KEY] // Condition 2.
+      || timeSinceLastRemoteButtonCommandSeconds > REMOTE_BUTTON_COMMAND_TIMEOUT_SECONDS; // Condition 3.
+    if (shouldStopSendingRemoteButtonCommand) {
       const noopCommand = <RemoteButtonCommand>{
         session: session,
         buildTimestamp: buildTimestamp,
@@ -167,10 +180,8 @@ export const addRemoteButtonCommand = functions.https.onRequest(async (request, 
   const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
   try {
     const oldCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
-    const oldTimestampSeconds = oldCommand[DATABASE_TIMESTAMP_SECONDS_KEY];
-    const now = firebase.firestore.Timestamp.now();
-    const nowSeconds = now.seconds;
-    const timeSinceLastRemoteButtonCommandSeconds = nowSeconds - oldTimestampSeconds;
+    const timeSinceLastRemoteButtonCommandSeconds =
+      firebase.firestore.Timestamp.now().seconds - oldCommand[DATABASE_TIMESTAMP_SECONDS_KEY];
     if (timeSinceLastRemoteButtonCommandSeconds < REMOTE_BUTTON_MIN_PERIOD_SECONDS) {
       console.log('Time since remote button press is less than minimum',
         timeSinceLastRemoteButtonCommandSeconds, '<', REMOTE_BUTTON_MIN_PERIOD_SECONDS);
