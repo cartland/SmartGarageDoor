@@ -36,7 +36,7 @@ const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
 const EMAIL_PARAM_KEY = "email";
 
 const REMOTE_BUTTON_MIN_PERIOD_SECONDS = 20;
-const REMOTE_BUTTON_COMMAND_TIMEOUT_SECONDS = 30;
+const REMOTE_BUTTON_COMMAND_TIMEOUT_SECONDS = 60;
 
 const REMOTE_BUTTON_REQUEST_ERROR_SECONDS = 60 * 10;
 const REMOTE_BUTTON_REQUEST_ERROR_DATABASE = new TimeSeriesDatabase('remoteButtonRequestErrorCurrent', 'remoteButtonRequestErrorAll');
@@ -83,18 +83,19 @@ export const remoteButton = functions.https.onRequest(async (request, response) 
     await REMOTE_BUTTON_REQUEST_DATABASE.save(buildTimestamp, data);
     // Get the remote button command from the database. We need to return this value.
     const oldCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
+    const oldAckToken = oldCommand[BUTTON_ACK_TOKEN_PARAM_KEY];
     const timeSinceLastRemoteButtonCommandSeconds =
       firebase.firestore.Timestamp.now().seconds - oldCommand[DATABASE_TIMESTAMP_SECONDS_KEY];
-    // We must stop returning the button command if any of the following are true:
-    // Condition 1) The command does not contain an ACK token, OR
+    // We reset the button command if any of the following are true:
+    // Condition 1) The command does not contain an ACK token (invaild state).
     const commandDoesNotContainAckToken = !(BUTTON_ACK_TOKEN_PARAM_KEY in oldCommand);
-    // Condition 2) The client sends a request with the ACK token, OR
-    const buttonAlreadyAcknowledged = buttonAckToken === oldCommand[BUTTON_ACK_TOKEN_PARAM_KEY];
+    // Condition 2) The client sends a request with the ACK token (successfully acknowledge).
+    const buttonAcknowledged = buttonAckToken === oldAckToken;
     // Condition 3) The command is too old.
     const commandIsTooOld = timeSinceLastRemoteButtonCommandSeconds > REMOTE_BUTTON_COMMAND_TIMEOUT_SECONDS;
     const shouldStopSendingRemoteButtonCommand =
       commandDoesNotContainAckToken // Condition 1.
-      || buttonAlreadyAcknowledged // Condition 2.
+      || buttonAcknowledged // Condition 2.
       || commandIsTooOld; // Condition 3.
     if (shouldStopSendingRemoteButtonCommand) {
       const noopCommand = <RemoteButtonCommand>{
@@ -102,7 +103,7 @@ export const remoteButton = functions.https.onRequest(async (request, response) 
         buildTimestamp: buildTimestamp,
         buttonAckToken: '',
         commandDoesNotContainAckToken: commandDoesNotContainAckToken,
-        buttonAlreadyAcknowledged: buttonAlreadyAcknowledged,
+        buttonAcknowledged: buttonAcknowledged,
         commandIsTooOld: commandIsTooOld,
       };
       await REMOTE_BUTTON_COMMAND_DATABASE.save(buildTimestamp, noopCommand);
