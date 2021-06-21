@@ -103,9 +103,9 @@ export const remoteButton = functions.https.onRequest(async (request, response) 
         session: session,
         buildTimestamp: buildTimestamp,
         buttonAckToken: '',
-        commandDoesNotContainAckToken: commandDoesNotContainAckToken,
-        buttonAcknowledged: buttonAcknowledged,
-        replaceOldCommand: replaceOldCommand,
+        commandDidNotContainAckToken: commandDoesNotContainAckToken,
+        commandAcknowledged: buttonAcknowledged,
+        commandTimeout: replaceOldCommand,
         oldAckToken: oldAckToken,
       };
       await REMOTE_BUTTON_COMMAND_DATABASE.save(buildTimestamp, noopCommand);
