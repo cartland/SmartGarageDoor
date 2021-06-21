@@ -87,18 +87,24 @@ export const remoteButton = functions.https.onRequest(async (request, response) 
       firebase.firestore.Timestamp.now().seconds - oldCommand[DATABASE_TIMESTAMP_SECONDS_KEY];
     // We must stop returning the button command if any of the following are true:
     // Condition 1) The command does not contain an ACK token, OR
+    const commandDoesNotContainAckToken = !(BUTTON_ACK_TOKEN_PARAM_KEY in oldCommand);
     // Condition 2) The client sends a request with the ACK token, OR
+    const buttonAlreadyAcknowledged = buttonAckToken === oldCommand[BUTTON_ACK_TOKEN_PARAM_KEY];
     // Condition 3) The command is too old.
+    const commandIsTooOld = timeSinceLastRemoteButtonCommandSeconds > REMOTE_BUTTON_COMMAND_TIMEOUT_SECONDS;
     const shouldStopSendingRemoteButtonCommand =
-      !(BUTTON_ACK_TOKEN_PARAM_KEY in oldCommand) // Condition 1.
-      || buttonAckToken === oldCommand[BUTTON_ACK_TOKEN_PARAM_KEY] // Condition 2.
-      || timeSinceLastRemoteButtonCommandSeconds > REMOTE_BUTTON_COMMAND_TIMEOUT_SECONDS; // Condition 3.
+      commandDoesNotContainAckToken // Condition 1.
+      || buttonAlreadyAcknowledged // Condition 2.
+      || commandIsTooOld; // Condition 3.
     if (shouldStopSendingRemoteButtonCommand) {
       const noopCommand = <RemoteButtonCommand>{
         session: session,
         buildTimestamp: buildTimestamp,
         buttonAckToken: '',
-      }
+        commandDoesNotContainAckToken: commandDoesNotContainAckToken,
+        buttonAlreadyAcknowledged: buttonAlreadyAcknowledged,
+        commandIsTooOld: commandIsTooOld,
+      };
       await REMOTE_BUTTON_COMMAND_DATABASE.save(buildTimestamp, noopCommand);
       const updatedCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
       response.status(200).send(updatedCommand);
