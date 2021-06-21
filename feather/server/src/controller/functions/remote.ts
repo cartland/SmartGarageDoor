@@ -92,11 +92,12 @@ export const remoteButton = functions.https.onRequest(async (request, response) 
     // Condition 2) The client sends a request with the ACK token (successfully acknowledge).
     const buttonAcknowledged = buttonAckToken === oldAckToken;
     // Condition 3) The command is too old.
-    const commandIsTooOld = timeSinceLastRemoteButtonCommandSeconds > REMOTE_BUTTON_COMMAND_TIMEOUT_SECONDS;
+    const replaceOldCommand = (timeSinceLastRemoteButtonCommandSeconds > REMOTE_BUTTON_COMMAND_TIMEOUT_SECONDS)
+      && (oldAckToken !== '');
     const shouldStopSendingRemoteButtonCommand =
       commandDoesNotContainAckToken // Condition 1.
       || buttonAcknowledged // Condition 2.
-      || commandIsTooOld; // Condition 3.
+      || replaceOldCommand; // Condition 3.
     if (shouldStopSendingRemoteButtonCommand) {
       const noopCommand = <RemoteButtonCommand>{
         session: session,
@@ -104,7 +105,8 @@ export const remoteButton = functions.https.onRequest(async (request, response) 
         buttonAckToken: '',
         commandDoesNotContainAckToken: commandDoesNotContainAckToken,
         buttonAcknowledged: buttonAcknowledged,
-        commandIsTooOld: commandIsTooOld,
+        replaceOldCommand: replaceOldCommand,
+        oldAckToken: oldAckToken,
       };
       await REMOTE_BUTTON_COMMAND_DATABASE.save(buildTimestamp, noopCommand);
       const updatedCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
