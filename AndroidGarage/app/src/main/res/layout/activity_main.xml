@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright 2021 Chris Cartland. All rights reserved.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  ~
+  -->
+
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <data>
+        <import type="android.view.View"/>
+        <variable
+            name="doorViewModel"
+            type="com.chriscartland.garage.viewmodel.DoorViewModel" />
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:keepScreenOn="true"
+        tools:context=".MainActivity">
+
+        <TextView
+            app:doorStatusTitle="@{doorViewModel.doorData}"
+            android:id="@+id/status_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/title_text_padding"
+            android:textAlignment="center"
+            android:textSize="@dimen/title_text_size"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Unknown Status" />
+
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            android:visibility="@{doorViewModel.progressBarVisible ? View.VISIBLE : View.GONE}"
+            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/status_title"
+            android:indeterminate="true"/>
+
+        <Button
+            android:id="@+id/sign_in_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/button_margin"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/status_title"
+            android:onClick="onSignInClicked"
+            android:visibility="@{doorViewModel.firebaseUser == null ? View.VISIBLE : View.GONE}"
+            android:text="@string/sign_in" />
+
+        <Button
+            android:id="@+id/button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/button_margin"
+            android:onClick="onPushButton"
+            android:text="@string/push_button"
+            android:backgroundTint="@{doorViewModel.remoteButtonEnabled ? @color/red : @color/almost_black_blue}"
+            android:visibility="@{doorViewModel.showRemoteButton ? View.VISIBLE : View.GONE}"
+            android:enabled="@{doorViewModel.remoteButtonEnabled}"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/sign_in_button" />
+
+        <TextView
+            android:id="@+id/status_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="@dimen/section_padding"
+            android:text="@{doorViewModel.message}"
+            android:textAlignment="center"
+            android:textStyle="italic"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/button"
+            tools:text="The door is open." />
+
+        <TextView
+            android:id="@+id/last_check_in_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAlignment="center"
+            android:paddingTop="@dimen/section_padding"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/status_message"
+            android:text="@{@string/last_check_in_time(doorViewModel.lastCheckInTimeString)}"
+            tools:text="Last check-in: 2021-03-27 22:25:44" />
+
+        <TextView
+            app:checkInAge="@{doorViewModel.checkInAge}"
+            android:id="@+id/time_since_last_check_in"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAlignment="center"
+            android:textStyle="italic"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/last_check_in_time"
+            tools:text="Time since last check-in: 00:06:11" />
+
+        <TextView
+            android:id="@+id/last_change_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAlignment="center"
+            android:paddingTop="@dimen/section_padding"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/time_since_last_check_in"
+            android:text="@{@string/last_change_time(doorViewModel.lastChangeTimeString)}"
+            tools:text="Last change: 2021-03-27 20:45:43" />
+
+        <TextView
+            app:changeAge="@{doorViewModel.changeAge}"
+            android:id="@+id/time_since_last_change"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAlignment="center"
+            android:textStyle="italic"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/last_change_time"
+            tools:text="Time since last change: 01:46:12" />
+
+        <TextView
+            android:id="@+id/user_email"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/version_text_padding"
+            android:textAlignment="center"
+            app:layout_constraintBottom_toTopOf="@+id/sign_out_button"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            android:visibility="@{doorViewModel.firebaseUser == null ? View.GONE : View.VISIBLE}"
+            android:text="@{doorViewModel.firebaseUser.email}"
+            tools:text="@string/fake_email" />
+
+        <Button
+            android:id="@+id/sign_out_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/button_margin"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/disclaimer"
+            android:onClick="onSignOutClicked"
+            android:visibility="@{doorViewModel.firebaseUser == null ? View.GONE : View.VISIBLE}"
+            android:text="@string/sign_out" />
+
+        <TextView
+            android:id="@+id/disclaimer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/version_text_padding"
+            android:textAlignment="center"
+            android:textStyle="italic"
+            app:layout_constraintBottom_toTopOf="@+id/version_code_text_view"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            android:text="@string/disclaimer" />
+
+        <TextView
+            android:id="@+id/version_code_text_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAlignment="center"
+            android:textStyle="italic"
+            android:padding="@dimen/version_text_padding"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:text='@{doorViewModel.appVersion != null ? @string/version_code_string(doorViewModel.appVersion.versionName, doorViewModel.appVersion.versionCode) : ""}'
+            tools:text="Version code: 1.0.0" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</layout>

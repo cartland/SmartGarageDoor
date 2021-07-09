@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright 2021 Chris Cartland. All rights reserved.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  ~
+  -->
+
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="purple_primary">#FF4a148c</color>
+    <color name="purple_light">#FF7c43bd</color>
+    <color name="purple_dark">#FF12005e</color>
+    <color name="pink_primary">#FFd81b60</color>
+    <color name="pink_light">#FFff5c8d</color>
+    <color name="pink_dark">#FFa00037</color>
+
+    <color name="dark_grey">#FF333333</color>
+    <color name="almost_black">#FF111111</color>
+    <color name="dark_grey_blue">#192365</color>
+    <color name="almost_black_blue">#0C1132</color>
+    <color name="almost_white">#FFDDDDDD</color>
+    <color name="color_door_closed">#2E7D32</color>
+    <color name="color_door_opening">#0277BD</color>
+    <color name="color_door_open">#B71C1C</color>
+    <color name="color_door_error">#F57F17</color>
+    <color name="color_background">#757575</color>
+    <color name="red">#F44336</color>
+    <color name="color_door_closing">#0277BD</color>
+</resources>
