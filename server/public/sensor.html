@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sensor</title>
+
+  <!-- update the version number as needed -->
+  <script defer src="/__/firebase/8.2.9/firebase-app.js"></script>
+  <!-- include only the Firebase features as you need -->
+  <script defer src="/__/firebase/8.2.9/firebase-firestore.js"></script>
+  <!--
+      initialize the SDK after all desired features are loaded, set useEmulator to false
+      to avoid connecting the SDK to running emulators.
+    -->
+  <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+
+  <script src="util.js"></script>
+  <script src="observations.js"></script>
+  <script src="sensor.js"></script>
+
+  <style>
+    .chart-container {
+      padding-left: 0;
+      padding-right: 0;
+      margin-left: auto;
+      margin-right: auto;
+      margin-bottom: 40vh;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="sensorChartContainerB" class="chart-container" style="position: relative; height:40vh; width:80vw">
+    <canvas id="sensorChart"></canvas>
+  </div>
+
+  <script>
+
+    // Top level variable for debugging.
+    var sensorChart;
+
+    document.addEventListener('DOMContentLoaded', function () {
+      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+      // // The Firebase SDK is initialized and available here!
+      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+      const sensorChartContext = document.getElementById('sensorChart').getContext('2d');
+      sensorChart = createSensorChart(sensorChartContext, 'Sensor Data by Session');
+
+      const nowMillis = getCurrentUtcTimeMillis();
+
+      const sensorBeginDate = new Date(0);
+
+      const queryString = window.location.search;
+      const urlParams = new URLSearchParams(queryString);
+      const buildTimestampString = urlParams.get('build');
+      const rangeMinutesString = urlParams.get('range');
+      const sensorString = urlParams.get('sensor');
+      let query = firebase.firestore().collection("updateAll");
+      if (buildTimestampString) {
+        query = query.where('queryParams.buildTimestamp', '==', buildTimestampString);
+      }
+      if (rangeMinutesString) {
+        const rangeMinutes = parseInt(rangeMinutesString);
+        const rangeMillis = 1000 * 60 * rangeMinutes;
+        sensorBeginDate.setUTCMilliseconds(nowMillis - rangeMillis);
+        query = query.where('FIRESTORE_databaseTimestamp', '>', sensorBeginDate)
+      } else {
+        const SENSOR_MAX_WINDOW_RANGE_MILLIS = 1000 * 60 * 60; // 1 hour.
+        sensorBeginDate.setUTCMilliseconds(nowMillis - SENSOR_MAX_WINDOW_RANGE_MILLIS);
+        query = query.where('FIRESTORE_databaseTimestamp', '>', sensorBeginDate)
+      }
+      query = query.orderBy('FIRESTORE_databaseTimestamp', 'asc');
+      query.onSnapshot((doc) => {
+        const observations = parseObservations(doc);
+        const sensorObservations = filterSensorObservations(observations, sensorString);
+        if (sensorString) {
+          displaySensorObservations(sensorChart, sensorObservations, [sensorString]);
+        } else {
+          displaySensorObservations(sensorChart, sensorObservations, ['sensorA', 'sensorB']);
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>
