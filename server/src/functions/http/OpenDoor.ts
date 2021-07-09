@@ -14,21 +14,16 @@
  * limitations under the License.
  */
 
-const COLLECTION_CURRENT = 'eventsCurrent';
-const COLLECTION_ALL = 'eventsAll';
+import * as functions from 'firebase-functions';
 
-import { TimeSeriesDatabase } from './TimeSeriesDatabase';
+import { sendFCMForOldData } from '../../controller/fcm/OldDataFCM';
+import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
 
-class SensorEventDatabase {
-  DB = new TimeSeriesDatabase(COLLECTION_CURRENT, COLLECTION_ALL);
+const EVENT_DATABASE = new TimeSeriesDatabase('eventsCurrent', 'eventsAll');
 
-  async set(buildTimestamp: string, data: any) {
-    await this.DB.save(buildTimestamp, data);
-  }
-
-  async get(buildTimestamp: string): Promise<any> {
-    return this.DB.getCurrent(buildTimestamp);
-  }
-};
-
-export const DATABASE = new SensorEventDatabase();
+export const httpCheckForOpenDoors = functions.https.onRequest(async (request, response) => {
+  const buildTimestamp = 'Sat Mar 13 14:45:00 2021';  // TODO: Use config.
+  const eventData = await EVENT_DATABASE.getCurrent(buildTimestamp);
+  const result = await sendFCMForOldData(buildTimestamp, eventData);
+  response.status(200).send(result);
+});

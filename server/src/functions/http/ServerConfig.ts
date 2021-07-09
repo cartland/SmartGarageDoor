@@ -18,23 +18,11 @@ import * as functions from 'firebase-functions';
 
 import { Config } from '../../database/ServerConfigDatabase';
 
-/**
- * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/remoteButton?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
- */
-export const serverConfig = functions.https.onRequest(async (request, response) => {
+export const httpServerConfig = functions.https.onRequest(async (request, response) => {
   const data = {
     queryParams: request.query,
     body: request.body
   };
-  if (request.method === 'GET') {
-    const config = await Config.get();
-    response.status(200).send(config);
-    return;
-  }
-  if (request.method !== 'POST') {
-    response.status(400).send({ error: 'Invalid request.' });
-    return;
-  }
   const functionConfig = functions.config();
   if (!functionConfig
     || !('serverconfig' in functionConfig)
@@ -44,6 +32,11 @@ export const serverConfig = functions.https.onRequest(async (request, response) 
     response.status(500).send({ error: error });
     return;
   }
+  // Set the config key when you deploy the Firebase project.
+  // $ export SERVER_CONFIG_KEY="YourKeyHere"
+  // $ firebase functions:config:set serverconfig.key="$SERVER_CONFIG_KEY"
+  // $ firebase functions:config:get
+  // $ firebase deploy
   const configSecretKey = functionConfig['serverconfig']['key'];
   const requestConfigKey = request.get('X-ServerConfigKey');
   if (!requestConfigKey || requestConfigKey.length <= 0) {
@@ -52,6 +45,16 @@ export const serverConfig = functions.https.onRequest(async (request, response) 
   }
   if (configSecretKey !== requestConfigKey) {
     response.status(403).send({ error: 'Forbidden.' });
+    return;
+  }
+  // Fully authorized.
+  if (request.method === 'GET') {
+    const config = await Config.get();
+    response.status(200).send(config);
+    return;
+  }
+  if (request.method !== 'POST') {
+    response.status(400).send({ error: 'Invalid request.' });
     return;
   }
   try {

@@ -15,17 +15,14 @@
  */
 
 import {
-  SensorEvent, SensorEventType, SensorEventAsStringMap,
+  SensorEvent, SensorEventType,
   Unknown, ErrorSensorConflict, Closed, Closing, ClosingTooLong, Open, OpenMisaligned, Opening, OpeningTooLong
 } from '../model/SensorEvent';
 
 import { SensorSnapshot } from '../model/SensorSnapshot';
-import { AndroidMessagePriority, TopicMessage, Notification, NotificationPriority, AndroidConfig, AndroidNotification } from '../model/FCM';
-import { buildTimestampToFcmTopic } from '../model/FcmTopic';
 
 const TOO_LONG_DURATION_SECONDS = 60;
 const TOO_SHORT_DURATION_SECONDS = 3;
-const TOO_LONG_OPEN_SECONDS = 15 * 60;
 
 export function getNewEventOrNull(oldEvent: SensorEvent, sensorSnapshot: SensorSnapshot, timestampSeconds: number): SensorEvent {
   const NOT_SET = 'NOT_SET';
@@ -227,76 +224,4 @@ export function getNewEventOrNull(oldEvent: SensorEvent, sensorSnapshot: SensorS
       return Unknown(timestampSeconds);
   }
   // Unreachable code. Switch statement must return a value.
-}
-
-export function isEventOld(currentEvent: SensorEvent, now: number): boolean {
-  const eventDurationSeconds = now - currentEvent.timestampSeconds;
-  return eventDurationSeconds > TOO_LONG_OPEN_SECONDS;
-}
-
-export function getMessageFromEvent(buildTimestamp: string, currentEvent: SensorEvent, now: number): TopicMessage {
-  const eventDurationSeconds = now - currentEvent.timestampSeconds;
-  const durationMinutes = Math.floor(eventDurationSeconds / 60);
-  const durationHours = Math.floor(durationMinutes / 60);
-  let durationString = '';
-  if (durationMinutes < 60) {
-    durationString = durationMinutes.toString() + ' minutes';
-  } else {
-    durationString = durationHours.toString() + ' hours';
-  }
-  const message = <TopicMessage>{};
-  message.notification = <Notification>{};
-  message.android = <AndroidConfig>{};
-  message.android.notification = <AndroidNotification>{};
-  message.topic = buildTimestampToFcmTopic(buildTimestamp);
-  message.android.collapse_key = 'door_not_closed';
-  message.android.priority = AndroidMessagePriority.HIGH;
-  message.android.notification.notification_priority = NotificationPriority.PRIORITY_MAX;
-  const type = currentEvent.type;
-  switch (type) {
-    case SensorEventType.Unknown:
-      message.notification.title = 'Unknown door status';
-      message.notification.body = 'Error not resolved for longer than ' + durationString;
-      return message;
-    case SensorEventType.ErrorSensorConflict:
-      message.notification.title = 'Door error';
-      message.notification.body = 'Door error for longer than ' + durationString;
-      return message;
-    case SensorEventType.Closed:
-      return null;
-    case SensorEventType.Closing:
-      message.notification.title = 'Door not closed';
-      message.notification.body = 'Door did not close for more than ' + durationString;
-      return message;
-    case SensorEventType.ClosingTooLong:
-      message.notification.title = 'Door not closed';
-      message.notification.body = 'Door did not close for more than ' + durationString;
-      return message;
-    case SensorEventType.Open:
-      message.notification.title = 'Garage door open';
-      message.notification.body = 'Open for more than ' + durationString;
-      return message;
-    case SensorEventType.Opening:
-      message.notification.title = 'Door not closed';
-      message.notification.body = 'Door not closed for more than ' + durationString;
-      return message;
-    case SensorEventType.OpeningTooLong:
-      message.notification.title = 'Door not closed';
-      message.notification.body = 'Door not closed for more than ' + durationString;
-      return message;
-    default:
-      message.notification.title = 'Unknown door status';
-      message.notification.body = 'Door error for longer than ' + durationString;
-      return message;
-  }
-}
-
-export function getFCMDataFromEvent(buildTimestamp: string, currentEvent: SensorEvent): TopicMessage {
-  const message = <TopicMessage>{};
-  message.topic = buildTimestampToFcmTopic(buildTimestamp);
-  message.data = SensorEventAsStringMap(currentEvent);
-  message.android = <AndroidConfig>{};
-  message.android.collapse_key = 'sensor_event_update';
-  message.android.priority = AndroidMessagePriority.HIGH;
-  return message;
 }

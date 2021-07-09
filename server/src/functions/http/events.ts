@@ -18,7 +18,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import * as functions from 'firebase-functions';
 
-import * as SensorEventDatabase from '../../database/SensorEventDatabase';
+import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
 
 import { SensorSnapshot } from '../../model/SensorSnapshot';
 
@@ -35,10 +35,12 @@ const CURRENT_EVENT_DATA_KEY = "currentEventData";
 const NEW_EVENT_KEY = "newEvent";
 const OLD_EVENT_KEY = "oldEvent";
 
+const EVENT_DATABASE = new TimeSeriesDatabase('eventsCurrent', 'eventsAll');
+
 /**
  * curl -H "Content-Type: application/json" http://localhost:5001/PROJECT-ID/us-central1/currentEventData?session=ABC&buildTimestamp=123
  */
-export const currentEventData = functions.https.onRequest(async (request, response) => {
+export const httpCurrentEventData = functions.https.onRequest(async (request, response) => {
   // Echo query parameters and body.
   const data = {
     queryParams: request.query,
@@ -62,7 +64,7 @@ export const currentEventData = functions.https.onRequest(async (request, respon
   const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
 
   try {
-    const currentData = await SensorEventDatabase.DATABASE.get(buildTimestamp);
+    const currentData = await EVENT_DATABASE.getCurrent(buildTimestamp);
     data[CURRENT_EVENT_DATA_KEY] = currentData;
     response.status(200).send(data);
   }
@@ -75,7 +77,7 @@ export const currentEventData = functions.https.onRequest(async (request, respon
 /**
  * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/event?session=ABC
  */
-export const nextEvent = functions.https.onRequest(async (request, response) => {
+export const httpNextEvent = functions.https.onRequest(async (request, response) => {
   // Echo query parameters and body.
   const data = {
     queryParams: request.query,
@@ -114,10 +116,10 @@ export const nextEvent = functions.https.onRequest(async (request, response) => 
     timestampSeconds = parseInt(String(request.query[TIMESTAMP_SECONDS_PARAM_KEY]));
   }
   try {
-    const oldEvent = await SensorEventDatabase.DATABASE.get(buildTimestamp);
+    const oldEvent = await EVENT_DATABASE.getCurrent(buildTimestamp);
     const newEvent = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     if (newEvent !== null) {
-      await SensorEventDatabase.DATABASE.set(buildTimestamp, newEvent);
+      await EVENT_DATABASE.save(buildTimestamp, newEvent);
     }
     data[OLD_EVENT_KEY] = oldEvent;
     data[NEW_EVENT_KEY] = newEvent;

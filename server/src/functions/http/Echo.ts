@@ -26,11 +26,9 @@ const SESSION_PARAM_KEY = "session";
 const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
 
 /**
- * Get the current air quality observations.
- *
- * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/echo?key1=value1&key2=value2 --data '{"key3":"value3","key4":"value4"}'
+ * HTTP endpoint captures request parameters, stores them in the database, and returns the data.
  */
-export const echo = functions.https.onRequest(async (request, response) => {
+export const httpEcho = functions.https.onRequest(async (request, response) => {
   // Echo query parameters and body.
   const data = {
     queryParams: request.query,
