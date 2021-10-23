@@ -74,7 +74,7 @@ data class DoorDisplayInfo(
                 DoorState.OPEN_MISALIGNED -> DoorDisplayInfo(
                     status = context.getString(R.string.title_door_open_misaligned),
                     color = context.getColor(R.color.color_door_open),
-                    icon = AppCompatResources.getDrawable(context, R.drawable.ic_garage_simple_unknown)
+                    icon = AppCompatResources.getDrawable(context, R.drawable.ic_garage_simple_open)
                 )
                 DoorState.CLOSING -> DoorDisplayInfo(
                     status = context.getString(R.string.title_door_closing),
