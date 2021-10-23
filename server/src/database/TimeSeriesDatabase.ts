@@ -61,6 +61,12 @@ export class TimeSeriesDatabase {
     return TimeSeriesDatabase.convertFromFirestore(currentRef.data());
   }
 
+  async getAll(session: string): Promise<any> {
+    const allRef = await firebase.app().firestore().collection(this.collectionAll)
+      .doc(session).get();
+    return TimeSeriesDatabase.convertFromFirestore(allRef.data());
+  }
+
   async deleteAllBefore(cutoffTimestampSeconds: number, dryRun: boolean): Promise<number> {
     const query = firebase.app().firestore().collection(this.collectionAll)
       .where(TimeSeriesDatabase.DATABASE_TIMESTAMP_SECONDS_KEY, '<', cutoffTimestampSeconds);

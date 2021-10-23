@@ -20,7 +20,7 @@ firebase.initializeApp();
 
 // HTTP Functions.
 import { httpEcho } from './functions/http/Echo'
-import { httpCurrentEventData, httpNextEvent } from './functions/http/Events'
+import { httpCurrentEventData, httpEventHistory, httpNextEvent } from './functions/http/Events'
 import { httpRemoteButton, httpAddRemoteButtonCommand } from './functions/http/RemoteButton'
 import { httpCheckForOpenDoors } from './functions/http/OpenDoor'
 import { httpDeleteOldData } from './functions/http/DeleteData'
@@ -53,7 +53,7 @@ import { firestoreUpdateEvents } from './functions/firestore/Events'
 
 
 /**
- * 1. Devices send raw sensor data to the "echo" endpoint.
+ * Devices send raw sensor data to the "echo" endpoint.
  *
  * Trigger Type: HTTP
  *
@@ -65,7 +65,7 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'echo') {
 }
 
 /**
- * 2. Raw data is converted to an event.
+ * Raw data is converted to an event.
  *
  * Trigger Type: Firestore
  *
@@ -88,7 +88,7 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'nextEvent') {
 }
 
 /**
- * 3. Clients can fetch the latest event.
+ * Clients can fetch the latest event.
  *
  * Trigger Type: HTTP
  */
@@ -97,7 +97,16 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'currentEventDat
 }
 
 /**
- * 4. Check for door errors.
+ * Clients can fetch the event history.
+ *
+ * Trigger Type: HTTP
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'eventHistory') {
+  exports.eventHistory = httpEventHistory;
+}
+
+/**
+ * Check for door errors.
  *
  * Trigger Type: PubSub Job
  *
@@ -108,7 +117,7 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'pubsubCheckForD
 }
 
 /**
- * 5. Check for open doors.
+ * Check for open doors.
  *
  * Trigger Type: PubSub Job
  *
@@ -128,7 +137,7 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'checkForOpenDoo
 }
 
 /**
- * 6. Remote button checks for button commands.
+ * Remote button checks for button commands.
  *
  * Trigger Type: HTTP
  *
@@ -140,7 +149,7 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'remoteButton') 
 }
 
 /**
- * 7. The Android client can request to push the garage remote button.
+ * The Android client can request to push the garage remote button.
  *
  * Trigger Type: HTTP
  *
@@ -151,7 +160,7 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'addRemoteButton
 }
 
 /**
- * 8. Check for remote button errors.
+ * Check for remote button errors.
  *
  * Trigger Type: PubSub Job
  *
@@ -162,7 +171,7 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'pubsubCheckForR
 }
 
 /**
- * 9. Data retention policy deletes old data.
+ * Data retention policy deletes old data.
  *
  * Trigger Type: PubSub Job
  *

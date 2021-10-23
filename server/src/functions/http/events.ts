@@ -32,6 +32,7 @@ const SENSOR_B_PARAM_KEY = "sensorB";
 const TIMESTAMP_SECONDS_PARAM_KEY = "timestampSeconds";
 
 const CURRENT_EVENT_DATA_KEY = "currentEventData";
+const EVENT_HISTORY_KEY = "eventHistory";
 const NEW_EVENT_KEY = "newEvent";
 const OLD_EVENT_KEY = "oldEvent";
 
@@ -73,6 +74,44 @@ export const httpCurrentEventData = functions.https.onRequest(async (request, re
     response.status(500).send(error)
   }
 });
+
+/**
+ * curl -H "Content-Type: application/json" http://localhost:5001/PROJECT-ID/us-central1/eventHistory?session=ABC&buildTimestamp=123
+ */
+export const httpEventHistory = functions.https.onRequest(async (request, response) => {
+  // Echo query parameters and body.
+  const data = {
+    queryParams: request.query,
+    body: request.body
+  };
+  // The session ID allows a client to tell the server that multiple requests
+  // come from the same session.
+  if (SESSION_PARAM_KEY in request.query) {
+    // If the client sends a session ID, respond with the session ID.
+    data[SESSION_PARAM_KEY] = request.query[SESSION_PARAM_KEY];
+  } else {
+    // If the client does not send a session ID, create a session ID.
+    data[SESSION_PARAM_KEY] = uuidv4();
+  }
+
+  if (BUILD_TIMESTAMP_PARAM_KEY in request.query) {
+    data[BUILD_TIMESTAMP_PARAM_KEY] = request.query[BUILD_TIMESTAMP_PARAM_KEY];
+  } else {
+    // Skip.
+  }
+  const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
+
+  try {
+    const allData = await EVENT_DATABASE.getAll(buildTimestamp);
+    data[EVENT_HISTORY_KEY] = allData;
+    response.status(200).send(data);
+  }
+  catch (error) {
+    console.error(error)
+    response.status(500).send(error)
+  }
+});
+
 
 /**
  * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/event?session=ABC
