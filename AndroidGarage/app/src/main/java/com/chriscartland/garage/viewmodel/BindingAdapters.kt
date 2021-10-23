@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.viewmodel
 
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.databinding.BindingAdapter
 import com.chriscartland.garage.R
@@ -33,6 +34,13 @@ fun doorStatusTitle(view: TextView, doorData: DoorData?) {
     val doorDisplayInfo = DoorDisplayInfo.fromDoorState(view.context, doorData?.state)
     view.setBackgroundColor(doorDisplayInfo.color)
     view.text = doorDisplayInfo.status
+}
+
+@BindingAdapter("app:doorStatusIcon")
+fun doorStatusIcon(view: ImageView, doorData: DoorData?) {
+    val doorDisplayInfo = DoorDisplayInfo.fromDoorState(view.context, doorData?.state)
+    view.setBackgroundColor(doorDisplayInfo.color)
+    view.setImageDrawable(doorDisplayInfo.icon)
 }
 
 @BindingAdapter("app:checkInAge")

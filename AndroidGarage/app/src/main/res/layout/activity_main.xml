@@ -46,13 +46,26 @@
             app:layout_constraintTop_toTopOf="parent"
             tools:text="Unknown Status" />
 
+        <ImageView
+            app:doorStatusIcon="@{doorViewModel.doorData}"
+            android:id="@+id/status_icon"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/status_icon_height"
+            android:padding="@dimen/title_text_padding"
+            android:textAlignment="center"
+            android:textSize="@dimen/title_text_size"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/status_title"
+            tools:text="Unknown Status" />
+
         <ProgressBar
             android:id="@+id/progress_bar"
             android:visibility="@{doorViewModel.progressBarVisible ? View.VISIBLE : View.GONE}"
             style="@style/Widget.AppCompat.ProgressBar.Horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:layout_constraintTop_toBottomOf="@id/status_title"
+            app:layout_constraintTop_toBottomOf="@id/status_icon"
             android:indeterminate="true"/>
 
         <Button
@@ -62,7 +75,7 @@
             android:layout_marginTop="@dimen/button_margin"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/status_title"
+            app:layout_constraintTop_toBottomOf="@+id/status_icon"
             android:onClick="onSignInClicked"
             android:visibility="@{doorViewModel.firebaseUser == null ? View.VISIBLE : View.GONE}"
             android:text="@string/sign_in" />
