@@ -86,7 +86,7 @@ async function updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds
       // Update the old data with the current timestamp "check in" time.
       oldEvent.checkInTimestampSeconds = timestampSeconds;
       // Saving the old data again will update FIRESTORE_databaseTimestamp and FIRESTORE_databaseTimestampSeconds.
-      await EVENT_DATABASE.save(buildTimestamp, oldData);
+      await EVENT_DATABASE.updateCurrentWithMatchingCurrentEventTimestamp(buildTimestamp, oldData);
       // Send old event with updated check-in timestamp.
       await sendFCMForSensorEvent(buildTimestamp, oldEvent);
     }

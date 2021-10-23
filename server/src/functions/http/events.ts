@@ -33,6 +33,7 @@ const TIMESTAMP_SECONDS_PARAM_KEY = "timestampSeconds";
 
 const CURRENT_EVENT_DATA_KEY = "currentEventData";
 const EVENT_HISTORY_KEY = "eventHistory";
+const EVENT_HISTORY_COUNT_KEY = "eventHistoryCount";
 const NEW_EVENT_KEY = "newEvent";
 const OLD_EVENT_KEY = "oldEvent";
 
@@ -63,6 +64,12 @@ export const httpCurrentEventData = functions.https.onRequest(async (request, re
     // Skip.
   }
   const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
+  if (!buildTimestamp) {
+    response.status(400).send({
+      'error': 'Invalid buildTimestamp'
+    });
+    return;
+  }
 
   try {
     const currentData = await EVENT_DATABASE.getCurrent(buildTimestamp);
@@ -100,10 +107,17 @@ export const httpEventHistory = functions.https.onRequest(async (request, respon
     // Skip.
   }
   const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
+  if (!buildTimestamp) {
+    response.status(400).send({
+      'error': 'Invalid buildTimestamp'
+    });
+    return;
+  }
 
   try {
-    const allData = await EVENT_DATABASE.getAll(buildTimestamp);
+    const allData = await EVENT_DATABASE.getAllForBuildTimestamp(buildTimestamp);
     data[EVENT_HISTORY_KEY] = allData;
+    data[EVENT_HISTORY_COUNT_KEY] = allData.length;
     response.status(200).send(data);
   }
   catch (error) {
@@ -111,7 +125,6 @@ export const httpEventHistory = functions.https.onRequest(async (request, respon
     response.status(500).send(error)
   }
 });
-
 
 /**
  * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/event?session=ABC
