@@ -94,7 +94,8 @@ export class TimeSeriesDatabase {
 
   async getAllForBuildTimestamp(buildTimestamp: string): Promise<any> {
     const allRef = firebase.app().firestore().collection(this.collectionAll);
-    return allRef.where('buildTimestamp', '==', buildTimestamp).get()
+    return allRef.where('buildTimestamp', '==', buildTimestamp)
+      .orderBy('FIRESTORE_databaseTimestamp', 'desc').limit(10).get()
       .then((snapshot) => {
         const results = [];
         snapshot.forEach(doc => {
