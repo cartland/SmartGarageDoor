@@ -45,25 +45,25 @@ class RemoteDataSource private constructor(
 
     fun refreshDoorData(context: Context, buildTimestamp: String) {
         Log.d(TAG, "refreshDoorData")
-        executor.execute {
-            val url = buildUri(buildTimestamp, Constants.CURRENT_EVENT_DATA_PATH).toString()
-            fetchJSONFromURL(context, url) { jsonString ->
-                Log.d(TAG, "Network request success")
-                val map = jsonString.toMap()
-                if (map == null) {
-                    Log.e(TAG, "refreshDoorData: Could not parse JSON from network")
-                    return@fetchJSONFromURL
-                }
-                Log.d(TAG, "refreshDoorData: JSON map from network $map")
-                val data = map?.currentEventDataToDoorData()
-                if (data == null) {
-                    Log.e(TAG, "refreshDoorData: Data is not valid")
-                    return@fetchJSONFromURL
-                }
-                Log.d(TAG, "refreshDoorData: Posting doorData: $data")
-                doorData.postValue(data)
-            }
-        }
+//        executor.execute {
+//            val url = buildUri(buildTimestamp, Constants.CURRENT_EVENT_DATA_PATH).toString()
+//            fetchJSONFromURL(context, url) { jsonString ->
+//                Log.d(TAG, "Network request success")
+//                val map = jsonString.toMap()
+//                if (map == null) {
+//                    Log.e(TAG, "refreshDoorData: Could not parse JSON from network")
+//                    return@fetchJSONFromURL
+//                }
+//                Log.d(TAG, "refreshDoorData: JSON map from network $map")
+//                val data = map?.currentEventDataToDoorData()
+//                if (data == null) {
+//                    Log.e(TAG, "refreshDoorData: Data is not valid")
+//                    return@fetchJSONFromURL
+//                }
+//                Log.d(TAG, "refreshDoorData: Posting doorData: $data")
+//                doorData.postValue(data)
+//            }
+//        }
     }
 
     fun refreshDoorHistory(context: Context, buildTimestamp: String) {
@@ -78,13 +78,16 @@ class RemoteDataSource private constructor(
                     return@fetchJSONFromURL
                 }
                 Log.d(TAG, "refreshDoorHistory: JSON map from network $map")
-                val data = map?.eventHistoryToDoorData()
+                val data = map.eventHistoryToDoorData()
                 if (data == null) {
                     Log.e(TAG, "refreshDoorHistory: Data is not valid")
                     return@fetchJSONFromURL
+                } else {
+                    Log.d(TAG, "refreshDoorHistory: Posting doorData: $data")
+                    doorHistory.postValue(data)
+                    doorData.postValue(data[0])
+                    return@fetchJSONFromURL
                 }
-                Log.d(TAG, "refreshDoorHistory: Posting doorData: $data")
-                doorHistory.postValue(data)
             }
         }
     }
@@ -179,21 +182,27 @@ fun Map<*, *>.currentEventDataToDoorData(): DoorData? {
 }
 
 fun Map<*, *>.eventHistoryToDoorData(): List<DoorData>? {
-    val data = this["currentEventData"] as? Map<*, *> ?: return null
-    val currentEvent = data["currentEvent"] as? Map<*, *>
-    val type = currentEvent?.get("type") as? String ?: ""
-    val state = try {
-        DoorState.valueOf(type)
-    } catch (e: IllegalArgumentException) {
-        DoorState.UNKNOWN
+    val eventHistory = this["eventHistory"] as? List<Map<*, *>> ?: return null
+    val result = mutableListOf<DoorData>()
+    for (event in eventHistory) {
+        val currentEvent = event["currentEvent"] as? Map<*, *>
+        val type = currentEvent?.get("type") as? String ?: ""
+        val state = try {
+            DoorState.valueOf(type)
+        } catch (e: IllegalArgumentException) {
+            DoorState.UNKNOWN
+        }
+        val message = currentEvent?.get("message") as? String ?: ""
+        val timestampSeconds = (currentEvent?.get("timestampSeconds") as Int?)?.toLong()
+        val lastCheckInTime = (currentEvent?.get("checkInTimestampSeconds") as Int?)?.toLong()
+
+        val doorData = DoorData(
+            state = state,
+            message = message,
+            lastChangeTimeSeconds = timestampSeconds,
+            lastCheckInTimeSeconds = lastCheckInTime
+        )
+        result.add(doorData)
     }
-    val message = currentEvent?.get("message") as? String ?: ""
-    val timestampSeconds = (currentEvent?.get("timestampSeconds") as Int?)?.toLong()
-    val lastCheckInTime = (currentEvent?.get("checkInTimestampSeconds") as Int?)?.toLong()
-    return listOf(DoorData(
-        state = state,
-        message = message,
-        lastChangeTimeSeconds = timestampSeconds,
-        lastCheckInTimeSeconds = lastCheckInTime
-    ))
+    return result
 }

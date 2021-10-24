@@ -44,11 +44,15 @@ class Repository(
     fun refreshData(context: Context, buildTimestamp: String) {
         Log.d(TAG, "refreshData")
         remoteDataSource.refreshDoorData(context, buildTimestamp)
+        remoteDataSource.refreshDoorHistory(context, buildTimestamp)
     }
 
     init {
         remoteDataSource.doorData.observeForever { doorData ->
             setDoorData(doorData)
+        }
+        remoteDataSource.doorHistory.observeForever { doorHistory ->
+//            setDoorData(doorData)
         }
     }
 
