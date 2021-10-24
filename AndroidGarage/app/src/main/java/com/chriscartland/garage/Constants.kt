@@ -23,6 +23,7 @@ class Constants {
         const val SCHEME = "https"
         const val AUTHORITY = "us-central1-PROJECT-ID.cloudfunctions.net"
         const val CURRENT_EVENT_DATA_PATH = "currentEventData"
+        const val EVENT_HISTORY_PATH = "eventHistory"
 
         const val SESSION_PARAM_KEY = "session"
         const val BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp"
