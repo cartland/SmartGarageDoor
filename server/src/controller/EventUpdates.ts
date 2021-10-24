@@ -49,7 +49,9 @@ export async function updateEvent(data, scheduledJob: boolean) {
   if (DATABASE_TIMESTAMP_SECONDS_KEY in data) {
     sensorSnapshot.timestampSeconds = data[DATABASE_TIMESTAMP_SECONDS_KEY];
   } else {
-    console.error('Missing timestamp key:', DATABASE_TIMESTAMP_SECONDS_KEY, 'data:', data);
+    if (!scheduledJob) {
+      console.warn('Missing timestamp key:', DATABASE_TIMESTAMP_SECONDS_KEY, 'data:', data);
+    }
   }
   if (QUERY_PARAMS_KEY in data) {
     const queryParams = data[QUERY_PARAMS_KEY];

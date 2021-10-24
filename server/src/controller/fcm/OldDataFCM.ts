@@ -62,14 +62,14 @@ export async function sendFCMForOldData(buildTimestamp: string, eventData): Prom
   data[NOTIFICATION_CURRENT_EVENT_KEY] = currentEvent;
   data[NOTIFICATION_MESSAGE_KEY] = message;
   await NOTIFICATIONS_DATABASE.save(buildTimestamp, data);
-  console.log('Sending notification', message);
+  console.log('Sending notification', JSON.stringify(message));
   await firebase.messaging().send(message)
     .then((response) => {
       // Response is a message ID string.
-      console.log('Successfully sent message:', response);
+      console.log('Successfully sent message:', JSON.stringify(response));
     })
     .catch((error) => {
-      console.log('Error sending message:', error);
+      console.log('Error sending message:', JSON.stringify(error));
     });
   return message;
 }

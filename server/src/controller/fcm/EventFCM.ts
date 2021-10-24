@@ -25,14 +25,14 @@ export async function sendFCMForSensorEvent(buildTimestamp: string, sensorEvent:
   if (!message) {
     return null;
   }
-  console.log('Sending notification', message);
+  console.log('Sending notification', JSON.stringify(message));
   await firebase.messaging().send(message)
     .then((response) => {
       // Response is a message ID string.
-      console.log('Successfully sent message:', response);
+      console.log('Successfully sent message:', JSON.stringify(response));
     })
     .catch((error) => {
-      console.log('Error sending message:', error);
+      console.log('Error sending message:', JSON.stringify(error));
     });
   return message;
 }
