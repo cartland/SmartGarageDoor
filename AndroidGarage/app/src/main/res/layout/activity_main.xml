@@ -61,7 +61,7 @@
             android:layout_marginTop="@dimen/button_margin"
             android:onClick="onPushButton"
             android:text="@string/push_button"
-            android:backgroundTint="@{doorViewModel.remoteButtonEnabled ? @color/red : @color/almost_black_blue}"
+            android:backgroundTint="@{doorViewModel.remoteButtonEnabled ? @color/red : @color/button_disabled_background_tint}"
             android:visibility="@{doorViewModel.showRemoteButton ? View.VISIBLE : View.GONE}"
             android:enabled="@{doorViewModel.remoteButtonEnabled}"
             app:layout_constraintEnd_toEndOf="parent"
@@ -69,34 +69,24 @@
             app:layout_constraintTop_toBottomOf="@+id/sign_in_button" />
 
         <TextView
-            android:id="@+id/time_since_last_check_in"
-            app:checkInAge="@{doorViewModel.checkInAge}"
+            android:id="@+id/time_since_last_change"
+            app:changeAge="@{doorViewModel.changeAge}"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/list_margin"
             android:textAlignment="center"
             android:textStyle="italic"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/button"
-            tools:text="Time since last check-in: 00:06:11" />
-
-        <TextView
-            android:id="@+id/time_since_last_change"
-            app:changeAge="@{doorViewModel.changeAge}"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textAlignment="center"
-            android:textStyle="italic"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/time_since_last_check_in"
             tools:text="Time since last change: 01:46:12" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/event_history_list"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_margin="@dimen/list_margin"
+            android:layout_marginTop="@dimen/list_margin"
+            android:layout_marginBottom="@dimen/list_margin"
             app:layoutManager="LinearLayoutManager"
             android:scrollbars="vertical"
             android:foreground="@drawable/top_bottom_lines"
@@ -126,10 +116,23 @@
             android:layout_marginBottom="@dimen/button_margin"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintBottom_toTopOf="@+id/disclaimer"
+            app:layout_constraintBottom_toTopOf="@+id/time_since_last_check_in"
             android:onClick="onSignOutClicked"
             android:visibility="@{doorViewModel.firebaseUser == null ? View.GONE : View.VISIBLE}"
             android:text="@string/sign_out" />
+
+        <TextView
+            android:id="@+id/time_since_last_check_in"
+            app:checkInAge="@{doorViewModel.checkInAge}"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/version_text_padding"
+            android:textAlignment="center"
+            android:textStyle="italic"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/disclaimer"
+            tools:text="Time since last check-in: 00:06:11" />
 
         <TextView
             android:id="@+id/disclaimer"

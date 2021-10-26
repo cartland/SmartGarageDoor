@@ -17,6 +17,7 @@
   -->
 
 <resources>
+    <color name="transparent">#00000000</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="primary">#128C3E</color>
@@ -28,12 +29,11 @@
 
     <color name="dark_grey">#FF333333</color>
     <color name="almost_black">#FF111111</color>
-    <color name="dark_grey_blue">#192365</color>
-    <color name="almost_black_blue">#0C1132</color>
+    <color name="button_disabled_background_tint">#192365</color>
     <color name="almost_white">#FFDDDDDD</color>
     <color name="color_door_closing">#92C8E8</color>
     <color name="color_door_opening">#92C8E8</color>
-    <color name="color_door_closed">#4FDA56</color>
+    <color name="color_door_closed">#50ED58</color>
     <color name="color_door_open">#E87070</color>
     <color name="color_door_error">#EFA461</color>
     <color name="color_background">#757575</color>

@@ -59,7 +59,7 @@ class EventAdapter(
         val color = if (position == 0) {
             display.color
         } else {
-            context.getColor(R.color.white)
+            context.getColor(R.color.color_background)
         }
         val card = holder.view as? MaterialCardView
         if (card == null) {

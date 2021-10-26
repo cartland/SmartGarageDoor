@@ -29,30 +29,48 @@ const val DOOR_NOT_CLOSED_THRESHOLD_SECONDS = 60 * 15
 @BindingAdapter("app:checkInAge")
 fun checkInAge(view: TextView, age: DoorDataAge?) {
     val ageSeconds = age?.ageSeconds ?: 0
-    val durationString = String.format("%d:%02d:%02d", ageSeconds / 3600, (ageSeconds % 3600) / 60, (ageSeconds % 60));
+    val durationString = String.format("%02d:%02d", (ageSeconds % 3600) / 60, (ageSeconds % 60));
     view.text = view.context.getString(R.string.time_since_last_check_in, durationString)
 
     val warning = ageSeconds > CHECK_IN_THRESHOLD_SECONDS
     if (warning) {
         view.setBackgroundColor(view.context.getColor(R.color.color_door_error))
     } else {
-        view.setBackgroundColor(view.context.getColor(R.color.design_default_color_background))
+        view.setBackgroundColor(view.context.getColor(R.color.transparent))
     }
 }
 
 @BindingAdapter("app:changeAge")
 fun changeAge(view: TextView, age: DoorDataAge?) {
     val ageSeconds = age?.ageSeconds ?: 0
-    val durationString = String.format("%d:%02d:%02d", ageSeconds / 3600, (ageSeconds % 3600) / 60, (ageSeconds % 60));
-    view.text = view.context.getString(R.string.time_since_last_change, durationString)
-
-    val doorData = age?.doorData
-    val notClosed = doorData?.state != DoorState.CLOSED
-    val oldData = ageSeconds > DOOR_NOT_CLOSED_THRESHOLD_SECONDS
-    val warning = notClosed && oldData
-    if (warning) {
-        view.setBackgroundColor(view.context.getColor(R.color.color_door_error))
-    } else {
-        view.setBackgroundColor(view.context.getColor(R.color.design_default_color_background))
+    val d = (ageSeconds) / 86400
+    val h = (ageSeconds % 86400) / 3600
+    val m = (ageSeconds % 3600) / 60
+    val s = (ageSeconds % 60)
+    view.text = when {
+        ageSeconds < 2 -> {
+            view.context.getString(R.string.time_since_last_change_1_second)
+        }
+        ageSeconds < 60 -> {
+            view.context.getString(R.string.time_since_last_change_seconds, s)
+        }
+        ageSeconds < 60 * 2 -> {
+            view.context.getString(R.string.time_since_last_change_1_minute)
+        }
+        ageSeconds < 60 * 60 -> {
+            view.context.getString(R.string.time_since_last_change_minutes, m)
+        }
+        ageSeconds < 60 * 60 * 2 -> {
+            view.context.getString(R.string.time_since_last_change_1_hour)
+        }
+        ageSeconds < 60 * 60 * 24 -> {
+            view.context.getString(R.string.time_since_last_change_hours, h)
+        }
+        ageSeconds < 60 * 60 * 24 * 2 -> {
+            view.context.getString(R.string.time_since_last_change_1_day)
+        }
+        else -> {
+            view.context.getString(R.string.time_since_last_change_days, d)
+        }
     }
 }

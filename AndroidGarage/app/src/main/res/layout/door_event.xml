@@ -13,67 +13,81 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<com.google.android.material.card.MaterialCardView
+
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/constraint_layout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="@dimen/card_margin"
-    android:focusable="true"
-    app:strokeWidth="@dimen/card_border_stroke"
-    app:strokeColor="@color/almost_white"
-    app:cardElevation="@dimen/card_elevation">
+    android:padding="@dimen/card_padding">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="@dimen/card_padding">
+        android:layout_margin="@dimen/card_margin"
+        android:focusable="true"
+        app:cardElevation="@dimen/card_elevation"
+        app:layout_constraintBottom_toBottomOf="@id/constraint_layout"
+        app:layout_constraintEnd_toEndOf="@id/constraint_layout"
+        app:layout_constraintStart_toStartOf="@id/constraint_layout"
+        app:layout_constraintTop_toTopOf="@id/constraint_layout"
+        app:strokeColor="@color/almost_white"
+        app:strokeWidth="@dimen/card_border_stroke">
 
-        <ImageView
-            android:id="@+id/event_icon"
-            android:layout_width="@dimen/status_icon_height"
-            android:layout_height="@dimen/status_icon_height"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@drawable/ic_garage_simple_unknown" />
-
-        <TextView
-            android:id="@+id/event_title_text"
-            android:layout_width="wrap_content"
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Closed"
-            app:layout_constraintEnd_toEndOf="@+id/event_icon"
-            app:layout_constraintStart_toStartOf="@+id/event_icon"
-            app:layout_constraintTop_toBottomOf="@+id/event_icon" />
+            android:padding="@dimen/card_padding">
 
-        <TextView
-            android:id="@+id/event_date_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="October 24"
-            app:layout_constraintBottom_toTopOf="@+id/event_time_text"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/event_icon" />
+            <ImageView
+                android:id="@+id/event_icon"
+                android:layout_width="@dimen/status_icon_height"
+                android:layout_height="@dimen/status_icon_height"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:srcCompat="@drawable/ic_garage_simple_unknown" />
 
-        <TextView
-            android:id="@+id/event_time_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="3:55 PM"
-            android:textSize="@dimen/time_text_size"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/event_icon"
-            app:layout_constraintTop_toTopOf="parent" />
+            <TextView
+                android:id="@+id/event_title_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Closed"
+                app:layout_constraintEnd_toEndOf="@+id/event_icon"
+                app:layout_constraintStart_toStartOf="@+id/event_icon"
+                app:layout_constraintTop_toBottomOf="@+id/event_icon" />
 
-        <TextView
-            android:id="@+id/event_message_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="The door is open."
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/event_icon"
-            app:layout_constraintTop_toBottomOf="@+id/event_time_text" />
+            <TextView
+                android:id="@+id/event_date_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="October 24"
+                app:layout_constraintBottom_toTopOf="@+id/event_time_text"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/event_icon" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-</com.google.android.material.card.MaterialCardView>
+            <TextView
+                android:id="@+id/event_time_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="3:55 PM"
+                android:textSize="@dimen/time_text_size"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/event_icon"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/event_message_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="The door is open."
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/event_icon"
+                app:layout_constraintTop_toBottomOf="@+id/event_time_text" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </com.google.android.material.card.MaterialCardView>
+</androidx.constraintlayout.widget.ConstraintLayout>
