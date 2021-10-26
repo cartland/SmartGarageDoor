@@ -33,39 +33,13 @@
         android:keepScreenOn="true"
         tools:context=".MainActivity">
 
-        <TextView
-            app:doorStatusTitle="@{doorViewModel.doorData}"
-            android:id="@+id/status_title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="@dimen/title_text_padding"
-            android:textAlignment="center"
-            android:textSize="@dimen/title_text_size"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:text="Unknown Status" />
-
-        <ImageView
-            app:doorStatusIcon="@{doorViewModel.doorData}"
-            android:id="@+id/status_icon"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/status_icon_height"
-            android:padding="@dimen/title_text_padding"
-            android:textAlignment="center"
-            android:textSize="@dimen/title_text_size"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/status_title"
-            tools:text="Unknown Status" />
-
         <ProgressBar
             android:id="@+id/progress_bar"
             android:visibility="@{doorViewModel.progressBarVisible ? View.VISIBLE : View.GONE}"
             style="@style/Widget.AppCompat.ProgressBar.Horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:layout_constraintTop_toBottomOf="@id/status_icon"
+            app:layout_constraintTop_toTopOf="parent"
             android:indeterminate="true"/>
 
         <Button
@@ -75,7 +49,7 @@
             android:layout_marginTop="@dimen/button_margin"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/status_icon"
+            app:layout_constraintTop_toTopOf="parent"
             android:onClick="onSignInClicked"
             android:visibility="@{doorViewModel.firebaseUser == null ? View.VISIBLE : View.GONE}"
             android:text="@string/sign_in" />
@@ -95,64 +69,27 @@
             app:layout_constraintTop_toBottomOf="@+id/sign_in_button" />
 
         <TextView
-            android:id="@+id/status_message"
+            android:id="@+id/time_since_last_check_in"
+            app:checkInAge="@{doorViewModel.checkInAge}"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingTop="@dimen/section_padding"
-            android:text="@{doorViewModel.message}"
             android:textAlignment="center"
             android:textStyle="italic"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/button"
-            tools:text="The door is open." />
-
-        <TextView
-            android:id="@+id/last_check_in_time"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textAlignment="center"
-            android:paddingTop="@dimen/section_padding"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/status_message"
-            android:text="@{@string/last_check_in_time(doorViewModel.lastCheckInTimeString)}"
-            tools:text="Last check-in: 2021-03-27 22:25:44" />
-
-        <TextView
-            app:checkInAge="@{doorViewModel.checkInAge}"
-            android:id="@+id/time_since_last_check_in"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textAlignment="center"
-            android:textStyle="italic"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/last_check_in_time"
             tools:text="Time since last check-in: 00:06:11" />
 
         <TextView
-            android:id="@+id/last_change_time"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textAlignment="center"
-            android:paddingTop="@dimen/section_padding"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/time_since_last_check_in"
-            android:text="@{@string/last_change_time(doorViewModel.lastChangeTimeString)}"
-            tools:text="Last change: 2021-03-27 20:45:43" />
-
-        <TextView
-            app:changeAge="@{doorViewModel.changeAge}"
             android:id="@+id/time_since_last_change"
+            app:changeAge="@{doorViewModel.changeAge}"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textAlignment="center"
             android:textStyle="italic"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/last_change_time"
+            app:layout_constraintTop_toBottomOf="@+id/time_since_last_check_in"
             tools:text="Time since last change: 01:46:12" />
 
         <androidx.recyclerview.widget.RecyclerView

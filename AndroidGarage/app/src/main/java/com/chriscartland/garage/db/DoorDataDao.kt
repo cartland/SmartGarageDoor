@@ -30,8 +30,8 @@ interface DoorDataDao {
     fun getDoorData(): LiveData<DoorData>
 
     @Query("SELECT * FROM doordata ORDER BY lastChangeTimeSeconds DESC")
-    fun getEventHistory(): LiveData<List<DoorData>>
-    
+    fun getDoorHistory(): LiveData<List<DoorData>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(doorData: DoorData)
 

@@ -17,31 +17,14 @@
 
 package com.chriscartland.garage.viewmodel
 
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.databinding.BindingAdapter
 import com.chriscartland.garage.R
-import com.chriscartland.garage.model.DoorData
 import com.chriscartland.garage.model.DoorDataAge
-import com.chriscartland.garage.model.DoorDisplayInfo
 import com.chriscartland.garage.model.DoorState
 
 const val CHECK_IN_THRESHOLD_SECONDS = 60 * 15
 const val DOOR_NOT_CLOSED_THRESHOLD_SECONDS = 60 * 15
-
-@BindingAdapter("app:doorStatusTitle")
-fun doorStatusTitle(view: TextView, doorData: DoorData?) {
-    val doorDisplayInfo = DoorDisplayInfo.fromDoorState(view.context, doorData?.state)
-    view.setBackgroundColor(doorDisplayInfo.color)
-    view.text = doorDisplayInfo.status
-}
-
-@BindingAdapter("app:doorStatusIcon")
-fun doorStatusIcon(view: ImageView, doorData: DoorData?) {
-    val doorDisplayInfo = DoorDisplayInfo.fromDoorState(view.context, doorData?.state)
-    view.setBackgroundColor(doorDisplayInfo.color)
-    view.setImageDrawable(doorDisplayInfo.icon)
-}
 
 @BindingAdapter("app:checkInAge")
 fun checkInAge(view: TextView, age: DoorDataAge?) {

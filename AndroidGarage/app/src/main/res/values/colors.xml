@@ -19,7 +19,7 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="purple_primary">#FF4a148c</color>
+    <color name="purple_primary">#7F1FF5</color>
     <color name="purple_light">#FF7c43bd</color>
     <color name="purple_dark">#FF12005e</color>
     <color name="pink_primary">#FFd81b60</color>
@@ -31,10 +31,10 @@
     <color name="dark_grey_blue">#192365</color>
     <color name="almost_black_blue">#0C1132</color>
     <color name="almost_white">#FFDDDDDD</color>
-    <color name="color_door_closed">#2E7D32</color>
-    <color name="color_door_opening">#0277BD</color>
-    <color name="color_door_open">#B71C1C</color>
-    <color name="color_door_error">#F57F17</color>
+    <color name="color_door_closed">#4FDA56</color>
+    <color name="color_door_opening">#92C8E8</color>
+    <color name="color_door_open">#E87070</color>
+    <color name="color_door_error">#EFA461</color>
     <color name="color_background">#757575</color>
     <color name="red">#F44336</color>
     <color name="color_door_closing">#0277BD</color>

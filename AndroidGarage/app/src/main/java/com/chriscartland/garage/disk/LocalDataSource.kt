@@ -30,7 +30,7 @@ class LocalDataSource private constructor(
 
     val doorData = appDatabase.doorDataDao().getDoorData()
 
-    val eventHistory = appDatabase.doorDataDao().getEventHistory()
+    val eventHistory = appDatabase.doorDataDao().getDoorHistory()
 
     fun updateDoorData(doorData: DoorData) {
         Log.d(TAG, "updateDoorData")

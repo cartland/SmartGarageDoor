@@ -26,13 +26,20 @@ import androidx.recyclerview.widget.RecyclerView
 import com.chriscartland.garage.R
 import com.chriscartland.garage.model.DoorData
 import com.chriscartland.garage.model.DoorDisplayInfo
+import com.google.android.material.card.MaterialCardView
+import java.lang.String.format
+import java.text.DateFormat
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class EventAdapter(
     private val context: Context,
     var items: List<DoorData>
 ) : RecyclerView.Adapter<EventAdapter.EventViewHolder>() {
 
-    class EventViewHolder(private val view: View) : RecyclerView.ViewHolder(view) {
+    class EventViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
         val eventIcon: ImageView = view.findViewById(R.id.event_icon)
         val titleText: TextView = view.findViewById(R.id.event_title_text)
         val messageText: TextView = view.findViewById(R.id.event_message_text)
@@ -49,11 +56,40 @@ class EventAdapter(
     override fun onBindViewHolder(holder: EventViewHolder, position: Int) {
         val event = items[position]
         val display = DoorDisplayInfo.fromDoorState(context, event.state)
+        val color = if (position == 0) {
+            display.color
+        } else {
+            context.getColor(R.color.white)
+        }
+        val card = holder.view as? MaterialCardView
+        if (card == null) {
+            holder.view.setBackgroundColor(color)
+        } else {
+            card.setCardBackgroundColor(color)
+        }
         holder.eventIcon.setImageDrawable(display.icon)
         holder.titleText.text = display.status
         holder.messageText.text = event.message
-        holder.dateText.text = event.lastChangeTimeSeconds.toString()
-        holder.timeText.text = event.lastChangeTimeSeconds.toString()
+        holder.dateText.text = simpleDate(event.lastChangeTimeSeconds)
+        holder.timeText.text = simpleTime(event.lastChangeTimeSeconds)
+    }
+
+    fun simpleDate(timestamp: Long?): String {
+        if (timestamp == null) {
+            return "--"
+        }
+        val date = Date(timestamp * 1000L)
+        val format = SimpleDateFormat("MMM dd", Locale.US)
+        return format.format(date)
+    }
+
+    fun simpleTime(timestamp: Long?): String {
+        if (timestamp == null) {
+            return "--"
+        }
+        val date = Date(timestamp * 1000L)
+        val format = SimpleDateFormat("H:mm", Locale.US)
+        return format.format(date)
     }
 
     override fun getItemCount() = items.size
