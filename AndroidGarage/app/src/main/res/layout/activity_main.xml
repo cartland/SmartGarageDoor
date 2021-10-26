@@ -68,19 +68,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/sign_in_button" />
 
-        <TextView
-            android:id="@+id/time_since_last_change"
-            app:changeAge="@{doorViewModel.changeAge}"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/list_margin"
-            android:textAlignment="center"
-            android:textStyle="italic"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/button"
-            tools:text="Time since last change: 01:46:12" />
-
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/event_history_list"
             android:layout_width="match_parent"
@@ -93,7 +80,7 @@
             app:layout_constraintBottom_toTopOf="@+id/user_email"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/time_since_last_change" />
+            app:layout_constraintTop_toBottomOf="@+id/button" />
 
         <TextView
             android:id="@+id/user_email"

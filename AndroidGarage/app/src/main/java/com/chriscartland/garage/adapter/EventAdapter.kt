@@ -27,10 +27,7 @@ import com.chriscartland.garage.R
 import com.chriscartland.garage.model.DoorData
 import com.chriscartland.garage.model.DoorDisplayInfo
 import com.google.android.material.card.MaterialCardView
-import java.lang.String.format
-import java.text.DateFormat
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -40,6 +37,7 @@ class EventAdapter(
 ) : RecyclerView.Adapter<EventAdapter.EventViewHolder>() {
 
     class EventViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
+        val timeSinceLastChange: TextView = view.findViewById(R.id.time_since_last_change)
         val eventIcon: ImageView = view.findViewById(R.id.event_icon)
         val titleText: TextView = view.findViewById(R.id.event_title_text)
         val messageText: TextView = view.findViewById(R.id.event_message_text)
@@ -67,6 +65,10 @@ class EventAdapter(
         } else {
             card.setCardBackgroundColor(color)
         }
+        val lastChangeTime = event.lastChangeTimeSeconds ?: 0
+        val now = Date()
+        val ageSeconds = ((now.time / 1000) - lastChangeTime).coerceAtLeast(0)
+        holder.timeSinceLastChange.text = timeSinceLastChangeString(context, ageSeconds)
         holder.eventIcon.setImageDrawable(display.icon)
         holder.titleText.text = display.status
         holder.messageText.text = event.message

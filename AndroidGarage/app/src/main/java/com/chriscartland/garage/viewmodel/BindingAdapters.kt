@@ -39,38 +39,3 @@ fun checkInAge(view: TextView, age: DoorDataAge?) {
         view.setBackgroundColor(view.context.getColor(R.color.transparent))
     }
 }
-
-@BindingAdapter("app:changeAge")
-fun changeAge(view: TextView, age: DoorDataAge?) {
-    val ageSeconds = age?.ageSeconds ?: 0
-    val d = (ageSeconds) / 86400
-    val h = (ageSeconds % 86400) / 3600
-    val m = (ageSeconds % 3600) / 60
-    val s = (ageSeconds % 60)
-    view.text = when {
-        ageSeconds < 2 -> {
-            view.context.getString(R.string.time_since_last_change_1_second)
-        }
-        ageSeconds < 60 -> {
-            view.context.getString(R.string.time_since_last_change_seconds, s)
-        }
-        ageSeconds < 60 * 2 -> {
-            view.context.getString(R.string.time_since_last_change_1_minute)
-        }
-        ageSeconds < 60 * 60 -> {
-            view.context.getString(R.string.time_since_last_change_minutes, m)
-        }
-        ageSeconds < 60 * 60 * 2 -> {
-            view.context.getString(R.string.time_since_last_change_1_hour)
-        }
-        ageSeconds < 60 * 60 * 24 -> {
-            view.context.getString(R.string.time_since_last_change_hours, h)
-        }
-        ageSeconds < 60 * 60 * 24 * 2 -> {
-            view.context.getString(R.string.time_since_last_change_1_day)
-        }
-        else -> {
-            view.context.getString(R.string.time_since_last_change_days, d)
-        }
-    }
-}
