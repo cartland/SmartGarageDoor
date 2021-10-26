@@ -38,6 +38,7 @@ class EventAdapter(
 
     class EventViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
         val timeSinceLastChange: TextView = view.findViewById(R.id.time_since_last_change)
+        val card: MaterialCardView = view.findViewById(R.id.card_view)
         val eventIcon: ImageView = view.findViewById(R.id.event_icon)
         val titleText: TextView = view.findViewById(R.id.event_title_text)
         val messageText: TextView = view.findViewById(R.id.event_message_text)
@@ -59,12 +60,7 @@ class EventAdapter(
         } else {
             context.getColor(R.color.color_background)
         }
-        val card = holder.view as? MaterialCardView
-        if (card == null) {
-            holder.view.setBackgroundColor(color)
-        } else {
-            card.setCardBackgroundColor(color)
-        }
+        holder.card.setCardBackgroundColor(color)
         val lastChangeTime = event.lastChangeTimeSeconds ?: 0
         val now = Date()
         val ageSeconds = ((now.time / 1000) - lastChangeTime).coerceAtLeast(0)
@@ -74,6 +70,19 @@ class EventAdapter(
         holder.messageText.text = event.message
         holder.dateText.text = simpleDate(event.lastChangeTimeSeconds)
         holder.timeText.text = simpleTime(event.lastChangeTimeSeconds)
+
+        val showAge = if (position > 0) {
+            val currentAgeDisplayed = holder.timeSinceLastChange.text
+            val previousItem = items[position - 1]
+            val previousTime = previousItem.lastChangeTimeSeconds ?: 0
+            val previousAgeSeconds = ((now.time / 1000) - previousTime).coerceAtLeast(0)
+            val previousAgeDisplayed = timeSinceLastChangeString(context, previousAgeSeconds)
+            // Show age if it is different than previous age.
+            currentAgeDisplayed != previousAgeDisplayed
+        } else {
+            true
+        }
+        holder.timeSinceLastChange.visibility = if (showAge) View.VISIBLE else View.GONE
     }
 
     fun simpleDate(timestamp: Long?): String {

@@ -37,8 +37,6 @@ import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.chriscartland.garage.adapter.EventAdapter
 import com.chriscartland.garage.databinding.ActivityMainBinding
-import com.chriscartland.garage.model.DoorData
-import com.chriscartland.garage.model.DoorState
 import com.chriscartland.garage.model.LoadingState
 import com.chriscartland.garage.model.ServerConfig
 import com.chriscartland.garage.repository.updateOpenDoorFcmSubscription
@@ -53,9 +51,11 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var doorViewModel: DoorViewModel
+    private lateinit var eventHistoryAdapter: EventAdapter
 
     private val h: Handler = Handler(Looper.getMainLooper())
     private var runEachSecond: Runnable? = null
+    private var runEachMinute: Runnable? = null
     private var buttonRunnable: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,7 +67,7 @@ class MainActivity : AppCompatActivity() {
 
         val recyclerView = findViewById<RecyclerView>(R.id.event_history_list)
         recyclerView.setHasFixedSize(true)
-        val eventHistoryAdapter = EventAdapter(this, listOf())
+        eventHistoryAdapter = EventAdapter(this, listOf())
         recyclerView.adapter = eventHistoryAdapter
 
         doorViewModel = ViewModelProvider(this).get(DoorViewModel::class.java)
@@ -119,6 +119,7 @@ class MainActivity : AppCompatActivity() {
             .build()
         signIn(clicked = false)
         updateEverySecond()
+        updateEveryMinute()
     }
 
     private fun updateEverySecond() {
@@ -131,12 +132,32 @@ class MainActivity : AppCompatActivity() {
             override fun run() {
                 // Pass the current time to the ViewModel.
                 val now = Date()
-                doorViewModel.onUpdateTime(now)
+                doorViewModel.onUpdateTimeSecond(now)
                 h.postDelayed(this, 1000)
             }
         }
         // Run it now to start the cycle.
         runEachSecond?.let {
+            it.run()
+        }
+    }
+
+    private fun updateEveryMinute() {
+        // Remove any previously running callbacks.
+        runEachMinute?.let {
+            h.removeCallbacks(it)
+        }
+        // This callback will be run every second.
+        runEachMinute = object : Runnable {
+            override fun run() {
+                // Pass the current time to the ViewModel.
+                val now = Date()
+                eventHistoryAdapter.notifyDataSetChanged()
+                h.postDelayed(this, 1000)
+            }
+        }
+        // Run it now to start the cycle.
+        runEachMinute?.let {
             it.run()
         }
     }
