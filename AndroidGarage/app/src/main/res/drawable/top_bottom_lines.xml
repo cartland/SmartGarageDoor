@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
   ~ Copyright 2021 Chris Cartland. All rights reserved.
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,20 +12,20 @@
   ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
-  ~
   -->
 
-<resources>
-    <dimen name="section_padding">8dp</dimen>
-    <dimen name="title_text_size">32sp</dimen>
-    <dimen name="title_text_padding">8dp</dimen>
-    <dimen name="version_text_padding">8dp</dimen>
-    <dimen name="button_margin">16dp</dimen>
-    <dimen name="status_icon_height">96dp</dimen>
-    <dimen name="time_text_size">48sp</dimen>
-    <dimen name="card_border_stroke">1dp</dimen>
-    <dimen name="card_elevation">1dp</dimen>
-    <dimen name="card_margin">8dp</dimen>
-    <dimen name="card_padding">8dp</dimen>
-    <dimen name="list_margin">8dp</dimen>
-</resources>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item>
+        <shape android:shape="rectangle">
+            <stroke android:width="1dp" android:color="@color/list_border_dark" />
+        </shape>
+    </item>
+
+    <item android:top="1dp" android:bottom="1dp">
+        <shape android:shape="rectangle">
+            <stroke android:width="1dp" android:color="@color/list_border_light" />
+            <solid android:color="#00000000" />
+        </shape>
+    </item>
+
+</layer-list>
