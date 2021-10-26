@@ -23,6 +23,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.chriscartland.garage.Constants.Companion.CHECK_IN_THRESHOLD_SECONDS
 import com.chriscartland.garage.R
 import com.chriscartland.garage.model.DoorData
 import com.chriscartland.garage.model.DoorDisplayInfo
@@ -55,12 +56,6 @@ class EventAdapter(
     override fun onBindViewHolder(holder: EventViewHolder, position: Int) {
         val event = items[position]
         val display = DoorDisplayInfo.fromDoorState(context, event.state)
-        val color = if (position == 0) {
-            display.color
-        } else {
-            context.getColor(R.color.color_background)
-        }
-        holder.card.setCardBackgroundColor(color)
         val lastChangeTime = event.lastChangeTimeSeconds ?: 0
         val now = Date()
         val ageSeconds = ((now.time / 1000) - lastChangeTime).coerceAtLeast(0)
@@ -83,6 +78,20 @@ class EventAdapter(
             true
         }
         holder.timeSinceLastChange.visibility = if (showAge) View.VISIBLE else View.GONE
+
+        val color = if (position == 0) {
+            val checkInTime = event.lastCheckInTimeSeconds ?: 0
+            val checkInAgeSeconds = ((now.time / 1000) - checkInTime).coerceAtLeast(0)
+            val warning = checkInAgeSeconds > CHECK_IN_THRESHOLD_SECONDS
+            if (warning) {
+                context.getColor(R.color.color_door_error)
+            } else {
+                display.color
+            }
+        } else {
+            context.getColor(R.color.color_background)
+        }
+        holder.card.setCardBackgroundColor(color)
     }
 
     fun simpleDate(timestamp: Long?): String {

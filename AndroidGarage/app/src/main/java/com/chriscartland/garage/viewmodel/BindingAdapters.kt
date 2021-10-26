@@ -19,12 +19,9 @@ package com.chriscartland.garage.viewmodel
 
 import android.widget.TextView
 import androidx.databinding.BindingAdapter
+import com.chriscartland.garage.Constants.Companion.CHECK_IN_THRESHOLD_SECONDS
 import com.chriscartland.garage.R
 import com.chriscartland.garage.model.DoorDataAge
-import com.chriscartland.garage.model.DoorState
-
-const val CHECK_IN_THRESHOLD_SECONDS = 60 * 15
-const val DOOR_NOT_CLOSED_THRESHOLD_SECONDS = 60 * 15
 
 @BindingAdapter("app:checkInAge")
 fun checkInAge(view: TextView, age: DoorDataAge?) {
