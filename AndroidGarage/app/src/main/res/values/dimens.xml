@@ -23,4 +23,5 @@
     <dimen name="version_text_padding">16dp</dimen>
     <dimen name="button_margin">16dp</dimen>
     <dimen name="status_icon_height">128dp</dimen>
+    <dimen name="time_text_size">48sp</dimen>
 </resources>

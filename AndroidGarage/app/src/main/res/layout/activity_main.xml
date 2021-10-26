@@ -16,7 +16,8 @@
   ~
   -->
 
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
+<layout xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <data>
         <import type="android.view.View"/>
@@ -26,7 +27,6 @@
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
@@ -154,6 +154,17 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/last_change_time"
             tools:text="Time since last change: 01:46:12" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/event_history_list"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            app:layoutManager="LinearLayoutManager"
+            android:scrollbars="vertical"
+            app:layout_constraintBottom_toTopOf="@+id/user_email"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/time_since_last_change" />
 
         <TextView
             android:id="@+id/user_email"

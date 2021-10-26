@@ -39,32 +39,7 @@ class RemoteDataSource private constructor(
     private val executor: Executor
 ) {
 
-    val doorData = MutableLiveData<DoorData>()
-
     val doorHistory = MutableLiveData<List<DoorData>>()
-
-    fun refreshDoorData(context: Context, buildTimestamp: String) {
-        Log.d(TAG, "refreshDoorData")
-//        executor.execute {
-//            val url = buildUri(buildTimestamp, Constants.CURRENT_EVENT_DATA_PATH).toString()
-//            fetchJSONFromURL(context, url) { jsonString ->
-//                Log.d(TAG, "Network request success")
-//                val map = jsonString.toMap()
-//                if (map == null) {
-//                    Log.e(TAG, "refreshDoorData: Could not parse JSON from network")
-//                    return@fetchJSONFromURL
-//                }
-//                Log.d(TAG, "refreshDoorData: JSON map from network $map")
-//                val data = map?.currentEventDataToDoorData()
-//                if (data == null) {
-//                    Log.e(TAG, "refreshDoorData: Data is not valid")
-//                    return@fetchJSONFromURL
-//                }
-//                Log.d(TAG, "refreshDoorData: Posting doorData: $data")
-//                doorData.postValue(data)
-//            }
-//        }
-    }
 
     fun refreshDoorHistory(context: Context, buildTimestamp: String) {
         Log.d(TAG, "refreshDoorHistory")
@@ -85,7 +60,6 @@ class RemoteDataSource private constructor(
                 } else {
                     Log.d(TAG, "refreshDoorHistory: Posting doorData: $data")
                     doorHistory.postValue(data)
-                    doorData.postValue(data[0])
                     return@fetchJSONFromURL
                 }
             }

@@ -51,6 +51,8 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
 
     val doorData = app.repository.doorData
 
+    val eventHistory = app.repository.eventHistory
+
     val message = MediatorLiveData<String>()
 
     val lastCheckInTimeString = MediatorLiveData<String>()

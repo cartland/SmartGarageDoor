@@ -30,14 +30,26 @@ class LocalDataSource private constructor(
 
     val doorData = appDatabase.doorDataDao().getDoorData()
 
+    val eventHistory = appDatabase.doorDataDao().getEventHistory()
+
     fun updateDoorData(doorData: DoorData) {
         Log.d(TAG, "updateDoorData")
+        executor.execute {
+            appDatabase.runInTransaction {
+                // Put new subscriptions data into localDataSource.
+                appDatabase.doorDataDao().insert(doorData)
+            }
+        }
+    }
+
+    fun updateDoorHistory(eventHistory: List<DoorData>) {
+        Log.d(TAG, "updateDoorHistory")
         executor.execute {
             appDatabase.runInTransaction {
                 // Delete existing subscriptions.
                 appDatabase.doorDataDao().deleteAll()
                 // Put new subscriptions data into localDataSource.
-                appDatabase.doorDataDao().insert(doorData)
+                appDatabase.doorDataDao().insertDoorHistory(eventHistory)
             }
         }
     }

@@ -31,10 +31,14 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.RecyclerView
 import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
+import com.chriscartland.garage.adapter.EventAdapter
 import com.chriscartland.garage.databinding.ActivityMainBinding
+import com.chriscartland.garage.model.DoorData
+import com.chriscartland.garage.model.DoorState
 import com.chriscartland.garage.model.LoadingState
 import com.chriscartland.garage.model.ServerConfig
 import com.chriscartland.garage.repository.updateOpenDoorFcmSubscription
@@ -61,10 +65,20 @@ class MainActivity : AppCompatActivity() {
         binding.lifecycleOwner = this
         setContentView(binding.root)
 
+        val recyclerView = findViewById<RecyclerView>(R.id.event_history_list)
+        recyclerView.setHasFixedSize(true)
+        val eventHistoryAdapter = EventAdapter(this, listOf())
+        recyclerView.adapter = eventHistoryAdapter
+
         doorViewModel = ViewModelProvider(this).get(DoorViewModel::class.java)
         binding.doorViewModel = doorViewModel
         doorViewModel.doorData.observe(this, Observer {
             doorViewModel.hideProgressBar()
+        })
+        doorViewModel.eventHistory.observe(this, { eventHistory ->
+            doorViewModel.hideProgressBar()
+            eventHistoryAdapter.items = eventHistory
+            eventHistoryAdapter.notifyDataSetChanged()
         })
         doorViewModel.loadingConfig.observe(this, Observer { loadingConfig ->
             val configData = loadingConfig.data
