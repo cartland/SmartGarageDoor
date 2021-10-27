@@ -21,7 +21,8 @@
     android:id="@+id/constraint_layout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="@dimen/card_padding">
+    android:paddingStart="@dimen/card_padding"
+    android:paddingEnd="@dimen/card_padding">
 
     <TextView
         android:id="@+id/time_since_last_change"
@@ -33,20 +34,22 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:text="Time since last change: 01:46:12" />
+        tools:text="25 minutes ago..." />
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="@dimen/card_margin"
+        android:layout_marginStart="@dimen/card_margin"
+        android:layout_marginEnd="@dimen/card_margin"
         android:focusable="true"
         app:cardElevation="@dimen/card_elevation"
+        app:cardBackgroundColor="@color/color_door_open"
         app:layout_constraintBottom_toBottomOf="@id/constraint_layout"
         app:layout_constraintEnd_toEndOf="@id/constraint_layout"
         app:layout_constraintStart_toStartOf="@id/constraint_layout"
         app:layout_constraintTop_toBottomOf="@id/time_since_last_change"
-        app:strokeColor="@color/almost_white"
+        app:strokeColor="@color/card_stroke_color"
         app:strokeWidth="@dimen/card_border_stroke">
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -60,13 +63,13 @@
                 android:layout_height="@dimen/status_icon_height"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@drawable/ic_garage_simple_unknown" />
+                app:srcCompat="@drawable/ic_garage_simple_open" />
 
             <TextView
                 android:id="@+id/event_title_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Closed"
+                tools:text="Open"
                 app:layout_constraintEnd_toEndOf="@+id/event_icon"
                 app:layout_constraintStart_toStartOf="@+id/event_icon"
                 app:layout_constraintTop_toBottomOf="@+id/event_icon" />

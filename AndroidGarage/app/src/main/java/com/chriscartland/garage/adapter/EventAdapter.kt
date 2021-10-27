@@ -32,6 +32,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+
 class EventAdapter(
     private val context: Context,
     var items: List<DoorData>
@@ -89,7 +90,7 @@ class EventAdapter(
                 display.color
             }
         } else {
-            context.getColor(R.color.color_background)
+            context.getColor(R.color.color_stale_background)
         }
         holder.card.setCardBackgroundColor(color)
     }

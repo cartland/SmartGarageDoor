@@ -14,18 +14,13 @@
   ~ limitations under the License.
   -->
 
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android" >
-
-    <item>
-        <shape android:shape="rectangle">
-            <stroke android:width="1dp" android:color="@color/list_border" />
-        </shape>
-    </item>
-
-    <item android:top="1dp" android:bottom="1dp">
-        <shape android:shape="rectangle">
-            <stroke android:width="1dp" android:color="@color/list_border" />
-            <solid android:color="#00000000" />
-        </shape>
-    </item>
-</layer-list>
+<resources>
+    <color name="color_door_closing">#4A697C</color>
+    <color name="color_door_opening">#4A697C</color>
+    <color name="color_door_closed">#26732A</color>
+    <color name="color_door_open">#7C3838</color>
+    <color name="color_door_error">#A86E39</color>
+    <color name="color_stale_background">#575757</color>
+    <color name="list_border">#333333</color>
+    <color name="card_stroke_color">#333333</color>
+</resources>

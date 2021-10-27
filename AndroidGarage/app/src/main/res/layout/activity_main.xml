@@ -61,7 +61,6 @@
             android:layout_marginTop="@dimen/button_margin"
             android:onClick="onPushButton"
             android:text="@string/push_button"
-            android:backgroundTint="@{doorViewModel.remoteButtonEnabled ? @color/red : @color/button_disabled_background_tint}"
             android:visibility="@{doorViewModel.showRemoteButton ? View.VISIBLE : View.GONE}"
             android:enabled="@{doorViewModel.remoteButtonEnabled}"
             app:layout_constraintEnd_toEndOf="parent"

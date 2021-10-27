@@ -20,7 +20,7 @@
     <dimen name="section_padding">8dp</dimen>
     <dimen name="title_text_size">32sp</dimen>
     <dimen name="title_text_padding">8dp</dimen>
-    <dimen name="version_text_padding">8dp</dimen>
+    <dimen name="version_text_padding">4dp</dimen>
     <dimen name="button_margin">16dp</dimen>
     <dimen name="status_icon_height">96dp</dimen>
     <dimen name="time_text_size">48sp</dimen>
