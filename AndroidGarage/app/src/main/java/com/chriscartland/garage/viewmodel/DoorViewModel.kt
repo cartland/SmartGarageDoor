@@ -165,6 +165,7 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
                 else -> {
                     Log.d(
                         TAG, "Couldn't get credential from result." +
+                                " ApiException.statusCode: ${e.statusCode}" +
                                 " (${e.localizedMessage})")
                 }
             }
