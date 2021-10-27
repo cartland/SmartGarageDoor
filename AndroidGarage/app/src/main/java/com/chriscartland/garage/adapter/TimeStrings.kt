@@ -34,8 +34,17 @@ fun timeSinceLastChangeString(context: Context, ageSeconds: Long): String {
         ageSeconds < 60 * 2 -> {
             context.getString(R.string.time_since_last_change_1_minute)
         }
+        ageSeconds < 60 * 15 -> {
+            context.getString(R.string.time_since_last_change_minutes_generic)
+        }
+        ageSeconds < 60 * 30 -> {
+            context.getString(R.string.time_since_last_change_15_minutes_generic)
+        }
+        ageSeconds < 60 * 45 -> {
+            context.getString(R.string.time_since_last_change_30_minutes_generic)
+        }
         ageSeconds < 60 * 60 -> {
-            context.getString(R.string.time_since_last_change_minutes, m)
+            context.getString(R.string.time_since_last_change_45_minutes_generic)
         }
         ageSeconds < 60 * 60 * 2 -> {
             context.getString(R.string.time_since_last_change_1_hour)

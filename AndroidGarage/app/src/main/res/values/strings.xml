@@ -21,10 +21,16 @@
     <string name="time_since_last_change">Time since last change: %1$s</string>
     <string name="time_since_last_change_1_second">1 second ago…</string>
     <string name="time_since_last_change_seconds">%1$d seconds ago…</string>
+    <string name="time_since_last_change_seconds_generic">Seconds ago…</string>
     <string name="time_since_last_change_1_minute">1 minute ago…</string>
     <string name="time_since_last_change_minutes">%1$d minutes ago…</string>
+    <string name="time_since_last_change_minutes_generic">Minutes ago…</string>
+    <string name="time_since_last_change_15_minutes_generic">15 minutes ago…</string>
+    <string name="time_since_last_change_30_minutes_generic">30 minutes ago…</string>
+    <string name="time_since_last_change_45_minutes_generic">45 minutes ago…</string>
     <string name="time_since_last_change_1_hour">1 hour ago…</string>
     <string name="time_since_last_change_hours">%1$d hours ago…</string>
+    <string name="time_since_last_change_hours_generic">Hours ago…</string>
     <string name="time_since_last_change_1_day">1 day ago…</string>
     <string name="time_since_last_change_days">%1$d days ago…</string>
     <string name="time_since_last_check_in">Time since last check-in: %1$s</string>
