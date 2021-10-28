@@ -92,10 +92,10 @@ export class TimeSeriesDatabase {
     return Promise.all(updates);
   }
 
-  async getAllForBuildTimestamp(buildTimestamp: string): Promise<any> {
+  async getRecentForBuildTimestamp(buildTimestamp: string, maxCount: number): Promise<any> {
     const allRef = firebase.app().firestore().collection(this.collectionAll);
     return allRef.where('buildTimestamp', '==', buildTimestamp)
-      .orderBy('FIRESTORE_databaseTimestamp', 'desc').limit(10).get()
+      .orderBy('FIRESTORE_databaseTimestamp', 'desc').limit(maxCount).get()
       .then((snapshot) => {
         const results = [];
         snapshot.forEach(doc => {

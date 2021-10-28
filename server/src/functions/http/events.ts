@@ -26,6 +26,8 @@ import { getNewEventOrNull } from '../../controller/EventInterpreter';
 
 const SESSION_PARAM_KEY = "session";
 const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
+const EVENT_HISTORY_MAX_COUNT_PARAM_KEY = "eventHistoryMaxCount";
+const EVENT_HISTORY_MAX_COUNT_DEFAULT_VALUE = 12;
 
 const SENSOR_A_PARAM_KEY = "sensorA";
 const SENSOR_B_PARAM_KEY = "sensorB";
@@ -114,8 +116,18 @@ export const httpEventHistory = functions.https.onRequest(async (request, respon
     return;
   }
 
+  if (EVENT_HISTORY_MAX_COUNT_PARAM_KEY in request.query) {
+    data[EVENT_HISTORY_MAX_COUNT_PARAM_KEY] = request.query[EVENT_HISTORY_MAX_COUNT_PARAM_KEY];
+  } else {
+    // Skip.
+  }
+  let eventHistoryMaxCount = data[EVENT_HISTORY_MAX_COUNT_PARAM_KEY];
+  if (!eventHistoryMaxCount) {
+    eventHistoryMaxCount = EVENT_HISTORY_MAX_COUNT_DEFAULT_VALUE;
+  }
+
   try {
-    const allData = await EVENT_DATABASE.getAllForBuildTimestamp(buildTimestamp);
+    const allData = await EVENT_DATABASE.getRecentForBuildTimestamp(buildTimestamp, eventHistoryMaxCount);
     data[EVENT_HISTORY_KEY] = allData;
     data[EVENT_HISTORY_COUNT_KEY] = allData.length;
     response.status(200).send(data);
