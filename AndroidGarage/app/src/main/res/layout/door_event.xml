@@ -87,12 +87,22 @@
                 android:id="@+id/event_time_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="3:55 PM"
+                android:text="23:59"
                 android:textSize="@dimen/time_text_size"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@+id/event_icon"
                 app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/event_time_seconds_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=":59"
+                android:textSize="@dimen/time_text_seconds_size"
+                app:layout_constraintStart_toEndOf="@+id/event_time_text"
+                app:layout_constraintTop_toTopOf="@id/event_time_text"
+                app:layout_constraintBottom_toBottomOf="@id/event_time_text" />
 
             <TextView
                 android:id="@+id/event_message_text"

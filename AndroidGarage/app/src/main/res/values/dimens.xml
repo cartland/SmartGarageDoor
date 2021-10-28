@@ -29,4 +29,5 @@
     <dimen name="card_margin">8dp</dimen>
     <dimen name="card_padding">8dp</dimen>
     <dimen name="list_margin">8dp</dimen>
+    <dimen name="time_text_seconds_size">16sp</dimen>
 </resources>

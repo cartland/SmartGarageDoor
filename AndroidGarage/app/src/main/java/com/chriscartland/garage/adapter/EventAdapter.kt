@@ -46,6 +46,7 @@ class EventAdapter(
         val messageText: TextView = view.findViewById(R.id.event_message_text)
         val dateText: TextView = view.findViewById(R.id.event_date_text)
         val timeText: TextView = view.findViewById(R.id.event_time_text)
+        val timeTextSeconds: TextView = view.findViewById(R.id.event_time_seconds_text)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): EventViewHolder {
@@ -66,6 +67,7 @@ class EventAdapter(
         holder.messageText.text = event.message
         holder.dateText.text = simpleDate(event.lastChangeTimeSeconds)
         holder.timeText.text = simpleTime(event.lastChangeTimeSeconds)
+        holder.timeTextSeconds.text = simpleTimeSeconds(event.lastChangeTimeSeconds)
 
         val showAge = if (position > 0) {
             val currentAgeDisplayed = holder.timeSinceLastChange.text
@@ -106,10 +108,19 @@ class EventAdapter(
 
     fun simpleTime(timestamp: Long?): String {
         if (timestamp == null) {
-            return "--"
+            return "--:--"
         }
         val date = Date(timestamp * 1000L)
         val format = SimpleDateFormat("H:mm", Locale.US)
+        return format.format(date)
+    }
+
+    fun simpleTimeSeconds(timestamp: Long?): String {
+        if (timestamp == null) {
+            return ":--"
+        }
+        val date = Date(timestamp * 1000L)
+        val format = SimpleDateFormat(":ss", Locale.US)
         return format.format(date)
     }
 

@@ -108,7 +108,7 @@ class MainActivity : AppCompatActivity() {
         doorViewModel.enableRemoteButton()
 
         // One Tap Sign-In configuration.
-        checkSignInConfiguration()
+        checkSignInConfiguration(TAG, this)
         val googleClientIdForWeb = getString(R.string.web_client_id)
         doorViewModel.oneTapSignInClient = Identity.getSignInClient(this)
         doorViewModel.oneTapSignInRequest = BeginSignInRequest.builder()
@@ -171,7 +171,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun signIn(clicked: Boolean) {
-        checkSignInConfiguration()
+        checkSignInConfiguration(TAG, this)
         if (!clicked) {
             val sharedPref = getPreferences(Context.MODE_PRIVATE)
             val signedIn = sharedPref.getBoolean(SIGNED_IN_KEY, false)
@@ -205,16 +205,6 @@ class MainActivity : AppCompatActivity() {
                 // do nothing and continue presenting the signed-out UI.
                 Log.d(TAG, e.localizedMessage)
             }
-    }
-
-    private fun checkSignInConfiguration() {
-        val googleClientIdForWeb = getString(R.string.web_client_id)
-        if (googleClientIdForWeb == Constants.INCORRECT_WEB_CLIENT_ID) {
-            Log.w(TAG, "The web client ID matches the INCORRECT_WEB_CLIENT_ID. " +
-                    "One Tap Sign-In with Google will not work. " +
-                    "Update the web client ID to be used with setServerClientId(). " +
-                    "https://developers.google.com/identity/one-tap/android/get-saved-credentials")
-        }
     }
 
     fun onSignOutClicked(view: View) {

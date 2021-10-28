@@ -25,10 +25,10 @@
     <string name="time_since_last_change_1_minute">1 minute ago…</string>
     <string name="time_since_last_change_minutes">%1$d minutes ago…</string>
     <string name="time_since_last_change_minutes_generic">Minutes ago…</string>
-    <string name="time_since_last_change_15_minutes_generic">15 minutes ago…</string>
-    <string name="time_since_last_change_30_minutes_generic">30 minutes ago…</string>
-    <string name="time_since_last_change_45_minutes_generic">45 minutes ago…</string>
-    <string name="time_since_last_change_1_hour">1 hour ago…</string>
+    <string name="time_since_last_change_15_minutes_generic">More than 15 minutes ago…</string>
+    <string name="time_since_last_change_30_minutes_generic">More than 30 minutes ago…</string>
+    <string name="time_since_last_change_45_minutes_generic">More than 45 minutes ago…</string>
+    <string name="time_since_last_change_1_hour">More than 1 hour ago…</string>
     <string name="time_since_last_change_hours">%1$d hours ago…</string>
     <string name="time_since_last_change_hours_generic">Hours ago…</string>
     <string name="time_since_last_change_1_day">1 day ago…</string>
