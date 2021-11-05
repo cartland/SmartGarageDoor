@@ -17,6 +17,7 @@
 package com.chriscartland.garage.adapter
 
 import android.content.Context
+import android.os.Build
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -31,6 +32,12 @@ import com.google.android.material.card.MaterialCardView
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.util.DisplayMetrics
+import android.util.TypedValue
+import androidx.annotation.RequiresApi
+import androidx.core.view.updateLayoutParams
+import com.chriscartland.garage.model.DoorState
+import kotlin.math.roundToInt
 
 
 class EventAdapter(
@@ -55,13 +62,15 @@ class EventAdapter(
         return EventViewHolder(adapterLayout)
     }
 
+    @RequiresApi(Build.VERSION_CODES.R)
     override fun onBindViewHolder(holder: EventViewHolder, position: Int) {
         val event = items[position]
         val display = DoorDisplayInfo.fromDoorState(context, event.state)
         val lastChangeTime = event.lastChangeTimeSeconds ?: 0
         val now = Date()
         val ageSeconds = ((now.time / 1000) - lastChangeTime).coerceAtLeast(0)
-        holder.timeSinceLastChange.text = timeSinceLastChangeString(context, ageSeconds)
+        val timeSinceLastChange = timeSinceLastChangeString(context, ageSeconds)
+        holder.timeSinceLastChange.text = timeSinceLastChange
         holder.eventIcon.setImageDrawable(display.icon)
         holder.titleText.text = display.status
         holder.messageText.text = event.message
@@ -69,17 +78,11 @@ class EventAdapter(
         holder.timeText.text = simpleTime(event.lastChangeTimeSeconds)
         holder.timeTextSeconds.text = simpleTimeSeconds(event.lastChangeTimeSeconds)
 
-        val showAge = if (position > 0) {
-            val currentAgeDisplayed = holder.timeSinceLastChange.text
-            val previousItem = items[position - 1]
-            val previousTime = previousItem.lastChangeTimeSeconds ?: 0
-            val previousAgeSeconds = ((now.time / 1000) - previousTime).coerceAtLeast(0)
-            val previousAgeDisplayed = timeSinceLastChangeString(context, previousAgeSeconds)
-            // Show age if it is different than previous age.
-            currentAgeDisplayed != previousAgeDisplayed
-        } else {
-            true
-        }
+        val showAge = shouldShowAge(
+            proposedString = timeSinceLastChange,
+            currentTimeMillis = now.time,
+            currentItemPosition = position,
+        )
         holder.timeSinceLastChange.visibility = if (showAge) View.VISIBLE else View.GONE
 
         val color = if (position == 0) {
@@ -95,6 +98,73 @@ class EventAdapter(
             context.getColor(R.color.color_stale_background)
         }
         holder.card.setCardBackgroundColor(color)
+
+        val showFullSizeCard = shouldShowFullSizeCard(
+            currentItemPosition = position
+        )
+
+        val smallTextSize = if (showFullSizeCard) {
+            context.resources.getDimension(R.dimen.card_text_size_small_full)
+        } else {
+            context.resources.getDimension(R.dimen.card_text_size_small_mini)
+        }
+        holder.titleText.setTextSize(TypedValue.COMPLEX_UNIT_PX, smallTextSize)
+        holder.messageText.setTextSize(TypedValue.COMPLEX_UNIT_PX, smallTextSize)
+        holder.dateText.setTextSize(TypedValue.COMPLEX_UNIT_PX, smallTextSize)
+        holder.timeTextSeconds.setTextSize(TypedValue.COMPLEX_UNIT_PX, smallTextSize)
+
+        val largeTextSize = if (showFullSizeCard) {
+            context.resources.getDimension(R.dimen.card_text_size_large_full)
+        } else {
+            context.resources.getDimension(R.dimen.card_text_size_large_mini)
+        }
+        holder.timeText.setTextSize(TypedValue.COMPLEX_UNIT_PX, largeTextSize)
+
+        val iconSize = if (showFullSizeCard) {
+            context.resources.getDimension(R.dimen.status_icon_size_full).roundToInt()
+        } else {
+            context.resources.getDimension(R.dimen.status_icon_size_mini).roundToInt()
+        }
+        holder.eventIcon.updateLayoutParams {
+            width = iconSize
+            height = iconSize
+        }
+    }
+
+    private fun shouldShowFullSizeCard(currentItemPosition: Int): Boolean {
+        val item = items[currentItemPosition]
+        if (currentItemPosition == 0) {
+            return true
+        }
+        return when (item.state) {
+            DoorState.UNKNOWN -> false
+            DoorState.CLOSED -> true
+            DoorState.OPENING -> false
+            DoorState.OPENING_TOO_LONG -> true
+            DoorState.OPEN -> true
+            DoorState.OPEN_MISALIGNED -> true
+            DoorState.CLOSING -> false
+            DoorState.CLOSING_TOO_LONG -> true
+            DoorState.ERROR_SENSOR_CONFLICT -> true
+            null -> false
+        }
+    }
+
+    private fun shouldShowAge(
+        proposedString: String,
+        currentTimeMillis: Long,
+        currentItemPosition: Int,
+    ): Boolean {
+        return if (currentItemPosition == 0) {
+            true
+        } else {
+            val previousItem = items[currentItemPosition - 1]
+            val previousTime = previousItem.lastChangeTimeSeconds ?: 0
+            val previousAgeSeconds = ((currentTimeMillis / 1000) - previousTime).coerceAtLeast(0)
+            val previousAgeDisplayed = timeSinceLastChangeString(context, previousAgeSeconds)
+            // Show age if it is different than previous age.
+            proposedString != previousAgeDisplayed
+        }
     }
 
     fun simpleDate(timestamp: Long?): String {
@@ -126,3 +196,5 @@ class EventAdapter(
 
     override fun getItemCount() = items.size
 }
+
+fun Int.toPx(context: Context) = this * context.resources.displayMetrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT
