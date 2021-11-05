@@ -136,17 +136,25 @@ class EventAdapter(
         if (currentItemPosition == 0) {
             return true
         }
+        val moreRecentItem = items[currentItemPosition - 1]
+        val secondsBetweenEvents =
+            (moreRecentItem.lastChangeTimeSeconds ?: 0) - (item.lastChangeTimeSeconds ?: 0)
         return when (item.state) {
             DoorState.UNKNOWN -> false
             DoorState.CLOSED -> true
             DoorState.OPENING -> false
             DoorState.OPENING_TOO_LONG -> true
-            DoorState.OPEN -> true
-            DoorState.OPEN_MISALIGNED -> true
+            DoorState.OPEN -> moreRecentItem.state != DoorState.OPEN_MISALIGNED
+            DoorState.OPEN_MISALIGNED -> if (moreRecentItem.state == DoorState.CLOSED) {
+                // If the door was misaligned on the way to closing, this is not a terminal event.
+                secondsBetweenEvents > 15 // This was a terminal state if it lasted long enough.
+            } else {
+                true
+            }
             DoorState.CLOSING -> false
             DoorState.CLOSING_TOO_LONG -> true
             DoorState.ERROR_SENSOR_CONFLICT -> true
-            null -> false
+            null -> true
         }
     }
 
