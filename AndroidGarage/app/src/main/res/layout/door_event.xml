@@ -26,7 +26,7 @@
 
     <TextView
         android:id="@+id/time_since_last_change"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/list_margin"
         android:textAlignment="center"
@@ -67,8 +67,9 @@
 
             <TextView
                 android:id="@+id/event_title_text"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:textAlignment="center"
                 tools:text="Open"
                 app:layout_constraintEnd_toEndOf="@+id/event_icon"
                 app:layout_constraintStart_toStartOf="@+id/event_icon"
@@ -76,8 +77,9 @@
 
             <TextView
                 android:id="@+id/event_date_text"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:textAlignment="center"
                 android:text="October 24"
                 app:layout_constraintBottom_toTopOf="@+id/event_time_text"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -96,8 +98,9 @@
 
             <TextView
                 android:id="@+id/event_time_seconds_text"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:textAlignment="center"
                 android:text=":59"
                 android:textSize="@dimen/time_text_seconds_size"
                 app:layout_constraintStart_toEndOf="@+id/event_time_text"
@@ -106,8 +109,9 @@
 
             <TextView
                 android:id="@+id/event_message_text"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:textAlignment="center"
                 android:text="The door is open."
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@+id/event_icon"

@@ -44,7 +44,11 @@ class RemoteDataSource private constructor(
     fun refreshDoorHistory(context: Context, buildTimestamp: String) {
         Log.d(TAG, "refreshDoorHistory")
         executor.execute {
-            val url = buildUri(buildTimestamp, Constants.EVENT_HISTORY_PATH).toString()
+            val url = buildUri(
+                buildTimestamp,
+                Constants.EVENT_HISTORY_PATH,
+                eventHistoryMaxCount = 100,
+            ).toString()
             fetchJSONFromURL(context, url) { jsonString ->
                 Log.d(TAG, "Network request success")
                 val map = jsonString.toMap()
@@ -67,7 +71,11 @@ class RemoteDataSource private constructor(
     }
 
     // https://us-central1-PROJECT-ID.cloudfunctions.net/PATH\?session\=\&buildTimestamp\=Sat%20Mar%2013%2014%3A45%3A00%202021
-    private fun buildUri(buildTimestamp: String, path: String): Uri {
+    private fun buildUri(
+        buildTimestamp: String,
+        path: String,
+        eventHistoryMaxCount: Int? = null,
+    ): Uri {
         Log.d(TAG, "buildUri $buildTimestamp")
         val builder = Uri.Builder()
             .scheme(Constants.SCHEME)
@@ -75,6 +83,12 @@ class RemoteDataSource private constructor(
             .appendPath(path)
             .appendQueryParameter(Constants.SESSION_PARAM_KEY, "")
             .appendQueryParameter(Constants.BUILD_TIMESTAMP_PARAM_KEY, buildTimestamp)
+        if (eventHistoryMaxCount != null) {
+            builder.appendQueryParameter(
+                Constants.EVENT_HISTORY_MAX_COUNT_PARAM_KEY,
+                eventHistoryMaxCount.toString()
+            )
+        }
         return builder.build()
     }
 

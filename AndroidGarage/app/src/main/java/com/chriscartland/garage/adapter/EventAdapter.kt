@@ -102,7 +102,7 @@ class EventAdapter(
             return "--"
         }
         val date = Date(timestamp * 1000L)
-        val format = SimpleDateFormat("MMM dd", Locale.US)
+        val format = SimpleDateFormat("MMM d", Locale.US)
         return format.format(date)
     }
 
