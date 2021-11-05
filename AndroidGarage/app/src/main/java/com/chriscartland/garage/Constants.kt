@@ -19,6 +19,7 @@ package com.chriscartland.garage
 
 class Constants {
     companion object {
+
         // https://us-central1-PROJECT-ID.cloudfunctions.net/eventHistory?session=ABC&buildTimestamp=Sat%20Mar%2013%2014%3A45%3A00%202021
         const val SCHEME = "https"
         const val AUTHORITY = "us-central1-PROJECT-ID.cloudfunctions.net"
@@ -27,6 +28,7 @@ class Constants {
 
         const val SESSION_PARAM_KEY = "session"
         const val BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp"
+        const val EVENT_HISTORY_MAX_COUNT_PARAM_KEY = "eventHistoryMaxCount"
 
         const val CHECK_IN_THRESHOLD_SECONDS = 60 * 15 // 15 minutes in seconds.
 
