@@ -41,7 +41,7 @@ fun updateOpenDoorFcmSubscription(activity: Activity, buildTimestamp: String) {
     Firebase.messaging.subscribeToTopic(newFcmTopic)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                Log.e(TAG, "Subscribed to FCM Topic $newFcmTopic")
+                Log.i(TAG, "Subscribed to FCM Topic $newFcmTopic")
             } else {
                 Log.e(TAG, task.exception.toString())
             }
