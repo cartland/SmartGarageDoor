@@ -59,7 +59,7 @@ I wrote a debouncer that makes sure the signal is stable for `DEBOUNCE_MILLIS` (
 When there is a change, the time is reset to the current time.
 If the value has not changed for more than the required duration, the state is set to the value.
 If the state changes, the function returns `true`. If the state has not changed, the function returns `false`.
-https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/DoorSensor/Debouncer.cpp#L19-L43
+https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/DoorSensor/Debouncer.cpp#L19-L39
 
 When the state changes, the client sends the updated server information to the server.
 https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/DoorSensor/DoorSensor.ino#L115-L122
