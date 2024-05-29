@@ -157,6 +157,35 @@ https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4
 ## Server
 * **Platform**: Firebase Functions
 
+**All critical logic is handled by the server**. To minimize client updates,
+the clients have very little business logic encoded in them.
+
+Non-server responsibilities:
+* **Sensors**: Simply report sensor values to the server when the value change
+* **Button**: Simply push the button based on a server command
+* **Android**: View the current door state based on the server,
+  and send a command to push the button based on user request.
+
+As long as the primitive requirements are supported by the clients, the server can add new features.
+* **Server**
+  * **Stores all requests** sent by clients.
+  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L40
+  * Interprets sensor data and converts signal input to **door events**.
+  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L64-L71
+  * Responds to client requests for the **current event**.
+  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L44
+  * Implements the Button Ack Token Protocol to **push the garage remote button**.
+  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L52
+  * Listens to **Android app requests to push the button**.
+  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L56
+  * **Checks for garage door errors** every minute (example: door halfway closed).
+  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L74-L82
+  * **Checks for open garage door** every 5 minutes, and **sends a mobile notification** if the door is **open more than 15 minutes**.
+  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L84-L89
+  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L91-L96
+  * Implements a **data retention policy** to delete old data.
+  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L100
+
 ## Limitations
 * **Hard-coded WiFi**: If my WiFi password changes, I will need to reprogram the Arduino boards.
 * **Polling**: Polling is more expensive and has high latency.
@@ -195,5 +224,5 @@ Adafruit has amazing products and educational materials.
 * Update firmware https://learn.adafruit.com/upgrading-esp32-firmware/overview
   * https://learn.adafruit.com/upgrading-esp32-firmware/upgrade-an-airlift-all-in-one-board
  
-# Reset Arduino in Software
+## Reset Arduino in Software
 * https://www.instructables.com/two-ways-to-reset-arduino-in-software/
