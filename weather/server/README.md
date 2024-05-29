@@ -1,2 +1,0 @@
-Server for Weather Device
-=========================
