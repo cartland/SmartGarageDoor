@@ -7,8 +7,8 @@ DIY smart garage door system built with Arduino, Firebase, and Android.
 * [Microcontroller](#microcontroller): Adafruit HUZZAH32 - ESP32 Feather
 * [Sensor](#sensor): Adafruit Magnetic contact switch (door sensor)
 * [Button](#button): Adafruit Non-Latching Mini Relay FeatherWing
-* [Server](#server): Firebase Functions
 * [Android](#android): Android app
+* [Server](#server): Firebase Functions
 
 ## Microcontroller
 * **Hardware**: [Adafruit HUZZAH32 - ESP32 Feather](https://www.adafruit.com/product/3405)
@@ -139,11 +139,23 @@ failing to acknowledge the button. The server must keep responding with the same
     When the server wants the client to push the button, the server should pick a new token
     and then **the server should consistently send the same token until it is acknowledged**.
 
-## Server
-* **Platform**: Firebase Functions
-
 ## Android
 * **Platform**: Android
+
+**Door State**: The Android app displays the current status of the door, as interpreted by the server.
+https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/AndroidGarage/app/src/main/java/com/chriscartland/garage/model/DoorState.kt#L20-L30
+
+**Pushing the garage button**: The user can "press the garage door button" in the app.
+After a confirmation dialog, the app will send a command to the server.
+To minimize the chance of double-pressing the button,
+the Android app will disable the button for 30 seconds.
+https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/AndroidGarage/app/src/main/java/com/chriscartland/garage/MainActivity.kt#L267-L284
+
+**Authentication**: Pushing the button requires Google Sign-In. The server maintains an allow-list.
+https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/AndroidGarage/app/src/main/java/com/chriscartland/garage/MainActivity.kt#L96-L106
+
+## Server
+* **Platform**: Firebase Functions
 
 ## Limitations
 * **Hard-coded WiFi**: If my WiFi password changes, I will need to reprogram the Arduino boards.
