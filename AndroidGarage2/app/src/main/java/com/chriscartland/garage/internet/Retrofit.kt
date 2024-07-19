@@ -1,6 +1,7 @@
 package com.chriscartland.garage.internet
 
 import com.chriscartland.garage.model.CurrentEventDataResponse
+import com.chriscartland.garage.model.RecentEventDataResponse
 import com.squareup.moshi.Moshi
 import retrofit2.Call
 import retrofit2.Retrofit
@@ -23,4 +24,10 @@ interface GarageService {
         @Query("buildTimestamp") buildTimestamp: String,
         @Query("session") session: String? = null,
     ): Call<CurrentEventDataResponse>
+
+    @GET("recentEventData")
+    suspend fun getRecentEventData(
+        @Query("buildTimestamp") buildTimestamp: String,
+        @Query("session") session: String
+    ): Call<RecentEventDataResponse>
 }

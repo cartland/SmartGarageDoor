@@ -29,6 +29,10 @@ class SensorEventDatabase {
   async get(buildTimestamp: string): Promise<any> {
     return this.DB.getCurrent(buildTimestamp);
   }
+
+  async getRecentN(n: number): Promise<any> {
+    return this.DB.getLatestN(n);
+  }
 };
 
 export const DATABASE = new SensorEventDatabase();

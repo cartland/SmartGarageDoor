@@ -61,6 +61,20 @@ export class TimeSeriesDatabase {
     return TimeSeriesDatabase.convertFromFirestore(currentRef.data());
   }
 
+  async getLatestN(n: number): Promise<any[]> {
+    const allRef = firebase.app().firestore().collection(this.collectionAll);
+
+    const querySnapshot = await allRef
+      .orderBy(TimeSeriesDatabase.DATABASE_TIMESTAMP_SECONDS_KEY, "desc")
+      .limit(n)
+      .get();
+
+    const latestItems = querySnapshot.docs.map(doc =>
+      TimeSeriesDatabase.convertFromFirestore(doc.data())
+    );
+    return latestItems;
+  }
+
   async deleteAllBefore(cutoffTimestampSeconds: number, dryRun: boolean): Promise<number> {
     const query = firebase.app().firestore().collection(this.collectionAll)
       .where(TimeSeriesDatabase.DATABASE_TIMESTAMP_SECONDS_KEY, '<', cutoffTimestampSeconds);

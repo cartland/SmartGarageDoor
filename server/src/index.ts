@@ -23,7 +23,7 @@ import { echo } from './controller/functions/content'
 import { remoteButton, addRemoteButtonCommand, checkForRemoteButtonErrors } from './controller/functions/remote'
 import { serverConfig } from './controller/functions/config'
 import { dataRetentionPolicy, deleteData } from './controller/functions/datapolicy'
-import { currentEventData, nextEvent } from './controller/functions/events'
+import { currentEventData, nextEvent, recentEventData } from './controller/functions/events'
 import { updateEvent, sendFCMForOldData } from './controller/functions/EventUpdates';
 import { TimeSeriesDatabase } from './database/TimeSeriesDatabase';
 
@@ -42,6 +42,10 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'echo') {
 
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'currentEventData') {
   exports.currentEventData = currentEventData;
+}
+
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'recentEventData') {
+  exports.recentEventData = recentEventData;
 }
 
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'nextEvent') {
