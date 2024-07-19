@@ -25,7 +25,7 @@ data class DoorDisplayInfo(
     val color: Int
 ) {
     companion object {
-        fun fromLoadingDoorData(context: Context, loadingDoor: Loading<DoorData>) : DoorDisplayInfo {
+        fun fromLoadingDoorData(context: Context, loadingDoor: Loading<DoorEvent>) : DoorDisplayInfo {
             return when (loadingDoor.loading) {
                 LoadingState.NO_DATA -> DoorDisplayInfo(
                     status = context.getString(R.string.title_no_data),
@@ -35,45 +35,45 @@ data class DoorDisplayInfo(
                     status = context.getString(R.string.title_loading),
                     color = context.getColor(R.color.color_door_error)
                 )
-                LoadingState.LOADED_DATA -> fromDoorState(context, loadingDoor.data?.state)
+                LoadingState.LOADED_DATA -> fromDoorPosition(context, loadingDoor.data?.doorPosition)
             }
         }
 
-        fun fromDoorState(context: Context, doorState: DoorState?) : DoorDisplayInfo {
-            return when (doorState) {
-                DoorState.UNKNOWN -> DoorDisplayInfo(
+        fun fromDoorPosition(context: Context, doorPosition: DoorPosition?) : DoorDisplayInfo {
+            return when (doorPosition) {
+                DoorPosition.UNKNOWN -> DoorDisplayInfo(
                     status = context.getString(R.string.title_door_error),
                     color = context.getColor(R.color.color_door_error)
                 )
-                DoorState.CLOSED -> DoorDisplayInfo(
+                DoorPosition.CLOSED -> DoorDisplayInfo(
                     status = context.getString(R.string.title_door_closed),
                     color = context.getColor(R.color.color_door_closed)
                 )
-                DoorState.OPENING -> DoorDisplayInfo(
+                DoorPosition.OPENING -> DoorDisplayInfo(
                     status = context.getString(R.string.title_door_opening),
                     color = context.getColor(R.color.color_door_opening)
                 )
-                DoorState.OPENING_TOO_LONG -> DoorDisplayInfo(
+                DoorPosition.OPENING_TOO_LONG -> DoorDisplayInfo(
                     status = context.getString(R.string.title_door_opening_too_long),
                     color = context.getColor(R.color.color_door_error)
                 )
-                DoorState.OPEN -> DoorDisplayInfo(
+                DoorPosition.OPEN -> DoorDisplayInfo(
                     status = context.getString(R.string.title_door_open),
                     color = context.getColor(R.color.color_door_open)
                 )
-                DoorState.OPEN_MISALIGNED -> DoorDisplayInfo(
+                DoorPosition.OPEN_MISALIGNED -> DoorDisplayInfo(
                     status = context.getString(R.string.title_door_open_misaligned),
                     color = context.getColor(R.color.color_door_open)
                 )
-                DoorState.CLOSING -> DoorDisplayInfo(
+                DoorPosition.CLOSING -> DoorDisplayInfo(
                     status = context.getString(R.string.title_door_closing),
                     color = context.getColor(R.color.color_door_closing)
                 )
-                DoorState.CLOSING_TOO_LONG -> DoorDisplayInfo(
+                DoorPosition.CLOSING_TOO_LONG -> DoorDisplayInfo(
                     status = context.getString(R.string.title_door_closing_too_long),
                     color = context.getColor(R.color.color_door_error)
                 )
-                DoorState.ERROR_SENSOR_CONFLICT -> DoorDisplayInfo(
+                DoorPosition.ERROR_SENSOR_CONFLICT -> DoorDisplayInfo(
                     status = context.getString(R.string.title_door_sensor_conflict),
                     color = context.getColor(R.color.color_door_error)
                 )

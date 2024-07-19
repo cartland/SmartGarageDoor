@@ -24,5 +24,5 @@ data class ServerConfig(
     val host: String? = null,
     val path: String? = null,
     val remoteButtonEnabled: Boolean = false,
-    val remoteButtonAuthorizedEmails: Array<String>? = null
+    val remoteButtonAuthorizedEmails: List<String>? = null,
 )

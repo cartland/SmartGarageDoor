@@ -19,5 +19,5 @@ package com.chriscartland.garage.model
 
 data class DoorDataAge(
     val ageSeconds: Long,
-    val doorData: DoorData?
+    val doorEvent: DoorEvent?
 )
