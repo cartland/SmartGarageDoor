@@ -40,6 +40,18 @@ fun GarageApp() {
     AppTheme {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
+            topBar = {
+                Text(
+                    "Garage",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            bottomBar = {
+                Text(
+                    "Garage",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         ) { innerPadding ->
             Text(
                 "Garage",
