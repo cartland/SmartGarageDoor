@@ -39,5 +39,38 @@ class GarageRepository @Inject constructor(
             _currentEventData.value = Result.Error(e)
         }
     }
+
+    private val _recentEventsData = MutableStateFlow<Result<List<DoorEvent>>>(Result.Loading(emptyList()))
+    val recentEventsData: StateFlow<Result<List<DoorEvent>>> = _recentEventsData.asStateFlow()
+
+    suspend fun fetchRecentDoorEvents(buildTimestamp: String, session: String) {
+        _recentEventsData.value = Result.Loading(recentEventsData.value.dataOrNull())
+        try {
+            val response = service.getRecentEventData(
+                buildTimestamp = buildTimestamp,
+                session = session
+            )
+
+            Log.d("GarageRepository", "Response: $response")
+            if (response.recentEventData.isEmpty()) {
+                Log.e("GarageRepository", "recentEventData is empty")
+            }
+            val doorEvents = response.recentEventData.map {
+                it.asDoorEvent()
+            }.filterNotNull()
+            if (doorEvents.size != response.recentEventData.size) {
+                Log.e(
+                    "GarageRepository",
+                    "Door events size ${doorEvents.size} " +
+                            "does not match response size ${response.recentEventData.size}"
+                )
+            }
+            Log.d("GarageRepository", "Success: $doorEvents")
+            _recentEventsData.value = Result.Success(doorEvents)
+        } catch (e: IOException) {
+            _recentEventsData.value = Result.Error(e)
+        }
+    }
+
 }
 

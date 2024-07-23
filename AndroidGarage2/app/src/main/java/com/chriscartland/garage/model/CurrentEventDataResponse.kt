@@ -10,7 +10,7 @@ data class CurrentEventDataResponse(
     val queryParams: QueryParams?,
     val session: String?,
     val buildTimestamp: String?, // Assuming this field is for the time the data was built
-    val currentEventData: CurrentEventData?,
+    val currentEventData: EventData?,
     val body: Map<String, Any>? = null, // Handle the empty "body" object
     @Json(name = "FIRESTORE_databaseTimestamp") val firestoreDatabaseTimestamp: FirestoreDatabaseTimestamp? = null
 )
@@ -22,7 +22,7 @@ data class QueryParams(
 )
 
 @JsonClass(generateAdapter = true)
-data class CurrentEventData(
+data class EventData(
     @Json(name = "currentEvent") val currentEvent: Event?,
     @Json(name = "previousEvent") val previousEvent: Event?,
     @Json(name = "FIRESTORE_databaseTimestamp") val firestoreDatabaseTimestamp: FirestoreDatabaseTimestamp?,

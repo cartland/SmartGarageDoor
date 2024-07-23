@@ -6,25 +6,5 @@ data class RecentEventDataResponse(
     val body: Any,
     val session: String,
     val buildTimestamp: String,
-    val recentEventData: List<EventData>
-)
-
-data class EventData(
-    val currentEvent: EventDetails,
-    val previousEvent: EventDetails?,
-    val FIRESTORE_databaseTimestamp: Timestamp,
-    val buildTimestamp: String,
-    val FIRESTORE_databaseTimestampSeconds: Long
-)
-
-data class EventDetails(
-    val type: String,
-    val message: String,
-    val timestampSeconds: Long,
-    val checkInTimestampSeconds: Long
-)
-
-data class Timestamp(
-    val _seconds: Long,
-    val _nanoseconds: Int
+    val recentEventData: List<Event>
 )
