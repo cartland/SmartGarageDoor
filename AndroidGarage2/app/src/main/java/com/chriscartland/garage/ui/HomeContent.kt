@@ -1,5 +1,7 @@
 package com.chriscartland.garage.ui
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,11 +26,17 @@ fun HomeContent(
             HomeLoading(
                 currentDoorEvent = currentDoorEvent.value.dataOrNull(),
                 modifier = modifier,
+                onClick = {
+                    viewModel.fetchCurrentDoorEvent()
+                },
             )
         is Result.Success ->
             HomeContent(
                 currentDoorEvent = currentDoorEvent.value.dataOrNull(),
                 modifier = modifier,
+                onClick = {
+                    viewModel.fetchCurrentDoorEvent()
+                },
             )
     }
 }
@@ -37,18 +45,29 @@ fun HomeContent(
 fun HomeError(
     error: Result.Error,
     modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
 ) {
-    Text(text = error.toString())
+    Box(modifier = modifier.clickable { onClick() }) {
+        Text(
+            text = error.toString(),
+            modifier = modifier,
+        )
+    }
 }
 
 @Composable
 fun HomeLoading(
     currentDoorEvent: DoorEvent?,
     modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
 ) {
-    Column {
-        Text(text = "Loading...")
-        DoorStatusCard(currentDoorEvent, modifier = modifier)
+    Box(modifier = modifier.clickable { onClick() }) {
+        Column {
+            Text(text = "Loading...")
+            if (currentDoorEvent != null) {
+                DoorStatusCard(currentDoorEvent, modifier = modifier)
+            }
+        }
     }
 }
 
@@ -56,6 +75,9 @@ fun HomeLoading(
 fun HomeContent(
     currentDoorEvent: DoorEvent?,
     modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
 ) {
-    DoorStatusCard(currentDoorEvent, modifier = modifier)
+    Box(modifier = modifier.clickable { onClick() }) {
+        DoorStatusCard(currentDoorEvent, modifier = modifier)
+    }
 }
