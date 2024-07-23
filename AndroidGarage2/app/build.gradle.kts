@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.google.devtools.ksp)
+    alias(libs.plugins.hilt)
+    kotlin("kapt")
 }
 
 android {
@@ -10,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.chriscartland.garage"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -22,6 +24,7 @@ android {
     }
 
     buildTypes {
+        debug {}
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -63,7 +66,9 @@ dependencies {
     implementation(libs.squareup.moshi)
     implementation(libs.squareup.retrofit)
     implementation(libs.squareup.retrofit.moshi.converter)
+    implementation(libs.okhttpLoggingInterceptor)
     implementation(libs.androidx.room.common)
+    implementation(libs.androidx.navigation.compose)
     ksp(libs.squareup.moshi.kotlin.codegen)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -72,4 +77,7 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
+    implementation(libs.hilt.navigation.compose)
 }

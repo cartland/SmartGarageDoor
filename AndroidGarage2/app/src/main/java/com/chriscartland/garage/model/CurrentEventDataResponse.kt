@@ -9,8 +9,10 @@ import com.squareup.moshi.JsonClass
 data class CurrentEventDataResponse(
     val queryParams: QueryParams?,
     val session: String?,
-    val buildTimestamp: String?,
+    val buildTimestamp: String?, // Assuming this field is for the time the data was built
     val currentEventData: CurrentEventData?,
+    val body: Map<String, Any>? = null, // Handle the empty "body" object
+    @Json(name = "FIRESTORE_databaseTimestamp") val firestoreDatabaseTimestamp: FirestoreDatabaseTimestamp? = null
 )
 
 @JsonClass(generateAdapter = true)
