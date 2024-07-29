@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -56,9 +57,7 @@ fun AppNavigation() {
         NavHost(
             navController,
             startDestination = Screen.Home.route,
-            Modifier
-                .padding(innerPadding)
-                .safeContentPadding(),
+            Modifier.padding(innerPadding).padding(16.dp)
         ) {
             composable(Screen.Home.route) { HomeContent() }
             composable(Screen.Profile.route) { ProfileContent() }

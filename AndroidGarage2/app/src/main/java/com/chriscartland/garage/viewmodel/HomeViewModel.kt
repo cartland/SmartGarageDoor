@@ -17,13 +17,22 @@ class HomeViewModel @Inject constructor(
 
     val currentDoorEvent: StateFlow<Result<DoorEvent?>> = garageRepository.currentEventData
 
+    val recentDoorEvents: StateFlow<Result<List<DoorEvent>>> = garageRepository.recentEventsData
+
     init {
         fetchCurrentDoorEvent()
+//        fetchRecentDoorEvents()
     }
 
     fun fetchCurrentDoorEvent() {
         viewModelScope.launch {
             garageRepository.fetchCurrentDoorEvent()
+        }
+    }
+
+    fun fetchRecentDoorEvents() {
+        viewModelScope.launch {
+            garageRepository.fetchRecentDoorEvents()
         }
     }
 }

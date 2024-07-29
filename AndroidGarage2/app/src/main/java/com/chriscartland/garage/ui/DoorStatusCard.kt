@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
@@ -95,6 +97,78 @@ fun DoorStatusCard(
                 text = "Door Status: ${doorPosition.name}",
                 style = MaterialTheme.typography.titleMedium
             )
+        }
+    }
+}
+
+@Composable
+fun RecentDoorEventListItem(
+    doorEvent: DoorEvent,
+    modifier: Modifier = Modifier,
+) {
+    val doorPosition = doorEvent.doorPosition ?: DoorPosition.UNKNOWN
+
+    val imageResource = when (doorPosition) {
+        DoorPosition.OPEN -> R.drawable.baseline_houseboat_24
+        DoorPosition.CLOSED -> R.drawable.baseline_house_24
+        DoorPosition.OPENING -> R.drawable.baseline_house_siding_24
+        DoorPosition.CLOSING -> R.drawable.baseline_house_siding_24
+        DoorPosition.OPENING_TOO_LONG -> R.drawable.baseline_other_houses_24
+        DoorPosition.CLOSING_TOO_LONG -> R.drawable.baseline_other_houses_24
+        DoorPosition.OPEN_MISALIGNED -> R.drawable.baseline_other_houses_24
+        DoorPosition.ERROR_SENSOR_CONFLICT -> R.drawable.baseline_other_houses_24
+        DoorPosition.UNKNOWN -> R.drawable.baseline_other_houses_24
+    }
+
+    Card(
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(10.dp),
+        modifier = modifier,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (doorEvent.lastChangeTimeSeconds == null) {
+                Column {
+                    Text(text = "")
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(text = "")
+                }
+            } else {
+                Column {
+                    Text(
+                        text = Instant.ofEpochSecond(doorEvent.lastChangeTimeSeconds)
+                            .atZone(ZoneId.systemDefault())
+                            .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        text = Instant.ofEpochSecond(doorEvent.lastChangeTimeSeconds)
+                            .atZone(ZoneId.systemDefault())
+                            .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM))
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column {
+                Image(
+                    painter = painterResource(id = imageResource),
+                    contentDescription = "Door Status",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(24.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Door Status: ${doorPosition.name}",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
         }
     }
 }

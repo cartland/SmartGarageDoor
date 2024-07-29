@@ -17,8 +17,6 @@
 
 package com.chriscartland.garage.model
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.time.Instant
@@ -45,7 +43,6 @@ enum class DoorPosition {
     ERROR_SENSOR_CONFLICT
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 fun generateDoorEventDemoData(numEvents: Int = 10): List<DoorEvent> {
     val currentTimeSeconds = Instant.now().epochSecond
 

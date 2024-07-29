@@ -25,7 +25,7 @@ interface GarageService {
     @GET("recentEventData")
     suspend fun getRecentEventData(
         @Query("buildTimestamp") buildTimestamp: String,
-        @Query("session") session: String
+        @Query("session") session: String? = null,
     ): RecentEventDataResponse
 }
 

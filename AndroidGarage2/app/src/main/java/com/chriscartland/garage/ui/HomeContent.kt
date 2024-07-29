@@ -1,12 +1,16 @@
 package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.repository.Result
@@ -19,65 +23,94 @@ fun HomeContent(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val currentDoorEvent = viewModel.currentDoorEvent.collectAsState()
+    val recentDoorEvents = viewModel.recentDoorEvents.collectAsState()
+    HomeContent(
+        currentDoorEvent = currentDoorEvent.value,
+        recentDoorEvents = recentDoorEvents.value,
+        modifier = modifier,
+        onFetchCurrentDoorEvent = { viewModel.fetchCurrentDoorEvent() },
+        onFetchRecentDoorEvents = { viewModel.fetchRecentDoorEvents() },
+    )
 
-    when (currentDoorEvent.value) {
-        is Result.Error -> HomeError(currentDoorEvent.value as Result.Error)
-        is Result.Loading ->
-            HomeLoading(
-                currentDoorEvent = currentDoorEvent.value.dataOrNull(),
-                modifier = modifier,
-                onClick = {
-                    viewModel.fetchCurrentDoorEvent()
-                },
-            )
-        is Result.Success ->
-            HomeContent(
-                currentDoorEvent = currentDoorEvent.value.dataOrNull(),
-                modifier = modifier,
-                onClick = {
-                    viewModel.fetchCurrentDoorEvent()
-                },
-            )
-    }
 }
 
 @Composable
-fun HomeError(
-    error: Result.Error,
+fun HomeContent(
+    currentDoorEvent: Result<DoorEvent?>,
+    recentDoorEvents: Result<List<DoorEvent>>,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit = {},
+    onFetchCurrentDoorEvent: () -> Unit = {},
+    onFetchRecentDoorEvents: () -> Unit = {},
 ) {
-    Box(modifier = modifier.clickable { onClick() }) {
-        Text(
-            text = error.toString(),
-            modifier = modifier,
-        )
-    }
-}
+    LazyColumn(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        item {
+            CurrentEventCard(
+                currentDoorEvent = currentDoorEvent,
+                modifier = Modifier,
+                onFetchCurrentDoorEvent = onFetchCurrentDoorEvent,
+            )
+        }
 
-@Composable
-fun HomeLoading(
-    currentDoorEvent: DoorEvent?,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit = {},
-) {
-    Box(modifier = modifier.clickable { onClick() }) {
-        Column {
-            Text(text = "Loading...")
-            if (currentDoorEvent != null) {
-                DoorStatusCard(currentDoorEvent, modifier = modifier)
+        when (recentDoorEvents) {
+            is Result.Error ->
+                item {
+                    Box(modifier = modifier.clickable { onFetchRecentDoorEvents() }) {
+                        Text(
+                            text = recentDoorEvents.toString(),
+                        )
+                    }
+                }
+            is Result.Loading -> {
+                item {
+                    Text(text = "Loading...")
+                }
+                items(recentDoorEvents.dataOrNull() ?: emptyList()) { item ->
+                    Box(modifier = modifier.clickable { onFetchRecentDoorEvents() }) {
+                        RecentDoorEventListItem(item)
+                    }
+                }
+            }
+            is Result.Success -> {
+                items(recentDoorEvents.dataOrNull() ?: emptyList()) { item ->
+                    Box(modifier = modifier.clickable { onFetchRecentDoorEvents() }) {
+                        RecentDoorEventListItem(item)
+                    }
+                }
             }
         }
     }
 }
 
+
 @Composable
-fun HomeContent(
-    currentDoorEvent: DoorEvent?,
+fun CurrentEventCard(
+    currentDoorEvent: Result<DoorEvent?>,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit = {},
+    onFetchCurrentDoorEvent: () -> Unit = {},
 ) {
-    Box(modifier = modifier.clickable { onClick() }) {
-        DoorStatusCard(currentDoorEvent, modifier = modifier)
+    when (currentDoorEvent) {
+        is Result.Error ->
+            Box(modifier = modifier.clickable { onFetchCurrentDoorEvent() }) {
+                Text(
+                    text = currentDoorEvent.toString(),
+                )
+            }
+        is Result.Loading ->
+            Box(modifier = modifier.clickable { onFetchCurrentDoorEvent() }) {
+                Column {
+                    Text(text = "Loading...")
+                    currentDoorEvent.dataOrNull()?.let { doorEvent ->
+                        DoorStatusCard(doorEvent)
+                    }
+                }
+            }
+        is Result.Success ->
+            Box(modifier = modifier.clickable { onFetchCurrentDoorEvent() }) {
+                DoorStatusCard(currentDoorEvent.dataOrNull())
+            }
     }
 }
+

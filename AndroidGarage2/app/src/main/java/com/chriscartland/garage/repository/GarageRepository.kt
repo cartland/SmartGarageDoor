@@ -3,6 +3,7 @@ package com.chriscartland.garage.repository
 import android.util.Log
 import com.chriscartland.garage.internet.GarageService
 import com.chriscartland.garage.model.DoorEvent
+import com.chriscartland.garage.ui.demoDoorEvents
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,21 +35,21 @@ class GarageRepository @Inject constructor(
             }
             Log.d("GarageRepository", "Success: $doorEvent")
             _currentEventData.value = Result.Success(doorEvent)
-        } catch (e: IOException) {
+        } catch (e: Exception) {
             Log.e("GarageRepository", "Error: $e")
             _currentEventData.value = Result.Error(e)
         }
     }
 
-    private val _recentEventsData = MutableStateFlow<Result<List<DoorEvent>>>(Result.Loading(emptyList()))
+    private val _recentEventsData = MutableStateFlow<Result<List<DoorEvent>>>(Result.Loading(demoDoorEvents))
     val recentEventsData: StateFlow<Result<List<DoorEvent>>> = _recentEventsData.asStateFlow()
 
-    suspend fun fetchRecentDoorEvents(buildTimestamp: String, session: String) {
+    suspend fun fetchRecentDoorEvents() {
         _recentEventsData.value = Result.Loading(recentEventsData.value.dataOrNull())
         try {
             val response = service.getRecentEventData(
-                buildTimestamp = buildTimestamp,
-                session = session
+                buildTimestamp = "Sat Mar 13 14:45:00 2021",
+                session = null,
             )
 
             Log.d("GarageRepository", "Response: $response")
@@ -67,7 +68,7 @@ class GarageRepository @Inject constructor(
             }
             Log.d("GarageRepository", "Success: $doorEvents")
             _recentEventsData.value = Result.Success(doorEvents)
-        } catch (e: IOException) {
+        } catch (e: Exception) {
             _recentEventsData.value = Result.Error(e)
         }
     }
