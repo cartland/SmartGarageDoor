@@ -46,8 +46,8 @@ object AppModule {
             .build()
 
         val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://us-central1-escape-echo.cloudfunctions.net/")
-//            .baseUrl("http://127.0.0.1:4000/functions")
+//            .baseUrl("https://us-central1-escape-echo.cloudfunctions.net/")
+            .baseUrl("http://10.0.2.2:5001/escape-echo/us-central1/")
             .client(client)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()

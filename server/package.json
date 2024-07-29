@@ -1,8 +1,10 @@
 {
   "name": "functions",
   "scripts": {
-    "lint": "tslint --project tsconfig.json",
-    "build": "./node_modules/.bin/tslint -p tslint.json && ./node_modules/.bin/tsc",
+    "lint": "tslint --project tsconfig.json",   
+    "build": "npm run build:mac || npm run build:windows", 
+    "build:mac": "echo \"Try Mac build\" && ./node_modules/.bin/tslint -p tslint.json && ./node_modules/.bin/tsc",
+    "build:windows": "echo \"Try Windows build\" && node_modules\\.bin\\tslint -p tslint.json && node_modules\\.bin\\tsc",
     "serve": "npm run build && firebase serve --only functions",
     "shell": "npm run build && firebase experimental:functions:shell",
     "start": "npm run shell",
