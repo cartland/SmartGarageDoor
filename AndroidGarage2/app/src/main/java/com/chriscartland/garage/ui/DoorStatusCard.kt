@@ -153,7 +153,10 @@ fun RecentDoorEventListItem(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Column {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 Image(
                     painter = painterResource(id = imageResource),
                     contentDescription = "Door Status",
