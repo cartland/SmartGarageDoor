@@ -36,19 +36,25 @@ class Repository(
 
     val doorData = localDataSource.doorData
 
+    val eventHistory = localDataSource.eventHistory
+
     fun setDoorData(doorData: DoorData) {
         Log.d(TAG, "setDoorData")
         localDataSource.updateDoorData(doorData)
     }
+    fun updateDoorHistory(doorHistory: List<DoorData>) {
+        Log.d(TAG, "updateDoorHistory")
+        localDataSource.updateDoorHistory(doorHistory)
+    }
 
     fun refreshData(context: Context, buildTimestamp: String) {
         Log.d(TAG, "refreshData")
-        remoteDataSource.refreshDoorData(context, buildTimestamp)
+        remoteDataSource.refreshDoorHistory(context, buildTimestamp)
     }
 
     init {
-        remoteDataSource.doorData.observeForever { doorData ->
-            setDoorData(doorData)
+        remoteDataSource.doorHistory.observeForever { doorHistory ->
+            updateDoorHistory(doorHistory)
         }
     }
 

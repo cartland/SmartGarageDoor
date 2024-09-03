@@ -31,9 +31,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.RecyclerView
 import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
+import com.chriscartland.garage.adapter.EventAdapter
 import com.chriscartland.garage.databinding.ActivityMainBinding
 import com.chriscartland.garage.model.LoadingState
 import com.chriscartland.garage.model.ServerConfig
@@ -49,9 +51,11 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var doorViewModel: DoorViewModel
+    private lateinit var eventHistoryAdapter: EventAdapter
 
     private val h: Handler = Handler(Looper.getMainLooper())
     private var runEachSecond: Runnable? = null
+    private var runEachMinute: Runnable? = null
     private var buttonRunnable: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,10 +65,20 @@ class MainActivity : AppCompatActivity() {
         binding.lifecycleOwner = this
         setContentView(binding.root)
 
+        val recyclerView = findViewById<RecyclerView>(R.id.event_history_list)
+        recyclerView.setHasFixedSize(true)
+        eventHistoryAdapter = EventAdapter(this, listOf())
+        recyclerView.adapter = eventHistoryAdapter
+
         doorViewModel = ViewModelProvider(this).get(DoorViewModel::class.java)
         binding.doorViewModel = doorViewModel
         doorViewModel.doorData.observe(this, Observer {
             doorViewModel.hideProgressBar()
+        })
+        doorViewModel.eventHistory.observe(this, { eventHistory ->
+            doorViewModel.hideProgressBar()
+            eventHistoryAdapter.items = eventHistory
+            eventHistoryAdapter.notifyDataSetChanged()
         })
         doorViewModel.loadingConfig.observe(this, Observer { loadingConfig ->
             val configData = loadingConfig.data
@@ -93,18 +107,22 @@ class MainActivity : AppCompatActivity() {
         })
         doorViewModel.enableRemoteButton()
 
+        // One Tap Sign-In configuration.
+        checkSignInConfiguration(TAG, this)
+        val googleClientIdForWeb = getString(R.string.web_client_id)
         doorViewModel.oneTapSignInClient = Identity.getSignInClient(this)
         doorViewModel.oneTapSignInRequest = BeginSignInRequest.builder()
             .setGoogleIdTokenRequestOptions(
                 BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
                     .setSupported(true)
-                    .setServerClientId(getString(R.string.web_client_id))
+                    .setServerClientId(googleClientIdForWeb)
                     .setFilterByAuthorizedAccounts(false)
                     .build())
             .setAutoSelectEnabled(true)
             .build()
         signIn(clicked = false)
         updateEverySecond()
+        updateEveryMinute()
     }
 
     private fun updateEverySecond() {
@@ -117,12 +135,32 @@ class MainActivity : AppCompatActivity() {
             override fun run() {
                 // Pass the current time to the ViewModel.
                 val now = Date()
-                doorViewModel.onUpdateTime(now)
+                doorViewModel.onUpdateTimeSecond(now)
                 h.postDelayed(this, 1000)
             }
         }
         // Run it now to start the cycle.
         runEachSecond?.let {
+            it.run()
+        }
+    }
+
+    private fun updateEveryMinute() {
+        // Remove any previously running callbacks.
+        runEachMinute?.let {
+            h.removeCallbacks(it)
+        }
+        // This callback will be run every second.
+        runEachMinute = object : Runnable {
+            override fun run() {
+                // Pass the current time to the ViewModel.
+                val now = Date()
+                eventHistoryAdapter.notifyDataSetChanged()
+                h.postDelayed(this, 1000)
+            }
+        }
+        // Run it now to start the cycle.
+        runEachMinute?.let {
             it.run()
         }
     }
@@ -133,6 +171,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun signIn(clicked: Boolean) {
+        checkSignInConfiguration(TAG, this)
         if (!clicked) {
             val sharedPref = getPreferences(Context.MODE_PRIVATE)
             val signedIn = sharedPref.getBoolean(SIGNED_IN_KEY, false)

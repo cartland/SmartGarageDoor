@@ -23,7 +23,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.chriscartland.garage.model.DoorData
 
-@Database(entities = arrayOf(DoorData::class), version = 2)
+@Database(entities = arrayOf(DoorData::class), version = 3)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun doorDataDao(): DoorDataDao

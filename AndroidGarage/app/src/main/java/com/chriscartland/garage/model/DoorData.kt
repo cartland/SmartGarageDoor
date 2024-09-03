@@ -22,9 +22,8 @@ import androidx.room.PrimaryKey
 
 @Entity
 data class DoorData(
-    @PrimaryKey val uid: Int = 0,
     val state: DoorState? = null,
     val message: String? = null,
     val lastCheckInTimeSeconds: Long? = null,
-    val lastChangeTimeSeconds: Long? = null
+    @PrimaryKey val lastChangeTimeSeconds: Long? = null
 )

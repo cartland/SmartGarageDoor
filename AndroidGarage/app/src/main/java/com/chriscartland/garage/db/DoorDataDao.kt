@@ -26,11 +26,17 @@ import com.chriscartland.garage.model.DoorData
 
 @Dao
 interface DoorDataDao {
-    @Query("SELECT * FROM doordata LIMIT 1")
+    @Query("SELECT * FROM doordata ORDER BY lastChangeTimeSeconds DESC LIMIT 1")
     fun getDoorData(): LiveData<DoorData>
+
+    @Query("SELECT * FROM doordata ORDER BY lastChangeTimeSeconds DESC")
+    fun getDoorHistory(): LiveData<List<DoorData>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(doorData: DoorData)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertDoorHistory(doorData: List<DoorData>)
 
     @Query("DELETE FROM doordata")
     fun deleteAll()
