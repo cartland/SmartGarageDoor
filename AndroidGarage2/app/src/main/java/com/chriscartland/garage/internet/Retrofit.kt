@@ -9,6 +9,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.GET
@@ -20,13 +21,13 @@ interface GarageService {
     suspend fun getCurrentEventData(
         @Query("buildTimestamp") buildTimestamp: String,
         @Query("session") session: String? = null,
-    ): CurrentEventDataResponse
+    ): Response<CurrentEventDataResponse>
 
-    @GET("recentEventData")
+    @GET("eventHistory")
     suspend fun getRecentEventData(
         @Query("buildTimestamp") buildTimestamp: String,
         @Query("session") session: String? = null,
-    ): RecentEventDataResponse
+    ): Response<RecentEventDataResponse>
 }
 
 @Module
@@ -39,7 +40,7 @@ object AppModule {
         val moshi: Moshi = Moshi.Builder().build()
 
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
+            level = HttpLoggingInterceptor.Level.BODY
         }
         val client: OkHttpClient = OkHttpClient.Builder()
             .addInterceptor(logging)

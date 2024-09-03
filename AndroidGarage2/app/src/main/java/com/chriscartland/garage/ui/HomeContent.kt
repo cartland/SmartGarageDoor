@@ -31,13 +31,12 @@ fun HomeContent(
         onFetchCurrentDoorEvent = { viewModel.fetchCurrentDoorEvent() },
         onFetchRecentDoorEvents = { viewModel.fetchRecentDoorEvents() },
     )
-
 }
 
 @Composable
 fun HomeContent(
     currentDoorEvent: Result<DoorEvent?>,
-    recentDoorEvents: Result<List<DoorEvent>>,
+    recentDoorEvents: Result<List<DoorEvent>?>,
     modifier: Modifier = Modifier,
     onFetchCurrentDoorEvent: () -> Unit = {},
     onFetchRecentDoorEvents: () -> Unit = {},
@@ -59,7 +58,7 @@ fun HomeContent(
                 item {
                     Box(modifier = modifier.clickable { onFetchRecentDoorEvents() }) {
                         Text(
-                            text = recentDoorEvents.toString(),
+                            text = recentDoorEvents.dataOrNull<List<DoorEvent>?>().toString(),
                         )
                     }
                 }
