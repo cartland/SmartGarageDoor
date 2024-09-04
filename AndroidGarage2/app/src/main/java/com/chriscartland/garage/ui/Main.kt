@@ -1,7 +1,6 @@
 package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -13,6 +12,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -26,7 +26,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.chriscartland.garage.ui.theme.AppTheme
 
-@Preview(showBackground = true)
 @Composable
 fun GarageApp() {
     AppTheme {
@@ -57,7 +56,9 @@ fun AppNavigation() {
         NavHost(
             navController,
             startDestination = Screen.Home.route,
-            Modifier.padding(innerPadding).padding(16.dp)
+            Modifier
+                .padding(innerPadding)
+                .padding(16.dp)
         ) {
             composable(Screen.Home.route) { HomeContent() }
             composable(Screen.Profile.route) { ProfileContent() }

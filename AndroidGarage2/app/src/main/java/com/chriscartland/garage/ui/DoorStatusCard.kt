@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -19,13 +17,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
 import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.model.DoorPosition
-import com.chriscartland.garage.model.generateDoorEventDemoData
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -132,7 +128,6 @@ fun RecentDoorEventListItem(
             if (doorEvent.lastChangeTimeSeconds == null) {
                 Column {
                     Text(text = "")
-                    Spacer(modifier = Modifier.weight(1f))
                     Text(text = "")
                 }
             } else {
@@ -142,7 +137,6 @@ fun RecentDoorEventListItem(
                             .atZone(ZoneId.systemDefault())
                             .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
                     )
-                    Spacer(modifier = Modifier.weight(1f))
                     Text(
                         text = Instant.ofEpochSecond(doorEvent.lastChangeTimeSeconds)
                             .atZone(ZoneId.systemDefault())
@@ -151,7 +145,7 @@ fun RecentDoorEventListItem(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -176,14 +170,14 @@ fun RecentDoorEventListItem(
     }
 }
 
-val demoDoorEvents = generateDoorEventDemoData()
-
-@Preview
+@Preview(showBackground = true)
 @Composable
 fun DoorStatusCardPreview() {
-    LazyColumn {
-        items(demoDoorEvents) { item ->
-            DoorStatusCard(item)
-        }
-    }
+    DoorStatusCard(demoDoorEvents.firstOrNull())
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RecentDoorEventListItemPreview() {
+    RecentDoorEventListItem(demoDoorEvents[1])
 }

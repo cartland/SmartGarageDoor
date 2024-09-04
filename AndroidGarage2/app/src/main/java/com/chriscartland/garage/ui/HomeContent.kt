@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.model.DoorEvent
@@ -56,7 +57,7 @@ fun HomeContent(
         when (recentDoorEvents) {
             is Result.Error ->
                 item {
-                    Box(modifier = modifier.clickable { onFetchRecentDoorEvents() }) {
+                    Box(modifier = Modifier.clickable { onFetchRecentDoorEvents() }) {
                         Text(
                             text = recentDoorEvents.dataOrNull<List<DoorEvent>?>().toString(),
                         )
@@ -67,14 +68,14 @@ fun HomeContent(
                     Text(text = "Loading...")
                 }
                 items(recentDoorEvents.dataOrNull() ?: emptyList()) { item ->
-                    Box(modifier = modifier.clickable { onFetchRecentDoorEvents() }) {
+                    Box(modifier = Modifier.clickable { onFetchRecentDoorEvents() }) {
                         RecentDoorEventListItem(item)
                     }
                 }
             }
             is Result.Success -> {
                 items(recentDoorEvents.dataOrNull() ?: emptyList()) { item ->
-                    Box(modifier = modifier.clickable { onFetchRecentDoorEvents() }) {
+                    Box(modifier = Modifier.clickable { onFetchRecentDoorEvents() }) {
                         RecentDoorEventListItem(item)
                     }
                 }
@@ -93,9 +94,10 @@ fun CurrentEventCard(
     when (currentDoorEvent) {
         is Result.Error ->
             Box(modifier = modifier.clickable { onFetchCurrentDoorEvent() }) {
-                Text(
-                    text = currentDoorEvent.toString(),
-                )
+                Column {
+                    Text(text = "Error")
+                    Text(text = currentDoorEvent.toString())
+                }
             }
         is Result.Loading ->
             Box(modifier = modifier.clickable { onFetchCurrentDoorEvent() }) {
@@ -113,3 +115,38 @@ fun CurrentEventCard(
     }
 }
 
+@Preview(showBackground = true)
+@Composable
+fun HomeContentPreview() {
+    HomeContent(
+        currentDoorEvent = Result.Success(demoDoorEvents.firstOrNull()),
+        recentDoorEvents = Result.Success(demoDoorEvents),
+        modifier = Modifier,
+        onFetchCurrentDoorEvent = {},
+        onFetchRecentDoorEvents = {},
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun CurrentEventCardSuccessPreview() {
+    CurrentEventCard(
+        currentDoorEvent = Result.Success(demoDoorEvents.firstOrNull()),
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun CurrentEventCardLoadingPreview() {
+    CurrentEventCard(
+        currentDoorEvent = Result.Loading(demoDoorEvents[1]),
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun CurrentEventCardErrorPreview() {
+    CurrentEventCard(
+        currentDoorEvent = Result.Error(Exception("Error")),
+    )
+}
