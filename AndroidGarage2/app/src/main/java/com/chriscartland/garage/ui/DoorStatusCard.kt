@@ -34,17 +34,7 @@ fun DoorStatusCard(
 ) {
     val doorPosition = doorEvent?.doorPosition ?: DoorPosition.UNKNOWN
 
-    val imageResource = when (doorPosition) {
-        DoorPosition.OPEN -> R.drawable.baseline_houseboat_24
-        DoorPosition.CLOSED -> R.drawable.baseline_house_24
-        DoorPosition.OPENING -> R.drawable.baseline_house_siding_24
-        DoorPosition.CLOSING -> R.drawable.baseline_house_siding_24
-        DoorPosition.OPENING_TOO_LONG -> R.drawable.baseline_other_houses_24
-        DoorPosition.CLOSING_TOO_LONG -> R.drawable.baseline_other_houses_24
-        DoorPosition.OPEN_MISALIGNED -> R.drawable.baseline_other_houses_24
-        DoorPosition.ERROR_SENSOR_CONFLICT -> R.drawable.baseline_other_houses_24
-        DoorPosition.UNKNOWN -> R.drawable.baseline_other_houses_24
-    }
+    val imageResource = doorPosition.toImageResourceId()
 
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -104,17 +94,7 @@ fun RecentDoorEventListItem(
 ) {
     val doorPosition = doorEvent.doorPosition ?: DoorPosition.UNKNOWN
 
-    val imageResource = when (doorPosition) {
-        DoorPosition.OPEN -> R.drawable.baseline_houseboat_24
-        DoorPosition.CLOSED -> R.drawable.baseline_house_24
-        DoorPosition.OPENING -> R.drawable.baseline_house_siding_24
-        DoorPosition.CLOSING -> R.drawable.baseline_house_siding_24
-        DoorPosition.OPENING_TOO_LONG -> R.drawable.baseline_other_houses_24
-        DoorPosition.CLOSING_TOO_LONG -> R.drawable.baseline_other_houses_24
-        DoorPosition.OPEN_MISALIGNED -> R.drawable.baseline_other_houses_24
-        DoorPosition.ERROR_SENSOR_CONFLICT -> R.drawable.baseline_other_houses_24
-        DoorPosition.UNKNOWN -> R.drawable.baseline_other_houses_24
-    }
+    val imageResourceId = doorPosition.toImageResourceId()
 
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -152,7 +132,7 @@ fun RecentDoorEventListItem(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Image(
-                    painter = painterResource(id = imageResource),
+                    painter = painterResource(id = imageResourceId),
                     contentDescription = "Door Status",
                     modifier = Modifier
                         .fillMaxWidth()
@@ -168,6 +148,18 @@ fun RecentDoorEventListItem(
             }
         }
     }
+}
+
+private fun DoorPosition.toImageResourceId(): Int = when (this) {
+    DoorPosition.OPEN -> R.drawable.ic_garage_simple_open
+    DoorPosition.CLOSED -> R.drawable.ic_garage_simple_closed
+    DoorPosition.OPENING -> R.drawable.ic_garage_simple_moving
+    DoorPosition.CLOSING -> R.drawable.ic_garage_simple_moving
+    DoorPosition.OPENING_TOO_LONG -> R.drawable.ic_garage_simple_unknown
+    DoorPosition.CLOSING_TOO_LONG -> R.drawable.ic_garage_simple_unknown
+    DoorPosition.OPEN_MISALIGNED -> R.drawable.ic_garage_simple_unknown
+    DoorPosition.ERROR_SENSOR_CONFLICT -> R.drawable.ic_garage_simple_unknown
+    DoorPosition.UNKNOWN -> R.drawable.ic_garage_simple_unknown
 }
 
 @Preview(showBackground = true)
