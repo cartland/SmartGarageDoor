@@ -3,18 +3,17 @@ package com.chriscartland.garage.model
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
-// curl 'http://localhost:5001/escape-echo/us-central1/recentEventData?buildTimestamp=Sat%20Mar%2013%2014:45:00%202021&session=4f028c09-ebf9-49ef-bcf2-f661e2ec86b2'
+
+// curl 'http://localhost:5001/escape-echo/us-central1/eventHistory?buildTimestamp=Sat%20Mar%2013%2014:45:00%202021&session=4f028c09-ebf9-49ef-bcf2-f661e2ec86b2'
 @JsonClass(generateAdapter = true)
 data class RecentEventDataResponse(
-    val recentEventData: List<EventData>?,
+    val eventHistory: List<EventData>?,
     val eventHistoryCount: Int?,
     val queryParams: QueryParams?,
     val session: String?,
     val buildTimestamp: String?, // Assuming this field is for the time the data was built
     val body: Map<String, Any>? = null, // Handle the empty "body" object
-    @Json(name = "FIRESTORE_databaseTimestamp") val firestoreDatabaseTimestamp: FirestoreDatabaseTimestamp? = null,
-
-    ) {
+) {
     @JsonClass(generateAdapter = true)
     data class QueryParams(
         val session: String?,
@@ -54,7 +53,7 @@ data class RecentEventDataResponse(
                 doorPosition = doorPosition,
                 message = message,
                 lastCheckInTimeSeconds = checkInTimestampSeconds,
-                lastChangeTimeSeconds = timestampSeconds
+                lastChangeTimeSeconds = timestampSeconds,
             )
         }
     }

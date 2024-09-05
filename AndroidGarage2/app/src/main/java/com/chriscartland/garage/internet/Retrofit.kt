@@ -1,5 +1,6 @@
 package com.chriscartland.garage.internet
 
+import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.model.CurrentEventDataResponse
 import com.chriscartland.garage.model.RecentEventDataResponse
 import com.squareup.moshi.Moshi
@@ -47,8 +48,7 @@ object AppModule {
             .build()
 
         val retrofit: Retrofit = Retrofit.Builder()
-//            .baseUrl("https://us-central1-escape-echo.cloudfunctions.net/")
-            .baseUrl("http://10.0.2.2:5001/escape-echo/us-central1/")
+            .baseUrl(APP_CONFIG.baseUrl)
             .client(client)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()

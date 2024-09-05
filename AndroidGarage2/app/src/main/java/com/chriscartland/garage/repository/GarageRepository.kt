@@ -72,19 +72,19 @@ class GarageRepository @Inject constructor(
                 return
             }
             Log.d("fetchRecentDoorEvents", "Response: $response")
-            if (body.recentEventData.isNullOrEmpty()) {
+            if (body.eventHistory.isNullOrEmpty()) {
                 Log.i("fetchRecentDoorEvents", "recentEventData is empty")
                 _recentEventsData.value = Result.Success(null)
                 return
             }
-            val doorEvents = body.recentEventData.map {
+            val doorEvents = body.eventHistory.map {
                 it.currentEvent?.asDoorEvent()
             }.filterNotNull()
-            if (doorEvents.size != body.recentEventData.size) {
+            if (doorEvents.size != body.eventHistory.size) {
                 Log.e(
                     "fetchRecentDoorEvents",
                     "Door events size ${doorEvents.size} " +
-                            "does not match response size ${body.recentEventData.size}"
+                            "does not match response size ${body.eventHistory.size}"
                 )
             }
             Log.d("fetchRecentDoorEvents", "Success: $doorEvents")
