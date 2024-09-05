@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
@@ -44,12 +45,13 @@ fun HomeContent(
 ) {
     LazyColumn(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
             CurrentEventCard(
                 currentDoorEvent = currentDoorEvent,
-                modifier = Modifier,
+                modifier = Modifier
+                    .padding(bottom = 16.dp),
                 onFetchCurrentDoorEvent = onFetchCurrentDoorEvent,
             )
         }
@@ -57,7 +59,10 @@ fun HomeContent(
         when (recentDoorEvents) {
             is Result.Error ->
                 item {
-                    Box(modifier = Modifier.clickable { onFetchRecentDoorEvents() }) {
+                    Box(
+                        modifier = Modifier
+                            .clickable { onFetchRecentDoorEvents() },
+                    ) {
                         Text(
                             text = recentDoorEvents.dataOrNull<List<DoorEvent>?>().toString(),
                         )
@@ -68,14 +73,20 @@ fun HomeContent(
                     Text(text = "Loading...")
                 }
                 items(recentDoorEvents.dataOrNull() ?: emptyList()) { item ->
-                    Box(modifier = Modifier.clickable { onFetchRecentDoorEvents() }) {
+                    Box(
+                        modifier = Modifier
+                            .clickable { onFetchRecentDoorEvents() },
+                    ) {
                         RecentDoorEventListItem(item)
                     }
                 }
             }
             is Result.Success -> {
                 items(recentDoorEvents.dataOrNull() ?: emptyList()) { item ->
-                    Box(modifier = Modifier.clickable { onFetchRecentDoorEvents() }) {
+                    Box(
+                        modifier = Modifier
+                            .clickable { onFetchRecentDoorEvents() },
+                    ) {
                         RecentDoorEventListItem(item)
                     }
                 }

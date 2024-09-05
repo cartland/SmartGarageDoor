@@ -34,10 +34,8 @@ fun DoorStatusCard(
 ) {
     val doorPosition = doorEvent?.doorPosition ?: DoorPosition.UNKNOWN
 
-    val imageResource = doorPosition.toImageResourceId()
-
     Card(
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         shape = RoundedCornerShape(10.dp),
         modifier = modifier,
     ) {
@@ -45,44 +43,42 @@ fun DoorStatusCard(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            if (doorEvent?.lastChangeTimeSeconds == null) {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    Text(text = "")
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(text = "")
-                }
-            } else {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = Instant.ofEpochSecond(doorEvent.lastChangeTimeSeconds)
-                            .atZone(ZoneId.systemDefault())
-                            .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(
-                        text = Instant.ofEpochSecond(doorEvent.lastChangeTimeSeconds)
-                            .atZone(ZoneId.systemDefault())
-                            .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM))
-                    )
-                }
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = doorEvent?.lastChangeTimeSeconds?.toFriendlyDate() ?: ""
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Text(
+                    text = doorEvent?.lastChangeTimeSeconds?.toFriendlyTime() ?: ""
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Image(
-                painter = painterResource(id = imageResource),
+                painter = painterResource(id = doorPosition.toImageResourceId()),
                 contentDescription = "Door Status",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp)
+                    .height(148.dp)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Door Status: ${doorPosition.name}",
+                text = doorPosition.toFriendlyName(),
                 style = MaterialTheme.typography.titleMedium
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = doorEvent?.message ?: "",
+                style = MaterialTheme.typography.labelSmall,
+            )
+
         }
     }
 }
@@ -94,10 +90,8 @@ fun RecentDoorEventListItem(
 ) {
     val doorPosition = doorEvent.doorPosition ?: DoorPosition.UNKNOWN
 
-    val imageResourceId = doorPosition.toImageResourceId()
-
     Card(
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = RoundedCornerShape(10.dp),
         modifier = modifier,
     ) {
@@ -105,24 +99,22 @@ fun RecentDoorEventListItem(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (doorEvent.lastChangeTimeSeconds == null) {
-                Column {
-                    Text(text = "")
-                    Text(text = "")
-                }
-            } else {
-                Column {
-                    Text(
-                        text = Instant.ofEpochSecond(doorEvent.lastChangeTimeSeconds)
-                            .atZone(ZoneId.systemDefault())
-                            .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
-                    )
-                    Text(
-                        text = Instant.ofEpochSecond(doorEvent.lastChangeTimeSeconds)
-                            .atZone(ZoneId.systemDefault())
-                            .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM))
-                    )
-                }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Image(
+                    painter = painterResource(id = doorPosition.toImageResourceId()),
+                    contentDescription = "Door Status",
+                    modifier = Modifier
+                        .height(96.dp),
+                )
+                Text(
+                    text = doorEvent.lastChangeTimeSeconds?.toFriendlyDate() ?: ""
+                )
+                Text(
+                    text = doorEvent.lastChangeTimeSeconds?.toFriendlyTime() ?: ""
+                )
             }
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -131,24 +123,31 @@ fun RecentDoorEventListItem(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Image(
-                    painter = painterResource(id = imageResourceId),
-                    contentDescription = "Door Status",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(24.dp)
+                Text(
+                    text = doorPosition.toFriendlyName(),
+                    style = MaterialTheme.typography.titleMedium,
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Door Status: ${doorPosition.name}",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = doorEvent.message ?: "",
+                    style = MaterialTheme.typography.labelSmall,
                 )
             }
         }
     }
 }
+
+private fun Long.toFriendlyDate(): String =
+    Instant.ofEpochSecond(this)
+        .atZone(ZoneId.systemDefault())
+        .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+
+private fun Long.toFriendlyTime(): String? =
+    Instant.ofEpochSecond(this)
+        .atZone(ZoneId.systemDefault())
+        .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM))
 
 private fun DoorPosition.toImageResourceId(): Int = when (this) {
     DoorPosition.OPEN -> R.drawable.ic_garage_simple_open
@@ -160,6 +159,18 @@ private fun DoorPosition.toImageResourceId(): Int = when (this) {
     DoorPosition.OPEN_MISALIGNED -> R.drawable.ic_garage_simple_unknown
     DoorPosition.ERROR_SENSOR_CONFLICT -> R.drawable.ic_garage_simple_unknown
     DoorPosition.UNKNOWN -> R.drawable.ic_garage_simple_unknown
+}
+
+private fun DoorPosition.toFriendlyName(): String = when (this) {
+    DoorPosition.OPEN -> "Open"
+    DoorPosition.CLOSED -> "Closed"
+    DoorPosition.UNKNOWN -> "Unknown"
+    DoorPosition.OPENING -> "Opening"
+    DoorPosition.OPENING_TOO_LONG -> "Opening (Taking too long)"
+    DoorPosition.OPEN_MISALIGNED -> "Open (Misaligned)"
+    DoorPosition.CLOSING -> "Closing"
+    DoorPosition.CLOSING_TOO_LONG -> "Closing (Taking too long)"
+    DoorPosition.ERROR_SENSOR_CONFLICT -> "Error: Sensor Conflict"
 }
 
 @Preview(showBackground = true)
