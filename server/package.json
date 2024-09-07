@@ -2,9 +2,9 @@
   "name": "functions",
   "scripts": {
     "lint": "tslint --project tsconfig.json",
-    "build": "npm run build:mac || npm run build:windows", 
-    "build:mac": "echo \"Try Mac build\" && ./node_modules/.bin/tslint -p tslint.json && ./node_modules/.bin/tsc",
-    "build:windows": "echo \"Try Windows build\" && node_modules\\.bin\\tslint -p tslint.json && node_modules\\.bin\\tsc",
+    "build": "npm run build:mac || npm run build:windows",
+    "build:mac": "echo \"Trying Mac build...\" && ./node_modules/.bin/tslint -p tslint.json && ./node_modules/.bin/tsc",
+    "build:windows": "echo \"Trying Windows build...\" && node_modules\\.bin\\tslint -p tslint.json && node_modules\\.bin\\tsc",
     "serve": "npm run build && firebase serve --only functions",
     "shell": "npm run build && firebase experimental:functions:shell",
     "start": "npm run shell",
@@ -27,13 +27,13 @@
     "@types/node": "^14.14.36",
     "chai": "^4.3.4",
     "copyfiles": "^2.4.1",
-    "mocha": "^10.0.0",
-    "ts-node": "^9.1.1",
+    "mocha": "^10.7.3",
+    "ts-node": "^10.9.2",
     "tslint": "^5.20.1",
     "typescript": "^4.2.3"
   },
   "engines": {
-    "node": "16"
+    "node": "20"
   },
   "private": true
 }
