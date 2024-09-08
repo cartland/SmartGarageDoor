@@ -20,6 +20,14 @@ import { SensorEvent, SensorEventAsStringMap } from '../../model/SensorEvent';
 import { AndroidMessagePriority, TopicMessage, AndroidConfig } from '../../model/FCM';
 import { buildTimestampToFcmTopic } from '../../model/FcmTopic';
 
+
+/**
+ * Send an FCM message when the sensor data changes.
+ *
+ * This pushes the sensor data to the user's device.
+ * This does not post a user-visible notification.
+ * The user's device can then update the UI.
+ */
 export async function sendFCMForSensorEvent(buildTimestamp: string, sensorEvent: SensorEvent): Promise<TopicMessage> {
   const message = getFCMDataFromEvent(buildTimestamp, sensorEvent);
   if (!message) {
@@ -37,7 +45,7 @@ export async function sendFCMForSensorEvent(buildTimestamp: string, sensorEvent:
   return message;
 }
 
-function getFCMDataFromEvent(buildTimestamp: string, currentEvent: SensorEvent): TopicMessage {
+export function getFCMDataFromEvent(buildTimestamp: string, currentEvent: SensorEvent): TopicMessage {
   const message = <TopicMessage>{};
   message.topic = buildTimestampToFcmTopic(buildTimestamp);
   message.data = SensorEventAsStringMap(currentEvent);

@@ -29,6 +29,14 @@ const NOTIFICATION_CURRENT_EVENT_KEY = 'notificationCurrentEvent';
 const NOTIFICATION_MESSAGE_KEY = 'message';
 const TIMESTAMP_SECONDS_KEY = 'timestampSeconds';
 
+/**
+ * Send an FCM message if the current event is old and the door is not closed.
+ *
+ * If the garage door is left open for too long, send an FCM message to users.
+ * Also send messages for other error conditions.
+ * This FCM will be a user-visible notification.
+ * Do not send a message if the door is closed.
+ */
 export async function sendFCMForOldData(buildTimestamp: string, eventData): Promise<TopicMessage> {
   if (!(CURRENT_EVENT_KEY in eventData)) {
     console.log('Latest event does not have key:', CURRENT_EVENT_KEY);
@@ -82,7 +90,14 @@ function isEventOld(currentEvent: SensorEvent, now: number): boolean {
   return eventDurationSeconds > TOO_LONG_OPEN_SECONDS;
 }
 
-
+/**
+ * Create FCM message to users if the door is not closed.
+ *
+ * @param buildTimestamp Client build timestamp to identify the sensors.
+ * @param currentEvent Current status of the door.
+ * @param now Unix time in seconds.
+ * @return FCM message to send to users. Return null if no message is needed.
+ */
 function getMessageFromEvent(buildTimestamp: string, currentEvent: SensorEvent, now: number): TopicMessage {
   const eventDurationSeconds = now - currentEvent.timestampSeconds;
   const durationMinutes = Math.floor(eventDurationSeconds / 60);

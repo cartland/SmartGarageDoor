@@ -23,7 +23,7 @@ describe('buildTimestampToFcmTopic', () => {
   it('can convert buildTimestamp to FcmTopic', () => {
     const input = 'Sat Mar 13 14:45:00 2021';
     const expected = 'door_open-Sat.Mar.13.14.45.00.2021';
-    const result = buildTimestampToFcmTopic(input);
-    expect(expected).to.equal(result);
+    const actual = buildTimestampToFcmTopic(input);
+    expect(actual).to.equal(expected);
   });
 });

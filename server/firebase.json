@@ -17,14 +17,6 @@
       {
         "source": "/",
         "destination": "/dashboard.html"
-      },
-      {
-        "source": "/voltage",
-        "destination": "/voltage.html"
-      },
-      {
-        "source": "/sensor",
-        "destination": "/sensor.html"
       }
     ]
   },

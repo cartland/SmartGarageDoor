@@ -24,14 +24,14 @@ describe('isAuthorizedToPushRemoteButton', () => {
     const input = 'authorized@gmail.com';
     const allowedList = ['authorized@gmail.com'];
     const expected = true;
-    const result = isAuthorizedToPushRemoteButton(input, allowedList);
-    expect(expected).to.equal(result);
+    const actual = isAuthorizedToPushRemoteButton(input, allowedList);
+    expect(actual).to.equal(expected);
   });
   it('blocks unauthorized email', () => {
     const input = 'unauthorized@gmail.com';
     const allowedList = ['authorized@gmail.com', 'alsoauthorized@gmail.com'];
     const expected = false;
-    const result = isAuthorizedToPushRemoteButton(input, allowedList);
-    expect(expected).to.equal(result);
+    const actual = isAuthorizedToPushRemoteButton(input, allowedList);
+    expect(actual).to.equal(expected);
   });
 });

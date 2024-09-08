@@ -20,7 +20,7 @@ firebase.initializeApp();
 
 // HTTP Functions.
 import { httpEcho } from './functions/http/Echo'
-import { httpCurrentEventData, httpEventHistory, httpNextEvent } from './functions/http/events'
+import { httpCurrentEventData, httpEventHistory, httpNextEvent } from './functions/http/Events'
 import { httpRemoteButton, httpAddRemoteButtonCommand } from './functions/http/RemoteButton'
 import { httpCheckForOpenDoors } from './functions/http/OpenDoor'
 import { httpDeleteOldData } from './functions/http/DeleteData'
@@ -30,7 +30,7 @@ import { httpServerConfig } from './functions/http/ServerConfig'
 import { pubsubCheckForDoorErrors } from './functions/pubsub/DoorErrors'
 import { pubsubCheckForOpenDoorsJob } from './functions/pubsub/OpenDoor'
 import { pubsubCheckForRemoteButtonErrors } from './functions/pubsub/RemoteButton'
-import { pubsubDataRetentionPolicy } from './functions/pubsub/datapolicy'
+import { pubsubDataRetentionPolicy } from './functions/pubsub/DataRetentionPolicy'
 
 // Firestore Functions.
 import { firestoreUpdateEvents } from './functions/firestore/Events'
