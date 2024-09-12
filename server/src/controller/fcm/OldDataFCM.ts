@@ -52,7 +52,7 @@ export async function sendFCMForOldData(buildTimestamp: string, eventData): Prom
   if (!isEventOld(currentEvent, timestampSeconds)) {
     return null;
   }
-  const message = getMessageFromEvent(buildTimestamp, currentEvent, timestampSeconds);
+  const message = getDoorNotClosedMessageFromEvent(buildTimestamp, currentEvent, timestampSeconds);
   if (!message) {
     return null;
   }
@@ -98,7 +98,7 @@ function isEventOld(currentEvent: SensorEvent, now: number): boolean {
  * @param now Unix time in seconds.
  * @return FCM message to send to users. Return null if no message is needed.
  */
-function getMessageFromEvent(buildTimestamp: string, currentEvent: SensorEvent, now: number): TopicMessage {
+export function getDoorNotClosedMessageFromEvent(buildTimestamp: string, currentEvent: SensorEvent, now: number): TopicMessage {
   const eventDurationSeconds = now - currentEvent.timestampSeconds;
   const durationMinutes = Math.floor(eventDurationSeconds / 60);
   const durationHours = Math.floor(durationMinutes / 60);

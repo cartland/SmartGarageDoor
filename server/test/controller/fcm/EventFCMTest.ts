@@ -19,7 +19,7 @@
 import { expect } from 'chai';
 import { getFCMDataFromEvent } from '../../../src/controller/fcm/EventFCM';
 import { SensorEvent, SensorEventType } from '../../../src/model/SensorEvent';
-import { AndroidConfig, AndroidMessagePriority, TopicMessage } from '../../../src/model/FCM';
+import { AndroidMessagePriority } from '../../../src/model/FCM';
 
 describe('getFCMDataFromEvent', () => {
     it('returns FCM with correct topic', () => {
@@ -58,7 +58,6 @@ describe('getFCMDataFromEvent', () => {
         };
         const event = getFCMDataFromEvent(buildTimestamp, sensorEvent);
         const actual = event.android.priority;
-
         const expected = AndroidMessagePriority.HIGH;
         expect(actual).to.equal(expected);
     });
