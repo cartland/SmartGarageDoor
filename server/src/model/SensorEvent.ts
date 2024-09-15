@@ -21,6 +21,27 @@ export interface SensorEvent {
   checkInTimestampSeconds: number,
 }
 
+/**
+ * Convert a SensorEvent to a map of strings.
+ *
+ * Example input:
+ * const sensorEvent = <SensorEvent>{
+ *   type: SensorEventType.Closed,
+ *   timestampSeconds: 1725781091,
+ *   message: "Test message",
+ *   checkInTimestampSeconds: 1725781092,
+ * };
+ *
+ * Example output:
+ * {
+ *   type: 'CLOSED',
+ *   timestampSeconds: '1725781091',
+ *   message: 'Test message',
+ *   checkInTimestampSeconds: '1725781092'
+ * }
+ * @param sensorEvent 
+ * @return A map of strings representing the SensorEvent.
+ */
 export function SensorEventAsStringMap(sensorEvent: SensorEvent): { [key: string]: string } {
   const map: { [key: string]: string } = {};
   map['type'] = sensorEvent.type;

@@ -17,9 +17,21 @@
   -->
 
 <resources>
-    <dimen name="section_padding">16dp</dimen>
-    <dimen name="title_text_size">48sp</dimen>
-    <dimen name="title_text_padding">16dp</dimen>
-    <dimen name="version_text_padding">16dp</dimen>
+    <dimen name="section_padding">8dp</dimen>
+    <dimen name="title_text_size">32sp</dimen>
+    <dimen name="title_text_padding">8dp</dimen>
+    <dimen name="version_text_padding">4dp</dimen>
     <dimen name="button_margin">16dp</dimen>
+    <dimen name="card_border_stroke">1dp</dimen>
+    <dimen name="card_elevation">1dp</dimen>
+    <dimen name="card_margin">8dp</dimen>
+    <dimen name="card_padding">4dp</dimen>
+    <dimen name="list_margin">8dp</dimen>
+    <dimen name="status_icon_size_full">96dp</dimen>
+    <dimen name="status_icon_size_mini">48dp</dimen>
+    <dimen name="time_since_event_text_size">14sp</dimen>
+    <dimen name="card_text_size_large_full">48sp</dimen>
+    <dimen name="card_text_size_small_full">14sp</dimen>
+    <dimen name="card_text_size_large_mini">14sp</dimen>
+    <dimen name="card_text_size_small_mini">8sp</dimen>
 </resources>

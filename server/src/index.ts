@@ -15,88 +15,186 @@
  */
 
 import * as firebase from 'firebase-admin';
-import * as functions from 'firebase-functions';
 
 firebase.initializeApp();
 
-import { echo } from './controller/functions/content'
-import { remoteButton, addRemoteButtonCommand, checkForRemoteButtonErrors } from './controller/functions/remote'
-import { serverConfig } from './controller/functions/config'
-import { dataRetentionPolicy, deleteData } from './controller/functions/datapolicy'
-import { currentEventData, nextEvent } from './controller/functions/events'
-import { updateEvent, sendFCMForOldData } from './controller/functions/EventUpdates';
-import { TimeSeriesDatabase } from './database/TimeSeriesDatabase';
+// HTTP Functions.
+import { httpEcho } from './functions/http/Echo'
+import { httpCurrentEventData, httpEventHistory, httpNextEvent } from './functions/http/Events'
+import { httpRemoteButton, httpAddRemoteButtonCommand } from './functions/http/RemoteButton'
+import { httpCheckForOpenDoors } from './functions/http/OpenDoor'
+import { httpDeleteOldData } from './functions/http/DeleteData'
+import { httpServerConfig } from './functions/http/ServerConfig'
 
-const EVENT_DATABASE = new TimeSeriesDatabase('eventsCurrent', 'eventsAll');
+// Pubsub Functions.
+import { pubsubCheckForDoorErrors } from './functions/pubsub/DoorErrors'
+import { pubsubCheckForOpenDoorsJob } from './functions/pubsub/OpenDoor'
+import { pubsubCheckForRemoteButtonErrors } from './functions/pubsub/RemoteButton'
+import { pubsubDataRetentionPolicy } from './functions/pubsub/DataRetentionPolicy'
+
+// Firestore Functions.
+import { firestoreUpdateEvents } from './functions/firestore/Events'
 
 /*
  * This file is the main entrace for Cloud Functions for Firebase.
- * It exposes functions that will be deployed to the backend
+ * It exposes functions that will be deployed to the backend.
  */
 
-// This is a trick to improve performance when there are many functions,
-// by only exporting the function that is needed by the particular instance.
+// Functions are guarded by the process environment variables to
+// improve performance when there are many functions.
+// By only exporting the function that is needed by the particular instance,
+// Firebase can execute more quickly.
+//
+// Example:
+//
+// if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'echo') {
+//   exports.echo = httpEcho;
+// }
+
+
+/**
+ * Devices send raw sensor data to the "echo" endpoint.
+ *
+ * Trigger Type: HTTP
+ *
+ * Sensor data is sent when the sensor value changes.
+ * Sensor data is sent every 10 minutes if there are no changes.
+ */
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'echo') {
-  exports.echo = echo;
+  exports.echo = httpEcho;
 }
 
-if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'currentEventData') {
-  exports.currentEventData = currentEventData;
-}
-
-if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'nextEvent') {
-  exports.nextEvent = nextEvent;
-}
-
-if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'remoteButton') {
-  exports.remoteButton = remoteButton;
-}
-
-if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'addRemoteButtonCommand') {
-  exports.addRemoteButtonCommand = addRemoteButtonCommand;
-}
-
-if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'serverConfig') {
-  exports.serverConfig = serverConfig;
-}
-
+/**
+ * Raw data is converted to an event.
+ *
+ * Trigger Type: Firestore
+ *
+ * Firestore triggers a function whenever the database changes.
+ * This will trigger a data FCM so the Android app receives updated event data.
+ */
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'updateEvents') {
-  exports.updateEvents = functions.firestore
-    .document('updateAll/{docId}')
-    .onWrite(async (change, context) => {
-      const data = change.after.data();
-      const scheduledJob = false;
-      await updateEvent(data, scheduledJob);
-      return null;
-    });
+  exports.updateEvents = firestoreUpdateEvents;
 }
 
-exports.checkForDoorErrors = functions.pubsub.schedule('every 1 minutes').onRun(async (context) => {
-  const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
-  const buildTimestampString = 'Sat Mar 13 14:45:00 2021'; // TODO: Use config.
-  const scheduledJob = true;
-  const data = {};
-  data[BUILD_TIMESTAMP_PARAM_KEY] = buildTimestampString;
-  await updateEvent(data, scheduledJob);
-  return null;
-});
+/**
+ * Debugging function: Trigger a new event by sending sensor data directly.
+ *
+ * Trigger Type: HTTP
+ *
+ * EventInterpreterTest.ts
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'nextEvent') {
+  exports.nextEvent = httpNextEvent;
+}
 
-exports.checkForOpenDoorsJob = functions.pubsub.schedule('every 5 minutes').onRun(async (context) => {
-  const buildTimestamp = 'Sat Mar 13 14:45:00 2021';  // TODO: Use config.
-  const eventData = await EVENT_DATABASE.getCurrent(buildTimestamp);
-  await sendFCMForOldData(buildTimestamp, eventData);
-  return null;
-});
+/**
+ * Clients can fetch the latest event.
+ *
+ * Trigger Type: HTTP
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'currentEventData') {
+  exports.currentEventData = httpCurrentEventData;
+}
 
-exports.checkForOpenDoors = functions.https.onRequest(async (request, response) => {
-  const buildTimestamp = 'Sat Mar 13 14:45:00 2021';  // TODO: Use config.
-  const eventData = await EVENT_DATABASE.getCurrent(buildTimestamp);
-  const result = await sendFCMForOldData(buildTimestamp, eventData);
-  response.status(200).send(result);
-});
+/**
+ * Clients can fetch the event history.
+ *
+ * Trigger Type: HTTP
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'eventHistory') {
+  exports.eventHistory = httpEventHistory;
+}
 
-exports.checkForRemoteButtonErrors = checkForRemoteButtonErrors;
+/**
+ * Check for door errors.
+ *
+ * Trigger Type: PubSub Job
+ *
+ * If an error is found, an event will be generated, and a data FCM will be sent.
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'pubsubCheckForDoorErrors') {
+  exports.pubsubCheckForDoorErrors = pubsubCheckForDoorErrors;
+}
 
-exports.dataRetentionPolicy = dataRetentionPolicy;
+/**
+ * Check for open doors.
+ *
+ * Trigger Type: PubSub Job
+ *
+ * If the door is open too long, send a notification FCM to users.
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'pubsubCheckForOpenDoorsJob') {
+  exports.pubsubCheckForOpenDoorsJob = pubsubCheckForOpenDoorsJob;
+}
 
-exports.deleteOldData = deleteData;
+/**
+ * Manually check for open doors.
+ *
+ * Trigger Type: HTTP
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'checkForOpenDoors') {
+  exports.checkForOpenDoors = httpCheckForOpenDoors;
+}
+
+/**
+ * Remote button checks for button commands.
+ *
+ * Trigger Type: HTTP
+ *
+ * If the correct remote button information is returned, the remote will active.
+ * This will open or close the garage door.
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'remoteButton') {
+  exports.remoteButton = httpRemoteButton;
+}
+
+/**
+ * The Android client can request to push the garage remote button.
+ *
+ * Trigger Type: HTTP
+ *
+ * This request is authenticated, has a rate limit, and an expiration time for each request.
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'addRemoteButtonCommand') {
+  exports.addRemoteButtonCommand = httpAddRemoteButtonCommand;
+}
+
+/**
+ * Check for remote button errors.
+ *
+ * Trigger Type: PubSub Job
+ *
+ * If an error is found, it is saved in the database.
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'pubsubCheckForRemoteButtonErrors') {
+  exports.pubsubCheckForRemoteButtonErrors = pubsubCheckForRemoteButtonErrors;
+}
+
+/**
+ * Data retention policy deletes old data.
+ *
+ * Trigger Type: PubSub Job
+ *
+ * Specific database types are deleted after the data reaches a certain age.
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'pubsubDataRetentionPolicy') {
+  exports.pubsubDataRetentionPolicy = pubsubDataRetentionPolicy;
+}
+
+/**
+ * Manually trigger a delete event.
+ *
+ * Trigger Type: HTTP
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'deleteOldData') {
+  exports.deleteOldData = httpDeleteOldData;
+}
+
+/**
+ * Modify the server configuration.
+ *
+ * Trigger Type: HTTP
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'serverConfig') {
+  exports.serverConfig = httpServerConfig;
+}

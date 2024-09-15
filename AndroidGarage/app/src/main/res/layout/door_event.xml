@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Copyright 2021 Chris Cartland. All rights reserved.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/constraint_layout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="@dimen/card_padding"
+    android:paddingEnd="@dimen/card_padding">
+
+    <TextView
+        android:id="@+id/time_since_last_change"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/list_margin"
+        android:textAlignment="center"
+        android:textStyle="italic"
+        android:textSize="@dimen/time_since_event_text_size"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="25 minutes ago..." />
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/card_margin"
+        android:layout_marginEnd="@dimen/card_margin"
+        android:focusable="true"
+        app:cardElevation="@dimen/card_elevation"
+        app:cardBackgroundColor="@color/color_door_open"
+        app:layout_constraintBottom_toBottomOf="@id/constraint_layout"
+        app:layout_constraintEnd_toEndOf="@id/constraint_layout"
+        app:layout_constraintStart_toStartOf="@id/constraint_layout"
+        app:layout_constraintTop_toBottomOf="@id/time_since_last_change"
+        app:strokeColor="@color/card_stroke_color"
+        app:strokeWidth="@dimen/card_border_stroke">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/card_padding">
+
+            <ImageView
+                android:id="@+id/event_icon"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toTopOf="@id/event_title_text"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/icon_guideline"
+                app:srcCompat="@drawable/ic_garage_simple_open" />
+
+            <TextView
+                android:id="@+id/event_title_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:textAlignment="center"
+                android:textSize="@dimen/card_text_size_small_full"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/icon_guideline"
+                app:layout_constraintBottom_toBottomOf="parent"
+                tools:text="Open" />
+
+            <TextView
+                android:id="@+id/event_date_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="October 24"
+                android:textAlignment="center"
+                android:textSize="@dimen/card_text_size_small_full"
+                app:layout_constraintStart_toEndOf="@+id/icon_guideline"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toTopOf="@id/event_time_text" />
+
+            <TextView
+                android:id="@+id/event_time_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="23:59"
+                android:textSize="@dimen/card_text_size_large_full"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/icon_guideline"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/event_time_seconds_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text=":59"
+                android:textAlignment="center"
+                android:textSize="@dimen/card_text_size_small_full"
+                app:layout_constraintStart_toEndOf="@+id/event_time_text"
+                app:layout_constraintTop_toTopOf="@id/event_time_text"
+                app:layout_constraintBottom_toBottomOf="@id/event_time_text" />
+
+            <TextView
+                android:id="@+id/event_message_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="The door is open."
+                android:textAlignment="center"
+                android:textSize="@dimen/card_text_size_small_full"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/icon_guideline"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/icon_guideline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                app:layout_constraintGuide_percent=".30" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </com.google.android.material.card.MaterialCardView>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -21,7 +21,7 @@
 // WiFi.
 #define WIFI_SSID "WIFI_SSID"
 #define WIFI_PASSWORD "WIFI_PASSWORD"
-#define URL "https://example.com/remoteButton" // Parameters will be added: ?key1=value2&key2=value2
+#define URL "https://us-central1-PROJECT-ID.cloudfunctions.net/remoteButton" // Parameters will be added: ?key1=value2&key2=value2
 
 // Exactly one of the following must be true!!!
 // * USE_ADAFRUIT_HUZZAH32_ESP32_FEATHER

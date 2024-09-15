@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { assert } from 'console';
 import * as firebase from 'firebase-admin';
 
 export class TimeSeriesDatabase {
@@ -59,6 +60,63 @@ export class TimeSeriesDatabase {
     const currentRef = await firebase.app().firestore().collection(this.collectionCurrent)
       .doc(session).get();
     return TimeSeriesDatabase.convertFromFirestore(currentRef.data());
+  }
+
+  async getLatestN(n: number): Promise<any[]> {
+    const allRef = firebase.app().firestore().collection(this.collectionAll);
+
+    const querySnapshot = await allRef
+      .orderBy(TimeSeriesDatabase.DATABASE_TIMESTAMP_SECONDS_KEY, "desc")
+      .limit(n)
+      .get();
+
+    const latestItems = querySnapshot.docs.map(doc =>
+      TimeSeriesDatabase.convertFromFirestore(doc.data())
+    );
+    return latestItems;
+  }
+
+  async updateCurrentWithMatchingCurrentEventTimestamp(session: string, data: any) {
+    // Look for existing database entry to update.
+    const allTimestampMatches = await firebase.app().firestore().collection(this.collectionAll)
+      .where('currentEvent.timestampSeconds', '==', data.currentEvent.timestampSeconds).get();
+    // Check to ensure we found exactly 1.
+    if (allTimestampMatches.size > 1) {
+      console.error('Found multiple events with matching timestamp. Refusing to update.');
+      return null;
+    } else if (allTimestampMatches.size < 1) {
+      console.warn('No previous event matched the expected timestamp. Creating new database entry.');
+      // No matches found. Just save this as a new entry.
+      await this.save(session, data);
+      return null;
+    }
+
+    assert(allTimestampMatches.size === 1, 'Must only have 1 match.');
+    // All checks passed. Save the current data and update the previous entry.
+
+    // Set the 'current' data.
+    const firestoreData = TimeSeriesDatabase.convertToFirestore(data);
+    await firebase.app().firestore().collection(this.collectionCurrent).doc(session).set(firestoreData);
+
+    // Update previous entry (there is only 1).
+    const updates = []
+    allTimestampMatches.forEach(doc => {
+      updates.push(doc.ref.update(firestoreData));
+    });
+    return Promise.all(updates);
+  }
+
+  async getRecentForBuildTimestamp(buildTimestamp: string, maxCount: number): Promise<any> {
+    const allRef = firebase.app().firestore().collection(this.collectionAll);
+    return allRef.where('buildTimestamp', '==', buildTimestamp)
+      .orderBy('FIRESTORE_databaseTimestamp', 'desc').limit(maxCount).get()
+      .then((snapshot) => {
+        const results = [];
+        snapshot.forEach(doc => {
+          results.push(TimeSeriesDatabase.convertFromFirestore(doc.data()));
+        });
+        return results;
+      });
   }
 
   async deleteAllBefore(cutoffTimestampSeconds: number, dryRun: boolean): Promise<number> {

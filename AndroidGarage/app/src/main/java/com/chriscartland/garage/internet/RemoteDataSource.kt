@@ -22,7 +22,10 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import com.android.volley.Request
+<<<<<<< HEAD
 import com.android.volley.Response
+=======
+>>>>>>> temp_remote/main
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.chriscartland.garage.AppExecutors
@@ -40,29 +43,60 @@ class RemoteDataSource private constructor(
     private val executor: Executor
 ) {
 
-    val doorData = MutableLiveData<DoorData>()
+    val doorHistory = MutableLiveData<List<DoorData>>()
 
-    fun refreshDoorData(context: Context, buildTimestamp: String) {
-        Log.d(TAG, "refreshDoorData")
+    fun refreshDoorHistory(context: Context, buildTimestamp: String) {
+        Log.d(TAG, "refreshDoorHistory")
         executor.execute {
-            val url = buildUri(buildTimestamp).toString()
-            fetchJSONFromURL(context, url)
+            val url = buildUri(
+                buildTimestamp,
+                Constants.EVENT_HISTORY_PATH,
+                eventHistoryMaxCount = 100,
+            ).toString()
+            fetchJSONFromURL(context, url) { jsonString ->
+                Log.d(TAG, "Network request success")
+                val map = jsonString.toMap()
+                if (map == null) {
+                    Log.e(TAG, "refreshDoorHistory: Could not parse JSON from network")
+                    return@fetchJSONFromURL
+                }
+                Log.d(TAG, "refreshDoorHistory: JSON map from network $map")
+                val data = map.eventHistoryToDoorData()
+                if (data == null) {
+                    Log.e(TAG, "refreshDoorHistory: Data is not valid")
+                    return@fetchJSONFromURL
+                } else {
+                    Log.d(TAG, "refreshDoorHistory: Posting doorData: $data")
+                    doorHistory.postValue(data)
+                    return@fetchJSONFromURL
+                }
+            }
         }
     }
 
-    // https://us-central1-escape-echo.cloudfunctions.net/currentEventData\?session\=\&buildTimestamp\=Sat%20Mar%2013%2014%3A45%3A00%202021
-    private fun buildUri(buildTimestamp: String): Uri {
+    // https://us-central1-PROJECT-ID.cloudfunctions.net/PATH\?session\=\&buildTimestamp\=Sat%20Mar%2013%2014%3A45%3A00%202021
+    private fun buildUri(
+        buildTimestamp: String,
+        path: String,
+        eventHistoryMaxCount: Int? = null,
+    ): Uri {
         Log.d(TAG, "buildUri $buildTimestamp")
         val builder = Uri.Builder()
             .scheme(Constants.SCHEME)
             .authority(Constants.AUTHORITY)
-            .appendPath(Constants.CURRENT_EVENT_DATA_PATH)
+            .appendPath(path)
             .appendQueryParameter(Constants.SESSION_PARAM_KEY, "")
             .appendQueryParameter(Constants.BUILD_TIMESTAMP_PARAM_KEY, buildTimestamp)
+        if (eventHistoryMaxCount != null) {
+            builder.appendQueryParameter(
+                Constants.EVENT_HISTORY_MAX_COUNT_PARAM_KEY,
+                eventHistoryMaxCount.toString()
+            )
+        }
         return builder.build()
     }
 
-    private fun fetchJSONFromURL(context: Context, url: String) {
+    private fun fetchJSONFromURL(context: Context, url: String, callback: (String) -> Unit) {
         Log.d(TAG, "fetchJSONFromURL $url")
         val refreshTrace = Firebase.performance.newTrace(TRACE_FETCH_JSON_REQUEST)
         refreshTrace.start()
@@ -71,26 +105,13 @@ class RemoteDataSource private constructor(
         val stringRequest = StringRequest(
             Request.Method.GET,
             url,
-            Response.Listener<String> { jsonString ->
+            { jsonString ->
                 refreshTrace.stop()
-                Log.d(TAG, "Network request success")
-                val map = jsonString.toMap()
-                if (map == null) {
-                    Log.e(TAG, "refreshDoorData: Could not parse JSON from network")
-                    return@Listener
-                }
-                Log.d(TAG, "refreshDoorData: JSON map from network $map")
-                val data = map?.currentEventDataToDoorData()
-                if (data == null) {
-                    Log.e(TAG, "refreshDoorData: Data is not valid")
-                    return@Listener
-                }
-                Log.d(TAG, "refreshDoorData: Posting doorData: $data")
-                doorData.postValue(data)
+                callback(jsonString)
             },
-            Response.ErrorListener {
+            { error ->
                 refreshTrace.stop()
-                Log.e(TAG, "Network error: ${it.message ?: it.localizedMessage}")
+                Log.e(TAG, "Network error: ${error.message ?: error.localizedMessage}")
             })
         queue.add(stringRequest)
     }
@@ -150,4 +171,30 @@ fun Map<*, *>.currentEventDataToDoorData(): DoorData? {
         lastChangeTimeSeconds = timestampSeconds,
         lastCheckInTimeSeconds = lastCheckInTime
     )
+}
+
+fun Map<*, *>.eventHistoryToDoorData(): List<DoorData>? {
+    val eventHistory = this["eventHistory"] as? List<Map<*, *>> ?: return null
+    val result = mutableListOf<DoorData>()
+    for (event in eventHistory) {
+        val currentEvent = event["currentEvent"] as? Map<*, *>
+        val type = currentEvent?.get("type") as? String ?: ""
+        val state = try {
+            DoorState.valueOf(type)
+        } catch (e: IllegalArgumentException) {
+            DoorState.UNKNOWN
+        }
+        val message = currentEvent?.get("message") as? String ?: ""
+        val timestampSeconds = (currentEvent?.get("timestampSeconds") as Int?)?.toLong()
+        val lastCheckInTime = (currentEvent?.get("checkInTimestampSeconds") as Int?)?.toLong()
+
+        val doorData = DoorData(
+            state = state,
+            message = message,
+            lastChangeTimeSeconds = timestampSeconds,
+            lastCheckInTimeSeconds = lastCheckInTime
+        )
+        result.add(doorData)
+    }
+    return result
 }

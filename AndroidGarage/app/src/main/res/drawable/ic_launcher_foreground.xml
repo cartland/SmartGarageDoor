@@ -1,0 +1,48 @@
+<!--
+  ~ Copyright 2021 Chris Cartland. All rights reserved.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  ~
+  -->
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+  <group android:scaleX="0.11601563"
+      android:scaleY="0.11601563"
+      android:translateX="24.3"
+      android:translateY="24.3">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M94,463.5c-4.14,0 -7.5,-3.36 -7.5,-7.5V176.5h339V456c0,4.14 -3.36,7.5 -7.5,7.5H94z"/>
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M425,177v279c0,3.86 -3.14,7 -7,7H94c-3.86,0 -7,-3.14 -7,-7V177H425M426,176H86v280c0,4.42 3.58,8 8,8h324c4.42,0 8,-3.58 8,-8V176L426,176z"/>
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M445.93,152.38c23.14,12.71 20.47,23.12 -5.93,23.12H72.91c-26.4,0 -29.09,-10.43 -5.97,-23.19l147.04,-81.12c23.12,-12.75 60.96,-12.78 84.09,-0.07L445.93,152.38z"/>
+    <path
+        android:strokeWidth="1"
+        android:pathData="M445.93,152.38c23.14,12.71 20.47,23.12 -5.93,23.12H72.91c-26.4,0 -29.09,-10.43 -5.97,-23.19l147.04,-81.12c23.12,-12.75 60.96,-12.78 84.09,-0.07L445.93,152.38z"
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"/>
+    <path
+        android:pathData="M112.46,439.5l289.04,-259.66l0,259.66z"
+        android:fillColor="#FFFFFF"/>
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M401,180.96V439H113.76L401,180.96M402,178.71L111.15,440H402V178.71L402,178.71z"/>
+  </group>
+</vector>

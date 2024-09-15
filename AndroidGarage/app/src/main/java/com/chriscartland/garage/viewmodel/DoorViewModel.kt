@@ -51,6 +51,8 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
 
     val doorData = app.repository.doorData
 
+    val eventHistory = app.repository.eventHistory
+
     val message = MediatorLiveData<String>()
 
     val lastCheckInTimeString = MediatorLiveData<String>()
@@ -119,9 +121,12 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
         progressBarVisible.value = false
     }
 
-    fun onUpdateTime(now: Date) {
+    fun onUpdateTimeSecond(now: Date) {
         updateTimeSinceLastCheckIn(now)
-        updateTimeSinceLastChange(now)
+    }
+
+    fun onUpdateTimeMinute(now: Date) {
+        updateTimeSinceLastCheckIn(now)
     }
 
     private fun updateTimeSinceLastCheckIn(now: Date) {
@@ -134,21 +139,6 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             DoorDataAge(
                 ageSeconds = ((now.time / 1000) - lastCheckInTime).coerceAtLeast(0),
-                doorData = doorData.value
-            )
-        }
-    }
-
-    private fun updateTimeSinceLastChange(now: Date) {
-        val lastChangeTime = doorData.value?.lastChangeTimeSeconds
-        changeAge.value = if (lastChangeTime == null) {
-            DoorDataAge(
-                ageSeconds = 0,
-                doorData = null
-            )
-        } else {
-            DoorDataAge(
-                ageSeconds = ((now.time / 1000) - lastChangeTime).coerceAtLeast(0),
                 doorData = doorData.value
             )
         }
@@ -175,6 +165,7 @@ class DoorViewModel(application: Application) : AndroidViewModel(application) {
                 else -> {
                     Log.d(
                         TAG, "Couldn't get credential from result." +
+                                " ApiException.statusCode: ${e.statusCode}" +
                                 " (${e.localizedMessage})")
                 }
             }

@@ -73,3 +73,5 @@ jspm_packages
 lib/
 
 *serverConfig.json
+
+.DS_Store
