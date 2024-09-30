@@ -1,6 +1,8 @@
 package com.chriscartland.garage.repository
 
 import android.util.Log
+import com.chriscartland.garage.APP_CONFIG
+import com.chriscartland.garage.InitialData
 import com.chriscartland.garage.internet.GarageService
 import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.ui.demoDoorEvents
@@ -12,7 +14,12 @@ import javax.inject.Inject
 class GarageRepository @Inject constructor(
     private val service: GarageService
 ) {
-    private val _currentEventData = MutableStateFlow<Result<DoorEvent?>>(Result.Success(demoDoorEvents.firstOrNull()))
+    private val _currentEventData = MutableStateFlow<Result<DoorEvent?>>(Result.Success(
+        when (APP_CONFIG.initialData) {
+            InitialData.Demo -> demoDoorEvents.firstOrNull()
+            InitialData.Empty -> null
+        },
+    ))
     val currentEventData: StateFlow<Result<DoorEvent?>> = _currentEventData.asStateFlow()
 
     suspend fun fetchCurrentDoorEvent() {
@@ -50,7 +57,12 @@ class GarageRepository @Inject constructor(
         }
     }
 
-    private val _recentEventsData = MutableStateFlow<Result<List<DoorEvent>>>(Result.Success(demoDoorEvents))
+    private val _recentEventsData = MutableStateFlow<Result<List<DoorEvent>>>(Result.Success(
+        when (APP_CONFIG.initialData) {
+            InitialData.Demo -> demoDoorEvents
+            InitialData.Empty -> null
+        },
+    ))
     val recentEventsData: StateFlow<Result<List<DoorEvent>>> = _recentEventsData.asStateFlow()
 
     suspend fun fetchRecentDoorEvents() {

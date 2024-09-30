@@ -1,8 +1,6 @@
 package com.chriscartland.garage.internet
 
 import com.chriscartland.garage.APP_CONFIG
-import com.chriscartland.garage.model.CurrentEventDataResponse
-import com.chriscartland.garage.model.RecentEventDataResponse
 import com.squareup.moshi.Moshi
 import dagger.Module
 import dagger.Provides

@@ -156,7 +156,7 @@ private fun DoorPosition.toImageResourceId(): Int = when (this) {
     DoorPosition.CLOSING -> R.drawable.ic_garage_simple_moving
     DoorPosition.OPENING_TOO_LONG -> R.drawable.ic_garage_simple_unknown
     DoorPosition.CLOSING_TOO_LONG -> R.drawable.ic_garage_simple_unknown
-    DoorPosition.OPEN_MISALIGNED -> R.drawable.ic_garage_simple_unknown
+    DoorPosition.OPEN_MISALIGNED -> R.drawable.ic_garage_simple_open
     DoorPosition.ERROR_SENSOR_CONFLICT -> R.drawable.ic_garage_simple_unknown
     DoorPosition.UNKNOWN -> R.drawable.ic_garage_simple_unknown
 }

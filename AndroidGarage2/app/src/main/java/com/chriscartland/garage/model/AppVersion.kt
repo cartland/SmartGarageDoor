@@ -22,5 +22,5 @@ data class AppVersion(
     val versionCode: Long,
     val versionName: String
 ) {
-    override fun toString(): String = "$packageName-${versionCode.toString()}-$versionName"
+    override fun toString(): String = "$packageName-$versionCode-$versionName"
 }
