@@ -8,6 +8,7 @@ import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.repository.GarageRepository
 import com.chriscartland.garage.repository.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject

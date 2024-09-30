@@ -110,5 +110,14 @@ class GarageRepository @Inject constructor(
         }
     }
 
+    fun setCurrentEvent(doorEvent: DoorEvent) {
+        _currentEventData.value = Result.Success(doorEvent)
+        val recentData = _recentEventsData.value.dataOrNull()
+        if (recentData == null) {
+            _recentEventsData.value = Result.Success(listOf(doorEvent))
+        } else {
+            _recentEventsData.value = Result.Success(listOf(doorEvent) + recentData)
+        }
+    }
 }
 

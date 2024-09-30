@@ -31,6 +31,8 @@ data class DoorEvent(
     val lastChangeTimeSeconds: Long? = null
 )
 
+// DO NOT CHANGE NAMES
+// Must match server strings
 enum class DoorPosition {
     UNKNOWN,
     CLOSED,
