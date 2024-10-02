@@ -30,7 +30,7 @@ interface LocalDataSource {
     val currentDoorEvent: Flow<DoorEvent>
     val recentDoorEvents: Flow<List<DoorEvent>>
     fun insertDoorEvent(doorEvent: DoorEvent)
-    fun insertDoorEvents(doorEvents: List<DoorEvent>)
+    fun replaceDoorEvents(doorEvents: List<DoorEvent>)
 }
 
 class DatabaseLocalDataSource @Inject constructor(
@@ -43,8 +43,8 @@ class DatabaseLocalDataSource @Inject constructor(
         appDatabase.doorEventDao().insert(doorEvent)
     }
 
-    override fun insertDoorEvents(doorEvents: List<DoorEvent>) {
-        appDatabase.doorEventDao().insertList(doorEvents)
+    override fun replaceDoorEvents(doorEvents: List<DoorEvent>) {
+        appDatabase.doorEventDao().replaceAll(doorEvents)
     }
 }
 

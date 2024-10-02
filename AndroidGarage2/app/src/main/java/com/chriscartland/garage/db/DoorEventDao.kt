@@ -21,6 +21,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.chriscartland.garage.model.DoorEvent
 import kotlinx.coroutines.flow.Flow
 
@@ -33,10 +34,16 @@ interface DoorEventDao {
     fun recentDoorEvents(): Flow<List<DoorEvent>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(doorData: DoorEvent)
+    fun insert(doorEvent: DoorEvent)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertList(doorData: List<DoorEvent>)
+    fun insertList(doorEvents: List<DoorEvent>)
+
+    @Transaction
+    fun replaceAll(doorEvents: List<DoorEvent>) {
+        deleteAll()
+        insertList(doorEvents)
+    }
 
     @Query("DELETE FROM doorEvent")
     fun deleteAll()

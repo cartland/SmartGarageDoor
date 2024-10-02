@@ -86,7 +86,7 @@ class GarageRepository @Inject constructor(
                 )
             }
             Log.d("fetchRecentDoorEvents", "Success: $doorEvents")
-            localDataSource.insertDoorEvents(doorEvents)
+            localDataSource.replaceDoorEvents(doorEvents)
         } catch (e: IllegalArgumentException) {
             Log.e("fetchRecentDoorEvents", "IllegalArgumentException: $e")
         } catch (e: Exception) {
