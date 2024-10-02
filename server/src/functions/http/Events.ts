@@ -42,7 +42,7 @@ const OLD_EVENT_KEY = "oldEvent";
 const EVENT_DATABASE = new TimeSeriesDatabase('eventsCurrent', 'eventsAll');
 
 /**
- * curl -H "Content-Type: application/json" http://localhost:5001/PROJECT-ID/us-central1/currentEventData?session=ABC&buildTimestamp=123&eventHistoryMaxCount=20
+ * curl -H "Content-Type: application/json" http://localhost:5001/PROJECT-ID/us-central1/currentEventData?session=ABC&buildTimestamp=123&eventHistoryMaxCount=12
  */
 export const httpCurrentEventData = functions.https.onRequest(async (request, response) => {
   // Echo query parameters and body.
@@ -85,7 +85,7 @@ export const httpCurrentEventData = functions.https.onRequest(async (request, re
 });
 
 /**
- * curl -H "Content-Type: application/json" http://localhost:5001/PROJECT-ID/us-central1/eventHistory?session=ABC&buildTimestamp=123
+ * curl -H "Content-Type: application/json" http://localhost:5001/PROJECT-ID/us-central1/eventHistory?session=ABC&buildTimestamp=123&eventHistoryMaxCount=20
  */
 export const httpEventHistory = functions.https.onRequest(async (request, response) => {
   // Echo query parameters and body.

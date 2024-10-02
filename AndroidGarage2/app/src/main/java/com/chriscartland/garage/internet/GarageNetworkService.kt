@@ -16,22 +16,36 @@ import retrofit2.http.Query
 import javax.inject.Singleton
 
 interface GarageNetworkService {
-    @GET("currentEventData")
     suspend fun getCurrentEventData(
+        buildTimestamp: String,
+        session: String? = null,
+    ): Response<CurrentEventDataResponse>
+
+    suspend fun getRecentEventData(
+        buildTimestamp: String,
+        session: String? = null,
+        count: Int? = null,
+    ): Response<RecentEventDataResponse>
+}
+
+interface RetrofitGarageNetworkService : GarageNetworkService {
+    @GET("currentEventData")
+    override suspend fun getCurrentEventData(
         @Query("buildTimestamp") buildTimestamp: String,
-        @Query("session") session: String? = null,
+        @Query("session") session: String?,
     ): Response<CurrentEventDataResponse>
 
     @GET("eventHistory")
-    suspend fun getRecentEventData(
+    override suspend fun getRecentEventData(
         @Query("buildTimestamp") buildTimestamp: String,
-        @Query("session") session: String? = null,
+        @Query("session") session: String?,
+        @Query("eventHistoryMaxCount") count: Int?,
     ): Response<RecentEventDataResponse>
 }
 
 @Module
 @InstallIn(SingletonComponent::class)
-object AppModule {
+object RetrofitModule {
     @Provides
     @Singleton
     fun provideGarageService(): GarageNetworkService {
@@ -47,6 +61,6 @@ object AppModule {
             .client(client)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
-        return retrofit.create(GarageNetworkService::class.java)
+        return retrofit.create(RetrofitGarageNetworkService::class.java)
     }
 }

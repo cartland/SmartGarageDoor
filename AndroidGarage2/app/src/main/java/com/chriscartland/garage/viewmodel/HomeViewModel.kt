@@ -8,8 +8,10 @@ import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.repository.GarageRepository
 import com.chriscartland.garage.repository.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -18,11 +20,28 @@ class HomeViewModel @Inject constructor(
     private val garageRepository: GarageRepository,
 ) : ViewModel() {
 
-    val currentDoorEvent: StateFlow<Result<DoorEvent?>> = garageRepository.currentEventData
+    private val _currentDoorEvent = MutableStateFlow<Result<DoorEvent?>>(
+        Result.Loading(null), // Initial data.
+    )
+    val currentDoorEvent: StateFlow<Result<DoorEvent?>> = _currentDoorEvent.asStateFlow()
 
-    val recentDoorEvents: StateFlow<Result<List<DoorEvent>?>> = garageRepository.recentEventsData
+    private val _recentDoorEvents = MutableStateFlow<Result<List<DoorEvent>>>(
+        Result.Loading(listOf()), // Initial data.
+    )
+    val recentDoorEvents = _recentDoorEvents.asStateFlow()
 
     init {
+        viewModelScope.launch(Dispatchers.IO) {
+            garageRepository.currentDoorEvent.collect {
+                _currentDoorEvent.value = Result.Complete(it)
+            }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            garageRepository.recentDoorEvents.collect {
+                _recentDoorEvents.value = Result.Complete(it)
+            }
+        }
+        // Decide whether to fetch with network data when ViewModel is initialized
         when (APP_CONFIG.fetchOnViewModelInit) {
             FetchOnViewModelInit.Yes -> {
                 fetchCurrentDoorEvent()
@@ -33,13 +52,13 @@ class HomeViewModel @Inject constructor(
     }
 
     fun fetchCurrentDoorEvent() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             garageRepository.fetchCurrentDoorEvent()
         }
     }
 
     fun fetchRecentDoorEvents() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             garageRepository.fetchRecentDoorEvents()
         }
     }

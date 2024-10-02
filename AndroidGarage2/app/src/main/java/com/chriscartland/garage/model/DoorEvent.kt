@@ -22,11 +22,11 @@ import androidx.room.PrimaryKey
 
 @Entity
 data class DoorEvent(
-    @PrimaryKey val uid: Int = 0,
     val doorPosition: DoorPosition? = null,
     val message: String? = null,
     val lastCheckInTimeSeconds: Long? = null,
-    val lastChangeTimeSeconds: Long? = null
+    val lastChangeTimeSeconds: Long? = null,
+    @PrimaryKey val id: String = lastChangeTimeSeconds.toString() + doorPosition,
 )
 
 // DO NOT CHANGE NAMES
@@ -42,4 +42,3 @@ enum class DoorPosition {
     CLOSING_TOO_LONG,
     ERROR_SENSOR_CONFLICT
 }
-

@@ -21,7 +21,6 @@ fun generateDoorEventDemoData(numEvents: Int = 10): List<DoorEvent> {
         }
 
         DoorEvent(
-            uid = index, // Unique ID for each event
             doorPosition = doorPosition,
             message = message,
             lastCheckInTimeSeconds = currentTimeSeconds - Random.nextLong(

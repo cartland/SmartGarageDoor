@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.google.devtools.ksp)
     alias(libs.plugins.hilt)
-    alias(libs.plugins.googleServices)
+    alias(libs.plugins.gms)
     kotlin("kapt")
 }
 
@@ -55,7 +55,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -64,26 +63,32 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation(libs.squareup.moshi)
-    implementation(libs.squareup.retrofit)
-    implementation(libs.squareup.retrofit.moshi.converter)
-    implementation(libs.okhttpLoggingInterceptor)
-    implementation(libs.androidx.room.common)
+    // Navigation
     implementation(libs.androidx.navigation.compose)
-    ksp(libs.squareup.moshi.kotlin.codegen)
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
+    // Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    // Retrofit
+    implementation(libs.squareup.moshi)
+    implementation(libs.squareup.retrofit)
+    implementation(libs.squareup.retrofit.moshi.converter)
+    implementation(libs.okhttpLoggingInterceptor)
+    ksp(libs.squareup.moshi.kotlin.codegen)
+    // Hilt
     implementation(libs.hilt.android)
-    kapt(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
-
+    kapt(libs.hilt.compiler)
+    // Room
+    implementation(libs.androidx.room.common)
+    implementation(libs.androidx.room.ktx)
+    kapt(libs.androidx.room.compiler)
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
-
 }

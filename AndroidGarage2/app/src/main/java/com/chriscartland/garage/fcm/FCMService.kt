@@ -93,9 +93,12 @@ class FCMService : FirebaseMessagingService() {
             return
         }
         val app = application as GarageApplication
-        val hiltEntryPoint = EntryPointAccessors.fromApplication(app, FCMServiceEntryPoint::class.java)
+        val hiltEntryPoint = EntryPointAccessors.fromApplication(
+            app,
+            FCMServiceEntryPoint::class.java,
+        )
         coroutineScope.launch {
-            hiltEntryPoint.garageRepository().setCurrentEvent(doorEvent)
+            hiltEntryPoint.garageRepository().insertDoorEvent(doorEvent)
         }
     }
 
@@ -123,9 +126,9 @@ private fun <K, V> Map<K, V>.asDoorEvent(): DoorEvent? {
         }
         val message = currentEvent["message"] as? String ?: "" // Optional
         val timestampSeconds = (currentEvent["timestampSeconds"] as? String)
-                ?.toLong() ?: return null // Required
+            ?.toLong() ?: return null // Required
         val checkInTimestampSeconds = (currentEvent["checkInTimestampSeconds"] as? String)
-                ?.toLong() ?: return null // Required
+            ?.toLong() ?: return null // Required
         return DoorEvent(
             doorPosition = position,
             message = message,
