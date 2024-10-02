@@ -64,7 +64,8 @@ fun HomeContent(
                             .clickable { onFetchRecentDoorEvents() },
                     ) {
                         Text(
-                            text = recentDoorEvents.dataOrNull<List<DoorEvent>?>().toString(),
+                            text = "Error fetching recent event history: "
+                                    + recentDoorEvents.dataOrNull<List<DoorEvent>?>().toString(),
                         )
                     }
                 }
@@ -81,7 +82,7 @@ fun HomeContent(
                     }
                 }
             }
-            is Result.Success -> {
+            is Result.Complete -> {
                 items(recentDoorEvents.dataOrNull() ?: emptyList()) { item ->
                     Box(
                         modifier = Modifier
@@ -119,7 +120,7 @@ fun CurrentEventCard(
                     }
                 }
             }
-        is Result.Success ->
+        is Result.Complete ->
             Box(modifier = modifier.clickable { onFetchCurrentDoorEvent() }) {
                 DoorStatusCard(currentDoorEvent.dataOrNull())
             }
@@ -130,8 +131,8 @@ fun CurrentEventCard(
 @Composable
 fun HomeContentPreview() {
     HomeContent(
-        currentDoorEvent = Result.Success(demoDoorEvents.firstOrNull()),
-        recentDoorEvents = Result.Success(demoDoorEvents),
+        currentDoorEvent = Result.Complete(demoDoorEvents.firstOrNull()),
+        recentDoorEvents = Result.Complete(demoDoorEvents),
         modifier = Modifier,
         onFetchCurrentDoorEvent = {},
         onFetchRecentDoorEvents = {},
@@ -142,7 +143,7 @@ fun HomeContentPreview() {
 @Composable
 fun CurrentEventCardSuccessPreview() {
     CurrentEventCard(
-        currentDoorEvent = Result.Success(demoDoorEvents.firstOrNull()),
+        currentDoorEvent = Result.Complete(demoDoorEvents.firstOrNull()),
     )
 }
 

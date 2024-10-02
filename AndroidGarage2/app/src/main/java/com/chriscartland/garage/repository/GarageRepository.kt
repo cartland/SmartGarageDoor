@@ -3,7 +3,7 @@ package com.chriscartland.garage.repository
 import android.util.Log
 import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.InitialData
-import com.chriscartland.garage.internet.GarageService
+import com.chriscartland.garage.internet.GarageNetworkService
 import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.ui.demoDoorEvents
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,9 +12,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 class GarageRepository @Inject constructor(
-    private val service: GarageService
+    private val network: GarageNetworkService
 ) {
-    private val _currentEventData = MutableStateFlow<Result<DoorEvent?>>(Result.Success(
+    private val _currentEventData = MutableStateFlow<Result<DoorEvent?>>(Result.Complete(
         when (APP_CONFIG.initialData) {
             InitialData.Demo -> demoDoorEvents.firstOrNull()
             InitialData.Empty -> null
@@ -25,7 +25,7 @@ class GarageRepository @Inject constructor(
     suspend fun fetchCurrentDoorEvent() {
         _currentEventData.value = Result.Loading(currentEventData.value.dataOrNull())
         try {
-            val response = service.getCurrentEventData(
+            val response = network.getCurrentEventData(
                 buildTimestamp = "Sat Mar 13 14:45:00 2021",
                 session = null,
             )
@@ -50,14 +50,14 @@ class GarageRepository @Inject constructor(
                 Log.e("fetchCurrentDoorEvent", "Door event is null")
             }
             Log.d("fetchCurrentDoorEvent", "Success: $doorEvent")
-            _currentEventData.value = Result.Success(doorEvent)
+            _currentEventData.value = Result.Complete(doorEvent)
         } catch (e: Exception) {
             Log.e("fetchCurrentDoorEvent", "Error: $e")
             _currentEventData.value = Result.Error(e)
         }
     }
 
-    private val _recentEventsData = MutableStateFlow<Result<List<DoorEvent>>>(Result.Success(
+    private val _recentEventsData = MutableStateFlow<Result<List<DoorEvent>>>(Result.Complete(
         when (APP_CONFIG.initialData) {
             InitialData.Demo -> demoDoorEvents
             InitialData.Empty -> null
@@ -68,7 +68,7 @@ class GarageRepository @Inject constructor(
     suspend fun fetchRecentDoorEvents() {
         _recentEventsData.value = Result.Loading(recentEventsData.value.dataOrNull())
         try {
-            val response = service.getRecentEventData(
+            val response = network.getRecentEventData(
                 buildTimestamp = "Sat Mar 13 14:45:00 2021",
                 session = null,
             )
@@ -80,13 +80,13 @@ class GarageRepository @Inject constructor(
             val body = response.body()
             if (body == null) {
                 Log.e("fetchRecentDoorEvents", "Response body is null")
-                _recentEventsData.value = Result.Success(null)
+                _recentEventsData.value = Result.Complete(null)
                 return
             }
             Log.d("fetchRecentDoorEvents", "Response: $response")
             if (body.eventHistory.isNullOrEmpty()) {
                 Log.i("fetchRecentDoorEvents", "recentEventData is empty")
-                _recentEventsData.value = Result.Success(null)
+                _recentEventsData.value = Result.Complete(null)
                 return
             }
             val doorEvents = body.eventHistory.map {
@@ -100,7 +100,7 @@ class GarageRepository @Inject constructor(
                 )
             }
             Log.d("fetchRecentDoorEvents", "Success: $doorEvents")
-            _recentEventsData.value = Result.Success(doorEvents)
+            _recentEventsData.value = Result.Complete(doorEvents)
         } catch (e: IllegalArgumentException) {
             Log.e("fetchRecentDoorEvents", "IllegalArgumentException: $e")
             _recentEventsData.value = Result.Error(e)
@@ -111,13 +111,12 @@ class GarageRepository @Inject constructor(
     }
 
     fun setCurrentEvent(doorEvent: DoorEvent) {
-        _currentEventData.value = Result.Success(doorEvent)
+        _currentEventData.value = Result.Complete(doorEvent)
         val recentData = _recentEventsData.value.dataOrNull()
         if (recentData == null) {
-            _recentEventsData.value = Result.Success(listOf(doorEvent))
+            _recentEventsData.value = Result.Complete(listOf(doorEvent))
         } else {
-            _recentEventsData.value = Result.Success(listOf(doorEvent) + recentData)
+            _recentEventsData.value = Result.Complete(listOf(doorEvent) + recentData)
         }
     }
 }
-

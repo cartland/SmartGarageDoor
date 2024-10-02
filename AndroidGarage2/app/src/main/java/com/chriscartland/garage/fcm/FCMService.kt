@@ -34,6 +34,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 class FCMService : FirebaseMessagingService() {
+    // Create Job and CoroutineScope to schedule brief, concurrent work.
     private val supervisorJob = SupervisorJob()
     private val coroutineScope = CoroutineScope(Dispatchers.IO + supervisorJob)
 
@@ -55,15 +56,19 @@ class FCMService : FirebaseMessagingService() {
         if (remoteMessage.data.isNotEmpty()) {
             Log.d(TAG, "Message data payload: ${remoteMessage.data}")
 
-            val doorData = remoteMessage.data.toDoorEvent()
-            Log.d(TAG, "DoorData: $doorData")
+            val doorEvent = remoteMessage.data.asDoorEvent()
+            if (doorEvent == null) {
+                Log.e(TAG, "Unknown message type: ${remoteMessage.data.entries.joinToString()}")
+                return
+            }
+            Log.d(TAG, "DoorData: $doorEvent")
 
             if (/* Check if data needs to be processed by long running job */ false) {
                 // For long-running tasks (10 seconds or more) use WorkManager.
                 scheduleJob()
             } else {
                 // Handle message within 10 seconds
-                handleNow(doorData)
+                handleNow(doorEvent)
             }
         } else {
             Log.d(TAG, "Message data payload is empty")
@@ -79,6 +84,9 @@ class FCMService : FirebaseMessagingService() {
         Log.d(TAG, "scheduleJob...")
     }
 
+    /**
+     * Handle the new door info now (complete within 10 seconds).
+     */
     private fun handleNow(doorEvent: DoorEvent?) {
         Log.d(TAG, "handleNow...")
         if (doorEvent == null) {
@@ -101,21 +109,31 @@ class FCMService : FirebaseMessagingService() {
     }
 }
 
-private fun <K, V> Map<K, V>.toDoorEvent(): DoorEvent? {
-    val currentEvent = this as? Map<*, *> ?: return null
-    val type = currentEvent["type"] as? String ?: ""
-    val position = try {
-        DoorPosition.valueOf(type)
-    } catch (e: IllegalArgumentException) {
-        DoorPosition.UNKNOWN
+/**
+ * Extract DoorEvent from Firebase RemoteMessage data payload.
+ */
+private fun <K, V> Map<K, V>.asDoorEvent(): DoorEvent? {
+    try {
+        val currentEvent = this as? Map<*, *> ?: return null // Required
+        val type = currentEvent["type"] as? String ?: return null // Required
+        val position = try {
+            DoorPosition.valueOf(type)
+        } catch (e: IllegalArgumentException) {
+            DoorPosition.UNKNOWN
+        }
+        val message = currentEvent["message"] as? String ?: "" // Optional
+        val timestampSeconds = (currentEvent["timestampSeconds"] as? String)
+                ?.toLong() ?: return null // Required
+        val checkInTimestampSeconds = (currentEvent["checkInTimestampSeconds"] as? String)
+                ?.toLong() ?: return null // Required
+        return DoorEvent(
+            doorPosition = position,
+            message = message,
+            lastChangeTimeSeconds = timestampSeconds,
+            lastCheckInTimeSeconds = checkInTimestampSeconds,
+        )
+    } catch (e: Exception) {
+        Log.e("FCMService", "Error converting to DoorEvent: $e")
+        return null
     }
-    val message = currentEvent["message"] as? String ?: ""
-    val timestampSeconds = (currentEvent["timestampSeconds"] as? String?)?.toLong()
-    val checkInTimestampSeconds = (currentEvent["checkInTimestampSeconds"] as? String?)?.toLong()
-    return DoorEvent(
-        doorPosition = position,
-        message = message,
-        lastChangeTimeSeconds = timestampSeconds,
-        lastCheckInTimeSeconds = checkInTimestampSeconds
-    )
 }

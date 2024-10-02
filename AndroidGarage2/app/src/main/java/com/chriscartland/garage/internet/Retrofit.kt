@@ -15,7 +15,7 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 import javax.inject.Singleton
 
-interface GarageService {
+interface GarageNetworkService {
     @GET("currentEventData")
     suspend fun getCurrentEventData(
         @Query("buildTimestamp") buildTimestamp: String,
@@ -34,22 +34,19 @@ interface GarageService {
 object AppModule {
     @Provides
     @Singleton
-    fun provideGarageService(): GarageService {
-
+    fun provideGarageService(): GarageNetworkService {
         val moshi: Moshi = Moshi.Builder().build()
-
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
         val client: OkHttpClient = OkHttpClient.Builder()
             .addInterceptor(logging)
             .build()
-
         val retrofit: Retrofit = Retrofit.Builder()
             .baseUrl(APP_CONFIG.baseUrl)
             .client(client)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
-        return retrofit.create(GarageService::class.java)
+        return retrofit.create(GarageNetworkService::class.java)
     }
 }
