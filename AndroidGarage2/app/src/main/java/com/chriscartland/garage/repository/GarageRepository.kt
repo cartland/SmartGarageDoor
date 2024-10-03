@@ -1,6 +1,7 @@
 package com.chriscartland.garage.repository
 
 import android.util.Log
+import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.db.LocalDataSource
 import com.chriscartland.garage.internet.GarageNetworkService
 import com.chriscartland.garage.model.DoorEvent
@@ -23,7 +24,7 @@ class GarageRepository @Inject constructor(
         try {
             Log.d("fetchCurrentDoorEvent", "Fetching current door event")
             val response = network.getCurrentEventData(
-                buildTimestamp = "Sat Mar 13 14:45:00 2021",
+                buildTimestamp = APP_CONFIG.buildTimestamp,
                 session = null,
             )
             if (response.code() != 200) {
@@ -57,9 +58,9 @@ class GarageRepository @Inject constructor(
         try {
             Log.d("fetchRecentDoorEvents", "Fetching recent door events")
             val response = network.getRecentEventData(
-                buildTimestamp = "Sat Mar 13 14:45:00 2021",
+                buildTimestamp = APP_CONFIG.buildTimestamp,
                 session = null,
-                count = 30,
+                count = APP_CONFIG.recentEventCount,
             )
             if (response.code() != 200) {
                 Log.e("fetchRecentDoorEvents", "Response code is ${response.code()}")

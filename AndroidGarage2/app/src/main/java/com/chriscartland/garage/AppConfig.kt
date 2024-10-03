@@ -5,6 +5,8 @@ data class AppConfig(
     val baseUrl: String,
     val initialData: InitialData,
     val fetchOnViewModelInit: FetchOnViewModelInit,
+    val buildTimestamp: String,
+    val recentEventCount: Int,
 )
 
 enum class Server {
@@ -39,4 +41,6 @@ val APP_CONFIG = AppConfig(
     },
     initialData = INITIAL_DATA,
     fetchOnViewModelInit = FETCH_ON_VIEW_MODEL_INIT,
+    buildTimestamp = "Sat Mar 13 14:45:00 2021",
+    recentEventCount = 30,
 )
