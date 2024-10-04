@@ -21,13 +21,10 @@ import android.util.Log
 import com.chriscartland.garage.GarageApplication
 import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.model.DoorPosition
-import com.chriscartland.garage.repository.GarageRepository
+import com.chriscartland.garage.repository.GarageRepositoryEntryPoint
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import dagger.hilt.EntryPoint
-import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
-import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -40,12 +37,6 @@ class FCMService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         Log.d(TAG, "FCM Instance Token: $token")
-    }
-
-    @EntryPoint
-    @InstallIn(SingletonComponent::class)
-    interface FCMServiceEntryPoint {
-        fun garageRepository(): GarageRepository
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
@@ -95,7 +86,7 @@ class FCMService : FirebaseMessagingService() {
         val app = application as GarageApplication
         val hiltEntryPoint = EntryPointAccessors.fromApplication(
             app,
-            FCMServiceEntryPoint::class.java,
+            GarageRepositoryEntryPoint::class.java,
         )
         coroutineScope.launch {
             hiltEntryPoint.garageRepository().insertDoorEvent(doorEvent)

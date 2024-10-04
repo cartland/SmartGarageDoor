@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -7,6 +10,9 @@ plugins {
     alias(libs.plugins.room)
     kotlin("kapt")
 }
+
+val configProperties = Properties()
+configProperties.load(FileInputStream(rootProject.file("config.properties")))
 
 android {
     namespace = "com.chriscartland.garage"
@@ -23,6 +29,12 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        buildConfigField(
+            "String",
+            "SERVER_CONFIG_KEY",
+            "\"${configProperties["SERVER_CONFIG_KEY"]}\"",
+        )
     }
 
     buildTypes {
@@ -44,6 +56,7 @@ android {
         jvmTarget = "1.8"
     }
     buildFeatures {
+        buildConfig = true
         compose = true
     }
     composeOptions {

@@ -12,6 +12,7 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.Query
 import javax.inject.Singleton
 
@@ -26,7 +27,30 @@ interface GarageNetworkService {
         session: String? = null,
         count: Int? = null,
     ): Response<RecentEventDataResponse>
+
+    suspend fun getServerConfig(
+        key: String,
+    ): Response<ServerConfigResponse>
+
+    suspend fun postRemoteButtonPush(
+        remoteButtonBuildTimestamp: RemoteButtonBuildTimestamp,
+        buttonAckToken: ButtonAckToken,
+        remoteButtonPushKey: RemoteButtonPushKey,
+        idToken: IdToken,
+    ): Response<String>
 }
+
+@JvmInline
+value class RemoteButtonBuildTimestamp(private val s: String)
+
+@JvmInline
+value class ButtonAckToken(private val s: String)
+
+@JvmInline
+value class RemoteButtonPushKey(private val s: String)
+
+@JvmInline
+value class IdToken(private val s: String)
 
 interface RetrofitGarageNetworkService : GarageNetworkService {
     @GET("currentEventData")
@@ -41,6 +65,19 @@ interface RetrofitGarageNetworkService : GarageNetworkService {
         @Query("session") session: String?,
         @Query("eventHistoryMaxCount") count: Int?,
     ): Response<RecentEventDataResponse>
+
+    @GET("serverConfig")
+    override suspend fun getServerConfig(
+        @Header("X-ServerConfigKey") serverConfigKey: String
+    ): Response<ServerConfigResponse>
+
+    @GET("addRemoteButtonCommand")
+    override suspend fun postRemoteButtonPush(
+        remoteButtonBuildTimestamp: RemoteButtonBuildTimestamp,
+        buttonAckToken: ButtonAckToken,
+        @Header("X-RemoteButtonPushKey") remoteButtonPushKey: RemoteButtonPushKey,
+        @Header("X-AuthTokenGoogle") idToken: IdToken,
+    ): Response<String>
 }
 
 @Module

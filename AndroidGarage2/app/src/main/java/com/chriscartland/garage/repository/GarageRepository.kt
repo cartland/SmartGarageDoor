@@ -1,19 +1,27 @@
 package com.chriscartland.garage.repository
 
+import android.text.format.DateFormat
 import android.util.Log
 import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.db.LocalDataSource
 import com.chriscartland.garage.internet.GarageNetworkService
 import com.chriscartland.garage.model.DoorEvent
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
+import java.util.Date
 import javax.inject.Inject
 
 class GarageRepository @Inject constructor(
     private val localDataSource: LocalDataSource,
     private val network: GarageNetworkService,
+    private val serverConfigRepository: ServerConfigRepository,
 ) {
     val currentDoorEvent: Flow<DoorEvent> = localDataSource.currentDoorEvent
     val recentDoorEvents: Flow<List<DoorEvent>> = localDataSource.recentDoorEvents
+
+    suspend fun buildTimestamp(): String? = serverConfigRepository.serverConfig()?.buildTimestamp
 
     fun insertDoorEvent(doorEvent: DoorEvent) {
         Log.d("insertDoorEvent", "Inserting door event: $doorEvent")
@@ -21,59 +29,71 @@ class GarageRepository @Inject constructor(
     }
 
     suspend fun fetchCurrentDoorEvent() {
+        val tag = "fetchCurrentDoorEvent"
+        val serverConfig = serverConfigRepository.serverConfig()
+        if (serverConfig == null) {
+            Log.e(tag, "Server config is null")
+            return
+        }
         try {
-            Log.d("fetchCurrentDoorEvent", "Fetching current door event")
+            Log.d(tag, "Fetching current door event")
             val response = network.getCurrentEventData(
-                buildTimestamp = APP_CONFIG.buildTimestamp,
+                buildTimestamp = serverConfig.buildTimestamp,
                 session = null,
             )
             if (response.code() != 200) {
-                Log.e("fetchCurrentDoorEvent", "Response code is ${response.code()}")
+                Log.e(tag, "Response code is ${response.code()}")
                 return
             }
             val body = response.body()
             if (body == null) {
-                Log.e("fetchCurrentDoorEvent", "Response body is null")
+                Log.e(tag, "Response body is null")
                 return
             }
-            Log.d("fetchCurrentDoorEvent", "Response: $response")
+            Log.d(tag, "Response: $response")
             if (body.currentEventData == null) {
-                Log.e("fetchCurrentDoorEvent", "currentEventData is null")
+                Log.e(tag, "currentEventData is null")
             } else if (body.currentEventData.currentEvent == null) {
-                Log.e("fetchCurrentDoorEvent", "currentEvent is null")
+                Log.e(tag, "currentEvent is null")
             }
             val doorEvent = body.currentEventData?.currentEvent?.asDoorEvent()
             if (doorEvent == null) {
-                Log.e("fetchCurrentDoorEvent", "Door event is null")
+                Log.e(tag, "Door event is null")
                 return
             }
-            Log.d("fetchCurrentDoorEvent", "Success: $doorEvent")
+            Log.d(tag, "Success: $doorEvent")
             localDataSource.insertDoorEvent(doorEvent)
         } catch (e: Exception) {
-            Log.e("fetchCurrentDoorEvent", "Error: $e")
+            Log.e(tag, "Error: $e")
         }
     }
 
     suspend fun fetchRecentDoorEvents() {
+        val tag = "fetchRecentDoorEvents"
+        val serverConfig = serverConfigRepository.serverConfig()
+        if (serverConfig == null) {
+            Log.e(tag, "Server config is null")
+            return
+        }
         try {
-            Log.d("fetchRecentDoorEvents", "Fetching recent door events")
+            Log.d(tag, "Fetching recent door events")
             val response = network.getRecentEventData(
-                buildTimestamp = APP_CONFIG.buildTimestamp,
+                buildTimestamp = serverConfig.buildTimestamp,
                 session = null,
                 count = APP_CONFIG.recentEventCount,
             )
             if (response.code() != 200) {
-                Log.e("fetchRecentDoorEvents", "Response code is ${response.code()}")
+                Log.e(tag, "Response code is ${response.code()}")
                 return
             }
             val body = response.body()
             if (body == null) {
-                Log.e("fetchRecentDoorEvents", "Response body is null")
+                Log.e(tag, "Response body is null")
                 return
             }
-            Log.d("fetchRecentDoorEvents", "Response: $response")
+            Log.d(tag, "Response: $response")
             if (body.eventHistory.isNullOrEmpty()) {
-                Log.i("fetchRecentDoorEvents", "recentEventData is empty")
+                Log.i(tag, "recentEventData is empty")
                 return
             }
             val doorEvents = body.eventHistory.map {
@@ -81,17 +101,23 @@ class GarageRepository @Inject constructor(
             }.filterNotNull()
             if (doorEvents.size != body.eventHistory.size) {
                 Log.e(
-                    "fetchRecentDoorEvents",
+                    tag,
                     "Door events size ${doorEvents.size} " +
                             "does not match response size ${body.eventHistory.size}"
                 )
             }
-            Log.d("fetchRecentDoorEvents", "Success: $doorEvents")
+            Log.d(tag, "Success: $doorEvents")
             localDataSource.replaceDoorEvents(doorEvents)
         } catch (e: IllegalArgumentException) {
-            Log.e("fetchRecentDoorEvents", "IllegalArgumentException: $e")
+            Log.e(tag, "IllegalArgumentException: $e")
         } catch (e: Exception) {
-            Log.e("fetchRecentDoorEvents", "Exception: $e")
+            Log.e(tag, "Exception: $e")
         }
     }
+}
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface GarageRepositoryEntryPoint {
+    fun garageRepository(): GarageRepository
 }

@@ -21,6 +21,8 @@ class DoorViewModel @Inject constructor(
     private val garageRepository: GarageRepository,
 ) : ViewModel() {
 
+    suspend fun buildTimestamp(): String? = garageRepository.buildTimestamp()
+
     private val _currentDoorEvent = MutableStateFlow<Result<DoorEvent?>>(
         Result.Loading(null), // Initial data.
     )
