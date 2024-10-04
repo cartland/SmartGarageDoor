@@ -111,5 +111,6 @@ dependencies {
     kapt(libs.androidx.room.compiler)
     // Firebase
     implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.messaging)
 }
