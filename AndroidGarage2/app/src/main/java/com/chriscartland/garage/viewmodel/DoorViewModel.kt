@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class HomeViewModel @Inject constructor(
+class DoorViewModel @Inject constructor(
     private val garageRepository: GarageRepository,
 ) : ViewModel() {
 

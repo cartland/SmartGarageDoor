@@ -2,7 +2,6 @@ package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
@@ -20,14 +19,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.repository.Result
 import com.chriscartland.garage.repository.dataOrNull
-import com.chriscartland.garage.viewmodel.HomeViewModel
+import com.chriscartland.garage.viewmodel.DoorViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 
 @Composable
 fun HomeContent(
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = hiltViewModel(),
+    viewModel: DoorViewModel = hiltViewModel(),
 ) {
     val currentDoorEvent = viewModel.currentDoorEvent.collectAsState()
     val recentDoorEvents = viewModel.recentDoorEvents.collectAsState()
