@@ -1,5 +1,6 @@
 package com.chriscartland.garage
 
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -10,9 +11,11 @@ import androidx.lifecycle.lifecycleScope
 import com.chriscartland.garage.fcm.updateOpenDoorFcmSubscription
 import com.chriscartland.garage.ui.GarageApp
 import com.chriscartland.garage.viewmodel.DoorViewModel
+import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import com.google.android.gms.auth.api.identity.Identity
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -32,6 +35,40 @@ class MainActivity : ComponentActivity() {
             updateOpenDoorFcmSubscription(this@MainActivity, buildTimestamp)
         }
     }
+
+    fun signInSetup() {
+        // One Tap Sign-In configuration.
+        checkSignInConfiguration("MainActivity", this)
+        val googleClientIdForWeb = BuildConfig.GOOGLE_WEB_CLIENT_ID
+        val oneTapSignInRequest = BeginSignInRequest.builder()
+            .setGoogleIdTokenRequestOptions(
+                BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
+                    .setSupported(true)
+                    .setServerClientId(googleClientIdForWeb)
+                    .setFilterByAuthorizedAccounts(false)
+                    .build())
+            .setAutoSelectEnabled(true)
+            .build()
+        val client = Identity.getSignInClient(this)
+    }
+
+    val INCORRECT_WEB_CLIENT_ID = "123456789012-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz.apps.googleusercontent.com"
+
+    /**
+     * Log a warning if the sign-in configuration is not correct.
+     */
+    fun checkSignInConfiguration(TAG: String, context: Context) {
+        val googleClientIdForWeb = context.getString(R.string.web_client_id)
+        if (googleClientIdForWeb == INCORRECT_WEB_CLIENT_ID) {
+            Log.w(TAG, "The web client ID matches the INCORRECT_WEB_CLIENT_ID. " +
+                    "One Tap Sign-In with Google will not work. " +
+                    "Update the web client ID to be used with setServerClientId(). " +
+                    "https://developers.google.com/identity/one-tap/android/get-saved-credentials " +
+                    "Create a web client ID in this Google Cloud Console " +
+                    "https://console.cloud.google.com/apis/credentials")
+        }
+    }
+
 
 //    fun handleOneTapSignIn(activity: Activity, data: Intent?) {
 //        try {

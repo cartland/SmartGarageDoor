@@ -35,6 +35,11 @@ android {
             "SERVER_CONFIG_KEY",
             "\"${configProperties["SERVER_CONFIG_KEY"]}\"",
         )
+        buildConfigField(
+            "String",
+            "GOOGLE_WEB_CLIENT_ID",
+            "\"${configProperties["GOOGLE_WEB_CLIENT_ID"]}\"",
+        )
     }
 
     buildTypes {
@@ -86,6 +91,7 @@ dependencies {
     implementation(libs.accompanist.permissions)
     // Navigation
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.play.services.auth)
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
