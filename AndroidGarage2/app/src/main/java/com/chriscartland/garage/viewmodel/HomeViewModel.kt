@@ -7,6 +7,7 @@ import com.chriscartland.garage.FetchOnViewModelInit
 import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.repository.GarageRepository
 import com.chriscartland.garage.repository.Result
+import com.chriscartland.garage.repository.dataOrNull
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,12 +54,14 @@ class HomeViewModel @Inject constructor(
 
     fun fetchCurrentDoorEvent() {
         viewModelScope.launch(Dispatchers.IO) {
+            _currentDoorEvent.value = Result.Loading(_currentDoorEvent.value.dataOrNull())
             garageRepository.fetchCurrentDoorEvent()
         }
     }
 
     fun fetchRecentDoorEvents() {
         viewModelScope.launch(Dispatchers.IO) {
+            _recentDoorEvents.value = Result.Loading(_recentDoorEvents.value.dataOrNull())
             garageRepository.fetchRecentDoorEvents()
         }
     }
