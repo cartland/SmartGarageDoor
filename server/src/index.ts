@@ -24,7 +24,7 @@ import { httpCurrentEventData, httpEventHistory, httpNextEvent } from './functio
 import { httpRemoteButton, httpAddRemoteButtonCommand } from './functions/http/RemoteButton'
 import { httpCheckForOpenDoors } from './functions/http/OpenDoor'
 import { httpDeleteOldData } from './functions/http/DeleteData'
-import { httpServerConfig } from './functions/http/ServerConfig'
+import { httpServerConfig, httpServerConfigUpdate } from './functions/http/ServerConfig'
 
 // Pubsub Functions.
 import { pubsubCheckForDoorErrors } from './functions/pubsub/DoorErrors'
@@ -191,10 +191,19 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'deleteOldData')
 }
 
 /**
- * Modify the server configuration.
+ * Get the server configuration.
  *
  * Trigger Type: HTTP
  */
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'serverConfig') {
   exports.serverConfig = httpServerConfig;
+}
+
+/**
+ * Update the server configuration.
+ *
+ * Trigger Type: HTTP
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'serverConfigUpdate') {
+  exports.serverConfigUpdate = httpServerConfigUpdate;
 }

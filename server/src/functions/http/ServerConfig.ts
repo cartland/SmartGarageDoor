@@ -47,23 +47,59 @@ export const httpServerConfig = functions.https.onRequest(async (request, respon
     response.status(403).send({ error: 'Forbidden.' });
     return;
   }
-  // Fully authorized.
-  if (request.method === 'GET') {
-    const config = await Config.get();
-    response.status(200).send(config);
+  if (request.method !== 'GET') {
+    response.status(405).send({ error: 'Method Not Allowed.' });
     return;
   }
+  // Fully authorized.
+  const config = await Config.get();
+  response.status(200).send(config);
+  return;
+});
+
+export const httpServerConfigUpdate = functions.https.onRequest(async (request, response) => {
+  const data = {
+    queryParams: request.query,
+    body: request.body
+  };
+  const functionConfig = functions.config();
+  if (!functionConfig
+    || !('serverconfig' in functionConfig)
+    || !('updatekey' in functionConfig['serverconfig'])) {
+    const error = 'Deploy Firebase Functions config with serverconfig.updatekey';
+    console.error(error);
+    response.status(500).send({ error: error });
+    return;
+  }
+  // Set the config key when you deploy the Firebase project.
+  // $ export SERVER_CONFIG_UPDATE_KEY="YourKeyHere"
+  // $ firebase functions:config:set serverconfig.updatekey="$SERVER_CONFIG_UPDATE_KEY"
+  // $ firebase functions:config:get
+  // $ firebase deploy
+  const configSecretKey = functionConfig['serverconfig']['updatekey'];
+  const requestConfigKey = request.get('X-ServerConfigKey');
+  if (!requestConfigKey || requestConfigKey.length <= 0) {
+    response.status(401).send({ error: 'Unauthorized.' });
+    return;
+  }
+  if (configSecretKey !== requestConfigKey) {
+    response.status(403).send({ error: 'Forbidden.' });
+    return;
+  }
+  // Fully authorized.
   if (request.method !== 'POST') {
-    response.status(400).send({ error: 'Invalid request.' });
+    response.status(405).send({ error: 'Method Not Allowed.' });
     return;
   }
   try {
     await Config.set(data);
     const config = await Config.get();
     response.status(200).send(config);
+    return;
   }
   catch (error) {
     console.error(error)
     response.status(500).send(error)
+    return;
   }
 });
