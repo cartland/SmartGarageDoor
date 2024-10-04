@@ -4,7 +4,11 @@ import android.text.format.DateFormat
 import android.util.Log
 import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.db.LocalDataSource
+import com.chriscartland.garage.internet.ButtonAckToken
 import com.chriscartland.garage.internet.GarageNetworkService
+import com.chriscartland.garage.internet.IdToken
+import com.chriscartland.garage.internet.RemoteButtonBuildTimestamp
+import com.chriscartland.garage.internet.RemoteButtonPushKey
 import com.chriscartland.garage.model.DoorEvent
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -113,6 +117,38 @@ class GarageRepository @Inject constructor(
         } catch (e: Exception) {
             Log.e(tag, "Exception: $e")
         }
+    }
+
+    suspend fun pushRemoteButton(
+        idToken: IdToken,
+    ) {
+        val tag = "pushRemoteButton"
+        val serverConfig = serverConfigRepository.serverConfig()
+        if (serverConfig == null) {
+            Log.e(tag, "Server config is null")
+            return
+        }
+        network.postRemoteButtonPush(
+            remoteButtonBuildTimestamp = RemoteButtonBuildTimestamp(
+                serverConfig.remoteButtonBuildTimestamp,
+            ),
+            buttonAckToken = ButtonAckToken(createButtonAckToken()),
+            remoteButtonPushKey = RemoteButtonPushKey(
+                serverConfig.remoteButtonPushKey,
+            ),
+            idToken = idToken,
+        )
+    }
+
+    private fun createButtonAckToken(): String {
+        val now = Date()
+        val humandReadable = DateFormat.format("yyyy-MM-dd hh:mm:ss a", now).toString()
+        val timestampMillis = now.time
+        val appVersion = "AppVersionTODO"
+        val buttonAckTokenData = "android-$appVersion-$humandReadable-$timestampMillis"
+        val re = Regex("[^a-zA-Z0-9-_.]")
+        val filtered = re.replace(buttonAckTokenData, ".")
+        return filtered
     }
 }
 
