@@ -2,6 +2,7 @@ package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,6 +34,7 @@ fun GarageApp() {
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     data object Home : Screen("home", "Home", Icons.Filled.Home)
+    data object RemoteButton : Screen("remoteButton", "Remote Button", Icons.Filled.ExitToApp)
     data object Profile : Screen("profile", "User", Icons.Filled.Person)
 }
 
@@ -40,7 +42,6 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -59,6 +60,7 @@ fun AppNavigation() {
                 .padding(16.dp)
         ) {
             composable(Screen.Home.route) { HomeContent() }
+            composable(Screen.RemoteButton.route) { RemoteButtonContent() }
             composable(Screen.Profile.route) { ProfileContent() }
         }
     }
@@ -72,7 +74,7 @@ private fun currentRoute(navController: NavController): String? {
 
 @Composable
 fun BottomNavigationBar(navController: NavController, currentRoute: String?) {
-    val items = listOf(Screen.Home, Screen.Profile)
+    val items = listOf(Screen.Home, Screen.RemoteButton, Screen.Profile)
 
     NavigationBar {
         items.forEach { screen ->

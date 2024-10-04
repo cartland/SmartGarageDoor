@@ -67,4 +67,7 @@ class DoorViewModel @Inject constructor(
             garageRepository.fetchRecentDoorEvents()
         }
     }
+
+    fun pushRemoteButton() {
+    }
 }
