@@ -34,7 +34,6 @@ fun DoorStatusCard(
     modifier: Modifier = Modifier,
 ) {
     val doorPosition = doorEvent?.doorPosition ?: DoorPosition.UNKNOWN
-
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         shape = RoundedCornerShape(10.dp),
