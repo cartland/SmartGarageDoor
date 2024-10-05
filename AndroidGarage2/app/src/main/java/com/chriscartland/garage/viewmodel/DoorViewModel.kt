@@ -1,10 +1,15 @@
 package com.chriscartland.garage.viewmodel
 
+import android.util.Log
+import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.FetchOnViewModelInit
+import com.chriscartland.garage.internet.IdToken
 import com.chriscartland.garage.model.DoorEvent
+import com.chriscartland.garage.repository.AuthRepository
 import com.chriscartland.garage.repository.GarageRepository
 import com.chriscartland.garage.repository.Result
 import com.chriscartland.garage.repository.dataOrNull
@@ -19,9 +24,25 @@ import javax.inject.Inject
 @HiltViewModel
 class DoorViewModel @Inject constructor(
     private val garageRepository: GarageRepository,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
-    suspend fun buildTimestamp(): String? = garageRepository.buildTimestamp()
+    suspend fun fetchBuildTimestampCached(): String? =
+        garageRepository.fetchServerConfigCached()?.buildTimestamp
+
+    val idToken: StateFlow<String> = authRepository.idToken
+
+    fun seamlessSignIn(activityContext: ComponentActivity) {
+        activityContext.lifecycleScope.launch(Dispatchers.IO) {
+            authRepository.seamlessSignIn(activityContext)
+        }
+    }
+
+    fun signInWithGoogle(activityContext: ComponentActivity) {
+        activityContext.lifecycleScope.launch(Dispatchers.IO) {
+            authRepository.signInWithGoogle(activityContext)
+        }
+    }
 
     private val _currentDoorEvent = MutableStateFlow<Result<DoorEvent?>>(
         Result.Loading(null), // Initial data.
@@ -68,6 +89,13 @@ class DoorViewModel @Inject constructor(
         }
     }
 
-    fun pushRemoteButton() {
+    fun pushRemoteButton(activityContext: ComponentActivity) {
+        viewModelScope.launch(Dispatchers.IO) {
+            Log.d("pushRemoteButton", "Pushing remote button: ${idToken.value}")
+            if (idToken.value.isEmpty()) { // TODO: Sync across views
+                authRepository.seamlessSignIn(activityContext)
+            }
+            garageRepository.pushRemoteButton(IdToken(idToken.value))
+        }
     }
 }

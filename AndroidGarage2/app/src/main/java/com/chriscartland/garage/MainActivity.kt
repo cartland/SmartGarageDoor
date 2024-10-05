@@ -1,6 +1,5 @@
 package com.chriscartland.garage
 
-import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -12,10 +11,10 @@ import com.chriscartland.garage.fcm.updateOpenDoorFcmSubscription
 import com.chriscartland.garage.ui.GarageApp
 import com.chriscartland.garage.viewmodel.DoorViewModel
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
+import com.google.android.gms.auth.api.identity.Identity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import com.google.android.gms.auth.api.identity.Identity
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -27,7 +26,7 @@ class MainActivity : ComponentActivity() {
         }
         val doorViewModel: DoorViewModel by viewModels()
         lifecycleScope.launch(Dispatchers.IO) {
-            val buildTimestamp = doorViewModel.buildTimestamp()
+            val buildTimestamp = doorViewModel.fetchBuildTimestampCached()
             if (buildTimestamp == null) {
                 Log.e("MainActivity", "Failed to register for FCM updates")
                 return@launch
@@ -38,7 +37,7 @@ class MainActivity : ComponentActivity() {
 
     fun signInSetup() {
         // One Tap Sign-In configuration.
-        checkSignInConfiguration("MainActivity", this)
+        checkSignInConfiguration()
         val googleClientIdForWeb = BuildConfig.GOOGLE_WEB_CLIENT_ID
         val oneTapSignInRequest = BeginSignInRequest.builder()
             .setGoogleIdTokenRequestOptions(
@@ -53,19 +52,21 @@ class MainActivity : ComponentActivity() {
     }
 
     val INCORRECT_WEB_CLIENT_ID = "123456789012-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz.apps.googleusercontent.com"
-
     /**
      * Log a warning if the sign-in configuration is not correct.
      */
-    fun checkSignInConfiguration(TAG: String, context: Context) {
-        val googleClientIdForWeb = context.getString(R.string.web_client_id)
+    fun checkSignInConfiguration() {
+        val googleClientIdForWeb = BuildConfig.GOOGLE_WEB_CLIENT_ID
         if (googleClientIdForWeb == INCORRECT_WEB_CLIENT_ID) {
-            Log.w(TAG, "The web client ID matches the INCORRECT_WEB_CLIENT_ID. " +
-                    "One Tap Sign-In with Google will not work. " +
-                    "Update the web client ID to be used with setServerClientId(). " +
-                    "https://developers.google.com/identity/one-tap/android/get-saved-credentials " +
-                    "Create a web client ID in this Google Cloud Console " +
-                    "https://console.cloud.google.com/apis/credentials")
+            Log.e(
+                "checkSignInConfiguration",
+                "The web client ID matches the INCORRECT_WEB_CLIENT_ID. " +
+                        "One Tap Sign-In with Google will not work. " +
+                        "Update the web client ID to be used with setServerClientId(). " +
+                        "https://developers.google.com/identity/one-tap/android/get-saved-credentials " +
+                        "Create a web client ID in this Google Cloud Console " +
+                        "https://console.cloud.google.com/apis/credentials"
+            )
         }
     }
 

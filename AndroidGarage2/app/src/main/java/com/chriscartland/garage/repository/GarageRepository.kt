@@ -25,7 +25,8 @@ class GarageRepository @Inject constructor(
     val currentDoorEvent: Flow<DoorEvent> = localDataSource.currentDoorEvent
     val recentDoorEvents: Flow<List<DoorEvent>> = localDataSource.recentDoorEvents
 
-    suspend fun buildTimestamp(): String? = serverConfigRepository.serverConfig()?.buildTimestamp
+    suspend fun fetchServerConfigCached(): ServerConfig? =
+        serverConfigRepository.serverConfigCached()
 
     fun insertDoorEvent(doorEvent: DoorEvent) {
         Log.d("insertDoorEvent", "Inserting door event: $doorEvent")
@@ -34,7 +35,7 @@ class GarageRepository @Inject constructor(
 
     suspend fun fetchCurrentDoorEvent() {
         val tag = "fetchCurrentDoorEvent"
-        val serverConfig = serverConfigRepository.serverConfig()
+        val serverConfig = serverConfigRepository.serverConfigCached()
         if (serverConfig == null) {
             Log.e(tag, "Server config is null")
             return
@@ -74,7 +75,7 @@ class GarageRepository @Inject constructor(
 
     suspend fun fetchRecentDoorEvents() {
         val tag = "fetchRecentDoorEvents"
-        val serverConfig = serverConfigRepository.serverConfig()
+        val serverConfig = serverConfigRepository.serverConfigCached()
         if (serverConfig == null) {
             Log.e(tag, "Server config is null")
             return
@@ -123,7 +124,7 @@ class GarageRepository @Inject constructor(
         idToken: IdToken,
     ) {
         val tag = "pushRemoteButton"
-        val serverConfig = serverConfigRepository.serverConfig()
+        val serverConfig = serverConfigRepository.serverConfigCached()
         if (serverConfig == null) {
             Log.e(tag, "Server config is null")
             return

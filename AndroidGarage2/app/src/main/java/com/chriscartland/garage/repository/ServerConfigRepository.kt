@@ -19,7 +19,7 @@ class ServerConfigRepository @Inject constructor(
 ) {
     private var _serverConfig: ServerConfig? = null
 
-    suspend fun serverConfig(): ServerConfig? {
+    suspend fun serverConfigCached(): ServerConfig? {
         return _serverConfig ?: fetchServerConfig().also { _serverConfig = it }
     }
 

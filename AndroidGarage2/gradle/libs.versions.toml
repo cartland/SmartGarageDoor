@@ -5,6 +5,9 @@ agp = "8.5.2"
 androidxCore = "1.13.1"
 androidxNavigation = "2.8.2"
 composeBom = "2024.09.03"
+credentials = "1.2.0"
+credentialsPlayServicesAuth = "1.1.1"
+credentialsGoogleId = "1.0.1"
 espressoCore = "3.6.1"
 firebase-bom = "33.4.0"
 gms = "4.4.2"
@@ -54,6 +57,9 @@ squareup-moshi = { module = "com.squareup.moshi:moshi", version.ref = "moshi" }
 squareup-moshi-kotlin-codegen = { module = "com.squareup.moshi:moshi-kotlin-codegen", version.ref = "moshi" }
 squareup-retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 squareup-retrofit-moshi-converter = { module = "com.squareup.retrofit2:converter-moshi", version.ref = "moshiConverter" }
+androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
+androidx-credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentialsPlayServicesAuth" }
+googleId = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "credentialsGoogleId" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
