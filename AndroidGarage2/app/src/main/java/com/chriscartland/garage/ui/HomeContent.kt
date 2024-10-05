@@ -69,6 +69,15 @@ fun HomeContent(
                     },
                 )
             }
+        } else {
+            // Snooze notifications.
+            item {
+                SnoozeNotificationCard(
+                    text = "Snooze notifications",
+                    snoozeText = "Snooze",
+                    saveText = "Save",
+                )
+            }
         }
 
         // If the current event is loading, show a loading indicator.
