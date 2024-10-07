@@ -1,5 +1,6 @@
 package com.chriscartland.garage.viewmodel
 
+import android.content.Intent
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModel
@@ -9,7 +10,8 @@ import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.FetchOnViewModelInit
 import com.chriscartland.garage.internet.IdToken
 import com.chriscartland.garage.model.DoorEvent
-import com.chriscartland.garage.repository.AuthRepository
+import com.chriscartland.garage.model.User
+import com.chriscartland.garage.repository.FirebaseAuthRepository
 import com.chriscartland.garage.repository.GarageRepository
 import com.chriscartland.garage.repository.Result
 import com.chriscartland.garage.repository.dataOrNull
@@ -24,23 +26,35 @@ import javax.inject.Inject
 @HiltViewModel
 class DoorViewModel @Inject constructor(
     private val garageRepository: GarageRepository,
-    private val authRepository: AuthRepository,
+    private val authRepository: FirebaseAuthRepository,
 ) : ViewModel() {
 
     suspend fun fetchBuildTimestampCached(): String? =
         garageRepository.fetchServerConfigCached()?.buildTimestamp
 
-    val idToken: StateFlow<String> = authRepository.idToken
+    val user: StateFlow<User?> = authRepository.user
 
-    fun seamlessSignIn(activityContext: ComponentActivity) {
+    fun signInSeamlessly(activityContext: ComponentActivity) {
         activityContext.lifecycleScope.launch(Dispatchers.IO) {
-            authRepository.seamlessSignIn(activityContext)
+            authRepository.signInSeamlessly(activityContext)
         }
     }
 
-    fun signInWithGoogle(activityContext: ComponentActivity) {
+    fun signInWithDialog(activityContext: ComponentActivity) {
         activityContext.lifecycleScope.launch(Dispatchers.IO) {
-            authRepository.signInWithGoogle(activityContext)
+            authRepository.signInWithDialog(activityContext)
+        }
+    }
+
+    fun signOut() {
+        viewModelScope.launch(Dispatchers.IO) {
+            authRepository.signOut()
+        }
+    }
+
+    fun handleOneTapSignIn(activity: ComponentActivity, data: Intent?) {
+        activity.lifecycleScope.launch(Dispatchers.IO) {
+            authRepository.handleSignIn(activity, data)
         }
     }
 
@@ -55,6 +69,7 @@ class DoorViewModel @Inject constructor(
     val recentDoorEvents = _recentDoorEvents.asStateFlow()
 
     init {
+        Log.d("DoorViewModel", "init")
         viewModelScope.launch(Dispatchers.IO) {
             garageRepository.currentDoorEvent.collect {
                 _currentDoorEvent.value = Result.Complete(it)
@@ -71,7 +86,9 @@ class DoorViewModel @Inject constructor(
                 fetchCurrentDoorEvent()
                 fetchRecentDoorEvents()
             }
-            FetchOnViewModelInit.No -> { /* Do nothing */ }
+
+            FetchOnViewModelInit.No -> { /* Do nothing */
+            }
         }
     }
 
@@ -91,11 +108,12 @@ class DoorViewModel @Inject constructor(
 
     fun pushRemoteButton(activityContext: ComponentActivity) {
         viewModelScope.launch(Dispatchers.IO) {
-            Log.d("pushRemoteButton", "Pushing remote button: ${idToken.value}")
-            if (idToken.value.isEmpty()) { // TODO: Sync across views
-                authRepository.seamlessSignIn(activityContext)
+            val idToken = user.value?.idToken ?: return@launch
+            Log.d("pushRemoteButton", "Pushing remote button: $idToken")
+            if (idToken.asString().isEmpty()) { // TODO: Sync across views
+//                authRepository.seamlessSignIn(activityContext)
             }
-            garageRepository.pushRemoteButton(IdToken(idToken.value))
+            garageRepository.pushRemoteButton(IdToken(idToken.asString()))
         }
     }
 }

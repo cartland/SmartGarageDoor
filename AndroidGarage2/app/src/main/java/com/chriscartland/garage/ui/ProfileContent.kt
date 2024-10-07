@@ -7,10 +7,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chriscartland.garage.model.User
 import com.chriscartland.garage.viewmodel.DoorViewModel
 
 @Composable
@@ -18,20 +18,43 @@ fun ProfileContent(
     viewModel: DoorViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current as ComponentActivity
-    val idToken by viewModel.idToken.collectAsState()
+    val user by viewModel.user.collectAsState()
+    ProfileContent(
+        user = user,
+        signInSeamlessly = { viewModel.signInSeamlessly(context) },
+        signInWithDialog = { viewModel.signInWithDialog(context) },
+        signOut = { viewModel.signOut() }
+    )
+}
+
+@Composable
+fun ProfileContent(
+    user: User?,
+    signInSeamlessly: () -> Unit,
+    signInWithDialog: () -> Unit,
+    signOut: () -> Unit,
+) {
     LazyColumn {
         item {
-            Text("ID Token: ${idToken.take(20)}")
-        }
-        item {
-            Button(onClick = { viewModel.seamlessSignIn(context) }) {
-                Text("Seamless sign in")
+            Button(onClick = signInSeamlessly) {
+                Text("Sign In (Seamless)")
             }
         }
         item {
-            Button(onClick = { viewModel.signInWithGoogle(context) }) {
-                Text("Sign in with Google")
+            Button(onClick = signInWithDialog) {
+                Text("Sign In (Dialog)")
             }
+        }
+        item {
+            Button(onClick = signOut) {
+                Text("Sign out")
+            }
+        }
+        item {
+            Text(text = "ID Token: ${user?.idToken?.asString()?.take(20) ?: "Unknown"}")
+        }
+        item {
+            Text(text = "Email: ${user?.email?.asString() ?: "Unknown"}")
         }
     }
 }

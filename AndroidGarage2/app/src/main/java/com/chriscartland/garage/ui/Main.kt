@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -24,6 +25,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.chriscartland.garage.ui.theme.AppTheme
+import com.chriscartland.garage.viewmodel.DoorViewModel
 
 @Composable
 fun GarageApp() {
@@ -40,7 +42,9 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation() {
+fun AppNavigation(
+    doorViewModel: DoorViewModel = hiltViewModel(),
+) {
     val navController = rememberNavController()
     Scaffold(
         topBar = {
@@ -59,9 +63,9 @@ fun AppNavigation() {
                 .padding(innerPadding)
                 .padding(16.dp)
         ) {
-            composable(Screen.Home.route) { HomeContent() }
-            composable(Screen.RemoteButton.route) { RemoteButtonContent() }
-            composable(Screen.Profile.route) { ProfileContent() }
+            composable(Screen.Home.route) { HomeContent(viewModel = doorViewModel) }
+            composable(Screen.RemoteButton.route) { RemoteButtonContent(viewModel = doorViewModel) }
+            composable(Screen.Profile.route) { ProfileContent(viewModel = doorViewModel) }
         }
     }
 }
