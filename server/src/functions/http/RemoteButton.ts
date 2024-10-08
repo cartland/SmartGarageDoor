@@ -35,7 +35,7 @@ const BUTTON_ACK_TOKEN_PARAM_KEY = "buttonAckToken";
 const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
 const EMAIL_PARAM_KEY = "email";
 
-const REMOTE_BUTTON_MIN_PERIOD_SECONDS = 20;
+const REMOTE_BUTTON_MIN_PERIOD_SECONDS = 10;
 const REMOTE_BUTTON_COMMAND_TIMEOUT_SECONDS = 60;
 
 const REMOTE_BUTTON_REQUEST_ERROR_SECONDS = 60 * 10;
@@ -177,16 +177,25 @@ export const httpAddRemoteButtonCommand = functions.https.onRequest(async (reque
   }
   const session = data[SESSION_PARAM_KEY];
   if (BUTTON_ACK_TOKEN_PARAM_KEY in request.query) {
-    // If the client sends a session ID, respond with the session ID.
+    // Button ack token needs to be unique for each request (prefer random).
     data[BUTTON_ACK_TOKEN_PARAM_KEY] = request.query[BUTTON_ACK_TOKEN_PARAM_KEY];
   } else {
-    // TODO.
+    // TODO: Determine if we should abort the request at this point.
+    // My memory suggests that we should require a button ack token,
+    // but this code allows us to submit a request with a non-existent token.
+    // However, since this code has been running for 3.5 years,
+    // I do not want to change the behavior without better testing.
+    console.warn('No button ack token in request');
   }
   // The build timestamp is unique to each device.
   if (BUILD_TIMESTAMP_PARAM_KEY in request.query) {
     data[BUILD_TIMESTAMP_PARAM_KEY] = request.query[BUILD_TIMESTAMP_PARAM_KEY];
   } else {
-    // Skip.
+    // TODO: Determine if we should abort the request at this point.
+    // I think a build timestamp should be required.
+    console.error('No build timestamp in request');
+    const result = { error: 'Missing required parameter: ' + BUILD_TIMESTAMP_PARAM_KEY };
+    response.status(400).send(result);
   }
   data[EMAIL_PARAM_KEY] = email;
   const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
