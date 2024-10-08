@@ -129,16 +129,22 @@ class GarageRepository @Inject constructor(
             Log.e(tag, "Server config is null")
             return
         }
-        network.postRemoteButtonPush(
+        val buttonAckToken = createButtonAckToken()
+        Log.d(tag, "Pushing remote button")
+        Log.d(tag, "Server config: $serverConfig")
+        Log.d(tag, "Button ack token: $buttonAckToken")
+        val response = network.postRemoteButtonPush(
             remoteButtonBuildTimestamp = RemoteButtonBuildTimestamp(
                 serverConfig.remoteButtonBuildTimestamp,
             ),
-            buttonAckToken = ButtonAckToken(createButtonAckToken()),
+            buttonAckToken = ButtonAckToken(buttonAckToken),
             remoteButtonPushKey = RemoteButtonPushKey(
                 serverConfig.remoteButtonPushKey,
             ),
             idToken = idToken,
         )
+        Log.i(tag, "Response: ${response.code()}")
+        Log.i(tag, "Response body: ${response.body()}")
     }
 
     private fun createButtonAckToken(): String {

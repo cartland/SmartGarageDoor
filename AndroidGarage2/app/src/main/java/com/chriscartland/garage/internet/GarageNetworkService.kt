@@ -37,7 +37,7 @@ interface GarageNetworkService {
         buttonAckToken: ButtonAckToken,
         remoteButtonPushKey: RemoteButtonPushKey,
         idToken: IdToken,
-    ): Response<String>
+    ): Response<RemoteButtonPushResponse>
 }
 
 @JvmInline
@@ -73,11 +73,11 @@ interface RetrofitGarageNetworkService : GarageNetworkService {
 
     @GET("addRemoteButtonCommand")
     override suspend fun postRemoteButtonPush(
-        @Query("remoteButtonBuildTimestamp") remoteButtonBuildTimestamp: RemoteButtonBuildTimestamp,
+        @Query("buildTimestamp") remoteButtonBuildTimestamp: RemoteButtonBuildTimestamp,
         @Query("buttonAckToken") buttonAckToken: ButtonAckToken,
         @Header("X-RemoteButtonPushKey") remoteButtonPushKey: RemoteButtonPushKey,
         @Header("X-AuthTokenGoogle") idToken: IdToken,
-    ): Response<String>
+    ): Response<RemoteButtonPushResponse>
 }
 
 @Module

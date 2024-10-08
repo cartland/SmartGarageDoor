@@ -48,7 +48,10 @@ class ServerConfigRepository @Inject constructor(
                 Log.e(tag, "buildTimestamp is empty")
                 return null
             }
-            if (body.body.remoteButtonBuildTimestamp.isNullOrEmpty()) {
+            // remoteButtonBuildTimestamp uses a custom get() accessor so it cannot be smart cast
+            // in the ServerConfig constructor. Storing in a local variable for the null check.
+            val remoteButtonBuildTimestamp = body.body.remoteButtonBuildTimestamp
+            if (remoteButtonBuildTimestamp.isNullOrEmpty()) {
                 Log.e(tag, "remoteButtonBuildTimestamp is empty")
                 return null
             }
@@ -58,7 +61,7 @@ class ServerConfigRepository @Inject constructor(
             }
             return ServerConfig(
                 buildTimestamp = body.body.buildTimestamp,
-                remoteButtonBuildTimestamp = body.body.remoteButtonBuildTimestamp,
+                remoteButtonBuildTimestamp = remoteButtonBuildTimestamp,
                 remoteButtonPushKey = body.body.remoteButtonPushKey,
             ).also { newConfig ->
                 _serverConfig = newConfig

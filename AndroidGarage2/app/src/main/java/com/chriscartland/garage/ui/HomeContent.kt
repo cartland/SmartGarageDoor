@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.repository.Result
 import com.chriscartland.garage.repository.dataOrNull
@@ -71,12 +72,14 @@ fun HomeContent(
             }
         } else {
             // Snooze notifications.
-            item {
-                SnoozeNotificationCard(
-                    text = "Snooze notifications",
-                    snoozeText = "Snooze",
-                    saveText = "Save",
-                )
+            if (APP_CONFIG.snoozeNotificationsOption) {
+                item {
+                    SnoozeNotificationCard(
+                        text = "Snooze notifications",
+                        snoozeText = "Snooze",
+                        saveText = "Save",
+                    )
+                }
             }
         }
 
