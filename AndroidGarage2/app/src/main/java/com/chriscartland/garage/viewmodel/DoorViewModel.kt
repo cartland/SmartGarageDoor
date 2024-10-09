@@ -10,11 +10,12 @@ import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.FetchOnViewModelInit
 import com.chriscartland.garage.internet.IdToken
 import com.chriscartland.garage.model.DoorEvent
+import com.chriscartland.garage.model.Result
 import com.chriscartland.garage.model.User
+import com.chriscartland.garage.model.dataOrNull
 import com.chriscartland.garage.repository.FirebaseAuthRepository
 import com.chriscartland.garage.repository.GarageRepository
-import com.chriscartland.garage.model.Result
-import com.chriscartland.garage.model.dataOrNull
+import com.chriscartland.garage.repository.RemoteButtonRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +27,7 @@ import javax.inject.Inject
 @HiltViewModel
 class DoorViewModel @Inject constructor(
     private val garageRepository: GarageRepository,
+    private val remoteButtonRepository: RemoteButtonRepository,
     private val authRepository: FirebaseAuthRepository,
 ) : ViewModel() {
 
@@ -106,11 +108,14 @@ class DoorViewModel @Inject constructor(
         }
     }
 
-    fun pushRemoteButton(activityContext: ComponentActivity) {
+    fun pushRemoteButton() {
         viewModelScope.launch(Dispatchers.IO) {
             val idToken = user.value?.idToken ?: return@launch
             Log.d("DoorViewModel", "pushRemoteButton: Pushing remote button: $idToken")
-            garageRepository.pushRemoteButton(IdToken(idToken.asString()))
+            remoteButtonRepository.pushRemoteButton(
+                idToken = IdToken(idToken.asString()),
+                buttonAckToken = remoteButtonRepository.createButtonAckToken(),
+            )
         }
     }
 }

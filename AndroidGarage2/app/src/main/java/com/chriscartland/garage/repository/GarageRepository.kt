@@ -1,22 +1,14 @@
 package com.chriscartland.garage.repository
 
-import android.text.format.DateFormat
 import android.util.Log
 import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.db.LocalDataSource
-import com.chriscartland.garage.internet.ButtonAckToken
 import com.chriscartland.garage.internet.GarageNetworkService
-import com.chriscartland.garage.internet.IdToken
-import com.chriscartland.garage.internet.RemoteButtonBuildTimestamp
-import com.chriscartland.garage.internet.RemoteButtonPushKey
 import com.chriscartland.garage.model.DoorEvent
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import java.util.Date
 import javax.inject.Inject
 
 class GarageRepository @Inject constructor(
@@ -120,44 +112,6 @@ class GarageRepository @Inject constructor(
         } catch (e: Exception) {
             Log.e(tag, "Exception: $e")
         }
-    }
-
-    suspend fun pushRemoteButton(
-        idToken: IdToken,
-    ) {
-        val tag = "pushRemoteButton"
-        val serverConfig = serverConfigRepository.serverConfigCached()
-        if (serverConfig == null) {
-            Log.e(tag, "Server config is null")
-            return
-        }
-        val buttonAckToken = createButtonAckToken()
-        Log.d(tag, "Pushing remote button")
-        Log.d(tag, "Server config: $serverConfig")
-        Log.d(tag, "Button ack token: $buttonAckToken")
-        val response = network.postRemoteButtonPush(
-            remoteButtonBuildTimestamp = RemoteButtonBuildTimestamp(
-                serverConfig.remoteButtonBuildTimestamp,
-            ),
-            buttonAckToken = ButtonAckToken(buttonAckToken),
-            remoteButtonPushKey = RemoteButtonPushKey(
-                serverConfig.remoteButtonPushKey,
-            ),
-            idToken = idToken,
-        )
-        Log.i(tag, "Response: ${response.code()}")
-        Log.i(tag, "Response body: ${response.body()}")
-    }
-
-    private fun createButtonAckToken(): String {
-        val now = Date()
-        val humandReadable = DateFormat.format("yyyy-MM-dd hh:mm:ss a", now).toString()
-        val timestampMillis = now.time
-        val appVersion = "AppVersionTODO"
-        val buttonAckTokenData = "android-$appVersion-$humandReadable-$timestampMillis"
-        val re = Regex("[^a-zA-Z0-9-_.]")
-        val filtered = re.replace(buttonAckTokenData, ".")
-        return filtered
     }
 }
 
