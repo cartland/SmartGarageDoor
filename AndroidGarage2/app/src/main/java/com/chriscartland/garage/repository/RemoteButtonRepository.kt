@@ -17,6 +17,9 @@ class RemoteButtonRepository @Inject constructor(
     private val network: GarageNetworkService,
     private val serverConfigRepository: ServerConfigRepository,
 ) {
+    /**
+     * Send a command to the server to push the remote button.
+     */
     suspend fun pushRemoteButton(
         idToken: IdToken,
         buttonAckToken: String,
@@ -44,6 +47,14 @@ class RemoteButtonRepository @Inject constructor(
         Log.i(tag, "Response body: ${response.body()}")
     }
 
+    /**
+     * Create a button ack token.
+     *
+     * This token is created by the client so the server can acknowledge the remote button push.
+     * The client can send the same token to the server multiple times and the server is
+     * responsible for only processing the token once.
+     * When the server receives a button press, it will respond with the token to the client.
+     */
     fun createButtonAckToken(): String {
         val now = Date()
         val humanReadable = DateFormat.format("yyyy-MM-dd hh:mm:ss a", now).toString()

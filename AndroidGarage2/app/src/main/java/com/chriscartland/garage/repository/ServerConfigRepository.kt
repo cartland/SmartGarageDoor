@@ -17,6 +17,12 @@ class ServerConfigRepository @Inject constructor(
 
     private val mutex: Mutex = Mutex()
 
+    /**
+     * Get server config.
+     *
+     * Multiple code paths will ask for the server configuration at startup.
+     * We only want to fetch it once.
+     */
     suspend fun serverConfigCached(): ServerConfig? {
         if (_serverConfig != null) {
             return _serverConfig
@@ -29,6 +35,9 @@ class ServerConfigRepository @Inject constructor(
 
     /**
      * Fetch server config.
+     *
+     * Most callers should call serverConfigCached(). Only call this if the cached config
+     * might be out of date. Callers are responsible for rate limiting this request.
      */
     suspend fun updateServerConfig(): ServerConfig? {
         val tag = "fetchServerConfig"

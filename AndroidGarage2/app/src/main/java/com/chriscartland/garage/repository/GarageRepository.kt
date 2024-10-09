@@ -27,6 +27,9 @@ class GarageRepository @Inject constructor(
         localDataSource.insertDoorEvent(doorEvent)
     }
 
+    /**
+     * Fetch current door event.
+     */
     suspend fun fetchCurrentDoorEvent() {
         val tag = "fetchCurrentDoorEvent"
         val buildTimestamp = buildTimestamp()
@@ -67,6 +70,9 @@ class GarageRepository @Inject constructor(
         }
     }
 
+    /**
+     * Fetch recent door events.
+     */
     suspend fun fetchRecentDoorEvents() {
         val tag = "fetchRecentDoorEvents"
         val buildTimestamp = buildTimestamp()

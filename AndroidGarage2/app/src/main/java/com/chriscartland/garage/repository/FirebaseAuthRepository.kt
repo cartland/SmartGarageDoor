@@ -70,7 +70,8 @@ class FirebaseAuthRepository @Inject constructor(
      * Use One Tap with Google to sign in.
      *
      * This will try to seamlessly sign in without additional user input.
-     * If a user has previously authorized
+     * A previously authorized user might see a dialog for a few seconds.
+     * If the account is incorrect, the user can cancel the sign in before it is complete.
      */
     fun signInSeamlessly(activity: ComponentActivity) {
         checkSignInConfiguration()
@@ -102,6 +103,9 @@ class FirebaseAuthRepository @Inject constructor(
             }
     }
 
+    /**
+     * Sign in flow that always shows a consent dialog.
+     */
     fun signInWithDialog(activity: ComponentActivity) {
         checkSignInConfiguration()
         Log.d(TAG, "beginSignIn")
@@ -132,6 +136,9 @@ class FirebaseAuthRepository @Inject constructor(
             }
     }
 
+    /**
+     * Sign out.
+     */
     fun signOut() {
         Log.d(TAG, "signOut")
         _user.value = null

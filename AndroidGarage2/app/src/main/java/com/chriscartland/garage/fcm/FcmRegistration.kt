@@ -35,6 +35,15 @@ import com.google.firebase.messaging.ktx.messaging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/**
+ * Register for FCM updates.
+ *
+ * This composable does not emit UI.
+ *
+ * Just once, this composable will try to register for FCM updates.
+ * 1) Fetch the build timestamp from the server.
+ * 2) Subscribe to the FCM topic.
+ */
 @Composable
 fun FCMRegistration(viewModel: DoorViewModel = hiltViewModel()) {
     val context = LocalContext.current as ComponentActivity
