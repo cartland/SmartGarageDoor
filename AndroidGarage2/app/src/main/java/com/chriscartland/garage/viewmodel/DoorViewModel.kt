@@ -13,8 +13,8 @@ import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.model.User
 import com.chriscartland.garage.repository.FirebaseAuthRepository
 import com.chriscartland.garage.repository.GarageRepository
-import com.chriscartland.garage.repository.Result
-import com.chriscartland.garage.repository.dataOrNull
+import com.chriscartland.garage.model.Result
+import com.chriscartland.garage.model.dataOrNull
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,7 +30,7 @@ class DoorViewModel @Inject constructor(
 ) : ViewModel() {
 
     suspend fun fetchBuildTimestampCached(): String? =
-        garageRepository.fetchServerConfigCached()?.buildTimestamp
+        garageRepository.buildTimestamp()
 
     val user: StateFlow<User?> = authRepository.user
 

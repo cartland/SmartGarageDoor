@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.model.DoorEvent
-import com.chriscartland.garage.repository.Result
-import com.chriscartland.garage.repository.dataOrNull
+import com.chriscartland.garage.model.Result
+import com.chriscartland.garage.model.dataOrNull
 import com.chriscartland.garage.viewmodel.DoorViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted

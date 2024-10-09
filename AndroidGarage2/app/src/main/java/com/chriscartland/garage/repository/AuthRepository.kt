@@ -40,6 +40,7 @@ class AuthRepository @Inject constructor(
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
+@Suppress("unused")
 interface AuthRepositoryEntryPoint {
     fun authRepository(): AuthRepository
 }

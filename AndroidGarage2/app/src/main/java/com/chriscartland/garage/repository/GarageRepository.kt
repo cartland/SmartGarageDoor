@@ -14,6 +14,8 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import java.util.Date
 import javax.inject.Inject
 
@@ -25,8 +27,8 @@ class GarageRepository @Inject constructor(
     val currentDoorEvent: Flow<DoorEvent> = localDataSource.currentDoorEvent
     val recentDoorEvents: Flow<List<DoorEvent>> = localDataSource.recentDoorEvents
 
-    suspend fun fetchServerConfigCached(): ServerConfig? =
-        serverConfigRepository.serverConfigCached()
+    suspend fun buildTimestamp(): String? =
+        serverConfigRepository.serverConfigCached()?.buildTimestamp
 
     fun insertDoorEvent(doorEvent: DoorEvent) {
         Log.d("insertDoorEvent", "Inserting door event: $doorEvent")

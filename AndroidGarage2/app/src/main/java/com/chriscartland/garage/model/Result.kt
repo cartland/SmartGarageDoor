@@ -1,4 +1,4 @@
-package com.chriscartland.garage.repository
+package com.chriscartland.garage.model
 
 sealed class Result<out T> {
     data class Loading<out T>(val data: T?) : Result<T>()

@@ -199,6 +199,7 @@ class FirebaseAuthRepository @Inject constructor(
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
+@Suppress("unused")
 interface FirebaseAuthRepositoryEntryPoint {
     fun firebaseAuthRepository(): FirebaseAuthRepository
 }
