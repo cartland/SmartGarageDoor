@@ -51,7 +51,9 @@ fun ProfileContent(
             }
         }
         item {
-            Text(text = "ID Token: ${user?.idToken?.asString()?.take(20) ?: "Unknown"}")
+            Text(text = "ID Token: ${user?.idToken?.asString()
+                ?.split(".")?.map{ it.take(6) }
+                ?.joinToString("...") ?: "Unknown"}")
         }
         item {
             Text(text = "Email: ${user?.email?.asString() ?: "Unknown"}")

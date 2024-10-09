@@ -109,10 +109,7 @@ class DoorViewModel @Inject constructor(
     fun pushRemoteButton(activityContext: ComponentActivity) {
         viewModelScope.launch(Dispatchers.IO) {
             val idToken = user.value?.idToken ?: return@launch
-            Log.d("pushRemoteButton", "Pushing remote button: $idToken")
-            if (idToken.asString().isEmpty()) { // TODO: Sync across views
-//                authRepository.seamlessSignIn(activityContext)
-            }
+            Log.d("DoorViewModel", "pushRemoteButton: Pushing remote button: $idToken")
             garageRepository.pushRemoteButton(IdToken(idToken.asString()))
         }
     }

@@ -28,11 +28,12 @@ import javax.inject.Inject
 class FirebaseAuthRepository @Inject constructor(
     @ApplicationContext context: Context,
 ) {
-
     private val _user: MutableStateFlow<User?> = MutableStateFlow(null)
     val user: StateFlow<User?> = _user
 
+    // Google API for identity.
     private val signInClient = Identity.getSignInClient(context)
+    // One Tap Sign-In configuration.
     private val oneTapSignInRequest = BeginSignInRequest.builder()
         .setGoogleIdTokenRequestOptions(
             BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
@@ -42,6 +43,7 @@ class FirebaseAuthRepository @Inject constructor(
                 .build())
         .setAutoSelectEnabled(true)
         .build()
+    // Dialog Sign-In configuration.
     private val dialogSignInRequest = BeginSignInRequest.builder()
         .setGoogleIdTokenRequestOptions(
             BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
@@ -70,7 +72,7 @@ class FirebaseAuthRepository @Inject constructor(
     /**
      * Check to make sure we've updated the client ID.
      */
-    val INCORRECT_WEB_CLIENT_ID =
+    private val INCORRECT_WEB_CLIENT_ID =
         "123456789012-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz.apps.googleusercontent.com"
 
     /**

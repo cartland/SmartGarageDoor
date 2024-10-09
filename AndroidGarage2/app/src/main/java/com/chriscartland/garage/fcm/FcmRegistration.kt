@@ -20,8 +20,42 @@ package com.chriscartland.garage.fcm
 import android.app.Activity
 import android.content.Context
 import android.util.Log
+import androidx.activity.ComponentActivity
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.chriscartland.garage.viewmodel.DoorViewModel
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.ktx.messaging
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+@Composable
+fun FCMRegistration(viewModel: DoorViewModel = hiltViewModel()) {
+    val context = LocalContext.current as ComponentActivity
+    var registrationPerformed by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            if (!registrationPerformed) {
+                // Fetch build timestamp from server configuration.
+                val buildTimestamp = viewModel.fetchBuildTimestampCached()
+                if (buildTimestamp == null) {
+                    Log.e("MainActivity", "Failed to register for FCM updates (no buildTimestamp)")
+                    return@withContext
+                }
+                // Subscribe to FCM updates.
+                updateOpenDoorFcmSubscription(context, buildTimestamp)
+                registrationPerformed = true
+            }
+        }
+    }
+}
 
 fun updateOpenDoorFcmSubscription(activity: Activity, buildTimestamp: String) {
     Log.d(TAG, "updateOpenDoorFcmSubscription")

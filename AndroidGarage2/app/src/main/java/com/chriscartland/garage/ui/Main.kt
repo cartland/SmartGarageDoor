@@ -24,6 +24,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.chriscartland.garage.fcm.FCMRegistration
 import com.chriscartland.garage.ui.theme.AppTheme
 import com.chriscartland.garage.viewmodel.DoorViewModel
 
@@ -45,6 +46,8 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 fun AppNavigation(
     doorViewModel: DoorViewModel = hiltViewModel(),
 ) {
+    // Register for FCM notifications.
+    FCMRegistration(viewModel = doorViewModel)
     val navController = rememberNavController()
     Scaffold(
         topBar = {
