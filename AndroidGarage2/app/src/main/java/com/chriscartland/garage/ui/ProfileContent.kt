@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.model.User
 import com.chriscartland.garage.viewmodel.DoorViewModel
 
@@ -57,6 +58,16 @@ fun ProfileContent(
         }
         item {
             Text(text = "Email: ${user?.email?.asString() ?: "Unknown"}")
+        }
+        item {
+            // Snooze notifications.
+            if (APP_CONFIG.snoozeNotificationsOption) {
+                SnoozeNotificationCard(
+                    text = "Snooze notifications",
+                    snoozeText = "Snooze",
+                    saveText = "Save",
+                )
+            }
         }
     }
 }

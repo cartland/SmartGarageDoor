@@ -8,6 +8,7 @@ data class AppConfig(
     val recentEventCount: Int,
     val serverConfigKey: String,
     val snoozeNotificationsOption: Boolean,
+    val remoteButtonPushEnabled: Boolean,
 )
 
 enum class Server {
@@ -44,5 +45,6 @@ val APP_CONFIG = AppConfig(
     fetchOnViewModelInit = FETCH_ON_VIEW_MODEL_INIT,
     recentEventCount = 30,
     serverConfigKey = BuildConfig.SERVER_CONFIG_KEY,
-    snoozeNotificationsOption = false,
+    snoozeNotificationsOption = true,
+    remoteButtonPushEnabled = false,
 )

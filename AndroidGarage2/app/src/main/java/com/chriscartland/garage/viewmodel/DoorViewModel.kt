@@ -109,8 +109,13 @@ class DoorViewModel @Inject constructor(
     }
 
     fun pushRemoteButton() {
+        Log.d("DoorViewModel", "pushRemoteButton")
         viewModelScope.launch(Dispatchers.IO) {
-            val idToken = user.value?.idToken ?: return@launch
+            val idToken = user.value?.idToken
+            if (idToken == null) {
+                Log.d("DoorViewModel", "pushRemoteButton: No ID token")
+                return@launch
+            }
             Log.d("DoorViewModel", "pushRemoteButton: Pushing remote button: $idToken")
             remoteButtonRepository.pushRemoteButton(
                 idToken = IdToken(idToken.asString()),

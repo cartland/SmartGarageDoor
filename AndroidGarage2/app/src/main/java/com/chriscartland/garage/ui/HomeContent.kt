@@ -1,9 +1,9 @@
 package com.chriscartland.garage.ui
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -16,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.model.Result
 import com.chriscartland.garage.model.dataOrNull
@@ -30,13 +29,11 @@ fun HomeContent(
     viewModel: DoorViewModel = hiltViewModel(),
 ) {
     val currentDoorEvent = viewModel.currentDoorEvent.collectAsState()
-    val recentDoorEvents = viewModel.recentDoorEvents.collectAsState()
     HomeContent(
         currentDoorEvent = currentDoorEvent.value,
-        recentDoorEvents = recentDoorEvents.value,
         modifier = modifier,
         onFetchCurrentDoorEvent = { viewModel.fetchCurrentDoorEvent() },
-        onFetchRecentDoorEvents = { viewModel.fetchRecentDoorEvents() },
+        onRemoteButtonClick = { viewModel.pushRemoteButton() }
     )
 }
 
@@ -44,10 +41,9 @@ fun HomeContent(
 @Composable
 fun HomeContent(
     currentDoorEvent: Result<DoorEvent?>,
-    recentDoorEvents: Result<List<DoorEvent>?>,
     modifier: Modifier = Modifier,
     onFetchCurrentDoorEvent: () -> Unit = {},
-    onFetchRecentDoorEvents: () -> Unit = {},
+    onRemoteButtonClick: () -> Unit = {},
 ) {
     // Manage permission state.
     val notificationPermissionState = rememberNotificationPermissionState()
@@ -69,17 +65,6 @@ fun HomeContent(
                         notificationPermissionState.launchPermissionRequest()
                     },
                 )
-            }
-        } else {
-            // Snooze notifications.
-            if (APP_CONFIG.snoozeNotificationsOption) {
-                item {
-                    SnoozeNotificationCard(
-                        text = "Snooze notifications",
-                        snoozeText = "Snooze",
-                        saveText = "Save",
-                    )
-                }
             }
         }
 
@@ -109,29 +94,12 @@ fun HomeContent(
             )
         }
 
-        // If the recent events are loading, show a loading indicator.
-        if (recentDoorEvents is Result.Loading) {
-            item {
-                Text(text = "Loading...")
-            }
-        }
-        // If the recent events had an error, show an error card.
-        if (recentDoorEvents is Result.Error) {
-            item {
-                ErrorRequestCard(
-                    text = "Error fetching recent door events:" +
-                            recentDoorEvents.exception.toString().take(500),
-                    buttonText = "Retry",
-                    onClick = { onFetchRecentDoorEvents() },
-                )
-            }
-        }
-        // Show the recent door events.
-        items(recentDoorEvents.dataOrNull() ?: emptyList()) { item ->
-            RecentDoorEventListItem(
-                doorEvent = item,
-                modifier = Modifier
-                    .clickable { onFetchRecentDoorEvents() }, // Fetch on click.
+        item {
+            RemoteButtonContent(
+                onClick = {
+                    Log.d("HomeContent", "Remote button clicked")
+                    onRemoteButtonClick()
+                },
             )
         }
     }
@@ -142,6 +110,5 @@ fun HomeContent(
 fun HomeContentPreview() {
     HomeContent(
         currentDoorEvent = Result.Complete(demoDoorEvents.firstOrNull()),
-        recentDoorEvents = Result.Complete(demoDoorEvents),
     )
 }

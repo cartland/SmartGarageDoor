@@ -2,6 +2,7 @@ package com.chriscartland.garage.repository
 
 import android.text.format.DateFormat
 import android.util.Log
+import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.internet.ButtonAckToken
 import com.chriscartland.garage.internet.GarageNetworkService
 import com.chriscartland.garage.internet.IdToken
@@ -33,6 +34,11 @@ class RemoteButtonRepository @Inject constructor(
         Log.d(tag, "Pushing remote button")
         Log.d(tag, "Server config: $serverConfig")
         Log.d(tag, "Button ack token: $buttonAckToken")
+
+        if (!APP_CONFIG.remoteButtonPushEnabled) {
+            Log.w(tag, "Remote button push is disabled: !remoteButtonPushEnabled")
+            return
+        }
         val response = network.postRemoteButtonPush(
             remoteButtonBuildTimestamp = RemoteButtonBuildTimestamp(
                 serverConfig.remoteButtonBuildTimestamp,
