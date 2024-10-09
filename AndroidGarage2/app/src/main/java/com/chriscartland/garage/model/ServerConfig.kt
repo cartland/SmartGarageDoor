@@ -18,11 +18,7 @@
 package com.chriscartland.garage.model
 
 data class ServerConfig(
-    val buildTimestamp: String? = null,
-    val remoteButtonPushKey: String? = null,
-    val remoteButtonBuildTimestamp: String? = null,
-    val host: String? = null,
-    val path: String? = null,
-    val remoteButtonEnabled: Boolean = false,
-    val remoteButtonAuthorizedEmails: List<String>? = null,
+    val buildTimestamp: String,
+    val remoteButtonBuildTimestamp: String,
+    val remoteButtonPushKey: String,
 )

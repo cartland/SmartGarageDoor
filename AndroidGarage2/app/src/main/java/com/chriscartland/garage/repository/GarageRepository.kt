@@ -37,15 +37,15 @@ class GarageRepository @Inject constructor(
 
     suspend fun fetchCurrentDoorEvent() {
         val tag = "fetchCurrentDoorEvent"
-        val serverConfig = serverConfigRepository.serverConfigCached()
-        if (serverConfig == null) {
+        val buildTimestamp = buildTimestamp()
+        if (buildTimestamp == null) {
             Log.e(tag, "Server config is null")
             return
         }
         try {
             Log.d(tag, "Fetching current door event")
             val response = network.getCurrentEventData(
-                buildTimestamp = serverConfig.buildTimestamp,
+                buildTimestamp = buildTimestamp,
                 session = null,
             )
             if (response.code() != 200) {
@@ -77,15 +77,15 @@ class GarageRepository @Inject constructor(
 
     suspend fun fetchRecentDoorEvents() {
         val tag = "fetchRecentDoorEvents"
-        val serverConfig = serverConfigRepository.serverConfigCached()
-        if (serverConfig == null) {
+        val buildTimestamp = buildTimestamp()
+        if (buildTimestamp == null) {
             Log.e(tag, "Server config is null")
             return
         }
         try {
             Log.d(tag, "Fetching recent door events")
             val response = network.getRecentEventData(
-                buildTimestamp = serverConfig.buildTimestamp,
+                buildTimestamp = buildTimestamp,
                 session = null,
                 count = APP_CONFIG.recentEventCount,
             )

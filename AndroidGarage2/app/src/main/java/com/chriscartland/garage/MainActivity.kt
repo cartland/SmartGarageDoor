@@ -19,15 +19,18 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private lateinit var viewModel: DoorViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val doorViewModel: DoorViewModel by viewModels()
+        viewModel = doorViewModel
         enableEdgeToEdge()
         setContent {
             GarageApp()
         }
-        val doorViewModel: DoorViewModel by viewModels()
         lifecycleScope.launch(Dispatchers.IO) {
-            val buildTimestamp = doorViewModel.fetchBuildTimestampCached()
+            val buildTimestamp = viewModel.fetchBuildTimestampCached()
             if (buildTimestamp == null) {
                 Log.e("MainActivity", "Failed to register for FCM updates")
                 return@launch
@@ -41,8 +44,7 @@ class MainActivity : ComponentActivity() {
         Log.d(TAG, "onActivityResult")
         when (requestCode) {
             RC_ONE_TAP_SIGN_IN -> {
-                val doorViewModel: DoorViewModel by viewModels()
-                doorViewModel.handleOneTapSignIn(this, data)
+                viewModel.handleSignIn(this, data)
             }
         }
     }

@@ -3,30 +3,34 @@ package com.chriscartland.garage.repository
 import android.util.Log
 import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.internet.GarageNetworkService
+import com.chriscartland.garage.model.ServerConfig
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.sync.Mutex
 import javax.inject.Inject
-
-data class ServerConfig(
-    val buildTimestamp: String,
-    val remoteButtonBuildTimestamp: String,
-    val remoteButtonPushKey: String,
-)
 
 class ServerConfigRepository @Inject constructor(
     private val network: GarageNetworkService,
 ) {
     private var _serverConfig: ServerConfig? = null
 
+    private val mutex: Mutex = Mutex()
+
     suspend fun serverConfigCached(): ServerConfig? {
-        return _serverConfig ?: fetchServerConfig().also { _serverConfig = it }
+        if (_serverConfig != null) {
+            return _serverConfig
+        }
+        mutex.lock()
+        val result = _serverConfig ?: updateServerConfig()
+        mutex.unlock()
+        return result
     }
 
     /**
      * Fetch server config.
      */
-    suspend fun fetchServerConfig(): ServerConfig? {
+    suspend fun updateServerConfig(): ServerConfig? {
         val tag = "fetchServerConfig"
         try {
             Log.d(tag, "Fetching server config")

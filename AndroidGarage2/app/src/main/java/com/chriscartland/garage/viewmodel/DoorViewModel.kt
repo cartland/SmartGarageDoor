@@ -52,7 +52,7 @@ class DoorViewModel @Inject constructor(
         }
     }
 
-    fun handleOneTapSignIn(activity: ComponentActivity, data: Intent?) {
+    fun handleSignIn(activity: ComponentActivity, data: Intent?) {
         activity.lifecycleScope.launch(Dispatchers.IO) {
             authRepository.handleSignIn(activity, data)
         }
