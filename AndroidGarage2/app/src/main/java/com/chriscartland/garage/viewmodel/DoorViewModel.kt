@@ -52,9 +52,9 @@ class DoorViewModel @Inject constructor(
         }
     }
 
-    fun handleSignIn(activity: ComponentActivity, data: Intent?) {
-        activity.lifecycleScope.launch(Dispatchers.IO) {
-            authRepository.handleSignIn(activity, data)
+    fun handleSignInWithIntent(data: Intent?) {
+        viewModelScope.launch(Dispatchers.IO) {
+            authRepository.handleSignInWithIntent(data)
         }
     }
 

@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
         when (requestCode) {
             RC_ONE_TAP_SIGN_IN -> {
                 val doorViewModel: DoorViewModel by viewModels()
-                doorViewModel.handleSignIn(this, data)
+                doorViewModel.handleSignInWithIntent(data)
             }
         }
     }

@@ -1,6 +1,5 @@
 package com.chriscartland.garage.repository
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.IntentSender
@@ -15,6 +14,7 @@ import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
 import dagger.hilt.EntryPoint
@@ -23,7 +23,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 class FirebaseAuthRepository @Inject constructor(
     @ApplicationContext context: Context,
@@ -33,41 +36,11 @@ class FirebaseAuthRepository @Inject constructor(
 
     // Google API for identity.
     private val signInClient = Identity.getSignInClient(context)
-    // One Tap Sign-In configuration.
-    private val oneTapSignInRequest = BeginSignInRequest.builder()
-        .setGoogleIdTokenRequestOptions(
-            BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
-                .setSupported(true)
-                .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
-                .setFilterByAuthorizedAccounts(false)
-                .build())
-        .setAutoSelectEnabled(true)
-        .build()
-    // Dialog Sign-In configuration.
-    private val dialogSignInRequest = BeginSignInRequest.builder()
-        .setGoogleIdTokenRequestOptions(
-            BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
-                .setSupported(true)
-                .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
-                .setFilterByAuthorizedAccounts(false)
-                .build())
-        .setAutoSelectEnabled(false) // Let user choose the account.
-        .build()
 
     init {
-        Firebase.auth.addAuthStateListener { auth ->
-            val email = auth.currentUser?.email
-            auth.currentUser?.getIdToken(true)?.addOnCompleteListener { completed ->
-                _user.value = User(
-                    idToken = IdToken(completed.result.token ?: ""),
-                    email = Email(email ?: ""),
-                )
-            }
-        }
         // One Tap Sign-In configuration.
         checkSignInConfiguration()
     }
-
 
     /**
      * Check to make sure we've updated the client ID.
@@ -93,9 +66,25 @@ class FirebaseAuthRepository @Inject constructor(
         }
     }
 
+    /**
+     * Use One Tap with Google to sign in.
+     *
+     * This will try to seamlessly sign in without additional user input.
+     * If a user has previously authorized
+     */
     fun signInSeamlessly(activity: ComponentActivity) {
         checkSignInConfiguration()
         Log.d(TAG, "beginSignIn")
+        // One Tap Sign-In configuration.
+        val oneTapSignInRequest = BeginSignInRequest.builder()
+            .setGoogleIdTokenRequestOptions(
+                BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
+                    .setSupported(true)
+                    .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+                    .setFilterByAuthorizedAccounts(true)
+                    .build())
+            .setAutoSelectEnabled(true)
+            .build()
         signInClient.beginSignIn(oneTapSignInRequest)
             .addOnSuccessListener(activity) { result ->
                 try {
@@ -116,6 +105,16 @@ class FirebaseAuthRepository @Inject constructor(
     fun signInWithDialog(activity: ComponentActivity) {
         checkSignInConfiguration()
         Log.d(TAG, "beginSignIn")
+        // Dialog Sign-In configuration.
+        val dialogSignInRequest = BeginSignInRequest.builder()
+            .setGoogleIdTokenRequestOptions(
+                BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
+                    .setSupported(true)
+                    .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+                    .setFilterByAuthorizedAccounts(false)
+                    .build())
+            .setAutoSelectEnabled(false) // Let user choose the account.
+            .build()
         signInClient.beginSignIn(dialogSignInRequest)
             .addOnSuccessListener(activity) { result ->
                 try {
@@ -140,14 +139,38 @@ class FirebaseAuthRepository @Inject constructor(
         Firebase.auth.signOut()
     }
 
-    fun handleSignIn(activity: Activity, data: Intent?) {
-        Log.d(TAG, "handleSignIn")
+    /**
+     * Handle the result of a Google One Tap Sign-In request.
+     *
+     * Extract the Google ID Token from the Intent.
+     * Use the Google ID Token to sign in with Firebase.
+     * Get the Firebase ID Token.
+     * Return the User with updated Firebase ID Token and email.
+     */
+    suspend fun handleSignInWithIntent(data: Intent?) {
+        val googleIdToken = googleIdTokenFromIntent(data) ?: return
+        firebaseSignInWithGoogleIdToken(googleIdToken)
+        val currentUser = Firebase.auth.currentUser
+        if (currentUser == null) {
+            _user.value = null
+            return
+        }
+        val firebaseIdToken = getIdTokenFromFirebaseUser(currentUser)
+        val email = currentUser.email
+        _user.value = User(
+            idToken = IdToken(firebaseIdToken ?: ""),
+            email = Email(email ?: ""),
+        )
+    }
+
+    /**
+     * Extract the Google ID Token from the Intent.
+     */
+    private fun googleIdTokenFromIntent(data: Intent?): String? {
+        Log.d(TAG, "googleIdTokenFromIntent")
         try {
             val credential = signInClient.getSignInCredentialFromIntent(data)
-            Log.d(TAG, "handleSignIn, received credential")
-            val idToken = credential.googleIdToken ?: return
-            Log.d(TAG, "handleSignIn, idToken: $idToken")
-            firebaseAuthWithGoogle(activity, idToken)
+            return credential.googleIdToken
         } catch (e: ApiException) {
             Log.e(TAG, "ApiException: handleOneTapSignIn ${e.message}")
             when (e.statusCode) {
@@ -165,32 +188,46 @@ class FirebaseAuthRepository @Inject constructor(
                 }
             }
         }
+        return null
     }
 
-    private fun firebaseAuthWithGoogle(activity: Activity, idToken: String) {
-        Log.d(TAG, "firebaseAuthWithGoogle")
-        val credential = GoogleAuthProvider.getCredential(idToken, null)
-        Firebase.auth.signInWithCredential(credential)
-            .addOnCompleteListener(activity) { task ->
-                if (task.isSuccessful) {
-                    // Sign in success, update UI with the signed-in user's information
-                    Log.d(TAG, "signInWithCredential:success")
-                    Log.d(TAG, "ID Token: $idToken")
-                    val firebaseCurrentUser = Firebase.auth.currentUser
-                    val email = firebaseCurrentUser?.email
-                    firebaseCurrentUser?.getIdToken(true)?.addOnSuccessListener { result ->
-                        val firebaseIdToken = result.token
-                        Log.d(TAG, "Firebase ID Token: $firebaseIdToken")
-                        _user.value = User(
-                            idToken = IdToken(firebaseIdToken ?: ""),
-                            email = Email(email ?: ""),
-                        )
+    /**
+     * Use the Google ID Token to sign in with Firebase.
+     *
+     * Submit the Google credential to Firebase authentication.
+     * The suspend function will not return until the credential has been used.
+     */
+    private suspend fun firebaseSignInWithGoogleIdToken(googleIdToken: String) {
+        suspendCoroutine { continuation ->
+            Log.d(TAG, "firebaseAuthWithGoogle")
+            val credential = GoogleAuthProvider.getCredential(googleIdToken, null)
+            Firebase.auth.signInWithCredential(credential)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        // Sign in success, update UI with the signed-in user's information
+                        Log.d(TAG, "signInWithCredential:success")
+                    } else {
+                        // If sign in fails, display a message to the user.
+                        Log.w(TAG, "signInWithCredential:failure", task.exception)
                     }
-                } else {
-                    // If sign in fails, display a message to the user.
-                    Log.w(TAG, "signInWithCredential:failure", task.exception)
+                    continuation.resume(Unit)
                 }
+        }
+    }
+
+    /**
+     * Get the Firebase ID Token.
+     *
+     * The Firebase API might take time to retrieve the ID Token.
+     */
+    private suspend fun getIdTokenFromFirebaseUser(currentUser: FirebaseUser): String? {
+        return suspendCancellableCoroutine { continuation ->
+            currentUser.getIdToken(true).addOnSuccessListener { result ->
+                val firebaseIdToken = result.token
+                Log.d(TAG, "Firebase ID Token: $firebaseIdToken")
+                continuation.resume(firebaseIdToken)
             }
+        }
     }
 
     companion object {
