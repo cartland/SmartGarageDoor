@@ -21,6 +21,7 @@ import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
 
 const EVENT_DATABASE = new TimeSeriesDatabase('eventsCurrent', 'eventsAll');
 
+// TODO: Add Snooze option to delay notifications.
 export const pubsubCheckForOpenDoorsJob = functions.pubsub.schedule('every 5 minutes').onRun(async (context) => {
   const buildTimestamp = 'Sat Mar 13 14:45:00 2021'; // TODO: Use config.
   const eventData = await EVENT_DATABASE.getCurrent(buildTimestamp);
