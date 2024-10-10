@@ -46,5 +46,5 @@ val APP_CONFIG = AppConfig(
     recentEventCount = 30,
     serverConfigKey = BuildConfig.SERVER_CONFIG_KEY,
     snoozeNotificationsOption = true,
-    remoteButtonPushEnabled = false,
+    remoteButtonPushEnabled = true,
 )
