@@ -57,6 +57,7 @@ enum class RemoteButtonState {
 fun RemoteButtonContent(
     modifier: Modifier = Modifier,
     onSubmit: () -> Unit,
+    onArming: () -> Unit = {},
     buttonColors: ButtonColors = ButtonDefaults.buttonColors(
         containerColor = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -86,15 +87,16 @@ fun RemoteButtonContent(
                     RemoteButtonState.READY -> {
                         // READY -> ARMED
                         buttonState = RemoteButtonState.ARMING
+                        onArming()
                         // Wait a few seconds before ARMED.
                         // If the user does not press the button again within a few seconds,
                         // move to TIMEOUT state.
                         // After the timeout, delay a few seconds, then move to READY state.
                         job?.cancel()
                         job = coroutineScope.launch {
-                            countdown = 2
+                            countdown = 3
                             while (countdown > 0) {
-                                delay(Duration.ofSeconds(1))
+                                delay(Duration.ofMillis(500))
                                 countdown--
                             }
                             buttonState = RemoteButtonState.ARMED

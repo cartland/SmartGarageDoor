@@ -48,6 +48,7 @@ fun HomeContent(
         modifier = modifier,
         onFetchCurrentDoorEvent = { viewModel.fetchCurrentDoorEvent() },
         onRemoteButtonClick = { viewModel.pushRemoteButton(context) },
+        onClearRemote = { viewModel.clearRemoteButton() }
     )
 }
 
@@ -59,6 +60,7 @@ fun HomeContent(
     remoteButtonRequestStatus: RemoteButtonRequestStatus = RemoteButtonRequestStatus.NONE,
     onFetchCurrentDoorEvent: () -> Unit = {},
     onRemoteButtonClick: () -> Unit = {},
+    onClearRemote: () -> Unit = {},
 ) {
     // Manage permission state.
     val notificationPermissionState = rememberNotificationPermissionState()
@@ -120,6 +122,9 @@ fun HomeContent(
                 onSubmit = {
                     Log.d("HomeContent", "Remote button clicked")
                     onRemoteButtonClick()
+                },
+                onArming = {
+                    onClearRemote()
                 },
                 buttonColors = doorButtonColors(LocalDoorStatusColorScheme.current, doorEvent),
             )

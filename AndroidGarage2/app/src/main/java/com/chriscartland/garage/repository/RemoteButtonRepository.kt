@@ -13,6 +13,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.time.delay
+import java.time.Duration
 import java.util.Date
 import javax.inject.Inject
 
@@ -35,6 +37,7 @@ class RemoteButtonRepository @Inject constructor(
         val serverConfig = serverConfigRepository.serverConfigCached()
         if (serverConfig == null) {
             Log.e(tag, "Server config is null")
+            _pushButtonStatus.value = PushButtonStatus.IDLE
             return
         }
         Log.d(tag, "Pushing remote button")
@@ -58,6 +61,7 @@ class RemoteButtonRepository @Inject constructor(
             Log.i(tag, "Response: ${response.code()}")
             Log.i(tag, "Response body: ${response.body()}")
         }
+        delay(Duration.ofMillis(100))
         _pushButtonStatus.value = PushButtonStatus.IDLE
     }
 

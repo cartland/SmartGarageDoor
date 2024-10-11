@@ -111,14 +111,17 @@ class DoorViewModel @Inject constructor(
                         RemoteButtonRequestStatus.SENDING
                     }
                     PushButtonStatus.IDLE -> {
-                        if (old == RemoteButtonRequestStatus.SENDING) {
-                            RemoteButtonRequestStatus.SENT
-                        } else {
-                            RemoteButtonRequestStatus.NONE
+                        when (old) {
+                            RemoteButtonRequestStatus.NONE -> RemoteButtonRequestStatus.NONE
+                            RemoteButtonRequestStatus.SENDING -> RemoteButtonRequestStatus.SENT
+                            RemoteButtonRequestStatus.SENT -> RemoteButtonRequestStatus.NONE
+                            RemoteButtonRequestStatus.RECEIVED -> RemoteButtonRequestStatus.NONE
+                            RemoteButtonRequestStatus.SENDING_TIMEOUT -> RemoteButtonRequestStatus.NONE
+                            RemoteButtonRequestStatus.SENT_TIMEOUT -> RemoteButtonRequestStatus.NONE
                         }
                     }
                 }
-                Log.d("DoorViewModel", "ButtonRequestStateMachine: old $old -> " +
+                Log.d("DoorViewModel", "ButtonRequestStateMachine network: old $old -> " +
                         "new ${_remoteButtonRequestStatus.value.name}")
             }
         }
@@ -142,7 +145,7 @@ class DoorViewModel @Inject constructor(
                         _remoteButtonRequestStatus.value = RemoteButtonRequestStatus.RECEIVED
                     }
                 }
-                Log.d("DoorViewModel", "ButtonRequestStateMachine: old $old -> " +
+                Log.d("DoorViewModel", "ButtonRequestStateMachine door: old $old -> " +
                         "new ${_remoteButtonRequestStatus.value.name}")
             }
         }
@@ -191,8 +194,9 @@ class DoorViewModel @Inject constructor(
                         }
                     }
                 }
-                Log.d("DoorViewModel", "ButtonRequestStateMachine: old $old -> " +
-                        "new ${_remoteButtonRequestStatus.value.name}")
+                Log.d("DoorViewModel", "ButtonRequestStateMachine timeouts: " +
+                        _remoteButtonRequestStatus.value.name
+                )
             }
         }
     }
@@ -226,6 +230,10 @@ class DoorViewModel @Inject constructor(
                 buttonAckToken = remoteButtonRepository.createButtonAckToken(),
             )
         }
+    }
+
+    fun clearRemoteButton() {
+        _remoteButtonRequestStatus.value = RemoteButtonRequestStatus.NONE
     }
 }
 
