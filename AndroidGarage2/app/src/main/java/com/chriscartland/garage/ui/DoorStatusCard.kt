@@ -32,18 +32,19 @@ import java.time.format.FormatStyle
 fun DoorStatusCard(
     doorEvent: DoorEvent?,
     modifier: Modifier = Modifier,
+    cardColors: CardColors = CardColors(
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
+        disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    ),
 ) {
     val doorPosition = doorEvent?.doorPosition ?: DoorPosition.UNKNOWN
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         shape = RoundedCornerShape(10.dp),
         modifier = modifier,
-        colors = CardColors(
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
-            disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        ),
+        colors = cardColors,
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -51,13 +52,15 @@ fun DoorStatusCard(
         ) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = doorEvent?.lastChangeTimeSeconds?.toFriendlyDate() ?: ""
+                    text = doorEvent?.lastChangeTimeSeconds?.toFriendlyDate() ?: "",
+                    color = cardColors.contentColor,
                 )
 
                 Spacer(modifier = Modifier.weight(1f))
 
                 Text(
-                    text = doorEvent?.lastChangeTimeSeconds?.toFriendlyTime() ?: ""
+                    text = doorEvent?.lastChangeTimeSeconds?.toFriendlyTime() ?: "",
+                    color = cardColors.contentColor,
                 )
             }
 
@@ -75,7 +78,8 @@ fun DoorStatusCard(
 
             Text(
                 text = doorPosition.toFriendlyName(),
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                color = cardColors.contentColor,
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -83,8 +87,8 @@ fun DoorStatusCard(
             Text(
                 text = doorEvent?.message ?: "",
                 style = MaterialTheme.typography.labelSmall,
+                color = cardColors.contentColor,
             )
-
         }
     }
 }

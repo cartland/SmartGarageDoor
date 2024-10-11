@@ -41,6 +41,9 @@ fun DoorHistoryContent(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        item {
+            Text(text = "Recent Door Events")
+        }
         // If the recent events are loading, show a loading indicator.
         if (recentDoorEvents is Result.Loading) {
             item {

@@ -2,10 +2,10 @@ package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,10 +22,12 @@ import com.chriscartland.garage.viewmodel.DoorViewModel
 fun RemoteButtonContent(
     modifier: Modifier = Modifier,
     viewModel: DoorViewModel = hiltViewModel(),
+    buttonColors: ButtonColors = ButtonDefaults.buttonColors(),
 ) {
     RemoteButtonContent(
         modifier = modifier,
         onClick = { viewModel.pushRemoteButton() },
+        buttonColors = buttonColors,
     )
 }
 
@@ -33,21 +35,25 @@ fun RemoteButtonContent(
 fun RemoteButtonContent(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
+    buttonColors: ButtonColors = ButtonDefaults.buttonColors(
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    ),
 ) {
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Button(
             onClick = onClick,
             modifier = Modifier.size(256.dp),
             shape = CircleShape,
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+            colors = buttonColors,
             contentPadding = PaddingValues(0.dp), // Remove default padding
         ) {
             Text(
                 text = "Garage\nRemote\nButton",
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = buttonColors.contentColor,
                 fontSize = MaterialTheme.typography.titleLarge.fontSize,
                 textAlign = TextAlign.Center,
             )

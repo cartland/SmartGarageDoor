@@ -269,9 +269,17 @@ fun AppTheme(
         else -> lightScheme
     }
 
+    val doorStatusColorScheme = when {
+        darkTheme -> doorStatusLightScheme
+        else -> doorStatusDarkScheme
+    }
+
     MaterialTheme(
         colorScheme = colorScheme,
         typography = AppTypography,
-        content = content
-    )
+    ) {
+        DoorStatusTheme(doorStatusColorScheme) {
+            content()
+        }
+    }
 }

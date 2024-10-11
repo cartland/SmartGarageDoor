@@ -1,5 +1,6 @@
 package com.chriscartland.garage.ui
 
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
@@ -66,9 +67,18 @@ fun AppNavigation(
                 .padding(innerPadding)
                 .padding(16.dp)
         ) {
-            composable(Screen.Home.route) { HomeContent(viewModel = doorViewModel) }
-            composable(Screen.History.route) { DoorHistoryContent(viewModel = doorViewModel) }
-            composable(Screen.Profile.route) { ProfileContent(viewModel = doorViewModel) }
+            composable(Screen.Home.route) { HomeContent(
+                viewModel = doorViewModel,
+                modifier = Modifier.fillMaxWidth(),
+            ) }
+            composable(Screen.History.route) { DoorHistoryContent(
+                viewModel = doorViewModel,
+                modifier = Modifier.fillMaxWidth(),
+            ) }
+            composable(Screen.Profile.route) { ProfileContent(
+                viewModel = doorViewModel,
+                modifier = Modifier.fillMaxWidth(),
+            ) }
         }
     }
 }

@@ -19,6 +19,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.model.Result
 import com.chriscartland.garage.model.dataOrNull
+import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
+import com.chriscartland.garage.ui.theme.doorButtonColors
+import com.chriscartland.garage.ui.theme.doorCardColors
 import com.chriscartland.garage.viewmodel.DoorViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -85,12 +88,15 @@ fun HomeContent(
                 )
             }
         }
+
         // Show the current door event.
+        val doorEvent = currentDoorEvent.dataOrNull()
         item {
             DoorStatusCard(
-                doorEvent = currentDoorEvent.dataOrNull(),
+                doorEvent = doorEvent,
                 modifier = Modifier
                     .clickable { onFetchCurrentDoorEvent() }, // Fetch on click.
+                cardColors = doorCardColors(LocalDoorStatusColorScheme.current, doorEvent),
             )
         }
 
@@ -100,6 +106,7 @@ fun HomeContent(
                     Log.d("HomeContent", "Remote button clicked")
                     onRemoteButtonClick()
                 },
+                buttonColors = doorButtonColors(LocalDoorStatusColorScheme.current, doorEvent),
             )
         }
     }
