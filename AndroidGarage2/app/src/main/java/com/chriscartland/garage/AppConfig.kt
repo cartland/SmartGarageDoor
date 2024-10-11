@@ -45,6 +45,6 @@ val APP_CONFIG = AppConfig(
     fetchOnViewModelInit = FETCH_ON_VIEW_MODEL_INIT,
     recentEventCount = 30,
     serverConfigKey = BuildConfig.SERVER_CONFIG_KEY,
-    snoozeNotificationsOption = true,
+    snoozeNotificationsOption = false,
     remoteButtonPushEnabled = true,
 )
