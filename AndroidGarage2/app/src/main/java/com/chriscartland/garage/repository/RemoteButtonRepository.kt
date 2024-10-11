@@ -11,6 +11,8 @@ import com.chriscartland.garage.internet.RemoteButtonPushKey
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import java.util.Date
 import javax.inject.Inject
 
@@ -18,6 +20,9 @@ class RemoteButtonRepository @Inject constructor(
     private val network: GarageNetworkService,
     private val serverConfigRepository: ServerConfigRepository,
 ) {
+    private val _pushButtonStatus = MutableStateFlow(PushButtonStatus.IDLE)
+    val pushButtonStatus: StateFlow<PushButtonStatus> = _pushButtonStatus
+
     /**
      * Send a command to the server to push the remote button.
      */
@@ -25,6 +30,7 @@ class RemoteButtonRepository @Inject constructor(
         idToken: IdToken,
         buttonAckToken: String,
     ) {
+        _pushButtonStatus.value = PushButtonStatus.SENDING
         val tag = "pushRemoteButton"
         val serverConfig = serverConfigRepository.serverConfigCached()
         if (serverConfig == null) {
@@ -37,20 +43,22 @@ class RemoteButtonRepository @Inject constructor(
 
         if (!APP_CONFIG.remoteButtonPushEnabled) {
             Log.w(tag, "Remote button push is disabled: !remoteButtonPushEnabled")
-            return
         }
-        val response = network.postRemoteButtonPush(
-            remoteButtonBuildTimestamp = RemoteButtonBuildTimestamp(
-                serverConfig.remoteButtonBuildTimestamp,
-            ),
-            buttonAckToken = ButtonAckToken(buttonAckToken),
-            remoteButtonPushKey = RemoteButtonPushKey(
-                serverConfig.remoteButtonPushKey,
-            ),
-            idToken = idToken,
-        )
-        Log.i(tag, "Response: ${response.code()}")
-        Log.i(tag, "Response body: ${response.body()}")
+        if (APP_CONFIG.remoteButtonPushEnabled) {
+            val response = network.postRemoteButtonPush(
+                remoteButtonBuildTimestamp = RemoteButtonBuildTimestamp(
+                    serverConfig.remoteButtonBuildTimestamp,
+                ),
+                buttonAckToken = ButtonAckToken(buttonAckToken),
+                remoteButtonPushKey = RemoteButtonPushKey(
+                    serverConfig.remoteButtonPushKey,
+                ),
+                idToken = idToken,
+            )
+            Log.i(tag, "Response: ${response.code()}")
+            Log.i(tag, "Response body: ${response.body()}")
+        }
+        _pushButtonStatus.value = PushButtonStatus.IDLE
     }
 
     /**
@@ -72,9 +80,14 @@ class RemoteButtonRepository @Inject constructor(
         return filtered
     }
 }
+enum class PushButtonStatus {
+    IDLE,
+    SENDING,
+}
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
+@Suppress("unused")
 interface RemoteButtonRepositoryEntryPoint {
     fun remoteButtonRepository(): RemoteButtonRepository
 }

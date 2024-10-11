@@ -15,13 +15,16 @@ import com.chriscartland.garage.model.User
 import com.chriscartland.garage.model.dataOrNull
 import com.chriscartland.garage.repository.FirebaseAuthRepository
 import com.chriscartland.garage.repository.GarageRepository
+import com.chriscartland.garage.repository.PushButtonStatus
 import com.chriscartland.garage.repository.RemoteButtonRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.time.delay
+import java.time.Duration
 import javax.inject.Inject
 
 @HiltViewModel
@@ -30,11 +33,24 @@ class DoorViewModel @Inject constructor(
     private val remoteButtonRepository: RemoteButtonRepository,
     private val authRepository: FirebaseAuthRepository,
 ) : ViewModel() {
+    // Listen to network events and door status updates.
+    private val _remoteButtonRequestStatus = MutableStateFlow(RemoteButtonRequestStatus.NONE)
+    val remoteButtonRequestStatus: StateFlow<RemoteButtonRequestStatus> = _remoteButtonRequestStatus
 
     suspend fun fetchBuildTimestampCached(): String? =
         garageRepository.buildTimestamp()
 
     val user: StateFlow<User?> = authRepository.user
+
+    private val _currentDoorEvent = MutableStateFlow<Result<DoorEvent?>>(
+        Result.Loading(null), // Initial data.
+    )
+    val currentDoorEvent: StateFlow<Result<DoorEvent?>> = _currentDoorEvent
+
+    private val _recentDoorEvents = MutableStateFlow<Result<List<DoorEvent>>>(
+        Result.Loading(listOf()), // Initial data.
+    )
+    val recentDoorEvents: StateFlow<Result<List<DoorEvent>>> = _recentDoorEvents
 
     fun signInSeamlessly(activityContext: ComponentActivity) {
         activityContext.lifecycleScope.launch(Dispatchers.IO) {
@@ -60,16 +76,6 @@ class DoorViewModel @Inject constructor(
         }
     }
 
-    private val _currentDoorEvent = MutableStateFlow<Result<DoorEvent?>>(
-        Result.Loading(null), // Initial data.
-    )
-    val currentDoorEvent: StateFlow<Result<DoorEvent?>> = _currentDoorEvent.asStateFlow()
-
-    private val _recentDoorEvents = MutableStateFlow<Result<List<DoorEvent>>>(
-        Result.Loading(listOf()), // Initial data.
-    )
-    val recentDoorEvents = _recentDoorEvents.asStateFlow()
-
     init {
         Log.d("DoorViewModel", "init")
         viewModelScope.launch(Dispatchers.IO) {
@@ -92,6 +98,103 @@ class DoorViewModel @Inject constructor(
             FetchOnViewModelInit.No -> { /* Do nothing */
             }
         }
+        setupButtonRequestStateMachine()
+    }
+
+    private fun setupButtonRequestStateMachine() {
+        // Listen to network requests and update the UI accordingly.
+        viewModelScope.launch(Dispatchers.IO) {
+            remoteButtonRepository.pushButtonStatus.collect { sendStatus ->
+                val old = _remoteButtonRequestStatus.value
+                _remoteButtonRequestStatus.value = when (sendStatus) {
+                    PushButtonStatus.SENDING -> {
+                        RemoteButtonRequestStatus.SENDING
+                    }
+                    PushButtonStatus.IDLE -> {
+                        if (old == RemoteButtonRequestStatus.SENDING) {
+                            RemoteButtonRequestStatus.SENT
+                        } else {
+                            RemoteButtonRequestStatus.NONE
+                        }
+                    }
+                }
+                Log.d("DoorViewModel", "ButtonRequestStateMachine: old $old -> " +
+                        "new ${_remoteButtonRequestStatus.value.name}")
+            }
+        }
+        // Listen to door events. Assume any change in door status means the request was received.
+        viewModelScope.launch(Dispatchers.IO) {
+            currentDoorEvent.collect {
+                val old = _remoteButtonRequestStatus.value
+                when (_remoteButtonRequestStatus.value) {
+                    RemoteButtonRequestStatus.NONE -> {} // Do nothing.
+                    RemoteButtonRequestStatus.SENDING -> {
+                        _remoteButtonRequestStatus.value = RemoteButtonRequestStatus.RECEIVED
+                    }
+                    RemoteButtonRequestStatus.SENT -> {
+                        _remoteButtonRequestStatus.value = RemoteButtonRequestStatus.RECEIVED
+                    }
+                    RemoteButtonRequestStatus.RECEIVED -> {} // Do nothing.
+                    RemoteButtonRequestStatus.SENDING_TIMEOUT -> {
+                        _remoteButtonRequestStatus.value = RemoteButtonRequestStatus.RECEIVED
+                    }
+                    RemoteButtonRequestStatus.SENT_TIMEOUT -> {
+                        _remoteButtonRequestStatus.value = RemoteButtonRequestStatus.RECEIVED
+                    }
+                }
+                Log.d("DoorViewModel", "ButtonRequestStateMachine: old $old -> " +
+                        "new ${_remoteButtonRequestStatus.value.name}")
+            }
+        }
+        // Listen to the status for timeouts.
+        var job: Job? = null
+        viewModelScope.launch(Dispatchers.IO) {
+            remoteButtonRequestStatus.collect {
+                val old = _remoteButtonRequestStatus.value
+                when (it) {
+                    RemoteButtonRequestStatus.NONE -> {
+                        job?.cancel()
+                    } // Do nothing.
+                    RemoteButtonRequestStatus.SENDING -> {
+                        job?.cancel()
+                        job = viewModelScope.launch {
+                            delay(Duration.ofSeconds(10))
+                            _remoteButtonRequestStatus.value = RemoteButtonRequestStatus.SENDING_TIMEOUT
+                        }
+                    }
+                    RemoteButtonRequestStatus.SENT -> {
+                        job?.cancel()
+                        job = viewModelScope.launch {
+                            delay(Duration.ofSeconds(10))
+                            _remoteButtonRequestStatus.value = RemoteButtonRequestStatus.SENT_TIMEOUT
+                        }
+                    }
+                    RemoteButtonRequestStatus.RECEIVED -> {
+                        job?.cancel()
+                        job = viewModelScope.launch {
+                            delay(Duration.ofSeconds(10))
+                            _remoteButtonRequestStatus.value = RemoteButtonRequestStatus.NONE
+                        }
+                    }
+                    RemoteButtonRequestStatus.SENDING_TIMEOUT -> {
+                        job?.cancel()
+                        job = viewModelScope.launch {
+                            delay(Duration.ofSeconds(10))
+                            _remoteButtonRequestStatus.value = RemoteButtonRequestStatus.NONE
+                        }
+                    }
+                    RemoteButtonRequestStatus.SENT_TIMEOUT -> {
+                        job?.cancel()
+                        job = viewModelScope.launch {
+                            delay(Duration.ofSeconds(10))
+                            _remoteButtonRequestStatus.value = RemoteButtonRequestStatus.NONE
+                        }
+                    }
+                }
+                Log.d("DoorViewModel", "ButtonRequestStateMachine: old $old -> " +
+                        "new ${_remoteButtonRequestStatus.value.name}")
+            }
+        }
     }
 
     fun fetchCurrentDoorEvent() {
@@ -108,12 +211,13 @@ class DoorViewModel @Inject constructor(
         }
     }
 
-    fun pushRemoteButton() {
+    fun pushRemoteButton(activityContext: ComponentActivity) {
         Log.d("DoorViewModel", "pushRemoteButton")
         viewModelScope.launch(Dispatchers.IO) {
             val idToken = user.value?.idToken
             if (idToken == null) {
                 Log.d("DoorViewModel", "pushRemoteButton: No ID token")
+                signInSeamlessly(activityContext)
                 return@launch
             }
             Log.d("DoorViewModel", "pushRemoteButton: Pushing remote button: $idToken")
@@ -123,4 +227,13 @@ class DoorViewModel @Inject constructor(
             )
         }
     }
+}
+
+enum class RemoteButtonRequestStatus {
+    NONE, // Not sending a request.
+    SENDING, // Sending network request (listen to network).
+    SENT, // Server acknowledged (listen to network).
+    RECEIVED, // Door reacted (listen to door events).
+    SENDING_TIMEOUT, // Cannot reach server.
+    SENT_TIMEOUT, // Did not receive door response.
 }
