@@ -2,6 +2,8 @@ package com.chriscartland.garage.ui
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -67,17 +69,13 @@ fun ProfileContent(
         item {
             Card(
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                modifier = modifier,
             ) {
-                Text(text = "ID Token: ${
-                    user?.idToken?.asString()
-                        ?.split(".")?.map { it.take(6) }
-                        ?.joinToString("...") ?: "Unknown"
-                }")
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                ) {
+                    Text(text = "Email: ${user?.email?.asString() ?: "Unknown"}")
+                }
             }
-        }
-        item {
-            Text(text = "Email: ${user?.email?.asString() ?: "Unknown"}")
         }
         item {
             // Snooze notifications.
