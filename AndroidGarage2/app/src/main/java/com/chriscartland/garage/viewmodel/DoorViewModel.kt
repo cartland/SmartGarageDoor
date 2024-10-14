@@ -239,9 +239,9 @@ class DoorViewModel @Inject constructor(
 
 enum class RemoteButtonRequestStatus {
     NONE, // Not sending a request.
-    SENDING, // Sending network request (listen to network).
-    SENT, // Server acknowledged (listen to network).
-    RECEIVED, // Door reacted (listen to door events).
+    SENDING, // Sending request over the network.
     SENDING_TIMEOUT, // Cannot reach server.
-    SENT_TIMEOUT, // Did not receive door response.
+    SENT, // Server acknowledged.
+    SENT_TIMEOUT, // Door did not move.
+    RECEIVED, // Door moved.
 }

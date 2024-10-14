@@ -2,14 +2,20 @@ package com.chriscartland.garage.ui
 
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -19,7 +25,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -42,13 +50,16 @@ fun HomeContent(
     val context = LocalContext.current as ComponentActivity
     val currentDoorEvent = viewModel.currentDoorEvent.collectAsState()
     val remoteButtonRequestStatus = viewModel.remoteButtonRequestStatus.collectAsState()
+    val user = viewModel.user.collectAsState()
     HomeContent(
         currentDoorEvent = currentDoorEvent.value,
         remoteButtonRequestStatus = remoteButtonRequestStatus.value,
         modifier = modifier,
         onFetchCurrentDoorEvent = { viewModel.fetchCurrentDoorEvent() },
         onRemoteButtonClick = { viewModel.pushRemoteButton(context) },
-        onClearRemote = { viewModel.clearRemoteButton() }
+        onClearRemote = { viewModel.clearRemoteButton() },
+        isSignedIn = user.value != null,
+        onSignIn = { viewModel.signInSeamlessly(context) },
     )
 }
 
@@ -61,6 +72,8 @@ fun HomeContent(
     onFetchCurrentDoorEvent: () -> Unit = {},
     onRemoteButtonClick: () -> Unit = {},
     onClearRemote: () -> Unit = {},
+    isSignedIn: Boolean = false,
+    onSignIn: () -> Unit = {},
 ) {
     // Manage permission state.
     val notificationPermissionState = rememberNotificationPermissionState()
@@ -117,65 +130,148 @@ fun HomeContent(
         item {
             Spacer(modifier = Modifier.height(16.dp))
         }
-        item {
-            RemoteButtonContent(
-                onSubmit = {
-                    Log.d("HomeContent", "Remote button clicked")
-                    onRemoteButtonClick()
-                },
-                onArming = {
-                    onClearRemote()
-                },
-                buttonColors = doorButtonColors(LocalDoorStatusColorScheme.current, doorEvent),
-            )
-        }
-        item {
-            val inProgress = "⏺\uFE0F"
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(when (remoteButtonRequestStatus) {
-                        RemoteButtonRequestStatus.NONE -> "Send"
-                        RemoteButtonRequestStatus.SENDING -> "Sending"
-                        RemoteButtonRequestStatus.SENT -> "Sent"
-                        RemoteButtonRequestStatus.RECEIVED -> "Sent"
-                        RemoteButtonRequestStatus.SENDING_TIMEOUT -> "Sending"
-                        RemoteButtonRequestStatus.SENT_TIMEOUT -> "Sending"
-                    })
-                    Text(when (remoteButtonRequestStatus) {
-                        RemoteButtonRequestStatus.NONE -> "⬜"
-                        RemoteButtonRequestStatus.SENDING -> inProgress
-                        RemoteButtonRequestStatus.SENT -> "✅"
-                        RemoteButtonRequestStatus.RECEIVED -> "✅"
-                        RemoteButtonRequestStatus.SENDING_TIMEOUT -> "❌"
-                        RemoteButtonRequestStatus.SENT_TIMEOUT -> "✅"
-                    })
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(when (remoteButtonRequestStatus) {
-                        RemoteButtonRequestStatus.NONE -> "Receive"
-                        RemoteButtonRequestStatus.SENDING -> "Receive"
-                        RemoteButtonRequestStatus.SENT -> "Receiving"
-                        RemoteButtonRequestStatus.RECEIVED -> "Received"
-                        RemoteButtonRequestStatus.SENDING_TIMEOUT -> "Receive"
-                        RemoteButtonRequestStatus.SENT_TIMEOUT -> "Receiving"
-                    })
-                    Text(when (remoteButtonRequestStatus) {
-                        RemoteButtonRequestStatus.NONE -> "⬜"
-                        RemoteButtonRequestStatus.SENDING -> "⬜"
-                        RemoteButtonRequestStatus.SENT -> inProgress
-                        RemoteButtonRequestStatus.RECEIVED -> "✅"
-                        RemoteButtonRequestStatus.SENDING_TIMEOUT -> "⬜"
-                        RemoteButtonRequestStatus.SENT_TIMEOUT -> "❌"
-                    })
+        if (isSignedIn) {
+            item {
+                RemoteButtonContent(
+                    onSubmit = {
+                        Log.d("HomeContent", "Remote button clicked")
+                        onRemoteButtonClick()
+                    },
+                    onArming = {
+                        onClearRemote()
+                    },
+                    buttonColors = doorButtonColors(LocalDoorStatusColorScheme.current, doorEvent),
+                )
+            }
+            item {
+                ButtonRequestIndicator(remoteButtonRequestStatus = remoteButtonRequestStatus)
+            }
+        } else {
+            item {
+                Button(onClick = { onSignIn() }) {
+                    Text("Sign to access garage remote button")
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun ButtonRequestIndicator(
+    modifier: Modifier = Modifier,
+    remoteButtonRequestStatus: RemoteButtonRequestStatus = RemoteButtonRequestStatus.NONE,
+) {
+    val phone = "📱"
+    val cloud = "☁️"
+    val house = "🏠"
+    val hyphen = "➖"
+    val rightArrow = "➡️"
+    val x = "❌"
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val boxModifier = Modifier
+            .weight(1f)
+            .padding(0.dp)
+            .border(1.dp, Color.Gray)
+        val spacerModifier = Modifier.width(1.dp)
+        val colorEmpty = MaterialTheme.colorScheme.secondaryContainer
+        val colorActive = MaterialTheme.colorScheme.tertiaryContainer
+        val colorComplete = LocalDoorStatusColorScheme.current.doorClosedContainerFresh
+        val colorError = MaterialTheme.colorScheme.errorContainer
+        // Phone.
+        Box(
+            modifier = boxModifier.background(when (remoteButtonRequestStatus) {
+                RemoteButtonRequestStatus.NONE -> colorEmpty
+                RemoteButtonRequestStatus.SENDING -> colorComplete
+                RemoteButtonRequestStatus.SENDING_TIMEOUT -> colorComplete
+                RemoteButtonRequestStatus.SENT -> colorComplete
+                RemoteButtonRequestStatus.SENT_TIMEOUT -> colorComplete
+                RemoteButtonRequestStatus.RECEIVED -> colorComplete
+            })
+        ) {
+            Text(
+                phone,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp)
+            )
+        }
+        Spacer(modifier = spacerModifier)
+        // Phone -> Cloud.
+        Box(
+            modifier = boxModifier.background(when (remoteButtonRequestStatus) {
+                RemoteButtonRequestStatus.NONE -> colorEmpty
+                RemoteButtonRequestStatus.SENDING -> colorActive
+                RemoteButtonRequestStatus.SENDING_TIMEOUT -> colorError
+                RemoteButtonRequestStatus.SENT -> colorComplete
+                RemoteButtonRequestStatus.SENT_TIMEOUT -> colorComplete
+                RemoteButtonRequestStatus.RECEIVED -> colorComplete
+            })
+        ) {
+            Text(
+                rightArrow,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp)
+            )
+        }
+        Spacer(modifier = spacerModifier)
+        // Cloud.
+        Box(
+            modifier = boxModifier.background(when (remoteButtonRequestStatus) {
+                RemoteButtonRequestStatus.NONE -> colorEmpty
+                RemoteButtonRequestStatus.SENDING -> colorEmpty
+                RemoteButtonRequestStatus.SENDING_TIMEOUT -> colorEmpty
+                RemoteButtonRequestStatus.SENT -> colorComplete
+                RemoteButtonRequestStatus.SENT_TIMEOUT -> colorComplete
+                RemoteButtonRequestStatus.RECEIVED -> colorComplete
+            })
+        ) {
+            Text(cloud, textAlign = TextAlign.Center, modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp))
+        }
+        Spacer(modifier = spacerModifier)
+        // Cloud -> Home.
+        Box(
+            modifier = boxModifier.background(when (remoteButtonRequestStatus) {
+                RemoteButtonRequestStatus.NONE -> colorEmpty
+                RemoteButtonRequestStatus.SENDING -> colorEmpty
+                RemoteButtonRequestStatus.SENDING_TIMEOUT -> colorEmpty
+                RemoteButtonRequestStatus.SENT -> colorActive
+                RemoteButtonRequestStatus.SENT_TIMEOUT -> colorError
+                RemoteButtonRequestStatus.RECEIVED -> colorComplete
+            })
+        ) {
+            Text(
+                rightArrow,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp)
+            )
+        }
+        Spacer(modifier = spacerModifier)
+        // Home.
+        Box(
+            modifier = boxModifier.background(when (remoteButtonRequestStatus) {
+                RemoteButtonRequestStatus.NONE -> colorEmpty
+                RemoteButtonRequestStatus.SENDING -> colorEmpty
+                RemoteButtonRequestStatus.SENDING_TIMEOUT -> colorEmpty
+                RemoteButtonRequestStatus.SENT -> colorEmpty
+                RemoteButtonRequestStatus.SENT_TIMEOUT -> colorEmpty
+                RemoteButtonRequestStatus.RECEIVED -> colorComplete
+            })
+        ) {
+            Text(house, textAlign = TextAlign.Center, modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp))
         }
     }
 }
