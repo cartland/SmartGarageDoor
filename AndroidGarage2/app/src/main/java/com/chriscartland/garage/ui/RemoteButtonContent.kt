@@ -3,7 +3,11 @@ package com.chriscartland.garage.ui
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
@@ -19,6 +23,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
@@ -26,6 +31,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.viewmodel.DoorViewModel
+import com.chriscartland.garage.viewmodel.RemoteButtonRequestStatus
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.time.delay
@@ -36,12 +42,14 @@ fun RemoteButtonContent(
     modifier: Modifier = Modifier,
     viewModel: DoorViewModel = hiltViewModel(),
     buttonColors: ButtonColors = ButtonDefaults.buttonColors(),
+    remoteButtonRequestStatus: RemoteButtonRequestStatus = RemoteButtonRequestStatus.NONE,
 ) {
     val context = LocalContext.current as ComponentActivity
     RemoteButtonContent(
         modifier = modifier,
         onSubmit = { viewModel.pushRemoteButton(context) },
         buttonColors = buttonColors,
+        remoteButtonRequestStatus = remoteButtonRequestStatus,
     )
 }
 
@@ -64,6 +72,7 @@ fun RemoteButtonContent(
         disabledContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
         disabledContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
     ),
+    remoteButtonRequestStatus: RemoteButtonRequestStatus = RemoteButtonRequestStatus.NONE,
 ) {
     Column(
         modifier = modifier,
@@ -75,6 +84,9 @@ fun RemoteButtonContent(
         var job: Job? by remember { mutableStateOf(null) }
 
         Button(
+            modifier = Modifier
+                .size(256.dp)
+                .shadow(4.dp, CircleShape),
             enabled = when (buttonState) {
                 RemoteButtonState.READY -> true
                 RemoteButtonState.ARMING -> false
@@ -94,7 +106,7 @@ fun RemoteButtonContent(
                         // After the timeout, delay a few seconds, then move to READY state.
                         job?.cancel()
                         job = coroutineScope.launch {
-                            countdown = 3
+                            countdown = 1
                             while (countdown > 0) {
                                 delay(Duration.ofMillis(500))
                                 countdown--
@@ -130,11 +142,10 @@ fun RemoteButtonContent(
                     RemoteButtonState.COOLDOWN -> {} // Do nothing.
                 }
             },
-            modifier = Modifier.size(256.dp),
             shape = CircleShape,
             colors = when (buttonState) {
                 RemoteButtonState.ARMED -> ButtonDefaults.buttonColors(
-                    containerColor = Color.Red,
+                    containerColor = Color(0xFFAA6666),
                     contentColor = Color.White,
                 )
                 else -> buttonColors
@@ -144,13 +155,22 @@ fun RemoteButtonContent(
             Text(
                 text = when (buttonState) {
                     RemoteButtonState.READY -> "Garage\nRemote\nButton"
-                    RemoteButtonState.ARMING -> "Tap again\nto move\nthe garage door\n\n$countdown"
-                    RemoteButtonState.ARMED -> "PUSH BUTTON"
+                    RemoteButtonState.ARMING -> "Preparing..."
+                    RemoteButtonState.ARMED -> "Tap Again\nTo Send Command"
                     RemoteButtonState.TIMEOUT -> "Button not pressed"
-                    RemoteButtonState.COOLDOWN -> "Button pushed!\n\nCooldown...\n$countdown"
+                    RemoteButtonState.COOLDOWN -> "Button pushed!\n\nWait... $countdown"
                 },
                 fontSize = MaterialTheme.typography.titleLarge.fontSize,
                 textAlign = TextAlign.Center,
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        if (buttonState != RemoteButtonState.READY
+            || remoteButtonRequestStatus != RemoteButtonRequestStatus.NONE) {
+            ButtonRequestIndicator(
+                modifier = Modifier
+                    .width(256.dp),
+                remoteButtonRequestStatus = remoteButtonRequestStatus,
             )
         }
     }

@@ -2,20 +2,13 @@ package com.chriscartland.garage.ui
 
 import android.util.Log
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -141,10 +134,8 @@ fun HomeContent(
                         onClearRemote()
                     },
                     buttonColors = doorButtonColors(LocalDoorStatusColorScheme.current, doorEvent),
+                    remoteButtonRequestStatus = remoteButtonRequestStatus,
                 )
-            }
-            item {
-                ButtonRequestIndicator(remoteButtonRequestStatus = remoteButtonRequestStatus)
             }
         } else {
             item {
@@ -156,123 +147,35 @@ fun HomeContent(
     }
 }
 
+data class RemoteIndicator(
+    val text: String,
+    val complete: Int,
+    val failure: Boolean = false,
+)
+
 @Composable
 fun ButtonRequestIndicator(
     modifier: Modifier = Modifier,
     remoteButtonRequestStatus: RemoteButtonRequestStatus = RemoteButtonRequestStatus.NONE,
 ) {
-    val phone = "📱"
-    val cloud = "☁️"
-    val house = "🏠"
-    val hyphen = "➖"
-    val rightArrow = "➡️"
-    val x = "❌"
-
-    Row(
+    val progress = when (remoteButtonRequestStatus) {
+        RemoteButtonRequestStatus.NONE -> RemoteIndicator("", 0)
+        RemoteButtonRequestStatus.SENDING -> RemoteIndicator("Sending", 1)
+        RemoteButtonRequestStatus.SENDING_TIMEOUT -> RemoteIndicator("Sending failed", 2)
+        RemoteButtonRequestStatus.SENT -> RemoteIndicator("Sent", 3)
+        RemoteButtonRequestStatus.SENT_TIMEOUT -> RemoteIndicator("Command not delivered", 4, failure = true)
+        RemoteButtonRequestStatus.RECEIVED -> RemoteIndicator("Complete", 5)
+    }
+    val colorComplete: Color = if (progress.failure) Color(0xFFFF3333) else Color(0xFF3333FF)
+    Column(
         modifier = modifier,
-        horizontalArrangement = Arrangement.SpaceAround,
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        val boxModifier = Modifier
-            .weight(1f)
-            .padding(0.dp)
-            .border(1.dp, Color.Gray)
-        val spacerModifier = Modifier.width(1.dp)
-        val colorEmpty = MaterialTheme.colorScheme.secondaryContainer
-        val colorActive = MaterialTheme.colorScheme.tertiaryContainer
-        val colorComplete = LocalDoorStatusColorScheme.current.doorClosedContainerFresh
-        val colorError = MaterialTheme.colorScheme.errorContainer
-        // Phone.
-        Box(
-            modifier = boxModifier.background(when (remoteButtonRequestStatus) {
-                RemoteButtonRequestStatus.NONE -> colorEmpty
-                RemoteButtonRequestStatus.SENDING -> colorComplete
-                RemoteButtonRequestStatus.SENDING_TIMEOUT -> colorComplete
-                RemoteButtonRequestStatus.SENT -> colorComplete
-                RemoteButtonRequestStatus.SENT_TIMEOUT -> colorComplete
-                RemoteButtonRequestStatus.RECEIVED -> colorComplete
-            })
-        ) {
-            Text(
-                phone,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(8.dp)
-            )
-        }
-        Spacer(modifier = spacerModifier)
-        // Phone -> Cloud.
-        Box(
-            modifier = boxModifier.background(when (remoteButtonRequestStatus) {
-                RemoteButtonRequestStatus.NONE -> colorEmpty
-                RemoteButtonRequestStatus.SENDING -> colorActive
-                RemoteButtonRequestStatus.SENDING_TIMEOUT -> colorError
-                RemoteButtonRequestStatus.SENT -> colorComplete
-                RemoteButtonRequestStatus.SENT_TIMEOUT -> colorComplete
-                RemoteButtonRequestStatus.RECEIVED -> colorComplete
-            })
-        ) {
-            Text(
-                rightArrow,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(8.dp)
-            )
-        }
-        Spacer(modifier = spacerModifier)
-        // Cloud.
-        Box(
-            modifier = boxModifier.background(when (remoteButtonRequestStatus) {
-                RemoteButtonRequestStatus.NONE -> colorEmpty
-                RemoteButtonRequestStatus.SENDING -> colorEmpty
-                RemoteButtonRequestStatus.SENDING_TIMEOUT -> colorEmpty
-                RemoteButtonRequestStatus.SENT -> colorComplete
-                RemoteButtonRequestStatus.SENT_TIMEOUT -> colorComplete
-                RemoteButtonRequestStatus.RECEIVED -> colorComplete
-            })
-        ) {
-            Text(cloud, textAlign = TextAlign.Center, modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp))
-        }
-        Spacer(modifier = spacerModifier)
-        // Cloud -> Home.
-        Box(
-            modifier = boxModifier.background(when (remoteButtonRequestStatus) {
-                RemoteButtonRequestStatus.NONE -> colorEmpty
-                RemoteButtonRequestStatus.SENDING -> colorEmpty
-                RemoteButtonRequestStatus.SENDING_TIMEOUT -> colorEmpty
-                RemoteButtonRequestStatus.SENT -> colorActive
-                RemoteButtonRequestStatus.SENT_TIMEOUT -> colorError
-                RemoteButtonRequestStatus.RECEIVED -> colorComplete
-            })
-        ) {
-            Text(
-                rightArrow,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(8.dp)
-            )
-        }
-        Spacer(modifier = spacerModifier)
-        // Home.
-        Box(
-            modifier = boxModifier.background(when (remoteButtonRequestStatus) {
-                RemoteButtonRequestStatus.NONE -> colorEmpty
-                RemoteButtonRequestStatus.SENDING -> colorEmpty
-                RemoteButtonRequestStatus.SENDING_TIMEOUT -> colorEmpty
-                RemoteButtonRequestStatus.SENT -> colorEmpty
-                RemoteButtonRequestStatus.SENT_TIMEOUT -> colorEmpty
-                RemoteButtonRequestStatus.RECEIVED -> colorComplete
-            })
-        ) {
-            Text(house, textAlign = TextAlign.Center, modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp))
-        }
+        ParallelogramProgressBar(
+            max = 5,
+            complete = progress.complete,
+            colorComplete = colorComplete,
+        )
+        Text(text = progress.text, textAlign = TextAlign.Center)
     }
 }
 
