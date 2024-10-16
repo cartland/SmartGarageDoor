@@ -8,6 +8,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.FetchOnViewModelInit
+import com.chriscartland.garage.auth.AuthRepository
 import com.chriscartland.garage.internet.IdToken
 import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.model.Result
@@ -32,6 +33,7 @@ class DoorViewModel @Inject constructor(
     private val garageRepository: GarageRepository,
     private val remoteButtonRepository: RemoteButtonRepository,
     private val authRepository: FirebaseAuthRepository,
+    private val newAuthRepository: AuthRepository,
 ) : ViewModel() {
     // Listen to network events and door status updates.
     private val _remoteButtonRequestStatus = MutableStateFlow(RemoteButtonRequestStatus.NONE)

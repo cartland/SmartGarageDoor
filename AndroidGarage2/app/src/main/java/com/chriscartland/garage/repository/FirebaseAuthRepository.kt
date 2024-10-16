@@ -6,8 +6,9 @@ import android.content.IntentSender
 import android.util.Log
 import androidx.activity.ComponentActivity
 import com.chriscartland.garage.BuildConfig
+import com.chriscartland.garage.model.DisplayName
 import com.chriscartland.garage.model.Email
-import com.chriscartland.garage.model.IdToken
+import com.chriscartland.garage.model.FirebaseIdToken
 import com.chriscartland.garage.model.User
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.Identity
@@ -227,11 +228,6 @@ class FirebaseAuthRepository @Inject constructor(
         }
     }
 
-    companion object {
-        val TAG: String = "FirebaseAuthRepository"
-        const val RC_ONE_TAP_SIGN_IN = 1
-    }
-
     private suspend fun refreshIdToken(): String? {
         val currentUser = Firebase.auth.currentUser
         if (currentUser == null) {
@@ -241,10 +237,16 @@ class FirebaseAuthRepository @Inject constructor(
         val firebaseIdToken = getIdTokenFromFirebaseUser(currentUser)
         val email = currentUser.email
         _user.value = User(
-            idToken = IdToken(firebaseIdToken ?: ""),
+            name = DisplayName(currentUser.displayName ?: ""),
             email = Email(email ?: ""),
+            idToken = FirebaseIdToken(firebaseIdToken ?: ""),
         )
         return firebaseIdToken
+    }
+
+    companion object {
+        const val TAG: String = "FirebaseAuthRepository"
+        const val RC_ONE_TAP_SIGN_IN = 1
     }
 }
 

@@ -24,6 +24,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chriscartland.garage.auth.AuthState
+import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.model.Result
 import com.chriscartland.garage.model.dataOrNull
@@ -39,20 +41,21 @@ import com.google.accompanist.permissions.isGranted
 fun HomeContent(
     modifier: Modifier = Modifier,
     viewModel: DoorViewModel = hiltViewModel(),
+    authViewModel: AuthViewModelImpl = hiltViewModel(),
 ) {
-    val context = LocalContext.current as ComponentActivity
+    val activity = LocalContext.current as ComponentActivity
     val currentDoorEvent = viewModel.currentDoorEvent.collectAsState()
     val remoteButtonRequestStatus = viewModel.remoteButtonRequestStatus.collectAsState()
-    val user = viewModel.user.collectAsState()
+    val authState = authViewModel.authState.collectAsState()
     HomeContent(
         currentDoorEvent = currentDoorEvent.value,
         remoteButtonRequestStatus = remoteButtonRequestStatus.value,
         modifier = modifier,
         onFetchCurrentDoorEvent = { viewModel.fetchCurrentDoorEvent() },
-        onRemoteButtonClick = { viewModel.pushRemoteButton(context) },
+        onRemoteButtonClick = { viewModel.pushRemoteButton(activity) },
         onResetRemote = { viewModel.resetRemoteButton() },
-        isSignedIn = user.value != null,
-        onSignIn = { viewModel.signInSeamlessly(context) },
+        isSignedIn = authState.value is AuthState.Authenticated,
+        onSignIn = { authViewModel.signInWithGoogle(activity) },
     )
 }
 
