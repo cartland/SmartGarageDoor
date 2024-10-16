@@ -8,10 +8,6 @@ import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.BuildConfig
-import com.chriscartland.garage.model.DisplayName
-import com.chriscartland.garage.model.Email
-import com.chriscartland.garage.model.FirebaseIdToken
-import com.chriscartland.garage.model.User
 import com.chriscartland.garage.repository.FirebaseAuthRepository.Companion.RC_ONE_TAP_SIGN_IN
 import com.chriscartland.garage.repository.FirebaseAuthRepository.Companion.TAG
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
@@ -19,35 +15,20 @@ import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.auth.api.identity.SignInClient
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
-import com.google.firebase.Firebase
-import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.auth.auth
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
-import dagger.hilt.android.components.ViewModelComponent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 interface AuthViewModel {
     val authState: StateFlow<AuthState>
     fun signInWithGoogle(activity: ComponentActivity)
     fun signOut()
     fun processGoogleSignInResult(data: Intent)
-}
-
-interface AuthRepository {
-    val authState: StateFlow<AuthState>
-    suspend fun signInWithGoogle(idToken: String): Result<AuthState>
-    suspend fun signOut(): Result<Unit>
 }
 
 @HiltViewModel
@@ -108,7 +89,7 @@ class AuthViewModelImpl @Inject constructor(
     /**
      * Extract the Google ID Token from the Intent.
      */
-    private fun googleIdTokenFromIntent(data: Intent): String? {
+    private fun googleIdTokenFromIntent(data: Intent): GoogleIdToken? {
         Log.d(TAG, "googleIdTokenFromIntent")
         val client = signInClient
         if (client == null) {
@@ -117,7 +98,7 @@ class AuthViewModelImpl @Inject constructor(
         }
         try {
             val credential = client.getSignInCredentialFromIntent(data)
-            return credential.googleIdToken
+            return credential.googleIdToken?.let { GoogleIdToken(it) }
         } catch (e: ApiException) {
             Log.e(TAG, "ApiException: handleOneTapSignIn ${e.message}")
             when (e.statusCode) {
@@ -171,121 +152,23 @@ class AuthViewModelImpl @Inject constructor(
     }
 }
 
-class AuthRepositoryImpl @Inject constructor() : AuthRepository {
-
-    private val _authState = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
-    override val authState: StateFlow<AuthState> = _authState.asStateFlow()
-
-    /**
-     * Sign in with Google ID Token and update the [authState].
-     */
-    override suspend fun signInWithGoogle(googleIdToken: String): Result<AuthState> {
-        firebaseSignInWithGoogle(googleIdToken)
-        return refreshFirebaseAuthState()
-    }
-
-    /**
-     * Use the Google ID Token to sign in with Firebase.
-     */
-    private suspend fun firebaseSignInWithGoogle(googleIdToken: String) {
-        suspendCoroutine { continuation ->
-            Log.d(TAG, "firebaseAuthWithGoogle")
-            val credential = GoogleAuthProvider.getCredential(googleIdToken, null)
-            Firebase.auth.signInWithCredential(credential)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        Log.d(TAG, "Firebase signInWithGoogle: success")
-                    } else {
-                        Log.w(TAG, "Firebase signInWithGoogle: failure", task.exception)
-                    }
-                    continuation.resume(Unit)
-                }
-        }
-    }
-
-    /**
-     * Refresh the AuthState based on the Firebase auth state.
-     *
-     * Get the ID token and other user information from Firebase
-     * and emit them with [_authState].
-     */
-    private suspend fun refreshFirebaseAuthState(): Result<AuthState> {
-        return try {
-            val user = Firebase.auth.currentUser
-            if (user == null) {
-                Result.failure(Error("Firebase user not found"))
-            } else {
-                val firebaseIdToken = getIdTokenFromFirebaseUser(user)
-                if (firebaseIdToken == null) {
-                    Result.failure(Error("Firebase ID token not found"))
-                } else {
-                    _authState.value = AuthState.Authenticated(
-                        User(
-                            name = DisplayName(user.displayName ?: ""),
-                            email = Email(user.email ?: ""),
-                            idToken = FirebaseIdToken(firebaseIdToken),
-                        )
-                    )
-                    Result.success(_authState.value)
-                }
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    /**
-     * Get the Firebase ID Token.
-     *
-     * The Firebase API might take time to retrieve the ID Token.
-     */
-    private suspend fun getIdTokenFromFirebaseUser(currentUser: FirebaseUser): String? {
-        return suspendCoroutine  { continuation ->
-            currentUser.getIdToken(true).addOnSuccessListener { result ->
-                val firebaseIdToken = result.token
-                Log.d(TAG, "Firebase ID Token: $firebaseIdToken")
-                continuation.resume(firebaseIdToken)
-            }
-        }
-    }
-
-    override suspend fun signOut(): Result<Unit> {
-        return try {
-            Firebase.auth.signOut()
-            _authState.value = AuthState.Unauthenticated
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-}
-
-sealed class AuthState {
-    data object Unauthenticated : AuthState()
-    data class Authenticated(val user: User) : AuthState()
-}
-
+/**
+ *  TODO: Figure out why I cannot instantiate AuthViewModel interface with Hilt.
+ *  This works in Compose:
+ *      authViewModel: AuthViewModelImpl = hiltViewModel(),
+ *  This fails in Compose:
+ *      authViewModel: AuthViewModel = hiltViewModel(),
+ *  The failure is an ANR.
+ *      ANR in com.chriscartland.garage
+ *      PID: 8316
+ *      Reason: Process ProcessRecord{420e8be 8316:com.example.package/u0a228} failed to complete startup
+ *  I tried:
+ *      @InstallIn(ViewModelComponent::class)
+ *      @InstallIn(SingletonComponent::class)
+ */
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class AuthRepositoryModule {
-    @Binds
-    abstract fun bindAuthRepository(authRepository: AuthRepositoryImpl): AuthRepository
-}
-
-// TODO: Figure out why I cannot instantiate AuthViewModel interface with Hilt.
-// This works in Compose:
-//     authViewModel: AuthViewModelImpl = hiltViewModel(),
-// This fails in Compose:
-//     authViewModel: AuthViewModel = hiltViewModel(),
-// The failure is an ANR.
-//     ANR in com.chriscartland.garage
-//     PID: 8316
-//     Reason: Process ProcessRecord{420e8be 8316:com.example.package/u0a228} failed to complete startup
-// I tried:
-//     @InstallIn(ViewModelComponent::class)
-//     @InstallIn(SingletonComponent::class)
-@Module
-@InstallIn(SingletonComponent::class)
+@Suppress("unused")
 abstract class AuthViewModelModule {
     @Binds
     abstract fun bindAuthViewModel(authViewModel: AuthViewModelImpl): AuthViewModel

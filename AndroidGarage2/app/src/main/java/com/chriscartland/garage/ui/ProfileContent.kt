@@ -21,7 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
-import com.chriscartland.garage.model.User
+import com.chriscartland.garage.auth.User
 
 @Composable
 fun ProfileContent(

@@ -6,10 +6,10 @@ import android.content.IntentSender
 import android.util.Log
 import androidx.activity.ComponentActivity
 import com.chriscartland.garage.BuildConfig
-import com.chriscartland.garage.model.DisplayName
-import com.chriscartland.garage.model.Email
-import com.chriscartland.garage.model.FirebaseIdToken
-import com.chriscartland.garage.model.User
+import com.chriscartland.garage.auth.DisplayName
+import com.chriscartland.garage.auth.Email
+import com.chriscartland.garage.auth.FirebaseIdToken
+import com.chriscartland.garage.auth.User
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.common.api.ApiException

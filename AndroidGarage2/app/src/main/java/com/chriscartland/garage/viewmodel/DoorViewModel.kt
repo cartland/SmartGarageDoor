@@ -1,7 +1,6 @@
 package com.chriscartland.garage.viewmodel
 
 import android.util.Log
-import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.APP_CONFIG
@@ -9,7 +8,7 @@ import com.chriscartland.garage.FetchOnViewModelInit
 import com.chriscartland.garage.internet.IdToken
 import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.model.Result
-import com.chriscartland.garage.model.User
+import com.chriscartland.garage.auth.User
 import com.chriscartland.garage.model.dataOrNull
 import com.chriscartland.garage.repository.GarageRepository
 import com.chriscartland.garage.repository.PushButtonStatus
@@ -47,30 +46,6 @@ class DoorViewModel @Inject constructor(
         Result.Loading(listOf()), // Initial data.
     )
     val recentDoorEvents: StateFlow<Result<List<DoorEvent>>> = _recentDoorEvents
-
-//    fun signInSeamlessly(activityContext: ComponentActivity) {
-//        activityContext.lifecycleScope.launch(Dispatchers.IO) {
-//            authRepository.signInSeamlessly(activityContext)
-//        }
-//    }
-//
-//    fun signInWithDialog(activityContext: ComponentActivity) {
-//        activityContext.lifecycleScope.launch(Dispatchers.IO) {
-//            authRepository.signInWithDialog(activityContext)
-//        }
-//    }
-//
-//    fun signOut() {
-//        viewModelScope.launch(Dispatchers.IO) {
-//            authRepository.signOut()
-//        }
-//    }
-//
-//    fun handleSignInWithIntent(data: Intent?) {
-//        viewModelScope.launch(Dispatchers.IO) {
-//            authRepository.handleSignInWithIntent(data)
-//        }
-//    }
 
     init {
         Log.d("DoorViewModel", "init")
