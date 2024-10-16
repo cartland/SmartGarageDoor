@@ -53,30 +53,34 @@ fun ProfileContent(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        item {
-            Button(onClick = signIn) {
-                Text("Sign In")
+        if (user == null) {
+            item {
+                Button(onClick = signIn) {
+                    Text("Sign In")
+                }
             }
-        }
-        item {
-            Button(onClick = signOut) {
-                Text("Sign out")
-            }
-        }
-        item {
-            Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
+        } else {
+            item {
+                Card(
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                 ) {
-                    Text(text = "Email: ${user?.email?.asString() ?: "Unknown"}")
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                    ) {
+                        Text(text = "Name: ${user?.name?.asString() ?: "Unknown"}")
+                        Text(text = "Email: ${user?.email?.asString() ?: "Unknown"}")
+                    }
+                }
+            }
+            item {
+                Button(onClick = signOut) {
+                    Text("Sign out")
                 }
             }
         }
-        item {
-            // Snooze notifications.
-            if (APP_CONFIG.snoozeNotificationsOption) {
+        // Snooze notifications.
+        if (APP_CONFIG.snoozeNotificationsOption) {
+            item {
                 SnoozeNotificationCard(
                     text = "Snooze notifications",
                     snoozeText = "Snooze",
