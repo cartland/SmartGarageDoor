@@ -46,15 +46,24 @@ fun HomeContent(
     val activity = LocalContext.current as ComponentActivity
     val currentDoorEvent = viewModel.currentDoorEvent.collectAsState()
     val remoteButtonRequestStatus = viewModel.remoteButtonRequestStatus.collectAsState()
-    val authState = authViewModel.authState.collectAsState()
+    val authState by authViewModel.authState.collectAsState()
     HomeContent(
         currentDoorEvent = currentDoorEvent.value,
         remoteButtonRequestStatus = remoteButtonRequestStatus.value,
         modifier = modifier,
         onFetchCurrentDoorEvent = { viewModel.fetchCurrentDoorEvent() },
-        onRemoteButtonClick = { viewModel.pushRemoteButton(activity) },
+        onRemoteButtonClick = {
+            when (val it = authState) {
+                is AuthState.Authenticated -> {
+                    viewModel.pushRemoteButton(it.user)
+                }
+                AuthState.Unauthenticated -> {
+                    authViewModel.signInWithGoogle(activity)
+                }
+            }
+        },
         onResetRemote = { viewModel.resetRemoteButton() },
-        isSignedIn = authState.value is AuthState.Authenticated,
+        isSignedIn = authState is AuthState.Authenticated,
         onSignIn = { authViewModel.signInWithGoogle(activity) },
     )
 }

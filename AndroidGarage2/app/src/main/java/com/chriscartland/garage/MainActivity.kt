@@ -7,9 +7,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.repository.FirebaseAuthRepository.Companion.RC_ONE_TAP_SIGN_IN
 import com.chriscartland.garage.ui.GarageApp
-import com.chriscartland.garage.viewmodel.DoorViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -28,8 +28,13 @@ class MainActivity : ComponentActivity() {
         Log.d("MainActivity", "onActivityResult")
         when (requestCode) {
             RC_ONE_TAP_SIGN_IN -> {
-                val doorViewModel: DoorViewModel by viewModels()
-                doorViewModel.handleSignInWithIntent(data)
+                Log.d("MainActivity", "RC_ONE_TAP_SIGN_IN")
+                if (data == null) {
+                    Log.e("MainActivity", "onActivityResult: data is null")
+                    return
+                }
+                val authViewModel: AuthViewModelImpl by viewModels()
+                authViewModel.processGoogleSignInResult(data)
             }
         }
     }

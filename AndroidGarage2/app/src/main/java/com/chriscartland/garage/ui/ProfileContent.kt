@@ -19,21 +19,24 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.APP_CONFIG
+import com.chriscartland.garage.auth.AuthState
+import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.model.User
-import com.chriscartland.garage.viewmodel.DoorViewModel
 
 @Composable
 fun ProfileContent(
     modifier: Modifier = Modifier,
-    viewModel: DoorViewModel = hiltViewModel(),
+    viewModel: AuthViewModelImpl = hiltViewModel(),
 ) {
     val context = LocalContext.current as ComponentActivity
-    val user by viewModel.user.collectAsState()
+    val authState by viewModel.authState.collectAsState()
     ProfileContent(
-        user = user,
+        user = when (val it = authState) {
+            is AuthState.Authenticated -> it.user
+            AuthState.Unauthenticated -> null
+        },
         modifier = modifier,
-        signInSeamlessly = { viewModel.signInSeamlessly(context) },
-        signInWithDialog = { viewModel.signInWithDialog(context) },
+        signIn = { viewModel.signInWithGoogle(context) },
         signOut = { viewModel.signOut() }
     )
 }
@@ -42,8 +45,7 @@ fun ProfileContent(
 fun ProfileContent(
     user: User?,
     modifier: Modifier = Modifier,
-    signInSeamlessly: () -> Unit,
-    signInWithDialog: () -> Unit,
+    signIn: () -> Unit,
     signOut: () -> Unit,
 ) {
     LazyColumn(
@@ -52,13 +54,8 @@ fun ProfileContent(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         item {
-            Button(onClick = signInSeamlessly) {
-                Text("Sign In (Seamless)")
-            }
-        }
-        item {
-            Button(onClick = signInWithDialog) {
-                Text("Sign In (Dialog)")
+            Button(onClick = signIn) {
+                Text("Sign In")
             }
         }
         item {

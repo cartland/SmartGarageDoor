@@ -25,6 +25,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.fcm.FCMRegistration
 import com.chriscartland.garage.ui.theme.AppTheme
 import com.chriscartland.garage.viewmodel.DoorViewModel
@@ -46,6 +47,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 @Composable
 fun AppNavigation(
     doorViewModel: DoorViewModel = hiltViewModel(),
+    authViewModel: AuthViewModelImpl = hiltViewModel(),
 ) {
     // Register for FCM notifications.
     FCMRegistration(viewModel = doorViewModel)
@@ -69,6 +71,7 @@ fun AppNavigation(
         ) {
             composable(Screen.Home.route) { HomeContent(
                 viewModel = doorViewModel,
+                authViewModel = authViewModel,
                 modifier = Modifier.fillMaxWidth(),
             ) }
             composable(Screen.History.route) { DoorHistoryContent(
@@ -76,7 +79,7 @@ fun AppNavigation(
                 modifier = Modifier.fillMaxWidth(),
             ) }
             composable(Screen.Profile.route) { ProfileContent(
-                viewModel = doorViewModel,
+                viewModel = authViewModel,
                 modifier = Modifier.fillMaxWidth(),
             ) }
         }

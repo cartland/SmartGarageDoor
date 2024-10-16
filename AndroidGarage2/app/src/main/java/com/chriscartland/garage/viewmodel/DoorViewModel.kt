@@ -1,20 +1,16 @@
 package com.chriscartland.garage.viewmodel
 
-import android.content.Intent
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.FetchOnViewModelInit
-import com.chriscartland.garage.auth.AuthRepository
 import com.chriscartland.garage.internet.IdToken
 import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.model.Result
 import com.chriscartland.garage.model.User
 import com.chriscartland.garage.model.dataOrNull
-import com.chriscartland.garage.repository.FirebaseAuthRepository
 import com.chriscartland.garage.repository.GarageRepository
 import com.chriscartland.garage.repository.PushButtonStatus
 import com.chriscartland.garage.repository.RemoteButtonRepository
@@ -32,8 +28,6 @@ import javax.inject.Inject
 class DoorViewModel @Inject constructor(
     private val garageRepository: GarageRepository,
     private val remoteButtonRepository: RemoteButtonRepository,
-    private val authRepository: FirebaseAuthRepository,
-    private val newAuthRepository: AuthRepository,
 ) : ViewModel() {
     // Listen to network events and door status updates.
     private val _remoteButtonRequestStatus = MutableStateFlow(RemoteButtonRequestStatus.NONE)
@@ -42,7 +36,7 @@ class DoorViewModel @Inject constructor(
     suspend fun fetchBuildTimestampCached(): String? =
         garageRepository.buildTimestamp()
 
-    val user: StateFlow<User?> = authRepository.user
+//    val user: StateFlow<User?> = authRepository.user
 
     private val _currentDoorEvent = MutableStateFlow<Result<DoorEvent?>>(
         Result.Loading(null), // Initial data.
@@ -54,29 +48,29 @@ class DoorViewModel @Inject constructor(
     )
     val recentDoorEvents: StateFlow<Result<List<DoorEvent>>> = _recentDoorEvents
 
-    fun signInSeamlessly(activityContext: ComponentActivity) {
-        activityContext.lifecycleScope.launch(Dispatchers.IO) {
-            authRepository.signInSeamlessly(activityContext)
-        }
-    }
-
-    fun signInWithDialog(activityContext: ComponentActivity) {
-        activityContext.lifecycleScope.launch(Dispatchers.IO) {
-            authRepository.signInWithDialog(activityContext)
-        }
-    }
-
-    fun signOut() {
-        viewModelScope.launch(Dispatchers.IO) {
-            authRepository.signOut()
-        }
-    }
-
-    fun handleSignInWithIntent(data: Intent?) {
-        viewModelScope.launch(Dispatchers.IO) {
-            authRepository.handleSignInWithIntent(data)
-        }
-    }
+//    fun signInSeamlessly(activityContext: ComponentActivity) {
+//        activityContext.lifecycleScope.launch(Dispatchers.IO) {
+//            authRepository.signInSeamlessly(activityContext)
+//        }
+//    }
+//
+//    fun signInWithDialog(activityContext: ComponentActivity) {
+//        activityContext.lifecycleScope.launch(Dispatchers.IO) {
+//            authRepository.signInWithDialog(activityContext)
+//        }
+//    }
+//
+//    fun signOut() {
+//        viewModelScope.launch(Dispatchers.IO) {
+//            authRepository.signOut()
+//        }
+//    }
+//
+//    fun handleSignInWithIntent(data: Intent?) {
+//        viewModelScope.launch(Dispatchers.IO) {
+//            authRepository.handleSignInWithIntent(data)
+//        }
+//    }
 
     init {
         Log.d("DoorViewModel", "init")
@@ -217,15 +211,10 @@ class DoorViewModel @Inject constructor(
         }
     }
 
-    fun pushRemoteButton(activityContext: ComponentActivity) {
+    fun pushRemoteButton(user: User) {
         Log.d("DoorViewModel", "pushRemoteButton")
         viewModelScope.launch(Dispatchers.IO) {
-            val idToken = user.value?.idToken
-            if (idToken == null) {
-                Log.d("DoorViewModel", "pushRemoteButton: No ID token")
-                signInSeamlessly(activityContext)
-                return@launch
-            }
+            val idToken = user.idToken
             Log.d("DoorViewModel", "pushRemoteButton: Pushing remote button: $idToken")
             remoteButtonRepository.pushRemoteButton(
                 idToken = IdToken(idToken.asString()),

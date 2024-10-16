@@ -7,9 +7,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
@@ -18,6 +15,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +31,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chriscartland.garage.auth.AuthState
+import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.viewmodel.DoorViewModel
 import com.chriscartland.garage.viewmodel.RemoteButtonRequestStatus
 import kotlinx.coroutines.Job
@@ -44,13 +44,23 @@ import java.time.Duration
 fun RemoteButtonContent(
     modifier: Modifier = Modifier,
     viewModel: DoorViewModel = hiltViewModel(),
+    authViewModel: AuthViewModelImpl = hiltViewModel(),
     buttonColors: ButtonColors = ButtonDefaults.buttonColors(),
     remoteButtonRequestStatus: RemoteButtonRequestStatus = RemoteButtonRequestStatus.NONE,
 ) {
-    val context = LocalContext.current as ComponentActivity
+    val authState by authViewModel.authState.collectAsState()
     RemoteButtonContent(
         modifier = modifier,
-        onSubmit = { viewModel.pushRemoteButton(context) },
+        onSubmit = {
+            when (val it = authState) {
+                is AuthState.Authenticated -> {
+                    viewModel.pushRemoteButton(it.user)
+                }
+                AuthState.Unauthenticated -> {
+                    // Do nothing.
+                }
+            }
+        },
         buttonColors = buttonColors,
         remoteButtonRequestStatus = remoteButtonRequestStatus,
     )
