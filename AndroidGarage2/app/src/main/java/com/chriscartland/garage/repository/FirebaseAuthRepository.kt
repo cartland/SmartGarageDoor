@@ -29,7 +29,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 class FirebaseAuthRepository @Inject constructor(
-    @ApplicationContext context: Context,
+    @ApplicationContext val context: Context,
 ) {
     private val _user: MutableStateFlow<User?> = MutableStateFlow(null)
     val user: StateFlow<User?> = _user
@@ -157,17 +157,7 @@ class FirebaseAuthRepository @Inject constructor(
     suspend fun handleSignInWithIntent(data: Intent?) {
         val googleIdToken = googleIdTokenFromIntent(data) ?: return
         firebaseSignInWithGoogleIdToken(googleIdToken)
-        val currentUser = Firebase.auth.currentUser
-        if (currentUser == null) {
-            _user.value = null
-            return
-        }
-        val firebaseIdToken = getIdTokenFromFirebaseUser(currentUser)
-        val email = currentUser.email
-        _user.value = User(
-            idToken = IdToken(firebaseIdToken ?: ""),
-            email = Email(email ?: ""),
-        )
+        refreshIdToken()
     }
 
     /**
@@ -240,6 +230,21 @@ class FirebaseAuthRepository @Inject constructor(
     companion object {
         val TAG: String = "FirebaseAuthRepository"
         const val RC_ONE_TAP_SIGN_IN = 1
+    }
+
+    private suspend fun refreshIdToken(): String? {
+        val currentUser = Firebase.auth.currentUser
+        if (currentUser == null) {
+            _user.value = null
+            return null
+        }
+        val firebaseIdToken = getIdTokenFromFirebaseUser(currentUser)
+        val email = currentUser.email
+        _user.value = User(
+            idToken = IdToken(firebaseIdToken ?: ""),
+            email = Email(email ?: ""),
+        )
+        return firebaseIdToken
     }
 }
 

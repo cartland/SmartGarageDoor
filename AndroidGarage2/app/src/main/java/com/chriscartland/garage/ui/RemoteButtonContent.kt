@@ -4,10 +4,13 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
@@ -85,7 +88,9 @@ fun RemoteButtonContent(
 
         Button(
             modifier = Modifier
-                .size(256.dp)
+                .fillMaxWidth(0.6f)
+                .aspectRatio(1f)
+                .widthIn(max = 256.dp)
                 .shadow(4.dp, CircleShape),
             enabled = when (buttonState) {
                 RemoteButtonState.READY -> true
@@ -169,7 +174,8 @@ fun RemoteButtonContent(
             || remoteButtonRequestStatus != RemoteButtonRequestStatus.NONE) {
             ButtonRequestIndicator(
                 modifier = Modifier
-                    .width(256.dp),
+                    .fillMaxWidth(0.6f)
+                    .widthIn(max = 256.dp),
                 remoteButtonRequestStatus = remoteButtonRequestStatus,
             )
         }

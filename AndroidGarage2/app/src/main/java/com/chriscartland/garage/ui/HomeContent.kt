@@ -50,7 +50,7 @@ fun HomeContent(
         modifier = modifier,
         onFetchCurrentDoorEvent = { viewModel.fetchCurrentDoorEvent() },
         onRemoteButtonClick = { viewModel.pushRemoteButton(context) },
-        onClearRemote = { viewModel.clearRemoteButton() },
+        onResetRemote = { viewModel.resetRemoteButton() },
         isSignedIn = user.value != null,
         onSignIn = { viewModel.signInSeamlessly(context) },
     )
@@ -64,7 +64,7 @@ fun HomeContent(
     remoteButtonRequestStatus: RemoteButtonRequestStatus = RemoteButtonRequestStatus.NONE,
     onFetchCurrentDoorEvent: () -> Unit = {},
     onRemoteButtonClick: () -> Unit = {},
-    onClearRemote: () -> Unit = {},
+    onResetRemote: () -> Unit = {},
     isSignedIn: Boolean = false,
     onSignIn: () -> Unit = {},
 ) {
@@ -131,7 +131,7 @@ fun HomeContent(
                         onRemoteButtonClick()
                     },
                     onArming = {
-                        onClearRemote()
+                        onResetRemote()
                     },
                     buttonColors = doorButtonColors(LocalDoorStatusColorScheme.current, doorEvent),
                     remoteButtonRequestStatus = remoteButtonRequestStatus,

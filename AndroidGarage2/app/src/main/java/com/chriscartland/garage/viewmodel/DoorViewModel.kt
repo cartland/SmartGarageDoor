@@ -232,7 +232,7 @@ class DoorViewModel @Inject constructor(
         }
     }
 
-    fun clearRemoteButton() {
+    fun resetRemoteButton() {
         _remoteButtonRequestStatus.value = RemoteButtonRequestStatus.NONE
     }
 }
