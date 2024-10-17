@@ -1,4 +1,4 @@
-package com.chriscartland.garage.viewmodel
+package com.chriscartland.garage.door
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -7,9 +7,9 @@ import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.FetchOnViewModelInit
 import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.repository.GarageRepository
-import com.chriscartland.garage.viewmodel.LoadingResult.Complete
-import com.chriscartland.garage.viewmodel.LoadingResult.Error
-import com.chriscartland.garage.viewmodel.LoadingResult.Loading
+import com.chriscartland.garage.door.LoadingResult.Complete
+import com.chriscartland.garage.door.LoadingResult.Error
+import com.chriscartland.garage.door.LoadingResult.Loading
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

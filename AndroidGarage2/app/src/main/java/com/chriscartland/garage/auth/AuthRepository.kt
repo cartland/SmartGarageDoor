@@ -16,6 +16,8 @@ import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
+const val RC_ONE_TAP_SIGN_IN = 1
+
 interface AuthRepository {
     val authState: StateFlow<AuthState>
     suspend fun signInWithGoogle(idToken: GoogleIdToken): Result<AuthState>

@@ -13,8 +13,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.model.DoorEvent
-import com.chriscartland.garage.viewmodel.DoorViewModelImpl
-import com.chriscartland.garage.viewmodel.LoadingResult
+import com.chriscartland.garage.door.DoorViewModelImpl
+import com.chriscartland.garage.door.LoadingResult
 
 @Composable
 fun DoorHistoryContent(

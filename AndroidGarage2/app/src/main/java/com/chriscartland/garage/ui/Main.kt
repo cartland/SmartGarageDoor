@@ -28,7 +28,7 @@ import androidx.navigation.compose.rememberNavController
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.fcm.FCMRegistration
 import com.chriscartland.garage.ui.theme.AppTheme
-import com.chriscartland.garage.viewmodel.DoorViewModelImpl
+import com.chriscartland.garage.door.DoorViewModelImpl
 
 @Composable
 fun GarageApp() {

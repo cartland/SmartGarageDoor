@@ -8,7 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import com.chriscartland.garage.auth.AuthViewModelImpl
-import com.chriscartland.garage.repository.RC_ONE_TAP_SIGN_IN
+import com.chriscartland.garage.auth.RC_ONE_TAP_SIGN_IN
 import com.chriscartland.garage.ui.GarageApp
 import dagger.hilt.android.AndroidEntryPoint
 

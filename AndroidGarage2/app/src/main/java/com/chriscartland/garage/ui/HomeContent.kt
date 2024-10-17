@@ -32,8 +32,8 @@ import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.doorButtonColors
 import com.chriscartland.garage.ui.theme.doorCardColors
-import com.chriscartland.garage.viewmodel.DoorViewModelImpl
-import com.chriscartland.garage.viewmodel.LoadingResult
+import com.chriscartland.garage.door.DoorViewModelImpl
+import com.chriscartland.garage.door.LoadingResult
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 
