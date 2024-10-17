@@ -13,14 +13,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.model.DoorEvent
-import com.chriscartland.garage.model.Result
-import com.chriscartland.garage.model.dataOrNull
-import com.chriscartland.garage.viewmodel.DoorViewModel
+import com.chriscartland.garage.viewmodel.DoorViewModelImpl
+import com.chriscartland.garage.viewmodel.LoadingResult
 
 @Composable
 fun DoorHistoryContent(
     modifier: Modifier = Modifier,
-    viewModel: DoorViewModel = hiltViewModel(),
+    viewModel: DoorViewModelImpl = hiltViewModel(),
 ) {
     val recentDoorEvents = viewModel.recentDoorEvents.collectAsState()
     DoorHistoryContent(
@@ -33,7 +32,7 @@ fun DoorHistoryContent(
 @Composable
 fun DoorHistoryContent(
     modifier: Modifier = Modifier,
-    recentDoorEvents: Result<List<DoorEvent>?>,
+    recentDoorEvents: LoadingResult<List<DoorEvent>?>,
     onFetchRecentDoorEvents: () -> Unit = {},
 ) {
     LazyColumn(
@@ -45,13 +44,13 @@ fun DoorHistoryContent(
             Text(text = "Recent Door Events")
         }
         // If the recent events are loading, show a loading indicator.
-        if (recentDoorEvents is Result.Loading) {
+        if (recentDoorEvents is LoadingResult.Loading) {
             item {
                 Text(text = "Loading...")
             }
         }
         // If the recent events had an error, show an error card.
-        if (recentDoorEvents is Result.Error) {
+        if (recentDoorEvents is LoadingResult.Error) {
             item {
                 ErrorRequestCard(
                     text = "Error fetching recent door events:" +
@@ -62,7 +61,7 @@ fun DoorHistoryContent(
             }
         }
         // Show the recent door events.
-        items(recentDoorEvents.dataOrNull() ?: emptyList()) { item ->
+        items(recentDoorEvents.data ?: emptyList()) { item ->
             RecentDoorEventListItem(
                 doorEvent = item,
                 modifier = Modifier
@@ -76,6 +75,6 @@ fun DoorHistoryContent(
 @Composable
 fun DoorHistoryContentPreview() {
     DoorHistoryContent(
-        recentDoorEvents = Result.Complete(demoDoorEvents),
+        recentDoorEvents = LoadingResult.Complete(demoDoorEvents),
     )
 }

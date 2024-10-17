@@ -6,46 +6,53 @@ import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.FetchOnViewModelInit
 import com.chriscartland.garage.model.DoorEvent
-import com.chriscartland.garage.model.Result
-import com.chriscartland.garage.model.dataOrNull
-import com.chriscartland.garage.remotebutton.RemoteButtonRepository
 import com.chriscartland.garage.repository.GarageRepository
+import com.chriscartland.garage.viewmodel.LoadingResult.Complete
+import com.chriscartland.garage.viewmodel.LoadingResult.Error
+import com.chriscartland.garage.viewmodel.LoadingResult.Loading
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.Nothing
+import kotlin.String
+import kotlin.Throwable
+
+interface DoorViewModel {
+    suspend fun fetchBuildTimestampCached(): String?
+    val currentDoorEvent: StateFlow<LoadingResult<DoorEvent?>>
+    val recentDoorEvents: StateFlow<LoadingResult<List<DoorEvent>>>
+    fun fetchCurrentDoorEvent()
+    fun fetchRecentDoorEvents()
+}
 
 @HiltViewModel
-class DoorViewModel @Inject constructor(
+class DoorViewModelImpl @Inject constructor(
     private val garageRepository: GarageRepository,
-    private val remoteButtonRepository: RemoteButtonRepository,
-) : ViewModel() {
-
-    suspend fun fetchBuildTimestampCached(): String? =
+) : ViewModel(), DoorViewModel {
+    override suspend fun fetchBuildTimestampCached(): String? =
         garageRepository.buildTimestamp()
 
-    private val _currentDoorEvent = MutableStateFlow<Result<DoorEvent?>>(
-        Result.Loading(null), // Initial data.
-    )
-    val currentDoorEvent: StateFlow<Result<DoorEvent?>> = _currentDoorEvent
+    private val _currentDoorEvent =
+        MutableStateFlow<LoadingResult<DoorEvent?>>(LoadingResult.Loading(null))
+    override val currentDoorEvent: StateFlow<LoadingResult<DoorEvent?>> = _currentDoorEvent
 
-    private val _recentDoorEvents = MutableStateFlow<Result<List<DoorEvent>>>(
-        Result.Loading(listOf()), // Initial data.
-    )
-    val recentDoorEvents: StateFlow<Result<List<DoorEvent>>> = _recentDoorEvents
+    private val _recentDoorEvents =
+        MutableStateFlow<LoadingResult<List<DoorEvent>>>(LoadingResult.Loading(listOf()))
+    override val recentDoorEvents: StateFlow<LoadingResult<List<DoorEvent>>> = _recentDoorEvents
 
     init {
         Log.d("DoorViewModel", "init")
         viewModelScope.launch(Dispatchers.IO) {
             garageRepository.currentDoorEvent.collect {
-                _currentDoorEvent.value = Result.Complete(it)
+                _currentDoorEvent.value = LoadingResult.Complete(it)
             }
         }
         viewModelScope.launch(Dispatchers.IO) {
             garageRepository.recentDoorEvents.collect {
-                _recentDoorEvents.value = Result.Complete(it)
+                _recentDoorEvents.value = LoadingResult.Complete(it)
             }
         }
         // Decide whether to fetch with network data when ViewModel is initialized
@@ -54,23 +61,41 @@ class DoorViewModel @Inject constructor(
                 fetchCurrentDoorEvent()
                 fetchRecentDoorEvents()
             }
-
             FetchOnViewModelInit.No -> { /* Do nothing */
             }
         }
     }
 
-    fun fetchCurrentDoorEvent() {
+    override fun fetchCurrentDoorEvent() {
         viewModelScope.launch(Dispatchers.IO) {
-            _currentDoorEvent.value = Result.Loading(_currentDoorEvent.value.dataOrNull())
+            _currentDoorEvent.value = LoadingResult.Loading(_currentDoorEvent.value.data)
             garageRepository.fetchCurrentDoorEvent()
         }
     }
 
-    fun fetchRecentDoorEvents() {
+    override fun fetchRecentDoorEvents() {
         viewModelScope.launch(Dispatchers.IO) {
-            _recentDoorEvents.value = Result.Loading(_recentDoorEvents.value.dataOrNull())
+            _recentDoorEvents.value = LoadingResult.Loading(_recentDoorEvents.value.data)
             garageRepository.fetchRecentDoorEvents()
         }
     }
+}
+
+/**
+ * A sealed class to represent the state of a loading operation.
+ *
+ * When [Loading] or [Complete], the current data is available.
+ * When [Error] ,the current data is null.
+ */
+sealed class LoadingResult<out T> {
+    data class Loading<out T>(internal val d: T?) : LoadingResult<T>()
+    data class Complete<out T>(internal val d: T?) : LoadingResult<T>()
+    data class Error(val exception: Throwable) : LoadingResult<Nothing>()
+
+    val data: T?
+        get() = when (this) {
+            is Loading -> this.d
+            is Complete -> this.d
+            is Error -> null
+        }
 }

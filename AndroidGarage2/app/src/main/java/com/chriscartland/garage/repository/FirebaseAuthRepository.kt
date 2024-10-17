@@ -29,6 +29,9 @@ import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
+// TODO: Migrate away from onActivityResult with Activity Result API and ActivityResultContract.
+const val RC_ONE_TAP_SIGN_IN = 1
+
 class FirebaseAuthRepository @Inject constructor(
     @ApplicationContext val context: Context,
 ) {
@@ -243,11 +246,6 @@ class FirebaseAuthRepository @Inject constructor(
         )
         return firebaseIdToken
     }
-
-    companion object {
-        const val TAG: String = "FirebaseAuthRepository"
-        const val RC_ONE_TAP_SIGN_IN = 1
-    }
 }
 
 @EntryPoint
@@ -256,3 +254,5 @@ class FirebaseAuthRepository @Inject constructor(
 interface FirebaseAuthRepositoryEntryPoint {
     fun firebaseAuthRepository(): FirebaseAuthRepository
 }
+
+const val TAG: String = "FirebaseAuthRepository"

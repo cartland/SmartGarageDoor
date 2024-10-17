@@ -28,7 +28,7 @@ import androidx.navigation.compose.rememberNavController
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.fcm.FCMRegistration
 import com.chriscartland.garage.ui.theme.AppTheme
-import com.chriscartland.garage.viewmodel.DoorViewModel
+import com.chriscartland.garage.viewmodel.DoorViewModelImpl
 
 @Composable
 fun GarageApp() {
@@ -46,7 +46,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(
-    doorViewModel: DoorViewModel = hiltViewModel(),
+    doorViewModel: DoorViewModelImpl = hiltViewModel(),
     authViewModel: AuthViewModelImpl = hiltViewModel(),
 ) {
     // Register for FCM notifications.

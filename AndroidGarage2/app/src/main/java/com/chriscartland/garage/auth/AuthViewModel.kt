@@ -8,8 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.BuildConfig
-import com.chriscartland.garage.repository.FirebaseAuthRepository.Companion.RC_ONE_TAP_SIGN_IN
-import com.chriscartland.garage.repository.FirebaseAuthRepository.Companion.TAG
+import com.chriscartland.garage.repository.RC_ONE_TAP_SIGN_IN
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.auth.api.identity.SignInClient

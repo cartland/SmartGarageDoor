@@ -27,21 +27,20 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.model.DoorEvent
-import com.chriscartland.garage.model.Result
-import com.chriscartland.garage.model.dataOrNull
 import com.chriscartland.garage.remotebutton.ButtonRequestStatus
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.doorButtonColors
 import com.chriscartland.garage.ui.theme.doorCardColors
-import com.chriscartland.garage.viewmodel.DoorViewModel
+import com.chriscartland.garage.viewmodel.DoorViewModelImpl
+import com.chriscartland.garage.viewmodel.LoadingResult
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 
 @Composable
 fun HomeContent(
     modifier: Modifier = Modifier,
-    viewModel: DoorViewModel = hiltViewModel(),
+    viewModel: DoorViewModelImpl = hiltViewModel(),
     authViewModel: AuthViewModelImpl = hiltViewModel(),
     buttonViewModel: RemoteButtonViewModelImpl = hiltViewModel(),
 ) {
@@ -73,7 +72,7 @@ fun HomeContent(
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun HomeContent(
-    currentDoorEvent: Result<DoorEvent?>,
+    currentDoorEvent: LoadingResult<DoorEvent?>,
     modifier: Modifier = Modifier,
     remoteButtonRequestStatus: ButtonRequestStatus = ButtonRequestStatus.NONE,
     onFetchCurrentDoorEvent: () -> Unit = {},
@@ -106,13 +105,13 @@ fun HomeContent(
         }
 
         // If the current event is loading, show a loading indicator.
-        if (currentDoorEvent is Result.Loading) {
+        if (currentDoorEvent is LoadingResult.Loading) {
             item {
                 Text(text = "Loading...")
             }
         }
         // If the current event had an error, show an error card.
-        if (currentDoorEvent is Result.Error) {
+        if (currentDoorEvent is LoadingResult.Error) {
             item {
                 ErrorRequestCard(
                     text = "Error fetching current door event: " +
@@ -124,7 +123,7 @@ fun HomeContent(
         }
 
         // Show the current door event.
-        val doorEvent = currentDoorEvent.dataOrNull()
+        val doorEvent = currentDoorEvent.data
         item {
             DoorStatusCard(
                 doorEvent = doorEvent,
@@ -197,6 +196,6 @@ fun ButtonRequestIndicator(
 @Composable
 fun HomeContentPreview() {
     HomeContent(
-        currentDoorEvent = Result.Complete(demoDoorEvents.firstOrNull()),
+        currentDoorEvent = LoadingResult.Complete(demoDoorEvents.firstOrNull()),
     )
 }

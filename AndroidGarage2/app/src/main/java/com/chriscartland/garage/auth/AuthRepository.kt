@@ -1,7 +1,6 @@
 package com.chriscartland.garage.auth
 
 import android.util.Log
-import com.chriscartland.garage.repository.FirebaseAuthRepository.Companion.TAG
 import com.google.firebase.Firebase
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
@@ -105,3 +104,5 @@ abstract class AuthRepositoryModule {
     @Binds
     abstract fun bindAuthRepository(authRepository: AuthRepositoryImpl): AuthRepository
 }
+
+const val TAG = "AuthRepository"
