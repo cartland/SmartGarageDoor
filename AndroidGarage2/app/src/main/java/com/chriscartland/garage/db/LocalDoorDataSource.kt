@@ -17,7 +17,7 @@
 
 package com.chriscartland.garage.db
 
-import com.chriscartland.garage.model.DoorEvent
+import com.chriscartland.garage.door.DoorEvent
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

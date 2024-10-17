@@ -21,8 +21,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
-import com.chriscartland.garage.model.DoorEvent
-import com.chriscartland.garage.model.DoorPosition
+import com.chriscartland.garage.door.DoorEvent
+import com.chriscartland.garage.door.DoorPosition
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter

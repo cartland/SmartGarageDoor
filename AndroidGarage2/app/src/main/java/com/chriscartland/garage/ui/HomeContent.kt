@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
-import com.chriscartland.garage.model.DoorEvent
+import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.remotebutton.ButtonRequestStatus
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme

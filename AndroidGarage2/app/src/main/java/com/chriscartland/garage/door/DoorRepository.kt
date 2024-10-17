@@ -4,7 +4,6 @@ import android.util.Log
 import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.db.LocalDoorDataSource
 import com.chriscartland.garage.internet.GarageNetworkService
-import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.repository.ServerConfigRepository
 import dagger.Binds
 import dagger.Module

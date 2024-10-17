@@ -22,7 +22,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
-import com.chriscartland.garage.model.DoorEvent
+import com.chriscartland.garage.door.DoorEvent
 import kotlinx.coroutines.flow.Flow
 
 @Dao

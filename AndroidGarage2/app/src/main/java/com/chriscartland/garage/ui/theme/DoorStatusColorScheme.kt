@@ -3,8 +3,8 @@ package com.chriscartland.garage.ui.theme
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.CardColors
 import androidx.compose.ui.graphics.Color
-import com.chriscartland.garage.model.DoorEvent
-import com.chriscartland.garage.model.DoorPosition
+import com.chriscartland.garage.door.DoorEvent
+import com.chriscartland.garage.door.DoorPosition
 import java.time.Instant
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
