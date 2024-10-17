@@ -1,18 +1,23 @@
-package com.chriscartland.garage.repository
+package com.chriscartland.garage.config
 
 import android.util.Log
 import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.internet.GarageNetworkService
-import com.chriscartland.garage.model.ServerConfig
-import dagger.hilt.EntryPoint
+import dagger.Binds
+import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.sync.Mutex
 import javax.inject.Inject
 
-class ServerConfigRepository @Inject constructor(
+interface ServerConfigRepository {
+    suspend fun getServerConfigCached(): ServerConfig?
+    suspend fun fetchServerConfig(): ServerConfig?
+}
+
+class ServerConfigRepositoryImpl @Inject constructor(
     private val network: GarageNetworkService,
-) {
+) : ServerConfigRepository {
     private var _serverConfig: ServerConfig? = null
 
     private val mutex: Mutex = Mutex()
@@ -23,12 +28,12 @@ class ServerConfigRepository @Inject constructor(
      * Multiple code paths will ask for the server configuration at startup.
      * We only want to fetch it once.
      */
-    suspend fun serverConfigCached(): ServerConfig? {
+    override suspend fun getServerConfigCached(): ServerConfig? {
         if (_serverConfig != null) {
             return _serverConfig
         }
         mutex.lock()
-        val result = _serverConfig ?: updateServerConfig()
+        val result = _serverConfig ?: fetchServerConfig()
         mutex.unlock()
         return result
     }
@@ -39,7 +44,7 @@ class ServerConfigRepository @Inject constructor(
      * Most callers should call serverConfigCached(). Only call this if the cached config
      * might be out of date. Callers are responsible for rate limiting this request.
      */
-    suspend fun updateServerConfig(): ServerConfig? {
+    override suspend fun fetchServerConfig(): ServerConfig? {
         val tag = "fetchServerConfig"
         try {
             Log.d(tag, "Fetching server config")
@@ -88,9 +93,12 @@ class ServerConfigRepository @Inject constructor(
     }
 }
 
-@EntryPoint
+@Module
 @InstallIn(SingletonComponent::class)
 @Suppress("unused")
-interface ServerConfigRepositoryEntryPoint {
-    fun serverConfigRepository(): ServerConfigRepository
+abstract class ServerConfigRepositoryModule {
+    @Binds
+    abstract fun bindServerConfigRepository(
+        serverConfigRepository: ServerConfigRepositoryImpl,
+    ): ServerConfigRepository
 }

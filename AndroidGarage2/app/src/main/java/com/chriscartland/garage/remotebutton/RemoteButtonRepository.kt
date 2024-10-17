@@ -8,7 +8,7 @@ import com.chriscartland.garage.internet.GarageNetworkService
 import com.chriscartland.garage.internet.IdToken
 import com.chriscartland.garage.internet.RemoteButtonBuildTimestamp
 import com.chriscartland.garage.internet.RemoteButtonPushKey
-import com.chriscartland.garage.repository.ServerConfigRepository
+import com.chriscartland.garage.config.ServerConfigRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -41,7 +41,7 @@ class RemoteButtonRepositoryImpl @Inject constructor(
     ) {
         _pushStatus.value = PushStatus.SENDING
         val tag = "pushRemoteButton"
-        val serverConfig = serverConfigRepository.serverConfigCached()
+        val serverConfig = serverConfigRepository.getServerConfigCached()
         if (serverConfig == null) {
             Log.e(tag, "Server config is null")
             _pushStatus.value = PushStatus.IDLE

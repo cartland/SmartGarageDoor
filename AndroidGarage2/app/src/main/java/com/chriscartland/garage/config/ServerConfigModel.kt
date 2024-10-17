@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.model
+package com.chriscartland.garage.config
 
 data class ServerConfig(
     val buildTimestamp: String,

@@ -2,9 +2,9 @@ package com.chriscartland.garage.door
 
 import android.util.Log
 import com.chriscartland.garage.APP_CONFIG
+import com.chriscartland.garage.config.ServerConfigRepository
 import com.chriscartland.garage.db.LocalDoorDataSource
 import com.chriscartland.garage.internet.GarageNetworkService
-import com.chriscartland.garage.repository.ServerConfigRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -30,7 +30,7 @@ class DoorRepositoryImpl @Inject constructor(
     override val recentDoorEvents: Flow<List<DoorEvent>> = localDoorDataSource.recentDoorEvents
 
     override suspend fun fetchBuildTimestampCached(): String? =
-        serverConfigRepository.serverConfigCached()?.buildTimestamp
+        serverConfigRepository.getServerConfigCached()?.buildTimestamp
 
     override suspend fun insertDoorEvent(doorEvent: DoorEvent) {
         Log.d("insertDoorEvent", "Inserting door event: $doorEvent")
