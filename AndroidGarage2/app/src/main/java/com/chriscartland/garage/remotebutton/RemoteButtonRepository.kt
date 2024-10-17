@@ -1,4 +1,4 @@
-package com.chriscartland.garage.repository
+package com.chriscartland.garage.remotebutton
 
 import android.text.format.DateFormat
 import android.util.Log
@@ -8,7 +8,9 @@ import com.chriscartland.garage.internet.GarageNetworkService
 import com.chriscartland.garage.internet.IdToken
 import com.chriscartland.garage.internet.RemoteButtonBuildTimestamp
 import com.chriscartland.garage.internet.RemoteButtonPushKey
-import dagger.hilt.EntryPoint
+import com.chriscartland.garage.repository.ServerConfigRepository
+import dagger.Binds
+import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,26 +20,31 @@ import java.time.Duration
 import java.util.Date
 import javax.inject.Inject
 
-class RemoteButtonRepository @Inject constructor(
+interface RemoteButtonRepository {
+    val pushStatus: StateFlow<PushStatus>
+    suspend fun pushRemoteButton(idToken: IdToken, buttonAckToken: String)
+}
+
+class RemoteButtonRepositoryImpl @Inject constructor(
     private val network: GarageNetworkService,
     private val serverConfigRepository: ServerConfigRepository,
-) {
-    private val _pushButtonStatus = MutableStateFlow(PushButtonStatus.IDLE)
-    val pushButtonStatus: StateFlow<PushButtonStatus> = _pushButtonStatus
+) : RemoteButtonRepository {
+    private val _pushStatus = MutableStateFlow(PushStatus.IDLE)
+    override val pushStatus: StateFlow<PushStatus> = _pushStatus
 
     /**
      * Send a command to the server to push the remote button.
      */
-    suspend fun pushRemoteButton(
+    override suspend fun pushRemoteButton(
         idToken: IdToken,
         buttonAckToken: String,
     ) {
-        _pushButtonStatus.value = PushButtonStatus.SENDING
+        _pushStatus.value = PushStatus.SENDING
         val tag = "pushRemoteButton"
         val serverConfig = serverConfigRepository.serverConfigCached()
         if (serverConfig == null) {
             Log.e(tag, "Server config is null")
-            _pushButtonStatus.value = PushButtonStatus.IDLE
+            _pushStatus.value = PushStatus.IDLE
             return
         }
         Log.d(tag, "Pushing remote button")
@@ -62,36 +69,39 @@ class RemoteButtonRepository @Inject constructor(
             Log.i(tag, "Response body: ${response.body()}")
         }
         delay(Duration.ofMillis(100))
-        _pushButtonStatus.value = PushButtonStatus.IDLE
-    }
-
-    /**
-     * Create a button ack token.
-     *
-     * This token is created by the client so the server can acknowledge the remote button push.
-     * The client can send the same token to the server multiple times and the server is
-     * responsible for only processing the token once.
-     * When the server receives a button press, it will respond with the token to the client.
-     */
-    fun createButtonAckToken(): String {
-        val now = Date()
-        val humanReadable = DateFormat.format("yyyy-MM-dd hh:mm:ss a", now).toString()
-        val timestampMillis = now.time
-        val appVersion = "AppVersionTODO"
-        val buttonAckTokenData = "android-$appVersion-$humanReadable-$timestampMillis"
-        val re = Regex("[^a-zA-Z0-9-_.]")
-        val filtered = re.replace(buttonAckTokenData, ".")
-        return filtered
+        _pushStatus.value = PushStatus.IDLE
     }
 }
-enum class PushButtonStatus {
+
+enum class PushStatus {
     IDLE,
     SENDING,
 }
 
-@EntryPoint
+/**
+ * Create a button ack token.
+ *
+ * This token is created by the client so the server can acknowledge the remote button push.
+ * The client can send the same token to the server multiple times and the server is
+ * responsible for only processing the token once.
+ * When the server receives a button press, it will respond with the token to the client.
+ */
+fun createButtonAckToken(now: Date): String {
+    val humanReadable = DateFormat.format("yyyy-MM-dd hh:mm:ss a", now).toString()
+    val timestampMillis = now.time
+    val appVersion = "AppVersionTODO"
+    val buttonAckTokenData = "android-$appVersion-$humanReadable-$timestampMillis"
+    val re = Regex("[^a-zA-Z0-9-_.]")
+    val filtered = re.replace(buttonAckTokenData, ".")
+    return filtered
+}
+
+@Module
 @InstallIn(SingletonComponent::class)
 @Suppress("unused")
-interface RemoteButtonRepositoryEntryPoint {
-    fun remoteButtonRepository(): RemoteButtonRepository
+abstract class RemoteButtonRepositoryModule {
+    @Binds
+    abstract fun bindRemoteButtonRepository(
+        remoteButtonRepository: RemoteButtonRepositoryImpl,
+    ): RemoteButtonRepository
 }

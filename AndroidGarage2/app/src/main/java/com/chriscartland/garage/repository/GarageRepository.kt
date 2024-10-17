@@ -2,7 +2,7 @@ package com.chriscartland.garage.repository
 
 import android.util.Log
 import com.chriscartland.garage.APP_CONFIG
-import com.chriscartland.garage.db.LocalDataSource
+import com.chriscartland.garage.db.LocalDoorDataSource
 import com.chriscartland.garage.internet.GarageNetworkService
 import com.chriscartland.garage.model.DoorEvent
 import dagger.hilt.EntryPoint
@@ -12,19 +12,19 @@ import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class GarageRepository @Inject constructor(
-    private val localDataSource: LocalDataSource,
+    private val localDoorDataSource: LocalDoorDataSource,
     private val network: GarageNetworkService,
     private val serverConfigRepository: ServerConfigRepository,
 ) {
-    val currentDoorEvent: Flow<DoorEvent> = localDataSource.currentDoorEvent
-    val recentDoorEvents: Flow<List<DoorEvent>> = localDataSource.recentDoorEvents
+    val currentDoorEvent: Flow<DoorEvent> = localDoorDataSource.currentDoorEvent
+    val recentDoorEvents: Flow<List<DoorEvent>> = localDoorDataSource.recentDoorEvents
 
     suspend fun buildTimestamp(): String? =
         serverConfigRepository.serverConfigCached()?.buildTimestamp
 
     fun insertDoorEvent(doorEvent: DoorEvent) {
         Log.d("insertDoorEvent", "Inserting door event: $doorEvent")
-        localDataSource.insertDoorEvent(doorEvent)
+        localDoorDataSource.insertDoorEvent(doorEvent)
     }
 
     /**
@@ -64,7 +64,7 @@ class GarageRepository @Inject constructor(
                 return
             }
             Log.d(tag, "Success: $doorEvent")
-            localDataSource.insertDoorEvent(doorEvent)
+            localDoorDataSource.insertDoorEvent(doorEvent)
         } catch (e: Exception) {
             Log.e(tag, "Error: $e")
         }
@@ -112,7 +112,7 @@ class GarageRepository @Inject constructor(
                 )
             }
             Log.d(tag, "Success: $doorEvents")
-            localDataSource.replaceDoorEvents(doorEvents)
+            localDoorDataSource.replaceDoorEvents(doorEvents)
         } catch (e: IllegalArgumentException) {
             Log.e(tag, "IllegalArgumentException: $e")
         } catch (e: Exception) {

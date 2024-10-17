@@ -33,8 +33,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
+import com.chriscartland.garage.remotebutton.ButtonRequestStatus
+import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.viewmodel.DoorViewModel
-import com.chriscartland.garage.viewmodel.RemoteButtonRequestStatus
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.time.delay
@@ -43,10 +44,10 @@ import java.time.Duration
 @Composable
 fun RemoteButtonContent(
     modifier: Modifier = Modifier,
-    viewModel: DoorViewModel = hiltViewModel(),
+    viewModel: RemoteButtonViewModelImpl = hiltViewModel(),
     authViewModel: AuthViewModelImpl = hiltViewModel(),
     buttonColors: ButtonColors = ButtonDefaults.buttonColors(),
-    remoteButtonRequestStatus: RemoteButtonRequestStatus = RemoteButtonRequestStatus.NONE,
+    remoteButtonRequestStatus: ButtonRequestStatus = ButtonRequestStatus.NONE,
 ) {
     val authState by authViewModel.authState.collectAsState()
     RemoteButtonContent(
@@ -85,7 +86,7 @@ fun RemoteButtonContent(
         disabledContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
         disabledContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
     ),
-    remoteButtonRequestStatus: RemoteButtonRequestStatus = RemoteButtonRequestStatus.NONE,
+    remoteButtonRequestStatus: ButtonRequestStatus = ButtonRequestStatus.NONE,
 ) {
     Column(
         modifier = modifier,
@@ -181,7 +182,7 @@ fun RemoteButtonContent(
         }
         Spacer(modifier = Modifier.height(16.dp))
         if (buttonState != RemoteButtonState.READY
-            || remoteButtonRequestStatus != RemoteButtonRequestStatus.NONE) {
+            || remoteButtonRequestStatus != ButtonRequestStatus.NONE) {
             ButtonRequestIndicator(
                 modifier = Modifier
                     .fillMaxWidth(0.6f)

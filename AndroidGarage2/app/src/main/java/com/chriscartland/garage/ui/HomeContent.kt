@@ -29,11 +29,12 @@ import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.model.DoorEvent
 import com.chriscartland.garage.model.Result
 import com.chriscartland.garage.model.dataOrNull
+import com.chriscartland.garage.remotebutton.ButtonRequestStatus
+import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.doorButtonColors
 import com.chriscartland.garage.ui.theme.doorCardColors
 import com.chriscartland.garage.viewmodel.DoorViewModel
-import com.chriscartland.garage.viewmodel.RemoteButtonRequestStatus
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 
@@ -42,27 +43,28 @@ fun HomeContent(
     modifier: Modifier = Modifier,
     viewModel: DoorViewModel = hiltViewModel(),
     authViewModel: AuthViewModelImpl = hiltViewModel(),
+    buttonViewModel: RemoteButtonViewModelImpl = hiltViewModel(),
 ) {
     val activity = LocalContext.current as ComponentActivity
     val currentDoorEvent = viewModel.currentDoorEvent.collectAsState()
-    val remoteButtonRequestStatus = viewModel.remoteButtonRequestStatus.collectAsState()
+    val buttonRequestStatus = buttonViewModel.buttonRequestStatus.collectAsState()
     val authState by authViewModel.authState.collectAsState()
     HomeContent(
         currentDoorEvent = currentDoorEvent.value,
-        remoteButtonRequestStatus = remoteButtonRequestStatus.value,
+        remoteButtonRequestStatus = buttonRequestStatus.value,
         modifier = modifier,
         onFetchCurrentDoorEvent = { viewModel.fetchCurrentDoorEvent() },
         onRemoteButtonClick = {
             when (val it = authState) {
                 is AuthState.Authenticated -> {
-                    viewModel.pushRemoteButton(it.user)
+                    buttonViewModel.pushRemoteButton(it.user)
                 }
                 AuthState.Unauthenticated -> {
                     authViewModel.signInWithGoogle(activity)
                 }
             }
         },
-        onResetRemote = { viewModel.resetRemoteButton() },
+        onResetRemote = { buttonViewModel.resetRemoteButton() },
         isSignedIn = authState is AuthState.Authenticated,
         onSignIn = { authViewModel.signInWithGoogle(activity) },
     )
@@ -73,7 +75,7 @@ fun HomeContent(
 fun HomeContent(
     currentDoorEvent: Result<DoorEvent?>,
     modifier: Modifier = Modifier,
-    remoteButtonRequestStatus: RemoteButtonRequestStatus = RemoteButtonRequestStatus.NONE,
+    remoteButtonRequestStatus: ButtonRequestStatus = ButtonRequestStatus.NONE,
     onFetchCurrentDoorEvent: () -> Unit = {},
     onRemoteButtonClick: () -> Unit = {},
     onResetRemote: () -> Unit = {},
@@ -168,15 +170,15 @@ data class RemoteIndicator(
 @Composable
 fun ButtonRequestIndicator(
     modifier: Modifier = Modifier,
-    remoteButtonRequestStatus: RemoteButtonRequestStatus = RemoteButtonRequestStatus.NONE,
+    remoteButtonRequestStatus: ButtonRequestStatus = ButtonRequestStatus.NONE,
 ) {
     val progress = when (remoteButtonRequestStatus) {
-        RemoteButtonRequestStatus.NONE -> RemoteIndicator("", 0)
-        RemoteButtonRequestStatus.SENDING -> RemoteIndicator("Sending", 1)
-        RemoteButtonRequestStatus.SENDING_TIMEOUT -> RemoteIndicator("Sending failed", 2)
-        RemoteButtonRequestStatus.SENT -> RemoteIndicator("Sent", 3)
-        RemoteButtonRequestStatus.SENT_TIMEOUT -> RemoteIndicator("Command not delivered", 4, failure = true)
-        RemoteButtonRequestStatus.RECEIVED -> RemoteIndicator("Complete", 5)
+        ButtonRequestStatus.NONE -> RemoteIndicator("", 0)
+        ButtonRequestStatus.SENDING -> RemoteIndicator("Sending", 1)
+        ButtonRequestStatus.SENDING_TIMEOUT -> RemoteIndicator("Sending failed", 2)
+        ButtonRequestStatus.SENT -> RemoteIndicator("Sent", 3)
+        ButtonRequestStatus.SENT_TIMEOUT -> RemoteIndicator("Command not delivered", 4, failure = true)
+        ButtonRequestStatus.RECEIVED -> RemoteIndicator("Complete", 5)
     }
     val colorComplete: Color = if (progress.failure) Color(0xFFFF3333) else Color(0xFF3333FF)
     Column(

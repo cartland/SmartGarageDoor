@@ -26,16 +26,16 @@ import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
-interface LocalDataSource {
+interface LocalDoorDataSource {
     val currentDoorEvent: Flow<DoorEvent>
     val recentDoorEvents: Flow<List<DoorEvent>>
     fun insertDoorEvent(doorEvent: DoorEvent)
     fun replaceDoorEvents(doorEvents: List<DoorEvent>)
 }
 
-class DatabaseLocalDataSource @Inject constructor(
+class DatabaseLocalDoorDataSource @Inject constructor(
     private val appDatabase: AppDatabase,
-) : LocalDataSource {
+) : LocalDoorDataSource {
     override val currentDoorEvent = appDatabase.doorEventDao().currentDoorEvent()
     override val recentDoorEvents = appDatabase.doorEventDao().recentDoorEvents()
 
@@ -53,7 +53,7 @@ class DatabaseLocalDataSource @Inject constructor(
 object LocalDataSourceModule {
     @Provides
     @Singleton
-    fun provideLocalDataSource(appDatabase: AppDatabase): LocalDataSource {
-        return DatabaseLocalDataSource(appDatabase)
+    fun provideLocalDataSource(appDatabase: AppDatabase): LocalDoorDataSource {
+        return DatabaseLocalDoorDataSource(appDatabase)
     }
 }
