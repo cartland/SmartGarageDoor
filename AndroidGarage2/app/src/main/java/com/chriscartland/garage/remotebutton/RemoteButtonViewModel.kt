@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.auth.User
 import com.chriscartland.garage.internet.IdToken
-import com.chriscartland.garage.repository.DoorRepository
+import com.chriscartland.garage.door.DoorRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

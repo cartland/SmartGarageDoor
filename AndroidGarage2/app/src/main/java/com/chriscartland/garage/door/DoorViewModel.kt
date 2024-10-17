@@ -5,20 +5,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.FetchOnViewModelInit
-import com.chriscartland.garage.model.DoorEvent
-import com.chriscartland.garage.repository.DoorRepository
 import com.chriscartland.garage.door.LoadingResult.Complete
 import com.chriscartland.garage.door.LoadingResult.Error
 import com.chriscartland.garage.door.LoadingResult.Loading
+import com.chriscartland.garage.model.DoorEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.Nothing
-import kotlin.String
-import kotlin.Throwable
 
 interface DoorViewModel {
     suspend fun fetchBuildTimestampCached(): String?
