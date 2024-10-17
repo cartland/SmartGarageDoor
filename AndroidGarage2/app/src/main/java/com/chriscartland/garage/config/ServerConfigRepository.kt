@@ -1,7 +1,6 @@
 package com.chriscartland.garage.config
 
 import android.util.Log
-import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.internet.GarageNetworkService
 import dagger.Binds
 import dagger.Module

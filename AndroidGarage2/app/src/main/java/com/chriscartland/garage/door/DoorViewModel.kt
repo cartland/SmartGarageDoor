@@ -3,8 +3,8 @@ package com.chriscartland.garage.door
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.chriscartland.garage.APP_CONFIG
-import com.chriscartland.garage.FetchOnViewModelInit
+import com.chriscartland.garage.config.APP_CONFIG
+import com.chriscartland.garage.config.FetchOnViewModelInit
 import com.chriscartland.garage.door.LoadingResult.Complete
 import com.chriscartland.garage.door.LoadingResult.Error
 import com.chriscartland.garage.door.LoadingResult.Loading

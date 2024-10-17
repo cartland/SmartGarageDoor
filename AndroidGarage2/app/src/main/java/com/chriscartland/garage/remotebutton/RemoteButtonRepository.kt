@@ -2,7 +2,7 @@ package com.chriscartland.garage.remotebutton
 
 import android.text.format.DateFormat
 import android.util.Log
-import com.chriscartland.garage.APP_CONFIG
+import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.internet.ButtonAckToken
 import com.chriscartland.garage.internet.GarageNetworkService
 import com.chriscartland.garage.internet.IdToken

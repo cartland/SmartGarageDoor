@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.model
+package com.chriscartland.garage.version
 
 data class AppVersion(
     val packageName: String,

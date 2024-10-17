@@ -1,4 +1,6 @@
-package com.chriscartland.garage
+package com.chriscartland.garage.config
+
+import com.chriscartland.garage.BuildConfig
 
 data class AppConfig(
     val server: Server,

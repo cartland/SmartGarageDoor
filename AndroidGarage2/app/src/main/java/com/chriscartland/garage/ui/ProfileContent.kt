@@ -22,11 +22,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.chriscartland.garage.APP_CONFIG
+import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.auth.User
-import com.chriscartland.garage.model.AppVersion
+import com.chriscartland.garage.version.AppVersion
 
 @Composable
 fun ProfileContent(
