@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.FetchOnViewModelInit
 import com.chriscartland.garage.model.DoorEvent
-import com.chriscartland.garage.repository.GarageRepository
+import com.chriscartland.garage.repository.DoorRepository
 import com.chriscartland.garage.door.LoadingResult.Complete
 import com.chriscartland.garage.door.LoadingResult.Error
 import com.chriscartland.garage.door.LoadingResult.Loading
@@ -30,10 +30,10 @@ interface DoorViewModel {
 
 @HiltViewModel
 class DoorViewModelImpl @Inject constructor(
-    private val garageRepository: GarageRepository,
+    private val doorRepository: DoorRepository,
 ) : ViewModel(), DoorViewModel {
     override suspend fun fetchBuildTimestampCached(): String? =
-        garageRepository.buildTimestamp()
+        doorRepository.fetchBuildTimestampCached()
 
     private val _currentDoorEvent =
         MutableStateFlow<LoadingResult<DoorEvent?>>(LoadingResult.Loading(null))
@@ -46,12 +46,12 @@ class DoorViewModelImpl @Inject constructor(
     init {
         Log.d("DoorViewModel", "init")
         viewModelScope.launch(Dispatchers.IO) {
-            garageRepository.currentDoorEvent.collect {
+            doorRepository.currentDoorEvent.collect {
                 _currentDoorEvent.value = LoadingResult.Complete(it)
             }
         }
         viewModelScope.launch(Dispatchers.IO) {
-            garageRepository.recentDoorEvents.collect {
+            doorRepository.recentDoorEvents.collect {
                 _recentDoorEvents.value = LoadingResult.Complete(it)
             }
         }
@@ -69,14 +69,14 @@ class DoorViewModelImpl @Inject constructor(
     override fun fetchCurrentDoorEvent() {
         viewModelScope.launch(Dispatchers.IO) {
             _currentDoorEvent.value = LoadingResult.Loading(_currentDoorEvent.value.data)
-            garageRepository.fetchCurrentDoorEvent()
+            doorRepository.fetchCurrentDoorEvent()
         }
     }
 
     override fun fetchRecentDoorEvents() {
         viewModelScope.launch(Dispatchers.IO) {
             _recentDoorEvents.value = LoadingResult.Loading(_recentDoorEvents.value.data)
-            garageRepository.fetchRecentDoorEvents()
+            doorRepository.fetchRecentDoorEvents()
         }
     }
 }

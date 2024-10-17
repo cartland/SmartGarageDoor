@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.auth.User
 import com.chriscartland.garage.internet.IdToken
-import com.chriscartland.garage.repository.GarageRepository
+import com.chriscartland.garage.repository.DoorRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -19,7 +19,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RemoteButtonViewModelImpl @Inject constructor(
-    private val garageRepository: GarageRepository,
+    private val doorRepository: DoorRepository,
     private val remoteButtonRepository: RemoteButtonRepository,
 ) : ViewModel() {
     // Listen to network events and door status updates.
@@ -56,7 +56,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
         }
         // Listen to door events. Assume any change in door status means the request was received.
         viewModelScope.launch(Dispatchers.IO) {
-            garageRepository.currentDoorEvent.collect {
+            doorRepository.currentDoorEvent.collect {
                 val old = _buttonRequestStatus.value
                 when (_buttonRequestStatus.value) {
                     ButtonRequestStatus.NONE -> {} // Do nothing.

@@ -5,24 +5,34 @@ import com.chriscartland.garage.APP_CONFIG
 import com.chriscartland.garage.db.LocalDoorDataSource
 import com.chriscartland.garage.internet.GarageNetworkService
 import com.chriscartland.garage.model.DoorEvent
-import dagger.hilt.EntryPoint
+import dagger.Binds
+import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-class GarageRepository @Inject constructor(
+interface DoorRepository {
+    val currentDoorEvent: Flow<DoorEvent>
+    val recentDoorEvents: Flow<List<DoorEvent>>
+    suspend fun fetchBuildTimestampCached(): String?
+    suspend fun insertDoorEvent(doorEvent: DoorEvent)
+    suspend fun fetchCurrentDoorEvent()
+    suspend fun fetchRecentDoorEvents()
+}
+
+class DoorRepositoryImpl @Inject constructor(
     private val localDoorDataSource: LocalDoorDataSource,
     private val network: GarageNetworkService,
     private val serverConfigRepository: ServerConfigRepository,
-) {
-    val currentDoorEvent: Flow<DoorEvent> = localDoorDataSource.currentDoorEvent
-    val recentDoorEvents: Flow<List<DoorEvent>> = localDoorDataSource.recentDoorEvents
+) : DoorRepository {
+    override val currentDoorEvent: Flow<DoorEvent> = localDoorDataSource.currentDoorEvent
+    override val recentDoorEvents: Flow<List<DoorEvent>> = localDoorDataSource.recentDoorEvents
 
-    suspend fun buildTimestamp(): String? =
+    override suspend fun fetchBuildTimestampCached(): String? =
         serverConfigRepository.serverConfigCached()?.buildTimestamp
 
-    fun insertDoorEvent(doorEvent: DoorEvent) {
+    override suspend fun insertDoorEvent(doorEvent: DoorEvent) {
         Log.d("insertDoorEvent", "Inserting door event: $doorEvent")
         localDoorDataSource.insertDoorEvent(doorEvent)
     }
@@ -30,75 +40,73 @@ class GarageRepository @Inject constructor(
     /**
      * Fetch current door event.
      */
-    suspend fun fetchCurrentDoorEvent() {
-        val tag = "fetchCurrentDoorEvent"
-        val buildTimestamp = buildTimestamp()
+    override suspend fun fetchCurrentDoorEvent() {
+        val buildTimestamp = fetchBuildTimestampCached()
         if (buildTimestamp == null) {
-            Log.e(tag, "Server config is null")
+            Log.e(TAG, "Server config is null")
             return
         }
         try {
-            Log.d(tag, "Fetching current door event")
+            Log.d(TAG, "Fetching current door event")
             val response = network.getCurrentEventData(
                 buildTimestamp = buildTimestamp,
                 session = null,
             )
             if (response.code() != 200) {
-                Log.e(tag, "Response code is ${response.code()}")
+                Log.e(TAG, "Response code is ${response.code()}")
                 return
             }
             val body = response.body()
             if (body == null) {
-                Log.e(tag, "Response body is null")
+                Log.e(TAG, "Response body is null")
                 return
             }
-            Log.d(tag, "Response: $response")
+            Log.d(TAG, "Response: $response")
             if (body.currentEventData == null) {
-                Log.e(tag, "currentEventData is null")
+                Log.e(TAG, "currentEventData is null")
             } else if (body.currentEventData.currentEvent == null) {
-                Log.e(tag, "currentEvent is null")
+                Log.e(TAG, "currentEvent is null")
             }
             val doorEvent = body.currentEventData?.currentEvent?.asDoorEvent()
             if (doorEvent == null) {
-                Log.e(tag, "Door event is null")
+                Log.e(TAG, "Door event is null")
                 return
             }
-            Log.d(tag, "Success: $doorEvent")
+            Log.d(TAG, "Success: $doorEvent")
             localDoorDataSource.insertDoorEvent(doorEvent)
         } catch (e: Exception) {
-            Log.e(tag, "Error: $e")
+            Log.e(TAG, "Error: $e")
         }
     }
 
     /**
      * Fetch recent door events.
      */
-    suspend fun fetchRecentDoorEvents() {
-        val tag = "fetchRecentDoorEvents"
-        val buildTimestamp = buildTimestamp()
+    override suspend fun fetchRecentDoorEvents() {
+        val buildTimestamp = fetchBuildTimestampCached()
         if (buildTimestamp == null) {
-            Log.e(tag, "Server config is null")
+            Log.e(TAG, "Server config is null")
             return
         }
         try {
-            Log.d(tag, "Fetching recent door events")
+            Log.d(TAG, "Fetching recent door events")
             val response = network.getRecentEventData(
                 buildTimestamp = buildTimestamp,
                 session = null,
                 count = APP_CONFIG.recentEventCount,
             )
             if (response.code() != 200) {
-                Log.e(tag, "Response code is ${response.code()}")
+                Log.e(TAG, "Response code is ${response.code()}")
                 return
             }
             val body = response.body()
             if (body == null) {
-                Log.e(tag, "Response body is null")
+                Log.e(TAG, "Response body is null")
                 return
             }
-            Log.d(tag, "Response: $response")
+            Log.d(TAG, "Response: $response")
             if (body.eventHistory.isNullOrEmpty()) {
-                Log.i(tag, "recentEventData is empty")
+                Log.i(TAG, "recentEventData is empty")
                 return
             }
             val doorEvents = body.eventHistory.map {
@@ -106,23 +114,27 @@ class GarageRepository @Inject constructor(
             }.filterNotNull()
             if (doorEvents.size != body.eventHistory.size) {
                 Log.e(
-                    tag,
+                    TAG,
                     "Door events size ${doorEvents.size} " +
                             "does not match response size ${body.eventHistory.size}"
                 )
             }
-            Log.d(tag, "Success: $doorEvents")
+            Log.d(TAG, "Success: $doorEvents")
             localDoorDataSource.replaceDoorEvents(doorEvents)
         } catch (e: IllegalArgumentException) {
-            Log.e(tag, "IllegalArgumentException: $e")
+            Log.e(TAG, "IllegalArgumentException: $e")
         } catch (e: Exception) {
-            Log.e(tag, "Exception: $e")
+            Log.e(TAG, "Exception: $e")
         }
     }
 }
 
-@EntryPoint
+@Module
 @InstallIn(SingletonComponent::class)
-interface GarageRepositoryEntryPoint {
-    fun garageRepository(): GarageRepository
+@Suppress("unused")
+abstract class GarageRepositoryModule {
+    @Binds
+    abstract fun bindGarageRepository(doorRepositoryImpl: DoorRepositoryImpl): DoorRepository
 }
+
+private const val TAG = "DoorRepository"
