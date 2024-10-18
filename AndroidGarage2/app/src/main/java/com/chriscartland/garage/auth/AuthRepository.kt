@@ -1,6 +1,7 @@
 package com.chriscartland.garage.auth
 
 import android.util.Log
+import com.chriscartland.garage.preferences.PreferencesRepository
 import com.google.firebase.Firebase
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
@@ -20,14 +21,30 @@ const val RC_ONE_TAP_SIGN_IN = 1
 
 interface AuthRepository {
     val authState: StateFlow<AuthState>
+    suspend fun initialize()
     suspend fun signInWithGoogle(idToken: GoogleIdToken): Result<AuthState>
     suspend fun signOut(): Result<Unit>
 }
 
-class AuthRepositoryImpl @Inject constructor() : AuthRepository {
+class AuthRepositoryImpl @Inject constructor(
+    private val preferencesRepository: PreferencesRepository,
+) : AuthRepository {
 
-    private val _authState = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
+    private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
     override val authState: StateFlow<AuthState> = _authState.asStateFlow()
+
+    /**
+     * Check if we think the user is signed in. If so, refresh the Firebase token.
+     */
+    override suspend fun initialize() {
+        Log.d(TAG, "initialize: preferencesRepository.isUserSignedIn")
+        preferencesRepository.isUserSignedIn.collect { isSignedIn ->
+            Log.d(TAG, "collect: isSignedIn=$isSignedIn")
+            if (isSignedIn && _authState.value !is AuthState.Authenticated) {
+                refreshFirebaseAuthState()
+            }
+        }
+    }
 
     /**
      * Sign in with Google ID Token and update the [authState].
@@ -65,7 +82,10 @@ class AuthRepositoryImpl @Inject constructor() : AuthRepository {
     private suspend fun refreshFirebaseAuthState(): Result<AuthState> {
         try {
             val currentUser = Firebase.auth.currentUser
-                ?: return Result.failure(Error("Firebase user not found"))
+            if (currentUser == null) {
+                preferencesRepository.setUserSignedIn(false)
+                return Result.failure(Error("Firebase user not found"))
+            }
             val idToken: FirebaseIdToken? = suspendCancellableCoroutine { continuation ->
                 currentUser.getIdToken(true).addOnSuccessListener { result ->
                     Log.d(TAG, "Firebase ID Token: ${result.token}")
@@ -73,6 +93,7 @@ class AuthRepositoryImpl @Inject constructor() : AuthRepository {
                 }
             }
             if (idToken == null) {
+                preferencesRepository.setUserSignedIn(false)
                 return Result.failure(Error("Firebase ID token not found"))
             }
             _authState.value = AuthState.Authenticated(
@@ -82,13 +103,16 @@ class AuthRepositoryImpl @Inject constructor() : AuthRepository {
                     idToken = idToken,
                 )
             )
+            preferencesRepository.setUserSignedIn(true)
             return Result.success(_authState.value)
         } catch (e: Exception) {
+            preferencesRepository.setUserSignedIn(false)
             return Result.failure(e)
         }
     }
 
     override suspend fun signOut(): Result<Unit> {
+        preferencesRepository.setUserSignedIn(false)
         return try {
             Firebase.auth.signOut()
             _authState.value = AuthState.Unauthenticated
@@ -107,4 +131,4 @@ abstract class AuthRepositoryModule {
     abstract fun bindAuthRepository(authRepository: AuthRepositoryImpl): AuthRepository
 }
 
-const val TAG = "AuthRepository"
+private const val TAG = "AuthRepository"

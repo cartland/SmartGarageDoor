@@ -36,6 +36,13 @@ class AuthViewModelImpl @Inject constructor(
 
     override val authState: StateFlow<AuthState> = authRepository.authState
 
+    init {
+        viewModelScope.launch {
+            Log.d(TAG, "init: initialize")
+            authRepository.initialize()
+        }
+    }
+
     override fun signInWithGoogle(activity: ComponentActivity) {
         viewModelScope.launch {
             checkSignInConfiguration()
@@ -171,3 +178,5 @@ abstract class AuthViewModelModule {
     @Binds
     abstract fun bindAuthViewModel(authViewModel: AuthViewModelImpl): AuthViewModel
 }
+
+private const val TAG = "AuthViewModel"

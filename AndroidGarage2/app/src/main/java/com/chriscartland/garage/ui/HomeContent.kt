@@ -61,10 +61,13 @@ fun HomeContent(
                 AuthState.Unauthenticated -> {
                     authViewModel.signInWithGoogle(activity)
                 }
+                AuthState.Unknown -> {
+                    authViewModel.signInWithGoogle(activity)
+                }
             }
         },
         onResetRemote = { buttonViewModel.resetRemoteButton() },
-        isSignedIn = authState is AuthState.Authenticated,
+        authState = authState,
         onSignIn = { authViewModel.signInWithGoogle(activity) },
     )
 }
@@ -78,7 +81,7 @@ fun HomeContent(
     onFetchCurrentDoorEvent: () -> Unit = {},
     onRemoteButtonClick: () -> Unit = {},
     onResetRemote: () -> Unit = {},
-    isSignedIn: Boolean = false,
+    authState: AuthState = AuthState.Unauthenticated,
     onSignIn: () -> Unit = {},
 ) {
     // Manage permission state.
@@ -136,24 +139,29 @@ fun HomeContent(
         item {
             Spacer(modifier = Modifier.height(16.dp))
         }
-        if (isSignedIn) {
-            item {
-                RemoteButtonContent(
-                    onSubmit = {
-                        Log.d("HomeContent", "Remote button clicked")
-                        onRemoteButtonClick()
-                    },
-                    onArming = {
-                        onResetRemote()
-                    },
-                    buttonColors = doorButtonColors(LocalDoorStatusColorScheme.current, doorEvent),
-                    remoteButtonRequestStatus = remoteButtonRequestStatus,
-                )
-            }
-        } else {
-            item {
-                Button(onClick = { onSignIn() }) {
-                    Text("Sign to access garage remote button")
+        item {
+            when (authState) {
+                AuthState.Unknown -> {
+                    Text(text = "Checking authentication...")
+                }
+                AuthState.Unauthenticated -> {
+                    Button(onClick = { onSignIn() }) {
+                        Text("Sign to access garage remote button")
+                    }
+                }
+                is AuthState.Authenticated -> {
+                    RemoteButtonContent(
+                        onSubmit = {
+                            Log.d("HomeContent", "Remote button clicked")
+                            onRemoteButtonClick()
+                        },
+                        onArming = {
+                            onResetRemote()
+                        },
+                        buttonColors = doorButtonColors(LocalDoorStatusColorScheme.current, doorEvent),
+                        remoteButtonRequestStatus = remoteButtonRequestStatus,
+                    )
+
                 }
             }
         }

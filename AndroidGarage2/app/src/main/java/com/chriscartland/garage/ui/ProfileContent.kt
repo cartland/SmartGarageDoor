@@ -39,6 +39,7 @@ fun ProfileContent(
         user = when (val it = authState) {
             is AuthState.Authenticated -> it.user
             AuthState.Unauthenticated -> null
+            AuthState.Unknown -> null
         },
         modifier = modifier,
         signIn = { viewModel.signInWithGoogle(context) },

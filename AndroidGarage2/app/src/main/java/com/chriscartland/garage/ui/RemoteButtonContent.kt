@@ -57,6 +57,9 @@ fun RemoteButtonContent(
                 AuthState.Unauthenticated -> {
                     // Do nothing.
                 }
+                AuthState.Unknown -> {
+                    // Do nothing.
+                }
             }
         },
         buttonColors = buttonColors,
