@@ -8,7 +8,11 @@ import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.FirebaseIdToken
 import com.chriscartland.garage.door.DoorRepository
 import com.chriscartland.garage.internet.IdToken
+import dagger.Binds
+import dagger.Module
+import dagger.hilt.InstallIn
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +24,12 @@ import java.time.Duration
 import java.util.Date
 import javax.inject.Inject
 
+interface RemoteButtonViewModel {
+    val requestStatus: StateFlow<RequestStatus>
+    fun pushRemoteButton()
+    fun resetRemoteButton()
+}
+
 @HiltViewModel
 class RemoteButtonViewModelImpl @Inject constructor(
     // Remote button repository focused on sending the request over the Internet.
@@ -28,10 +38,10 @@ class RemoteButtonViewModelImpl @Inject constructor(
     private val doorRepository: DoorRepository,
     // Need the auth token to send a request.
     private val authRepository: AuthRepository,
-) : ViewModel() {
+) : ViewModel(), RemoteButtonViewModel {
     // Listen to network events and door status updates.
     private val _requestStatus = MutableStateFlow(RequestStatus.NONE)
-    val requestStatus: StateFlow<RequestStatus> = _requestStatus
+    override val requestStatus: StateFlow<RequestStatus> = _requestStatus
 
     init {
         setupRequestStateMachine()
@@ -202,7 +212,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
      *
      * Requires an authenticated user.
      */
-    fun pushRemoteButton() {
+    override fun pushRemoteButton() {
         Log.d(TAG, "pushRemoteButton")
         viewModelScope.launch(Dispatchers.IO) {
             val authState = authRepository.authState.value
@@ -239,7 +249,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
         }
     }
 
-    fun resetRemoteButton() {
+    override fun resetRemoteButton() {
         _requestStatus.value = RequestStatus.NONE
     }
 }
@@ -251,6 +261,16 @@ enum class RequestStatus {
     SENT, // Server acknowledged.
     SENT_TIMEOUT, // Door did not move.
     RECEIVED, // Door moved.
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+@Suppress("unused")
+abstract class RemoteButtonViewModelModule {
+    @Binds
+    abstract fun bindRemoteButtonViewModel(
+        remoteButtonViewModel: RemoteButtonViewModelImpl,
+    ): RemoteButtonViewModel
 }
 
 private const val TAG = "RemoteButtonViewModel"
