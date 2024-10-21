@@ -1,7 +1,6 @@
 package com.chriscartland.garage.auth
 
 import android.util.Log
-import com.chriscartland.garage.preferences.PreferencesRepository
 import com.google.firebase.Firebase
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
@@ -9,9 +8,12 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
 import kotlin.coroutines.resume
@@ -21,35 +23,26 @@ const val RC_ONE_TAP_SIGN_IN = 1
 
 interface AuthRepository {
     val authState: StateFlow<AuthState>
-    suspend fun initialize()
-    suspend fun signInWithGoogle(idToken: GoogleIdToken): Result<AuthState>
-    suspend fun signOut(): Result<Unit>
+    suspend fun signInWithGoogle(idToken: GoogleIdToken): AuthState
+    suspend fun refreshFirebaseAuthState(): AuthState
+    suspend fun signOut()
 }
 
-class AuthRepositoryImpl @Inject constructor(
-    private val preferencesRepository: PreferencesRepository,
-) : AuthRepository {
+class AuthRepositoryImpl @Inject constructor() : AuthRepository {
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
     override val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
-    /**
-     * Check if we think the user is signed in. If so, refresh the Firebase token.
-     */
-    override suspend fun initialize() {
-        Log.d(TAG, "initialize: preferencesRepository.isUserSignedIn")
-        preferencesRepository.isUserSignedIn.collect { isSignedIn ->
-            Log.d(TAG, "collect: isSignedIn=$isSignedIn")
-            if (isSignedIn && _authState.value !is AuthState.Authenticated) {
-                refreshFirebaseAuthState()
-            }
+    init {
+        CoroutineScope(Dispatchers.Main).launch {
+            refreshFirebaseAuthState()
         }
     }
 
     /**
      * Sign in with Google ID Token and update the [authState].
      */
-    override suspend fun signInWithGoogle(idToken: GoogleIdToken): Result<AuthState> {
+    override suspend fun signInWithGoogle(idToken: GoogleIdToken): AuthState {
         firebaseSignInWithGoogle(idToken)
         return refreshFirebaseAuthState()
     }
@@ -79,46 +72,48 @@ class AuthRepositoryImpl @Inject constructor(
      * Get the ID token and other user information from Firebase
      * and emit them with [_authState].
      */
-    private suspend fun refreshFirebaseAuthState(): Result<AuthState> {
+    override suspend fun refreshFirebaseAuthState(): AuthState {
         try {
-            val currentUser = Firebase.auth.currentUser
-            if (currentUser == null) {
-                preferencesRepository.setUserSignedIn(false)
-                return Result.failure(Error("Firebase user not found"))
-            }
+            val currentUser = Firebase.auth.currentUser ?: return AuthState.Unauthenticated.commit()
             val idToken: FirebaseIdToken? = suspendCancellableCoroutine { continuation ->
                 currentUser.getIdToken(true).addOnSuccessListener { result ->
                     Log.d(TAG, "Firebase ID Token: ${result.token}")
-                    continuation.resume(result.token?.let { FirebaseIdToken(it) })
+                    continuation.resume(result.token?.let { FirebaseIdToken(
+                        idToken = it,
+                        exp = result.expirationTimestamp,
+                    ) })
                 }
             }
             if (idToken == null) {
-                preferencesRepository.setUserSignedIn(false)
-                return Result.failure(Error("Firebase ID token not found"))
+                return AuthState.Unauthenticated.commit()
             }
-            _authState.value = AuthState.Authenticated(
-                User(
+            return AuthState.Authenticated(
+                user = User(
                     name = DisplayName(currentUser.displayName ?: ""),
                     email = Email(currentUser.email ?: ""),
                     idToken = idToken,
-                )
-            )
-            preferencesRepository.setUserSignedIn(true)
-            return Result.success(_authState.value)
+                ),
+            ).commit()
         } catch (e: Exception) {
-            preferencesRepository.setUserSignedIn(false)
-            return Result.failure(e)
+            return AuthState.Unauthenticated.commit()
         }
     }
 
-    override suspend fun signOut(): Result<Unit> {
-        preferencesRepository.setUserSignedIn(false)
-        return try {
+    /**
+     * Commit the new AuthState and handle any side effects.
+     */
+    private fun AuthState.commit(): AuthState {
+        return this.also {
+            _authState.value = it
+        }
+    }
+
+    override suspend fun signOut() {
+        AuthState.Unauthenticated.commit()
+        try {
             Firebase.auth.signOut()
-            _authState.value = AuthState.Unauthenticated
-            Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            Log.e(TAG, e.toString())
         }
     }
 }

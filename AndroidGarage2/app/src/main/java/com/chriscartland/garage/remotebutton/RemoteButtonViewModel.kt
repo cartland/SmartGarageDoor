@@ -3,9 +3,11 @@ package com.chriscartland.garage.remotebutton
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.chriscartland.garage.auth.User
-import com.chriscartland.garage.internet.IdToken
+import com.chriscartland.garage.auth.AuthRepository
+import com.chriscartland.garage.auth.AuthState
+import com.chriscartland.garage.auth.FirebaseIdToken
 import com.chriscartland.garage.door.DoorRepository
+import com.chriscartland.garage.internet.IdToken
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -21,6 +23,7 @@ import javax.inject.Inject
 class RemoteButtonViewModelImpl @Inject constructor(
     private val doorRepository: DoorRepository,
     private val remoteButtonRepository: RemoteButtonRepository,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
     // Listen to network events and door status updates.
     private val _buttonRequestStatus = MutableStateFlow(ButtonRequestStatus.NONE)
@@ -82,7 +85,6 @@ class RemoteButtonViewModelImpl @Inject constructor(
         var job: Job? = null
         viewModelScope.launch(Dispatchers.IO) {
             buttonRequestStatus.collect {
-                val old = _buttonRequestStatus.value
                 when (it) {
                     ButtonRequestStatus.NONE -> {
                         job?.cancel()
@@ -130,15 +132,37 @@ class RemoteButtonViewModelImpl @Inject constructor(
         }
     }
 
-    fun pushRemoteButton(user: User) {
-        Log.d("DoorViewModel", "pushRemoteButton")
+    fun pushRemoteButton() {
+        Log.d(TAG, "pushRemoteButton")
         viewModelScope.launch(Dispatchers.IO) {
-            val idToken = user.idToken
-            Log.d("DoorViewModel", "pushRemoteButton: Pushing remote button: $idToken")
+            val authState = authRepository.authState.value
+            if (authState !is AuthState.Authenticated) {
+                Log.e(TAG, "Not authenticated")
+                return@launch
+            }
+            val idToken = refreshIdToken(authState)
+            Log.d(TAG, "pushRemoteButton: Pushing remote button: $idToken")
             remoteButtonRepository.pushRemoteButton(
                 idToken = IdToken(idToken.asString()),
                 buttonAckToken = createButtonAckToken(Date()),
             )
+        }
+    }
+
+    private suspend fun refreshIdToken(authState: AuthState.Authenticated): FirebaseIdToken {
+        Log.d(TAG, "refreshIdToken")
+        return if (authState.user.idToken.exp > System.currentTimeMillis()) {
+            Log.d(TAG, "freshIdToken: Using cached token")
+            authState.user.idToken
+        } else {
+            val newAuthState = authRepository.refreshFirebaseAuthState()
+            if (newAuthState !is AuthState.Authenticated) {
+                Log.d(TAG, "freshIdToken: Not authenticated")
+                authState.user.idToken
+            } else {
+                Log.d(TAG, "freshIdToken: New token")
+                newAuthState.user.idToken
+            }
         }
     }
 
@@ -155,3 +179,5 @@ enum class ButtonRequestStatus {
     SENT_TIMEOUT, // Door did not move.
     RECEIVED, // Door moved.
 }
+
+private const val TAG = "RemoteButtonViewModel"

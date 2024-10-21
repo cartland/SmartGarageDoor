@@ -50,9 +50,9 @@ fun RemoteButtonContent(
     RemoteButtonContent(
         modifier = modifier,
         onSubmit = {
-            when (val it = authState) {
+            when (authState) {
                 is AuthState.Authenticated -> {
-                    viewModel.pushRemoteButton(it.user)
+                    viewModel.pushRemoteButton()
                 }
                 AuthState.Unauthenticated -> {
                     // Do nothing.

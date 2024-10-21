@@ -36,13 +36,6 @@ class AuthViewModelImpl @Inject constructor(
 
     override val authState: StateFlow<AuthState> = authRepository.authState
 
-    init {
-        viewModelScope.launch {
-            Log.d(TAG, "init: initialize")
-            authRepository.initialize()
-        }
-    }
-
     override fun signInWithGoogle(activity: ComponentActivity) {
         viewModelScope.launch {
             checkSignInConfiguration()
@@ -71,7 +64,8 @@ class AuthViewModelImpl @Inject constructor(
                     // No saved credentials found. Launch the One Tap sign-up flow, or
                     // do nothing and continue presenting the signed-out UI.
                     Log.d(TAG, e.localizedMessage)
-                }        }
+                }
+        }
     }
 
     override fun signOut() {

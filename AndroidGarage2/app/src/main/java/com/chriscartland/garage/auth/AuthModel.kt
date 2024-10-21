@@ -29,9 +29,11 @@ value class DisplayName(private val s: String) {
  *     val firebaseIdToken = result.token
  * }
  */
-@JvmInline
-value class FirebaseIdToken(private val s: String) {
-    fun asString(): String = s
+data class FirebaseIdToken(
+    val idToken: String,
+    val exp: Long, // Expiry time, Unix Epoch Seconds
+) {
+    fun asString(): String = idToken
 }
 
 

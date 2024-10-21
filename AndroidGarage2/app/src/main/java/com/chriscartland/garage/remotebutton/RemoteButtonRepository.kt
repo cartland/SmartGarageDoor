@@ -3,12 +3,12 @@ package com.chriscartland.garage.remotebutton
 import android.text.format.DateFormat
 import android.util.Log
 import com.chriscartland.garage.config.APP_CONFIG
+import com.chriscartland.garage.config.ServerConfigRepository
 import com.chriscartland.garage.internet.ButtonAckToken
 import com.chriscartland.garage.internet.GarageNetworkService
 import com.chriscartland.garage.internet.IdToken
 import com.chriscartland.garage.internet.RemoteButtonBuildTimestamp
 import com.chriscartland.garage.internet.RemoteButtonPushKey
-import com.chriscartland.garage.config.ServerConfigRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

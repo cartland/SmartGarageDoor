@@ -27,13 +27,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.door.DoorEvent
+import com.chriscartland.garage.door.DoorViewModelImpl
+import com.chriscartland.garage.door.LoadingResult
 import com.chriscartland.garage.remotebutton.ButtonRequestStatus
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.doorButtonColors
 import com.chriscartland.garage.ui.theme.doorCardColors
-import com.chriscartland.garage.door.DoorViewModelImpl
-import com.chriscartland.garage.door.LoadingResult
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 
@@ -54,9 +54,9 @@ fun HomeContent(
         modifier = modifier,
         onFetchCurrentDoorEvent = { viewModel.fetchCurrentDoorEvent() },
         onRemoteButtonClick = {
-            when (val it = authState) {
+            when (authState) {
                 is AuthState.Authenticated -> {
-                    buttonViewModel.pushRemoteButton(it.user)
+                    buttonViewModel.pushRemoteButton()
                 }
                 AuthState.Unauthenticated -> {
                     authViewModel.signInWithGoogle(activity)
