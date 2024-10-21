@@ -52,8 +52,8 @@ class RemoteButtonViewModelImpl @Inject constructor(
      */
     private fun setupRequestStateMachine() {
         listenToButtonRepository()
-        listenToDoorRepository()
-        listenToButtonTimeouts()
+        listenToDoorPosition()
+        listenToRequestTimeouts()
     }
 
     /**
@@ -92,15 +92,15 @@ class RemoteButtonViewModelImpl @Inject constructor(
     }
 
     /**
-     * Listen to door events. Assume any change in door status means the request was received.
+     * Listen to door position changes. Assume any change means the request was received.
      *
      * When the door moves:
      *   - If [RequestStatus] is NONE, ignore the door movement.
      *   - Otherwise, [RequestStatus] becomes [RequestStatus.RECEIVED].
      */
-    private fun listenToDoorRepository() {
+    private fun listenToDoorPosition() {
         viewModelScope.launch(Dispatchers.IO) {
-            doorRepository.currentDoorEvent.collect {
+            doorRepository.currentDoorPosition.collect {
                 val old = _requestStatus.value
                 when (_requestStatus.value) {
                     RequestStatus.NONE -> {} // Do nothing.
@@ -127,7 +127,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
      *
      * Track coroutine job to ensure only 1 is running at a time.
      */
-    private fun listenToButtonTimeouts() {
+    private fun listenToRequestTimeouts() {
         var job: Job? = null // Job to track coroutines.
         val mutex = Mutex()
         viewModelScope.launch(Dispatchers.IO) {
