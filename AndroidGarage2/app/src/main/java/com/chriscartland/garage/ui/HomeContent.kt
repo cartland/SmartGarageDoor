@@ -27,13 +27,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.door.DoorEvent
-import com.chriscartland.garage.door.DoorViewModelImpl
-import com.chriscartland.garage.door.LoadingResult
-import com.chriscartland.garage.remotebutton.ButtonRequestStatus
+import com.chriscartland.garage.remotebutton.RequestStatus
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.doorButtonColors
 import com.chriscartland.garage.ui.theme.doorCardColors
+import com.chriscartland.garage.door.DoorViewModelImpl
+import com.chriscartland.garage.door.LoadingResult
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 
@@ -46,11 +46,11 @@ fun HomeContent(
 ) {
     val activity = LocalContext.current as ComponentActivity
     val currentDoorEvent = viewModel.currentDoorEvent.collectAsState()
-    val buttonRequestStatus = buttonViewModel.buttonRequestStatus.collectAsState()
+    val buttonRequestStatus = buttonViewModel.requestStatus.collectAsState()
     val authState by authViewModel.authState.collectAsState()
     HomeContent(
         currentDoorEvent = currentDoorEvent.value,
-        remoteButtonRequestStatus = buttonRequestStatus.value,
+        remoteRequestStatus = buttonRequestStatus.value,
         modifier = modifier,
         onFetchCurrentDoorEvent = { viewModel.fetchCurrentDoorEvent() },
         onRemoteButtonClick = {
@@ -77,7 +77,7 @@ fun HomeContent(
 fun HomeContent(
     currentDoorEvent: LoadingResult<DoorEvent?>,
     modifier: Modifier = Modifier,
-    remoteButtonRequestStatus: ButtonRequestStatus = ButtonRequestStatus.NONE,
+    remoteRequestStatus: RequestStatus = RequestStatus.NONE,
     onFetchCurrentDoorEvent: () -> Unit = {},
     onRemoteButtonClick: () -> Unit = {},
     onResetRemote: () -> Unit = {},
@@ -159,7 +159,7 @@ fun HomeContent(
                             onResetRemote()
                         },
                         buttonColors = doorButtonColors(LocalDoorStatusColorScheme.current, doorEvent),
-                        remoteButtonRequestStatus = remoteButtonRequestStatus,
+                        remoteRequestStatus = remoteRequestStatus,
                     )
 
                 }
@@ -177,15 +177,15 @@ data class RemoteIndicator(
 @Composable
 fun ButtonRequestIndicator(
     modifier: Modifier = Modifier,
-    remoteButtonRequestStatus: ButtonRequestStatus = ButtonRequestStatus.NONE,
+    remoteRequestStatus: RequestStatus = RequestStatus.NONE,
 ) {
-    val progress = when (remoteButtonRequestStatus) {
-        ButtonRequestStatus.NONE -> RemoteIndicator("", 0)
-        ButtonRequestStatus.SENDING -> RemoteIndicator("Sending", 1)
-        ButtonRequestStatus.SENDING_TIMEOUT -> RemoteIndicator("Sending failed", 2)
-        ButtonRequestStatus.SENT -> RemoteIndicator("Sent", 3)
-        ButtonRequestStatus.SENT_TIMEOUT -> RemoteIndicator("Command not delivered", 4, failure = true)
-        ButtonRequestStatus.RECEIVED -> RemoteIndicator("Complete", 5)
+    val progress = when (remoteRequestStatus) {
+        RequestStatus.NONE -> RemoteIndicator("", 0)
+        RequestStatus.SENDING -> RemoteIndicator("Sending", 1)
+        RequestStatus.SENDING_TIMEOUT -> RemoteIndicator("Sending failed", 2)
+        RequestStatus.SENT -> RemoteIndicator("Sent", 3)
+        RequestStatus.SENT_TIMEOUT -> RemoteIndicator("Command not delivered", 4, failure = true)
+        RequestStatus.RECEIVED -> RemoteIndicator("Complete", 5)
     }
     val colorComplete: Color = if (progress.failure) Color(0xFFFF3333) else Color(0xFF3333FF)
     Column(

@@ -20,22 +20,22 @@ import java.time.Duration
 import java.util.Date
 import javax.inject.Inject
 
-interface RemoteButtonRepository {
-    val pushStatus: StateFlow<PushStatus>
-    suspend fun pushRemoteButton(idToken: IdToken, buttonAckToken: String)
+interface PushRepository {
+    val status: StateFlow<PushStatus>
+    suspend fun push(idToken: IdToken, buttonAckToken: String)
 }
 
-class RemoteButtonRepositoryImpl @Inject constructor(
+class PushRepositoryImpl @Inject constructor(
     private val network: GarageNetworkService,
     private val serverConfigRepository: ServerConfigRepository,
-) : RemoteButtonRepository {
+) : PushRepository {
     private val _pushStatus = MutableStateFlow(PushStatus.IDLE)
-    override val pushStatus: StateFlow<PushStatus> = _pushStatus
+    override val status: StateFlow<PushStatus> = _pushStatus
 
     /**
      * Send a command to the server to push the remote button.
      */
-    override suspend fun pushRemoteButton(
+    override suspend fun push(
         idToken: IdToken,
         buttonAckToken: String,
     ) {
@@ -53,6 +53,7 @@ class RemoteButtonRepositoryImpl @Inject constructor(
 
         if (!APP_CONFIG.remoteButtonPushEnabled) {
             Log.w(tag, "Remote button push is disabled: !remoteButtonPushEnabled")
+            delay(Duration.ofMillis(500))
         }
         if (APP_CONFIG.remoteButtonPushEnabled) {
             val response = network.postRemoteButtonPush(
@@ -68,7 +69,6 @@ class RemoteButtonRepositoryImpl @Inject constructor(
             Log.i(tag, "Response: ${response.code()}")
             Log.i(tag, "Response body: ${response.body()}")
         }
-        delay(Duration.ofMillis(100))
         _pushStatus.value = PushStatus.IDLE
     }
 }
@@ -99,9 +99,7 @@ fun createButtonAckToken(now: Date): String {
 @Module
 @InstallIn(SingletonComponent::class)
 @Suppress("unused")
-abstract class RemoteButtonRepositoryModule {
+abstract class PushRepositoryModule {
     @Binds
-    abstract fun bindRemoteButtonRepository(
-        remoteButtonRepository: RemoteButtonRepositoryImpl,
-    ): RemoteButtonRepository
+    abstract fun bindPushRepository(pushRepository: PushRepositoryImpl): PushRepository
 }

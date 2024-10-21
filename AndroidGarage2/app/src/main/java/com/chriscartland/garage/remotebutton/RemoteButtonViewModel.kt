@@ -14,6 +14,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.time.delay
 import java.time.Duration
 import java.util.Date
@@ -21,117 +22,186 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RemoteButtonViewModelImpl @Inject constructor(
+    // Remote button repository focused on sending the request over the Internet.
+    private val pushRepository: PushRepository,
+    // Watch the door status, because we consider the request delivered when the door moves.
     private val doorRepository: DoorRepository,
-    private val remoteButtonRepository: RemoteButtonRepository,
+    // Need the auth token to send a request.
     private val authRepository: AuthRepository,
 ) : ViewModel() {
     // Listen to network events and door status updates.
-    private val _buttonRequestStatus = MutableStateFlow(ButtonRequestStatus.NONE)
-    val buttonRequestStatus: StateFlow<ButtonRequestStatus> = _buttonRequestStatus
+    private val _requestStatus = MutableStateFlow(RequestStatus.NONE)
+    val requestStatus: StateFlow<RequestStatus> = _requestStatus
 
     init {
-        setupButtonRequestStateMachine()
+        setupRequestStateMachine()
     }
 
-    private fun setupButtonRequestStateMachine() {
-        // Listen to button pushes and update the UI accordingly.
+    /**
+     * State machine for [requestStatus].
+     */
+    private fun setupRequestStateMachine() {
+        listenToButtonRepository()
+        listenToDoorRepository()
+        listenToButtonTimeouts()
+    }
+
+    /**
+     * Listen to button pushes and update [requestStatus].
+     *
+     * When [PushStatus] becomes [PushStatus.SENDING], then [RequestStatus] is SENDING.
+     *
+     * When [PushStatus] becomes [PushStatus.IDLE]:
+     *   - if the [RequestStatus] is SENDING, [RequestStatus] becomes SENT.
+     *   - otherwise [RequestStatus] becomes NONE (reset state machine).
+     */
+    private fun listenToButtonRepository() {
         viewModelScope.launch(Dispatchers.IO) {
-            remoteButtonRepository.pushStatus.collect { sendStatus ->
-                val old = _buttonRequestStatus.value
-                _buttonRequestStatus.value = when (sendStatus) {
+            pushRepository.status.collect { sendStatus ->
+                val old = _requestStatus.value
+                _requestStatus.value = when (sendStatus) {
                     PushStatus.SENDING -> {
-                        ButtonRequestStatus.SENDING
+                        RequestStatus.SENDING
                     }
                     PushStatus.IDLE -> {
                         when (old) {
-                            ButtonRequestStatus.NONE -> ButtonRequestStatus.NONE
-                            ButtonRequestStatus.SENDING -> ButtonRequestStatus.SENT
-                            ButtonRequestStatus.SENT -> ButtonRequestStatus.NONE
-                            ButtonRequestStatus.RECEIVED -> ButtonRequestStatus.NONE
-                            ButtonRequestStatus.SENDING_TIMEOUT -> ButtonRequestStatus.NONE
-                            ButtonRequestStatus.SENT_TIMEOUT -> ButtonRequestStatus.NONE
+                            RequestStatus.SENDING -> RequestStatus.SENT
+                            // All others -> NONE
+                            RequestStatus.NONE -> RequestStatus.NONE
+                            RequestStatus.SENT -> RequestStatus.NONE
+                            RequestStatus.RECEIVED -> RequestStatus.NONE
+                            RequestStatus.SENDING_TIMEOUT -> RequestStatus.NONE
+                            RequestStatus.SENT_TIMEOUT -> RequestStatus.NONE
                         }
                     }
                 }
-                Log.d("DoorViewModel", "ButtonRequestStateMachine network: old $old -> " +
-                        "new ${_buttonRequestStatus.value.name}")
+                Log.d(TAG, "ButtonRequestStateMachine network: old $old -> " +
+                        "new ${_requestStatus.value.name}")
             }
         }
-        // Listen to door events. Assume any change in door status means the request was received.
+    }
+
+    /**
+     * Listen to door events. Assume any change in door status means the request was received.
+     *
+     * When the door moves:
+     *   - If [RequestStatus] is NONE, ignore the door movement.
+     *   - Otherwise, [RequestStatus] becomes [RequestStatus.RECEIVED].
+     */
+    private fun listenToDoorRepository() {
         viewModelScope.launch(Dispatchers.IO) {
             doorRepository.currentDoorEvent.collect {
-                val old = _buttonRequestStatus.value
-                when (_buttonRequestStatus.value) {
-                    ButtonRequestStatus.NONE -> {} // Do nothing.
-                    ButtonRequestStatus.SENDING -> {
-                        _buttonRequestStatus.value = ButtonRequestStatus.RECEIVED
-                    }
-                    ButtonRequestStatus.SENT -> {
-                        _buttonRequestStatus.value = ButtonRequestStatus.RECEIVED
-                    }
-                    ButtonRequestStatus.RECEIVED -> {} // Do nothing.
-                    ButtonRequestStatus.SENDING_TIMEOUT -> {
-                        _buttonRequestStatus.value = ButtonRequestStatus.RECEIVED
-                    }
-                    ButtonRequestStatus.SENT_TIMEOUT -> {
-                        _buttonRequestStatus.value = ButtonRequestStatus.RECEIVED
-                    }
+                val old = _requestStatus.value
+                when (_requestStatus.value) {
+                    RequestStatus.NONE -> {} // Do nothing.
+                    // All others -> RECEIVED
+                    RequestStatus.SENDING ->
+                        _requestStatus.value = RequestStatus.RECEIVED
+                    RequestStatus.SENDING_TIMEOUT ->
+                        _requestStatus.value = RequestStatus.RECEIVED
+                    RequestStatus.SENT ->
+                        _requestStatus.value = RequestStatus.RECEIVED
+                    RequestStatus.SENT_TIMEOUT ->
+                        _requestStatus.value = RequestStatus.RECEIVED
+                    RequestStatus.RECEIVED ->
+                        _requestStatus.value = RequestStatus.RECEIVED
                 }
-                Log.d("DoorViewModel", "ButtonRequestStateMachine door: old $old -> " +
-                        "new ${_buttonRequestStatus.value.name}")
+                Log.d(TAG, "ButtonRequestStateMachine door: old $old -> " +
+                        "new ${_requestStatus.value.name}")
             }
         }
-        // Listen to the status for timeouts.
-        var job: Job? = null
+    }
+
+    /**
+     * State machine to handle timeouts.
+     *
+     * Track coroutine job to ensure only 1 is running at a time.
+     */
+    private fun listenToButtonTimeouts() {
+        var job: Job? = null // Job to track coroutines.
+        val mutex = Mutex()
         viewModelScope.launch(Dispatchers.IO) {
-            buttonRequestStatus.collect {
+            requestStatus.collect {
                 when (it) {
-                    ButtonRequestStatus.NONE -> {
+                    RequestStatus.NONE -> {
                         job?.cancel()
                     } // Do nothing.
-                    ButtonRequestStatus.SENDING -> {
+                    RequestStatus.SENDING -> {
+                        mutex.lock()
                         job?.cancel()
                         job = viewModelScope.launch {
                             delay(Duration.ofSeconds(10))
-                            _buttonRequestStatus.value = ButtonRequestStatus.SENDING_TIMEOUT
+                            // Check to make sure state has not changed.
+                            if (_requestStatus.value != RequestStatus.SENDING) {
+                                Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
+                            } else {
+                                _requestStatus.value = RequestStatus.SENDING_TIMEOUT
+                            }
                         }
+                        mutex.unlock()
                     }
-                    ButtonRequestStatus.SENT -> {
+                    RequestStatus.SENT -> {
+                        mutex.lock()
                         job?.cancel()
                         job = viewModelScope.launch {
                             delay(Duration.ofSeconds(10))
-                            _buttonRequestStatus.value = ButtonRequestStatus.SENT_TIMEOUT
+                            if (_requestStatus.value != RequestStatus.SENT) {
+                                Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
+                            } else {
+                                _requestStatus.value = RequestStatus.SENT_TIMEOUT
+                            }
                         }
+                        mutex.unlock()
                     }
-                    ButtonRequestStatus.RECEIVED -> {
+                    RequestStatus.RECEIVED -> {
+                        mutex.lock()
                         job?.cancel()
                         job = viewModelScope.launch {
                             delay(Duration.ofSeconds(10))
-                            _buttonRequestStatus.value = ButtonRequestStatus.NONE
+                            if (_requestStatus.value != RequestStatus.RECEIVED) {
+                                Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
+                            }
+                            _requestStatus.value = RequestStatus.NONE
                         }
+                        mutex.unlock()
                     }
-                    ButtonRequestStatus.SENDING_TIMEOUT -> {
+                    RequestStatus.SENDING_TIMEOUT -> {
+                        mutex.lock()
                         job?.cancel()
                         job = viewModelScope.launch {
                             delay(Duration.ofSeconds(10))
-                            _buttonRequestStatus.value = ButtonRequestStatus.NONE
+                            if (_requestStatus.value != RequestStatus.SENDING_TIMEOUT) {
+                                Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
+                            }
+                            _requestStatus.value = RequestStatus.NONE
                         }
+                        mutex.unlock()
                     }
-                    ButtonRequestStatus.SENT_TIMEOUT -> {
+                    RequestStatus.SENT_TIMEOUT -> {
+                        mutex.lock()
                         job?.cancel()
                         job = viewModelScope.launch {
                             delay(Duration.ofSeconds(10))
-                            _buttonRequestStatus.value = ButtonRequestStatus.NONE
+                            if (_requestStatus.value != RequestStatus.SENT_TIMEOUT) {
+                                Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
+                            }
+                            _requestStatus.value = RequestStatus.NONE
                         }
+                        mutex.unlock()
                     }
                 }
-                Log.d("DoorViewModel", "ButtonRequestStateMachine timeouts: " +
-                        _buttonRequestStatus.value.name
+                Log.d(TAG, "ButtonRequestStateMachine timeouts: " +
+                        _requestStatus.value.name
                 )
             }
         }
     }
 
+    /**
+     * Push the button.
+     *
+     * Requires an authenticated user.
+     */
     fun pushRemoteButton() {
         Log.d(TAG, "pushRemoteButton")
         viewModelScope.launch(Dispatchers.IO) {
@@ -140,16 +210,19 @@ class RemoteButtonViewModelImpl @Inject constructor(
                 Log.e(TAG, "Not authenticated")
                 return@launch
             }
-            val idToken = refreshIdToken(authState)
+            val idToken = ensureFreshIdToken(authState)
             Log.d(TAG, "pushRemoteButton: Pushing remote button: $idToken")
-            remoteButtonRepository.pushRemoteButton(
+            pushRepository.push(
                 idToken = IdToken(idToken.asString()),
                 buttonAckToken = createButtonAckToken(Date()),
             )
         }
     }
 
-    private suspend fun refreshIdToken(authState: AuthState.Authenticated): FirebaseIdToken {
+    /**
+     * Ensure the ID token is fresh.
+     */
+    private suspend fun ensureFreshIdToken(authState: AuthState.Authenticated): FirebaseIdToken {
         Log.d(TAG, "refreshIdToken")
         return if (authState.user.idToken.exp > System.currentTimeMillis()) {
             Log.d(TAG, "freshIdToken: Using cached token")
@@ -157,7 +230,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
         } else {
             val newAuthState = authRepository.refreshFirebaseAuthState()
             if (newAuthState !is AuthState.Authenticated) {
-                Log.d(TAG, "freshIdToken: Not authenticated")
+                Log.w(TAG, "freshIdToken: Not authenticated")
                 authState.user.idToken
             } else {
                 Log.d(TAG, "freshIdToken: New token")
@@ -167,11 +240,11 @@ class RemoteButtonViewModelImpl @Inject constructor(
     }
 
     fun resetRemoteButton() {
-        _buttonRequestStatus.value = ButtonRequestStatus.NONE
+        _requestStatus.value = RequestStatus.NONE
     }
 }
 
-enum class ButtonRequestStatus {
+enum class RequestStatus {
     NONE, // Not sending a request.
     SENDING, // Sending request over the network.
     SENDING_TIMEOUT, // Cannot reach server.

@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
-import com.chriscartland.garage.remotebutton.ButtonRequestStatus
+import com.chriscartland.garage.remotebutton.RequestStatus
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -44,7 +44,7 @@ fun RemoteButtonContent(
     viewModel: RemoteButtonViewModelImpl = hiltViewModel(),
     authViewModel: AuthViewModelImpl = hiltViewModel(),
     buttonColors: ButtonColors = ButtonDefaults.buttonColors(),
-    remoteButtonRequestStatus: ButtonRequestStatus = ButtonRequestStatus.NONE,
+    remoteRequestStatus: RequestStatus = RequestStatus.NONE,
 ) {
     val authState by authViewModel.authState.collectAsState()
     RemoteButtonContent(
@@ -63,7 +63,7 @@ fun RemoteButtonContent(
             }
         },
         buttonColors = buttonColors,
-        remoteButtonRequestStatus = remoteButtonRequestStatus,
+        remoteRequestStatus = remoteRequestStatus,
     )
 }
 
@@ -86,7 +86,7 @@ fun RemoteButtonContent(
         disabledContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
         disabledContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
     ),
-    remoteButtonRequestStatus: ButtonRequestStatus = ButtonRequestStatus.NONE,
+    remoteRequestStatus: RequestStatus = RequestStatus.NONE,
 ) {
     Column(
         modifier = modifier,
@@ -182,12 +182,12 @@ fun RemoteButtonContent(
         }
         Spacer(modifier = Modifier.height(16.dp))
         if (buttonState != RemoteButtonState.READY
-            || remoteButtonRequestStatus != ButtonRequestStatus.NONE) {
+            || remoteRequestStatus != RequestStatus.NONE) {
             ButtonRequestIndicator(
                 modifier = Modifier
                     .fillMaxWidth(0.6f)
                     .widthIn(max = 256.dp),
-                remoteButtonRequestStatus = remoteButtonRequestStatus,
+                remoteRequestStatus = remoteRequestStatus,
             )
         }
     }
