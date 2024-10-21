@@ -176,18 +176,3 @@ fun doorCardColors(doorColors: DoorStatusColorScheme, doorEvent: DoorEvent?): Ca
             .select(status = status, container = false, fresh = false),
     )
 }
-
-fun doorButtonColors(doorColors: DoorStatusColorScheme, doorEvent: DoorEvent?): ButtonColors {
-    val status = doorEvent.toColorStatus()
-    val fresh = doorEvent.isFresh(Instant.now(), 15.minutes)
-    return ButtonColors(
-        containerColor = doorColors
-            .select(status = status, container = true, fresh = fresh),
-        contentColor = doorColors
-            .select(status = status, container = false, fresh = fresh),
-        disabledContainerColor = doorColors
-            .select(status = status, container = true, fresh = false),
-        disabledContentColor = doorColors
-            .select(status = status, container = false, fresh = false),
-    )
-}

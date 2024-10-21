@@ -10,9 +10,13 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 interface DoorRepository {
+    // Only exposes the door position.
+    val currentDoorPosition: Flow<DoorPosition>
+    // Exposes the event, including last updated timestamps.
     val currentDoorEvent: Flow<DoorEvent>
     val recentDoorEvents: Flow<List<DoorEvent>>
     suspend fun fetchBuildTimestampCached(): String?
@@ -26,6 +30,10 @@ class DoorRepositoryImpl @Inject constructor(
     private val network: GarageNetworkService,
     private val serverConfigRepository: ServerConfigRepository,
 ) : DoorRepository {
+    override val currentDoorPosition: Flow<DoorPosition>
+        get() = localDoorDataSource.currentDoorEvent.map {
+            it.doorPosition ?: DoorPosition.UNKNOWN
+        }
     override val currentDoorEvent: Flow<DoorEvent> = localDoorDataSource.currentDoorEvent
     override val recentDoorEvents: Flow<List<DoorEvent>> = localDoorDataSource.recentDoorEvents
 

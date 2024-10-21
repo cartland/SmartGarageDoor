@@ -24,15 +24,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
-import com.chriscartland.garage.remotebutton.RequestStatus
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
+import com.chriscartland.garage.remotebutton.RequestStatus
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.time.delay
@@ -83,8 +82,8 @@ fun RemoteButtonContent(
     buttonColors: ButtonColors = ButtonDefaults.buttonColors(
         containerColor = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        disabledContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
-        disabledContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        disabledContainerColor = MaterialTheme.colorScheme.errorContainer,
+        disabledContentColor = MaterialTheme.colorScheme.onErrorContainer,
     ),
     remoteRequestStatus: RequestStatus = RequestStatus.NONE,
 ) {
@@ -159,13 +158,7 @@ fun RemoteButtonContent(
                 }
             },
             shape = CircleShape,
-            colors = when (buttonState) {
-                RemoteButtonState.ARMED -> ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFAA6666),
-                    contentColor = Color.White,
-                )
-                else -> buttonColors
-            },
+            colors = buttonColors,
             contentPadding = PaddingValues(0.dp), // Remove default padding
         ) {
             Text(
@@ -174,7 +167,7 @@ fun RemoteButtonContent(
                     RemoteButtonState.ARMING -> "Preparing..."
                     RemoteButtonState.ARMED -> "Tap Again\nTo Send Command"
                     RemoteButtonState.TIMEOUT -> "Button not pressed"
-                    RemoteButtonState.COOLDOWN -> "Button pushed!\n\nWait... $countdown"
+                    RemoteButtonState.COOLDOWN -> "Button pushed!"
                 },
                 fontSize = MaterialTheme.typography.titleLarge.fontSize,
                 textAlign = TextAlign.Center,
