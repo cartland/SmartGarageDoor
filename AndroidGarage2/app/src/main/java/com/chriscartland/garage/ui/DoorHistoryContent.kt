@@ -43,6 +43,18 @@ fun DoorHistoryContent(
         item {
             Text(text = "Recent Door Events")
         }
+
+        item {
+            val lastCheckInTime = recentDoorEvents.data?.get(0)?.lastCheckInTimeSeconds
+            val date = lastCheckInTime?.toFriendlyDate()
+            val time = lastCheckInTime?.toFriendlyTime()
+            Text(text = if (lastCheckInTime == null) {
+                "Missing check-in time"
+            } else {
+                "Last check-in: $date $time"
+            })
+        }
+
         // If the recent events are loading, show a loading indicator.
         if (recentDoorEvents is LoadingResult.Loading) {
             item {

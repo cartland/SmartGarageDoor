@@ -15,6 +15,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -23,10 +28,8 @@ import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorPosition
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
+import kotlinx.coroutines.delay
+import java.time.Duration
 
 @Composable
 fun DoorStatusCard(
@@ -89,6 +92,43 @@ fun DoorStatusCard(
                 style = MaterialTheme.typography.labelSmall,
                 color = cardColors.contentColor,
             )
+
+            val lastCheckInTime = doorEvent?.lastCheckInTimeSeconds
+            val date = lastCheckInTime?.toFriendlyDate()
+            val time = lastCheckInTime?.toFriendlyTime()
+            Text(
+                text = if (lastCheckInTime == null) {
+                    "Missing check-in time"
+                } else {
+                    "Check-in: $date $time"
+                },
+                style = MaterialTheme.typography.labelSmall,
+            )
+            // Show time every second.
+            var checkInDuration by remember { mutableStateOf<Duration?>(null) }
+            LaunchedEffect(key1 = lastCheckInTime) {
+                while (true) {
+                    if (lastCheckInTime != null) {
+                        checkInDuration = Duration.ofSeconds(
+                            System.currentTimeMillis() / 1000 - lastCheckInTime,
+                        )
+                    }
+                    delay(1000L) // Update every 1 second
+                }
+            }
+            checkInDuration?.let { duration ->
+                Text(
+                    text = "Time since check-in: " + duration.toFriendlyDuration() ?: "",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                // TODO: Nullable checkInDuration is var
+                if (duration > Duration.ofMinutes(15)) {
+                    Text(
+                        text = "Warning: Time since check-in is over 15 minutes",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }
         }
     }
 }
@@ -154,16 +194,6 @@ fun RecentDoorEventListItem(
         }
     }
 }
-
-private fun Long.toFriendlyDate(): String =
-    Instant.ofEpochSecond(this)
-        .atZone(ZoneId.systemDefault())
-        .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
-
-private fun Long.toFriendlyTime(): String? =
-    Instant.ofEpochSecond(this)
-        .atZone(ZoneId.systemDefault())
-        .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM))
 
 private fun DoorPosition.toImageResourceId(): Int = when (this) {
     DoorPosition.OPEN -> R.drawable.ic_garage_simple_open
