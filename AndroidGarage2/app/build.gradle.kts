@@ -19,7 +19,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.chriscartland.garage"
+        applicationId = "com.chriscartland.garage2"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

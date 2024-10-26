@@ -28,7 +28,8 @@ data class DoorEvent(
     val message: String? = null,
     val lastCheckInTimeSeconds: Long? = null,
     val lastChangeTimeSeconds: Long? = null,
-    @PrimaryKey val id: String = lastChangeTimeSeconds.toString() + doorPosition,
+    @PrimaryKey val id: String =
+        lastChangeTimeSeconds.toString() + ":" + (doorPosition ?: DoorPosition.UNKNOWN),
 )
 
 // DO NOT CHANGE NAMES

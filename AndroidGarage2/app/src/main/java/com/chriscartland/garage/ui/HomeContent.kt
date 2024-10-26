@@ -4,10 +4,10 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -87,58 +87,50 @@ fun HomeContent(
     val notificationPermissionState = rememberNotificationPermissionState()
     var permissionRequestCount by remember { mutableIntStateOf(0) }
 
-    LazyColumn(
+    Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // Add a card at the top if the notification permission is not granted.
         if (!notificationPermissionState.status.isGranted) {
-            item {
-                ErrorRequestCard(
-                    text = notificationJustificationText(permissionRequestCount),
-                    buttonText = "Allow",
-                    onClick = {
-                        permissionRequestCount++
-                        notificationPermissionState.launchPermissionRequest()
-                    },
-                )
-            }
+            ErrorRequestCard(
+                text = notificationJustificationText(permissionRequestCount),
+                buttonText = "Allow",
+                onClick = {
+                    permissionRequestCount++
+                    notificationPermissionState.launchPermissionRequest()
+                },
+            )
         }
 
         // If the current event is loading, show a loading indicator.
         if (currentDoorEvent is LoadingResult.Loading) {
-            item {
-                Text(text = "Loading...")
-            }
+            Text(text = "Loading...")
         }
         // If the current event had an error, show an error card.
         if (currentDoorEvent is LoadingResult.Error) {
-            item {
-                ErrorRequestCard(
-                    text = "Error fetching current door event: " +
-                            currentDoorEvent.exception.toString().take(500),
-                    buttonText = "Retry",
-                    onClick = { onFetchCurrentDoorEvent() },
-                )
-            }
+            ErrorRequestCard(
+                text = "Error fetching current door event: " +
+                        currentDoorEvent.exception.toString().take(500),
+                buttonText = "Retry",
+                onClick = { onFetchCurrentDoorEvent() },
+            )
         }
 
         // Show the current door event.
         val doorEvent = currentDoorEvent.data
-        item {
-            DoorStatusCard(
-                doorEvent = doorEvent,
-                modifier = Modifier
-                    .clickable { onFetchCurrentDoorEvent() }, // Fetch on click.
-                cardColors = doorCardColors(LocalDoorStatusColorScheme.current, doorEvent),
-            )
-        }
+        DoorStatusCard(
+            doorEvent = doorEvent,
+            modifier = Modifier
+                .weight(1f)
+                .clickable { onFetchCurrentDoorEvent() }, // Fetch on click.
+            cardColors = doorCardColors(LocalDoorStatusColorScheme.current, doorEvent),
+        )
 
-        item {
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-        item {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Box(modifier = Modifier.weight(1f)) {
             when (authState) {
                 AuthState.Unknown -> {
                     Text(text = "Checking authentication...")
@@ -159,7 +151,6 @@ fun HomeContent(
                         },
                         remoteRequestStatus = remoteRequestStatus,
                     )
-
                 }
             }
         }

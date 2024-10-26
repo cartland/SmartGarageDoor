@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.widthIn
@@ -37,35 +38,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.time.delay
 import java.time.Duration
 
-@Composable
-fun RemoteButtonContent(
-    modifier: Modifier = Modifier,
-    viewModel: RemoteButtonViewModelImpl = hiltViewModel(),
-    authViewModel: AuthViewModelImpl = hiltViewModel(),
-    buttonColors: ButtonColors = ButtonDefaults.buttonColors(),
-    remoteRequestStatus: RequestStatus = RequestStatus.NONE,
-) {
-    val authState by authViewModel.authState.collectAsState()
-    RemoteButtonContent(
-        modifier = modifier,
-        onSubmit = {
-            when (authState) {
-                is AuthState.Authenticated -> {
-                    viewModel.pushRemoteButton()
-                }
-                AuthState.Unauthenticated -> {
-                    // Do nothing.
-                }
-                AuthState.Unknown -> {
-                    // Do nothing.
-                }
-            }
-        },
-        buttonColors = buttonColors,
-        remoteRequestStatus = remoteRequestStatus,
-    )
-}
-
 enum class RemoteButtonState {
     READY, // Default state. Button press moves to ARMING state.
     ARMING, // Force a pause before sending the request. Then go to ARMED.
@@ -98,7 +70,7 @@ fun RemoteButtonContent(
 
         Button(
             modifier = Modifier
-                .fillMaxWidth(0.6f)
+                .weight(1f)
                 .aspectRatio(1f)
                 .widthIn(max = 256.dp)
                 .shadow(4.dp, CircleShape),

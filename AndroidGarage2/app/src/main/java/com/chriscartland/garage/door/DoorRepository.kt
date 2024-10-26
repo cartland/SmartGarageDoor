@@ -32,7 +32,8 @@ class DoorRepositoryImpl @Inject constructor(
 ) : DoorRepository {
     override val currentDoorPosition: Flow<DoorPosition>
         get() = localDoorDataSource.currentDoorEvent.map {
-            it.doorPosition ?: DoorPosition.UNKNOWN
+            // [it] can be null -- this might be a Kotlin bug
+            it?.doorPosition ?: DoorPosition.UNKNOWN
         }
     override val currentDoorEvent: Flow<DoorEvent> = localDoorDataSource.currentDoorEvent
     override val recentDoorEvents: Flow<List<DoorEvent>> = localDoorDataSource.recentDoorEvents
