@@ -24,7 +24,7 @@ android {
         applicationId = "com.chriscartland.garage"
         minSdk = 26
         targetSdk = 34
-        versionCode = 50
+        versionCode = 52
         versionName = "2.0-" + generateVersionNameTime()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -46,9 +46,10 @@ android {
 
     buildTypes {
         debug {
+            applicationIdSuffix = ".debug"
         }
         release {
-            isMinifyEnabled = true
+            isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
