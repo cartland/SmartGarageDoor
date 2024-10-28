@@ -16,6 +16,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -25,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorPosition
+import kotlinx.coroutines.delay
+import java.time.Duration
 
 @Composable
 fun DoorStatusCard(
@@ -38,8 +45,21 @@ fun DoorStatusCard(
     ),
 ) {
     val doorPosition = doorEvent?.doorPosition ?: DoorPosition.UNKNOWN
-    val date = doorEvent?.lastChangeTimeSeconds?.toFriendlyDate()
-    val time = doorEvent?.lastChangeTimeSeconds?.toFriendlyTime()
+    val lastChangeTimeSeconds = doorEvent?.lastChangeTimeSeconds
+    // Update time since last change every second.
+    var lastChangeDuration by remember { mutableStateOf<Duration>(Duration.ZERO) }
+    LaunchedEffect(key1 = lastChangeTimeSeconds) {
+        while (true) {
+            if (lastChangeTimeSeconds != null) {
+                lastChangeDuration = Duration.ofSeconds(
+                    System.currentTimeMillis() / 1000 - lastChangeTimeSeconds,
+                )
+            }
+            delay(1000L) // Update every 1 second
+        }
+    }
+    val date = lastChangeTimeSeconds?.toFriendlyDate()
+    val time = lastChangeTimeSeconds?.toFriendlyTime()
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         shape = RoundedCornerShape(10.dp),
@@ -55,6 +75,11 @@ fun DoorStatusCard(
             Text(
                 text = doorPosition.toFriendlyName(),
                 style = MaterialTheme.typography.titleLarge,
+                color = cardColors.contentColor,
+            )
+            Text(
+                text = lastChangeDuration.toFriendlyDuration(),
+                style = MaterialTheme.typography.labelSmall,
                 color = cardColors.contentColor,
             )
             Image(
@@ -91,7 +116,9 @@ fun RecentDoorEventListItem(
         modifier = modifier,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
