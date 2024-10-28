@@ -8,8 +8,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -95,6 +95,8 @@ fun HomeContent(
     notificationPermissionState: PermissionState = rememberNotificationPermissionState(),
 ) {
     var permissionRequestCount by remember { mutableIntStateOf(0) }
+    // Show the current door event.
+    val doorEvent = currentDoorEvent.data
 
     Column(
         modifier = modifier,
@@ -113,10 +115,6 @@ fun HomeContent(
             )
         }
 
-        // If the current event is loading, show a loading indicator.
-        if (currentDoorEvent is LoadingResult.Loading) {
-            Text(text = "Loading...")
-        }
         // If the current event had an error, show an error card.
         if (currentDoorEvent is LoadingResult.Error) {
             ErrorRequestCard(
@@ -127,16 +125,25 @@ fun HomeContent(
             )
         }
 
-        // Show the current door event.
-        val doorEvent = currentDoorEvent.data
-        DoorStatusCard(
-            doorEvent = doorEvent,
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .clickable { onFetchCurrentDoorEvent() }, // Fetch on click.
-            cardColors = doorCardColors(LocalDoorStatusColorScheme.current, doorEvent),
-        )
+        Box(
+            modifier = Modifier.weight(1f),
+        ) {
+            DoorStatusCard(
+                doorEvent = doorEvent,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable { onFetchCurrentDoorEvent() }, // Fetch on click.
+                cardColors = doorCardColors(LocalDoorStatusColorScheme.current, doorEvent),
+            )
+            // If the current event is loading, show a loading indicator.
+            if (currentDoorEvent is LoadingResult.Loading) {
+                Text(
+                    text = "Loading...",
+                    modifier = Modifier.padding(8.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+        }
 
         val lastCheckInTime = doorEvent?.lastCheckInTimeSeconds
         // Update time since last check-in every second.
