@@ -25,7 +25,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 50
-        versionName = "2.0 " + generateVersionNameTime()
+        versionName = "2.0-" + generateVersionNameTime()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -55,6 +55,27 @@ android {
             )
         }
     }
+
+    applicationVariants.all {
+        outputs.map { it as com.android.build.gradle.internal.api.ApkVariantOutputImpl }
+            .forEach { output ->
+                val variant = this
+                output.outputFileName = StringBuilder().run {
+                    append(variant.applicationId) // Package name
+                    if (variant.flavorName.isNotEmpty()) {
+                        append("_").append(variant.flavorName) // Optional flavor
+                    }
+                    append("_").append(variant.versionName) // Version name
+                    append("_").append(variant.versionCode) // Version code
+                    if (variant.buildType.name.isNotEmpty()) {
+                        append("_").append(variant.buildType.name) // Optional build type
+                    }
+                    append(".apk")
+                    toString()
+                }
+            }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
