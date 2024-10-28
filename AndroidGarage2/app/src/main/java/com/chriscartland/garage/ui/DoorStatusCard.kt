@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -15,11 +16,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -28,8 +24,6 @@ import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorPosition
-import kotlinx.coroutines.delay
-import java.time.Duration
 
 @Composable
 fun DoorStatusCard(
@@ -43,6 +37,8 @@ fun DoorStatusCard(
     ),
 ) {
     val doorPosition = doorEvent?.doorPosition ?: DoorPosition.UNKNOWN
+    val date = doorEvent?.lastChangeTimeSeconds?.toFriendlyDate()
+    val time = doorEvent?.lastCheckInTimeSeconds?.toFriendlyTime()
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         shape = RoundedCornerShape(10.dp),
@@ -50,85 +46,32 @@ fun DoorStatusCard(
         colors = cardColors,
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = doorEvent?.lastChangeTimeSeconds?.toFriendlyDate() ?: "",
-                    color = cardColors.contentColor,
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Text(
-                    text = doorEvent?.lastChangeTimeSeconds?.toFriendlyTime() ?: "",
-                    color = cardColors.contentColor,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
+            Text(
+                text = doorPosition.toFriendlyName(),
+                style = MaterialTheme.typography.titleLarge,
+                color = cardColors.contentColor,
+            )
             Image(
                 painter = painterResource(id = doorPosition.toImageResourceId()),
                 contentDescription = "Door Status",
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(148.dp)
+                    .weight(1f)
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = doorPosition.toFriendlyName(),
-                style = MaterialTheme.typography.titleMedium,
-                color = cardColors.contentColor,
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
             Text(
                 text = doorEvent?.message ?: "",
                 style = MaterialTheme.typography.labelSmall,
                 color = cardColors.contentColor,
             )
-
-            val lastCheckInTime = doorEvent?.lastCheckInTimeSeconds
-            val date = lastCheckInTime?.toFriendlyDate()
-            val time = lastCheckInTime?.toFriendlyTime()
             Text(
-                text = if (lastCheckInTime == null) {
-                    "Missing check-in time"
-                } else {
-                    "Check-in: $date $time"
-                },
+                text = "Since $date - $time",
                 style = MaterialTheme.typography.labelSmall,
+                color = cardColors.contentColor,
             )
-            // Show time every second.
-            var checkInDuration by remember { mutableStateOf<Duration?>(null) }
-            LaunchedEffect(key1 = lastCheckInTime) {
-                while (true) {
-                    if (lastCheckInTime != null) {
-                        checkInDuration = Duration.ofSeconds(
-                            System.currentTimeMillis() / 1000 - lastCheckInTime,
-                        )
-                    }
-                    delay(1000L) // Update every 1 second
-                }
-            }
-            checkInDuration?.let { duration ->
-                Text(
-                    text = "Time since check-in: " + duration.toFriendlyDuration() ?: "",
-                    style = MaterialTheme.typography.labelSmall,
-                )
-                // TODO: Nullable checkInDuration is var
-                if (duration > Duration.ofMinutes(15)) {
-                    Text(
-                        text = "Warning: Time since check-in is over 15 minutes",
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                }
-            }
         }
     }
 }
@@ -181,11 +124,8 @@ fun RecentDoorEventListItem(
             ) {
                 Text(
                     text = doorPosition.toFriendlyName(),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
                 Text(
                     text = doorEvent.message ?: "",
                     style = MaterialTheme.typography.labelSmall,

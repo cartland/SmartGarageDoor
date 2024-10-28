@@ -67,20 +67,25 @@ fun AppNavigation(
             startDestination = Screen.Home.route,
             Modifier
                 .padding(innerPadding)
-                .padding(16.dp)
         ) {
             composable(Screen.Home.route) { HomeContent(
                 viewModel = doorViewModel,
                 authViewModel = authViewModel,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .fillMaxWidth(),
             ) }
             composable(Screen.History.route) { DoorHistoryContent(
                 viewModel = doorViewModel,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .fillMaxWidth(),
             ) }
             composable(Screen.Profile.route) { ProfileContent(
                 viewModel = authViewModel,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .fillMaxWidth(),
             ) }
         }
     }

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -22,10 +21,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.auth.User
+import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.version.AppVersion
 
 @Composable
@@ -54,81 +53,91 @@ fun ProfileContent(
     signIn: () -> Unit,
     signOut: () -> Unit,
 ) {
-    LazyColumn(
+    Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (user == null) {
-            item {
-                Button(onClick = signIn) {
-                    Text("Sign In")
-                }
+        UserInfoCard(user)
+        Button(
+            onClick = if (user == null) {
+                signIn
+            } else {
+                signOut
             }
-        } else {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text("User Information", style = MaterialTheme.typography.titleLarge)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = "Name: ${user?.name?.asString() ?: "Unknown"}")
-                        Text(text = "Email: ${user?.email?.asString() ?: "Unknown"}")
-                    }
+        ) {
+            Text(
+                if (user == null) {
+                    "Sign In"
+                } else {
+                    "Sign out"
                 }
-            }
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = signOut) {
-                    Text("Sign out")
-                }
-            }
+            )
         }
+
         // Snooze notifications.
         if (APP_CONFIG.snoozeNotificationsOption) {
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SnoozeNotificationCard(
-                    text = "Snooze notifications",
-                    snoozeText = "Snooze",
-                    saveText = "Save",
-                )
-            }
-        }
-        item {
-            val context = LocalContext.current
-            val appVersion = AppVersion(
-                packageName = context.packageName,
-                versionCode = context.packageManager.getPackageInfo(context.packageName, 0).versionCode.toLong(),
-                versionName = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+            SnoozeNotificationCard(
+                text = "Snooze notifications",
+                snoozeText = "Snooze",
+                saveText = "Save",
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text("Android App Information", style = MaterialTheme.typography.titleLarge)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Package name: ${appVersion.packageName}")
-                    Text("Version name: ${appVersion.versionName}")
-                    Text("Version code: ${appVersion.versionCode.toString()}")
-                }
-            }
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        AndroidAppInfoCard()
+    }
+}
+
+@Composable
+fun UserInfoCard(
+    user: User?,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text("User Information", style = MaterialTheme.typography.titleLarge)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = "Name: ${user?.name?.asString() ?: "Unknown"}")
+            Text(text = "Email: ${user?.email?.asString() ?: "Unknown"}")
         }
     }
+}
+
+@Composable
+fun AndroidAppInfoCard() {
+    val context = LocalContext.current
+    val appVersion = AppVersion(
+        packageName = context.packageName,
+        versionCode = context.packageManager.getPackageInfo(context.packageName, 0).versionCode.toLong(),
+        versionName = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+    )
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text("Android App Information", style = MaterialTheme.typography.titleLarge)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Package name: ${appVersion.packageName}")
+            Text("Version name: ${appVersion.versionName}")
+            Text("Version code: ${appVersion.versionCode.toString()}")
+        }
+    }
+    Spacer(modifier = Modifier.height(8.dp))
 }
 
 @Preview(showBackground = true)

@@ -1,10 +1,10 @@
 package com.chriscartland.garage.ui
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.widthIn
@@ -15,7 +15,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -25,13 +24,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.chriscartland.garage.auth.AuthState
-import com.chriscartland.garage.auth.AuthViewModelImpl
-import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.remotebutton.RequestStatus
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -145,16 +142,55 @@ fun RemoteButtonContent(
                 textAlign = TextAlign.Center,
             )
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        if (buttonState != RemoteButtonState.READY
-            || remoteRequestStatus != RequestStatus.NONE) {
-            ButtonRequestIndicator(
-                modifier = Modifier
-                    .fillMaxWidth(0.6f)
-                    .widthIn(max = 256.dp),
-                remoteRequestStatus = remoteRequestStatus,
-            )
+        Spacer(modifier = Modifier.height(8.dp))
+        Box(
+            modifier = Modifier.height(36.dp),
+        ) {
+            if (remoteRequestStatus != RequestStatus.NONE
+                || buttonState == RemoteButtonState.ARMED) {
+                ButtonRequestIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth(.8f)
+                        .widthIn(max = 256.dp),
+                    remoteRequestStatus = remoteRequestStatus,
+                    indicatorHeight = 10.dp,
+                )
+            }
         }
+    }
+}
+
+data class RemoteIndicator(
+    val text: String,
+    val complete: Int,
+    val failure: Boolean = false,
+)
+
+@Composable
+fun ButtonRequestIndicator(
+    modifier: Modifier = Modifier,
+    remoteRequestStatus: RequestStatus = RequestStatus.NONE,
+    indicatorHeight: Dp = 10.dp,
+) {
+    val progress = when (remoteRequestStatus) {
+        RequestStatus.NONE -> RemoteIndicator("Ready", 0)
+        RequestStatus.SENDING -> RemoteIndicator("Sending", 1)
+        RequestStatus.SENDING_TIMEOUT -> RemoteIndicator("Sending failed", 2)
+        RequestStatus.SENT -> RemoteIndicator("Sent", 3)
+        RequestStatus.SENT_TIMEOUT -> RemoteIndicator("Command not delivered", 4, failure = true)
+        RequestStatus.RECEIVED -> RemoteIndicator("Door moved", 5)
+    }
+    val colorComplete: Color = if (progress.failure) Color(0xFFFF3333) else Color(0xFF3333FF)
+    Column(
+        modifier = modifier,
+    ) {
+        ParallelogramProgressBar(
+            max = 5,
+            complete = progress.complete,
+            colorComplete = colorComplete,
+            height = indicatorHeight,
+        )
+        Text(text = progress.text, textAlign = TextAlign.Center)
     }
 }
 

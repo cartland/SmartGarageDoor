@@ -1,4 +1,4 @@
-package com.chriscartland.garage.ui
+package com.chriscartland.garage.permissions
 
 import android.Manifest
 import android.os.Build
