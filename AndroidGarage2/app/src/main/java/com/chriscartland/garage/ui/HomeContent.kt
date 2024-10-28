@@ -63,7 +63,9 @@ fun HomeContent(
         onRemoteButtonClick = {
             when (authState) {
                 is AuthState.Authenticated -> {
-                    buttonViewModel.pushRemoteButton()
+                    Log.d(TAG, "Remote button clicked. " +
+                            "AuthViewModel authState $authState")
+                    buttonViewModel.pushRemoteButton(authViewModel.authRepository)
                 }
                 AuthState.Unauthenticated -> {
                     authViewModel.signInWithGoogle(activity)
@@ -203,3 +205,5 @@ fun HomeContentPreview() {
         }
     )
 }
+
+private const val TAG = "HomeContent"

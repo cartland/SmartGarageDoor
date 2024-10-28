@@ -29,7 +29,6 @@ interface AuthRepository {
 }
 
 class AuthRepositoryImpl @Inject constructor() : AuthRepository {
-
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
     override val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
@@ -103,6 +102,7 @@ class AuthRepositoryImpl @Inject constructor() : AuthRepository {
      * Commit the new AuthState and handle any side effects.
      */
     private fun AuthState.commit(): AuthState {
+        Log.d(TAG, "AuthState.commit(): $this")
         return this.also {
             _authState.value = it
         }

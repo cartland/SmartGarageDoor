@@ -28,6 +28,7 @@ import androidx.navigation.compose.rememberNavController
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.fcm.FCMRegistration
+import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.ui.theme.AppTheme
 
 @Composable
@@ -48,6 +49,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 fun AppNavigation(
     doorViewModel: DoorViewModelImpl = hiltViewModel(),
     authViewModel: AuthViewModelImpl = hiltViewModel(),
+    buttonViewModel: RemoteButtonViewModelImpl = hiltViewModel(),
 ) {
     // Register for FCM notifications.
     FCMRegistration(viewModel = doorViewModel)
@@ -71,6 +73,7 @@ fun AppNavigation(
             composable(Screen.Home.route) { HomeContent(
                 viewModel = doorViewModel,
                 authViewModel = authViewModel,
+                buttonViewModel = buttonViewModel,
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
                     .fillMaxWidth(),

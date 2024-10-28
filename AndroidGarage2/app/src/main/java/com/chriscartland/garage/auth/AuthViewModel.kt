@@ -24,6 +24,14 @@ import javax.inject.Inject
 
 interface AuthViewModel {
     val authState: StateFlow<AuthState>
+    // TODO: Hide AuthRepository by making sure that Hilt instantiates a singleton.
+    // I had an issue in release builds (not debug) where Hilt would instantiate multiple
+    // AuthRepository instances for each ViewModel, which caused inconsistent auth states.
+    // As a workaround, I'm exposing the AuthRepository in the ViewModel so
+    // we can access the same auth state in other parts of the app.
+    // This breaks separation of concerns, but is necessary until I can ensure that multiple
+    // parts of the app are able to access the correct AuthRepository through dependency injection.
+    val authRepository: AuthRepository
     fun signInWithGoogle(activity: ComponentActivity)
     fun signOut()
     fun processGoogleSignInResult(data: Intent)
@@ -31,10 +39,12 @@ interface AuthViewModel {
 
 @HiltViewModel
 class AuthViewModelImpl @Inject constructor(
-    private val authRepository: AuthRepository,
+    private val _authRepository: AuthRepository,
 ) : ViewModel(), AuthViewModel {
 
-    override val authState: StateFlow<AuthState> = authRepository.authState
+    override val authRepository: AuthRepository = _authRepository
+
+    override val authState: StateFlow<AuthState> = _authRepository.authState
 
     override fun signInWithGoogle(activity: ComponentActivity) {
         viewModelScope.launch {
@@ -70,7 +80,7 @@ class AuthViewModelImpl @Inject constructor(
 
     override fun signOut() {
         viewModelScope.launch {
-            authRepository.signOut()
+            _authRepository.signOut()
         }
     }
 
@@ -81,7 +91,7 @@ class AuthViewModelImpl @Inject constructor(
                 Log.e(TAG, "Google sign-in failed")
                 return@launch
             }
-            authRepository.signInWithGoogle(googleIdToken)
+            _authRepository.signInWithGoogle(googleIdToken)
         }
     }
 

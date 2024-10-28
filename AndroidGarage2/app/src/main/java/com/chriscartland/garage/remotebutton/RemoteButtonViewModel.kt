@@ -26,7 +26,7 @@ import javax.inject.Inject
 
 interface RemoteButtonViewModel {
     val requestStatus: StateFlow<RequestStatus>
-    fun pushRemoteButton()
+    fun pushRemoteButton(authRepository: AuthRepository)
     fun resetRemoteButton()
 }
 
@@ -36,8 +36,6 @@ class RemoteButtonViewModelImpl @Inject constructor(
     private val pushRepository: PushRepository,
     // Watch the door status, because we consider the request delivered when the door moves.
     private val doorRepository: DoorRepository,
-    // Need the auth token to send a request.
-    private val authRepository: AuthRepository,
 ) : ViewModel(), RemoteButtonViewModel {
     // Listen to network events and door status updates.
     private val _requestStatus = MutableStateFlow(RequestStatus.NONE)
@@ -212,15 +210,15 @@ class RemoteButtonViewModelImpl @Inject constructor(
      *
      * Requires an authenticated user.
      */
-    override fun pushRemoteButton() {
+    override fun pushRemoteButton(authRepository: AuthRepository) {
         Log.d(TAG, "pushRemoteButton")
         viewModelScope.launch(Dispatchers.IO) {
             val authState = authRepository.authState.value
             if (authState !is AuthState.Authenticated) {
-                Log.e(TAG, "Not authenticated")
+                Log.e(TAG, "Not authenticated: $authState")
                 return@launch
             }
-            val idToken = ensureFreshIdToken(authState)
+            val idToken = ensureFreshIdToken(authRepository, authState)
             Log.d(TAG, "pushRemoteButton: Pushing remote button: $idToken")
             pushRepository.push(
                 idToken = IdToken(idToken.asString()),
@@ -232,7 +230,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
     /**
      * Ensure the ID token is fresh.
      */
-    private suspend fun ensureFreshIdToken(authState: AuthState.Authenticated): FirebaseIdToken {
+    private suspend fun ensureFreshIdToken(authRepository: AuthRepository, authState: AuthState.Authenticated): FirebaseIdToken {
         Log.d(TAG, "refreshIdToken")
         return if (authState.user.idToken.exp > System.currentTimeMillis()) {
             Log.d(TAG, "freshIdToken: Using cached token")
