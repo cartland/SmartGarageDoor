@@ -39,7 +39,7 @@ fun DoorStatusCard(
 ) {
     val doorPosition = doorEvent?.doorPosition ?: DoorPosition.UNKNOWN
     val date = doorEvent?.lastChangeTimeSeconds?.toFriendlyDate()
-    val time = doorEvent?.lastCheckInTimeSeconds?.toFriendlyTime()
+    val time = doorEvent?.lastChangeTimeSeconds?.toFriendlyTime()
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         shape = RoundedCornerShape(10.dp),
@@ -83,8 +83,8 @@ fun RecentDoorEventListItem(
     modifier: Modifier = Modifier,
 ) {
     val doorPosition = doorEvent.doorPosition ?: DoorPosition.UNKNOWN
-    val date = doorEvent?.lastChangeTimeSeconds?.toFriendlyDate()
-    val time = doorEvent?.lastCheckInTimeSeconds?.toFriendlyTime()
+    val date = doorEvent.lastChangeTimeSeconds?.toFriendlyDate()
+    val time = doorEvent.lastChangeTimeSeconds?.toFriendlyTime()
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = RoundedCornerShape(10.dp),
