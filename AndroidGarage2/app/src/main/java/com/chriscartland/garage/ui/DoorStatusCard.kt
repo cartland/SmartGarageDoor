@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
@@ -82,52 +83,55 @@ fun RecentDoorEventListItem(
     modifier: Modifier = Modifier,
 ) {
     val doorPosition = doorEvent.doorPosition ?: DoorPosition.UNKNOWN
-
+    val date = doorEvent?.lastChangeTimeSeconds?.toFriendlyDate()
+    val time = doorEvent?.lastCheckInTimeSeconds?.toFriendlyTime()
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = RoundedCornerShape(10.dp),
         modifier = modifier,
-        colors = CardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
-            disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        ),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-
             Column(
+                modifier = Modifier
+                    .weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                Text(
+                    text = doorPosition.toFriendlyName(),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.titleLarge,
+                )
                 Image(
                     painter = painterResource(id = doorPosition.toImageResourceId()),
                     contentDescription = "Door Status",
                     modifier = Modifier
-                        .height(96.dp),
+                        .height(96.dp)
                 )
                 Text(
-                    text = doorEvent.lastChangeTimeSeconds?.toFriendlyDate() ?: ""
-                )
-                Text(
-                    text = doorEvent.lastChangeTimeSeconds?.toFriendlyTime() ?: ""
+                    text = doorEvent?.message ?: "",
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelSmall,
                 )
             }
 
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = doorPosition.toFriendlyName(),
+                    text = "$time",
+                    textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.titleLarge,
                 )
                 Text(
-                    text = doorEvent.message ?: "",
+                    text = "$date",
+                    textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelSmall,
                 )
             }

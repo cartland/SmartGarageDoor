@@ -153,7 +153,7 @@ fun HomeContent(
         }
         checkInDuration?.let { duration ->
             Text(
-                text = "Time since check-in: " + duration.toFriendlyDuration() ?: "",
+                text = ("Time since check-in: " + duration.toFriendlyDuration()) ?: "",
                 style = MaterialTheme.typography.labelSmall,
             )
             if (duration > Duration.ofMinutes(15)) {
