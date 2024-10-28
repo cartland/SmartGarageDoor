@@ -21,7 +21,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.chriscartland.garage2"
+        applicationId = "com.chriscartland.garage"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
@@ -48,7 +48,7 @@ android {
         debug {
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
