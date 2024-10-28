@@ -68,7 +68,7 @@ fun DoorHistoryContent(
         // If the recent events had an error, show an error card.
         if (recentDoorEvents is LoadingResult.Error) {
             item {
-                ErrorRequestCard(
+                ErrorCard(
                     text = "Error fetching recent door events:" +
                             recentDoorEvents.exception.toString().take(500),
                     buttonText = "Retry",

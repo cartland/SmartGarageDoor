@@ -117,7 +117,7 @@ fun HomeContent(
 
         // Add a card at the top if the notification permission is not granted.
         if (!notificationPermissionState.status.isGranted) {
-            ErrorRequestCard(
+            ErrorCard(
                 text = notificationJustificationText(permissionRequestCount),
                 buttonText = "Allow",
                 onClick = {
@@ -129,7 +129,7 @@ fun HomeContent(
 
         // If the current event had an error, show an error card.
         if (currentDoorEvent is LoadingResult.Error) {
-            ErrorRequestCard(
+            ErrorCard(
                 text = "Error fetching current door event: " +
                         currentDoorEvent.exception.toString().take(500),
                 buttonText = "Retry",
