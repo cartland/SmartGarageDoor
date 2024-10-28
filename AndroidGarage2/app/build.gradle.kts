@@ -1,4 +1,6 @@
 import java.io.FileInputStream
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Properties
 
 plugins {
@@ -23,7 +25,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1
-        versionName = "2.0"
+        versionName = "2.0 " + generateVersionNameTime()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -72,6 +74,12 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+fun generateVersionNameTime(): String {
+    val currentDateTime = LocalDateTime.now()
+    val formatter = DateTimeFormatter.ofPattern("yyyyMMdd.HHmmss")
+    return currentDateTime.format(formatter)
 }
 
 room {

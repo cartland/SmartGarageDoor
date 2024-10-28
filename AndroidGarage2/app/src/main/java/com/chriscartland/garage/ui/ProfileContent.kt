@@ -4,13 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -25,7 +19,6 @@ import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.auth.User
 import com.chriscartland.garage.config.APP_CONFIG
-import com.chriscartland.garage.version.AppVersion
 
 @Composable
 fun ProfileContent(
@@ -74,7 +67,6 @@ fun ProfileContent(
                 }
             )
         }
-
         // Snooze notifications.
         if (APP_CONFIG.snoozeNotificationsOption) {
             SnoozeNotificationCard(
@@ -83,61 +75,9 @@ fun ProfileContent(
                 saveText = "Save",
             )
         }
-
         Spacer(modifier = Modifier.weight(1f))
-
         AndroidAppInfoCard()
     }
-}
-
-@Composable
-fun UserInfoCard(
-    user: User?,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text("User Information", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = "Name: ${user?.name?.asString() ?: "Unknown"}")
-            Text(text = "Email: ${user?.email?.asString() ?: "Unknown"}")
-        }
-    }
-}
-
-@Composable
-fun AndroidAppInfoCard() {
-    val context = LocalContext.current
-    val appVersion = AppVersion(
-        packageName = context.packageName,
-        versionCode = context.packageManager.getPackageInfo(context.packageName, 0).versionCode.toLong(),
-        versionName = context.packageManager.getPackageInfo(context.packageName, 0).versionName
-    )
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text("Android App Information", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Package name: ${appVersion.packageName}")
-            Text("Version name: ${appVersion.versionName}")
-            Text("Version code: ${appVersion.versionCode.toString()}")
-        }
-    }
-    Spacer(modifier = Modifier.height(8.dp))
 }
 
 @Preview(showBackground = true)
