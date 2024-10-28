@@ -1,12 +1,11 @@
 package com.chriscartland.garage.ui
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
@@ -23,8 +22,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -65,11 +67,17 @@ fun RemoteButtonContent(
         var countdown by remember { mutableIntStateOf(10) }
         var job: Job? by remember { mutableStateOf(null) }
 
+        // Track the width of the button so the indicator can be sized correctly.
+        var buttonWidth by remember { mutableStateOf(0.dp) }
+        val localDensity = LocalDensity.current
         Button(
             modifier = Modifier
                 .weight(1f)
                 .aspectRatio(1f)
                 .widthIn(max = 256.dp)
+                .onSizeChanged { size ->
+                    buttonWidth = with(localDensity) { size.width.toDp() }
+                }
                 .shadow(4.dp, CircleShape),
             enabled = when (buttonState) {
                 RemoteButtonState.READY -> true
@@ -143,20 +151,21 @@ fun RemoteButtonContent(
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Box(
-            modifier = Modifier.height(36.dp),
-        ) {
-            if (remoteRequestStatus != RequestStatus.NONE
-                || buttonState == RemoteButtonState.ARMED) {
-                ButtonRequestIndicator(
-                    modifier = Modifier
-                        .fillMaxWidth(.8f)
-                        .widthIn(max = 256.dp),
-                    remoteRequestStatus = remoteRequestStatus,
-                    indicatorHeight = 10.dp,
-                )
-            }
-        }
+        ButtonRequestIndicator(
+            modifier = Modifier
+                .width(buttonWidth)
+                .drawWithContent {
+                    // Only draw this indicator if the button is armed or we are sending a request.
+                    // We are skipping the "draw" phase in Compose so that it still takes space.
+                    // We want to avoid the UI jumping around when this becomes visible / invisible.
+                    if (buttonState == RemoteButtonState.ARMED
+                        || remoteRequestStatus != RequestStatus.NONE) {
+                        drawContent()
+                    }
+                },
+            remoteRequestStatus = remoteRequestStatus,
+            indicatorHeight = 10.dp,
+        )
     }
 }
 
