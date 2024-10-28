@@ -7,12 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -21,8 +16,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.door.LoadingResult
-import kotlinx.coroutines.delay
 import java.time.Duration
+import java.time.Instant
 
 @Composable
 fun DoorHistoryContent(
@@ -43,27 +38,14 @@ fun DoorHistoryContent(
     recentDoorEvents: LoadingResult<List<DoorEvent>?>,
     onFetchRecentDoorEvents: () -> Unit = {},
 ) {
-    val lastCheckInTime = recentDoorEvents.data?.get(0)?.lastCheckInTimeSeconds
-    // Update time since last check-in every second.
-    var checkInDuration by remember { mutableStateOf<Duration?>(null) }
-    LaunchedEffect(key1 = lastCheckInTime) {
-        while (true) {
-            if (lastCheckInTime != null) {
-                checkInDuration = Duration.ofSeconds(
-                    System.currentTimeMillis() / 1000 - lastCheckInTime,
-                )
-            }
-            delay(1000L) // Update every 1 second
-        }
-    }
-
     LazyColumn(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         item {
-            checkInDuration?.let { duration ->
+            val lastCheckInTime = recentDoorEvents.data?.get(0)?.lastCheckInTimeSeconds
+            DurationSince(lastCheckInTime?.let { Instant.ofEpochSecond(lastCheckInTime) }) { duration ->
                 Text(
                     text = ("Time since check-in: " + duration.toFriendlyDuration()) ?: "",
                     style = MaterialTheme.typography.labelSmall,

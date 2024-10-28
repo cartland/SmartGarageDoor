@@ -1,5 +1,12 @@
 package com.chriscartland.garage.ui
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -42,4 +49,28 @@ fun Duration.toFriendlyDuration(): String {
         hours > 0 -> String.format("%d:%02d:%02d", hours, minutes, seconds)
         else -> String.format("%d:%02d", minutes, seconds)
     }
+}
+
+/**
+ * Composable that updates periodically based on the duration since a specific time.
+ */
+@Composable
+fun DurationSince(
+    time: Instant?,
+    defaultDuration: Duration = Duration.ZERO,
+    updatePeriod: Duration = Duration.ofSeconds(1),
+    content: @Composable (duration: Duration) -> Unit,
+) {
+    var checkInDuration by remember { mutableStateOf(defaultDuration) }
+    LaunchedEffect(key1 = time) {
+        while (true) {
+            checkInDuration = if (time == null) {
+                defaultDuration
+            } else {
+                Duration.between(time, Instant.now())
+            }
+            delay(updatePeriod.toMillis())
+        }
+    }
+    content(checkInDuration)
 }

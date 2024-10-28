@@ -14,11 +14,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -42,8 +40,8 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.isGranted
-import kotlinx.coroutines.delay
 import java.time.Duration
+import java.time.Instant
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -103,6 +101,20 @@ fun HomeContent(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        val lastCheckInTime = doorEvent?.lastCheckInTimeSeconds
+        DurationSince(lastCheckInTime?.let { Instant.ofEpochSecond(lastCheckInTime) }) { duration ->
+            Text(
+                text = ("Time since check-in: " + duration.toFriendlyDuration()) ?: "",
+                style = MaterialTheme.typography.labelSmall,
+            )
+            if (duration > Duration.ofMinutes(15)) {
+                Text(
+                    text = "Warning: Time since check-in is over 15 minutes",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+        }
+
         // Add a card at the top if the notification permission is not granted.
         if (!notificationPermissionState.status.isGranted) {
             ErrorRequestCard(
@@ -141,32 +153,6 @@ fun HomeContent(
                     text = "Loading...",
                     modifier = Modifier.padding(8.dp),
                     style = MaterialTheme.typography.titleMedium,
-                )
-            }
-        }
-
-        val lastCheckInTime = doorEvent?.lastCheckInTimeSeconds
-        // Update time since last check-in every second.
-        var checkInDuration by remember { mutableStateOf<Duration?>(null) }
-        LaunchedEffect(key1 = lastCheckInTime) {
-            while (true) {
-                if (lastCheckInTime != null) {
-                    checkInDuration = Duration.ofSeconds(
-                        System.currentTimeMillis() / 1000 - lastCheckInTime,
-                    )
-                }
-                delay(1000L) // Update every 1 second
-            }
-        }
-        checkInDuration?.let { duration ->
-            Text(
-                text = ("Time since check-in: " + duration.toFriendlyDuration()) ?: "",
-                style = MaterialTheme.typography.labelSmall,
-            )
-            if (duration > Duration.ofMinutes(15)) {
-                Text(
-                    text = "Warning: Time since check-in is over 15 minutes",
-                    style = MaterialTheme.typography.labelSmall,
                 )
             }
         }
