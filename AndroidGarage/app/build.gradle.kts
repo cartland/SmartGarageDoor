@@ -27,7 +27,6 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.gms)
     alias(libs.plugins.room)
-    kotlin("kapt")
 }
 
 val configProperties = Properties()
@@ -157,11 +156,11 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
-    kapt(libs.hilt.compiler)
+    ksp(libs.hilt.compiler)
     // Room
     implementation(libs.androidx.room.common)
     implementation(libs.androidx.room.ktx)
-    kapt(libs.androidx.room.compiler)
+    ksp(libs.androidx.room.compiler)
     // DataStore
     implementation(libs.androidx.datastore.preferences)
     // Firebase
