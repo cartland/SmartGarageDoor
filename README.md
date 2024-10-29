@@ -143,16 +143,17 @@ failing to acknowledge the button. The server must keep responding with the same
 * **Platform**: Android
 
 **Door State**: The Android app displays the current status of the door, as interpreted by the server.
-https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/AndroidGarage/app/src/main/java/com/chriscartland/garage/model/DoorState.kt#L20-L30
+https://github.com/cartland/SmartGarageDoor/blob/027b1e2a5d79b8fe250d5ad6d3db659ceca11d0a/AndroidGarage/app/src/main/java/com/chriscartland/garage/door/DoorModel.kt#L37-L47
 
 **Pushing the garage button**: The user can "press the garage door button" in the app.
-After a confirmation dialog, the app will send a command to the server.
-To minimize the chance of double-pressing the button,
-the Android app will disable the button for 30 seconds.
-https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/AndroidGarage/app/src/main/java/com/chriscartland/garage/MainActivity.kt#L267-L284
+After a second confirmation, the app will send a command to the server.
+https://github.com/cartland/SmartGarageDoor/blob/027b1e2a5d79b8fe250d5ad6d3db659ceca11d0a/AndroidGarage/app/src/main/java/com/chriscartland/garage/remotebutton/RemoteButtonViewModel.kt#L230-L245
 
 **Authentication**: Pushing the button requires Google Sign-In. The server maintains an allow-list.
-https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/AndroidGarage/app/src/main/java/com/chriscartland/garage/MainActivity.kt#L96-L106
+https://github.com/cartland/SmartGarageDoor/blob/027b1e2a5d79b8fe250d5ad6d3db659ceca11d0a/AndroidGarage/app/src/main/java/com/chriscartland/garage/auth/AuthViewModel.kt#L71-L80
+
+**Google Sign-In with Firebase Auth**: The app manages 2 distinct ID tokens. The server requires the Firebase version.
+https://github.com/cartland/SmartGarageDoor/blob/027b1e2a5d79b8fe250d5ad6d3db659ceca11d0a/AndroidGarage/app/src/main/java/com/chriscartland/garage/auth/AuthRepository.kt#L69-L73
 
 ## Server
 * **Platform**: Firebase Functions
