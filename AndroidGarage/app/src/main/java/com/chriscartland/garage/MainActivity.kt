@@ -40,6 +40,10 @@ class MainActivity : ComponentActivity() {
     }
 
     // TODO: Migrate away from onActivityResult with Activity Result API and ActivityResultContract.
+    @Deprecated(
+        "This method has been deprecated in favor of using the Activity Result API",
+        level = DeprecationLevel.WARNING,
+    )
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         Log.d("MainActivity", "onActivityResult")
