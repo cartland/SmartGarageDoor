@@ -1,5 +1,6 @@
 package com.chriscartland.garage.ui
 
+import android.os.Build
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,18 +20,28 @@ import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.version.AppVersion
 
 @Composable
-fun AndroidAppInfoCard(
-    appVersion: AppVersion = with(LocalContext.current) {
+fun AndroidAppInfoCard() {
+    AndroidAppInfoCard(with(LocalContext.current) {
         AppVersion(
             packageName = packageName,
             versionCode = packageManager.getPackageInfo(
                 packageName,
                 0
-            ).versionCode.toLong(),
+            ).let {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    it.longVersionCode
+                } else {
+                    @Suppress("DEPRECATION")
+                    it.versionCode.toLong()
+                }
+            },
             versionName = packageManager.getPackageInfo(packageName, 0).versionName,
         )
-    }
-) {
+    })
+}
+
+@Composable
+fun AndroidAppInfoCard(appVersion: AppVersion) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),

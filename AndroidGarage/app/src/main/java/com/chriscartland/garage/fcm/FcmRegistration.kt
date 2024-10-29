@@ -110,6 +110,6 @@ private fun String.toDoorOpenFcmTopic(): String {
     return "door_open-$filtered"
 }
 
-private val TAG: String = "FcmRegistration"
+private const val TAG: String = "FcmRegistration"
 
 const val FCM_DOOR_OPEN_TOPIC = "com.chriscartland.garage.repository.FCM_DOOR_OPEN_TOPIC"
