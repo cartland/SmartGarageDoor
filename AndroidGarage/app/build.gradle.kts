@@ -35,12 +35,12 @@ configProperties.load(FileInputStream(rootProject.file("config.properties")))
 
 android {
     namespace = "com.chriscartland.garage"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.chriscartland.garage"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 54
         versionName = "2.0-" + generateVersionNameTime()
 

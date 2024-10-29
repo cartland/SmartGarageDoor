@@ -52,7 +52,7 @@ fun AndroidAppInfoCard() {
                     it.versionCode.toLong()
                 }
             },
-            versionName = packageManager.getPackageInfo(packageName, 0).versionName,
+            versionName = packageManager.getPackageInfo(packageName, 0).versionName ?: "",
         )
     })
 }
