@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AndroidGarage2"
+rootProject.name = "AndroidGarage"
 include(":app")
  
