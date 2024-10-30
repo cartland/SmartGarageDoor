@@ -31,58 +31,24 @@ plugins {
     alias(libs.plugins.room)
 }
 
-println(rootProject.file("release/app-release.jks").exists())
+val localPropertiesExplanation = """
+    Make sure you have a local.properties file with the following properties:
 
-// local.properties
-// PRIORITIZE_LOCAL_PROPERTIES=true
-// SERVER_CONFIG_KEY=YourKey
-// GOOGLE_WEB_CLIENT_ID=YourClientId
-// GARAGE_RELEASE_KEYSTORE_PWD=YourKeystorePassword
-// GARAGE_RELEASE_KEY_PWD=YourKeyPassword
-class PropertyFinder(private val project: Project, private val localProperties: Properties) {
-    /**
-     * Find the build property from config files or command line arguments.
-     *
-     * Default:
-     * - gradle command line argument: gradlew -PKEY_NAME=value
-     * - gradle.properties: KEY_NAME=value
-     *
-     * @param name The name of the property.
-     * @param default Default: null. The default value to use if the property is not found.
-     * @param prioritizeLocal Default: false. Whether use check the local.properties file first.
-     */
-    fun find(
-        name: String,
-        default: String? = null,
-        prioritizeLocal: Boolean = false,
-    ): String? {
-        fun getLocal(): String? {
-            if (localProperties.containsKey(name)) {
-                return localProperties.getProperty(name)
-            } else {
-                return null
-            }
-        }
-        fun getProject(): String? {
-            // This will prioritize command line arguments over gradle.properties
-            return (project.findProperty(name) as? String)
-        }
-        return if (prioritizeLocal) {
-            getLocal() ?: getProject() ?: default
-        } else {
-            getProject() ?: getLocal() ?: default
-        }
+    # local.properties
+    SERVER_CONFIG_KEY=YourKey
+    GOOGLE_WEB_CLIENT_ID=YourClientId
+    # Keystore password and key password are required for release builds
+    GARAGE_RELEASE_KEYSTORE_PWD=YourKeystorePassword
+    GARAGE_RELEASE_KEY_PWD=YourKeyPassword
+""".trimIndent()
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        load(localPropertiesFile.inputStream())
+    } else {
+        println(localPropertiesExplanation)
     }
 }
-
-val localProperties = Properties().apply {
-    load(FileInputStream(File(rootProject.rootDir, "local.properties")))
-}
-val finder = PropertyFinder(project = project, localProperties = localProperties)
-
-val useLocalProperties = finder.find("PRIORITIZE_LOCAL_PROPERTIES", default = "false").toBoolean()
-val serverConfigKey = finder.find("SERVER_CONFIG_KEY", prioritizeLocal = useLocalProperties)
-val googleWebClientId = finder.find("GOOGLE_WEB_CLIENT_ID", prioritizeLocal = useLocalProperties)
 
 android {
     namespace = "com.chriscartland.garage"
@@ -100,6 +66,12 @@ android {
             useSupportLibrary = true
         }
 
+        val serverConfigKey = "SERVER_CONFIG_KEY".let {
+            localProperties.getProperty(it) ?: project.findProperty(it) as? String
+        }
+        val googleWebClientId = "GOOGLE_WEB_CLIENT_ID".let {
+            localProperties.getProperty(it) ?: project.findProperty(it) as? String
+        }
         buildConfigField(
             "String",
             "SERVER_CONFIG_KEY",
@@ -120,11 +92,17 @@ android {
             keyPassword = "android"
         }
         if (rootProject.file("release/app-release.jks").exists()) {
+            val releaseKeystorePwd = "GARAGE_RELEASE_KEYSTORE_PWD".let {
+                localProperties.getProperty(it) ?: project.findProperty(it) as? String
+            }
+            val releaseKeyPwd = "GARAGE_RELEASE_KEY_PWD".let {
+                localProperties.getProperty(it) ?: project.findProperty(it) as? String
+            }
             create("release") {
                 storeFile = rootProject.file("release/app-release.jks")
-                storePassword = finder.find("GARAGE_RELEASE_KEYSTORE_PWD").orEmpty()
+                storePassword = releaseKeystorePwd
                 keyAlias = "Garage"
-                keyPassword = finder.find("GARAGE_RELEASE_KEY_PWD").orEmpty()
+                keyPassword = releaseKeyPwd
             }
         }
     }
