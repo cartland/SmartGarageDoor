@@ -111,7 +111,9 @@ android {
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
+                "retrofit2.pro",
+                "moshi.pro",
             )
             signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".debug"
@@ -120,7 +122,9 @@ android {
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
+                "retrofit2.pro",
+                "moshi.pro",
             )
             if (rootProject.file("release/app-release.jks").exists()) {
                 signingConfig = signingConfigs.getByName("release")

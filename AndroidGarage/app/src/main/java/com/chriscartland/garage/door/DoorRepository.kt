@@ -18,7 +18,6 @@
 package com.chriscartland.garage.door
 
 import android.util.Log
-import androidx.annotation.Keep
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.config.ServerConfigRepository
 import com.chriscartland.garage.db.LocalDoorDataSource
@@ -32,7 +31,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
-@Keep
 interface DoorRepository {
     // Only exposes the door position.
     val currentDoorPosition: Flow<DoorPosition>
@@ -45,7 +43,6 @@ interface DoorRepository {
     suspend fun fetchRecentDoorEvents()
 }
 
-@Keep
 class DoorRepositoryImpl @Inject constructor(
     private val localDoorDataSource: LocalDoorDataSource,
     private val network: GarageNetworkService,

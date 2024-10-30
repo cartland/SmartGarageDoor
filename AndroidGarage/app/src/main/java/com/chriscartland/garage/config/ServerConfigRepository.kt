@@ -18,7 +18,6 @@
 package com.chriscartland.garage.config
 
 import android.util.Log
-import androidx.annotation.Keep
 import com.chriscartland.garage.internet.GarageNetworkService
 import dagger.Binds
 import dagger.Module
@@ -27,13 +26,11 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.sync.Mutex
 import javax.inject.Inject
 
-@Keep
 interface ServerConfigRepository {
     suspend fun getServerConfigCached(): ServerConfig?
     suspend fun fetchServerConfig(): ServerConfig?
 }
 
-@Keep
 class ServerConfigRepositoryImpl @Inject constructor(
     private val network: GarageNetworkService,
 ) : ServerConfigRepository {

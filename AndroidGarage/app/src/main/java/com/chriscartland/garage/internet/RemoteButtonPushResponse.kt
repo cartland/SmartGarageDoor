@@ -17,11 +17,9 @@
 
 package com.chriscartland.garage.internet
 
-import androidx.annotation.Keep
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
-@Keep
 @JsonClass(generateAdapter = true)
 data class RemoteButtonPushResponse(
     @Json(name = "FIRESTORE_databaseTimestamp") val firestoreDatabaseTimestamp: FirestoreDatabaseTimestamp?,

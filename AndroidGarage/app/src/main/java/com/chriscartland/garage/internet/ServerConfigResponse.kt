@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.internet
 
-import androidx.annotation.Keep
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import java.net.URLDecoder
@@ -25,7 +24,6 @@ import java.nio.charset.StandardCharsets
 
 // Response to:
 // curl -H "Content-Type: application/json" -H "X-ServerConfigKey: YourKey" https://us-central1-escape-echo.cloudfunctions.net/serverConfig
-@Keep
 @JsonClass(generateAdapter = true)
 data class ServerConfigResponse(
     @Json(name = "FIRESTORE_databaseTimestamp") val firestoreDatabaseTimestamp: FirestoreDatabaseTimestamp?,
