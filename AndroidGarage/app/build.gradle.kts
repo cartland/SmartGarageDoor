@@ -115,15 +115,18 @@ android {
         create("debugMini") {
             initWith(getByName("debug"))
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
                 "retrofit2.pro",
                 "moshi.pro",
             )
+            matchingFallbacks += listOf("release", "debug")
         }
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
