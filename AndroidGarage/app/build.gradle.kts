@@ -108,11 +108,13 @@ android {
     }
 
     buildTypes {
+        // Add .debug suffix so debug can be installed on same device as release
         val debug by getting {
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".debug"
         }
+        // Debug R8 optimizations with isMinifyEnabled = true
         val debugMinify by creating {
             initWith(debug)
             isMinifyEnabled = true
@@ -125,6 +127,7 @@ android {
             )
             matchingFallbacks += listOf("release", "debug")
         }
+        // Turn on R8 optimizations and sign with release key
         val release by getting {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -138,12 +141,12 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
+        // Benchmark with a release build but using a debug key (must uninstall a release build)
         val benchmark by creating {
             initWith(release)
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
             isDebuggable = false
-            proguardFiles("baseline-profiles-rules.pro")
         }
     }
 

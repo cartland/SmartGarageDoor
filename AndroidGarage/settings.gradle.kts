@@ -38,3 +38,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "AndroidGarage"
 include(":app")
+include(":macrobenchmark")
