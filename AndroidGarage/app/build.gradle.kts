@@ -58,7 +58,7 @@ android {
         applicationId = "com.chriscartland.garage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 56
+        versionCode = 57
         versionName = "2.0-" + generateVersionNameTime()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
