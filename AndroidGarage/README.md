@@ -12,6 +12,8 @@ I built an Android app to control a garage door.
 * Sign-In: Sign in with Google
 * Dependency Injection: Hilt
 
+<img src="screenshots/home_closed.png" width="200" alt="Garage app home screen with the door closed and the button ready to press">
+
 The Android app UI is built entirely in Jetpack Compose.
 The basic theme, colors, and typography is based on Material 3.
 Composable functions use Hilt to instantiate ViewModel instances for UI state and actions.
