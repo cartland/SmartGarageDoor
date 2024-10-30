@@ -18,6 +18,7 @@
 package com.chriscartland.garage.ui
 
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.ReportDrawn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -95,6 +96,7 @@ fun ProfileContent(
         Spacer(modifier = Modifier.weight(1f))
         AndroidAppInfoCard()
     }
+    ReportDrawn()
 }
 
 @Preview(showBackground = true)

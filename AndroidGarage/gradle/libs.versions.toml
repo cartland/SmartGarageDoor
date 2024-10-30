@@ -41,6 +41,11 @@ okhttp = "4.11.0"
 playServicesAuth = "21.2.0"
 retrofit = "2.9.0"
 room = "2.6.1"
+# Baseline Profiles
+baselineprofile = "1.3.3"
+benchmarkMacroJunit4 = "1.3.3"
+profileinstaller = "1.4.1"
+uiautomator = "2.3.0"
 
 [libraries]
 accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanistPermissions" }
@@ -78,6 +83,10 @@ squareup-retrofit-moshi-converter = { module = "com.squareup.retrofit2:converter
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 androidx-credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials"}
 googleId = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "credentialsGoogleId" }
+# Baseline Profiles
+androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
+androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmarkMacroJunit4" }
+androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -87,3 +96,6 @@ google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp"}
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 room = { id = "androidx.room", version.ref = "room" }
+# Baseline Profiles
+android-test = { id = "com.android.test", version.ref = "agp" }
+baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }

@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.ui
 
+import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
@@ -102,6 +103,7 @@ fun DoorHistoryContent(
             )
         }
     }
+    ReportDrawnWhen { recentDoorEvents is LoadingResult.Complete }
 }
 
 @Preview(showBackground = true)

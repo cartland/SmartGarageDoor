@@ -38,4 +38,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "AndroidGarage"
 include(":app")
- 

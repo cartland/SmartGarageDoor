@@ -28,6 +28,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.gms)
     alias(libs.plugins.room)
+    alias(libs.plugins.baselineprofile)
 }
 
 val localPropertiesExplanation = """
@@ -107,13 +108,13 @@ android {
     }
 
     buildTypes {
-        debug {
+        val debug by getting {
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".debug"
         }
-        create("debugMini") {
-            initWith(getByName("debug"))
+        val debugMinify by creating {
+            initWith(debug)
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -124,7 +125,7 @@ android {
             )
             matchingFallbacks += listOf("release", "debug")
         }
-        release {
+        val release by getting {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -136,6 +137,13 @@ android {
             if (rootProject.file("release/app-release.jks").exists()) {
                 signingConfig = signingConfigs.getByName("release")
             }
+        }
+        val benchmark by creating {
+            initWith(release)
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            isDebuggable = false
+            proguardFiles("baseline-profiles-rules.pro")
         }
     }
 
@@ -201,6 +209,8 @@ dependencies {
     implementation(libs.androidx.material3)
     // Accompanist
     implementation(libs.accompanist.permissions)
+    // Baseline Profiles
+    implementation(libs.androidx.profileinstaller)
     // Navigation
     implementation(libs.androidx.navigation.compose)
     implementation(libs.play.services.auth)

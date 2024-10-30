@@ -19,6 +19,7 @@ package com.chriscartland.garage.ui
 
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -123,7 +124,7 @@ fun HomeContent(
         val lastCheckInTime = doorEvent?.lastCheckInTimeSeconds
         DurationSince(lastCheckInTime?.let { Instant.ofEpochSecond(lastCheckInTime) }) { duration ->
             Text(
-                text = ("Time since check-in: " + duration.toFriendlyDuration()) ?: "",
+                text = ("Time since check-in: " + duration.toFriendlyDuration()),
                 style = MaterialTheme.typography.labelSmall,
             )
             if (duration > Duration.ofMinutes(15)) {
@@ -207,6 +208,7 @@ fun HomeContent(
             }
         }
     }
+    ReportDrawnWhen { currentDoorEvent is LoadingResult.Complete }
 }
 
 @OptIn(ExperimentalPermissionsApi::class)
