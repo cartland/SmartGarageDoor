@@ -108,6 +108,12 @@ android {
 
     buildTypes {
         debug {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
+            applicationIdSuffix = ".debug"
+        }
+        create("debugMini") {
+            initWith(getByName("debug"))
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -115,8 +121,6 @@ android {
                 "retrofit2.pro",
                 "moshi.pro",
             )
-            signingConfig = signingConfigs.getByName("debug")
-            applicationIdSuffix = ".debug"
         }
         release {
             isMinifyEnabled = true

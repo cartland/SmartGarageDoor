@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.internet
 
+import androidx.annotation.Keep
 import com.chriscartland.garage.config.APP_CONFIG
 import com.squareup.moshi.Moshi
 import dagger.Module
@@ -69,6 +70,7 @@ value class RemoteButtonPushKey(private val s: String)
 @JvmInline
 value class IdToken(private val s: String)
 
+@Keep
 interface RetrofitGarageNetworkService : GarageNetworkService {
     @GET("currentEventData")
     override suspend fun getCurrentEventData(
