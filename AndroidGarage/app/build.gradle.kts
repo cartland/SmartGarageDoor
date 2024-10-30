@@ -16,7 +16,6 @@
  */
 
 import com.android.build.gradle.internal.api.ApkVariantOutputImpl
-import java.io.FileInputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Properties
@@ -59,7 +58,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 57
-        versionName = "2.0-" + generateVersionNameTime()
+        versionName = "2.0-" + generateVersionNameTimestamp()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -163,7 +162,7 @@ android {
     }
 }
 
-fun generateVersionNameTime(): String {
+fun generateVersionNameTimestamp(): String {
     val currentDateTime = LocalDateTime.now()
     val formatter = DateTimeFormatter.ofPattern("yyyyMMdd.HHmmss")
     return currentDateTime.format(formatter)
