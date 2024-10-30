@@ -33,6 +33,9 @@
         android:theme="@style/Theme.Garage"
         android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true">
+
+        <profileable android:shell="true" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true">

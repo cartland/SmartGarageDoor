@@ -19,3 +19,7 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+-keep class com.google.firebase.messaging.FirebaseMessagingService
+-keep,allowobfuscation,allowshrinking class com.squareup.moshi.JsonAdapter
+-keep class java.lang.reflect.ParameterizedType

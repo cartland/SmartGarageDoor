@@ -17,12 +17,14 @@
 
 package com.chriscartland.garage.internet
 
+import androidx.annotation.Keep
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorPosition
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 // curl 'http://localhost:5001/escape-echo/us-central1/eventHistory?buildTimestamp=Sat%20Mar%2013%2014:45:00%202021&session=4f028c09-ebf9-49ef-bcf2-f661e2ec86b2'
+@Keep
 @JsonClass(generateAdapter = true)
 data class RecentEventDataResponse(
     val eventHistory: List<EventData>?,

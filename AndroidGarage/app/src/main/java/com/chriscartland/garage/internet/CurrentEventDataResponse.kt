@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.internet
 
+import androidx.annotation.Keep
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorPosition
 import com.squareup.moshi.Json
@@ -24,6 +25,7 @@ import com.squareup.moshi.JsonClass
 
 // Response to this curl command:
 // curl https://us-central1-escape-echo.cloudfunctions.net/currentEventData\?session\=\&buildTimestamp\=Sat%20Mar%2013%2014%3A45%3A00%202021
+@Keep
 @JsonClass(generateAdapter = true)
 data class CurrentEventDataResponse(
     val currentEventData: EventData?,

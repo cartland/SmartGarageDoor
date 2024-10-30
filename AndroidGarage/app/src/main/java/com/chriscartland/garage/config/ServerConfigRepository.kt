@@ -18,6 +18,7 @@
 package com.chriscartland.garage.config
 
 import android.util.Log
+import androidx.annotation.Keep
 import com.chriscartland.garage.internet.GarageNetworkService
 import dagger.Binds
 import dagger.Module
@@ -26,11 +27,13 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.sync.Mutex
 import javax.inject.Inject
 
+@Keep
 interface ServerConfigRepository {
     suspend fun getServerConfigCached(): ServerConfig?
     suspend fun fetchServerConfig(): ServerConfig?
 }
 
+@Keep
 class ServerConfigRepositoryImpl @Inject constructor(
     private val network: GarageNetworkService,
 ) : ServerConfigRepository {
@@ -61,36 +64,35 @@ class ServerConfigRepositoryImpl @Inject constructor(
      * might be out of date. Callers are responsible for rate limiting this request.
      */
     override suspend fun fetchServerConfig(): ServerConfig? {
-        val tag = "fetchServerConfig"
         try {
-            Log.d(tag, "Fetching server config")
+            Log.d(TAG, "Fetching server config")
             val response = network.getServerConfig(APP_CONFIG.serverConfigKey)
             if (response.code() != 200) {
-                Log.e(tag, "Response code is ${response.code()}")
+                Log.e(TAG, "Response code is ${response.code()}")
                 return null
             }
             val body = response.body()
             if (body == null) {
-                Log.e(tag, "Response body is null")
+                Log.e(TAG, "Response body is null")
                 return null
             }
             if (body.body == null) {
-                Log.e(tag, "body.body is null")
+                Log.e(TAG, "body.body is null")
                 return null
             }
             if (body.body.buildTimestamp.isNullOrEmpty()) {
-                Log.e(tag, "buildTimestamp is empty")
+                Log.e(TAG, "buildTimestamp is empty")
                 return null
             }
             // remoteButtonBuildTimestamp uses a custom get() accessor so it cannot be smart cast
             // in the ServerConfig constructor. Storing in a local variable for the null check.
             val remoteButtonBuildTimestamp = body.body.remoteButtonBuildTimestamp
             if (remoteButtonBuildTimestamp.isNullOrEmpty()) {
-                Log.e(tag, "remoteButtonBuildTimestamp is empty")
+                Log.e(TAG, "remoteButtonBuildTimestamp is empty")
                 return null
             }
             if (body.body.remoteButtonPushKey.isNullOrEmpty()) {
-                Log.e(tag, "remoteButtonPushKey is empty")
+                Log.e(TAG, "remoteButtonPushKey is empty")
                 return null
             }
             return ServerConfig(
@@ -101,9 +103,9 @@ class ServerConfigRepositoryImpl @Inject constructor(
                 _serverConfig = newConfig
             }
         } catch (e: IllegalArgumentException) {
-            Log.e(tag, "IllegalArgumentException: $e")
+            Log.e(TAG, "IllegalArgumentException: $e")
         } catch (e: Exception) {
-            Log.e(tag, "Exception: $e")
+            Log.e(TAG, "Exception: $e")
         }
         return null
     }
@@ -118,3 +120,5 @@ abstract class ServerConfigRepositoryModule {
         serverConfigRepository: ServerConfigRepositoryImpl,
     ): ServerConfigRepository
 }
+
+private const val TAG = "ServerConfigRepo"

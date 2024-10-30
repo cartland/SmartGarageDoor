@@ -17,6 +17,9 @@
 
 package com.chriscartland.garage.config
 
+import androidx.annotation.Keep
+
+@Keep
 data class ServerConfig(
     val buildTimestamp: String,
     val remoteButtonBuildTimestamp: String,

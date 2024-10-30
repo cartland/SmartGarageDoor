@@ -19,6 +19,7 @@ package com.chriscartland.garage.remotebutton
 
 import android.text.format.DateFormat
 import android.util.Log
+import androidx.annotation.Keep
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.config.ServerConfigRepository
 import com.chriscartland.garage.internet.ButtonAckToken
@@ -37,11 +38,13 @@ import java.time.Duration
 import java.util.Date
 import javax.inject.Inject
 
+@Keep
 interface PushRepository {
     val status: StateFlow<PushStatus>
     suspend fun push(idToken: IdToken, buttonAckToken: String)
 }
 
+@Keep
 class PushRepositoryImpl @Inject constructor(
     private val network: GarageNetworkService,
     private val serverConfigRepository: ServerConfigRepository,

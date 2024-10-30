@@ -18,6 +18,7 @@
 package com.chriscartland.garage.auth
 
 import android.util.Log
+import androidx.annotation.Keep
 import com.google.firebase.Firebase
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
@@ -38,6 +39,7 @@ import kotlin.coroutines.suspendCoroutine
 
 const val RC_ONE_TAP_SIGN_IN = 1
 
+@Keep
 interface AuthRepository {
     val authState: StateFlow<AuthState>
     suspend fun signInWithGoogle(idToken: GoogleIdToken): AuthState
@@ -45,6 +47,7 @@ interface AuthRepository {
     suspend fun signOut()
 }
 
+@Keep
 class AuthRepositoryImpl @Inject constructor() : AuthRepository {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
     override val authState: StateFlow<AuthState> = _authState.asStateFlow()

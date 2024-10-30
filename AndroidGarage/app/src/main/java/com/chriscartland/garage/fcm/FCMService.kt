@@ -18,6 +18,7 @@
 package com.chriscartland.garage.fcm
 
 import android.util.Log
+import androidx.annotation.Keep
 import com.chriscartland.garage.door.DoorRepository
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorPosition
@@ -31,6 +32,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
+@Keep
 class FCMService : FirebaseMessagingService() {
     @Inject
     lateinit var doorRepository: DoorRepository
