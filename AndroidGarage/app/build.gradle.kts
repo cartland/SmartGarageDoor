@@ -15,6 +15,7 @@
  *
  */
 
+import com.android.build.gradle.internal.api.ApkVariantOutputImpl
 import java.io.FileInputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -30,8 +31,58 @@ plugins {
     alias(libs.plugins.room)
 }
 
-val configProperties = Properties()
-configProperties.load(FileInputStream(rootProject.file("config.properties")))
+println(rootProject.file("release/app-release.jks").exists())
+
+// local.properties
+// PRIORITIZE_LOCAL_PROPERTIES=true
+// SERVER_CONFIG_KEY=YourKey
+// GOOGLE_WEB_CLIENT_ID=YourClientId
+// GARAGE_RELEASE_KEYSTORE_PWD=YourKeystorePassword
+// GARAGE_RELEASE_KEY_PWD=YourKeyPassword
+class PropertyFinder(private val project: Project, private val localProperties: Properties) {
+    /**
+     * Find the build property from config files or command line arguments.
+     *
+     * Default:
+     * - gradle command line argument: gradlew -PKEY_NAME=value
+     * - gradle.properties: KEY_NAME=value
+     *
+     * @param name The name of the property.
+     * @param default Default: null. The default value to use if the property is not found.
+     * @param prioritizeLocal Default: false. Whether use check the local.properties file first.
+     */
+    fun find(
+        name: String,
+        default: String? = null,
+        prioritizeLocal: Boolean = false,
+    ): String? {
+        fun getLocal(): String? {
+            if (localProperties.containsKey(name)) {
+                return localProperties.getProperty(name)
+            } else {
+                return null
+            }
+        }
+        fun getProject(): String? {
+            // This will prioritize command line arguments over gradle.properties
+            return (project.findProperty(name) as? String)
+        }
+        return if (prioritizeLocal) {
+            getLocal() ?: getProject() ?: default
+        } else {
+            getProject() ?: getLocal() ?: default
+        }
+    }
+}
+
+val localProperties = Properties().apply {
+    load(FileInputStream(File(rootProject.rootDir, "local.properties")))
+}
+val finder = PropertyFinder(project = project, localProperties = localProperties)
+
+val useLocalProperties = finder.find("PRIORITIZE_LOCAL_PROPERTIES", default = "false").toBoolean()
+val serverConfigKey = finder.find("SERVER_CONFIG_KEY", prioritizeLocal = useLocalProperties)
+val googleWebClientId = finder.find("GOOGLE_WEB_CLIENT_ID", prioritizeLocal = useLocalProperties)
 
 android {
     namespace = "com.chriscartland.garage"
@@ -52,18 +103,36 @@ android {
         buildConfigField(
             "String",
             "SERVER_CONFIG_KEY",
-            "\"${configProperties["SERVER_CONFIG_KEY"]}\"",
+            "\"${serverConfigKey}\"",
         )
         buildConfigField(
             "String",
             "GOOGLE_WEB_CLIENT_ID",
-            "\"${configProperties["GOOGLE_WEB_CLIENT_ID"]}\"",
+            "\"${googleWebClientId}\"",
         )
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            storeFile = rootProject.file("release/app-debug.jks")
+            storePassword = "android"
+            keyAlias = "AndroidDebugKey"
+            keyPassword = "android"
+        }
+        if (rootProject.file("release/app-release.jks").exists()) {
+            create("release") {
+                storeFile = rootProject.file("release/app-release.jks")
+                storePassword = finder.find("GARAGE_RELEASE_KEYSTORE_PWD").orEmpty()
+                keyAlias = "Garage"
+                keyPassword = finder.find("GARAGE_RELEASE_KEY_PWD").orEmpty()
+            }
+        }
     }
 
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
+            signingConfig = signingConfigs.getByName("debug")
         }
         release {
             isMinifyEnabled = false
@@ -71,11 +140,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
     applicationVariants.all {
-        outputs.map { it as com.android.build.gradle.internal.api.ApkVariantOutputImpl }
+        outputs.map { it as ApkVariantOutputImpl }
             .forEach { output ->
                 val variant = this
                 output.outputFileName = StringBuilder().run {
