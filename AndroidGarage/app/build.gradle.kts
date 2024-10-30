@@ -141,7 +141,7 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
-        // Benchmark with a release build but using a debug key (must uninstall a release build)
+        // Benchmark with a release build but using a debug key (must uninstall release build)
         val benchmark by creating {
             initWith(release)
             signingConfig = signingConfigs.getByName("debug")
