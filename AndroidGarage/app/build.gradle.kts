@@ -221,6 +221,7 @@ dependencies {
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockito.core)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -230,6 +231,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     // Retrofit
     implementation(libs.squareup.moshi)
+    implementation(libs.squareup.moshi.kotlin)
     implementation(libs.squareup.retrofit)
     implementation(libs.squareup.retrofit.moshi.converter)
     implementation(libs.okhttpLoggingInterceptor)
