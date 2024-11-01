@@ -35,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
+import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.door.LoadingResult
@@ -132,6 +134,21 @@ fun HomeContent(
                     text = "Warning: Time since check-in is over 15 minutes",
                     style = MaterialTheme.typography.labelSmall,
                 )
+            }
+            if (APP_CONFIG.manualFetchWhenDataIsOld) {
+                var attemptedRefresh by remember { mutableStateOf(false) }
+                val manualRefreshThreshold = Duration.ofMinutes(14)
+                if (!attemptedRefresh && duration > manualRefreshThreshold) {
+                    attemptedRefresh = true
+                    Log.w(
+                        TAG, "Fetching current door event because time since check-in is delayed." +
+                                " This probably means there is a problem with FCM messages" +
+                                " being delivered to the device."
+                    )
+                    onFetchCurrentDoorEvent()
+                } else if (attemptedRefresh && duration < manualRefreshThreshold) {
+                    attemptedRefresh = false
+                }
             }
         }
 

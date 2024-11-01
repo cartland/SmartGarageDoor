@@ -18,16 +18,15 @@
 package com.chriscartland.garage.fcm
 
 import android.util.Log
-import com.chriscartland.garage.door.DoorRepository
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorPosition
+import com.chriscartland.garage.door.DoorRepository
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -37,7 +36,7 @@ class FCMService : FirebaseMessagingService() {
 
     // Create Job and CoroutineScope to schedule brief, concurrent work.
     private val supervisorJob = SupervisorJob()
-    private val coroutineScope = CoroutineScope(Dispatchers.IO + supervisorJob)
+    private val coroutineScope = CoroutineScope(Dispatchers.Main + supervisorJob)
 
     override fun onNewToken(token: String) {
         Log.d(TAG, "FCM Instance Token: $token")
@@ -85,11 +84,11 @@ class FCMService : FirebaseMessagingService() {
     private fun handleNow(doorEvent: DoorEvent?) {
         Log.d(TAG, "handleNow...")
         if (doorEvent == null) {
+            Log.d(TAG, "DoorEvent is null")
             return
         }
-        coroutineScope.launch {
-            doorRepository.insertDoorEvent(doorEvent)
-        }
+        Log.d(TAG, "Inserting DoorEvent: $doorEvent")
+        doorRepository.insertDoorEvent(doorEvent)
     }
 
     override fun onDestroy() {

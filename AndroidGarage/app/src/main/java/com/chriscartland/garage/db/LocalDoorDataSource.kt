@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.db
 
+import android.util.Log
 import com.chriscartland.garage.door.DoorEvent
 import dagger.Module
 import dagger.Provides
@@ -40,6 +41,7 @@ class DatabaseLocalDoorDataSource @Inject constructor(
     override val recentDoorEvents = appDatabase.doorEventDao().recentDoorEvents()
 
     override fun insertDoorEvent(doorEvent: DoorEvent) {
+        Log.d(TAG, "Inserting DoorEvent: $doorEvent")
         appDatabase.doorEventDao().insert(doorEvent)
     }
 
@@ -57,3 +59,5 @@ object LocalDataSourceModule {
         return DatabaseLocalDoorDataSource(appDatabase)
     }
 }
+
+private const val TAG = "LocalDoorDataSource"

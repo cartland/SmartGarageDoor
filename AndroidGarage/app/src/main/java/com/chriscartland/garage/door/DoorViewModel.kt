@@ -56,14 +56,16 @@ class DoorViewModelImpl @Inject constructor(
     override val recentDoorEvents: StateFlow<LoadingResult<List<DoorEvent>>> = _recentDoorEvents
 
     init {
-        Log.d("DoorViewModel", "init")
+        Log.d(TAG, "init")
         viewModelScope.launch(Dispatchers.IO) {
             doorRepository.currentDoorEvent.collect {
+                Log.d(TAG, "currentDoorEvent collect: $it")
                 _currentDoorEvent.value = LoadingResult.Complete(it)
             }
         }
         viewModelScope.launch(Dispatchers.IO) {
             doorRepository.recentDoorEvents.collect {
+                Log.d(TAG, "recentDoorEvents collect: $it")
                 _recentDoorEvents.value = LoadingResult.Complete(it)
             }
         }
@@ -111,3 +113,5 @@ sealed class LoadingResult<out T> {
             is Error -> null
         }
 }
+
+private const val TAG = "DoorViewModel"

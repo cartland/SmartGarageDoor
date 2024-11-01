@@ -38,7 +38,7 @@ interface DoorRepository {
     val currentDoorEvent: Flow<DoorEvent>
     val recentDoorEvents: Flow<List<DoorEvent>>
     suspend fun fetchBuildTimestampCached(): String?
-    suspend fun insertDoorEvent(doorEvent: DoorEvent)
+    fun insertDoorEvent(doorEvent: DoorEvent)
     suspend fun fetchCurrentDoorEvent()
     suspend fun fetchRecentDoorEvents()
 }
@@ -61,8 +61,8 @@ class DoorRepositoryImpl @Inject constructor(
     override suspend fun fetchBuildTimestampCached(): String? =
         serverConfigRepository.getServerConfigCached()?.buildTimestamp
 
-    override suspend fun insertDoorEvent(doorEvent: DoorEvent) {
-        Log.d("insertDoorEvent", "Inserting door event: $doorEvent")
+    override fun insertDoorEvent(doorEvent: DoorEvent) {
+        Log.d(TAG, "Inserting DoorEvent: $doorEvent")
         localDoorDataSource.insertDoorEvent(doorEvent)
     }
 

@@ -58,7 +58,7 @@ android {
         applicationId = "com.chriscartland.garage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 57
+        versionCode = 60
         versionName = "2.0-" + generateVersionNameTimestamp()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -111,6 +111,7 @@ android {
         // Add .debug suffix so debug can be installed on same device as release
         val debug by getting {
             isMinifyEnabled = false
+            isShrinkResources = false
             signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".debug"
         }

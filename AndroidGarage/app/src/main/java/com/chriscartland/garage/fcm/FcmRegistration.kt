@@ -33,7 +33,9 @@ import com.chriscartland.garage.door.DoorViewModel
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.ktx.messaging
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import java.time.Duration
 
 /**
  * Register for FCM updates.
@@ -51,36 +53,63 @@ fun FCMRegistration(viewModel: DoorViewModel = hiltViewModel()) {
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            if (!registrationPerformed) {
-                // Fetch build timestamp from server configuration.
-                val buildTimestamp = viewModel.fetchBuildTimestampCached()
-                if (buildTimestamp == null) {
-                    Log.e("MainActivity", "Failed to register for FCM updates (no buildTimestamp)")
-                    return@withContext
+            while (!registrationPerformed) {
+                try {
+                    // Fetch build timestamp from server configuration.
+                    val buildTimestamp = viewModel.fetchBuildTimestampCached()
+                    if (buildTimestamp == null) {
+                        Log.e(
+                            TAG,
+                            "Failed to register for FCM updates (no buildTimestamp).",
+                        )
+                        val waitTime = Duration.ofMinutes(10)
+                        Log.d(TAG, "Will retry FCM registration in ${waitTime.toMinutes()} minutes")
+                        delay(waitTime.toMillis())
+                        continue
+                    }
+                    // Subscribe to FCM updates.
+                    updateOpenDoorFcmSubscription(context, buildTimestamp)
+                    registrationPerformed = true // Set the flag to exit the loop
+                } catch (e: Exception) {
+                    Log.e(TAG, "FCM registration failed: ${e.message}")
+                    delay(15 * 60 * 1000) // Retry in 15 minutes
                 }
-                // Subscribe to FCM updates.
-                updateOpenDoorFcmSubscription(context, buildTimestamp)
-                registrationPerformed = true
             }
         }
     }
 }
 
+fun getSharedPref(activity: Activity, key: String, default: String? = null): String? {
+    val sharedPref = activity.getPreferences(Context.MODE_PRIVATE)
+    return sharedPref.getString(key, default)
+}
+
+fun setSharedPref(activity: Activity, key: String, value: String) {
+    val sharedPref = activity.getPreferences(Context.MODE_PRIVATE)
+    with(sharedPref.edit()) {
+        putString(key, value)
+        apply()
+    }
+}
+
+fun getFcmTopic(activity: Activity) =
+    getSharedPref(activity = activity, key = FCM_DOOR_OPEN_TOPIC)
+
+fun setFcmTopic(activity: Activity, topic: String) =
+    setSharedPref(activity, key = FCM_DOOR_OPEN_TOPIC, value = topic)
+
 fun updateOpenDoorFcmSubscription(activity: Activity, buildTimestamp: String) {
     Log.d(TAG, "updateOpenDoorFcmSubscription")
     val newFcmTopic = buildTimestamp.toDoorOpenFcmTopic()
     // Unsubscribe from old topic.
-    val sharedPref = activity.getPreferences(Context.MODE_PRIVATE)
-    val oldFcmTopic = sharedPref.getString(FCM_DOOR_OPEN_TOPIC, "")
+    val oldFcmTopic = getFcmTopic(activity)
     if (oldFcmTopic != null && newFcmTopic != oldFcmTopic) {
+        Log.i(TAG, "Unsubscribing from old FCM Topic: $oldFcmTopic")
         Firebase.messaging.unsubscribeFromTopic(oldFcmTopic)
     }
     // Save new topic.
-    with (sharedPref.edit()) {
-        putString(FCM_DOOR_OPEN_TOPIC, newFcmTopic)
-        apply()
-    }
-    Log.i(TAG, "Old FCM Topic: $oldFcmTopic, New FCM Topic: $newFcmTopic")
+    setFcmTopic(activity, newFcmTopic)
+    Log.i(TAG, "Subscribing to FCM Topic: $newFcmTopic")
     Firebase.messaging.subscribeToTopic(newFcmTopic)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
