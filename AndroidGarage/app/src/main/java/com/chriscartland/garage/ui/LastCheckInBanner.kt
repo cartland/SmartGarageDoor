@@ -27,7 +27,7 @@ import java.time.Instant
 fun LastCheckInBanner(lastCheckIn: Instant?) {
     DurationSince(lastCheckIn) { duration ->
         Text(
-            text = ("Door uploaded info ${duration.toFriendlyDuration()} ago"),
+            text = ("Door broadcast ${duration.toFriendlyDuration()} ago"),
             style = MaterialTheme.typography.labelSmall,
         )
         if (duration > Duration.ofMinutes(15)) {
@@ -37,5 +37,4 @@ fun LastCheckInBanner(lastCheckIn: Instant?) {
             )
         }
     }
-
 }
