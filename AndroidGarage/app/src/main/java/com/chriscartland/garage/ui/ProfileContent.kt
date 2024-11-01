@@ -20,8 +20,10 @@ package com.chriscartland.garage.ui
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.ReportDrawn
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -69,21 +71,31 @@ fun ProfileContent(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        UserInfoCard(user)
-        Button(
-            onClick = if (user == null) {
-                signIn
-            } else {
-                signOut
-            }
+        UserInfoCard(
+            user,
+            modifier = Modifier
+                .fillMaxWidth(),
         ) {
-            Text(
-                if (user == null) {
-                    "Sign In"
-                } else {
-                    "Sign out"
+            Box(
+                modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Button(
+                    onClick = if (user == null) {
+                        signIn
+                    } else {
+                        signOut
+                    }
+                ) {
+                    Text(
+                        if (user == null) {
+                            "Sign In"
+                        } else {
+                            "Sign out"
+                        }
+                    )
                 }
-            )
+            }
         }
         // Snooze notifications.
         if (APP_CONFIG.snoozeNotificationsOption) {

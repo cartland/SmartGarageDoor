@@ -64,6 +64,7 @@ fun Duration.toFriendlyDuration(): String {
     return when {
         days > 0 -> String.format("%d day%s, %dh %dm %ds", days, if (days > 1) "s" else "", hours, minutes, seconds)
         hours > 0 -> String.format("%dh %dm %ds", hours, minutes, seconds)
+        minutes > 0 -> String.format("%dm %ds", hours, minutes, seconds)
         else -> String.format("%dm %ds", minutes, seconds)
     }
 }

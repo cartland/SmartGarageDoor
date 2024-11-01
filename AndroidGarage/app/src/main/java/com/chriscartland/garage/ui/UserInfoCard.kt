@@ -39,9 +39,11 @@ import com.chriscartland.garage.auth.User
 @Composable
 fun UserInfoCard(
     user: User?,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit = {},
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Column(
@@ -55,6 +57,8 @@ fun UserInfoCard(
             Text(text = "Name: ${user?.name?.asString() ?: "Unknown"}")
             Text(text = "Email: ${user?.email?.asString() ?: "Unknown"}")
         }
+        content()
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
