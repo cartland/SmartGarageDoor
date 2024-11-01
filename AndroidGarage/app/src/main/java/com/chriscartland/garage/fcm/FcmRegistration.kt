@@ -51,7 +51,7 @@ fun FCMRegistration(viewModel: DoorViewModel = hiltViewModel()) {
             Log.d(TAG, "buildTimestamp is null, fetching...")
             viewModel.fetchBuildTimestampCached()
         } else {
-            updateOpenDoorFcmSubscription(context, buildTimestamp)
+            viewModel.updateFcm(context, buildTimestamp)
         }
     }
 }

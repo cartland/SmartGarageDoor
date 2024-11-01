@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.door
 
+import android.app.Activity
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -25,6 +26,7 @@ import com.chriscartland.garage.config.FetchOnViewModelInit
 import com.chriscartland.garage.door.LoadingResult.Complete
 import com.chriscartland.garage.door.LoadingResult.Error
 import com.chriscartland.garage.door.LoadingResult.Loading
+import com.chriscartland.garage.fcm.updateOpenDoorFcmSubscription
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +38,7 @@ interface DoorViewModel {
     val buildTimestamp: StateFlow<String?>
     val currentDoorEvent: StateFlow<LoadingResult<DoorEvent?>>
     val recentDoorEvents: StateFlow<LoadingResult<List<DoorEvent>>>
+    fun updateFcm(activity: Activity, buildTimestamp: String)
     fun fetchBuildTimestampCached()
     fun fetchCurrentDoorEvent()
     fun fetchRecentDoorEvents()
@@ -78,6 +81,12 @@ class DoorViewModelImpl @Inject constructor(
             }
             FetchOnViewModelInit.No -> { /* Do nothing */
             }
+        }
+    }
+
+    override fun updateFcm(activity: Activity, buildTimestamp: String) {
+        viewModelScope.launch(Dispatchers.Main) {
+            updateOpenDoorFcmSubscription(activity, buildTimestamp)
         }
     }
 

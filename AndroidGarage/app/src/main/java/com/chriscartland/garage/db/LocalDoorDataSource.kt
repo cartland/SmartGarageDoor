@@ -46,6 +46,7 @@ class DatabaseLocalDoorDataSource @Inject constructor(
     }
 
     override fun replaceDoorEvents(doorEvents: List<DoorEvent>) {
+        Log.d(TAG, "Replacing DoorEvents: $doorEvents")
         appDatabase.doorEventDao().replaceAll(doorEvents)
     }
 }
