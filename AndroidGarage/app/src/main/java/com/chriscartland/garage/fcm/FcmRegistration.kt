@@ -23,19 +23,13 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.door.DoorViewModel
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.ktx.messaging
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
-import java.time.Duration
 
 /**
  * Register for FCM updates.
@@ -49,32 +43,15 @@ import java.time.Duration
 @Composable
 fun FCMRegistration(viewModel: DoorViewModel = hiltViewModel()) {
     val context = LocalContext.current as ComponentActivity
-    var registrationPerformed by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            while (!registrationPerformed) {
-                try {
-                    // Fetch build timestamp from server configuration.
-                    val buildTimestamp = viewModel.fetchBuildTimestampCached()
-                    if (buildTimestamp == null) {
-                        Log.e(
-                            TAG,
-                            "Failed to register for FCM updates (no buildTimestamp).",
-                        )
-                        val waitTime = Duration.ofMinutes(10)
-                        Log.d(TAG, "Will retry FCM registration in ${waitTime.toMinutes()} minutes")
-                        delay(waitTime.toMillis())
-                        continue
-                    }
-                    // Subscribe to FCM updates.
-                    updateOpenDoorFcmSubscription(context, buildTimestamp)
-                    registrationPerformed = true // Set the flag to exit the loop
-                } catch (e: Exception) {
-                    Log.e(TAG, "FCM registration failed: ${e.message}")
-                    delay(15 * 60 * 1000) // Retry in 15 minutes
-                }
-            }
+    val state by viewModel.buildTimestamp.collectAsState()
+    LaunchedEffect(key1 = state) {
+        // Subscribe to FCM updates.
+        val buildTimestamp: String? = state
+        if (buildTimestamp == null) {
+            Log.d(TAG, "buildTimestamp is null, fetching...")
+            viewModel.fetchBuildTimestampCached()
+        } else {
+            updateOpenDoorFcmSubscription(context, buildTimestamp)
         }
     }
 }
@@ -115,7 +92,10 @@ fun updateOpenDoorFcmSubscription(activity: Activity, buildTimestamp: String) {
             if (task.isSuccessful) {
                 Log.i(TAG, "Subscribed to FCM Topic $newFcmTopic")
             } else {
-                Log.e(TAG, task.exception.toString())
+                Log.e(
+                    TAG,
+                    "Failed to subscribe to FCM Topic $newFcmTopic: " + task.exception.toString()
+                )
             }
         }
     Firebase.messaging.token

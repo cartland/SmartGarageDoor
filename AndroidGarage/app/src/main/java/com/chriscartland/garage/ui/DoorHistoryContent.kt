@@ -26,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -42,9 +43,9 @@ fun DoorHistoryContent(
     modifier: Modifier = Modifier,
     viewModel: DoorViewModelImpl = hiltViewModel(),
 ) {
-    val recentDoorEvents = viewModel.recentDoorEvents.collectAsState()
+    val recentDoorEvents by viewModel.recentDoorEvents.collectAsState()
     DoorHistoryContent(
-        recentDoorEvents = recentDoorEvents.value,
+        recentDoorEvents = recentDoorEvents,
         modifier = modifier,
         onFetchRecentDoorEvents = { viewModel.fetchRecentDoorEvents() },
     )

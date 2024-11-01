@@ -72,12 +72,12 @@ fun HomeContent(
     buttonViewModel: RemoteButtonViewModelImpl = hiltViewModel(),
 ) {
     val activity = LocalContext.current as ComponentActivity
-    val currentDoorEvent = viewModel.currentDoorEvent.collectAsState()
-    val buttonRequestStatus = buttonViewModel.requestStatus.collectAsState()
+    val currentDoorEvent by viewModel.currentDoorEvent.collectAsState()
+    val buttonRequestStatus by buttonViewModel.requestStatus.collectAsState()
     val authState by authViewModel.authState.collectAsState()
     HomeContent(
-        currentDoorEvent = currentDoorEvent.value,
-        remoteRequestStatus = buttonRequestStatus.value,
+        currentDoorEvent = currentDoorEvent,
+        remoteRequestStatus = buttonRequestStatus,
         modifier = modifier,
         onFetchCurrentDoorEvent = { viewModel.fetchCurrentDoorEvent() },
         onRemoteButtonClick = {

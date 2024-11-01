@@ -33,9 +33,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 interface DoorViewModel {
-    suspend fun fetchBuildTimestampCached(): String?
+    val buildTimestamp: StateFlow<String?>
     val currentDoorEvent: StateFlow<LoadingResult<DoorEvent?>>
     val recentDoorEvents: StateFlow<LoadingResult<List<DoorEvent>>>
+    fun fetchBuildTimestampCached()
     fun fetchCurrentDoorEvent()
     fun fetchRecentDoorEvents()
 }
@@ -44,8 +45,8 @@ interface DoorViewModel {
 class DoorViewModelImpl @Inject constructor(
     private val doorRepository: DoorRepository,
 ) : ViewModel(), DoorViewModel {
-    override suspend fun fetchBuildTimestampCached(): String? =
-        doorRepository.fetchBuildTimestampCached()
+    private val _buildTimestamp = MutableStateFlow<String?>(null)
+    override val buildTimestamp: StateFlow<String?> = _buildTimestamp
 
     private val _currentDoorEvent =
         MutableStateFlow<LoadingResult<DoorEvent?>>(LoadingResult.Loading(null))
@@ -76,6 +77,14 @@ class DoorViewModelImpl @Inject constructor(
                 fetchRecentDoorEvents()
             }
             FetchOnViewModelInit.No -> { /* Do nothing */
+            }
+        }
+    }
+
+    override fun fetchBuildTimestampCached() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _buildTimestamp.value = doorRepository.fetchBuildTimestampCached().also {
+                Log.d(TAG, "fetchBuildTimestampCached: $it")
             }
         }
     }
