@@ -35,7 +35,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -46,7 +45,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
-import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.door.LoadingResult
@@ -60,7 +58,6 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.isGranted
-import java.time.Duration
 import java.time.Instant
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -124,34 +121,7 @@ fun HomeContent(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         val lastCheckInTime = doorEvent?.lastCheckInTimeSeconds
-        DurationSince(lastCheckInTime?.let { Instant.ofEpochSecond(lastCheckInTime) }) { duration ->
-            Text(
-                text = ("Time since check-in: " + duration.toFriendlyDuration()),
-                style = MaterialTheme.typography.labelSmall,
-            )
-            if (duration > Duration.ofMinutes(15)) {
-                Text(
-                    text = "Warning: Time since check-in is over 15 minutes",
-                    style = MaterialTheme.typography.labelSmall,
-                )
-            }
-            if (APP_CONFIG.manualFetchWhenDataIsOld) {
-                var attemptedRefresh by remember { mutableStateOf(false) }
-                val manualRefreshThreshold = Duration.ofMinutes(14)
-                if (!attemptedRefresh && duration > manualRefreshThreshold) {
-                    attemptedRefresh = true
-                    Log.w(
-                        TAG, "Fetching current door event because time since check-in is delayed." +
-                                " This probably means there is a problem with FCM messages" +
-                                " being delivered to the device."
-                    )
-                    onFetchCurrentDoorEvent()
-                } else if (attemptedRefresh && duration < manualRefreshThreshold) {
-                    attemptedRefresh = false
-                }
-            }
-        }
-
+        LastCheckInBanner(lastCheckInTime?.let { Instant.ofEpochSecond(it) })
         // Add a card at the top if the notification permission is not granted.
         if (!notificationPermissionState.status.isGranted) {
             ErrorCard(

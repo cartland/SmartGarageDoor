@@ -62,9 +62,9 @@ fun Duration.toFriendlyDuration(): String {
     val seconds = (seconds % 60).coerceAtLeast(0L)
 
     return when {
-        days > 0 -> String.format("%d day%s, %dh %02dm %02ds", days, if (days > 1) "s" else "", hours, minutes, seconds)
-        hours > 0 -> String.format("%dh %02dm %02ds", hours, minutes, seconds)
-        else -> String.format("%dm %02ds", minutes, seconds)
+        days > 0 -> String.format("%d day%s, %dh %dm %ds", days, if (days > 1) "s" else "", hours, minutes, seconds)
+        hours > 0 -> String.format("%dh %dm %ds", hours, minutes, seconds)
+        else -> String.format("%dm %ds", minutes, seconds)
     }
 }
 

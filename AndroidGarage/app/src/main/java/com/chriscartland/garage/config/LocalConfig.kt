@@ -28,7 +28,6 @@ data class AppConfig(
     val serverConfigKey: String,
     val snoozeNotificationsOption: Boolean,
     val remoteButtonPushEnabled: Boolean,
-    val manualFetchWhenDataIsOld: Boolean,
 )
 
 enum class Server {
@@ -67,5 +66,4 @@ val APP_CONFIG = AppConfig(
     serverConfigKey = BuildConfig.SERVER_CONFIG_KEY,
     snoozeNotificationsOption = false,
     remoteButtonPushEnabled = true,
-    manualFetchWhenDataIsOld = false,
 )

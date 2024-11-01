@@ -49,6 +49,7 @@ import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorPosition
 import kotlinx.coroutines.delay
 import java.time.Duration
+import java.time.Instant
 
 @Composable
 fun DoorStatusCard(
@@ -125,8 +126,6 @@ fun RecentDoorEventListItem(
     modifier: Modifier = Modifier,
 ) {
     val doorPosition = doorEvent.doorPosition ?: DoorPosition.UNKNOWN
-    val date = doorEvent.lastChangeTimeSeconds?.toFriendlyDate()
-    val time = doorEvent.lastChangeTimeSeconds?.toFriendlyTime()
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = RoundedCornerShape(10.dp),
@@ -168,6 +167,9 @@ fun RecentDoorEventListItem(
                     .weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                val eventTimeSeconds = doorEvent.lastChangeTimeSeconds
+                val date = eventTimeSeconds?.toFriendlyDate()
+                val time = eventTimeSeconds?.toFriendlyTime()
                 Text(
                     text = "$time",
                     textAlign = TextAlign.Center,
@@ -178,6 +180,13 @@ fun RecentDoorEventListItem(
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelSmall,
                 )
+                DurationSince(eventTimeSeconds?.let { Instant.ofEpochSecond(it) }) { duration ->
+                    Text(
+                        text = "${duration.toFriendlyDuration()} ago",
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
             }
         }
     }
