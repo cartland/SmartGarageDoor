@@ -18,8 +18,8 @@
 package com.chriscartland.garage.fcm
 
 import android.app.Activity
-import android.content.Context
 import android.util.Log
+import com.chriscartland.garage.sharedpreferences.SharedPreferences
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.ktx.messaging
 import dagger.Binds
@@ -36,10 +36,12 @@ interface DoorFcmRepository {
     suspend fun deregisterDoor(activity: Activity): DoorFcmState
 }
 
-class DoorFcmRepositoryImpl @Inject constructor() : DoorFcmRepository {
+class DoorFcmRepositoryImpl @Inject constructor(
+    private val preferences: SharedPreferences,
+) : DoorFcmRepository {
     override suspend fun fetchStatus(activity: Activity): DoorFcmState {
         Log.d(TAG, "fetchStatus")
-        val topic = getFcmTopic(activity)
+        val topic = getFcmTopic()
         Log.d(TAG, "fetchStatus: $topic")
         return if (topic == null) {
             DoorFcmState.NotRegistered
@@ -51,13 +53,13 @@ class DoorFcmRepositoryImpl @Inject constructor() : DoorFcmRepository {
     override suspend fun registerDoor(activity: Activity, topic: DoorFcmTopic): DoorFcmState {
         Log.d(TAG, "registerDoor: $topic")
         // Unsubscribe from old topic.
-        val oldFcmTopic = getFcmTopic(activity)
+        val oldFcmTopic = getFcmTopic()
         if (oldFcmTopic != null && topic != oldFcmTopic) {
             Log.i(TAG, "Unsubscribing from old FCM Topic: $oldFcmTopic")
             Firebase.messaging.unsubscribeFromTopic(oldFcmTopic.string)
         }
         // Save new topic.
-        setFcmTopic(activity, topic)
+        setFcmTopic(topic)
         Log.i(TAG, "Subscribing to FCM Topic: $topic")
         val subscriptionSuccess = suspendCoroutine { continuation ->
             Firebase.messaging.subscribeToTopic(topic.string)
@@ -108,65 +110,39 @@ class DoorFcmRepositoryImpl @Inject constructor() : DoorFcmRepository {
 
     override suspend fun deregisterDoor(activity: Activity): DoorFcmState {
         Log.d(TAG, "deregisterDoor")
-        // Unsubscribe from old topic.
-        val oldFcmTopic = getFcmTopic(activity)
+        val oldFcmTopic = getFcmTopic()
         if (oldFcmTopic == null) {
             return DoorFcmState.NotRegistered.also {
                 Log.d(TAG, "No FCM topic to deregister, returning state $it")
             }
         }
-        removeFcmTopic(activity)
+        removeFcmTopic()
         Log.i(TAG, "Unsubscribing from old FCM Topic: $oldFcmTopic")
         Firebase.messaging.unsubscribeFromTopic(oldFcmTopic.string)
         return DoorFcmState.NotRegistered.also {
             Log.d(TAG, "Successfully deregistered for topic $oldFcmTopic, returning state $it")
         }
     }
-}
 
-private fun getSharedPref(activity: Activity, key: String, default: String? = null): String? {
-    val sharedPref = activity.getPreferences(Context.MODE_PRIVATE)
-    return sharedPref.getString(key, default).also {
-        Log.d(TAG, "getSharedPref: $key = $it")
+    private fun getFcmTopic(): DoorFcmTopic? {
+        Log.d(TAG, "getFcmTopic")
+        return preferences.getString(FCM_DOOR_OPEN_TOPIC, null)?.let {
+            DoorFcmTopic(it)
+        }
+    }
+
+    private fun setFcmTopic(topic: DoorFcmTopic) {
+        Log.d(TAG, "setFcmTopic: $topic")
+        preferences.setString(key = FCM_DOOR_OPEN_TOPIC, value = topic.string)
+    }
+
+    private fun removeFcmTopic() {
+        Log.d(TAG, "removeFcmTopic")
+        preferences.removeString(FCM_DOOR_OPEN_TOPIC)
     }
 }
 
-private fun setSharedPref(activity: Activity, key: String, value: String) {
-    Log.d(TAG, "setSharedPref: $key = $value")
-    val sharedPref = activity.getPreferences(Context.MODE_PRIVATE)
-    with(sharedPref.edit()) {
-        putString(key, value)
-        apply()
-    }
-}
-
-private fun removeSharedPref(activity: Activity, key: String) {
-    Log.d(TAG, "removeSharedPref: $key")
-    val sharedPref = activity.getPreferences(Context.MODE_PRIVATE)
-    with(sharedPref.edit()) {
-        remove(key)
-        apply()
-    }
-}
-
-private fun getFcmTopic(activity: Activity): DoorFcmTopic? {
-    Log.d(TAG, "getFcmTopic")
-    return getSharedPref(activity = activity, key = FCM_DOOR_OPEN_TOPIC)?.let {
-        DoorFcmTopic(it)
-    }
-}
-
-private fun setFcmTopic(activity: Activity, topic: DoorFcmTopic) {
-    Log.d(TAG, "setFcmTopic: $topic")
-    setSharedPref(activity, key = FCM_DOOR_OPEN_TOPIC, value = topic.string)
-}
-
-private fun removeFcmTopic(activity: Activity) {
-    Log.d(TAG, "removeFcmTopic")
-    removeSharedPref(activity, FCM_DOOR_OPEN_TOPIC)
-}
-
-const val FCM_DOOR_OPEN_TOPIC = "com.chriscartland.garage.repository.FCM_DOOR_OPEN_TOPIC"
+private const val FCM_DOOR_OPEN_TOPIC = "com.chriscartland.garage.repository.FCM_DOOR_OPEN_TOPIC"
 
 @Module
 @InstallIn(SingletonComponent::class)
