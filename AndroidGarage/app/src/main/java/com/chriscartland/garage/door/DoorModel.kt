@@ -19,8 +19,6 @@ package com.chriscartland.garage.door
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import java.time.Instant
-import kotlin.random.Random
 
 @Entity
 data class DoorEvent(
@@ -44,4 +42,10 @@ enum class DoorPosition {
     CLOSING,
     CLOSING_TOO_LONG,
     ERROR_SENSOR_CONFLICT
+}
+
+enum class FcmRegistrationStatus {
+    UNKNOWN,
+    REGISTERED,
+    NOT_REGISTERED,
 }

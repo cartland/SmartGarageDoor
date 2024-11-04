@@ -17,24 +17,64 @@
 
 package com.chriscartland.garage.ui
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
 import java.time.Duration
 import java.time.Instant
 
 @Composable
-fun LastCheckInBanner(lastCheckIn: Instant?) {
+fun LastCheckInBanner(
+    lastCheckIn: Instant?,
+    retryCheckIn: (() -> Unit)? = null,
+) {
     DurationSince(lastCheckIn) { duration ->
-        Text(
-            text = ("Door broadcast ${duration.toFriendlyDuration()} ago"),
-            style = MaterialTheme.typography.labelSmall,
-        )
-        if (duration > Duration.ofMinutes(15)) {
+        Column {
             Text(
-                text = "Warning: Time since check-in is over 15 minutes",
+                text = ("Door broadcast ${duration.toFriendlyDuration()} ago"),
                 style = MaterialTheme.typography.labelSmall,
             )
+            if (duration > Duration.ofMinutes(15)) {
+                if (retryCheckIn == null) {
+                    Text(
+                        text = "Warning: Time since check-in is over 15 minutes",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                } else {
+                    ErrorCard(
+                        text = "Warning: Time since check-in is over 15 minutes",
+                        buttonText = "Retry",
+                        onClick = { retryCheckIn() },
+                    )
+                }
+            }
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LastCheckInBannerPreview() {
+    LastCheckInBanner(
+        lastCheckIn = Instant.now().minus(Duration.ofMinutes(10)),
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LastCheckInBannerOldPreview() {
+    LastCheckInBanner(
+        lastCheckIn = Instant.now().minus(Duration.ofMinutes(20)),
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LastCheckInBannerOldWithActionPreview() {
+    LastCheckInBanner(
+        lastCheckIn = Instant.now().minus(Duration.ofMinutes(20)),
+        retryCheckIn = {},
+    )
 }
