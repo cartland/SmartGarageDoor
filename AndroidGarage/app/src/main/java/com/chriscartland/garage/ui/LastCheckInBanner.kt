@@ -18,9 +18,13 @@
 package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment.Companion.CenterHorizontally
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import java.time.Duration
 import java.time.Instant
@@ -28,25 +32,33 @@ import java.time.Instant
 @Composable
 fun LastCheckInBanner(
     lastCheckIn: Instant?,
+    modifier: Modifier = Modifier,
     action: (() -> Unit)? = null,
 ) {
     DurationSince(lastCheckIn) { duration ->
-        Column {
+        Column(
+            modifier = modifier,
+            horizontalAlignment = CenterHorizontally,
+        ) {
             Text(
                 text = ("Door last checked in ${duration.toFriendlyDuration()} ago"),
                 style = MaterialTheme.typography.labelSmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
             )
             if (duration > Duration.ofMinutes(15)) {
                 if (action == null) {
                     Text(
                         text = "Warning: Time since check-in is over 15 minutes",
                         style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 } else {
                     ErrorCard(
                         text = "Warning: Time since check-in is over 15 minutes",
                         buttonText = "Retry",
                         onClick = { action() },
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
