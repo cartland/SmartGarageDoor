@@ -95,7 +95,9 @@ fun HomeContent(
         onResetRemote = { buttonViewModel.resetRemoteButton() },
         authState = authState,
         onSignIn = { authViewModel.signInWithGoogle(activity) },
-        resetFcmRegistration = { viewModel.deregisterFcm(activity) }
+        onResetFcm = {
+            viewModel.deregisterFcm(activity)
+        }
     )
 }
 
@@ -111,7 +113,7 @@ fun HomeContent(
     authState: AuthState = AuthState.Unauthenticated,
     onSignIn: () -> Unit = {},
     notificationPermissionState: PermissionState = rememberNotificationPermissionState(),
-    resetFcmRegistration: () -> Unit = {},
+    onResetFcm: () -> Unit = {},
 ) {
     var permissionRequestCount by remember { mutableIntStateOf(0) }
     // Show the current door event.
@@ -125,7 +127,11 @@ fun HomeContent(
         val lastCheckInTime = doorEvent?.lastCheckInTimeSeconds
         LastCheckInBanner(
             lastCheckIn = lastCheckInTime?.let { Instant.ofEpochSecond(it) },
-            retryCheckIn = resetFcmRegistration,
+            action = {
+                Log.d(TAG, "Trying to fix outdated info. Resetting FCM, and fetching data.")
+                onResetFcm()
+                onFetchCurrentDoorEvent()
+            },
         )
         // Add a card at the top if the notification permission is not granted.
         if (!notificationPermissionState.status.isGranted) {

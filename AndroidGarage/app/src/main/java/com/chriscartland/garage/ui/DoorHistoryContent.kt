@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.ui
 
+import android.util.Log
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +30,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -41,11 +44,15 @@ fun DoorHistoryContent(
     modifier: Modifier = Modifier,
     viewModel: DoorViewModelImpl = hiltViewModel(),
 ) {
+    val activity = LocalContext.current as ComponentActivity
     val recentDoorEvents by viewModel.recentDoorEvents.collectAsState()
     DoorHistoryContent(
         recentDoorEvents = recentDoorEvents,
         modifier = modifier,
         onFetchRecentDoorEvents = { viewModel.fetchRecentDoorEvents() },
+        onResetFcm = {
+            viewModel.deregisterFcm(activity)
+        }
     )
 }
 
@@ -54,6 +61,7 @@ fun DoorHistoryContent(
     modifier: Modifier = Modifier,
     recentDoorEvents: LoadingResult<List<DoorEvent>?>,
     onFetchRecentDoorEvents: () -> Unit = {},
+    onResetFcm: () -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier,
@@ -62,7 +70,14 @@ fun DoorHistoryContent(
     ) {
         item {
             val lastCheckInTime = recentDoorEvents.data?.get(0)?.lastCheckInTimeSeconds
-            LastCheckInBanner(lastCheckInTime?.let { Instant.ofEpochSecond(it) })
+            LastCheckInBanner(
+                lastCheckInTime?.let { Instant.ofEpochSecond(it) },
+                action = {
+                    Log.d(TAG, "Trying to fix outdated info. Resetting FCM, and fetching data.")
+                    onResetFcm()
+                    onFetchRecentDoorEvents()
+                },
+            )
         }
 
         // If the recent events are loading, show a loading indicator.
@@ -101,3 +116,5 @@ fun DoorHistoryContentPreview() {
         recentDoorEvents = LoadingResult.Complete(demoDoorEvents),
     )
 }
+
+private const val TAG = "DoorHistoryContent"

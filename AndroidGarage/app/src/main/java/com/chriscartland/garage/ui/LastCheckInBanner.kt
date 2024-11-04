@@ -28,16 +28,16 @@ import java.time.Instant
 @Composable
 fun LastCheckInBanner(
     lastCheckIn: Instant?,
-    retryCheckIn: (() -> Unit)? = null,
+    action: (() -> Unit)? = null,
 ) {
     DurationSince(lastCheckIn) { duration ->
         Column {
             Text(
-                text = ("Door broadcast ${duration.toFriendlyDuration()} ago"),
+                text = ("Door last checked in ${duration.toFriendlyDuration()} ago"),
                 style = MaterialTheme.typography.labelSmall,
             )
             if (duration > Duration.ofMinutes(15)) {
-                if (retryCheckIn == null) {
+                if (action == null) {
                     Text(
                         text = "Warning: Time since check-in is over 15 minutes",
                         style = MaterialTheme.typography.labelSmall,
@@ -46,7 +46,7 @@ fun LastCheckInBanner(
                     ErrorCard(
                         text = "Warning: Time since check-in is over 15 minutes",
                         buttonText = "Retry",
-                        onClick = { retryCheckIn() },
+                        onClick = { action() },
                     )
                 }
             }
@@ -75,6 +75,6 @@ fun LastCheckInBannerOldPreview() {
 fun LastCheckInBannerOldWithActionPreview() {
     LastCheckInBanner(
         lastCheckIn = Instant.now().minus(Duration.ofMinutes(20)),
-        retryCheckIn = {},
+        action = {},
     )
 }
