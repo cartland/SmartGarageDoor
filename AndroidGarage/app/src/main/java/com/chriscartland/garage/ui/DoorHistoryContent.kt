@@ -76,7 +76,7 @@ fun DoorHistoryContent(
             LastCheckInBanner(
                 lastCheckInTime?.let { Instant.ofEpochSecond(it) },
                 action = {
-                    Log.d(TAG, "Trying to fix outdated info. Resetting FCM, and fetching data.")
+                    Log.e(TAG, "Trying to fix outdated info. Resetting FCM, and fetching data.")
                     onResetFcm()
                     onFetchRecentDoorEvents()
                 },
