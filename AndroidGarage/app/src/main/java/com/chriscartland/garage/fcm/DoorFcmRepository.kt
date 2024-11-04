@@ -107,6 +107,7 @@ class DoorFcmRepositoryImpl @Inject constructor() : DoorFcmRepository {
     }
 
     override suspend fun deregisterDoor(activity: Activity): DoorFcmState {
+        Log.d(TAG, "deregisterDoor")
         // Unsubscribe from old topic.
         val oldFcmTopic = getFcmTopic(activity)
         if (oldFcmTopic == null) {
@@ -148,16 +149,22 @@ private fun removeSharedPref(activity: Activity, key: String) {
     }
 }
 
-private fun getFcmTopic(activity: Activity): DoorFcmTopic? =
-    getSharedPref(activity = activity, key = FCM_DOOR_OPEN_TOPIC)?.let {
+private fun getFcmTopic(activity: Activity): DoorFcmTopic? {
+    Log.d(TAG, "getFcmTopic")
+    return getSharedPref(activity = activity, key = FCM_DOOR_OPEN_TOPIC)?.let {
         DoorFcmTopic(it)
     }
+}
 
-private fun setFcmTopic(activity: Activity, topic: DoorFcmTopic) =
+private fun setFcmTopic(activity: Activity, topic: DoorFcmTopic) {
+    Log.d(TAG, "setFcmTopic: $topic")
     setSharedPref(activity, key = FCM_DOOR_OPEN_TOPIC, value = topic.string)
+}
 
-private fun removeFcmTopic(activity: Activity) =
+private fun removeFcmTopic(activity: Activity) {
+    Log.d(TAG, "removeFcmTopic")
     removeSharedPref(activity, FCM_DOOR_OPEN_TOPIC)
+}
 
 const val FCM_DOOR_OPEN_TOPIC = "com.chriscartland.garage.repository.FCM_DOOR_OPEN_TOPIC"
 
