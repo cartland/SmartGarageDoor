@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.trace
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -83,8 +84,10 @@ fun AppNavigation(
             appLoggerViewModel.log(AppLoggerKeys.TIME_WITHOUT_FCM_IN_EXPECTED_RANGE)
         }
     }
-    // Register for FCM notifications.
-    FCMRegistration(viewModel = doorViewModel)
+    trace("FCMRegistration") {
+        // Register for FCM notifications.
+        FCMRegistration(viewModel = doorViewModel)
+    }
     val navController = rememberNavController()
     Scaffold(
         topBar = {

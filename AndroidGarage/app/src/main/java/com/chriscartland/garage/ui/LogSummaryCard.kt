@@ -128,7 +128,7 @@ fun LogSummaryCard(
                 style = MaterialTheme.typography.labelSmall,
             )
             Text(
-                text = "FCM received door: $fcmReceived",
+                text = "FCM receive data: $fcmReceived",
                 style = MaterialTheme.typography.labelSmall,
             )
             Text(
@@ -136,7 +136,7 @@ fun LogSummaryCard(
                 style = MaterialTheme.typography.labelSmall,
             )
             Text(
-                text = "Time without FCM in expected range: $timeWithoutFcmInExpectedRange",
+                text = "Fixed: No longer exceeding time without FCM: $timeWithoutFcmInExpectedRange",
                 style = MaterialTheme.typography.labelSmall,
             )
             Box(
