@@ -71,6 +71,7 @@ fun HomeContent(
     authViewModel: AuthViewModelImpl = hiltViewModel(),
     buttonViewModel: RemoteButtonViewModelImpl = hiltViewModel(),
     appLoggerViewModel: AppLoggerViewModelImpl = hiltViewModel(),
+    onOldCheckInChanged: (Boolean) -> Unit = {},
 ) {
     val activity = LocalContext.current as ComponentActivity
     val currentDoorEvent by viewModel.currentDoorEvent.collectAsState()
@@ -87,8 +88,10 @@ fun HomeContent(
         onRemoteButtonClick = {
             when (authState) {
                 is AuthState.Authenticated -> {
-                    Log.d(TAG, "Remote button clicked. " +
-                            "AuthViewModel authState $authState")
+                    Log.d(
+                        TAG, "Remote button clicked. " +
+                                "AuthViewModel authState $authState"
+                    )
                     buttonViewModel.pushRemoteButton(authViewModel.authRepository)
                 }
                 AuthState.Unauthenticated -> {
@@ -104,7 +107,8 @@ fun HomeContent(
         onSignIn = { authViewModel.signInWithGoogle(activity) },
         onResetFcm = {
             viewModel.deregisterFcm(activity)
-        }
+        },
+        onOldCheckInChanged = onOldCheckInChanged,
     )
 }
 
@@ -121,6 +125,7 @@ fun HomeContent(
     onSignIn: () -> Unit = {},
     notificationPermissionState: PermissionState = rememberNotificationPermissionState(),
     onResetFcm: () -> Unit = {},
+    onOldCheckInChanged: (Boolean) -> Unit = {},
 ) {
     var permissionRequestCount by remember { mutableIntStateOf(0) }
     // Show the current door event.
@@ -140,6 +145,7 @@ fun HomeContent(
                 onFetchCurrentDoorEvent()
             },
             modifier = Modifier.fillMaxWidth(),
+            onOldCheckInChanged = onOldCheckInChanged,
         )
         // Add a card at the top if the notification permission is not granted.
         if (!notificationPermissionState.status.isGranted) {
@@ -193,11 +199,13 @@ fun HomeContent(
                 AuthState.Unknown -> {
                     Text(text = "Checking authentication...")
                 }
+
                 AuthState.Unauthenticated -> {
                     Button(onClick = { onSignIn() }) {
                         Text("Sign to access garage remote button")
                     }
                 }
+
                 is AuthState.Authenticated -> {
                     RemoteButtonContent(
                         modifier = Modifier.fillMaxSize(),
@@ -226,7 +234,8 @@ fun HomeContentPreview() {
         notificationPermissionState = object : PermissionState {
             override val permission = "android.permission.POST_NOTIFICATIONS"
             override val status = PermissionStatus.Denied(false)
-            override fun launchPermissionRequest() { /* Do nothing */ }
+            override fun launchPermissionRequest() { /* Do nothing */
+            }
         }
     )
 }

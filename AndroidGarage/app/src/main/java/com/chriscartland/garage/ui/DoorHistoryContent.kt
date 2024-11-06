@@ -49,6 +49,7 @@ fun DoorHistoryContent(
     modifier: Modifier = Modifier,
     viewModel: DoorViewModelImpl = hiltViewModel(),
     appLoggerViewModel: AppLoggerViewModelImpl = hiltViewModel(),
+    onOldCheckInChanged: (Boolean) -> Unit = {},
 ) {
     val activity = LocalContext.current as ComponentActivity
     val recentDoorEvents by viewModel.recentDoorEvents.collectAsState()
@@ -61,7 +62,8 @@ fun DoorHistoryContent(
         },
         onResetFcm = {
             viewModel.deregisterFcm(activity)
-        }
+        },
+        onOldCheckInChanged = onOldCheckInChanged,
     )
 }
 
@@ -71,6 +73,7 @@ fun DoorHistoryContent(
     recentDoorEvents: LoadingResult<List<DoorEvent>?>,
     onFetchRecentDoorEvents: () -> Unit = {},
     onResetFcm: () -> Unit = {},
+    onOldCheckInChanged: (Boolean) -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier,
@@ -87,6 +90,7 @@ fun DoorHistoryContent(
                     onFetchRecentDoorEvents()
                 },
                 modifier = Modifier.fillMaxWidth(),
+                onOldCheckInChanged = onOldCheckInChanged,
             )
         }
 

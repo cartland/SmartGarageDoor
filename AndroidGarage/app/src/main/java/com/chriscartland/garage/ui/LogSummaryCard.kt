@@ -21,7 +21,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -35,6 +34,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,28 +43,53 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-
-data class LogSummary(
-    val initCurrent: Long,
-    val initRecent: Long,
-    val fetchCurrent: Long,
-    val fetchRecent: Long,
-    val fcmSubscribe: Long,
-    val fcmReceived: Long,
-)
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun LogSummaryCard(
-    logSummary: LogSummary,
+    modifier: Modifier = Modifier,
+    appLoggerViewModel: AppLoggerViewModelImpl = hiltViewModel(),
+) {
+    val initCurrent by appLoggerViewModel.initCurrentDoorCount.collectAsState()
+    val initRecent by appLoggerViewModel.initRecentDoorCount.collectAsState()
+    val fetchCurrent by appLoggerViewModel.userFetchCurrentDoorCount.collectAsState()
+    val fetchRecent by appLoggerViewModel.userFetchRecentDoorCount.collectAsState()
+    val fcmReceived by appLoggerViewModel.fcmReceivedDoorCount.collectAsState()
+    val fcmSubscribe by appLoggerViewModel.fcmSubscribeTopicCount.collectAsState()
+    val exceededExpectedTimeWithoutFcm by appLoggerViewModel.exceededExpectedTimeWithoutFcmCount.collectAsState()
+    LogSummaryCard(
+        modifier = modifier,
+        onDownload = { context, uri ->
+            appLoggerViewModel.writeToUri(context, uri)
+        },
+        initCurrent = initCurrent,
+        initRecent = initRecent,
+        fetchCurrent = fetchCurrent,
+        fetchRecent = fetchRecent,
+        fcmReceived = fcmReceived,
+        fcmSubscribe = fcmSubscribe,
+        exceededExpectedTimeWithoutFcm = exceededExpectedTimeWithoutFcm,
+    )
+}
+
+@Composable
+fun LogSummaryCard(
     modifier: Modifier = Modifier,
     onDownload: (context: Context, uri: Uri) -> Unit = { _, _ -> },
+    initCurrent: Long = 0,
+    initRecent: Long = 0,
+    fetchCurrent: Long = 0,
+    fetchRecent: Long = 0,
+    fcmReceived: Long = 0,
+    fcmSubscribe: Long = 0,
+    exceededExpectedTimeWithoutFcm: Long = 0,
 ) {
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
@@ -79,27 +105,31 @@ fun LogSummaryCard(
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = "Init current door: ${logSummary.initCurrent}",
+                text = "Init current door: $initCurrent",
                 style = MaterialTheme.typography.labelSmall,
             )
             Text(
-                text = "Init recent events: ${logSummary.initRecent}",
+                text = "Init recent events: $initRecent",
                 style = MaterialTheme.typography.labelSmall,
             )
             Text(
-                text = "User fetch current: ${logSummary.fetchCurrent}",
+                text = "User fetch current: $fetchCurrent",
                 style = MaterialTheme.typography.labelSmall,
             )
             Text(
-                text = "User fetch recent: ${logSummary.fetchRecent}",
+                text = "User fetch recent: $fetchRecent",
                 style = MaterialTheme.typography.labelSmall,
             )
             Text(
-                text = "FCM subscribe: ${logSummary.fcmSubscribe}",
+                text = "FCM subscribe: $fcmSubscribe",
                 style = MaterialTheme.typography.labelSmall,
             )
             Text(
-                text = "FCM received door: ${logSummary.fcmReceived}",
+                text = "FCM received door: $fcmReceived",
+                style = MaterialTheme.typography.labelSmall,
+            )
+            Text(
+                text = "Exceeded expected time without FCM: $exceededExpectedTimeWithoutFcm",
                 style = MaterialTheme.typography.labelSmall,
             )
             Box(
@@ -156,61 +186,17 @@ fun DownloadAppLoggerDatabaseButton(
     }
 }
 
-@Composable
-fun CreateTxtFile() {
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            result.data?.data?.let { uri ->
-                coroutineScope.launch(Dispatchers.IO) {
-                    writeDataToUri(context, uri)
-                }
-            }
-        }
-    }
-    val createDocument = {
-        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TITLE, "test.txt")
-        }
-        launcher.launch(intent)
-    }
-
-    Button(onClick = { createDocument() }) {
-        Text("Create TXT File")
-    }
-}
-
-private suspend fun writeDataToUri(context: Context, uri: Uri) {
-    withContext(Dispatchers.IO) {
-        try {
-            context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                outputStream.write("Line 1: This is a test\n".toByteArray())
-                outputStream.write("Line 2: This is a second line".toByteArray())
-            }
-        } catch (e: Exception) {
-            // Handle exceptions (e.g., file I/O errors)
-            Log.d("CreateTxtFile", "Error writing to file: ${e.message}")
-        }
-    }
-}
-
 @OptIn(ExperimentalPermissionsApi::class)
 @Preview
 @Composable
 fun LogSummaryCardPreview() {
     LogSummaryCard(
-        logSummary = LogSummary(
-            initCurrent = 1,
-            initRecent = 2,
-            fetchCurrent = 3,
-            fetchRecent = 4,
-            fcmSubscribe = 5,
-            fcmReceived = 6,
-        )
+        initCurrent = 1,
+        initRecent = 2,
+        fetchCurrent = 3,
+        fetchRecent = 4,
+        fcmReceived = 5,
+        fcmSubscribe = 6,
+        exceededExpectedTimeWithoutFcm = 7,
     )
 }

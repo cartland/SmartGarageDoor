@@ -17,8 +17,6 @@
 
 package com.chriscartland.garage.ui
 
-import android.content.Context
-import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.ReportDrawn
 import androidx.compose.foundation.layout.Arrangement
@@ -37,7 +35,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.auth.User
@@ -48,17 +45,9 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 fun ProfileContent(
     modifier: Modifier = Modifier,
     viewModel: AuthViewModelImpl = hiltViewModel(),
-    appLoggerViewModel: AppLoggerViewModelImpl = hiltViewModel()
 ) {
     val context = LocalContext.current as ComponentActivity
     val authState by viewModel.authState.collectAsState()
-
-    val initCurrent by appLoggerViewModel.initCurrentDoorCount.collectAsState()
-    val initRecent  by appLoggerViewModel.initRecentDoorCount.collectAsState()
-    val fetchCurrent by appLoggerViewModel.userFetchCurrentDoorCount.collectAsState()
-    val fetchRecent by appLoggerViewModel.userFetchRecentDoorCount.collectAsState()
-    val fcmReceived by appLoggerViewModel.fcmReceivedDoorCount.collectAsState()
-    val fcmSubscribe by appLoggerViewModel.fcmSubscribeTopic.collectAsState()
 
     ProfileContent(
         user = when (val it = authState) {
@@ -66,20 +55,9 @@ fun ProfileContent(
             AuthState.Unauthenticated -> null
             AuthState.Unknown -> null
         },
-        logSummary = LogSummary(
-            initCurrent = initCurrent,
-            fetchCurrent = fetchCurrent,
-            initRecent = initRecent,
-            fetchRecent = fetchRecent,
-            fcmReceived = fcmReceived,
-            fcmSubscribe = fcmSubscribe,
-        ),
         modifier = modifier,
         signIn = { viewModel.signInWithGoogle(context) },
         signOut = { viewModel.signOut() },
-        onDownload = { context, uri ->
-            appLoggerViewModel.writeToUri(context, uri)
-        },
     )
 }
 
@@ -87,11 +65,9 @@ fun ProfileContent(
 @Composable
 fun ProfileContent(
     user: User?,
-    logSummary: LogSummary? = null,
     modifier: Modifier = Modifier,
     signIn: () -> Unit,
     signOut: () -> Unit,
-    onDownload: (context: Context, uri: Uri) -> Unit = { _, _ -> },
 ) {
     Column(
         modifier = modifier,
@@ -134,13 +110,9 @@ fun ProfileContent(
         }
 
         if (APP_CONFIG.logSummary) {
-            if (logSummary != null) {
-                LogSummaryCard(
-                    logSummary = logSummary,
-                    modifier = Modifier.fillMaxWidth(),
-                    onDownload = onDownload,
-                )
-            }
+            LogSummaryCard(
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
         Spacer(modifier = Modifier.weight(1f))
         AndroidAppInfoCard()

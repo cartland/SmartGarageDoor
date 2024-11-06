@@ -31,7 +31,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -42,7 +46,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.auth.AuthViewModelImpl
+import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.fcm.FCMRegistration
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
@@ -67,14 +73,21 @@ fun AppNavigation(
     doorViewModel: DoorViewModelImpl = hiltViewModel(),
     authViewModel: AuthViewModelImpl = hiltViewModel(),
     buttonViewModel: RemoteButtonViewModelImpl = hiltViewModel(),
+    appLoggerViewModel: AppLoggerViewModelImpl = hiltViewModel(),
 ) {
+    var isTimeWithoutFcmTooLong by remember { mutableStateOf(false) }
+    LaunchedEffect(isTimeWithoutFcmTooLong) {
+        if (isTimeWithoutFcmTooLong) {
+            appLoggerViewModel.log(AppLoggerKeys.EXCEEDED_EXPECTED_TIME_WITHOUT_FCM)
+        }
+    }
     // Register for FCM notifications.
     FCMRegistration(viewModel = doorViewModel)
     val navController = rememberNavController()
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {Text("Garage")},
+                title = { Text("Garage") },
             )
         },
         bottomBar = {
@@ -87,26 +100,38 @@ fun AppNavigation(
             Modifier
                 .padding(innerPadding)
         ) {
-            composable(Screen.Home.route) { HomeContent(
-                viewModel = doorViewModel,
-                authViewModel = authViewModel,
-                buttonViewModel = buttonViewModel,
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .fillMaxWidth(),
-            ) }
-            composable(Screen.History.route) { DoorHistoryContent(
-                viewModel = doorViewModel,
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .fillMaxWidth(),
-            ) }
-            composable(Screen.Profile.route) { ProfileContent(
-                viewModel = authViewModel,
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .fillMaxWidth(),
-            ) }
+            composable(Screen.Home.route) {
+                HomeContent(
+                    viewModel = doorViewModel,
+                    authViewModel = authViewModel,
+                    buttonViewModel = buttonViewModel,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth(),
+                    onOldCheckInChanged = { isOld ->
+                        isTimeWithoutFcmTooLong = isOld
+                    },
+                )
+            }
+            composable(Screen.History.route) {
+                DoorHistoryContent(
+                    viewModel = doorViewModel,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth(),
+                    onOldCheckInChanged = { isOld ->
+                        isTimeWithoutFcmTooLong = isOld
+                    },
+                )
+            }
+            composable(Screen.Profile.route) {
+                ProfileContent(
+                    viewModel = authViewModel,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth(),
+                )
+            }
         }
     }
 }
@@ -124,13 +149,17 @@ fun BottomNavigationBar(navController: NavController, currentRoute: String?) {
     NavigationBar {
         items.forEach { screen ->
             NavigationBarItem(
-                icon = { Icon(
-                    imageVector = screen.icon,
-                    contentDescription = screen.label,
-                ) },
-                label = { Text(
-                    text = screen.label,
-                ) },
+                icon = {
+                    Icon(
+                        imageVector = screen.icon,
+                        contentDescription = screen.label,
+                    )
+                },
+                label = {
+                    Text(
+                        text = screen.label,
+                    )
+                },
                 selected = currentRoute == screen.route,
                 onClick = {
                     navController.navigate(screen.route) {

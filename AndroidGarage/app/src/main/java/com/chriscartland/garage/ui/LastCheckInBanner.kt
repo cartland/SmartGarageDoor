@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -34,6 +35,7 @@ fun LastCheckInBanner(
     lastCheckIn: Instant?,
     modifier: Modifier = Modifier,
     action: (() -> Unit)? = null,
+    onOldCheckInChanged: (Boolean) -> Unit = {},
 ) {
     DurationSince(lastCheckIn) { duration ->
         Column(
@@ -46,7 +48,8 @@ fun LastCheckInBanner(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
-            if (duration > Duration.ofMinutes(11)) {
+            val isOld = duration > Duration.ofMinutes(11)
+            if (isOld) {
                 if (action == null) {
                     Text(
                         text = "Warning: Not receiving updates from server",
@@ -61,6 +64,9 @@ fun LastCheckInBanner(
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
+            }
+            LaunchedEffect(isOld) {
+                onOldCheckInChanged(isOld)
             }
         }
     }
