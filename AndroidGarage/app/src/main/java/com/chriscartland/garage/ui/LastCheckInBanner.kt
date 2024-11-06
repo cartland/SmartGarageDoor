@@ -48,7 +48,7 @@ fun LastCheckInBanner(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
-            val isOld = duration > Duration.ofMinutes(11)
+            val isOld = lastCheckIn != null && duration > Duration.ofMinutes(11)
             if (isOld) {
                 if (action == null) {
                     Text(

@@ -79,6 +79,8 @@ fun AppNavigation(
     LaunchedEffect(isTimeWithoutFcmTooLong) {
         if (isTimeWithoutFcmTooLong) {
             appLoggerViewModel.log(AppLoggerKeys.EXCEEDED_EXPECTED_TIME_WITHOUT_FCM)
+        } else {
+            appLoggerViewModel.log(AppLoggerKeys.TIME_WITHOUT_FCM_IN_EXPECTED_RANGE)
         }
     }
     // Register for FCM notifications.

@@ -64,6 +64,7 @@ fun LogSummaryCard(
     val fcmReceived by appLoggerViewModel.fcmReceivedDoorCount.collectAsState()
     val fcmSubscribe by appLoggerViewModel.fcmSubscribeTopicCount.collectAsState()
     val exceededExpectedTimeWithoutFcm by appLoggerViewModel.exceededExpectedTimeWithoutFcmCount.collectAsState()
+    val timeWithoutFcmInExpectedRange by appLoggerViewModel.timeWithoutFcmInExpectedRangeCount.collectAsState()
     LogSummaryCard(
         modifier = modifier,
         onDownload = { context, uri ->
@@ -76,6 +77,7 @@ fun LogSummaryCard(
         fcmReceived = fcmReceived,
         fcmSubscribe = fcmSubscribe,
         exceededExpectedTimeWithoutFcm = exceededExpectedTimeWithoutFcm,
+        timeWithoutFcmInExpectedRange = timeWithoutFcmInExpectedRange,
     )
 }
 
@@ -90,6 +92,7 @@ fun LogSummaryCard(
     fcmReceived: Long = 0,
     fcmSubscribe: Long = 0,
     exceededExpectedTimeWithoutFcm: Long = 0,
+    timeWithoutFcmInExpectedRange: Long = 0,
 ) {
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
@@ -130,6 +133,10 @@ fun LogSummaryCard(
             )
             Text(
                 text = "Exceeded expected time without FCM: $exceededExpectedTimeWithoutFcm",
+                style = MaterialTheme.typography.labelSmall,
+            )
+            Text(
+                text = "Time without FCM in expected range: $timeWithoutFcmInExpectedRange",
                 style = MaterialTheme.typography.labelSmall,
             )
             Box(
