@@ -17,8 +17,6 @@
 
 package com.chriscartland.garage.fcm
 
-import android.app.Activity
-import android.content.Context
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
@@ -27,12 +25,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
+import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.door.DoorViewModel
 import com.chriscartland.garage.door.FcmRegistrationStatus
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.messaging.ktx.messaging
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 /**
  * Register for FCM updates.
@@ -44,7 +40,10 @@ import kotlin.coroutines.suspendCoroutine
  * 2) Subscribe to the FCM topic.
  */
 @Composable
-fun FCMRegistration(viewModel: DoorViewModel = hiltViewModel()) {
+fun FCMRegistration(
+    viewModel: DoorViewModel = hiltViewModel(),
+    appLoggerViewModel: AppLoggerViewModelImpl = hiltViewModel(),
+) {
     val context = LocalContext.current as ComponentActivity
     val fcmState by viewModel.fcmRegistrationStatus.collectAsState()
     LaunchedEffect(key1 = fcmState) {
@@ -59,6 +58,7 @@ fun FCMRegistration(viewModel: DoorViewModel = hiltViewModel()) {
             }
             FcmRegistrationStatus.NOT_REGISTERED -> {
                 Log.d(TAG, "FCM registration status is not registered, registering...")
+                appLoggerViewModel.log(AppLoggerKeys.FCM_SUBSCRIBE_TOPIC)
                 viewModel.registerFcm(context)
             }
         }

@@ -21,7 +21,9 @@ import android.app.Activity
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.config.APP_CONFIG
+import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.config.FetchOnViewModelInit
 import com.chriscartland.garage.door.LoadingResult.Complete
 import com.chriscartland.garage.door.LoadingResult.Error
@@ -49,6 +51,7 @@ interface DoorViewModel {
 
 @HiltViewModel
 class DoorViewModelImpl @Inject constructor(
+    private val appLoggerRepository: AppLoggerRepository,
     private val doorRepository: DoorRepository,
     private val doorFcmRepository: DoorFcmRepository,
 ) : ViewModel(), DoorViewModel {
@@ -81,10 +84,13 @@ class DoorViewModelImpl @Inject constructor(
         // Decide whether to fetch with network data when ViewModel is initialized
         when (APP_CONFIG.fetchOnViewModelInit) {
             FetchOnViewModelInit.Yes -> {
+                viewModelScope.launch(Dispatchers.IO) {
+                    appLoggerRepository.log(AppLoggerKeys.INIT_CURRENT_DOOR)
+                    appLoggerRepository.log(AppLoggerKeys.INIT_RECENT_DOOR)
+                }
                 fetchCurrentDoorEvent()
                 fetchRecentDoorEvents()
             }
-
             FetchOnViewModelInit.No -> { /* Do nothing */
             }
         }

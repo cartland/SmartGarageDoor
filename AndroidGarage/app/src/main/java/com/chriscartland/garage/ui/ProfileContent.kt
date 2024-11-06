@@ -35,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.auth.User
@@ -44,15 +45,32 @@ import com.chriscartland.garage.config.APP_CONFIG
 fun ProfileContent(
     modifier: Modifier = Modifier,
     viewModel: AuthViewModelImpl = hiltViewModel(),
+    appLoggerViewModel: AppLoggerViewModelImpl = hiltViewModel()
 ) {
     val context = LocalContext.current as ComponentActivity
     val authState by viewModel.authState.collectAsState()
+
+    val initCurrent by appLoggerViewModel.initCurrentDoorCount.collectAsState()
+    val initRecent  by appLoggerViewModel.initRecentDoorCount.collectAsState()
+    val fetchCurrent by appLoggerViewModel.userFetchCurrentDoorCount.collectAsState()
+    val fetchRecent by appLoggerViewModel.userFetchRecentDoorCount.collectAsState()
+    val fcmReceived by appLoggerViewModel.fcmReceivedDoorCount.collectAsState()
+    val fcmSubscribe by appLoggerViewModel.fcmSubscribeTopic.collectAsState()
+
     ProfileContent(
         user = when (val it = authState) {
             is AuthState.Authenticated -> it.user
             AuthState.Unauthenticated -> null
             AuthState.Unknown -> null
         },
+        logSummary = LogSummary(
+            initCurrent = initCurrent,
+            fetchCurrent = fetchCurrent,
+            initRecent = initRecent,
+            fetchRecent = fetchRecent,
+            fcmReceived = fcmReceived,
+            fcmSubscribe = fcmSubscribe,
+        ),
         modifier = modifier,
         signIn = { viewModel.signInWithGoogle(context) },
         signOut = { viewModel.signOut() }
@@ -62,13 +80,14 @@ fun ProfileContent(
 @Composable
 fun ProfileContent(
     user: User?,
+    logSummary: LogSummary? = null,
     modifier: Modifier = Modifier,
     signIn: () -> Unit,
     signOut: () -> Unit,
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         UserInfoCard(
@@ -104,6 +123,15 @@ fun ProfileContent(
                 snoozeText = "Snooze",
                 saveText = "Save",
             )
+        }
+
+        if (APP_CONFIG.logSummary) {
+            if (logSummary != null) {
+                LogSummaryCard(
+                    logSummary = logSummary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
         Spacer(modifier = Modifier.weight(1f))
         AndroidAppInfoCard()

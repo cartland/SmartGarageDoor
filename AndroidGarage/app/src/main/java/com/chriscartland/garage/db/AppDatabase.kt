@@ -21,6 +21,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.chriscartland.garage.applogger.AppEvent
+import com.chriscartland.garage.applogger.AppLoggerDao
 import com.chriscartland.garage.door.DoorEvent
 import dagger.Module
 import dagger.Provides
@@ -29,8 +31,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
-@Database(entities = [DoorEvent::class], version = 6, exportSchema = true)
+@Database(entities = [DoorEvent::class, AppEvent::class], version = 8, exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
+    abstract fun appLoggerDao(): AppLoggerDao
 
     abstract fun doorEventDao(): DoorEventDao
 

@@ -18,6 +18,8 @@
 package com.chriscartland.garage.fcm
 
 import android.util.Log
+import com.chriscartland.garage.applogger.AppLoggerRepository
+import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorPosition
 import com.chriscartland.garage.door.DoorRepository
@@ -27,12 +29,16 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class FCMService : FirebaseMessagingService() {
     @Inject
     lateinit var doorRepository: DoorRepository
+
+    @Inject
+    lateinit var appLoggerRepository: AppLoggerRepository
 
     // Create Job and CoroutineScope to schedule brief, concurrent work.
     private val supervisorJob = SupervisorJob()
@@ -56,7 +62,10 @@ class FCMService : FirebaseMessagingService() {
                 return
             }
             Log.d(TAG, "DoorData: $doorEvent")
-
+            coroutineScope.launch(Dispatchers.IO) {
+                Log.d(TAG, "Logging FCM_DOOR_RECEIVED: ${AppLoggerKeys.FCM_DOOR_RECEIVED}")
+                appLoggerRepository.log(AppLoggerKeys.FCM_DOOR_RECEIVED)
+            }
             if (/* Check if data needs to be processed by long running job */ false) {
                 // For long-running tasks (10 seconds or more) use WorkManager.
                 scheduleJob()

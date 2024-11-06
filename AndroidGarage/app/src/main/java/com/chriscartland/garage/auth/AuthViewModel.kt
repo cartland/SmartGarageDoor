@@ -41,13 +41,6 @@ import javax.inject.Inject
 
 interface AuthViewModel {
     val authState: StateFlow<AuthState>
-    // TODO: Hide AuthRepository by making sure that Hilt instantiates a singleton.
-    // I had an issue in release builds (not debug) where Hilt would instantiate multiple
-    // AuthRepository instances for each ViewModel, which caused inconsistent auth states.
-    // As a workaround, I'm exposing the AuthRepository in the ViewModel so
-    // we can access the same auth state in other parts of the app.
-    // This breaks separation of concerns, but is necessary until I can ensure that multiple
-    // parts of the app are able to access the correct AuthRepository through dependency injection.
     val authRepository: AuthRepository
     fun signInWithGoogle(activity: ComponentActivity)
     fun signOut()

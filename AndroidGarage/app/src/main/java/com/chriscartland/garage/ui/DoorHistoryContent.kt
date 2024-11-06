@@ -37,6 +37,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
+import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.door.LoadingResult
@@ -46,13 +48,17 @@ import java.time.Instant
 fun DoorHistoryContent(
     modifier: Modifier = Modifier,
     viewModel: DoorViewModelImpl = hiltViewModel(),
+    appLoggerViewModel: AppLoggerViewModelImpl = hiltViewModel(),
 ) {
     val activity = LocalContext.current as ComponentActivity
     val recentDoorEvents by viewModel.recentDoorEvents.collectAsState()
     DoorHistoryContent(
         recentDoorEvents = recentDoorEvents,
         modifier = modifier,
-        onFetchRecentDoorEvents = { viewModel.fetchRecentDoorEvents() },
+        onFetchRecentDoorEvents = {
+            appLoggerViewModel.log(AppLoggerKeys.USER_FETCH_RECENT_DOOR)
+            viewModel.fetchRecentDoorEvents()
+        },
         onResetFcm = {
             viewModel.deregisterFcm(activity)
         }

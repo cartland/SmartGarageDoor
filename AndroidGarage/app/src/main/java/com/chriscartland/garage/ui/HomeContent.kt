@@ -44,8 +44,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
+import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.door.LoadingResult
@@ -68,6 +70,7 @@ fun HomeContent(
     viewModel: DoorViewModelImpl = hiltViewModel(),
     authViewModel: AuthViewModelImpl = hiltViewModel(),
     buttonViewModel: RemoteButtonViewModelImpl = hiltViewModel(),
+    appLoggerViewModel: AppLoggerViewModelImpl = hiltViewModel(),
 ) {
     val activity = LocalContext.current as ComponentActivity
     val currentDoorEvent by viewModel.currentDoorEvent.collectAsState()
@@ -77,7 +80,10 @@ fun HomeContent(
         currentDoorEvent = currentDoorEvent,
         remoteRequestStatus = buttonRequestStatus,
         modifier = modifier,
-        onFetchCurrentDoorEvent = { viewModel.fetchCurrentDoorEvent() },
+        onFetchCurrentDoorEvent = {
+            appLoggerViewModel.log(AppLoggerKeys.USER_FETCH_CURRENT_DOOR)
+            viewModel.fetchCurrentDoorEvent()
+        },
         onRemoteButtonClick = {
             when (authState) {
                 is AuthState.Authenticated -> {

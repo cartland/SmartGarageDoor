@@ -28,6 +28,7 @@ data class AppConfig(
     val serverConfigKey: String,
     val snoozeNotificationsOption: Boolean,
     val remoteButtonPushEnabled: Boolean,
+    val logSummary: Boolean,
 )
 
 enum class Server {
@@ -54,6 +55,15 @@ private val INITIAL_DATA = InitialData.Empty
 //private val FETCH_ON_VIEW_MODEL_INIT = FetchOnViewModelInit.No
 private val FETCH_ON_VIEW_MODEL_INIT = FetchOnViewModelInit.Yes
 
+object AppLoggerKeys {
+    const val INIT_CURRENT_DOOR = "init_current_door"
+    const val INIT_RECENT_DOOR = "init_recent_door"
+    const val USER_FETCH_CURRENT_DOOR = "user_fetch_current_door"
+    const val USER_FETCH_RECENT_DOOR = "user_fetch_recent_door"
+    const val FCM_DOOR_RECEIVED = "fcm_door_received"
+    const val FCM_SUBSCRIBE_TOPIC = "fcm_subscribe_topic"
+}
+
 val APP_CONFIG = AppConfig(
     server = SERVER,
     baseUrl = when (SERVER) {
@@ -66,4 +76,5 @@ val APP_CONFIG = AppConfig(
     serverConfigKey = BuildConfig.SERVER_CONFIG_KEY,
     snoozeNotificationsOption = false,
     remoteButtonPushEnabled = true,
+    logSummary = true,
 )
