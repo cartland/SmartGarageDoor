@@ -24,5 +24,5 @@ import androidx.room.PrimaryKey
 data class AppEvent(
     val eventKey: String,
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val timestamp: Long = System.currentTimeMillis(),
+    val timestamp: Long = System.currentTimeMillis(), // Milliseconds
 )

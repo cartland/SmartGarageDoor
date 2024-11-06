@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.applogger
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.config.AppLoggerKeys
@@ -29,6 +31,7 @@ import javax.inject.Inject
 
 interface AppLoggerViewModel {
     fun log(key: String)
+    fun writeToUri(context: Context, uri: Uri)
     val initCurrentDoorCount: StateFlow<Long>
     val initRecentDoorCount: StateFlow<Long>
     val userFetchCurrentDoorCount: StateFlow<Long>
@@ -95,6 +98,12 @@ class AppLoggerViewModelImpl @Inject constructor(
     override fun log(key: String) {
         viewModelScope.launch(Dispatchers.IO) {
             appLoggerRepository.log(key)
+        }
+    }
+
+    override fun writeToUri(context: Context, uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            appLoggerRepository.writeToUri(context, uri)
         }
     }
 }

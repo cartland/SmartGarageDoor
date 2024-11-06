@@ -17,18 +17,24 @@
 
 package com.chriscartland.garage.applogger
 
+import android.content.Context
+import android.net.Uri
 import android.util.Log
 import com.chriscartland.garage.db.AppDatabase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 interface AppLoggerRepository {
     suspend fun log(key: String)
+    suspend fun writeToUri(context: Context, uri: Uri)
     fun countKey(key: String): Flow<Long>
 }
 
@@ -43,6 +49,23 @@ class AppLoggerRepositoryImpl @Inject constructor(
     override fun countKey(key: String): Flow<Long> {
         return appDatabase.appLoggerDao().countKey(key)
     }
+
+    override suspend fun writeToUri(context: Context, uri: Uri) {
+        withContext(Dispatchers.IO) {
+            try {
+                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write("Timestamp,Key\n".toByteArray())
+                    appDatabase.appLoggerDao().getAll().first().forEach {
+                        outputStream.write("${it.timestamp},${it.eventKey}\n".toByteArray())
+                    }
+                }
+            } catch (e: Exception) {
+                // Handle exceptions (e.g., file I/O errors)
+                Log.d("CreateTxtFile", "Error writing to file: ${e.message}")
+            }
+        }
+    }
+
 }
 
 @Module

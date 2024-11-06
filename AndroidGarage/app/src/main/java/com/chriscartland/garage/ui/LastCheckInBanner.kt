@@ -46,16 +46,16 @@ fun LastCheckInBanner(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
-            if (duration > Duration.ofMinutes(15)) {
+            if (duration > Duration.ofMinutes(11)) {
                 if (action == null) {
                     Text(
-                        text = "Warning: Time since check-in is over 15 minutes",
+                        text = "Warning: Not receiving updates from server",
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 } else {
                     ErrorCard(
-                        text = "Warning: Time since check-in is over 15 minutes",
+                        text = "Not receiving updates from server",
                         buttonText = "Retry",
                         onClick = { action() },
                         modifier = Modifier.fillMaxWidth(),

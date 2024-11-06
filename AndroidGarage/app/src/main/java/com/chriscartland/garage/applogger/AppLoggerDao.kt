@@ -28,7 +28,7 @@ interface AppLoggerDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(appEvent: AppEvent)
 
-    @Query("SELECT * FROM appEvent")
+    @Query("SELECT * FROM appEvent ORDER BY timestamp ASC")
     fun getAll(): Flow<List<AppEvent>>
 
     @Query("SELECT count(*) from appEvent WHERE eventKey = :key")

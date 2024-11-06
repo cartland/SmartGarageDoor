@@ -31,7 +31,14 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
-@Database(entities = [DoorEvent::class, AppEvent::class], version = 8, exportSchema = true)
+@Database(
+    entities = [
+        DoorEvent::class,
+        AppEvent::class,
+    ],
+    version = 10,
+    exportSchema = true,
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun appLoggerDao(): AppLoggerDao
 

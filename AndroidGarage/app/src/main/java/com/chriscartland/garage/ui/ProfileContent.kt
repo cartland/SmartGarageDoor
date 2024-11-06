@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.ui
 
+import android.content.Context
+import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.ReportDrawn
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +42,7 @@ import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.auth.User
 import com.chriscartland.garage.config.APP_CONFIG
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
 
 @Composable
 fun ProfileContent(
@@ -73,10 +76,14 @@ fun ProfileContent(
         ),
         modifier = modifier,
         signIn = { viewModel.signInWithGoogle(context) },
-        signOut = { viewModel.signOut() }
+        signOut = { viewModel.signOut() },
+        onDownload = { context, uri ->
+            appLoggerViewModel.writeToUri(context, uri)
+        },
     )
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ProfileContent(
     user: User?,
@@ -84,6 +91,7 @@ fun ProfileContent(
     modifier: Modifier = Modifier,
     signIn: () -> Unit,
     signOut: () -> Unit,
+    onDownload: (context: Context, uri: Uri) -> Unit = { _, _ -> },
 ) {
     Column(
         modifier = modifier,
@@ -130,6 +138,7 @@ fun ProfileContent(
                 LogSummaryCard(
                     logSummary = logSummary,
                     modifier = Modifier.fillMaxWidth(),
+                    onDownload = onDownload,
                 )
             }
         }
