@@ -20,12 +20,10 @@ package com.chriscartland.garage.ui
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.ReportDrawn
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -69,53 +67,42 @@ fun ProfileContent(
     signIn: () -> Unit,
     signOut: () -> Unit,
 ) {
-    Column(
+    LazyColumn(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        UserInfoCard(
-            user,
-            modifier = Modifier
-                .fillMaxWidth(),
-        ) {
-            Box(
-                modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Button(
-                    onClick = if (user == null) {
-                        signIn
-                    } else {
-                        signOut
-                    }
-                ) {
-                    Text(
-                        if (user == null) {
-                            "Sign In"
-                        } else {
-                            "Sign out"
-                        }
-                    )
-                }
+        item {
+            UserInfoCard(
+                user,
+                modifier = Modifier
+                    .fillMaxWidth(),
+                signIn = signIn,
+                signOut = signOut,
+            )
+        }
+        if (APP_CONFIG.snoozeNotificationsOption) {
+            item {
+                SnoozeNotificationCard(
+                    text = "Snooze notifications",
+                    snoozeText = "Snooze",
+                    saveText = "Save",
+                )
             }
         }
-        // Snooze notifications.
-        if (APP_CONFIG.snoozeNotificationsOption) {
-            SnoozeNotificationCard(
-                text = "Snooze notifications",
-                snoozeText = "Snooze",
-                saveText = "Save",
-            )
-        }
-
         if (APP_CONFIG.logSummary) {
-            LogSummaryCard(
-                modifier = Modifier.fillMaxWidth(),
-            )
+            item {
+                LogSummaryCard(
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
-        Spacer(modifier = Modifier.weight(1f))
-        AndroidAppInfoCard()
+        item {
+            AndroidAppInfoCard()
+        }
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
     }
     ReportDrawn()
 }

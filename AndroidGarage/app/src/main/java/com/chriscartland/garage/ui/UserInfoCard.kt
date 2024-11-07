@@ -17,11 +17,13 @@
 
 package com.chriscartland.garage.ui
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -40,7 +42,8 @@ import com.chriscartland.garage.auth.User
 fun UserInfoCard(
     user: User?,
     modifier: Modifier = Modifier,
-    content: @Composable () -> Unit = {},
+    signIn: () -> Unit = {},
+    signOut: () -> Unit = {},
 ) {
     Card(
         modifier = modifier,
@@ -53,11 +56,29 @@ fun UserInfoCard(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text("User Information", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(8.dp))
             Text(text = "Name: ${user?.name?.asString() ?: "Unknown"}")
             Text(text = "Email: ${user?.email?.asString() ?: "Unknown"}")
         }
-        content()
+        Box(
+            modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Button(
+                onClick = if (user == null) {
+                    signIn
+                } else {
+                    signOut
+                }
+            ) {
+                Text(
+                    if (user == null) {
+                        "Sign In"
+                    } else {
+                        "Sign out"
+                    }
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
