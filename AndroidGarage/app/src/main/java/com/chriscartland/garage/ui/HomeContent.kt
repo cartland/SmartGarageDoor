@@ -104,11 +104,16 @@ fun HomeContent(
         },
         onResetRemote = { buttonViewModel.resetRemoteButton() },
         authState = authState,
-        onSignIn = { authViewModel.signInWithGoogle(activity) },
+        onSignIn = {
+            authViewModel.signInWithGoogle(activity)
+        },
         onResetFcm = {
             viewModel.deregisterFcm(activity)
         },
         onOldCheckInChanged = onOldCheckInChanged,
+        onLogNotificationPermissionRequested = {
+            appLoggerViewModel.log(AppLoggerKeys.USER_REQUESTED_NOTIFICATION_PERMISSION)
+        }
     )
 }
 
@@ -126,6 +131,7 @@ fun HomeContent(
     notificationPermissionState: PermissionState = rememberNotificationPermissionState(),
     onResetFcm: () -> Unit = {},
     onOldCheckInChanged: (Boolean) -> Unit = {},
+    onLogNotificationPermissionRequested: () -> Unit = {},
 ) {
     var permissionRequestCount by remember { mutableIntStateOf(0) }
     // Show the current door event.
@@ -155,6 +161,7 @@ fun HomeContent(
                 onClick = {
                     permissionRequestCount++
                     notificationPermissionState.launchPermissionRequest()
+                    onLogNotificationPermissionRequested()
                 },
             )
         }

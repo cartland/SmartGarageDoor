@@ -18,6 +18,8 @@
 package com.chriscartland.garage.auth
 
 import android.util.Log
+import com.chriscartland.garage.applogger.AppLoggerRepository
+import com.chriscartland.garage.config.AppLoggerKeys
 import com.google.firebase.Firebase
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
@@ -45,12 +47,14 @@ interface AuthRepository {
     suspend fun signOut()
 }
 
-class AuthRepositoryImpl @Inject constructor() : AuthRepository {
+class AuthRepositoryImpl @Inject constructor(
+    private val appLoggerRepository: AppLoggerRepository,
+) : AuthRepository {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
     override val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
     init {
-        CoroutineScope(Dispatchers.Main).launch {
+        CoroutineScope(Dispatchers.IO).launch {
             refreshFirebaseAuthState()
         }
     }
@@ -118,8 +122,16 @@ class AuthRepositoryImpl @Inject constructor() : AuthRepository {
     /**
      * Commit the new AuthState and handle any side effects.
      */
-    private fun AuthState.commit(): AuthState {
+    private suspend fun AuthState.commit(): AuthState {
         Log.d(TAG, "AuthState.commit(): $this")
+        when (this) {
+            is AuthState.Authenticated ->
+                appLoggerRepository.log(AppLoggerKeys.USER_AUTHENTICATED)
+            AuthState.Unauthenticated ->
+                appLoggerRepository.log(AppLoggerKeys.USER_UNAUTHENTICATED)
+            AuthState.Unknown ->
+                appLoggerRepository.log(AppLoggerKeys.USER_AUTH_UNKNOWN)
+        }
         return this.also {
             _authState.value = it
         }
