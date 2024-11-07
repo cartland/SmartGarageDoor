@@ -41,7 +41,7 @@ fun UserInfoCard(
     signOut: () -> Unit = {},
 ) {
     ExpandableColumnCard(
-        title = "User Information",
+        title = "User",
         modifier = modifier,
         startExpanded = true,
     ) {
@@ -80,9 +80,11 @@ fun UserInfoNoUserPreview() {
 @Preview
 @Composable
 fun UserInfoCardPreview() {
-    UserInfoCard(user = User(
-        name = DisplayName("Demo User"),
-        email = Email("demo@example.com"),
-        idToken = FirebaseIdToken("abc123", 1234567890),
-    ))
+    UserInfoCard(
+        user = User(
+            name = DisplayName("Demo User"),
+            email = Email("demo@example.com"),
+            idToken = FirebaseIdToken("abc123", 1234567890),
+        )
+    )
 }

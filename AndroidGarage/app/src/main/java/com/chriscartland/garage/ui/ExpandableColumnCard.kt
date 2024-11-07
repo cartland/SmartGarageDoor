@@ -22,13 +22,14 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -51,8 +52,9 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ExpandableColumnCard(
     title: String,
-    modifier: Modifier = Modifier.Companion,
+    modifier: Modifier = Modifier,
     startExpanded: Boolean = true,
+    horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var expanded by remember { mutableStateOf(startExpanded) }
@@ -61,30 +63,35 @@ fun ExpandableColumnCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Column(
-            modifier = Modifier.Companion
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.Companion.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = horizontalAlignment,
+            verticalArrangement = Arrangement.Center,
         ) {
             Row(
-                modifier = Modifier.Companion.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Companion.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Spacer(modifier = Modifier.Companion.width(32.dp))
+                Spacer(modifier = Modifier.size(36.dp))
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.Companion.weight(1f),
-                    textAlign = TextAlign.Companion.Center,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
                 )
-                IconButton(
-                    onClick = { expanded = !expanded },
+                Box(
+                    modifier = Modifier.size(36.dp),
                 ) {
-                    Icon(
-                        modifier = Modifier.Companion.width(32.dp),
-                        imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                        contentDescription = if (expanded) "Collapse" else "Expand",
-                    )
+                    IconButton(
+                        onClick = { expanded = !expanded },
+                    ) {
+                        Icon(
+                            imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                            contentDescription = if (expanded) "Collapse" else "Expand",
+                        )
+                    }
                 }
             }
             AnimatedVisibility(
@@ -93,10 +100,9 @@ fun ExpandableColumnCard(
                 exit = shrinkVertically(animationSpec = tween(durationMillis = 300))
             ) {
                 Column(
-                    modifier = Modifier.Companion
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                    horizontalAlignment = Alignment.Companion.CenterHorizontally,
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalAlignment = horizontalAlignment,
                 ) {
                     content()
                 }
