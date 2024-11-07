@@ -77,12 +77,15 @@ fun AppNavigation(
     appLoggerViewModel: AppLoggerViewModelImpl = hiltViewModel(),
 ) {
     var isTimeWithoutFcmTooLong by remember { mutableStateOf(false) }
+    var isFirstValue by remember { mutableStateOf(true) }
     LaunchedEffect(isTimeWithoutFcmTooLong) {
         if (isTimeWithoutFcmTooLong) {
             appLoggerViewModel.log(AppLoggerKeys.EXCEEDED_EXPECTED_TIME_WITHOUT_FCM)
-        } else {
+        } else if (!isFirstValue) {
+            // Do not log the first time if everything is ok.
             appLoggerViewModel.log(AppLoggerKeys.TIME_WITHOUT_FCM_IN_EXPECTED_RANGE)
         }
+        isFirstValue = false
     }
     trace("FCMRegistration") {
         // Register for FCM notifications.

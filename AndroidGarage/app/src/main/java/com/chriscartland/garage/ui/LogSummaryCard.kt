@@ -136,7 +136,7 @@ fun LogSummaryCard(
                 style = MaterialTheme.typography.labelSmall,
             )
             Text(
-                text = "Fixed: No longer exceeding time without FCM: $timeWithoutFcmInExpectedRange",
+                text = "Received data after FCM delay: $timeWithoutFcmInExpectedRange",
                 style = MaterialTheme.typography.labelSmall,
             )
             Box(
@@ -205,5 +205,6 @@ fun LogSummaryCardPreview() {
         fcmReceived = 5,
         fcmSubscribe = 6,
         exceededExpectedTimeWithoutFcm = 7,
+        timeWithoutFcmInExpectedRange = 8,
     )
 }
