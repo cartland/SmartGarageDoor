@@ -18,15 +18,10 @@
 package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -45,22 +40,16 @@ fun UserInfoCard(
     signIn: () -> Unit = {},
     signOut: () -> Unit = {},
 ) {
-    Card(
+    ExpandableColumnCard(
+        title = "User Information",
         modifier = modifier,
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        startExpanded = true,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text("User Information", style = MaterialTheme.typography.titleLarge)
-            Text(text = "Name: ${user?.name?.asString() ?: "Unknown"}")
-            Text(text = "Email: ${user?.email?.asString() ?: "Unknown"}")
-        }
+        Text(text = "Name: ${user?.name?.asString() ?: "Unknown"}")
+        Text(text = "Email: ${user?.email?.asString() ?: "Unknown"}")
+        Spacer(modifier = Modifier.height(8.dp))
         Box(
-            modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center,
         ) {
             Button(
@@ -79,7 +68,6 @@ fun UserInfoCard(
                 )
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
