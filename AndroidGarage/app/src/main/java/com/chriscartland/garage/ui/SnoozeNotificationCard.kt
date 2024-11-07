@@ -27,9 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,30 +43,28 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
+enum class SnoozeDuration(
+    val duration: Duration,
+) {
+    ThirtyMinutes(30.minutes),
+    OneHour(1.hours),
+    FourHours(4.hours),
+}
+
 @Composable
 fun SnoozeNotificationCard(
     text: String,
     snoozeText: String,
     saveText: String,
     modifier: Modifier = Modifier,
-    onSnooze: (snooze: Duration) -> Unit = {},
+    onSnooze: (snooze: SnoozeDuration) -> Unit = {},
 ) {
     var showOptions by remember { mutableStateOf(false) }
-    val options: List<Duration> = listOf(
-        15.minutes,
-        30.minutes,
-        1.hours,
-    )
+    val options: List<SnoozeDuration> = SnoozeDuration.entries
     var selectedOption = remember { options.first() }
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         modifier = modifier,
-        colors = CardColors(
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            disabledContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            disabledContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-        ),
     ) {
         Column {
             Row(
@@ -85,10 +81,10 @@ fun SnoozeNotificationCard(
                 )
                 Spacer(Modifier.width(16.dp))
                 Button(onClick = {
-                    showOptions = !showOptions
-                    if (!showOptions) { // Save
+                    if (showOptions) { // Save
                         onSnooze(selectedOption)
                     }
+                    showOptions = !showOptions
                 }) {
                     Text(
                         if (showOptions) saveText else snoozeText,
@@ -105,7 +101,7 @@ fun SnoozeNotificationCard(
                         selectedOption = option
                     },
                     optionFormatter = { option ->
-                        option.toComponents { hours, minutes, _, _ ->
+                        option.duration.toComponents { hours, minutes, _, _ ->
                             val components = mutableListOf<String>()
                             when (hours) {
                                 0L -> {}

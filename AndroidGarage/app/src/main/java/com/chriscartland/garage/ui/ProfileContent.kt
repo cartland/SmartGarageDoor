@@ -37,8 +37,12 @@ import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.auth.User
 import com.chriscartland.garage.config.APP_CONFIG
+import com.chriscartland.garage.permissions.rememberNotificationPermissionState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.isGranted
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ProfileContent(
     modifier: Modifier = Modifier,
@@ -66,6 +70,7 @@ fun ProfileContent(
     modifier: Modifier = Modifier,
     signIn: () -> Unit,
     signOut: () -> Unit,
+    notificationPermissionState: PermissionState = rememberNotificationPermissionState(),
 ) {
     LazyColumn(
         modifier = modifier,
@@ -81,10 +86,10 @@ fun ProfileContent(
                 signOut = signOut,
             )
         }
-        if (APP_CONFIG.snoozeNotificationsOption) {
+        if (APP_CONFIG.snoozeNotificationsOption && notificationPermissionState.status.isGranted) {
             item {
                 SnoozeNotificationCard(
-                    text = "Snooze notifications",
+                    text = "Snooze notification",
                     snoozeText = "Snooze",
                     saveText = "Save",
                 )
