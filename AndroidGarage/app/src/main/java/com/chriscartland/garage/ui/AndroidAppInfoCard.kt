@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.ui
 
-import android.os.Build
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,23 +29,7 @@ import com.chriscartland.garage.version.AppVersion
 
 @Composable
 fun AndroidAppInfoCard() {
-    AndroidAppInfoCard(with(LocalContext.current) {
-        AppVersion(
-            packageName = packageName,
-            versionCode = packageManager.getPackageInfo(
-                packageName,
-                0
-            ).let {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    it.longVersionCode
-                } else {
-                    @Suppress("DEPRECATION")
-                    it.versionCode.toLong()
-                }
-            },
-            versionName = packageManager.getPackageInfo(packageName, 0).versionName ?: "",
-        )
-    })
+    AndroidAppInfoCard(LocalContext.current.AppVersion())
 }
 
 @Composable

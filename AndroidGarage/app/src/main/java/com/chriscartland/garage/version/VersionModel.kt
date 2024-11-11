@@ -17,10 +17,31 @@
 
 package com.chriscartland.garage.version
 
+import android.content.Context
+import android.os.Build
+
 data class AppVersion(
     val packageName: String,
     val versionCode: Long,
     val versionName: String
 ) {
     override fun toString(): String = "$packageName-$versionCode-$versionName"
+}
+
+fun Context.AppVersion(): AppVersion {
+    return AppVersion(
+        packageName = packageName,
+        versionCode = packageManager.getPackageInfo(
+            packageName,
+            0
+        ).let {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                it.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                it.versionCode.toLong()
+            }
+        },
+        versionName = packageManager.getPackageInfo(packageName, 0).versionName ?: "",
+    )
 }
