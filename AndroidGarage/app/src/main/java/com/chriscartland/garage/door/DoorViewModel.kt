@@ -98,7 +98,7 @@ class DoorViewModelImpl @Inject constructor(
 
     override fun fetchFcmRegistrationStatus(activity: Activity) {
         Log.d(TAG, "fetchFcmRegistrationStatus")
-        viewModelScope.launch(Dispatchers.Main) {
+        viewModelScope.launch(Dispatchers.IO) {
             Log.d(TAG, "Fetching FCM registration status")
             val status = doorFcmRepository.fetchStatus(activity)
             Log.d(TAG, "Fetched FCM registration status: $status")
@@ -112,7 +112,7 @@ class DoorViewModelImpl @Inject constructor(
 
     override fun registerFcm(activity: Activity) {
         Log.d(TAG, "registerFcm")
-        viewModelScope.launch(Dispatchers.Main) {
+        viewModelScope.launch(Dispatchers.IO) {
             val buildTimestamp = doorRepository.fetchBuildTimestampCached()
             if (buildTimestamp == null) {
                 Log.e(TAG, "buildTimestamp is null, cannot register FCM")

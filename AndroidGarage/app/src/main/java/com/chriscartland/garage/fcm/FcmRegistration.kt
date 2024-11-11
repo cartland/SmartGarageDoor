@@ -58,8 +58,6 @@ fun FCMRegistration(
             }
             FcmRegistrationStatus.NOT_REGISTERED -> {
                 Log.d(TAG, "FCM registration status is not registered, registering...")
-                appLoggerViewModel.log(AppLoggerKeys.FCM_SUBSCRIBE_TOPIC)
-                viewModel.registerFcm(context)
             }
         }
     }

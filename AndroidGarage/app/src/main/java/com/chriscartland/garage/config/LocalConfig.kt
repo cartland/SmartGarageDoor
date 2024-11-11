@@ -63,6 +63,7 @@ object AppLoggerKeys {
     const val USER_FETCH_RECENT_DOOR = "user_fetch_recent_door"
     const val FCM_DOOR_RECEIVED = "fcm_door_received"
     const val FCM_SUBSCRIBE_TOPIC = "fcm_subscribe_topic"
+    const val ON_CREATE_FCM_SUBSCRIBE_TOPIC = "on_create_fcm_subscribe_topic"
     // Stale data
     const val EXCEEDED_EXPECTED_TIME_WITHOUT_FCM = "exceeded_expected_time_without_fcm"
     const val TIME_WITHOUT_FCM_IN_EXPECTED_RANGE = "time_without_fcm_in_expected_range"

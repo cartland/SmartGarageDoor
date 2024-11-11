@@ -19,6 +19,8 @@ package com.chriscartland.garage.fcm
 
 import android.app.Activity
 import android.util.Log
+import com.chriscartland.garage.applogger.AppLoggerRepository
+import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.sharedpreferences.SharedPreferences
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.ktx.messaging
@@ -38,6 +40,7 @@ interface DoorFcmRepository {
 
 class DoorFcmRepositoryImpl @Inject constructor(
     private val preferences: SharedPreferences,
+    private val appLoggerRepository: AppLoggerRepository,
 ) : DoorFcmRepository {
     override suspend fun fetchStatus(activity: Activity): DoorFcmState {
         Log.d(TAG, "fetchStatus")
@@ -61,6 +64,7 @@ class DoorFcmRepositoryImpl @Inject constructor(
         // Save new topic.
         setFcmTopic(topic)
         Log.i(TAG, "Subscribing to FCM Topic: $topic")
+        appLoggerRepository.log(AppLoggerKeys.FCM_SUBSCRIBE_TOPIC)
         val subscriptionSuccess = suspendCoroutine { continuation ->
             Firebase.messaging.subscribeToTopic(topic.string)
                 .addOnCompleteListener { task ->

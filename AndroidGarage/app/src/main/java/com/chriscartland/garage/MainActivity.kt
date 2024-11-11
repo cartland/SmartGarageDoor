@@ -25,10 +25,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.ui.util.trace
+import androidx.lifecycle.lifecycleScope
+import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.auth.RC_ONE_TAP_SIGN_IN
+import com.chriscartland.garage.config.AppLoggerKeys
+import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.ui.GarageApp
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -40,6 +46,13 @@ class MainActivity : ComponentActivity() {
                 GarageApp()
             }
         }
+        val doorViewModel by viewModels<DoorViewModelImpl>()
+        val appLoggerViewModel by viewModels<AppLoggerViewModelImpl>()
+        Log.d(TAG, "onCreate: Try to subscribe to FCM topic")
+        lifecycleScope.launch(Dispatchers.IO) {
+            appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
+        }
+        doorViewModel.registerFcm(this)
     }
 
     // TODO: Migrate away from onActivityResult with Activity Result API and ActivityResultContract.
@@ -63,3 +76,5 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+private const val TAG = "MainActivity"
