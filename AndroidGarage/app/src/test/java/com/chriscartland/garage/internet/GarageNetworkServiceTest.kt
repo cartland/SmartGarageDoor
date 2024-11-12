@@ -76,14 +76,14 @@ class GarageNetworkServiceTest {
 
     @Test
     fun verifyTestData_serverConfigResponse() = runTest {
-        val mockGarageNetworkService: GarageNetworkService = mock()
-        Mockito.`when`(
-            mockGarageNetworkService.getCurrentEventData(
-                any(),
-                any(),
-            ),
-        )
-            .thenReturn(Response.success(test_CurrentEventDataResponse()))
+        val response = test_ServerConfigResponse()
+        assertNotNull("Test data should exist", response.body)
+        response.body?.run {
+            assertEquals("Config buildTimestamp should match", "Sat Mar 20 14:25:00 2024", buildTimestamp)
+            assertEquals("Config button timestamp should match", "Sat Apr 17 23:57:32 2024", remoteButtonBuildTimestamp)
+            assertEquals("Config button push key should match", "key", remoteButtonPushKey)
+            assertEquals("Config button authorized emails should match", listOf("demo@example.com"), remoteButtonAuthorizedEmails)
+        }
     }
 }
 
@@ -112,6 +112,16 @@ fun test_RecentEventDataResponse(): RecentEventDataResponse {
     val jsonString = readJsonResource(filename)
     assertNotNull("Test file should load correctly", jsonString)
     val adapter: JsonAdapter<RecentEventDataResponse> = moshi().adapter(RecentEventDataResponse::class.java)
+    val result = adapter.fromJson(jsonString)
+    assertNotNull("Test file should parse correctly", result)
+    return result!!
+}
+
+fun test_ServerConfigResponse(): ServerConfigResponse {
+    val filename = "serverConfig_1730329839.json"
+    val jsonString = readJsonResource(filename)
+    assertNotNull("Test file should load correctly", jsonString)
+    val adapter: JsonAdapter<ServerConfigResponse> = moshi().adapter(ServerConfigResponse::class.java)
     val result = adapter.fromJson(jsonString)
     assertNotNull("Test file should parse correctly", result)
     return result!!
