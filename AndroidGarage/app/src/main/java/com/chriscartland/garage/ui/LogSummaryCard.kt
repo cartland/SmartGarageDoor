@@ -65,7 +65,7 @@ fun LogSummaryCard(
     LogSummaryCard(
         modifier = modifier,
         onDownload = { context, uri ->
-            appLoggerViewModel.writeFileToUri(context, uri)
+            appLoggerViewModel.writeCsvToUri(context, uri)
         },
         initCurrent = initCurrent,
         initRecent = initRecent,
@@ -164,13 +164,13 @@ fun DownloadAppLoggerDatabaseButton(
     val createDocument = {
         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
-            type = "text/plain"
+            type = "text/csv"
             putExtra(
                 Intent.EXTRA_TITLE,
                 LocalDateTime.now().let {
                     val formatter = DateTimeFormatter.ofPattern("yyyyMMdd.HHmmss")
                     val timestamp = it.format(formatter)
-                    "$timestamp.txt"
+                    "$timestamp.csv"
                 }
             )
         }

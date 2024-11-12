@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.applogger
 
+import android.app.Application
 import android.content.Context
 import android.net.Uri
 import android.util.Log
@@ -38,7 +39,7 @@ import javax.inject.Singleton
 
 interface AppLoggerRepository {
     suspend fun log(key: String)
-    suspend fun writeFileToUri(context: Context, uri: Uri)
+    suspend fun writeCsvToUri(context: Context, uri: Uri)
     fun countKey(key: String): Flow<Long>
 }
 
@@ -60,18 +61,18 @@ class AppLoggerRepositoryImpl @Inject constructor(
         return appDatabase.appLoggerDao().countKey(key)
     }
 
-    override suspend fun writeFileToUri(context: Context, uri: Uri) {
+    override suspend fun writeCsvToUri(context: Context, uri: Uri) {
         withContext(Dispatchers.IO) {
             try {
                 context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                    outputStream.write("Timestamp,Key\n".toByteArray())
+                    outputStream.write("Key,Time,Epoch,Version\n".toByteArray())
                     appDatabase.appLoggerDao().getAll().first().forEach {
                         outputStream.write(
                             (
-                                    "${it.timestamp}" +
+                                    "${it.eventKey}" +
                                             ",${it.timestamp.readableTime()}" +
+                                            ",${it.timestamp}" +
                                             ",${it.appVersion}" +
-                                            ",${it.eventKey}" +
                                             "\n"
                                     ).toByteArray()
                         )
@@ -99,10 +100,10 @@ object AppLoggerRepositoryModule {
     @Provides
     @Singleton
     fun provideAppLoggerRepository(
-        context: Context,
+        context: Application,
         appDatabase: AppDatabase,
     ): AppLoggerRepository {
-        return AppLoggerRepositoryImpl(context, appDatabase)
+        return AppLoggerRepositoryImpl(context.applicationContext, appDatabase)
     }
 }
 
