@@ -36,7 +36,7 @@ import javax.inject.Singleton
         DoorEvent::class,
         AppEvent::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {

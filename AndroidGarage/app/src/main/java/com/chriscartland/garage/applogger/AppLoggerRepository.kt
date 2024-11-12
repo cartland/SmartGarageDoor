@@ -21,6 +21,7 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.chriscartland.garage.db.AppDatabase
+import com.chriscartland.garage.version.AppVersion
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,34 +30,51 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
 interface AppLoggerRepository {
     suspend fun log(key: String)
-    suspend fun writeToUri(context: Context, uri: Uri)
+    suspend fun writeFileToUri(context: Context, uri: Uri)
     fun countKey(key: String): Flow<Long>
 }
 
 class AppLoggerRepositoryImpl @Inject constructor(
+    private val context: Context,
     private val appDatabase: AppDatabase,
 ) : AppLoggerRepository {
     override suspend fun log(key: String) {
         Log.d(TAG, "Logging key: $key")
-        appDatabase.appLoggerDao().insert(AppEvent(key))
+        appDatabase.appLoggerDao().insert(
+            AppEvent(
+                eventKey = key,
+                appVersion = context.AppVersion().toString(),
+            )
+        )
     }
 
     override fun countKey(key: String): Flow<Long> {
         return appDatabase.appLoggerDao().countKey(key)
     }
 
-    override suspend fun writeToUri(context: Context, uri: Uri) {
+    override suspend fun writeFileToUri(context: Context, uri: Uri) {
         withContext(Dispatchers.IO) {
             try {
                 context.contentResolver.openOutputStream(uri)?.use { outputStream ->
                     outputStream.write("Timestamp,Key\n".toByteArray())
                     appDatabase.appLoggerDao().getAll().first().forEach {
-                        outputStream.write("${it.timestamp},${it.eventKey}\n".toByteArray())
+                        outputStream.write(
+                            (
+                                    "${it.timestamp}" +
+                                            ",${it.timestamp.readableTime()}" +
+                                            ",${it.appVersion}" +
+                                            ",${it.eventKey}" +
+                                            "\n"
+                                    ).toByteArray()
+                        )
                     }
                 }
             } catch (e: Exception) {
@@ -66,6 +84,12 @@ class AppLoggerRepositoryImpl @Inject constructor(
         }
     }
 
+    private fun Long.readableTime(): String {
+        val instant = Instant.ofEpochMilli(this)
+        val formatter = DateTimeFormatter.ofPattern("yyyyMMdd.HHmmss.SSS")
+            .withZone(ZoneId.systemDefault())
+        return formatter.format(instant)
+    }
 }
 
 @Module
@@ -74,8 +98,11 @@ class AppLoggerRepositoryImpl @Inject constructor(
 object AppLoggerRepositoryModule {
     @Provides
     @Singleton
-    fun provideAppLoggerRepository(appDatabase: AppDatabase): AppLoggerRepository {
-        return AppLoggerRepositoryImpl(appDatabase)
+    fun provideAppLoggerRepository(
+        context: Context,
+        appDatabase: AppDatabase,
+    ): AppLoggerRepository {
+        return AppLoggerRepositoryImpl(context, appDatabase)
     }
 }
 

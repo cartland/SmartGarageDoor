@@ -65,7 +65,7 @@ fun LogSummaryCard(
     LogSummaryCard(
         modifier = modifier,
         onDownload = { context, uri ->
-            appLoggerViewModel.writeToUri(context, uri)
+            appLoggerViewModel.writeFileToUri(context, uri)
         },
         initCurrent = initCurrent,
         initRecent = initRecent,

@@ -31,7 +31,7 @@ import javax.inject.Inject
 
 interface AppLoggerViewModel {
     fun log(key: String)
-    fun writeToUri(context: Context, uri: Uri)
+    fun writeFileToUri(context: Context, uri: Uri)
     val initCurrentDoorCount: StateFlow<Long>
     val initRecentDoorCount: StateFlow<Long>
     val userFetchCurrentDoorCount: StateFlow<Long>
@@ -119,9 +119,9 @@ class AppLoggerViewModelImpl @Inject constructor(
         }
     }
 
-    override fun writeToUri(context: Context, uri: Uri) {
+    override fun writeFileToUri(context: Context, uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
-            appLoggerRepository.writeToUri(context, uri)
+            appLoggerRepository.writeFileToUri(context, uri)
         }
     }
 }
