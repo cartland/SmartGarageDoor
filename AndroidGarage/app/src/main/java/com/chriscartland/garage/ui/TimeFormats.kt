@@ -23,7 +23,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
@@ -63,7 +62,15 @@ fun Duration.toFriendlyDuration(): String {
     val seconds = (seconds % 60).coerceAtLeast(0L)
 
     return when {
-        days > 0 -> String.format("%d day%s, %dh %dm %ds", days, if (days > 1) "s" else "", hours, minutes, seconds)
+        days > 0 -> String.format(
+            "%d day%s, %dh %dm %ds",
+            days,
+            if (days > 1) "s" else "",
+            hours,
+            minutes,
+            seconds
+        )
+
         hours > 0 -> String.format("%dh %dm %ds", hours, minutes, seconds)
         minutes > 0 -> String.format("%dm %ds", minutes, seconds)
         else -> String.format("%ds", seconds)

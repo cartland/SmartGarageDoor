@@ -149,7 +149,7 @@ fun HomeContent(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         val lastCheckInTime = doorEvent?.lastCheckInTimeSeconds
-        LastCheckInBanner(
+        OldLastCheckInBanner(
             lastCheckIn = lastCheckInTime?.let { Instant.ofEpochSecond(it) },
             action = {
                 Log.e(TAG, "Trying to fix outdated info. Resetting FCM, and fetching data.")

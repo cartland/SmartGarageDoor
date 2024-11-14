@@ -84,7 +84,7 @@ fun DoorHistoryContent(
     ) {
         item {
             val lastCheckInTime = recentDoorEvents.data?.get(0)?.lastCheckInTimeSeconds
-            LastCheckInBanner(
+            OldLastCheckInBanner(
                 lastCheckInTime?.let { Instant.ofEpochSecond(it) },
                 action = {
                     Log.e(TAG, "Trying to fix outdated info. Resetting FCM, and fetching data.")

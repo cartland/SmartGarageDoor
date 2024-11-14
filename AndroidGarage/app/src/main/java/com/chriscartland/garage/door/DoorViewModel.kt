@@ -91,6 +91,7 @@ class DoorViewModelImpl @Inject constructor(
                 fetchCurrentDoorEvent()
                 fetchRecentDoorEvents()
             }
+
             FetchOnViewModelInit.No -> { /* Do nothing */
             }
         }
@@ -135,7 +136,7 @@ class DoorViewModelImpl @Inject constructor(
         Log.d(TAG, "deregisterFcm")
         viewModelScope.launch(Dispatchers.IO) {
             val result = doorFcmRepository.deregisterDoor(activity)
-            _fcmRegistrationStatus.value = when(result) {
+            _fcmRegistrationStatus.value = when (result) {
                 is DoorFcmState.Registered -> FcmRegistrationStatus.REGISTERED
                 DoorFcmState.NotRegistered -> FcmRegistrationStatus.NOT_REGISTERED
                 DoorFcmState.Unknown -> FcmRegistrationStatus.UNKNOWN

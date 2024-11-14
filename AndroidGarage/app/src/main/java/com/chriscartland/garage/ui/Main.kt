@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,6 +59,7 @@ import com.chriscartland.garage.fcm.FCMRegistration
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModel
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.ui.theme.AppTheme
+import java.time.Instant
 
 @Composable
 fun GarageApp(
@@ -86,6 +88,7 @@ fun AppNavigation(
     buttonViewModel: RemoteButtonViewModel = hiltViewModel<RemoteButtonViewModelImpl>(),
     appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>(),
 ) {
+    val currentDoorEvent by doorViewModel.currentDoorEvent.collectAsState()
     var isTimeWithoutFcmTooLong by remember { mutableStateOf(false) }
     var isFirstValue by remember { mutableStateOf(true) }
     LaunchedEffect(isTimeWithoutFcmTooLong) {
@@ -106,6 +109,11 @@ fun AppNavigation(
         topBar = {
             TopAppBar(
                 title = { Text("Garage") },
+                actions = {
+                    TopBarActionsRow(currentDoorEvent.data?.lastCheckInTimeSeconds?.let {
+                        Instant.ofEpochSecond(it)
+                    })
+                },
             )
         },
         bottomBar = {

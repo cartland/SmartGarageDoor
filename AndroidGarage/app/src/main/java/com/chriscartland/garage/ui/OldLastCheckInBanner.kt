@@ -17,21 +17,50 @@
 
 package com.chriscartland.garage.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.R
 import java.time.Duration
 import java.time.Instant
 
 @Composable
-fun LastCheckInBanner(
+fun TopBarActionsRow(lastCheckIn: Instant?) {
+    DurationSince(lastCheckIn) { duration ->
+        if (lastCheckIn != null) {
+            Text(
+                text = ("${duration.toFriendlyDuration()} ago"),
+                style = MaterialTheme.typography.labelSmall,
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+        }
+        Image(
+            modifier = Modifier.scale(0.7f),
+            painter = if (duration < Duration.ofMinutes(11)) {
+                painterResource(id = R.drawable.baseline_cell_tower_24)
+            } else {
+                painterResource(id = R.drawable.outline_signal_disconnected_24)
+            },
+            contentDescription = "Door Broadcast Icon",
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+    }
+}
+
+@Composable
+fun OldLastCheckInBanner(
     lastCheckIn: Instant?,
     modifier: Modifier = Modifier,
     action: (() -> Unit)? = null,
@@ -42,12 +71,6 @@ fun LastCheckInBanner(
             modifier = modifier,
             horizontalAlignment = CenterHorizontally,
         ) {
-            Text(
-                text = ("Door last checked in ${duration.toFriendlyDuration()} ago"),
-                style = MaterialTheme.typography.labelSmall,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
             val isOld = lastCheckIn != null && duration > Duration.ofMinutes(11)
             if (isOld) {
                 if (action == null) {
@@ -75,7 +98,7 @@ fun LastCheckInBanner(
 @Preview(showBackground = true)
 @Composable
 fun LastCheckInBannerPreview() {
-    LastCheckInBanner(
+    OldLastCheckInBanner(
         lastCheckIn = Instant.now().minus(Duration.ofMinutes(10)),
     )
 }
@@ -83,7 +106,7 @@ fun LastCheckInBannerPreview() {
 @Preview(showBackground = true)
 @Composable
 fun LastCheckInBannerOldPreview() {
-    LastCheckInBanner(
+    OldLastCheckInBanner(
         lastCheckIn = Instant.now().minus(Duration.ofMinutes(20)),
     )
 }
@@ -91,7 +114,7 @@ fun LastCheckInBannerOldPreview() {
 @Preview(showBackground = true)
 @Composable
 fun LastCheckInBannerOldWithActionPreview() {
-    LastCheckInBanner(
+    OldLastCheckInBanner(
         lastCheckIn = Instant.now().minus(Duration.ofMinutes(20)),
         action = {},
     )
