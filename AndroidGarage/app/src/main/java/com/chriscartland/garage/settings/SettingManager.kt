@@ -46,12 +46,12 @@ sealed class SettingType<T> : Setting<T> {
     ) : SettingType<String>() {
         override fun get(): String {
             return (prefs.getString(key, default) ?: default).also {
-                Log.d(TAG, "get: $key = $it")
+                Log.d(TAG, "get: String $key = $it")
             }
         }
 
         override fun set(value: String) {
-            Log.d(TAG, "set: $key = $value")
+            Log.d(TAG, "set: String $key = $value")
             with(prefs.edit()) {
                 putString(key, value)
                 apply()
@@ -59,7 +59,7 @@ sealed class SettingType<T> : Setting<T> {
         }
 
         override fun restoreDefault() {
-            Log.d(TAG, "restoreDefault: $key = $default")
+            Log.d(TAG, "restoreDefault: String $key = $default")
             with(prefs.edit()) {
                 remove(key)
                 apply()
@@ -74,12 +74,12 @@ sealed class SettingType<T> : Setting<T> {
     ) : SettingType<Boolean>() {
         override fun get(): Boolean {
             return prefs.getBoolean(key, default).also {
-                Log.d(TAG, "get: String $key = $it")
+                Log.d(TAG, "get: Boolean $key = $it")
             }
         }
 
         override fun set(value: Boolean) {
-            Log.d(TAG, "set: String $key = $value")
+            Log.d(TAG, "set: Boolean $key = $value")
             with(prefs.edit()) {
                 putBoolean(key, value)
                 apply()
@@ -87,7 +87,7 @@ sealed class SettingType<T> : Setting<T> {
         }
 
         override fun restoreDefault() {
-            Log.d(TAG, "restoreDefault: String $key = $default")
+            Log.d(TAG, "restoreDefault: Boolean $key = $default")
             with(prefs.edit()) {
                 remove(key)
                 apply()
