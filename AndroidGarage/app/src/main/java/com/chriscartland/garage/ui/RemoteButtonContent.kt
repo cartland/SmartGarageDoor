@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,6 +48,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.remotebutton.RequestStatus
+import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
+import com.chriscartland.garage.ui.theme.doorButtonColors
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.time.delay
@@ -67,12 +68,7 @@ fun RemoteButtonContent(
     modifier: Modifier = Modifier,
     onSubmit: () -> Unit,
     onArming: () -> Unit = {},
-    buttonColors: ButtonColors = ButtonDefaults.buttonColors(
-        containerColor = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        disabledContainerColor = MaterialTheme.colorScheme.errorContainer,
-        disabledContentColor = MaterialTheme.colorScheme.onErrorContainer,
-    ),
+    buttonColors: ButtonColors = doorButtonColors(LocalDoorStatusColorScheme.current),
     remoteRequestStatus: RequestStatus = RequestStatus.NONE,
 ) {
     Column(
@@ -131,6 +127,7 @@ fun RemoteButtonContent(
                             buttonState = RemoteButtonState.READY
                         }
                     }
+
                     RemoteButtonState.ARMING -> {} // Do nothing.
                     RemoteButtonState.ARMED -> {
                         // ARMED -> COOLDOWN
@@ -147,6 +144,7 @@ fun RemoteButtonContent(
                             buttonState = RemoteButtonState.READY
                         }
                     }
+
                     RemoteButtonState.TIMEOUT -> {} // Do nothing.
                     RemoteButtonState.COOLDOWN -> {} // Do nothing.
                 }
@@ -175,8 +173,7 @@ fun RemoteButtonContent(
                     // Only draw this indicator if the button is armed or we are sending a request.
                     // We are skipping the "draw" phase in Compose so that it still takes space.
                     // We want to avoid the UI jumping around when this becomes visible / invisible.
-                    if (buttonState == RemoteButtonState.ARMED
-                        || remoteRequestStatus != RequestStatus.NONE) {
+                    if (buttonState == RemoteButtonState.ARMED || remoteRequestStatus != RequestStatus.NONE) {
                         drawContent()
                     }
                 },

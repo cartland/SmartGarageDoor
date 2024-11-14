@@ -98,9 +98,11 @@ fun HomeContent(
                     )
                     buttonViewModel.pushRemoteButton(authViewModel.authRepository)
                 }
+
                 AuthState.Unauthenticated -> {
                     authViewModel.signInWithGoogle(activity)
                 }
+
                 AuthState.Unknown -> {
                     authViewModel.signInWithGoogle(activity)
                 }

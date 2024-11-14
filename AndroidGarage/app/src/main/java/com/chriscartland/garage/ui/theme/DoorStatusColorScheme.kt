@@ -41,37 +41,8 @@ data class DoorStatusColorScheme(
     val doorUnknownOnContainerStale: Color,
 )
 
-fun DoorStatusColorScheme.select(
-    status: DoorColorStatus,
-    container: Boolean = true,
-    fresh: Boolean = true,
-): Color {
-    return when (status) {
-        DoorColorStatus.OPEN ->
-            if (container) {
-                if (fresh) doorOpenContainerFresh else doorOpenContainerStale
-            } else {
-                if (fresh) doorOpenOnContainerFresh else doorOpenOnContainerStale
-            }
-        DoorColorStatus.CLOSED ->
-            if (container) {
-                if (fresh) doorClosedContainerFresh else doorClosedContainerStale
-            } else {
-                if (fresh) doorClosedOnContainerFresh else doorClosedOnContainerStale
-            }
-        DoorColorStatus.UNKNOWN ->
-            if (container) {
-                if (fresh) doorUnknownContainerFresh else doorUnknownContainerStale
-            } else {
-                if (fresh) doorUnknownOnContainerFresh else doorUnknownOnContainerStale
-            }
-    }
-}
-
 enum class DoorColorStatus {
-    OPEN,
-    CLOSED,
-    UNKNOWN,
+    OPEN, CLOSED, UNKNOWN,
 }
 
 val doorStatusLightScheme = DoorStatusColorScheme(
@@ -183,13 +154,52 @@ fun doorCardColors(doorColors: DoorStatusColorScheme, doorEvent: DoorEvent?): Ca
     val status = doorEvent.toColorStatus()
     val fresh = doorEvent.isFresh(Instant.now(), 15.minutes)
     return CardColors(
-        containerColor = doorColors
-            .select(status = status, container = true, fresh = fresh),
-        contentColor = doorColors
-            .select(status = status, container = false, fresh = fresh),
-        disabledContainerColor = doorColors
-            .select(status = status, container = true, fresh = false),
-        disabledContentColor = doorColors
-            .select(status = status, container = false, fresh = false),
+        containerColor = doorColors.select(status = status, container = true, fresh = fresh),
+        contentColor = doorColors.select(status = status, container = false, fresh = fresh),
+        disabledContainerColor = doorColors.select(
+            status = status,
+            container = true,
+            fresh = false
+        ),
+        disabledContentColor = doorColors.select(status = status, container = false, fresh = false),
+    )
+}
+
+fun DoorStatusColorScheme.select(
+    status: DoorColorStatus,
+    container: Boolean = true,
+    fresh: Boolean = true,
+): Color {
+    return when (status) {
+        DoorColorStatus.OPEN -> if (container) {
+            if (fresh) doorOpenContainerFresh else doorOpenContainerStale
+        } else {
+            if (fresh) doorOpenOnContainerFresh else doorOpenOnContainerStale
+        }
+
+        DoorColorStatus.CLOSED -> if (container) {
+            if (fresh) doorClosedContainerFresh else doorClosedContainerStale
+        } else {
+            if (fresh) doorClosedOnContainerFresh else doorClosedOnContainerStale
+        }
+
+        DoorColorStatus.UNKNOWN -> if (container) {
+            if (fresh) doorUnknownContainerFresh else doorUnknownContainerStale
+        } else {
+            if (fresh) doorUnknownOnContainerFresh else doorUnknownOnContainerStale
+        }
+    }
+}
+
+fun doorButtonColors(doorColors: DoorStatusColorScheme): ButtonColors {
+    // We're hacking a bit by borrowing some of the door colors and using them with the button.
+    // Goal: The greens and reds should come from the same palette, but the logic is different.
+    // If the button is active, use the "green" color that matches the "closed" door status.
+    // If the button is inactive, use the "red" color that matches the "open" door status.
+    return ButtonColors(
+        containerColor = doorColors.doorClosedContainerFresh,
+        contentColor = doorColors.doorClosedOnContainerFresh,
+        disabledContainerColor = doorColors.doorOpenContainerFresh,
+        disabledContentColor = doorColors.doorOpenOnContainerFresh,
     )
 }

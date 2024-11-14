@@ -19,6 +19,10 @@ package com.chriscartland.garage.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+// Closed: Green
+// Open: Red
+// Unknown: Gray
+// Stale: Less vibrant version (closer to gray)
 val doorClosedContainerFreshLightMediumContrast = Color(0xFF76A463)
 val doorClosedContainerStaleLightMediumContrast = Color(0xFFB0CDB6)
 val doorClosedOnContainerFreshLightMediumContrast = Color(0xFF002100)
