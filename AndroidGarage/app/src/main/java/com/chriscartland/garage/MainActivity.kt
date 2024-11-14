@@ -41,13 +41,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge() // Edge-to-edge required on Android 15+ (target SDK 35).
-        trace("MainActivity.setContent") {
-            setContent {
-                GarageApp()
-            }
-        }
         val doorViewModel by viewModels<DoorViewModelImpl>()
         val appLoggerViewModel by viewModels<AppLoggerViewModelImpl>()
+        trace("MainActivity.setContent") {
+            setContent {
+                GarageApp(
+                    doorViewModel = doorViewModel,
+                    appLoggerViewModel = appLoggerViewModel,
+                )
+            }
+        }
         Log.d(TAG, "onCreate: Try to subscribe to FCM topic")
         lifecycleScope.launch(Dispatchers.IO) {
             appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)

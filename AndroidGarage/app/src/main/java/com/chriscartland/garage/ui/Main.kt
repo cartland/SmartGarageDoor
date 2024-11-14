@@ -56,9 +56,15 @@ import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.ui.theme.AppTheme
 
 @Composable
-fun GarageApp() {
+fun GarageApp(
+    doorViewModel: DoorViewModelImpl,
+    appLoggerViewModel: AppLoggerViewModelImpl,
+) {
     AppTheme {
-        AppNavigation()
+        AppNavigation(
+            doorViewModel = doorViewModel,
+            appLoggerViewModel = appLoggerViewModel,
+        )
     }
 }
 
