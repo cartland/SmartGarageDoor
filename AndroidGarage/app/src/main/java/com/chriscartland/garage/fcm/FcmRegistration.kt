@@ -28,6 +28,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.door.DoorViewModel
+import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.door.FcmRegistrationStatus
 
 /**
@@ -41,8 +42,7 @@ import com.chriscartland.garage.door.FcmRegistrationStatus
  */
 @Composable
 fun FCMRegistration(
-    viewModel: DoorViewModel = hiltViewModel(),
-    appLoggerViewModel: AppLoggerViewModelImpl = hiltViewModel(),
+    viewModel: DoorViewModel = hiltViewModel<DoorViewModelImpl>(),
 ) {
     val context = LocalContext.current as ComponentActivity
     val fcmState by viewModel.fcmRegistrationStatus.collectAsState()

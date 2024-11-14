@@ -44,15 +44,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chriscartland.garage.applogger.AppLoggerViewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.auth.AuthState
+import com.chriscartland.garage.auth.AuthViewModel
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.door.DoorEvent
+import com.chriscartland.garage.door.DoorViewModel
 import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.door.LoadingResult
 import com.chriscartland.garage.permissions.notificationJustificationText
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
+import com.chriscartland.garage.remotebutton.RemoteButtonViewModel
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.remotebutton.RequestStatus
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
@@ -67,10 +71,10 @@ import java.time.Instant
 @Composable
 fun HomeContent(
     modifier: Modifier = Modifier,
-    viewModel: DoorViewModelImpl = hiltViewModel(),
-    authViewModel: AuthViewModelImpl = hiltViewModel(),
-    buttonViewModel: RemoteButtonViewModelImpl = hiltViewModel(),
-    appLoggerViewModel: AppLoggerViewModelImpl = hiltViewModel(),
+    viewModel: DoorViewModel = hiltViewModel<DoorViewModelImpl>(),
+    authViewModel: AuthViewModel = hiltViewModel<AuthViewModelImpl>(),
+    buttonViewModel: RemoteButtonViewModel = hiltViewModel<RemoteButtonViewModelImpl>(),
+    appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>(),
     onOldCheckInChanged: (Boolean) -> Unit = {},
 ) {
     val activity = LocalContext.current as ComponentActivity

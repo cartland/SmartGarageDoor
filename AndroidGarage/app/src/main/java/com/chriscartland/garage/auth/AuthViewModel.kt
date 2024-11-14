@@ -176,26 +176,4 @@ class AuthViewModelImpl @Inject constructor(
     }
 }
 
-/**
- *  TODO: Figure out why I cannot instantiate AuthViewModel interface with Hilt.
- *  This works in Compose:
- *      authViewModel: AuthViewModelImpl = hiltViewModel(),
- *  This fails in Compose:
- *      authViewModel: AuthViewModel = hiltViewModel(),
- *  The failure is an ANR.
- *      ANR in com.chriscartland.garage
- *      PID: 8316
- *      Reason: Process ProcessRecord{420e8be 8316:com.example.package/u0a228} failed to complete startup
- *  I tried:
- *      @InstallIn(ViewModelComponent::class)
- *      @InstallIn(SingletonComponent::class)
- */
-@Module
-@InstallIn(SingletonComponent::class)
-@Suppress("unused")
-abstract class AuthViewModelModule {
-    @Binds
-    abstract fun bindAuthViewModel(authViewModel: AuthViewModelImpl): AuthViewModel
-}
-
 private const val TAG = "AuthViewModel"

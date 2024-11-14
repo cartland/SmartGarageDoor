@@ -26,10 +26,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.ui.util.trace
 import androidx.lifecycle.lifecycleScope
+import com.chriscartland.garage.applogger.AppLoggerViewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.auth.RC_ONE_TAP_SIGN_IN
 import com.chriscartland.garage.config.AppLoggerKeys
+import com.chriscartland.garage.door.DoorViewModel
 import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.ui.GarageApp
 import dagger.hilt.android.AndroidEntryPoint
@@ -41,8 +43,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge() // Edge-to-edge required on Android 15+ (target SDK 35).
-        val doorViewModel by viewModels<DoorViewModelImpl>()
-        val appLoggerViewModel by viewModels<AppLoggerViewModelImpl>()
+        val doorViewModel: DoorViewModel by viewModels<DoorViewModelImpl>()
+        val appLoggerViewModel: AppLoggerViewModel by viewModels<AppLoggerViewModelImpl>()
         trace("MainActivity.setContent") {
             setContent {
                 GarageApp(
@@ -52,10 +54,8 @@ class MainActivity : ComponentActivity() {
             }
         }
         Log.d(TAG, "onCreate: Try to subscribe to FCM topic")
-        lifecycleScope.launch(Dispatchers.IO) {
-            appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
-        }
         doorViewModel.registerFcm(this)
+        appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
     }
 
     // TODO: Migrate away from onActivityResult with Activity Result API and ActivityResultContract.

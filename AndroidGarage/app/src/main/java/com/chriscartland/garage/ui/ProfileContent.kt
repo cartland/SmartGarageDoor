@@ -34,6 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.auth.AuthState
+import com.chriscartland.garage.auth.AuthViewModel
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.auth.User
 import com.chriscartland.garage.config.APP_CONFIG
@@ -46,7 +47,7 @@ import com.google.accompanist.permissions.isGranted
 @Composable
 fun ProfileContent(
     modifier: Modifier = Modifier,
-    viewModel: AuthViewModelImpl = hiltViewModel(),
+    viewModel: AuthViewModel = hiltViewModel<AuthViewModelImpl>(),
 ) {
     val context = LocalContext.current as ComponentActivity
     val authState by viewModel.authState.collectAsState()

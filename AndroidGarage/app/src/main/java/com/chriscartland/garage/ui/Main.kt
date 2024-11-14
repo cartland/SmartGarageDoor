@@ -47,18 +47,22 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.chriscartland.garage.applogger.AppLoggerViewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
+import com.chriscartland.garage.auth.AuthViewModel
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.config.AppLoggerKeys
+import com.chriscartland.garage.door.DoorViewModel
 import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.fcm.FCMRegistration
+import com.chriscartland.garage.remotebutton.RemoteButtonViewModel
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.ui.theme.AppTheme
 
 @Composable
 fun GarageApp(
-    doorViewModel: DoorViewModelImpl,
-    appLoggerViewModel: AppLoggerViewModelImpl,
+    doorViewModel: DoorViewModel,
+    appLoggerViewModel: AppLoggerViewModel,
 ) {
     AppTheme {
         AppNavigation(
@@ -77,10 +81,10 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(
-    doorViewModel: DoorViewModelImpl = hiltViewModel(),
-    authViewModel: AuthViewModelImpl = hiltViewModel(),
-    buttonViewModel: RemoteButtonViewModelImpl = hiltViewModel(),
-    appLoggerViewModel: AppLoggerViewModelImpl = hiltViewModel(),
+    doorViewModel: DoorViewModel = hiltViewModel<DoorViewModelImpl>(),
+    authViewModel: AuthViewModel = hiltViewModel<AuthViewModelImpl>(),
+    buttonViewModel: RemoteButtonViewModel = hiltViewModel<RemoteButtonViewModelImpl>(),
+    appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>(),
 ) {
     var isTimeWithoutFcmTooLong by remember { mutableStateOf(false) }
     var isFirstValue by remember { mutableStateOf(true) }

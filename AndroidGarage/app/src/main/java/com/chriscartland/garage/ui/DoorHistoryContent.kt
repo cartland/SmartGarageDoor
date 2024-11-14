@@ -37,9 +37,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chriscartland.garage.applogger.AppLoggerViewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.door.DoorEvent
+import com.chriscartland.garage.door.DoorViewModel
 import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.door.LoadingResult
 import java.time.Instant
@@ -47,8 +49,8 @@ import java.time.Instant
 @Composable
 fun DoorHistoryContent(
     modifier: Modifier = Modifier,
-    viewModel: DoorViewModelImpl = hiltViewModel(),
-    appLoggerViewModel: AppLoggerViewModelImpl = hiltViewModel(),
+    viewModel: DoorViewModel = hiltViewModel<DoorViewModelImpl>(),
+    appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>(),
     onOldCheckInChanged: (Boolean) -> Unit = {},
 ) {
     val activity = LocalContext.current as ComponentActivity

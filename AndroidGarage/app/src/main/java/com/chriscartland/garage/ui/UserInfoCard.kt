@@ -35,6 +35,7 @@ import com.chriscartland.garage.auth.DisplayName
 import com.chriscartland.garage.auth.Email
 import com.chriscartland.garage.auth.FirebaseIdToken
 import com.chriscartland.garage.auth.User
+import com.chriscartland.garage.settings.AppSettingsViewModel
 import com.chriscartland.garage.settings.AppSettingsViewModelImpl
 
 @Composable
@@ -43,7 +44,7 @@ fun UserInfoCard(
     modifier: Modifier = Modifier,
     signIn: () -> Unit = {},
     signOut: () -> Unit = {},
-    settingsViewModel: AppSettingsViewModelImpl = hiltViewModel(),
+    settingsViewModel: AppSettingsViewModel = hiltViewModel<AppSettingsViewModelImpl>(),
 ) {
     val startUserCardExpanded by settingsViewModel.profileUserCardExpanded.collectAsState()
     UserInfoCard(

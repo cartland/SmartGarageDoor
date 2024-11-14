@@ -28,13 +28,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chriscartland.garage.settings.AppSettingsViewModel
 import com.chriscartland.garage.settings.AppSettingsViewModelImpl
 import com.chriscartland.garage.version.AppVersion
 
 @Composable
 fun AndroidAppInfoCard(
     modifier: Modifier = Modifier,
-    settingsViewModel: AppSettingsViewModelImpl = hiltViewModel(),
+    settingsViewModel: AppSettingsViewModel = hiltViewModel<AppSettingsViewModelImpl>(),
 ) {
     val startAndroidAppInfoCardExpanded by settingsViewModel.profileAppCardExpanded.collectAsState()
     AndroidAppInfoCard(
