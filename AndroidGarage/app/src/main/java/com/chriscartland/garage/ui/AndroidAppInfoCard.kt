@@ -20,28 +20,46 @@ package com.chriscartland.garage.ui
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.chriscartland.garage.settings.AppSettingsViewModelImpl
 import com.chriscartland.garage.version.AppVersion
 
 @Composable
-fun AndroidAppInfoCard() {
-    AndroidAppInfoCard(LocalContext.current.AppVersion())
+fun AndroidAppInfoCard(
+    modifier: Modifier = Modifier,
+    settingsViewModel: AppSettingsViewModelImpl = hiltViewModel(),
+) {
+    val startAndroidAppInfoCardExpanded by settingsViewModel.profileAppCardExpanded.collectAsState()
+    AndroidAppInfoCard(
+        appVersion = LocalContext.current.AppVersion(),
+        modifier = modifier,
+        startExpanded = startAndroidAppInfoCardExpanded,
+        onExpandedChange = {
+            settingsViewModel.setProfileAppCardExpanded(it)
+        }
+    )
 }
 
 @Composable
 fun AndroidAppInfoCard(
     appVersion: AppVersion,
     modifier: Modifier = Modifier,
+    startExpanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit = {},
 ) {
     ExpandableColumnCard(
         title = "Application",
         modifier = modifier,
-        startExpanded = true,
         horizontalAlignment = Alignment.CenterHorizontally,
+        startExpanded = startExpanded,
+        onExpandedChange = onExpandedChange,
     ) {
         Text(
             "Package name: ${appVersion.packageName}",
@@ -65,10 +83,11 @@ fun AndroidAppInfoCard(
 @Composable
 fun AndroidAppInfoCardPreview() {
     AndroidAppInfoCard(
-        AppVersion(
+        appVersion = AppVersion(
             packageName = "com.example",
             versionCode = 1L,
             versionName = "1.0.0 20241028.095244"
-        )
+        ),
+        startExpanded = true,
     )
 }

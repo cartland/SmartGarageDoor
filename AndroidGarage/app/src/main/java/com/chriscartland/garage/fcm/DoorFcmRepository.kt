@@ -21,7 +21,7 @@ import android.app.Activity
 import android.util.Log
 import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.config.AppLoggerKeys
-import com.chriscartland.garage.sharedpreferences.SharedPreferences
+import com.chriscartland.garage.settings.AppSettings
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.ktx.messaging
 import dagger.Binds
@@ -39,7 +39,7 @@ interface DoorFcmRepository {
 }
 
 class DoorFcmRepositoryImpl @Inject constructor(
-    private val preferences: SharedPreferences,
+    private val settings: AppSettings,
     private val appLoggerRepository: AppLoggerRepository,
 ) : DoorFcmRepository {
     override suspend fun fetchStatus(activity: Activity): DoorFcmState {
@@ -130,23 +130,21 @@ class DoorFcmRepositoryImpl @Inject constructor(
 
     private fun getFcmTopic(): DoorFcmTopic? {
         Log.d(TAG, "getFcmTopic")
-        return preferences.getString(FCM_DOOR_OPEN_TOPIC, null)?.let {
+        return settings.fcmDoorTopic.get().let {
             DoorFcmTopic(it)
         }
     }
 
     private fun setFcmTopic(topic: DoorFcmTopic) {
         Log.d(TAG, "setFcmTopic: $topic")
-        preferences.setString(key = FCM_DOOR_OPEN_TOPIC, value = topic.string)
+        settings.fcmDoorTopic.set(topic.string)
     }
 
     private fun removeFcmTopic() {
         Log.d(TAG, "removeFcmTopic")
-        preferences.removeString(FCM_DOOR_OPEN_TOPIC)
+        settings.fcmDoorTopic.restoreDefault()
     }
 }
-
-private const val FCM_DOOR_OPEN_TOPIC = "com.chriscartland.garage.repository.FCM_DOOR_OPEN_TOPIC"
 
 @Module
 @InstallIn(SingletonComponent::class)

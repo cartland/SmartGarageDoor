@@ -24,14 +24,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.auth.DisplayName
 import com.chriscartland.garage.auth.Email
 import com.chriscartland.garage.auth.FirebaseIdToken
 import com.chriscartland.garage.auth.User
+import com.chriscartland.garage.settings.AppSettingsViewModelImpl
 
 @Composable
 fun UserInfoCard(
@@ -39,11 +43,35 @@ fun UserInfoCard(
     modifier: Modifier = Modifier,
     signIn: () -> Unit = {},
     signOut: () -> Unit = {},
+    settingsViewModel: AppSettingsViewModelImpl = hiltViewModel(),
+) {
+    val startUserCardExpanded by settingsViewModel.profileUserCardExpanded.collectAsState()
+    UserInfoCard(
+        user = user,
+        modifier = modifier,
+        signIn = signIn,
+        signOut = signOut,
+        startExpanded = startUserCardExpanded,
+        onExpandedChange = {
+            settingsViewModel.setProfileUserCardExpanded(it)
+        }
+    )
+}
+
+@Composable
+fun UserInfoCard(
+    user: User?,
+    modifier: Modifier = Modifier,
+    signIn: () -> Unit = {},
+    signOut: () -> Unit = {},
+    startExpanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit = {},
 ) {
     ExpandableColumnCard(
         title = "User",
         modifier = modifier,
-        startExpanded = true,
+        startExpanded = startExpanded,
+        onExpandedChange = onExpandedChange,
     ) {
         Text(text = "Name: ${user?.name?.asString() ?: "Unknown"}")
         Text(text = "Email: ${user?.email?.asString() ?: "Unknown"}")

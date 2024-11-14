@@ -50,7 +50,6 @@ fun ProfileContent(
 ) {
     val context = LocalContext.current as ComponentActivity
     val authState by viewModel.authState.collectAsState()
-
     ProfileContent(
         user = when (val it = authState) {
             is AuthState.Authenticated -> it.user

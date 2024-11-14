@@ -22,7 +22,6 @@ import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.config.ServerConfigRepository
 import com.chriscartland.garage.db.LocalDoorDataSource
 import com.chriscartland.garage.internet.GarageNetworkService
-import com.chriscartland.garage.sharedpreferences.SharedPreferences
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -48,15 +47,12 @@ class DoorRepositoryImpl @Inject constructor(
     private val localDoorDataSource: LocalDoorDataSource,
     private val network: GarageNetworkService,
     private val serverConfigRepository: ServerConfigRepository,
-    private val preferences: SharedPreferences,
 ) : DoorRepository {
     override val currentDoorPosition: Flow<DoorPosition>
-        get() = localDoorDataSource.currentDoorEvent
-            .map {
+        get() = localDoorDataSource.currentDoorEvent.map {
                 // [it] can be null -- this might be a Kotlin bug
                 it?.doorPosition ?: DoorPosition.UNKNOWN
-            }
-            .distinctUntilChanged()
+            }.distinctUntilChanged()
     override val currentDoorEvent: Flow<DoorEvent> = localDoorDataSource.currentDoorEvent
     override val recentDoorEvents: Flow<List<DoorEvent>> = localDoorDataSource.recentDoorEvents
 
@@ -66,7 +62,6 @@ class DoorRepositoryImpl @Inject constructor(
     override fun insertDoorEvent(doorEvent: DoorEvent) {
         Log.d(TAG, "Inserting DoorEvent: $doorEvent")
         localDoorDataSource.insertDoorEvent(doorEvent)
-        trackCurrentDirect()
     }
 
     /**
@@ -106,7 +101,6 @@ class DoorRepositoryImpl @Inject constructor(
             }
             Log.d(TAG, "Success: $doorEvent")
             localDoorDataSource.insertDoorEvent(doorEvent)
-            trackCurrentNetwork()
         } catch (e: Exception) {
             Log.e(TAG, "Error: $e")
         }
@@ -148,48 +142,23 @@ class DoorRepositoryImpl @Inject constructor(
             if (doorEvents.size != body.eventHistory.size) {
                 Log.e(
                     TAG,
-                    "Door events size ${doorEvents.size} " +
-                            "does not match response size ${body.eventHistory.size}"
+                    "Door events size ${doorEvents.size} " + "does not match response size ${body.eventHistory.size}"
                 )
             }
             Log.d(TAG, "Success: $doorEvents")
             localDoorDataSource.replaceDoorEvents(doorEvents)
-            trackRecentNetwork()
         } catch (e: IllegalArgumentException) {
             Log.e(TAG, "IllegalArgumentException: $e")
         } catch (e: Exception) {
             Log.e(TAG, "Exception: $e")
         }
     }
-
-    private fun trackCurrentDirect(): Int {
-        return preferences.incrementInt(DIRECT_CURRENT).also {
-            Log.d(TAG, "Current Door (direct) count: $it")
-        }
-    }
-
-    private fun trackCurrentNetwork(): Int {
-        return preferences.incrementInt(NETWORK_CURRENT).also {
-            Log.d(TAG, "Current Door (network) count: $it")
-        }
-    }
-
-    private fun trackRecentDirect(): Int {
-        return preferences.incrementInt(DIRECT_RECENT).also {
-            Log.d(TAG, "Recent List (direct) count: $it")
-        }
-    }
-
-    private fun trackRecentNetwork(): Int {
-        return preferences.incrementInt(NETWORK_RECENT).also {
-            Log.d(TAG, "Recent List (network) count: $it")
-        }
-    }
 }
 
 private const val DIRECT_CURRENT = "com.chriscartland.garage.repository.DIRECT_CURRENT_DOOR_UPDATE"
 private const val DIRECT_RECENT = "com.chriscartland.garage.repository.DIRECT_RECENT_DOOR_UPDATE"
-private const val NETWORK_CURRENT = "com.chriscartland.garage.repository.NETWORK_CURRENT_DOOR_UPDATE"
+private const val NETWORK_CURRENT =
+    "com.chriscartland.garage.repository.NETWORK_CURRENT_DOOR_UPDATE"
 private const val NETWORK_RECENT = "com.chriscartland.garage.repository.NETWORK_RECENT_DOOR_UPDATE"
 
 @Module

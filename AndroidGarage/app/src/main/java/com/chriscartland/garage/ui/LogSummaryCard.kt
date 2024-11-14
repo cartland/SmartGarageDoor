@@ -42,6 +42,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
+import com.chriscartland.garage.settings.AppSettingsViewModelImpl
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -53,7 +54,9 @@ import java.time.format.DateTimeFormatter
 fun LogSummaryCard(
     modifier: Modifier = Modifier,
     appLoggerViewModel: AppLoggerViewModelImpl = hiltViewModel(),
+    settingsViewModel: AppSettingsViewModelImpl = hiltViewModel(),
 ) {
+    val startLogSummaryCardExpanded by settingsViewModel.profileLogCardExpanded.collectAsState()
     val initCurrent by appLoggerViewModel.initCurrentDoorCount.collectAsState()
     val initRecent by appLoggerViewModel.initRecentDoorCount.collectAsState()
     val fetchCurrent by appLoggerViewModel.userFetchCurrentDoorCount.collectAsState()
@@ -75,6 +78,10 @@ fun LogSummaryCard(
         fcmSubscribe = fcmSubscribe,
         exceededExpectedTimeWithoutFcm = exceededExpectedTimeWithoutFcm,
         timeWithoutFcmInExpectedRange = timeWithoutFcmInExpectedRange,
+        startExpanded = startLogSummaryCardExpanded,
+        onExpandedChange = {
+            settingsViewModel.setProfileLogCardExpanded(it)
+        }
     )
 }
 
@@ -90,12 +97,15 @@ fun LogSummaryCard(
     fcmSubscribe: Long = 0,
     exceededExpectedTimeWithoutFcm: Long = 0,
     timeWithoutFcmInExpectedRange: Long = 0,
+    startExpanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit = {},
 ) {
     ExpandableColumnCard(
         title = "Logs",
         modifier = modifier,
-        startExpanded = true,
         horizontalAlignment = Alignment.Start,
+        startExpanded = startExpanded,
+        onExpandedChange = onExpandedChange,
     ) {
         Text(
             text = "Init current door: $initCurrent",
@@ -196,5 +206,7 @@ fun LogSummaryCardPreview() {
         fcmSubscribe = 6,
         exceededExpectedTimeWithoutFcm = 7,
         timeWithoutFcmInExpectedRange = 8,
+        startExpanded = true,
+        onExpandedChange = {},
     )
 }
