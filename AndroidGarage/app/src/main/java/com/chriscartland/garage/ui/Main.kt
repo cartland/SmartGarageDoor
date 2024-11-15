@@ -17,8 +17,10 @@
 
 package com.chriscartland.garage.ui
 
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
@@ -120,6 +122,7 @@ fun AppNavigation(
                 title = { Text("Garage") },
                 actions = {
                     CheckInRow(lastCheckInTime)
+                    Spacer(modifier = Modifier.width(8.dp))
                 },
             )
         },

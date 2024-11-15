@@ -58,7 +58,6 @@ fun CheckInRow(lastCheckIn: Instant?) {
             colorFilter = ColorFilter.tint(LocalContentColor.current),
             contentDescription = "Door Broadcast Icon",
         )
-        Spacer(modifier = Modifier.width(16.dp))
     }
 }
 
