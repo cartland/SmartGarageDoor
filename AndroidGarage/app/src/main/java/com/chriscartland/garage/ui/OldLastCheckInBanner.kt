@@ -18,15 +18,12 @@
 package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.painterResource
@@ -39,7 +36,7 @@ import java.time.Instant
 val OLD_DURATION_FOR_DOOR_CHECK_IN = Duration.ofMinutes(11)
 
 @Composable
-fun TopBarActionsRow(lastCheckIn: Instant?) {
+fun CheckInRow(lastCheckIn: Instant?) {
     DurationSince(lastCheckIn) { duration ->
         if (lastCheckIn != null) {
             Text(

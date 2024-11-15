@@ -33,18 +33,14 @@ import java.time.format.FormatStyle
 /**
  * Convert Unix timestamp seconds to a human-readable date string.
  */
-fun Long.toFriendlyDate(): String =
-    Instant.ofEpochSecond(this)
-        .atZone(ZoneId.systemDefault())
-        .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+fun Long.toFriendlyDate(): String = Instant.ofEpochSecond(this).atZone(ZoneId.systemDefault())
+    .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
 
 /**
  * Convert Unix timestamp seconds to a human-readable time string.
  */
-fun Long.toFriendlyTime(): String? =
-    Instant.ofEpochSecond(this)
-        .atZone(ZoneId.systemDefault())
-        .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM))
+fun Long.toFriendlyTime(): String? = Instant.ofEpochSecond(this).atZone(ZoneId.systemDefault())
+    .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM))
 
 /**
  * Convert Unix timestamp seconds to a human-readable duration string.
@@ -63,12 +59,7 @@ fun Duration.toFriendlyDuration(): String {
 
     return when {
         days > 0 -> String.format(
-            "%d day%s, %dh %dm %ds",
-            days,
-            if (days > 1) "s" else "",
-            hours,
-            minutes,
-            seconds
+            "%d day%s, %dh %dm %ds", days, if (days > 1) "s" else "", hours, minutes, seconds
         )
 
         hours > 0 -> String.format("%dh %dm %ds", hours, minutes, seconds)

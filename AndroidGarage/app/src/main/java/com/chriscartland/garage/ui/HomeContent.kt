@@ -33,7 +33,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -76,7 +75,6 @@ fun HomeContent(
     authViewModel: AuthViewModel = hiltViewModel<AuthViewModelImpl>(),
     buttonViewModel: RemoteButtonViewModel = hiltViewModel<RemoteButtonViewModelImpl>(),
     appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>(),
-    onOldCheckInChanged: (Boolean) -> Unit = {},
 ) {
     val activity = LocalContext.current as ComponentActivity
     val currentDoorEvent by viewModel.currentDoorEvent.collectAsState()
@@ -117,7 +115,6 @@ fun HomeContent(
         onResetFcm = {
             viewModel.deregisterFcm(activity)
         },
-        onOldCheckInChanged = onOldCheckInChanged,
         onLogNotificationPermissionRequested = {
             appLoggerViewModel.log(AppLoggerKeys.USER_REQUESTED_NOTIFICATION_PERMISSION)
         }
@@ -137,7 +134,6 @@ fun HomeContent(
     onSignIn: () -> Unit = {},
     notificationPermissionState: PermissionState = rememberNotificationPermissionState(),
     onResetFcm: () -> Unit = {},
-    onOldCheckInChanged: (Boolean) -> Unit = {},
     onLogNotificationPermissionRequested: () -> Unit = {},
 ) {
     var permissionRequestCount by remember { mutableIntStateOf(0) }
@@ -147,9 +143,6 @@ fun HomeContent(
     val lastCheckInTime = doorEvent?.lastCheckInTimeSeconds
     DurationSince(lastCheckInTime?.let { Instant.ofEpochSecond(it) }) { duration ->
         val isOld = lastCheckInTime != null && duration > OLD_DURATION_FOR_DOOR_CHECK_IN
-        LaunchedEffect(isOld) {
-            onOldCheckInChanged(isOld)
-        }
         Column(
             modifier = modifier,
             verticalArrangement = Arrangement.spacedBy(8.dp),

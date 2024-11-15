@@ -29,7 +29,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -52,7 +51,6 @@ fun DoorHistoryContent(
     modifier: Modifier = Modifier,
     viewModel: DoorViewModel = hiltViewModel<DoorViewModelImpl>(),
     appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>(),
-    onOldCheckInChanged: (Boolean) -> Unit = {},
 ) {
     val activity = LocalContext.current as ComponentActivity
     val recentDoorEvents by viewModel.recentDoorEvents.collectAsState()
@@ -66,7 +64,6 @@ fun DoorHistoryContent(
         onResetFcm = {
             viewModel.deregisterFcm(activity)
         },
-        onOldCheckInChanged = onOldCheckInChanged,
     )
 }
 
@@ -76,14 +73,10 @@ fun DoorHistoryContent(
     recentDoorEvents: LoadingResult<List<DoorEvent>?>,
     onFetchRecentDoorEvents: () -> Unit = {},
     onResetFcm: () -> Unit = {},
-    onOldCheckInChanged: (Boolean) -> Unit = {},
 ) {
     val lastCheckInTime = recentDoorEvents.data?.get(0)?.lastCheckInTimeSeconds
     DurationSince(lastCheckInTime?.let { Instant.ofEpochSecond(it) }) { duration ->
         val isOld = lastCheckInTime != null && duration > OLD_DURATION_FOR_DOOR_CHECK_IN
-        LaunchedEffect(isOld) {
-            onOldCheckInChanged(isOld)
-        }
         LazyColumn(
             modifier = modifier,
             verticalArrangement = Arrangement.spacedBy(8.dp),

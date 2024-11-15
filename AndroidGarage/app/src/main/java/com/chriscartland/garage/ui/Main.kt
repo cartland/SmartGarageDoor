@@ -89,8 +89,17 @@ fun AppNavigation(
     appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>(),
 ) {
     val currentDoorEvent by doorViewModel.currentDoorEvent.collectAsState()
+    val lastCheckInTime = currentDoorEvent.data?.lastCheckInTimeSeconds?.let {
+        Instant.ofEpochSecond(it)
+    }
     var isTimeWithoutFcmTooLong by remember { mutableStateOf(false) }
     var isFirstValue by remember { mutableStateOf(true) }
+    DurationSince(lastCheckInTime) { duration ->
+        val isOld = lastCheckInTime != null && duration > OLD_DURATION_FOR_DOOR_CHECK_IN
+        LaunchedEffect(isOld) {
+            isTimeWithoutFcmTooLong = isOld
+        }
+    }
     LaunchedEffect(isTimeWithoutFcmTooLong) {
         if (isTimeWithoutFcmTooLong) {
             appLoggerViewModel.log(AppLoggerKeys.EXCEEDED_EXPECTED_TIME_WITHOUT_FCM)
@@ -110,9 +119,7 @@ fun AppNavigation(
             TopAppBar(
                 title = { Text("Garage") },
                 actions = {
-                    TopBarActionsRow(currentDoorEvent.data?.lastCheckInTimeSeconds?.let {
-                        Instant.ofEpochSecond(it)
-                    })
+                    CheckInRow(lastCheckInTime)
                 },
             )
         },
@@ -134,9 +141,6 @@ fun AppNavigation(
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth(),
-                    onOldCheckInChanged = { isOld ->
-                        isTimeWithoutFcmTooLong = isOld
-                    },
                 )
             }
             composable(Screen.History.route) {
@@ -145,9 +149,6 @@ fun AppNavigation(
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth(),
-                    onOldCheckInChanged = { isOld ->
-                        isTimeWithoutFcmTooLong = isOld
-                    },
                 )
             }
             composable(Screen.Profile.route) {
