@@ -36,6 +36,8 @@ import com.chriscartland.garage.R
 import java.time.Duration
 import java.time.Instant
 
+private val OLD_DURATION = Duration.ofMinutes(11)
+
 @Composable
 fun TopBarActionsRow(lastCheckIn: Instant?) {
     DurationSince(lastCheckIn) { duration ->
@@ -46,12 +48,13 @@ fun TopBarActionsRow(lastCheckIn: Instant?) {
             )
             Spacer(modifier = Modifier.width(4.dp))
         }
+        val isOld = lastCheckIn != null && duration > OLD_DURATION
         Image(
             modifier = Modifier.scale(0.7f),
-            painter = if (duration < Duration.ofMinutes(11)) {
-                painterResource(id = R.drawable.baseline_cell_tower_24)
-            } else {
+            painter = if (isOld) {
                 painterResource(id = R.drawable.outline_signal_disconnected_24)
+            } else {
+                painterResource(id = R.drawable.baseline_cell_tower_24)
             },
             contentDescription = "Door Broadcast Icon",
         )
@@ -71,7 +74,7 @@ fun OldLastCheckInBanner(
             modifier = modifier,
             horizontalAlignment = CenterHorizontally,
         ) {
-            val isOld = lastCheckIn != null && duration > Duration.ofMinutes(11)
+            val isOld = lastCheckIn != null && duration > OLD_DURATION
             if (isOld) {
                 if (action == null) {
                     Text(
