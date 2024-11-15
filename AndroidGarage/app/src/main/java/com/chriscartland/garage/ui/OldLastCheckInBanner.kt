@@ -21,11 +21,13 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -53,6 +55,7 @@ fun CheckInRow(lastCheckIn: Instant?) {
             } else {
                 painterResource(id = R.drawable.baseline_cell_tower_24)
             },
+            colorFilter = ColorFilter.tint(LocalContentColor.current),
             contentDescription = "Door Broadcast Icon",
         )
         Spacer(modifier = Modifier.width(16.dp))
