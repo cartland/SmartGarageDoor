@@ -15,6 +15,7 @@
  *
  */
 
+import com.android.build.gradle.api.ApplicationVariant
 import com.android.build.gradle.internal.api.ApkVariantOutputImpl
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -58,8 +59,9 @@ android {
         applicationId = "com.chriscartland.garage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 84
+        versionCode = 85
         versionName = "2.0-" + generateVersionNameTimestamp()
+        setProperty("archivesBaseName", "$applicationId-$versionName-$versionCode")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -156,19 +158,7 @@ android {
         outputs.map { it as ApkVariantOutputImpl }
             .forEach { output ->
                 val variant = this
-                output.outputFileName = StringBuilder().run {
-                    append(variant.applicationId) // Package name
-                    if (variant.flavorName.isNotEmpty()) {
-                        append("_").append(variant.flavorName) // Optional flavor
-                    }
-                    append("_").append(variant.versionName) // Version name
-                    append("_").append(variant.versionCode) // Version code
-                    if (variant.buildType.name.isNotEmpty()) {
-                        append("_").append(variant.buildType.name) // Optional build type
-                    }
-                    append(".apk")
-                    toString()
-                }
+                output.outputFileName = apkVariantOutputFilename(variant)
             }
     }
 
@@ -190,6 +180,22 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+}
+
+fun apkVariantOutputFilename(variant: ApplicationVariant): String {
+    return StringBuilder().run {
+        append(variant.applicationId) // Package name
+        append("_").append(variant.versionName) // Version name
+        append("_").append(variant.versionCode) // Version code
+        if (variant.flavorName.isNotEmpty()) {
+            append("_").append(variant.flavorName) // Optional flavor
+        }
+        if (variant.buildType.name.isNotEmpty()) {
+            append("_").append(variant.buildType.name) // Optional build type
+        }
+        append(".apk")
+        toString()
     }
 }
 
