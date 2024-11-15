@@ -36,7 +36,7 @@ import com.chriscartland.garage.R
 import java.time.Duration
 import java.time.Instant
 
-private val OLD_DURATION = Duration.ofMinutes(11)
+val OLD_DURATION_FOR_DOOR_CHECK_IN = Duration.ofMinutes(11)
 
 @Composable
 fun TopBarActionsRow(lastCheckIn: Instant?) {
@@ -48,7 +48,7 @@ fun TopBarActionsRow(lastCheckIn: Instant?) {
             )
             Spacer(modifier = Modifier.width(4.dp))
         }
-        val isOld = lastCheckIn != null && duration > OLD_DURATION
+        val isOld = lastCheckIn != null && duration > OLD_DURATION_FOR_DOOR_CHECK_IN
         Image(
             modifier = Modifier.scale(0.7f),
             painter = if (isOld) {
@@ -64,61 +64,35 @@ fun TopBarActionsRow(lastCheckIn: Instant?) {
 
 @Composable
 fun OldLastCheckInBanner(
-    lastCheckIn: Instant?,
     modifier: Modifier = Modifier,
     action: (() -> Unit)? = null,
-    onOldCheckInChanged: (Boolean) -> Unit = {},
 ) {
-    DurationSince(lastCheckIn) { duration ->
-        Column(
-            modifier = modifier,
-            horizontalAlignment = CenterHorizontally,
-        ) {
-            val isOld = lastCheckIn != null && duration > OLD_DURATION
-            if (isOld) {
-                if (action == null) {
-                    Text(
-                        text = "Warning: Not receiving updates from server",
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                } else {
-                    ErrorCard(
-                        text = "Not receiving updates from server",
-                        buttonText = "Retry",
-                        onClick = { action() },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-            LaunchedEffect(isOld) {
-                onOldCheckInChanged(isOld)
-            }
-        }
+    if (action == null) {
+        Text(
+            text = "Warning: Not receiving updates from server",
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    } else {
+        ErrorCard(
+            text = "Not receiving updates from server",
+            buttonText = "Retry",
+            onClick = { action() },
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun LastCheckInBannerPreview() {
-    OldLastCheckInBanner(
-        lastCheckIn = Instant.now().minus(Duration.ofMinutes(10)),
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LastCheckInBannerOldPreview() {
-    OldLastCheckInBanner(
-        lastCheckIn = Instant.now().minus(Duration.ofMinutes(20)),
-    )
+    OldLastCheckInBanner()
 }
 
 @Preview(showBackground = true)
 @Composable
 fun LastCheckInBannerOldWithActionPreview() {
     OldLastCheckInBanner(
-        lastCheckIn = Instant.now().minus(Duration.ofMinutes(20)),
         action = {},
     )
 }

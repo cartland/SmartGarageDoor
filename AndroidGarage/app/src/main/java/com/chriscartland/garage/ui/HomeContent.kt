@@ -33,6 +33,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -143,94 +144,100 @@ fun HomeContent(
     // Show the current door event.
     val doorEvent = currentDoorEvent.data
 
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        val lastCheckInTime = doorEvent?.lastCheckInTimeSeconds
-        OldLastCheckInBanner(
-            lastCheckIn = lastCheckInTime?.let { Instant.ofEpochSecond(it) },
-            action = {
-                Log.e(TAG, "Trying to fix outdated info. Resetting FCM, and fetching data.")
-                onResetFcm()
-                onFetchCurrentDoorEvent()
-            },
-            modifier = Modifier.fillMaxWidth(),
-            onOldCheckInChanged = onOldCheckInChanged,
-        )
-        // Add a card at the top if the notification permission is not granted.
-        if (!notificationPermissionState.status.isGranted) {
-            ErrorCard(
-                text = notificationJustificationText(permissionRequestCount),
-                buttonText = "Allow",
-                onClick = {
-                    permissionRequestCount++
-                    notificationPermissionState.launchPermissionRequest()
-                    onLogNotificationPermissionRequested()
-                },
-            )
+    val lastCheckInTime = doorEvent?.lastCheckInTimeSeconds
+    DurationSince(lastCheckInTime?.let { Instant.ofEpochSecond(it) }) { duration ->
+        val isOld = lastCheckInTime != null && duration > OLD_DURATION_FOR_DOOR_CHECK_IN
+        LaunchedEffect(isOld) {
+            onOldCheckInChanged(isOld)
         }
-
-        // If the current event had an error, show an error card.
-        if (currentDoorEvent is LoadingResult.Error) {
-            ErrorCard(
-                text = "Error fetching current door event: " +
-                        currentDoorEvent.exception.toString().take(500),
-                buttonText = "Retry",
-                onClick = { onFetchCurrentDoorEvent() },
-            )
-        }
-
-        Box(
-            modifier = Modifier.weight(1f),
+        Column(
+            modifier = modifier,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            DoorStatusCard(
-                doorEvent = doorEvent,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable { onFetchCurrentDoorEvent() }, // Fetch on click.
-                cardColors = doorCardColors(LocalDoorStatusColorScheme.current, doorEvent),
-            )
-            // If the current event is loading, show a loading indicator.
-            if (currentDoorEvent is LoadingResult.Loading) {
-                Text(
-                    text = "Loading...",
-                    modifier = Modifier.padding(8.dp),
-                    style = MaterialTheme.typography.titleMedium,
+            if (isOld) {
+                OldLastCheckInBanner(
+                    action = {
+                        Log.e(TAG, "Trying to fix outdated info. Resetting FCM, and fetching data.")
+                        onResetFcm()
+                        onFetchCurrentDoorEvent()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
-        }
+            // Add a card at the top if the notification permission is not granted.
+            if (!notificationPermissionState.status.isGranted) {
+                ErrorCard(
+                    text = notificationJustificationText(permissionRequestCount),
+                    buttonText = "Allow",
+                    onClick = {
+                        permissionRequestCount++
+                        notificationPermissionState.launchPermissionRequest()
+                        onLogNotificationPermissionRequested()
+                    },
+                )
+            }
 
-        Spacer(modifier = Modifier.height(8.dp))
+            // If the current event had an error, show an error card.
+            if (currentDoorEvent is LoadingResult.Error) {
+                ErrorCard(
+                    text = "Error fetching current door event: " +
+                            currentDoorEvent.exception.toString().take(500),
+                    buttonText = "Retry",
+                    onClick = { onFetchCurrentDoorEvent() },
+                )
+            }
 
-        Box(
-            modifier = Modifier.weight(1f),
-            contentAlignment = Alignment.Center,
-        ) {
-            when (authState) {
-                AuthState.Unknown -> {
-                    Text(text = "Checking authentication...")
-                }
-
-                AuthState.Unauthenticated -> {
-                    Button(onClick = { onSignIn() }) {
-                        Text("Sign to access garage remote button")
-                    }
-                }
-
-                is AuthState.Authenticated -> {
-                    RemoteButtonContent(
-                        modifier = Modifier.fillMaxSize(),
-                        onSubmit = {
-                            Log.d("HomeContent", "Remote button clicked")
-                            onRemoteButtonClick()
-                        },
-                        onArming = {
-                            onResetRemote()
-                        },
-                        remoteRequestStatus = remoteRequestStatus,
+            Box(
+                modifier = Modifier.weight(1f),
+            ) {
+                DoorStatusCard(
+                    doorEvent = doorEvent,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable { onFetchCurrentDoorEvent() }, // Fetch on click.
+                    cardColors = doorCardColors(LocalDoorStatusColorScheme.current, doorEvent),
+                )
+                // If the current event is loading, show a loading indicator.
+                if (currentDoorEvent is LoadingResult.Loading) {
+                    Text(
+                        text = "Loading...",
+                        modifier = Modifier.padding(8.dp),
+                        style = MaterialTheme.typography.titleMedium,
                     )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                when (authState) {
+                    AuthState.Unknown -> {
+                        Text(text = "Checking authentication...")
+                    }
+
+                    AuthState.Unauthenticated -> {
+                        Button(onClick = { onSignIn() }) {
+                            Text("Sign to access garage remote button")
+                        }
+                    }
+
+                    is AuthState.Authenticated -> {
+                        RemoteButtonContent(
+                            modifier = Modifier.fillMaxSize(),
+                            onSubmit = {
+                                Log.d("HomeContent", "Remote button clicked")
+                                onRemoteButtonClick()
+                            },
+                            onArming = {
+                                onResetRemote()
+                            },
+                            remoteRequestStatus = remoteRequestStatus,
+                        )
+                    }
                 }
             }
         }
