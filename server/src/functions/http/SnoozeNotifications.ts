@@ -214,7 +214,7 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
         response.status(400).send(result);
         return;
     }
-    const nowSeconds = 1731805163; // firebase.firestore.Timestamp.now().seconds;
+    const nowSeconds = firebase.firestore.Timestamp.now().seconds;
     const snoozeEndTimeSeconds = nowSeconds + durationSeconds;
 
     // Save the snooze data to the database.
@@ -269,7 +269,7 @@ export const httpSnoozeNotificationsLatest = functions.https.onRequest(async (re
         return;
     }
     const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
-    const nowSeconds = 1731805163; // firebase.firestore.Timestamp.now().seconds;
+    const nowSeconds = firebase.firestore.Timestamp.now().seconds;
     try {
         const snoozeResult = await SnoozeNotificationsDatabase.get(buildTimestamp);
         if (!snoozeResult || !snoozeResult.snoozeEndTimeSeconds) {
