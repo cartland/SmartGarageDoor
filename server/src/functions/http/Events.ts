@@ -18,7 +18,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import * as functions from 'firebase-functions';
 
-import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
+import { DATABASE as SensorEventDatabase } from '../../database/SensorEventDatabase';
 
 import { SensorSnapshot } from '../../model/SensorSnapshot';
 
@@ -39,7 +39,7 @@ const EVENT_HISTORY_COUNT_KEY = "eventHistoryCount";
 const NEW_EVENT_KEY = "newEvent";
 const OLD_EVENT_KEY = "oldEvent";
 
-const EVENT_DATABASE = new TimeSeriesDatabase('eventsCurrent', 'eventsAll');
+// const EVENT_DATABASE = new TimeSeriesDatabase('eventsCurrent', 'eventsAll');
 
 /**
  * curl -H "Content-Type: application/json" http://localhost:5001/PROJECT-ID/us-central1/currentEventData?session=ABC&buildTimestamp=123&eventHistoryMaxCount=12
@@ -74,7 +74,7 @@ export const httpCurrentEventData = functions.https.onRequest(async (request, re
   }
 
   try {
-    const currentData = await EVENT_DATABASE.getCurrent(buildTimestamp);
+    const currentData = await SensorEventDatabase.get(buildTimestamp);
     data[CURRENT_EVENT_DATA_KEY] = currentData;
     response.status(200).send(data);
   }
@@ -127,7 +127,7 @@ export const httpEventHistory = functions.https.onRequest(async (request, respon
   }
 
   try {
-    const allData = await EVENT_DATABASE.getRecentForBuildTimestamp(buildTimestamp, eventHistoryMaxCount);
+    const allData = await SensorEventDatabase.getRecentForBuildTimestamp(buildTimestamp, eventHistoryMaxCount);
     data[EVENT_HISTORY_KEY] = allData;
     data[EVENT_HISTORY_COUNT_KEY] = allData.length;
     response.status(200).send(data);
@@ -180,10 +180,10 @@ export const httpNextEvent = functions.https.onRequest(async (request, response)
     timestampSeconds = parseInt(String(request.query[TIMESTAMP_SECONDS_PARAM_KEY]));
   }
   try {
-    const oldEvent = await EVENT_DATABASE.getCurrent(buildTimestamp);
+    const oldEvent = await SensorEventDatabase.get(buildTimestamp);
     const newEvent = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     if (newEvent !== null) {
-      await EVENT_DATABASE.save(buildTimestamp, newEvent);
+      await SensorEventDatabase.set(buildTimestamp, newEvent);
     }
     data[OLD_EVENT_KEY] = oldEvent;
     data[NEW_EVENT_KEY] = newEvent;

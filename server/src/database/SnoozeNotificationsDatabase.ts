@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-const COLLECTION_CURRENT = 'eventsCurrent';
-const COLLECTION_ALL = 'eventsAll';
+const COLLECTION_CURRENT = 'snoozeNotificationsCurrent';
+const COLLECTION_ALL = 'snoozeNotificationsAll';
 
 import { TimeSeriesDatabase } from './TimeSeriesDatabase';
 
-class SensorEventDatabase {
+class SnoozeNotificationsDatabase {
   DB = new TimeSeriesDatabase(COLLECTION_CURRENT, COLLECTION_ALL);
 
   async set(buildTimestamp: string, data: any) {
@@ -33,10 +33,6 @@ class SensorEventDatabase {
   async getRecentN(n: number): Promise<any> {
     return this.DB.getLatestN(n);
   }
-
-  async getRecentForBuildTimestamp(buildTimestamp: string, n: number): Promise<any> {
-    return this.DB.getRecentForBuildTimestamp(buildTimestamp, n);
-  }
 };
 
-export const DATABASE = new SensorEventDatabase();
+export const DATABASE = new SnoozeNotificationsDatabase();

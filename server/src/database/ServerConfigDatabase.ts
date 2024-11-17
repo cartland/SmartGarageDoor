@@ -69,6 +69,13 @@ class ServerConfig {
     }
     return false;
   }
+  
+  isSnoozeNotificationsEnabled(config): boolean {
+    if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('snoozeNotificationsEnabled')) {
+      return config.body.snoozeNotificationsEnabled;
+    }
+    return false;
+  }
 };
 
 export const Config = new ServerConfig();
