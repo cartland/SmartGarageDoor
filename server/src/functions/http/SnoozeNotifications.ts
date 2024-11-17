@@ -34,8 +34,7 @@ const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
 const EMAIL_PARAM_KEY = "email";
 const SNOOZE_DURATION_PARAM_KEY = 'snoozeDuration';
 const SNOOZE_EVENT_TIMESTAMP_KEY = 'snoozeEventTimestamp';
-const VALID_SNOOZE_DURATIONS: Array<String> = ['1h', '2h', '4h', '8h', '12h'];
-
+const VALID_SNOOZE_DURATIONS: Array<String> = ['1h', '2h', '3h', '4h', '5h', '6h', '7h', '8h', '9h', '10h', '11h', '12h'];
 /**
  * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/remoteButton?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
  */
@@ -176,7 +175,7 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
         return;
     }
     if (!(SNOOZE_DURATION_PARAM_KEY in data)) {
-        console.error('Invalid snooze duration in request');
+        console.error('Invalid snooze duration in request, must be one of:', VALID_SNOOZE_DURATIONS);
         const result = { error: 'Invalid snooze duration' };
         response.status(400).send(result);
         return;
