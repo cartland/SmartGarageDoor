@@ -20,3 +20,14 @@ export interface SnoozeRequest {
     snoozeDuration: number,
     snoozeEndTimeSeconds: number,
 }
+
+export interface SnoozeState {
+    request?: SnoozeRequest,
+    status: SnoozeStatus,
+}
+
+export enum SnoozeStatus {
+    NONE = 'NONE',
+    ACTIVE = 'ACTIVE',
+    EXPIRED = 'EXPIRED',
+}

@@ -25,7 +25,6 @@ import { DATABASE as SensorEventDatabase } from '../../database/SensorEventDatab
 
 import { Config } from '../../database/ServerConfigDatabase';
 import { isAuthorizedToPushRemoteButton } from '../../controller/Auth';
-import { SensorEvent } from '../../model/SensorEvent';
 import { SnoozeRequest } from '../../model/SnoozeRequest';
 
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';

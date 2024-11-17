@@ -24,6 +24,9 @@ import { buildTimestampToFcmTopic } from '../../model/FcmTopic';
 
 const NOTIFICATIONS_DATABASE = new TimeSeriesDatabase('notificationsCurrent', 'notificationsAll');
 
+import { DATABASE as SnoozeNotificationsDatabase } from '../../database/SnoozeNotificationsDatabase';
+import { SnoozeStatus, SnoozeState } from '../../model/SnoozeRequest';
+
 const CURRENT_EVENT_KEY = 'currentEvent';
 const NOTIFICATION_CURRENT_EVENT_KEY = 'notificationCurrentEvent';
 const NOTIFICATION_MESSAGE_KEY = 'message';
@@ -49,7 +52,7 @@ export async function sendFCMForOldData(buildTimestamp: string, eventData): Prom
   }
   const now = firebase.firestore.Timestamp.now();
   const timestampSeconds = now.seconds;
-  if (!isEventOld(currentEvent, timestampSeconds)) {
+  if (await !isEventOld(buildTimestamp, currentEvent, timestampSeconds)) {
     return null;
   }
   const message = getDoorNotClosedMessageFromEvent(buildTimestamp, currentEvent, timestampSeconds);
@@ -83,11 +86,34 @@ export async function sendFCMForOldData(buildTimestamp: string, eventData): Prom
 }
 
 
-const TOO_LONG_OPEN_SECONDS = 15 * 60;
+const TOO_LONG_OPEN_SECONDS = 15 * 60; // 15 minutes.
 
-function isEventOld(currentEvent: SensorEvent, now: number): boolean {
+async function isEventOld(buildTimestamp: string, currentEvent: SensorEvent, now: number): Promise<boolean> {
+  // If there is a current active snooze request, do not send a notification.
+  const currentSnoozeRequest = await getCurrentSnoozeRequest(buildTimestamp, now);
+  if (currentSnoozeRequest && currentSnoozeRequest.status === SnoozeStatus.ACTIVE) {
+    return false;
+  }
+  // If there is no snooze request, check if the event is older than a threshold.
   const eventDurationSeconds = now - currentEvent.timestampSeconds;
   return eventDurationSeconds > TOO_LONG_OPEN_SECONDS;
+}
+
+async function getCurrentSnoozeRequest(buildTimestamp: string, nowSeconds: number): Promise<SnoozeState | null> {
+    try {
+        const snoozeResult = await SnoozeNotificationsDatabase.get(buildTimestamp);
+        if (!snoozeResult || !snoozeResult.snoozeEndTimeSeconds) {
+            return <SnoozeState>{ status: SnoozeStatus.NONE };
+        }
+        console.log(snoozeResult);
+        if (nowSeconds > snoozeResult.snoozeEndTimeSeconds) {
+            return <SnoozeState>{ status: SnoozeStatus.EXPIRED, snooze: snoozeResult };
+        }
+        return <SnoozeState>{ status: SnoozeStatus.ACTIVE, snooze: snoozeResult };
+    } catch (error) {
+        console.error(error)
+        return null;
+    }
 }
 
 /**
