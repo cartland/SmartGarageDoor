@@ -17,7 +17,7 @@
 export interface SnoozeRequest {
     currentEventTimestampSeconds: number,
     snoozeRequestSeconds: number,
-    snoozeDuration: number,
+    snoozeDuration: string,
     snoozeEndTimeSeconds: number,
 }
 

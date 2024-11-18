@@ -188,50 +188,44 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
         response.status(400).send(result);
         return;
     }
-    const snoozeDuration = data[SNOOZE_DURATION_PARAM_KEY];
+    const snoozeDurationData = data[SNOOZE_DURATION_PARAM_KEY] ?? null;
+    const snoozeDuration: string | null =
+        typeof snoozeDurationData === 'string' ? snoozeDurationData : null;
+
     if (!snoozeDuration) {
-        console.error('Error interpreating snooze duration');
+        console.error('Missing snooze duration in request');
         const result = { error: 'Missing required parameter: ' + SNOOZE_DURATION_PARAM_KEY };
         response.status(400).send(result);
         return;
     }
 
     // Calculate the snooze end time from the current time.
-    let durationSeconds: number = null;
-    switch (snoozeDuration) {
-        case '0h': // No snooze.
-            durationSeconds = 0;
-            break;
-        case '1h':
-            durationSeconds = 60 * 60;
-            break;
-        case '2h':
-            durationSeconds = 2 * 60 * 60;
-            break;
-        case '4h':
-            durationSeconds = 4 * 60 * 60;
-            break;
-        case '8h':
-            durationSeconds = 8 * 60 * 60;
-            break;
-        case '12h':
-            durationSeconds = 12 * 60 * 60;
-            break;
+    let durationSeconds: number | null = null;
+    if (snoozeDuration && snoozeDuration.endsWith('h')) {
+        const durationHours = parseInt(snoozeDuration, 10);
+        // Support 0h to 12h snooze durations.
+        if (durationHours >= 0 && durationHours <= 12) {
+            durationSeconds = durationHours * 60 * 60;
+        } else {
+            console.error("Invalid snooze duration:", snoozeDuration);
+        }
+    } else {
+        console.error("Invalid snooze duration:", snoozeDuration);
     }
-    if (!durationSeconds) {
-        console.error('Error calculating snooze duration');
-        const result = { error: 'Error calculating snooze duration' };
+    if (durationSeconds === null || typeof durationSeconds === 'number') {
+        console.error('Snooze duration is invalid:', snoozeDuration);
+        const result = { error: 'Invalid parameter ' + SNOOZE_DURATION_PARAM_KEY };
         response.status(400).send(result);
         return;
     }
-    const nowSeconds = firebase.firestore.Timestamp.now().seconds;
-    const snoozeEndTimeSeconds = nowSeconds + durationSeconds;
+    const nowSeconds: number = firebase.firestore.Timestamp.now().seconds;
+    const snoozeEndTimeSeconds: number = nowSeconds + durationSeconds;
 
     // Save the snooze data to the database.
     const snoozeData: SnoozeRequest = <SnoozeRequest>{
         currentEventTimestampSeconds: currentEventTimestampSeconds,
         snoozeRequestSeconds: nowSeconds,
-        snoozeDuration: snoozeDuration,
+        snoozeDuration: snoozeDuration ?? '',
         snoozeEndTimeSeconds: snoozeEndTimeSeconds,
     };
     try {
