@@ -51,7 +51,7 @@ export async function sendFCMForOldData(buildTimestamp: string, eventData): Prom
   }
   const now = firebase.firestore.Timestamp.now();
   const timestampSeconds = now.seconds;
-  if (await !isEventOld(buildTimestamp, currentEvent, timestampSeconds)) {
+  if (await !shouldSendFcmForOpenDoor(buildTimestamp, currentEvent, timestampSeconds)) {
     return null;
   }
   const message = getDoorNotClosedMessageFromEvent(buildTimestamp, currentEvent, timestampSeconds);
@@ -87,14 +87,22 @@ export async function sendFCMForOldData(buildTimestamp: string, eventData): Prom
 
 const TOO_LONG_OPEN_SECONDS = 15 * 60; // 15 minutes.
 
-async function isEventOld(buildTimestamp: string, currentEvent: SensorEvent, now: number): Promise<boolean> {
-  // If there is a current active snooze request, do not send a notification.
+async function shouldSendFcmForOpenDoor(buildTimestamp: string, currentEvent: SensorEvent, now: number): Promise<boolean> {
+  // Check for a snooze request
   const params: SnoozeLatestParams = <SnoozeLatestParams>{
     buildTimestamp: buildTimestamp,
   }
   const snoozeStatus = await getSnoozeStatus(params);
-  if (snoozeStatus && snoozeStatus.status === SnoozeStatus.ACTIVE) {
-    return false;
+  if (snoozeStatus) {
+    if (snoozeStatus.status === SnoozeStatus.ACTIVE) {
+      // Snooze request is active. Do not send a notification.
+      return false;
+    } else if (snoozeStatus.status === SnoozeStatus.EXPIRED) {
+      // Snooze request is expired. Send a notification.
+      return true;
+    } else { // SnoozeStatus.NONE
+      // Fall back to checking if the event is too old.
+    }
   }
   // If there is no snooze request, check if the event is older than a default threshold.
   const eventDurationSeconds = now - currentEvent.timestampSeconds;
