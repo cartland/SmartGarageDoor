@@ -29,6 +29,7 @@ data class SnoozeOpenDoorNotificationsResponse(
     @Json(name = "snoozeEndTimeSeconds") val snoozeEndTimeSeconds: Long?,
     @Json(name = "FIRESTORE_databaseTimestamp") val firestoreDatabaseTimestamp: FirestoreDatabaseTimestamp?,
     @Json(name = "FIRESTORE_databaseTimestampSeconds") val firestoreDatabaseTimestampSeconds: Long?,
+    @Json(name = "error") val error: String?,
 ) {
     @JsonClass(generateAdapter = true)
     data class FirestoreDatabaseTimestamp(

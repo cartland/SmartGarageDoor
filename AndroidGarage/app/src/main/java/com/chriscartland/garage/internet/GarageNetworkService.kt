@@ -20,6 +20,7 @@ package com.chriscartland.garage.internet
 import androidx.annotation.Keep
 import com.chriscartland.garage.config.APP_CONFIG
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -132,7 +133,9 @@ object RetrofitModule {
     @Provides
     @Singleton
     fun provideGarageService(): GarageNetworkService {
-        val moshi: Moshi = Moshi.Builder().build()
+        val moshi: Moshi = Moshi.Builder()
+            .add(KotlinJsonAdapterFactory())
+            .build()
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
