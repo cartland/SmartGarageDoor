@@ -51,6 +51,7 @@ export async function getSnoozeStatus(params: SnoozeLatestParams): Promise<Snooz
     // Check if the snooze request is active, expired, or none.
     // Result: ACTIVE, EXPIRED, NONE
     const buildTimestamp = params.buildTimestamp;
+    console.debug('getSnoozeStatus() buildTimestamp:', buildTimestamp);
 
     // Get the current event timestamp from the database.
     let eventsCurrent = null;
@@ -68,6 +69,7 @@ return <SnoozeLatestResponse> {
             status: SnoozeStatus.NONE,
         };
     }
+    console.debug('eventsCurrent:', eventsCurrent);
     if (!eventsCurrent.currentEvent || !eventsCurrent.currentEvent.timestampSeconds) {
         console.error('No current event timestamp');
         return <SnoozeLatestResponse> {
@@ -81,6 +83,7 @@ return <SnoozeLatestResponse> {
             status: SnoozeStatus.NONE,
         };
     }
+    console.debug('currentEventTimestampSeconds:', currentEventTimestampSeconds);
 
     // Compare the latest event with the latest snooze request to make sure they match.
     const nowSeconds = firebase.firestore.Timestamp.now().seconds;
@@ -92,10 +95,12 @@ return <SnoozeLatestResponse> {
                 status: SnoozeStatus.NONE,
             };
         }
-        console.log(snoozeResult);
+        console.debug(snoozeResult);
 
         if (snoozeResult.currentEventTimestampSeconds !== currentEventTimestampSeconds) {
             console.info('Snooze request does not match current event');
+            console.debug('- snoozeResult.currentEventTimestampSeconds:', snoozeResult.currentEventTimestampSeconds);
+            console.debug('- currentEventTimestampSeconds:', currentEventTimestampSeconds);
             return <SnoozeLatestResponse> {
                 status: SnoozeStatus.NONE,
             };

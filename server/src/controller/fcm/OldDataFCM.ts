@@ -96,17 +96,22 @@ async function shouldSendFcmForOpenDoor(buildTimestamp: string, currentEvent: Se
   if (snoozeStatus) {
     if (snoozeStatus.status === SnoozeStatus.ACTIVE) {
       // Snooze request is active. Do not send a notification.
+      console.info('shouldSendFcmForOpenDoor: Snooze request is active, do not send a notification');
       return false;
     } else if (snoozeStatus.status === SnoozeStatus.EXPIRED) {
       // Snooze request is expired. Send a notification.
+      console.info('shouldSendFcmForOpenDoor: Snooze request is expired, send a notification');
       return true;
     } else { // SnoozeStatus.NONE
       // Fall back to checking if the event is too old.
+      console.info('shouldSendFcmForOpenDoor: No snooze request, check if the event is too old');
     }
   }
   // If there is no snooze request, check if the event is older than a default threshold.
   const eventDurationSeconds = now - currentEvent.timestampSeconds;
-  return eventDurationSeconds > TOO_LONG_OPEN_SECONDS;
+  const isOld = eventDurationSeconds > TOO_LONG_OPEN_SECONDS;
+  console.info('shouldSendFcmForOpenDoor: Event duration:', eventDurationSeconds, 'seconds, isOld:', isOld);
+  return isOld;
 }
 
 /**
