@@ -45,7 +45,7 @@ import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
 fun SnoozeNotificationCard(
     text: String,
     snoozeText: String,
-    selectText: String,
+    noneSelectedText: String,
     saveText: String,
     modifier: Modifier = Modifier,
     onSnooze: (snooze: SnoozeDurationUIOption) -> Unit = {},
@@ -75,6 +75,7 @@ fun SnoozeNotificationCard(
                     if (showOptions) { // Save
                         selectedOption?.let {
                             onSnooze(it)
+                            selectedOption = null
                         }
                     }
                     showOptions = !showOptions
@@ -82,7 +83,7 @@ fun SnoozeNotificationCard(
                     Text(
                         if (showOptions) {
                             if (selectedOption == null) {
-                                selectText
+                                noneSelectedText
                             } else {
                                 saveText
                             }
@@ -99,7 +100,12 @@ fun SnoozeNotificationCard(
                     options = options,
                     selectedOption = selectedOption,
                     onOptionSelected = { option ->
-                        selectedOption = option
+                        if (option == selectedOption) {
+                            // If you select the selected item, deselect it.
+                            selectedOption = null
+                        } else {
+                            selectedOption = option
+                        }
                     },
                     optionFormatter = { option ->
                         option.duration.toComponents { hours, minutes, _, _ ->
@@ -137,7 +143,7 @@ fun SnoozeNotificationCardPreview() {
     SnoozeNotificationCard(
         text = "Snooze notifications",
         snoozeText = "Snooze",
-        selectText = "Select",
+        noneSelectedText = "Cancel",
         saveText = "Save",
     )
 }
@@ -149,7 +155,6 @@ fun <T> RadioGroup(
     onOptionSelected: (T) -> Unit,
     optionFormatter: (T) -> String = { it.toString() },
 ) {
-    var selected by remember { mutableStateOf(selectedOption) }
     Column {
         options.forEach { option ->
             Row(
@@ -159,9 +164,8 @@ fun <T> RadioGroup(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 RadioButton(
-                    selected = selected == option,
+                    selected = selectedOption == option,
                     onClick = {
-                        selected = option
                         onOptionSelected(option)
                     },
                 )
