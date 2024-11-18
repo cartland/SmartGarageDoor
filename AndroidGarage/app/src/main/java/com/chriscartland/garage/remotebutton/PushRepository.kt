@@ -136,6 +136,17 @@ class PushRepositoryImpl @Inject constructor(
             )
             Log.i(tag, "Response: ${response.code()}")
             Log.i(tag, "Response body: ${response.body()}")
+            if (response.body() == null) {
+                Log.e(tag, "Error: No response")
+                _snoozeStatus.value = SnoozeRequestStatus.ERROR
+                return
+            }
+            // TODO: Diagnose why body() is null when Retrofit receives {"error":"Disabled"}
+            if (response.body()?.error != null) {
+                Log.e(tag, "Error: ${response.body()?.error}")
+                _snoozeStatus.value = SnoozeRequestStatus.ERROR
+                return
+            }
         }
         Log.d(tag, "Request complete")
         _snoozeStatus.value = SnoozeRequestStatus.IDLE
@@ -151,6 +162,7 @@ enum class PushStatus {
 enum class SnoozeRequestStatus {
     IDLE,
     SENDING,
+    ERROR,
 }
 
 /**

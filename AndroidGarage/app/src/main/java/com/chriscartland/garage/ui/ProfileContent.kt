@@ -41,6 +41,7 @@ import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModel
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
+import com.chriscartland.garage.remotebutton.SnoozeRequestStatus
 import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
@@ -55,6 +56,7 @@ fun ProfileContent(
 ) {
     val context = LocalContext.current as ComponentActivity
     val authState by authViewModel.authState.collectAsState()
+    val snoozeRequestStatus by doorViewModel.snoozeStatus.collectAsState()
     ProfileContent(
         user = when (val it = authState) {
             is AuthState.Authenticated -> it.user
@@ -64,6 +66,7 @@ fun ProfileContent(
         modifier = modifier,
         signIn = { authViewModel.signInWithGoogle(context) },
         signOut = { authViewModel.signOut() },
+        snoozeRequestStatus = snoozeRequestStatus,
         onSnooze = {
             doorViewModel.snoozeOpenDoorsNotifications(
                 authViewModel.authRepository,
@@ -80,6 +83,7 @@ fun ProfileContent(
     modifier: Modifier = Modifier,
     signIn: () -> Unit,
     signOut: () -> Unit,
+    snoozeRequestStatus: SnoozeRequestStatus = SnoozeRequestStatus.IDLE,
     onSnooze: (snooze: SnoozeDurationUIOption) -> Unit = {},
     notificationPermissionState: PermissionState = rememberNotificationPermissionState(),
 ) {
@@ -100,7 +104,11 @@ fun ProfileContent(
         if (APP_CONFIG.snoozeNotificationsOption && notificationPermissionState.status.isGranted) {
             item {
                 SnoozeNotificationCard(
-                    text = "Snooze notification",
+                    text = when (snoozeRequestStatus) {
+                        SnoozeRequestStatus.IDLE -> "Snooze notification"
+                        SnoozeRequestStatus.SENDING -> "Saving..."
+                        SnoozeRequestStatus.ERROR -> "Error saving snooze settings"
+                    },
                     snoozeText = "Snooze",
                     saveText = "Save",
                     onSnooze = onSnooze,

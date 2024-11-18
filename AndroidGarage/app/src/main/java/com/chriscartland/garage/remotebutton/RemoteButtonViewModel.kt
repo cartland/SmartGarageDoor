@@ -46,6 +46,7 @@ import javax.inject.Inject
 
 interface RemoteButtonViewModel {
     val requestStatus: StateFlow<RequestStatus>
+    val snoozeStatus: StateFlow<SnoozeRequestStatus>
     fun pushRemoteButton(authRepository: AuthRepository)
     fun resetRemoteButton()
     fun snoozeOpenDoorsNotifications(
@@ -65,6 +66,9 @@ class RemoteButtonViewModelImpl @Inject constructor(
     private val _requestStatus = MutableStateFlow(RequestStatus.NONE)
     override val requestStatus: StateFlow<RequestStatus> = _requestStatus
 
+    private val _snoozeStatus = MutableStateFlow(SnoozeRequestStatus.IDLE)
+    override val snoozeStatus: StateFlow<SnoozeRequestStatus> = _snoozeStatus
+
     private val _currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
 
     init {
@@ -79,6 +83,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
         listenToDoorPosition()
         listenToDoorEvent()
         listenToRequestTimeouts()
+        listenToSnoozeStatus()
     }
 
     /**
@@ -244,6 +249,14 @@ class RemoteButtonViewModelImpl @Inject constructor(
                 Log.d(
                     TAG, "ButtonRequestStateMachine timeouts: " + _requestStatus.value.name
                 )
+            }
+        }
+    }
+
+    private fun listenToSnoozeStatus() {
+        viewModelScope.launch(Dispatchers.IO) {
+            pushRepository.snoozeStatus.collect {
+                _snoozeStatus.value = it
             }
         }
     }
