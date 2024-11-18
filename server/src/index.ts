@@ -25,7 +25,7 @@ import { httpRemoteButton, httpAddRemoteButtonCommand } from './functions/http/R
 import { httpCheckForOpenDoors } from './functions/http/OpenDoor'
 import { httpDeleteOldData } from './functions/http/DeleteData'
 import { httpServerConfig, httpServerConfigUpdate } from './functions/http/ServerConfig'
-import { httpSnoozeNotificationsRequest, httpSnoozeNotificationsLatest} from './functions/http/SnoozeNotifications'
+import { httpSnoozeNotificationsRequest, httpSnoozeNotificationsLatest} from './functions/http/Snooze'
 
 // Pubsub Functions.
 import { pubsubCheckForDoorErrors } from './functions/pubsub/DoorErrors'
