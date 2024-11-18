@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,15 +40,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.remotebutton.SnoozeRequestStatus
 import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
+import java.time.Instant
 
 @Composable
 fun SnoozeNotificationCard(
-    text: String,
     snoozeText: String,
     noneSelectedText: String,
     saveText: String,
     modifier: Modifier = Modifier,
+    snoozeEndTimeSeconds: Long?,
+    snoozeRequestStatus: SnoozeRequestStatus,
     onSnooze: (snooze: SnoozeDurationUIOption) -> Unit = {},
 ) {
     var showOptions by remember { mutableStateOf(false) }
@@ -64,12 +68,33 @@ fun SnoozeNotificationCard(
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text,
+                Column(
                     modifier = Modifier
                         .weight(1f)
                         .align(Alignment.CenterVertically),
-                )
+                ) {
+                    val snoozeEnd = snoozeEndTimeSeconds?.let { Instant.ofEpochSecond(it) }
+                    val snoozeTime = snoozeEndTimeSeconds?.toFriendlyTimeShort()
+                    val snoozing = (snoozeEnd != null && snoozeEnd.isAfter(Instant.now()))
+
+                    Text(
+                        text = when (snoozeRequestStatus) {
+                            SnoozeRequestStatus.IDLE -> if (snoozing) {
+                                "Snoozing notifications until $snoozeTime"
+                            } else {
+                                "Snooze notifications"
+                            }
+                            SnoozeRequestStatus.SENDING -> "Saving..."
+                            SnoozeRequestStatus.ERROR -> "Error saving snooze settings"
+                        }
+                    )
+                    if (snoozing && snoozeRequestStatus == SnoozeRequestStatus.IDLE) {
+                        Text(
+                            text = "or until the door moves",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
                 Spacer(Modifier.width(16.dp))
                 Button(onClick = {
                     if (showOptions) { // Save
@@ -141,10 +166,11 @@ fun SnoozeNotificationCard(
 @Composable
 fun SnoozeNotificationCardPreview() {
     SnoozeNotificationCard(
-        text = "Snooze notifications",
         snoozeText = "Snooze",
         noneSelectedText = "Cancel",
         saveText = "Save",
+        snoozeEndTimeSeconds = 999999999999L,
+        snoozeRequestStatus = SnoozeRequestStatus.IDLE,
     )
 }
 

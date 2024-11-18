@@ -42,6 +42,10 @@ fun Long.toFriendlyDate(): String = Instant.ofEpochSecond(this).atZone(ZoneId.sy
 fun Long.toFriendlyTime(): String? = Instant.ofEpochSecond(this).atZone(ZoneId.systemDefault())
     .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM))
 
+
+fun Long.toFriendlyTimeShort(): String? = Instant.ofEpochSecond(this).atZone(ZoneId.systemDefault())
+    .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
+
 /**
  * Convert Unix timestamp seconds to a human-readable duration string.
  *

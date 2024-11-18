@@ -276,14 +276,48 @@ export const httpSnoozeNotificationsLatest = functions.https.onRequest(async (re
         return;
     }
     const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
+
+    // Get the current event timestamp from the database.
+    let eventsCurrent = null;
+    try {
+        eventsCurrent = await SensorEventDatabase.get(buildTimestamp);
+    } catch (error) {
+        console.error(error);
+        response.status(200).send({ status: 'NONE' });
+        return;
+    }
+    if (!eventsCurrent) {
+        console.error('No current event');
+        response.status(200).send({ status: 'NONE' });
+        return;
+    }
+    if (!eventsCurrent.currentEvent || !eventsCurrent.currentEvent.timestampSeconds) {
+        console.error('No current event timestamp');
+        response.status(200).send({ status: 'NONE' });
+        return;
+    }
+    const currentEventTimestampSeconds = parseInt(eventsCurrent.currentEvent.timestampSeconds);
+    if (typeof currentEventTimestampSeconds !== 'number') {
+        console.error('Invalid current event timestamp');
+        response.status(200).send({ status: 'NONE' });
+        return;
+    }
+
     const nowSeconds = firebase.firestore.Timestamp.now().seconds;
     try {
-        const snoozeResult = await SnoozeNotificationsDatabase.get(buildTimestamp);
+        const snoozeResult: SnoozeRequest = await SnoozeNotificationsDatabase.get(buildTimestamp);
         if (!snoozeResult || !snoozeResult.snoozeEndTimeSeconds) {
             response.status(200).send({ status: 'NONE' });
             return
         }
         console.log(snoozeResult);
+
+        if (snoozeResult.currentEventTimestampSeconds !== currentEventTimestampSeconds) {
+            console.error('Snooze request does not match current event');
+            response.status(200).send({ status: 'NONE' });
+            return;
+        }
+
         if (nowSeconds > snoozeResult.snoozeEndTimeSeconds) {
             response.status(200).send({ status: 'EXPIRED', snooze: snoozeResult });
             return;

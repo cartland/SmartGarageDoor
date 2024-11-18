@@ -44,8 +44,10 @@ import javax.inject.Inject
 
 interface PushRepository {
     val pushButtonStatus: StateFlow<PushStatus>
-    val snoozeStatus: StateFlow<SnoozeRequestStatus>
+    val snoozeRequestStatus: StateFlow<SnoozeRequestStatus>
+    val snoozeEndTimeSeconds: StateFlow<Long>
     suspend fun push(idToken: IdToken, buttonAckToken: String)
+    suspend fun fetchSnoozeEndTimeSeconds()
     suspend fun snoozeOpenDoorsNotifications(
         snoozeDuration: SnoozeDurationUIOption,
         idToken: IdToken,
@@ -61,7 +63,10 @@ class PushRepositoryImpl @Inject constructor(
     override val pushButtonStatus: StateFlow<PushStatus> = _pushStatus
 
     private val _snoozeStatus = MutableStateFlow(SnoozeRequestStatus.IDLE)
-    override val snoozeStatus: StateFlow<SnoozeRequestStatus> = _snoozeStatus
+    override val snoozeRequestStatus: StateFlow<SnoozeRequestStatus> = _snoozeStatus
+
+    private val _snoozeEndTimeSeconds = MutableStateFlow(0L)
+    override val snoozeEndTimeSeconds: StateFlow<Long> = _snoozeEndTimeSeconds
 
     /**
      * Send a command to the server to push the remote button.
@@ -103,6 +108,52 @@ class PushRepositoryImpl @Inject constructor(
         _pushStatus.value = PushStatus.IDLE
     }
 
+    override suspend fun fetchSnoozeEndTimeSeconds() {
+        val tag = "fetchSnoozeEndTimeSeconds"
+        Log.d(tag, "Fetching snooze end time")
+
+        val serverConfig = serverConfigRepository.getServerConfigCached()
+        if (serverConfig == null) {
+            Log.e(tag, "Server config is null")
+            return
+        }
+        Log.d(tag, "Server config: $serverConfig")
+
+        if (!APP_CONFIG.snoozeNotificationsOption) {
+            Log.w(tag, "Snooze notification disabled: !snoozeNotificationsOption")
+            delay(Duration.ofMillis(500))
+        }
+        if (APP_CONFIG.snoozeNotificationsOption) {
+            val response = network.getSnooze(
+                buildTimestamp = BuildTimestamp(serverConfig.buildTimestamp),
+            )
+            Log.i(tag, "Response: ${response.code()}")
+            Log.i(tag, "Response body: ${response.body()}")
+            val body = response.body()
+            if (body == null) {
+                Log.e(tag, "Error: No response")
+                return
+            }
+            if (body.error != null) {
+                Log.e(tag, "Error: ${response.body()?.error}")
+                return
+            }
+            val snooze = body.snooze
+            if (snooze == null) {
+                Log.e(tag, "Error: No snooze")
+                return
+            }
+            val snoozeEndTimeSeconds = body.snooze.snoozeEndTimeSeconds
+            if (snoozeEndTimeSeconds == null) {
+                Log.e(tag, "Error: No snooze end time")
+                return
+            }
+            Log.d(tag, "Snooze end time: $snoozeEndTimeSeconds")
+            _snoozeEndTimeSeconds.value = snoozeEndTimeSeconds
+        }
+        Log.d(tag, "Request complete")
+    }
+
     override suspend fun snoozeOpenDoorsNotifications(
         snoozeDuration: SnoozeDurationUIOption,
         idToken: IdToken,
@@ -125,7 +176,7 @@ class PushRepositoryImpl @Inject constructor(
             delay(Duration.ofMillis(500))
         }
         if (APP_CONFIG.snoozeNotificationsOption) {
-            val response = network.snoozeOpenDoorsNotifications(
+            val response = network.postSnoozeOpenDoorsNotifications(
                 buildTimestamp = BuildTimestamp(serverConfig.buildTimestamp),
                 remoteButtonPushKey = RemoteButtonPushKey(
                     serverConfig.remoteButtonPushKey,

@@ -46,13 +46,15 @@ import javax.inject.Inject
 
 interface RemoteButtonViewModel {
     val requestStatus: StateFlow<RequestStatus>
-    val snoozeStatus: StateFlow<SnoozeRequestStatus>
+    val snoozeRequestStatus: StateFlow<SnoozeRequestStatus>
+    val snoozeEndTimeSeconds: StateFlow<Long>
     fun pushRemoteButton(authRepository: AuthRepository)
     fun resetRemoteButton()
     fun snoozeOpenDoorsNotifications(
         authRepository: AuthRepository,
         snoozeDuration: SnoozeDurationUIOption,
     )
+    fun fetchSnoozeEndTimeSeconds()
 }
 
 @HiltViewModel
@@ -66,8 +68,10 @@ class RemoteButtonViewModelImpl @Inject constructor(
     private val _requestStatus = MutableStateFlow(RequestStatus.NONE)
     override val requestStatus: StateFlow<RequestStatus> = _requestStatus
 
-    private val _snoozeStatus = MutableStateFlow(SnoozeRequestStatus.IDLE)
-    override val snoozeStatus: StateFlow<SnoozeRequestStatus> = _snoozeStatus
+    private val _snoozeRequestStatus = MutableStateFlow(SnoozeRequestStatus.IDLE)
+    override val snoozeRequestStatus: StateFlow<SnoozeRequestStatus> = _snoozeRequestStatus
+
+    override val snoozeEndTimeSeconds: StateFlow<Long> = pushRepository.snoozeEndTimeSeconds
 
     private val _currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
 
@@ -255,8 +259,8 @@ class RemoteButtonViewModelImpl @Inject constructor(
 
     private fun listenToSnoozeStatus() {
         viewModelScope.launch(Dispatchers.IO) {
-            pushRepository.snoozeStatus.collect {
-                _snoozeStatus.value = it
+            pushRepository.snoozeRequestStatus.collect {
+                _snoozeRequestStatus.value = it
             }
         }
     }
@@ -335,6 +339,12 @@ class RemoteButtonViewModelImpl @Inject constructor(
 
     override fun resetRemoteButton() {
         _requestStatus.value = RequestStatus.NONE
+    }
+
+    override fun fetchSnoozeEndTimeSeconds() {
+        viewModelScope.launch(Dispatchers.IO) {
+            pushRepository.fetchSnoozeEndTimeSeconds()
+        }
     }
 }
 

@@ -59,13 +59,17 @@ interface GarageNetworkService {
         idToken: IdToken,
     ): Response<RemoteButtonPushResponse>
 
-    suspend fun snoozeOpenDoorsNotifications(
+    suspend fun postSnoozeOpenDoorsNotifications(
         buildTimestamp: BuildTimestamp,
         remoteButtonPushKey: RemoteButtonPushKey,
         idToken: IdToken,
         snoozeDuration: SnoozeDurationParameter,
         snoozeEventTimestamp: SnoozeEventTimestampParameter,
     ): Response<SnoozeOpenDoorNotificationsResponse>
+
+    suspend fun getSnooze(
+        buildTimestamp: BuildTimestamp,
+    ): Response<GetSnoozeResponse>
 }
 
 @JvmInline
@@ -118,13 +122,18 @@ interface RetrofitGarageNetworkService : GarageNetworkService {
     ): Response<RemoteButtonPushResponse>
 
     @POST("snoozeNotificationsRequest")
-    override suspend fun snoozeOpenDoorsNotifications(
+    override suspend fun postSnoozeOpenDoorsNotifications(
         @Query("buildTimestamp") buildTimestamp: BuildTimestamp,
         @Header("X-RemoteButtonPushKey") remoteButtonPushKey: RemoteButtonPushKey,
         @Header("X-AuthTokenGoogle") idToken: IdToken,
         @Query("snoozeDuration") snoozeDuration: SnoozeDurationParameter,
         @Query("snoozeEventTimestamp") snoozeEventTimestamp: SnoozeEventTimestampParameter,
     ): Response<SnoozeOpenDoorNotificationsResponse>
+
+    @GET("snoozeNotificationsLatest")
+    override suspend fun getSnooze(
+        @Query("buildTimestamp") buildTimestamp: BuildTimestamp,
+    ): Response<GetSnoozeResponse>
 }
 
 @Module

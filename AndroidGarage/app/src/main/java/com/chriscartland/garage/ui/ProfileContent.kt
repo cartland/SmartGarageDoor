@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -46,17 +47,28 @@ import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
+import kotlinx.coroutines.delay
+import java.time.Duration
+import java.time.Instant
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ProfileContent(
     modifier: Modifier = Modifier,
     authViewModel: AuthViewModel = hiltViewModel<AuthViewModelImpl>(),
-    doorViewModel: RemoteButtonViewModel = hiltViewModel<RemoteButtonViewModelImpl>(),
+    buttonViewModel: RemoteButtonViewModel = hiltViewModel<RemoteButtonViewModelImpl>(),
 ) {
     val context = LocalContext.current as ComponentActivity
     val authState by authViewModel.authState.collectAsState()
-    val snoozeRequestStatus by doorViewModel.snoozeStatus.collectAsState()
+    val snoozeRequestStatus by buttonViewModel.snoozeRequestStatus.collectAsState()
+    val snoozeEndTimeSeconds by buttonViewModel.snoozeEndTimeSeconds.collectAsState()
+
+    LaunchedEffect(key1 = snoozeRequestStatus) {
+        while (true) {
+            buttonViewModel.fetchSnoozeEndTimeSeconds()
+            delay(Duration.ofMinutes(1).toMillis())
+        }
+    }
     ProfileContent(
         user = when (val it = authState) {
             is AuthState.Authenticated -> it.user
@@ -66,9 +78,10 @@ fun ProfileContent(
         modifier = modifier,
         signIn = { authViewModel.signInWithGoogle(context) },
         signOut = { authViewModel.signOut() },
+        snoozeEndTimeSeconds = snoozeEndTimeSeconds,
         snoozeRequestStatus = snoozeRequestStatus,
         onSnooze = {
-            doorViewModel.snoozeOpenDoorsNotifications(
+            buttonViewModel.snoozeOpenDoorsNotifications(
                 authViewModel.authRepository,
                 it,
             )
@@ -83,6 +96,7 @@ fun ProfileContent(
     modifier: Modifier = Modifier,
     signIn: () -> Unit,
     signOut: () -> Unit,
+    snoozeEndTimeSeconds: Long? = null,
     snoozeRequestStatus: SnoozeRequestStatus = SnoozeRequestStatus.IDLE,
     onSnooze: (snooze: SnoozeDurationUIOption) -> Unit = {},
     notificationPermissionState: PermissionState = rememberNotificationPermissionState(),
@@ -104,15 +118,12 @@ fun ProfileContent(
         if (APP_CONFIG.snoozeNotificationsOption && notificationPermissionState.status.isGranted) {
             item {
                 SnoozeNotificationCard(
-                    text = when (snoozeRequestStatus) {
-                        SnoozeRequestStatus.IDLE -> "Snooze notification"
-                        SnoozeRequestStatus.SENDING -> "Saving..."
-                        SnoozeRequestStatus.ERROR -> "Error saving snooze settings"
-                    },
                     snoozeText = "Snooze",
                     saveText = "Save",
                     noneSelectedText = "Cancel",
                     onSnooze = onSnooze,
+                    snoozeRequestStatus = snoozeRequestStatus,
+                    snoozeEndTimeSeconds = snoozeEndTimeSeconds,
                 )
             }
         }
