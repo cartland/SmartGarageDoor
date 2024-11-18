@@ -249,10 +249,6 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
  */
 export const httpSnoozeNotificationsLatest = functions.https.onRequest(async (request, response) => {
     const config = await Config.get();
-    if (!Config.isRemoteButtonEnabled(config)) {
-        response.status(400).send({ error: 'Disabled remote button' });
-        return;
-    }
     if (!Config.isSnoozeNotificationsEnabled(config)) {
         response.status(400).send({ error: 'Disabled' });
         return;
