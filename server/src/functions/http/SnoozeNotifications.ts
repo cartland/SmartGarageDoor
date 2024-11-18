@@ -78,16 +78,17 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
         response.status(401).send(result);
         return;
     }
-    var email = null;
+    let verifiedEmail = null;
     try {
         const decodedToken = await firebase.auth().verifyIdToken(googleIdToken);
-        email = decodedToken.email;
-    } catch (error) {
+        verifiedEmail = decodedToken.email;
+    } catch (error: any) {
         console.error(error);
         const result = { error: 'Unauthorized (token).' };
         response.status(401).send(result);
         return;
     }
+    const email = verifiedEmail;
     console.log('email:', email);
     // Check to make sure the user is authorized to push the remote button.
     const authorizedEmails = Config.getRemoteButtonAuthorizedEmails(config);
