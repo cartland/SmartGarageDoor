@@ -45,13 +45,14 @@ import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
 fun SnoozeNotificationCard(
     text: String,
     snoozeText: String,
+    selectText: String,
     saveText: String,
     modifier: Modifier = Modifier,
     onSnooze: (snooze: SnoozeDurationUIOption) -> Unit = {},
 ) {
     var showOptions by remember { mutableStateOf(false) }
     val options: List<SnoozeDurationUIOption> = SnoozeDurationUIOption.entries
-    var selectedOption = remember { options.first() }
+    var selectedOption by remember { mutableStateOf<SnoozeDurationUIOption?>(null) }
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         modifier = modifier,
@@ -72,12 +73,22 @@ fun SnoozeNotificationCard(
                 Spacer(Modifier.width(16.dp))
                 Button(onClick = {
                     if (showOptions) { // Save
-                        onSnooze(selectedOption)
+                        selectedOption?.let {
+                            onSnooze(it)
+                        }
                     }
                     showOptions = !showOptions
                 }) {
                     Text(
-                        if (showOptions) saveText else snoozeText,
+                        if (showOptions) {
+                            if (selectedOption == null) {
+                                selectText
+                            } else {
+                                saveText
+                            }
+                        } else {
+                            snoozeText
+                        },
                         maxLines = 2,
                         modifier = Modifier.align(Alignment.CenterVertically),
                     )
@@ -126,6 +137,7 @@ fun SnoozeNotificationCardPreview() {
     SnoozeNotificationCard(
         text = "Snooze notifications",
         snoozeText = "Snooze",
+        selectText = "Select",
         saveText = "Save",
     )
 }
@@ -133,7 +145,7 @@ fun SnoozeNotificationCardPreview() {
 @Composable
 fun <T> RadioGroup(
     options: List<T>,
-    selectedOption: T,
+    selectedOption: T?,
     onOptionSelected: (T) -> Unit,
     optionFormatter: (T) -> String = { it.toString() },
 ) {

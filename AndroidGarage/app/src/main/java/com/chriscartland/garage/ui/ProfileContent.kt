@@ -111,6 +111,7 @@ fun ProfileContent(
                     },
                     snoozeText = "Snooze",
                     saveText = "Save",
+                    selectText = "Select",
                     onSnooze = onSnooze,
                 )
             }
