@@ -207,14 +207,14 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
         if (durationHours >= 0 && durationHours <= 12) {
             durationSeconds = durationHours * 60 * 60;
         } else {
-            console.error("Invalid snooze duration:", snoozeDuration);
+            console.error("Invalid snooze duration value:", snoozeDuration);
         }
     } else {
-        console.error("Invalid snooze duration:", snoozeDuration);
+        console.error("Invalid snooze duration format:", snoozeDuration);
     }
-    if (durationSeconds === null || typeof durationSeconds === 'number') {
+    if (durationSeconds === null || typeof durationSeconds !== 'number') {
         console.error('Snooze duration is invalid:', snoozeDuration);
-        const result = { error: 'Invalid parameter ' + SNOOZE_DURATION_PARAM_KEY };
+        const result = { error: 'Invalid parameter, ' + SNOOZE_DURATION_PARAM_KEY + ': ' + snoozeDuration };
         response.status(400).send(result);
         return;
     }
