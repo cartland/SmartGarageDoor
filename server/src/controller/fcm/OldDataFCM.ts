@@ -94,7 +94,7 @@ async function isEventOld(buildTimestamp: string, currentEvent: SensorEvent, now
   if (currentSnoozeRequest && currentSnoozeRequest.status === SnoozeStatus.ACTIVE) {
     return false;
   }
-  // If there is no snooze request, check if the event is older than a threshold.
+  // If there is no snooze request, check if the event is older than a default threshold.
   const eventDurationSeconds = now - currentEvent.timestampSeconds;
   return eventDurationSeconds > TOO_LONG_OPEN_SECONDS;
 }
