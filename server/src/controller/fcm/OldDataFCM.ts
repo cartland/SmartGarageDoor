@@ -51,10 +51,12 @@ export async function sendFCMForOldData(buildTimestamp: string, eventData): Prom
   }
   const now = firebase.firestore.Timestamp.now();
   const timestampSeconds = now.seconds;
-  if (await !shouldSendFcmForOpenDoor(buildTimestamp, currentEvent, timestampSeconds)) {
-    console.info('Not sending FCM for open door');
+  const shouldSend: boolean = await shouldSendFcmForOpenDoor(buildTimestamp, currentEvent, timestampSeconds)
+  if (!shouldSend) {
+    console.info('Decided not to send FCM for open door');
     return null;
   }
+  console.debug('Decided to send FCM for open door');
   const message = getDoorNotClosedMessageFromEvent(buildTimestamp, currentEvent, timestampSeconds);
   if (!message) {
     console.error('Could not generate message to send');
