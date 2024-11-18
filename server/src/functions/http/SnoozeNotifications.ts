@@ -34,8 +34,9 @@ const EMAIL_PARAM_KEY = "email";
 const SNOOZE_DURATION_PARAM_KEY = 'snoozeDuration';
 const SNOOZE_EVENT_TIMESTAMP_KEY = 'snoozeEventTimestamp';
 const VALID_SNOOZE_DURATIONS: Array<String> = ['0h', '1h', '2h', '3h', '4h', '5h', '6h', '7h', '8h', '9h', '10h', '11h', '12h'];
+
 /**
- * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/remoteButton?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
+ * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/snoozeNotificationsLatest?buildTimestamp=buildTimestamp
  */
 export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (request, response) => {
     const config = await Config.get();
@@ -240,6 +241,12 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
 
 /**
  * Get latest Snooze request.
+ *
+ * curl -X POST \
+     -H "Content-Type: application/json" \
+     -H "X-RemoteButtonPushKey: $BUTTON_KEY" \
+     -H "X-AuthTokenGoogle: $ID_TOKEN" \
+     -d '{}' \ "http://localhost:5000/PROJECT-ID/us-central1/snoozeNotificationsRequest?buildTimestamp=Sat%20Mar%2013%2014%3A45%3A00%202021&snoozeEventTimestamp=$snoozeEventTimestamp&snoozeDuration=2h"
  */
 export const httpSnoozeNotificationsLatest = functions.https.onRequest(async (request, response) => {
     const config = await Config.get();
