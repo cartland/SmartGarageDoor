@@ -33,7 +33,7 @@ const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
 const EMAIL_PARAM_KEY = "email";
 const SNOOZE_DURATION_PARAM_KEY = 'snoozeDuration';
 const SNOOZE_EVENT_TIMESTAMP_KEY = 'snoozeEventTimestamp';
-const VALID_SNOOZE_DURATIONS: Array<String> = ['1h', '2h', '3h', '4h', '5h', '6h', '7h', '8h', '9h', '10h', '11h', '12h'];
+const VALID_SNOOZE_DURATIONS: Array<String> = ['0h', '1h', '2h', '3h', '4h', '5h', '6h', '7h', '8h', '9h', '10h', '11h', '12h'];
 /**
  * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/remoteButton?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
  */
@@ -47,7 +47,7 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
         response.status(405).send({ error: 'Method Not Allowed.' });
         return;
     }
-    
+
     // Echo query parameters and body.
     const data = {
         queryParams: request.query,
@@ -110,7 +110,7 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
         // If the client does not send a session ID, create a session ID.
         data[SESSION_PARAM_KEY] = uuidv4();
     }
-    
+
     // This is where the snooze notifications logic is implemented.
 
     // Get the build timestamp from the request.
@@ -199,6 +199,9 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
     // Calculate the snooze end time from the current time.
     let durationSeconds: number = null;
     switch (snoozeDuration) {
+        case '0h': // No snooze.
+            durationSeconds = 0;
+            break;
         case '1h':
             durationSeconds = 60 * 60;
             break;
