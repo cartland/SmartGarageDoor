@@ -240,13 +240,11 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
 });
 
 /**
- * Set latest Snooze request.
+ * Get latest Snooze request.
  *
- * curl -X POST \
+ * curl -X GET \
  *    -H "Content-Type: application/json" \
- *    -H "X-RemoteButtonPushKey: $BUTTON_KEY" \
- *    -H "X-AuthTokenGoogle: $ID_TOKEN" \
- *    -d '{}' \ "http://localhost:5000/PROJECT-ID/us-central1/snoozeNotificationsRequest?buildTimestamp=Sat%20Mar%2013%2014%3A45%3A00%202021&snoozeEventTimestamp=$snoozeEventTimestamp&snoozeDuration=2h"
+ *    -d '{}' \ "http://localhost:5000/PROJECT-ID/us-central1/snoozeNotificationsLatest?buildTimestamp=Sat%20Mar%2013%2014%3A45%3A00%202021"
  */
 export const httpSnoozeNotificationsLatest = functions.https.onRequest(async (request, response) => {
     const config = await Config.get();
