@@ -21,11 +21,13 @@ import android.text.format.DateFormat
 import android.util.Log
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.config.ServerConfigRepository
+import com.chriscartland.garage.internet.BuildTimestamp
 import com.chriscartland.garage.internet.ButtonAckToken
 import com.chriscartland.garage.internet.GarageNetworkService
 import com.chriscartland.garage.internet.IdToken
 import com.chriscartland.garage.internet.RemoteButtonBuildTimestamp
 import com.chriscartland.garage.internet.RemoteButtonPushKey
+import com.chriscartland.garage.internet.SnoozeEventTimestampParameter
 import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
 import com.chriscartland.garage.snoozenotifications.toParam
 import com.chriscartland.garage.snoozenotifications.toServer
@@ -47,6 +49,7 @@ interface PushRepository {
     suspend fun snoozeOpenDoorsNotifications(
         snoozeDuration: SnoozeDurationUIOption,
         idToken: IdToken,
+        snoozeEventTimestamp: SnoozeEventTimestampParameter,
     )
 }
 
@@ -103,6 +106,7 @@ class PushRepositoryImpl @Inject constructor(
     override suspend fun snoozeOpenDoorsNotifications(
         snoozeDuration: SnoozeDurationUIOption,
         idToken: IdToken,
+        snoozeEventTimestamp: SnoozeEventTimestampParameter,
     ) {
         _snoozeStatus.value = SnoozeRequestStatus.SENDING
         val tag = "snoozeOpenDoorsNotifications"
@@ -122,14 +126,13 @@ class PushRepositoryImpl @Inject constructor(
         }
         if (APP_CONFIG.snoozeNotificationsOption) {
             val response = network.snoozeOpenDoorsNotifications(
-                remoteButtonBuildTimestamp = RemoteButtonBuildTimestamp(
-                    serverConfig.remoteButtonBuildTimestamp,
-                ),
+                buildTimestamp = BuildTimestamp(serverConfig.buildTimestamp),
                 remoteButtonPushKey = RemoteButtonPushKey(
                     serverConfig.remoteButtonPushKey,
                 ),
                 idToken = idToken,
                 snoozeDuration = snoozeDuration.toServer().toParam(),
+                snoozeEventTimestamp = snoozeEventTimestamp,
             )
             Log.i(tag, "Response: ${response.code()}")
             Log.i(tag, "Response body: ${response.body()}")

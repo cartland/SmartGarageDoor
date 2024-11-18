@@ -34,6 +34,7 @@ import javax.inject.Inject
 interface DoorRepository {
     // Only exposes the door position.
     val currentDoorPosition: Flow<DoorPosition>
+
     // Exposes the event, including last updated timestamps.
     val currentDoorEvent: Flow<DoorEvent>
     val recentDoorEvents: Flow<List<DoorEvent>>

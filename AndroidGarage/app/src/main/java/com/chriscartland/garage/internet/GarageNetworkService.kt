@@ -59,12 +59,16 @@ interface GarageNetworkService {
     ): Response<RemoteButtonPushResponse>
 
     suspend fun snoozeOpenDoorsNotifications(
-        remoteButtonBuildTimestamp: RemoteButtonBuildTimestamp,
+        buildTimestamp: BuildTimestamp,
         remoteButtonPushKey: RemoteButtonPushKey,
         idToken: IdToken,
         snoozeDuration: SnoozeDurationParameter,
+        snoozeEventTimestamp: SnoozeEventTimestampParameter,
     ): Response<SnoozeOpenDoorNotificationsResponse>
 }
+
+@JvmInline
+value class BuildTimestamp(private val s: String)
 
 @JvmInline
 value class RemoteButtonBuildTimestamp(private val s: String)
@@ -80,6 +84,9 @@ value class IdToken(private val s: String)
 
 @JvmInline
 value class SnoozeDurationParameter(private val s: String)
+
+@JvmInline
+value class SnoozeEventTimestampParameter(private val s: Long)
 
 @Keep
 interface RetrofitGarageNetworkService : GarageNetworkService {
@@ -98,7 +105,7 @@ interface RetrofitGarageNetworkService : GarageNetworkService {
 
     @GET("serverConfig")
     override suspend fun getServerConfig(
-        @Header("X-ServerConfigKey") serverConfigKey: String
+        @Header("X-ServerConfigKey") serverConfigKey: String,
     ): Response<ServerConfigResponse>
 
     @POST("addRemoteButtonCommand")
@@ -111,10 +118,11 @@ interface RetrofitGarageNetworkService : GarageNetworkService {
 
     @POST("snoozeNotificationsRequest")
     override suspend fun snoozeOpenDoorsNotifications(
-        @Query("buildTimestamp") remoteButtonBuildTimestamp: RemoteButtonBuildTimestamp,
+        @Query("buildTimestamp") buildTimestamp: BuildTimestamp,
         @Header("X-RemoteButtonPushKey") remoteButtonPushKey: RemoteButtonPushKey,
         @Header("X-AuthTokenGoogle") idToken: IdToken,
         @Query("snoozeDuration") snoozeDuration: SnoozeDurationParameter,
+        @Query("snoozeEventTimestamp") snoozeEventTimestamp: SnoozeEventTimestampParameter,
     ): Response<SnoozeOpenDoorNotificationsResponse>
 }
 

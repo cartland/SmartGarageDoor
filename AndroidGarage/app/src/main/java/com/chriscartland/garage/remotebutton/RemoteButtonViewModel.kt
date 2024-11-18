@@ -23,8 +23,10 @@ import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.auth.AuthRepository
 import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.FirebaseIdToken
+import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorRepository
 import com.chriscartland.garage.internet.IdToken
+import com.chriscartland.garage.internet.SnoozeEventTimestampParameter
 import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
 import dagger.Binds
 import dagger.Module
@@ -46,7 +48,10 @@ interface RemoteButtonViewModel {
     val requestStatus: StateFlow<RequestStatus>
     fun pushRemoteButton(authRepository: AuthRepository)
     fun resetRemoteButton()
-    fun snoozeOpenDoorsNotifications(authRepository: AuthRepository, snooze: SnoozeDurationUIOption)
+    fun snoozeOpenDoorsNotifications(
+        authRepository: AuthRepository,
+        snoozeDuration: SnoozeDurationUIOption,
+    )
 }
 
 @HiltViewModel
@@ -60,6 +65,8 @@ class RemoteButtonViewModelImpl @Inject constructor(
     private val _requestStatus = MutableStateFlow(RequestStatus.NONE)
     override val requestStatus: StateFlow<RequestStatus> = _requestStatus
 
+    private val _currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
+
     init {
         setupRequestStateMachine()
     }
@@ -70,6 +77,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
     private fun setupRequestStateMachine() {
         listenToButtonRepository()
         listenToDoorPosition()
+        listenToDoorEvent()
         listenToRequestTimeouts()
     }
 
@@ -139,6 +147,14 @@ class RemoteButtonViewModelImpl @Inject constructor(
                     TAG,
                     "ButtonRequestStateMachine door: old $old -> " + "new ${_requestStatus.value.name}"
                 )
+            }
+        }
+    }
+
+    private fun listenToDoorEvent() {
+        viewModelScope.launch(Dispatchers.IO) {
+            doorRepository.currentDoorEvent.collect {
+                _currentDoorEvent.value = it
             }
         }
     }
@@ -256,7 +272,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
 
     override fun snoozeOpenDoorsNotifications(
         authRepository: AuthRepository,
-        snooze: SnoozeDurationUIOption,
+        snoozeDuration: SnoozeDurationUIOption,
     ) {
         Log.d(TAG, "snoozeOpenDoorsNotifications")
         viewModelScope.launch(Dispatchers.IO) {
@@ -266,7 +282,18 @@ class RemoteButtonViewModelImpl @Inject constructor(
                 return@launch
             }
             val idToken = ensureFreshIdToken(authRepository, authState)
-            pushRepository
+            Log.d(TAG, "snoozeOpenDoorsNotifications: Snoozing: $snoozeDuration")
+
+            val lastChangeTimeSeconds = _currentDoorEvent.value?.lastChangeTimeSeconds
+            if (lastChangeTimeSeconds == null) {
+                Log.e(TAG, "lastChangeTimeSeconds is null -- cannot snooze")
+                return@launch
+            }
+            pushRepository.snoozeOpenDoorsNotifications(
+                snoozeDuration = snoozeDuration,
+                idToken = IdToken(idToken.asString()),
+                snoozeEventTimestamp = SnoozeEventTimestampParameter(lastChangeTimeSeconds),
+            )
         }
     }
 

@@ -131,7 +131,7 @@ fun SnoozeNotificationCardPreview() {
 }
 
 @Composable
-fun <T>RadioGroup(
+fun <T> RadioGroup(
     options: List<T>,
     selectedOption: T,
     onOptionSelected: (T) -> Unit,
