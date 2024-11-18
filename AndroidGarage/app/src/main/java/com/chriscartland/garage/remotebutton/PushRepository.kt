@@ -26,6 +26,9 @@ import com.chriscartland.garage.internet.GarageNetworkService
 import com.chriscartland.garage.internet.IdToken
 import com.chriscartland.garage.internet.RemoteButtonBuildTimestamp
 import com.chriscartland.garage.internet.RemoteButtonPushKey
+import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
+import com.chriscartland.garage.snoozenotifications.toParam
+import com.chriscartland.garage.snoozenotifications.toServer
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -38,8 +41,13 @@ import java.util.Date
 import javax.inject.Inject
 
 interface PushRepository {
-    val status: StateFlow<PushStatus>
+    val pushButtonStatus: StateFlow<PushStatus>
+    val snoozeStatus: StateFlow<SnoozeRequestStatus>
     suspend fun push(idToken: IdToken, buttonAckToken: String)
+    suspend fun snoozeOpenDoorsNotifications(
+        snoozeDuration: SnoozeDurationUIOption,
+        idToken: IdToken,
+    )
 }
 
 class PushRepositoryImpl @Inject constructor(
@@ -47,7 +55,10 @@ class PushRepositoryImpl @Inject constructor(
     private val serverConfigRepository: ServerConfigRepository,
 ) : PushRepository {
     private val _pushStatus = MutableStateFlow(PushStatus.IDLE)
-    override val status: StateFlow<PushStatus> = _pushStatus
+    override val pushButtonStatus: StateFlow<PushStatus> = _pushStatus
+
+    private val _snoozeStatus = MutableStateFlow(SnoozeRequestStatus.IDLE)
+    override val snoozeStatus: StateFlow<SnoozeRequestStatus> = _snoozeStatus
 
     /**
      * Send a command to the server to push the remote button.
@@ -88,9 +99,53 @@ class PushRepositoryImpl @Inject constructor(
         }
         _pushStatus.value = PushStatus.IDLE
     }
+
+    override suspend fun snoozeOpenDoorsNotifications(
+        snoozeDuration: SnoozeDurationUIOption,
+        idToken: IdToken,
+    ) {
+        _snoozeStatus.value = SnoozeRequestStatus.SENDING
+        val tag = "snoozeOpenDoorsNotifications"
+        Log.d(tag, "Requesting to snooze door open notifications for $snoozeDuration")
+
+        val serverConfig = serverConfigRepository.getServerConfigCached()
+        if (serverConfig == null) {
+            Log.e(tag, "Server config is null")
+            _snoozeStatus.value = SnoozeRequestStatus.IDLE
+            return
+        }
+        Log.d(tag, "Server config: $serverConfig")
+
+        if (!APP_CONFIG.snoozeNotificationsOption) {
+            Log.w(tag, "Snooze notification disabled: !snoozeNotificationsOption")
+            delay(Duration.ofMillis(500))
+        }
+        if (APP_CONFIG.snoozeNotificationsOption) {
+            val response = network.snoozeOpenDoorsNotifications(
+                remoteButtonBuildTimestamp = RemoteButtonBuildTimestamp(
+                    serverConfig.remoteButtonBuildTimestamp,
+                ),
+                remoteButtonPushKey = RemoteButtonPushKey(
+                    serverConfig.remoteButtonPushKey,
+                ),
+                idToken = idToken,
+                snoozeDuration = snoozeDuration.toServer().toParam(),
+            )
+            Log.i(tag, "Response: ${response.code()}")
+            Log.i(tag, "Response body: ${response.body()}")
+        }
+        Log.d(tag, "Request complete")
+        _snoozeStatus.value = SnoozeRequestStatus.IDLE
+    }
+
 }
 
 enum class PushStatus {
+    IDLE,
+    SENDING,
+}
+
+enum class SnoozeRequestStatus {
     IDLE,
     SENDING,
 }
@@ -120,3 +175,5 @@ abstract class PushRepositoryModule {
     @Binds
     abstract fun bindPushRepository(pushRepository: PushRepositoryImpl): PushRepository
 }
+
+private const val TAG = "PushRepository"

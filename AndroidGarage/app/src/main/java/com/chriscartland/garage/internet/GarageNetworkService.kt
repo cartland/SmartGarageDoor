@@ -31,6 +31,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.POST
 import retrofit2.http.Query
 import javax.inject.Singleton
 
@@ -56,6 +57,13 @@ interface GarageNetworkService {
         remoteButtonPushKey: RemoteButtonPushKey,
         idToken: IdToken,
     ): Response<RemoteButtonPushResponse>
+
+    suspend fun snoozeOpenDoorsNotifications(
+        remoteButtonBuildTimestamp: RemoteButtonBuildTimestamp,
+        remoteButtonPushKey: RemoteButtonPushKey,
+        idToken: IdToken,
+        snoozeDuration: SnoozeDurationParameter,
+    ): Response<SnoozeOpenDoorNotificationsResponse>
 }
 
 @JvmInline
@@ -69,6 +77,9 @@ value class RemoteButtonPushKey(private val s: String)
 
 @JvmInline
 value class IdToken(private val s: String)
+
+@JvmInline
+value class SnoozeDurationParameter(private val s: String)
 
 @Keep
 interface RetrofitGarageNetworkService : GarageNetworkService {
@@ -90,13 +101,21 @@ interface RetrofitGarageNetworkService : GarageNetworkService {
         @Header("X-ServerConfigKey") serverConfigKey: String
     ): Response<ServerConfigResponse>
 
-    @GET("addRemoteButtonCommand")
+    @POST("addRemoteButtonCommand")
     override suspend fun postRemoteButtonPush(
         @Query("buildTimestamp") remoteButtonBuildTimestamp: RemoteButtonBuildTimestamp,
         @Query("buttonAckToken") buttonAckToken: ButtonAckToken,
         @Header("X-RemoteButtonPushKey") remoteButtonPushKey: RemoteButtonPushKey,
         @Header("X-AuthTokenGoogle") idToken: IdToken,
     ): Response<RemoteButtonPushResponse>
+
+    @POST("snoozeNotificationsRequest")
+    override suspend fun snoozeOpenDoorsNotifications(
+        @Query("buildTimestamp") remoteButtonBuildTimestamp: RemoteButtonBuildTimestamp,
+        @Header("X-RemoteButtonPushKey") remoteButtonPushKey: RemoteButtonPushKey,
+        @Header("X-AuthTokenGoogle") idToken: IdToken,
+        @Query("snoozeDuration") snoozeDuration: SnoozeDurationParameter,
+    ): Response<SnoozeOpenDoorNotificationsResponse>
 }
 
 @Module

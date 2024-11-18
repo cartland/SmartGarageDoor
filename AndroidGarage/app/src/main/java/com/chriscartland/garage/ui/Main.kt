@@ -156,7 +156,7 @@ fun AppNavigation(
             }
             composable(Screen.Profile.route) {
                 ProfileContent(
-                    viewModel = authViewModel,
+                    authViewModel = authViewModel,
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth(),

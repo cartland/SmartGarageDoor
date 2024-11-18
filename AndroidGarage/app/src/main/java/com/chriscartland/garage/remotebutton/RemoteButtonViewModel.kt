@@ -25,6 +25,7 @@ import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.auth.FirebaseIdToken
 import com.chriscartland.garage.door.DoorRepository
 import com.chriscartland.garage.internet.IdToken
+import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -45,6 +46,7 @@ interface RemoteButtonViewModel {
     val requestStatus: StateFlow<RequestStatus>
     fun pushRemoteButton(authRepository: AuthRepository)
     fun resetRemoteButton()
+    fun snoozeOpenDoorsNotifications(authRepository: AuthRepository, snooze: SnoozeDurationUIOption)
 }
 
 @HiltViewModel
@@ -82,12 +84,13 @@ class RemoteButtonViewModelImpl @Inject constructor(
      */
     private fun listenToButtonRepository() {
         viewModelScope.launch(Dispatchers.IO) {
-            pushRepository.status.collect { sendStatus ->
+            pushRepository.pushButtonStatus.collect { sendStatus ->
                 val old = _requestStatus.value
                 _requestStatus.value = when (sendStatus) {
                     PushStatus.SENDING -> {
                         RequestStatus.SENDING
                     }
+
                     PushStatus.IDLE -> {
                         when (old) {
                             RequestStatus.SENDING -> RequestStatus.SENT
@@ -100,8 +103,10 @@ class RemoteButtonViewModelImpl @Inject constructor(
                         }
                     }
                 }
-                Log.d(TAG, "ButtonRequestStateMachine network: old $old -> " +
-                        "new ${_requestStatus.value.name}")
+                Log.d(
+                    TAG,
+                    "ButtonRequestStateMachine network: old $old -> " + "new ${_requestStatus.value.name}"
+                )
             }
         }
     }
@@ -120,19 +125,20 @@ class RemoteButtonViewModelImpl @Inject constructor(
                 when (_requestStatus.value) {
                     RequestStatus.NONE -> {} // Do nothing.
                     // All others -> RECEIVED
-                    RequestStatus.SENDING ->
-                        _requestStatus.value = RequestStatus.RECEIVED
-                    RequestStatus.SENDING_TIMEOUT ->
-                        _requestStatus.value = RequestStatus.RECEIVED
-                    RequestStatus.SENT ->
-                        _requestStatus.value = RequestStatus.RECEIVED
-                    RequestStatus.SENT_TIMEOUT ->
-                        _requestStatus.value = RequestStatus.RECEIVED
-                    RequestStatus.RECEIVED ->
-                        _requestStatus.value = RequestStatus.RECEIVED
+                    RequestStatus.SENDING -> _requestStatus.value = RequestStatus.RECEIVED
+
+                    RequestStatus.SENDING_TIMEOUT -> _requestStatus.value = RequestStatus.RECEIVED
+
+                    RequestStatus.SENT -> _requestStatus.value = RequestStatus.RECEIVED
+
+                    RequestStatus.SENT_TIMEOUT -> _requestStatus.value = RequestStatus.RECEIVED
+
+                    RequestStatus.RECEIVED -> _requestStatus.value = RequestStatus.RECEIVED
                 }
-                Log.d(TAG, "ButtonRequestStateMachine door: old $old -> " +
-                        "new ${_requestStatus.value.name}")
+                Log.d(
+                    TAG,
+                    "ButtonRequestStateMachine door: old $old -> " + "new ${_requestStatus.value.name}"
+                )
             }
         }
     }
@@ -165,6 +171,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
                         }
                         mutex.unlock()
                     }
+
                     RequestStatus.SENT -> {
                         mutex.lock()
                         job?.cancel()
@@ -178,6 +185,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
                         }
                         mutex.unlock()
                     }
+
                     RequestStatus.RECEIVED -> {
                         mutex.lock()
                         job?.cancel()
@@ -190,6 +198,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
                         }
                         mutex.unlock()
                     }
+
                     RequestStatus.SENDING_TIMEOUT -> {
                         mutex.lock()
                         job?.cancel()
@@ -202,6 +211,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
                         }
                         mutex.unlock()
                     }
+
                     RequestStatus.SENT_TIMEOUT -> {
                         mutex.lock()
                         job?.cancel()
@@ -215,8 +225,8 @@ class RemoteButtonViewModelImpl @Inject constructor(
                         mutex.unlock()
                     }
                 }
-                Log.d(TAG, "ButtonRequestStateMachine timeouts: " +
-                        _requestStatus.value.name
+                Log.d(
+                    TAG, "ButtonRequestStateMachine timeouts: " + _requestStatus.value.name
                 )
             }
         }
@@ -244,10 +254,29 @@ class RemoteButtonViewModelImpl @Inject constructor(
         }
     }
 
+    override fun snoozeOpenDoorsNotifications(
+        authRepository: AuthRepository,
+        snooze: SnoozeDurationUIOption,
+    ) {
+        Log.d(TAG, "snoozeOpenDoorsNotifications")
+        viewModelScope.launch(Dispatchers.IO) {
+            val authState = authRepository.authState.value
+            if (authState !is AuthState.Authenticated) {
+                Log.e(TAG, "Not authenticated: $authState")
+                return@launch
+            }
+            val idToken = ensureFreshIdToken(authRepository, authState)
+            pushRepository
+        }
+    }
+
     /**
      * Ensure the ID token is fresh.
      */
-    private suspend fun ensureFreshIdToken(authRepository: AuthRepository, authState: AuthState.Authenticated): FirebaseIdToken {
+    private suspend fun ensureFreshIdToken(
+        authRepository: AuthRepository,
+        authState: AuthState.Authenticated,
+    ): FirebaseIdToken {
         Log.d(TAG, "refreshIdToken")
         return if (authState.user.idToken.exp > System.currentTimeMillis()) {
             Log.d(TAG, "freshIdToken: Using cached token")

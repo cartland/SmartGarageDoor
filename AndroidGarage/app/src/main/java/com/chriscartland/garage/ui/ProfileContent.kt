@@ -39,6 +39,9 @@ import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.auth.User
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
+import com.chriscartland.garage.remotebutton.RemoteButtonViewModel
+import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
+import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
@@ -47,10 +50,11 @@ import com.google.accompanist.permissions.isGranted
 @Composable
 fun ProfileContent(
     modifier: Modifier = Modifier,
-    viewModel: AuthViewModel = hiltViewModel<AuthViewModelImpl>(),
+    authViewModel: AuthViewModel = hiltViewModel<AuthViewModelImpl>(),
+    doorViewModel: RemoteButtonViewModel = hiltViewModel<RemoteButtonViewModelImpl>(),
 ) {
     val context = LocalContext.current as ComponentActivity
-    val authState by viewModel.authState.collectAsState()
+    val authState by authViewModel.authState.collectAsState()
     ProfileContent(
         user = when (val it = authState) {
             is AuthState.Authenticated -> it.user
@@ -58,8 +62,14 @@ fun ProfileContent(
             AuthState.Unknown -> null
         },
         modifier = modifier,
-        signIn = { viewModel.signInWithGoogle(context) },
-        signOut = { viewModel.signOut() },
+        signIn = { authViewModel.signInWithGoogle(context) },
+        signOut = { authViewModel.signOut() },
+        onSnooze = {
+            doorViewModel.snoozeOpenDoorsNotifications(
+                authViewModel.authRepository,
+                it,
+            )
+        },
     )
 }
 
@@ -70,6 +80,7 @@ fun ProfileContent(
     modifier: Modifier = Modifier,
     signIn: () -> Unit,
     signOut: () -> Unit,
+    onSnooze: (snooze: SnoozeDurationUIOption) -> Unit = {},
     notificationPermissionState: PermissionState = rememberNotificationPermissionState(),
 ) {
     LazyColumn(
@@ -92,6 +103,7 @@ fun ProfileContent(
                     text = "Snooze notification",
                     snoozeText = "Snooze",
                     saveText = "Save",
+                    onSnooze = onSnooze,
                 )
             }
         }

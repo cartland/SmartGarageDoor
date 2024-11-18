@@ -39,17 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.minutes
-
-enum class SnoozeDuration(
-    val duration: Duration,
-) {
-    ThirtyMinutes(30.minutes),
-    OneHour(1.hours),
-    FourHours(4.hours),
-}
+import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
 
 @Composable
 fun SnoozeNotificationCard(
@@ -57,10 +47,10 @@ fun SnoozeNotificationCard(
     snoozeText: String,
     saveText: String,
     modifier: Modifier = Modifier,
-    onSnooze: (snooze: SnoozeDuration) -> Unit = {},
+    onSnooze: (snooze: SnoozeDurationUIOption) -> Unit = {},
 ) {
     var showOptions by remember { mutableStateOf(false) }
-    val options: List<SnoozeDuration> = SnoozeDuration.entries
+    val options: List<SnoozeDurationUIOption> = SnoozeDurationUIOption.entries
     var selectedOption = remember { options.first() }
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
@@ -116,6 +106,10 @@ fun SnoozeNotificationCard(
                                 else -> {
                                     components.add("$minutes minutes")
                                 }
+                            }
+                            // When there are no components, add a disable option.
+                            when (components.size) {
+                                0 -> components.add("Do not snooze")
                             }
                             components.joinToString(" ")
                         }
