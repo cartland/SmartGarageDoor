@@ -25,7 +25,7 @@ import { DATABASE as SensorEventDatabase } from '../../database/SensorEventDatab
 
 import { Config } from '../../database/ServerConfigDatabase';
 import { isAuthorizedToPushRemoteButton } from '../../controller/Auth';
-import { SnoozeRequest } from '../../model/SnoozeRequest';
+import { SnoozeRequest, SnoozeStatus } from '../../model/SnoozeRequest';
 
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 const SESSION_PARAM_KEY = "session";
@@ -239,6 +239,17 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
     }
 });
 
+
+interface SnoozeLatestParams {
+    buildTimestamp: string;
+}
+
+interface SnoozeLatestResponse {
+    status: SnoozeStatus;
+    snooze?: SnoozeRequest;
+    error?: string;
+}
+
 /**
  * Get latest Snooze request.
  *
@@ -247,6 +258,21 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
  *    -d '{}' \ "http://localhost:5000/PROJECT-ID/us-central1/snoozeNotificationsLatest?buildTimestamp=Sat%20Mar%2013%2014%3A45%3A00%202021"
  */
 export const httpSnoozeNotificationsLatest = functions.https.onRequest(async (request, response) => {
+    // Handle HTTP request.
+    // * Check if snooze notifications are enabled.
+    // * Check that the request is a GET request.
+    // * Get the parameters from the request.
+    //     * buildTimestamp
+    // Then implement the logic to get the latest snooze request.
+    // * Get the current event timestamp from the database.
+    // * Get the latest snooze request from the database.
+    // * Check if the snooze request is active, expired, or none.
+    //     * Result: ACTIVE, EXPIRED, NONE
+    // * Return the JSON response:
+    //     * status: String = ACTIVE, EXPIRED, NONE
+    //     * snooze: SnoozeRequest
+
+    // Handle the HTTP request.
     const config = await Config.get();
     if (!Config.isSnoozeNotificationsEnabled(config)) {
         response.status(400).send({ error: 'Disabled' });
@@ -256,24 +282,42 @@ export const httpSnoozeNotificationsLatest = functions.https.onRequest(async (re
         response.status(405).send({ error: 'Method Not Allowed.' });
         return;
     }
-    // Echo query parameters and body.
-    const data = {
-        queryParams: request.query,
-        body: request.body
-    };
-    // Get the build timestamp from the request.
-    // The build timestamp is unique to each device.
-    if (BUILD_TIMESTAMP_PARAM_KEY in request.query) {
-        data[BUILD_TIMESTAMP_PARAM_KEY] = request.query[BUILD_TIMESTAMP_PARAM_KEY];
-    } else {
-        // TODO: Determine if we should abort the request at this point.
-        // I think a build timestamp should be required.
+    let params: SnoozeLatestParams = null;
+    try {
+        params = <SnoozeLatestParams>{
+            buildTimestamp: request.query[BUILD_TIMESTAMP_PARAM_KEY] as string,
+        };
+    } catch (error) {
         console.error('No build timestamp in request');
         const result = { error: 'Missing required parameter: ' + BUILD_TIMESTAMP_PARAM_KEY };
         response.status(400).send(result);
         return;
     }
-    const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
+    if (!params.buildTimestamp) {
+        console.error('No build timestamp in request');
+        const result = { error: 'Missing required parameter: ' + BUILD_TIMESTAMP_PARAM_KEY };
+        response.status(400).send(result);
+        return;
+    }
+
+    // Implement the core logic.
+    const snoozeResponse: SnoozeLatestResponse = await getSnoozeStatus(params);
+    
+    // Return the HTTP response.
+    if (snoozeResponse.error) {
+        console.error('Returning HTTP 500 error');
+        response.status(500).send(snoozeResponse);
+        return;
+    }
+    console.info('Returning HTTP 200 success:', snoozeResponse);
+    response.status(200).send(snoozeResponse);
+});
+
+async function getSnoozeStatus(params: SnoozeLatestParams): Promise<SnoozeLatestResponse> {
+    // Get the latest snooze request from the database.
+    // Check if the snooze request is active, expired, or none.
+    // Result: ACTIVE, EXPIRED, NONE
+    const buildTimestamp = params.buildTimestamp;
 
     // Get the current event timestamp from the database.
     let eventsCurrent = null;
@@ -281,50 +325,66 @@ export const httpSnoozeNotificationsLatest = functions.https.onRequest(async (re
         eventsCurrent = await SensorEventDatabase.get(buildTimestamp);
     } catch (error) {
         console.error(error);
-        response.status(200).send({ status: 'NONE' });
-        return;
+        return <SnoozeLatestResponse> {
+            status: SnoozeStatus.NONE,
+        };
     }
     if (!eventsCurrent) {
         console.error('No current event');
-        response.status(200).send({ status: 'NONE' });
-        return;
+return <SnoozeLatestResponse> {
+            status: SnoozeStatus.NONE,
+        };
     }
     if (!eventsCurrent.currentEvent || !eventsCurrent.currentEvent.timestampSeconds) {
         console.error('No current event timestamp');
-        response.status(200).send({ status: 'NONE' });
-        return;
+        return <SnoozeLatestResponse> {
+            status: SnoozeStatus.NONE,
+        };
     }
     const currentEventTimestampSeconds = parseInt(eventsCurrent.currentEvent.timestampSeconds);
     if (typeof currentEventTimestampSeconds !== 'number') {
         console.error('Invalid current event timestamp');
-        response.status(200).send({ status: 'NONE' });
-        return;
+        return <SnoozeLatestResponse> {
+            status: SnoozeStatus.NONE,
+        };
     }
 
+    // Compare the latest event with the latest snooze request to make sure they match.
     const nowSeconds = firebase.firestore.Timestamp.now().seconds;
     try {
         const snoozeResult: SnoozeRequest = await SnoozeNotificationsDatabase.get(buildTimestamp);
         if (!snoozeResult || !snoozeResult.snoozeEndTimeSeconds) {
-            response.status(200).send({ status: 'NONE' });
-            return
+            console.info('No snooze request');
+            return <SnoozeLatestResponse> {
+                status: SnoozeStatus.NONE,
+            };
         }
         console.log(snoozeResult);
 
         if (snoozeResult.currentEventTimestampSeconds !== currentEventTimestampSeconds) {
-            console.error('Snooze request does not match current event');
-            response.status(200).send({ status: 'NONE' });
-            return;
+            console.info('Snooze request does not match current event');
+            return <SnoozeLatestResponse> {
+                status: SnoozeStatus.NONE,
+            };
         }
 
         if (nowSeconds > snoozeResult.snoozeEndTimeSeconds) {
-            response.status(200).send({ status: 'EXPIRED', snooze: snoozeResult });
-            return;
+            console.info('Snooze request expired');
+            return <SnoozeLatestResponse> {
+                status: SnoozeStatus.EXPIRED,
+                snooze: snoozeResult,
+            };
         }
-        response.status(200).send({ status: 'ACTIVE', snooze: snoozeResult });
-        return;
+        return <SnoozeLatestResponse> {
+            status: SnoozeStatus.ACTIVE,
+            snooze: snoozeResult,
+        };
     } catch (error) {
         console.error(error)
-        response.status(500).send(error)
-        return;
+        return <SnoozeLatestResponse> {
+            status: SnoozeStatus.NONE,
+            error: error.toString(),
+        };
     }
-});
+    
+}
