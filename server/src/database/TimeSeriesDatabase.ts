@@ -84,7 +84,7 @@ export class TimeSeriesDatabase {
     if (allTimestampMatches.size > 1) {
       console.error('Found multiple events with matching timestamp. Saving new event with a newer timestamp.');
       // Jiggle the timestamp to avoid collision.
-      data.currentEvent.timestampSeconds += 1;
+      data.currentEvent.timestampSeconds += Math.floor(Math.random() * (4)) + 1; // 1 to 3 seconds.
       await this.save(session, data);
       return null;
     } else if (allTimestampMatches.size < 1) {
