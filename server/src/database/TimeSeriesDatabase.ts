@@ -82,7 +82,10 @@ export class TimeSeriesDatabase {
       .where('currentEvent.timestampSeconds', '==', data.currentEvent.timestampSeconds).get();
     // Check to ensure we found exactly 1.
     if (allTimestampMatches.size > 1) {
-      console.error('Found multiple events with matching timestamp. Refusing to update.');
+      console.error('Found multiple events with matching timestamp. Saving new event with a newer timestamp.');
+      // Jiggle the timestamp to avoid collision.
+      data.current.timestampSeconds += 1;
+      await this.save(session, data);
       return null;
     } else if (allTimestampMatches.size < 1) {
       console.warn('No previous event matched the expected timestamp. Creating new database entry.');
