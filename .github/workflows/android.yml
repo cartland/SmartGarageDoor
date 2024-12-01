@@ -50,7 +50,8 @@ jobs:
           -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" \
           -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" \
           -PGARAGE_RELEASE_KEYSTORE_PWD="$GARAGE_RELEASE_KEYSTORE_PWD" \ 
-          -PGARAGE_RELEASE_KEY_PWD="$GARAGE_RELEASE_KEY_PWD"
+          -PGARAGE_RELEASE_KEY_PWD="$GARAGE_RELEASE_KEY_PWD" \
+          --stacktrace
 
     - name: Clean secrets
       working-directory: AndroidGarage
