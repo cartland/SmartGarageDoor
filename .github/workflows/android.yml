@@ -50,6 +50,15 @@ jobs:
         GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }} 
       run: ./gradlew :app:assembleRelease -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" -PGARAGE_RELEASE_KEYSTORE_PWD="$GARAGE_RELEASE_KEYSTORE_PWD" -PGARAGE_RELEASE_KEY_PWD="$GARAGE_RELEASE_KEY_PWD" --stacktrace --debug
 
+    - name: Build AAB
+      working-directory: AndroidGarage
+      env:  
+        SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
+        GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+        GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }} 
+        GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }} 
+      run: ./gradlew :app:bundleRelease -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" -PGARAGE_RELEASE_KEYSTORE_PWD="$GARAGE_RELEASE_KEYSTORE_PWD" -PGARAGE_RELEASE_KEY_PWD="$GARAGE_RELEASE_KEY_PWD" --stacktrace --debug
+      
     - name: Clean secrets
       working-directory: AndroidGarage
       if: always()
@@ -60,5 +69,6 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: android-build-outputs
-        path: AndroidGarage/app/build/outputs
-  
+        path: |
+          AndroidGarage/app/build/outputs/apk
+          AndroidGarage/app/build/outputs/bundle
