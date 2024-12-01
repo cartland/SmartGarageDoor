@@ -42,8 +42,7 @@ jobs:
       run: |
         ./gradlew :app:assembleDebug \
           -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" \
-          -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" \
-          --debug 
+          -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
 
     - name: Build Release
       working-directory: AndroidGarage
