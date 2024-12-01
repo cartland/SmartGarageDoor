@@ -42,10 +42,11 @@ jobs:
         GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }} 
         GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }} 
       run: |
-        ./gradlew :app:assembleDebug \  # Add colon here
+        ./gradlew tasks
+        ./gradlew :app:assembleDebug
           -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" \
           -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" 
-        ./gradlew :app:assembleRelease \  # Add colon here
+        ./gradlew :app:assembleRelease
           -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" \
           -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" \
           -PGARAGE_RELEASE_KEYSTORE_PWD="$GARAGE_RELEASE_KEYSTORE_PWD" \ 
