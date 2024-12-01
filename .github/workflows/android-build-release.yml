@@ -2,7 +2,7 @@ name: Android Release CI
 
 on:
   push:
-    branches: [ "internal" ]
+    branches: [ "release" ]
 
 jobs:
   build:
