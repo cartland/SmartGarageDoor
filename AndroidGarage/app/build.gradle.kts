@@ -88,7 +88,7 @@ android {
 
     signingConfigs {
         getByName("debug") {
-            storeFile = rootProject.file("release/app-debug.jks")
+            storeFile = rootProject.file("release/debug.keystore")
             storePassword = "android"
             keyAlias = "AndroidDebugKey"
             keyPassword = "android"
