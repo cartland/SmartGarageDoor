@@ -1,4 +1,4 @@
-name: Android Release CI
+name: Android Deploy Internal CI
 
 on:
   push:
@@ -29,15 +29,6 @@ jobs:
     - name: Grant execute permission for gradlew
       working-directory: AndroidGarage
       run: chmod +x gradlew
-
-    - name: Build Release
-      working-directory: AndroidGarage
-      env:  
-        SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
-        GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
-        GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }} 
-        GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }} 
-      run: ./gradlew :app:assembleRelease -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" -PGARAGE_RELEASE_KEYSTORE_PWD="$GARAGE_RELEASE_KEYSTORE_PWD" -PGARAGE_RELEASE_KEY_PWD="$GARAGE_RELEASE_KEY_PWD" --stacktrace --debug
 
     - name: Build AAB
       working-directory: AndroidGarage
