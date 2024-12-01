@@ -25,4 +25,4 @@ jobs:
       run: chmod +x gradlew
     - name: Build with Gradle
       working-directory: AndroidGarage
-      run: ./gradlew build
+      run: ./gradlew buildDebug
