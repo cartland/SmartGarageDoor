@@ -56,10 +56,9 @@ jobs:
       run: ./release/clean-secrets.sh
 
     - name: Upload build outputs
-      working-directory: AndroidGarage
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: android-build-outputs
-        path: app/build/outputs
+        path: AndroidGarage/app/build/outputs
   
