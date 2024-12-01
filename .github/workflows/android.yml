@@ -36,4 +36,4 @@ jobs:
   
     - name: Clean secrets
       if: always()
-        run: ./release/clean-secrets.sh
+      run: ./release/clean-secrets.sh
