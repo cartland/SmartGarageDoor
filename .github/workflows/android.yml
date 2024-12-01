@@ -34,7 +34,18 @@ jobs:
       working-directory: AndroidGarage
       run: chmod +x gradlew
   
-    - name: Build with Gradle
+    - name: Build Debug
+      working-directory: AndroidGarage
+      env:  
+        SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
+        GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+      run: |
+        ./gradlew :app:assembleDebug \
+          -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" \
+          -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" \
+          --debug 
+
+    - name: Build Release
       working-directory: AndroidGarage
       env:  
         SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
@@ -42,9 +53,6 @@ jobs:
         GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }} 
         GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }} 
       run: |
-        ./gradlew :app:assembleDebug \
-          -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" \
-          -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
         ./gradlew :app:assembleRelease \
           -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" \
           -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" \
