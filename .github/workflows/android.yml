@@ -36,16 +36,20 @@ jobs:
   
     - name: Build with Gradle
       working-directory: AndroidGarage
-      env:
+      env:  
         SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
         GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+        GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }} 
+        GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }} 
       run: |
         ./gradlew assembleDebug \
           -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" \
           -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" 
         ./gradlew assembleRelease \
           -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" \
-          -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
+          -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" \
+          -PGARAGE_RELEASE_KEYSTORE_PWD="$GARAGE_RELEASE_KEYSTORE_PWD" \ 
+          -PGARAGE_RELEASE_KEY_PWD="$GARAGE_RELEASE_KEY_PWD"
 
     - name: Clean secrets
       working-directory: AndroidGarage
