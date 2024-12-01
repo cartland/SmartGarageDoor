@@ -20,9 +20,20 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
+    - name: Decrypt secrets
+      working-directory: AndroidGarage
+      run: ./release/decrypt-secrets.sh
+      env:
+        ENCRYPT_KEY: ${{ secrets.ENCRYPT_KEY }}
+
     - name: Grant execute permission for gradlew
       working-directory: AndroidGarage
       run: chmod +x gradlew
+  
     - name: Build with Gradle
       working-directory: AndroidGarage
-      run: ./gradlew buildDebug
+      run: ./gradlew buildDebug && ./gradlew buildRelease
+  
+    - name: Clean secrets
+      if: always()
+        run: ./release/clean-secrets.sh
