@@ -36,7 +36,7 @@ jobs:
   
     - name: Build with Gradle
       working-directory: AndroidGarage
-      run: ./gradlew buildDebug && ./gradlew buildRelease
+      run: ./gradlew assembleDebug && ./gradlew assembleRelease
   
     - name: Clean secrets
       working-directory: AndroidGarage
