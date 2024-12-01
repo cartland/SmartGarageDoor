@@ -77,6 +77,11 @@ fun AndroidAppInfoCard(
             style = MaterialTheme.typography.labelSmall,
             textAlign = TextAlign.Center,
         )
+        Text(
+            "Privacy Policy: https://cartland-dev.web.app/garage-privacy-policy.html",
+            style = MaterialTheme.typography.labelSmall,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
