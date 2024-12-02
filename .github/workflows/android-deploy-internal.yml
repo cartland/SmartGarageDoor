@@ -60,3 +60,4 @@ jobs:
         packageName: com.chriscartland.garage
         releaseFiles: AndroidGarage/app/build/outputs/bundle/release/*.aab
         track: internal
+        whatsNewDirectory: AndroidGarage/distribution/whatsnew
