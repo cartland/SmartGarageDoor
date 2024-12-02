@@ -17,6 +17,12 @@
 
 package com.chriscartland.garage.ui
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.settings.AppSettingsViewModel
 import com.chriscartland.garage.settings.AppSettingsViewModelImpl
@@ -82,6 +89,32 @@ fun AndroidAppInfoCard(
             style = MaterialTheme.typography.labelSmall,
             textAlign = TextAlign.Center,
         )
+        val context = LocalContext.current
+        Row {
+            Button(
+                onClick = {
+                    val url = "https://play.google.com/store/apps/details?id=${appVersion.packageName}"
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        data = Uri.parse(url)
+                    }
+                    context.startActivity(intent)
+                },
+            ) {
+                Text("Play Store")
+            }
+            Spacer(Modifier.width(8.dp))
+            Button(
+                onClick = {
+                    val url = "https://cartland-dev.web.app/garage-privacy-policy.html"
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        data = Uri.parse(url)
+                    }
+                    context.startActivity(intent)
+                },
+            ) {
+                Text("Privacy Policy")
+            }
+        }
     }
 }
 
