@@ -45,18 +45,20 @@ jobs:
       run: ./release/clean-secrets.sh
 
     - name: Upload build outputs
+      working-directory: AndroidGarage
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: android-build-outputs
         path: |
-          AndroidGarage/app/build/outputs/apk
-          AndroidGarage/app/build/outputs/bundle
+          app/build/outputs/apk
+          app/build/outputs/bundle
 
     - name: Deploy to Google Play
-      uses: r0adkll/upload-google-play@v1.0.18
+      working-directory: AndroidGarage
+      uses: r0adkll/upload-google-play@v1.1.3
       with:
-        serviceAccountJson: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         packageName: com.chriscartland.garage
-        releaseFiles: AndroidGarage/app/build/outputs/bundle/release/*.aab
+        releaseFiles: app/build/outputs/bundle/release/*.aab
         track: internal
