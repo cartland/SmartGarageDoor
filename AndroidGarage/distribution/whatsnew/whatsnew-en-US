@@ -1,0 +1,2 @@
+2.0: Brand new app! Built with Jetpack Compose for easier UI iteration.
+2.1: Snooze the garage notifications! When the garage is open, you can snooze everyone's notifications for a limited time. The feature will only be enabled for the current garage door position.
