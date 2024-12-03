@@ -31,7 +31,9 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +46,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
@@ -58,34 +61,42 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
+import com.chriscartland.garage.ui.theme.DoorColorStatus
+import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
+import com.chriscartland.garage.ui.theme.select
 import java.time.Duration
 
-val DEFAULT_GARAGE_DOOR_ANIMATION_DURATION = Duration.ofSeconds(11)
+val DEFAULT_GARAGE_DOOR_ANIMATION_DURATION = Duration.ofSeconds(10)
 
 @Composable
 fun Opening(
     modifier: Modifier = Modifier,
     static: Boolean = false,
 ) {
+    val status = DoorColorStatus.OPEN
+    val doorColors = LocalDoorStatusColorScheme.current
+    val color = doorColors.select(status = status, container = false, fresh = true)
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
         GarageDoorAnimation(
             yInitialOffset = if (static) -0.6f else 0.0f,
-            yTargetOffset = if (static) -0.6f else -0.8f,
+            yTargetOffset = if (static) -0.6f else -0.65f,
             contentDescription = "Garage Door Opening",
             modifier = modifier,
+            color = color,
         )
         Box(
             modifier = Modifier
                 .fillMaxSize(0.3f)
                 .aspectRatio(1f)
-                .background(Color.LightGray, CircleShape),
+                .background(MaterialTheme.colorScheme.background, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Filled.ArrowForward,
+                tint = MaterialTheme.colorScheme.onBackground,
                 contentDescription = "Garage Door Opening",
                 modifier = Modifier
                     .rotate(-90f)
@@ -116,6 +127,9 @@ fun Closing(
     modifier: Modifier = Modifier,
     static: Boolean = false,
 ) {
+    val status = DoorColorStatus.OPEN
+    val doorColors = LocalDoorStatusColorScheme.current
+    val color = doorColors.select(status = status, container = false, fresh = true)
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
@@ -125,16 +139,18 @@ fun Closing(
             yTargetOffset = if (static) -0.2f else 0.0f,
             contentDescription = "Garage Door Closing",
             modifier = modifier,
+            color = color,
         )
         Box(
             modifier = Modifier
                 .fillMaxSize(0.3f)
                 .aspectRatio(1f)
-                .background(Color.LightGray, CircleShape), // Circle background
+                .background(MaterialTheme.colorScheme.background, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Filled.ArrowForward,
+                tint = MaterialTheme.colorScheme.onBackground,
                 contentDescription = "Garage Door Opening",
                 modifier = Modifier
                     .rotate(90f)
@@ -164,13 +180,21 @@ fun ClosingPreview() {
 fun Closed(
     modifier: Modifier = Modifier,
 ) {
-    TopWithBottomOffset(
-        topDrawable = R.drawable.garage_frame,
-        bottomDrawable = R.drawable.garage_door_only,
-        contentDescription = "Garage Door Closed",
-        offsetProportion = Offset(0.0f, 0.0f),
+    val status = DoorColorStatus.CLOSED
+    val doorColors = LocalDoorStatusColorScheme.current
+    val color = doorColors.select(status = status, container = false, fresh = true)
+    Box(
         modifier = modifier,
-    )
+        contentAlignment = Alignment.Center,
+    ) {
+        GarageDoorAnimation(
+            yInitialOffset = 0.0f,
+            yTargetOffset = 0.0f,
+            contentDescription = "Garage Door Closing",
+            modifier = modifier,
+            color = color,
+        )
+    }
 }
 
 @Preview(showBackground = true)
@@ -193,13 +217,21 @@ fun ClosedPreview() {
 fun Open(
     modifier: Modifier = Modifier,
 ) {
-    TopWithBottomOffset(
-        topDrawable = R.drawable.garage_frame,
-        bottomDrawable = R.drawable.garage_door_only,
-        contentDescription = "Garage Door Open",
-        offsetProportion = Offset(0.0f, -1.0f),
+    val status = DoorColorStatus.OPEN
+    val doorColors = LocalDoorStatusColorScheme.current
+    val color = doorColors.select(status = status, container = false, fresh = true)
+    Box(
         modifier = modifier,
-    )
+        contentAlignment = Alignment.Center,
+    ) {
+        GarageDoorAnimation(
+            yInitialOffset = -0.65f,
+            yTargetOffset = -0.65f,
+            contentDescription = "Garage Door Open",
+            modifier = modifier,
+            color = color,
+        )
+    }
 }
 
 @Preview(showBackground = true)
@@ -222,13 +254,36 @@ fun OpenPreview() {
 fun Midway(
     modifier: Modifier = Modifier,
 ) {
-    TopWithBottomOffset(
-        topDrawable = R.drawable.garage_frame,
-        bottomDrawable = R.drawable.garage_door_only,
-        contentDescription = "Garage Door Midway",
-        offsetProportion = Offset(0.0f, -0.5f),
+    val status = DoorColorStatus.UNKNOWN
+    val doorColors = LocalDoorStatusColorScheme.current
+    val color = doorColors.select(status = status, container = false, fresh = true)
+    Box(
         modifier = modifier,
-    )
+        contentAlignment = Alignment.Center,
+    ) {
+        GarageDoorAnimation(
+            yInitialOffset = -0.5f,
+            yTargetOffset = -0.5f,
+            contentDescription = "Garage Door Unknown",
+            modifier = modifier,
+            color = color,
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize(0.3f)
+                .aspectRatio(1f)
+                .background(MaterialTheme.colorScheme.background, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Warning,
+                tint = MaterialTheme.colorScheme.onBackground,
+                contentDescription = "Garage Door Opening",
+                modifier = Modifier
+                    .fillMaxSize(0.6f)
+            )
+        }
+    }
 }
 
 @Preview(showBackground = true)
@@ -252,6 +307,7 @@ fun GarageDoorAnimation(
     yInitialOffset: Float,
     yTargetOffset: Float,
     contentDescription: String?,
+    color: Color?,
     modifier: Modifier = Modifier,
     duration: Duration = DEFAULT_GARAGE_DOOR_ANIMATION_DURATION,
     topDrawable: Int = R.drawable.garage_frame,
@@ -272,7 +328,8 @@ fun GarageDoorAnimation(
         bottomDrawable = bottomDrawable,
         contentDescription = contentDescription,
         modifier = modifier,
-        offsetProportion = Offset(0f, animatingValue)
+        offsetProportion = Offset(0f, animatingValue),
+        color = color,
     )
 }
 
@@ -283,6 +340,7 @@ fun TopWithBottomOffset(
     contentDescription: String?,
     modifier: Modifier = Modifier,
     offsetProportion: Offset = Offset.Zero,
+    color: Color?,
 ) {
     val topPainter = painterResource(topDrawable)
     val bottomPainter = painterResource(bottomDrawable)
@@ -293,6 +351,7 @@ fun TopWithBottomOffset(
         contentDescription = contentDescription,
         modifier = modifier,
         offsetProportion = offsetProportion,
+        color = color,
     )
 }
 
@@ -303,7 +362,13 @@ fun TopWithBottomOffset(
     contentDescription: String?,
     modifier: Modifier = Modifier,
     offsetProportion: Offset = Offset.Zero,
+    color: Color?,
 ) {
+    val colorFilter = color?.let {
+        ColorFilter.tint(
+            color = it,
+        )
+    }
     var topSize by remember { mutableStateOf(IntSize.Zero) }
     var bottomOffset = Offset(
         offsetProportion.x * topSize.width,
@@ -321,6 +386,7 @@ fun TopWithBottomOffset(
                     translationY = bottomOffset.y
                 }
                 .clip(OffsetRect(-bottomOffset)),
+            colorFilter = colorFilter,
         )
         Image(
             painter = topPainter,
@@ -330,6 +396,7 @@ fun TopWithBottomOffset(
                 .onSizeChanged {
                     topSize = it
                 },
+            colorFilter = colorFilter,
         )
     }
 }
