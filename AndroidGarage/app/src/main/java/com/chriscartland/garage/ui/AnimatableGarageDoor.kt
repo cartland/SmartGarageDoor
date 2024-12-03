@@ -20,10 +20,14 @@ package com.chriscartland.garage.ui
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
@@ -55,13 +60,26 @@ val DEFAULT_GARAGE_DOOR_ANIMATION_DURATION = Duration.ofSeconds(11)
 @Composable
 fun Opening(
     modifier: Modifier = Modifier,
+    static: Boolean = false,
 ) {
-    GarageDoorAnimation(
-        yInitialOffset = 0.0f,
-        yTargetOffset = -0.8f,
-        contentDescription = "Garage Door Opening",
+    Box(
         modifier = modifier,
-    )
+        contentAlignment = Alignment.Center,
+    ) {
+        GarageDoorAnimation(
+            yInitialOffset = if (static) -0.6f else 0.0f,
+            yTargetOffset = if (static) -0.6f else -0.8f,
+            contentDescription = "Garage Door Opening",
+            modifier = modifier,
+        )
+        Icon(
+            imageVector = Icons.Filled.ArrowForward,
+            contentDescription = "Garage Door Opening",
+            modifier = Modifier
+                .rotate(-90f)
+                .fillMaxSize(0.4f),
+        )
+    }
 }
 
 @Preview(showBackground = true)
@@ -83,13 +101,26 @@ fun OpeningPreview() {
 @Composable
 fun Closing(
     modifier: Modifier = Modifier,
+    static: Boolean = false,
 ) {
-    GarageDoorAnimation(
-        yInitialOffset = -0.8f,
-        yTargetOffset = 0.0f,
-        contentDescription = "Garage Door Closing",
+    Box(
         modifier = modifier,
-    )
+        contentAlignment = Alignment.Center,
+    ) {
+        GarageDoorAnimation(
+            yInitialOffset = if (static) -0.2f else -0.8f,
+            yTargetOffset = if (static) -0.2f else 0.0f,
+            contentDescription = "Garage Door Closing",
+            modifier = modifier,
+        )
+        Icon(
+            imageVector = Icons.Filled.ArrowForward,
+            contentDescription = "Garage Door Opening",
+            modifier = Modifier
+                .rotate(90f)
+                .fillMaxSize(0.4f),
+        )
+    }
 }
 
 @Preview(showBackground = true)

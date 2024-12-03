@@ -123,7 +123,8 @@ fun RecentDoorEventListItem(
                     style = MaterialTheme.typography.titleLarge,
                 )
                 doorPosition.Composable(
-                    modifier = Modifier.height(96.dp)
+                    modifier = Modifier.height(96.dp),
+                    static = true,
                 )
                 Text(
                     text = doorEvent?.message ?: "",
@@ -167,15 +168,16 @@ fun RecentDoorEventListItem(
 @Composable
 private fun DoorPosition.Composable(
     modifier: Modifier = Modifier,
+    static: Boolean = false,
 ) {
     when (this) {
         DoorPosition.UNKNOWN -> Midway(modifier)
         DoorPosition.CLOSED -> Closed(modifier)
-        DoorPosition.OPENING -> Opening(modifier)
+        DoorPosition.OPENING -> Opening(modifier, static)
         DoorPosition.OPENING_TOO_LONG -> Midway(modifier)
         DoorPosition.OPEN -> Open(modifier)
         DoorPosition.OPEN_MISALIGNED -> Open(modifier)
-        DoorPosition.CLOSING -> Closing(modifier)
+        DoorPosition.CLOSING -> Closing(modifier, static)
         DoorPosition.CLOSING_TOO_LONG -> Midway(modifier)
         DoorPosition.ERROR_SENSOR_CONFLICT -> Midway(modifier)
     }
