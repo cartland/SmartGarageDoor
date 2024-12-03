@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
@@ -116,6 +117,7 @@ fun Closing(
         )
         Icon(
             imageVector = Icons.Filled.ArrowForward,
+            tint = Color(0xFFB6B6B6),
             contentDescription = "Garage Door Opening",
             modifier = Modifier
                 .rotate(90f)
