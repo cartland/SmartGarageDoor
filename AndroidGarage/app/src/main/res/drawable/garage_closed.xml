@@ -1,0 +1,32 @@
+<!--
+  ~ Copyright 2024 Chris Cartland. All rights reserved.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  ~
+  -->
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:height="457dp" android:viewportHeight="216.8" android:viewportWidth="284.8" android:width="600.3395dp">
+      
+    <path android:fillColor="#00000000" android:pathData="M6.9,209.9V25.3C6.9,15.1 15.1,6.9 25.3,6.9h234.3c10.1,0 18.4,8.2 18.4,18.4v184.6" android:strokeColor="#76a463" android:strokeLineCap="round" android:strokeWidth="13.8"/>
+      
+    <path android:fillColor="#76a463" android:pathData="M25.9,19.9L258.9,19.9A8,8 0,0 1,266.9 27.9L266.9,53.9A8,8 0,0 1,258.9 61.9L25.9,61.9A8,8 0,0 1,17.9 53.9L17.9,27.9A8,8 0,0 1,25.9 19.9z"/>
+      
+    <path android:fillColor="#76a463" android:pathData="M25.9,66.9L258.9,66.9A8,8 0,0 1,266.9 74.9L266.9,100.9A8,8 0,0 1,258.9 108.9L25.9,108.9A8,8 0,0 1,17.9 100.9L17.9,74.9A8,8 0,0 1,25.9 66.9z"/>
+      
+    <path android:fillColor="#76a463" android:pathData="M25.9,113.9L258.9,113.9A8,8 0,0 1,266.9 121.9L266.9,147.9A8,8 0,0 1,258.9 155.9L25.9,155.9A8,8 0,0 1,17.9 147.9L17.9,121.9A8,8 0,0 1,25.9 113.9z"/>
+      
+    <path android:fillColor="#76a463" android:pathData="M25.9,160.9L258.9,160.9A8,8 0,0 1,266.9 168.9L266.9,194.9A8,8 0,0 1,258.9 202.9L25.9,202.9A8,8 0,0 1,17.9 194.9L17.9,168.9A8,8 0,0 1,25.9 160.9z"/>
+      
+    <path android:fillColor="#111" android:pathData="M131.9,192.9h21c1.1,0 2,0.9 2,2h0c0,1.1 -0.9,2 -2,2h-21c-1.1,0 -2,-0.9 -2,-2h0c0,-1.1 0.9,-2 2,-2Z"/>
+    
+</vector>

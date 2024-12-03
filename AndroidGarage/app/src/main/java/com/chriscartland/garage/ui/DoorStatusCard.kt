@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.ui
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,11 +34,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.chriscartland.garage.R
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorPosition
 import java.time.Instant
@@ -83,12 +80,7 @@ fun DoorStatusCard(
                     color = cardColors.contentColor,
                 )
             }
-            Image(
-                painter = painterResource(id = doorPosition.toImageResourceId()),
-                contentDescription = "Door Status",
-                modifier = Modifier
-                    .weight(1f)
-            )
+            doorPosition.Composable(modifier = Modifier.weight(1f))
             Text(
                 text = doorEvent?.message ?: "",
                 style = MaterialTheme.typography.labelSmall,
@@ -130,11 +122,8 @@ fun RecentDoorEventListItem(
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.titleLarge,
                 )
-                Image(
-                    painter = painterResource(id = doorPosition.toImageResourceId()),
-                    contentDescription = "Door Status",
-                    modifier = Modifier
-                        .height(96.dp)
+                doorPosition.Composable(
+                    modifier = Modifier.height(96.dp)
                 )
                 Text(
                     text = doorEvent?.message ?: "",
@@ -175,16 +164,21 @@ fun RecentDoorEventListItem(
     }
 }
 
-private fun DoorPosition.toImageResourceId(): Int = when (this) {
-    DoorPosition.OPEN -> R.drawable.ic_garage_simple_open
-    DoorPosition.CLOSED -> R.drawable.ic_garage_simple_closed
-    DoorPosition.OPENING -> R.drawable.ic_garage_simple_moving
-    DoorPosition.CLOSING -> R.drawable.ic_garage_simple_moving
-    DoorPosition.OPENING_TOO_LONG -> R.drawable.ic_garage_simple_unknown
-    DoorPosition.CLOSING_TOO_LONG -> R.drawable.ic_garage_simple_unknown
-    DoorPosition.OPEN_MISALIGNED -> R.drawable.ic_garage_simple_open
-    DoorPosition.ERROR_SENSOR_CONFLICT -> R.drawable.ic_garage_simple_unknown
-    DoorPosition.UNKNOWN -> R.drawable.ic_garage_simple_unknown
+@Composable
+private fun DoorPosition.Composable(
+    modifier: Modifier = Modifier,
+) {
+    when (this) {
+        DoorPosition.UNKNOWN -> Midway(modifier)
+        DoorPosition.CLOSED -> Closed(modifier)
+        DoorPosition.OPENING -> Opening(modifier)
+        DoorPosition.OPENING_TOO_LONG -> Midway(modifier)
+        DoorPosition.OPEN -> Open(modifier)
+        DoorPosition.OPEN_MISALIGNED -> Open(modifier)
+        DoorPosition.CLOSING -> Closing(modifier)
+        DoorPosition.CLOSING_TOO_LONG -> Midway(modifier)
+        DoorPosition.ERROR_SENSOR_CONFLICT -> Midway(modifier)
+    }
 }
 
 private fun DoorPosition.toFriendlyName(): String = when (this) {
