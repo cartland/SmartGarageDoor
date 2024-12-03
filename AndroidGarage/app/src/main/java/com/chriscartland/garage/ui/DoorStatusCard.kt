@@ -82,14 +82,26 @@ fun DoorStatusCard(
             }
             doorPosition.Composable(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(16.dp),
+                    .weight(1f),
             )
-            Text(
-                text = doorEvent?.message ?: "",
-                style = MaterialTheme.typography.labelSmall,
-                color = cardColors.contentColor,
-            )
+            when (doorPosition) {
+                in listOf(
+                    DoorPosition.UNKNOWN,
+                    DoorPosition.OPENING_TOO_LONG,
+                    DoorPosition.OPEN_MISALIGNED,
+                    DoorPosition.CLOSING_TOO_LONG,
+                    DoorPosition.ERROR_SENSOR_CONFLICT
+                ) -> doorEvent?.message?.let {
+                    if (it.isNotBlank()) {
+                        Text(
+                            text = doorEvent.message,
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+                else -> { /* Nothing */ }
+            }
             Text(
                 text = "Since $date - $time",
                 style = MaterialTheme.typography.labelSmall,
@@ -128,15 +140,27 @@ fun RecentDoorEventListItem(
                 )
                 doorPosition.Composable(
                     modifier = Modifier
-                        .height(96.dp)
-                        .padding(16.dp),
+                        .height(96.dp),
                     static = true,
                 )
-                Text(
-                    text = doorEvent?.message ?: "",
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelSmall,
-                )
+                when (doorPosition) {
+                    in listOf(
+                        DoorPosition.UNKNOWN,
+                        DoorPosition.OPENING_TOO_LONG,
+                        DoorPosition.OPEN_MISALIGNED,
+                        DoorPosition.CLOSING_TOO_LONG,
+                        DoorPosition.ERROR_SENSOR_CONFLICT
+                    ) -> doorEvent.message?.let {
+                        if (it.isNotBlank()) {
+                            Text(
+                                text = doorEvent.message,
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
+                    else -> { /* Nothing */ }
+                }
             }
 
             Spacer(modifier = Modifier.width(16.dp))
