@@ -19,13 +19,16 @@ package com.chriscartland.garage.ui
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.Icon
@@ -74,13 +77,21 @@ fun Opening(
             contentDescription = "Garage Door Opening",
             modifier = modifier,
         )
-        Icon(
-            imageVector = Icons.Filled.ArrowForward,
-            contentDescription = "Garage Door Opening",
+        Box(
             modifier = Modifier
-                .rotate(-90f)
-                .fillMaxSize(0.4f),
-        )
+                .fillMaxSize(0.3f)
+                .aspectRatio(1f)
+                .background(Color.LightGray, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.ArrowForward,
+                contentDescription = "Garage Door Opening",
+                modifier = Modifier
+                    .rotate(-90f)
+                    .fillMaxSize(0.9f)
+            )
+        }
     }
 }
 
@@ -115,14 +126,21 @@ fun Closing(
             contentDescription = "Garage Door Closing",
             modifier = modifier,
         )
-        Icon(
-            imageVector = Icons.Filled.ArrowForward,
-            tint = Color(0xFFB6B6B6),
-            contentDescription = "Garage Door Opening",
+        Box(
             modifier = Modifier
-                .rotate(90f)
-                .fillMaxSize(0.4f),
-        )
+                .fillMaxSize(0.3f)
+                .aspectRatio(1f)
+                .background(Color.LightGray, CircleShape), // Circle background
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.ArrowForward,
+                contentDescription = "Garage Door Opening",
+                modifier = Modifier
+                    .rotate(90f)
+                    .fillMaxSize(0.9f)
+            )
+        }
     }
 }
 
