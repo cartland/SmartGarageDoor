@@ -21,6 +21,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -63,7 +64,7 @@ fun AndroidAppInfoCard(
     onExpandedChange: (Boolean) -> Unit = {},
 ) {
     ExpandableColumnCard(
-        title = "Application",
+        title = "App",
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         startExpanded = startExpanded,
@@ -89,6 +90,7 @@ fun AndroidAppInfoCard(
             style = MaterialTheme.typography.labelSmall,
             textAlign = TextAlign.Center,
         )
+        Spacer(modifier = Modifier.height(8.dp))
         val context = LocalContext.current
         Row {
             Button(
