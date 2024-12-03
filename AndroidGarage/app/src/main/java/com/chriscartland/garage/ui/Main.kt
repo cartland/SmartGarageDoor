@@ -79,7 +79,7 @@ fun GarageApp(
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     data object Home : Screen("home", "Home", Icons.Filled.Home)
     data object History : Screen("history", "History", Icons.Filled.DateRange)
-    data object Profile : Screen("profile", "User", Icons.Filled.Person)
+    data object Profile : Screen("profile", "Settings", Icons.Filled.Person)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
