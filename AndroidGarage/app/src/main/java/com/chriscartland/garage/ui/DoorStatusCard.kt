@@ -80,7 +80,11 @@ fun DoorStatusCard(
                     color = cardColors.contentColor,
                 )
             }
-            doorPosition.Composable(modifier = Modifier.weight(1f))
+            doorPosition.Composable(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(16.dp),
+            )
             Text(
                 text = doorEvent?.message ?: "",
                 style = MaterialTheme.typography.labelSmall,
@@ -123,7 +127,9 @@ fun RecentDoorEventListItem(
                     style = MaterialTheme.typography.titleLarge,
                 )
                 doorPosition.Composable(
-                    modifier = Modifier.height(96.dp),
+                    modifier = Modifier
+                        .height(96.dp)
+                        .padding(16.dp),
                     static = true,
                 )
                 Text(

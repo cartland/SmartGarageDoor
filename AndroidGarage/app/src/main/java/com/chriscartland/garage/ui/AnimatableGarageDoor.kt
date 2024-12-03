@@ -205,7 +205,7 @@ fun Midway(
         topDrawable = R.drawable.garage_frame,
         bottomDrawable = R.drawable.garage_door_only,
         contentDescription = "Garage Door Midway",
-        offsetProportion = Offset(0.0f, 0.5f),
+        offsetProportion = Offset(0.0f, -0.5f),
         modifier = modifier,
     )
 }
