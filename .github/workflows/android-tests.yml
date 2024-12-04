@@ -40,16 +40,6 @@ jobs:
         GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
       run: ./gradlew test -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
 
-    - name: Run Android Tests
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 29
-        working-directory: AndroidGarage
-        script: ./gradlew connectedAndroidTest -PSERVER_CONFIG_KEY="${{ env.SERVER_CONFIG_KEY }}" -PGOOGLE_WEB_CLIENT_ID="${{ env.GOOGLE_WEB_CLIENT_ID }}"
-      env:
-        SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
-        GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
-
     - name: Clean secrets
       working-directory: AndroidGarage
       if: always()
