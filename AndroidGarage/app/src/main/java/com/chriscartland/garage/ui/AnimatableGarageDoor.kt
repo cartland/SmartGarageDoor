@@ -66,23 +66,30 @@ import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.select
 import java.time.Duration
 
-val DEFAULT_GARAGE_DOOR_ANIMATION_DURATION = Duration.ofSeconds(10)
+val DEFAULT_GARAGE_DOOR_ANIMATION_DURATION = Duration.ofSeconds(12)
+
+const val CLOSED_POSITION = 0.0f
+const val CLOSING_STATIC_POSITION = -0.2f
+const val MIDWAY_POSITION = -0.5f
+const val OPENING_STATIC_POSITION = -0.6f
+const val OPEN_POSITION = -0.65f
 
 @Composable
 fun Opening(
     modifier: Modifier = Modifier,
     static: Boolean = false,
+    container: Boolean = false,
 ) {
     val status = DoorColorStatus.OPEN
     val doorColors = LocalDoorStatusColorScheme.current
-    val color = doorColors.select(status = status, container = false, fresh = true)
+    val color = doorColors.select(status = status, container = container, fresh = true)
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
         GarageDoorAnimation(
-            yInitialOffset = if (static) -0.6f else 0.0f,
-            yTargetOffset = if (static) -0.6f else -0.65f,
+            yInitialOffset = if (static) OPENING_STATIC_POSITION else CLOSED_POSITION,
+            yTargetOffset = if (static) OPENING_STATIC_POSITION else OPEN_POSITION,
             contentDescription = "Garage Door Opening",
             modifier = modifier,
             color = color,
@@ -126,17 +133,18 @@ fun OpeningPreview() {
 fun Closing(
     modifier: Modifier = Modifier,
     static: Boolean = false,
+    container: Boolean = false,
 ) {
     val status = DoorColorStatus.OPEN
     val doorColors = LocalDoorStatusColorScheme.current
-    val color = doorColors.select(status = status, container = false, fresh = true)
+    val color = doorColors.select(status = status, container = container, fresh = true)
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
         GarageDoorAnimation(
-            yInitialOffset = if (static) -0.2f else -0.8f,
-            yTargetOffset = if (static) -0.2f else 0.0f,
+            yInitialOffset = if (static) CLOSING_STATIC_POSITION else OPEN_POSITION,
+            yTargetOffset = if (static) CLOSING_STATIC_POSITION else CLOSED_POSITION,
             contentDescription = "Garage Door Closing",
             modifier = modifier,
             color = color,
@@ -179,17 +187,18 @@ fun ClosingPreview() {
 @Composable
 fun Closed(
     modifier: Modifier = Modifier,
+    container: Boolean = false,
 ) {
     val status = DoorColorStatus.CLOSED
     val doorColors = LocalDoorStatusColorScheme.current
-    val color = doorColors.select(status = status, container = false, fresh = true)
+    val color = doorColors.select(status = status, container = container, fresh = true)
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
         GarageDoorAnimation(
-            yInitialOffset = 0.0f,
-            yTargetOffset = 0.0f,
+            yInitialOffset = CLOSED_POSITION,
+            yTargetOffset = CLOSED_POSITION,
             contentDescription = "Garage Door Closing",
             modifier = modifier,
             color = color,
@@ -216,17 +225,18 @@ fun ClosedPreview() {
 @Composable
 fun Open(
     modifier: Modifier = Modifier,
+    container: Boolean = false,
 ) {
     val status = DoorColorStatus.OPEN
     val doorColors = LocalDoorStatusColorScheme.current
-    val color = doorColors.select(status = status, container = false, fresh = true)
+    val color = doorColors.select(status = status, container = container, fresh = true)
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
         GarageDoorAnimation(
-            yInitialOffset = -0.65f,
-            yTargetOffset = -0.65f,
+            yInitialOffset = OPEN_POSITION,
+            yTargetOffset = OPEN_POSITION,
             contentDescription = "Garage Door Open",
             modifier = modifier,
             color = color,
@@ -253,17 +263,18 @@ fun OpenPreview() {
 @Composable
 fun Midway(
     modifier: Modifier = Modifier,
+    container: Boolean = false,
 ) {
     val status = DoorColorStatus.UNKNOWN
     val doorColors = LocalDoorStatusColorScheme.current
-    val color = doorColors.select(status = status, container = false, fresh = true)
+    val color = doorColors.select(status = status, container = container, fresh = true)
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
         GarageDoorAnimation(
-            yInitialOffset = -0.5f,
-            yTargetOffset = -0.5f,
+            yInitialOffset = MIDWAY_POSITION,
+            yTargetOffset = MIDWAY_POSITION,
             contentDescription = "Garage Door Unknown",
             modifier = modifier,
             color = color,

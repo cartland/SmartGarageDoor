@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.ui
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,9 +30,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -56,57 +59,57 @@ fun DoorStatusCard(
     val lastChangeTimeSeconds = doorEvent?.lastChangeTimeSeconds
     val date = lastChangeTimeSeconds?.toFriendlyDate()
     val time = lastChangeTimeSeconds?.toFriendlyTime()
-    Card(
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        shape = RoundedCornerShape(10.dp),
-        modifier = modifier,
-        colors = cardColors,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+    CompositionLocalProvider(LocalContentColor provides cardColors.containerColor) {
+        Box(
+            modifier = modifier,
         ) {
-            Text(
-                text = doorPosition.toFriendlyName(),
-                style = MaterialTheme.typography.titleLarge,
-                color = cardColors.contentColor,
-            )
-            DurationSince(lastChangeTimeSeconds?.let { Instant.ofEpochSecond(it) }) { duration ->
-                Text(
-                    text = duration.toFriendlyDuration(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = cardColors.contentColor,
-                )
-            }
-            doorPosition.Composable(
+            Column(
                 modifier = Modifier
-                    .weight(1f),
-            )
-            when (doorPosition) {
-                in listOf(
-                    DoorPosition.UNKNOWN,
-                    DoorPosition.OPENING_TOO_LONG,
-                    DoorPosition.OPEN_MISALIGNED,
-                    DoorPosition.CLOSING_TOO_LONG,
-                    DoorPosition.ERROR_SENSOR_CONFLICT
-                ) -> doorEvent?.message?.let {
-                    if (it.isNotBlank()) {
-                        Text(
-                            text = doorEvent.message,
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.labelSmall,
-                        )
+                    .fillMaxSize()
+                    .padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = doorPosition.toFriendlyName(),
+                    style = MaterialTheme.typography.titleLarge,
+                )
+                DurationSince(lastChangeTimeSeconds?.let { Instant.ofEpochSecond(it) }) { duration ->
+                    Text(
+                        text = duration.toFriendlyDuration(),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+                doorPosition.Composable(
+                    modifier = Modifier
+                        .weight(1f),
+                    container = true,
+                )
+                when (doorPosition) {
+                    in listOf(
+                        DoorPosition.UNKNOWN,
+                        DoorPosition.OPENING_TOO_LONG,
+                        DoorPosition.OPEN_MISALIGNED,
+                        DoorPosition.CLOSING_TOO_LONG,
+                        DoorPosition.ERROR_SENSOR_CONFLICT
+                    ),
+                        -> doorEvent?.message?.let {
+                        if (it.isNotBlank()) {
+                            Text(
+                                text = doorEvent.message,
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
+
+                    else -> { /* Nothing */
                     }
                 }
-                else -> { /* Nothing */ }
+                Text(
+                    text = "Since $date - $time",
+                    style = MaterialTheme.typography.labelSmall,
+                )
             }
-            Text(
-                text = "Since $date - $time",
-                style = MaterialTheme.typography.labelSmall,
-                color = cardColors.contentColor,
-            )
         }
     }
 }
@@ -142,6 +145,7 @@ fun RecentDoorEventListItem(
                     modifier = Modifier
                         .height(96.dp),
                     static = true,
+                    container = true,
                 )
                 when (doorPosition) {
                     in listOf(
@@ -150,7 +154,8 @@ fun RecentDoorEventListItem(
                         DoorPosition.OPEN_MISALIGNED,
                         DoorPosition.CLOSING_TOO_LONG,
                         DoorPosition.ERROR_SENSOR_CONFLICT
-                    ) -> doorEvent.message?.let {
+                    ),
+                        -> doorEvent.message?.let {
                         if (it.isNotBlank()) {
                             Text(
                                 text = doorEvent.message,
@@ -159,7 +164,9 @@ fun RecentDoorEventListItem(
                             )
                         }
                     }
-                    else -> { /* Nothing */ }
+
+                    else -> { /* Nothing */
+                    }
                 }
             }
 
@@ -199,17 +206,18 @@ fun RecentDoorEventListItem(
 private fun DoorPosition.Composable(
     modifier: Modifier = Modifier,
     static: Boolean = false,
+    container: Boolean = false,
 ) {
     when (this) {
-        DoorPosition.UNKNOWN -> Midway(modifier)
-        DoorPosition.CLOSED -> Closed(modifier)
-        DoorPosition.OPENING -> Opening(modifier, static)
-        DoorPosition.OPENING_TOO_LONG -> Midway(modifier)
-        DoorPosition.OPEN -> Open(modifier)
-        DoorPosition.OPEN_MISALIGNED -> Open(modifier)
-        DoorPosition.CLOSING -> Closing(modifier, static)
-        DoorPosition.CLOSING_TOO_LONG -> Midway(modifier)
-        DoorPosition.ERROR_SENSOR_CONFLICT -> Midway(modifier)
+        DoorPosition.UNKNOWN -> Midway(modifier = modifier, container = container)
+        DoorPosition.CLOSED -> Closed(modifier = modifier, container = container)
+        DoorPosition.OPENING -> Opening(modifier = modifier, static = static, container = container)
+        DoorPosition.OPENING_TOO_LONG -> Midway(modifier = modifier, container = container)
+        DoorPosition.OPEN -> Open(modifier = modifier, container = container)
+        DoorPosition.OPEN_MISALIGNED -> Open(modifier = modifier, container = container)
+        DoorPosition.CLOSING -> Closing(modifier = modifier, static = static, container = container)
+        DoorPosition.CLOSING_TOO_LONG -> Midway(modifier = modifier, container = container)
+        DoorPosition.ERROR_SENSOR_CONFLICT -> Midway(modifier = modifier, container = container)
     }
 }
 
