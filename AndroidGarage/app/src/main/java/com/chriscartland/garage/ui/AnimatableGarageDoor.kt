@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentSize
@@ -56,6 +55,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
@@ -91,7 +91,9 @@ fun Opening(
             yInitialOffset = if (static) OPENING_STATIC_POSITION else CLOSED_POSITION,
             yTargetOffset = if (static) OPENING_STATIC_POSITION else OPEN_POSITION,
             contentDescription = "Garage Door Opening",
-            modifier = modifier,
+            modifier = Modifier
+                .fillMaxSize(1f)
+                .aspectRatio(1f),
             color = color,
         )
         Box(
@@ -113,7 +115,7 @@ fun Opening(
     }
 }
 
-@Preview(showBackground = true)
+@PreviewScreenSizes
 @Composable
 fun OpeningPreview() {
     Box(
@@ -386,7 +388,10 @@ fun TopWithBottomOffset(
         offsetProportion.y * topSize.height,
     )
 
-    Box(modifier = modifier.padding(4.dp)) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
         Image(
             painter = bottomPainter,
             contentDescription = contentDescription,

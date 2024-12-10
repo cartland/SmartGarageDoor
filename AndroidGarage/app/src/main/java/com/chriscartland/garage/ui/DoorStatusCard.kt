@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -79,7 +80,8 @@ fun DoorStatusCard(
                         style = MaterialTheme.typography.labelSmall,
                     )
                 }
-                doorPosition.Composable(
+                GarageIcon(
+                    doorPosition = doorPosition,
                     modifier = Modifier
                         .weight(1f),
                     container = true,
@@ -141,7 +143,8 @@ fun RecentDoorEventListItem(
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.titleLarge,
                 )
-                doorPosition.Composable(
+                GarageIcon(
+                    doorPosition = doorPosition,
                     modifier = Modifier
                         .height(96.dp),
                     static = true,
@@ -203,21 +206,38 @@ fun RecentDoorEventListItem(
 }
 
 @Composable
-private fun DoorPosition.Composable(
+private fun GarageIcon(
+    doorPosition: DoorPosition,
     modifier: Modifier = Modifier,
     static: Boolean = false,
     container: Boolean = false,
 ) {
-    when (this) {
-        DoorPosition.UNKNOWN -> Midway(modifier = modifier, container = container)
-        DoorPosition.CLOSED -> Closed(modifier = modifier, container = container)
-        DoorPosition.OPENING -> Opening(modifier = modifier, static = static, container = container)
-        DoorPosition.OPENING_TOO_LONG -> Midway(modifier = modifier, container = container)
-        DoorPosition.OPEN -> Open(modifier = modifier, container = container)
-        DoorPosition.OPEN_MISALIGNED -> Open(modifier = modifier, container = container)
-        DoorPosition.CLOSING -> Closing(modifier = modifier, static = static, container = container)
-        DoorPosition.CLOSING_TOO_LONG -> Midway(modifier = modifier, container = container)
-        DoorPosition.ERROR_SENSOR_CONFLICT -> Midway(modifier = modifier, container = container)
+    val iconModifier = Modifier.aspectRatio(1f)
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center,
+    ) {
+        when (doorPosition) {
+            DoorPosition.UNKNOWN -> Midway(modifier = iconModifier, container = container)
+            DoorPosition.CLOSED -> Closed(modifier = iconModifier, container = container)
+            DoorPosition.OPENING -> Opening(
+                modifier = iconModifier,
+                static = static,
+                container = container
+            )
+
+            DoorPosition.OPENING_TOO_LONG -> Midway(modifier = iconModifier, container = container)
+            DoorPosition.OPEN -> Open(modifier = iconModifier, container = container)
+            DoorPosition.OPEN_MISALIGNED -> Open(modifier = iconModifier, container = container)
+            DoorPosition.CLOSING -> Closing(
+                modifier = iconModifier,
+                static = static,
+                container = container
+            )
+
+            DoorPosition.CLOSING_TOO_LONG -> Midway(modifier = iconModifier, container = container)
+            DoorPosition.ERROR_SENSOR_CONFLICT -> Midway(modifier = iconModifier, container = container)
+        }
     }
 }
 
@@ -243,4 +263,10 @@ fun DoorStatusCardPreview() {
 @Composable
 fun RecentDoorEventListItemPreview() {
     RecentDoorEventListItem(demoDoorEvents[1])
+}
+
+@Preview(showBackground = true)
+@Composable
+fun GarageIconPreview() {
+    GarageIcon(doorPosition = DoorPosition.OPENING)
 }
