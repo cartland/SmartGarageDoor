@@ -251,7 +251,7 @@ fun OpenPreview() {
 @Composable
 fun Midway(
     modifier: Modifier = Modifier,
-    color: Color = LocalDoorStatusColorScheme.current.openContainerFresh    ,
+    color: Color = LocalDoorStatusColorScheme.current.openContainerFresh,
 ) {
     Box(
         modifier = modifier,

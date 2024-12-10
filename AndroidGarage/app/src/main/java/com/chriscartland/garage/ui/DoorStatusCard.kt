@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -42,7 +41,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorPosition
+import com.chriscartland.garage.ui.theme.DoorColorSet
+import com.chriscartland.garage.ui.theme.DoorColorState
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
+import com.chriscartland.garage.ui.theme.isStale
 import java.time.Duration
 import java.time.Instant
 
@@ -50,12 +52,6 @@ import java.time.Instant
 fun DoorStatusCard(
     doorEvent: DoorEvent?,
     modifier: Modifier = Modifier,
-    cardColors: CardColors = CardColors(
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        containerColor = MaterialTheme.colorScheme.primaryContainer,
-        disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
-        disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-    ),
 ) {
     val doorPosition = doorEvent?.doorPosition ?: DoorPosition.UNKNOWN
     val lastChangeTimeSeconds = doorEvent?.lastChangeTimeSeconds
@@ -75,18 +71,26 @@ fun DoorStatusCard(
                 style = MaterialTheme.typography.titleLarge,
             )
             DurationSince(lastChangeTimeSeconds?.let { Instant.ofEpochSecond(it) }) { duration ->
+                val checkInDuration = doorEvent?.lastCheckInTimeSeconds?.let { checkInTime ->
+                    Duration.between(Instant.ofEpochSecond(checkInTime), Instant.now())
+                }
                 Text(
                     text = duration.toFriendlyDuration(),
                     style = MaterialTheme.typography.labelSmall,
                 )
+                val isStale = doorEvent.isStale(maxAge = Duration.ofMinutes(11))
+                val colorSet = LocalDoorStatusColorScheme.current.DoorColorSet(isStale = isStale)
+                val color = when (doorEvent.DoorColorState()) {
+                    DoorColorState.OPEN -> colorSet.openContainer
+                    DoorColorState.CLOSED -> colorSet.closedContainer
+                    DoorColorState.UNKNOWN -> colorSet.unknownContainer
+                }
                 GarageIcon(
                     doorPosition = doorPosition,
                     modifier = Modifier
                         .weight(1f),
-                    onContainer = false,
-                    isStale = (lastChangeTimeSeconds != null && lastChangeTimeSeconds > Duration.ofMinutes(
-                        11
-                    ).seconds),
+                    static = false,
+                    color = color,
                 )
             }
             when (doorPosition) {
@@ -124,10 +128,39 @@ fun RecentDoorEventListItem(
     modifier: Modifier = Modifier,
 ) {
     val doorPosition = doorEvent.doorPosition ?: DoorPosition.UNKNOWN
+    val colorSet = LocalDoorStatusColorScheme.current.DoorColorSet(isStale = false)
+    val doorColor = when (doorEvent.DoorColorState()) {
+        DoorColorState.OPEN -> colorSet.openOnContainer
+        DoorColorState.CLOSED -> colorSet.closedOnContainer
+        DoorColorState.UNKNOWN -> colorSet.unknownOnContainer
+    }
+    val cardColors = when (doorEvent.DoorColorState()) {
+        DoorColorState.OPEN -> CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            disabledContentColor = MaterialTheme.colorScheme.onSurface,
+        )
+
+        DoorColorState.CLOSED -> CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            disabledContentColor = MaterialTheme.colorScheme.onSurface,
+        )
+
+        DoorColorState.UNKNOWN -> CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            disabledContentColor = MaterialTheme.colorScheme.onSurface,
+        )
+    }
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = RoundedCornerShape(10.dp),
         modifier = modifier,
+        colors = cardColors,
     ) {
         Row(
             modifier = Modifier
@@ -150,8 +183,7 @@ fun RecentDoorEventListItem(
                     modifier = Modifier
                         .height(96.dp),
                     static = true,
-                    onContainer = false,
-                    isStale = false,
+                    color = doorColor,
                 )
                 when (doorPosition) {
                     in listOf(
@@ -213,9 +245,7 @@ private fun GarageIcon(
     doorPosition: DoorPosition,
     modifier: Modifier = Modifier,
     static: Boolean = false,
-    onContainer: Boolean = false,
-    isStale: Boolean = false,
-    color: Color? = null,
+    color: Color = Color.Blue,
 ) {
     val iconModifier = Modifier.aspectRatio(1f)
     Box(
@@ -225,157 +255,49 @@ private fun GarageIcon(
         when (doorPosition) {
             DoorPosition.UNKNOWN -> Midway(
                 modifier = iconModifier,
-                color = color ?: if (onContainer) {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.unknownOnContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.unknownOnContainerFresh
-                    }
-                } else {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.unknownContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.unknownContainerFresh
-                    }
-                }
+                color = color,
             )
 
             DoorPosition.CLOSED -> Closed(
                 modifier = iconModifier,
-                color = color ?: if (onContainer) {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.closedOnContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.closedOnContainerFresh
-                    }
-                } else {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.closedContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.closedContainerFresh
-                    }
-                },
+                color = color,
             )
 
             DoorPosition.OPENING -> Opening(
                 modifier = iconModifier,
                 static = static,
-                color = color ?: if (onContainer) {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.openOnContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.openOnContainerFresh
-                    }
-                } else {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.openContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.openContainerFresh
-                    }
-                },
+                color = color,
             )
 
             DoorPosition.OPENING_TOO_LONG -> Midway(
                 modifier = iconModifier,
-                color = color ?: if (onContainer) {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.openOnContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.openOnContainerFresh
-                    }
-                } else {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.openContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.openContainerFresh
-                    }
-                },
+                color = color,
             )
 
             DoorPosition.OPEN -> Open(
                 modifier = iconModifier,
-                color = color ?: if (onContainer) {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.openOnContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.openOnContainerFresh
-                    }
-                } else {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.openContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.openContainerFresh
-                    }
-                },
+                color = color,
             )
 
             DoorPosition.OPEN_MISALIGNED -> Open(
                 modifier = iconModifier,
-                color = color ?: if (onContainer) {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.openOnContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.openOnContainerFresh
-                    }
-                } else {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.openContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.openContainerFresh
-                    }
-                },
+                color = color,
             )
 
             DoorPosition.CLOSING -> Closing(
                 modifier = iconModifier,
                 static = static,
-                color = color ?: if (onContainer) {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.openOnContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.openOnContainerFresh
-                    }
-                } else {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.openContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.openContainerFresh
-                    }
-                },
+                color = color,
             )
 
             DoorPosition.CLOSING_TOO_LONG -> Midway(
                 modifier = iconModifier,
-                color = color ?: if (onContainer) {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.openOnContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.openOnContainerFresh
-                    }
-                } else {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.openContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.openContainerFresh
-                    }
-                },
+                color = color,
             )
 
             DoorPosition.ERROR_SENSOR_CONFLICT -> Midway(
                 modifier = iconModifier,
-                color = color ?: if (onContainer) {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.unknownOnContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.unknownOnContainerFresh
-                    }
-                } else {
-                    if (isStale) {
-                        LocalDoorStatusColorScheme.current.unknownContainerStale
-                    } else {
-                        LocalDoorStatusColorScheme.current.unknownContainerFresh
-                    }
-                },
+                color = color,
             )
         }
     }

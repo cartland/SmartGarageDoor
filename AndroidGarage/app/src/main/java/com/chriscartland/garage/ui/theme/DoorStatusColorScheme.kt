@@ -17,12 +17,16 @@
 
 package com.chriscartland.garage.ui.theme
 
-import androidx.compose.material3.ButtonColors
 import androidx.compose.ui.graphics.Color
 import com.chriscartland.garage.door.DoorEvent
+import com.chriscartland.garage.door.DoorPosition
+import java.time.Duration
 import java.time.Instant
-import kotlin.time.Duration
 
+/**
+ * Color scheme selected by the app theme.
+ * Usually this is a light or dark color scheme.
+ */
 data class DoorStatusColorScheme(
     val closedContainerFresh: Color,
     val closedContainerStale: Color,
@@ -38,56 +42,90 @@ data class DoorStatusColorScheme(
     val unknownOnContainerStale: Color,
 )
 
-enum class DoorColorStatus {
-    OPEN, CLOSED, UNKNOWN,
+/**
+ * Color set for a specific door status.
+ * Usually changes if the data is fresh or stale.
+ */
+data class DoorColorSet(
+    val closedContainer: Color,
+    val closedOnContainer: Color,
+    val openContainer: Color,
+    val openOnContainer: Color,
+    val unknownContainer: Color,
+    val unknownOnContainer: Color,
+)
+
+fun DoorStatusColorScheme.DoorColorSet(isStale: Boolean): DoorColorSet {
+    return if (isStale) {
+        DoorColorSet(
+            closedContainer = closedContainerStale,
+            closedOnContainer = closedOnContainerStale,
+            openContainer = openContainerStale,
+            openOnContainer = openOnContainerStale,
+            unknownContainer = unknownContainerStale,
+            unknownOnContainer = unknownOnContainerStale,
+        )
+    } else {
+        DoorColorSet(
+            closedContainer = closedContainerFresh,
+            closedOnContainer = closedOnContainerFresh,
+            openContainer = openContainerFresh,
+            openOnContainer = openOnContainerFresh,
+            unknownContainer = unknownContainerFresh,
+            unknownOnContainer = unknownOnContainerFresh,
+        )
+    }
 }
 
 val doorStatusLightScheme = DoorStatusColorScheme(
-    closedContainerFresh = doorClosedContainerFreshLight,
-    closedContainerStale = doorClosedContainerStaleLight,
-    closedOnContainerFresh = doorClosedOnContainerFreshLight,
-    closedOnContainerStale = doorClosedOnContainerStaleLight,
-    openContainerFresh = doorOpenContainerFreshLight,
-    openContainerStale = doorOpenContainerStaleLight,
-    openOnContainerFresh = doorOpenOnContainerFreshLight,
-    openOnContainerStale = doorOpenOnContainerStaleLight,
-    unknownContainerFresh = doorUnknownContainerFreshLight,
-    unknownContainerStale = doorUnknownContainerStaleLight,
-    unknownOnContainerFresh = doorUnknownOnContainerFreshLight,
-    unknownOnContainerStale = doorUnknownOnContainerStaleLight,
+    closedContainerFresh = closedContainerFreshLight,
+    closedContainerStale = closedContainerStaleLight,
+    closedOnContainerFresh = closedOnContainerFreshLight,
+    closedOnContainerStale = closedOnContainerStaleLight,
+    openContainerFresh = openContainerFreshLight,
+    openContainerStale = openContainerStaleLight,
+    openOnContainerFresh = openOnContainerFreshLight,
+    openOnContainerStale = openOnContainerStaleLight,
+    unknownContainerFresh = unknownContainerFreshLight,
+    unknownContainerStale = unknownContainerStaleLight,
+    unknownOnContainerFresh = unknownOnContainerFreshLight,
+    unknownOnContainerStale = unknownOnContainerStaleLight,
 )
 
 val doorStatusDarkScheme = DoorStatusColorScheme(
-    closedContainerFresh = doorClosedContainerFreshDark,
-    closedContainerStale = doorClosedContainerStaleDark,
-    closedOnContainerFresh = doorClosedOnContainerFreshDark,
-    closedOnContainerStale = doorClosedOnContainerStaleDark,
-    openContainerFresh = doorOpenContainerFreshDark,
-    openContainerStale = doorOpenContainerStaleDark,
-    openOnContainerFresh = doorOpenOnContainerFreshDark,
-    openOnContainerStale = doorOpenOnContainerStaleDark,
-    unknownContainerFresh = doorUnknownContainerFreshDark,
-    unknownContainerStale = doorUnknownContainerStaleDark,
-    unknownOnContainerFresh = doorUnknownOnContainerFreshDark,
-    unknownOnContainerStale = doorUnknownOnContainerStaleDark,
+    closedContainerFresh = closedContainerFreshDark,
+    closedContainerStale = closedContainerStaleDark,
+    closedOnContainerFresh = closedOnContainerFreshDark,
+    closedOnContainerStale = closedOnContainerStaleDark,
+    openContainerFresh = openContainerFreshDark,
+    openContainerStale = openContainerStaleDark,
+    openOnContainerFresh = openOnContainerFreshDark,
+    openOnContainerStale = openOnContainerStaleDark,
+    unknownContainerFresh = unknownContainerFreshDark,
+    unknownContainerStale = unknownContainerStaleDark,
+    unknownOnContainerFresh = unknownOnContainerFreshDark,
+    unknownOnContainerStale = unknownOnContainerStaleDark,
 )
 
-fun DoorEvent?.isStale(now: Instant, age: Duration): Boolean {
-    return this?.lastCheckInTimeSeconds?.let { utcSeconds ->
-        val limit = now.minusSeconds(age.inWholeSeconds)
-        Instant.ofEpochSecond(utcSeconds).isAfter(limit)
-    } != true
+enum class DoorColorState {
+    OPEN, CLOSED, UNKNOWN
 }
 
-fun doorButtonColors(doorColors: DoorStatusColorScheme): ButtonColors {
-    // We're hacking a bit by borrowing some of the door colors and using them with the button.
-    // Goal: The greens and reds should come from the same palette, but the logic is different.
-    // If the button is active, use the "green" color that matches the "closed" door status.
-    // If the button is inactive, use the "red" color that matches the "open" door status.
-    return ButtonColors(
-        containerColor = doorColors.closedContainerFresh,
-        contentColor = doorColors.closedOnContainerFresh,
-        disabledContainerColor = doorColors.openContainerFresh,
-        disabledContentColor = doorColors.openOnContainerFresh,
-    )
+fun DoorEvent?.DoorColorState(): DoorColorState {
+    return when (this?.doorPosition) {
+        DoorPosition.UNKNOWN -> DoorColorState.UNKNOWN
+        DoorPosition.ERROR_SENSOR_CONFLICT -> DoorColorState.UNKNOWN
+        DoorPosition.CLOSED -> DoorColorState.CLOSED
+        else -> DoorColorState.OPEN
+    }
+}
+
+fun DoorEvent?.isStale(
+    maxAge: Duration,
+    now: Instant = Instant.now(),
+): Boolean {
+    return this?.lastCheckInTimeSeconds?.let { utcSeconds ->
+        val limit = now.minusSeconds(maxAge.seconds)
+        Instant.ofEpochSecond(utcSeconds).isBefore(limit)
+    } == true
 }

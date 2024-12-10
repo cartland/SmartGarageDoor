@@ -30,7 +30,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.CardColors
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,7 +59,6 @@ import com.chriscartland.garage.permissions.rememberNotificationPermissionState
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModel
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.remotebutton.RequestStatus
-import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.PermissionStatus
@@ -189,12 +187,6 @@ fun HomeContent(
                     modifier = Modifier
                         .fillMaxSize()
                         .clickable { onFetchCurrentDoorEvent() },
-                    cardColors = CardColors(
-                        contentColor = LocalDoorStatusColorScheme.current.closedOnContainerFresh,
-                        containerColor = LocalDoorStatusColorScheme.current.closedContainerFresh,
-                        disabledContainerColor = LocalDoorStatusColorScheme.current.closedContainerStale,
-                        disabledContentColor = LocalDoorStatusColorScheme.current.closedOnContainerStale,
-                    ),
                 )
                 // If the current event is loading, show a loading indicator.
                 if (currentDoorEvent is LoadingResult.Loading) {

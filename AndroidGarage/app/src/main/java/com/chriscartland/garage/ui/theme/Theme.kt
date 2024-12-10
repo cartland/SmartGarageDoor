@@ -106,7 +106,7 @@ data class ColorFamily(
     val color: Color,
     val onColor: Color,
     val colorContainer: Color,
-    val onColorContainer: Color
+    val onColorContainer: Color,
 )
 
 val unspecified_scheme = ColorFamily(
@@ -116,7 +116,7 @@ val unspecified_scheme = ColorFamily(
 @Composable
 fun AppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable() () -> Unit
+    content: @Composable() () -> Unit,
 ) {
     val colorScheme = when {
         darkTheme -> darkScheme
@@ -124,8 +124,8 @@ fun AppTheme(
     }
 
     val doorStatusColorScheme = when {
-        darkTheme -> doorStatusLightScheme
-        else -> doorStatusDarkScheme
+        darkTheme -> doorStatusDarkScheme
+        else -> doorStatusLightScheme
     }
 
     MaterialTheme(
