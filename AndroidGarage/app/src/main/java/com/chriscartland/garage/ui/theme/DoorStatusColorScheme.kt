@@ -90,9 +90,12 @@ fun DoorEvent?.isFresh(now: Instant, age: Duration): Boolean {
     } ?: false
 }
 
-fun doorCardColors(doorColors: DoorStatusColorScheme, doorEvent: DoorEvent?): CardColors {
-    val status = doorEvent.toColorStatus()
-    val fresh = doorEvent.isFresh(Instant.now(), 15.minutes)
+fun doorCardColors(
+    doorColors: DoorStatusColorScheme,
+    doorEvent: DoorEvent?,
+    status: DoorColorStatus = doorEvent.toColorStatus(),
+    fresh: Boolean = doorEvent.isFresh(Instant.now(), 15.minutes),
+): CardColors {
     return CardColors(
         containerColor = doorColors.select(status = status, container = true, fresh = fresh),
         contentColor = doorColors.select(status = status, container = false, fresh = fresh),
