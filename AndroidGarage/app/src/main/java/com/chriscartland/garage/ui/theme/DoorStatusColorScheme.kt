@@ -18,27 +18,24 @@
 package com.chriscartland.garage.ui.theme
 
 import androidx.compose.material3.ButtonColors
-import androidx.compose.material3.CardColors
 import androidx.compose.ui.graphics.Color
 import com.chriscartland.garage.door.DoorEvent
-import com.chriscartland.garage.door.DoorPosition
 import java.time.Instant
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.minutes
 
 data class DoorStatusColorScheme(
-    val doorClosedContainerFresh: Color,
-    val doorClosedContainerStale: Color,
-    val doorClosedOnContainerFresh: Color,
-    val doorClosedOnContainerStale: Color,
-    val doorOpenContainerFresh: Color,
-    val doorOpenContainerStale: Color,
-    val doorOpenOnContainerFresh: Color,
-    val doorOpenOnContainerStale: Color,
-    val doorUnknownContainerFresh: Color,
-    val doorUnknownContainerStale: Color,
-    val doorUnknownOnContainerFresh: Color,
-    val doorUnknownOnContainerStale: Color,
+    val closedContainerFresh: Color,
+    val closedContainerStale: Color,
+    val closedOnContainerFresh: Color,
+    val closedOnContainerStale: Color,
+    val openContainerFresh: Color,
+    val openContainerStale: Color,
+    val openOnContainerFresh: Color,
+    val openOnContainerStale: Color,
+    val unknownContainerFresh: Color,
+    val unknownContainerStale: Color,
+    val unknownOnContainerFresh: Color,
+    val unknownOnContainerStale: Color,
 )
 
 enum class DoorColorStatus {
@@ -46,92 +43,40 @@ enum class DoorColorStatus {
 }
 
 val doorStatusLightScheme = DoorStatusColorScheme(
-    doorClosedContainerFresh = doorClosedContainerFreshLight,
-    doorClosedContainerStale = doorClosedContainerStaleLight,
-    doorClosedOnContainerFresh = doorClosedOnContainerFreshLight,
-    doorClosedOnContainerStale = doorClosedOnContainerStaleLight,
-    doorOpenContainerFresh = doorOpenContainerFreshLight,
-    doorOpenContainerStale = doorOpenContainerStaleLight,
-    doorOpenOnContainerFresh = doorOpenOnContainerFreshLight,
-    doorOpenOnContainerStale = doorOpenOnContainerStaleLight,
-    doorUnknownContainerFresh = doorUnknownContainerFreshLight,
-    doorUnknownContainerStale = doorUnknownContainerStaleLight,
-    doorUnknownOnContainerFresh = doorUnknownOnContainerFreshLight,
-    doorUnknownOnContainerStale = doorUnknownOnContainerStaleLight,
+    closedContainerFresh = doorClosedContainerFreshLight,
+    closedContainerStale = doorClosedContainerStaleLight,
+    closedOnContainerFresh = doorClosedOnContainerFreshLight,
+    closedOnContainerStale = doorClosedOnContainerStaleLight,
+    openContainerFresh = doorOpenContainerFreshLight,
+    openContainerStale = doorOpenContainerStaleLight,
+    openOnContainerFresh = doorOpenOnContainerFreshLight,
+    openOnContainerStale = doorOpenOnContainerStaleLight,
+    unknownContainerFresh = doorUnknownContainerFreshLight,
+    unknownContainerStale = doorUnknownContainerStaleLight,
+    unknownOnContainerFresh = doorUnknownOnContainerFreshLight,
+    unknownOnContainerStale = doorUnknownOnContainerStaleLight,
 )
 
 val doorStatusDarkScheme = DoorStatusColorScheme(
-    doorClosedContainerFresh = doorClosedContainerFreshDark,
-    doorClosedContainerStale = doorClosedContainerStaleDark,
-    doorClosedOnContainerFresh = doorClosedOnContainerFreshDark,
-    doorClosedOnContainerStale = doorClosedOnContainerStaleDark,
-    doorOpenContainerFresh = doorOpenContainerFreshDark,
-    doorOpenContainerStale = doorOpenContainerStaleDark,
-    doorOpenOnContainerFresh = doorOpenOnContainerFreshDark,
-    doorOpenOnContainerStale = doorOpenOnContainerStaleDark,
-    doorUnknownContainerFresh = doorUnknownContainerFreshDark,
-    doorUnknownContainerStale = doorUnknownContainerStaleDark,
-    doorUnknownOnContainerFresh = doorUnknownOnContainerFreshDark,
-    doorUnknownOnContainerStale = doorUnknownOnContainerStaleDark,
+    closedContainerFresh = doorClosedContainerFreshDark,
+    closedContainerStale = doorClosedContainerStaleDark,
+    closedOnContainerFresh = doorClosedOnContainerFreshDark,
+    closedOnContainerStale = doorClosedOnContainerStaleDark,
+    openContainerFresh = doorOpenContainerFreshDark,
+    openContainerStale = doorOpenContainerStaleDark,
+    openOnContainerFresh = doorOpenOnContainerFreshDark,
+    openOnContainerStale = doorOpenOnContainerStaleDark,
+    unknownContainerFresh = doorUnknownContainerFreshDark,
+    unknownContainerStale = doorUnknownContainerStaleDark,
+    unknownOnContainerFresh = doorUnknownOnContainerFreshDark,
+    unknownOnContainerStale = doorUnknownOnContainerStaleDark,
 )
 
-fun DoorEvent?.toColorStatus(): DoorColorStatus {
-    return when {
-        this == null -> DoorColorStatus.UNKNOWN
-        this.doorPosition == DoorPosition.CLOSED -> DoorColorStatus.CLOSED
-        else -> DoorColorStatus.OPEN
-    }
-}
-
-fun DoorEvent?.isFresh(now: Instant, age: Duration): Boolean {
+fun DoorEvent?.isStale(now: Instant, age: Duration): Boolean {
     return this?.lastCheckInTimeSeconds?.let { utcSeconds ->
         val limit = now.minusSeconds(age.inWholeSeconds)
         Instant.ofEpochSecond(utcSeconds).isAfter(limit)
-    } ?: false
-}
-
-fun doorCardColors(
-    doorColors: DoorStatusColorScheme,
-    doorEvent: DoorEvent?,
-    status: DoorColorStatus = doorEvent.toColorStatus(),
-    fresh: Boolean = doorEvent.isFresh(Instant.now(), 15.minutes),
-): CardColors {
-    return CardColors(
-        containerColor = doorColors.select(status = status, container = true, fresh = fresh),
-        contentColor = doorColors.select(status = status, container = false, fresh = fresh),
-        disabledContainerColor = doorColors.select(
-            status = status,
-            container = true,
-            fresh = false
-        ),
-        disabledContentColor = doorColors.select(status = status, container = false, fresh = false),
-    )
-}
-
-fun DoorStatusColorScheme.select(
-    status: DoorColorStatus,
-    container: Boolean = true,
-    fresh: Boolean = true,
-): Color {
-    return when (status) {
-        DoorColorStatus.OPEN -> if (container) {
-            if (fresh) doorOpenContainerFresh else doorOpenContainerStale
-        } else {
-            if (fresh) doorOpenOnContainerFresh else doorOpenOnContainerStale
-        }
-
-        DoorColorStatus.CLOSED -> if (container) {
-            if (fresh) doorClosedContainerFresh else doorClosedContainerStale
-        } else {
-            if (fresh) doorClosedOnContainerFresh else doorClosedOnContainerStale
-        }
-
-        DoorColorStatus.UNKNOWN -> if (container) {
-            if (fresh) doorUnknownContainerFresh else doorUnknownContainerStale
-        } else {
-            if (fresh) doorUnknownOnContainerFresh else doorUnknownOnContainerStale
-        }
-    }
+    } != true
 }
 
 fun doorButtonColors(doorColors: DoorStatusColorScheme): ButtonColors {
@@ -140,9 +85,9 @@ fun doorButtonColors(doorColors: DoorStatusColorScheme): ButtonColors {
     // If the button is active, use the "green" color that matches the "closed" door status.
     // If the button is inactive, use the "red" color that matches the "open" door status.
     return ButtonColors(
-        containerColor = doorColors.doorClosedContainerFresh,
-        contentColor = doorColors.doorClosedOnContainerFresh,
-        disabledContainerColor = doorColors.doorOpenContainerFresh,
-        disabledContentColor = doorColors.doorOpenOnContainerFresh,
+        containerColor = doorColors.closedContainerFresh,
+        contentColor = doorColors.closedOnContainerFresh,
+        disabledContainerColor = doorColors.openContainerFresh,
+        disabledContentColor = doorColors.openOnContainerFresh,
     )
 }

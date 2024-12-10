@@ -31,18 +31,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorPosition
+import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
+import java.time.Duration
 import java.time.Instant
 
 @Composable
@@ -60,58 +61,59 @@ fun DoorStatusCard(
     val lastChangeTimeSeconds = doorEvent?.lastChangeTimeSeconds
     val date = lastChangeTimeSeconds?.toFriendlyDate()
     val time = lastChangeTimeSeconds?.toFriendlyTime()
-    CompositionLocalProvider(LocalContentColor provides cardColors.containerColor) {
-        Box(
-            modifier = modifier,
+    Box(
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
+            Text(
+                text = doorPosition.toFriendlyName(),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            DurationSince(lastChangeTimeSeconds?.let { Instant.ofEpochSecond(it) }) { duration ->
                 Text(
-                    text = doorPosition.toFriendlyName(),
-                    style = MaterialTheme.typography.titleLarge,
+                    text = duration.toFriendlyDuration(),
+                    style = MaterialTheme.typography.labelSmall,
                 )
-                DurationSince(lastChangeTimeSeconds?.let { Instant.ofEpochSecond(it) }) { duration ->
-                    Text(
-                        text = duration.toFriendlyDuration(),
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                }
                 GarageIcon(
                     doorPosition = doorPosition,
                     modifier = Modifier
                         .weight(1f),
-                    container = true,
-                )
-                when (doorPosition) {
-                    in listOf(
-                        DoorPosition.UNKNOWN,
-                        DoorPosition.OPENING_TOO_LONG,
-                        DoorPosition.OPEN_MISALIGNED,
-                        DoorPosition.CLOSING_TOO_LONG,
-                        DoorPosition.ERROR_SENSOR_CONFLICT
-                    ),
-                        -> doorEvent?.message?.let {
-                        if (it.isNotBlank()) {
-                            Text(
-                                text = doorEvent.message,
-                                textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                        }
-                    }
-
-                    else -> { /* Nothing */
-                    }
-                }
-                Text(
-                    text = "Since $date - $time",
-                    style = MaterialTheme.typography.labelSmall,
+                    onContainer = false,
+                    isStale = (lastChangeTimeSeconds != null && lastChangeTimeSeconds > Duration.ofMinutes(
+                        11
+                    ).seconds),
                 )
             }
+            when (doorPosition) {
+                in listOf(
+                    DoorPosition.UNKNOWN,
+                    DoorPosition.OPENING_TOO_LONG,
+                    DoorPosition.OPEN_MISALIGNED,
+                    DoorPosition.CLOSING_TOO_LONG,
+                    DoorPosition.ERROR_SENSOR_CONFLICT
+                ),
+                    -> doorEvent?.message?.let {
+                    if (it.isNotBlank()) {
+                        Text(
+                            text = doorEvent.message,
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+
+                else -> { /* Nothing */
+                }
+            }
+            Text(
+                text = "Since $date - $time",
+                style = MaterialTheme.typography.labelSmall,
+            )
         }
     }
 }
@@ -148,7 +150,8 @@ fun RecentDoorEventListItem(
                     modifier = Modifier
                         .height(96.dp),
                     static = true,
-                    container = true,
+                    onContainer = false,
+                    isStale = false,
                 )
                 when (doorPosition) {
                     in listOf(
@@ -210,7 +213,9 @@ private fun GarageIcon(
     doorPosition: DoorPosition,
     modifier: Modifier = Modifier,
     static: Boolean = false,
-    container: Boolean = false,
+    onContainer: Boolean = false,
+    isStale: Boolean = false,
+    color: Color? = null,
 ) {
     val iconModifier = Modifier.aspectRatio(1f)
     Box(
@@ -218,25 +223,160 @@ private fun GarageIcon(
         contentAlignment = Alignment.Center,
     ) {
         when (doorPosition) {
-            DoorPosition.UNKNOWN -> Midway(modifier = iconModifier, container = container)
-            DoorPosition.CLOSED -> Closed(modifier = iconModifier, container = container)
+            DoorPosition.UNKNOWN -> Midway(
+                modifier = iconModifier,
+                color = color ?: if (onContainer) {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.unknownOnContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.unknownOnContainerFresh
+                    }
+                } else {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.unknownContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.unknownContainerFresh
+                    }
+                }
+            )
+
+            DoorPosition.CLOSED -> Closed(
+                modifier = iconModifier,
+                color = color ?: if (onContainer) {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.closedOnContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.closedOnContainerFresh
+                    }
+                } else {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.closedContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.closedContainerFresh
+                    }
+                },
+            )
+
             DoorPosition.OPENING -> Opening(
                 modifier = iconModifier,
                 static = static,
-                container = container
+                color = color ?: if (onContainer) {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.openOnContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.openOnContainerFresh
+                    }
+                } else {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.openContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.openContainerFresh
+                    }
+                },
             )
 
-            DoorPosition.OPENING_TOO_LONG -> Midway(modifier = iconModifier, container = container)
-            DoorPosition.OPEN -> Open(modifier = iconModifier, container = container)
-            DoorPosition.OPEN_MISALIGNED -> Open(modifier = iconModifier, container = container)
+            DoorPosition.OPENING_TOO_LONG -> Midway(
+                modifier = iconModifier,
+                color = color ?: if (onContainer) {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.openOnContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.openOnContainerFresh
+                    }
+                } else {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.openContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.openContainerFresh
+                    }
+                },
+            )
+
+            DoorPosition.OPEN -> Open(
+                modifier = iconModifier,
+                color = color ?: if (onContainer) {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.openOnContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.openOnContainerFresh
+                    }
+                } else {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.openContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.openContainerFresh
+                    }
+                },
+            )
+
+            DoorPosition.OPEN_MISALIGNED -> Open(
+                modifier = iconModifier,
+                color = color ?: if (onContainer) {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.openOnContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.openOnContainerFresh
+                    }
+                } else {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.openContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.openContainerFresh
+                    }
+                },
+            )
+
             DoorPosition.CLOSING -> Closing(
                 modifier = iconModifier,
                 static = static,
-                container = container
+                color = color ?: if (onContainer) {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.openOnContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.openOnContainerFresh
+                    }
+                } else {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.openContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.openContainerFresh
+                    }
+                },
             )
 
-            DoorPosition.CLOSING_TOO_LONG -> Midway(modifier = iconModifier, container = container)
-            DoorPosition.ERROR_SENSOR_CONFLICT -> Midway(modifier = iconModifier, container = container)
+            DoorPosition.CLOSING_TOO_LONG -> Midway(
+                modifier = iconModifier,
+                color = color ?: if (onContainer) {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.openOnContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.openOnContainerFresh
+                    }
+                } else {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.openContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.openContainerFresh
+                    }
+                },
+            )
+
+            DoorPosition.ERROR_SENSOR_CONFLICT -> Midway(
+                modifier = iconModifier,
+                color = color ?: if (onContainer) {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.unknownOnContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.unknownOnContainerFresh
+                    }
+                } else {
+                    if (isStale) {
+                        LocalDoorStatusColorScheme.current.unknownContainerStale
+                    } else {
+                        LocalDoorStatusColorScheme.current.unknownContainerFresh
+                    }
+                },
+            )
         }
     }
 }
@@ -268,5 +408,7 @@ fun RecentDoorEventListItemPreview() {
 @Preview(showBackground = true)
 @Composable
 fun GarageIconPreview() {
-    GarageIcon(doorPosition = DoorPosition.OPENING)
+    GarageIcon(
+        doorPosition = DoorPosition.OPENING,
+    )
 }

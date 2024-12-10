@@ -61,9 +61,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
-import com.chriscartland.garage.ui.theme.DoorColorStatus
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
-import com.chriscartland.garage.ui.theme.select
 import java.time.Duration
 
 val DEFAULT_GARAGE_DOOR_ANIMATION_DURATION = Duration.ofSeconds(12)
@@ -77,12 +75,9 @@ const val OPEN_POSITION = -0.65f
 @Composable
 fun Opening(
     modifier: Modifier = Modifier,
+    color: Color = LocalDoorStatusColorScheme.current.openContainerFresh,
     static: Boolean = false,
-    container: Boolean = false,
 ) {
-    val status = DoorColorStatus.OPEN
-    val doorColors = LocalDoorStatusColorScheme.current
-    val color = doorColors.select(status = status, container = container, fresh = true)
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
@@ -134,12 +129,9 @@ fun OpeningPreview() {
 @Composable
 fun Closing(
     modifier: Modifier = Modifier,
+    color: Color = LocalDoorStatusColorScheme.current.closedContainerFresh,
     static: Boolean = false,
-    container: Boolean = false,
 ) {
-    val status = DoorColorStatus.OPEN
-    val doorColors = LocalDoorStatusColorScheme.current
-    val color = doorColors.select(status = status, container = container, fresh = true)
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
@@ -189,11 +181,8 @@ fun ClosingPreview() {
 @Composable
 fun Closed(
     modifier: Modifier = Modifier,
-    container: Boolean = false,
+    color: Color = LocalDoorStatusColorScheme.current.closedContainerFresh,
 ) {
-    val status = DoorColorStatus.CLOSED
-    val doorColors = LocalDoorStatusColorScheme.current
-    val color = doorColors.select(status = status, container = container, fresh = true)
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
@@ -227,11 +216,8 @@ fun ClosedPreview() {
 @Composable
 fun Open(
     modifier: Modifier = Modifier,
-    container: Boolean = false,
+    color: Color = LocalDoorStatusColorScheme.current.openContainerFresh,
 ) {
-    val status = DoorColorStatus.OPEN
-    val doorColors = LocalDoorStatusColorScheme.current
-    val color = doorColors.select(status = status, container = container, fresh = true)
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
@@ -265,11 +251,8 @@ fun OpenPreview() {
 @Composable
 fun Midway(
     modifier: Modifier = Modifier,
-    container: Boolean = false,
+    color: Color = LocalDoorStatusColorScheme.current.openContainerFresh    ,
 ) {
-    val status = DoorColorStatus.UNKNOWN
-    val doorColors = LocalDoorStatusColorScheme.current
-    val color = doorColors.select(status = status, container = container, fresh = true)
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
