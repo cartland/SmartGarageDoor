@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,7 +34,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -85,12 +83,13 @@ fun DoorStatusCard(
                     DoorColorState.CLOSED -> colorSet.closedContainer
                     DoorColorState.UNKNOWN -> colorSet.unknownContainer
                 }
-                GarageIcon(
+                FadedGarageIcon(
                     doorPosition = doorPosition,
                     modifier = Modifier
                         .weight(1f),
                     static = false,
                     color = color,
+                    fadeColor = MaterialTheme.colorScheme.background,
                 )
             }
             when (doorPosition) {
@@ -178,12 +177,13 @@ fun RecentDoorEventListItem(
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.titleLarge,
                 )
-                GarageIcon(
+                FadedGarageIcon(
                     doorPosition = doorPosition,
                     modifier = Modifier
                         .height(96.dp),
                     static = true,
                     color = doorColor,
+                    fadeColor = cardColors.containerColor,
                 )
                 when (doorPosition) {
                     in listOf(
@@ -240,69 +240,6 @@ fun RecentDoorEventListItem(
     }
 }
 
-@Composable
-private fun GarageIcon(
-    doorPosition: DoorPosition,
-    modifier: Modifier = Modifier,
-    static: Boolean = false,
-    color: Color = Color.Blue,
-) {
-    val iconModifier = Modifier.aspectRatio(1f)
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center,
-    ) {
-        when (doorPosition) {
-            DoorPosition.UNKNOWN -> Midway(
-                modifier = iconModifier,
-                color = color,
-            )
-
-            DoorPosition.CLOSED -> Closed(
-                modifier = iconModifier,
-                color = color,
-            )
-
-            DoorPosition.OPENING -> Opening(
-                modifier = iconModifier,
-                static = static,
-                color = color,
-            )
-
-            DoorPosition.OPENING_TOO_LONG -> Midway(
-                modifier = iconModifier,
-                color = color,
-            )
-
-            DoorPosition.OPEN -> Open(
-                modifier = iconModifier,
-                color = color,
-            )
-
-            DoorPosition.OPEN_MISALIGNED -> Open(
-                modifier = iconModifier,
-                color = color,
-            )
-
-            DoorPosition.CLOSING -> Closing(
-                modifier = iconModifier,
-                static = static,
-                color = color,
-            )
-
-            DoorPosition.CLOSING_TOO_LONG -> Midway(
-                modifier = iconModifier,
-                color = color,
-            )
-
-            DoorPosition.ERROR_SENSOR_CONFLICT -> Midway(
-                modifier = iconModifier,
-                color = color,
-            )
-        }
-    }
-}
-
 private fun DoorPosition.toFriendlyName(): String = when (this) {
     DoorPosition.OPEN -> "Open"
     DoorPosition.CLOSED -> "Closed"
@@ -325,12 +262,4 @@ fun DoorStatusCardPreview() {
 @Composable
 fun RecentDoorEventListItemPreview() {
     RecentDoorEventListItem(demoDoorEvents[1])
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GarageIconPreview() {
-    GarageIcon(
-        doorPosition = DoorPosition.OPENING,
-    )
 }
