@@ -49,7 +49,6 @@ import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
 import kotlinx.coroutines.delay
 import java.time.Duration
-import java.time.Instant
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -106,15 +105,6 @@ fun ProfileContent(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        item {
-            UserInfoCard(
-                user,
-                modifier = Modifier
-                    .fillMaxWidth(),
-                signIn = signIn,
-                signOut = signOut,
-            )
-        }
         if (APP_CONFIG.snoozeNotificationsOption && notificationPermissionState.status.isGranted) {
             item {
                 SnoozeNotificationCard(
@@ -127,15 +117,24 @@ fun ProfileContent(
                 )
             }
         }
+        item {
+            UserInfoCard(
+                user,
+                modifier = Modifier
+                    .fillMaxWidth(),
+                signIn = signIn,
+                signOut = signOut,
+            )
+        }
+        item {
+            AndroidAppInfoCard()
+        }
         if (APP_CONFIG.logSummary) {
             item {
                 LogSummaryCard(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-        }
-        item {
-            AndroidAppInfoCard()
         }
         item {
             Spacer(modifier = Modifier.height(8.dp))

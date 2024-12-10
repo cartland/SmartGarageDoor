@@ -59,8 +59,8 @@ android {
         applicationId = "com.chriscartland.garage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 98
-        versionName = "2.1-" + generateVersionNameTimestamp()
+        versionCode = 99
+        versionName = "2.2-" + generateVersionNameTimestamp()
         setProperty("archivesBaseName", "$applicationId-$versionName-$versionCode")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

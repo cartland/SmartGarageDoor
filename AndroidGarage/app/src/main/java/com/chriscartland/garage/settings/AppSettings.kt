@@ -50,7 +50,7 @@ class AppSettingsImpl(context: Context) : AppSettings {
 
     override val fcmDoorTopic = Key.FCM_DOOR_TOPIC.StringSetting("")
     override val profileAppCardExpanded = Key.PROFILE_APP_CARD_EXPANDED.BooleanSetting(true)
-    override val profileLogCardExpanded = Key.PROFILE_LOG_CARD_EXPANDED.BooleanSetting(true)
+    override val profileLogCardExpanded = Key.PROFILE_LOG_CARD_EXPANDED.BooleanSetting(false)
     override val profileUserCardExpanded = Key.PROFILE_USER_CARD_EXPANDED.BooleanSetting(true)
 
     fun Key.StringSetting(default: String) = getStringSetting(this.name, default)
