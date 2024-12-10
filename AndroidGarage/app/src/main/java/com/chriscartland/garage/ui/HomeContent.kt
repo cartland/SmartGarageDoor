@@ -217,7 +217,8 @@ fun HomeContent(
 
                     is AuthState.Authenticated -> {
                         RemoteButtonContent(
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize(),
                             onSubmit = {
                                 Log.d("HomeContent", "Remote button clicked")
                                 onRemoteButtonClick()
