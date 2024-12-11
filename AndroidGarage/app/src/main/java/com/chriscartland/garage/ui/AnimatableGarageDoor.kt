@@ -21,7 +21,6 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
@@ -52,7 +51,9 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
@@ -78,48 +79,57 @@ fun Opening(
     color: Color = LocalDoorStatusColorScheme.current.openContainerFresh,
     static: Boolean = false,
 ) {
+    var garageDoorSize by remember { mutableStateOf(IntSize.Zero) }
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
         GarageDoorAnimation(
+            modifier = Modifier
+                .fillMaxSize()
+                .onGloballyPositioned { coordinates ->
+                    garageDoorSize = coordinates.size
+                },
             yInitialOffset = if (static) OPENING_STATIC_POSITION else CLOSED_POSITION,
             yTargetOffset = if (static) OPENING_STATIC_POSITION else OPEN_POSITION,
             contentDescription = "Garage Door Opening",
             color = color,
         )
+        val circleSizePx = remember(garageDoorSize) {
+            (minOf(garageDoorSize.width, garageDoorSize.height) * 0.3f)
+        }
+        val circleSizeDp = with(LocalDensity.current) { circleSizePx.toDp() }
         Box(
             modifier = Modifier
-                .fillMaxSize(0.3f)
-                .aspectRatio(1f)
+                .size(circleSizeDp)
                 .background(MaterialTheme.colorScheme.background, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Filled.ArrowForward,
                 tint = MaterialTheme.colorScheme.onBackground,
-                contentDescription = "Garage Door Opening",
+                contentDescription = "Up Arrow",
                 modifier = Modifier
                     .rotate(-90f)
-                    .fillMaxSize(0.9f)
+                    .fillMaxSize(0.9f),
             )
         }
     }
 }
 
 @PreviewScreenSizes
+@Preview(
+    name = "Foldable Open",
+    device = "spec:width=411dp,height=891dp,orientation=landscape,dpi=420",
+    showSystemUi = true
+)
 @Composable
 fun OpeningPreview() {
     Box(
-        modifier = Modifier.size(400.dp),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
-        Opening(
-            modifier = Modifier
-                .wrapContentSize()
-                .heightIn(max = 200.dp)
-                .widthIn(max = 300.dp),
-        )
+        Opening()
     }
 }
 
@@ -129,30 +139,41 @@ fun Closing(
     color: Color = LocalDoorStatusColorScheme.current.closedContainerFresh,
     static: Boolean = false,
 ) {
+    var garageDoorSize by remember { mutableStateOf(IntSize.Zero) } // Add this line
+
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
         GarageDoorAnimation(
+            modifier = Modifier
+                .fillMaxSize()
+                .onGloballyPositioned { coordinates ->
+                    garageDoorSize = coordinates.size
+                },
             yInitialOffset = if (static) CLOSING_STATIC_POSITION else OPEN_POSITION,
             yTargetOffset = if (static) CLOSING_STATIC_POSITION else CLOSED_POSITION,
             contentDescription = "Garage Door Closing",
             color = color,
         )
+
         Box(
             modifier = Modifier
-                .fillMaxSize(0.3f)
-                .aspectRatio(1f)
+                .size(
+                    with(LocalDensity.current) {
+                        (minOf(garageDoorSize.width, garageDoorSize.height) * 0.3f).toDp()
+                    }
+                )
                 .background(MaterialTheme.colorScheme.background, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Filled.ArrowForward,
                 tint = MaterialTheme.colorScheme.onBackground,
-                contentDescription = "Garage Door Opening",
+                contentDescription = "Down Arrow",
                 modifier = Modifier
                     .rotate(90f)
-                    .fillMaxSize(0.9f)
+                    .fillMaxSize(0.9f),
             )
         }
     }
@@ -247,27 +268,38 @@ fun Midway(
     modifier: Modifier = Modifier,
     color: Color = LocalDoorStatusColorScheme.current.openContainerFresh,
 ) {
+    var garageDoorSize by remember { mutableStateOf(IntSize.Zero) } // Add this line
+
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
         GarageDoorAnimation(
+            modifier = Modifier
+                .fillMaxSize()
+                .onGloballyPositioned { coordinates ->  // Add this modifier
+                    garageDoorSize = coordinates.size
+                },
             yInitialOffset = MIDWAY_POSITION,
             yTargetOffset = MIDWAY_POSITION,
             contentDescription = "Garage Door Unknown",
             color = color,
         )
+
         Box(
             modifier = Modifier
-                .fillMaxSize(0.3f)
-                .aspectRatio(1f)
+                .size(
+                    with(LocalDensity.current) {
+                        (minOf(garageDoorSize.width, garageDoorSize.height) * 0.3f).toDp()
+                    }
+                )
                 .background(MaterialTheme.colorScheme.background, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Filled.Warning,
                 tint = MaterialTheme.colorScheme.onBackground,
-                contentDescription = "Garage Door Opening",
+                contentDescription = "Warning Symbol",
                 modifier = Modifier
                     .fillMaxSize(0.6f)
             )
@@ -311,7 +343,6 @@ fun GarageDoorAnimation(
             repeatMode = RepeatMode.Restart,
         ), label = ""
     )
-
     TopWithBottomOffset(
         topDrawable = topDrawable,
         bottomDrawable = bottomDrawable,
@@ -373,6 +404,7 @@ fun TopWithBottomOffset(
             contentDescription = contentDescription,
             contentScale = ContentScale.Fit,
             modifier = Modifier
+                .fillMaxSize()
                 .graphicsLayer {
                     translationX = bottomOffset.x
                     translationY = bottomOffset.y
@@ -385,6 +417,7 @@ fun TopWithBottomOffset(
             contentDescription = contentDescription,
             contentScale = ContentScale.Fit,
             modifier = Modifier
+                .fillMaxSize()
                 .onSizeChanged {
                     topSize = it
                 },
