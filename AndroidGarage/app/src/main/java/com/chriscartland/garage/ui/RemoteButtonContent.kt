@@ -87,12 +87,12 @@ fun RemoteButtonContent(
             modifier = Modifier
                 .weight(1f)
                 .aspectRatio(1f)
-                .widthIn(max = 256.dp)
+                .widthIn(max = 196.dp)
                 .onSizeChanged { size ->
                     buttonWidth = with(localDensity) { size.width.toDp() }
                 }
                 .shadow(4.dp, CircleShape)
-                .fadeBottom(0.4f, MaterialTheme.colorScheme.background),
+                .fadeBottom(0.3f, MaterialTheme.colorScheme.background),
             enabled = when (buttonState) {
                 RemoteButtonState.READY -> true
                 RemoteButtonState.ARMING -> false
@@ -161,7 +161,7 @@ fun RemoteButtonContent(
         ) {
             Text(
                 text = when (buttonState) {
-                    RemoteButtonState.READY -> "Garage\nRemote\nButton"
+                    RemoteButtonState.READY -> "Garage\nButton"
                     RemoteButtonState.ARMING -> "Preparing..."
                     RemoteButtonState.ARMED -> "Tap Again\nTo Send Command"
                     RemoteButtonState.TIMEOUT -> "Button not pressed"

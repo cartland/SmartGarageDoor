@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.ui
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -34,9 +37,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.R
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorPosition
 import com.chriscartland.garage.ui.theme.DoorColorSet
@@ -69,13 +75,47 @@ fun DoorStatusCard(
                 style = MaterialTheme.typography.titleLarge,
             )
             DurationSince(lastChangeTimeSeconds?.let { Instant.ofEpochSecond(it) }) { duration ->
-                val checkInDuration = doorEvent?.lastCheckInTimeSeconds?.let { checkInTime ->
-                    Duration.between(Instant.ofEpochSecond(checkInTime), Instant.now())
+                Column(
+                    modifier = Modifier,
+                    horizontalAlignment = Alignment.Start,
+                ) {
+                    Row(
+                        modifier = Modifier,
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.clock_icon),
+                            contentDescription = "Date icon",
+                            modifier = Modifier
+                                .size(32.dp)
+                                .padding(start = 8.dp, end = 8.dp),
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
+                        )
+                        Text(
+                            text = duration.toFriendlyDuration(),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                    Row(
+                        modifier = Modifier,
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.calendar_icon),
+                            contentDescription = "Time icon",
+                            modifier = Modifier
+                                .size(32.dp)
+                                .padding(start = 8.dp, end = 8.dp),
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
+                        )
+                        Text(
+                            text = "$date, $time",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
                 }
-                Text(
-                    text = duration.toFriendlyDuration(),
-                    style = MaterialTheme.typography.labelSmall,
-                )
                 val isStale = doorEvent.isStale(maxAge = Duration.ofMinutes(11))
                 val colorSet = LocalDoorStatusColorScheme.current.DoorColorSet(isStale = isStale)
                 val color = when (doorEvent.DoorColorState()) {
@@ -113,10 +153,6 @@ fun DoorStatusCard(
                 else -> { /* Nothing */
                 }
             }
-            Text(
-                text = "Since $date - $time",
-                style = MaterialTheme.typography.labelSmall,
-            )
         }
     }
 }
