@@ -92,7 +92,11 @@ fun RemoteButtonContent(
                     buttonWidth = with(localDensity) { size.width.toDp() }
                 }
                 .shadow(4.dp, CircleShape)
-                .fadeBottom(0.3f, MaterialTheme.colorScheme.background),
+                .fadeBottom(
+                    fractionStart = 0.3f,
+                    color = MaterialTheme.colorScheme.background,
+                    finalOpacity = 0.2f,
+                ),
             enabled = when (buttonState) {
                 RemoteButtonState.READY -> true
                 RemoteButtonState.ARMING -> false

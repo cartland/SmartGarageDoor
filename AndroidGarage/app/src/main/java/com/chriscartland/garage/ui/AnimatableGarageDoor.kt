@@ -86,9 +86,6 @@ fun Opening(
             yInitialOffset = if (static) OPENING_STATIC_POSITION else CLOSED_POSITION,
             yTargetOffset = if (static) OPENING_STATIC_POSITION else OPEN_POSITION,
             contentDescription = "Garage Door Opening",
-            modifier = Modifier
-                .fillMaxSize(1f)
-                .aspectRatio(1f),
             color = color,
         )
         Box(
@@ -140,7 +137,6 @@ fun Closing(
             yInitialOffset = if (static) CLOSING_STATIC_POSITION else OPEN_POSITION,
             yTargetOffset = if (static) CLOSING_STATIC_POSITION else CLOSED_POSITION,
             contentDescription = "Garage Door Closing",
-            modifier = modifier,
             color = color,
         )
         Box(
@@ -191,7 +187,6 @@ fun Closed(
             yInitialOffset = CLOSED_POSITION,
             yTargetOffset = CLOSED_POSITION,
             contentDescription = "Garage Door Closing",
-            modifier = modifier,
             color = color,
         )
     }
@@ -226,7 +221,6 @@ fun Open(
             yInitialOffset = OPEN_POSITION,
             yTargetOffset = OPEN_POSITION,
             contentDescription = "Garage Door Open",
-            modifier = modifier,
             color = color,
         )
     }
@@ -261,7 +255,6 @@ fun Midway(
             yInitialOffset = MIDWAY_POSITION,
             yTargetOffset = MIDWAY_POSITION,
             contentDescription = "Garage Door Unknown",
-            modifier = modifier,
             color = color,
         )
         Box(

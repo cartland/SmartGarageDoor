@@ -18,7 +18,6 @@
 package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,56 +35,46 @@ private fun GarageIcon(
     static: Boolean = false,
     color: Color = Color.Companion.Blue,
 ) {
-    val iconModifier = Modifier.Companion.aspectRatio(1f)
     Box(
         modifier = modifier,
-        contentAlignment = Alignment.Companion.Center,
+        contentAlignment = Alignment.Center,
     ) {
         when (doorPosition) {
             DoorPosition.UNKNOWN -> Midway(
-                modifier = iconModifier,
                 color = color,
             )
 
             DoorPosition.CLOSED -> Closed(
-                modifier = iconModifier,
                 color = color,
             )
 
             DoorPosition.OPENING -> Opening(
-                modifier = iconModifier,
                 static = static,
                 color = color,
             )
 
             DoorPosition.OPENING_TOO_LONG -> Midway(
-                modifier = iconModifier,
                 color = color,
             )
 
             DoorPosition.OPEN -> Open(
-                modifier = iconModifier,
                 color = color,
             )
 
             DoorPosition.OPEN_MISALIGNED -> Open(
-                modifier = iconModifier,
                 color = color,
             )
 
             DoorPosition.CLOSING -> Closing(
-                modifier = iconModifier,
                 static = static,
                 color = color,
             )
 
             DoorPosition.CLOSING_TOO_LONG -> Midway(
-                modifier = iconModifier,
                 color = color,
             )
 
             DoorPosition.ERROR_SENSOR_CONFLICT -> Midway(
-                modifier = iconModifier,
                 color = color,
             )
         }
@@ -106,29 +95,32 @@ fun FadedGarageIcon(
         GarageIcon(
             doorPosition = doorPosition,
             modifier = Modifier
-                .fadeBottom(fraction = .7f, color = fadeColor),
+                .fadeBottom(fractionStart = .7f, color = fadeColor, finalOpacity = 0.4f),
             static = static,
             color = color,
         )
     }
 }
 
-fun Modifier.fadeBottom(fraction: Float, color: Color) = this.then(
+fun Modifier.fadeBottom(fractionStart: Float, color: Color, finalOpacity: Float) = this.then(
     Modifier.drawWithContent {
         drawContent()
-        drawFade(fraction, color)
+        drawFade(fractionStart, color, finalOpacity)
     }
 )
 
-private fun DrawScope.drawFade(fraction: Float, color: Color) {
+private fun DrawScope.drawFade(fraction: Float, color: Color, finalOpacity: Float) {
+    if (finalOpacity >= 1f || finalOpacity < 0f) {
+        return
+    }
     val height = size.height
-    val startY = height * (1 - fraction) // Start the fade at 90% of the height
-
+    val startY = height * (1 - fraction)
+    val endY = height / (1 - finalOpacity)
     drawRect(
         brush = Brush.verticalGradient(
-            colors = listOf(Color.Transparent, color), // Fade to transparent
+            colors = listOf(Color.Transparent, color),
             startY = startY,
-            endY = height
+            endY = endY,
         )
     )
 }
