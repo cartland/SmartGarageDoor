@@ -86,8 +86,8 @@ fun RemoteButtonContent(
         Button(
             modifier = Modifier
                 .weight(1f)
+                .widthIn(max = 192.dp)
                 .aspectRatio(1f)
-                .widthIn(max = 196.dp)
                 .onSizeChanged { size ->
                     buttonWidth = with(localDensity) { size.width.toDp() }
                 }
@@ -167,7 +167,7 @@ fun RemoteButtonContent(
                 text = when (buttonState) {
                     RemoteButtonState.READY -> "Garage\nButton"
                     RemoteButtonState.ARMING -> "Preparing..."
-                    RemoteButtonState.ARMED -> "Tap Again\nTo Send Command"
+                    RemoteButtonState.ARMED -> "Tap Again\nTo Confirm"
                     RemoteButtonState.TIMEOUT -> "Button not pressed"
                     RemoteButtonState.COOLDOWN -> "Button pushed!"
                 },
