@@ -40,6 +40,8 @@ import com.chriscartland.garage.settings.AppSettingsViewModel
 import com.chriscartland.garage.settings.AppSettingsViewModelImpl
 import com.chriscartland.garage.version.AppVersion
 
+const val PRIVACY_POLICY_URL: String = "https://chriscart.land/garage-privacy-policy"
+
 @Composable
 fun AndroidAppInfoCard(
     modifier: Modifier = Modifier,
@@ -86,7 +88,7 @@ fun AndroidAppInfoCard(
             textAlign = TextAlign.Center,
         )
         Text(
-            "Privacy Policy: https://cartland-dev.web.app/garage-privacy-policy.html",
+            "Privacy Policy: $PRIVACY_POLICY_URL",
             style = MaterialTheme.typography.labelSmall,
             textAlign = TextAlign.Center,
         )
@@ -107,7 +109,7 @@ fun AndroidAppInfoCard(
             Spacer(Modifier.width(8.dp))
             Button(
                 onClick = {
-                    val url = "https://cartland-dev.web.app/garage-privacy-policy.html"
+                    val url = PRIVACY_POLICY_URL
                     val intent = Intent(Intent.ACTION_VIEW).apply {
                         data = Uri.parse(url)
                     }
