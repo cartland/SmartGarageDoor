@@ -61,6 +61,15 @@ fun DoorStatusCard(
     val lastChangeTimeSeconds = doorEvent?.lastChangeTimeSeconds
     val date = lastChangeTimeSeconds?.toFriendlyDate()
     val time = lastChangeTimeSeconds?.toFriendlyTime()
+    // Colors
+    val isStale = doorEvent.isStale(maxAge = Duration.ofMinutes(11))
+    val colorSet = LocalDoorStatusColorScheme.current.DoorColorSet(isStale = isStale)
+    val color = when (doorEvent.DoorColorState()) {
+        DoorColorState.OPEN -> colorSet.openContainer
+        DoorColorState.CLOSED -> colorSet.closedContainer
+        DoorColorState.UNKNOWN -> colorSet.unknownContainer
+    }
+
     Box(
         modifier = modifier,
     ) {
@@ -73,55 +82,27 @@ fun DoorStatusCard(
             Text(
                 text = doorPosition.toFriendlyName(),
                 style = MaterialTheme.typography.titleLarge,
+                color = color,
             )
             DurationSince(lastChangeTimeSeconds?.let { Instant.ofEpochSecond(it) }) { duration ->
-                Column(
+                Row(
                     modifier = Modifier,
-                    horizontalAlignment = Alignment.Start,
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
                 ) {
-                    Row(
-                        modifier = Modifier,
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.clock_icon),
-                            contentDescription = "Date icon",
-                            modifier = Modifier
-                                .size(32.dp)
-                                .padding(start = 8.dp, end = 8.dp),
-                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
-                        )
-                        Text(
-                            text = duration.toFriendlyDuration(),
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
-                    Row(
-                        modifier = Modifier,
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.calendar_icon),
-                            contentDescription = "Time icon",
-                            modifier = Modifier
-                                .size(32.dp)
-                                .padding(start = 8.dp, end = 8.dp),
-                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
-                        )
-                        Text(
-                            text = "$date, $time",
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
-                }
-                val isStale = doorEvent.isStale(maxAge = Duration.ofMinutes(11))
-                val colorSet = LocalDoorStatusColorScheme.current.DoorColorSet(isStale = isStale)
-                val color = when (doorEvent.DoorColorState()) {
-                    DoorColorState.OPEN -> colorSet.openContainer
-                    DoorColorState.CLOSED -> colorSet.closedContainer
-                    DoorColorState.UNKNOWN -> colorSet.unknownContainer
+                    Image(
+                        painter = painterResource(id = R.drawable.clock_icon),
+                        contentDescription = "Date icon",
+                        modifier = Modifier
+                            .size(32.dp)
+                            .padding(start = 8.dp, end = 8.dp),
+                        colorFilter = ColorFilter.tint(color),
+                    )
+                    Text(
+                        text = duration.toFriendlyDuration(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = color,
+                    )
                 }
                 FadedGarageIcon(
                     doorPosition = doorPosition,
@@ -130,6 +111,25 @@ fun DoorStatusCard(
                     static = false,
                     color = color,
                     fadeColor = MaterialTheme.colorScheme.background,
+                )
+            }
+            Row(
+                modifier = Modifier,
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.calendar_icon),
+                    contentDescription = "Time icon",
+                    modifier = Modifier
+                        .size(32.dp)
+                        .padding(start = 8.dp, end = 8.dp),
+                    colorFilter = ColorFilter.tint(color),
+                )
+                Text(
+                    text = "$date, $time",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = color,
                 )
             }
             when (doorPosition) {
