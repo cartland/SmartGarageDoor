@@ -95,13 +95,13 @@ fun Opening(
             contentDescription = "Garage Door Opening",
             color = color,
         )
-        val circleSizePx = remember(garageDoorSize) {
-            (minOf(garageDoorSize.width, garageDoorSize.height) * 0.3f)
-        }
-        val circleSizeDp = with(LocalDensity.current) { circleSizePx.toDp() }
         Box(
             modifier = Modifier
-                .size(circleSizeDp)
+                .size(
+                    with(LocalDensity.current) {
+                        (minOf(garageDoorSize.width, garageDoorSize.height) * 0.3f).toDp()
+                    }
+                )
                 .background(MaterialTheme.colorScheme.background, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
