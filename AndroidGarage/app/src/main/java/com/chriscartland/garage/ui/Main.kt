@@ -61,6 +61,7 @@ import com.chriscartland.garage.fcm.FCMRegistration
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModel
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.ui.theme.AppTheme
+import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import java.time.Instant
 
 @Composable
@@ -90,6 +91,7 @@ fun AppNavigation(
     buttonViewModel: RemoteButtonViewModel = hiltViewModel<RemoteButtonViewModelImpl>(),
     appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>(),
 ) {
+    var isOld by remember { mutableStateOf(false) }
     val currentDoorEvent by doorViewModel.currentDoorEvent.collectAsState()
     val lastCheckInTime = currentDoorEvent.data?.lastCheckInTimeSeconds?.let {
         Instant.ofEpochSecond(it)
@@ -97,7 +99,7 @@ fun AppNavigation(
     var isTimeWithoutFcmTooLong by remember { mutableStateOf(false) }
     var isFirstValue by remember { mutableStateOf(true) }
     DurationSince(lastCheckInTime) { duration ->
-        val isOld = lastCheckInTime != null && duration > OLD_DURATION_FOR_DOOR_CHECK_IN
+        isOld = lastCheckInTime != null && duration > OLD_DURATION_FOR_DOOR_CHECK_IN
         LaunchedEffect(isOld) {
             isTimeWithoutFcmTooLong = isOld
         }
@@ -119,7 +121,9 @@ fun AppNavigation(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Garage") },
+                title = {
+                    Text(text = "Garage")
+                },
                 actions = {
                     CheckInRow(lastCheckInTime)
                     Spacer(modifier = Modifier.width(8.dp))
