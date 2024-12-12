@@ -76,7 +76,7 @@ const val OPEN_POSITION = -0.65f
 @Composable
 fun Opening(
     modifier: Modifier = Modifier,
-    color: Color = LocalDoorStatusColorScheme.current.openContainerFresh,
+    color: Color = LocalDoorStatusColorScheme.current.openFresh,
     static: Boolean = false,
 ) {
     var garageDoorSize by remember { mutableStateOf(IntSize.Zero) }
@@ -136,7 +136,7 @@ fun OpeningPreview() {
 @Composable
 fun Closing(
     modifier: Modifier = Modifier,
-    color: Color = LocalDoorStatusColorScheme.current.closedContainerFresh,
+    color: Color = LocalDoorStatusColorScheme.current.openFresh,
     static: Boolean = false,
 ) {
     var garageDoorSize by remember { mutableStateOf(IntSize.Zero) } // Add this line
@@ -198,7 +198,7 @@ fun ClosingPreview() {
 @Composable
 fun Closed(
     modifier: Modifier = Modifier,
-    color: Color = LocalDoorStatusColorScheme.current.closedContainerFresh,
+    color: Color = LocalDoorStatusColorScheme.current.closedFresh,
 ) {
     Box(
         modifier = modifier,
@@ -232,7 +232,7 @@ fun ClosedPreview() {
 @Composable
 fun Open(
     modifier: Modifier = Modifier,
-    color: Color = LocalDoorStatusColorScheme.current.openContainerFresh,
+    color: Color = LocalDoorStatusColorScheme.current.openFresh,
 ) {
     Box(
         modifier = modifier,
@@ -266,7 +266,7 @@ fun OpenPreview() {
 @Composable
 fun Midway(
     modifier: Modifier = Modifier,
-    color: Color = LocalDoorStatusColorScheme.current.openContainerFresh,
+    color: Color = LocalDoorStatusColorScheme.current.openFresh,
 ) {
     var garageDoorSize by remember { mutableStateOf(IntSize.Zero) } // Add this line
 

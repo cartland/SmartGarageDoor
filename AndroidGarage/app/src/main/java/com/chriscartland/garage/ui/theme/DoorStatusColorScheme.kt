@@ -28,18 +28,18 @@ import java.time.Instant
  * Usually this is a light or dark color scheme.
  */
 data class DoorStatusColorScheme(
-    val closedContainerFresh: Color,
-    val closedContainerStale: Color,
-    val closedOnContainerFresh: Color,
-    val closedOnContainerStale: Color,
-    val openContainerFresh: Color,
-    val openContainerStale: Color,
-    val openOnContainerFresh: Color,
-    val openOnContainerStale: Color,
-    val unknownContainerFresh: Color,
-    val unknownContainerStale: Color,
-    val unknownOnContainerFresh: Color,
-    val unknownOnContainerStale: Color,
+    val closedFresh: Color,
+    val onClosedFresh: Color,
+    val closedStale: Color,
+    val onClosedStale: Color,
+    val openFresh: Color,
+    val onOpenFresh: Color,
+    val openStale: Color,
+    val onOpenStale: Color,
+    val unknownFresh: Color,
+    val onUnknownFresh: Color,
+    val unknownStale: Color,
+    val onUnknownStale: Color,
 )
 
 /**
@@ -47,64 +47,64 @@ data class DoorStatusColorScheme(
  * Usually changes if the data is fresh or stale.
  */
 data class DoorColorSet(
-    val closedContainer: Color,
-    val closedOnContainer: Color,
-    val openContainer: Color,
-    val openOnContainer: Color,
-    val unknownContainer: Color,
-    val unknownOnContainer: Color,
+    val closed: Color,
+    val onClosed: Color,
+    val open: Color,
+    val onOpen: Color,
+    val unknown: Color,
+    val onUnknown: Color,
 )
 
 fun DoorStatusColorScheme.DoorColorSet(isStale: Boolean): DoorColorSet {
     return if (isStale) {
         DoorColorSet(
-            closedContainer = closedContainerStale,
-            closedOnContainer = closedOnContainerStale,
-            openContainer = openContainerStale,
-            openOnContainer = openOnContainerStale,
-            unknownContainer = unknownContainerStale,
-            unknownOnContainer = unknownOnContainerStale,
+            closed = closedStale,
+            onClosed = onClosedStale,
+            open = openStale,
+            onOpen = onOpenStale,
+            unknown = unknownStale,
+            onUnknown = onUnknownStale,
         )
     } else {
         DoorColorSet(
-            closedContainer = closedContainerFresh,
-            closedOnContainer = closedOnContainerFresh,
-            openContainer = openContainerFresh,
-            openOnContainer = openOnContainerFresh,
-            unknownContainer = unknownContainerFresh,
-            unknownOnContainer = unknownOnContainerFresh,
+            closed = closedFresh,
+            onClosed = onClosedFresh,
+            open = openFresh,
+            onOpen = onOpenFresh,
+            unknown = unknownFresh,
+            onUnknown = onUnknownFresh,
         )
     }
 }
 
 val doorStatusLightScheme = DoorStatusColorScheme(
-    closedContainerFresh = closedContainerFreshLight,
-    closedContainerStale = closedContainerStaleLight,
-    closedOnContainerFresh = closedOnContainerFreshLight,
-    closedOnContainerStale = closedOnContainerStaleLight,
-    openContainerFresh = openContainerFreshLight,
-    openContainerStale = openContainerStaleLight,
-    openOnContainerFresh = openOnContainerFreshLight,
-    openOnContainerStale = openOnContainerStaleLight,
-    unknownContainerFresh = unknownContainerFreshLight,
-    unknownContainerStale = unknownContainerStaleLight,
-    unknownOnContainerFresh = unknownOnContainerFreshLight,
-    unknownOnContainerStale = unknownOnContainerStaleLight,
+    closedFresh = closedFreshLight,
+    onClosedFresh = onClosedFreshLight,
+    closedStale = closedStaleLight,
+    onClosedStale = onClosedStaleLight,
+    openFresh = openFreshLight,
+    onOpenFresh = onOpenFreshLight,
+    openStale = openStaleLight,
+    onOpenStale = onOpenStaleLight,
+    unknownFresh = unknownFreshLight,
+    onUnknownFresh = onUnknownFreshLight,
+    unknownStale = unknownStaleLight,
+    onUnknownStale = onUnknownStaleLight,
 )
 
 val doorStatusDarkScheme = DoorStatusColorScheme(
-    closedContainerFresh = closedContainerFreshDark,
-    closedContainerStale = closedContainerStaleDark,
-    closedOnContainerFresh = closedOnContainerFreshDark,
-    closedOnContainerStale = closedOnContainerStaleDark,
-    openContainerFresh = openContainerFreshDark,
-    openContainerStale = openContainerStaleDark,
-    openOnContainerFresh = openOnContainerFreshDark,
-    openOnContainerStale = openOnContainerStaleDark,
-    unknownContainerFresh = unknownContainerFreshDark,
-    unknownContainerStale = unknownContainerStaleDark,
-    unknownOnContainerFresh = unknownOnContainerFreshDark,
-    unknownOnContainerStale = unknownOnContainerStaleDark,
+    closedFresh = closedFreshDark,
+    onClosedFresh = onClosedFreshDark,
+    closedStale = closedStaleDark,
+    onClosedStale = onClosedStaleDark,
+    openFresh = openFreshDark,
+    onOpenFresh = onOpenFreshDark,
+    openStale = openStaleDark,
+    onOpenStale = onOpenStaleDark,
+    unknownFresh = unknownFreshDark,
+    onUnknownFresh = onUnknownFreshDark,
+    unknownStale = unknownStaleDark,
+    onUnknownStale = onUnknownStaleDark,
 )
 
 enum class DoorColorState {

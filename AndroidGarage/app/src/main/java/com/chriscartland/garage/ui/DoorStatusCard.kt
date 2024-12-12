@@ -65,9 +65,9 @@ fun DoorStatusCard(
     val isStale = doorEvent.isStale(maxAge = Duration.ofMinutes(11))
     val colorSet = LocalDoorStatusColorScheme.current.DoorColorSet(isStale = isStale)
     val color = when (doorEvent.DoorColorState()) {
-        DoorColorState.OPEN -> colorSet.openContainer
-        DoorColorState.CLOSED -> colorSet.closedContainer
-        DoorColorState.UNKNOWN -> colorSet.unknownContainer
+        DoorColorState.OPEN -> colorSet.open
+        DoorColorState.CLOSED -> colorSet.closed
+        DoorColorState.UNKNOWN -> colorSet.unknown
     }
 
     Box(
@@ -165,9 +165,9 @@ fun RecentDoorEventListItem(
     val doorPosition = doorEvent.doorPosition ?: DoorPosition.UNKNOWN
     val colorSet = LocalDoorStatusColorScheme.current.DoorColorSet(isStale = false)
     val doorColor = when (doorEvent.DoorColorState()) {
-        DoorColorState.OPEN -> colorSet.openOnContainer
-        DoorColorState.CLOSED -> colorSet.closedOnContainer
-        DoorColorState.UNKNOWN -> colorSet.unknownOnContainer
+        DoorColorState.OPEN -> colorSet.open
+        DoorColorState.CLOSED -> colorSet.closed
+        DoorColorState.UNKNOWN -> colorSet.unknown
     }
     val cardColors = when (doorEvent.DoorColorState()) {
         DoorColorState.OPEN -> CardDefaults.cardColors(

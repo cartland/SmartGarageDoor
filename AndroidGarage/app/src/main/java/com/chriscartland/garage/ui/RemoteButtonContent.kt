@@ -156,10 +156,10 @@ fun RemoteButtonContent(
             },
             shape = CircleShape,
             colors = ButtonColors(
-                containerColor = colorSet.closedContainer,
-                contentColor = colorSet.closedOnContainer,
-                disabledContainerColor = colorSet.openContainer,
-                disabledContentColor = colorSet.openOnContainer,
+                containerColor = colorSet.closed,
+                contentColor = colorSet.onClosed,
+                disabledContainerColor = colorSet.open,
+                disabledContentColor = colorSet.onOpen,
             ),
             contentPadding = PaddingValues(0.dp),
         ) {

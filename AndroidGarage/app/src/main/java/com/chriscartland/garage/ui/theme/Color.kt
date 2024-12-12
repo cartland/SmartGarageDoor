@@ -95,37 +95,37 @@ val surfaceContainerHighestDark = Color(0xFF41433C)
 // Door Colors
 
 // Variations of green.
-val closedContainerFreshLight = Color(0xFFA7D1A3)
-val closedOnContainerFreshLight = Color(0xFF00210B)
-val closedContainerStaleLight = Color(0xFFE8F5E3)
-val closedOnContainerStaleLight = Color(0xFF173913)
+val closedFreshLight = Color(0xFF287A34)
+val onClosedFreshLight = Color(0xFFFFFFFF)
+val closedStaleLight = Color(0xFF384D43)
+val onClosedStaleLight = Color(0xFFFFFFFF)
 
 // Variations of red.
-val openContainerFreshLight = Color(0xFFF8B3AB)
-val openOnContainerFreshLight = Color(0xFF3B0005)
-val openContainerStaleLight = Color(0xFFFDE1DF)
-val openOnContainerStaleLight = Color(0xFF45000A)
+val openFreshLight = Color(0xFFA63014)
+val onOpenFreshLight = Color(0xFFFFFFFF)
+val openStaleLight = Color(0xFF91574F)
+val onOpenStaleLight = Color(0xFFFFFFFF)
 
 // Variations of gray.
-val unknownContainerFreshLight = Color(0xFFCFC7D2)
-val unknownOnContainerFreshLight = Color(0xFF1A181D)
-val unknownContainerStaleLight = Color(0xFFE7E0EC)
-val unknownOnContainerStaleLight = Color(0xFF49454F)
+val unknownFreshLight = Color(0xFF333333)
+val onUnknownFreshLight = Color(0xFFFFFFFF)
+val unknownStaleLight = Color(0xFF333333)
+val onUnknownStaleLight = Color(0xFFFFFFFF)
 
 // Variations of green.
-val closedContainerFreshDark = Color(0xFF005028)
-val closedOnContainerFreshDark = Color(0xFF3DB04F)
-val closedContainerStaleDark = Color(0xFF455446)
-val closedOnContainerStaleDark = Color(0xFFAAC9B8)
+val closedFreshDark = Color(0xFF3DB04F)
+val onClosedFreshDark = Color(0xFF000000)
+val closedStaleDark = Color(0xFF95B9A6)
+val onClosedStaleDark = Color(0xFF000000)
 
 // Variations of red.
-val openContainerFreshDark = Color(0xFF751304)
-val openOnContainerFreshDark = Color(0xFFBE3617)
-val openContainerStaleDark = Color(0xFF8F6C66)
-val openOnContainerStaleDark = Color(0xFFE3C1BC)
+val openFreshDark = Color(0xFFBE3617)
+val onOpenFreshDark = Color(0xFF000000)
+val openStaleDark = Color(0xFFCBABA7)
+val onOpenStaleDark = Color(0xFF000000)
 
 // Variations of gray.
-val unknownContainerFreshDark = Color(0xFF49444E)
-val unknownOnContainerFreshDark = Color(0xFFCBCBCB)
-val unknownContainerStaleDark = Color(0xFF5F5A65)
-val unknownOnContainerStaleDark = Color(0xFFF3F3F3)
+val unknownFreshDark = Color(0xFFAAAAAA)
+val onUnknownFreshDark = Color(0xFF000000)
+val unknownStaleDark = Color(0xFFAAAAAA)
+val onUnknownStaleDark = Color(0xFF000000)
