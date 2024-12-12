@@ -168,8 +168,8 @@ fun RemoteButtonContent(
                     RemoteButtonState.READY -> "Garage\nButton"
                     RemoteButtonState.ARMING -> "Preparing..."
                     RemoteButtonState.ARMED -> "Tap Again\nTo Confirm"
-                    RemoteButtonState.TIMEOUT -> "Button not pressed"
-                    RemoteButtonState.COOLDOWN -> "Button pushed!"
+                    RemoteButtonState.TIMEOUT -> "Not Pressed"
+                    RemoteButtonState.COOLDOWN -> "Button Pushed!"
                 },
                 fontSize = MaterialTheme.typography.titleLarge.fontSize,
                 textAlign = TextAlign.Center,
