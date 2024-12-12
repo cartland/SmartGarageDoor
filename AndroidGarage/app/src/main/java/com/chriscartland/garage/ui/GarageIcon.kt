@@ -87,15 +87,13 @@ fun FadedGarageIcon(
     modifier: Modifier = Modifier,
     static: Boolean = false,
     color: Color = Color.Blue,
-    fadeColor: Color = Color.White,
 ) {
     Box(
         modifier = modifier,
     ) {
         GarageIcon(
             doorPosition = doorPosition,
-            modifier = Modifier
-                .fadeBottom(fractionFaded = .5f, color = fadeColor, finalOpacity = 0.5f),
+            modifier = Modifier,
             static = static,
             color = color,
         )

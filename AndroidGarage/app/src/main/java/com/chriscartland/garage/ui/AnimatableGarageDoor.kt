@@ -40,16 +40,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
@@ -61,6 +66,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.ColorUtils
 import com.chriscartland.garage.R
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import java.time.Duration
@@ -347,10 +353,31 @@ fun GarageDoorAnimation(
         topDrawable = topDrawable,
         bottomDrawable = bottomDrawable,
         contentDescription = contentDescription,
-        modifier = modifier,
+        modifier = modifier
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+            .drawWithContent {
+                drawContent()
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        0.3f to (color ?: Color.Blue),
+                        1F to blendColors(
+                            (color ?: Color.Blue),
+                            Color.Black,
+                            0.5f,
+                        ),
+                    ),
+                    blendMode = BlendMode.SrcIn,
+                )
+            },
         offsetProportion = Offset(0f, animatingValue),
         color = color,
     )
+}
+
+private fun blendColors(color1: Color, color2: Color, ratio: Float): Color {
+    val color1Int = color1.toArgb()
+    val color2Int = color2.toArgb()
+    return Color(ColorUtils.blendARGB(color1Int, color2Int, ratio))
 }
 
 @Composable

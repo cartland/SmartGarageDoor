@@ -110,7 +110,6 @@ fun DoorStatusCard(
                         .weight(1f),
                     static = false,
                     color = color,
-                    fadeColor = MaterialTheme.colorScheme.background,
                 )
             }
             Row(
@@ -220,7 +219,6 @@ fun RecentDoorEventListItem(
                         .height(96.dp),
                     static = true,
                     color = doorColor,
-                    fadeColor = cardColors.containerColor,
                 )
                 when (doorPosition) {
                     in listOf(
