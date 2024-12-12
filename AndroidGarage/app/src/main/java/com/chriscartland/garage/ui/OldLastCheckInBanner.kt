@@ -18,46 +18,91 @@
 package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
+import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import java.time.Duration
 import java.time.Instant
 
 val OLD_DURATION_FOR_DOOR_CHECK_IN = Duration.ofMinutes(11)
 
+data class PillColors(
+    val backgroundColor: Color,
+    val contentColor: Color,
+)
+
 @Composable
-fun CheckInRow(lastCheckIn: Instant?) {
+fun CheckInRow(
+    lastCheckIn: Instant?,
+    modifier: Modifier = Modifier,
+) {
+    // This is called in a RowScope in TopAppBar.
+    val pillShape = RoundedCornerShape(50)
     DurationSince(lastCheckIn) { duration ->
-        if (lastCheckIn != null) {
-            Text(
-                text = ("${duration.toFriendlyDuration()} ago"),
-                style = MaterialTheme.typography.labelSmall,
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-        }
         val isOld = lastCheckIn != null && duration > OLD_DURATION_FOR_DOOR_CHECK_IN
-        Image(
-            modifier = Modifier.scale(0.7f),
-            painter = if (isOld) {
-                painterResource(id = R.drawable.outline_signal_disconnected_24)
-            } else {
-                painterResource(id = R.drawable.baseline_cell_tower_24)
-            },
-            colorFilter = ColorFilter.tint(LocalContentColor.current),
-            contentDescription = "Door Broadcast Icon",
-        )
+        val pillColors = if (isOld) {
+            PillColors(
+                backgroundColor = LocalDoorStatusColorScheme.current.unknownFresh,
+                contentColor = LocalDoorStatusColorScheme.current.onUnknownFresh,
+            )
+        } else {
+            PillColors(
+                backgroundColor = LocalDoorStatusColorScheme.current.closedFresh,
+                contentColor = LocalDoorStatusColorScheme.current.onClosedFresh,
+            )
+        }
+        CompositionLocalProvider(LocalContentColor provides pillColors.contentColor) {
+            Box(
+                modifier = Modifier
+                    .background(
+                        color = pillColors.backgroundColor,
+                        shape = pillShape
+                    )
+                    .padding(start = 8.dp, end = 4.dp),
+            ) {
+                Row(
+                    modifier = modifier,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (lastCheckIn != null) {
+                        Text(
+                            text = ("${duration.toFriendlyDuration()} ago"),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                    Image(
+                        modifier = Modifier.scale(0.7f),
+                        painter = if (isOld) {
+                            painterResource(id = R.drawable.outline_signal_disconnected_24)
+                        } else {
+                            painterResource(id = R.drawable.baseline_cell_tower_24)
+                        },
+                        colorFilter = ColorFilter.tint(LocalContentColor.current),
+                        contentDescription = "Door Broadcast Icon",
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -70,15 +115,37 @@ fun OldLastCheckInBanner(
         Text(
             text = "Warning: Not receiving updates from server",
             style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = modifier,
         )
     } else {
         ErrorCard(
             text = "Not receiving updates from server",
             buttonText = "Retry",
             onClick = { action() },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = modifier,
         )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LastCheckInRowPreview() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // This is called in a RowScope by TopAppBar.
+        CheckInRow(Instant.now().minusSeconds(123))
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LastCheckInRowOldPreview() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // This is called in a RowScope by TopAppBar.
+        CheckInRow(Instant.now().minusSeconds(1234))
     }
 }
 

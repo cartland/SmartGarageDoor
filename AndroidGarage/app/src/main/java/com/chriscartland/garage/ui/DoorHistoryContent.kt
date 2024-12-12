@@ -111,6 +111,7 @@ fun DoorHistoryContent(
                                 recentDoorEvents.exception.toString().take(500),
                         buttonText = "Retry",
                         onClick = { onFetchRecentDoorEvents() },
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
