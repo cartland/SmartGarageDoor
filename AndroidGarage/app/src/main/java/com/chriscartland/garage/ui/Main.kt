@@ -61,7 +61,6 @@ import com.chriscartland.garage.fcm.FCMRegistration
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModel
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.ui.theme.AppTheme
-import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import java.time.Instant
 
 @Composable
