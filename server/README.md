@@ -58,7 +58,7 @@ npm run build
 3. Run tests:
 
 ```bash
-npm run test
+npm run tests
 ```
 
 ### Configuration
@@ -87,18 +87,14 @@ curl -H "Content-Type: application/json" -H "X-ServerConfigKey: $SERVER_CONFIG_U
 
 ### Database Structure
 
-Collections
+Collections:
+- `eventsCurrent`: Current door state
+- `eventsAll`: Historical door states
+- `updateCurrent`: Latest sensor updates
+- `updateAll`: Historical sensor data
+- `configCurrent`: Server configuration
+- `notificationsCurrent`: Active notifications
 
-- eventsCurrent: Current door state
-- eventsAll: Historical door states
-- updateCurrent: Latest sensor updates
-- updateAll: Historical sensor data
-- configCurrent: Server configuration
-- notificationsCurrent: Active notifications
-
-  "deleteOldDataEnabled": true,
-  "snoozeNotificationsEnabled": true
-}
 ```
 
 Set up Firebase:
