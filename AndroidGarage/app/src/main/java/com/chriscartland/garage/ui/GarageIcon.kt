@@ -95,26 +95,26 @@ fun FadedGarageIcon(
         GarageIcon(
             doorPosition = doorPosition,
             modifier = Modifier
-                .fadeBottom(fractionStart = .7f, color = fadeColor, finalOpacity = 0.4f),
+                .fadeBottom(fractionFaded = .5f, color = fadeColor, finalOpacity = 0.5f),
             static = static,
             color = color,
         )
     }
 }
 
-fun Modifier.fadeBottom(fractionStart: Float, color: Color, finalOpacity: Float) = this.then(
+fun Modifier.fadeBottom(fractionFaded: Float, color: Color, finalOpacity: Float) = this.then(
     Modifier.drawWithContent {
         drawContent()
-        drawFade(fractionStart, color, finalOpacity)
+        drawFade(fractionFaded, color, finalOpacity)
     }
 )
 
-private fun DrawScope.drawFade(fraction: Float, color: Color, finalOpacity: Float) {
+private fun DrawScope.drawFade(fractionFaded: Float, color: Color, finalOpacity: Float) {
     if (finalOpacity >= 1f || finalOpacity < 0f) {
         return
     }
     val height = size.height
-    val startY = height * (1 - fraction)
+    val startY = height * (1 - fractionFaded)
     val endY = height / (1 - finalOpacity)
     drawRect(
         brush = Brush.verticalGradient(

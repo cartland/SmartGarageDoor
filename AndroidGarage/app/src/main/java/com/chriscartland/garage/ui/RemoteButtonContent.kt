@@ -93,9 +93,9 @@ fun RemoteButtonContent(
                 }
                 .shadow(4.dp, CircleShape)
                 .fadeBottom(
-                    fractionStart = 0.3f,
+                    fractionFaded = 0.5f,
                     color = MaterialTheme.colorScheme.background,
-                    finalOpacity = 0.2f,
+                    finalOpacity = 0.5f,
                 ),
             enabled = when (buttonState) {
                 RemoteButtonState.READY -> true
