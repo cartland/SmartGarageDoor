@@ -32,9 +32,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -63,96 +65,89 @@ fun DoorStatusCard(
     val lastChangeTimeSeconds = doorEvent?.lastChangeTimeSeconds
     val date = lastChangeTimeSeconds?.toFriendlyDate()
     val time = lastChangeTimeSeconds?.toFriendlyTime()
-    // Colors
+    // Select the door color based on the door state.
     val color = doorEvent.color(LocalDoorStatusColorScheme.current)
-//    val isStale = doorEvent.isStale(maxAge = OLD_DURATION_FOR_DOOR_CHECK_IN)
-//    val colorSet = LocalDoorStatusColorScheme.current.doorColorSet(isStale = isStale)
-//    val color = when (doorEvent.doorColorState()) {
-//        DoorColorState.OPEN -> colorSet.open
-//        DoorColorState.CLOSED -> colorSet.closed
-//        DoorColorState.UNKNOWN -> colorSet.unknown
-//    }
-
-    Box(
-        modifier = modifier,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+    // Blend the door color into the color of the text on background.
+    val contentColor = blendColors(color, MaterialTheme.colorScheme.onBackground, 0.5f)
+    CompositionLocalProvider(LocalContentColor provides contentColor) {
+        Box(
+            modifier = modifier,
         ) {
-            Text(
-                text = doorPosition.toFriendlyName(),
-                style = MaterialTheme.typography.titleLarge,
-                color = color,
-            )
-            DurationSince(lastChangeTimeSeconds?.let { Instant.ofEpochSecond(it) }) { duration ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = doorPosition.toFriendlyName(),
+                    style = MaterialTheme.typography.titleLarge,
+                )
+                DurationSince(lastChangeTimeSeconds?.let { Instant.ofEpochSecond(it) }) { duration ->
+                    Row(
+                        modifier = Modifier,
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.clock_icon),
+                            contentDescription = "Date icon",
+                            modifier = Modifier
+                                .size(32.dp)
+                                .padding(start = 8.dp, end = 8.dp),
+                            colorFilter = ColorFilter.tint(contentColor),
+                        )
+                        Text(
+                            text = duration.toFriendlyDuration(),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                    FadedGarageIcon(
+                        doorPosition = doorPosition,
+                        modifier = Modifier
+                            .weight(1f),
+                        static = false,
+                        color = color,
+                    )
+                }
                 Row(
                     modifier = Modifier,
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.clock_icon),
-                        contentDescription = "Date icon",
+                        painter = painterResource(id = R.drawable.calendar_icon),
+                        contentDescription = "Time icon",
                         modifier = Modifier
                             .size(32.dp)
                             .padding(start = 8.dp, end = 8.dp),
-                        colorFilter = ColorFilter.tint(color),
+                        colorFilter = ColorFilter.tint(contentColor),
                     )
                     Text(
-                        text = duration.toFriendlyDuration(),
+                        text = "$date, $time",
                         style = MaterialTheme.typography.labelSmall,
-                        color = color,
                     )
                 }
-                FadedGarageIcon(
-                    doorPosition = doorPosition,
-                    modifier = Modifier
-                        .weight(1f),
-                    static = false,
-                    color = color,
-                )
-            }
-            Row(
-                modifier = Modifier,
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.calendar_icon),
-                    contentDescription = "Time icon",
-                    modifier = Modifier
-                        .size(32.dp)
-                        .padding(start = 8.dp, end = 8.dp),
-                    colorFilter = ColorFilter.tint(color),
-                )
-                Text(
-                    text = "$date, $time",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = color,
-                )
-            }
-            when (doorPosition) {
-                in listOf(
-                    DoorPosition.UNKNOWN,
-                    DoorPosition.OPENING_TOO_LONG,
-                    DoorPosition.OPEN_MISALIGNED,
-                    DoorPosition.CLOSING_TOO_LONG,
-                    DoorPosition.ERROR_SENSOR_CONFLICT
-                ),
-                    -> doorEvent?.message?.let {
-                    if (it.isNotBlank()) {
-                        Text(
-                            text = doorEvent.message,
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.labelSmall,
-                        )
+                when (doorPosition) {
+                    in listOf(
+                        DoorPosition.UNKNOWN,
+                        DoorPosition.OPENING_TOO_LONG,
+                        DoorPosition.OPEN_MISALIGNED,
+                        DoorPosition.CLOSING_TOO_LONG,
+                        DoorPosition.ERROR_SENSOR_CONFLICT
+                    ),
+                        -> doorEvent?.message?.let {
+                        if (it.isNotBlank()) {
+                            Text(
+                                text = doorEvent.message,
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
                     }
-                }
 
-                else -> { /* Nothing */
+                    else -> { /* Nothing */
+                    }
                 }
             }
         }
