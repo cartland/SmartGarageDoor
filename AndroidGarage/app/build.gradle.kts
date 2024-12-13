@@ -59,7 +59,7 @@ android {
         applicationId = "com.chriscartland.garage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 108
+        versionCode = 109
         versionName = "2.2-" + generateVersionNameTimestamp()
         setProperty("archivesBaseName", "$applicationId-$versionName-$versionCode")
 
