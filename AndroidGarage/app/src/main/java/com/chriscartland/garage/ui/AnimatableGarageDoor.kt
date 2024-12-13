@@ -145,7 +145,7 @@ fun Closing(
     color: Color = LocalDoorStatusColorScheme.current.openFresh,
     static: Boolean = false,
 ) {
-    var garageDoorSize by remember { mutableStateOf(IntSize.Zero) } // Add this line
+    var garageDoorSize by remember { mutableStateOf(IntSize.Zero) }
 
     Box(
         modifier = modifier,
@@ -274,7 +274,7 @@ fun Midway(
     modifier: Modifier = Modifier,
     color: Color = LocalDoorStatusColorScheme.current.openFresh,
 ) {
-    var garageDoorSize by remember { mutableStateOf(IntSize.Zero) } // Add this line
+    var garageDoorSize by remember { mutableStateOf(IntSize.Zero) }
 
     Box(
         modifier = modifier,
@@ -283,7 +283,7 @@ fun Midway(
         GarageDoorAnimation(
             modifier = Modifier
                 .fillMaxSize()
-                .onGloballyPositioned { coordinates ->  // Add this modifier
+                .onGloballyPositioned { coordinates ->
                     garageDoorSize = coordinates.size
                 },
             yInitialOffset = MIDWAY_POSITION,
@@ -421,6 +421,12 @@ fun TopWithBottomOffset(
         offsetProportion.x * topSize.width,
         offsetProportion.y * topSize.height,
     )
+    val clipOffset = OffsetRect(
+        Offset(
+            -bottomOffset.x,
+            -bottomOffset.y + 10, // Crop off the top of the door so it does not appear behind frame.
+        )
+    )
 
     Box(
         modifier = modifier,
@@ -436,7 +442,7 @@ fun TopWithBottomOffset(
                     translationX = bottomOffset.x
                     translationY = bottomOffset.y
                 }
-                .clip(OffsetRect(-bottomOffset)),
+                .clip(clipOffset),
             colorFilter = colorFilter,
         )
         Image(
