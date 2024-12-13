@@ -55,7 +55,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.remotebutton.RequestStatus
-import com.chriscartland.garage.ui.theme.DoorColorSet
+import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -77,7 +77,7 @@ fun RemoteButtonContent(
     onArming: () -> Unit = {},
     remoteRequestStatus: RequestStatus = RequestStatus.NONE,
 ) {
-    val colorSet = LocalDoorStatusColorScheme.current.DoorColorSet(isStale = false)
+    val colorSet = LocalDoorStatusColorScheme.current.doorColorSet(isStale = false)
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,

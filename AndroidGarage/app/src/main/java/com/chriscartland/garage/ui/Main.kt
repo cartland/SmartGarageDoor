@@ -61,6 +61,7 @@ import com.chriscartland.garage.fcm.FCMRegistration
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModel
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.ui.theme.AppTheme
+import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import java.time.Instant
 
 @Composable
@@ -95,6 +96,8 @@ fun AppNavigation(
     val lastCheckInTime = currentDoorEvent.data?.lastCheckInTimeSeconds?.let {
         Instant.ofEpochSecond(it)
     }
+    val doorColor = currentDoorEvent.data.color(LocalDoorStatusColorScheme.current)
+    val onDoorColor = currentDoorEvent.data.onColor(LocalDoorStatusColorScheme.current)
     var isTimeWithoutFcmTooLong by remember { mutableStateOf(false) }
     var isFirstValue by remember { mutableStateOf(true) }
     DurationSince(lastCheckInTime) { duration ->
@@ -124,7 +127,14 @@ fun AppNavigation(
                     Text(text = "Garage")
                 },
                 actions = {
-                    CheckInRow(lastCheckInTime)
+                    CheckInRow(
+                        lastCheckIn = lastCheckInTime,
+                        pillColors = PillColors(
+                            // Match the door color
+                            backgroundColor = doorColor,
+                            contentColor = onDoorColor,
+                        )
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                 },
             )

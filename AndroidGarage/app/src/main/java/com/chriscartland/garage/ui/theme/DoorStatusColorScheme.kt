@@ -55,7 +55,7 @@ data class DoorColorSet(
     val onUnknown: Color,
 )
 
-fun DoorStatusColorScheme.DoorColorSet(isStale: Boolean): DoorColorSet {
+fun DoorStatusColorScheme.doorColorSet(isStale: Boolean): DoorColorSet {
     return if (isStale) {
         DoorColorSet(
             closed = closedStale,
@@ -111,7 +111,7 @@ enum class DoorColorState {
     OPEN, CLOSED, UNKNOWN
 }
 
-fun DoorEvent?.DoorColorState(): DoorColorState {
+fun DoorEvent?.doorColorState(): DoorColorState {
     return when (this?.doorPosition) {
         DoorPosition.UNKNOWN -> DoorColorState.UNKNOWN
         DoorPosition.ERROR_SENSOR_CONFLICT -> DoorColorState.UNKNOWN

@@ -37,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -45,11 +46,12 @@ import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorPosition
-import com.chriscartland.garage.ui.theme.DoorColorSet
 import com.chriscartland.garage.ui.theme.DoorColorState
+import com.chriscartland.garage.ui.theme.DoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
+import com.chriscartland.garage.ui.theme.doorColorSet
+import com.chriscartland.garage.ui.theme.doorColorState
 import com.chriscartland.garage.ui.theme.isStale
-import java.time.Duration
 import java.time.Instant
 
 @Composable
@@ -62,13 +64,14 @@ fun DoorStatusCard(
     val date = lastChangeTimeSeconds?.toFriendlyDate()
     val time = lastChangeTimeSeconds?.toFriendlyTime()
     // Colors
-    val isStale = doorEvent.isStale(maxAge = Duration.ofMinutes(11))
-    val colorSet = LocalDoorStatusColorScheme.current.DoorColorSet(isStale = isStale)
-    val color = when (doorEvent.DoorColorState()) {
-        DoorColorState.OPEN -> colorSet.open
-        DoorColorState.CLOSED -> colorSet.closed
-        DoorColorState.UNKNOWN -> colorSet.unknown
-    }
+    val color = doorEvent.color(LocalDoorStatusColorScheme.current)
+//    val isStale = doorEvent.isStale(maxAge = OLD_DURATION_FOR_DOOR_CHECK_IN)
+//    val colorSet = LocalDoorStatusColorScheme.current.doorColorSet(isStale = isStale)
+//    val color = when (doorEvent.doorColorState()) {
+//        DoorColorState.OPEN -> colorSet.open
+//        DoorColorState.CLOSED -> colorSet.closed
+//        DoorColorState.UNKNOWN -> colorSet.unknown
+//    }
 
     Box(
         modifier = modifier,
@@ -156,19 +159,39 @@ fun DoorStatusCard(
     }
 }
 
+fun DoorEvent?.color(scheme: DoorStatusColorScheme): Color {
+    val isStale = isStale(maxAge = OLD_DURATION_FOR_DOOR_CHECK_IN)
+    val colorSet = scheme.doorColorSet(isStale = isStale)
+    return when (doorColorState()) {
+        DoorColorState.OPEN -> colorSet.open
+        DoorColorState.CLOSED -> colorSet.closed
+        DoorColorState.UNKNOWN -> colorSet.unknown
+    }
+}
+
+fun DoorEvent?.onColor(scheme: DoorStatusColorScheme): Color {
+    val isStale = isStale(maxAge = OLD_DURATION_FOR_DOOR_CHECK_IN)
+    val colorSet = scheme.doorColorSet(isStale = isStale)
+    return when (doorColorState()) {
+        DoorColorState.OPEN -> colorSet.onOpen
+        DoorColorState.CLOSED -> colorSet.onClosed
+        DoorColorState.UNKNOWN -> colorSet.onUnknown
+    }
+}
+
 @Composable
 fun RecentDoorEventListItem(
     doorEvent: DoorEvent,
     modifier: Modifier = Modifier,
 ) {
     val doorPosition = doorEvent.doorPosition ?: DoorPosition.UNKNOWN
-    val colorSet = LocalDoorStatusColorScheme.current.DoorColorSet(isStale = false)
-    val doorColor = when (doorEvent.DoorColorState()) {
+    val colorSet = LocalDoorStatusColorScheme.current.doorColorSet(isStale = false)
+    val doorColor = when (doorEvent.doorColorState()) {
         DoorColorState.OPEN -> colorSet.open
         DoorColorState.CLOSED -> colorSet.closed
         DoorColorState.UNKNOWN -> colorSet.unknown
     }
-    val cardColors = when (doorEvent.DoorColorState()) {
+    val cardColors = when (doorEvent.doorColorState()) {
         DoorColorState.OPEN -> CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             contentColor = MaterialTheme.colorScheme.onSurface,

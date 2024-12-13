@@ -54,22 +54,15 @@ data class PillColors(
 fun CheckInRow(
     lastCheckIn: Instant?,
     modifier: Modifier = Modifier,
+    pillColors: PillColors = PillColors(
+        backgroundColor = LocalDoorStatusColorScheme.current.unknownFresh,
+        contentColor = LocalDoorStatusColorScheme.current.onUnknownFresh,
+    ),
 ) {
     // This is called in a RowScope in TopAppBar.
     val pillShape = RoundedCornerShape(50)
     DurationSince(lastCheckIn) { duration ->
         val isOld = lastCheckIn != null && duration > OLD_DURATION_FOR_DOOR_CHECK_IN
-        val pillColors = if (isOld) {
-            PillColors(
-                backgroundColor = LocalDoorStatusColorScheme.current.unknownFresh,
-                contentColor = LocalDoorStatusColorScheme.current.onUnknownFresh,
-            )
-        } else {
-            PillColors(
-                backgroundColor = LocalDoorStatusColorScheme.current.closedFresh,
-                contentColor = LocalDoorStatusColorScheme.current.onClosedFresh,
-            )
-        }
         CompositionLocalProvider(LocalContentColor provides pillColors.contentColor) {
             Box(
                 modifier = Modifier
