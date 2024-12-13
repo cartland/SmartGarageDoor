@@ -17,17 +17,22 @@
 
 package com.chriscartland.garage.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,7 +45,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
@@ -83,7 +90,22 @@ fun RemoteButtonContent(
         // Track the width of the button so the indicator can be sized correctly.
         var buttonWidth by remember { mutableStateOf(0.dp) }
         val localDensity = LocalDensity.current
-        Button(
+        val enabled = when (buttonState) {
+            RemoteButtonState.READY -> true
+            RemoteButtonState.ARMING -> false
+            RemoteButtonState.ARMED -> true
+            RemoteButtonState.TIMEOUT -> false
+            RemoteButtonState.COOLDOWN -> false
+        }
+        val color = when (enabled) {
+            true -> colorSet.closed
+            false -> colorSet.open
+        }
+        val onColor = when (enabled) {
+            true -> colorSet.onClosed
+            false -> colorSet.onOpen
+        }
+        GradientButton(
             modifier = Modifier
                 .weight(1f)
                 .widthIn(max = 192.dp)
@@ -91,19 +113,8 @@ fun RemoteButtonContent(
                 .onSizeChanged { size ->
                     buttonWidth = with(localDensity) { size.width.toDp() }
                 }
-                .shadow(4.dp, CircleShape)
-                .fadeBottom(
-                    fractionFaded = 0.5f,
-                    color = MaterialTheme.colorScheme.background,
-                    finalOpacity = 0.5f,
-                ),
-            enabled = when (buttonState) {
-                RemoteButtonState.READY -> true
-                RemoteButtonState.ARMING -> false
-                RemoteButtonState.ARMED -> true
-                RemoteButtonState.TIMEOUT -> false
-                RemoteButtonState.COOLDOWN -> false
-            },
+                .shadow(4.dp, CircleShape),
+            enabled = enabled,
             onClick = {
                 when (buttonState) {
                     RemoteButtonState.READY -> {
@@ -155,12 +166,18 @@ fun RemoteButtonContent(
                 }
             },
             shape = CircleShape,
-            colors = ButtonColors(
-                containerColor = colorSet.closed,
-                contentColor = colorSet.onClosed,
-                disabledContainerColor = colorSet.open,
-                disabledContentColor = colorSet.onOpen,
-            ),
+            contentColor = onColor,
+            colorStops = if (enabled) {
+                arrayOf(
+                    0.5f to color,
+                    1.0f to blendColors(color, Color.Black, 0.5f),
+                )
+            } else {
+                arrayOf(
+                    0.5f to onColor,
+                    1.0f to blendColors(onColor, Color.Black, 0.5f),
+                )
+            },
             contentPadding = PaddingValues(0.dp),
         ) {
             Text(
@@ -173,6 +190,7 @@ fun RemoteButtonContent(
                 },
                 fontSize = MaterialTheme.typography.titleLarge.fontSize,
                 textAlign = TextAlign.Center,
+                color = Color.White,
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
@@ -190,6 +208,53 @@ fun RemoteButtonContent(
             remoteRequestStatus = remoteRequestStatus,
             indicatorHeight = 10.dp,
         )
+    }
+}
+
+@Composable
+fun GradientButton(
+    vararg colorStops: Pair<Float, Color>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: Shape = ButtonDefaults.shape,
+    contentColor: Color? = null,
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
+    content: @Composable () -> Unit,
+) {
+    val gradient = Brush.verticalGradient(*colorStops)
+    Surface(
+        onClick = {
+            if (enabled) {
+                onClick()
+            }
+        },
+        contentColor = contentColor ?: LocalContentColor.current,
+        modifier = modifier,
+        shape = shape,
+        color = Color.Transparent,
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .background(gradient)
+                .padding(contentPadding),
+        ) {
+            content()
+        }
+    }
+}
+
+@Preview
+@Composable
+fun GradientButtonPreview() {
+    GradientButton(
+        0.0f to Color.Red,
+        0.5f to blendColors(Color.Red, Color.Yellow, 0.5f),
+        onClick = {},
+        modifier = Modifier,
+    ) {
+        Text("Click me!")
     }
 }
 
@@ -226,6 +291,12 @@ fun ButtonRequestIndicator(
         Text(text = progress.text, textAlign = TextAlign.Center)
     }
 }
+
+private fun ButtonColors.selectContainer(enabled: Boolean) =
+    if (enabled) containerColor else disabledContainerColor
+
+private fun ButtonColors.selectContent(enabled: Boolean) =
+    if (enabled) contentColor else disabledContentColor
 
 @Preview(showBackground = true)
 @Composable
