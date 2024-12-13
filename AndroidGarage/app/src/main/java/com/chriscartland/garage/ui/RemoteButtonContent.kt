@@ -55,8 +55,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.remotebutton.RequestStatus
-import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
+import com.chriscartland.garage.ui.theme.doorColorSet
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.time.delay
@@ -167,17 +167,10 @@ fun RemoteButtonContent(
             },
             shape = CircleShape,
             contentColor = onColor,
-            colorStops = if (enabled) {
-                arrayOf(
-                    0.5f to color,
-                    1.0f to blendColors(color, Color.Black, 0.5f),
-                )
-            } else {
-                arrayOf(
-                    0.5f to onColor,
-                    1.0f to blendColors(onColor, Color.Black, 0.5f),
-                )
-            },
+            colorStops = arrayOf(
+                0.5f to color,
+                1.0f to blendColors(color, Color.Black, 0.5f),
+            ),
             contentPadding = PaddingValues(0.dp),
         ) {
             Text(
@@ -190,7 +183,6 @@ fun RemoteButtonContent(
                 },
                 fontSize = MaterialTheme.typography.titleLarge.fontSize,
                 textAlign = TextAlign.Center,
-                color = Color.White,
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
