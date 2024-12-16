@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -100,6 +102,12 @@ fun ProfileContent(
     onSnooze: (snooze: SnoozeDurationUIOption) -> Unit = {},
     notificationPermissionState: PermissionState = rememberNotificationPermissionState(),
 ) {
+    val cardColors = CardDefaults.cardColors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        disabledContentColor = MaterialTheme.colorScheme.onSurface,
+    )
     LazyColumn(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -114,6 +122,7 @@ fun ProfileContent(
                     onSnooze = onSnooze,
                     snoozeRequestStatus = snoozeRequestStatus,
                     snoozeEndTimeSeconds = snoozeEndTimeSeconds,
+                    colors = cardColors,
                 )
             }
         }
@@ -124,15 +133,19 @@ fun ProfileContent(
                     .fillMaxWidth(),
                 signIn = signIn,
                 signOut = signOut,
+                colors = cardColors,
             )
         }
         item {
-            AndroidAppInfoCard()
+            AndroidAppInfoCard(
+                colors = cardColors,
+            )
         }
         if (APP_CONFIG.logSummary) {
             item {
                 LogSummaryCard(
                     modifier = Modifier.fillMaxWidth(),
+                    colors = cardColors,
                 )
             }
         }

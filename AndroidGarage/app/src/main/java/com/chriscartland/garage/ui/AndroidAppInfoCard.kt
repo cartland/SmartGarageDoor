@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.CardColors
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,6 +48,7 @@ const val PRIVACY_POLICY_URL: String = "https://chriscart.land/garage-privacy-po
 fun AndroidAppInfoCard(
     modifier: Modifier = Modifier,
     settingsViewModel: AppSettingsViewModel = hiltViewModel<AppSettingsViewModelImpl>(),
+    colors: CardColors = CardDefaults.cardColors(),
 ) {
     val startAndroidAppInfoCardExpanded by settingsViewModel.profileAppCardExpanded.collectAsState()
     AndroidAppInfoCard(
@@ -54,7 +57,8 @@ fun AndroidAppInfoCard(
         startExpanded = startAndroidAppInfoCardExpanded,
         onExpandedChange = {
             settingsViewModel.setProfileAppCardExpanded(it)
-        }
+        },
+        colors = colors,
     )
 }
 
@@ -64,6 +68,7 @@ fun AndroidAppInfoCard(
     modifier: Modifier = Modifier,
     startExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit = {},
+    colors: CardColors = CardDefaults.cardColors(),
 ) {
     ExpandableColumnCard(
         title = "App",
@@ -71,6 +76,7 @@ fun AndroidAppInfoCard(
         horizontalAlignment = Alignment.CenterHorizontally,
         startExpanded = startExpanded,
         onExpandedChange = onExpandedChange,
+        colors = colors,
     ) {
         Text(
             "Package name: ${appVersion.packageName}",
@@ -97,7 +103,8 @@ fun AndroidAppInfoCard(
         Row {
             Button(
                 onClick = {
-                    val url = "https://play.google.com/store/apps/details?id=${appVersion.packageName}"
+                    val url =
+                        "https://play.google.com/store/apps/details?id=${appVersion.packageName}"
                     val intent = Intent(Intent.ACTION_VIEW).apply {
                         data = Uri.parse(url)
                     }

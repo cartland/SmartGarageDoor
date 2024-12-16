@@ -35,6 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,6 +59,7 @@ fun ExpandableColumnCard(
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
     startExpanded: Boolean = true,
     onExpandedChange: (Boolean) -> Unit = {},
+    colors: CardColors = CardDefaults.cardColors(),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var expanded by remember { mutableStateOf(startExpanded) }
@@ -67,6 +69,7 @@ fun ExpandableColumnCard(
     Card(
         modifier = modifier,
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = colors,
     ) {
         Column(
             modifier = Modifier

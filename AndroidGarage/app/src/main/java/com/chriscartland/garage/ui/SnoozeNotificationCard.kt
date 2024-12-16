@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -53,6 +54,7 @@ fun SnoozeNotificationCard(
     snoozeEndTimeSeconds: Long?,
     snoozeRequestStatus: SnoozeRequestStatus,
     onSnooze: (snooze: SnoozeDurationUIOption) -> Unit = {},
+    colors: CardColors = CardDefaults.cardColors(),
 ) {
     var showOptions by remember { mutableStateOf(false) }
     val options: List<SnoozeDurationUIOption> = SnoozeDurationUIOption.entries
@@ -60,6 +62,7 @@ fun SnoozeNotificationCard(
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         modifier = modifier,
+        colors = colors,
     ) {
         Column {
             Row(
@@ -84,6 +87,7 @@ fun SnoozeNotificationCard(
                             } else {
                                 "Snooze notifications"
                             }
+
                             SnoozeRequestStatus.SENDING -> "Saving..."
                             SnoozeRequestStatus.ERROR -> "Error saving snooze settings"
                         }

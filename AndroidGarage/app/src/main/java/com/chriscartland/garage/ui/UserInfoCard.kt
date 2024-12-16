@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
+import androidx.compose.material3.CardColors
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -45,6 +47,7 @@ fun UserInfoCard(
     signIn: () -> Unit = {},
     signOut: () -> Unit = {},
     settingsViewModel: AppSettingsViewModel = hiltViewModel<AppSettingsViewModelImpl>(),
+    colors: CardColors = CardDefaults.cardColors(),
 ) {
     val startUserCardExpanded by settingsViewModel.profileUserCardExpanded.collectAsState()
     UserInfoCard(
@@ -55,7 +58,8 @@ fun UserInfoCard(
         startExpanded = startUserCardExpanded,
         onExpandedChange = {
             settingsViewModel.setProfileUserCardExpanded(it)
-        }
+        },
+        colors = colors,
     )
 }
 
@@ -67,12 +71,14 @@ fun UserInfoCard(
     signOut: () -> Unit = {},
     startExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit = {},
+    colors: CardColors = CardDefaults.cardColors(),
 ) {
     ExpandableColumnCard(
         title = "User",
         modifier = modifier,
         startExpanded = startExpanded,
         onExpandedChange = onExpandedChange,
+        colors = colors,
     ) {
         Text(text = "Name: ${user?.name?.asString() ?: "Unknown"}")
         Text(text = "Email: ${user?.email?.asString() ?: "Unknown"}")
