@@ -95,37 +95,37 @@ val surfaceContainerHighestDark = Color(0xFF41433C)
 // Door Colors
 
 // Variations of green.
-val closedFreshLight = Color(0xFF345745)
+val closedFreshLight = Color(0xFF226B43)
 val onClosedFreshLight = Color(0xFFBEDCC2)
-val closedStaleLight = Color(0xFF34443C)
+val closedStaleLight = Color(0xFF456C54)
 val onClosedStaleLight = Color(0xFFA8C5B8)
 
 // Variations of red.
-val openFreshLight = Color(0xFF621E17)
+val openFreshLight = Color(0xFF932F1E)
 val onOpenFreshLight = Color(0xFFD5BAB3)
-val openStaleLight = Color(0xFF563635)
+val openStaleLight = Color(0xFF9A655C)
 val onOpenStaleLight = Color(0xFFE8D7D4)
 
 // Variations of gray.
-val unknownFreshLight = Color(0xFF333333)
+val unknownFreshLight = Color(0xFF444444)
 val onUnknownFreshLight = Color(0xFFC9C9C9)
-val unknownStaleLight = Color(0xFF333333)
+val unknownStaleLight = Color(0xFF444444)
 val onUnknownStaleLight = Color(0xFFC9C9C9)
 
 // Variations of green.
-val closedFreshDark = Color(0xFF245735)
+val closedFreshDark = Color(0xFF25673C)
 val onClosedFreshDark = Color(0xFFBEDCC2)
-val closedStaleDark = Color(0xFF344B3C)
+val closedStaleDark = Color(0xFF40694F)
 val onClosedStaleDark = Color(0xFFA8C5B8)
 
 // Variations of red.
-val openFreshDark = Color(0xFF6B2D24)
+val openFreshDark = Color(0xFF7A2B1E)
 val onOpenFreshDark = Color(0xFFD5BAB3)
-val openStaleDark = Color(0xFF59413D)
+val openStaleDark = Color(0xFF7A524B)
 val onOpenStaleDark = Color(0xFFE8D7D4)
 
 // Variations of gray.
-val unknownFreshDark = Color(0xFF444444)
+val unknownFreshDark = Color(0xFF555555)
 val onUnknownFreshDark = Color(0xFFC9C9C9)
-val unknownStaleDark = Color(0xFF444444)
+val unknownStaleDark = Color(0xFF555555)
 val onUnknownStaleDark = Color(0xFFC9C9C9)
