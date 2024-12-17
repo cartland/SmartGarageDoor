@@ -10,7 +10,7 @@ DIY smart garage door system built with Arduino, Firebase, and Android.
 * [Android](#android): Android app
 * [Server](#server): Firebase Functions
 
-<img src="AndroidGarage/screenshots/home_closed.png" width="200" alt="Garage app home screen with the door closed and the button ready to press">
+<img src="AndroidGarage/screenshots/home_closed.png" width="200" alt="Garage app home screen with the door closed and the button ready to press"> <img src="AndroidGarage/screenshots/history.png" width="200" alt="Garage history screen with recent door events">
 
 ## Microcontroller
 * **Hardware**: [Adafruit HUZZAH32 - ESP32 Feather](https://www.adafruit.com/product/3405)
