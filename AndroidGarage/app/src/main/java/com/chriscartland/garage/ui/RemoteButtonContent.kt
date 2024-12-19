@@ -77,7 +77,6 @@ fun RemoteButtonContent(
     onArming: () -> Unit = {},
     remoteRequestStatus: RequestStatus = RequestStatus.NONE,
 ) {
-    val colorSet = LocalDoorStatusColorScheme.current.doorColorSet(isStale = false)
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -97,13 +96,13 @@ fun RemoteButtonContent(
             RemoteButtonState.TIMEOUT -> false
             RemoteButtonState.COOLDOWN -> false
         }
-        val color = when (enabled) {
-            true -> colorSet.closed
-            false -> colorSet.open
+        val color = when (buttonState) {
+            RemoteButtonState.ARMED -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.surfaceDim
         }
-        val onColor = when (enabled) {
-            true -> colorSet.onClosed
-            false -> colorSet.onOpen
+        val onColor = when (buttonState) {
+            RemoteButtonState.ARMED -> MaterialTheme.colorScheme.onPrimary
+            else -> MaterialTheme.colorScheme.onSurface
         }
         GradientButton(
             modifier = Modifier
