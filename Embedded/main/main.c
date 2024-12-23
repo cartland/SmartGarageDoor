@@ -16,22 +16,30 @@ unsigned int fetch_button_token_ctr = 0;
 
 unsigned int read_sensor_value() {
     read_sensor_value_ctr++;
-    return (read_sensor_value_ctr / 3) & 1;
+    return (read_sensor_value_ctr / 7) & 1;
 }
 
+bool read_sensors_heartbeat;
+unsigned int heartbeat_millis = 5000;
+unsigned int tick_count;
+unsigned int last_tick_count;
 void read_sensors(void *pvParameters) {
     while (1) {
+        tick_count = xTaskGetTickCount();
+
         // Read sensor value
         unsigned int new_sensor_value = read_sensor_value();
-        ESP_LOGI(TAG, "Read sensor value, %d", new_sensor_value);
-        if (sensor_value == new_sensor_value) {
-            ESP_LOGI(TAG, "Sensor value is not changed");
-        } else {
-            // If sensor value is changed, send sensor value to server
+
+        read_sensors_heartbeat = (tick_count - last_tick_count) > heartbeat_millis / portTICK_PERIOD_MS;
+        if (sensor_value != new_sensor_value) {
             sensor_value = new_sensor_value;
-            ESP_LOGI(TAG, "Send sensor value %d to server", sensor_value);
+            ESP_LOGI(TAG, "Change: Send sensor value %d to server", sensor_value);
+            last_tick_count = tick_count;
+        } else if (read_sensors_heartbeat) {
+            ESP_LOGI(TAG, "Heartbeat: Send sensor value %d to server", sensor_value);
+            last_tick_count = tick_count;
         }
-        vTaskDelay(2000 / portTICK_PERIOD_MS);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
 
