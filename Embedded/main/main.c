@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "my_component.h"
+
 #define TAG "main.c"
 #define MAX_BUTTON_TOKEN_LENGTH 256
 
@@ -15,7 +17,7 @@ unsigned int read_sensor_value_ctr = 0;
 unsigned int fetch_button_token_ctr = 0;
 
 unsigned int read_sensor_value() {
-    read_sensor_value_ctr++;
+    read_sensor_value_ctr = my_add(read_sensor_value_ctr, 1);
     return (read_sensor_value_ctr / 7) & 1;
 }
 
