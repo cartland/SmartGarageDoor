@@ -85,33 +85,46 @@ void upload_sensors(void *pvParameters) {
     }
 }
 
-void fetch_button_token(const char *old_button_token, char *new_button_token) {
+/**
+ * Fetch button token from server.
+ *
+ * @param old_button_token The old button token.
+ * @param new_button_token The new button token.
+ */
+void fetch_button_token(const char *old_button_token, char *new_button_token, size_t new_button_token_length) {
     static button_request_t button_request;
     static button_response_t button_response;
 
     ESP_LOGI(TAG, "Fetch button token from server with %s", old_button_token);
 
-    strncpy(button_request.device_id, "device_id", MAX_BUTTON_TOKEN_LENGTH);
-    strncpy(button_request.button_token, old_button_token, MAX_BUTTON_TOKEN_LENGTH);
+    strncpy(button_request.device_id, "device_id", new_button_token_length);
+    strncpy(button_request.button_token, old_button_token, new_button_token_length);
 
     garage_server_send_button_token(&button_request, &button_response);
 
-    strncpy(new_button_token, button_response.button_token, MAX_BUTTON_TOKEN_LENGTH);
+    strncpy(new_button_token, button_response.button_token, new_button_token_length);
 }
 
 /**
  * Fetch button command from server and signal the xButtonQueue to push the button.
  */
 void download_button_commands(void *pvParameters) {
-    static char button_token[MAX_BUTTON_TOKEN_LENGTH + 1] = "";
-    while (1) {
-        ESP_LOGI(TAG, "Fetch button command from server");
-        fetch_button_token(get_button_token(), button_token);
+    static button_request_t button_request;
+    static button_response_t button_response;
 
-        if (should_push_button(button_token)) {
+    while (1) {
+        char *old_button_token = get_button_token();
+        ESP_LOGI(TAG, "Fetch button token from server with %s", old_button_token);
+
+        strncpy(button_request.device_id, "device_id", MAX_DEVICE_ID_LENGTH);
+        strncpy(button_request.button_token, old_button_token, MAX_BUTTON_TOKEN_LENGTH);
+
+        garage_server_send_button_token(&button_request, &button_response);
+
+        if (should_push_button(button_response.button_token)) {
             xQueueSend(xButtonQueue, NULL, 0); // Signal the button to be pushed
         }
-        save_button_token(button_token);
+        save_button_token(button_response.button_token);
 
         vTaskDelay(5000 / portTICK_PERIOD_MS);
     }

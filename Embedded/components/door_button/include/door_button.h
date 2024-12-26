@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MAX_BUTTON_TOKEN_LENGTH 256
+#include "garage_config.h"
 
 void button_init(void);
 

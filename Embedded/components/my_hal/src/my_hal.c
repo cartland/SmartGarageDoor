@@ -4,10 +4,6 @@
 
 #include "my_hal.h"
 
-#define SENSOR_A_GPIO GPIO_NUM_2
-#define SENSOR_B_GPIO GPIO_NUM_3
-#define BUTTON_GPIO GPIO_NUM_5
-
 void my_hal_init(void) {
     gpio_config_t io_conf;
 
