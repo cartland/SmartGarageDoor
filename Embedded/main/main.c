@@ -93,9 +93,10 @@ void upload_sensors(void *pvParameters) {
 void download_button_commands(void *pvParameters) {
     static button_request_t button_request;
     static button_response_t button_response;
+    static char old_button_token[MAX_BUTTON_TOKEN_LENGTH + 1] = "";
 
     while (1) {
-        char *old_button_token = get_button_token();
+        get_button_token(old_button_token);
         ESP_LOGI(TAG, "Fetch button token from server with %s", old_button_token);
 
         strncpy(button_request.device_id, "device_id", MAX_DEVICE_ID_LENGTH);

@@ -27,8 +27,8 @@ bool should_push_button(const char *new_button_token) {
     }
 }
 
-char *get_button_token(void) {
-    return button_token;
+void get_button_token(char *buffer) {
+    strncpy(buffer, button_token, MAX_BUTTON_TOKEN_LENGTH);
 }
 
 void save_button_token(const char *new_button_token) {
