@@ -48,17 +48,32 @@ void read_sensors(void *pvParameters) {
         if (a_changed || b_changed) {
             // If sensor values have changed, send them to the server
             xQueueSend(xSensorQueue, &sensors, 0);
-            ESP_LOGI(TAG, "Change: Send sensor value a: %d, b: %d to server", sensors.a_level, sensors.b_level);
+            ESP_LOGI(TAG, "Change: Send sensor values a: %d, b: %d to server", sensors.a_level, sensors.b_level);
             tick_count_of_last_update = tick_count;
         } else if ((tick_count - tick_count_of_last_update) > HEARTBEAT_TICKS) {
             // If it is time to send a heartbeat, send the sensor values to the server
             xQueueSend(xSensorQueue, &sensors, 0);
-            ESP_LOGI(TAG, "Heartbeat: Send sensor value a: %d, b: %d to server", sensors.a_level, sensors.b_level);
+            ESP_LOGI(TAG, "Heartbeat: Send sensor values a: %d, b: %d to server", sensors.a_level, sensors.b_level);
             tick_count_of_last_update = tick_count;
         }
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
+
+sensor_state_t sensors_received;
+
+
+void upload_sensors(void *pvParameters) {
+    while (1) {
+        if (xQueueReceive(xSensorQueue, &sensors_received, portMAX_DELAY)) {
+            ESP_LOGI(TAG, "TODO: Upload sensor values a: %d, b: %d", sensors.a_level, sensors.b_level);
+            // TODO: Make HTTPS request to server.
+        } else {
+            ESP_LOGE(TAG, "Failed to receive sensor value");
+        }
+    }
+}
+
 
 int fetch_button_token_result;
 void fetch_button_token(char *new_button_token) {
@@ -100,7 +115,9 @@ void push_button(void *pvParameters) {
 
 void app_main(void) {
     my_hal_init();
+    debounce_init(pdMS_TO_TICKS(50));
     xSensorQueue = xQueueCreate(10, sizeof(sensor_state_t));
     xTaskCreate(read_sensors, "read_sensors", 2048, NULL, 5, NULL);
+    xTaskCreate(upload_sensors, "upload_sensors", 2048, NULL, 5, NULL);
     xTaskCreate(push_button, "push_button", 2048, NULL, 5, NULL);
 }
