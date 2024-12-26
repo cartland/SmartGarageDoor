@@ -14,6 +14,10 @@
 static QueueHandle_t xSensorQueue;
 static QueueHandle_t xButtonQueue;
 
+/**
+ * Read sensor values and signal the xSensorQueue when they have changed.
+ * Also send a regular heartbeat if the values do not change.
+ */
 void read_sensors(void *pvParameters) {
     static TickType_t tick_count;
     static uint32_t tick_count_of_last_update = 0;
@@ -58,6 +62,9 @@ void read_sensors(void *pvParameters) {
     }
 }
 
+/**
+ * Upload sensor values to the server.
+ */
 void upload_sensors(void *pvParameters) {
     static sensor_state_t sensor_values_to_upload;
     static sensor_request_t sensor_request;
