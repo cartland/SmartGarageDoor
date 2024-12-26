@@ -6,8 +6,8 @@
 
 #include "door_button.h"
 #include "door_sensors.h"
+#include "garage_hal.h"
 #include "garage_server.h"
-#include "my_hal.h"
 
 #define TAG "main.c"
 

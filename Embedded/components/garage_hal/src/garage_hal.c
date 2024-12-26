@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "my_hal.h"
+#include "garage_hal.h"
 
 void my_hal_init(void) {
     gpio_config_t io_conf;
