@@ -20,7 +20,9 @@ void garage_server_send_sensor_values(sensor_request_t *sensor_request, sensor_r
              sensor_request->sensor_a,
              sensor_request->sensor_b);
 
-    strncpy(sensor_response->device_id, sensor_request->device_id, 256);
+    strncpy(sensor_response->device_id, sensor_request->device_id, MAX_DEVICE_ID_LENGTH);
+    sensor_response->device_id[MAX_DEVICE_ID_LENGTH] = '\0';
+
     sensor_response->sensor_a = sensor_request->sensor_a;
     sensor_response->sensor_b = sensor_request->sensor_b;
 }
@@ -32,10 +34,12 @@ void garage_server_send_button_token(button_request_t *button_request, button_re
              button_request->device_id,
              button_request->button_token);
 
-    strncpy(button_response->device_id, button_request->device_id, 256);
+    strncpy(button_response->device_id, button_request->device_id, MAX_DEVICE_ID_LENGTH);
+    button_response->device_id[MAX_DEVICE_ID_LENGTH] = '\0';
     // Simulate putting the fetched button token into new_button_token.
     snprintf(button_response->button_token,
-             256,
+             MAX_BUTTON_TOKEN_LENGTH,
              "button_token_%llu",
              (uint64_t)((((uint64_t)xTaskGetTickCount()) / configTICK_RATE_HZ) / 10) /* Changes every 10 seconds */);
+    button_response->button_token[MAX_BUTTON_TOKEN_LENGTH] = '\0';
 }

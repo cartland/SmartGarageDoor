@@ -69,7 +69,9 @@ void upload_sensors(void *pvParameters) {
                      sensor_values_to_upload.a_level,
                      sensor_values_to_upload.b_level);
 
-            strncpy(sensor_request.device_id, "device_id", MAX_BUTTON_TOKEN_LENGTH);
+            strncpy(sensor_request.device_id, "device_id", MAX_DEVICE_ID_LENGTH);
+            sensor_request.device_id[MAX_DEVICE_ID_LENGTH] = '\0';
+
             sensor_request.sensor_a = sensor_values_to_upload.a_level;
             sensor_request.sensor_b = sensor_values_to_upload.b_level;
 
@@ -86,26 +88,6 @@ void upload_sensors(void *pvParameters) {
 }
 
 /**
- * Fetch button token from server.
- *
- * @param old_button_token The old button token.
- * @param new_button_token The new button token.
- */
-void fetch_button_token(const char *old_button_token, char *new_button_token, size_t new_button_token_length) {
-    static button_request_t button_request;
-    static button_response_t button_response;
-
-    ESP_LOGI(TAG, "Fetch button token from server with %s", old_button_token);
-
-    strncpy(button_request.device_id, "device_id", new_button_token_length);
-    strncpy(button_request.button_token, old_button_token, new_button_token_length);
-
-    garage_server_send_button_token(&button_request, &button_response);
-
-    strncpy(new_button_token, button_response.button_token, new_button_token_length);
-}
-
-/**
  * Fetch button command from server and signal the xButtonQueue to push the button.
  */
 void download_button_commands(void *pvParameters) {
@@ -117,7 +99,10 @@ void download_button_commands(void *pvParameters) {
         ESP_LOGI(TAG, "Fetch button token from server with %s", old_button_token);
 
         strncpy(button_request.device_id, "device_id", MAX_DEVICE_ID_LENGTH);
+        button_request.device_id[MAX_DEVICE_ID_LENGTH] = '\0';
+
         strncpy(button_request.button_token, old_button_token, MAX_BUTTON_TOKEN_LENGTH);
+        button_request.button_token[MAX_BUTTON_TOKEN_LENGTH] = '\0';
 
         garage_server_send_button_token(&button_request, &button_response);
 
