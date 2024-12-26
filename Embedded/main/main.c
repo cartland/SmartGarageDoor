@@ -4,44 +4,59 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "my_hal.h"
+#include "door_sensors.h"
 #include "my_math.h"
 
 #define TAG "main.c"
 #define MAX_BUTTON_TOKEN_LENGTH 256
 
-unsigned int sensor_value = 0;
+QueueHandle_t xSensorQueue;
+
+static sensor_state_t sensors;
+
+static int new_sensor_a;
+static int new_sensor_b;
+static bool a_changed;
+static bool b_changed;
 
 char button_token[MAX_BUTTON_TOKEN_LENGTH + 1] = "";
 
 unsigned int read_sensor_value_ctr = 0;
 unsigned int fetch_button_token_ctr = 0;
 
-unsigned int read_sensor_value() {
-    read_sensor_value_ctr = my_add(read_sensor_value_ctr, 1);
-    return (read_sensor_value_ctr / 7) & 1;
-}
+uint32_t HEARTBEAT_TICKS = pdMS_TO_TICKS(5000);
+TickType_t tick_count;
+uint32_t tick_count_of_last_update;
 
-bool read_sensors_heartbeat;
-unsigned int heartbeat_millis = 5000;
-unsigned int tick_count;
-unsigned int last_tick_count;
 void read_sensors(void *pvParameters) {
     while (1) {
         tick_count = xTaskGetTickCount();
 
-        // Read sensor value
-        unsigned int new_sensor_value = read_sensor_value();
-
-        read_sensors_heartbeat = (tick_count - last_tick_count) > heartbeat_millis / portTICK_PERIOD_MS;
-        if (sensor_value != new_sensor_value) {
-            sensor_value = new_sensor_value;
-            ESP_LOGI(TAG, "Change: Send sensor value %d to server", sensor_value);
-            last_tick_count = tick_count;
-        } else if (read_sensors_heartbeat) {
-            ESP_LOGI(TAG, "Heartbeat: Send sensor value %d to server", sensor_value);
-            last_tick_count = tick_count;
+        // Read sensor values
+        new_sensor_a = my_hal_read_sensor_a();
+        new_sensor_b = my_hal_read_sensor_b();
+        a_changed = debounce_sensor_a(new_sensor_a, (uint32_t) tick_count);
+        b_changed = debounce_sensor_b(new_sensor_b, (uint32_t) tick_count);
+        if (a_changed) {
+            sensors.a_level = new_sensor_a;
         }
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        if (b_changed) {
+            sensors.b_level = new_sensor_b;
+        }
+
+        if (a_changed || b_changed) {
+            // If sensor values have changed, send them to the server
+            xQueueSend(xSensorQueue, &sensors, 0);
+            ESP_LOGI(TAG, "Change: Send sensor value a: %d, b: %d to server", sensors.a_level, sensors.b_level);
+            tick_count_of_last_update = tick_count;
+        } else if ((tick_count - tick_count_of_last_update) > HEARTBEAT_TICKS) {
+            // If it is time to send a heartbeat, send the sensor values to the server
+            xQueueSend(xSensorQueue, &sensors, 0);
+            ESP_LOGI(TAG, "Heartbeat: Send sensor value a: %d, b: %d to server", sensors.a_level, sensors.b_level);
+            tick_count_of_last_update = tick_count;
+        }
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
 
@@ -84,6 +99,8 @@ void push_button(void *pvParameters) {
 }
 
 void app_main(void) {
+    my_hal_init();
+    xSensorQueue = xQueueCreate(10, sizeof(sensor_state_t));
     xTaskCreate(read_sensors, "read_sensors", 2048, NULL, 5, NULL);
     xTaskCreate(push_button, "push_button", 2048, NULL, 5, NULL);
 }

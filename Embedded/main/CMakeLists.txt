@@ -1,3 +1,3 @@
 idf_component_register(SRCS "main.c"
                        INCLUDE_DIRS "."
-                       REQUIRES my_math)
+                       REQUIRES door_sensors my_hal my_math)

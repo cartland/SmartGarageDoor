@@ -29,11 +29,11 @@ void my_hal_init(void) {
 }
 
 int my_hal_read_sensor_a(void) {
-    gpio_get_level(SENSOR_A_GPIO);
+    return gpio_get_level(SENSOR_A_GPIO);
 }
 
 int my_hal_read_sensor_b(void) {
-    gpio_get_level(SENSOR_B_GPIO);
+    return gpio_get_level(SENSOR_B_GPIO);
 }
 
 void my_hal_set_button(int level) {
