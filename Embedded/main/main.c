@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "my_component.h"
+#include "my_math.h"
 
 #define TAG "main.c"
 #define MAX_BUTTON_TOKEN_LENGTH 256
