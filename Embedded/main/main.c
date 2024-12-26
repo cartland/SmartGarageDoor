@@ -5,11 +5,11 @@
 #include <string.h>
 
 #include "door_sensors.h"
+#include "door_button.h"
 #include "my_hal.h"
 #include "my_math.h"
 
 #define TAG "main.c"
-#define MAX_BUTTON_TOKEN_LENGTH 256
 
 QueueHandle_t xSensorQueue;
 QueueHandle_t xButtonQueue;
@@ -21,7 +21,6 @@ static int new_sensor_b;
 static bool a_changed;
 static bool b_changed;
 
-char button_token[MAX_BUTTON_TOKEN_LENGTH + 1] = "";
 char new_button_token[MAX_BUTTON_TOKEN_LENGTH + 1] = "";
 
 uint32_t HEARTBEAT_TICKS = pdMS_TO_TICKS(10000); // 10 seconds for debugging
@@ -91,21 +90,10 @@ void fetch_button_token(const char *old_button_token, char *new_button_token) {
 void download_button_commands(void *pvParameters) {
     while (1) {
         ESP_LOGI(TAG, "Fetch button command from server");
-        fetch_button_token(button_token, new_button_token);
+        fetch_button_token(get_button_token(), new_button_token);
 
-        if (strcmp(button_token, new_button_token) == 0) {
-            ESP_LOGI(TAG, "Button token is not changed");
-        } else {
-            if (button_token[0] == '\0') {
-                // Important: Do not push the button if this is the first token.
-                // This is to prevent the button from being pushed when the device is first powered on.
-                ESP_LOGI(TAG, "Not pushing button because %s is the first token", new_button_token);
-            } else {
-                ESP_LOGI(TAG, "Push the button for %s", new_button_token);
-                xQueueSend(xButtonQueue, NULL, 0); // Signal the button to be pushed
-            }
-            strncpy(button_token, new_button_token, MAX_BUTTON_TOKEN_LENGTH);
-            ESP_LOGI(TAG, "Button token is now %s", button_token);
+        if (should_push_button(new_button_token)) {
+            xQueueSend(xButtonQueue, NULL, 0); // Signal the button to be pushed
         }
         vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
