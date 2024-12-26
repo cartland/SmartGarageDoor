@@ -3,12 +3,10 @@
 #include "door_sensors.h"
 
 static uint32_t debounce_threshold;
-static uint32_t settled_tick_a;
-static uint32_t settled_tick_b;
-
+static uint32_t settled_tick_a = 0;
+static uint32_t settled_tick_b = 0;
 static bool sensor_a_has_value;
 static bool sensor_b_has_value;
-
 static int sensor_a_level;
 static int sensor_b_level;
 
