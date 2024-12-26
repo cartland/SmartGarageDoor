@@ -26,6 +26,7 @@ void my_hal_init(void) {
     io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
     gpio_config(&io_conf);
+    gpio_set_level(BUTTON_GPIO, 0); // Default to 0.
 }
 
 int my_hal_read_sensor_a(void) {

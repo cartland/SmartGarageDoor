@@ -24,9 +24,7 @@ static bool b_changed;
 char button_token[MAX_BUTTON_TOKEN_LENGTH + 1] = "";
 char new_button_token[MAX_BUTTON_TOKEN_LENGTH + 1] = "";
 
-unsigned int read_sensor_value_ctr = 0;
-
-uint32_t HEARTBEAT_TICKS = pdMS_TO_TICKS(5000);
+uint32_t HEARTBEAT_TICKS = pdMS_TO_TICKS(10000); // 10 seconds for debugging
 TickType_t tick_count;
 uint32_t tick_count_of_last_update;
 
@@ -61,12 +59,14 @@ void read_sensors(void *pvParameters) {
     }
 }
 
-sensor_state_t sensors_received;
-
+sensor_state_t sensor_values_to_upload;
 void upload_sensors(void *pvParameters) {
     while (1) {
-        if (xQueueReceive(xSensorQueue, &sensors_received, portMAX_DELAY)) {
-            ESP_LOGI(TAG, "TODO: Upload sensor values a: %d, b: %d", sensors_received.a_level, sensors_received.b_level);
+        if (xQueueReceive(xSensorQueue, &sensor_values_to_upload, portMAX_DELAY)) {
+            ESP_LOGI(TAG,
+                     "TODO: Upload sensor values a: %d, b: %d",
+                     sensor_values_to_upload.a_level,
+                     sensor_values_to_upload.b_level);
             // TODO: Make HTTPS request to server.
         } else {
             ESP_LOGE(TAG, "Failed to receive sensor value");
@@ -85,6 +85,9 @@ void fetch_button_token(const char *old_button_token, char *new_button_token) {
              (uint64_t)((((uint64_t)xTaskGetTickCount()) / configTICK_RATE_HZ) / 10) /* Changes every 10 seconds */);
 }
 
+/**
+ * Fetch button command from server and signal the xButtonQueue to push the button.
+ */
 void download_button_commands(void *pvParameters) {
     while (1) {
         ESP_LOGI(TAG, "Fetch button command from server");
@@ -93,12 +96,13 @@ void download_button_commands(void *pvParameters) {
         if (strcmp(button_token, new_button_token) == 0) {
             ESP_LOGI(TAG, "Button token is not changed");
         } else {
-            // If button token is not empty, then push the button
-            if (button_token[0] != '\0') {
-                ESP_LOGI(TAG, "Push the button for %s", new_button_token);
-                xQueueSend(xButtonQueue, NULL, 0);
-            } else {
+            if (button_token[0] == '\0') {
+                // Important: Do not push the button if this is the first token.
+                // This is to prevent the button from being pushed when the device is first powered on.
                 ESP_LOGI(TAG, "Not pushing button because %s is the first token", new_button_token);
+            } else {
+                ESP_LOGI(TAG, "Push the button for %s", new_button_token);
+                xQueueSend(xButtonQueue, NULL, 0); // Signal the button to be pushed
             }
             strncpy(button_token, new_button_token, MAX_BUTTON_TOKEN_LENGTH);
             ESP_LOGI(TAG, "Button token is now %s", button_token);
@@ -107,13 +111,16 @@ void download_button_commands(void *pvParameters) {
     }
 }
 
+/**
+ * Push the button when a message is received in the xButtonQueue.
+ */
 void push_button(void *pvParameters) {
     while (1) {
         if (xQueueReceive(xButtonQueue, NULL, portMAX_DELAY)) {
             ESP_LOGI(TAG, "TODO: Push the button");
-            my_hal_set_button(1); // Push the button
-            vTaskDelay(500 / portTICK_PERIOD_MS);
-            my_hal_set_button(0); // Release the button
+            my_hal_set_button(1);                 // Push the button
+            vTaskDelay(500 / portTICK_PERIOD_MS); // 500 ms
+            my_hal_set_button(0);                 // Release the button
         }
     }
 }
