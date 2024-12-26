@@ -4,8 +4,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "door_sensors.h"
 #include "door_button.h"
+#include "door_sensors.h"
+#include "garage_server.h"
 #include "my_hal.h"
 #include "my_math.h"
 
@@ -59,29 +60,44 @@ void read_sensors(void *pvParameters) {
 }
 
 sensor_state_t sensor_values_to_upload;
+sensor_request_t sensor_request;
+sensor_response_t sensor_response;
+
 void upload_sensors(void *pvParameters) {
     while (1) {
         if (xQueueReceive(xSensorQueue, &sensor_values_to_upload, portMAX_DELAY)) {
             ESP_LOGI(TAG,
-                     "TODO: Upload sensor values a: %d, b: %d",
+                     "Upload sensor values a: %d, b: %d",
                      sensor_values_to_upload.a_level,
                      sensor_values_to_upload.b_level);
-            // TODO: Make HTTPS request to server.
+
+            strncpy(sensor_request.device_id, "device_id", MAX_BUTTON_TOKEN_LENGTH);
+            sensor_request.sensor_a = sensor_values_to_upload.a_level;
+            sensor_request.sensor_b = sensor_values_to_upload.b_level;
+
+            garage_server_send_sensor_values(&sensor_request, &sensor_response);
+
+            ESP_LOGI(TAG,
+                     "Received sensor values a: %d, b: %d",
+                     sensor_response.sensor_a,
+                     sensor_response.sensor_b);
         } else {
             ESP_LOGE(TAG, "Failed to receive sensor value");
         }
     }
 }
 
+button_request_t button_request;
+button_response_t button_response;
 void fetch_button_token(const char *old_button_token, char *new_button_token) {
-    ESP_LOGI(TAG, "TODO: Fetch button token from server with %s", old_button_token);
-    // TODO: Make HTTPS request to server to fetch button token
+    ESP_LOGI(TAG, "Fetch button token from server with %s", old_button_token);
 
-    // Simulate putting the fetched button token into new_button_token.
-    snprintf(new_button_token,
-             MAX_BUTTON_TOKEN_LENGTH,
-             "button_token_%llu",
-             (uint64_t)((((uint64_t)xTaskGetTickCount()) / configTICK_RATE_HZ) / 10) /* Changes every 10 seconds */);
+    strncpy(button_request.device_id, "device_id", MAX_BUTTON_TOKEN_LENGTH);
+    strncpy(button_request.button_token, old_button_token, MAX_BUTTON_TOKEN_LENGTH);
+
+    garage_server_send_button_token(&button_request, &button_response);
+
+    strncpy(new_button_token, button_response.button_token, MAX_BUTTON_TOKEN_LENGTH);
 }
 
 /**
@@ -95,6 +111,8 @@ void download_button_commands(void *pvParameters) {
         if (should_push_button(new_button_token)) {
             xQueueSend(xButtonQueue, NULL, 0); // Signal the button to be pushed
         }
+        save_button_token(new_button_token);
+
         vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
 }
