@@ -1,5 +1,8 @@
-file(GLOB SRCS "src/*.c")
-
-idf_component_register(SRCS ${SRCS}
-                       INCLUDE_DIRS "include"
-                       REQUIRES garage_config)
+idf_component_register(
+    SRCS
+        "src/door_button.c"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        garage_config
+)
