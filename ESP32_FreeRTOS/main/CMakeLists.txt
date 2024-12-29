@@ -4,7 +4,7 @@ idf_component_register(
     INCLUDE_DIRS
         "."
     REQUIRES
-        door_button
+        button_token
         door_sensors
         garage_hal
         garage_server

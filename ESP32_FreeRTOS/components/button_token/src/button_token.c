@@ -1,9 +1,9 @@
-#include "door_button.h"
+#include "button_token.h"
 #include <stdio.h>
 #include <string.h>
 #include "esp_log.h"
 
-static const char *TAG = "door_button";
+static const char *TAG = "button_token";
 
 static void button_init(button_token_t *token) {
     (*token)[0] = '\0';

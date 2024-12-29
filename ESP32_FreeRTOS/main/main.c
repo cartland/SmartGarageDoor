@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "door_button.h"
+#include "button_token.h"
 #include "door_sensors.h"
 #include "garage_hal.h"
 #include "garage_server.h"

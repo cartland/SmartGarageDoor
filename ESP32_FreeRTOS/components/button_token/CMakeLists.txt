@@ -1,6 +1,6 @@
 idf_component_register(
     SRCS
-        "src/door_button.c"
+        "src/button_token.c"
     INCLUDE_DIRS
         "include"
     REQUIRES
