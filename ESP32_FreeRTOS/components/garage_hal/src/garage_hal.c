@@ -4,7 +4,7 @@
 
 #include "garage_hal.h"
 
-void my_hal_init(void) {
+static void my_hal_init(void) {
     gpio_config_t io_conf;
 
     // Configure input pins
@@ -25,14 +25,16 @@ void my_hal_init(void) {
     gpio_set_level(BUTTON_GPIO, 0); // Default to 0.
 }
 
-int my_hal_read_sensor_a(void) {
-    return gpio_get_level(SENSOR_A_GPIO);
+static int my_hal_read_sensor(garage_gpio_t gpio) {
+    return gpio_get_level(gpio);
 }
 
-int my_hal_read_sensor_b(void) {
-    return gpio_get_level(SENSOR_B_GPIO);
-}
-
-void my_hal_set_button(int level) {
+static void my_hal_set_button(int level) {
     gpio_set_level(BUTTON_GPIO, level);
 }
+
+garage_hal_t garage_hal = {
+    .init = my_hal_init,
+    .read_sensor = my_hal_read_sensor,
+    .set_button = my_hal_set_button,
+};

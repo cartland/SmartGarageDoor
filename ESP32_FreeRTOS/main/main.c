@@ -34,8 +34,8 @@ void read_sensors(void *pvParameters) {
         tick_count = xTaskGetTickCount();
 
         // Read sensor values
-        new_sensor_a = my_hal_read_sensor_a();
-        new_sensor_b = my_hal_read_sensor_b();
+        new_sensor_a = garage_hal.read_sensor(SENSOR_A_GPIO);
+        new_sensor_b = garage_hal.read_sensor(SENSOR_B_GPIO);
         a_changed = debounce_sensor_a(new_sensor_a, (uint32_t)tick_count);
         b_changed = debounce_sensor_b(new_sensor_b, (uint32_t)tick_count);
         if (a_changed) {
@@ -148,10 +148,10 @@ void push_button(void *pvParameters) {
     while (1) {
         if (xQueueReceive(xButtonQueue, &void_pointer, portMAX_DELAY)) {
             ESP_LOGI(TAG, "TODO: Push the button");
-            my_hal_set_button(1);                  // Push the button
+            garage_hal.set_button(1);              // Push the button
             ESP_LOGI(TAG, "Button pushed");
             vTaskDelay(1000 / portTICK_PERIOD_MS); // 1000 ms
-            my_hal_set_button(0);                  // Release the button
+            garage_hal.set_button(0);              // Release the button
             ESP_LOGI(TAG, "Button released");
         }
     }
@@ -165,7 +165,7 @@ void log_hello(void *pvParameters) {
 }
 
 void app_main(void) {
-    my_hal_init();
+    garage_hal.init();
     garage_server.init();
     debounce_init(pdMS_TO_TICKS(50));
     xSensorQueue = xQueueCreate(1, sizeof(sensor_state_t));
