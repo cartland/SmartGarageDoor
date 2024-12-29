@@ -4,7 +4,7 @@
 
 #include "door_button.h"
 
-#define TAG "door_button.c"
+#define TAG "door_button"
 
 static char button_token[MAX_BUTTON_TOKEN_LENGTH + 1] = "";
 

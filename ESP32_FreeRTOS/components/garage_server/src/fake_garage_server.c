@@ -5,7 +5,7 @@
 
 #include "fake_garage_server.h"
 
-#define TAG "fake_garage_server.c"
+#define TAG "fake_garage_server"
 
 garage_server_t garage_server = {
     .init = fake_garage_server_init,
