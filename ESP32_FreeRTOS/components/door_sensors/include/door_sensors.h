@@ -7,6 +7,7 @@
 typedef struct {
     bool has_value;
     int level;
+    int pending_level;
     uint32_t settled_tick;
     uint32_t tick_debounce_threshold;
 } sensor_state_t;

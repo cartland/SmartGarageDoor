@@ -12,17 +12,23 @@
 #define TAG "main"
 #define DEVICE_ID "device_id"
 
-static void *void_pointer;
+// Queue to communicate between tasks that read sensor values and tasks that upload them to the server
 static QueueHandle_t xSensorQueue;
-static QueueHandle_t xButtonQueue;
-static button_token_t current_button_token;
-static sensor_state_t sensor_a;
-static sensor_state_t sensor_b;
-
+// Data to pass to the xSensorQueue
 typedef struct {
     int a_level;
     int b_level;
 } sensor_collection_t;
+// Sensor state
+static sensor_state_t sensor_a;
+static sensor_state_t sensor_b;
+
+// Queue to communicate between tasks that download button commands and tasks that push the button
+static QueueHandle_t xButtonQueue;
+// Data to pass to the xButtonQueue
+static void *void_pointer;
+// Button token state
+static button_token_t current_button_token;
 
 /**
  * Read sensor values and signal the xSensorQueue when they have changed.
@@ -40,10 +46,10 @@ void read_sensors(void *pvParameters) {
     static BaseType_t xStatus;
     while (1) {
         tick_count = xTaskGetTickCount();
-
         // Read sensor values
         new_sensor_a = garage_hal.read_sensor(SENSOR_A_GPIO);
         new_sensor_b = garage_hal.read_sensor(SENSOR_B_GPIO);
+        // Debounce sensor values and check if they have changed
         a_changed = sensor_debouncer.debounce(&sensor_a, new_sensor_a, (uint32_t)tick_count);
         b_changed = sensor_debouncer.debounce(&sensor_b, new_sensor_b, (uint32_t)tick_count);
         if (a_changed) {
@@ -52,7 +58,6 @@ void read_sensors(void *pvParameters) {
         if (b_changed) {
             send_collection.b_level = new_sensor_b;
         }
-
         if (a_changed || b_changed) {
             // If sensor values have changed, send them to the server
             xStatus = xQueueSend(xSensorQueue, &send_collection, 0);
@@ -101,9 +106,8 @@ void upload_sensors(void *pvParameters) {
             snprintf(sensor_request.device_id, MAX_DEVICE_ID_LENGTH, "%s", DEVICE_ID);
             sensor_request.sensor_a = receive_collection.a_level;
             sensor_request.sensor_b = receive_collection.b_level;
-
+            // Send sensor values to the server
             garage_server.send_sensor_values(&sensor_request, &sensor_response);
-
             ESP_LOGI(TAG,
                      "Received sensor values a: %d, b: %d",
                      sensor_response.sensor_a,
