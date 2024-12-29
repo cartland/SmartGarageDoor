@@ -1,5 +1,4 @@
 #include "esp_log.h"
-#include "freertos/FreeRTOS.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -24,25 +23,25 @@ void fake_garage_server_send_sensor_values(sensor_request_t *sensor_request, sen
              sensor_request->sensor_a,
              sensor_request->sensor_b);
 
-    strncpy(sensor_response->device_id, sensor_request->device_id, MAX_DEVICE_ID_LENGTH);
-    sensor_response->device_id[MAX_DEVICE_ID_LENGTH] = '\0';
-
+    snprintf(sensor_response->device_id, MAX_DEVICE_ID_LENGTH + 1, "%s", sensor_request->device_id);
     sensor_response->sensor_a = sensor_request->sensor_a;
     sensor_response->sensor_b = sensor_request->sensor_b;
 }
 
 void fake_garage_server_send_button_token(button_request_t *button_request, button_response_t *button_response) {
+    static uint64_t button_token;
+
+    static uint64_t counter = 0;
+    button_token = (counter++/2); // Increments every 2 calls
     ESP_LOGI(TAG,
              "Send button token to server: device_id: %s, button_token: %s",
              button_request->device_id,
              button_request->button_token);
 
-    strncpy(button_response->device_id, button_request->device_id, MAX_DEVICE_ID_LENGTH);
-    button_response->device_id[MAX_DEVICE_ID_LENGTH] = '\0';
-    // Simulate putting the fetched button token into new_button_token.
+    snprintf(button_response->device_id, MAX_DEVICE_ID_LENGTH + 1, "%s", button_request->device_id);
     snprintf(button_response->button_token,
              MAX_BUTTON_TOKEN_LENGTH,
              "button_token_%llu",
-             (uint64_t)((((uint64_t)xTaskGetTickCount()) / configTICK_RATE_HZ) / 11) /* Increments every 11 seconds */);
+             button_token);
     button_response->button_token[MAX_BUTTON_TOKEN_LENGTH] = '\0';
 }

@@ -9,7 +9,8 @@
 #include "garage_hal.h"
 #include "garage_server.h"
 
-#define TAG "main.c"
+#define TAG "main"
+#define DEVICE_ID "device_id"
 
 static void *void_pointer;
 static QueueHandle_t xSensorQueue;
@@ -90,7 +91,7 @@ void upload_sensors(void *pvParameters) {
                      sensor_values_to_upload.a_level,
                      sensor_values_to_upload.b_level);
 
-            strncpy(sensor_request.device_id, "device_id", MAX_DEVICE_ID_LENGTH);
+            snprintf(sensor_request.device_id, MAX_DEVICE_ID_LENGTH, "%s", DEVICE_ID);
             sensor_request.device_id[MAX_DEVICE_ID_LENGTH] = '\0';
 
             sensor_request.sensor_a = sensor_values_to_upload.a_level;
@@ -121,11 +122,8 @@ void download_button_commands(void *pvParameters) {
         get_button_token(old_button_token);
         ESP_LOGI(TAG, "Fetch button token from server with %s", old_button_token);
 
-        strncpy(button_request.device_id, "device_id", MAX_DEVICE_ID_LENGTH);
-        button_request.device_id[MAX_DEVICE_ID_LENGTH] = '\0';
-
-        strncpy(button_request.button_token, old_button_token, MAX_BUTTON_TOKEN_LENGTH);
-        button_request.button_token[MAX_BUTTON_TOKEN_LENGTH] = '\0';
+        snprintf(button_request.device_id, MAX_DEVICE_ID_LENGTH, "%s", DEVICE_ID);
+        snprintf(button_request.button_token, MAX_BUTTON_TOKEN_LENGTH + 1, "%s", old_button_token);
 
         garage_server.send_button_token(&button_request, &button_response);
 
@@ -175,6 +173,6 @@ void app_main(void) {
     xTaskCreate(log_hello, "log_hello", 2048, NULL, 5, NULL);
     xTaskCreate(read_sensors, "read_sensors", 2048, NULL, 5, NULL);
     xTaskCreate(upload_sensors, "upload_sensors", 2048, NULL, 5, NULL);
-    xTaskCreate(download_button_commands, "download_button_commands", 2048, NULL, 5, NULL);
+    xTaskCreate(download_button_commands, "download_button", 2048, NULL, 5, NULL);
     xTaskCreate(push_button, "push_button", 2048, NULL, 5, NULL);
 }

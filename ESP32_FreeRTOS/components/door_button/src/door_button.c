@@ -28,12 +28,10 @@ bool should_push_button(const char *new_button_token) {
 }
 
 void get_button_token(char *buffer) {
-    strncpy(buffer, button_token, MAX_BUTTON_TOKEN_LENGTH);
+    snprintf(buffer, MAX_BUTTON_TOKEN_LENGTH + 1, "%s", button_token);
 }
 
 void save_button_token(const char *new_button_token) {
-    strncpy(button_token, new_button_token, MAX_BUTTON_TOKEN_LENGTH);
-    button_token[MAX_BUTTON_TOKEN_LENGTH] = '\0';
-
+    snprintf(button_token, MAX_BUTTON_TOKEN_LENGTH + 1, "%s", new_button_token);
     ESP_LOGI(TAG, "Button token is now %s", button_token);
 }
