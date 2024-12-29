@@ -11,6 +11,7 @@
 
 #define TAG "main.c"
 
+static void *void_pointer;
 static QueueHandle_t xSensorQueue;
 static QueueHandle_t xButtonQueue;
 
@@ -21,12 +22,13 @@ static QueueHandle_t xButtonQueue;
 void read_sensors(void *pvParameters) {
     static TickType_t tick_count;
     static uint32_t tick_count_of_last_update = 0;
-    const static uint32_t HEARTBEAT_TICKS = pdMS_TO_TICKS(10000); // 10 seconds for debugging
+    const static uint32_t HEARTBEAT_TICKS = pdMS_TO_TICKS(13000); // 13 seconds for debugging
     static int new_sensor_a;
     static int new_sensor_b;
     static bool a_changed;
     static bool b_changed;
-    sensor_state_t sensors;
+    static sensor_state_t sensors;
+    static BaseType_t xStatus;
     while (1) {
         tick_count = xTaskGetTickCount();
 
@@ -44,21 +46,33 @@ void read_sensors(void *pvParameters) {
 
         if (a_changed || b_changed) {
             // If sensor values have changed, send them to the server
-            xQueueSend(xSensorQueue, &sensors, 0);
-            ESP_LOGI(TAG, "Change: Send sensor values a: %d, b: %d to server", sensors.a_level, sensors.b_level);
+            xStatus = xQueueSend(xSensorQueue, &sensors, 0);
+            if (xStatus == pdPASS) {
+                ESP_LOGI(TAG, "Change: Send sensor values a: %d, b: %d to xSensorQueue", sensors.a_level, sensors.b_level);
+            } else {
+                ESP_LOGE(TAG, "Failed to send sensor values a: %d, b: %d to xSensorQueue", sensors.a_level, sensors.b_level);
+            }
             tick_count_of_last_update = tick_count;
         } else if (tick_count_of_last_update == 0) {
             // Make sure we send something after booting
-            xQueueSend(xSensorQueue, &sensors, 0);
-            ESP_LOGI(TAG, "First Heartbeat: Send sensor values a: %d, b: %d to server", sensors.a_level, sensors.b_level);
+            xStatus = xQueueSend(xSensorQueue, &sensors, 0);
+            if (xStatus == pdPASS) {
+                ESP_LOGI(TAG, "First Heartbeat: Send sensor values a: %d, b: %d to xSensorQueue", sensors.a_level, sensors.b_level);
+            } else {
+                ESP_LOGE(TAG, "Failed to send sensor values a: %d, b: %d to xSensorQueue", sensors.a_level, sensors.b_level);
+            }
             tick_count_of_last_update = 1; // Ensure we don't send a heartbeat immediately again
         } else if ((tick_count - tick_count_of_last_update) > HEARTBEAT_TICKS) {
             // If it is time to send a heartbeat, send the sensor values to the server
-            xQueueSend(xSensorQueue, &sensors, 0);
-            ESP_LOGI(TAG, "Heartbeat: Send sensor values a: %d, b: %d to server", sensors.a_level, sensors.b_level);
+            xStatus = xQueueSend(xSensorQueue, &sensors, 0);
+            if (xStatus == pdPASS) {
+                ESP_LOGI(TAG, "Heartbeat: Send sensor values a: %d, b: %d to xSensorQueue", sensors.a_level, sensors.b_level);
+            } else {
+                ESP_LOGE(TAG, "Failed to send sensor values a: %d, b: %d to xSensorQueue", sensors.a_level, sensors.b_level);
+            }
             tick_count_of_last_update = tick_count;
         }
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+        vTaskDelay(10 / portTICK_PERIOD_MS); // 10 ms
     }
 }
 
@@ -101,6 +115,7 @@ void download_button_commands(void *pvParameters) {
     static button_request_t button_request;
     static button_response_t button_response;
     static char old_button_token[MAX_BUTTON_TOKEN_LENGTH + 1] = "";
+    static BaseType_t xStatus;
 
     while (1) {
         get_button_token(old_button_token);
@@ -115,11 +130,16 @@ void download_button_commands(void *pvParameters) {
         garage_server_send_button_token(&button_request, &button_response);
 
         if (should_push_button(button_response.button_token)) {
-            xQueueSend(xButtonQueue, NULL, 0); // Signal the button to be pushed
+            xStatus = xQueueSend(xButtonQueue, &void_pointer, 0); // Signal the button to be pushed
+            if (xStatus == pdPASS) {
+                ESP_LOGI(TAG, "Sent button push signal to xButtonQueue");
+            } else {
+                ESP_LOGE(TAG, "Failed to send button push signal to xButtonQueue");
+            }
         }
         save_button_token(button_response.button_token);
 
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        vTaskDelay(5000 / portTICK_PERIOD_MS); // 5 seconds
     }
 }
 
@@ -128,20 +148,30 @@ void download_button_commands(void *pvParameters) {
  */
 void push_button(void *pvParameters) {
     while (1) {
-        if (xQueueReceive(xButtonQueue, NULL, portMAX_DELAY)) {
+        if (xQueueReceive(xButtonQueue, &void_pointer, portMAX_DELAY)) {
             ESP_LOGI(TAG, "TODO: Push the button");
-            my_hal_set_button(1);                 // Push the button
-            vTaskDelay(500 / portTICK_PERIOD_MS); // 500 ms
-            my_hal_set_button(0);                 // Release the button
+            my_hal_set_button(1);                  // Push the button
+            ESP_LOGI(TAG, "Button pushed");
+            vTaskDelay(1000 / portTICK_PERIOD_MS); // 1000 ms
+            my_hal_set_button(0);                  // Release the button
+            ESP_LOGI(TAG, "Button released");
         }
+    }
+}
+
+void log_hello(void *pvParameters) {
+    while (1) {
+        ESP_LOGI(TAG, "Hello, world!");
+        vTaskDelay(10000 / portTICK_PERIOD_MS); // 10 seconds
     }
 }
 
 void app_main(void) {
     my_hal_init();
     debounce_init(pdMS_TO_TICKS(50));
-    xSensorQueue = xQueueCreate(10, sizeof(sensor_state_t));
-    xButtonQueue = xQueueCreate(10, sizeof(void *));
+    xSensorQueue = xQueueCreate(1, sizeof(sensor_state_t));
+    xButtonQueue = xQueueCreate(1, sizeof(void *));
+    xTaskCreate(log_hello, "log_hello", 2048, NULL, 5, NULL);
     xTaskCreate(read_sensors, "read_sensors", 2048, NULL, 5, NULL);
     xTaskCreate(upload_sensors, "upload_sensors", 2048, NULL, 5, NULL);
     xTaskCreate(download_button_commands, "download_button_commands", 2048, NULL, 5, NULL);
