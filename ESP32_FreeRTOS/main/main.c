@@ -96,7 +96,7 @@ void upload_sensors(void *pvParameters) {
             sensor_request.sensor_a = sensor_values_to_upload.a_level;
             sensor_request.sensor_b = sensor_values_to_upload.b_level;
 
-            garage_server_send_sensor_values(&sensor_request, &sensor_response);
+            garage_server.send_sensor_values(&sensor_request, &sensor_response);
 
             ESP_LOGI(TAG,
                      "Received sensor values a: %d, b: %d",
@@ -127,7 +127,7 @@ void download_button_commands(void *pvParameters) {
         strncpy(button_request.button_token, old_button_token, MAX_BUTTON_TOKEN_LENGTH);
         button_request.button_token[MAX_BUTTON_TOKEN_LENGTH] = '\0';
 
-        garage_server_send_button_token(&button_request, &button_response);
+        garage_server.send_button_token(&button_request, &button_response);
 
         if (should_push_button(button_response.button_token)) {
             xStatus = xQueueSend(xButtonQueue, &void_pointer, 0); // Signal the button to be pushed
@@ -168,6 +168,7 @@ void log_hello(void *pvParameters) {
 
 void app_main(void) {
     my_hal_init();
+    garage_server.init();
     debounce_init(pdMS_TO_TICKS(50));
     xSensorQueue = xQueueCreate(1, sizeof(sensor_state_t));
     xButtonQueue = xQueueCreate(1, sizeof(void *));
