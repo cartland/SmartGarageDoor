@@ -1,7 +1,7 @@
 #include "esp_log.h"
 #include <stdio.h>
 #include <string.h>
-
+#include "freertos/FreeRTOS.h"
 #include "fake_garage_server.h"
 
 #define TAG "fake_garage_server"
@@ -22,7 +22,7 @@ void fake_garage_server_send_sensor_values(sensor_request_t *sensor_request, sen
              sensor_request->device_id,
              sensor_request->sensor_a,
              sensor_request->sensor_b);
-
+    vTaskDelay(1000 / portTICK_PERIOD_MS); // Simulate network delay
     snprintf(sensor_response->device_id, MAX_DEVICE_ID_LENGTH + 1, "%s", sensor_request->device_id);
     sensor_response->sensor_a = sensor_request->sensor_a;
     sensor_response->sensor_b = sensor_request->sensor_b;
@@ -37,7 +37,7 @@ void fake_garage_server_send_button_token(button_request_t *button_request, butt
              "Send button token to server: device_id: %s, button_token: %s",
              button_request->device_id,
              button_request->button_token);
-
+    vTaskDelay(1000 / portTICK_PERIOD_MS); // Simulate network delay
     snprintf(button_response->device_id, MAX_DEVICE_ID_LENGTH + 1, "%s", button_request->device_id);
     snprintf(button_response->button_token,
              MAX_BUTTON_TOKEN_LENGTH,
