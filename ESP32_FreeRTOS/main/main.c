@@ -15,6 +15,7 @@
 static void *void_pointer;
 static QueueHandle_t xSensorQueue;
 static QueueHandle_t xButtonQueue;
+static button_token_t current_button_token;
 
 /**
  * Read sensor values and signal the xSensorQueue when they have changed.
@@ -115,19 +116,17 @@ void upload_sensors(void *pvParameters) {
 void download_button_commands(void *pvParameters) {
     static button_request_t button_request;
     static button_response_t button_response;
-    static char old_button_token[MAX_BUTTON_TOKEN_LENGTH + 1] = "";
     static BaseType_t xStatus;
 
     while (1) {
-        get_button_token(old_button_token);
-        ESP_LOGI(TAG, "Fetch button token from server with %s", old_button_token);
+        ESP_LOGI(TAG, "Fetch button token from server with %s", current_button_token);
 
         snprintf(button_request.device_id, MAX_DEVICE_ID_LENGTH, "%s", DEVICE_ID);
-        snprintf(button_request.button_token, MAX_BUTTON_TOKEN_LENGTH + 1, "%s", old_button_token);
+        snprintf(button_request.button_token, MAX_BUTTON_TOKEN_LENGTH + 1, "%s", current_button_token);
 
         garage_server.send_button_token(&button_request, &button_response);
 
-        if (should_push_button(button_response.button_token)) {
+        if (token_manager.is_button_press_requested(&current_button_token, button_response.button_token)) {
             xStatus = xQueueSend(xButtonQueue, &void_pointer, 0); // Signal the button to be pushed
             if (xStatus == pdPASS) {
                 ESP_LOGI(TAG, "Sent button push signal to xButtonQueue");
@@ -135,7 +134,7 @@ void download_button_commands(void *pvParameters) {
                 ESP_LOGE(TAG, "Failed to send button push signal to xButtonQueue");
             }
         }
-        save_button_token(button_response.button_token);
+        token_manager.consume_button_token(&current_button_token, button_response.button_token);
 
         vTaskDelay(5000 / portTICK_PERIOD_MS); // 5 seconds
     }
@@ -165,6 +164,7 @@ void log_hello(void *pvParameters) {
 }
 
 void app_main(void) {
+    token_manager.init(&current_button_token);
     garage_hal.init();
     garage_server.init();
     debounce_init(pdMS_TO_TICKS(50));
