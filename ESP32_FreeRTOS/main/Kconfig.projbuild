@@ -26,4 +26,10 @@ menu "WiFi Configuration"
         help
             The maximum number of times to retry connecting to Wi-Fi.
 
+    config ESP_WIFI_HOSTNAME
+        string "WiFi Hostname"
+        default "garage-door-esp32"
+        help
+            The hostname of the device on the network.
+
 endmenu
