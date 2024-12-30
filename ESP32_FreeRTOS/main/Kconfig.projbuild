@@ -1,0 +1,29 @@
+mainmenu "Smart Garage Door Configuration"
+
+config PROJECT_DEVICE_ID
+    string "Device ID"
+    default "device_id"
+    help
+        Unique identifier for this device.
+
+menu "WiFi Configuration"
+
+    config ESP_WIFI_SSID
+        string "WiFi SSID"
+        default "YOUR_WIFI_SSID"
+        help
+            The SSID (name) of your Wi-Fi network.
+
+    config ESP_WIFI_PASSWORD
+        string "WiFi Password"
+        default "YOUR_WIFI_PASSWORD"
+        help
+            The password for your Wi-Fi network.
+
+    config ESP_MAXIMUM_RETRY
+        int "Maximum Connection Retries"
+        default 5
+        help
+            The maximum number of times to retry connecting to Wi-Fi.
+
+endmenu
