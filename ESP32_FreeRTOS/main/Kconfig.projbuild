@@ -6,6 +6,18 @@ menu "Smart Garage Door Configuration"
         help
             The base URL of the garage server.
 
+    config SENSOR_VALUES_ENDPOINT
+        string "Sensor Values Endpoint"
+        default "/sensor_values"
+        help
+            The endpoint to send sensor values to.
+
+    config BUTTON_TOKEN_ENDPOINT
+        string "Button Token Endpoint"
+        default "/button_token"
+        help
+            The endpoint to get a button token from.
+
     config PROJECT_DEVICE_ID
         string "Device ID"
         default "device_id"
