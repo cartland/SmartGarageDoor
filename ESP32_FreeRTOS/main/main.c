@@ -38,7 +38,7 @@ static button_token_t current_button_token;
 void read_sensors(void *pvParameters) {
     static TickType_t tick_count;
     static uint32_t tick_count_of_last_update = 0;
-    const static uint32_t HEARTBEAT_TICKS = pdMS_TO_TICKS(13000); // 13 seconds for debugging
+    const static uint32_t HEARTBEAT_TICKS = pdMS_TO_TICKS(600000); // 10 minutes
     static int new_sensor_a;
     static int new_sensor_b;
     static bool a_changed;
@@ -191,7 +191,7 @@ void app_main(void) {
     xButtonQueue = xQueueCreate(1, sizeof(void *));
     xTaskCreate(log_hello, "log_hello", 2048, NULL, 5, NULL);
     xTaskCreate(read_sensors, "read_sensors", 2048, NULL, 5, NULL);
-    xTaskCreate(upload_sensors, "upload_sensors", 2048, NULL, 5, NULL);
+    xTaskCreate(upload_sensors, "upload_sensors", 4096, NULL, 5, NULL);
     xTaskCreate(download_button_commands, "download_button", 2048, NULL, 5, NULL);
     xTaskCreate(push_button, "push_button", 2048, NULL, 5, NULL);
 }

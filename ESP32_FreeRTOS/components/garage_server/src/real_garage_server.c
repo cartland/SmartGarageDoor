@@ -31,6 +31,8 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt) {
         // Handle the response data here.
         // Example: If you expect a JSON response, you can parse it using cJSON:
 
+        ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA, data=%.*s", evt->data_len, (char *)evt->data);
+
         if (!esp_http_client_is_chunked_response(evt->client)) {
             cJSON *root = cJSON_ParseWithLength((char *)evt->data, evt->data_len);
             if (root == NULL) {
@@ -96,10 +98,52 @@ void real_garage_server_init(void) {
 }
 
 void real_garage_server_send_sensor_values(sensor_request_t *sensor_request, sensor_response_t *sensor_response) {
-    ESP_LOGI(TAG, "TODO: Send sensor values to server: device_id: %s, sensor_a: %d, sensor_b: %d",
+    ESP_LOGI(TAG, "Send sensor values to server: device_id: %s, sensor_a: %d, sensor_b: %d",
              sensor_request->device_id,
              sensor_request->sensor_a,
              sensor_request->sensor_b);
+    // URL query parameters: ?buildTimestamp=${device_id}&sensorA=${sensor_a}&sensorB=${sensor_b}
+    // sensorA: 0 (door closed), 1 (door not closed)
+    // sensorB: 0 (door open), 1 (door not open)
+
+    // 1. Create JSON Payload:
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "device_id", sensor_request->device_id);
+    cJSON_AddNumberToObject(root, "sensor_a", sensor_request->sensor_a);
+    cJSON_AddNumberToObject(root, "sensor_b", sensor_request->sensor_b);
+
+    char *json_payload = cJSON_Print(root);
+    cJSON_Delete(root);
+
+    if (json_payload == NULL) {
+        ESP_LOGE(TAG, "Failed to create JSON payload");
+        return; // Handle the error appropriately
+    }
+
+    // 2. Construct URL with Parameters:
+    char url_with_params[512];
+    // This is a legacy URL pattern for an old version of the server.
+    // The legacy URL path is /echo (a generic endpoint), which needs to be updated in idf.py menuconfig
+    snprintf(url_with_params, sizeof(url_with_params),
+             "%s?buildTimestamp=%s&sensorA=%d&sensorB=%d",
+             SENSOR_VALUES_URL, sensor_request->device_id, sensor_request->sensor_a, sensor_request->sensor_b);
+
+    ESP_LOGI(TAG, "URL with parameters: %s", url_with_params);
+    // 3. Send HTTPS POST Request:
+    esp_err_t err = https_post_request(url_with_params, json_payload, strlen(json_payload));
+
+    // 4. Handle Response (if needed):
+    if (err == ESP_OK) {
+        ESP_LOGI(TAG, "Sensor values sent successfully");
+
+        // ... (Response handling code - see previous example) ...
+
+    } else {
+        ESP_LOGE(TAG, "Failed to send sensor values");
+    }
+
+    // 5. Free memory allocated for JSON payload:
+    free(json_payload);
 }
 
 void real_garage_server_send_button_token(button_request_t *button_request, button_response_t *button_response) {
