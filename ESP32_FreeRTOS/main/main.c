@@ -44,6 +44,7 @@ void read_sensors(void *pvParameters) {
     static bool b_changed;
     static sensor_collection_t send_collection;
     static BaseType_t xStatus;
+    memset(&send_collection, 0, sizeof(send_collection));
     while (1) {
         tick_count = xTaskGetTickCount();
         // Read sensor values
@@ -97,6 +98,9 @@ void upload_sensors(void *pvParameters) {
     static sensor_collection_t receive_collection;
     static sensor_request_t sensor_request;
     static sensor_response_t sensor_response;
+    memset(&receive_collection, 0, sizeof(receive_collection));
+    memset(&sensor_request, 0, sizeof(sensor_request));
+    memset(&sensor_response, 0, sizeof(sensor_response));
     while (1) {
         if (xQueueReceive(xSensorQueue, &receive_collection, portMAX_DELAY)) {
             ESP_LOGI(TAG,
@@ -125,7 +129,8 @@ void download_button_commands(void *pvParameters) {
     static button_request_t button_request;
     static button_response_t button_response;
     static BaseType_t xStatus;
-
+    memset(&button_request, 0, sizeof(button_request));
+    memset(&button_response, 0, sizeof(button_response));
     while (1) {
         ESP_LOGI(TAG, "Fetch button token from server with %s", current_button_token);
 
