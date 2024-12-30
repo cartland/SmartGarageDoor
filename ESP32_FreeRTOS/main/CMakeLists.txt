@@ -8,4 +8,5 @@ idf_component_register(
         door_sensors
         garage_hal
         garage_server
+        wifi_connector
 )

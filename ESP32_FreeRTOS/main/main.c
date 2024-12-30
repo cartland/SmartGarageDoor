@@ -8,9 +8,10 @@
 #include "door_sensors.h"
 #include "garage_hal.h"
 #include "garage_server.h"
+#include "wifi_connector.h"
 
 #define TAG "main"
-#define DEVICE_ID "device_id"
+#define DEVICE_ID CONFIG_PROJECT_DEVICE_ID
 
 // Queue to communicate between tasks that read sensor values and tasks that upload them to the server
 static QueueHandle_t xSensorQueue;
