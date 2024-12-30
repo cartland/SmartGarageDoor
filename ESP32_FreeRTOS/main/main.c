@@ -178,6 +178,10 @@ void log_hello(void *pvParameters) {
 }
 
 void app_main(void) {
+    // Initialize WIFI
+    if (wifi_connector_init() != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to connect to WiFi");
+    }
     garage_hal.init();
     garage_server.init();
     sensor_debouncer.init(&sensor_a, pdMS_TO_TICKS(50));
