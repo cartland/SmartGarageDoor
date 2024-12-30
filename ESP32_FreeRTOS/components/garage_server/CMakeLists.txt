@@ -5,7 +5,9 @@ idf_component_register(
     INCLUDE_DIRS
         "include"
     REQUIRES
+        esp_http_client
         garage_config
+        json
     EMBED_TXTFILES
         "server_root_cert.pem"
 )
