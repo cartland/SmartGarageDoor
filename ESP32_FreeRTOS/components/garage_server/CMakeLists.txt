@@ -6,4 +6,6 @@ idf_component_register(
         "include"
     REQUIRES
         garage_config
+    EMBED_TXTFILES
+        "server_root_cert.pem"
 )

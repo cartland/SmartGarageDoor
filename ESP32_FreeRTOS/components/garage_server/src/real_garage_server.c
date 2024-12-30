@@ -1,11 +1,20 @@
+#ifndef CONFIG_USE_FAKE_GARAGE_SERVER
+
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include <stdio.h>
 #include <string.h>
 
+#ifndef MIN
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
 #include "real_garage_server.h"
 
 #define TAG "real_garage_server"
+
+extern const uint8_t server_root_cert_pem_start[] asm("_binary_server_root_cert_pem_start");
+extern const uint8_t server_root_cert_pem_end[]   asm("_binary_server_root_cert_pem_end");
 
 extern garage_server_t garage_server = {
     .init = real_garage_server_init,
@@ -15,6 +24,12 @@ extern garage_server_t garage_server = {
 
 void real_garage_server_init(void) {
     ESP_LOGI(TAG, "Initialize garage server");
+    static char server_root_cert_pem[2048];
+    snprintf(server_root_cert_pem,
+             MIN(2048, server_root_cert_pem_end - server_root_cert_pem_start + 1),
+             "%s",
+             (const char *)server_root_cert_pem_start);
+    ESP_LOGI(TAG, "Server root certificate: %s", server_root_cert_pem);
 }
 
 void real_garage_server_send_sensor_values(sensor_request_t *sensor_request, sensor_response_t *sensor_response) {
@@ -29,3 +44,5 @@ void real_garage_server_send_button_token(button_request_t *button_request, butt
              button_request->device_id,
              button_request->button_token);
 }
+
+#endif // CONFIG_USE_FAKE_GARAGE_SERVER

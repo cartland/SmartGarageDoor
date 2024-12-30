@@ -1,3 +1,5 @@
+#ifdef CONFIG_USE_FAKE_GARAGE_SERVER
+
 #include "esp_log.h"
 #include <stdio.h>
 #include <string.h>
@@ -45,3 +47,5 @@ void fake_garage_server_send_button_token(button_request_t *button_request, butt
              button_token);
     button_response->button_token[MAX_BUTTON_TOKEN_LENGTH] = '\0';
 }
+
+#endif // CONFIG_USE_FAKE_GARAGE_SERVER
