@@ -1,10 +1,12 @@
-mainmenu "Smart Garage Door Configuration"
+menu "Smart Garage Door Configuration"
 
-config PROJECT_DEVICE_ID
-    string "Device ID"
-    default "device_id"
-    help
-        Unique identifier for this device.
+    config PROJECT_DEVICE_ID
+        string "Device ID"
+        default "device_id"
+        help
+            Unique identifier for this device.
+
+endmenu
 
 menu "WiFi Configuration"
 
