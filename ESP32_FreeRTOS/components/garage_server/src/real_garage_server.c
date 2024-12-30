@@ -18,23 +18,70 @@ static const char *TAG = "real_garage_server";
 #define SENSOR_VALUES_URL GARAGE_SERVER_BASE_URL SENSOR_VALUES_ENDPOINT
 #define BUTTON_TOKEN_URL GARAGE_SERVER_BASE_URL BUTTON_TOKEN_ENDPOINT
 
+#define HTTP_RECEIVE_BUFFER_SIZE 1024
+
 extern const uint8_t server_root_cert_pem_start[] asm("_binary_server_root_cert_pem_start");
 extern const uint8_t server_root_cert_pem_end[] asm("_binary_server_root_cert_pem_end");
 
+typedef struct {
+    char *buffer;
+    size_t buffer_len;
+    size_t data_received_len;
+} http_receive_buffer_t;
+
+static void reset_http_buffer(http_receive_buffer_t *buffer) {
+    if (buffer && buffer->buffer) {
+        memset(buffer->buffer, 0, buffer->buffer_len);
+        buffer->data_received_len = 0;
+    }
+}
+
 esp_err_t _http_event_handler(esp_http_client_event_t *evt) {
+    static http_receive_buffer_t recv_buffer = {0};
+
     switch (evt->event_id) {
     case HTTP_EVENT_ERROR:
         ESP_LOGE(TAG, "HTTP_EVENT_ERROR");
         break;
+
+    case HTTP_EVENT_ON_CONNECTED:
+        ESP_LOGI(TAG, "HTTP_EVENT_ON_CONNECTED");
+        // Allocate buffer on connect
+        if (recv_buffer.buffer == NULL) {
+            recv_buffer.buffer = (char *)malloc(HTTP_RECEIVE_BUFFER_SIZE);
+            if (recv_buffer.buffer == NULL) {
+                ESP_LOGE(TAG, "Failed to allocate memory for HTTP receive buffer");
+                return ESP_FAIL;
+            }
+            recv_buffer.buffer_len = HTTP_RECEIVE_BUFFER_SIZE;
+            reset_http_buffer(&recv_buffer); // Initialize the buffer
+        }
+        break;
+
+    case HTTP_EVENT_ON_HEADER:
+        ESP_LOGI(TAG, "HTTP_EVENT_ON_HEADER, key=%s, value=%s", evt->header_key, evt->header_value);
+        break;
+
     case HTTP_EVENT_ON_DATA:
         ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
-        // Handle the response data here.
-        // Example: If you expect a JSON response, you can parse it using cJSON:
 
-        ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA, data=%.*s", evt->data_len, (char *)evt->data);
+        // Check for buffer overflow
+        if (recv_buffer.data_received_len + evt->data_len > recv_buffer.buffer_len) {
+            ESP_LOGE(TAG, "HTTP receive buffer overflow");
+            return ESP_FAIL;
+        }
 
-        if (!esp_http_client_is_chunked_response(evt->client)) {
-            cJSON *root = cJSON_ParseWithLength((char *)evt->data, evt->data_len);
+        // Copy the new data into the buffer
+        memcpy(recv_buffer.buffer + recv_buffer.data_received_len, evt->data, evt->data_len);
+        recv_buffer.data_received_len += evt->data_len;
+        ESP_LOGI(TAG, "Current buffer content: %.*s", recv_buffer.data_received_len, recv_buffer.buffer);
+        break;
+
+    case HTTP_EVENT_ON_FINISH:
+        ESP_LOGI(TAG, "HTTP_EVENT_ON_FINISH");
+        // Parse the JSON data after all data is received
+        if (recv_buffer.buffer != NULL && recv_buffer.data_received_len > 0) {
+            cJSON *root = cJSON_ParseWithLength(recv_buffer.buffer, recv_buffer.data_received_len);
             if (root == NULL) {
                 ESP_LOGE(TAG, "Failed to parse JSON");
             } else {
@@ -42,12 +89,21 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt) {
                 ESP_LOGI(TAG, "Parsed JSON: %s", cJSON_Print(root));
                 cJSON_Delete(root);
             }
+            reset_http_buffer(&recv_buffer);
         }
+        break;
 
+    case HTTP_EVENT_DISCONNECTED:
+        ESP_LOGI(TAG, "HTTP_EVENT_DISCONNECTED");
+        // Clean up on disconnect
+        if (recv_buffer.buffer != NULL) {
+            free(recv_buffer.buffer);
+            recv_buffer.buffer = NULL;
+            recv_buffer.buffer_len = 0;
+            recv_buffer.data_received_len = 0;
+        }
         break;
-    case HTTP_EVENT_ON_FINISH:
-        ESP_LOGI(TAG, "HTTP_EVENT_ON_FINISH");
-        break;
+
     default:
         break;
     }
