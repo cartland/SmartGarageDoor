@@ -5,10 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifndef MIN
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#endif
-
 #include "real_garage_server.h"
 
 #define TAG "real_garage_server"
@@ -24,12 +20,7 @@ extern garage_server_t garage_server = {
 
 void real_garage_server_init(void) {
     ESP_LOGI(TAG, "Initialize garage server");
-    static char server_root_cert_pem[2048];
-    snprintf(server_root_cert_pem,
-             MIN(2048, server_root_cert_pem_end - server_root_cert_pem_start + 1),
-             "%s",
-             (const char *)server_root_cert_pem_start);
-    ESP_LOGI(TAG, "Server root certificate: %s", server_root_cert_pem);
+    ESP_LOGI(TAG, "Server root certificate: %s", server_root_cert_pem_start);
 }
 
 void real_garage_server_send_sensor_values(sensor_request_t *sensor_request, sensor_response_t *sensor_response) {
