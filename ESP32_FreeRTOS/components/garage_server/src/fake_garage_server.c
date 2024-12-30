@@ -6,7 +6,7 @@
 #include "freertos/FreeRTOS.h"
 #include "fake_garage_server.h"
 
-#define TAG "fake_garage_server"
+static const char *TAG = "fake_garage_server"
 
 garage_server_t garage_server = {
     .init = fake_garage_server_init,

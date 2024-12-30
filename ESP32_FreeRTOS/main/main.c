@@ -10,9 +10,9 @@
 #include "garage_server.h"
 #include "wifi_connector.h"
 
-#define TAG "main"
 #define DEVICE_ID CONFIG_PROJECT_DEVICE_ID
 
+static const char *TAG = "main";
 // Queue to communicate between tasks that read sensor values and tasks that upload them to the server
 static QueueHandle_t xSensorQueue;
 // Data to pass to the xSensorQueue

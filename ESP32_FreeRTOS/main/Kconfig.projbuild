@@ -1,5 +1,11 @@
 menu "Smart Garage Door Configuration"
 
+    config GARAGE_SERVER_BASE_URL
+        string "Garage Server Base URL"
+        default "https://example.com"
+        help
+            The base URL of the garage server.
+
     config PROJECT_DEVICE_ID
         string "Device ID"
         default "device_id"

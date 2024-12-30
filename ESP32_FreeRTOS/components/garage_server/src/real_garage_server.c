@@ -7,7 +7,13 @@
 
 #include "real_garage_server.h"
 
-#define TAG "real_garage_server"
+static const char *TAG = "real_garage_server";
+
+#define GARAGE_SERVER_BASE_URL CONFIG_GARAGE_SERVER_BASE_URL
+#define SENSOR_VALUES_ENDPOINT "/sensor_values"
+#define BUTTON_TOKEN_ENDPOINT "/button_token"
+#define SENSOR_VALUES_URL GARAGE_SERVER_BASE_URL SENSOR_VALUES_ENDPOINT
+#define BUTTON_TOKEN_URL GARAGE_SERVER_BASE_URL BUTTON_TOKEN_ENDPOINT
 
 extern const uint8_t server_root_cert_pem_start[] asm("_binary_server_root_cert_pem_start");
 extern const uint8_t server_root_cert_pem_end[]   asm("_binary_server_root_cert_pem_end");
