@@ -10,7 +10,7 @@
 
 #include "garage_server.h"
 
-static const char *TAG = "real_garage_server";
+static const char *TAG = "garage_server";
 
 // Set the server URLs with: idf.py menuconfig
 #define GARAGE_SERVER_BASE_URL CONFIG_GARAGE_SERVER_BASE_URL // "https://example.com"
