@@ -39,7 +39,7 @@ static void reset_http_buffer(http_receive_buffer_t *buffer) {
     }
 }
 
-esp_err_t _http_event_handler(esp_http_client_event_t *evt) {
+esp_err_t _http_button_token_event_handler(esp_http_client_event_t *evt) {
     static http_receive_buffer_t recv_buffer = {0};
 
     switch (evt->event_id) {
@@ -113,10 +113,110 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt) {
     return ESP_OK;
 }
 
-static esp_err_t https_post_request(const char *url, const char *post_data, int post_data_len) {
+static esp_err_t https_button_token_post_request(const char *url, const char *post_data, int post_data_len) {
     esp_http_client_config_t config = {
         .url = url,
-        .event_handler = _http_event_handler,
+        .event_handler = _http_button_token_event_handler,
+        .cert_pem = (const char *)server_root_cert_pem_start,
+    };
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+
+    esp_http_client_set_method(client, HTTP_METHOD_POST);
+    esp_http_client_set_header(client, "Content-Type", "application/json");
+    esp_http_client_set_post_field(client, post_data, post_data_len);
+
+    esp_err_t err = esp_http_client_perform(client);
+    if (err == ESP_OK) {
+        ESP_LOGI(TAG, "HTTPS POST Status = %d, content_length = %" PRId64,
+                 esp_http_client_get_status_code(client),
+                 esp_http_client_get_content_length(client));
+    } else {
+        ESP_LOGE(TAG, "HTTPS POST request failed: %s", esp_err_to_name(err));
+    }
+
+    esp_http_client_cleanup(client);
+    return err;
+}
+
+
+esp_err_t _http_sensor_values_event_handler(esp_http_client_event_t *evt) {
+    static http_receive_buffer_t recv_buffer = {0};
+
+    switch (evt->event_id) {
+    case HTTP_EVENT_ERROR:
+        ESP_LOGE(TAG, "HTTP_EVENT_ERROR");
+        break;
+
+    case HTTP_EVENT_ON_CONNECTED:
+        ESP_LOGI(TAG, "HTTP_EVENT_ON_CONNECTED");
+        // Allocate buffer on connect
+        if (recv_buffer.buffer == NULL) {
+            recv_buffer.buffer = (char *)malloc(HTTP_RECEIVE_BUFFER_SIZE);
+            if (recv_buffer.buffer == NULL) {
+                ESP_LOGE(TAG, "Failed to allocate memory for HTTP receive buffer");
+                return ESP_FAIL;
+            }
+            recv_buffer.buffer_len = HTTP_RECEIVE_BUFFER_SIZE;
+            reset_http_buffer(&recv_buffer); // Initialize the buffer
+        }
+        break;
+
+    case HTTP_EVENT_ON_HEADER:
+        ESP_LOGI(TAG, "HTTP_EVENT_ON_HEADER, key=%s, value=%s", evt->header_key, evt->header_value);
+        break;
+
+    case HTTP_EVENT_ON_DATA:
+        ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
+
+        // Check for buffer overflow
+        if (recv_buffer.data_received_len + evt->data_len > recv_buffer.buffer_len) {
+            ESP_LOGE(TAG, "HTTP receive buffer overflow");
+            return ESP_FAIL;
+        }
+
+        // Copy the new data into the buffer
+        memcpy(recv_buffer.buffer + recv_buffer.data_received_len, evt->data, evt->data_len);
+        recv_buffer.data_received_len += evt->data_len;
+        ESP_LOGI(TAG, "Current buffer content: %.*s", recv_buffer.data_received_len, recv_buffer.buffer);
+        break;
+
+    case HTTP_EVENT_ON_FINISH:
+        ESP_LOGI(TAG, "HTTP_EVENT_ON_FINISH");
+        // Parse the JSON data after all data is received
+        if (recv_buffer.buffer != NULL && recv_buffer.data_received_len > 0) {
+            cJSON *root = cJSON_ParseWithLength(recv_buffer.buffer, recv_buffer.data_received_len);
+            if (root == NULL) {
+                ESP_LOGE(TAG, "Failed to parse JSON");
+            } else {
+                // Process JSON data
+                ESP_LOGI(TAG, "Parsed JSON: %s", cJSON_Print(root));
+                cJSON_Delete(root);
+            }
+            reset_http_buffer(&recv_buffer);
+        }
+        break;
+
+    case HTTP_EVENT_DISCONNECTED:
+        ESP_LOGI(TAG, "HTTP_EVENT_DISCONNECTED");
+        // Clean up on disconnect
+        if (recv_buffer.buffer != NULL) {
+            free(recv_buffer.buffer);
+            recv_buffer.buffer = NULL;
+            recv_buffer.buffer_len = 0;
+            recv_buffer.data_received_len = 0;
+        }
+        break;
+
+    default:
+        break;
+    }
+    return ESP_OK;
+}
+
+static esp_err_t https_sensor_values_post_request(const char *url, const char *post_data, int post_data_len) {
+    esp_http_client_config_t config = {
+        .url = url,
+        .event_handler = _http_sensor_values_event_handler,
         .cert_pem = (const char *)server_root_cert_pem_start,
     };
     esp_http_client_handle_t client = esp_http_client_init(&config);
@@ -141,13 +241,6 @@ static esp_err_t https_post_request(const char *url, const char *post_data, int 
 void real_garage_server_init(void) {
     ESP_LOGI(TAG, "Initialize garage server");
     ESP_LOGI(TAG, "Server root certificate: %s", server_root_cert_pem_start);
-
-    esp_err_t err = https_post_request(TEST_URL, "{}", 2);
-    if (err == ESP_OK) {
-        ESP_LOGI(TAG, "HTTPS POST request successful (test)");
-    } else {
-        ESP_LOGE(TAG, "HTTPS POST request failed (test)");
-    }
 }
 
 void real_garage_server_send_sensor_values(sensor_request_t *sensor_request, sensor_response_t *sensor_response) {
@@ -183,7 +276,7 @@ void real_garage_server_send_sensor_values(sensor_request_t *sensor_request, sen
 
     ESP_LOGI(TAG, "URL with parameters: %s", url_with_params);
     // 3. Send HTTPS POST Request:
-    esp_err_t err = https_post_request(url_with_params, json_payload, strlen(json_payload));
+    esp_err_t err = https_sensor_values_post_request(url_with_params, json_payload, strlen(json_payload));
 
     // 4. Handle Response (if needed):
     if (err == ESP_OK) {
@@ -228,7 +321,7 @@ void real_garage_server_send_button_token(button_request_t *button_request, butt
     ESP_LOGI(TAG, "URL with parameters: %s", url_with_params);
 
     // 3. Send HTTPS POST Request:
-    esp_err_t err = https_post_request(url_with_params, json_payload, strlen(json_payload));
+    esp_err_t err = https_button_token_post_request(url_with_params, json_payload, strlen(json_payload));
 
     // 4. Handle Response (if needed):
     if (err == ESP_OK) {
