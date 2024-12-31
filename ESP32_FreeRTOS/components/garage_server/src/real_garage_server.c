@@ -13,6 +13,8 @@
 static const char *TAG = "real_garage_server";
 
 #define TEST_URL "https://us-central1-escape-echo.cloudfunctions.net/echo"
+
+// Set the server URLs with: idf.py menuconfig
 #define GARAGE_SERVER_BASE_URL CONFIG_GARAGE_SERVER_BASE_URL // "https://example.com"
 #define SENSOR_VALUES_ENDPOINT CONFIG_SENSOR_VALUES_ENDPOINT // "/sensor_values"
 #define BUTTON_TOKEN_ENDPOINT CONFIG_BUTTON_TOKEN_ENDPOINT   // "/button_token"
@@ -153,7 +155,6 @@ void real_garage_server_send_sensor_values(sensor_request_t *sensor_request, sen
              sensor_request->device_id,
              sensor_request->sensor_a,
              sensor_request->sensor_b);
-    // URL query parameters: ?buildTimestamp=${device_id}&sensorA=${sensor_a}&sensorB=${sensor_b}
     // sensorA: 0 (door closed), 1 (door not closed)
     // sensorB: 0 (door open), 1 (door not open)
 
@@ -175,6 +176,7 @@ void real_garage_server_send_sensor_values(sensor_request_t *sensor_request, sen
     char url_with_params[512];
     // This is a legacy URL pattern for an old version of the server.
     // The legacy URL path is /echo (a generic endpoint), which needs to be updated in idf.py menuconfig
+    // URL query parameters: ?buildTimestamp=${device_id}&sensorA=${sensor_a}&sensorB=${sensor_b}
     snprintf(url_with_params, sizeof(url_with_params),
              "%s?buildTimestamp=%s&sensorA=%d&sensorB=%d",
              SENSOR_VALUES_URL, sensor_request->device_id, sensor_request->sensor_a, sensor_request->sensor_b);
@@ -198,9 +200,47 @@ void real_garage_server_send_sensor_values(sensor_request_t *sensor_request, sen
 }
 
 void real_garage_server_send_button_token(button_request_t *button_request, button_response_t *button_response) {
-    ESP_LOGI(TAG, "TODO: Send button token to server: device_id: %s, button_token: %s",
+    ESP_LOGI(TAG, "Send button token to server: device_id: %s, button_token: %s",
              button_request->device_id,
              button_request->button_token);
+
+    // 1. Create JSON Payload:
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "device_id", button_request->device_id);
+    cJSON_AddStringToObject(root, "button_token", button_request->button_token);
+
+    char *json_payload = cJSON_Print(root);
+    cJSON_Delete(root);
+
+    if (json_payload == NULL) {
+        ESP_LOGE(TAG, "Failed to create JSON payload");
+        return; // Handle the error appropriately
+    }
+
+    // 2. Construct URL with Parameters:
+    char url_with_params[1024];
+
+    // URL query parameters: ?buildTimestamp=${device_id}&buttonAckToken=${button_token}
+    snprintf(url_with_params, sizeof(url_with_params),
+             "%s?buildTimestamp=%s&buttonAckToken=%s",
+             BUTTON_TOKEN_URL, button_request->device_id, button_request->button_token);
+
+    ESP_LOGI(TAG, "URL with parameters: %s", url_with_params);
+
+    // 3. Send HTTPS POST Request:
+    esp_err_t err = https_post_request(url_with_params, json_payload, strlen(json_payload));
+
+    // 4. Handle Response (if needed):
+    if (err == ESP_OK) {
+        ESP_LOGI(TAG, "Button token sent successfully");
+
+        // ... (Response handling code - same as in send_sensor_values) ...
+    } else {
+        ESP_LOGE(TAG, "Failed to send button token");
+    }
+
+    // 5. Free memory allocated for JSON payload:
+    free(json_payload);
 }
 
 extern garage_server_t garage_server = {
