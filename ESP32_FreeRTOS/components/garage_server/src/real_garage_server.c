@@ -12,8 +12,6 @@
 
 static const char *TAG = "real_garage_server";
 
-#define TEST_URL "https://us-central1-escape-echo.cloudfunctions.net/echo"
-
 // Set the server URLs with: idf.py menuconfig
 #define GARAGE_SERVER_BASE_URL CONFIG_GARAGE_SERVER_BASE_URL // "https://example.com"
 #define SENSOR_VALUES_ENDPOINT CONFIG_SENSOR_VALUES_ENDPOINT // "/sensor_values"
@@ -280,7 +278,7 @@ void real_garage_server_send_sensor_values(sensor_request_t *sensor_request, sen
 
     // 4. Handle Response (if needed):
     if (err == ESP_OK) {
-        ESP_LOGI(TAG, "Sensor values sent successfully");
+        ESP_LOGI(TAG, "Sensor values sent");
 
         // ... (Response handling code - see previous example) ...
 
