@@ -7,9 +7,9 @@
 
 #include "garage_hal.h"
 
-#define SENSOR_A_GPIO GPIO_NUM_2
-#define SENSOR_B_GPIO GPIO_NUM_4
-#define BUTTON_GPIO GPIO_NUM_5
+#define SENSOR_A_GPIO GPIO_NUM_25
+#define SENSOR_B_GPIO GPIO_NUM_26
+#define BUTTON_GPIO GPIO_NUM_27
 
 // Initialize the hardware abstraction layer
 static void garage_hal_init(void) {

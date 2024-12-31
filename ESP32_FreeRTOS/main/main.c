@@ -160,7 +160,7 @@ void download_button_commands(void *pvParameters) {
 void push_button(void *pvParameters) {
     while (1) {
         if (xQueueReceive(xButtonQueue, &void_pointer, portMAX_DELAY)) {
-            ESP_LOGI(TAG, "TODO: Push the button");
+            ESP_LOGI(TAG, "Push the button");
             garage_hal.set_button(1); // Push the button
             ESP_LOGI(TAG, "Button pushed");
             vTaskDelay(1000 / portTICK_PERIOD_MS); // 1000 ms

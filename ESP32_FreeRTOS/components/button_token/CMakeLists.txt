@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS
         "src/button_token.c"
+        "src/fake_button_token.c"
     INCLUDE_DIRS
         "include"
     REQUIRES
