@@ -1,8 +1,15 @@
+#include "garage_config.h"
+#ifndef CONFIG_USE_FAKE_GARAGE_HAL
+
 #include "driver/gpio.h"
 #include <stdbool.h>
 #include <stdio.h>
 
 #include "garage_hal.h"
+
+#define SENSOR_A_GPIO GPIO_NUM_2
+#define SENSOR_B_GPIO GPIO_NUM_4
+#define BUTTON_GPIO GPIO_NUM_5
 
 // Initialize the hardware abstraction layer
 static void garage_hal_init(void) {
@@ -33,8 +40,15 @@ static void garage_hal_init(void) {
 }
 
 // Read the sensor value
-static int garage_hal_read_sensor(garage_gpio_t gpio) {
-    return gpio_get_level(gpio);
+static int garage_hal_read_sensor(garage_input_t gpio) {
+    switch (gpio) {
+    case G_HAL_SENSOR_A:
+        return gpio_get_level(SENSOR_A_GPIO);
+    case G_HAL_SENSOR_B:
+        return gpio_get_level(SENSOR_B_GPIO);
+    default:
+        return -1;
+    }
 }
 
 // Set the button level
@@ -47,3 +61,5 @@ garage_hal_t garage_hal = {
     .read_sensor = garage_hal_read_sensor,
     .set_button = garage_hal_set_button,
 };
+
+#endif // CONFIG_USE_FAKE_GARAGE_HAL

@@ -1,18 +1,13 @@
+#include "garage_config.h"
 #ifdef CONFIG_USE_FAKE_GARAGE_SERVER
 
+#include "garage_server.h"
 #include "esp_log.h"
 #include <stdio.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
-#include "fake_garage_server.h"
 
-static const char *TAG = "fake_garage_server"
-
-garage_server_t garage_server = {
-    .init = fake_garage_server_init,
-    .send_sensor_values = fake_garage_server_send_sensor_values,
-    .send_button_token = fake_garage_server_send_button_token,
-};
+static const char *TAG = "fake_garage_server";
 
 void fake_garage_server_init(void) {
     ESP_LOGI(TAG, "Initialize garage server");
@@ -47,5 +42,11 @@ void fake_garage_server_send_button_token(button_request_t *button_request, butt
              button_token);
     button_response->button_token[MAX_BUTTON_TOKEN_LENGTH] = '\0';
 }
+
+garage_server_t garage_server = {
+    .init = fake_garage_server_init,
+    .send_sensor_values = fake_garage_server_send_sensor_values,
+    .send_button_token = fake_garage_server_send_button_token,
+};
 
 #endif // CONFIG_USE_FAKE_GARAGE_SERVER

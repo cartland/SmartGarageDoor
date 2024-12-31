@@ -49,8 +49,8 @@ void read_sensors(void *pvParameters) {
     while (1) {
         tick_count = xTaskGetTickCount();
         // Read sensor values
-        new_sensor_a = garage_hal.read_sensor(SENSOR_A_GPIO);
-        new_sensor_b = garage_hal.read_sensor(SENSOR_B_GPIO);
+        new_sensor_a = garage_hal.read_sensor(G_HAL_SENSOR_A);
+        new_sensor_b = garage_hal.read_sensor(G_HAL_SENSOR_B);
         // Debounce sensor values and check if they have changed
         a_changed = sensor_debouncer.debounce(&sensor_a, new_sensor_a, (uint32_t)tick_count);
         b_changed = sensor_debouncer.debounce(&sensor_b, new_sensor_b, (uint32_t)tick_count);

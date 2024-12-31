@@ -1,3 +1,4 @@
+#include "garage_config.h"
 #ifndef CONFIG_USE_FAKE_GARAGE_SERVER
 
 #include "cJSON.h"
@@ -7,7 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "real_garage_server.h"
+#include "garage_server.h"
 
 static const char *TAG = "real_garage_server";
 
@@ -135,12 +136,6 @@ static esp_err_t https_post_request(const char *url, const char *post_data, int 
     return err;
 }
 
-extern garage_server_t garage_server = {
-    .init = real_garage_server_init,
-    .send_sensor_values = real_garage_server_send_sensor_values,
-    .send_button_token = real_garage_server_send_button_token,
-};
-
 void real_garage_server_init(void) {
     ESP_LOGI(TAG, "Initialize garage server");
     ESP_LOGI(TAG, "Server root certificate: %s", server_root_cert_pem_start);
@@ -207,5 +202,11 @@ void real_garage_server_send_button_token(button_request_t *button_request, butt
              button_request->device_id,
              button_request->button_token);
 }
+
+extern garage_server_t garage_server = {
+    .init = real_garage_server_init,
+    .send_sensor_values = real_garage_server_send_sensor_values,
+    .send_button_token = real_garage_server_send_button_token,
+};
 
 #endif // CONFIG_USE_FAKE_GARAGE_SERVER
