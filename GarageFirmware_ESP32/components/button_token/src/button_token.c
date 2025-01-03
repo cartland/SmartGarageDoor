@@ -9,7 +9,8 @@
 static const char *TAG = "button_token";
 
 static void button_init(button_token_t *token) {
-    (*token)[0] = '\0';
+    strncpy(*token, "NO_BUTTON_TOKEN", MAX_BUTTON_TOKEN_LENGTH);
+    (*token)[MAX_BUTTON_TOKEN_LENGTH] = '\0';
 }
 
 static bool is_button_press_requested(button_token_t *token, const char *new_token) {

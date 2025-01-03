@@ -151,6 +151,14 @@ void real_garage_server_send_button_token(button_request_t *button_request, butt
                     ESP_LOGE(TAG, "Button token sent successfully, but server returned status code %d", recv_buffer->status_code);
                 }
                 ESP_LOGI(TAG, "Parsed JSON: %s", cJSON_Print(root));
+
+                // Extract sensor values from the "body" object
+                cJSON *button_ack_token = cJSON_GetObjectItemCaseSensitive(root, "buttonAckToken");
+                if (cJSON_IsString(button_ack_token) && (button_ack_token->valuestring != NULL)) {
+                    strncpy(button_response->button_token, button_ack_token->valuestring, MAX_BUTTON_TOKEN_LENGTH);
+                    button_response->button_token[MAX_BUTTON_TOKEN_LENGTH] = '\0';
+                }
+
                 cJSON_Delete(root);
             }
         }
