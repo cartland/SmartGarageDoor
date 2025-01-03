@@ -84,11 +84,12 @@ export const httpRemoteButton = functions.https.onRequest(async (request, respon
     // Get the remote button command from the database. We need to return this value.
     const oldCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
     const oldAckToken = oldCommand ? oldCommand[BUTTON_ACK_TOKEN_PARAM_KEY] : "";
-    const timeSinceLastRemoteButtonCommandSeconds =
-      firebase.firestore.Timestamp.now().seconds - oldCommand[DATABASE_TIMESTAMP_SECONDS_KEY];
+    const timeSinceLastRemoteButtonCommandSeconds = oldCommand?.[DATABASE_TIMESTAMP_SECONDS_KEY]
+      ? firebase.firestore.Timestamp.now().seconds - oldCommand[DATABASE_TIMESTAMP_SECONDS_KEY]
+      : 0;
     // We reset the button command if any of the following are true:
     // Condition 1) The command does not contain an ACK token (invaild state).
-    const commandDoesNotContainAckToken = !(BUTTON_ACK_TOKEN_PARAM_KEY in oldCommand);
+    const commandDoesNotContainAckToken = !oldCommand || !(BUTTON_ACK_TOKEN_PARAM_KEY in oldCommand);
     // Condition 2) The client sends a request with the ACK token (successfully acknowledge).
     const buttonAcknowledged = buttonAckToken === oldAckToken;
     // Condition 3) The command is too old.
@@ -111,13 +112,16 @@ export const httpRemoteButton = functions.https.onRequest(async (request, respon
       await REMOTE_BUTTON_COMMAND_DATABASE.save(buildTimestamp, noopCommand);
       const updatedCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
       response.status(200).send(updatedCommand);
+      return;
     } else {
       response.status(200).send(oldCommand);
+      return;
     }
   }
   catch (error) {
     console.error(error)
     response.status(500).send(error)
+    return;
   }
 });
 
