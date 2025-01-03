@@ -74,6 +74,28 @@ void real_garage_server_send_sensor_values(sensor_request_t *sensor_request, sen
                     ESP_LOGE(TAG, "Button token sent successfully, but server returned status code %d", recv_buffer->status_code);
                 }
                 ESP_LOGI(TAG, "Parsed JSON: %s", cJSON_Print(root));
+
+                // Extract sensor values from the "body" object
+                cJSON *body = cJSON_GetObjectItemCaseSensitive(root, "queryParams");
+                if (cJSON_IsObject(body)) {
+                    cJSON *device_id_json = cJSON_GetObjectItemCaseSensitive(body, "buildTimestamp");
+                    cJSON *sensor_a_json = cJSON_GetObjectItemCaseSensitive(body, "sensorA");
+                    cJSON *sensor_b_json = cJSON_GetObjectItemCaseSensitive(body, "sensorB");
+
+                    if (cJSON_IsString(device_id_json) && (device_id_json->valuestring != NULL)) {
+                        strncpy(sensor_response->device_id, device_id_json->valuestring, MAX_DEVICE_ID_LENGTH);
+                        sensor_response->device_id[MAX_DEVICE_ID_LENGTH] = '\0';
+                    }
+
+                    if (cJSON_IsNumber(sensor_a_json)) {
+                        sensor_response->sensor_a = sensor_a_json->valueint;
+                    }
+
+                    if (cJSON_IsNumber(sensor_b_json)) {
+                        sensor_response->sensor_b = sensor_b_json->valueint;
+                    }
+                }
+
                 cJSON_Delete(root);
             }
         }
