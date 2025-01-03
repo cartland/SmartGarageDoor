@@ -11,6 +11,7 @@
 #include "wifi_connector.h"
 
 #define DEVICE_ID CONFIG_PROJECT_DEVICE_ID
+#define HTTP_RECEIVE_BUFFER_SIZE 1024
 
 static const char *TAG = "main";
 // Queue to communicate between tasks that read sensor values and tasks that upload them to the server
@@ -103,7 +104,7 @@ void upload_sensors(void *pvParameters) {
     memset(&sensor_request, 0, sizeof(sensor_request));
     memset(&sensor_response, 0, sizeof(sensor_response));
     static http_receive_buffer_t recv_buffer;
-    static char recv_buffer_data[1024];
+    static char recv_buffer_data[HTTP_RECEIVE_BUFFER_SIZE];
     recv_buffer.buffer = recv_buffer_data;
     recv_buffer.buffer_len = sizeof(recv_buffer_data);
     recv_buffer.data_received_len = 0;
@@ -117,7 +118,6 @@ void upload_sensors(void *pvParameters) {
             sensor_request.sensor_a = receive_collection.a_level;
             sensor_request.sensor_b = receive_collection.b_level;
             // Send sensor values to the server
-            reset_http_buffer(&recv_buffer);
             garage_server.send_sensor_values(&sensor_request, &sensor_response, &recv_buffer);
             ESP_LOGI(TAG,
                      "Received sensor values a: %d, b: %d",
@@ -139,7 +139,7 @@ void download_button_commands(void *pvParameters) {
     memset(&button_request, 0, sizeof(button_request));
     memset(&button_response, 0, sizeof(button_response));
     static http_receive_buffer_t recv_buffer;
-    static char recv_buffer_data[1024];
+    static char recv_buffer_data[HTTP_RECEIVE_BUFFER_SIZE];
     recv_buffer.buffer = recv_buffer_data;
     recv_buffer.buffer_len = sizeof(recv_buffer_data);
     recv_buffer.data_received_len = 0;
@@ -149,7 +149,6 @@ void download_button_commands(void *pvParameters) {
         snprintf(button_request.device_id, MAX_DEVICE_ID_LENGTH, "%s", DEVICE_ID);
         snprintf(button_request.button_token, MAX_BUTTON_TOKEN_LENGTH + 1, "%s", current_button_token);
 
-        reset_http_buffer(&recv_buffer);
         garage_server.send_button_token(&button_request, &button_response, &recv_buffer);
 
         if (token_manager.is_button_press_requested(&current_button_token, button_response.button_token)) {
