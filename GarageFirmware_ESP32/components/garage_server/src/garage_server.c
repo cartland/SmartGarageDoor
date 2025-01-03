@@ -24,13 +24,7 @@ static const char *TAG = "garage_server";
 extern const uint8_t server_root_cert_pem_start[] asm("_binary_server_root_cert_pem_start");
 extern const uint8_t server_root_cert_pem_end[] asm("_binary_server_root_cert_pem_end");
 
-typedef struct {
-    char *buffer;
-    size_t buffer_len;
-    size_t data_received_len;
-} http_receive_buffer_t;
-
-static void reset_http_buffer(http_receive_buffer_t *buffer) {
+void reset_http_buffer(http_receive_buffer_t *buffer) {
     if (buffer && buffer->buffer) {
         memset(buffer->buffer, 0, buffer->buffer_len);
         buffer->data_received_len = 0;

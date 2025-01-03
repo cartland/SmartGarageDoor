@@ -1,7 +1,16 @@
 #ifndef GARAGE_SERVER_H
 #define GARAGE_SERVER_H
 
+#include <stddef.h>
 #include "garage_config.h"
+
+typedef struct {
+    char *buffer;
+    size_t buffer_len;
+    size_t data_received_len;
+} http_receive_buffer_t;
+
+void reset_http_buffer(http_receive_buffer_t *buffer);
 
 typedef struct {
     char device_id[MAX_DEVICE_ID_LENGTH + 1];
