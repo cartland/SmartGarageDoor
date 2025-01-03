@@ -203,6 +203,6 @@ void app_main(void) {
     xTaskCreate(log_hello, "log_hello", 2048, NULL, 5, NULL);
     xTaskCreate(read_sensors, "read_sensors", 2048, NULL, 5, NULL);
     xTaskCreate(upload_sensors, "upload_sensors", 4096, NULL, 5, NULL);
-    xTaskCreate(download_button_commands, "download_button", 4096, NULL, 5, NULL);
+    xTaskCreate(download_button_commands, "download_button", 8192, NULL, 5, NULL);
     xTaskCreate(push_button, "push_button", 2048, NULL, 5, NULL);
 }

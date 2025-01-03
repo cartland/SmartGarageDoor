@@ -17,10 +17,8 @@ static bool is_button_press_requested(button_token_t *token, const char *new_tok
     if (strcmp(*token, new_token) == 0) {
         ESP_LOGI(TAG, "Button token is not changed");
         return false;
-    } else if ((*token)[0] == '\0') {
-        // Important: Do not push the button if this is the first token.
-        // This is to prevent the button from being pushed when the device is first powered on.
-        ESP_LOGI(TAG, "Not pushing button because %s is the first token", new_token);
+    } else if (strlen(new_token) == 0) {
+        ESP_LOGI(TAG, "Button press not requested because button token is empty");
         return false;
     } else {
         ESP_LOGI(TAG, "Push the button for %s", new_token);

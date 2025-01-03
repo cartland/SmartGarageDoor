@@ -126,7 +126,7 @@ void real_garage_server_send_button_token(button_request_t *button_request, butt
     }
 
     // 2. Construct URL with Parameters:
-    char url_with_params[1024];
+    char url_with_params[2048];
 
     // URL query parameters: ?buildTimestamp=${device_id}&buttonAckToken=${button_token}
     snprintf(url_with_params, sizeof(url_with_params),
