@@ -86,7 +86,7 @@ export const httpRemoteButton = functions.https.onRequest(async (request, respon
     const oldAckToken = oldCommand?.[BUTTON_ACK_TOKEN_PARAM_KEY] ?? '';
     const timeSinceLastRemoteButtonCommandSeconds = oldCommand?.[DATABASE_TIMESTAMP_SECONDS_KEY]
       ? firebase.firestore.Timestamp.now().seconds - oldCommand[DATABASE_TIMESTAMP_SECONDS_KEY]
-      : 0;
+      : Number.MAX_SAFE_INTEGER;
     // We reset the button command if any of the following are true:
     // Condition 1) The command does not contain an ACK token (invaild state).
     const commandDoesNotContainAckToken = !oldCommand || !(BUTTON_ACK_TOKEN_PARAM_KEY in oldCommand);
@@ -206,8 +206,9 @@ export const httpAddRemoteButtonCommand = functions.https.onRequest(async (reque
   const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
   try {
     const oldCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
-    const timeSinceLastRemoteButtonCommandSeconds =
-      firebase.firestore.Timestamp.now().seconds - oldCommand[DATABASE_TIMESTAMP_SECONDS_KEY];
+    const timeSinceLastRemoteButtonCommandSeconds = oldCommand?.[DATABASE_TIMESTAMP_SECONDS_KEY]
+      ? firebase.firestore.Timestamp.now().seconds - oldCommand[DATABASE_TIMESTAMP_SECONDS_KEY]
+      : Number.MAX_SAFE_INTEGER;
     if (timeSinceLastRemoteButtonCommandSeconds < REMOTE_BUTTON_MIN_PERIOD_SECONDS) {
       console.log('Time since remote button press is less than minimum',
         timeSinceLastRemoteButtonCommandSeconds, '<', REMOTE_BUTTON_MIN_PERIOD_SECONDS);
