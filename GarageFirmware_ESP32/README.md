@@ -14,6 +14,18 @@ This project is for the firmware of a smart garage door opener using an ESP32 mi
 - Magnetic reed sensors
 - Wi-Fi network
 
+## Physical Wiring
+- 2x Magnetic Reed Sensors with pull-up resistors (LOW 0 == circuit closed)
+    - Sensor A: If the value is LOW, the door is confirmed to be closed
+    - Sensor B: If the value is LOW, the door is confirmed to be open
+    - If the door is in between sensors, the value of both will be HIGH
+    - If both sensors are LOW, something is wrong with the sensors
+- 1x Button: HIGH 1 == push, LOW 0 == release
+    - The microcontroller is connected to a relay
+    - When the GPIO is HIGH, the relay connects two wires together, which "pushes" the button
+    - The wires are attached to the terminals of a momentary switch on the garage door opener
+    - The garage door opener remains functional -- we just added 2 wires to the remote
+
 ## Tool Requirements
 - ESP-IDF https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/index.html
 
