@@ -24,9 +24,10 @@ static const char *TAG = "garage_server";
 #define HTTP_RECEIVE_BUFFER_SIZE 1024
 
 void reset_http_buffer(http_receive_buffer_t *buffer) {
-    if (buffer && buffer->buffer) {
+    if (buffer != NULL && buffer->buffer != NULL) {
         memset(buffer->buffer, 0, buffer->buffer_len);
         buffer->data_received_len = 0;
+        buffer->status_code = 0;
     }
 }
 
@@ -212,7 +213,7 @@ void real_garage_server_send_button_token(button_request_t *button_request, butt
     ESP_LOGI(TAG, "URL with parameters: %s", url_with_params);
 
     // 3. Send HTTPS POST Request:
-    esp_err_t err = https_button_token_post_request(url_with_params, json_payload, strlen(json_payload), recv_buffer);
+    esp_err_t err = https_send_post_request(url_with_params, json_payload, strlen(json_payload), recv_buffer);
 
     // 4. Handle Response:
     if (err == ESP_OK) {
