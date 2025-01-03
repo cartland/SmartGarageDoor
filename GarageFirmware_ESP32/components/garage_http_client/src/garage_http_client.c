@@ -87,12 +87,12 @@ void real_garage_server_send_sensor_values(sensor_request_t *sensor_request, sen
                         sensor_response->device_id[MAX_DEVICE_ID_LENGTH] = '\0';
                     }
 
-                    if (cJSON_IsNumber(sensor_a_json)) {
-                        sensor_response->sensor_a = sensor_a_json->valueint;
+                    if (cJSON_IsString(sensor_a_json) && (sensor_a_json->valuestring != NULL)) {
+                        sensor_response->sensor_a = atoi(sensor_a_json->valuestring);
                     }
 
-                    if (cJSON_IsNumber(sensor_b_json)) {
-                        sensor_response->sensor_b = sensor_b_json->valueint;
+                    if (cJSON_IsString(sensor_b_json) && (sensor_b_json->valuestring != NULL)) {
+                        sensor_response->sensor_b = atoi(sensor_b_json->valuestring);
                     }
                 }
 
