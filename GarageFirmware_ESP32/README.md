@@ -1,32 +1,156 @@
-# _Sample project_
+# Smart Garage Door - GarageFirmware_ESP32
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+## Overview
+This project is for the firmware of a smart garage door opener using an ESP32 microcontroller. The firmware allows you to control and monitor your garage door remotely. Tasks are scheduled with FreeRTOS.
 
-This is the simplest buildable example. The example is used by command `idf.py create-project`
-that copies the project to user specified path and set it's name. For more information follow the [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project)
+## Features
+- Open and close the garage door remotely
+- Monitor the status of the garage door (open/closed)
+- Secure communication over HTTPS
 
+## Physical Requirements
+- ESP32 (developed on ESP32-DevKitC ESP32-WROOM-32U Core Board)
+- Garage door opener remote
+- Magnetic reed sensors
+- Wi-Fi network
 
+## Tool Requirements
+- ESP-IDF https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/index.html
 
-## How to use example
-We encourage the users to use the example as a template for the new projects.
-A recommended way is to follow the instructions on a [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project).
+## Installation
+1. Clone the repository:
+    ```sh
+    git clone https://github.com/cartland/SmartGarageDoor
+    ```
+1. Navigate to the firmware directory:
+    ```sh
+    cd SmartGarageDoor/GarageFirmware_ESP32
+    ```
+1. Configure WiFi credentials and HTTPS endpoints
+    ```sh
+    idf.py menuconfig
+    ```
+1. Configure GPIO pins in `components/garage_hal/src/garage_hal.c`
+    ```c
+    #define SENSOR_A_GPIO GPIO_NUM_25
+    #define SENSOR_B_GPIO GPIO_NUM_26
+    #define BUTTON_GPIO GPIO_NUM_27
+    ```
+1. If you don't have a server, use fakes by modifying `garage_config/garage_config.h`
+    ```c
+    // #define CONFIG_USE_FAKE_GARAGE_SERVER 1
+    // #define CONFIG_USE_FAKE_GARAGE_HAL 1
+    // #define CONFIG_USE_FAKE_BUTTON_TOKEN 1
+    ```
+1. Build
+    ```sh
+    idf.py build
+    ```
+1. Flash
+    ```sh
+    idf.py flash
+    ```
+1. Monitor
+    ```sh
+    idf.py monitor
+    ```
 
-## Example folder contents
-
-The project **sample_project** contains one source file in C language [main.c](main/main.c). The file is located in folder [main](main).
-
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt`
-files that provide set of directives and instructions describing the project's source files and targets
-(executable, library, or both). 
-
-Below is short explanation of remaining files in the project folder.
-
-```
+## Project Structure
+```sh
 ├── CMakeLists.txt
+├── README.md
+├── components
+│   ├── button_token
+│   ├── door_sensors
+│   ├── garage_config
+│   ├── garage_hal
+│   ├── garage_http_client
+│   └── wifi_connector
 ├── main
 │   ├── CMakeLists.txt
+│   ├── Kconfig.projbuild
 │   └── main.c
-└── README.md                  This is the file you are currently reading
+├── sdkconfig.defaults
+└── setup_idf_env.ps1
 ```
-Additionally, the sample project contains Makefile and component.mk files, used for the legacy Make based build system. 
-They are not used or needed when building with CMake and idf.py.
+
+### garage_config
+
+Contains configuration options and settings for the project:
+
+- Feature flags for using fake implementations
+- Constants for string sizes
+
+### garage_hal
+
+Hardware abstraction layer for garage door operations:
+
+- Set GPIO pins
+- GPIO control for sensors and button
+- Hardware initialization
+- Direct hardware access functions
+
+### door_sensors
+
+Manages the door position sensors:
+
+- Reading sensor states from 2 magnetic reed sensors (0 == circuit closed)
+- Debouncing sensor inputs
+
+### button_token
+
+- Negotiates with the server to push the button
+- The server will publish a new button token for each push
+- The client will acknowledge the token to the server
+- The client will only push the button once for each token (until the token changes)
+
+### garage_http_client
+
+Handles HTTP communication with the server:
+
+- Making HTTPS requests (check root CA expiry, expected to expire in 2036)
+
+### wifi_connector
+
+Manages WiFi connectivity:
+
+- WiFi initialization
+- Set WiFi credentials in idf.py menuconfig
+
+## Tasks
+
+FreeRTOS tasks are created in `main.c`:
+
+```c
+xTaskCreate(log_hello, "log_hello", 2048, NULL, 5, NULL);
+xTaskCreate(read_sensors, "read_sensors", 2048, NULL, 5, NULL);
+xTaskCreate(upload_sensors, "upload_sensors", 4096, NULL, 5, NULL);
+xTaskCreate(download_button_commands, "download_button", 8192, NULL, 5, NULL);
+xTaskCreate(push_button, "push_button", 2048, NULL, 5, NULL);
+```
+
+### log_hello
+
+Logs a hello message to the console.
+
+### read_sensors
+
+Reads the sensor states and puts changes in a queue.
+
+### upload_sensors
+
+Uploads the sensor states to the server.
+
+### download_button_commands
+
+Downloads button commands from the server and puts commands in a queue.
+
+### push_button
+
+Pushes the button.
+
+## Design Choices
+
+- Prefer static stack allocation to heap allocation
+- Prefer simple library components over fewer components
+- Prefer simple tasks over fewer tasks
