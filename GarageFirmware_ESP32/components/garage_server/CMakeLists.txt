@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
         "src/fake_garage_server.c"
         "src/garage_server.c"
+        "src/http_button_request.c"
     INCLUDE_DIRS
         "include"
     REQUIRES

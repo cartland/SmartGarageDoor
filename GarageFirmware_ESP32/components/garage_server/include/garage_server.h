@@ -1,13 +1,14 @@
 #ifndef GARAGE_SERVER_H
 #define GARAGE_SERVER_H
 
-#include <stddef.h>
 #include "garage_config.h"
+#include <stddef.h>
 
 typedef struct {
     char *buffer;
     size_t buffer_len;
     size_t data_received_len;
+    int status_code;
 } http_receive_buffer_t;
 
 void reset_http_buffer(http_receive_buffer_t *buffer);
