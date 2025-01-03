@@ -102,6 +102,11 @@ void upload_sensors(void *pvParameters) {
     memset(&receive_collection, 0, sizeof(receive_collection));
     memset(&sensor_request, 0, sizeof(sensor_request));
     memset(&sensor_response, 0, sizeof(sensor_response));
+    static http_receive_buffer_t recv_buffer;
+    static char recv_buffer_data[1024];
+    recv_buffer.buffer = recv_buffer_data;
+    recv_buffer.buffer_len = sizeof(recv_buffer_data);
+    recv_buffer.data_received_len = 0;
     while (1) {
         if (xQueueReceive(xSensorQueue, &receive_collection, portMAX_DELAY)) {
             ESP_LOGI(TAG,
@@ -112,7 +117,8 @@ void upload_sensors(void *pvParameters) {
             sensor_request.sensor_a = receive_collection.a_level;
             sensor_request.sensor_b = receive_collection.b_level;
             // Send sensor values to the server
-            garage_server.send_sensor_values(&sensor_request, &sensor_response);
+            reset_http_buffer(&recv_buffer);
+            garage_server.send_sensor_values(&sensor_request, &sensor_response, &recv_buffer);
             ESP_LOGI(TAG,
                      "Received sensor values a: %d, b: %d",
                      sensor_response.sensor_a,
@@ -132,13 +138,19 @@ void download_button_commands(void *pvParameters) {
     static BaseType_t xStatus;
     memset(&button_request, 0, sizeof(button_request));
     memset(&button_response, 0, sizeof(button_response));
+    static http_receive_buffer_t recv_buffer;
+    static char recv_buffer_data[1024];
+    recv_buffer.buffer = recv_buffer_data;
+    recv_buffer.buffer_len = sizeof(recv_buffer_data);
+    recv_buffer.data_received_len = 0;
     while (1) {
         ESP_LOGI(TAG, "Fetch button token from server with %s", current_button_token);
 
         snprintf(button_request.device_id, MAX_DEVICE_ID_LENGTH, "%s", DEVICE_ID);
         snprintf(button_request.button_token, MAX_BUTTON_TOKEN_LENGTH + 1, "%s", current_button_token);
 
-        garage_server.send_button_token(&button_request, &button_response);
+        reset_http_buffer(&recv_buffer);
+        garage_server.send_button_token(&button_request, &button_response, &recv_buffer);
 
         if (token_manager.is_button_press_requested(&current_button_token, button_response.button_token)) {
             xStatus = xQueueSend(xButtonQueue, &void_pointer, 0); // Signal the button to be pushed

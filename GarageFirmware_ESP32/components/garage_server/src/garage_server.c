@@ -31,8 +31,24 @@ void reset_http_buffer(http_receive_buffer_t *buffer) {
     }
 }
 
+/**
+ * Input:
+ * evt->user_data is a pointer to the http_receive_buffer_t struct
+ *   ->buffer must be allocated by the caller with length buffer_len
+ *   ->buffer_len must be set by the caller
+ *   ->data_received_len will be set to the length of the data received
+ *
+ * Output:
+ * evt->user_data->buffer will be filled with the data received from the server
+ * evt->user_data->data_received_len will be set to the length of the data received
+ */
 esp_err_t _http_button_token_event_handler(esp_http_client_event_t *evt) {
-    static http_receive_buffer_t recv_buffer = {0};
+    http_receive_buffer_t *recv_buffer = (http_receive_buffer_t *)evt->user_data;
+
+    if (recv_buffer == NULL || recv_buffer->buffer == NULL || recv_buffer->buffer_len == 0) {
+        ESP_LOGE(TAG, "->user_data is not configured for receiving data as http_receive_buffer_t");
+        return ESP_FAIL;
+    }
 
     switch (evt->event_id) {
     case HTTP_EVENT_ERROR:
@@ -41,15 +57,9 @@ esp_err_t _http_button_token_event_handler(esp_http_client_event_t *evt) {
 
     case HTTP_EVENT_ON_CONNECTED:
         ESP_LOGI(TAG, "HTTP_EVENT_ON_CONNECTED");
-        // Allocate buffer on connect
-        if (recv_buffer.buffer == NULL) {
-            recv_buffer.buffer = (char *)malloc(HTTP_RECEIVE_BUFFER_SIZE);
-            if (recv_buffer.buffer == NULL) {
-                ESP_LOGE(TAG, "Failed to allocate memory for HTTP receive buffer");
-                return ESP_FAIL;
-            }
-            recv_buffer.buffer_len = HTTP_RECEIVE_BUFFER_SIZE;
-            reset_http_buffer(&recv_buffer); // Initialize the buffer
+        if (recv_buffer->buffer == NULL) {
+            ESP_LOGE(TAG, "HTTP_EVENT_ON_CONNECTED: buffer is NULL");
+            return ESP_FAIL;
         }
         break;
 
@@ -61,22 +71,22 @@ esp_err_t _http_button_token_event_handler(esp_http_client_event_t *evt) {
         ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
 
         // Check for buffer overflow
-        if (recv_buffer.data_received_len + evt->data_len > recv_buffer.buffer_len) {
+        if (recv_buffer->data_received_len + evt->data_len > recv_buffer->buffer_len) {
             ESP_LOGE(TAG, "HTTP receive buffer overflow");
             return ESP_FAIL;
         }
 
         // Copy the new data into the buffer
-        memcpy(recv_buffer.buffer + recv_buffer.data_received_len, evt->data, evt->data_len);
-        recv_buffer.data_received_len += evt->data_len;
-        ESP_LOGI(TAG, "Current buffer content: %.*s", recv_buffer.data_received_len, recv_buffer.buffer);
+        memcpy(recv_buffer->buffer + recv_buffer->data_received_len, evt->data, evt->data_len);
+        recv_buffer->data_received_len += evt->data_len;
+        ESP_LOGI(TAG, "Current buffer content: %.*s", recv_buffer->data_received_len, recv_buffer->buffer);
         break;
 
     case HTTP_EVENT_ON_FINISH:
         ESP_LOGI(TAG, "HTTP_EVENT_ON_FINISH");
         // Parse the JSON data after all data is received
-        if (recv_buffer.buffer != NULL && recv_buffer.data_received_len > 0) {
-            cJSON *root = cJSON_ParseWithLength(recv_buffer.buffer, recv_buffer.data_received_len);
+        if (recv_buffer->data_received_len > 0) {
+            cJSON *root = cJSON_ParseWithLength(recv_buffer->buffer, recv_buffer->data_received_len);
             if (root == NULL) {
                 ESP_LOGE(TAG, "Failed to parse JSON");
             } else {
@@ -84,19 +94,13 @@ esp_err_t _http_button_token_event_handler(esp_http_client_event_t *evt) {
                 ESP_LOGI(TAG, "Parsed JSON: %s", cJSON_Print(root));
                 cJSON_Delete(root);
             }
-            reset_http_buffer(&recv_buffer);
         }
         break;
 
     case HTTP_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "HTTP_EVENT_DISCONNECTED");
         // Clean up on disconnect
-        if (recv_buffer.buffer != NULL) {
-            free(recv_buffer.buffer);
-            recv_buffer.buffer = NULL;
-            recv_buffer.buffer_len = 0;
-            recv_buffer.data_received_len = 0;
-        }
+        reset_http_buffer(recv_buffer);
         break;
 
     default:
@@ -105,11 +109,12 @@ esp_err_t _http_button_token_event_handler(esp_http_client_event_t *evt) {
     return ESP_OK;
 }
 
-static esp_err_t https_button_token_post_request(const char *url, const char *post_data, int post_data_len) {
+static esp_err_t https_button_token_post_request(const char *url, const char *post_data, int post_data_len, http_receive_buffer_t *recv_buffer) {
     esp_http_client_config_t config = {
         .url = url,
         .event_handler = _http_button_token_event_handler,
         .cert_pem = (const char *)server_root_cert_pem_start,
+        .user_data = recv_buffer,
     };
     esp_http_client_handle_t client = esp_http_client_init(&config);
 
@@ -129,7 +134,6 @@ static esp_err_t https_button_token_post_request(const char *url, const char *po
     esp_http_client_cleanup(client);
     return err;
 }
-
 
 esp_err_t _http_sensor_values_event_handler(esp_http_client_event_t *evt) {
     static http_receive_buffer_t recv_buffer = {0};
@@ -235,7 +239,7 @@ void real_garage_server_init(void) {
     ESP_LOGI(TAG, "Server root certificate: %s", server_root_cert_pem_start);
 }
 
-void real_garage_server_send_sensor_values(sensor_request_t *sensor_request, sensor_response_t *sensor_response) {
+void real_garage_server_send_sensor_values(sensor_request_t *sensor_request, sensor_response_t *sensor_response, http_receive_buffer_t *recv_buffer) {
     ESP_LOGI(TAG, "Send sensor values to server: device_id: %s, sensor_a: %d, sensor_b: %d",
              sensor_request->device_id,
              sensor_request->sensor_a,
@@ -284,7 +288,7 @@ void real_garage_server_send_sensor_values(sensor_request_t *sensor_request, sen
     free(json_payload);
 }
 
-void real_garage_server_send_button_token(button_request_t *button_request, button_response_t *button_response) {
+void real_garage_server_send_button_token(button_request_t *button_request, button_response_t *button_response, http_receive_buffer_t *recv_buffer) {
     ESP_LOGI(TAG, "Send button token to server: device_id: %s, button_token: %s",
              button_request->device_id,
              button_request->button_token);
@@ -313,7 +317,7 @@ void real_garage_server_send_button_token(button_request_t *button_request, butt
     ESP_LOGI(TAG, "URL with parameters: %s", url_with_params);
 
     // 3. Send HTTPS POST Request:
-    esp_err_t err = https_button_token_post_request(url_with_params, json_payload, strlen(json_payload));
+    esp_err_t err = https_button_token_post_request(url_with_params, json_payload, strlen(json_payload), recv_buffer);
 
     // 4. Handle Response (if needed):
     if (err == ESP_OK) {
@@ -328,7 +332,7 @@ void real_garage_server_send_button_token(button_request_t *button_request, butt
     free(json_payload);
 }
 
-extern garage_server_t garage_server = {
+garage_server_t garage_server = {
     .init = real_garage_server_init,
     .send_sensor_values = real_garage_server_send_sensor_values,
     .send_button_token = real_garage_server_send_button_token,

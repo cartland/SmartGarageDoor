@@ -13,7 +13,7 @@ void fake_garage_server_init(void) {
     ESP_LOGI(TAG, "Initialize garage server");
 }
 
-void fake_garage_server_send_sensor_values(sensor_request_t *sensor_request, sensor_response_t *sensor_response) {
+void fake_garage_server_send_sensor_values(sensor_request_t *sensor_request, sensor_response_t *sensor_response, http_receive_buffer_t *recv_buffer) {
     ESP_LOGI(TAG,
              "Send sensor values to server: device_id: %s, sensor_a: %d, sensor_b: %d",
              sensor_request->device_id,
@@ -25,7 +25,7 @@ void fake_garage_server_send_sensor_values(sensor_request_t *sensor_request, sen
     sensor_response->sensor_b = sensor_request->sensor_b;
 }
 
-void fake_garage_server_send_button_token(button_request_t *button_request, button_response_t *button_response) {
+void fake_garage_server_send_button_token(button_request_t *button_request, button_response_t *button_response, http_receive_buffer_t *recv_buffer) {
     static uint64_t button_token;
 
     static uint64_t counter = 0;

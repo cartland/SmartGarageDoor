@@ -36,8 +36,8 @@ typedef struct {
 
 typedef struct {
     void (*init)(void);
-    void (*send_sensor_values)(sensor_request_t *sensor_request, sensor_response_t *sensor_response);
-    void (*send_button_token)(button_request_t *button_request, button_response_t *button_response);
+    void (*send_sensor_values)(sensor_request_t *sensor_request, sensor_response_t *sensor_response, http_receive_buffer_t *recv_buffer);
+    void (*send_button_token)(button_request_t *button_request, button_response_t *button_response, http_receive_buffer_t *recv_buffer);
 } garage_server_t;
 
 extern garage_server_t garage_server;
