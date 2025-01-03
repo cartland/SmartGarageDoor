@@ -83,7 +83,7 @@ export const httpRemoteButton = functions.https.onRequest(async (request, respon
     await REMOTE_BUTTON_REQUEST_DATABASE.save(buildTimestamp, data);
     // Get the remote button command from the database. We need to return this value.
     const oldCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
-    const oldAckToken = oldCommand ? oldCommand[BUTTON_ACK_TOKEN_PARAM_KEY] : "";
+    const oldAckToken = oldCommand?.[BUTTON_ACK_TOKEN_PARAM_KEY] ?? '';
     const timeSinceLastRemoteButtonCommandSeconds = oldCommand?.[DATABASE_TIMESTAMP_SECONDS_KEY]
       ? firebase.firestore.Timestamp.now().seconds - oldCommand[DATABASE_TIMESTAMP_SECONDS_KEY]
       : 0;
@@ -109,6 +109,7 @@ export const httpRemoteButton = functions.https.onRequest(async (request, respon
         commandTimeout: replaceOldCommand,
         oldAckToken: oldAckToken,
       };
+      console.log('Saving noop command:', noopCommand);
       await REMOTE_BUTTON_COMMAND_DATABASE.save(buildTimestamp, noopCommand);
       const updatedCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
       response.status(200).send(updatedCommand);
