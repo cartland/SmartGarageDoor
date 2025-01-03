@@ -82,9 +82,8 @@ export const httpRemoteButton = functions.https.onRequest(async (request, respon
     // Save the request. This is mostly for logging purposes.
     await REMOTE_BUTTON_REQUEST_DATABASE.save(buildTimestamp, data);
     // Get the remote button command from the database. We need to return this value.
-    // TODO: oldCommand can be undefined -- handle this edge case!
     const oldCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
-    const oldAckToken = oldCommand[BUTTON_ACK_TOKEN_PARAM_KEY];
+    const oldAckToken = oldCommand ? oldCommand[BUTTON_ACK_TOKEN_PARAM_KEY] : "";
     const timeSinceLastRemoteButtonCommandSeconds =
       firebase.firestore.Timestamp.now().seconds - oldCommand[DATABASE_TIMESTAMP_SECONDS_KEY];
     // We reset the button command if any of the following are true:
