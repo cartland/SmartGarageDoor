@@ -99,7 +99,10 @@ export const httpRemoteButton = functions.https.onRequest(async (request, respon
       commandDoesNotContainAckToken // Condition 1.
       || buttonAcknowledged // Condition 2.
       || replaceOldCommand; // Condition 3.
-    if (shouldStopSendingRemoteButtonCommand) {
+    if (shouldStopSendingRemoteButtonCommand &&
+      typeof oldAckToken === 'string' &&
+      oldAckToken !== ''
+    ) {
       const noopCommand = <RemoteButtonCommand>{
         session: session,
         buildTimestamp: buildTimestamp,
