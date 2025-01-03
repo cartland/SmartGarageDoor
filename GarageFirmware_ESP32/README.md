@@ -10,6 +10,8 @@ This project is for the firmware of a smart garage door opener using an ESP32 mi
 
 ## Physical Requirements
 - ESP32 (developed on ESP32-DevKitC ESP32-WROOM-32U Core Board)
+    - https://www.amazon.com/HiLetgo-ESP32-DevKitC-ESP32-WROOM-32U-ESP-WROOM-32U-Development/dp/B09KLS2YB3
+    - https://www.amazon.com/Freenove-Breakout-ESP32-S3-Terminal-Outputs/dp/B0CD2512JV
 - Garage door opener remote
 - Magnetic reed sensors
 - Wi-Fi network
