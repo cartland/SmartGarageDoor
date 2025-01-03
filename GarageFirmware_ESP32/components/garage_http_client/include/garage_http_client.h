@@ -3,6 +3,7 @@
 
 #include "garage_config.h"
 #include "http_receive_buffer.h"
+
 typedef struct {
     char device_id[MAX_DEVICE_ID_LENGTH + 1];
     int sensor_a;
