@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include <string.h>
 
+#include "http_receive_buffer.h"
 #include "https_post_request.h"
 #include "root_ca.h"
 
@@ -24,7 +25,7 @@ static const char *TAG = "http_button_request";
  * evt->user_data->buffer will be filled with the data received from the server
  * evt->user_data->data_received_len will be set to the length of the data received
  */
-esp_err_t _http_event_handler(esp_http_client_event_t *evt) {
+static esp_err_t _http_event_handler(esp_http_client_event_t *evt) {
     http_receive_buffer_t *recv_buffer = (http_receive_buffer_t *)evt->user_data;
 
     if (recv_buffer == NULL || recv_buffer->buffer == NULL || recv_buffer->buffer_len == 0) {
@@ -90,7 +91,7 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt) {
  *
  * Returns ESP_OK if the request is successful, otherwise returns ESP_FAIL.
  */
-esp_err_t https_send_post_request(const char *url, const char *post_data, int post_data_len, http_receive_buffer_t *recv_buffer) {
+esp_err_t https_send_json_post_request(const char *url, const char *post_data, int post_data_len, http_receive_buffer_t *recv_buffer) {
     esp_http_client_config_t config = {
         .url = url,
         .event_handler = _http_event_handler,

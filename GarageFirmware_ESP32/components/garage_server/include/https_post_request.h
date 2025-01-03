@@ -1,9 +1,8 @@
-#ifndef HTTP_BUTTON_REQUEST_H
-#define HTTP_BUTTON_REQUEST_H
+#ifndef HTTPS_POST_REQUEST_H
+#define HTTPS_POST_REQUEST_H
 
-#include "esp_http_client.h"
-#include "garage_server.h"
+#include "http_receive_buffer.h"
 
-esp_err_t https_send_post_request(const char *url, const char *post_data, int post_data_len, http_receive_buffer_t *recv_buffer);
+esp_err_t https_send_json_post_request(const char *url, const char *post_data, int post_data_len, http_receive_buffer_t *recv_buffer);
 
-#endif // HTTP_BUTTON_REQUEST_H
+#endif // HTTPS_POST_REQUEST_H
