@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "garage_server.h"
+#include "garage_http_client.h"
 #include "https_post_request.h"
 #include "root_ca.h"
 

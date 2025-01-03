@@ -1,5 +1,5 @@
-#ifndef GARAGE_SERVER_H
-#define GARAGE_SERVER_H
+#ifndef GARAGE_HTTP_CLIENT_H
+#define GARAGE_HTTP_CLIENT_H
 
 #include "garage_config.h"
 #include "http_receive_buffer.h"
@@ -33,4 +33,4 @@ typedef struct {
 
 extern garage_server_t garage_server;
 
-#endif // GARAGE_SERVER_H
+#endif // GARAGE_HTTP_CLIENT_H

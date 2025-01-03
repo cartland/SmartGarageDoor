@@ -7,7 +7,7 @@
 #include "button_token.h"
 #include "door_sensors.h"
 #include "garage_hal.h"
-#include "garage_server.h"
+#include "garage_http_client.h"
 #include "wifi_connector.h"
 
 #define DEVICE_ID CONFIG_PROJECT_DEVICE_ID

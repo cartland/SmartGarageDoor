@@ -7,6 +7,6 @@ idf_component_register(
         button_token
         door_sensors
         garage_hal
-        garage_server
+        garage_http_client
         wifi_connector
 )

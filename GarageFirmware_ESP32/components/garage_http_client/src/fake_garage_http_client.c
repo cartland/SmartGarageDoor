@@ -1,7 +1,7 @@
 #include "garage_config.h"
 #ifdef CONFIG_USE_FAKE_GARAGE_SERVER
 
-#include "garage_server.h"
+#include "garage_http_client.h"
 #include "esp_log.h"
 #include <stdio.h>
 #include <string.h>
