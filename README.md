@@ -84,22 +84,22 @@ Non-server responsibilities:
 As long as the primitive requirements are supported by the clients, the server can add new features.
 * **Server**
   * **Stores all requests** sent by clients.
-  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L40
+  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L65
   * Interprets sensor data and converts signal input to **door events**.
-  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L64-L71
+  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L77
   * Responds to client requests for the **current event**.
-  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L44
+  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L97
   * Implements the Button Ack Token Protocol to **push the garage remote button**.
-  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L52
+  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L149
   * Listens to **Android app requests to push the button**.
-  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L56
+  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L160
   * **Checks for garage door errors** every minute (example: door halfway closed).
-  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L74-L82
+  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L117
   * **Checks for open garage door** every 5 minutes, and **sends a mobile notification** if the door is **open more than 15 minutes**.
-  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L84-L89
-  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L91-L96
+  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L128
+  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L137
   * Implements a **data retention policy** to delete old data.
-  https://github.com/cartland/SmartGarageDoor/blob/98711935828d8e87f669eef987a58a4e491bca90/server/src/index.ts#L100
+  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L182
 
 ## Limitations
 * **Root CA Expiration**: The server uses a hard-coded root CA that expires in 2036.
