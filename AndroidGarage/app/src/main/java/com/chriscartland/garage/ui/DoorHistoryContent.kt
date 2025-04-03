@@ -74,7 +74,7 @@ fun DoorHistoryContent(
     onFetchRecentDoorEvents: () -> Unit = {},
     onResetFcm: () -> Unit = {},
 ) {
-    val lastCheckInTime = recentDoorEvents.data?.first()?.lastCheckInTimeSeconds
+    val lastCheckInTime = recentDoorEvents.data?.firstOrNull()?.lastCheckInTimeSeconds
     DurationSince(lastCheckInTime?.let { Instant.ofEpochSecond(it) }) { duration ->
         val isOld = lastCheckInTime != null && duration > OLD_DURATION_FOR_DOOR_CHECK_IN
         LazyColumn(

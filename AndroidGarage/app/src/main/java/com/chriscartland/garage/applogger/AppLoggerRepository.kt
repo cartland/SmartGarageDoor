@@ -30,6 +30,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
@@ -66,7 +67,7 @@ class AppLoggerRepositoryImpl @Inject constructor(
             try {
                 context.contentResolver.openOutputStream(uri)?.use { outputStream ->
                     outputStream.write("Key,Time,Epoch,Version\n".toByteArray())
-                    appDatabase.appLoggerDao().getAll().first().forEach {
+                    appDatabase.appLoggerDao().getAll().firstOrNull()?.forEach {
                         outputStream.write(
                             (
                                     "${it.eventKey}" +
