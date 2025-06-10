@@ -18,7 +18,7 @@
 [versions]
 accompanistPermissions = "0.36.0"
 activityCompose = "1.9.3"
-agp = "8.9.0"
+agp = "8.10.1"
 androidxCore = "1.13.1"
 androidxNavigation = "2.8.3"
 androidxDatastore = "1.1.1"
