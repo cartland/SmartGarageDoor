@@ -1,2 +1,55 @@
+# macOS
 .DS_Store
-.vscode
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Android
+AndroidGarage/local.properties
+AndroidGarage/*/build/
+AndroidGarage/build/
+AndroidGarage/.gradle/
+AndroidGarage/captures/
+AndroidGarage/.externalNativeBuild/
+AndroidGarage/.cxx/
+AndroidGarage/app/release/
+AndroidGarage/app/debug/
+
+# Firebase
+FirebaseServer/.firebase/
+FirebaseServer/lib/
+FirebaseServer/node_modules/
+FirebaseServer/.env
+FirebaseServer/.env.local
+
+# ESP32
+GarageFirmware_ESP32/build/
+GarageFirmware_ESP32/sdkconfig
+GarageFirmware_ESP32/sdkconfig.old
+
+# Arduino
+Arduino_ESP32/*/secrets.h
+
+# General build artifacts
+*.log
+*.tmp
+*.temp
+.cache/
+dist/
+out/
+
+# OS generated files
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
