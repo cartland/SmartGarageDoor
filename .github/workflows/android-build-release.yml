@@ -1,6 +1,7 @@
 name: Android Build Release CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "release" ]
 

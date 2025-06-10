@@ -1,6 +1,7 @@
 name: Android Deploy Internal CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "internal" ]
 

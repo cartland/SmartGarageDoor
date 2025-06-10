@@ -1,6 +1,7 @@
 name: Android Tests CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "main", "internal", "release" ]
   pull_request:
