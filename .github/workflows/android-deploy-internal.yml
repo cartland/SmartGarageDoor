@@ -6,6 +6,7 @@ on:
     branches: [ "internal" ]
     paths:
       - 'AndroidGarage/**'
+      - '.github/workflows/android-deploy-internal.yml'
 
 jobs:
   build:

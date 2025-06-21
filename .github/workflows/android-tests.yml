@@ -6,10 +6,12 @@ on:
     branches: [ "main", "internal", "release" ]
     paths:
       - 'AndroidGarage/**'
+      - '.github/workflows/android-tests.yml'
   pull_request:
     branches: [ "main", "internal", "release" ]
     paths:
       - 'AndroidGarage/**'
+      - '.github/workflows/android-tests.yml'
 
 jobs:
   test:

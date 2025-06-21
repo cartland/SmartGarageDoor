@@ -6,6 +6,7 @@ on:
     branches: [ "release" ]
     paths:
       - 'AndroidGarage/**'
+      - '.github/workflows/android-build-release.yml'
 
 jobs:
   build:
