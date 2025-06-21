@@ -19,16 +19,20 @@ package com.chriscartland.garage.fcm
 
 sealed class DoorFcmState {
     data object Unknown : DoorFcmState()
+
     data object NotRegistered : DoorFcmState()
-    data class Registered(val topic: DoorFcmTopic) : DoorFcmState()
+
+    data class Registered(
+        val topic: DoorFcmTopic,
+    ) : DoorFcmState()
 }
 
 @JvmInline
-value class DoorFcmTopic(val string: String)
+value class DoorFcmTopic(
+    val string: String,
+)
 
-fun String.toFcmTopic(): DoorFcmTopic {
-    return DoorFcmTopic(toDoorOpenFcmTopic())
-}
+fun String.toFcmTopic(): DoorFcmTopic = DoorFcmTopic(toDoorOpenFcmTopic())
 
 private fun String.toDoorOpenFcmTopic(): String {
     val re = Regex("[^a-zA-Z0-9-_.~%]")

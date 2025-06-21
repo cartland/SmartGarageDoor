@@ -68,7 +68,7 @@ fun CheckInRow(
                 modifier = Modifier
                     .background(
                         color = pillColors.backgroundColor,
-                        shape = pillShape
+                        shape = pillShape,
                     )
                     .padding(start = 8.dp, end = 4.dp),
             ) {

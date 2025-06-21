@@ -18,12 +18,16 @@
 package com.chriscartland.garage.auth
 
 @JvmInline
-value class Email(private val s: String) {
+value class Email(
+    private val s: String,
+) {
     fun asString(): String = s
 }
 
 @JvmInline
-value class DisplayName(private val s: String) {
+value class DisplayName(
+    private val s: String,
+) {
     fun asString(): String = s
 }
 
@@ -53,7 +57,6 @@ data class FirebaseIdToken(
     fun asString(): String = idToken
 }
 
-
 /**
  * Google ID Token.
  *
@@ -71,7 +74,9 @@ data class FirebaseIdToken(
  * }
  */
 @JvmInline
-value class GoogleIdToken(private val s: String) {
+value class GoogleIdToken(
+    private val s: String,
+) {
     fun asString(): String = s
 }
 
@@ -83,6 +88,10 @@ data class User(
 
 sealed class AuthState {
     data object Unknown : AuthState()
+
     data object Unauthenticated : AuthState()
-    data class Authenticated(val user: User) : AuthState()
+
+    data class Authenticated(
+        val user: User,
+    ) : AuthState()
 }

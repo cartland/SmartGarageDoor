@@ -59,11 +59,11 @@ class PushRepositoryImpl @Inject constructor(
     private val network: GarageNetworkService,
     private val serverConfigRepository: ServerConfigRepository,
 ) : PushRepository {
-    private val _pushStatus = MutableStateFlow(PushStatus.IDLE)
-    override val pushButtonStatus: StateFlow<PushStatus> = _pushStatus
+    private val _pushButtonStatus = MutableStateFlow(PushStatus.IDLE)
+    override val pushButtonStatus: StateFlow<PushStatus> = _pushButtonStatus
 
-    private val _snoozeStatus = MutableStateFlow(SnoozeRequestStatus.IDLE)
-    override val snoozeRequestStatus: StateFlow<SnoozeRequestStatus> = _snoozeStatus
+    private val _snoozeRequestStatus = MutableStateFlow(SnoozeRequestStatus.IDLE)
+    override val snoozeRequestStatus: StateFlow<SnoozeRequestStatus> = _snoozeRequestStatus
 
     private val _snoozeEndTimeSeconds = MutableStateFlow(0L)
     override val snoozeEndTimeSeconds: StateFlow<Long> = _snoozeEndTimeSeconds
@@ -75,12 +75,12 @@ class PushRepositoryImpl @Inject constructor(
         idToken: IdToken,
         buttonAckToken: String,
     ) {
-        _pushStatus.value = PushStatus.SENDING
+        _pushButtonStatus.value = PushStatus.SENDING
         val tag = "pushRemoteButton"
         val serverConfig = serverConfigRepository.getServerConfigCached()
         if (serverConfig == null) {
             Log.e(tag, "Server config is null")
-            _pushStatus.value = PushStatus.IDLE
+            _pushButtonStatus.value = PushStatus.IDLE
             return
         }
         Log.d(tag, "Pushing remote button")
@@ -105,7 +105,7 @@ class PushRepositoryImpl @Inject constructor(
             Log.i(tag, "Response: ${response.code()}")
             Log.i(tag, "Response body: ${response.body()}")
         }
-        _pushStatus.value = PushStatus.IDLE
+        _pushButtonStatus.value = PushStatus.IDLE
     }
 
     override suspend fun fetchSnoozeEndTimeSeconds() {
@@ -159,14 +159,14 @@ class PushRepositoryImpl @Inject constructor(
         idToken: IdToken,
         snoozeEventTimestamp: SnoozeEventTimestampParameter,
     ) {
-        _snoozeStatus.value = SnoozeRequestStatus.SENDING
+        _snoozeRequestStatus.value = SnoozeRequestStatus.SENDING
         val tag = "snoozeOpenDoorsNotifications"
         Log.d(tag, "Requesting to snooze door open notifications for $snoozeDuration")
 
         val serverConfig = serverConfigRepository.getServerConfigCached()
         if (serverConfig == null) {
             Log.e(tag, "Server config is null")
-            _snoozeStatus.value = SnoozeRequestStatus.IDLE
+            _snoozeRequestStatus.value = SnoozeRequestStatus.IDLE
             return
         }
         Log.d(tag, "Server config: $serverConfig")
@@ -189,20 +189,19 @@ class PushRepositoryImpl @Inject constructor(
             Log.i(tag, "Response body: ${response.body()}")
             if (response.body() == null) {
                 Log.e(tag, "Error: No response")
-                _snoozeStatus.value = SnoozeRequestStatus.ERROR
+                _snoozeRequestStatus.value = SnoozeRequestStatus.ERROR
                 return
             }
             // TODO: Diagnose why body() is null when Retrofit receives {"error":"Disabled"}
             if (response.body()?.error != null) {
                 Log.e(tag, "Error: ${response.body()?.error}")
-                _snoozeStatus.value = SnoozeRequestStatus.ERROR
+                _snoozeRequestStatus.value = SnoozeRequestStatus.ERROR
                 return
             }
         }
         Log.d(tag, "Request complete")
-        _snoozeStatus.value = SnoozeRequestStatus.IDLE
+        _snoozeRequestStatus.value = SnoozeRequestStatus.IDLE
     }
-
 }
 
 enum class PushStatus {

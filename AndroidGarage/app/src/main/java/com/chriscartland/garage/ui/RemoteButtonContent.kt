@@ -55,8 +55,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.remotebutton.RequestStatus
-import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
-import com.chriscartland.garage.ui.theme.doorColorSet
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.time.delay
@@ -143,7 +141,9 @@ fun RemoteButtonContent(
                         }
                     }
 
-                    RemoteButtonState.ARMING -> {} // Do nothing.
+                    RemoteButtonState.ARMING -> {}
+
+                    // Do nothing.
                     RemoteButtonState.ARMED -> {
                         // ARMED -> COOLDOWN
                         buttonState = RemoteButtonState.COOLDOWN
@@ -160,7 +160,9 @@ fun RemoteButtonContent(
                         }
                     }
 
-                    RemoteButtonState.TIMEOUT -> {} // Do nothing.
+                    RemoteButtonState.TIMEOUT -> {}
+
+                    // Do nothing.
                     RemoteButtonState.COOLDOWN -> {} // Do nothing.
                 }
             },
@@ -283,11 +285,9 @@ fun ButtonRequestIndicator(
     }
 }
 
-private fun ButtonColors.selectContainer(enabled: Boolean) =
-    if (enabled) containerColor else disabledContainerColor
+private fun ButtonColors.selectContainer(enabled: Boolean) = if (enabled) containerColor else disabledContainerColor
 
-private fun ButtonColors.selectContent(enabled: Boolean) =
-    if (enabled) contentColor else disabledContentColor
+private fun ButtonColors.selectContent(enabled: Boolean) = if (enabled) contentColor else disabledContentColor
 
 @Preview(showBackground = true)
 @Composable

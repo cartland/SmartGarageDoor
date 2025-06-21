@@ -134,9 +134,9 @@ fun DoorStatusCard(
                         DoorPosition.OPENING_TOO_LONG,
                         DoorPosition.OPEN_MISALIGNED,
                         DoorPosition.CLOSING_TOO_LONG,
-                        DoorPosition.ERROR_SENSOR_CONFLICT
+                        DoorPosition.ERROR_SENSOR_CONFLICT,
                     ),
-                        -> doorEvent?.message?.let {
+                    -> doorEvent?.message?.let {
                         if (it.isNotBlank()) {
                             Text(
                                 text = doorEvent.message,
@@ -146,7 +146,8 @@ fun DoorStatusCard(
                         }
                     }
 
-                    else -> { /* Nothing */
+                    else -> {
+                        /* Nothing */
                     }
                 }
             }
@@ -213,7 +214,7 @@ fun RecentDoorEventListItem(
                     text = doorPosition.toFriendlyName(),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier.padding(bottom = 8.dp),
                 )
                 FadedGarageIcon(
                     doorPosition = doorPosition,
@@ -228,9 +229,9 @@ fun RecentDoorEventListItem(
                         DoorPosition.OPENING_TOO_LONG,
                         DoorPosition.OPEN_MISALIGNED,
                         DoorPosition.CLOSING_TOO_LONG,
-                        DoorPosition.ERROR_SENSOR_CONFLICT
+                        DoorPosition.ERROR_SENSOR_CONFLICT,
                     ),
-                        -> doorEvent.message?.let {
+                    -> doorEvent.message?.let {
                         if (it.isNotBlank()) {
                             Text(
                                 text = doorEvent.message,
@@ -240,7 +241,8 @@ fun RecentDoorEventListItem(
                         }
                     }
 
-                    else -> { /* Nothing */
+                    else -> {
+                        /* Nothing */
                     }
                 }
             }

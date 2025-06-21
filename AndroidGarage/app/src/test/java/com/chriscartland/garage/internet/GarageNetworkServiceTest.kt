@@ -59,12 +59,12 @@ class GarageNetworkServiceTest {
                     assertEquals(
                         "Last check-in time should match",
                         1729997503L,
-                        lastCheckInTimeSeconds
+                        lastCheckInTimeSeconds,
                     )
                     assertEquals(
                         "Last change time should match",
                         1729997503L,
-                        lastChangeTimeSeconds
+                        lastChangeTimeSeconds,
                     )
                 }
             }
@@ -90,7 +90,8 @@ fun readJsonResource(filename: String): String {
     return jsonFile.readText()
 }
 
-fun moshi(): Moshi? = Moshi.Builder()
+fun moshi(): Moshi? = Moshi
+    .Builder()
     .add(KotlinJsonAdapterFactory())
     .build()
 

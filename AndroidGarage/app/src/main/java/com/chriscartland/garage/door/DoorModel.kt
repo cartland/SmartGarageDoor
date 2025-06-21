@@ -41,7 +41,7 @@ enum class DoorPosition {
     OPEN_MISALIGNED,
     CLOSING,
     CLOSING_TOO_LONG,
-    ERROR_SENSOR_CONFLICT
+    ERROR_SENSOR_CONFLICT,
 }
 
 enum class FcmRegistrationStatus {

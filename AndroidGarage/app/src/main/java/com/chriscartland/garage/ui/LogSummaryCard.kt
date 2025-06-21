@@ -169,7 +169,7 @@ fun DownloadAppLoggerDatabaseButton(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
+        contract = ActivityResultContracts.StartActivityForResult(),
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.data?.let { uri ->
@@ -189,7 +189,7 @@ fun DownloadAppLoggerDatabaseButton(
                     val formatter = DateTimeFormatter.ofPattern("yyyyMMdd.HHmmss")
                     val timestamp = it.format(formatter)
                     "$timestamp.csv"
-                }
+                },
             )
         }
         launcher.launch(intent)

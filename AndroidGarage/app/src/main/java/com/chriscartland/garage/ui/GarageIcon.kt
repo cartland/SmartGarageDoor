@@ -104,7 +104,7 @@ fun Modifier.fadeBottom(fractionFaded: Float, color: Color, finalOpacity: Float)
     Modifier.drawWithContent {
         drawContent()
         drawFade(fractionFaded, color, finalOpacity)
-    }
+    },
 )
 
 private fun DrawScope.drawFade(fractionFaded: Float, color: Color, finalOpacity: Float) {
@@ -119,7 +119,7 @@ private fun DrawScope.drawFade(fractionFaded: Float, color: Color, finalOpacity:
             colors = listOf(Color.Transparent, color),
             startY = startY,
             endY = endY,
-        )
+        ),
     )
 }
 

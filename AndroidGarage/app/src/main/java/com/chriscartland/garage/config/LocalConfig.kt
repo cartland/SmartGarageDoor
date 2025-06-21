@@ -46,13 +46,13 @@ enum class FetchOnViewModelInit {
     No,
 }
 
-//private val SERVER = Server.Development
+// private val SERVER = Server.Development
 private val SERVER = Server.Production
 
-//private val INITIAL_DATA = InitialData.Demo
+// private val INITIAL_DATA = InitialData.Demo
 private val INITIAL_DATA = InitialData.Empty
 
-//private val FETCH_ON_VIEW_MODEL_INIT = FetchOnViewModelInit.No
+// private val FETCH_ON_VIEW_MODEL_INIT = FetchOnViewModelInit.No
 private val FETCH_ON_VIEW_MODEL_INIT = FetchOnViewModelInit.Yes
 
 object AppLoggerKeys {
@@ -64,11 +64,14 @@ object AppLoggerKeys {
     const val FCM_DOOR_RECEIVED = "fcm_door_received"
     const val FCM_SUBSCRIBE_TOPIC = "fcm_subscribe_topic"
     const val ON_CREATE_FCM_SUBSCRIBE_TOPIC = "on_create_fcm_subscribe_topic"
+
     // Stale data
     const val EXCEEDED_EXPECTED_TIME_WITHOUT_FCM = "exceeded_expected_time_without_fcm"
     const val TIME_WITHOUT_FCM_IN_EXPECTED_RANGE = "time_without_fcm_in_expected_range"
+
     // Permission
     const val USER_REQUESTED_NOTIFICATION_PERMISSION = "user_requested_notification_permission"
+
     // Auth
     const val BEGIN_GOOGLE_SIGN_IN = "begin_google_sign_in"
     const val USER_AUTHENTICATED = "user_authenticated"
@@ -76,17 +79,19 @@ object AppLoggerKeys {
     const val USER_AUTH_UNKNOWN = "user_auth_unknown"
 }
 
-val APP_CONFIG = AppConfig(
-    server = SERVER,
-    baseUrl = when (SERVER) {
-        Server.Development -> "http://10.0.2.2:5001/escape-echo/us-central1/"
-        Server.Production -> "https://us-central1-escape-echo.cloudfunctions.net/"
-    },
-    initialData = INITIAL_DATA,
-    fetchOnViewModelInit = FETCH_ON_VIEW_MODEL_INIT,
-    recentEventCount = 30,
-    serverConfigKey = BuildConfig.SERVER_CONFIG_KEY,
-    snoozeNotificationsOption = true,
-    remoteButtonPushEnabled = true,
-    logSummary = true,
-)
+val APP_CONFIG =
+    AppConfig(
+        server = SERVER,
+        baseUrl =
+        when (SERVER) {
+            Server.Development -> "http://10.0.2.2:5001/escape-echo/us-central1/"
+            Server.Production -> "https://us-central1-escape-echo.cloudfunctions.net/"
+        },
+        initialData = INITIAL_DATA,
+        fetchOnViewModelInit = FETCH_ON_VIEW_MODEL_INIT,
+        recentEventCount = 30,
+        serverConfigKey = BuildConfig.SERVER_CONFIG_KEY,
+        snoozeNotificationsOption = true,
+        remoteButtonPushEnabled = true,
+        logSummary = true,
+    )

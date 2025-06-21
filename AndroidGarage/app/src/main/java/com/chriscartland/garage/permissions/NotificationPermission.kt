@@ -35,14 +35,12 @@ import com.google.accompanist.permissions.rememberPermissionState
  */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun rememberNotificationPermissionState(): PermissionState {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        // Requires API 33+.
-        rememberPermissionState(Manifest.permission.POST_NOTIFICATIONS)
-    } else {
-        // Assume permission is granted on older API versions.
-        rememberPermissionAlwaysGranted("android.permission.POST_NOTIFICATIONS")
-    }
+fun rememberNotificationPermissionState(): PermissionState = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    // Requires API 33+.
+    rememberPermissionState(Manifest.permission.POST_NOTIFICATIONS)
+} else {
+    // Assume permission is granted on older API versions.
+    rememberPermissionAlwaysGranted("android.permission.POST_NOTIFICATIONS")
 }
 
 /**
@@ -50,13 +48,12 @@ fun rememberNotificationPermissionState(): PermissionState {
  */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun rememberPermissionAlwaysGranted(permission: String): PermissionState {
-    return remember(permission) {
-        object : PermissionState {
-            override val permission = permission
-            override val status = PermissionStatus.Granted
-            override fun launchPermissionRequest() { /* Do nothing */ }
-        }
+fun rememberPermissionAlwaysGranted(permission: String): PermissionState = remember(permission) {
+    object : PermissionState {
+        override val permission = permission
+        override val status = PermissionStatus.Granted
+
+        override fun launchPermissionRequest() { /* Do nothing */ }
     }
 }
 
@@ -74,8 +71,10 @@ fun notificationJustificationText(attemptCount: Int = 0): String {
             append("\nYou can manage permissions in the Android system settings.")
         }
         if (attemptCount > 3) {
-            append("\nAndroid might be blocking requests because " +
-                    "the permission was denied multiple times.")
+            append(
+                "\nAndroid might be blocking requests because " +
+                    "the permission was denied multiple times.",
+            )
         }
         if (attemptCount > 4) {
             append("\nYou have clicked the button $attemptCount times.")

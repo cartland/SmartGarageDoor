@@ -23,17 +23,18 @@ import android.os.Build
 data class AppVersion(
     val packageName: String,
     val versionCode: Long,
-    val versionName: String
+    val versionName: String,
 ) {
     override fun toString(): String = "$packageName-$versionCode-$versionName"
 }
 
-fun Context.AppVersion(): AppVersion {
-    return AppVersion(
-        packageName = packageName,
-        versionCode = packageManager.getPackageInfo(
+fun Context.AppVersion(): AppVersion = AppVersion(
+    packageName = packageName,
+    versionCode =
+    packageManager
+        .getPackageInfo(
             packageName,
-            0
+            0,
         ).let {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 it.longVersionCode
@@ -42,6 +43,5 @@ fun Context.AppVersion(): AppVersion {
                 it.versionCode.toLong()
             }
         },
-        versionName = packageManager.getPackageInfo(packageName, 0).versionName ?: "",
-    )
-}
+    versionName = packageManager.getPackageInfo(packageName, 0).versionName ?: "",
+)

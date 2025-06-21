@@ -18,6 +18,7 @@
 package com.chriscartland.garage.config
 
 import android.util.Log
+import com.chriscartland.garage.config.model.ServerConfig
 import com.chriscartland.garage.internet.GarageNetworkService
 import dagger.Binds
 import dagger.Module
@@ -34,7 +35,7 @@ interface ServerConfigRepository {
 class ServerConfigRepositoryImpl @Inject constructor(
     private val network: GarageNetworkService,
 ) : ServerConfigRepository {
-    private var _serverConfig: ServerConfig? = null
+    private var serverConfig: ServerConfig? = null
 
     private val mutex: Mutex = Mutex()
 
@@ -45,11 +46,11 @@ class ServerConfigRepositoryImpl @Inject constructor(
      * We only want to fetch it once.
      */
     override suspend fun getServerConfigCached(): ServerConfig? {
-        if (_serverConfig != null) {
-            return _serverConfig
+        if (serverConfig != null) {
+            return serverConfig
         }
         mutex.lock()
-        val result = _serverConfig ?: fetchServerConfig()
+        val result = serverConfig ?: fetchServerConfig()
         mutex.unlock()
         return result
     }
@@ -97,7 +98,7 @@ class ServerConfigRepositoryImpl @Inject constructor(
                 remoteButtonBuildTimestamp = remoteButtonBuildTimestamp,
                 remoteButtonPushKey = body.body.remoteButtonPushKey,
             ).also { newConfig ->
-                _serverConfig = newConfig
+                serverConfig = newConfig
             }
         } catch (e: IllegalArgumentException) {
             Log.e(TAG, "IllegalArgumentException: $e")

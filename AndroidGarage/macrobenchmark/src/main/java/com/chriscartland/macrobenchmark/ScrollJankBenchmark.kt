@@ -28,36 +28,36 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class ScrollJankBenchmark {
-
     @get:Rule
     val benchmarkRule = MacrobenchmarkRule()
 
     @Test
-    fun scrollJank() = benchmarkRule.measureRepeated(
-        packageName = "com.chriscartland.garage.benchmark",
-        metrics = listOf(FrameTimingMetric()),
-        iterations = 5,
-        setupBlock = {
-            // https://issuetracker.google.com/issues/278214396
-            // startupMode = StartupMode.COLD,
-            // Setting the startupMode to COLD breaks the UI test.
-            // To approximate "COLD" start,
-            // we will kill the process ourselves, then launch the Activity.
-            killProcess()
-            startActivityAndWait()
-            // Navigate to the History tab.
-            val historyTab = device.findObject(By.textContains("History"))
-            historyTab.click()
-            device.waitForIdle()
+    fun scrollJank() =
+        benchmarkRule.measureRepeated(
+            packageName = "com.chriscartland.garage.benchmark",
+            metrics = listOf(FrameTimingMetric()),
+            iterations = 5,
+            setupBlock = {
+                // https://issuetracker.google.com/issues/278214396
+                // startupMode = StartupMode.COLD,
+                // Setting the startupMode to COLD breaks the UI test.
+                // To approximate "COLD" start,
+                // we will kill the process ourselves, then launch the Activity.
+                killProcess()
+                startActivityAndWait()
+                // Navigate to the History tab.
+                val historyTab = device.findObject(By.textContains("History"))
+                historyTab.click()
+                device.waitForIdle()
+            },
+        ) {
+            device.swipe(
+                arrayOf(
+                    Point(device.displayWidth / 2, device.displayHeight * 2 / 3),
+                    Point(device.displayWidth / 2, device.displayHeight * 1 / 3),
+                ),
+                10,
+            )
+            device.waitForIdle(5000L)
         }
-    ) {
-        device.swipe(
-            arrayOf(
-                Point(device.displayWidth / 2, device.displayHeight * 2 / 3),
-                Point(device.displayWidth / 2, device.displayHeight * 1 / 3),
-            ),
-            10,
-        )
-        device.waitForIdle(5000L)
-    }
 }

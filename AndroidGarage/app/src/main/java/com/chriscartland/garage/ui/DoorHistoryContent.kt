@@ -89,7 +89,7 @@ fun DoorHistoryContent(
                         action = {
                             Log.e(
                                 TAG,
-                                "Trying to fix outdated info. Resetting FCM, and fetching data."
+                                "Trying to fix outdated info. Resetting FCM, and fetching data.",
                             )
                             onResetFcm()
                             onFetchRecentDoorEvents()
@@ -108,7 +108,7 @@ fun DoorHistoryContent(
                 item {
                     ErrorCard(
                         text = "Error fetching recent door events:" +
-                                recentDoorEvents.exception.toString().take(500),
+                            recentDoorEvents.exception.toString().take(500),
                         buttonText = "Retry",
                         onClick = { onFetchRecentDoorEvents() },
                         modifier = Modifier.fillMaxWidth(),

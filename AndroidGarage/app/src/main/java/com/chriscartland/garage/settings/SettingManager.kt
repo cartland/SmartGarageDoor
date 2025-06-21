@@ -25,16 +25,34 @@ import com.chriscartland.garage.settings.SettingType.LongSetting
 import com.chriscartland.garage.settings.SettingType.StringSetting
 
 interface SettingManager {
-    fun getStringSetting(key: String, default: String): StringSetting
-    fun getBooleanSetting(key: String, default: Boolean): BooleanSetting
-    fun getIntSetting(key: String, default: Int): IntSetting
-    fun getLongSetting(key: String, default: Long): LongSetting
+    fun getStringSetting(
+        key: String,
+        default: String,
+    ): StringSetting
+
+    fun getBooleanSetting(
+        key: String,
+        default: Boolean,
+    ): BooleanSetting
+
+    fun getIntSetting(
+        key: String,
+        default: Int,
+    ): IntSetting
+
+    fun getLongSetting(
+        key: String,
+        default: Long,
+    ): LongSetting
 }
 
 interface Setting<T> {
     val key: String
+
     fun get(): T
+
     fun set(value: T)
+
     fun restoreDefault()
 }
 
@@ -44,10 +62,8 @@ sealed class SettingType<T> : Setting<T> {
         override val key: String,
         private val default: String,
     ) : SettingType<String>() {
-        override fun get(): String {
-            return (prefs.getString(key, default) ?: default).also {
-                Log.d(TAG, "get: String $key = $it")
-            }
+        override fun get(): String = (prefs.getString(key, default) ?: default).also {
+            Log.d(TAG, "get: String $key = $it")
         }
 
         override fun set(value: String) {
@@ -72,10 +88,8 @@ sealed class SettingType<T> : Setting<T> {
         override val key: String,
         private val default: Boolean,
     ) : SettingType<Boolean>() {
-        override fun get(): Boolean {
-            return prefs.getBoolean(key, default).also {
-                Log.d(TAG, "get: Boolean $key = $it")
-            }
+        override fun get(): Boolean = prefs.getBoolean(key, default).also {
+            Log.d(TAG, "get: Boolean $key = $it")
         }
 
         override fun set(value: Boolean) {
@@ -100,10 +114,8 @@ sealed class SettingType<T> : Setting<T> {
         override val key: String,
         private val default: Int,
     ) : SettingType<Int>() {
-        override fun get(): Int {
-            return prefs.getInt(key, default).also {
-                Log.d(TAG, "get: Int $key = $it")
-            }
+        override fun get(): Int = prefs.getInt(key, default).also {
+            Log.d(TAG, "get: Int $key = $it")
         }
 
         override fun set(value: Int) {
@@ -136,10 +148,8 @@ sealed class SettingType<T> : Setting<T> {
         override val key: String,
         private val default: Long,
     ) : SettingType<Long>() {
-        override fun get(): Long {
-            return prefs.getLong(key, default).also {
-                Log.d(TAG, "get: Long $key = $it")
-            }
+        override fun get(): Long = prefs.getLong(key, default).also {
+            Log.d(TAG, "get: Long $key = $it")
         }
 
         override fun set(value: Long) {

@@ -92,14 +92,14 @@ fun UserInfoCard(
                     signIn
                 } else {
                     signOut
-                }
+                },
             ) {
                 Text(
                     if (user == null) {
                         "Sign In"
                     } else {
                         "Sign out"
-                    }
+                    },
                 )
             }
         }
@@ -120,6 +120,6 @@ fun UserInfoCardPreview() {
             name = DisplayName("Demo User"),
             email = Email("demo@example.com"),
             idToken = FirebaseIdToken("abc123", 1234567890),
-        )
+        ),
     )
 }

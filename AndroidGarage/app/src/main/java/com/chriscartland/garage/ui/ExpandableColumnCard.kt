@@ -108,7 +108,7 @@ fun ExpandableColumnCard(
             AnimatedVisibility(
                 visible = expanded,
                 enter = expandVertically(animationSpec = tween(durationMillis = 300)),
-                exit = shrinkVertically(animationSpec = tween(durationMillis = 300))
+                exit = shrinkVertically(animationSpec = tween(durationMillis = 300)),
             ) {
                 Column(
                     modifier = Modifier

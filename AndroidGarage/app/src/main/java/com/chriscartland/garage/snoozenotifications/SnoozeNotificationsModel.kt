@@ -34,34 +34,34 @@ enum class SnoozeDurationUIOption(
     TwelveHours(12.hours),
 }
 
-fun SnoozeDurationUIOption.toServer(): SnoozeDurationServerOption {
-    return when (this) {
-        SnoozeDurationUIOption.None -> SnoozeDurationServerOption.Hours_0
-        SnoozeDurationUIOption.OneHour -> SnoozeDurationServerOption.Hours_1
-        SnoozeDurationUIOption.FourHours -> SnoozeDurationServerOption.Hours_4
-        SnoozeDurationUIOption.EightHours -> SnoozeDurationServerOption.Hours_8
-        SnoozeDurationUIOption.TwelveHours -> SnoozeDurationServerOption.Hours_12
-    }
+fun SnoozeDurationUIOption.toServer(): SnoozeDurationServerOption = when (this) {
+    SnoozeDurationUIOption.None -> SnoozeDurationServerOption.HOURS_0
+    SnoozeDurationUIOption.OneHour -> SnoozeDurationServerOption.HOURS_1
+    SnoozeDurationUIOption.FourHours -> SnoozeDurationServerOption.HOURS_4
+    SnoozeDurationUIOption.EightHours -> SnoozeDurationServerOption.HOURS_8
+    SnoozeDurationUIOption.TwelveHours -> SnoozeDurationServerOption.HOURS_12
 }
 
 /**
  * Full list of values accepted by the server.
  */
 @Suppress("unused")
-enum class SnoozeDurationServerOption(val duration: String) {
-    Hours_0("0h"),
-    Hours_1("1h"),
-    Hours_2("2h"),
-    Hours_3("3h"),
-    Hours_4("4h"),
-    Hours_5("5h"),
-    Hours_6("6h"),
-    Hours_7("7h"),
-    Hours_8("8h"),
-    Hours_9("9h"),
-    Hours_10("10h"),
-    Hours_11("11h"),
-    Hours_12("12h"),
+enum class SnoozeDurationServerOption(
+    val duration: String,
+) {
+    HOURS_0("0h"),
+    HOURS_1("1h"),
+    HOURS_2("2h"),
+    HOURS_3("3h"),
+    HOURS_4("4h"),
+    HOURS_5("5h"),
+    HOURS_6("6h"),
+    HOURS_7("7h"),
+    HOURS_8("8h"),
+    HOURS_9("9h"),
+    HOURS_10("10h"),
+    HOURS_11("11h"),
+    HOURS_12("12h"),
 }
 
 /**

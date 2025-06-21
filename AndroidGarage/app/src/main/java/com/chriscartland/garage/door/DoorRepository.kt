@@ -38,27 +38,34 @@ interface DoorRepository {
     // Exposes the event, including last updated timestamps.
     val currentDoorEvent: Flow<DoorEvent>
     val recentDoorEvents: Flow<List<DoorEvent>>
+
     suspend fun fetchBuildTimestampCached(): String?
+
     fun insertDoorEvent(doorEvent: DoorEvent)
+
     suspend fun fetchCurrentDoorEvent()
+
     suspend fun fetchRecentDoorEvents()
 }
 
-class DoorRepositoryImpl @Inject constructor(
+class DoorRepositoryImpl
+@Inject
+constructor(
     private val localDoorDataSource: LocalDoorDataSource,
     private val network: GarageNetworkService,
     private val serverConfigRepository: ServerConfigRepository,
 ) : DoorRepository {
     override val currentDoorPosition: Flow<DoorPosition>
-        get() = localDoorDataSource.currentDoorEvent.map {
-            // [it] can be null -- this might be a Kotlin bug
-            it?.doorPosition ?: DoorPosition.UNKNOWN
-        }.distinctUntilChanged()
+        get() =
+            localDoorDataSource.currentDoorEvent
+                .map {
+                    // [it] can be null -- this might be a Kotlin bug
+                    it?.doorPosition ?: DoorPosition.UNKNOWN
+                }.distinctUntilChanged()
     override val currentDoorEvent: Flow<DoorEvent> = localDoorDataSource.currentDoorEvent
     override val recentDoorEvents: Flow<List<DoorEvent>> = localDoorDataSource.recentDoorEvents
 
-    override suspend fun fetchBuildTimestampCached(): String? =
-        serverConfigRepository.getServerConfigCached()?.buildTimestamp
+    override suspend fun fetchBuildTimestampCached(): String? = serverConfigRepository.getServerConfigCached()?.buildTimestamp
 
     override fun insertDoorEvent(doorEvent: DoorEvent) {
         Log.d(TAG, "Inserting DoorEvent: $doorEvent")
@@ -76,10 +83,11 @@ class DoorRepositoryImpl @Inject constructor(
         }
         try {
             Log.d(TAG, "Fetching current door event")
-            val response = network.getCurrentEventData(
-                buildTimestamp = buildTimestamp,
-                session = null,
-            )
+            val response =
+                network.getCurrentEventData(
+                    buildTimestamp = buildTimestamp,
+                    session = null,
+                )
             if (response.code() != 200) {
                 Log.e(TAG, "Response code is ${response.code()}")
                 return
@@ -118,11 +126,12 @@ class DoorRepositoryImpl @Inject constructor(
         }
         try {
             Log.d(TAG, "Fetching recent door events")
-            val response = network.getRecentEventData(
-                buildTimestamp = buildTimestamp,
-                session = null,
-                count = APP_CONFIG.recentEventCount,
-            )
+            val response =
+                network.getRecentEventData(
+                    buildTimestamp = buildTimestamp,
+                    session = null,
+                    count = APP_CONFIG.recentEventCount,
+                )
             if (response.code() != 200) {
                 Log.e(TAG, "Response code is ${response.code()}")
                 return
@@ -137,13 +146,15 @@ class DoorRepositoryImpl @Inject constructor(
                 Log.i(TAG, "recentEventData is empty")
                 return
             }
-            val doorEvents = body.eventHistory.map {
-                it.currentEvent?.asDoorEvent()
-            }.filterNotNull()
+            val doorEvents =
+                body.eventHistory
+                    .map {
+                        it.currentEvent?.asDoorEvent()
+                    }.filterNotNull()
             if (doorEvents.size != body.eventHistory.size) {
                 Log.e(
                     TAG,
-                    "Door events size ${doorEvents.size} " + "does not match response size ${body.eventHistory.size}"
+                    "Door events size ${doorEvents.size} " + "does not match response size ${body.eventHistory.size}",
                 )
             }
             Log.d(TAG, "Success: $doorEvents")

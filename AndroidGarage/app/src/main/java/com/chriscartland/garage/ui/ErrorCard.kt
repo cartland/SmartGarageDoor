@@ -96,7 +96,7 @@ fun ErrorCardPreview() {
 fun ErrorCardLongButtonWordPreview() {
     ErrorCard(
         text = "This is an error card. You can provide explanatory text here " +
-                "to help the user decide what action to take.",
+            "to help the user decide what action to take.",
         buttonText = "Supercalifragilisticexpialidocious",
     )
 }
@@ -106,7 +106,7 @@ fun ErrorCardLongButtonWordPreview() {
 fun ErrorCardManyButtonWordsPreview() {
     ErrorCard(
         text = "This is an error card. You can provide explanatory text here " +
-                "to help the user decide what action to take.",
+            "to help the user decide what action to take.",
         buttonText = "Retry, or some other action to be handled with onClick",
     )
 }

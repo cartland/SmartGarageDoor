@@ -56,23 +56,24 @@ data class CurrentEventDataResponse(
         @Json(name = "checkInTimestampSeconds") val checkInTimestampSeconds: Long?,
     ) {
         fun asDoorEvent(): DoorEvent? {
-            val doorPosition = when (type) {
-                "CLOSED" -> DoorPosition.CLOSED
-                "OPENING" -> DoorPosition.OPENING
-                "OPENING_TOO_LONG" -> DoorPosition.OPENING_TOO_LONG
-                "CLOSING" -> DoorPosition.CLOSING
-                "CLOSING_TOO_LONG" -> DoorPosition.CLOSING_TOO_LONG
-                "OPEN" -> DoorPosition.OPEN
-                "OPEN_MISALIGNED" -> DoorPosition.OPEN_MISALIGNED
-                "ERROR_SENSOR_CONFLICT" -> DoorPosition.ERROR_SENSOR_CONFLICT
-                else -> DoorPosition.UNKNOWN
-            }
+            val doorPosition =
+                when (type) {
+                    "CLOSED" -> DoorPosition.CLOSED
+                    "OPENING" -> DoorPosition.OPENING
+                    "OPENING_TOO_LONG" -> DoorPosition.OPENING_TOO_LONG
+                    "CLOSING" -> DoorPosition.CLOSING
+                    "CLOSING_TOO_LONG" -> DoorPosition.CLOSING_TOO_LONG
+                    "OPEN" -> DoorPosition.OPEN
+                    "OPEN_MISALIGNED" -> DoorPosition.OPEN_MISALIGNED
+                    "ERROR_SENSOR_CONFLICT" -> DoorPosition.ERROR_SENSOR_CONFLICT
+                    else -> DoorPosition.UNKNOWN
+                }
 
             return DoorEvent(
                 doorPosition = doorPosition,
                 message = message,
                 lastCheckInTimeSeconds = checkInTimestampSeconds,
-                lastChangeTimeSeconds = timestampSeconds
+                lastChangeTimeSeconds = timestampSeconds,
             )
         }
     }

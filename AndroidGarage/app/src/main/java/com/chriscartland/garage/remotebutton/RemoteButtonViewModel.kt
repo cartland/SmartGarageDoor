@@ -63,7 +63,8 @@ class RemoteButtonViewModelImpl @Inject constructor(
     private val pushRepository: PushRepository,
     // Watch the door status, because we consider the request delivered when the door moves.
     private val doorRepository: DoorRepository,
-) : ViewModel(), RemoteButtonViewModel {
+) : ViewModel(),
+    RemoteButtonViewModel {
     // Listen to network events and door status updates.
     private val _requestStatus = MutableStateFlow(RequestStatus.NONE)
     override val requestStatus: StateFlow<RequestStatus> = _requestStatus
@@ -73,7 +74,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
 
     override val snoozeEndTimeSeconds: StateFlow<Long> = pushRepository.snoozeEndTimeSeconds
 
-    private val _currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
+    private val currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
 
     init {
         setupRequestStateMachine()
@@ -122,7 +123,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
                 }
                 Log.d(
                     TAG,
-                    "ButtonRequestStateMachine network: old $old -> " + "new ${_requestStatus.value.name}"
+                    "ButtonRequestStateMachine network: old $old -> " + "new ${_requestStatus.value.name}",
                 )
             }
         }
@@ -154,7 +155,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
                 }
                 Log.d(
                     TAG,
-                    "ButtonRequestStateMachine door: old $old -> " + "new ${_requestStatus.value.name}"
+                    "ButtonRequestStateMachine door: old $old -> " + "new ${_requestStatus.value.name}",
                 )
             }
         }
@@ -163,7 +164,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
     private fun listenToDoorEvent() {
         viewModelScope.launch(Dispatchers.IO) {
             doorRepository.currentDoorEvent.collect {
-                _currentDoorEvent.value = it
+                currentDoorEvent.value = it
             }
         }
     }
@@ -251,7 +252,8 @@ class RemoteButtonViewModelImpl @Inject constructor(
                     }
                 }
                 Log.d(
-                    TAG, "ButtonRequestStateMachine timeouts: " + _requestStatus.value.name
+                    TAG,
+                    "ButtonRequestStateMachine timeouts: " + _requestStatus.value.name,
                 )
             }
         }
@@ -301,7 +303,7 @@ class RemoteButtonViewModelImpl @Inject constructor(
             val idToken = ensureFreshIdToken(authRepository, authState)
             Log.d(TAG, "snoozeOpenDoorsNotifications: Snoozing: $snoozeDuration")
 
-            val lastChangeTimeSeconds = _currentDoorEvent.value?.lastChangeTimeSeconds
+            val lastChangeTimeSeconds = currentDoorEvent.value?.lastChangeTimeSeconds
             if (lastChangeTimeSeconds == null) {
                 Log.e(TAG, "lastChangeTimeSeconds is null -- cannot snooze")
                 return@launch

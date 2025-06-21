@@ -29,7 +29,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
-interface AppSettings : SettingContract, SettingManager
+interface AppSettings :
+    SettingContract,
+    SettingManager
 
 interface SettingContract {
     val fcmDoorTopic: StringSetting
@@ -48,24 +50,20 @@ enum class Key {
 class AppSettingsImpl(context: Context) : AppSettings {
     val prefs = context.getSharedPreferences(APP_SETTINGS, Context.MODE_PRIVATE)
 
-    override val fcmDoorTopic = Key.FCM_DOOR_TOPIC.StringSetting("")
-    override val profileAppCardExpanded = Key.PROFILE_APP_CARD_EXPANDED.BooleanSetting(true)
-    override val profileLogCardExpanded = Key.PROFILE_LOG_CARD_EXPANDED.BooleanSetting(false)
-    override val profileUserCardExpanded = Key.PROFILE_USER_CARD_EXPANDED.BooleanSetting(true)
+    override val fcmDoorTopic = Key.FCM_DOOR_TOPIC.stringSetting("")
+    override val profileAppCardExpanded = Key.PROFILE_APP_CARD_EXPANDED.booleanSetting(true)
+    override val profileLogCardExpanded = Key.PROFILE_LOG_CARD_EXPANDED.booleanSetting(false)
+    override val profileUserCardExpanded = Key.PROFILE_USER_CARD_EXPANDED.booleanSetting(true)
 
-    fun Key.StringSetting(default: String) = getStringSetting(this.name, default)
-    fun Key.BooleanSetting(default: Boolean) = getBooleanSetting(this.name, default)
-    fun Key.IntSetting(default: Int) = getIntSetting(this.name, default)
-    fun Key.LongSetting(default: Long) = getLongSetting(this.name, default)
+    fun Key.stringSetting(default: String) = getStringSetting(this.name, default)
+    fun Key.booleanSetting(default: Boolean) = getBooleanSetting(this.name, default)
+    fun Key.intSetting(default: Int) = getIntSetting(this.name, default)
+    fun Key.longSetting(default: Long) = getLongSetting(this.name, default)
 
-    override fun getStringSetting(key: String, default: String): StringSetting =
-        StringSetting(prefs, key, default)
-    override fun getBooleanSetting(key: String, default: Boolean): BooleanSetting =
-        BooleanSetting(prefs, key, default)
-    override fun getIntSetting(key: String, default: Int): IntSetting =
-        IntSetting(prefs, key, default)
-    override fun getLongSetting(key: String, default: Long): LongSetting =
-        LongSetting(prefs, key, default)
+    override fun getStringSetting(key: String, default: String): StringSetting = StringSetting(prefs, key, default)
+    override fun getBooleanSetting(key: String, default: Boolean): BooleanSetting = BooleanSetting(prefs, key, default)
+    override fun getIntSetting(key: String, default: Int): IntSetting = IntSetting(prefs, key, default)
+    override fun getLongSetting(key: String, default: Long): LongSetting = LongSetting(prefs, key, default)
 }
 
 @Module
@@ -73,9 +71,7 @@ class AppSettingsImpl(context: Context) : AppSettings {
 object SettingsModule {
     @Provides
     @Singleton
-    fun provideAppSettings(@ApplicationContext appContext: Context): AppSettings {
-        return AppSettingsImpl(appContext)
-    }
+    fun provideAppSettings(@ApplicationContext appContext: Context): AppSettings = AppSettingsImpl(appContext)
 }
 
 private const val APP_SETTINGS = "app_settings"

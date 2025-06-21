@@ -30,11 +30,15 @@ import javax.inject.Singleton
 interface LocalDoorDataSource {
     val currentDoorEvent: Flow<DoorEvent>
     val recentDoorEvents: Flow<List<DoorEvent>>
+
     fun insertDoorEvent(doorEvent: DoorEvent)
+
     fun replaceDoorEvents(doorEvents: List<DoorEvent>)
 }
 
-class DatabaseLocalDoorDataSource @Inject constructor(
+class DatabaseLocalDoorDataSource
+@Inject
+constructor(
     private val appDatabase: AppDatabase,
 ) : LocalDoorDataSource {
     override val currentDoorEvent = appDatabase.doorEventDao().currentDoorEvent()
@@ -56,9 +60,7 @@ class DatabaseLocalDoorDataSource @Inject constructor(
 object LocalDataSourceModule {
     @Provides
     @Singleton
-    fun provideLocalDataSource(appDatabase: AppDatabase): LocalDoorDataSource {
-        return DatabaseLocalDoorDataSource(appDatabase)
-    }
+    fun provideLocalDataSource(appDatabase: AppDatabase): LocalDoorDataSource = DatabaseLocalDoorDataSource(appDatabase)
 }
 
 private const val TAG = "LocalDoorDataSource"

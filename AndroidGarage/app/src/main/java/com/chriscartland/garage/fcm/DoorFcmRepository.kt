@@ -34,11 +34,18 @@ import kotlin.coroutines.suspendCoroutine
 
 interface DoorFcmRepository {
     suspend fun fetchStatus(activity: Activity): DoorFcmState
-    suspend fun registerDoor(activity: Activity, fcmTopic: DoorFcmTopic): DoorFcmState
+
+    suspend fun registerDoor(
+        activity: Activity,
+        fcmTopic: DoorFcmTopic,
+    ): DoorFcmState
+
     suspend fun deregisterDoor(activity: Activity): DoorFcmState
 }
 
-class DoorFcmRepositoryImpl @Inject constructor(
+class DoorFcmRepositoryImpl
+@Inject
+constructor(
     private val settings: AppSettings,
     private val appLoggerRepository: AppLoggerRepository,
 ) : DoorFcmRepository {
@@ -53,7 +60,10 @@ class DoorFcmRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun registerDoor(activity: Activity, topic: DoorFcmTopic): DoorFcmState {
+    override suspend fun registerDoor(
+        activity: Activity,
+        topic: DoorFcmTopic,
+    ): DoorFcmState {
         Log.d(TAG, "registerDoor: $topic")
         // Unsubscribe from old topic.
         val oldFcmTopic = getFcmTopic()
@@ -65,43 +75,46 @@ class DoorFcmRepositoryImpl @Inject constructor(
         setFcmTopic(topic)
         Log.i(TAG, "Subscribing to FCM Topic: $topic")
         appLoggerRepository.log(AppLoggerKeys.FCM_SUBSCRIBE_TOPIC)
-        val subscriptionSuccess = suspendCoroutine { continuation ->
-            Firebase.messaging.subscribeToTopic(topic.string)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        Log.i(TAG, "Subscribed to FCM Topic $topic")
-                        continuation.resume(true)
-                    } else {
-                        Log.e(
-                            TAG,
-                            "Failed to subscribe to FCM Topic $topic: " + task.exception.toString()
-                        )
-                        continuation.resume(false)
+        val subscriptionSuccess =
+            suspendCoroutine { continuation ->
+                Firebase.messaging
+                    .subscribeToTopic(topic.string)
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            Log.i(TAG, "Subscribed to FCM Topic $topic")
+                            continuation.resume(true)
+                        } else {
+                            Log.e(
+                                TAG,
+                                "Failed to subscribe to FCM Topic $topic: " + task.exception.toString(),
+                            )
+                            continuation.resume(false)
+                        }
                     }
-                }
-        }
+            }
         if (!subscriptionSuccess) {
             return DoorFcmState.NotRegistered.also {
                 Log.d(TAG, "Failed to subscribe to topic $topic, returning state $it")
             }
         }
-        val token = suspendCoroutine { continuation ->
-            Firebase.messaging.token
-                .addOnCompleteListener { task ->
-                    if (!task.isSuccessful) {
-                        Log.w(TAG, "Fetching FCM registration token failed", task.exception)
-                        continuation.resume(null)
+        val token =
+            suspendCoroutine { continuation ->
+                Firebase.messaging.token
+                    .addOnCompleteListener { task ->
+                        if (!task.isSuccessful) {
+                            Log.w(TAG, "Fetching FCM registration token failed", task.exception)
+                            continuation.resume(null)
+                        }
+                        val token = task.result
+                        if (token == null) {
+                            Log.d(TAG, "Fetching FCM registration token null")
+                            continuation.resume(null)
+                        } else {
+                            Log.d(TAG, "FCM Instance Token: $token")
+                            continuation.resume(token)
+                        }
                     }
-                    val token = task.result
-                    if (token == null) {
-                        Log.d(TAG, "Fetching FCM registration token null")
-                        continuation.resume(null)
-                    } else {
-                        Log.d(TAG, "FCM Instance Token: $token")
-                        continuation.resume(token)
-                    }
-                }
-        }
+            }
         if (token == null) {
             return DoorFcmState.NotRegistered.also {
                 Log.d(TAG, "Failed to get FCM registration token, returning state $it")

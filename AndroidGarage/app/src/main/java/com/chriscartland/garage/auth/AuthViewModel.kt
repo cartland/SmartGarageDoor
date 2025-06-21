@@ -32,11 +32,7 @@ import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.auth.api.identity.SignInClient
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
-import dagger.Binds
-import dagger.Module
-import dagger.hilt.InstallIn
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -54,7 +50,8 @@ interface AuthViewModel {
 class AuthViewModelImpl @Inject constructor(
     private val _authRepository: AuthRepository,
     private val appLoggerRepository: AppLoggerRepository,
-) : ViewModel(), AuthViewModel {
+) : ViewModel(),
+    AuthViewModel {
 
     override val authRepository: AuthRepository = _authRepository
 
@@ -72,15 +69,22 @@ class AuthViewModelImpl @Inject constructor(
                         .setSupported(true)
                         .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
                         .setFilterByAuthorizedAccounts(false)
-                        .build())
+                        .build(),
+                )
                 .setAutoSelectEnabled(false) // Let user choose the account.
                 .build()
             createSignInClient(activity).beginSignIn(dialogSignInRequest)
                 .addOnSuccessListener(activity) { result ->
                     try {
                         activity.startIntentSenderForResult(
-                            result.pendingIntent.intentSender, RC_ONE_TAP_SIGN_IN,
-                            null, 0, 0, 0, null)
+                            result.pendingIntent.intentSender,
+                            RC_ONE_TAP_SIGN_IN,
+                            null,
+                            0,
+                            0,
+                            0,
+                            null,
+                        )
                     } catch (e: IntentSender.SendIntentException) {
                         Log.e(TAG, "Couldn't start One Tap UI: ${e.localizedMessage}")
                     }
@@ -134,27 +138,26 @@ class AuthViewModelImpl @Inject constructor(
                 }
                 else -> {
                     Log.d(
-                        TAG, "Couldn't get credential from result." +
-                                " ApiException.statusCode: ${e.statusCode}" +
-                                " (${e.localizedMessage})")
+                        TAG,
+                        "Couldn't get credential from result." +
+                            " ApiException.statusCode: ${e.statusCode}" +
+                            " (${e.localizedMessage})",
+                    )
                 }
             }
         }
         return null
     }
 
-    private var _signInClient: SignInClient? = null
-    private val signInClient: SignInClient?
-        get() = _signInClient
+    private var signInClient: SignInClient? = null
 
     // Google API for identity.
-    private fun createSignInClient(context: Context) =
-        Identity.getSignInClient(context).also { _signInClient = it }
+    private fun createSignInClient(context: Context) = Identity.getSignInClient(context).also { signInClient = it }
 
     /**
      * Check to make sure we've updated the client ID.
      */
-    private val INCORRECT_WEB_CLIENT_ID =
+    private val incorrectWebClientId =
         "123456789012-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz.apps.googleusercontent.com"
 
     /**
@@ -162,15 +165,15 @@ class AuthViewModelImpl @Inject constructor(
      */
     private fun checkSignInConfiguration() {
         val googleClientIdForWeb = BuildConfig.GOOGLE_WEB_CLIENT_ID
-        if (googleClientIdForWeb == INCORRECT_WEB_CLIENT_ID) {
+        if (googleClientIdForWeb == incorrectWebClientId) {
             Log.e(
                 "checkSignInConfiguration",
                 "The web client ID matches the INCORRECT_WEB_CLIENT_ID. " +
-                        "One Tap Sign-In with Google will not work. " +
-                        "Update the web client ID to be used with setServerClientId(). " +
-                        "https://developers.google.com/identity/one-tap/android/get-saved-credentials " +
-                        "Create a web client ID in this Google Cloud Console " +
-                        "https://console.cloud.google.com/apis/credentials"
+                    "One Tap Sign-In with Google will not work. " +
+                    "Update the web client ID to be used with setServerClientId(). " +
+                    "https://developers.google.com/identity/one-tap/android/get-saved-credentials " +
+                    "Create a web client ID in this Google Cloud Console " +
+                    "https://console.cloud.google.com/apis/credentials",
             )
         }
     }

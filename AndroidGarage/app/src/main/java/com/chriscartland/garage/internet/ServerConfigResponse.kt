@@ -58,8 +58,9 @@ data class ServerConfigResponse(
          * so that usage of this data class can use the decoded value.
          */
         val remoteButtonBuildTimestamp: String?
-            get() = _remoteButtonBuildTimestamp?.let {
-                URLDecoder.decode(it, StandardCharsets.UTF_8.name())
-            }
+            get() =
+                _remoteButtonBuildTimestamp?.let {
+                    URLDecoder.decode(it, StandardCharsets.UTF_8.name())
+                }
     }
 }

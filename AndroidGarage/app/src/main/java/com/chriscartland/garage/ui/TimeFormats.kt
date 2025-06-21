@@ -42,7 +42,6 @@ fun Long.toFriendlyDate(): String = Instant.ofEpochSecond(this).atZone(ZoneId.sy
 fun Long.toFriendlyTime(): String? = Instant.ofEpochSecond(this).atZone(ZoneId.systemDefault())
     .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM))
 
-
 fun Long.toFriendlyTimeShort(): String? = Instant.ofEpochSecond(this).atZone(ZoneId.systemDefault())
     .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
 
@@ -63,11 +62,18 @@ fun Duration.toFriendlyDuration(): String {
 
     return when {
         days > 0 -> String.format(
-            "%d day%s, %dh %dm %ds", days, if (days > 1) "s" else "", hours, minutes, seconds
+            "%d day%s, %dh %dm %ds",
+            days,
+            if (days > 1) "s" else "",
+            hours,
+            minutes,
+            seconds,
         )
 
         hours > 0 -> String.format("%dh %dm %ds", hours, minutes, seconds)
+
         minutes > 0 -> String.format("%dm %ds", minutes, seconds)
+
         else -> String.format("%ds", seconds)
     }
 }

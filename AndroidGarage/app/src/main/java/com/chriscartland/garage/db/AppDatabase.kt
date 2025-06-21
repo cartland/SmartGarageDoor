@@ -21,8 +21,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.chriscartland.garage.applogger.AppEvent
 import com.chriscartland.garage.applogger.AppLoggerDao
+import com.chriscartland.garage.applogger.model.AppEvent
 import com.chriscartland.garage.door.DoorEvent
 import dagger.Module
 import dagger.Provides
@@ -47,26 +47,24 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         // Singleton prevents multiple instances of database opening at the same time.
         @Volatile
-        private var INSTANCE: AppDatabase? = null
+        private var instance: AppDatabase? = null
 
         fun getDatabase(context: Context): AppDatabase {
             // If the INSTANCE is not null, then return it.
             // If it is null, then create the database, assign INSTANCE, and return it.
-            return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: buildDatabase(context).also { instance ->
+            return instance ?: synchronized(this) {
+                instance ?: buildDatabase(context).also { instance ->
                     // The also {} block will return the instance for getDatabase().
-                    INSTANCE = instance
+                    Companion.instance = instance
                 }
             }
         }
 
-        private fun buildDatabase(context: Context): AppDatabase {
-            return Room.databaseBuilder(
-                context,
-                AppDatabase::class.java,
-                "database"
-            ).fallbackToDestructiveMigration().build()
-        }
+        private fun buildDatabase(context: Context): AppDatabase = Room.databaseBuilder(
+            context,
+            AppDatabase::class.java,
+            "database",
+        ).fallbackToDestructiveMigration().build()
     }
 }
 
@@ -75,7 +73,5 @@ abstract class AppDatabase : RoomDatabase() {
 object AppDatabaseModule {
     @Provides
     @Singleton
-    fun provideAppDatabase(@ApplicationContext appContext: Context): AppDatabase {
-        return AppDatabase.getDatabase(appContext)
-    }
+    fun provideAppDatabase(@ApplicationContext appContext: Context): AppDatabase = AppDatabase.getDatabase(appContext)
 }

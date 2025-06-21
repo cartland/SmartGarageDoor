@@ -45,7 +45,8 @@ interface AppLoggerViewModel {
 @HiltViewModel
 class AppLoggerViewModelImpl @Inject constructor(
     private val appLoggerRepository: AppLoggerRepository,
-) : ViewModel(), AppLoggerViewModel {
+) : ViewModel(),
+    AppLoggerViewModel {
     private val _initCurrentDoorCount = MutableStateFlow<Long>(0L)
     override val initCurrentDoorCount = _initCurrentDoorCount
 
@@ -61,8 +62,8 @@ class AppLoggerViewModelImpl @Inject constructor(
     private val _fcmReceivedDoorCount = MutableStateFlow<Long>(0L)
     override val fcmReceivedDoorCount = _fcmReceivedDoorCount
 
-    private val _fcmSubscribeTopic = MutableStateFlow<Long>(0L)
-    override val fcmSubscribeTopicCount = _fcmSubscribeTopic
+    private val _fcmSubscribeTopicCount = MutableStateFlow<Long>(0L)
+    override val fcmSubscribeTopicCount = _fcmSubscribeTopicCount
 
     private val _exceededExpectedTimeWithoutFcmCount = MutableStateFlow<Long>(0L)
     override val exceededExpectedTimeWithoutFcmCount = _exceededExpectedTimeWithoutFcmCount
@@ -98,7 +99,7 @@ class AppLoggerViewModelImpl @Inject constructor(
         }
         viewModelScope.launch(Dispatchers.IO) {
             appLoggerRepository.countKey(AppLoggerKeys.FCM_SUBSCRIBE_TOPIC).collect {
-                _fcmSubscribeTopic.value = it
+                _fcmSubscribeTopicCount.value = it
             }
         }
         viewModelScope.launch(Dispatchers.IO) {

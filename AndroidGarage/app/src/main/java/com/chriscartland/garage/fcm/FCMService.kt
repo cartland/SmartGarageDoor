@@ -66,7 +66,8 @@ class FCMService : FirebaseMessagingService() {
                 Log.d(TAG, "Logging FCM_DOOR_RECEIVED: ${AppLoggerKeys.FCM_DOOR_RECEIVED}")
                 appLoggerRepository.log(AppLoggerKeys.FCM_DOOR_RECEIVED)
             }
-            if (/* Check if data needs to be processed by long running job */ false) {
+            if (false) {
+                /* Check if data needs to be processed by long running job */
                 // For long-running tasks (10 seconds or more) use WorkManager.
                 scheduleJob()
             } else {

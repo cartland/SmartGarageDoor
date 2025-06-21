@@ -136,7 +136,7 @@ fun AndroidAppInfoCardPreview() {
         appVersion = AppVersion(
             packageName = "com.example",
             versionCode = 1L,
-            versionName = "1.0.0 20241028.095244"
+            versionName = "1.0.0 20241028.095244",
         ),
         startExpanded = true,
     )

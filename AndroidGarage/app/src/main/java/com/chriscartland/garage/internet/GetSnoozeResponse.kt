@@ -24,7 +24,7 @@ import com.squareup.moshi.JsonClass
 data class GetSnoozeResponse(
     @Json(name = "status") val status: String? = null,
     @Json(name = "snooze") val snooze: Snooze? = null,
-    @Json(name = "error") val error: String? = null
+    @Json(name = "error") val error: String? = null,
 ) {
     @JsonClass(generateAdapter = true)
     data class Snooze(
@@ -38,7 +38,7 @@ data class GetSnoozeResponse(
         @JsonClass(generateAdapter = true)
         data class FirestoreDatabaseTimestamp(
             @Json(name = "_seconds") val seconds: Long? = null,
-            @Json(name = "_nanoseconds") val nanoseconds: Long? = null
+            @Json(name = "_nanoseconds") val nanoseconds: Long? = null,
         )
     }
 }

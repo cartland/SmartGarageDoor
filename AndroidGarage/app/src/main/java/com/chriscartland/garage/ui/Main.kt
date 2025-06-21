@@ -133,7 +133,7 @@ fun AppNavigation(
                             // Match the door color
                             backgroundColor = doorColor,
                             contentColor = onDoorColor,
-                        )
+                        ),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 },
@@ -141,13 +141,13 @@ fun AppNavigation(
         },
         bottomBar = {
             BottomNavigationBar(navController, currentRoute = currentRoute(navController))
-        }
+        },
     ) { innerPadding ->
         NavHost(
             navController,
             startDestination = Screen.Home.route,
             Modifier
-                .padding(innerPadding)
+                .padding(innerPadding),
         ) {
             composable(Screen.Home.route) {
                 HomeContent(
@@ -213,7 +213,7 @@ fun BottomNavigationBar(navController: NavController, currentRoute: String?) {
                         launchSingleTop = true
                         restoreState = true
                     }
-                }
+                },
             )
         }
     }

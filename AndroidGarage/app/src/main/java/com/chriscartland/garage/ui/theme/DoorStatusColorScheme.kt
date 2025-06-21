@@ -55,77 +55,75 @@ data class DoorColorSet(
     val onUnknown: Color,
 )
 
-fun DoorStatusColorScheme.doorColorSet(isStale: Boolean): DoorColorSet {
-    return if (isStale) {
-        DoorColorSet(
-            closed = closedStale,
-            onClosed = onClosedStale,
-            open = openStale,
-            onOpen = onOpenStale,
-            unknown = unknownStale,
-            onUnknown = onUnknownStale,
-        )
-    } else {
-        DoorColorSet(
-            closed = closedFresh,
-            onClosed = onClosedFresh,
-            open = openFresh,
-            onOpen = onOpenFresh,
-            unknown = unknownFresh,
-            onUnknown = onUnknownFresh,
-        )
-    }
+fun DoorStatusColorScheme.doorColorSet(isStale: Boolean): DoorColorSet = if (isStale) {
+    DoorColorSet(
+        closed = closedStale,
+        onClosed = onClosedStale,
+        open = openStale,
+        onOpen = onOpenStale,
+        unknown = unknownStale,
+        onUnknown = onUnknownStale,
+    )
+} else {
+    DoorColorSet(
+        closed = closedFresh,
+        onClosed = onClosedFresh,
+        open = openFresh,
+        onOpen = onOpenFresh,
+        unknown = unknownFresh,
+        onUnknown = onUnknownFresh,
+    )
 }
 
-val doorStatusLightScheme = DoorStatusColorScheme(
-    closedFresh = closedFreshLight,
-    onClosedFresh = onClosedFreshLight,
-    closedStale = closedStaleLight,
-    onClosedStale = onClosedStaleLight,
-    openFresh = openFreshLight,
-    onOpenFresh = onOpenFreshLight,
-    openStale = openStaleLight,
-    onOpenStale = onOpenStaleLight,
-    unknownFresh = unknownFreshLight,
-    onUnknownFresh = onUnknownFreshLight,
-    unknownStale = unknownStaleLight,
-    onUnknownStale = onUnknownStaleLight,
-)
+val doorStatusLightScheme =
+    DoorStatusColorScheme(
+        closedFresh = closedFreshLight,
+        onClosedFresh = onClosedFreshLight,
+        closedStale = closedStaleLight,
+        onClosedStale = onClosedStaleLight,
+        openFresh = openFreshLight,
+        onOpenFresh = onOpenFreshLight,
+        openStale = openStaleLight,
+        onOpenStale = onOpenStaleLight,
+        unknownFresh = unknownFreshLight,
+        onUnknownFresh = onUnknownFreshLight,
+        unknownStale = unknownStaleLight,
+        onUnknownStale = onUnknownStaleLight,
+    )
 
-val doorStatusDarkScheme = DoorStatusColorScheme(
-    closedFresh = closedFreshDark,
-    onClosedFresh = onClosedFreshDark,
-    closedStale = closedStaleDark,
-    onClosedStale = onClosedStaleDark,
-    openFresh = openFreshDark,
-    onOpenFresh = onOpenFreshDark,
-    openStale = openStaleDark,
-    onOpenStale = onOpenStaleDark,
-    unknownFresh = unknownFreshDark,
-    onUnknownFresh = onUnknownFreshDark,
-    unknownStale = unknownStaleDark,
-    onUnknownStale = onUnknownStaleDark,
-)
+val doorStatusDarkScheme =
+    DoorStatusColorScheme(
+        closedFresh = closedFreshDark,
+        onClosedFresh = onClosedFreshDark,
+        closedStale = closedStaleDark,
+        onClosedStale = onClosedStaleDark,
+        openFresh = openFreshDark,
+        onOpenFresh = onOpenFreshDark,
+        openStale = openStaleDark,
+        onOpenStale = onOpenStaleDark,
+        unknownFresh = unknownFreshDark,
+        onUnknownFresh = onUnknownFreshDark,
+        unknownStale = unknownStaleDark,
+        onUnknownStale = onUnknownStaleDark,
+    )
 
 enum class DoorColorState {
-    OPEN, CLOSED, UNKNOWN
+    OPEN,
+    CLOSED,
+    UNKNOWN,
 }
 
-fun DoorEvent?.doorColorState(): DoorColorState {
-    return when (this?.doorPosition) {
-        DoorPosition.UNKNOWN -> DoorColorState.UNKNOWN
-        DoorPosition.ERROR_SENSOR_CONFLICT -> DoorColorState.UNKNOWN
-        DoorPosition.CLOSED -> DoorColorState.CLOSED
-        else -> DoorColorState.OPEN
-    }
+fun DoorEvent?.doorColorState(): DoorColorState = when (this?.doorPosition) {
+    DoorPosition.UNKNOWN -> DoorColorState.UNKNOWN
+    DoorPosition.ERROR_SENSOR_CONFLICT -> DoorColorState.UNKNOWN
+    DoorPosition.CLOSED -> DoorColorState.CLOSED
+    else -> DoorColorState.OPEN
 }
 
 fun DoorEvent?.isStale(
     maxAge: Duration,
     now: Instant = Instant.now(),
-): Boolean {
-    return this?.lastCheckInTimeSeconds?.let { utcSeconds ->
-        val limit = now.minusSeconds(maxAge.seconds)
-        Instant.ofEpochSecond(utcSeconds).isBefore(limit)
-    } == true
-}
+): Boolean = this?.lastCheckInTimeSeconds?.let { utcSeconds ->
+    val limit = now.minusSeconds(maxAge.seconds)
+    Instant.ofEpochSecond(utcSeconds).isBefore(limit)
+} == true

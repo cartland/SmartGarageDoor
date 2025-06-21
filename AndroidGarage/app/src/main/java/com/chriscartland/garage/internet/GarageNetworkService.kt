@@ -48,9 +48,7 @@ interface GarageNetworkService {
         count: Int? = null,
     ): Response<RecentEventDataResponse>
 
-    suspend fun getServerConfig(
-        key: String,
-    ): Response<ServerConfigResponse>
+    suspend fun getServerConfig(key: String): Response<ServerConfigResponse>
 
     suspend fun postRemoteButtonPush(
         remoteButtonBuildTimestamp: RemoteButtonBuildTimestamp,
@@ -67,31 +65,43 @@ interface GarageNetworkService {
         snoozeEventTimestamp: SnoozeEventTimestampParameter,
     ): Response<SnoozeOpenDoorNotificationsResponse>
 
-    suspend fun getSnooze(
-        buildTimestamp: BuildTimestamp,
-    ): Response<GetSnoozeResponse>
+    suspend fun getSnooze(buildTimestamp: BuildTimestamp): Response<GetSnoozeResponse>
 }
 
 @JvmInline
-value class BuildTimestamp(private val s: String)
+value class BuildTimestamp(
+    private val s: String,
+)
 
 @JvmInline
-value class RemoteButtonBuildTimestamp(private val s: String)
+value class RemoteButtonBuildTimestamp(
+    private val s: String,
+)
 
 @JvmInline
-value class ButtonAckToken(private val s: String)
+value class ButtonAckToken(
+    private val s: String,
+)
 
 @JvmInline
-value class RemoteButtonPushKey(private val s: String)
+value class RemoteButtonPushKey(
+    private val s: String,
+)
 
 @JvmInline
-value class IdToken(private val s: String)
+value class IdToken(
+    private val s: String,
+)
 
 @JvmInline
-value class SnoozeDurationParameter(private val s: String)
+value class SnoozeDurationParameter(
+    private val s: String,
+)
 
 @JvmInline
-value class SnoozeEventTimestampParameter(private val s: Long)
+value class SnoozeEventTimestampParameter(
+    private val s: Long,
+)
 
 @Keep
 interface RetrofitGarageNetworkService : GarageNetworkService {
@@ -142,20 +152,27 @@ object RetrofitModule {
     @Provides
     @Singleton
     fun provideGarageService(): GarageNetworkService {
-        val moshi: Moshi = Moshi.Builder()
-            .add(KotlinJsonAdapterFactory())
-            .build()
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
-        val client: OkHttpClient = OkHttpClient.Builder()
-            .addInterceptor(logging)
-            .build()
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl(APP_CONFIG.baseUrl)
-            .client(client)
-            .addConverterFactory(MoshiConverterFactory.create(moshi))
-            .build()
+        val moshi: Moshi =
+            Moshi
+                .Builder()
+                .add(KotlinJsonAdapterFactory())
+                .build()
+        val logging =
+            HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            }
+        val client: OkHttpClient =
+            OkHttpClient
+                .Builder()
+                .addInterceptor(logging)
+                .build()
+        val retrofit: Retrofit =
+            Retrofit
+                .Builder()
+                .baseUrl(APP_CONFIG.baseUrl)
+                .client(client)
+                .addConverterFactory(MoshiConverterFactory.create(moshi))
+                .build()
         return retrofit.create(RetrofitGarageNetworkService::class.java)
     }
 }

@@ -42,12 +42,17 @@ const val RC_ONE_TAP_SIGN_IN = 1
 
 interface AuthRepository {
     val authState: StateFlow<AuthState>
+
     suspend fun signInWithGoogle(idToken: GoogleIdToken): AuthState
+
     suspend fun refreshFirebaseAuthState(): AuthState
+
     suspend fun signOut()
 }
 
-class AuthRepositoryImpl @Inject constructor(
+class AuthRepositoryImpl
+@Inject
+constructor(
     private val appLoggerRepository: AppLoggerRepository,
 ) : AuthRepository {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
@@ -74,7 +79,8 @@ class AuthRepositoryImpl @Inject constructor(
         suspendCoroutine { continuation ->
             Log.d(TAG, "firebaseAuthWithGoogle")
             val credential = GoogleAuthProvider.getCredential(idToken.asString(), null)
-            Firebase.auth.signInWithCredential(credential)
+            Firebase.auth
+                .signInWithCredential(credential)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
                         Log.d(TAG, "Firebase signInWithGoogle: success")
@@ -95,25 +101,32 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun refreshFirebaseAuthState(): AuthState {
         try {
             val currentUser = Firebase.auth.currentUser ?: return AuthState.Unauthenticated.commit()
-            val idToken: FirebaseIdToken? = suspendCancellableCoroutine { continuation ->
-                currentUser.getIdToken(true).addOnSuccessListener { result ->
-                    Log.d(TAG, "Firebase ID Token: ${result.token}")
-                    continuation.resume(result.token?.let { FirebaseIdToken(
-                        idToken = it,
-                        exp = result.expirationTimestamp,
-                    ) })
+            val idToken: FirebaseIdToken? =
+                suspendCancellableCoroutine { continuation ->
+                    currentUser.getIdToken(true).addOnSuccessListener { result ->
+                        Log.d(TAG, "Firebase ID Token: ${result.token}")
+                        continuation.resume(
+                            result.token?.let {
+                                FirebaseIdToken(
+                                    idToken = it,
+                                    exp = result.expirationTimestamp,
+                                )
+                            },
+                        )
+                    }
                 }
-            }
             if (idToken == null) {
                 return AuthState.Unauthenticated.commit()
             }
-            return AuthState.Authenticated(
-                user = User(
-                    name = DisplayName(currentUser.displayName ?: ""),
-                    email = Email(currentUser.email ?: ""),
-                    idToken = idToken,
-                ),
-            ).commit()
+            return AuthState
+                .Authenticated(
+                    user =
+                    User(
+                        name = DisplayName(currentUser.displayName ?: ""),
+                        email = Email(currentUser.email ?: ""),
+                        idToken = idToken,
+                    ),
+                ).commit()
         } catch (e: Exception) {
             return AuthState.Unauthenticated.commit()
         }
@@ -127,8 +140,10 @@ class AuthRepositoryImpl @Inject constructor(
         when (this) {
             is AuthState.Authenticated ->
                 appLoggerRepository.log(AppLoggerKeys.USER_AUTHENTICATED)
+
             AuthState.Unauthenticated ->
                 appLoggerRepository.log(AppLoggerKeys.USER_UNAUTHENTICATED)
+
             AuthState.Unknown ->
                 appLoggerRepository.log(AppLoggerKeys.USER_AUTH_UNKNOWN)
         }

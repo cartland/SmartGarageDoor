@@ -90,8 +90,9 @@ fun HomeContent(
             when (authState) {
                 is AuthState.Authenticated -> {
                     Log.d(
-                        TAG, "Remote button clicked. " +
-                                "AuthViewModel authState $authState"
+                        TAG,
+                        "Remote button clicked. " +
+                            "AuthViewModel authState $authState",
                     )
                     buttonViewModel.pushRemoteButton(authViewModel.authRepository)
                 }
@@ -115,7 +116,7 @@ fun HomeContent(
         },
         onLogNotificationPermissionRequested = {
             appLoggerViewModel.log(AppLoggerKeys.USER_REQUESTED_NOTIFICATION_PERMISSION)
-        }
+        },
     )
 }
 
@@ -173,7 +174,7 @@ fun HomeContent(
             if (currentDoorEvent is LoadingResult.Error) {
                 ErrorCard(
                     text = "Error fetching current door event: " +
-                            currentDoorEvent.exception.toString().take(500),
+                        currentDoorEvent.exception.toString().take(500),
                     buttonText = "Retry",
                     onClick = { onFetchCurrentDoorEvent() },
                 )
@@ -245,9 +246,10 @@ fun HomeContentPreview() {
         notificationPermissionState = object : PermissionState {
             override val permission = "android.permission.POST_NOTIFICATIONS"
             override val status = PermissionStatus.Denied(false)
-            override fun launchPermissionRequest() { /* Do nothing */
+            override fun launchPermissionRequest() {
+                /* Do nothing */
             }
-        }
+        },
     )
 }
 

@@ -28,18 +28,26 @@ interface AppSettingsViewModel {
     val profileUserCardExpanded: StateFlow<Boolean>
     val profileLogCardExpanded: StateFlow<Boolean>
     val profileAppCardExpanded: StateFlow<Boolean>
+
     fun setFcmDoorTopic(topic: String)
+
     fun setProfileUserCardExpanded(expanded: Boolean)
+
     fun setProfileLogCardExpanded(expanded: Boolean)
+
     fun setProfileAppCardExpanded(expanded: Boolean)
 }
 
 @HiltViewModel
-class AppSettingsViewModelImpl @Inject constructor(
+class AppSettingsViewModelImpl
+@Inject
+constructor(
     private val settings: AppSettings,
-) : ViewModel(), AppSettingsViewModel {
+) : ViewModel(),
+    AppSettingsViewModel {
     private val _fcmDoorTopic = MutableStateFlow(settings.fcmDoorTopic.get())
     override val fcmDoorTopic: StateFlow<String> = _fcmDoorTopic
+
     override fun setFcmDoorTopic(topic: String) {
         _fcmDoorTopic.value = topic
         settings.fcmDoorTopic.set(topic)
@@ -47,6 +55,7 @@ class AppSettingsViewModelImpl @Inject constructor(
 
     private val _profileUserCardExpanded = MutableStateFlow(settings.profileUserCardExpanded.get())
     override val profileUserCardExpanded: StateFlow<Boolean> = _profileUserCardExpanded
+
     override fun setProfileUserCardExpanded(expanded: Boolean) {
         _profileUserCardExpanded.value = expanded
         settings.profileUserCardExpanded.set(expanded)
@@ -54,6 +63,7 @@ class AppSettingsViewModelImpl @Inject constructor(
 
     private val _profileLogCardExpanded = MutableStateFlow(settings.profileLogCardExpanded.get())
     override val profileLogCardExpanded: StateFlow<Boolean> = _profileLogCardExpanded
+
     override fun setProfileLogCardExpanded(expanded: Boolean) {
         _profileLogCardExpanded.value = expanded
         settings.profileLogCardExpanded.set(expanded)
@@ -61,6 +71,7 @@ class AppSettingsViewModelImpl @Inject constructor(
 
     private val _profileAppCardExpanded = MutableStateFlow(settings.profileAppCardExpanded.get())
     override val profileAppCardExpanded: StateFlow<Boolean> = _profileAppCardExpanded
+
     override fun setProfileAppCardExpanded(expanded: Boolean) {
         _profileAppCardExpanded.value = expanded
         settings.profileAppCardExpanded.set(expanded)

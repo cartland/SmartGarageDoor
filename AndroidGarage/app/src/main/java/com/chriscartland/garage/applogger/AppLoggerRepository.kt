@@ -21,6 +21,7 @@ import android.app.Application
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import com.chriscartland.garage.applogger.model.AppEvent
 import com.chriscartland.garage.db.AppDatabase
 import com.chriscartland.garage.version.AppVersion
 import dagger.Module
@@ -29,7 +30,6 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -40,11 +40,18 @@ import javax.inject.Singleton
 
 interface AppLoggerRepository {
     suspend fun log(key: String)
-    suspend fun writeCsvToUri(context: Context, uri: Uri)
+
+    suspend fun writeCsvToUri(
+        context: Context,
+        uri: Uri,
+    )
+
     fun countKey(key: String): Flow<Long>
 }
 
-class AppLoggerRepositoryImpl @Inject constructor(
+class AppLoggerRepositoryImpl
+@Inject
+constructor(
     private val context: Context,
     private val appDatabase: AppDatabase,
 ) : AppLoggerRepository {
@@ -54,15 +61,16 @@ class AppLoggerRepositoryImpl @Inject constructor(
             AppEvent(
                 eventKey = key,
                 appVersion = context.AppVersion().toString(),
-            )
+            ),
         )
     }
 
-    override fun countKey(key: String): Flow<Long> {
-        return appDatabase.appLoggerDao().countKey(key)
-    }
+    override fun countKey(key: String): Flow<Long> = appDatabase.appLoggerDao().countKey(key)
 
-    override suspend fun writeCsvToUri(context: Context, uri: Uri) {
+    override suspend fun writeCsvToUri(
+        context: Context,
+        uri: Uri,
+    ) {
         withContext(Dispatchers.IO) {
             try {
                 context.contentResolver.openOutputStream(uri)?.use { outputStream ->
@@ -70,12 +78,12 @@ class AppLoggerRepositoryImpl @Inject constructor(
                     appDatabase.appLoggerDao().getAll().firstOrNull()?.forEach {
                         outputStream.write(
                             (
-                                    "${it.eventKey}" +
-                                            ",${it.timestamp.readableTime()}" +
-                                            ",${it.timestamp}" +
-                                            ",${it.appVersion}" +
-                                            "\n"
-                                    ).toByteArray()
+                                "${it.eventKey}" +
+                                    ",${it.timestamp.readableTime()}" +
+                                    ",${it.timestamp}" +
+                                    ",${it.appVersion}" +
+                                    "\n"
+                                ).toByteArray(),
                         )
                     }
                 }
@@ -88,8 +96,10 @@ class AppLoggerRepositoryImpl @Inject constructor(
 
     private fun Long.readableTime(): String {
         val instant = Instant.ofEpochMilli(this)
-        val formatter = DateTimeFormatter.ofPattern("yyyyMMdd.HHmmss.SSS")
-            .withZone(ZoneId.systemDefault())
+        val formatter =
+            DateTimeFormatter
+                .ofPattern("yyyyMMdd.HHmmss.SSS")
+                .withZone(ZoneId.systemDefault())
         return formatter.format(instant)
     }
 }
@@ -103,9 +113,7 @@ object AppLoggerRepositoryModule {
     fun provideAppLoggerRepository(
         context: Application,
         appDatabase: AppDatabase,
-    ): AppLoggerRepository {
-        return AppLoggerRepositoryImpl(context.applicationContext, appDatabase)
-    }
+    ): AppLoggerRepository = AppLoggerRepositoryImpl(context.applicationContext, appDatabase)
 }
 
 private const val TAG = "AppLoggerRepository"

@@ -25,8 +25,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
-import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.door.DoorViewModel
 import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.door.FcmRegistrationStatus
@@ -53,9 +51,11 @@ fun FCMRegistration(
                 Log.d(TAG, "Unknown FCM registration status, fetching...")
                 viewModel.fetchFcmRegistrationStatus(context)
             }
+
             FcmRegistrationStatus.REGISTERED -> {
                 Log.d(TAG, "FCM registration status is registered")
             }
+
             FcmRegistrationStatus.NOT_REGISTERED -> {
                 Log.d(TAG, "FCM registration status is not registered, registering...")
             }

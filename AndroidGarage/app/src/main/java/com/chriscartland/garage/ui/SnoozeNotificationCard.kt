@@ -89,8 +89,9 @@ fun SnoozeNotificationCard(
                             }
 
                             SnoozeRequestStatus.SENDING -> "Saving..."
+
                             SnoozeRequestStatus.ERROR -> "Error saving snooze settings"
-                        }
+                        },
                     )
                     if (snoozing && snoozeRequestStatus == SnoozeRequestStatus.IDLE) {
                         Text(
@@ -141,14 +142,18 @@ fun SnoozeNotificationCard(
                             val components = mutableListOf<String>()
                             when (hours) {
                                 0L -> {}
+
                                 1L -> components.add("1 hour")
+
                                 else -> {
                                     components.add("$hours hours")
                                 }
                             }
                             when (minutes) {
                                 0 -> {}
+
                                 1 -> components.add("1 minute")
+
                                 else -> {
                                     components.add("$minutes minutes")
                                 }
@@ -159,7 +164,7 @@ fun SnoozeNotificationCard(
                             }
                             components.joinToString(" ")
                         }
-                    }
+                    },
                 )
             }
         }
@@ -191,7 +196,7 @@ fun <T> RadioGroup(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 RadioButton(
                     selected = selectedOption == option,

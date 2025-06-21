@@ -42,19 +42,27 @@ interface DoorViewModel {
     val fcmRegistrationStatus: StateFlow<FcmRegistrationStatus>
     val currentDoorEvent: StateFlow<LoadingResult<DoorEvent?>>
     val recentDoorEvents: StateFlow<LoadingResult<List<DoorEvent>>>
+
     fun fetchFcmRegistrationStatus(activity: Activity)
+
     fun registerFcm(activity: Activity)
+
     fun deregisterFcm(activity: Activity)
+
     fun fetchCurrentDoorEvent()
+
     fun fetchRecentDoorEvents()
 }
 
 @HiltViewModel
-class DoorViewModelImpl @Inject constructor(
+class DoorViewModelImpl
+@Inject
+constructor(
     private val appLoggerRepository: AppLoggerRepository,
     private val doorRepository: DoorRepository,
     private val doorFcmRepository: DoorFcmRepository,
-) : ViewModel(), DoorViewModel {
+) : ViewModel(),
+    DoorViewModel {
     private val _fcmRegistrationStatus =
         MutableStateFlow<FcmRegistrationStatus>(FcmRegistrationStatus.UNKNOWN)
     override val fcmRegistrationStatus: StateFlow<FcmRegistrationStatus> = _fcmRegistrationStatus
@@ -92,7 +100,7 @@ class DoorViewModelImpl @Inject constructor(
                 fetchRecentDoorEvents()
             }
 
-            FetchOnViewModelInit.No -> { /* Do nothing */
+            FetchOnViewModelInit.No -> { // Do nothing
             }
         }
     }
@@ -103,11 +111,12 @@ class DoorViewModelImpl @Inject constructor(
             Log.d(TAG, "Fetching FCM registration status")
             val status = doorFcmRepository.fetchStatus(activity)
             Log.d(TAG, "Fetched FCM registration status: $status")
-            _fcmRegistrationStatus.value = when (status) {
-                is DoorFcmState.Registered -> FcmRegistrationStatus.REGISTERED
-                DoorFcmState.NotRegistered -> FcmRegistrationStatus.NOT_REGISTERED
-                DoorFcmState.Unknown -> FcmRegistrationStatus.UNKNOWN
-            }
+            _fcmRegistrationStatus.value =
+                when (status) {
+                    is DoorFcmState.Registered -> FcmRegistrationStatus.REGISTERED
+                    DoorFcmState.NotRegistered -> FcmRegistrationStatus.NOT_REGISTERED
+                    DoorFcmState.Unknown -> FcmRegistrationStatus.UNKNOWN
+                }
         }
     }
 
@@ -122,13 +131,14 @@ class DoorViewModelImpl @Inject constructor(
             }
             Log.d(TAG, "Registering FCM for buildTimestamp: $buildTimestamp")
             val result = doorFcmRepository.registerDoor(activity, buildTimestamp.toFcmTopic())
-            _fcmRegistrationStatus.value = when (result) {
-                is DoorFcmState.Registered -> FcmRegistrationStatus.REGISTERED
-                DoorFcmState.NotRegistered -> FcmRegistrationStatus.NOT_REGISTERED
-                DoorFcmState.Unknown -> FcmRegistrationStatus.UNKNOWN
-            }.also {
-                Log.d(TAG, "Updated FcmRegistrationStatus: $it")
-            }
+            _fcmRegistrationStatus.value =
+                when (result) {
+                    is DoorFcmState.Registered -> FcmRegistrationStatus.REGISTERED
+                    DoorFcmState.NotRegistered -> FcmRegistrationStatus.NOT_REGISTERED
+                    DoorFcmState.Unknown -> FcmRegistrationStatus.UNKNOWN
+                }.also {
+                    Log.d(TAG, "Updated FcmRegistrationStatus: $it")
+                }
         }
     }
 
@@ -136,13 +146,14 @@ class DoorViewModelImpl @Inject constructor(
         Log.d(TAG, "deregisterFcm")
         viewModelScope.launch(Dispatchers.IO) {
             val result = doorFcmRepository.deregisterDoor(activity)
-            _fcmRegistrationStatus.value = when (result) {
-                is DoorFcmState.Registered -> FcmRegistrationStatus.REGISTERED
-                DoorFcmState.NotRegistered -> FcmRegistrationStatus.NOT_REGISTERED
-                DoorFcmState.Unknown -> FcmRegistrationStatus.UNKNOWN
-            }.also {
-                Log.d(TAG, "Updated FcmRegistrationStatus: $it")
-            }
+            _fcmRegistrationStatus.value =
+                when (result) {
+                    is DoorFcmState.Registered -> FcmRegistrationStatus.REGISTERED
+                    DoorFcmState.NotRegistered -> FcmRegistrationStatus.NOT_REGISTERED
+                    DoorFcmState.Unknown -> FcmRegistrationStatus.UNKNOWN
+                }.also {
+                    Log.d(TAG, "Updated FcmRegistrationStatus: $it")
+                }
         }
     }
 
@@ -170,16 +181,25 @@ class DoorViewModelImpl @Inject constructor(
  * When [Error] ,the current data is null.
  */
 sealed class LoadingResult<out T> {
-    data class Loading<out T>(internal val d: T?) : LoadingResult<T>()
-    data class Complete<out T>(internal val d: T?) : LoadingResult<T>()
-    data class Error(val exception: Throwable) : LoadingResult<Nothing>()
+    data class Loading<out T>(
+        internal val d: T?,
+    ) : LoadingResult<T>()
+
+    data class Complete<out T>(
+        internal val d: T?,
+    ) : LoadingResult<T>()
+
+    data class Error(
+        val exception: Throwable,
+    ) : LoadingResult<Nothing>()
 
     val data: T?
-        get() = when (this) {
-            is Loading -> this.d
-            is Complete -> this.d
-            is Error -> null
-        }
+        get() =
+            when (this) {
+                is Loading -> this.d
+                is Complete -> this.d
+                is Error -> null
+            }
 }
 
 private const val TAG = "DoorViewModel"

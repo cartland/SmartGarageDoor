@@ -116,19 +116,19 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".debug"
         }
-        // Debug R8 optimizations with isMinifyEnabled = true
-        val debugMinify by creating {
-            initWith(debug)
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
-                "retrofit2.pro",
-                "moshi.pro",
-            )
-            matchingFallbacks += listOf("release", "debug")
-        }
+//        // Debug R8 optimizations with isMinifyEnabled = true
+//        val debugMinify by creating {
+//            initWith(debug)
+//            isMinifyEnabled = true
+//            isShrinkResources = true
+//            proguardFiles(
+//                getDefaultProguardFile("proguard-android-optimize.txt"),
+//                "proguard-rules.pro",
+//                "retrofit2.pro",
+//                "moshi.pro",
+//            )
+//            matchingFallbacks += listOf("release", "debug")
+//        }
         // Turn on R8 optimizations and sign with release key
         val release by getting {
             isMinifyEnabled = true
@@ -270,7 +270,13 @@ dependencies {
 
 spotless {
     kotlin {
-        target("src/**/*.kt")
-        ktlint()
+        target("**/*.kt")
+        targetExclude("**/build/**/*.kt")
+
+        ktlint().editorConfigOverride(
+            mapOf(
+                "ktlint_function_naming_ignore_when_annotated_with" to "Composable",
+            )
+        )
     }
 }

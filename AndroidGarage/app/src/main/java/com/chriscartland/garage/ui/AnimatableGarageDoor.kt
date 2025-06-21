@@ -17,7 +17,12 @@
 
 package com.chriscartland.garage.ui
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -106,7 +111,7 @@ fun Opening(
                 .size(
                     with(LocalDensity.current) {
                         (minOf(garageDoorSize.width, garageDoorSize.height) * 0.3f).toDp()
-                    }
+                    },
                 )
                 .background(MaterialTheme.colorScheme.background, CircleShape),
             contentAlignment = Alignment.Center,
@@ -127,7 +132,7 @@ fun Opening(
 @Preview(
     name = "Foldable Open",
     device = "spec:width=411dp,height=891dp,orientation=landscape,dpi=420",
-    showSystemUi = true
+    showSystemUi = true,
 )
 @Composable
 fun OpeningPreview() {
@@ -168,7 +173,7 @@ fun Closing(
                 .size(
                     with(LocalDensity.current) {
                         (minOf(garageDoorSize.width, garageDoorSize.height) * 0.3f).toDp()
-                    }
+                    },
                 )
                 .background(MaterialTheme.colorScheme.background, CircleShape),
             contentAlignment = Alignment.Center,
@@ -297,7 +302,7 @@ fun Midway(
                 .size(
                     with(LocalDensity.current) {
                         (minOf(garageDoorSize.width, garageDoorSize.height) * 0.3f).toDp()
-                    }
+                    },
                 )
                 .background(MaterialTheme.colorScheme.background, CircleShape),
             contentAlignment = Alignment.Center,
@@ -307,7 +312,7 @@ fun Midway(
                 tint = MaterialTheme.colorScheme.onBackground,
                 contentDescription = "Warning Symbol",
                 modifier = Modifier
-                    .fillMaxSize(0.6f)
+                    .fillMaxSize(0.6f),
             )
         }
     }
@@ -347,7 +352,8 @@ fun GarageDoorAnimation(
         animationSpec = infiniteRepeatable(
             animation = tween(duration.toMillis().toInt(), easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
-        ), label = ""
+        ),
+        label = "",
     )
     TopWithBottomOffset(
         topDrawable = topDrawable,
@@ -425,12 +431,12 @@ fun TopWithBottomOffset(
         Offset(
             -bottomOffset.x,
             -bottomOffset.y + 10, // Crop off the top of the door so it does not appear behind frame.
-        )
+        ),
     )
 
     Box(
         modifier = modifier,
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Image(
             painter = bottomPainter,
@@ -458,7 +464,6 @@ fun TopWithBottomOffset(
         )
     }
 }
-
 
 /**
  * Create Shape for clipping a layout after translation.
