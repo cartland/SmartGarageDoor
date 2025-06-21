@@ -55,7 +55,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: android-build-outputs
+        name: android-build-outputs-debug
         path: |
           AndroidGarage/app/build/outputs/apk
           AndroidGarage/app/build/outputs/bundle
