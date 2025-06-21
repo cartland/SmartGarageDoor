@@ -1,4 +1,4 @@
-name: Android Deploy Internal CI
+name: Android Release Internal CI
 
 on:
   workflow_dispatch:

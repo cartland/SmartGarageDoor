@@ -1,4 +1,4 @@
-name: Android Tests CI
+name: Android Build and Test CI
 
 on:
   workflow_dispatch:
@@ -41,6 +41,13 @@ jobs:
       working-directory: AndroidGarage
       run: chmod +x gradlew
 
+    - name: Build Debug
+      working-directory: AndroidGarage
+      env:
+        SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
+        GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+      run: ./gradlew :app:assembleDebug -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
+
     - name: Run Unit Tests
       working-directory: AndroidGarage
       env:
@@ -53,12 +60,14 @@ jobs:
       if: always()
       run: ./release/clean-secrets.sh
 
-    - name: Upload Test Results
+    - name: Upload build and test outputs
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: test-results
+        name: android-build-and-test-outputs
         path: |
+          AndroidGarage/app/build/outputs/apk
+          AndroidGarage/app/build/outputs/bundle
           AndroidGarage/app/build/reports/tests/
           AndroidGarage/app/build/reports/androidTests/
 
