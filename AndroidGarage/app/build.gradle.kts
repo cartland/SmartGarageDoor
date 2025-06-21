@@ -28,6 +28,7 @@ plugins {
     alias(libs.plugins.gms)
     alias(libs.plugins.room)
     alias(libs.plugins.baselineprofile)
+    alias(libs.plugins.spotless)
 }
 
 val localPropertiesExplanation = """
@@ -265,4 +266,11 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleId)
+}
+
+spotless {
+    kotlin {
+        target("src/**/*.kt")
+        ktlint()
+    }
 }

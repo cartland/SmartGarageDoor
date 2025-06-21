@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.kotlin.multiplatform.library)
+    alias(libs.plugins.spotless)
 }
 
 kotlin {
@@ -96,4 +97,13 @@ kotlin {
         }
     }
 
+}
+
+spotless {
+    kotlin {
+        // Excludes the build directory, which is a common source of issues.
+        targetExclude("build/")
+        target("src/**/*.kt")
+        ktlint()
+    }
 }
