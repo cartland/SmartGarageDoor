@@ -4,8 +4,12 @@ on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
+    paths:
+      - 'AndroidGarage/**'
   pull_request:
     branches: [ "main" ]
+    paths:
+      - 'AndroidGarage/**'
 
 jobs:
   build:

@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [ "internal" ]
+    paths:
+      - 'AndroidGarage/**'
 
 jobs:
   build:
