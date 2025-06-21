@@ -22,12 +22,9 @@ import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Test
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito
-import org.mockito.Mockito.mock
-import retrofit2.Response
 import java.io.File
 
 class GarageNetworkServiceTest {
@@ -93,7 +90,7 @@ fun readJsonResource(filename: String): String {
     return jsonFile.readText()
 }
 
-fun moshi() = Moshi.Builder()
+fun moshi(): Moshi? = Moshi.Builder()
     .add(KotlinJsonAdapterFactory())
     .build()
 
@@ -101,8 +98,8 @@ fun test_CurrentEventDataResponse(): CurrentEventDataResponse {
     val filename = "currentEventData_1730329839.json"
     val jsonString = readJsonResource(filename)
     assertNotNull("Test file should load correctly", jsonString)
-    val adapter: JsonAdapter<CurrentEventDataResponse> = moshi().adapter(CurrentEventDataResponse::class.java)
-    val result = adapter.fromJson(jsonString)
+    val adapter: JsonAdapter<CurrentEventDataResponse>? = moshi()?.adapter(CurrentEventDataResponse::class.java)
+    val result = adapter?.fromJson(jsonString)
     assertNotNull("Test file should parse correctly", result)
     return result!!
 }
@@ -111,8 +108,8 @@ fun test_RecentEventDataResponse(): RecentEventDataResponse {
     val filename = "eventHistory_1730329839.json"
     val jsonString = readJsonResource(filename)
     assertNotNull("Test file should load correctly", jsonString)
-    val adapter: JsonAdapter<RecentEventDataResponse> = moshi().adapter(RecentEventDataResponse::class.java)
-    val result = adapter.fromJson(jsonString)
+    val adapter: JsonAdapter<RecentEventDataResponse>? = moshi()?.adapter(RecentEventDataResponse::class.java)
+    val result = adapter?.fromJson(jsonString)
     assertNotNull("Test file should parse correctly", result)
     return result!!
 }
@@ -121,8 +118,8 @@ fun test_ServerConfigResponse(): ServerConfigResponse {
     val filename = "serverConfig_1730329839.json"
     val jsonString = readJsonResource(filename)
     assertNotNull("Test file should load correctly", jsonString)
-    val adapter: JsonAdapter<ServerConfigResponse> = moshi().adapter(ServerConfigResponse::class.java)
-    val result = adapter.fromJson(jsonString)
+    val adapter: JsonAdapter<ServerConfigResponse>? = moshi()?.adapter(ServerConfigResponse::class.java)
+    val result = adapter?.fromJson(jsonString)
     assertNotNull("Test file should parse correctly", result)
     return result!!
 }
