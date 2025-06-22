@@ -137,9 +137,7 @@ android {
                 "retrofit2.pro",
                 "moshi.pro",
             )
-            if (rootProject.file("release/app-release.jks").exists()) {
-                signingConfig = signingConfigs.getByName("release")
-            }
+            signingConfig = signingConfigs.getByName("release")
         }
         // Build with debug key that tries to match release properties
         val benchmark by creating {
