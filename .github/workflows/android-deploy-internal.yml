@@ -41,7 +41,7 @@ jobs:
         GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
         GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }} 
         GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }} 
-      run: ./gradlew :app:bundleRelease -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" -PGARAGE_RELEASE_KEYSTORE_PWD="$GARAGE_RELEASE_KEYSTORE_PWD" -PGARAGE_RELEASE_KEY_PWD="$GARAGE_RELEASE_KEY_PWD"
+      run: ./gradlew :androidApp:bundleRelease -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" -PGARAGE_RELEASE_KEYSTORE_PWD="$GARAGE_RELEASE_KEYSTORE_PWD" -PGARAGE_RELEASE_KEY_PWD="$GARAGE_RELEASE_KEY_PWD"
 
     - name: Clean secrets
       working-directory: AndroidGarage
@@ -54,14 +54,14 @@ jobs:
       with:
         name: android-build-outputs-internal
         path: |
-          AndroidGarage/app/build/outputs/apk
-          AndroidGarage/app/build/outputs/bundle
+          AndroidGarage/androidApp/build/outputs/apk
+          AndroidGarage/androidApp/build/outputs/bundle
 
     - name: Deploy to Google Play
       uses: r0adkll/upload-google-play@v1.1.3
       with:
         serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         packageName: com.chriscartland.garage
-        releaseFiles: AndroidGarage/app/build/outputs/bundle/release/*.aab
+        releaseFiles: AndroidGarage/androidApp/build/outputs/bundle/release/*.aab
         track: internal
         whatsNewDirectory: AndroidGarage/distribution/whatsnew
