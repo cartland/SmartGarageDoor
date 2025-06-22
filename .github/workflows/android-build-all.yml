@@ -1,12 +1,17 @@
-name: Android Release Internal CI
+name: Android Build All CI
 
 on:
   workflow_dispatch:
   push:
-    branches: [ "internal" ]
+    branches: [ "main", "internal", "release" ]
     paths:
       - 'AndroidGarage/**'
-      - '.github/workflows/android-deploy-internal.yml'
+      - '.github/workflows/android-build-all.yml'
+  pull_request:
+    branches: [ "main", "internal", "release" ]
+    paths:
+      - 'AndroidGarage/**'
+      - '.github/workflows/android-build-all.yml'
 
 jobs:
   build:
@@ -34,14 +39,14 @@ jobs:
       working-directory: AndroidGarage
       run: chmod +x gradlew
 
-    - name: Build AAB
+    - name: Build All
       working-directory: AndroidGarage
       env:
         SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
         GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
         GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }}
         GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }}
-      run: ./gradlew :androidApp:bundleRelease -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" -PGARAGE_RELEASE_KEYSTORE_PWD="$GARAGE_RELEASE_KEYSTORE_PWD" -PGARAGE_RELEASE_KEY_PWD="$GARAGE_RELEASE_KEY_PWD"
+      run: ./gradlew build -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" -PGARAGE_RELEASE_KEYSTORE_PWD="$GARAGE_RELEASE_KEYSTORE_PWD" -PGARAGE_RELEASE_KEY_PWD="$GARAGE_RELEASE_KEY_PWD"
 
     - name: Clean secrets
       working-directory: AndroidGarage
@@ -52,16 +57,6 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: android-build-outputs-internal
+        name: android-build-outputs-all
         path: |
-          AndroidGarage/androidApp/build/outputs/apk
-          AndroidGarage/androidApp/build/outputs/bundle
-
-    - name: Deploy to Google Play
-      uses: r0adkll/upload-google-play@v1.1.3
-      with:
-        serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-        packageName: com.chriscartland.garage
-        releaseFiles: AndroidGarage/androidApp/build/outputs/bundle/release/*.aab
-        track: internal
-        whatsNewDirectory: AndroidGarage/distribution/whatsnew
+          AndroidGarage/androidApp/build/outputs

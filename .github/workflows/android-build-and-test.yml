@@ -66,10 +66,10 @@ jobs:
       with:
         name: android-build-and-test-outputs
         path: |
-          AndroidGarage/app/build/outputs/apk
-          AndroidGarage/app/build/outputs/bundle
-          AndroidGarage/app/build/reports/tests/
-          AndroidGarage/app/build/reports/androidTests/
+          AndroidGarage/androidApp/build/outputs/apk
+          AndroidGarage/androidApp/build/outputs/bundle
+          AndroidGarage/androidApp/build/reports/tests/
+          AndroidGarage/androidApp/build/reports/androidTests/
 
   spotless_check:
     name: Check Code Formatting with Spotless

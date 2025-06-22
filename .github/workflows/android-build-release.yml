@@ -16,7 +16,7 @@ jobs:
     - name: set up JDK 17
       uses: actions/setup-java@v4
       with:
-        java-version: '17' 
+        java-version: '17'
         distribution: 'temurin'
         cache: gradle
 
@@ -36,20 +36,20 @@ jobs:
 
     - name: Build Release
       working-directory: AndroidGarage
-      env:  
+      env:
         SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
         GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
-        GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }} 
-        GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }} 
+        GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }}
+        GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }}
       run: ./gradlew :androidApp:assembleRelease -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" -PGARAGE_RELEASE_KEYSTORE_PWD="$GARAGE_RELEASE_KEYSTORE_PWD" -PGARAGE_RELEASE_KEY_PWD="$GARAGE_RELEASE_KEY_PWD"
 
     - name: Build AAB
       working-directory: AndroidGarage
-      env:  
+      env:
         SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
         GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
-        GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }} 
-        GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }} 
+        GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }}
+        GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }}
       run: ./gradlew :androidApp:bundleRelease -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" -PGARAGE_RELEASE_KEYSTORE_PWD="$GARAGE_RELEASE_KEYSTORE_PWD" -PGARAGE_RELEASE_KEY_PWD="$GARAGE_RELEASE_KEY_PWD"
 
     - name: Clean secrets
