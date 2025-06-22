@@ -25,7 +25,7 @@ if [[ ! -z "$ENCRYPT_KEY" ]]; then
   # Encrypt Release key
   encrypt ${ENCRYPT_KEY} release/app-release.jks release/app-release.gpg
   # Encrypt Google Services key (Android)
-  encrypt ${ENCRYPT_KEY} app/google-services.json release/google-services.gpg
+  encrypt ${ENCRYPT_KEY} androidApp/google-services.json release/google-services.gpg
 else
   echo "ENCRYPT_KEY is empty"
 fi

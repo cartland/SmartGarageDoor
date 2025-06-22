@@ -92,19 +92,17 @@ android {
             keyAlias = "AndroidDebugKey"
             keyPassword = "android"
         }
-        if (rootProject.file("release/app-release.jks").exists()) {
+        create("release") {
             val releaseKeystorePwd = "GARAGE_RELEASE_KEYSTORE_PWD".let {
                 localProperties.getProperty(it) ?: project.findProperty(it) as? String
             }
             val releaseKeyPwd = "GARAGE_RELEASE_KEY_PWD".let {
                 localProperties.getProperty(it) ?: project.findProperty(it) as? String
             }
-            create("release") {
-                storeFile = rootProject.file("release/app-release.jks")
-                storePassword = releaseKeystorePwd
-                keyAlias = "Garage"
-                keyPassword = releaseKeyPwd
-            }
+            storeFile = rootProject.file("release/app-release.jks")
+            storePassword = releaseKeystorePwd
+            keyAlias = "Garage"
+            keyPassword = releaseKeyPwd
         }
     }
 

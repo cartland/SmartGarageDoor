@@ -17,4 +17,4 @@
 # Delete Release key
 rm -f release/app-release.jks
 
-rm -f app/google-services.json
+rm -f androidApp/google-services.json
