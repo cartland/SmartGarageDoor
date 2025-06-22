@@ -1,4 +1,5 @@
 name: Android Release Internal CI
+run-name: Deploy Internal - ${{ github.event.head_commit.message }}
 
 on:
   workflow_dispatch:
