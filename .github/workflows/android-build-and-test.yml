@@ -14,8 +14,8 @@ on:
       - '.github/workflows/android-build-and-test.yml'
 
 jobs:
-  test:
-    name: Run Android Unit Tests
+  build_and_test:
+    name: Build & Run Android Unit Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -40,6 +40,10 @@ jobs:
     - name: Grant execute permission for gradlew
       working-directory: AndroidGarage
       run: chmod +x gradlew
+
+    - name: Build everything
+      working-directory: AndroidGarage
+      run: ./gradlew build
 
     - name: Build Debug
       working-directory: AndroidGarage

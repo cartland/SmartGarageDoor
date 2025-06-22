@@ -62,31 +62,31 @@ constructor(
 
     override suspend fun registerDoor(
         activity: Activity,
-        topic: DoorFcmTopic,
+        fcmTopic: DoorFcmTopic,
     ): DoorFcmState {
-        Log.d(TAG, "registerDoor: $topic")
+        Log.d(TAG, "registerDoor: $fcmTopic")
         // Unsubscribe from old topic.
         val oldFcmTopic = getFcmTopic()
-        if (oldFcmTopic != null && topic != oldFcmTopic) {
+        if (oldFcmTopic != null && fcmTopic != oldFcmTopic) {
             Log.i(TAG, "Unsubscribing from old FCM Topic: $oldFcmTopic")
             Firebase.messaging.unsubscribeFromTopic(oldFcmTopic.string)
         }
         // Save new topic.
-        setFcmTopic(topic)
-        Log.i(TAG, "Subscribing to FCM Topic: $topic")
+        setFcmTopic(fcmTopic)
+        Log.i(TAG, "Subscribing to FCM Topic: $fcmTopic")
         appLoggerRepository.log(AppLoggerKeys.FCM_SUBSCRIBE_TOPIC)
         val subscriptionSuccess =
             suspendCoroutine { continuation ->
                 Firebase.messaging
-                    .subscribeToTopic(topic.string)
+                    .subscribeToTopic(fcmTopic.string)
                     .addOnCompleteListener { task ->
                         if (task.isSuccessful) {
-                            Log.i(TAG, "Subscribed to FCM Topic $topic")
+                            Log.i(TAG, "Subscribed to FCM Topic $fcmTopic")
                             continuation.resume(true)
                         } else {
                             Log.e(
                                 TAG,
-                                "Failed to subscribe to FCM Topic $topic: " + task.exception.toString(),
+                                "Failed to subscribe to FCM Topic $fcmTopic: " + task.exception.toString(),
                             )
                             continuation.resume(false)
                         }
@@ -94,7 +94,7 @@ constructor(
             }
         if (!subscriptionSuccess) {
             return DoorFcmState.NotRegistered.also {
-                Log.d(TAG, "Failed to subscribe to topic $topic, returning state $it")
+                Log.d(TAG, "Failed to subscribe to topic $fcmTopic, returning state $it")
             }
         }
         val token =
@@ -120,8 +120,8 @@ constructor(
                 Log.d(TAG, "Failed to get FCM registration token, returning state $it")
             }
         }
-        return DoorFcmState.Registered(topic = topic).also {
-            Log.d(TAG, "Successfully registered for topic $topic, returning state $it")
+        return DoorFcmState.Registered(topic = fcmTopic).also {
+            Log.d(TAG, "Successfully registered for topic $fcmTopic, returning state $it")
         }
     }
 

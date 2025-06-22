@@ -48,7 +48,7 @@ interface GarageNetworkService {
         count: Int? = null,
     ): Response<RecentEventDataResponse>
 
-    suspend fun getServerConfig(key: String): Response<ServerConfigResponse>
+    suspend fun getServerConfig(serverConfigKey: String): Response<ServerConfigResponse>
 
     suspend fun postRemoteButtonPush(
         remoteButtonBuildTimestamp: RemoteButtonBuildTimestamp,

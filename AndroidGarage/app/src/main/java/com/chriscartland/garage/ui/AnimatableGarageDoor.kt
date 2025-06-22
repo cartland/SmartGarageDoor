@@ -33,7 +33,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -117,7 +117,7 @@ fun Opening(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Filled.ArrowForward,
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 tint = MaterialTheme.colorScheme.onBackground,
                 contentDescription = "Up Arrow",
                 modifier = Modifier
@@ -179,7 +179,7 @@ fun Closing(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Filled.ArrowForward,
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 tint = MaterialTheme.colorScheme.onBackground,
                 contentDescription = "Down Arrow",
                 modifier = Modifier
@@ -423,7 +423,7 @@ fun TopWithBottomOffset(
         )
     }
     var topSize by remember { mutableStateOf(IntSize.Zero) }
-    var bottomOffset = Offset(
+    val bottomOffset = Offset(
         offsetProportion.x * topSize.width,
         offsetProportion.y * topSize.height,
     )

@@ -17,7 +17,8 @@
 
 package com.chriscartland.garage.ui
 
-import androidx.activity.ComponentActivity
+import android.util.Log
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.ReportDrawn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
@@ -32,7 +33,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -59,7 +59,7 @@ fun ProfileContent(
     authViewModel: AuthViewModel = hiltViewModel<AuthViewModelImpl>(),
     buttonViewModel: RemoteButtonViewModel = hiltViewModel<RemoteButtonViewModelImpl>(),
 ) {
-    val context = LocalContext.current as ComponentActivity
+    val activity = LocalActivity.current
     val authState by authViewModel.authState.collectAsState()
     val snoozeRequestStatus by buttonViewModel.snoozeRequestStatus.collectAsState()
     val snoozeEndTimeSeconds by buttonViewModel.snoozeEndTimeSeconds.collectAsState()
@@ -77,7 +77,13 @@ fun ProfileContent(
             AuthState.Unknown -> null
         },
         modifier = modifier,
-        signIn = { authViewModel.signInWithGoogle(context) },
+        signIn = {
+            if (activity != null) {
+                authViewModel.signInWithGoogle(activity)
+            } else {
+                Log.e(TAG, "Activity is null, cannot sign in with Google")
+            }
+        },
         signOut = { authViewModel.signOut() },
         snoozeEndTimeSeconds = snoozeEndTimeSeconds,
         snoozeRequestStatus = snoozeRequestStatus,
@@ -161,3 +167,5 @@ fun ProfileContent(
 fun ProfileContentPreview() {
     ProfileContent()
 }
+
+private const val TAG = "ProfileContent"

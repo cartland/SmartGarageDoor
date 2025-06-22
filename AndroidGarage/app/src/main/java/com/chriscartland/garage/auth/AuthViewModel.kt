@@ -17,11 +17,11 @@
 
 package com.chriscartland.garage.auth
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.IntentSender
 import android.util.Log
-import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.BuildConfig
@@ -41,7 +41,7 @@ import javax.inject.Inject
 interface AuthViewModel {
     val authState: StateFlow<AuthState>
     val authRepository: AuthRepository
-    fun signInWithGoogle(activity: ComponentActivity)
+    fun signInWithGoogle(activity: Activity)
     fun signOut()
     fun processGoogleSignInResult(data: Intent)
 }
@@ -57,7 +57,7 @@ class AuthViewModelImpl @Inject constructor(
 
     override val authState: StateFlow<AuthState> = _authRepository.authState
 
-    override fun signInWithGoogle(activity: ComponentActivity) {
+    override fun signInWithGoogle(activity: Activity) {
         viewModelScope.launch(Dispatchers.IO) {
             appLoggerRepository.log(AppLoggerKeys.BEGIN_GOOGLE_SIGN_IN)
             checkSignInConfiguration()

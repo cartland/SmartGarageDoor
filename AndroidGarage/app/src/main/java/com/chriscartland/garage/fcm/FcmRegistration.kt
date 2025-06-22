@@ -18,12 +18,11 @@
 package com.chriscartland.garage.fcm
 
 import android.util.Log
-import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.door.DoorViewModel
 import com.chriscartland.garage.door.DoorViewModelImpl
@@ -42,14 +41,18 @@ import com.chriscartland.garage.door.FcmRegistrationStatus
 fun FCMRegistration(
     viewModel: DoorViewModel = hiltViewModel<DoorViewModelImpl>(),
 ) {
-    val context = LocalContext.current as ComponentActivity
+    val activity = LocalActivity.current
     val fcmState by viewModel.fcmRegistrationStatus.collectAsState()
     LaunchedEffect(key1 = fcmState) {
         // Subscribe to FCM updates.
         when (fcmState) {
             FcmRegistrationStatus.UNKNOWN -> {
                 Log.d(TAG, "Unknown FCM registration status, fetching...")
-                viewModel.fetchFcmRegistrationStatus(context)
+                if (activity != null) {
+                    viewModel.fetchFcmRegistrationStatus(activity)
+                } else {
+                    Log.e(TAG, "Activity is null, cannot fetch FCM registration status")
+                }
             }
 
             FcmRegistrationStatus.REGISTERED -> {

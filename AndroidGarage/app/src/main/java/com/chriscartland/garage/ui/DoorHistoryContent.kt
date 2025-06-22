@@ -18,7 +18,7 @@
 package com.chriscartland.garage.ui
 
 import android.util.Log
-import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +33,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -52,7 +51,7 @@ fun DoorHistoryContent(
     viewModel: DoorViewModel = hiltViewModel<DoorViewModelImpl>(),
     appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>(),
 ) {
-    val activity = LocalContext.current as ComponentActivity
+    val activity = LocalActivity.current
     val recentDoorEvents by viewModel.recentDoorEvents.collectAsState()
     DoorHistoryContent(
         recentDoorEvents = recentDoorEvents,
@@ -62,7 +61,11 @@ fun DoorHistoryContent(
             viewModel.fetchRecentDoorEvents()
         },
         onResetFcm = {
-            viewModel.deregisterFcm(activity)
+            if (activity != null) {
+                viewModel.deregisterFcm(activity)
+            } else {
+                Log.e(TAG, "Activity is null, cannot deregister FCM")
+            }
         },
     )
 }
