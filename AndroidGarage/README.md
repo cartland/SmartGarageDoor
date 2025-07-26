@@ -25,11 +25,10 @@ Android app for monitoring and controlling the garage door remotely. Built with 
 - Permissions: Accompanist PermissionState
 
 ## Architecture
-- **ViewModels**: Handle UI state and business logic
-- **Repositories**: Manage data operations and network calls
-- **Room Database**: Store door events and state
-- **FCM Service**: Handle push notifications and data updates
-- **Authentication**: Two-step process with Google and Firebase tokens
+
+The architecture of this application is currently being refactored to a multi-module Kotlin Multiplatform (KMP) setup. The goal is to improve code structure, enable code sharing with iOS, and modularize the app by feature.
+
+For a detailed explanation of the target architecture and the migration plan, please see the [ARCHITECTURE_PLAN.md](ARCHITECTURE_PLAN.md) file.
 
 ## Build Configuration
 The Android build uses Kotlin build files with version catalogs (TOML).
