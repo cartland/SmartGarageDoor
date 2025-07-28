@@ -152,6 +152,23 @@ This phase addresses warnings and deprecated APIs to modernize the codebase.
 This phase addresses issues found during instrumented test execution.
 
 -   **`ExampleInstrumentedTest` Package Name:**
-    -   [ ] Update `ExampleInstrumentedTest` to correctly handle the `.debug` package name suffix for debug builds.
+    -   [x] Update `ExampleInstrumentedTest` to correctly handle the `.debug` package name suffix for debug builds.
 -   **Hilt Test Application Setup:**
-    -   [ ] Configure `GarageAppTest` to use `HiltTestApplication` or a custom Hilt test application generated with `@CustomTestApplication` for proper Hilt test setup.
+    -   [x] Configure `GarageAppTest` to use `HiltTestApplication` or a custom Hilt test application generated with `@CustomTestApplication` for proper Hilt test setup.
+
+## Phase 7: CI/CD Integration
+
+This phase focuses on setting up and optimizing the Continuous Integration/Continuous Deployment (CI/CD) pipeline to ensure automated testing, building, and deployment of the refactored application.
+
+-   **Automate Android Builds:**
+    -   [ ] Configure CI pipeline (e.g., GitHub Actions, GitLab CI, Jenkins) to automatically build the Android application on every push to the main branch or pull request.
+-   **Integrate Automated Testing:**
+    -   [ ] Integrate unit tests and Android instrumented tests into the CI pipeline to run automatically with each build.
+    -   [ ] Ensure test results are reported and easily accessible within the CI system.
+-   **Automate Deployment:**
+    -   [ ] Set up automated deployment to internal testing tracks (e.g., Firebase App Distribution, Google Play internal test track) upon successful CI builds.
+    -   [ ] Configure release pipelines for production deployments, including signing and obfuscation.
+-   **Performance Monitoring Integration:**
+    -   [ ] Integrate performance monitoring tools (e.g., Firebase Performance Monitoring, Crashlytics) into the CI/CD pipeline to track app performance and stability over time.
+-   **Code Quality Checks:**
+    -   [ ] Incorporate static analysis tools (e.g., Detekt, ktlint) and code coverage reports into the CI pipeline to enforce code quality standards.
