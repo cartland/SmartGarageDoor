@@ -133,3 +133,25 @@ To track the progress of this refactoring effort, update the checklists below by
   - [ ] Remove old tests associated with the decommissioned code.
   - [ ] **Testable Milestone:**
     - [ ] Run all tests for all modules together (`./gradlew check`) to ensure the complete, refactored application is stable.
+
+## Phase 5: Technical Debt / Modernization
+
+This phase addresses warnings and deprecated APIs to modernize the codebase.
+
+-   **Java Compiler Version:**
+    -   [ ] Update Java source/target compatibility to a newer version (e.g., Java 11 or 17) or configure Java toolchains in `build.gradle.kts` files to resolve deprecation warnings related to Java 8.
+-   **Deprecated `onActivityResult`:**
+    -   [ ] Refactor `MainActivity.kt` to use the Activity Result API for handling activity results.
+-   **Deprecated Google Sign-In APIs:**
+    -   [ ] Update the authentication logic in `AuthViewModel.kt` to use the newer APIs for Google Sign-In (e.g., `SignInClient` and `SignInCredential`).
+-   **Moshi Kapt to KSP Migration:**
+    -   [ ] Migrate Moshi code generation from Kapt to KSP to resolve deprecation warnings.
+
+## Phase 6: Test Fixes
+
+This phase addresses issues found during instrumented test execution.
+
+-   **`ExampleInstrumentedTest` Package Name:**
+    -   [ ] Update `ExampleInstrumentedTest` to correctly handle the `.debug` package name suffix for debug builds.
+-   **Hilt Test Application Setup:**
+    -   [ ] Configure `GarageAppTest` to use `HiltTestApplication` or a custom Hilt test application generated with `@CustomTestApplication` for proper Hilt test setup.
