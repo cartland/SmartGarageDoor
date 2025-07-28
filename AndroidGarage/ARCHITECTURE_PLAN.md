@@ -139,7 +139,7 @@ To track the progress of this refactoring effort, update the checklists below by
 This phase addresses warnings and deprecated APIs to modernize the codebase.
 
 -   **Java Compiler Version:**
-    -   [ ] Update Java source/target compatibility to a newer version (e.g., Java 11 or 17) or configure Java toolchains in `build.gradle.kts` files to resolve deprecation warnings related to Java 8.
+    -   [x] Update Java source/target compatibility to a newer version (e.g., Java 11 or 17) or configure Java toolchains in `build.gradle.kts` files to resolve deprecation warnings related to Java 8.
 -   **Deprecated `onActivityResult`:**
     -   [ ] Refactor `MainActivity.kt` to use the Activity Result API for handling activity results.
 -   **Deprecated Google Sign-In APIs:**
