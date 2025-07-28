@@ -141,11 +141,11 @@ This phase addresses warnings and deprecated APIs to modernize the codebase.
 -   **Java Compiler Version:**
     -   [x] Update Java source/target compatibility to a newer version (e.g., Java 11 or 17) or configure Java toolchains in `build.gradle.kts` files to resolve deprecation warnings related to Java 8.
 -   **Deprecated `onActivityResult`:**
-    -   [ ] Refactor `MainActivity.kt` to use the Activity Result API for handling activity results.
+    -   [x] Refactor `MainActivity.kt` to use the Activity Result API for handling activity results.
 -   **Deprecated Google Sign-In APIs:**
     -   [ ] Update the authentication logic in `AuthViewModel.kt` to use the newer APIs for Google Sign-In (e.g., `SignInClient` and `SignInCredential`).
 -   **Moshi Kapt to KSP Migration:**
-    -   [ ] Migrate Moshi code generation from Kapt to KSP to resolve deprecation warnings.
+    -   [x] Migrate Moshi code generation from Kapt to KSP to resolve deprecation warnings.
 
 ## Phase 6: Test Fixes
 

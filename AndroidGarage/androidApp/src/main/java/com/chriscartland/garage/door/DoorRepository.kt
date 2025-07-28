@@ -36,7 +36,7 @@ interface DoorRepository {
     val currentDoorPosition: Flow<DoorPosition>
 
     // Exposes the event, including last updated timestamps.
-    val currentDoorEvent: Flow<DoorEvent>
+    val currentDoorEvent: Flow<DoorEvent?>
     val recentDoorEvents: Flow<List<DoorEvent>>
 
     suspend fun fetchBuildTimestampCached(): String?
@@ -62,7 +62,7 @@ constructor(
                     // [it] can be null -- this might be a Kotlin bug
                     it?.doorPosition ?: DoorPosition.UNKNOWN
                 }.distinctUntilChanged()
-    override val currentDoorEvent: Flow<DoorEvent> = localDoorDataSource.currentDoorEvent
+    override val currentDoorEvent: Flow<DoorEvent?> = localDoorDataSource.currentDoorEvent
     override val recentDoorEvents: Flow<List<DoorEvent>> = localDoorDataSource.recentDoorEvents
 
     override suspend fun fetchBuildTimestampCached(): String? = serverConfigRepository.getServerConfigCached()?.buildTimestamp

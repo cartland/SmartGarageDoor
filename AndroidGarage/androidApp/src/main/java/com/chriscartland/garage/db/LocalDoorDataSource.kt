@@ -28,7 +28,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 interface LocalDoorDataSource {
-    val currentDoorEvent: Flow<DoorEvent>
+    val currentDoorEvent: Flow<DoorEvent?>
     val recentDoorEvents: Flow<List<DoorEvent>>
 
     fun insertDoorEvent(doorEvent: DoorEvent)

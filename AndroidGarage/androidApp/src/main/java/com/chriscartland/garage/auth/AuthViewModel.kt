@@ -20,8 +20,8 @@ package com.chriscartland.garage.auth
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.content.IntentSender
 import android.util.Log
+import androidx.activity.result.IntentSenderRequest
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.BuildConfig
@@ -34,13 +34,17 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 interface AuthViewModel {
     val authState: StateFlow<AuthState>
     val authRepository: AuthRepository
+    val googleSignInIntentSenderRequest: Flow<IntentSenderRequest>
     fun signInWithGoogle(activity: Activity)
     fun signOut()
     fun processGoogleSignInResult(data: Intent)
@@ -56,6 +60,9 @@ class AuthViewModelImpl @Inject constructor(
     override val authRepository: AuthRepository = _authRepository
 
     override val authState: StateFlow<AuthState> = _authRepository.authState
+
+    private val googleSignInIntentSenderRequestChannel = Channel<IntentSenderRequest>()
+    override val googleSignInIntentSenderRequest: Flow<IntentSenderRequest> = googleSignInIntentSenderRequestChannel.receiveAsFlow()
 
     override fun signInWithGoogle(activity: Activity) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -75,18 +82,8 @@ class AuthViewModelImpl @Inject constructor(
                 .build()
             createSignInClient(activity).beginSignIn(dialogSignInRequest)
                 .addOnSuccessListener(activity) { result ->
-                    try {
-                        activity.startIntentSenderForResult(
-                            result.pendingIntent.intentSender,
-                            RC_ONE_TAP_SIGN_IN,
-                            null,
-                            0,
-                            0,
-                            0,
-                            null,
-                        )
-                    } catch (e: IntentSender.SendIntentException) {
-                        Log.e(TAG, "Couldn't start One Tap UI: ${e.localizedMessage}")
+                    viewModelScope.launch {
+                        googleSignInIntentSenderRequestChannel.send(IntentSenderRequest.Builder(result.pendingIntent).build())
                     }
                 }
                 .addOnFailureListener(activity) { e ->

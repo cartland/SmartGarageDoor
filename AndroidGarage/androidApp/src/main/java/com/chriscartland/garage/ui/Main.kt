@@ -68,11 +68,13 @@ import java.time.Instant
 fun GarageApp(
     doorViewModel: DoorViewModel,
     appLoggerViewModel: AppLoggerViewModel,
+    authViewModel: AuthViewModel,
 ) {
     AppTheme {
         AppNavigation(
             doorViewModel = doorViewModel,
             appLoggerViewModel = appLoggerViewModel,
+            authViewModel = authViewModel,
         )
     }
 }
