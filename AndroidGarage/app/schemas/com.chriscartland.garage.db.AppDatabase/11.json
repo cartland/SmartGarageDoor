@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 7,
-    "identityHash": "51a192c112665dd423d7ea912c210f9c",
+    "version": 11,
+    "identityHash": "c1a556cd612bbbd45c36a64fba6e0bce",
     "entities": [
       {
         "tableName": "DoorEvent",
@@ -11,26 +11,22 @@
           {
             "fieldPath": "doorPosition",
             "columnName": "doorPosition",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "message",
             "columnName": "message",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "lastCheckInTimeSeconds",
             "columnName": "lastCheckInTimeSeconds",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "lastChangeTimeSeconds",
             "columnName": "lastChangeTimeSeconds",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "id",
@@ -44,13 +40,11 @@
           "columnNames": [
             "id"
           ]
-        },
-        "indices": [],
-        "foreignKeys": []
+        }
       },
       {
         "tableName": "AppEvent",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`eventKey` TEXT NOT NULL, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`eventKey` TEXT NOT NULL, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `appVersion` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "eventKey",
@@ -69,6 +63,12 @@
             "columnName": "timestamp",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "appVersion",
+            "columnName": "appVersion",
+            "affinity": "TEXT",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -76,15 +76,12 @@
           "columnNames": [
             "id"
           ]
-        },
-        "indices": [],
-        "foreignKeys": []
+        }
       }
     ],
-    "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '51a192c112665dd423d7ea912c210f9c')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c1a556cd612bbbd45c36a64fba6e0bce')"
     ]
   }
 }

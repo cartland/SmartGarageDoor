@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:123456789012:android:eeeeeeeeeeeeeeeeeeeeee",
         "android_client_info": {
-          "package_name": "com.example"
+          "package_name": "com.chriscartland.garage"
         }
       },
       "oauth_client": [
@@ -17,7 +17,7 @@
           "client_id": "123456789012-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.example",
+            "package_name": "com.chriscartland.garage",
             "certificate_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           }
         },
@@ -25,7 +25,7 @@
           "client_id": "123456789012-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.example",
+            "package_name": "com.chriscartland.garage",
             "certificate_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           }
         },
@@ -33,7 +33,7 @@
           "client_id": "123456789012-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.example",
+            "package_name": "com.chriscartland.garage",
             "certificate_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           }
         },

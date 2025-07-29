@@ -112,7 +112,6 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
             signingConfig = signingConfigs.getByName("debug")
-            applicationIdSuffix = ".debug"
         }
 //        // Debug R8 optimizations with isMinifyEnabled = true
 //        val debugMinify by creating {
