@@ -37,23 +37,23 @@ interface LocalDoorDataSource {
 }
 
 class DatabaseLocalDoorDataSource
-@Inject
-constructor(
-    private val appDatabase: AppDatabase,
-) : LocalDoorDataSource {
-    override val currentDoorEvent = appDatabase.doorEventDao().currentDoorEvent()
-    override val recentDoorEvents = appDatabase.doorEventDao().recentDoorEvents()
+    @Inject
+    constructor(
+        private val appDatabase: AppDatabase,
+    ) : LocalDoorDataSource {
+        override val currentDoorEvent = appDatabase.doorEventDao().currentDoorEvent()
+        override val recentDoorEvents = appDatabase.doorEventDao().recentDoorEvents()
 
-    override fun insertDoorEvent(doorEvent: DoorEvent) {
-        Log.d(TAG, "Inserting DoorEvent: $doorEvent")
-        appDatabase.doorEventDao().insert(doorEvent)
-    }
+        override fun insertDoorEvent(doorEvent: DoorEvent) {
+            Log.d(TAG, "Inserting DoorEvent: $doorEvent")
+            appDatabase.doorEventDao().insert(doorEvent)
+        }
 
-    override fun replaceDoorEvents(doorEvents: List<DoorEvent>) {
-        Log.d(TAG, "Replacing DoorEvents: $doorEvents")
-        appDatabase.doorEventDao().replaceAll(doorEvents)
+        override fun replaceDoorEvents(doorEvents: List<DoorEvent>) {
+            Log.d(TAG, "Replacing DoorEvents: $doorEvents")
+            appDatabase.doorEventDao().replaceAll(doorEvents)
+        }
     }
-}
 
 @Module
 @InstallIn(SingletonComponent::class)

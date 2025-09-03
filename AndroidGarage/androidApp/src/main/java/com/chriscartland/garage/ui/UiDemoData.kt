@@ -46,18 +46,18 @@ fun generateDoorEventDemoData(numEvents: Int = 10): List<DoorEvent> {
             doorPosition = doorPosition,
             message = message,
             lastCheckInTimeSeconds =
-            currentTimeSeconds -
-                Random.nextLong(
-                    1000,
-                    10000,
-                ),
+                currentTimeSeconds -
+                    Random.nextLong(
+                        1000,
+                        10000,
+                    ),
             // Random time in the past
             lastChangeTimeSeconds =
-            currentTimeSeconds -
-                Random.nextLong(
-                    500,
-                    5000,
-                ),
+                currentTimeSeconds -
+                    Random.nextLong(
+                        500,
+                        5000,
+                    ),
             // Usually slightly before check-in
         )
     }

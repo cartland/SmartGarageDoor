@@ -45,14 +45,15 @@ class ParallelogramShape(
         size: Size,
         layoutDirection: LayoutDirection,
         density: Density,
-    ): Outline = Outline.Generic(
-        path = drawParallelogramPath(
-            size,
-            angleDegrees,
-            squareLeft,
-            squareRight,
-        ),
-    )
+    ): Outline =
+        Outline.Generic(
+            path = drawParallelogramPath(
+                size,
+                angleDegrees,
+                squareLeft,
+                squareRight,
+            ),
+        )
 }
 
 fun drawParallelogramPath(

@@ -83,10 +83,10 @@ val APP_CONFIG =
     AppConfig(
         server = SERVER,
         baseUrl =
-        when (SERVER) {
-            Server.Development -> "http://10.0.2.2:5001/escape-echo/us-central1/"
-            Server.Production -> "https://us-central1-escape-echo.cloudfunctions.net/"
-        },
+            when (SERVER) {
+                Server.Development -> "http://10.0.2.2:5001/escape-echo/us-central1/"
+                Server.Production -> "https://us-central1-escape-echo.cloudfunctions.net/"
+            },
         initialData = INITIAL_DATA,
         fetchOnViewModelInit = FETCH_ON_VIEW_MODEL_INIT,
         recentEventCount = 30,

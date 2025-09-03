@@ -279,17 +279,18 @@ fun RecentDoorEventListItem(
     }
 }
 
-private fun DoorPosition.toFriendlyName(): String = when (this) {
-    DoorPosition.OPEN -> "Open"
-    DoorPosition.CLOSED -> "Closed"
-    DoorPosition.UNKNOWN -> "Unknown"
-    DoorPosition.OPENING -> "Opening"
-    DoorPosition.OPENING_TOO_LONG -> "Opening (Taking too long)"
-    DoorPosition.OPEN_MISALIGNED -> "Open (Misaligned)"
-    DoorPosition.CLOSING -> "Closing"
-    DoorPosition.CLOSING_TOO_LONG -> "Closing (Taking too long)"
-    DoorPosition.ERROR_SENSOR_CONFLICT -> "Error: Sensor Conflict"
-}
+private fun DoorPosition.toFriendlyName(): String =
+    when (this) {
+        DoorPosition.OPEN -> "Open"
+        DoorPosition.CLOSED -> "Closed"
+        DoorPosition.UNKNOWN -> "Unknown"
+        DoorPosition.OPENING -> "Opening"
+        DoorPosition.OPENING_TOO_LONG -> "Opening (Taking too long)"
+        DoorPosition.OPEN_MISALIGNED -> "Open (Misaligned)"
+        DoorPosition.CLOSING -> "Closing"
+        DoorPosition.CLOSING_TOO_LONG -> "Closing (Taking too long)"
+        DoorPosition.ERROR_SENSOR_CONFLICT -> "Error: Sensor Conflict"
+    }
 
 @Preview(showBackground = true)
 @Composable

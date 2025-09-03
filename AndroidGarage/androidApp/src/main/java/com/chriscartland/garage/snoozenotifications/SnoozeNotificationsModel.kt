@@ -34,13 +34,14 @@ enum class SnoozeDurationUIOption(
     TwelveHours(12.hours),
 }
 
-fun SnoozeDurationUIOption.toServer(): SnoozeDurationServerOption = when (this) {
-    SnoozeDurationUIOption.None -> SnoozeDurationServerOption.HOURS_0
-    SnoozeDurationUIOption.OneHour -> SnoozeDurationServerOption.HOURS_1
-    SnoozeDurationUIOption.FourHours -> SnoozeDurationServerOption.HOURS_4
-    SnoozeDurationUIOption.EightHours -> SnoozeDurationServerOption.HOURS_8
-    SnoozeDurationUIOption.TwelveHours -> SnoozeDurationServerOption.HOURS_12
-}
+fun SnoozeDurationUIOption.toServer(): SnoozeDurationServerOption =
+    when (this) {
+        SnoozeDurationUIOption.None -> SnoozeDurationServerOption.HOURS_0
+        SnoozeDurationUIOption.OneHour -> SnoozeDurationServerOption.HOURS_1
+        SnoozeDurationUIOption.FourHours -> SnoozeDurationServerOption.HOURS_4
+        SnoozeDurationUIOption.EightHours -> SnoozeDurationServerOption.HOURS_8
+        SnoozeDurationUIOption.TwelveHours -> SnoozeDurationServerOption.HOURS_12
+    }
 
 /**
  * Full list of values accepted by the server.

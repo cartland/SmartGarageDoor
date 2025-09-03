@@ -50,59 +50,59 @@ interface AppLoggerRepository {
 }
 
 class AppLoggerRepositoryImpl
-@Inject
-constructor(
-    private val context: Context,
-    private val appDatabase: AppDatabase,
-) : AppLoggerRepository {
-    override suspend fun log(key: String) {
-        Log.d(TAG, "Logging key: $key")
-        appDatabase.appLoggerDao().insert(
-            AppEvent(
-                eventKey = key,
-                appVersion = context.AppVersion().toString(),
-            ),
-        )
-    }
+    @Inject
+    constructor(
+        private val context: Context,
+        private val appDatabase: AppDatabase,
+    ) : AppLoggerRepository {
+        override suspend fun log(key: String) {
+            Log.d(TAG, "Logging key: $key")
+            appDatabase.appLoggerDao().insert(
+                AppEvent(
+                    eventKey = key,
+                    appVersion = context.AppVersion().toString(),
+                ),
+            )
+        }
 
-    override fun countKey(key: String): Flow<Long> = appDatabase.appLoggerDao().countKey(key)
+        override fun countKey(key: String): Flow<Long> = appDatabase.appLoggerDao().countKey(key)
 
-    override suspend fun writeCsvToUri(
-        context: Context,
-        uri: Uri,
-    ) {
-        withContext(Dispatchers.IO) {
-            try {
-                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                    outputStream.write("Key,Time,Epoch,Version\n".toByteArray())
-                    appDatabase.appLoggerDao().getAll().firstOrNull()?.forEach {
-                        outputStream.write(
-                            (
-                                "${it.eventKey}" +
-                                    ",${it.timestamp.readableTime()}" +
-                                    ",${it.timestamp}" +
-                                    ",${it.appVersion}" +
-                                    "\n"
+        override suspend fun writeCsvToUri(
+            context: Context,
+            uri: Uri,
+        ) {
+            withContext(Dispatchers.IO) {
+                try {
+                    context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                        outputStream.write("Key,Time,Epoch,Version\n".toByteArray())
+                        appDatabase.appLoggerDao().getAll().firstOrNull()?.forEach {
+                            outputStream.write(
+                                (
+                                    "${it.eventKey}" +
+                                        ",${it.timestamp.readableTime()}" +
+                                        ",${it.timestamp}" +
+                                        ",${it.appVersion}" +
+                                        "\n"
                                 ).toByteArray(),
-                        )
+                            )
+                        }
                     }
+                } catch (e: Exception) {
+                    // Handle exceptions (e.g., file I/O errors)
+                    Log.d("CreateTxtFile", "Error writing to file: ${e.message}")
                 }
-            } catch (e: Exception) {
-                // Handle exceptions (e.g., file I/O errors)
-                Log.d("CreateTxtFile", "Error writing to file: ${e.message}")
             }
         }
-    }
 
-    private fun Long.readableTime(): String {
-        val instant = Instant.ofEpochMilli(this)
-        val formatter =
-            DateTimeFormatter
-                .ofPattern("yyyyMMdd.HHmmss.SSS")
-                .withZone(ZoneId.systemDefault())
-        return formatter.format(instant)
+        private fun Long.readableTime(): String {
+            val instant = Instant.ofEpochMilli(this)
+            val formatter =
+                DateTimeFormatter
+                    .ofPattern("yyyyMMdd.HHmmss.SSS")
+                    .withZone(ZoneId.systemDefault())
+            return formatter.format(instant)
+        }
     }
-}
 
 @Module
 @InstallIn(SingletonComponent::class)
