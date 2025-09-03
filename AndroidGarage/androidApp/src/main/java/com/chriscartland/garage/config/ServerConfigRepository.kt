@@ -29,10 +29,13 @@ import javax.inject.Inject
 
 interface ServerConfigRepository {
     suspend fun getServerConfigCached(): ServerConfig?
+
     suspend fun fetchServerConfig(): ServerConfig?
 }
 
-class ServerConfigRepositoryImpl @Inject constructor(
+class ServerConfigRepositoryImpl
+@Inject
+constructor(
     private val network: GarageNetworkService,
 ) : ServerConfigRepository {
     private var serverConfig: ServerConfig? = null
@@ -114,9 +117,7 @@ class ServerConfigRepositoryImpl @Inject constructor(
 @Suppress("unused")
 abstract class ServerConfigRepositoryModule {
     @Binds
-    abstract fun bindServerConfigRepository(
-        serverConfigRepository: ServerConfigRepositoryImpl,
-    ): ServerConfigRepository
+    abstract fun bindServerConfigRepository(serverConfigRepository: ServerConfigRepositoryImpl): ServerConfigRepository
 }
 
 private const val TAG = "ServerConfigRepo"

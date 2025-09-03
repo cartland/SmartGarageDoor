@@ -33,16 +33,22 @@ import java.time.format.FormatStyle
 /**
  * Convert Unix timestamp seconds to a human-readable date string.
  */
-fun Long.toFriendlyDate(): String = Instant.ofEpochSecond(this).atZone(ZoneId.systemDefault())
+fun Long.toFriendlyDate(): String = Instant
+    .ofEpochSecond(this)
+    .atZone(ZoneId.systemDefault())
     .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
 
 /**
  * Convert Unix timestamp seconds to a human-readable time string.
  */
-fun Long.toFriendlyTime(): String? = Instant.ofEpochSecond(this).atZone(ZoneId.systemDefault())
+fun Long.toFriendlyTime(): String? = Instant
+    .ofEpochSecond(this)
+    .atZone(ZoneId.systemDefault())
     .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM))
 
-fun Long.toFriendlyTimeShort(): String? = Instant.ofEpochSecond(this).atZone(ZoneId.systemDefault())
+fun Long.toFriendlyTimeShort(): String? = Instant
+    .ofEpochSecond(this)
+    .atZone(ZoneId.systemDefault())
     .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
 
 /**

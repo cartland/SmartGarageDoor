@@ -109,8 +109,7 @@ fun RemoteButtonContent(
                 .aspectRatio(1f)
                 .onSizeChanged { size ->
                     buttonWidth = with(localDensity) { size.width.toDp() }
-                }
-                .shadow(4.dp, CircleShape),
+                }.shadow(4.dp, CircleShape),
             enabled = enabled,
             onClick = {
                 when (buttonState) {

@@ -98,8 +98,7 @@ fun ParallelogramProgressBar(
                             squareLeft = (i == 1),
                             squareRight = (i == max),
                         ),
-                    )
-                    .background(
+                    ).background(
                         if (i <= complete) colorComplete else colorIncomplete,
                     ),
             )

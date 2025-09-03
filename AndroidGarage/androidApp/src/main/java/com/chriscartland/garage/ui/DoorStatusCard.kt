@@ -147,7 +147,7 @@ fun DoorStatusCard(
                     }
 
                     else -> {
-                        /* Nothing */
+                        // Nothing
                     }
                 }
             }
@@ -242,7 +242,7 @@ fun RecentDoorEventListItem(
                     }
 
                     else -> {
-                        /* Nothing */
+                        // Nothing
                     }
                 }
             }

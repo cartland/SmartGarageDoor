@@ -60,11 +60,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        private fun buildDatabase(context: Context): AppDatabase = Room.databaseBuilder(
-            context,
-            AppDatabase::class.java,
-            "database",
-        ).fallbackToDestructiveMigration(false).build()
+        private fun buildDatabase(context: Context): AppDatabase = Room
+            .databaseBuilder(
+                context,
+                AppDatabase::class.java,
+                "database",
+            ).fallbackToDestructiveMigration(false)
+            .build()
     }
 }
 
@@ -73,5 +75,7 @@ abstract class AppDatabase : RoomDatabase() {
 object AppDatabaseModule {
     @Provides
     @Singleton
-    fun provideAppDatabase(@ApplicationContext appContext: Context): AppDatabase = AppDatabase.getDatabase(appContext)
+    fun provideAppDatabase(
+        @ApplicationContext appContext: Context,
+    ): AppDatabase = AppDatabase.getDatabase(appContext)
 }

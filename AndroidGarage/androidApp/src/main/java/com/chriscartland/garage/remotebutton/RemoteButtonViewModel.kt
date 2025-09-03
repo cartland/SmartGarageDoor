@@ -48,17 +48,23 @@ interface RemoteButtonViewModel {
     val requestStatus: StateFlow<RequestStatus>
     val snoozeRequestStatus: StateFlow<SnoozeRequestStatus>
     val snoozeEndTimeSeconds: StateFlow<Long>
+
     fun pushRemoteButton(authRepository: AuthRepository)
+
     fun resetRemoteButton()
+
     fun snoozeOpenDoorsNotifications(
         authRepository: AuthRepository,
         snoozeDuration: SnoozeDurationUIOption,
     )
+
     fun fetchSnoozeEndTimeSeconds()
 }
 
 @HiltViewModel
-class RemoteButtonViewModelImpl @Inject constructor(
+class RemoteButtonViewModelImpl
+@Inject
+constructor(
     // Remote button repository focused on sending the request over the Internet.
     private val pushRepository: PushRepository,
     // Watch the door status, because we consider the request delivered when the door moves.
@@ -364,9 +370,7 @@ enum class RequestStatus {
 @Suppress("unused")
 abstract class RemoteButtonViewModelModule {
     @Binds
-    abstract fun bindRemoteButtonViewModel(
-        remoteButtonViewModel: RemoteButtonViewModelImpl,
-    ): RemoteButtonViewModel
+    abstract fun bindRemoteButtonViewModel(remoteButtonViewModel: RemoteButtonViewModelImpl): RemoteButtonViewModel
 }
 
 private const val TAG = "RemoteButtonViewModel"

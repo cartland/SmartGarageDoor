@@ -46,8 +46,14 @@ interface PushRepository {
     val pushButtonStatus: StateFlow<PushStatus>
     val snoozeRequestStatus: StateFlow<SnoozeRequestStatus>
     val snoozeEndTimeSeconds: StateFlow<Long>
-    suspend fun push(idToken: IdToken, buttonAckToken: String)
+
+    suspend fun push(
+        idToken: IdToken,
+        buttonAckToken: String,
+    )
+
     suspend fun fetchSnoozeEndTimeSeconds()
+
     suspend fun snoozeOpenDoorsNotifications(
         snoozeDuration: SnoozeDurationUIOption,
         idToken: IdToken,
@@ -55,7 +61,9 @@ interface PushRepository {
     )
 }
 
-class PushRepositoryImpl @Inject constructor(
+class PushRepositoryImpl
+@Inject
+constructor(
     private val network: GarageNetworkService,
     private val serverConfigRepository: ServerConfigRepository,
 ) : PushRepository {

@@ -41,18 +41,22 @@ import javax.inject.Inject
 interface AuthViewModel {
     val authState: StateFlow<AuthState>
     val authRepository: AuthRepository
+
     fun signInWithGoogle(activity: Activity)
+
     fun signOut()
+
     fun processGoogleSignInResult(data: Intent)
 }
 
 @HiltViewModel
-class AuthViewModelImpl @Inject constructor(
+class AuthViewModelImpl
+@Inject
+constructor(
     private val _authRepository: AuthRepository,
     private val appLoggerRepository: AppLoggerRepository,
 ) : ViewModel(),
     AuthViewModel {
-
     override val authRepository: AuthRepository = _authRepository
 
     override val authState: StateFlow<AuthState> = _authRepository.authState
@@ -63,17 +67,19 @@ class AuthViewModelImpl @Inject constructor(
             checkSignInConfiguration()
             Log.d(TAG, "beginSignIn")
             // Dialog Sign-In configuration.
-            val dialogSignInRequest = BeginSignInRequest.builder()
+            val dialogSignInRequest = BeginSignInRequest
+                .builder()
                 .setGoogleIdTokenRequestOptions(
-                    BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
+                    BeginSignInRequest.GoogleIdTokenRequestOptions
+                        .builder()
                         .setSupported(true)
                         .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
                         .setFilterByAuthorizedAccounts(false)
                         .build(),
-                )
-                .setAutoSelectEnabled(false) // Let user choose the account.
+                ).setAutoSelectEnabled(false) // Let user choose the account.
                 .build()
-            createSignInClient(activity).beginSignIn(dialogSignInRequest)
+            createSignInClient(activity)
+                .beginSignIn(dialogSignInRequest)
                 .addOnSuccessListener(activity) { result ->
                     try {
                         activity.startIntentSenderForResult(
@@ -88,8 +94,7 @@ class AuthViewModelImpl @Inject constructor(
                     } catch (e: IntentSender.SendIntentException) {
                         Log.e(TAG, "Couldn't start One Tap UI: ${e.localizedMessage}")
                     }
-                }
-                .addOnFailureListener(activity) { e ->
+                }.addOnFailureListener(activity) { e ->
                     // No saved credentials found. Launch the One Tap sign-up flow, or
                     // do nothing and continue presenting the signed-out UI.
                     Log.d(TAG, e.localizedMessage ?: "")

@@ -38,9 +38,7 @@ import com.chriscartland.garage.door.FcmRegistrationStatus
  * 2) Subscribe to the FCM topic.
  */
 @Composable
-fun FCMRegistration(
-    viewModel: DoorViewModel = hiltViewModel<DoorViewModelImpl>(),
-) {
+fun FCMRegistration(viewModel: DoorViewModel = hiltViewModel<DoorViewModelImpl>()) {
     val activity = LocalActivity.current
     val fcmState by viewModel.fcmRegistrationStatus.collectAsState()
     LaunchedEffect(key1 = fcmState) {

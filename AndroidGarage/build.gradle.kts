@@ -27,5 +27,17 @@ plugins {
     alias(libs.plugins.baselineprofile) apply false
     alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.android.kotlin.multiplatform.library) apply false
-    alias(libs.plugins.spotless) apply false
+    alias(libs.plugins.spotless)
+}
+
+spotless {
+    kotlin {
+        target("**/*.kt")
+        targetExclude("**/build/**/*.kt")
+        ktlint()
+    }
+    kotlinGradle {
+        target("*.kts")
+        ktlint()
+    }
 }

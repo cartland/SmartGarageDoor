@@ -261,8 +261,9 @@ fun HomeContentPreview() {
         notificationPermissionState = object : PermissionState {
             override val permission = "android.permission.POST_NOTIFICATIONS"
             override val status = PermissionStatus.Denied(false)
+
             override fun launchPermissionRequest() {
-                /* Do nothing */
+                // Do nothing
             }
         },
     )

@@ -31,7 +31,12 @@ import javax.inject.Inject
 
 interface AppLoggerViewModel {
     fun log(key: String)
-    fun writeCsvToUri(context: Context, uri: Uri)
+
+    fun writeCsvToUri(
+        context: Context,
+        uri: Uri,
+    )
+
     val initCurrentDoorCount: StateFlow<Long>
     val initRecentDoorCount: StateFlow<Long>
     val userFetchCurrentDoorCount: StateFlow<Long>
@@ -43,7 +48,9 @@ interface AppLoggerViewModel {
 }
 
 @HiltViewModel
-class AppLoggerViewModelImpl @Inject constructor(
+class AppLoggerViewModelImpl
+@Inject
+constructor(
     private val appLoggerRepository: AppLoggerRepository,
 ) : ViewModel(),
     AppLoggerViewModel {
@@ -120,7 +127,10 @@ class AppLoggerViewModelImpl @Inject constructor(
         }
     }
 
-    override fun writeCsvToUri(context: Context, uri: Uri) {
+    override fun writeCsvToUri(
+        context: Context,
+        uri: Uri,
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             appLoggerRepository.writeCsvToUri(context, uri)
         }

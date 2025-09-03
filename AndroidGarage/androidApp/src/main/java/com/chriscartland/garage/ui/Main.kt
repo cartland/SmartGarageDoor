@@ -77,9 +77,15 @@ fun GarageApp(
     }
 }
 
-sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
+sealed class Screen(
+    val route: String,
+    val label: String,
+    val icon: ImageVector,
+) {
     data object Home : Screen("home", "Home", Icons.Filled.Home)
+
     data object History : Screen("history", "History", Icons.Filled.DateRange)
+
     data object Profile : Screen("profile", "Settings", Icons.Filled.Person)
 }
 
@@ -186,7 +192,10 @@ private fun currentRoute(navController: NavController): String? {
 }
 
 @Composable
-fun BottomNavigationBar(navController: NavController, currentRoute: String?) {
+fun BottomNavigationBar(
+    navController: NavController,
+    currentRoute: String?,
+) {
     val items = listOf(Screen.Home, Screen.History, Screen.Profile)
 
     NavigationBar {
