@@ -30,7 +30,7 @@ plugins {
     alias(libs.plugins.spotless)
 }
 
-subprojects {
+allprojects {
     apply(plugin = "com.diffplug.spotless")
     configure<com.diffplug.gradle.spotless.SpotlessExtension> {
         kotlin {
