@@ -55,25 +55,26 @@ data class DoorColorSet(
     val onUnknown: Color,
 )
 
-fun DoorStatusColorScheme.doorColorSet(isStale: Boolean): DoorColorSet = if (isStale) {
-    DoorColorSet(
-        closed = closedStale,
-        onClosed = onClosedStale,
-        open = openStale,
-        onOpen = onOpenStale,
-        unknown = unknownStale,
-        onUnknown = onUnknownStale,
-    )
-} else {
-    DoorColorSet(
-        closed = closedFresh,
-        onClosed = onClosedFresh,
-        open = openFresh,
-        onOpen = onOpenFresh,
-        unknown = unknownFresh,
-        onUnknown = onUnknownFresh,
-    )
-}
+fun DoorStatusColorScheme.doorColorSet(isStale: Boolean): DoorColorSet =
+    if (isStale) {
+        DoorColorSet(
+            closed = closedStale,
+            onClosed = onClosedStale,
+            open = openStale,
+            onOpen = onOpenStale,
+            unknown = unknownStale,
+            onUnknown = onUnknownStale,
+        )
+    } else {
+        DoorColorSet(
+            closed = closedFresh,
+            onClosed = onClosedFresh,
+            open = openFresh,
+            onOpen = onOpenFresh,
+            unknown = unknownFresh,
+            onUnknown = onUnknownFresh,
+        )
+    }
 
 val doorStatusLightScheme =
     DoorStatusColorScheme(
@@ -113,17 +114,19 @@ enum class DoorColorState {
     UNKNOWN,
 }
 
-fun DoorEvent?.doorColorState(): DoorColorState = when (this?.doorPosition) {
-    DoorPosition.UNKNOWN -> DoorColorState.UNKNOWN
-    DoorPosition.ERROR_SENSOR_CONFLICT -> DoorColorState.UNKNOWN
-    DoorPosition.CLOSED -> DoorColorState.CLOSED
-    else -> DoorColorState.OPEN
-}
+fun DoorEvent?.doorColorState(): DoorColorState =
+    when (this?.doorPosition) {
+        DoorPosition.UNKNOWN -> DoorColorState.UNKNOWN
+        DoorPosition.ERROR_SENSOR_CONFLICT -> DoorColorState.UNKNOWN
+        DoorPosition.CLOSED -> DoorColorState.CLOSED
+        else -> DoorColorState.OPEN
+    }
 
 fun DoorEvent?.isStale(
     maxAge: Duration,
     now: Instant = Instant.now(),
-): Boolean = this?.lastCheckInTimeSeconds?.let { utcSeconds ->
-    val limit = now.minusSeconds(maxAge.seconds)
-    Instant.ofEpochSecond(utcSeconds).isBefore(limit)
-} == true
+): Boolean =
+    this?.lastCheckInTimeSeconds?.let { utcSeconds ->
+        val limit = now.minusSeconds(maxAge.seconds)
+        Instant.ofEpochSecond(utcSeconds).isBefore(limit)
+    } == true

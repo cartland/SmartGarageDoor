@@ -28,10 +28,10 @@ plugins {
     alias(libs.plugins.gms)
     alias(libs.plugins.room)
     alias(libs.plugins.baselineprofile)
-    alias(libs.plugins.spotless)
 }
 
-val localPropertiesExplanation = """
+val localPropertiesExplanation =
+    """
     Make sure you have a local.properties file with the following properties:
 
     # local.properties
@@ -40,7 +40,7 @@ val localPropertiesExplanation = """
     # Keystore password and key password are required for release builds
     GARAGE_RELEASE_KEYSTORE_PWD=YourKeystorePassword
     GARAGE_RELEASE_KEY_PWD=YourKeyPassword
-""".trimIndent()
+    """.trimIndent()
 val localProperties = Properties().apply {
     val localPropertiesFile = rootProject.file("local.properties")
     if (localPropertiesFile.exists()) {
@@ -174,25 +174,27 @@ androidComponents {
     onVariants { variant ->
         variant.outputs.forEach { output ->
             if (output is com.android.build.api.variant.impl.VariantOutputImpl) {
-                output.outputFileName.set(StringBuilder().run {
-                    if (variant.applicationId.isPresent) {
-                        append(variant.applicationId.get()) // Package name
-                    }
-                    if (output.versionName.isPresent) {
-                        append("_").append(output.versionName.get()) // Version name
-                    }
-                    if (output.versionCode.isPresent) {
-                        append("_").append(output.versionCode.get()) // Version code
-                    }
-                    if (!variant.flavorName.isNullOrBlank()) {
-                        append("_").append(variant.flavorName) // Optional flavor
-                    }
-                    if (!variant.buildType.isNullOrBlank()) {
-                        append("_").append(variant.buildType) // Optional build type
-                    }
-                    append(".apk")
-                    toString()
-                })
+                output.outputFileName.set(
+                    StringBuilder().run {
+                        if (variant.applicationId.isPresent) {
+                            append(variant.applicationId.get()) // Package name
+                        }
+                        if (output.versionName.isPresent) {
+                            append("_").append(output.versionName.get()) // Version name
+                        }
+                        if (output.versionCode.isPresent) {
+                            append("_").append(output.versionCode.get()) // Version code
+                        }
+                        if (!variant.flavorName.isNullOrBlank()) {
+                            append("_").append(variant.flavorName) // Optional flavor
+                        }
+                        if (!variant.buildType.isNullOrBlank()) {
+                            append("_").append(variant.buildType) // Optional build type
+                        }
+                        append(".apk")
+                        toString()
+                    },
+                )
             }
         }
     }
@@ -262,17 +264,4 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleId)
-}
-
-spotless {
-    kotlin {
-        target("**/*.kt")
-        targetExclude("**/build/**/*.kt")
-
-        ktlint().editorConfigOverride(
-            mapOf(
-                "ktlint_function_naming_ignore_when_annotated_with" to "Composable",
-            )
-        )
-    }
 }

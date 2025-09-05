@@ -18,7 +18,6 @@
 plugins {
     alias(libs.plugins.android.test)
     alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.spotless)
 }
 
 android {
@@ -66,12 +65,5 @@ dependencies {
 androidComponents {
     beforeVariants(selector().all()) {
         it.enable = it.buildType == "benchmark"
-    }
-}
-
-spotless {
-    kotlin {
-        target("src/**/*.kt")
-        ktlint()
     }
 }

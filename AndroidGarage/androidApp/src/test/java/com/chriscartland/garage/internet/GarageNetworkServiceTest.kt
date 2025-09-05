@@ -29,59 +29,62 @@ import java.io.File
 
 class GarageNetworkServiceTest {
     @Test
-    fun verifyTestData_currentEventDataResponse() = runTest {
-        val response = test_CurrentEventDataResponse()
-        assertNotNull("Test data should exist", response.currentEventData)
-        response.currentEventData?.run {
-            assertNotNull("Current event should exist", currentEvent)
-            currentEvent?.asDoorEvent()?.run {
-                assertEquals("Door should be closed", DoorPosition.CLOSED, doorPosition)
-                assertEquals("Message should match", "The door is closed.", message)
-                assertEquals("Last check-in time should match", 1730329727L, lastCheckInTimeSeconds)
-                assertEquals("Last change time should match", 1730239045L, lastChangeTimeSeconds)
-            }
-        }
-    }
-
-    @Test
-    fun verifyTestData_recentEventDataResponse() = runTest {
-        val response = test_RecentEventDataResponse()
-        assertNotNull("Test data should exist", response.eventHistory)
-        assertEquals("Event count should match", 30, response.eventHistoryCount)
-        assertEquals("Number of events should match", 30, response.eventHistory?.size)
-        response.eventHistory?.run {
-            assertNotNull("Last element should exist", lastOrNull())
-            lastOrNull()?.run {
-                assertNotNull("Last event should exist", currentEvent)
+    fun verifyTestData_currentEventDataResponse() =
+        runTest {
+            val response = test_CurrentEventDataResponse()
+            assertNotNull("Test data should exist", response.currentEventData)
+            response.currentEventData?.run {
+                assertNotNull("Current event should exist", currentEvent)
                 currentEvent?.asDoorEvent()?.run {
-                    assertEquals("Door should be closed", DoorPosition.OPENING, doorPosition)
-                    assertEquals("Message should match", "The door is opening.", message)
-                    assertEquals(
-                        "Last check-in time should match",
-                        1729997503L,
-                        lastCheckInTimeSeconds,
-                    )
-                    assertEquals(
-                        "Last change time should match",
-                        1729997503L,
-                        lastChangeTimeSeconds,
-                    )
+                    assertEquals("Door should be closed", DoorPosition.CLOSED, doorPosition)
+                    assertEquals("Message should match", "The door is closed.", message)
+                    assertEquals("Last check-in time should match", 1730329727L, lastCheckInTimeSeconds)
+                    assertEquals("Last change time should match", 1730239045L, lastChangeTimeSeconds)
                 }
             }
         }
-    }
 
     @Test
-    fun verifyTestData_serverConfigResponse() = runTest {
-        val response = test_ServerConfigResponse()
-        assertNotNull("Test data should exist", response.body)
-        response.body?.run {
-            assertEquals("Config buildTimestamp should match", "Sat Mar 20 14:25:00 2024", buildTimestamp)
-            assertEquals("Config button timestamp should match", "Sat Apr 17 23:57:32 2024", remoteButtonBuildTimestamp)
-            assertEquals("Config button push key should match", "key", remoteButtonPushKey)
-            assertEquals("Config button authorized emails should match", listOf("demo@example.com"), remoteButtonAuthorizedEmails)
+    fun verifyTestData_recentEventDataResponse() =
+        runTest {
+            val response = test_RecentEventDataResponse()
+            assertNotNull("Test data should exist", response.eventHistory)
+            assertEquals("Event count should match", 30, response.eventHistoryCount)
+            assertEquals("Number of events should match", 30, response.eventHistory?.size)
+            response.eventHistory?.run {
+                assertNotNull("Last element should exist", lastOrNull())
+                lastOrNull()?.run {
+                    assertNotNull("Last event should exist", currentEvent)
+                    currentEvent?.asDoorEvent()?.run {
+                        assertEquals("Door should be closed", DoorPosition.OPENING, doorPosition)
+                        assertEquals("Message should match", "The door is opening.", message)
+                        assertEquals(
+                            "Last check-in time should match",
+                            1729997503L,
+                            lastCheckInTimeSeconds,
+                        )
+                        assertEquals(
+                            "Last change time should match",
+                            1729997503L,
+                            lastChangeTimeSeconds,
+                        )
+                    }
+                }
+            }
         }
-    }
+
+    @Test
+    fun verifyTestData_serverConfigResponse() =
+        runTest {
+            val response = test_ServerConfigResponse()
+            assertNotNull("Test data should exist", response.body)
+            response.body?.run {
+                assertEquals("Config buildTimestamp should match", "Sat Mar 20 14:25:00 2024", buildTimestamp)
+                assertEquals("Config button timestamp should match", "Sat Apr 17 23:57:32 2024", remoteButtonBuildTimestamp)
+                assertEquals("Config button push key should match", "key", remoteButtonPushKey)
+                assertEquals("Config button authorized emails should match", listOf("demo@example.com"), remoteButtonAuthorizedEmails)
+            }
+        }
 }
 
 fun readJsonResource(filename: String): String {
@@ -90,10 +93,11 @@ fun readJsonResource(filename: String): String {
     return jsonFile.readText()
 }
 
-fun moshi(): Moshi? = Moshi
-    .Builder()
-    .add(KotlinJsonAdapterFactory())
-    .build()
+fun moshi(): Moshi? =
+    Moshi
+        .Builder()
+        .add(KotlinJsonAdapterFactory())
+        .build()
 
 fun test_CurrentEventDataResponse(): CurrentEventDataResponse {
     val filename = "currentEventData_1730329839.json"

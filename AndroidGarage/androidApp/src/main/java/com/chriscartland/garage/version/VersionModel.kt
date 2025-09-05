@@ -28,20 +28,21 @@ data class AppVersion(
     override fun toString(): String = "$packageName-$versionCode-$versionName"
 }
 
-fun Context.AppVersion(): AppVersion = AppVersion(
-    packageName = packageName,
-    versionCode =
-    packageManager
-        .getPackageInfo(
-            packageName,
-            0,
-        ).let {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                it.longVersionCode
-            } else {
-                @Suppress("DEPRECATION")
-                it.versionCode.toLong()
-            }
-        },
-    versionName = packageManager.getPackageInfo(packageName, 0).versionName ?: "",
-)
+fun Context.AppVersion(): AppVersion =
+    AppVersion(
+        packageName = packageName,
+        versionCode =
+            packageManager
+                .getPackageInfo(
+                    packageName,
+                    0,
+                ).let {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        it.longVersionCode
+                    } else {
+                        @Suppress("DEPRECATION")
+                        it.versionCode.toLong()
+                    }
+                },
+        versionName = packageManager.getPackageInfo(packageName, 0).versionName ?: "",
+    )

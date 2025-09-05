@@ -112,8 +112,7 @@ fun Opening(
                     with(LocalDensity.current) {
                         (minOf(garageDoorSize.width, garageDoorSize.height) * 0.3f).toDp()
                     },
-                )
-                .background(MaterialTheme.colorScheme.background, CircleShape),
+                ).background(MaterialTheme.colorScheme.background, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -174,8 +173,7 @@ fun Closing(
                     with(LocalDensity.current) {
                         (minOf(garageDoorSize.width, garageDoorSize.height) * 0.3f).toDp()
                     },
-                )
-                .background(MaterialTheme.colorScheme.background, CircleShape),
+                ).background(MaterialTheme.colorScheme.background, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -303,8 +301,7 @@ fun Midway(
                     with(LocalDensity.current) {
                         (minOf(garageDoorSize.width, garageDoorSize.height) * 0.3f).toDp()
                     },
-                )
-                .background(MaterialTheme.colorScheme.background, CircleShape),
+                ).background(MaterialTheme.colorScheme.background, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -380,7 +377,11 @@ fun GarageDoorAnimation(
     )
 }
 
-fun blendColors(color1: Color, color2: Color, ratio: Float): Color {
+fun blendColors(
+    color1: Color,
+    color2: Color,
+    ratio: Float,
+): Color {
     val color1Int = color1.toArgb()
     val color2Int = color2.toArgb()
     return Color(ColorUtils.blendARGB(color1Int, color2Int, ratio))
@@ -447,8 +448,7 @@ fun TopWithBottomOffset(
                 .graphicsLayer {
                     translationX = bottomOffset.x
                     translationY = bottomOffset.y
-                }
-                .clip(clipOffset),
+                }.clip(clipOffset),
             colorFilter = colorFilter,
         )
         Image(
@@ -486,7 +486,9 @@ fun TopWithBottomOffset(
  *     }
  *     .clip(OffsetRect(-offset))
  */
-class OffsetRect(val offset: Offset = Offset.Zero) : Shape {
+class OffsetRect(
+    val offset: Offset = Offset.Zero,
+) : Shape {
     override fun createOutline(
         size: Size,
         layoutDirection: LayoutDirection,

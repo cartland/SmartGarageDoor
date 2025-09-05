@@ -62,9 +62,10 @@ sealed class SettingType<T> : Setting<T> {
         override val key: String,
         private val default: String,
     ) : SettingType<String>() {
-        override fun get(): String = (prefs.getString(key, default) ?: default).also {
-            Log.d(TAG, "get: String $key = $it")
-        }
+        override fun get(): String =
+            (prefs.getString(key, default) ?: default).also {
+                Log.d(TAG, "get: String $key = $it")
+            }
 
         override fun set(value: String) {
             Log.d(TAG, "set: String $key = $value")
@@ -88,9 +89,10 @@ sealed class SettingType<T> : Setting<T> {
         override val key: String,
         private val default: Boolean,
     ) : SettingType<Boolean>() {
-        override fun get(): Boolean = prefs.getBoolean(key, default).also {
-            Log.d(TAG, "get: Boolean $key = $it")
-        }
+        override fun get(): Boolean =
+            prefs.getBoolean(key, default).also {
+                Log.d(TAG, "get: Boolean $key = $it")
+            }
 
         override fun set(value: Boolean) {
             Log.d(TAG, "set: Boolean $key = $value")
@@ -114,9 +116,10 @@ sealed class SettingType<T> : Setting<T> {
         override val key: String,
         private val default: Int,
     ) : SettingType<Int>() {
-        override fun get(): Int = prefs.getInt(key, default).also {
-            Log.d(TAG, "get: Int $key = $it")
-        }
+        override fun get(): Int =
+            prefs.getInt(key, default).also {
+                Log.d(TAG, "get: Int $key = $it")
+            }
 
         override fun set(value: Int) {
             Log.d(TAG, "set: Int $key = $value")
@@ -148,9 +151,10 @@ sealed class SettingType<T> : Setting<T> {
         override val key: String,
         private val default: Long,
     ) : SettingType<Long>() {
-        override fun get(): Long = prefs.getLong(key, default).also {
-            Log.d(TAG, "get: Long $key = $it")
-        }
+        override fun get(): Long =
+            prefs.getLong(key, default).also {
+                Log.d(TAG, "get: Long $key = $it")
+            }
 
         override fun set(value: Long) {
             Log.d(TAG, "set: Long $key = $value")

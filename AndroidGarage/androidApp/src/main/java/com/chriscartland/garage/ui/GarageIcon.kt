@@ -100,14 +100,22 @@ fun FadedGarageIcon(
     }
 }
 
-fun Modifier.fadeBottom(fractionFaded: Float, color: Color, finalOpacity: Float) = this.then(
+fun Modifier.fadeBottom(
+    fractionFaded: Float,
+    color: Color,
+    finalOpacity: Float,
+) = this.then(
     Modifier.drawWithContent {
         drawContent()
         drawFade(fractionFaded, color, finalOpacity)
     },
 )
 
-private fun DrawScope.drawFade(fractionFaded: Float, color: Color, finalOpacity: Float) {
+private fun DrawScope.drawFade(
+    fractionFaded: Float,
+    color: Color,
+    finalOpacity: Float,
+) {
     if (finalOpacity >= 1f || finalOpacity < 0f) {
         return
     }

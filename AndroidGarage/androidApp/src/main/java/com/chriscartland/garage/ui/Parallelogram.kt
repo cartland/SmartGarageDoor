@@ -45,14 +45,15 @@ class ParallelogramShape(
         size: Size,
         layoutDirection: LayoutDirection,
         density: Density,
-    ): Outline = Outline.Generic(
-        path = drawParallelogramPath(
-            size,
-            angleDegrees,
-            squareLeft,
-            squareRight,
-        ),
-    )
+    ): Outline =
+        Outline.Generic(
+            path = drawParallelogramPath(
+                size,
+                angleDegrees,
+                squareLeft,
+                squareRight,
+            ),
+        )
 }
 
 fun drawParallelogramPath(
@@ -98,8 +99,7 @@ fun ParallelogramProgressBar(
                             squareLeft = (i == 1),
                             squareRight = (i == max),
                         ),
-                    )
-                    .background(
+                    ).background(
                         if (i <= complete) colorComplete else colorIncomplete,
                     ),
             )
