@@ -25,6 +25,14 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: gradle
+      - name: Grant execute permission for release scripts
+        working-directory: AndroidGarage
+        run: chmod +x release/*.sh
+      - name: Decrypt secrets
+        working-directory: AndroidGarage
+        run: ./release/decrypt-secrets.sh
+        env:
+          ENCRYPT_KEY: ${{ secrets.ENCRYPT_KEY }}
       - name: Grant execute permission for gradlew
         working-directory: AndroidGarage
         run: chmod +x gradlew
@@ -37,6 +45,10 @@ jobs:
           SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
         run: ./gradlew test -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
+      - name: Clean secrets
+        if: always()
+        working-directory: AndroidGarage
+        run: ./release/clean-secrets.sh
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
