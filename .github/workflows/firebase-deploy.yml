@@ -1,0 +1,29 @@
+name: Deploy Firebase Server
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Firebase
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        working-directory: FirebaseServer
+        run: npm install
+      - name: Build
+        working-directory: FirebaseServer
+        run: npm run build
+      - name: Deploy to Firebase
+        uses: w9jds/firebase-action@master
+        with:
+          action: deploy
+          project_id: '${{ secrets.FIREBASE_PROJECT_ID }}'
+          token: '${{ secrets.FIREBASE_TOKEN }}'
+          only: 'functions'
+        working-directory: FirebaseServer
