@@ -1,0 +1,30 @@
+name: Firebase CI
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'FirebaseServer/**'
+      - '.github/workflows/firebase-ci.yml'
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'FirebaseServer/**'
+      - '.github/workflows/firebase-ci.yml'
+
+jobs:
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        working-directory: FirebaseServer
+        run: npm install
+      - name: Run Unit Tests
+        working-directory: FirebaseServer
+        run: npm run tests
