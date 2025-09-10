@@ -26,11 +26,11 @@ describe('Event', () => {
     const expectedType = SensorEventType.ErrorSensorConflict;
     const expectedTimestamp = 1616798536;
     const expectedMessage = 'Test error message';
-    const result = <SensorEvent>{
+    const result = {
       type: expectedType,
       timestampSeconds: expectedTimestamp,
       message: expectedMessage,
-    };
+    } as SensorEvent;
     expect(result.type).to.equal(expectedType);
     expect(result.timestampSeconds).to.equal(expectedTimestamp);
     expect(result.message).to.equal(expectedMessage);
@@ -80,11 +80,11 @@ describe('Event', () => {
 describe('getNewEventOrNull first event', () => {
   it('can be ErrorSensorConflict', () => {
     const oldEvent = null;
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '0',
       timestampSeconds: 0,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 10;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.ErrorSensorConflict;
@@ -93,11 +93,11 @@ describe('getNewEventOrNull first event', () => {
   });
   it('can be Closed', () => {
     const oldEvent = null;
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '1',
       timestampSeconds: 0,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 10;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Closed;
@@ -106,11 +106,11 @@ describe('getNewEventOrNull first event', () => {
   });
   it('can be Open', () => {
     const oldEvent = null;
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '0',
       timestampSeconds: 0,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 10;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Open;
@@ -119,11 +119,11 @@ describe('getNewEventOrNull first event', () => {
   });
   it('can be Unknown', () => {
     const oldEvent = null;
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '1',
       timestampSeconds: 0,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 10;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Unknown;
@@ -135,11 +135,11 @@ describe('getNewEventOrNull first event', () => {
 describe('getNewEventOrNull from Unknown', () => {
   it('can be ErrorSensorConflict', () => {
     const oldEvent = Unknown(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '0',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.ErrorSensorConflict;
@@ -148,11 +148,11 @@ describe('getNewEventOrNull from Unknown', () => {
   });
   it('can be Closed', () => {
     const oldEvent = Unknown(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Closed;
@@ -161,11 +161,11 @@ describe('getNewEventOrNull from Unknown', () => {
   });
   it('can be Open', () => {
     const oldEvent = Unknown(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '0',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Open;
@@ -174,11 +174,11 @@ describe('getNewEventOrNull from Unknown', () => {
   });
   it('can be null', () => {
     const oldEvent = Unknown(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = null;
@@ -190,11 +190,11 @@ describe('getNewEventOrNull from Unknown', () => {
 describe('getNewEventOrNull from ErrorSensorConflict', () => {
   it('can be null', () => {
     const oldEvent = ErrorSensorConflict(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '0',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = null;
@@ -203,11 +203,11 @@ describe('getNewEventOrNull from ErrorSensorConflict', () => {
   });
   it('can be Closed', () => {
     const oldEvent = ErrorSensorConflict(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Closed;
@@ -216,11 +216,11 @@ describe('getNewEventOrNull from ErrorSensorConflict', () => {
   });
   it('can be Open', () => {
     const oldEvent = ErrorSensorConflict(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '0',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Open;
@@ -229,11 +229,11 @@ describe('getNewEventOrNull from ErrorSensorConflict', () => {
   });
   it('can be Unknown', () => {
     const oldEvent = ErrorSensorConflict(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Unknown;
@@ -245,11 +245,11 @@ describe('getNewEventOrNull from ErrorSensorConflict', () => {
 describe('getNewEventOrNull from Closed', () => {
   it('can be Error', () => {
     const oldEvent = Closed(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '0',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.ErrorSensorConflict;
@@ -258,11 +258,11 @@ describe('getNewEventOrNull from Closed', () => {
   });
   it('can be null', () => {
     const oldEvent = Closed(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = null;
@@ -271,11 +271,11 @@ describe('getNewEventOrNull from Closed', () => {
   });
   it('can be Open', () => {
     const oldEvent = Closed(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '0',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Open;
@@ -284,11 +284,11 @@ describe('getNewEventOrNull from Closed', () => {
   });
   it('can be Opening', () => {
     const oldEvent = Closed(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Opening;
@@ -300,11 +300,11 @@ describe('getNewEventOrNull from Closed', () => {
 describe('getNewEventOrNull from Closing', () => {
   it('can be ErrorSensorConflict', () => {
     const oldEvent = Closing(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '0',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.ErrorSensorConflict;
@@ -313,11 +313,11 @@ describe('getNewEventOrNull from Closing', () => {
   });
   it('can be Closed', () => {
     const oldEvent = Closing(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Closed;
@@ -326,11 +326,11 @@ describe('getNewEventOrNull from Closing', () => {
   });
   it('can be Open', () => {
     const oldEvent = Closing(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '0',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Open;
@@ -339,11 +339,11 @@ describe('getNewEventOrNull from Closing', () => {
   });
   it('can be null', () => {
     const oldEvent = Closing(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = null;
@@ -352,11 +352,11 @@ describe('getNewEventOrNull from Closing', () => {
   });
   it('can be ClosingTooLong', () => {
     const oldEvent = Closing(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 1000 * 60;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.ClosingTooLong;
@@ -368,11 +368,11 @@ describe('getNewEventOrNull from Closing', () => {
 describe('getNewEventOrNull from ClosingTooLong', () => {
   it('can be ErrorSensorConflict', () => {
     const oldEvent = ClosingTooLong(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '0',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.ErrorSensorConflict;
@@ -381,11 +381,11 @@ describe('getNewEventOrNull from ClosingTooLong', () => {
   });
   it('can be Closed', () => {
     const oldEvent = ClosingTooLong(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Closed;
@@ -394,11 +394,11 @@ describe('getNewEventOrNull from ClosingTooLong', () => {
   });
   it('can be Open', () => {
     const oldEvent = ClosingTooLong(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '0',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Open;
@@ -407,11 +407,11 @@ describe('getNewEventOrNull from ClosingTooLong', () => {
   });
   it('can be null', () => {
     const oldEvent = ClosingTooLong(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 1000 * 60;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = null;
@@ -423,11 +423,11 @@ describe('getNewEventOrNull from ClosingTooLong', () => {
 describe('getNewEventOrNull from Open', () => {
   it('can be ErrorSensorConflict', () => {
     const oldEvent = Open(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '0',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.ErrorSensorConflict;
@@ -436,11 +436,11 @@ describe('getNewEventOrNull from Open', () => {
   });
   it('can be Closed', () => {
     const oldEvent = Open(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Closed;
@@ -449,11 +449,11 @@ describe('getNewEventOrNull from Open', () => {
   });
   it('can be null', () => {
     const oldEvent = Open(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '0',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = null;
@@ -462,11 +462,11 @@ describe('getNewEventOrNull from Open', () => {
   });
   it('can be Closing', () => {
     const oldEvent = Open(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Closing;
@@ -478,11 +478,11 @@ describe('getNewEventOrNull from Open', () => {
 describe('getNewEventOrNull from Opening', () => {
   it('can be ErrorSensorConflict', () => {
     const oldEvent = Opening(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '0',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.ErrorSensorConflict;
@@ -491,11 +491,11 @@ describe('getNewEventOrNull from Opening', () => {
   });
   it('can be Closed', () => {
     const oldEvent = Opening(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Closed;
@@ -504,11 +504,11 @@ describe('getNewEventOrNull from Opening', () => {
   });
   it('can be Open', () => {
     const oldEvent = Opening(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '0',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Open;
@@ -517,11 +517,11 @@ describe('getNewEventOrNull from Opening', () => {
   });
   it('can be null', () => {
     const oldEvent = Opening(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = null;
@@ -530,11 +530,11 @@ describe('getNewEventOrNull from Opening', () => {
   });
   it('can be OpeningTooLong', () => {
     const oldEvent = Opening(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 1000 * 60;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.OpeningTooLong;
@@ -546,11 +546,11 @@ describe('getNewEventOrNull from Opening', () => {
 describe('getNewEventOrNull from OpeningTooLong', () => {
   it('can be ErrorSensorConflict', () => {
     const oldEvent = OpeningTooLong(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '0',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.ErrorSensorConflict;
@@ -559,11 +559,11 @@ describe('getNewEventOrNull from OpeningTooLong', () => {
   });
   it('can be Closed', () => {
     const oldEvent = OpeningTooLong(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '0',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Closed;
@@ -572,11 +572,11 @@ describe('getNewEventOrNull from OpeningTooLong', () => {
   });
   it('can be Open', () => {
     const oldEvent = OpeningTooLong(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '0',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 20;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = SensorEventType.Open;
@@ -585,11 +585,11 @@ describe('getNewEventOrNull from OpeningTooLong', () => {
   });
   it('can be null', () => {
     const oldEvent = OpeningTooLong(0);
-    const sensorSnapshot = <SensorSnapshot>{
+    const sensorSnapshot = {
       sensorA: '1',
       sensorB: '1',
       timestampSeconds: 10,
-    }
+    } as SensorSnapshot
     const timestampSeconds = 1000 * 60;
     const result = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     const expected = null;
