@@ -24,7 +24,7 @@ import com.chriscartland.garage.fcm.DoorFcmState
 import com.chriscartland.garage.fcm.DoorFcmTopic
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -46,10 +46,6 @@ class DoorViewModelTest {
     private lateinit var doorRepository: DoorRepository
     private lateinit var doorFcmRepository: DoorFcmRepository
 
-    private val currentDoorEventFlow = MutableSharedFlow<DoorEvent>(replay = 0)
-    private val recentDoorEventsFlow = MutableSharedFlow<List<DoorEvent>>(replay = 0)
-    private val currentDoorPositionFlow = MutableSharedFlow<DoorPosition>(replay = 0)
-
     private val testDoorEvent =
         DoorEvent(
             doorPosition = DoorPosition.CLOSED,
@@ -58,11 +54,20 @@ class DoorViewModelTest {
             lastChangeTimeSeconds = 900L,
         )
 
+    private lateinit var currentDoorEventFlow: MutableStateFlow<DoorEvent>
+    private lateinit var recentDoorEventsFlow: MutableStateFlow<List<DoorEvent>>
+    private lateinit var currentDoorPositionFlow: MutableStateFlow<DoorPosition>
+
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         appLoggerRepository = mock(AppLoggerRepository::class.java)
         doorFcmRepository = mock(DoorFcmRepository::class.java)
+
+        currentDoorEventFlow = MutableStateFlow(testDoorEvent)
+        recentDoorEventsFlow = MutableStateFlow(listOf(testDoorEvent))
+        currentDoorPositionFlow = MutableStateFlow(DoorPosition.CLOSED)
+
         doorRepository = mock(DoorRepository::class.java)
         `when`(doorRepository.currentDoorEvent).thenReturn(currentDoorEventFlow)
         `when`(doorRepository.recentDoorEvents).thenReturn(recentDoorEventsFlow)
@@ -78,26 +83,6 @@ class DoorViewModelTest {
         DoorViewModelImpl(appLoggerRepository, doorRepository, doorFcmRepository)
 
     @Test
-    fun initialCurrentDoorEventIsLoading() {
-        val viewModel = createViewModel()
-
-        assertTrue(
-            "Initial currentDoorEvent should be Loading",
-            viewModel.currentDoorEvent.value is LoadingResult.Loading,
-        )
-    }
-
-    @Test
-    fun initialRecentDoorEventsIsLoading() {
-        val viewModel = createViewModel()
-
-        assertTrue(
-            "Initial recentDoorEvents should be Loading",
-            viewModel.recentDoorEvents.value is LoadingResult.Loading,
-        )
-    }
-
-    @Test
     fun initialFcmRegistrationStatusIsUnknown() {
         val viewModel = createViewModel()
 
@@ -109,11 +94,33 @@ class DoorViewModelTest {
         runTest {
             val viewModel = createViewModel()
 
-            currentDoorEventFlow.emit(testDoorEvent)
+            // Allow IO coroutines to process
+            testDispatcher.scheduler.advanceUntilIdle()
 
             val result = viewModel.currentDoorEvent.value
-            assertTrue("Should be Complete after emission", result is LoadingResult.Complete)
+            assertTrue("Should be Complete after collection", result is LoadingResult.Complete)
             assertEquals(testDoorEvent, result.data)
+        }
+
+    @Test
+    fun collectsUpdatedDoorEventFromRepository() =
+        runTest {
+            val viewModel = createViewModel()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val updatedEvent =
+                DoorEvent(
+                    doorPosition = DoorPosition.OPEN,
+                    message = "The door is open.",
+                    lastCheckInTimeSeconds = 2000L,
+                    lastChangeTimeSeconds = 1900L,
+                )
+            currentDoorEventFlow.value = updatedEvent
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val result = viewModel.currentDoorEvent.value
+            assertTrue("Should be Complete", result is LoadingResult.Complete)
+            assertEquals(updatedEvent, result.data)
         }
 
     @Test
@@ -124,12 +131,13 @@ class DoorViewModelTest {
                     testDoorEvent,
                     DoorEvent(doorPosition = DoorPosition.OPEN, lastChangeTimeSeconds = 800L),
                 )
-            val viewModel = createViewModel()
+            recentDoorEventsFlow.value = events
 
-            recentDoorEventsFlow.emit(events)
+            val viewModel = createViewModel()
+            testDispatcher.scheduler.advanceUntilIdle()
 
             val result = viewModel.recentDoorEvents.value
-            assertTrue("Should be Complete after emission", result is LoadingResult.Complete)
+            assertTrue("Should be Complete after collection", result is LoadingResult.Complete)
             assertEquals(2, result.data?.size)
         }
 
@@ -137,11 +145,10 @@ class DoorViewModelTest {
     fun fetchCurrentDoorEventCallsRepository() =
         runTest {
             val viewModel = createViewModel()
-
-            currentDoorEventFlow.emit(testDoorEvent)
-            assertTrue(viewModel.currentDoorEvent.value is LoadingResult.Complete)
+            testDispatcher.scheduler.advanceUntilIdle()
 
             viewModel.fetchCurrentDoorEvent()
+            testDispatcher.scheduler.advanceUntilIdle()
 
             verify(doorRepository).fetchCurrentDoorEvent()
         }
@@ -150,8 +157,10 @@ class DoorViewModelTest {
     fun fetchRecentDoorEventsCallsRepository() =
         runTest {
             val viewModel = createViewModel()
+            testDispatcher.scheduler.advanceUntilIdle()
 
             viewModel.fetchRecentDoorEvents()
+            testDispatcher.scheduler.advanceUntilIdle()
 
             verify(doorRepository).fetchRecentDoorEvents()
         }
@@ -166,6 +175,7 @@ class DoorViewModelTest {
                 .thenReturn(DoorFcmState.Registered(topic = DoorFcmTopic("test-topic")))
 
             viewModel.fetchFcmRegistrationStatus(activity)
+            testDispatcher.scheduler.advanceUntilIdle()
 
             assertEquals(FcmRegistrationStatus.REGISTERED, viewModel.fcmRegistrationStatus.value)
         }
@@ -180,6 +190,7 @@ class DoorViewModelTest {
                 .thenReturn(DoorFcmState.NotRegistered)
 
             viewModel.fetchFcmRegistrationStatus(activity)
+            testDispatcher.scheduler.advanceUntilIdle()
 
             assertEquals(
                 FcmRegistrationStatus.NOT_REGISTERED,
@@ -197,6 +208,7 @@ class DoorViewModelTest {
                 .thenReturn(DoorFcmState.Unknown)
 
             viewModel.fetchFcmRegistrationStatus(activity)
+            testDispatcher.scheduler.advanceUntilIdle()
 
             assertEquals(FcmRegistrationStatus.UNKNOWN, viewModel.fcmRegistrationStatus.value)
         }
