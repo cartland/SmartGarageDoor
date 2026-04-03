@@ -31,6 +31,13 @@ plugins {
     alias(libs.plugins.detekt) apply false
 }
 
+tasks.register<testcoverage.TestCoverageCheckTask>("checkTestCoverage") {
+    sourceDir = "$rootDir/androidApp/src/main/java/com/chriscartland/garage"
+    testDir = "$rootDir/androidApp/src/test/java/com/chriscartland/garage"
+    exemptionsFile = "$rootDir/test-coverage-exemptions.txt"
+    patterns = listOf("ViewModel", "Repository")
+}
+
 allprojects {
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "io.gitlab.arturbosch.detekt")
