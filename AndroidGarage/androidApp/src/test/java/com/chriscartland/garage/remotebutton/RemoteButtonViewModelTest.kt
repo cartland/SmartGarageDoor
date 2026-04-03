@@ -361,4 +361,78 @@ class RemoteButtonViewModelTest {
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
         }
+
+    // --- Edge case tests ---
+
+    @Test
+    fun resetDuringTimeoutCancelsTimeout() =
+        runTest {
+            val viewModel = createViewModel()
+
+            pushStatusFlow.value = PushStatus.SENDING
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
+
+            // Reset before timeout fires
+            viewModel.resetRemoteButton()
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
+
+            // Advance past where timeout would have fired
+            advanceTimeBy(15_000)
+            testDispatcher.scheduler.runCurrent()
+            // Should still be NONE — timeout was cancelled by reset
+            assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
+        }
+
+    @Test
+    fun rapidStateChangesOnlyFinalTimeoutActive() =
+        runTest {
+            val viewModel = createViewModel()
+
+            // SENDING
+            pushStatusFlow.value = PushStatus.SENDING
+            testDispatcher.scheduler.runCurrent()
+
+            // Quickly transition to SENT
+            pushStatusFlow.value = PushStatus.IDLE
+            testDispatcher.scheduler.runCurrent()
+
+            // Quickly transition to RECEIVED
+            doorPositionFlow.value = DoorPosition.OPENING
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
+
+            // Only the RECEIVED timeout should be active (10s → NONE)
+            advanceTimeBy(10_001)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
+        }
+
+    @Test
+    fun multipleDoorPositionChangesDuringSentStaysReceived() =
+        runTest {
+            val viewModel = createViewModel()
+
+            pushStatusFlow.value = PushStatus.SENDING
+            testDispatcher.scheduler.runCurrent()
+            pushStatusFlow.value = PushStatus.IDLE
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.SENT, viewModel.requestStatus.value)
+
+            // First door change → RECEIVED
+            doorPositionFlow.value = DoorPosition.OPENING
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
+
+            // Second door change → still RECEIVED (not oscillating)
+            doorPositionFlow.value = DoorPosition.OPEN
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
+
+            // Third door change → still RECEIVED
+            doorPositionFlow.value = DoorPosition.CLOSING
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
+        }
 }
