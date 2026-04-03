@@ -79,8 +79,7 @@ class DoorViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel(): DoorViewModelImpl =
-        DoorViewModelImpl(appLoggerRepository, doorRepository, doorFcmRepository)
+    private fun createViewModel(): DoorViewModelImpl = DoorViewModelImpl(appLoggerRepository, doorRepository, doorFcmRepository)
 
     @Test
     fun initialFcmRegistrationStatusIsUnknown() {
