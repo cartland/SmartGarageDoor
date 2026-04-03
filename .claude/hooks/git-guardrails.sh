@@ -71,6 +71,13 @@ if echo "$STRIPPED" | grep -qE '\bgit\s+push\b'; then
   fi
 fi
 
+# --- Block tag creation (use ./scripts/release-android.sh instead) ---
+if echo "$STRIPPED" | grep -qE '\bgit\s+tag\b'; then
+  if ! echo "$STRIPPED" | grep -qE '\bgit\s+tag\b.*(-l\b|--list\b)'; then
+    deny "BLOCKED: Never create or push tags directly. Use ./scripts/release-android.sh for releases. Use git tag -l to list tags."
+  fi
+fi
+
 # --- Enforce squash merge ---
 if echo "$STRIPPED" | grep -qE '\bgh\s+pr\s+merge\b'; then
   if ! echo "$STRIPPED" | grep -qF -- '--squash'; then
