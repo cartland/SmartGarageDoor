@@ -93,7 +93,6 @@ jobs:
   build_release:
     name: Build Release AAB
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/internal' || github.ref == 'refs/heads/release')
     steps:
       - uses: actions/checkout@v4
       - name: set up JDK 17
