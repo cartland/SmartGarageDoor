@@ -1,0 +1,53 @@
+build:
+  maxIssues: 0
+
+complexity:
+  active: true
+  TooManyFunctions:
+    active: false
+
+exceptions:
+  active: true
+  SwallowedException:
+    active: true
+    ignoredExceptionTypes:
+      - InterruptedException
+      - NumberFormatException
+      - ParseException
+  TooGenericExceptionCaught:
+    active: true
+    exceptionNames:
+      - ArrayIndexOutOfBoundsException
+      - Error
+      - IllegalMonitorStateException
+      - NullPointerException
+      - IndexOutOfBoundsException
+      - RuntimeException
+
+naming:
+  active: true
+  FunctionNaming:
+    ignoreAnnotated:
+      - Composable
+  TopLevelPropertyNaming:
+    active: false
+
+style:
+  active: true
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    maxLineLength: 120
+    excludeCommentStatements: true
+  ForbiddenComment:
+    active: true
+    comments:
+      - reason: "Use TODO instead"
+        value: "FIXME:"
+      - reason: "Must be removed before merging"
+        value: "STOPSHIP:"
+  UnusedPrivateMember:
+    active: true
+    allowedNames: "(_.*)"
+  ReturnCount:
+    active: false

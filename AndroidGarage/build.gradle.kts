@@ -28,10 +28,16 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.android.kotlin.multiplatform.library) apply false
     alias(libs.plugins.spotless)
+    alias(libs.plugins.detekt) apply false
 }
 
 allprojects {
     apply(plugin = "com.diffplug.spotless")
+    apply(plugin = "io.gitlab.arturbosch.detekt")
+    configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
+        config.setFrom(rootProject.files("detekt.yml"))
+        buildUponDefaultConfig = true
+    }
     configure<com.diffplug.gradle.spotless.SpotlessExtension> {
         kotlin {
             target("**/*.kt")
