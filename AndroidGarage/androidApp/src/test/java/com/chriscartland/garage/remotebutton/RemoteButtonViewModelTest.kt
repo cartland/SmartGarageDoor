@@ -25,7 +25,7 @@ import com.chriscartland.garage.door.DoorRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -38,7 +38,7 @@ import org.mockito.Mockito.`when`
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RemoteButtonViewModelTest {
-    private val testDispatcher = UnconfinedTestDispatcher()
+    private val testDispatcher = StandardTestDispatcher()
 
     private lateinit var pushStatusFlow: MutableStateFlow<PushStatus>
     private lateinit var snoozeStatusFlow: MutableStateFlow<SnoozeRequestStatus>
@@ -77,7 +77,7 @@ class RemoteButtonViewModelTest {
 
     private fun createViewModel(): RemoteButtonViewModelImpl {
         val vm = RemoteButtonViewModelImpl(pushRepository, doorRepository)
-        testDispatcher.scheduler.advanceUntilIdle()
+        testDispatcher.scheduler.runCurrent()
         return vm
     }
 
@@ -99,7 +99,7 @@ class RemoteButtonViewModelTest {
             val viewModel = createViewModel()
 
             pushStatusFlow.value = PushStatus.SENDING
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
 
             assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
         }
@@ -110,11 +110,11 @@ class RemoteButtonViewModelTest {
             val viewModel = createViewModel()
 
             pushStatusFlow.value = PushStatus.SENDING
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
 
             pushStatusFlow.value = PushStatus.IDLE
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENT, viewModel.requestStatus.value)
         }
 
@@ -124,11 +124,11 @@ class RemoteButtonViewModelTest {
             val viewModel = createViewModel()
 
             pushStatusFlow.value = PushStatus.SENDING
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
 
             doorPositionFlow.value = DoorPosition.OPENING
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
         }
 
@@ -138,14 +138,14 @@ class RemoteButtonViewModelTest {
             val viewModel = createViewModel()
 
             pushStatusFlow.value = PushStatus.SENDING
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
 
             pushStatusFlow.value = PushStatus.IDLE
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENT, viewModel.requestStatus.value)
 
             doorPositionFlow.value = DoorPosition.OPENING
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
         }
 
@@ -156,7 +156,7 @@ class RemoteButtonViewModelTest {
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
 
             doorPositionFlow.value = DoorPosition.OPENING
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
         }
 
@@ -166,10 +166,11 @@ class RemoteButtonViewModelTest {
             val viewModel = createViewModel()
 
             pushStatusFlow.value = PushStatus.SENDING
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
 
             viewModel.resetRemoteButton()
+            testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
         }
 
@@ -179,15 +180,15 @@ class RemoteButtonViewModelTest {
             val viewModel = createViewModel()
 
             snoozeStatusFlow.value = SnoozeRequestStatus.SENDING
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
             assertEquals(SnoozeRequestStatus.SENDING, viewModel.snoozeRequestStatus.value)
 
             snoozeStatusFlow.value = SnoozeRequestStatus.ERROR
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
             assertEquals(SnoozeRequestStatus.ERROR, viewModel.snoozeRequestStatus.value)
 
             snoozeStatusFlow.value = SnoozeRequestStatus.IDLE
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
             assertEquals(SnoozeRequestStatus.IDLE, viewModel.snoozeRequestStatus.value)
         }
 
@@ -209,7 +210,7 @@ class RemoteButtonViewModelTest {
             )
 
             viewModel.pushRemoteButton(authRepository)
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
 
             // Status should remain NONE since auth check fails before sending
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
@@ -222,7 +223,7 @@ class RemoteButtonViewModelTest {
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
 
             pushStatusFlow.value = PushStatus.IDLE
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
         }
 
@@ -234,15 +235,15 @@ class RemoteButtonViewModelTest {
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
 
             pushStatusFlow.value = PushStatus.SENDING
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
 
             pushStatusFlow.value = PushStatus.IDLE
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENT, viewModel.requestStatus.value)
 
             doorPositionFlow.value = DoorPosition.OPENING
-            testDispatcher.scheduler.advanceUntilIdle()
+            testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
         }
 }

@@ -33,7 +33,6 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -107,7 +106,7 @@ class RemoteButtonViewModelImpl
          *   - otherwise [RequestStatus] becomes NONE (reset state machine).
          */
         private fun listenToButtonRepository() {
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch {
                 pushRepository.pushButtonStatus.collect { sendStatus ->
                     val old = _requestStatus.value
                     _requestStatus.value = when (sendStatus) {
@@ -143,7 +142,7 @@ class RemoteButtonViewModelImpl
          *   - Otherwise, [RequestStatus] becomes [RequestStatus.RECEIVED].
          */
         private fun listenToDoorPosition() {
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch {
                 doorRepository.currentDoorPosition.collect {
                     val old = _requestStatus.value
                     when (_requestStatus.value) {
@@ -168,7 +167,7 @@ class RemoteButtonViewModelImpl
         }
 
         private fun listenToDoorEvent() {
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch {
                 doorRepository.currentDoorEvent.collect {
                     currentDoorEvent.value = it
                 }
@@ -183,7 +182,7 @@ class RemoteButtonViewModelImpl
         private fun listenToRequestTimeouts() {
             var job: Job? = null // Job to track coroutines.
             val mutex = Mutex()
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch {
                 requestStatus.collect {
                     when (it) {
                         RequestStatus.NONE -> {
@@ -266,7 +265,7 @@ class RemoteButtonViewModelImpl
         }
 
         private fun listenToSnoozeStatus() {
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch {
                 pushRepository.snoozeRequestStatus.collect {
                     _snoozeRequestStatus.value = it
                 }
@@ -280,7 +279,7 @@ class RemoteButtonViewModelImpl
          */
         override fun pushRemoteButton(authRepository: AuthRepository) {
             Log.d(TAG, "pushRemoteButton")
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch {
                 val authState = authRepository.authState.value
                 if (authState !is AuthState.Authenticated) {
                     Log.e(TAG, "Not authenticated: $authState")
@@ -300,7 +299,7 @@ class RemoteButtonViewModelImpl
             snoozeDuration: SnoozeDurationUIOption,
         ) {
             Log.d(TAG, "snoozeOpenDoorsNotifications")
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch {
                 val authState = authRepository.authState.value
                 if (authState !is AuthState.Authenticated) {
                     Log.e(TAG, "Not authenticated: $authState")
@@ -350,7 +349,7 @@ class RemoteButtonViewModelImpl
         }
 
         override fun fetchSnoozeEndTimeSeconds() {
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch {
                 pushRepository.fetchSnoozeEndTimeSeconds()
             }
         }
