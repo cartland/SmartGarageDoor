@@ -21,14 +21,15 @@ deny() {
 # Strip heredoc bodies and quoted strings to avoid false positives on PR body text.
 STRIPPED=$(echo "$COMMAND" | sed '/<<.*EOF/,/^EOF/d' | sed -E "s/'[^']*'//g; s/\"[^\"]*\"//g")
 
-# --- Warn on cd (prefer running from repo root) ---
-if echo "$STRIPPED" | grep -qE '\bcd\s'; then
-  # cd + git is especially risky (bare repository attacks)
-  if echo "$STRIPPED" | grep -qE '\bcd\s.*&&.*\bgit\b'; then
-    echo '{"systemMessage":"WARNING: Compound cd + git commands risk bare repository attacks. Run git from the repo root instead."}'
-  else
-    echo '{"systemMessage":"WARNING: cd changes working directory state. Prefer running commands from the repository root with absolute paths or -p/-C flags."}'
-  fi
+# --- Block cd (run everything from repo root) ---
+# Match cd as a command (start of line, or after && || ; |), not as part of a word like "block-cd"
+if echo "$STRIPPED" | grep -qE '(^|[;&|]\s*)cd\s'; then
+  deny "BLOCKED: cd is not allowed. Run commands from the repository root using absolute paths or -p flags (e.g., ./gradlew -p AndroidGarage)."
+fi
+
+# --- Block git -C (bare repository attack vector) ---
+if echo "$STRIPPED" | grep -qE '\bgit\s+-C\b'; then
+  deny "BLOCKED: git -C is not allowed. Run git from the repository root."
 fi
 
 # --- Block push to main ---
