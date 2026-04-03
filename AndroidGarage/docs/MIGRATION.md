@@ -2,34 +2,36 @@
 
 Target: Align with [battery-butler](https://github.com/cartland/battery-butler) technology stack over several independent refactoring projects. Each phase is a separate PR or series of PRs. No phase depends on a later phase.
 
-## Phase 1: Testing Infrastructure
+**Rule:** Focus on finishing each phase completely before starting the next. Update this document with the commit hash when a phase is complete.
+
+## Phase 1: Testing Infrastructure — COMPLETE
 
 **Goal:** Make CI a reliable deployment gate.
 
-### 1.1 Add Detekt with Zero Tolerance
-- Add `io.gitlab.arturbosch.detekt` plugin
-- Configure `detekt.yml` with `maxIssues: 0`
-- Generate baseline for existing issues (`detekt --create-baseline`)
-- Run `./gradlew detekt` in CI
-- Catches: swallowed exceptions, unsafe casts, unreachable code, magic numbers
+### 1.1 Add Detekt with Zero Tolerance — `d51f6f3` (#29)
+- Added `io.gitlab.arturbosch.detekt` plugin with `maxIssues: 0`
+- Configured `detekt.yml`: disabled rules incompatible with Compose (LongMethod, LongParameterList), disabled MaxLineLength (redundant with ktlint)
+- Runs in CI and `./scripts/validate.sh`
 
-### 1.2 Test Coverage Enforcement
-- Write a custom Gradle task (in `buildSrc/`) that scans for `*ViewModel` and `*Repository` classes
-- Fail build if matching `*Test.kt` file is missing
-- Support `// @NoTestRequired: reason` inline exemptions
-- Reference: battery-butler's `TestCoverageCheckTask.kt`
+### 1.2 Test Coverage Enforcement — PR #34 (pending merge)
+- Custom `buildSrc` Gradle task (`checkTestCoverage`) scans for `*ViewModel` and `*Repository` classes
+- Fails build if no matching `*Test.kt` file exists
+- Supports `// @NoTestRequired` inline exemptions and `test-coverage-exemptions.txt`
+- 6 classes currently exempt (pending Firebase wrapper refactor)
 
-### 1.3 Migrate from Mocks to Fakes
-- Create fake implementations for key interfaces: `FakeDoorRepository`, `FakePushRepository`, `FakeAuthRepository`
-- Put fakes in a `test-common` source set or dedicated module
-- Gradually replace Mockito `mock()` calls with fakes in existing tests
-- Fakes are more readable and work across KMP
+### 1.3 Migrate from Mocks to Fakes — `e12d965` (#30)
+- Created `FakeDoorRepository`, `FakePushRepository`, `FakeAuthRepository` in `testcommon/`
+- `FakeLocalDoorDataSource` used in `DoorRepositoryTest`
+- Existing Mockito tests remain; new tests prefer fakes
 
-### 1.4 Enable Android Lint in CI
-- Add `./gradlew :androidApp:lint` to CI
-- Fix error-severity issues first, then tighten
+### 1.4 Enable Android Lint in CI — `8bc844d` (#19)
+- Added `./gradlew :androidApp:lint` to CI test job
+- Added to `./scripts/validate.sh`
+- Passes clean with no existing issues
 
 ## Phase 2: Clean Architecture
+
+**Status:** Not started. Begin after Phase 1 is fully merged.
 
 **Goal:** Separate business logic into testable layers.
 
@@ -57,6 +59,8 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 
 ## Phase 3: DI Migration (Hilt to kotlin-inject)
 
+**Status:** Not started. Begin after Phase 2.
+
 **Goal:** KMP-compatible dependency injection.
 
 ### 3.1 Add kotlin-inject
@@ -76,6 +80,8 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 
 ## Phase 4: Network Migration (Retrofit to Ktor HTTP)
 
+**Status:** Not started. Begin after Phase 3.
+
 **Goal:** KMP-compatible HTTP client.
 
 ### 4.1 Add Ktor Client
@@ -94,6 +100,8 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 - Remove Retrofit/Moshi/OkHttp dependencies
 
 ## Phase 5: KMP Preparation
+
+**Status:** Not started. Begin after Phases 3 + 4.
 
 **Goal:** Share code across platforms.
 
@@ -116,6 +124,8 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 
 ## Phase 6: Screenshot Tests
 
+**Status:** Not started. Can begin independently of other phases.
+
 **Goal:** Automated app screenshot generation for Play Store and documentation.
 
 ### 6.1 Set Up Compose Screenshot Testing
@@ -135,13 +145,13 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 
 ## Phase Summary
 
-| Phase | Effort | Prerequisite | Key Benefit |
-|-------|--------|-------------|-------------|
-| 1. Testing | Medium | None | CI becomes reliable deployment gate |
-| 2. Clean Architecture | Large | None | Testable layers, reusable logic |
-| 3. DI Migration | Medium | Phase 2 helps but not required | KMP-compatible DI |
-| 4. Network Migration | Medium | None | KMP-compatible networking |
-| 5. KMP | Large | Phases 3 + 4 | Android + iOS code sharing |
-| 6. Screenshot Tests | Medium | None | Automated Play Store assets |
+| Phase | Effort | Prerequisite | Status |
+|-------|--------|-------------|--------|
+| 1. Testing | Medium | None | **COMPLETE** (1.2 pending merge) |
+| 2. Clean Architecture | Large | Phase 1 | Not started |
+| 3. DI Migration | Medium | Phase 2 | Not started |
+| 4. Network Migration | Medium | Phase 3 | Not started |
+| 5. KMP | Large | Phases 3 + 4 | Not started |
+| 6. Screenshot Tests | Medium | None | Not started |
 
-**Recommended order:** Start with Phase 1 (testing infrastructure). It builds the safety net needed before making structural changes in later phases.
+**Rule:** Finish each phase before starting the next. Update this document with commit hashes when items complete.
