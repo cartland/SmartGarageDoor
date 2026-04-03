@@ -38,5 +38,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "AndroidGarage"
 include(":androidApp")
+include(":domain")
 include(":macrobenchmark")
 include(":shared")
