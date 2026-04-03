@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -244,6 +245,119 @@ class RemoteButtonViewModelTest {
             assertEquals(RequestStatus.SENT, viewModel.requestStatus.value)
 
             doorPositionFlow.value = DoorPosition.OPENING
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
+        }
+
+    // --- Timeout tests ---
+
+    @Test
+    fun sendingTimesOutToSendingTimeout() =
+        runTest {
+            val viewModel = createViewModel()
+
+            pushStatusFlow.value = PushStatus.SENDING
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
+
+            // Advance past the 10-second timeout
+            advanceTimeBy(10_001)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.SENDING_TIMEOUT, viewModel.requestStatus.value)
+        }
+
+    @Test
+    fun sentTimesOutToSentTimeout() =
+        runTest {
+            val viewModel = createViewModel()
+
+            pushStatusFlow.value = PushStatus.SENDING
+            testDispatcher.scheduler.runCurrent()
+
+            pushStatusFlow.value = PushStatus.IDLE
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.SENT, viewModel.requestStatus.value)
+
+            advanceTimeBy(10_001)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.SENT_TIMEOUT, viewModel.requestStatus.value)
+        }
+
+    @Test
+    fun sendingTimeoutResetsToNone() =
+        runTest {
+            val viewModel = createViewModel()
+
+            pushStatusFlow.value = PushStatus.SENDING
+            testDispatcher.scheduler.runCurrent()
+
+            // First timeout: SENDING -> SENDING_TIMEOUT
+            advanceTimeBy(10_001)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.SENDING_TIMEOUT, viewModel.requestStatus.value)
+
+            // Second timeout: SENDING_TIMEOUT -> NONE
+            advanceTimeBy(10_001)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
+        }
+
+    @Test
+    fun sentTimeoutResetsToNone() =
+        runTest {
+            val viewModel = createViewModel()
+
+            pushStatusFlow.value = PushStatus.SENDING
+            testDispatcher.scheduler.runCurrent()
+            pushStatusFlow.value = PushStatus.IDLE
+            testDispatcher.scheduler.runCurrent()
+
+            // First timeout: SENT -> SENT_TIMEOUT
+            advanceTimeBy(10_001)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.SENT_TIMEOUT, viewModel.requestStatus.value)
+
+            // Second timeout: SENT_TIMEOUT -> NONE
+            advanceTimeBy(10_001)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
+        }
+
+    @Test
+    fun receivedResetsToNoneAfterTimeout() =
+        runTest {
+            val viewModel = createViewModel()
+
+            pushStatusFlow.value = PushStatus.SENDING
+            testDispatcher.scheduler.runCurrent()
+            doorPositionFlow.value = DoorPosition.OPENING
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
+
+            advanceTimeBy(10_001)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
+        }
+
+    @Test
+    fun doorMovementBeforeTimeoutCancelsSendingTimeout() =
+        runTest {
+            val viewModel = createViewModel()
+
+            pushStatusFlow.value = PushStatus.SENDING
+            testDispatcher.scheduler.runCurrent()
+
+            // Door moves before the 10s timeout
+            advanceTimeBy(5_000)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
+
+            doorPositionFlow.value = DoorPosition.OPENING
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
+
+            // Original timeout fires but should not override RECEIVED
+            advanceTimeBy(6_000)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
         }
