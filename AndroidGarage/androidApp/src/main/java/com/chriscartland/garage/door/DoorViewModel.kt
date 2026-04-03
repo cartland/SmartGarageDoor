@@ -32,7 +32,6 @@ import com.chriscartland.garage.fcm.DoorFcmRepository
 import com.chriscartland.garage.fcm.DoorFcmState
 import com.chriscartland.garage.fcm.toFcmTopic
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -77,13 +76,13 @@ class DoorViewModelImpl
 
         init {
             Log.d(TAG, "init")
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch {
                 doorRepository.currentDoorEvent.collect {
                     Log.d(TAG, "currentDoorEvent collect: $it")
                     _currentDoorEvent.value = LoadingResult.Complete(it)
                 }
             }
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch {
                 doorRepository.recentDoorEvents.collect {
                     Log.d(TAG, "recentDoorEvents collect: $it")
                     _recentDoorEvents.value = LoadingResult.Complete(it)
@@ -92,7 +91,7 @@ class DoorViewModelImpl
             // Decide whether to fetch with network data when ViewModel is initialized
             when (APP_CONFIG.fetchOnViewModelInit) {
                 FetchOnViewModelInit.Yes -> {
-                    viewModelScope.launch(Dispatchers.IO) {
+                    viewModelScope.launch {
                         appLoggerRepository.log(AppLoggerKeys.INIT_CURRENT_DOOR)
                         appLoggerRepository.log(AppLoggerKeys.INIT_RECENT_DOOR)
                     }
@@ -107,7 +106,7 @@ class DoorViewModelImpl
 
         override fun fetchFcmRegistrationStatus(activity: Activity) {
             Log.d(TAG, "fetchFcmRegistrationStatus")
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch {
                 Log.d(TAG, "Fetching FCM registration status")
                 val status = doorFcmRepository.fetchStatus(activity)
                 Log.d(TAG, "Fetched FCM registration status: $status")
@@ -122,7 +121,7 @@ class DoorViewModelImpl
 
         override fun registerFcm(activity: Activity) {
             Log.d(TAG, "registerFcm")
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch {
                 val buildTimestamp = doorRepository.fetchBuildTimestampCached()
                 if (buildTimestamp == null) {
                     Log.e(TAG, "buildTimestamp is null, cannot register FCM")
@@ -144,7 +143,7 @@ class DoorViewModelImpl
 
         override fun deregisterFcm(activity: Activity) {
             Log.d(TAG, "deregisterFcm")
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch {
                 val result = doorFcmRepository.deregisterDoor(activity)
                 _fcmRegistrationStatus.value =
                     when (result) {
@@ -159,7 +158,7 @@ class DoorViewModelImpl
 
         override fun fetchCurrentDoorEvent() {
             Log.d(TAG, "fetchCurrentDoorEvent")
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch {
                 _currentDoorEvent.value = LoadingResult.Loading(_currentDoorEvent.value.data)
                 doorRepository.fetchCurrentDoorEvent()
             }
@@ -167,7 +166,7 @@ class DoorViewModelImpl
 
         override fun fetchRecentDoorEvents() {
             Log.d(TAG, "fetchRecentDoorEvents")
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch {
                 _recentDoorEvents.value = LoadingResult.Loading(_recentDoorEvents.value.data)
                 doorRepository.fetchRecentDoorEvents()
             }
