@@ -58,7 +58,10 @@ android {
         applicationId = "com.chriscartland.garage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 117
+        // versionCode comes from android/N tag via -PVERSION_CODE=N
+        // Falls back to 1 for local development builds
+        val tagVersionCode = (project.findProperty("VERSION_CODE") as? String)?.toIntOrNull()
+        versionCode = tagVersionCode ?: 1
         versionName = "2.2-" + generateVersionNameTimestamp()
         setProperty("archivesBaseName", "$applicationId-$versionName-$versionCode")
 

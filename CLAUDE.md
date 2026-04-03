@@ -158,6 +158,18 @@ The firmware runs multiple concurrent tasks:
 ### Local Validation
 Run `./scripts/validate.sh` before pushing. It mirrors CI: spotless, lint, unit tests (3 variants), debug build. Writes a validation marker so the git-guardrails hook can warn on stale pushes.
 
+### Releasing Android
+Use `./scripts/release-android.sh` — never create or push tags directly (hooks block `git tag`).
+
+```bash
+./scripts/release-android.sh              # Interactive (terminal only)
+./scripts/release-android.sh --check      # Print latest + next tag
+./scripts/release-android.sh --confirm-tag android/N  # Non-interactive
+./scripts/release-android.sh --dry-run    # Preview without releasing
+```
+
+The script computes the next tag as `android/<highest + 1>`. The `--confirm-tag` flag is a safety check — it must match the computed tag, it cannot override it.
+
 ### PR Workflow
 - Always create feature branches — never push to main
 - Always `--squash --delete-branch` when merging PRs

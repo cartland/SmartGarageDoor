@@ -1,0 +1,133 @@
+name: Release Android to Play Store
+
+# Triggered by android/N tags pushed by scripts/release-android.sh
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'android/[0-9]*'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-ci:
+    name: Verify CI Passed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Get tagged commit SHA
+        id: get-sha
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          SHA=$(gh api repos/${{ github.repository }}/git/ref/tags/${TAG} --jq '.object.sha' 2>/dev/null || echo "")
+          if [ -z "$SHA" ]; then
+            SHA="${GITHUB_SHA}"
+          fi
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          echo "Tagged commit: $SHA"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Verify CI passed on tagged commit
+        run: |
+          TAG_SHA="${{ steps.get-sha.outputs.sha }}"
+          echo "Checking CI status for commit $TAG_SHA..."
+
+          TESTS_CONCLUSION=$(gh api "repos/${{ github.repository }}/commits/$TAG_SHA/check-runs" \
+            --jq '[.check_runs[] | select(.name == "Run Unit Tests & Formatting Checks")] | last | .conclusion')
+          BUILD_CONCLUSION=$(gh api "repos/${{ github.repository }}/commits/$TAG_SHA/check-runs" \
+            --jq '[.check_runs[] | select(.name == "Build Debug APK")] | last | .conclusion')
+
+          echo "Tests: $TESTS_CONCLUSION"
+          echo "Build: $BUILD_CONCLUSION"
+
+          if [ "$TESTS_CONCLUSION" != "success" ]; then
+            echo "::error::Tests check concluded '$TESTS_CONCLUSION', expected 'success'"
+            exit 1
+          fi
+          if [ "$BUILD_CONCLUSION" != "success" ]; then
+            echo "::error::Build check concluded '$BUILD_CONCLUSION', expected 'success'"
+            exit 1
+          fi
+
+          echo "CI passed on commit $TAG_SHA"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  release:
+    name: Build and Deploy
+    needs: verify-ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Validate tag format
+        id: validate
+        run: |
+          REF="${GITHUB_REF}"
+          if [[ ! "$REF" =~ ^refs/tags/ ]]; then
+            echo "::error::This workflow must be run on a tag."
+            exit 1
+          fi
+
+          TAG="${REF#refs/tags/}"
+          if [[ ! "$TAG" =~ ^android/[0-9]+$ ]]; then
+            echo "::error::Tag must match 'android/N' pattern, got: $TAG"
+            exit 1
+          fi
+
+          VERSION="${TAG#android/}"
+          echo "version_code=$VERSION" >> $GITHUB_OUTPUT
+          echo "Validated: tag=$TAG, versionCode=$VERSION"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permissions
+        working-directory: AndroidGarage
+        run: |
+          chmod +x gradlew
+          chmod +x release/*.sh
+
+      - name: Decrypt secrets
+        working-directory: AndroidGarage
+        run: ./release/decrypt-secrets.sh
+        env:
+          ENCRYPT_KEY: ${{ secrets.ENCRYPT_KEY }}
+
+      - name: Build Release AAB
+        working-directory: AndroidGarage
+        env:
+          SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }}
+          GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }}
+        run: ./gradlew :androidApp:bundleRelease -PVERSION_CODE=${{ steps.validate.outputs.version_code }} -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" -PGARAGE_RELEASE_KEYSTORE_PWD="$GARAGE_RELEASE_KEYSTORE_PWD" -PGARAGE_RELEASE_KEY_PWD="$GARAGE_RELEASE_KEY_PWD"
+
+      - name: Clean secrets
+        if: always()
+        working-directory: AndroidGarage
+        run: ./release/clean-secrets.sh
+
+      - name: Upload release AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-aab
+          path: AndroidGarage/androidApp/build/outputs/bundle/release/
+          retention-days: 30
+
+      - name: Deploy to Google Play (Internal Track)
+        uses: r0adkll/upload-google-play@v1.1.3
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.chriscartland.garage
+          releaseFiles: AndroidGarage/androidApp/build/outputs/bundle/release/*.aab
+          track: internal
+          whatsNewDirectory: AndroidGarage/distribution/whatsnew
