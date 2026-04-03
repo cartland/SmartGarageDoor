@@ -167,7 +167,20 @@ Run `./scripts/validate.sh` before pushing. It mirrors CI: spotless, lint, unit 
 - Use `gh pr update-branch <number>` to keep queued PRs current with main
 
 ### Dev Mode
-Toggle with `touch .claude/.dev-mode` / `rm .claude/.dev-mode`. When active, Claude keeps creating PRs aligned with docs/TESTING.md and docs/MIGRATION.md. Yields when 5+ PRs are open and all waiting on CI.
+Toggle: `touch .claude/.dev-mode` (enable) / `rm .claude/.dev-mode` (disable).
+
+When active, a Stop hook blocks Claude from ending its turn and directs it to:
+1. Check open PRs — merge any that passed CI (`--squash --delete-branch`)
+2. Read `docs/TESTING.md` and `docs/MIGRATION.md` for next action items
+3. Pick the highest-priority undone item
+4. Create PRs on separate branches that don't conflict with each other
+5. Don't wait for CI — start the next PR while CI runs on the previous one
+6. Run `./scripts/validate.sh` before pushing code changes
+7. Keep PRs small and focused (one concern per PR)
+
+**Interaction with backlog hook:** The `check-pr-backlog.sh` hook warns at 5+ open PRs and blocks at 10+. Dev mode yields (stops blocking) when 10+ PRs are open AND none are mergeable — this prevents an infinite loop where dev mode says "keep working" but backlog says "merge first" with nothing to merge.
+
+**Known issue:** If the backlog hook fires as a blocking stop hook while all PRs wait on CI, Claude cannot stop on its own. The user must run `rm .claude/.dev-mode` or press Ctrl+C.
 
 ### Claude Hooks (.claude/hooks/)
 - **block-admin-bypass.sh** — Denies `--admin` on PR merges
