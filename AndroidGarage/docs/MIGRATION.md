@@ -99,7 +99,7 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 
 ### 5.1 Configure Multiplatform
 - Add `org.jetbrains.kotlin.multiplatform` plugin
-- Define targets: `androidTarget()`, `iosArm64()`, `iosSimulatorArm64()`, `jvm()`
+- Define targets: `androidTarget()`, `iosArm64()`, `iosSimulatorArm64()`
 - Create `commonMain`, `androidMain`, `iosMain` source sets
 
 ### 5.2 Move Shared Code to Common
@@ -111,7 +111,27 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 ### 5.3 Platform-Specific Implementations
 - `expect class DatabaseFactory` / `actual class DatabaseFactory` for Room
 - `expect class HttpClientFactory` / `actual class HttpClientFactory` for Ktor engine
+- `expect class AuthBridge` / `actual class AuthBridge` for Firebase Auth (Android SDK / iOS SDK)
 - Platform entry points create components with platform-specific dependencies
+
+## Phase 6: Screenshot Tests
+
+**Goal:** Automated app screenshot generation for Play Store and documentation.
+
+### 6.1 Set Up Compose Screenshot Testing
+- Add Compose screenshot test dependencies (same approach as battery-butler)
+- Create screenshot test module or source set
+
+### 6.2 Write Deterministic Previews
+- All previews use fixed `Instant.parse(...)` timestamps, not `Clock.System.now()`
+- Thread time parameters through composable chain
+- Create preview data fixtures for consistent test data
+
+### 6.3 Generate Gallery
+- Write screenshot tests for key screens: Home, Door History, Remote Button, Profile
+- Write screenshot tests for key components: DoorStatusCard, AnimatableGarageDoor
+- Generate reference PNGs, commit to repository
+- Screenshots do NOT block CI — regenerated on demand
 
 ## Phase Summary
 
@@ -121,4 +141,7 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 | 2. Clean Architecture | Large | None | Testable layers, reusable logic |
 | 3. DI Migration | Medium | Phase 2 helps but not required | KMP-compatible DI |
 | 4. Network Migration | Medium | None | KMP-compatible networking |
-| 5. KMP | Large | Phases 3 + 4 | Cross-platform code sharing |
+| 5. KMP | Large | Phases 3 + 4 | Android + iOS code sharing |
+| 6. Screenshot Tests | Medium | None | Automated Play Store assets |
+
+**Recommended order:** Start with Phase 1 (testing infrastructure). It builds the safety net needed before making structural changes in later phases.
