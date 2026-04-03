@@ -2,8 +2,8 @@ name: Release Android to Play Store (Internal)
 
 # Triggered by android/N tags pushed by scripts/release-android.sh
 # Deploys to internal track only — never production.
+# To retry a failed release, use "Re-run all jobs" in the Actions UI.
 on:
-  workflow_dispatch:
   push:
     tags:
       - 'android/[0-9]*'
@@ -15,7 +15,6 @@ jobs:
   verify-ci:
     name: Verify CI Passed
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/android/')
     timeout-minutes: 5
     steps:
       - name: Get tagged commit SHA

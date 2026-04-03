@@ -121,38 +121,6 @@ Firestore Functions: Event-driven processing on data changes
 - **Firebase**: Environment variables and server configuration endpoints
 - **ESP32**: Menuconfig for development, NVS storage for production
 
-## Development Workflow Notes
-
-### Secret Management (Android)
-The app requires these secrets in local.properties:
-```
-SERVER_CONFIG_KEY=YourKey
-GOOGLE_WEB_CLIENT_ID=YourClientId
-GARAGE_RELEASE_KEYSTORE_PWD=YourKeystorePassword (release builds only)
-GARAGE_RELEASE_KEY_PWD=YourKeyPassword (release builds only)
-```
-
-Use provided scripts for release builds:
-- `release/decrypt-secrets.sh` - Decrypt GPG-encrypted secrets
-- `release/clean-secrets.sh` - Remove decrypted secrets after build
-
-### Server Configuration Updates
-Update server config via authenticated endpoint:
-```bash
-curl -H "Content-Type: application/json" \
-     -H "X-ServerConfigKey: $SERVER_CONFIG_UPDATE_KEY" \
-     https://us-central1-escape-echo.cloudfunctions.net/serverConfigUpdate \
-     -d @serverConfig.json
-```
-
-### FreeRTOS Task Structure
-The firmware runs multiple concurrent tasks:
-- `read_sensors`: Monitor door position sensors with debouncing
-- `upload_sensors`: Send sensor data to server when values change
-- `download_button_commands`: Poll server for button press commands
-- `push_button`: Execute button press via relay control
-- `log_hello`: Periodic heartbeat logging
-
 ## Development Workflow
 
 ### Local Validation
@@ -168,7 +136,13 @@ Use `./scripts/release-android.sh` — never create or push tags directly (hooks
 ./scripts/release-android.sh --dry-run    # Preview without releasing
 ```
 
-The script computes the next tag as `android/<highest + 1>`. The `--confirm-tag` flag is a safety check — it must match the computed tag, it cannot override it.
+The script computes the next tag as `android/<highest + 1>`. The `--confirm-tag` flag is a safety check — it must match the computed tag, it cannot override it. Deploys to Play Store internal track only — never production.
+
+### Secret Management (Android)
+The app requires secrets in `local.properties` (decrypted from GPG at build time):
+- `SERVER_CONFIG_KEY`, `GOOGLE_WEB_CLIENT_ID` — required for all builds
+- `GARAGE_RELEASE_KEYSTORE_PWD`, `GARAGE_RELEASE_KEY_PWD` — release builds only
+- Scripts: `release/decrypt-secrets.sh`, `release/clean-secrets.sh`
 
 ### PR Workflow
 - Always create feature branches — never push to main

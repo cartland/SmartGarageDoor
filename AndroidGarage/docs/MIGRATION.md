@@ -13,7 +13,7 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 - Configured `detekt.yml`: disabled rules incompatible with Compose (LongMethod, LongParameterList), disabled MaxLineLength (redundant with ktlint)
 - Runs in CI and `./scripts/validate.sh`
 
-### 1.2 Test Coverage Enforcement — PR #34 (pending merge)
+### 1.2 Test Coverage Enforcement — `631ede4` (#34)
 - Custom `buildSrc` Gradle task (`checkTestCoverage`) scans for `*ViewModel` and `*Repository` classes
 - Fails build if no matching `*Test.kt` file exists
 - Supports `// @NoTestRequired` inline exemptions and `test-coverage-exemptions.txt`
@@ -147,7 +147,7 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 
 | Phase | Effort | Prerequisite | Status |
 |-------|--------|-------------|--------|
-| 1. Testing | Medium | None | **COMPLETE** (1.2 pending merge) |
+| 1. Testing | Medium | None | **COMPLETE** |
 | 2. Clean Architecture | Large | Phase 1 | Not started |
 | 3. DI Migration | Medium | Phase 2 | Not started |
 | 4. Network Migration | Medium | Phase 3 | Not started |
