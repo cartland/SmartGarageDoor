@@ -11,6 +11,10 @@
           {
             "type": "command",
             "command": ".claude/hooks/git-guardrails.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/warn-shell-loops.sh"
           }
         ]
       }
