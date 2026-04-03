@@ -13,9 +13,10 @@
 
 ## Current State
 
-- **43 unit tests** across ViewModels, pure functions, and JSON parsing
-- **CI checks:** unit tests (3 build variants), Spotless formatting, debug APK build
-- **Gaps:** no Android Lint, no repository tests, no network error path tests, no auth tests, no release build verification in CI
+- **~90 unit tests** across ViewModels, Repositories, pure functions, and JSON parsing
+- **CI checks:** unit tests (3 build variants), Spotless formatting, Android Lint, debug APK build, release AAB build
+- **Completed:** Phase 1 (CI hardening), Phase 2 (network error tests), Phase 4.1 (timeout edge cases), Phase 5.2-5.3 (release safety)
+- **Remaining:** Phase 3 (auth token tests — needs refactor), Phase 5.1 (ProGuard smoke test), Phase 6 (Firebase server)
 
 ---
 
@@ -189,20 +190,21 @@ The server functions return error responses that the Android app must handle. If
 
 ## Priority Order
 
-| Phase | Effort | Risk Reduced | Do When |
-|-------|--------|-------------|---------|
-| 1.1 Android Lint in CI | Small | Medium | Now — quick win |
-| 1.2 Release build on PRs | Small | High | Now — prevents merge-breaks-release |
-| 2.1 DoorRepository error tests | Medium | High | Next — biggest silent-failure risk |
-| 2.2 PushRepository error tests | Medium | High | Next — button press failures are invisible |
-| 5.2 Disable release logging | Small | High | Next — security fix |
-| 4.1 Timeout edge cases | Small | Medium | Soon — partially done |
-| 3.1 Auth token tests | Large | High | After refactor — needs Firebase wrapper |
-| 1.3 Compiler warnings | Medium | Medium | After fixing existing warnings |
-| 5.1 ProGuard smoke test | Medium | Medium | Before next release |
-| 5.3 BuildConfig validation | Small | Medium | Before next release |
-| 6.1 Migrate tslint | Medium | Low | Whenever |
-| 1.4 Branch protection audit | Small | Medium | Whenever |
+| Phase | Effort | Risk Reduced | Status |
+|-------|--------|-------------|--------|
+| 1.1 Android Lint in CI | Small | Medium | Done |
+| 1.2 Release build on PRs | Small | High | Done |
+| 1.3 Compiler warnings | Medium | Medium | Skipped (none exist) |
+| 1.4 Branch protection audit | Small | Medium | Done |
+| 2.1 DoorRepository error tests | Medium | High | Done |
+| 2.2 PushRepository error tests | Medium | High | Done |
+| 2.3 ServerConfigRepository tests | Medium | High | Done |
+| 4.1 Timeout edge cases | Small | Medium | Done |
+| 5.2 Disable release logging | Small | High | Done |
+| 5.3 BuildConfig validation | Small | Medium | Done |
+| 3.1 Auth token tests | Large | High | TODO — needs Firebase wrapper refactor |
+| 5.1 ProGuard smoke test | Medium | Medium | TODO — before next release |
+| 6.1 Migrate tslint | Medium | Low | TODO |
 
 ---
 
