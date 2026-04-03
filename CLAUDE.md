@@ -153,6 +153,15 @@ The firmware runs multiple concurrent tasks:
 - `push_button`: Execute button press via relay control
 - `log_hello`: Periodic heartbeat logging
 
+## Documentation
+
+Detailed project documentation lives in `AndroidGarage/docs/`:
+
+- [Architecture](AndroidGarage/docs/ARCHITECTURE.md) — System overview, Android layers, data flows, DI, state management
+- [Decisions](AndroidGarage/docs/DECISIONS.md) — Architectural decision records (ADRs): server-centric design, tech stack, testing philosophy, migration targets
+- [Migration](AndroidGarage/docs/MIGRATION.md) — Phased roadmap toward battery-butler tech stack (kotlin-inject, Ktor, clean architecture, KMP)
+- [Testing](AndroidGarage/docs/TESTING.md) — CI stability plan, testing phases, priority order
+
 ## Known Limitations
 
 1. **Root CA Expiration**: Hard-coded certificate expires in 2036
