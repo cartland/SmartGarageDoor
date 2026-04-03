@@ -4,14 +4,8 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [ "main" ]
-    paths:
-      - 'AndroidGarage/**'
-      - '.github/workflows/ci.yml'
   push:
     branches: [ "main", "internal", "release" ]
-    paths:
-      - 'AndroidGarage/**'
-      - '.github/workflows/ci.yml'
 
 jobs:
   test:
