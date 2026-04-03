@@ -1,0 +1,12 @@
+# Classes exempt from test coverage enforcement.
+# One class name per line. Lines starting with # are comments.
+
+# ViewModels — pending tests (needs Firebase wrapper refactor for auth)
+AuthViewModelImpl
+AppLoggerViewModelImpl
+AppSettingsViewModelImpl
+
+# Repositories — pending tests (needs Firebase mocking)
+AuthRepositoryImpl
+DoorFcmRepositoryImpl
+AppLoggerRepositoryImpl
