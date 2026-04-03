@@ -1,4 +1,36 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(gh *)",
+      "Bash(./gradlew *)",
+      "Bash(AndroidGarage/gradlew *)",
+      "Bash(./scripts/*)",
+      "Bash(ls *)",
+      "Bash(ls)",
+      "Bash(pwd)",
+      "Bash(mkdir *)",
+      "Bash(chmod *)",
+      "Bash(find *)",
+      "Bash(wc *)",
+      "Bash(rm *)",
+      "Bash(touch *)",
+      "Bash(echo *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(jq *)",
+      "Bash(npm *)",
+      "Bash(bd *)",
+      "Read(**/*)",
+      "Edit(**/*)",
+      "Write(**/*)",
+      "Glob(**/*)",
+      "Grep(**/*)",
+      "WebSearch"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
