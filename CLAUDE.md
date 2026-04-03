@@ -164,10 +164,17 @@ Run `./scripts/validate.sh` before pushing. It mirrors CI: spotless, lint, unit 
 - Never use `--admin` to bypass CI — enforce_admins is enabled
 - Keep PRs small and focused (one concern per PR)
 - Create multiple non-conflicting PRs in parallel — don't wait for CI on each one
-- Use `gh pr update-branch <number>` to keep queued PRs current with main
+- Run `cd` and `git -C` are blocked — run all commands from the repository root
+
+### PR Management
+- After every PR merge, run `gh pr update-branch <number>` on ALL remaining open PRs
+- Check `gh pr view <number> --json mergeable` — look for DIRTY (conflicts) or BEHIND (needs update)
+- Watch for PR starvation: strict branch protection means PRs merge one at a time. The last PR in a queue can take very long if others keep merging ahead of it
+- If a PR keeps failing CI after branch updates, investigate the failure — don't just keep updating
+- Before creating new PRs, check that existing PRs don't touch the same files (prevents merge conflicts)
 
 ### Dev Mode
-Toggle with `touch .claude/.dev-mode` / `rm .claude/.dev-mode`. When active, Claude keeps creating PRs aligned with docs/TESTING.md and docs/MIGRATION.md. Yields when 5+ PRs are open and all waiting on CI.
+Toggle with `touch .claude/.dev-mode` / `rm .claude/.dev-mode`. When active, Claude keeps creating PRs aligned with docs/TESTING.md and docs/MIGRATION.md. Yields when 10+ PRs are open and none are mergeable (all waiting on CI).
 
 ### Claude Hooks (.claude/hooks/)
 - **block-admin-bypass.sh** — Denies `--admin` on PR merges
