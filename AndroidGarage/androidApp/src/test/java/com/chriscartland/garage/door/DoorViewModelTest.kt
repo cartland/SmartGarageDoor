@@ -19,6 +19,7 @@ package com.chriscartland.garage.door
 
 import android.app.Activity
 import com.chriscartland.garage.applogger.AppLoggerRepository
+import com.chriscartland.garage.coroutines.TestDispatcherProvider
 import com.chriscartland.garage.fcm.DoorFcmRepository
 import com.chriscartland.garage.fcm.DoorFcmState
 import com.chriscartland.garage.fcm.DoorFcmTopic
@@ -81,7 +82,7 @@ class DoorViewModelTest {
     }
 
     private fun createViewModel(): DoorViewModelImpl {
-        val vm = DoorViewModelImpl(appLoggerRepository, doorRepository, doorFcmRepository)
+        val vm = DoorViewModelImpl(appLoggerRepository, doorRepository, doorFcmRepository, TestDispatcherProvider(testDispatcher))
         testDispatcher.scheduler.runCurrent()
         return vm
     }

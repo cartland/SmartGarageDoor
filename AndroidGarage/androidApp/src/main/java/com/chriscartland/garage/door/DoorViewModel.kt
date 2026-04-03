@@ -25,6 +25,7 @@ import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.config.FetchOnViewModelInit
+import com.chriscartland.garage.coroutines.DispatcherProvider
 import com.chriscartland.garage.door.LoadingResult.Complete
 import com.chriscartland.garage.door.LoadingResult.Error
 import com.chriscartland.garage.door.LoadingResult.Loading
@@ -60,6 +61,7 @@ class DoorViewModelImpl
         private val appLoggerRepository: AppLoggerRepository,
         private val doorRepository: DoorRepository,
         private val doorFcmRepository: DoorFcmRepository,
+        private val dispatchers: DispatcherProvider,
     ) : ViewModel(),
         DoorViewModel {
         private val _fcmRegistrationStatus =
@@ -76,13 +78,13 @@ class DoorViewModelImpl
 
         init {
             Log.d(TAG, "init")
-            viewModelScope.launch {
+            viewModelScope.launch(dispatchers.io) {
                 doorRepository.currentDoorEvent.collect {
                     Log.d(TAG, "currentDoorEvent collect: $it")
                     _currentDoorEvent.value = LoadingResult.Complete(it)
                 }
             }
-            viewModelScope.launch {
+            viewModelScope.launch(dispatchers.io) {
                 doorRepository.recentDoorEvents.collect {
                     Log.d(TAG, "recentDoorEvents collect: $it")
                     _recentDoorEvents.value = LoadingResult.Complete(it)
@@ -91,7 +93,7 @@ class DoorViewModelImpl
             // Decide whether to fetch with network data when ViewModel is initialized
             when (APP_CONFIG.fetchOnViewModelInit) {
                 FetchOnViewModelInit.Yes -> {
-                    viewModelScope.launch {
+                    viewModelScope.launch(dispatchers.io) {
                         appLoggerRepository.log(AppLoggerKeys.INIT_CURRENT_DOOR)
                         appLoggerRepository.log(AppLoggerKeys.INIT_RECENT_DOOR)
                     }
@@ -106,7 +108,7 @@ class DoorViewModelImpl
 
         override fun fetchFcmRegistrationStatus(activity: Activity) {
             Log.d(TAG, "fetchFcmRegistrationStatus")
-            viewModelScope.launch {
+            viewModelScope.launch(dispatchers.io) {
                 Log.d(TAG, "Fetching FCM registration status")
                 val status = doorFcmRepository.fetchStatus(activity)
                 Log.d(TAG, "Fetched FCM registration status: $status")
@@ -121,7 +123,7 @@ class DoorViewModelImpl
 
         override fun registerFcm(activity: Activity) {
             Log.d(TAG, "registerFcm")
-            viewModelScope.launch {
+            viewModelScope.launch(dispatchers.io) {
                 val buildTimestamp = doorRepository.fetchBuildTimestampCached()
                 if (buildTimestamp == null) {
                     Log.e(TAG, "buildTimestamp is null, cannot register FCM")
@@ -143,7 +145,7 @@ class DoorViewModelImpl
 
         override fun deregisterFcm(activity: Activity) {
             Log.d(TAG, "deregisterFcm")
-            viewModelScope.launch {
+            viewModelScope.launch(dispatchers.io) {
                 val result = doorFcmRepository.deregisterDoor(activity)
                 _fcmRegistrationStatus.value =
                     when (result) {
@@ -158,7 +160,7 @@ class DoorViewModelImpl
 
         override fun fetchCurrentDoorEvent() {
             Log.d(TAG, "fetchCurrentDoorEvent")
-            viewModelScope.launch {
+            viewModelScope.launch(dispatchers.io) {
                 _currentDoorEvent.value = LoadingResult.Loading(_currentDoorEvent.value.data)
                 doorRepository.fetchCurrentDoorEvent()
             }
@@ -166,7 +168,7 @@ class DoorViewModelImpl
 
         override fun fetchRecentDoorEvents() {
             Log.d(TAG, "fetchRecentDoorEvents")
-            viewModelScope.launch {
+            viewModelScope.launch(dispatchers.io) {
                 _recentDoorEvents.value = LoadingResult.Loading(_recentDoorEvents.value.data)
                 doorRepository.fetchRecentDoorEvents()
             }

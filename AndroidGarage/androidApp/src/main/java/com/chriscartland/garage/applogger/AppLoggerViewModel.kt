@@ -22,8 +22,8 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.config.AppLoggerKeys
+import com.chriscartland.garage.coroutines.DispatcherProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -52,6 +52,7 @@ class AppLoggerViewModelImpl
     @Inject
     constructor(
         private val appLoggerRepository: AppLoggerRepository,
+        private val dispatchers: DispatcherProvider,
     ) : ViewModel(),
         AppLoggerViewModel {
         private val _initCurrentDoorCount = MutableStateFlow<Long>(0L)
@@ -79,42 +80,42 @@ class AppLoggerViewModelImpl
         override val timeWithoutFcmInExpectedRangeCount = _timeWithoutFcmInExpectedRangeCount
 
         init {
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch(dispatchers.io) {
                 appLoggerRepository.countKey(AppLoggerKeys.INIT_CURRENT_DOOR).collect {
                     _initCurrentDoorCount.value = it
                 }
             }
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch(dispatchers.io) {
                 appLoggerRepository.countKey(AppLoggerKeys.INIT_RECENT_DOOR).collect {
                     _initRecentDoorCount.value = it
                 }
             }
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch(dispatchers.io) {
                 appLoggerRepository.countKey(AppLoggerKeys.USER_FETCH_CURRENT_DOOR).collect {
                     _userFetchCurrentDoorCount.value = it
                 }
             }
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch(dispatchers.io) {
                 appLoggerRepository.countKey(AppLoggerKeys.USER_FETCH_RECENT_DOOR).collect {
                     _userFetchRecentDoorCount.value = it
                 }
             }
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch(dispatchers.io) {
                 appLoggerRepository.countKey(AppLoggerKeys.FCM_DOOR_RECEIVED).collect {
                     _fcmReceivedDoorCount.value = it
                 }
             }
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch(dispatchers.io) {
                 appLoggerRepository.countKey(AppLoggerKeys.FCM_SUBSCRIBE_TOPIC).collect {
                     _fcmSubscribeTopicCount.value = it
                 }
             }
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch(dispatchers.io) {
                 appLoggerRepository.countKey(AppLoggerKeys.EXCEEDED_EXPECTED_TIME_WITHOUT_FCM).collect {
                     _exceededExpectedTimeWithoutFcmCount.value = it
                 }
             }
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch(dispatchers.io) {
                 appLoggerRepository.countKey(AppLoggerKeys.TIME_WITHOUT_FCM_IN_EXPECTED_RANGE).collect {
                     _timeWithoutFcmInExpectedRangeCount.value = it
                 }
@@ -122,7 +123,7 @@ class AppLoggerViewModelImpl
         }
 
         override fun log(key: String) {
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch(dispatchers.io) {
                 appLoggerRepository.log(key)
             }
         }
@@ -131,7 +132,7 @@ class AppLoggerViewModelImpl
             context: Context,
             uri: Uri,
         ) {
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch(dispatchers.io) {
                 appLoggerRepository.writeCsvToUri(context, uri)
             }
         }
