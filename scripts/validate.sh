@@ -19,6 +19,9 @@ step() { echo -e "\n${BOLD}--- $1 ---${RESET}"; }
 step "Spotless (formatting)"
 $GRADLE :androidApp:spotlessCheck && pass "spotlessCheck" || fail "spotlessCheck"
 
+step "Detekt (static analysis)"
+$GRADLE :androidApp:detekt && pass "detekt" || fail "detekt"
+
 step "Android Lint"
 $GRADLE :androidApp:lint && pass "lint" || fail "lint"
 
