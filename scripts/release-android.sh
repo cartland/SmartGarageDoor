@@ -146,15 +146,17 @@ fi
 echo "Checking CI status on HEAD..."
 REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null || echo "")
 if [ -n "$REPO" ]; then
-    # Check the required CI checks
+    # Check the required CI checks (matches job names in ci.yml)
     TESTS_STATUS=$(gh api "repos/${REPO}/commits/${CURRENT_COMMIT}/check-runs" \
-        --jq '[.check_runs[] | select(.name == "Run Unit Tests & Formatting Checks")] | last | .conclusion' 2>/dev/null || echo "")
+        --jq '[.check_runs[] | select(.name == "Unit Tests")] | last | .conclusion' 2>/dev/null || echo "")
+    FORMAT_STATUS=$(gh api "repos/${REPO}/commits/${CURRENT_COMMIT}/check-runs" \
+        --jq '[.check_runs[] | select(.name == "Formatting & Static Analysis")] | last | .conclusion' 2>/dev/null || echo "")
     BUILD_STATUS=$(gh api "repos/${REPO}/commits/${CURRENT_COMMIT}/check-runs" \
         --jq '[.check_runs[] | select(.name == "Build Debug APK")] | last | .conclusion' 2>/dev/null || echo "")
 
-    if [ "$TESTS_STATUS" = "success" ] && [ "$BUILD_STATUS" = "success" ]; then
+    if [ "$TESTS_STATUS" = "success" ] && [ "$FORMAT_STATUS" = "success" ] && [ "$BUILD_STATUS" = "success" ]; then
         echo -e "${GREEN}CI passed on HEAD.${RESET}"
-    elif [ -z "$TESTS_STATUS" ] && [ -z "$BUILD_STATUS" ]; then
+    elif [ -z "$TESTS_STATUS" ] && [ -z "$FORMAT_STATUS" ] && [ -z "$BUILD_STATUS" ]; then
         echo -e "${YELLOW}Warning: No CI results found for HEAD.${RESET}"
         if [ "$MODE" = "interactive" ]; then
             read -p "Continue anyway? (y/N) " -n 1 -r
@@ -167,6 +169,7 @@ if [ -n "$REPO" ]; then
     else
         echo -e "${RED}Error: CI did not pass on HEAD.${RESET}"
         echo "  Tests: $TESTS_STATUS"
+        echo "  Formatting: $FORMAT_STATUS"
         echo "  Build: $BUILD_STATUS"
         exit 1
     fi
