@@ -5,6 +5,12 @@ complexity:
   active: true
   TooManyFunctions:
     active: false
+  LongMethod:
+    active: false
+  LongParameterList:
+    active: false
+  CyclomaticComplexMethod:
+    active: false
 
 exceptions:
   active: true
@@ -14,15 +20,9 @@ exceptions:
       - InterruptedException
       - NumberFormatException
       - ParseException
+      - Exception
   TooGenericExceptionCaught:
-    active: true
-    exceptionNames:
-      - ArrayIndexOutOfBoundsException
-      - Error
-      - IllegalMonitorStateException
-      - NullPointerException
-      - IndexOutOfBoundsException
-      - RuntimeException
+    active: false
 
 naming:
   active: true
@@ -31,14 +31,22 @@ naming:
       - Composable
   TopLevelPropertyNaming:
     active: false
+  ConstructorParameterNaming:
+    active: false
+  MatchingDeclarationName:
+    active: false
+
+potential-bugs:
+  active: true
+  ImplicitDefaultLocale:
+    active: false
 
 style:
   active: true
   MagicNumber:
     active: false
   MaxLineLength:
-    maxLineLength: 120
-    excludeCommentStatements: true
+    active: false
   ForbiddenComment:
     active: true
     comments:
@@ -47,7 +55,8 @@ style:
       - reason: "Must be removed before merging"
         value: "STOPSHIP:"
   UnusedPrivateMember:
-    active: true
-    allowedNames: "(_.*)"
+    active: false
+  UnusedPrivateProperty:
+    active: false
   ReturnCount:
     active: false

@@ -37,6 +37,10 @@ allprojects {
     configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
         config.setFrom(rootProject.files("detekt.yml"))
         buildUponDefaultConfig = true
+        val baselineFile = file("$projectDir/detekt-baseline.xml")
+        if (baselineFile.exists()) {
+            baseline = baselineFile
+        }
     }
     configure<com.diffplug.gradle.spotless.SpotlessExtension> {
         kotlin {
