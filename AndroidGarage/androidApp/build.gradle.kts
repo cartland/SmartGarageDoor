@@ -73,15 +73,21 @@ android {
         val googleWebClientId = "GOOGLE_WEB_CLIENT_ID".let {
             localProperties.getProperty(it) ?: project.findProperty(it) as? String
         }
+        if (serverConfigKey.isNullOrBlank()) {
+            logger.warn("WARNING: SERVER_CONFIG_KEY is not set. The app will not be able to fetch server config.")
+        }
+        if (googleWebClientId.isNullOrBlank()) {
+            logger.warn("WARNING: GOOGLE_WEB_CLIENT_ID is not set. Google Sign-In will not work.")
+        }
         buildConfigField(
             "String",
             "SERVER_CONFIG_KEY",
-            "\"${serverConfigKey}\"",
+            "\"${serverConfigKey ?: ""}\"",
         )
         buildConfigField(
             "String",
             "GOOGLE_WEB_CLIENT_ID",
-            "\"${googleWebClientId}\"",
+            "\"${googleWebClientId ?: ""}\"",
         )
     }
 

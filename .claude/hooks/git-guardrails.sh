@@ -21,6 +21,16 @@ deny() {
 # Strip heredoc bodies and quoted strings to avoid false positives on PR body text.
 STRIPPED=$(echo "$COMMAND" | sed '/<<.*EOF/,/^EOF/d' | sed -E "s/'[^']*'//g; s/\"[^\"]*\"//g")
 
+# --- Warn on cd (prefer running from repo root) ---
+if echo "$STRIPPED" | grep -qE '\bcd\s'; then
+  # cd + git is especially risky (bare repository attacks)
+  if echo "$STRIPPED" | grep -qE '\bcd\s.*&&.*\bgit\b'; then
+    echo '{"systemMessage":"WARNING: Compound cd + git commands risk bare repository attacks. Run git from the repo root instead."}'
+  else
+    echo '{"systemMessage":"WARNING: cd changes working directory state. Prefer running commands from the repository root with absolute paths or -p/-C flags."}'
+  fi
+fi
+
 # --- Block push to main ---
 if echo "$STRIPPED" | grep -qE '\bgit\s+push\b'; then
   if echo "$STRIPPED" | grep -qE '\bgit\s+push\b.*\b(main|master)\b'; then
