@@ -27,13 +27,13 @@ import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.BuildConfig
 import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.config.AppLoggerKeys
+import com.chriscartland.garage.coroutines.DispatcherProvider
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.auth.api.identity.SignInClient
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -55,6 +55,7 @@ class AuthViewModelImpl
     constructor(
         private val _authRepository: AuthRepository,
         private val appLoggerRepository: AppLoggerRepository,
+        private val dispatchers: DispatcherProvider,
     ) : ViewModel(),
         AuthViewModel {
         override val authRepository: AuthRepository = _authRepository
@@ -62,7 +63,7 @@ class AuthViewModelImpl
         override val authState: StateFlow<AuthState> = _authRepository.authState
 
         override fun signInWithGoogle(activity: Activity) {
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch(dispatchers.io) {
                 appLoggerRepository.log(AppLoggerKeys.BEGIN_GOOGLE_SIGN_IN)
                 checkSignInConfiguration()
                 Log.d(TAG, "beginSignIn")
@@ -103,13 +104,13 @@ class AuthViewModelImpl
         }
 
         override fun signOut() {
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch(dispatchers.io) {
                 _authRepository.signOut()
             }
         }
 
         override fun processGoogleSignInResult(data: Intent) {
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch(dispatchers.io) {
                 val googleIdToken = googleIdTokenFromIntent(data)
                 if (googleIdToken == null) {
                     Log.e(TAG, "Google sign-in failed")

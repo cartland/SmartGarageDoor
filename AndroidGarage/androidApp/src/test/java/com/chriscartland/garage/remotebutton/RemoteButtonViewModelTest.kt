@@ -19,6 +19,7 @@ package com.chriscartland.garage.remotebutton
 
 import com.chriscartland.garage.auth.AuthRepository
 import com.chriscartland.garage.auth.AuthState
+import com.chriscartland.garage.coroutines.TestDispatcherProvider
 import com.chriscartland.garage.door.DoorEvent
 import com.chriscartland.garage.door.DoorPosition
 import com.chriscartland.garage.door.DoorRepository
@@ -76,7 +77,7 @@ class RemoteButtonViewModelTest {
     }
 
     private fun createViewModel(): RemoteButtonViewModelImpl {
-        val vm = RemoteButtonViewModelImpl(pushRepository, doorRepository)
+        val vm = RemoteButtonViewModelImpl(pushRepository, doorRepository, TestDispatcherProvider(testDispatcher))
         testDispatcher.scheduler.runCurrent()
         return vm
     }
