@@ -25,6 +25,7 @@ androidxDatastore = "1.1.7"
 composeBom = "2025.06.01"
 coroutinesTest = "1.10.2"
 credentials = "1.5.0"
+detekt = "1.23.7"
 credentialsGoogleId = "1.1.1"
 espressoCore = "3.6.1"
 firebase-bom = "33.15.0"
@@ -112,6 +113,7 @@ google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp"}
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 room = { id = "androidx.room", version.ref = "room" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 # Baseline Profiles
 android-test = { id = "com.android.test", version.ref = "agp" }

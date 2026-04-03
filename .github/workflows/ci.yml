@@ -33,6 +33,9 @@ jobs:
       - name: Run Spotless Check
         working-directory: AndroidGarage
         run: ./gradlew spotlessCheck
+      - name: Run Detekt
+        working-directory: AndroidGarage
+        run: ./gradlew :androidApp:detekt
       - name: Run Android Lint
         working-directory: AndroidGarage
         run: ./gradlew :androidApp:lint
