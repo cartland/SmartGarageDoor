@@ -14,6 +14,22 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/check-pr-backlog.sh",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/dev-mode.sh",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }

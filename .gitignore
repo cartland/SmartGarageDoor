@@ -1,5 +1,6 @@
 # Claude Code
 .claude/.validation-passed
+.claude/.dev-mode
 
 # macOS
 .DS_Store
