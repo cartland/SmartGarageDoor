@@ -18,6 +18,7 @@
 package com.chriscartland.garage.internet
 
 import androidx.annotation.Keep
+import com.chriscartland.garage.BuildConfig
 import com.chriscartland.garage.config.APP_CONFIG
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -159,7 +160,12 @@ object RetrofitModule {
                 .build()
         val logging =
             HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
+                level =
+                    if (BuildConfig.DEBUG) {
+                        HttpLoggingInterceptor.Level.BODY
+                    } else {
+                        HttpLoggingInterceptor.Level.NONE
+                    }
             }
         val client: OkHttpClient =
             OkHttpClient
