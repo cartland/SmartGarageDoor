@@ -6,7 +6,7 @@
 
 **Context:** The system has three clients (ESP32, Android app, potential future iOS/web). Business logic changes (door state interpretation, notification rules, error detection) should not require client updates.
 
-**Decision:** All critical business logic lives on the Firebase server. ESP32 reports raw sensor data. Android displays server-computed results. Neither client interprets sensor data.
+**Decision:** All critical business logic lives on the Firebase server. ESP32 reports raw sensor data. Android displays server-computed results. Neither client interprets sensor data. No offline business logic on clients — not even local door state interpretation.
 
 **Consequences:**
 - Feature updates deploy to one place (server), not three
@@ -14,6 +14,7 @@
 - ESP32 firmware updates (OTA) are risky and rare
 - Adds network dependency: if server is down, no door status interpretation
 - Increases server cost (every sensor reading hits Cloud Functions)
+- App shows stale data without network; this is an accepted tradeoff
 
 ## ADR-002: Current Tech Stack (Android)
 
@@ -66,15 +67,19 @@
 - **Testing:** Fakes over Mockito, Kotlin Test, StandardTestDispatcher
 - **Static analysis:** Detekt with zero tolerance
 
+**KMP targets:** Android + iOS (no desktop). Firebase Auth on both platforms via platform-specific implementations behind a shared interface (expect/actual).
+
 **Not adopted from battery-butler:**
-- gRPC/Wire (server uses REST endpoints, no proto definitions)
+- gRPC/Wire (server uses REST endpoints forever, no proto definitions)
 - Navigation3 (too experimental for this project's needs)
+- Desktop target (not needed for this project)
 
 **Consequences:**
 - Each migration phase is independent and can be a separate PR
 - DI migration (Hilt → kotlin-inject) is the most invasive change
 - Network migration (Retrofit → Ktor) requires new HTTP client setup
 - KMP preparation can happen incrementally after library migrations
+- REST endpoints are the permanent server protocol — no future protocol migration needed
 
 ## ADR-005: DispatcherProvider Pattern
 
@@ -107,14 +112,15 @@ viewmodel/       → state management (depends on usecase, domain)
 presentation/    → Compose UI (depends on viewmodel)
 ```
 
-ViewModels depend on UseCases, not Repositories directly. Each UseCase has a single `operator fun invoke()` method.
+ViewModels depend on UseCases, not Repositories directly. Each UseCase has a single `operator fun invoke()` method. **Every ViewModel operation goes through a UseCase, even simple pass-through ones** — consistency over pragmatism.
 
 **Consequences:**
 - Each layer testable in isolation with fakes
 - UseCases are reusable across ViewModels
-- More files and modules (overhead for a small project)
+- More files and modules (accepted overhead for consistency)
 - Convention tests can enforce structure (e.g., every UseCase has a test)
 - Migration is incremental: extract one UseCase at a time
+- Simple UseCases may feel like boilerplate but maintain uniform architecture
 
 ## ADR-007: Screenshot Tests for Gallery Generation
 
@@ -122,7 +128,7 @@ ViewModels depend on UseCases, not Repositories directly. Each UseCase has a sin
 
 **Context:** Need app screenshots for Play Store listings and development documentation. Manual screenshots are tedious and inconsistent.
 
-**Decision:** Use pure composable previews with screenshot tests (Paparazzi/Roborazzi) to generate gallery images. These are for asset generation, NOT CI blocking checks. Screenshots will not fail CI on pixel mismatch — they are regenerated on demand.
+**Decision:** Use Compose screenshot tests (same approach as battery-butler) to generate gallery images. This is its own migration phase. Screenshots are for asset generation, NOT CI blocking checks. Screenshots will not fail CI on pixel mismatch — they are regenerated on demand.
 
 **Requirements:**
 - All preview composables use deterministic data (fixed timestamps, no `Clock.System.now()`)
