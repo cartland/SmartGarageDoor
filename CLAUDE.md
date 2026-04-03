@@ -164,7 +164,31 @@ Run `./scripts/validate.sh` before pushing. It mirrors CI: spotless, lint, unit 
 - Never use `--admin` to bypass CI — enforce_admins is enabled
 - Keep PRs small and focused (one concern per PR)
 - Create multiple non-conflicting PRs in parallel — don't wait for CI on each one
-- Use `gh pr update-branch <number>` to keep queued PRs current with main
+- `cd` and `git -C` are blocked by hooks — run all commands from the repository root
+
+### Keeping PRs Mergeable
+Branch protection requires PRs to be up-to-date with main before merging. This means PRs merge one at a time and each merge can make others stale.
+
+**After every PR merge:**
+```bash
+# Check all open PRs for conflicts or behind status
+gh pr list --state open --json number,mergeStateStatus --jq '.[]'
+# Update each one
+gh pr update-branch <number>
+```
+
+**Before creating a new PR:**
+- Check which files open PRs touch: `gh pr diff <number> --name-only`
+- Don't create a PR that modifies the same files as an open PR — it will cause merge conflicts
+- If you must touch the same file, wait for the open PR to merge first
+
+**If a PR has conflicts (mergeStateStatus: DIRTY):**
+1. Checkout the branch locally
+2. Rebase on origin/main: `git rebase origin/main`
+3. Resolve conflicts
+4. Force push: `git push --force-with-lease`
+
+**Watch for PR starvation:** When many PRs queue up, the last one keeps getting pushed back as others merge ahead of it. Each merge makes it stale, requiring another CI run. If a PR has been open for a long time, prioritize merging it before creating new ones.
 
 ### Dev Mode
 Toggle: `touch .claude/.dev-mode` (enable) / `rm .claude/.dev-mode` (disable).
