@@ -153,6 +153,35 @@ The firmware runs multiple concurrent tasks:
 - `push_button`: Execute button press via relay control
 - `log_hello`: Periodic heartbeat logging
 
+## Development Workflow
+
+### Local Validation
+Run `./scripts/validate.sh` before pushing. It mirrors CI: spotless, lint, unit tests (3 variants), debug build. Writes a validation marker so the git-guardrails hook can warn on stale pushes.
+
+### PR Workflow
+- Always create feature branches — never push to main
+- Always `--squash --delete-branch` when merging PRs
+- Never use `--admin` to bypass CI — enforce_admins is enabled
+- Keep PRs small and focused (one concern per PR)
+- Create multiple non-conflicting PRs in parallel — don't wait for CI on each one
+- Use `gh pr update-branch <number>` to keep queued PRs current with main
+
+### Dev Mode
+Toggle with `touch .claude/.dev-mode` / `rm .claude/.dev-mode`. When active, Claude keeps creating PRs aligned with docs/TESTING.md and docs/MIGRATION.md. Yields when 5+ PRs are open and all waiting on CI.
+
+### Claude Hooks (.claude/hooks/)
+- **block-admin-bypass.sh** — Denies `--admin` on PR merges
+- **git-guardrails.sh** — Blocks push to main, force push, destructive commands; enforces squash merge; warns on stale validation
+- **check-pr-backlog.sh** — Warns at 5+ open PRs, blocks at 10+
+- **dev-mode.sh** — Keeps Claude working when `.claude/.dev-mode` exists
+- **warn-shell-loops.sh** — Warns on `for`/`while` loops (prefer separate Bash calls)
+
+### Testing Philosophy
+- Tests must add value — no coverage for coverage's sake
+- Prefer fakes over Mockito mocks (aligns with KMP migration target)
+- CI is the deployment gate — if CI passes, the app is safe to ship
+- Reference: [battery-butler](https://github.com/cartland/battery-butler) for testing patterns
+
 ## Documentation
 
 Detailed project documentation lives in `AndroidGarage/docs/`:
