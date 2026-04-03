@@ -17,5 +17,5 @@ STOP_REASON=$(echo "$INPUT" | jq -r '.stop_reason // "end_turn"')
 
 jq -n '{
   "decision": "block",
-  "reason": "Dev mode is active (.claude/.dev-mode). Continue making progress:\n\n1. Check open PRs — if any passed CI, merge them (--squash --delete-branch)\n2. Read docs/TESTING.md and docs/MIGRATION.md for next action items\n3. Pick the highest-priority item not yet done\n4. Create PRs on separate branches that do not conflict with each other\n5. Do not wait for CI — create the next PR on a new branch while CI runs\n6. Run ./scripts/validate.sh before pushing code changes\n7. Keep PRs small and focused (one concern per PR)\n\nTo stop: tell the user to run `rm .claude/.dev-mode`"
+  "reason": "Dev mode is active (.claude/.dev-mode). Continue making progress:\n\n1. Check open PRs — merge any that have passed CI\n2. Read docs/TESTING.md and docs/MIGRATION.md for next action items\n3. Pick the highest-priority item not yet done and create a PR for it\n4. Run ./scripts/validate.sh before pushing\n5. Keep PRs small and focused (one concern per PR)\n\nTo stop: tell the user to run `rm .claude/.dev-mode`"
 }'
