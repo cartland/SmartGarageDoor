@@ -21,7 +21,6 @@ import android.util.Log
 import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorEvent
-import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.door.DoorRepository
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -56,7 +55,7 @@ class FCMService : FirebaseMessagingService() {
         if (remoteMessage.data.isNotEmpty()) {
             Log.d(TAG, "Message data payload: ${remoteMessage.data}")
 
-            val doorEvent = remoteMessage.data.asDoorEvent()
+            val doorEvent = FcmPayloadParser.parseDoorEvent(remoteMessage.data)
             if (doorEvent == null) {
                 Log.e(TAG, "Unknown message type: ${remoteMessage.data.entries.joinToString()}")
                 return
@@ -105,35 +104,6 @@ class FCMService : FirebaseMessagingService() {
     override fun onDestroy() {
         super.onDestroy()
         supervisorJob.cancel()
-    }
-}
-
-/**
- * Extract DoorEvent from Firebase RemoteMessage data payload.
- */
-internal fun <K, V> Map<K, V>.asDoorEvent(): DoorEvent? {
-    try {
-        val currentEvent = this as? Map<*, *> ?: return null // Required
-        val type = currentEvent["type"] as? String ?: return null // Required
-        val position = try {
-            DoorPosition.valueOf(type)
-        } catch (e: IllegalArgumentException) {
-            DoorPosition.UNKNOWN
-        }
-        val message = currentEvent["message"] as? String ?: "" // Optional
-        val timestampSeconds = (currentEvent["timestampSeconds"] as? String)
-            ?.toLong() ?: return null // Required
-        val checkInTimestampSeconds = (currentEvent["checkInTimestampSeconds"] as? String)
-            ?.toLong() ?: return null // Required
-        return DoorEvent(
-            doorPosition = position,
-            message = message,
-            lastChangeTimeSeconds = timestampSeconds,
-            lastCheckInTimeSeconds = checkInTimestampSeconds,
-        )
-    } catch (e: Exception) {
-        Log.e("FCMService", "Error converting to DoorEvent: $e")
-        return null
     }
 }
 
