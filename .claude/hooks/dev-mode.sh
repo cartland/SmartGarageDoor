@@ -36,6 +36,11 @@ if [ "$OPEN_PRS" -ge 10 ]; then
   fi
 fi
 
+# Before blocking, enable auto-merge on any open PRs so they merge while idle.
+for PR_NUM in $(gh pr list --state open --json number,author --jq '.[] | select(.author.login != "dependabot[bot]" and .author.login != "dependabot") | .number' 2>/dev/null); do
+  gh pr merge "$PR_NUM" --auto --squash --delete-branch 2>/dev/null
+done
+
 jq -n '{
   "decision": "block",
   "reason": "Dev mode is active (.claude/.dev-mode). Continue making progress:\n\n1. Check open PRs — if any passed CI, merge them (--squash --delete-branch)\n2. Read docs/TESTING.md and docs/MIGRATION.md for next action items\n3. Pick the highest-priority item not yet done\n4. Create PRs on separate branches that do not conflict with each other\n5. Do not wait for CI — create the next PR on a new branch while CI runs\n6. Run ./scripts/validate.sh before pushing code changes\n7. Keep PRs small and focused (one concern per PR)\n\nTo stop: tell the user to run `rm .claude/.dev-mode`"
