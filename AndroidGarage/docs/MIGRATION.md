@@ -43,20 +43,18 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 - Added domain tests: `DoorPositionTest` (server string contract), `AuthModelTest`
 - Added `DoorEventEntityTest` for entity ↔ domain mapping correctness
 - Domain module types: `DoorEvent`, `DoorPosition`, `LoadingResult`, `AuthState`, `User`, `FirebaseIdToken`, `GoogleIdToken`, `DoorFcmState`, `DoorFcmTopic`, `FcmRegistrationStatus`, `RequestStatus`, `PushStatus`, `SnoozeRequestStatus`, `ServerConfig`
-- Repository interfaces in domain (signatures pending alignment with androidApp)
+- All repository interfaces consolidated to domain module — `4a56f8e` (#59), `8f593bb` (#60), `9546278` (#62)
 
-### 2.2 Extract UseCase Layer — IN PROGRESS
-- Created `usecase/` package in androidApp (will become separate module when repository interfaces align)
-- Extracted `EnsureFreshIdTokenUseCase` — `79d3a6b` (#48)
-  - Token refresh logic with 6 tests covering all branches
-  - Wired into `RemoteButtonViewModelImpl` via Hilt `@Inject`
-- Remaining UseCases:
-  - `PushRemoteButtonUseCase` — auth check + push (blocked on Android-specific types in repository interfaces)
-  - `SnoozeNotificationsUseCase` — same pattern as push
-  - `FetchDoorStatusUseCase` — wraps repository fetch
-  - `RegisterFcmUseCase` — FCM registration (tightly coupled to Firebase APIs)
-- Each UseCase has `operator fun invoke()` for clean call syntax
-- ViewModels depend on UseCases, not Repositories
+### 2.2 Extract UseCase Layer — COMPLETE
+- All ViewModel business logic extracted into UseCases with `operator fun invoke()` syntax
+- `EnsureFreshIdTokenUseCase` — token refresh logic (6 tests) — `79d3a6b` (#48)
+- `PushRemoteButtonUseCase` — auth + push delegation (6 tests) — `529d176` (#68)
+- `SnoozeNotificationsUseCase` — auth + snooze delegation (6 tests) — `bec753f` (#69)
+- `FetchCurrentDoorEventUseCase` / `FetchRecentDoorEventsUseCase` — repository delegation (4 tests) — `31cf810` (#70)
+- `FetchFcmStatusUseCase` / `RegisterFcmUseCase` / `DeregisterFcmUseCase` — FCM operations (7 tests) — `dc2d0ce` (#71)
+- Shared `DoorFcmState.toRegistrationStatus()` mapping extracted (was duplicated 3x)
+
+**Next step (Phase 3):** Remove direct Repository references from ViewModels. ViewModels should only depend on UseCases. UseCases take Repositories via constructor injection (kotlin-inject wires this). This follows the battery-butler pattern where the DI layer enforces ViewModel→UseCase→Repository separation.
 
 ### 2.3 Separate Data Modules
 - `data/` — Repository implementations
@@ -155,7 +153,7 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 | Phase | Effort | Prerequisite | Status |
 |-------|--------|-------------|--------|
 | 1. Testing | Medium | None | **COMPLETE** |
-| 2. Clean Architecture | Large | Phase 1 | **IN PROGRESS** (2.1 done, 2.2 started) |
+| 2. Clean Architecture | Large | Phase 1 | **IN PROGRESS** (2.1, 2.2 done) |
 | 3. DI Migration | Medium | Phase 2 | Not started |
 | 4. Network Migration | Medium | Phase 3 | Not started |
 | 5. KMP | Large | Phases 3 + 4 | Not started |
