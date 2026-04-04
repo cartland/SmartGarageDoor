@@ -15,7 +15,7 @@
  */
 
 import * as firebase from 'firebase-admin';
-import * as functions from 'firebase-functions';
+import * as functions from 'firebase-functions/v1';
 
 import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
 
