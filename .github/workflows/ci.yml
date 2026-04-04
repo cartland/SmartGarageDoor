@@ -8,8 +8,51 @@ on:
     branches: [ "main" ]
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      android: ${{ steps.filter.outputs.android }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for Android changes
+        id: filter
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "android=true" >> $GITHUB_OUTPUT
+            echo "workflow_dispatch: running all checks"
+            exit 0
+          fi
+
+          if [ "${{ github.event_name }}" = "push" ]; then
+            BASE="${{ github.event.before }}"
+          else
+            BASE="origin/${{ github.base_ref }}"
+            git fetch --depth=1 origin "${{ github.base_ref }}" 2>/dev/null || true
+          fi
+
+          CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null || echo "UNKNOWN")
+
+          if [ "$CHANGED" = "UNKNOWN" ]; then
+            echo "android=true" >> $GITHUB_OUTPUT
+            echo "Could not determine changes, running all checks"
+            exit 0
+          fi
+
+          if echo "$CHANGED" | grep -qE '^(AndroidGarage/|\.github/workflows/ci\.yml|\.github/actions/)'; then
+            echo "android=true" >> $GITHUB_OUTPUT
+            echo "Android files changed:"
+            echo "$CHANGED" | grep -E '^(AndroidGarage/|\.github/workflows/ci\.yml|\.github/actions/)'
+          else
+            echo "android=false" >> $GITHUB_OUTPUT
+            echo "No Android files changed. Changed files:"
+            echo "$CHANGED"
+          fi
+
   formatting:
     name: Formatting & Static Analysis
+    needs: changes
+    if: needs.changes.outputs.android == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,6 +75,8 @@ jobs:
 
   unit_tests:
     name: Unit Tests
+    needs: changes
+    if: needs.changes.outputs.android == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -57,6 +102,8 @@ jobs:
 
   build_debug:
     name: Build Debug APK
+    needs: changes
+    if: needs.changes.outputs.android == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -82,6 +129,8 @@ jobs:
 
   build_release:
     name: Build Release AAB
+    needs: changes
+    if: needs.changes.outputs.android == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -105,4 +154,34 @@ jobs:
         with:
           name: release-aab
           path: AndroidGarage/androidApp/build/outputs/bundle/release/
+
+  # Gate job — the ONLY required status check in branch protection.
+  # Succeeds when all CI jobs pass OR when they're skipped (no Android changes).
+  ci-complete:
+    name: CI Complete
+    if: always()
+    needs: [formatting, unit_tests, build_debug, build_release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          echo "Formatting: ${{ needs.formatting.result }}"
+          echo "Unit Tests: ${{ needs.unit_tests.result }}"
+          echo "Build Debug: ${{ needs.build_debug.result }}"
+          echo "Build Release: ${{ needs.build_release.result }}"
+
+          # Fail if any job failed or was cancelled
+          if [[ "${{ needs.formatting.result }}" == "failure" || \
+                "${{ needs.unit_tests.result }}" == "failure" || \
+                "${{ needs.build_debug.result }}" == "failure" || \
+                "${{ needs.build_release.result }}" == "failure" || \
+                "${{ needs.formatting.result }}" == "cancelled" || \
+                "${{ needs.unit_tests.result }}" == "cancelled" || \
+                "${{ needs.build_debug.result }}" == "cancelled" || \
+                "${{ needs.build_release.result }}" == "cancelled" ]]; then
+            echo "::error::One or more CI jobs failed"
+            exit 1
+          fi
+
+          echo "All CI checks passed (or skipped — no Android changes)"
   # Deployment: .github/workflows/release-android.yml (triggered by android/N tags)

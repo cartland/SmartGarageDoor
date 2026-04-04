@@ -4,22 +4,59 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [ "main" ]
-    paths:
-      - 'FirebaseServer/**'
-      - '.github/workflows/firebase-ci.yml'
   push:
     branches: [ "main" ]
-    paths:
-      - 'FirebaseServer/**'
-      - '.github/workflows/firebase-ci.yml'
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      firebase: ${{ steps.filter.outputs.firebase }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for Firebase changes
+        id: filter
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "firebase=true" >> $GITHUB_OUTPUT
+            echo "workflow_dispatch: running all checks"
+            exit 0
+          fi
+
+          if [ "${{ github.event_name }}" = "push" ]; then
+            BASE="${{ github.event.before }}"
+          else
+            BASE="origin/${{ github.base_ref }}"
+            git fetch --depth=1 origin "${{ github.base_ref }}" 2>/dev/null || true
+          fi
+
+          CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null || echo "UNKNOWN")
+
+          if [ "$CHANGED" = "UNKNOWN" ]; then
+            echo "firebase=true" >> $GITHUB_OUTPUT
+            echo "Could not determine changes, running all checks"
+            exit 0
+          fi
+
+          if echo "$CHANGED" | grep -qE '^(FirebaseServer/|\.github/workflows/firebase-ci\.yml)'; then
+            echo "firebase=true" >> $GITHUB_OUTPUT
+            echo "Firebase files changed:"
+            echo "$CHANGED" | grep -E '^(FirebaseServer/|\.github/workflows/firebase-ci\.yml)'
+          else
+            echo "firebase=false" >> $GITHUB_OUTPUT
+            echo "No Firebase files changed. Changed files:"
+            echo "$CHANGED"
+          fi
+
   test:
     name: Run Unit Tests
+    needs: changes
+    if: needs.changes.outputs.firebase == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: set up Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -29,3 +66,20 @@ jobs:
       - name: Run Unit Tests
         working-directory: FirebaseServer
         run: npm run tests
+
+  # Gate job — required status check for Firebase.
+  firebase-ci-complete:
+    name: Firebase CI Complete
+    if: always()
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          echo "Tests: ${{ needs.test.result }}"
+          if [[ "${{ needs.test.result }}" == "failure" || \
+                "${{ needs.test.result }}" == "cancelled" ]]; then
+            echo "::error::Firebase CI failed"
+            exit 1
+          fi
+          echo "Firebase CI passed (or skipped — no Firebase changes)"
