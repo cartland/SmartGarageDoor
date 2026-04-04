@@ -26,6 +26,7 @@ import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.LoadingResult
+import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.fcm.DoorFcmRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

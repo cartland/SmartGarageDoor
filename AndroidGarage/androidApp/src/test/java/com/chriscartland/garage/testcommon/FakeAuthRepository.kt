@@ -17,9 +17,9 @@
 
 package com.chriscartland.garage.testcommon
 
-import com.chriscartland.garage.auth.AuthRepository
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.GoogleIdToken
+import com.chriscartland.garage.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 

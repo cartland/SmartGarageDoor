@@ -17,9 +17,9 @@
 
 package com.chriscartland.garage.usecase
 
-import com.chriscartland.garage.auth.AuthRepository
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.FirebaseIdToken
+import com.chriscartland.garage.domain.repository.AuthRepository
 import javax.inject.Inject
 
 /**

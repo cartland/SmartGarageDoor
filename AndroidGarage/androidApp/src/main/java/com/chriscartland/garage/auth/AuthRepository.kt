@@ -26,6 +26,7 @@ import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.User
+import com.chriscartland.garage.domain.repository.AuthRepository
 import com.google.firebase.Firebase
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
@@ -45,16 +46,6 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 const val RC_ONE_TAP_SIGN_IN = 1
-
-interface AuthRepository {
-    val authState: StateFlow<AuthState>
-
-    suspend fun signInWithGoogle(idToken: GoogleIdToken): AuthState
-
-    suspend fun refreshFirebaseAuthState(): AuthState
-
-    suspend fun signOut()
-}
 
 class AuthRepositoryImpl
     @Inject
