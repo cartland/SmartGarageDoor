@@ -32,13 +32,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.settings.AppSettingsViewModel
-import com.chriscartland.garage.settings.AppSettingsViewModelImpl
 
 @Composable
 fun UserInfoCard(
@@ -46,9 +46,10 @@ fun UserInfoCard(
     modifier: Modifier = Modifier,
     signIn: () -> Unit = {},
     signOut: () -> Unit = {},
-    settingsViewModel: AppSettingsViewModel = hiltViewModel<AppSettingsViewModelImpl>(),
     colors: CardColors = CardDefaults.cardColors(),
 ) {
+    val component = rememberAppComponent()
+    val settingsViewModel: AppSettingsViewModel = viewModel { component.appSettingsViewModel }
     val startUserCardExpanded by settingsViewModel.profileUserCardExpanded.collectAsState()
     UserInfoCard(
         user = user,
