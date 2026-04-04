@@ -140,3 +140,29 @@ ViewModels depend on UseCases, not Repositories directly. Each UseCase has a sin
 - Gallery updates are explicit (regenerate + commit)
 - No flaky CI from font rendering differences across environments
 - Requires disciplined preview authoring (deterministic data)
+
+## ADR-008: Parsing Objects Over Generic Extension Functions
+
+**Status:** Accepted
+
+**Context:** The codebase has extension functions on generic types like `Map<K, V>.asDoorEvent()` for parsing FCM payloads and network responses. These pollute autocomplete, make failure modes unclear, and create implicit coupling between unrelated types.
+
+**Decision:** Prefer parser objects with explicit function signatures over extension functions on generic receiver types. Group related parsing functions in an `object {}` rather than bare top-level functions.
+
+**Example — current (avoid):**
+```kotlin
+private fun <K, V> Map<K, V>.asDoorEvent(): DoorEvent? { ... }
+```
+
+**Example — preferred:**
+```kotlin
+object FcmPayloadParser {
+    fun parseDoorEvent(data: Map<String, String>): DoorEvent? { ... }
+}
+```
+
+**Consequences:**
+- Parsing logic is discoverable via the parser object, not hidden on generic types
+- Function signatures are explicit about expected input types (`Map<String, String>` not `Map<K, V>`)
+- Failure modes are clear at the call site
+- Migrate existing code only when safe — especially FCM-related code where silent breakage is the biggest risk
