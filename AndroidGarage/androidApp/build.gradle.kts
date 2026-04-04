@@ -261,10 +261,13 @@ dependencies {
     implementation(libs.squareup.retrofit.moshi.converter)
     implementation(libs.okhttpLoggingInterceptor)
     ksp(libs.squareup.moshi.kotlin.codegen)
-    // Hilt
+    // Hilt (being migrated to kotlin-inject — see docs/DI-MIGRATION.md)
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
     ksp(libs.hilt.compiler)
+    // kotlin-inject
+    implementation(libs.kotlin.inject.runtime)
+    ksp(libs.kotlin.inject.compiler)
     // Room
     implementation(libs.androidx.room.common)
     implementation(libs.androidx.room.ktx)
