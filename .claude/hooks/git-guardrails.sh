@@ -71,10 +71,10 @@ if echo "$STRIPPED" | grep -qE '\bgit\s+push\b'; then
   fi
 fi
 
-# --- Block tag creation (use ./scripts/release-android.sh instead) ---
+# --- Block tag creation (use release scripts instead) ---
 if echo "$STRIPPED" | grep -qE '\bgit\s+tag\b'; then
   if ! echo "$STRIPPED" | grep -qE '\bgit\s+tag\b.*(-l\b|--list\b)'; then
-    deny "BLOCKED: Never create or push tags directly. Use ./scripts/release-android.sh for releases. Use git tag -l to list tags."
+    deny "BLOCKED: Never create or push tags directly. Use ./scripts/release-android.sh or ./scripts/release-firebase.sh for releases. Use git tag -l to list tags."
   fi
 fi
 

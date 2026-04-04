@@ -1,15 +1,45 @@
 name: Deploy Firebase Server
 
+# Triggered by server/N tags only — never on push to main.
+# To deploy: push a tag like server/1, server/2, etc.
 on:
-  workflow_dispatch:
+  push:
+    tags:
+      - 'server/[0-9]*'
 
 jobs:
+  verify-ci:
+    name: Verify Firebase CI Passed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify CI passed on tagged commit
+        run: |
+          TAG_SHA="${GITHUB_SHA}"
+          echo "Checking Firebase CI status for commit $TAG_SHA..."
+
+          TESTS_CONCLUSION=$(gh api "repos/${{ github.repository }}/commits/$TAG_SHA/check-runs" \
+            --jq '[.check_runs[] | select(.name == "Run Unit Tests" and .app.slug == "github-actions")] | last | .conclusion')
+
+          echo "Firebase Tests: $TESTS_CONCLUSION"
+
+          if [ "$TESTS_CONCLUSION" != "success" ]; then
+            echo "::error::Firebase tests concluded '$TESTS_CONCLUSION', expected 'success'"
+            exit 1
+          fi
+
+          echo "Firebase CI passed on commit $TAG_SHA"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   deploy:
     name: Deploy to Firebase
+    needs: verify-ci
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: set up Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -24,8 +54,7 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: 'google-github-actions/auth@v2'
         with:
-          credentials_json: '${{ secrets.FIRE"
-"BASE_SERVICE_ACCOUNT }}'
+          credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
       - name: Deploy to Firebase
         run: firebase deploy --only functions --project "${{ secrets.FIREBASE_PROJECT_ID }}"
         working-directory: FirebaseServer
