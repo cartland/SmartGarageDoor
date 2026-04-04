@@ -15,8 +15,8 @@
 
 - **~90 unit tests** across ViewModels, Repositories, pure functions, and JSON parsing
 - **CI checks:** unit tests (3 build variants), Spotless formatting, Android Lint, debug APK build, release AAB build
-- **Completed:** Phase 1 (CI hardening), Phase 2 (network error tests), Phase 4.1 (timeout edge cases), Phase 5.2-5.3 (release safety)
-- **Remaining:** Phase 3 (auth token tests — needs refactor), Phase 5.1 (ProGuard smoke test), Phase 6 (Firebase server)
+- **Completed:** Phase 1 (CI hardening), Phase 2 (network error tests), Phase 3.2 (token expiry via UseCase), Phase 4 (state machine completeness), Phase 5.2-5.3 (release safety)
+- **Remaining:** Phase 3.1 (auth token refresh — needs Firebase wrapper refactor), Phase 5.1 (ProGuard smoke test), Phase 6 (Firebase server)
 
 ---
 
@@ -107,15 +107,14 @@ Already done (8 tests in PR #11). Covers caching, all null-validation branches, 
 
 **Files:** New `AuthRepositoryTest.kt`, possibly new `FirebaseAuthWrapper` interface
 
-### 3.2 Token Expiry in RemoteButtonViewModel
+### 3.2 Token Expiry in RemoteButtonViewModel — COMPLETE (PR #48)
 
-`ensureFreshIdToken()` checks `idToken.exp > System.currentTimeMillis()`. If the token expires between the check and the network call, the push fails silently.
-
-**Tests to write:**
-- Push with expired token → verify token refresh is triggered
-- Push with token that expires during request → verify retry or error (not silent failure)
-
-**Files:** Add to existing `RemoteButtonViewModelTest.kt`
+Token refresh logic extracted into `EnsureFreshIdTokenUseCase` with 6 tests in `EnsureFreshIdTokenUseCaseTest`:
+- Cached token returned when not expired
+- Token refreshed when expired (exact boundary tested)
+- Fallback to cached token when refresh returns Unauthenticated
+- Fallback to cached token when refresh returns Unknown
+- No refresh when token has large margin
 
 ---
 
@@ -123,16 +122,14 @@ Already done (8 tests in PR #11). Covers caching, all null-validation branches, 
 
 The RemoteButton timeout state machine has 6 states and 10-second delays between transitions. Basic transitions are tested; edge cases are not.
 
-### 4.1 Timeout Edge Cases (partially done in PR #11)
+### 4.1 Timeout Edge Cases — COMPLETE
 
-Already covered: SENDING→SENDING_TIMEOUT, SENT→SENT_TIMEOUT, RECEIVED→NONE, timeout cancellation on door movement.
-
-**Still needed:**
-- Reset during timeout → verify timeout is cancelled, state is NONE
-- Rapid state changes (SENDING→SENT→RECEIVED within 100ms) → verify only final timeout is active
-- Multiple door position changes during SENT → verify state stays RECEIVED (not oscillating)
-
-**Files:** Add to `RemoteButtonViewModelTest.kt`
+All state machine edge cases covered in `RemoteButtonViewModelTest.kt`:
+- SENDING→SENDING_TIMEOUT, SENT→SENT_TIMEOUT, RECEIVED→NONE
+- Timeout cancellation on door movement
+- Reset during timeout → timeout cancelled, state is NONE
+- Rapid state changes (SENDING→SENT→RECEIVED) → only final timeout active
+- Multiple door position changes during SENT → state stays RECEIVED (not oscillating)
 
 ---
 
