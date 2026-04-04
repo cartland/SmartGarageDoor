@@ -11,7 +11,6 @@ import org.junit.Test
  * This test catches accidental renames.
  */
 class DoorPositionTest {
-
     @Test
     fun serverStringsMatchExpectedValues() {
         val expected = listOf(

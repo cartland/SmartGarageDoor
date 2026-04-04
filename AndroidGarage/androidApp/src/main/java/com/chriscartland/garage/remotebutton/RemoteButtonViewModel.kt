@@ -25,6 +25,7 @@ import com.chriscartland.garage.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.FirebaseIdToken
+import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.RequestStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.door.DoorRepository
