@@ -17,8 +17,8 @@
 
 package com.chriscartland.garage.testcommon
 
-import com.chriscartland.garage.door.DoorEvent
-import com.chriscartland.garage.door.DoorPosition
+import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.door.DoorRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

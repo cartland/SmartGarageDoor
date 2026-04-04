@@ -23,7 +23,6 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.chriscartland.garage.applogger.AppLoggerDao
 import com.chriscartland.garage.applogger.model.AppEvent
-import com.chriscartland.garage.door.DoorEvent
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,7 +32,7 @@ import javax.inject.Singleton
 
 @Database(
     entities = [
-        DoorEvent::class,
+        DoorEventEntity::class,
         AppEvent::class,
     ],
     version = 11,

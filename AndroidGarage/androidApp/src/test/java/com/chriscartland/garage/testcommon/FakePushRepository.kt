@@ -17,11 +17,11 @@
 
 package com.chriscartland.garage.testcommon
 
+import com.chriscartland.garage.domain.model.PushStatus
+import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.internet.IdToken
 import com.chriscartland.garage.internet.SnoozeEventTimestampParameter
 import com.chriscartland.garage.remotebutton.PushRepository
-import com.chriscartland.garage.remotebutton.PushStatus
-import com.chriscartland.garage.remotebutton.SnoozeRequestStatus
 import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

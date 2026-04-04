@@ -20,9 +20,13 @@ package com.chriscartland.garage.door
 import android.app.Activity
 import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.coroutines.TestDispatcherProvider
+import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorFcmState
+import com.chriscartland.garage.domain.model.DoorFcmTopic
+import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.domain.model.FcmRegistrationStatus
+import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.fcm.DoorFcmRepository
-import com.chriscartland.garage.fcm.DoorFcmState
-import com.chriscartland.garage.fcm.DoorFcmTopic
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow

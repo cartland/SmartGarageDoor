@@ -39,10 +39,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.config.AppLoggerKeys
-import com.chriscartland.garage.door.DoorEvent
+import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.door.DoorViewModel
 import com.chriscartland.garage.door.DoorViewModelImpl
-import com.chriscartland.garage.door.LoadingResult
 import java.time.Instant
 
 @Composable

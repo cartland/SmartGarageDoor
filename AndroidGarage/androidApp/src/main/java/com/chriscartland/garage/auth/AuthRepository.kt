@@ -20,6 +20,12 @@ package com.chriscartland.garage.auth
 import android.util.Log
 import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.config.AppLoggerKeys
+import com.chriscartland.garage.domain.model.AuthState
+import com.chriscartland.garage.domain.model.DisplayName
+import com.chriscartland.garage.domain.model.Email
+import com.chriscartland.garage.domain.model.FirebaseIdToken
+import com.chriscartland.garage.domain.model.GoogleIdToken
+import com.chriscartland.garage.domain.model.User
 import com.google.firebase.Firebase
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth

@@ -20,6 +20,8 @@ package com.chriscartland.garage.door
 import com.chriscartland.garage.config.ServerConfigRepository
 import com.chriscartland.garage.config.model.ServerConfig
 import com.chriscartland.garage.db.LocalDoorDataSource
+import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.internet.CurrentEventDataResponse
 import com.chriscartland.garage.internet.GarageNetworkService
 import com.chriscartland.garage.internet.RecentEventDataResponse

@@ -21,6 +21,8 @@ import android.app.Activity
 import android.util.Log
 import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.config.AppLoggerKeys
+import com.chriscartland.garage.domain.model.DoorFcmState
+import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.settings.AppSettings
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.ktx.messaging

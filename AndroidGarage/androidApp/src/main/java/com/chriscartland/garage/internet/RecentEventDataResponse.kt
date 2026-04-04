@@ -17,8 +17,8 @@
 
 package com.chriscartland.garage.internet
 
-import com.chriscartland.garage.door.DoorEvent
-import com.chriscartland.garage.door.DoorPosition
+import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorPosition
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 

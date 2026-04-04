@@ -17,6 +17,9 @@
 
 package com.chriscartland.garage.door
 
+import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.domain.model.LoadingResult
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

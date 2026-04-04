@@ -18,10 +18,13 @@
 package com.chriscartland.garage.remotebutton
 
 import com.chriscartland.garage.auth.AuthRepository
-import com.chriscartland.garage.auth.AuthState
 import com.chriscartland.garage.coroutines.TestDispatcherProvider
-import com.chriscartland.garage.door.DoorEvent
-import com.chriscartland.garage.door.DoorPosition
+import com.chriscartland.garage.domain.model.AuthState
+import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.domain.model.PushStatus
+import com.chriscartland.garage.domain.model.RequestStatus
+import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.door.DoorRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
