@@ -47,7 +47,7 @@ class FcmPayloadParsingTest {
     @Test
     fun validPayloadParsesCorrectly() {
         val payload = makePayload()
-        val event = payload.asDoorEvent()
+        val event = FcmPayloadParser.parseDoorEvent(payload)
 
         assertNotNull("Valid payload should parse to DoorEvent", event)
         assertEquals(DoorPosition.CLOSED, event!!.doorPosition)
@@ -60,7 +60,7 @@ class FcmPayloadParsingTest {
     fun allDoorPositionsParse() {
         DoorPosition.entries.forEach { position ->
             val payload = makePayload(type = position.name)
-            val event = payload.asDoorEvent()
+            val event = FcmPayloadParser.parseDoorEvent(payload)
             assertNotNull("Position ${position.name} should parse", event)
             assertEquals(position, event!!.doorPosition)
         }
@@ -69,7 +69,7 @@ class FcmPayloadParsingTest {
     @Test
     fun unknownTypeParsesAsUnknown() {
         val payload = makePayload(type = "NEVER_SEEN_BEFORE")
-        val event = payload.asDoorEvent()
+        val event = FcmPayloadParser.parseDoorEvent(payload)
         assertNotNull("Unknown type should still parse", event)
         assertEquals(DoorPosition.UNKNOWN, event!!.doorPosition)
     }
@@ -77,25 +77,25 @@ class FcmPayloadParsingTest {
     @Test
     fun missingTypeReturnsNull() {
         val payload = makePayload(type = null)
-        assertNull("Missing 'type' key should return null", payload.asDoorEvent())
+        assertNull("Missing 'type' key should return null", FcmPayloadParser.parseDoorEvent(payload))
     }
 
     @Test
     fun missingTimestampReturnsNull() {
         val payload = makePayload(timestampSeconds = null)
-        assertNull("Missing 'timestampSeconds' should return null", payload.asDoorEvent())
+        assertNull("Missing 'timestampSeconds' should return null", FcmPayloadParser.parseDoorEvent(payload))
     }
 
     @Test
     fun missingCheckInTimestampReturnsNull() {
         val payload = makePayload(checkInTimestampSeconds = null)
-        assertNull("Missing 'checkInTimestampSeconds' should return null", payload.asDoorEvent())
+        assertNull("Missing 'checkInTimestampSeconds' should return null", FcmPayloadParser.parseDoorEvent(payload))
     }
 
     @Test
     fun missingMessageDefaultsToEmpty() {
         val payload = makePayload(message = null)
-        val event = payload.asDoorEvent()
+        val event = FcmPayloadParser.parseDoorEvent(payload)
         assertNotNull(event)
         assertEquals("", event!!.message)
     }
@@ -103,13 +103,13 @@ class FcmPayloadParsingTest {
     @Test
     fun nonNumericTimestampReturnsNull() {
         val payload = makePayload(timestampSeconds = "not-a-number")
-        assertNull("Non-numeric timestamp should return null", payload.asDoorEvent())
+        assertNull("Non-numeric timestamp should return null", FcmPayloadParser.parseDoorEvent(payload))
     }
 
     @Test
     fun emptyPayloadReturnsNull() {
         val payload = emptyMap<String, String>()
-        assertNull("Empty payload should return null", payload.asDoorEvent())
+        assertNull("Empty payload should return null", FcmPayloadParser.parseDoorEvent(payload))
     }
 
     @Test
@@ -122,7 +122,7 @@ class FcmPayloadParsingTest {
             "timestampSeconds" to "1710000000",
             "checkInTimestampSeconds" to "1710000060",
         )
-        val event = payload.asDoorEvent()
+        val event = FcmPayloadParser.parseDoorEvent(payload)
         assertNotNull("Real server payload must parse successfully", event)
         assertEquals(DoorPosition.OPEN, event!!.doorPosition)
         assertEquals("The door is open.", event.message)
