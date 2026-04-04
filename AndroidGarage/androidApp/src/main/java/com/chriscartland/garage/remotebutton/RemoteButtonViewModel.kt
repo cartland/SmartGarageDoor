@@ -31,8 +31,8 @@ import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.PushRepository
 import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
 import com.chriscartland.garage.snoozenotifications.toServer
-import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
+import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -74,8 +74,8 @@ class RemoteButtonViewModelImpl
         // Watch the door status, because we consider the request delivered when the door moves.
         private val doorRepository: DoorRepository,
         private val dispatchers: DispatcherProvider,
-        private val ensureFreshIdToken: EnsureFreshIdTokenUseCase,
         private val pushRemoteButtonUseCase: PushRemoteButtonUseCase,
+        private val snoozeNotificationsUseCase: SnoozeNotificationsUseCase,
     ) : ViewModel(),
         RemoteButtonViewModel {
         // Listen to network events and door status updates.
@@ -306,24 +306,15 @@ class RemoteButtonViewModelImpl
         ) {
             Log.d(TAG, "snoozeOpenDoorsNotifications")
             viewModelScope.launch(dispatchers.io) {
-                val authState = authRepository.authState.value
-                if (authState !is AuthState.Authenticated) {
-                    Log.e(TAG, "Not authenticated: $authState")
-                    return@launch
-                }
-                val idToken = ensureFreshIdToken(authRepository, authState)
-                Log.d(TAG, "snoozeOpenDoorsNotifications: Snoozing: $snoozeDuration")
-
-                val lastChangeTimeSeconds = currentDoorEvent.value?.lastChangeTimeSeconds
-                if (lastChangeTimeSeconds == null) {
-                    Log.e(TAG, "lastChangeTimeSeconds is null -- cannot snooze")
-                    return@launch
-                }
-                pushRepository.snoozeOpenDoorsNotifications(
+                val result = snoozeNotificationsUseCase(
+                    authRepository = authRepository,
+                    pushRepository = pushRepository,
                     snoozeDurationHours = snoozeDuration.toServer().duration,
-                    idToken = idToken.asString(),
-                    snoozeEventTimestampSeconds = lastChangeTimeSeconds,
+                    lastChangeTimeSeconds = currentDoorEvent.value?.lastChangeTimeSeconds,
                 )
+                if (!result) {
+                    Log.e(TAG, "Snooze failed — not authenticated or no door event")
+                }
             }
         }
 
