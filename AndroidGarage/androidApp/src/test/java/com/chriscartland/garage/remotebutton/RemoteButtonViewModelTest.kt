@@ -26,6 +26,7 @@ import com.chriscartland.garage.domain.model.RequestStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
+import com.chriscartland.garage.domain.repository.PushRepository
 import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
