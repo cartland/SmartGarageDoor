@@ -69,11 +69,14 @@ idf.py menuconfig      # Enable fake implementations for testing
 - All business logic (event interpretation, notifications, error detection) lives on server
 - Enables feature updates without client changes
 
-### Android MVVM + Repository
-- ViewModels: `DoorViewModel`, `AuthViewModel`, `RemoteButtonViewModel`
-- Repositories: `DoorRepository`, `AuthRepository`, `PushRepository`
-- Local storage: Room database with offline-first caching
-- Network: Retrofit + Moshi for API communication
+### Android Clean Architecture
+- **Domain module** (`domain/`): Pure Kotlin types and repository interfaces — no Android deps
+- **Data module** (`data/`): Pure Kotlin data source interfaces (`LocalDoorDataSource`, `NetworkDoorDataSource`, etc.) — abstracts Room/Retrofit
+- **UseCases** (`androidApp/usecase/`): Business logic extracted from ViewModels
+- **ViewModels**: `DoorViewModel`, `AuthViewModel`, `RemoteButtonViewModel` — delegate to UseCases
+- **Repositories**: `DoorRepository`, `AuthRepository`, `PushRepository` — implement domain interfaces, depend on data interfaces
+- **Local storage**: Room database with offline-first caching
+- **Network**: Retrofit + Moshi for API communication
 
 ### ESP32 Component Architecture
 ```
