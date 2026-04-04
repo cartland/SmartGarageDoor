@@ -16,7 +16,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 
-import * as functions from 'firebase-functions';
+import * as functions from 'firebase-functions/v1';
 
 import { DATABASE as SensorEventDatabase } from '../../database/SensorEventDatabase';
 

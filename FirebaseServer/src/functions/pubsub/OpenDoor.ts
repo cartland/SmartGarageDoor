@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import * as functions from 'firebase-functions';
+import * as functions from 'firebase-functions/v1';
 
 import { sendFCMForOldData } from '../../controller/fcm/OldDataFCM';
 import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
