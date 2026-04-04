@@ -116,6 +116,14 @@ if [ "$MODE" = "check" ]; then
     echo "Next tag:   $NEW_TAG"
     echo "Branch:     $CURRENT_BRANCH"
     echo "Commit:     $CURRENT_COMMIT_SHORT"
+    if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+        echo -e "${RED}WARNING: Uncommitted changes${RESET}"
+    fi
+    UNTRACKED_CHECK=$(git ls-files --others --exclude-standard 2>/dev/null)
+    if [ -n "$UNTRACKED_CHECK" ]; then
+        UNTRACKED_COUNT=$(echo "$UNTRACKED_CHECK" | wc -l | tr -d ' ')
+        echo -e "${YELLOW}WARNING: $UNTRACKED_COUNT untracked file(s)${RESET}"
+    fi
     exit 0
 fi
 
@@ -135,11 +143,33 @@ fi
 echo -e "${BOLD}=== Android Release ===${RESET}"
 echo ""
 
-# Check clean working tree
+# Check clean working tree (tracked files)
 if ! git diff-index --quiet HEAD --; then
     echo -e "${RED}Error: Working tree has uncommitted changes.${RESET}"
     echo "Commit or stash changes before releasing."
     exit 1
+fi
+
+# Warn on untracked files (could affect build)
+UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null)
+if [ -n "$UNTRACKED" ]; then
+    echo -e "${YELLOW}Warning: Untracked files detected:${RESET}"
+    echo "$UNTRACKED" | head -10
+    UNTRACKED_COUNT=$(echo "$UNTRACKED" | wc -l | tr -d ' ')
+    if [ "$UNTRACKED_COUNT" -gt 10 ]; then
+        echo "  ... and $((UNTRACKED_COUNT - 10)) more"
+    fi
+    echo ""
+    if [ "$MODE" = "interactive" ]; then
+        read -p "Continue with untracked files? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Aborted. Remove or .gitignore untracked files before releasing."
+            exit 1
+        fi
+    else
+        echo -e "${YELLOW}Non-interactive: proceeding with untracked files.${RESET}"
+    fi
 fi
 
 # Check CI status
