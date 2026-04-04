@@ -24,7 +24,6 @@ import com.chriscartland.garage.auth.AuthRepository
 import com.chriscartland.garage.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DoorEvent
-import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.RequestStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
@@ -32,6 +31,7 @@ import com.chriscartland.garage.door.DoorRepository
 import com.chriscartland.garage.internet.IdToken
 import com.chriscartland.garage.internet.SnoozeEventTimestampParameter
 import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
+import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -73,6 +73,7 @@ class RemoteButtonViewModelImpl
         // Watch the door status, because we consider the request delivered when the door moves.
         private val doorRepository: DoorRepository,
         private val dispatchers: DispatcherProvider,
+        private val ensureFreshIdToken: EnsureFreshIdTokenUseCase,
     ) : ViewModel(),
         RemoteButtonViewModel {
         // Listen to network events and door status updates.
@@ -323,29 +324,6 @@ class RemoteButtonViewModelImpl
                     idToken = IdToken(idToken.asString()),
                     snoozeEventTimestamp = SnoozeEventTimestampParameter(lastChangeTimeSeconds),
                 )
-            }
-        }
-
-        /**
-         * Ensure the ID token is fresh.
-         */
-        private suspend fun ensureFreshIdToken(
-            authRepository: AuthRepository,
-            authState: AuthState.Authenticated,
-        ): FirebaseIdToken {
-            Log.d(TAG, "refreshIdToken")
-            return if (authState.user.idToken.exp > System.currentTimeMillis()) {
-                Log.d(TAG, "freshIdToken: Using cached token")
-                authState.user.idToken
-            } else {
-                val newAuthState = authRepository.refreshFirebaseAuthState()
-                if (newAuthState !is AuthState.Authenticated) {
-                    Log.w(TAG, "freshIdToken: Not authenticated")
-                    authState.user.idToken
-                } else {
-                    Log.d(TAG, "freshIdToken: New token")
-                    newAuthState.user.idToken
-                }
             }
         }
 
