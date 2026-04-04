@@ -20,14 +20,14 @@ package com.chriscartland.garage.remotebutton
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.chriscartland.garage.auth.AuthRepository
 import com.chriscartland.garage.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.RequestStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
-import com.chriscartland.garage.door.DoorRepository
+import com.chriscartland.garage.domain.repository.AuthRepository
+import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.internet.IdToken
 import com.chriscartland.garage.internet.SnoozeEventTimestampParameter
 import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption

@@ -23,6 +23,7 @@ import com.chriscartland.garage.config.ServerConfigRepository
 import com.chriscartland.garage.db.LocalDoorDataSource
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.internet.GarageNetworkService
 import dagger.Binds
 import dagger.Module
@@ -32,23 +33,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
-
-interface DoorRepository {
-    // Only exposes the door position.
-    val currentDoorPosition: Flow<DoorPosition>
-
-    // Exposes the event, including last updated timestamps.
-    val currentDoorEvent: Flow<DoorEvent>
-    val recentDoorEvents: Flow<List<DoorEvent>>
-
-    suspend fun fetchBuildTimestampCached(): String?
-
-    fun insertDoorEvent(doorEvent: DoorEvent)
-
-    suspend fun fetchCurrentDoorEvent()
-
-    suspend fun fetchRecentDoorEvents()
-}
 
 class DoorRepositoryImpl
     @Inject
