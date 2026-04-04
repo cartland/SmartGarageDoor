@@ -111,7 +111,7 @@ class FCMService : FirebaseMessagingService() {
 /**
  * Extract DoorEvent from Firebase RemoteMessage data payload.
  */
-private fun <K, V> Map<K, V>.asDoorEvent(): DoorEvent? {
+internal fun <K, V> Map<K, V>.asDoorEvent(): DoorEvent? {
     try {
         val currentEvent = this as? Map<*, *> ?: return null // Required
         val type = currentEvent["type"] as? String ?: return null // Required
