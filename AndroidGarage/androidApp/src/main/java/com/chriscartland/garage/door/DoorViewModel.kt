@@ -33,6 +33,8 @@ import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.fcm.DoorFcmRepository
 import com.chriscartland.garage.fcm.toFcmTopic
+import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
+import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -63,6 +65,8 @@ class DoorViewModelImpl
         private val doorRepository: DoorRepository,
         private val doorFcmRepository: DoorFcmRepository,
         private val dispatchers: DispatcherProvider,
+        private val fetchCurrentDoorEventUseCase: FetchCurrentDoorEventUseCase,
+        private val fetchRecentDoorEventsUseCase: FetchRecentDoorEventsUseCase,
     ) : ViewModel(),
         DoorViewModel {
         private val _fcmRegistrationStatus =
@@ -163,7 +167,7 @@ class DoorViewModelImpl
             Log.d(TAG, "fetchCurrentDoorEvent")
             viewModelScope.launch(dispatchers.io) {
                 _currentDoorEvent.value = LoadingResult.Loading(_currentDoorEvent.value.data)
-                doorRepository.fetchCurrentDoorEvent()
+                fetchCurrentDoorEventUseCase()
             }
         }
 
@@ -171,7 +175,7 @@ class DoorViewModelImpl
             Log.d(TAG, "fetchRecentDoorEvents")
             viewModelScope.launch(dispatchers.io) {
                 _recentDoorEvents.value = LoadingResult.Loading(_recentDoorEvents.value.data)
-                doorRepository.fetchRecentDoorEvents()
+                fetchRecentDoorEventsUseCase()
             }
         }
     }
