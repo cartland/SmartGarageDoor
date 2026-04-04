@@ -16,14 +16,17 @@ pass() { echo -e "${GREEN}PASS${RESET} $1"; }
 fail() { echo -e "${RED}FAIL${RESET} $1"; exit 1; }
 step() { echo -e "\n${BOLD}--- $1 ---${RESET}"; }
 
-step "Spotless (formatting)"
-$GRADLE :androidApp:spotlessCheck && pass "spotlessCheck" || fail "spotlessCheck"
+step "Spotless (formatting — all modules)"
+$GRADLE spotlessCheck && pass "spotlessCheck" || fail "spotlessCheck"
 
 step "Detekt (static analysis)"
 $GRADLE :androidApp:detekt && pass "detekt" || fail "detekt"
 
 step "Android Lint"
 $GRADLE :androidApp:lint && pass "lint" || fail "lint"
+
+step "Domain module tests"
+$GRADLE :domain:test && pass "domain:test" || fail "domain:test"
 
 step "Unit Tests (debug)"
 $GRADLE :androidApp:testDebugUnitTest && pass "testDebugUnitTest" || fail "testDebugUnitTest"
