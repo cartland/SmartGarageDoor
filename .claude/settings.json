@@ -47,6 +47,10 @@
           {
             "type": "command",
             "command": ".claude/hooks/warn-shell-loops.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/warn-command-substitution.sh"
           }
         ]
       }
