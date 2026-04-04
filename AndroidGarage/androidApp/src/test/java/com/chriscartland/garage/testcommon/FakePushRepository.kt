@@ -19,10 +19,7 @@ package com.chriscartland.garage.testcommon
 
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
-import com.chriscartland.garage.internet.IdToken
-import com.chriscartland.garage.internet.SnoozeEventTimestampParameter
 import com.chriscartland.garage.remotebutton.PushRepository
-import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -38,7 +35,7 @@ class FakePushRepository : PushRepository {
 
     var pushCount = 0
         private set
-    var lastIdToken: IdToken? = null
+    var lastIdToken: String? = null
         private set
     var snoozeCount = 0
         private set
@@ -56,7 +53,7 @@ class FakePushRepository : PushRepository {
     }
 
     override suspend fun push(
-        idToken: IdToken,
+        idToken: String,
         buttonAckToken: String,
     ) {
         pushCount++
@@ -70,9 +67,9 @@ class FakePushRepository : PushRepository {
     }
 
     override suspend fun snoozeOpenDoorsNotifications(
-        snoozeDuration: SnoozeDurationUIOption,
-        idToken: IdToken,
-        snoozeEventTimestamp: SnoozeEventTimestampParameter,
+        snoozeDurationHours: String,
+        idToken: String,
+        snoozeEventTimestampSeconds: Long,
     ) {
         snoozeCount++
         _snoozeRequestStatus.value = SnoozeRequestStatus.SENDING

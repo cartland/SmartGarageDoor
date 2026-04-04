@@ -21,7 +21,6 @@ import com.chriscartland.garage.config.ServerConfigRepository
 import com.chriscartland.garage.config.model.ServerConfig
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
-import com.chriscartland.garage.internet.IdToken
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -68,7 +67,7 @@ class PushRepositoryTest {
         runTest {
             `when`(serverConfigRepository.getServerConfigCached()).thenReturn(null)
 
-            repo.push(IdToken("token"), "ack-token")
+            repo.push("token", "ack-token")
 
             // Should reset to IDLE, not stay stuck in SENDING
             assertEquals(PushStatus.IDLE, repo.pushButtonStatus.value)
@@ -80,10 +79,9 @@ class PushRepositoryTest {
             `when`(serverConfigRepository.getServerConfigCached()).thenReturn(null)
 
             repo.snoozeOpenDoorsNotifications(
-                com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption.OneHour,
-                IdToken("token"),
-                com.chriscartland.garage.internet
-                    .SnoozeEventTimestampParameter(1000L),
+                snoozeDurationHours = "1h",
+                idToken = "token",
+                snoozeEventTimestampSeconds = 1000L,
             )
 
             // Should reset to IDLE, not stay stuck in SENDING

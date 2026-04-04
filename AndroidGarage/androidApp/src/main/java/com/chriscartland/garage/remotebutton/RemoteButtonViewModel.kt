@@ -28,9 +28,8 @@ import com.chriscartland.garage.domain.model.RequestStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
-import com.chriscartland.garage.internet.IdToken
-import com.chriscartland.garage.internet.SnoozeEventTimestampParameter
 import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
+import com.chriscartland.garage.snoozenotifications.toServer
 import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
 import dagger.Binds
 import dagger.Module
@@ -294,7 +293,7 @@ class RemoteButtonViewModelImpl
                 val idToken = ensureFreshIdToken(authRepository, authState)
                 Log.d(TAG, "pushRemoteButton: Pushing remote button: $idToken")
                 pushRepository.push(
-                    idToken = IdToken(idToken.asString()),
+                    idToken = idToken.asString(),
                     buttonAckToken = createButtonAckToken(Date()),
                 )
             }
@@ -320,9 +319,9 @@ class RemoteButtonViewModelImpl
                     return@launch
                 }
                 pushRepository.snoozeOpenDoorsNotifications(
-                    snoozeDuration = snoozeDuration,
-                    idToken = IdToken(idToken.asString()),
-                    snoozeEventTimestamp = SnoozeEventTimestampParameter(lastChangeTimeSeconds),
+                    snoozeDurationHours = snoozeDuration.toServer().duration,
+                    idToken = idToken.asString(),
+                    snoozeEventTimestampSeconds = lastChangeTimeSeconds,
                 )
             }
         }
