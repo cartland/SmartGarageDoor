@@ -43,11 +43,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.auth.AuthViewModel
-import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.config.AppLoggerKeys
+import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.LoadingResult
@@ -69,10 +70,11 @@ import java.time.Instant
 fun HomeContent(
     modifier: Modifier = Modifier,
     viewModel: DoorViewModel = hiltViewModel<DoorViewModelImpl>(),
-    authViewModel: AuthViewModel = hiltViewModel<AuthViewModelImpl>(),
     buttonViewModel: RemoteButtonViewModel = hiltViewModel<RemoteButtonViewModelImpl>(),
     appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>(),
 ) {
+    val component = rememberAppComponent()
+    val authViewModel: AuthViewModel = viewModel { component.authViewModel }
     val activity = LocalActivity.current
     val currentDoorEvent by viewModel.currentDoorEvent.collectAsState()
     val buttonRequestStatus by buttonViewModel.requestStatus.collectAsState()

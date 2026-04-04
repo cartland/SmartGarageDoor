@@ -18,6 +18,14 @@
 package com.chriscartland.garage.di
 
 import android.app.Application
+import com.chriscartland.garage.applogger.AppLoggerRepository
+import com.chriscartland.garage.applogger.AppLoggerRepositoryImpl
+import com.chriscartland.garage.auth.AuthRepositoryImpl
+import com.chriscartland.garage.auth.AuthViewModelImpl
+import com.chriscartland.garage.coroutines.DefaultDispatcherProvider
+import com.chriscartland.garage.coroutines.DispatcherProvider
+import com.chriscartland.garage.db.AppDatabase
+import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.settings.AppSettings
 import com.chriscartland.garage.settings.AppSettingsImpl
 import com.chriscartland.garage.settings.AppSettingsViewModelImpl
@@ -35,9 +43,31 @@ import me.tatarka.inject.annotations.Provides
 abstract class AppComponent(
     @get:Provides val application: Application,
 ) {
+    // ViewModels
     abstract val appSettingsViewModel: AppSettingsViewModelImpl
+    abstract val authViewModel: AuthViewModelImpl
 
+    // Settings
     @Provides
     @Singleton
     fun provideAppSettings(): AppSettings = AppSettingsImpl(application)
+
+    // Database
+    @Provides
+    @Singleton
+    fun provideAppDatabase(): AppDatabase = AppDatabase.getDatabase(application)
+
+    // Repositories
+    @Provides
+    @Singleton
+    fun provideAuthRepository(): AuthRepository = AuthRepositoryImpl(provideAppLoggerRepository())
+
+    @Provides
+    @Singleton
+    fun provideAppLoggerRepository(): AppLoggerRepository = AppLoggerRepositoryImpl(application.applicationContext, provideAppDatabase())
+
+    // Coroutines
+    @Provides
+    @Singleton
+    fun provideDispatcherProvider(): DispatcherProvider = DefaultDispatcherProvider()
 }
