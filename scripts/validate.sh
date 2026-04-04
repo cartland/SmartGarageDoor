@@ -40,6 +40,31 @@ $GRADLE :androidApp:testBenchmarkUnitTest && pass "testBenchmarkUnitTest" || fai
 step "Build Debug APK"
 $GRADLE :androidApp:assembleDebug && pass "assembleDebug" || fail "assembleDebug"
 
+step "Room schema drift check"
+# After compilation, Room KSP generates schema JSON files.
+# If they differ from what's committed, the schema changed without being tracked.
+SCHEMA_DIR="$REPO_ROOT/AndroidGarage/androidApp/schemas"
+if git diff --quiet -- "$SCHEMA_DIR" 2>/dev/null && \
+   [ -z "$(git ls-files --others --exclude-standard -- "$SCHEMA_DIR" 2>/dev/null)" ]; then
+    pass "Room schema unchanged"
+else
+    echo -e "${RED}FAIL${RESET} Room schema files changed after compilation!"
+    echo ""
+    echo "This means a Room entity or database definition was modified."
+    echo "You MUST increment the database version in AppDatabase.kt."
+    echo ""
+    echo "Changed schema files:"
+    git diff --name-only -- "$SCHEMA_DIR" 2>/dev/null
+    git ls-files --others --exclude-standard -- "$SCHEMA_DIR" 2>/dev/null
+    echo ""
+    echo "Steps to fix:"
+    echo "  1. Increment 'version' in @Database annotation (AppDatabase.kt)"
+    echo "  2. Run ./gradlew :androidApp:assembleDebug to regenerate schema"
+    echo "  3. Commit the new schema JSON file"
+    echo ""
+    fail "Room schema drift detected"
+fi
+
 # Record successful validation so git-guardrails hook knows we validated.
 git rev-parse HEAD > "$REPO_ROOT/.claude/.validation-passed"
 

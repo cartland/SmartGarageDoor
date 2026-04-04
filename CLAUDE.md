@@ -124,7 +124,22 @@ Firestore Functions: Event-driven processing on data changes
 ## Development Workflow
 
 ### Local Validation
-Run `./scripts/validate.sh` before pushing. It mirrors CI: spotless, lint, unit tests (3 variants), debug build. Writes a validation marker so the git-guardrails hook can warn on stale pushes.
+Run `./scripts/validate.sh` before pushing. It mirrors CI: spotless (all modules), lint, unit tests (3 variants), domain tests, debug build, and Room schema drift check. Writes a validation marker so the git-guardrails hook can warn on stale pushes.
+
+### Room Database Safety
+Room schema changes break at runtime (not compile time). The following safeguards are in place:
+
+1. **Schema drift check** in `validate.sh` — detects if compilation changed the exported schema JSON without it being committed
+2. **Guardrails hook** — warns when committing Room entity, DAO, or database files
+3. **Schema contract tests** (`RoomSchemaTest`) — verify column structure and enum values match expectations
+4. **Schema export** — `androidApp/schemas/` contains versioned JSON files tracked in git
+
+**When modifying Room entities or DAOs:**
+1. Make the change
+2. Increment `version` in `@Database` annotation (`AppDatabase.kt`)
+3. Run `./gradlew :androidApp:assembleDebug` to regenerate schema
+4. Commit the new schema JSON file alongside your code change
+5. `fallbackToDestructiveMigration` handles upgrades (users lose cached data, which is re-fetched from server)
 
 ### Releasing Android
 Use `./scripts/release-android.sh` — never create or push tags directly (hooks block `git tag`).
