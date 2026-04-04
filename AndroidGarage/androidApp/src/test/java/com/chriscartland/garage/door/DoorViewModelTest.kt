@@ -28,8 +28,11 @@ import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.fcm.DoorFcmRepository
+import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
+import com.chriscartland.garage.usecase.FetchFcmStatusUseCase
 import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
+import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -92,10 +95,12 @@ class DoorViewModelTest {
         val vm = DoorViewModelImpl(
             appLoggerRepository,
             doorRepository,
-            doorFcmRepository,
             TestDispatcherProvider(testDispatcher),
             FetchCurrentDoorEventUseCase(doorRepository),
             FetchRecentDoorEventsUseCase(doorRepository),
+            FetchFcmStatusUseCase(doorFcmRepository),
+            RegisterFcmUseCase(doorRepository, doorFcmRepository),
+            DeregisterFcmUseCase(doorFcmRepository),
         )
         testDispatcher.scheduler.runCurrent()
         return vm

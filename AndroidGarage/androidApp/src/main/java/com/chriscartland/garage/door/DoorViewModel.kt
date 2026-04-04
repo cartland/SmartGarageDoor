@@ -27,14 +27,14 @@ import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.config.FetchOnViewModelInit
 import com.chriscartland.garage.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.DoorEvent
-import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.repository.DoorRepository
-import com.chriscartland.garage.fcm.DoorFcmRepository
-import com.chriscartland.garage.fcm.toFcmTopic
+import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
+import com.chriscartland.garage.usecase.FetchFcmStatusUseCase
 import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
+import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -63,10 +63,12 @@ class DoorViewModelImpl
     constructor(
         private val appLoggerRepository: AppLoggerRepository,
         private val doorRepository: DoorRepository,
-        private val doorFcmRepository: DoorFcmRepository,
         private val dispatchers: DispatcherProvider,
         private val fetchCurrentDoorEventUseCase: FetchCurrentDoorEventUseCase,
         private val fetchRecentDoorEventsUseCase: FetchRecentDoorEventsUseCase,
+        private val fetchFcmStatusUseCase: FetchFcmStatusUseCase,
+        private val registerFcmUseCase: RegisterFcmUseCase,
+        private val deregisterFcmUseCase: DeregisterFcmUseCase,
     ) : ViewModel(),
         DoorViewModel {
         private val _fcmRegistrationStatus =
@@ -114,52 +116,25 @@ class DoorViewModelImpl
         override fun fetchFcmRegistrationStatus(activity: Activity) {
             Log.d(TAG, "fetchFcmRegistrationStatus")
             viewModelScope.launch(dispatchers.io) {
-                Log.d(TAG, "Fetching FCM registration status")
-                val status = doorFcmRepository.fetchStatus(activity)
-                Log.d(TAG, "Fetched FCM registration status: $status")
-                _fcmRegistrationStatus.value =
-                    when (status) {
-                        is DoorFcmState.Registered -> FcmRegistrationStatus.REGISTERED
-                        DoorFcmState.NotRegistered -> FcmRegistrationStatus.NOT_REGISTERED
-                        DoorFcmState.Unknown -> FcmRegistrationStatus.UNKNOWN
-                    }
+                _fcmRegistrationStatus.value = fetchFcmStatusUseCase(activity)
             }
         }
 
         override fun registerFcm(activity: Activity) {
             Log.d(TAG, "registerFcm")
             viewModelScope.launch(dispatchers.io) {
-                val buildTimestamp = doorRepository.fetchBuildTimestampCached()
-                if (buildTimestamp == null) {
-                    Log.e(TAG, "buildTimestamp is null, cannot register FCM")
-                    _fcmRegistrationStatus.value = FcmRegistrationStatus.NOT_REGISTERED
-                    return@launch
+                _fcmRegistrationStatus.value = registerFcmUseCase(activity).also {
+                    Log.d(TAG, "Updated FcmRegistrationStatus: $it")
                 }
-                Log.d(TAG, "Registering FCM for buildTimestamp: $buildTimestamp")
-                val result = doorFcmRepository.registerDoor(activity, buildTimestamp.toFcmTopic())
-                _fcmRegistrationStatus.value =
-                    when (result) {
-                        is DoorFcmState.Registered -> FcmRegistrationStatus.REGISTERED
-                        DoorFcmState.NotRegistered -> FcmRegistrationStatus.NOT_REGISTERED
-                        DoorFcmState.Unknown -> FcmRegistrationStatus.UNKNOWN
-                    }.also {
-                        Log.d(TAG, "Updated FcmRegistrationStatus: $it")
-                    }
             }
         }
 
         override fun deregisterFcm(activity: Activity) {
             Log.d(TAG, "deregisterFcm")
             viewModelScope.launch(dispatchers.io) {
-                val result = doorFcmRepository.deregisterDoor(activity)
-                _fcmRegistrationStatus.value =
-                    when (result) {
-                        is DoorFcmState.Registered -> FcmRegistrationStatus.REGISTERED
-                        DoorFcmState.NotRegistered -> FcmRegistrationStatus.NOT_REGISTERED
-                        DoorFcmState.Unknown -> FcmRegistrationStatus.UNKNOWN
-                    }.also {
-                        Log.d(TAG, "Updated FcmRegistrationStatus: $it")
-                    }
+                _fcmRegistrationStatus.value = deregisterFcmUseCase(activity).also {
+                    Log.d(TAG, "Updated FcmRegistrationStatus: $it")
+                }
             }
         }
 
