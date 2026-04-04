@@ -38,6 +38,22 @@ BRANCH=$(git branch --show-current)
 SHORT_SHA=$(git rev-parse --short HEAD)
 FULL_SHA=$(git rev-parse HEAD)
 
+# Check for existing tags on this commit.
+TAGS_ON_COMMIT=$(git tag -l 'server/[0-9]*' --points-at HEAD 2>/dev/null | sort -t/ -k2 -n)
+check_existing_tags() {
+    if [[ -n "$TAGS_ON_COMMIT" ]]; then
+        NEWEST_TAG_ON_COMMIT=$(echo "$TAGS_ON_COMMIT" | tail -1)
+        if [[ "$NEWEST_TAG_ON_COMMIT" == "$LATEST_TAG" ]]; then
+            echo "WARNING: This commit already has $LATEST_TAG."
+            echo "  Creating $NEXT_TAG on the same commit (version bump, no code change)."
+        else
+            echo "WARNING: This commit was previously released as: $TAGS_ON_COMMIT"
+            echo "  Latest tag $LATEST_TAG is on a different commit."
+            echo "  Creating $NEXT_TAG here (rollback/rollforward)."
+        fi
+    fi
+}
+
 # --- --check mode ---
 if [[ "${1:-}" == "--check" ]]; then
     echo "Latest tag: $LATEST_TAG"
@@ -52,6 +68,7 @@ if [[ "${1:-}" == "--check" ]]; then
         UNTRACKED_COUNT=$(echo "$UNTRACKED_CHECK" | wc -l | tr -d ' ')
         echo "WARNING: $UNTRACKED_COUNT untracked file(s)"
     fi
+    check_existing_tags
     exit 0
 fi
 
@@ -91,6 +108,9 @@ if [[ -n "$UNTRACKED" ]]; then
         echo "Non-interactive: proceeding with untracked files."
     fi
 fi
+
+# Check for existing tags on this commit
+check_existing_tags
 
 # Check Firebase CI passed on HEAD.
 echo "Checking CI status on HEAD..."
