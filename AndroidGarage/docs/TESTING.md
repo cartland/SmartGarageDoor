@@ -135,9 +135,9 @@ Checks that verify the release artifact is safe to ship.
 
 Release builds use `isMinifyEnabled = true` with an empty `proguard-rules.pro`. If R8 strips or renames a class used by Moshi, Room, or Hilt via reflection, the app crashes at runtime — but unit tests wouldn't catch it.
 
-**Action:** Add an instrumented test (or a Robolectric test) that initializes the Hilt dependency graph with the release build variant. This catches reflection-breaking obfuscation.
+**Action:** Covered by Phase 7 instrumented tests (Hilt DI graph test catches R8 stripping).
 
-**Files:** New instrumented test in `src/androidTest/`
+**Files:** See Phase 7
 
 ### 5.2 Disable Verbose Logging in Release
 
@@ -179,6 +179,71 @@ The server functions return error responses that the Android app must handle. If
 
 ---
 
+## Phase 7: Instrumented Tests
+
+Instrumented tests run on a real device/emulator and catch runtime-only failures that unit tests miss (R8 stripping, Hilt graph resolution, Room migrations, navigation crashes). These run **post-merge only** (not on PRs) in a separate workflow using Gradle Managed Devices.
+
+### 7.1 Setup Gradle Managed Device
+
+**Action:** Configure a Gradle Managed Device in `build.gradle.kts`:
+```kotlin
+testOptions {
+    managedDevices {
+        localDevices {
+            create("pixel6Api34") {
+                device = "Pixel 6"
+                apiLevel = 34
+                systemImageSource = "aosp-atd"
+            }
+        }
+    }
+}
+```
+
+Create `.github/workflows/instrumented-tests.yml`:
+- Trigger: `push` to `main` only (not PRs)
+- Runs: `./gradlew pixel6Api34DebugAndroidTest`
+- Uses KVM acceleration on GitHub Actions Linux runners
+- Non-blocking: failures create GitHub annotations but don't block merges
+
+### 7.2 Room Database Sanity Test
+
+Verify the database can be created and basic DAO operations work. Catches R8 stripping Room type converters or entity definitions.
+
+**Tests:**
+- Create in-memory database
+- Insert and read a `DoorEvent`
+- Insert and read an `AppEvent`
+- Verify all DAOs are accessible from `AppDatabase`
+
+**Files:** `src/androidTest/.../db/DatabaseSanityTest.kt`
+
+### 7.3 Hilt Dependency Graph Test
+
+Verify the full Hilt DI graph resolves without errors. Catches missing `@Binds`, `@Provides`, or `@Module` annotations that only crash at runtime.
+
+**Tests:**
+- Launch `MainActivity` with Hilt test runner
+- Verify Activity creates without crash
+- Verify key ViewModels can be obtained
+
+**Files:** `src/androidTest/.../HiltGraphTest.kt`
+
+### 7.4 Navigation Smoke Tests
+
+Verify all screens are reachable via navigation. Catches crashes from missing composables, broken routes, or unresolvable ViewModel dependencies.
+
+**Tests:**
+- Navigate to Home screen
+- Navigate to Door History screen
+- Navigate to Profile screen
+- Navigate to each settings/info screen
+- Verify no crash on any navigation transition
+
+**Files:** `src/androidTest/.../navigation/NavigationSmokeTest.kt`
+
+---
+
 ## Priority Order
 
 | Phase | Effort | Risk Reduced | Status |
@@ -194,7 +259,11 @@ The server functions return error responses that the Android app must handle. If
 | 5.2 Disable release logging | Small | High | Done |
 | 5.3 BuildConfig validation | Small | Medium | Done |
 | 3.1 Auth token tests | Large | High | TODO — needs Firebase wrapper refactor |
-| 5.1 ProGuard smoke test | Medium | Medium | TODO — before next release |
+| 5.1 ProGuard smoke test | Medium | Medium | Covered by Phase 7 |
+| 7.1 Gradle Managed Device setup | Medium | High | TODO |
+| 7.2 Room database sanity | Small | High | TODO |
+| 7.3 Hilt DI graph test | Small | High | TODO |
+| 7.4 Navigation smoke tests | Medium | Medium | TODO |
 | 6.1 Migrate tslint | Medium | Low | TODO |
 
 ---
