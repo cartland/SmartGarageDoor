@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.trace
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -53,8 +54,8 @@ import androidx.navigation.compose.rememberNavController
 import com.chriscartland.garage.applogger.AppLoggerViewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.auth.AuthViewModel
-import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.config.AppLoggerKeys
+import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.door.DoorViewModel
 import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.fcm.FCMRegistration
@@ -93,10 +94,11 @@ sealed class Screen(
 @Composable
 fun AppNavigation(
     doorViewModel: DoorViewModel = hiltViewModel<DoorViewModelImpl>(),
-    authViewModel: AuthViewModel = hiltViewModel<AuthViewModelImpl>(),
     buttonViewModel: RemoteButtonViewModel = hiltViewModel<RemoteButtonViewModelImpl>(),
     appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>(),
 ) {
+    val component = rememberAppComponent()
+    val authViewModel: AuthViewModel = viewModel { component.authViewModel }
     var isOld by remember { mutableStateOf(false) }
     val currentDoorEvent by doorViewModel.currentDoorEvent.collectAsState()
     val lastCheckInTime = currentDoorEvent.data?.lastCheckInTimeSeconds?.let {
@@ -158,7 +160,6 @@ fun AppNavigation(
             composable(Screen.Home.route) {
                 HomeContent(
                     viewModel = doorViewModel,
-                    authViewModel = authViewModel,
                     buttonViewModel = buttonViewModel,
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
@@ -175,7 +176,6 @@ fun AppNavigation(
             }
             composable(Screen.Profile.route) {
                 ProfileContent(
-                    authViewModel = authViewModel,
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth(),

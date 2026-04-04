@@ -27,7 +27,6 @@ import androidx.activity.viewModels
 import androidx.compose.ui.util.trace
 import com.chriscartland.garage.applogger.AppLoggerViewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
-import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.auth.RC_ONE_TAP_SIGN_IN
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.door.DoorViewModel
@@ -74,7 +73,16 @@ class MainActivity : ComponentActivity() {
                     Log.e("MainActivity", "onActivityResult: data is null")
                     return
                 }
-                val authViewModel: AuthViewModelImpl by viewModels()
+                val component = (application as GarageApplication).component
+                val authViewModel = androidx.lifecycle.ViewModelProvider(
+                    this,
+                    object : androidx.lifecycle.ViewModelProvider.Factory {
+                        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                            @Suppress("UNCHECKED_CAST")
+                            return component.authViewModel as T
+                        }
+                    },
+                )[com.chriscartland.garage.auth.AuthViewModelImpl::class.java]
                 authViewModel.processGoogleSignInResult(data)
             }
         }

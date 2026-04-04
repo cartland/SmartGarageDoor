@@ -36,9 +36,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.auth.AuthViewModel
-import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.config.APP_CONFIG
+import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.domain.model.User
@@ -56,9 +57,10 @@ import java.time.Duration
 @Composable
 fun ProfileContent(
     modifier: Modifier = Modifier,
-    authViewModel: AuthViewModel = hiltViewModel<AuthViewModelImpl>(),
     buttonViewModel: RemoteButtonViewModel = hiltViewModel<RemoteButtonViewModelImpl>(),
 ) {
+    val component = rememberAppComponent()
+    val authViewModel: AuthViewModel = viewModel { component.authViewModel }
     val activity = LocalActivity.current
     val authState by authViewModel.authState.collectAsState()
     val snoozeRequestStatus by buttonViewModel.snoozeRequestStatus.collectAsState()
