@@ -147,38 +147,40 @@ interface RetrofitGarageNetworkService : GarageNetworkService {
     ): Response<GetSnoozeResponse>
 }
 
+fun provideGarageNetworkService(): GarageNetworkService {
+    val moshi: Moshi =
+        Moshi
+            .Builder()
+            .add(KotlinJsonAdapterFactory())
+            .build()
+    val logging =
+        HttpLoggingInterceptor().apply {
+            level =
+                if (BuildConfig.DEBUG) {
+                    HttpLoggingInterceptor.Level.BODY
+                } else {
+                    HttpLoggingInterceptor.Level.NONE
+                }
+        }
+    val client: OkHttpClient =
+        OkHttpClient
+            .Builder()
+            .addInterceptor(logging)
+            .build()
+    val retrofit: Retrofit =
+        Retrofit
+            .Builder()
+            .baseUrl(APP_CONFIG.baseUrl)
+            .client(client)
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .build()
+    return retrofit.create(RetrofitGarageNetworkService::class.java)
+}
+
 @Module
 @InstallIn(SingletonComponent::class)
 object RetrofitModule {
     @Provides
-    @Singleton
-    fun provideGarageService(): GarageNetworkService {
-        val moshi: Moshi =
-            Moshi
-                .Builder()
-                .add(KotlinJsonAdapterFactory())
-                .build()
-        val logging =
-            HttpLoggingInterceptor().apply {
-                level =
-                    if (BuildConfig.DEBUG) {
-                        HttpLoggingInterceptor.Level.BODY
-                    } else {
-                        HttpLoggingInterceptor.Level.NONE
-                    }
-            }
-        val client: OkHttpClient =
-            OkHttpClient
-                .Builder()
-                .addInterceptor(logging)
-                .build()
-        val retrofit: Retrofit =
-            Retrofit
-                .Builder()
-                .baseUrl(APP_CONFIG.baseUrl)
-                .client(client)
-                .addConverterFactory(MoshiConverterFactory.create(moshi))
-                .build()
-        return retrofit.create(RetrofitGarageNetworkService::class.java)
-    }
+    @javax.inject.Singleton
+    fun provideGarageService(): GarageNetworkService = provideGarageNetworkService()
 }

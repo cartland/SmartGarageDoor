@@ -22,13 +22,41 @@ import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.applogger.AppLoggerRepositoryImpl
 import com.chriscartland.garage.auth.AuthRepositoryImpl
 import com.chriscartland.garage.auth.AuthViewModelImpl
+import com.chriscartland.garage.config.ServerConfigRepository
+import com.chriscartland.garage.config.ServerConfigRepositoryImpl
 import com.chriscartland.garage.coroutines.DefaultDispatcherProvider
 import com.chriscartland.garage.coroutines.DispatcherProvider
+import com.chriscartland.garage.data.LocalDoorDataSource
+import com.chriscartland.garage.data.NetworkButtonDataSource
+import com.chriscartland.garage.data.NetworkConfigDataSource
+import com.chriscartland.garage.data.NetworkDoorDataSource
 import com.chriscartland.garage.db.AppDatabase
+import com.chriscartland.garage.db.DatabaseLocalDoorDataSource
 import com.chriscartland.garage.domain.repository.AuthRepository
+import com.chriscartland.garage.domain.repository.DoorRepository
+import com.chriscartland.garage.domain.repository.PushRepository
+import com.chriscartland.garage.door.DoorRepositoryImpl
+import com.chriscartland.garage.door.DoorViewModelImpl
+import com.chriscartland.garage.fcm.DoorFcmRepository
+import com.chriscartland.garage.fcm.DoorFcmRepositoryImpl
+import com.chriscartland.garage.internet.GarageNetworkService
+import com.chriscartland.garage.internet.RetrofitNetworkButtonDataSource
+import com.chriscartland.garage.internet.RetrofitNetworkConfigDataSource
+import com.chriscartland.garage.internet.RetrofitNetworkDoorDataSource
+import com.chriscartland.garage.internet.provideGarageNetworkService
+import com.chriscartland.garage.remotebutton.PushRepositoryImpl
+import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.settings.AppSettings
 import com.chriscartland.garage.settings.AppSettingsImpl
 import com.chriscartland.garage.settings.AppSettingsViewModelImpl
+import com.chriscartland.garage.usecase.DeregisterFcmUseCase
+import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
+import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
+import com.chriscartland.garage.usecase.FetchFcmStatusUseCase
+import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
+import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
+import com.chriscartland.garage.usecase.RegisterFcmUseCase
+import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
 
@@ -46,6 +74,8 @@ abstract class AppComponent(
     // ViewModels
     abstract val appSettingsViewModel: AppSettingsViewModelImpl
     abstract val authViewModel: AuthViewModelImpl
+    abstract val doorViewModel: DoorViewModelImpl
+    abstract val remoteButtonViewModel: RemoteButtonViewModelImpl
 
     // Settings
     @Provides
@@ -57,6 +87,24 @@ abstract class AppComponent(
     @Singleton
     fun provideAppDatabase(): AppDatabase = AppDatabase.getDatabase(application)
 
+    // Network
+    @Provides
+    @Singleton
+    fun provideGarageNetwork(): GarageNetworkService = provideGarageNetworkService()
+
+    @Provides
+    @Singleton
+    fun provideNetworkDoorDataSource(): NetworkDoorDataSource = RetrofitNetworkDoorDataSource(provideGarageNetwork())
+
+    @Provides
+    @Singleton
+    fun provideNetworkConfigDataSource(): NetworkConfigDataSource = RetrofitNetworkConfigDataSource(provideGarageNetwork())
+
+    // Local data
+    @Provides
+    @Singleton
+    fun provideLocalDoorDataSource(): LocalDoorDataSource = DatabaseLocalDoorDataSource(provideAppDatabase())
+
     // Repositories
     @Provides
     @Singleton
@@ -64,7 +112,55 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
+    fun provideDoorRepository(): DoorRepository =
+        DoorRepositoryImpl(provideLocalDoorDataSource(), provideNetworkDoorDataSource(), provideServerConfigRepository())
+
+    @Provides
+    @Singleton
+    fun provideServerConfigRepository(): ServerConfigRepository = ServerConfigRepositoryImpl(provideNetworkConfigDataSource())
+
+    @Provides
+    @Singleton
+    fun provideDoorFcmRepository(): DoorFcmRepository = DoorFcmRepositoryImpl(provideAppSettings(), provideAppLoggerRepository())
+
+    @Provides
+    @Singleton
     fun provideAppLoggerRepository(): AppLoggerRepository = AppLoggerRepositoryImpl(application.applicationContext, provideAppDatabase())
+
+    // UseCases
+    @Provides
+    fun provideFetchCurrentDoorEventUseCase(): FetchCurrentDoorEventUseCase = FetchCurrentDoorEventUseCase(provideDoorRepository())
+
+    @Provides
+    fun provideFetchRecentDoorEventsUseCase(): FetchRecentDoorEventsUseCase = FetchRecentDoorEventsUseCase(provideDoorRepository())
+
+    @Provides
+    fun provideFetchFcmStatusUseCase(): FetchFcmStatusUseCase = FetchFcmStatusUseCase(provideDoorFcmRepository())
+
+    @Provides
+    fun provideRegisterFcmUseCase(): RegisterFcmUseCase = RegisterFcmUseCase(provideDoorRepository(), provideDoorFcmRepository())
+
+    @Provides
+    fun provideDeregisterFcmUseCase(): DeregisterFcmUseCase = DeregisterFcmUseCase(provideDoorFcmRepository())
+
+    @Provides
+    fun provideEnsureFreshIdTokenUseCase(): EnsureFreshIdTokenUseCase = EnsureFreshIdTokenUseCase()
+
+    @Provides
+    fun providePushRemoteButtonUseCase(): PushRemoteButtonUseCase = PushRemoteButtonUseCase(provideEnsureFreshIdTokenUseCase())
+
+    @Provides
+    fun provideSnoozeNotificationsUseCase(): SnoozeNotificationsUseCase = SnoozeNotificationsUseCase(provideEnsureFreshIdTokenUseCase())
+
+    // Network — button
+    @Provides
+    @Singleton
+    fun provideNetworkButtonDataSource(): NetworkButtonDataSource = RetrofitNetworkButtonDataSource(provideGarageNetwork())
+
+    // Repositories — push
+    @Provides
+    @Singleton
+    fun providePushRepository(): PushRepository = PushRepositoryImpl(provideNetworkButtonDataSource(), provideServerConfigRepository())
 
     // Coroutines
     @Provides

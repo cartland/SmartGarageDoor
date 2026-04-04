@@ -54,11 +54,9 @@ import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.RequestStatus
 import com.chriscartland.garage.door.DoorViewModel
-import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.permissions.notificationJustificationText
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModel
-import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.PermissionStatus
@@ -69,14 +67,14 @@ import java.time.Instant
 @Composable
 fun HomeContent(
     modifier: Modifier = Modifier,
-    viewModel: DoorViewModel = hiltViewModel<DoorViewModelImpl>(),
-    buttonViewModel: RemoteButtonViewModel = hiltViewModel<RemoteButtonViewModelImpl>(),
     appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>(),
 ) {
     val component = rememberAppComponent()
+    val doorViewModel: DoorViewModel = viewModel { component.doorViewModel }
     val authViewModel: AuthViewModel = viewModel { component.authViewModel }
+    val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
     val activity = LocalActivity.current
-    val currentDoorEvent by viewModel.currentDoorEvent.collectAsState()
+    val currentDoorEvent by doorViewModel.currentDoorEvent.collectAsState()
     val buttonRequestStatus by buttonViewModel.requestStatus.collectAsState()
     val authState by authViewModel.authState.collectAsState()
     HomeContent(
@@ -85,7 +83,7 @@ fun HomeContent(
         modifier = modifier,
         onFetchCurrentDoorEvent = {
             appLoggerViewModel.log(AppLoggerKeys.USER_FETCH_CURRENT_DOOR)
-            viewModel.fetchCurrentDoorEvent()
+            doorViewModel.fetchCurrentDoorEvent()
         },
         onRemoteButtonClick = {
             when (authState) {
@@ -126,7 +124,7 @@ fun HomeContent(
         },
         onResetFcm = {
             if (activity != null) {
-                viewModel.deregisterFcm(activity)
+                doorViewModel.deregisterFcm(activity)
             } else {
                 Log.e(TAG, "Activity is null, cannot deregister FCM")
             }

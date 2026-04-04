@@ -35,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.auth.AuthViewModel
 import com.chriscartland.garage.config.APP_CONFIG
@@ -45,7 +44,6 @@ import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModel
-import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
@@ -55,12 +53,10 @@ import java.time.Duration
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun ProfileContent(
-    modifier: Modifier = Modifier,
-    buttonViewModel: RemoteButtonViewModel = hiltViewModel<RemoteButtonViewModelImpl>(),
-) {
+fun ProfileContent(modifier: Modifier = Modifier) {
     val component = rememberAppComponent()
     val authViewModel: AuthViewModel = viewModel { component.authViewModel }
+    val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
     val activity = LocalActivity.current
     val authState by authViewModel.authState.collectAsState()
     val snoozeRequestStatus by buttonViewModel.snoozeRequestStatus.collectAsState()
