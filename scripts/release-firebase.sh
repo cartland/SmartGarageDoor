@@ -26,9 +26,13 @@ latest_tag_number() {
 }
 
 LATEST_NUM=$(latest_tag_number)
-LATEST_NUM=${LATEST_NUM:-0}
-NEXT_NUM=$((LATEST_NUM + 1))
-LATEST_TAG="server/$LATEST_NUM"
+if [[ -z "$LATEST_NUM" ]]; then
+    LATEST_TAG="(none)"
+    NEXT_NUM=1
+else
+    LATEST_TAG="server/$LATEST_NUM"
+    NEXT_NUM=$((LATEST_NUM + 1))
+fi
 NEXT_TAG="server/$NEXT_NUM"
 BRANCH=$(git branch --show-current)
 SHORT_SHA=$(git rev-parse --short HEAD)
