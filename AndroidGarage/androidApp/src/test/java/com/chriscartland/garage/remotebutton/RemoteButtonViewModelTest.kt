@@ -26,6 +26,7 @@ import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.RequestStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.door.DoorRepository
+import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -81,7 +82,12 @@ class RemoteButtonViewModelTest {
     }
 
     private fun createViewModel(): RemoteButtonViewModelImpl {
-        val vm = RemoteButtonViewModelImpl(pushRepository, doorRepository, TestDispatcherProvider(testDispatcher))
+        val vm = RemoteButtonViewModelImpl(
+            pushRepository,
+            doorRepository,
+            TestDispatcherProvider(testDispatcher),
+            EnsureFreshIdTokenUseCase(),
+        )
         testDispatcher.scheduler.runCurrent()
         return vm
     }
