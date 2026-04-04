@@ -21,17 +21,10 @@ import android.text.format.DateFormat
 import android.util.Log
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.config.ServerConfigRepository
+import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.domain.repository.PushRepository
-import com.chriscartland.garage.internet.BuildTimestamp
-import com.chriscartland.garage.internet.ButtonAckToken
-import com.chriscartland.garage.internet.GarageNetworkService
-import com.chriscartland.garage.internet.IdToken
-import com.chriscartland.garage.internet.RemoteButtonBuildTimestamp
-import com.chriscartland.garage.internet.RemoteButtonPushKey
-import com.chriscartland.garage.internet.SnoozeDurationParameter
-import com.chriscartland.garage.internet.SnoozeEventTimestampParameter
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -46,7 +39,7 @@ import javax.inject.Inject
 class PushRepositoryImpl
     @Inject
     constructor(
-        private val network: GarageNetworkService,
+        private val networkButtonDataSource: NetworkButtonDataSource,
         private val serverConfigRepository: ServerConfigRepository,
     ) : PushRepository {
         private val _pushButtonStatus = MutableStateFlow(PushStatus.IDLE)
@@ -58,90 +51,48 @@ class PushRepositoryImpl
         private val _snoozeEndTimeSeconds = MutableStateFlow(0L)
         override val snoozeEndTimeSeconds: StateFlow<Long> = _snoozeEndTimeSeconds
 
-        /**
-         * Send a command to the server to push the remote button.
-         */
         override suspend fun push(
             idToken: String,
             buttonAckToken: String,
         ) {
             _pushButtonStatus.value = PushStatus.SENDING
-            val tag = "pushRemoteButton"
             val serverConfig = serverConfigRepository.getServerConfigCached()
             if (serverConfig == null) {
-                Log.e(tag, "Server config is null")
+                Log.e(TAG, "Server config is null")
                 _pushButtonStatus.value = PushStatus.IDLE
                 return
             }
-            Log.d(tag, "Pushing remote button")
-            Log.d(tag, "Server config: $serverConfig")
-            Log.d(tag, "Button ack token: $buttonAckToken")
-
             if (!APP_CONFIG.remoteButtonPushEnabled) {
-                Log.w(tag, "Remote button push is disabled: !remoteButtonPushEnabled")
+                Log.w(TAG, "Remote button push is disabled")
                 delay(Duration.ofMillis(500))
             }
             if (APP_CONFIG.remoteButtonPushEnabled) {
-                val response = network.postRemoteButtonPush(
-                    remoteButtonBuildTimestamp = RemoteButtonBuildTimestamp(
-                        serverConfig.remoteButtonBuildTimestamp,
-                    ),
-                    buttonAckToken = ButtonAckToken(buttonAckToken),
-                    remoteButtonPushKey = RemoteButtonPushKey(
-                        serverConfig.remoteButtonPushKey,
-                    ),
-                    idToken = IdToken(idToken),
+                networkButtonDataSource.pushButton(
+                    remoteButtonBuildTimestamp = serverConfig.remoteButtonBuildTimestamp,
+                    buttonAckToken = buttonAckToken,
+                    remoteButtonPushKey = serverConfig.remoteButtonPushKey,
+                    idToken = idToken,
                 )
-                Log.i(tag, "Response: ${response.code()}")
-                Log.i(tag, "Response body: ${response.body()}")
             }
             _pushButtonStatus.value = PushStatus.IDLE
         }
 
         override suspend fun fetchSnoozeEndTimeSeconds() {
-            val tag = "fetchSnoozeEndTimeSeconds"
-            Log.d(tag, "Fetching snooze end time")
-
             val serverConfig = serverConfigRepository.getServerConfigCached()
             if (serverConfig == null) {
-                Log.e(tag, "Server config is null")
+                Log.e(TAG, "Server config is null")
                 return
             }
-            Log.d(tag, "Server config: $serverConfig")
-
             if (!APP_CONFIG.snoozeNotificationsOption) {
-                Log.w(tag, "Snooze notification disabled: !snoozeNotificationsOption")
+                Log.w(TAG, "Snooze notifications disabled")
                 delay(Duration.ofMillis(500))
             }
             if (APP_CONFIG.snoozeNotificationsOption) {
-                val response = network.getSnooze(
-                    buildTimestamp = BuildTimestamp(serverConfig.buildTimestamp),
+                val endTime = networkButtonDataSource.fetchSnoozeEndTimeSeconds(
+                    buildTimestamp = serverConfig.buildTimestamp,
                 )
-                Log.i(tag, "Response: ${response.code()}")
-                Log.i(tag, "Response body: ${response.body()}")
-                val body = response.body()
-                if (body == null) {
-                    Log.e(tag, "Error: No response")
-                    return
-                }
-                if (body.error != null) {
-                    Log.e(tag, "Error: ${response.body()?.error}")
-                    return
-                }
-                val snooze = body.snooze
-                if (snooze == null) {
-                    Log.e(tag, "Error: No snooze")
-                    return
-                }
-                val snoozeEndTimeSeconds = body.snooze.snoozeEndTimeSeconds
-                if (snoozeEndTimeSeconds == null) {
-                    Log.e(tag, "Error: No snooze end time")
-                    return
-                }
-                Log.d(tag, "Snooze end time: $snoozeEndTimeSeconds")
-                _snoozeEndTimeSeconds.value = snoozeEndTimeSeconds
+                _snoozeEndTimeSeconds.value = endTime
             }
-            Log.d(tag, "Request complete")
         }
 
         override suspend fun snoozeOpenDoorsNotifications(
@@ -150,46 +101,29 @@ class PushRepositoryImpl
             snoozeEventTimestampSeconds: Long,
         ) {
             _snoozeRequestStatus.value = SnoozeRequestStatus.SENDING
-            val tag = "snoozeOpenDoorsNotifications"
-            Log.d(tag, "Requesting to snooze door open notifications for $snoozeDurationHours hours")
-
             val serverConfig = serverConfigRepository.getServerConfigCached()
             if (serverConfig == null) {
-                Log.e(tag, "Server config is null")
+                Log.e(TAG, "Server config is null")
                 _snoozeRequestStatus.value = SnoozeRequestStatus.IDLE
                 return
             }
-            Log.d(tag, "Server config: $serverConfig")
-
             if (!APP_CONFIG.snoozeNotificationsOption) {
-                Log.w(tag, "Snooze notification disabled: !snoozeNotificationsOption")
+                Log.w(TAG, "Snooze notifications disabled")
                 delay(Duration.ofMillis(500))
             }
             if (APP_CONFIG.snoozeNotificationsOption) {
-                val response = network.postSnoozeOpenDoorsNotifications(
-                    buildTimestamp = BuildTimestamp(serverConfig.buildTimestamp),
-                    remoteButtonPushKey = RemoteButtonPushKey(
-                        serverConfig.remoteButtonPushKey,
-                    ),
-                    idToken = IdToken(idToken),
-                    snoozeDuration = SnoozeDurationParameter(snoozeDurationHours),
-                    snoozeEventTimestamp = SnoozeEventTimestampParameter(snoozeEventTimestampSeconds),
+                val success = networkButtonDataSource.snoozeNotifications(
+                    buildTimestamp = serverConfig.buildTimestamp,
+                    remoteButtonPushKey = serverConfig.remoteButtonPushKey,
+                    idToken = idToken,
+                    snoozeDurationHours = snoozeDurationHours,
+                    snoozeEventTimestampSeconds = snoozeEventTimestampSeconds,
                 )
-                Log.i(tag, "Response: ${response.code()}")
-                Log.i(tag, "Response body: ${response.body()}")
-                if (response.body() == null) {
-                    Log.e(tag, "Error: No response")
-                    _snoozeRequestStatus.value = SnoozeRequestStatus.ERROR
-                    return
-                }
-                // TODO: Diagnose why body() is null when Retrofit receives {"error":"Disabled"}
-                if (response.body()?.error != null) {
-                    Log.e(tag, "Error: ${response.body()?.error}")
+                if (!success) {
                     _snoozeRequestStatus.value = SnoozeRequestStatus.ERROR
                     return
                 }
             }
-            Log.d(tag, "Request complete")
             _snoozeRequestStatus.value = SnoozeRequestStatus.IDLE
         }
     }

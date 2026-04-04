@@ -19,6 +19,7 @@ package com.chriscartland.garage.remotebutton
 
 import com.chriscartland.garage.config.ServerConfigRepository
 import com.chriscartland.garage.config.model.ServerConfig
+import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import kotlinx.coroutines.test.runTest
@@ -29,6 +30,7 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 
 class PushRepositoryTest {
+    private lateinit var networkButtonDataSource: NetworkButtonDataSource
     private lateinit var serverConfigRepository: ServerConfigRepository
     private lateinit var repo: PushRepositoryImpl
 
@@ -41,10 +43,9 @@ class PushRepositoryTest {
 
     @Before
     fun setup() {
+        networkButtonDataSource = mock(NetworkButtonDataSource::class.java)
         serverConfigRepository = mock(ServerConfigRepository::class.java)
-        // Network is mocked but push() uses value classes that don't work with any().
-        // We test state transitions and null-config handling without verifying network args.
-        repo = PushRepositoryImpl(mock(), serverConfigRepository)
+        repo = PushRepositoryImpl(networkButtonDataSource, serverConfigRepository)
     }
 
     @Test
@@ -69,7 +70,6 @@ class PushRepositoryTest {
 
             repo.push("token", "ack-token")
 
-            // Should reset to IDLE, not stay stuck in SENDING
             assertEquals(PushStatus.IDLE, repo.pushButtonStatus.value)
         }
 
@@ -84,7 +84,6 @@ class PushRepositoryTest {
                 snoozeEventTimestampSeconds = 1000L,
             )
 
-            // Should reset to IDLE, not stay stuck in SENDING
             assertEquals(SnoozeRequestStatus.IDLE, repo.snoozeRequestStatus.value)
         }
 }
