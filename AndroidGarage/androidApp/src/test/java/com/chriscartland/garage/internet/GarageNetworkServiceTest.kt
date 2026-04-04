@@ -17,7 +17,7 @@
 
 package com.chriscartland.garage.internet
 
-import com.chriscartland.garage.door.DoorPosition
+import com.chriscartland.garage.domain.model.DoorPosition
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory

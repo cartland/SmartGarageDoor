@@ -33,10 +33,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.chriscartland.garage.auth.DisplayName
-import com.chriscartland.garage.auth.Email
-import com.chriscartland.garage.auth.FirebaseIdToken
-import com.chriscartland.garage.auth.User
+import com.chriscartland.garage.domain.model.DisplayName
+import com.chriscartland.garage.domain.model.Email
+import com.chriscartland.garage.domain.model.FirebaseIdToken
+import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.settings.AppSettingsViewModel
 import com.chriscartland.garage.settings.AppSettingsViewModelImpl
 

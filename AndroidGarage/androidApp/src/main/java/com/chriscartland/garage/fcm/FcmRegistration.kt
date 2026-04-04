@@ -24,9 +24,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.door.DoorViewModel
 import com.chriscartland.garage.door.DoorViewModelImpl
-import com.chriscartland.garage.door.FcmRegistrationStatus
 
 /**
  * Register for FCM updates.

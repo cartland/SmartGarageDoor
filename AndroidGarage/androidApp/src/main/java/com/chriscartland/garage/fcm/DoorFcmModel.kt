@@ -17,20 +17,7 @@
 
 package com.chriscartland.garage.fcm
 
-sealed class DoorFcmState {
-    data object Unknown : DoorFcmState()
-
-    data object NotRegistered : DoorFcmState()
-
-    data class Registered(
-        val topic: DoorFcmTopic,
-    ) : DoorFcmState()
-}
-
-@JvmInline
-value class DoorFcmTopic(
-    val string: String,
-)
+import com.chriscartland.garage.domain.model.DoorFcmTopic
 
 fun String.toFcmTopic(): DoorFcmTopic = DoorFcmTopic(toDoorOpenFcmTopic())
 

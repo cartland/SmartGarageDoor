@@ -21,10 +21,12 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.auth.AuthRepository
-import com.chriscartland.garage.auth.AuthState
-import com.chriscartland.garage.auth.FirebaseIdToken
 import com.chriscartland.garage.coroutines.DispatcherProvider
-import com.chriscartland.garage.door.DoorEvent
+import com.chriscartland.garage.domain.model.AuthState
+import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.FirebaseIdToken
+import com.chriscartland.garage.domain.model.RequestStatus
+import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.door.DoorRepository
 import com.chriscartland.garage.internet.IdToken
 import com.chriscartland.garage.internet.SnoozeEventTimestampParameter
@@ -356,15 +358,6 @@ class RemoteButtonViewModelImpl
             }
         }
     }
-
-enum class RequestStatus {
-    NONE, // Not sending a request.
-    SENDING, // Sending request over the network.
-    SENDING_TIMEOUT, // Cannot reach server.
-    SENT, // Server acknowledged.
-    SENT_TIMEOUT, // Door did not move.
-    RECEIVED, // Door moved.
-}
 
 @Module
 @InstallIn(SingletonComponent::class)

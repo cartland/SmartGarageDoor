@@ -18,12 +18,13 @@
 package com.chriscartland.garage.db
 
 import android.util.Log
-import com.chriscartland.garage.door.DoorEvent
+import com.chriscartland.garage.domain.model.DoorEvent
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -41,17 +42,21 @@ class DatabaseLocalDoorDataSource
     constructor(
         private val appDatabase: AppDatabase,
     ) : LocalDoorDataSource {
-        override val currentDoorEvent = appDatabase.doorEventDao().currentDoorEvent()
-        override val recentDoorEvents = appDatabase.doorEventDao().recentDoorEvents()
+        override val currentDoorEvent: Flow<DoorEvent> =
+            appDatabase.doorEventDao().currentDoorEvent().map { it.toDomain() }
+        override val recentDoorEvents: Flow<List<DoorEvent>> =
+            appDatabase.doorEventDao().recentDoorEvents().map { entities ->
+                entities.map { it.toDomain() }
+            }
 
         override fun insertDoorEvent(doorEvent: DoorEvent) {
             Log.d(TAG, "Inserting DoorEvent: $doorEvent")
-            appDatabase.doorEventDao().insert(doorEvent)
+            appDatabase.doorEventDao().insert(doorEvent.toEntity())
         }
 
         override fun replaceDoorEvents(doorEvents: List<DoorEvent>) {
             Log.d(TAG, "Replacing DoorEvents: $doorEvents")
-            appDatabase.doorEventDao().replaceAll(doorEvents)
+            appDatabase.doorEventDao().replaceAll(doorEvents.map { it.toEntity() })
         }
     }
 

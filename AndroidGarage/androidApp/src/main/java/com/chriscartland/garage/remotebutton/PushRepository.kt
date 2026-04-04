@@ -21,6 +21,8 @@ import android.text.format.DateFormat
 import android.util.Log
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.config.ServerConfigRepository
+import com.chriscartland.garage.domain.model.PushStatus
+import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.internet.BuildTimestamp
 import com.chriscartland.garage.internet.ButtonAckToken
 import com.chriscartland.garage.internet.GarageNetworkService
@@ -211,17 +213,6 @@ class PushRepositoryImpl
             _snoozeRequestStatus.value = SnoozeRequestStatus.IDLE
         }
     }
-
-enum class PushStatus {
-    IDLE,
-    SENDING,
-}
-
-enum class SnoozeRequestStatus {
-    IDLE,
-    SENDING,
-    ERROR,
-}
 
 /**
  * Create a button ack token.

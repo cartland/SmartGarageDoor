@@ -17,8 +17,8 @@
 
 package com.chriscartland.garage.ui
 
-import com.chriscartland.garage.door.DoorEvent
-import com.chriscartland.garage.door.DoorPosition
+import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorPosition
 import java.time.Instant
 import kotlin.random.Random
 

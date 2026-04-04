@@ -26,11 +26,11 @@ import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.config.FetchOnViewModelInit
 import com.chriscartland.garage.coroutines.DispatcherProvider
-import com.chriscartland.garage.door.LoadingResult.Complete
-import com.chriscartland.garage.door.LoadingResult.Error
-import com.chriscartland.garage.door.LoadingResult.Loading
+import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorFcmState
+import com.chriscartland.garage.domain.model.FcmRegistrationStatus
+import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.fcm.DoorFcmRepository
-import com.chriscartland.garage.fcm.DoorFcmState
 import com.chriscartland.garage.fcm.toFcmTopic
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -174,33 +174,5 @@ class DoorViewModelImpl
             }
         }
     }
-
-/**
- * A sealed class to represent the state of a loading operation.
- *
- * When [Loading] or [Complete], the current data is available.
- * When [Error] ,the current data is null.
- */
-sealed class LoadingResult<out T> {
-    data class Loading<out T>(
-        internal val d: T?,
-    ) : LoadingResult<T>()
-
-    data class Complete<out T>(
-        internal val d: T?,
-    ) : LoadingResult<T>()
-
-    data class Error(
-        val exception: Throwable,
-    ) : LoadingResult<Nothing>()
-
-    val data: T?
-        get() =
-            when (this) {
-                is Loading -> this.d
-                is Complete -> this.d
-                is Error -> null
-            }
-}
 
 private const val TAG = "DoorViewModel"

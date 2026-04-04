@@ -22,29 +22,28 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
-import com.chriscartland.garage.door.DoorEvent
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface DoorEventDao {
-    @Query("SELECT * FROM doorEvent ORDER BY lastChangeTimeSeconds DESC LIMIT 1")
-    fun currentDoorEvent(): Flow<DoorEvent>
+    @Query("SELECT * FROM DoorEvent ORDER BY lastChangeTimeSeconds DESC LIMIT 1")
+    fun currentDoorEvent(): Flow<DoorEventEntity>
 
-    @Query("SELECT * FROM doorEvent ORDER BY lastChangeTimeSeconds DESC")
-    fun recentDoorEvents(): Flow<List<DoorEvent>>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(doorEvent: DoorEvent)
+    @Query("SELECT * FROM DoorEvent ORDER BY lastChangeTimeSeconds DESC")
+    fun recentDoorEvents(): Flow<List<DoorEventEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertList(doorEvents: List<DoorEvent>)
+    fun insert(doorEvent: DoorEventEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertList(doorEvents: List<DoorEventEntity>)
 
     @Transaction
-    fun replaceAll(doorEvents: List<DoorEvent>) {
+    fun replaceAll(doorEvents: List<DoorEventEntity>) {
         deleteAll()
         insertList(doorEvents)
     }
 
-    @Query("DELETE FROM doorEvent")
+    @Query("DELETE FROM DoorEvent")
     fun deleteAll()
 }

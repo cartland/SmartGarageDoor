@@ -21,6 +21,8 @@ import android.util.Log
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.config.ServerConfigRepository
 import com.chriscartland.garage.db.LocalDoorDataSource
+import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.internet.GarageNetworkService
 import dagger.Binds
 import dagger.Module

@@ -46,8 +46,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
-import com.chriscartland.garage.door.DoorEvent
-import com.chriscartland.garage.door.DoorPosition
+import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.ui.theme.DoorColorState
 import com.chriscartland.garage.ui.theme.DoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
@@ -136,10 +136,10 @@ fun DoorStatusCard(
                         DoorPosition.CLOSING_TOO_LONG,
                         DoorPosition.ERROR_SENSOR_CONFLICT,
                     ),
-                    -> doorEvent?.message?.let {
-                        if (it.isNotBlank()) {
+                    -> doorEvent?.message?.let { msg ->
+                        if (msg.isNotBlank()) {
                             Text(
-                                text = doorEvent.message,
+                                text = msg,
                                 textAlign = TextAlign.Center,
                                 style = MaterialTheme.typography.labelSmall,
                             )
@@ -231,10 +231,10 @@ fun RecentDoorEventListItem(
                         DoorPosition.CLOSING_TOO_LONG,
                         DoorPosition.ERROR_SENSOR_CONFLICT,
                     ),
-                    -> doorEvent.message?.let {
-                        if (it.isNotBlank()) {
+                    -> doorEvent.message?.let { msg ->
+                        if (msg.isNotBlank()) {
                             Text(
-                                text = doorEvent.message,
+                                text = msg,
                                 textAlign = TextAlign.Center,
                                 style = MaterialTheme.typography.labelSmall,
                             )

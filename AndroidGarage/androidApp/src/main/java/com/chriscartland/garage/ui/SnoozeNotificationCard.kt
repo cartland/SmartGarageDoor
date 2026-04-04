@@ -41,7 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.chriscartland.garage.remotebutton.SnoozeRequestStatus
+import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
 import java.time.Instant
 

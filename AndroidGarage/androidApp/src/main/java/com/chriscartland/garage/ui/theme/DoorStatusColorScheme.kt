@@ -18,8 +18,8 @@
 package com.chriscartland.garage.ui.theme
 
 import androidx.compose.ui.graphics.Color
-import com.chriscartland.garage.door.DoorEvent
-import com.chriscartland.garage.door.DoorPosition
+import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorPosition
 import java.time.Duration
 import java.time.Instant
 

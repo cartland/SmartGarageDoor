@@ -20,8 +20,8 @@ package com.chriscartland.garage.fcm
 import android.util.Log
 import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.config.AppLoggerKeys
-import com.chriscartland.garage.door.DoorEvent
-import com.chriscartland.garage.door.DoorPosition
+import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.door.DoorRepository
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
