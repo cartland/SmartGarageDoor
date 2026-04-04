@@ -85,6 +85,27 @@ if echo "$STRIPPED" | grep -qE '\bgh\s+pr\s+merge\b'; then
   fi
 fi
 
+# --- Warn on Room database changes ---
+if echo "$STRIPPED" | grep -qE '\bgit\s+(add|commit)\b'; then
+  # Check if any staged files are Room entities, DAOs, or the database class
+  STAGED=$(git diff --cached --name-only 2>/dev/null)
+  ROOM_CHANGED=false
+  for f in $STAGED; do
+    case "$f" in
+      *Entity.kt|*Dao.kt|*AppDatabase.kt|*Migration*.kt)
+        ROOM_CHANGED=true
+        break
+        ;;
+    esac
+  done
+  if [ "$ROOM_CHANGED" = "true" ]; then
+    echo "WARNING: Room database files are being committed." >&2
+    echo "  - If the schema changed, increment the version in @Database" >&2
+    echo "  - Run ./scripts/validate.sh (includes Room schema drift check)" >&2
+    echo "  - Commit the updated schema JSON from androidApp/schemas/" >&2
+  fi
+fi
+
 # --- Block destructive git commands ---
 if echo "$STRIPPED" | grep -qE '\bgit\s+reset\s+--hard\b'; then
   deny "BLOCKED: git reset --hard discards commits. Use git stash or a backup branch."
