@@ -34,23 +34,35 @@ Firebase Server
 
 ## Package Structure
 
+### Domain Module (`domain/`)
+
+Pure Kotlin module (no Android dependencies). Single source of truth for shared types:
+
+| Package | Contents |
+|---------|----------|
+| `domain/model/` | `DoorEvent`, `DoorPosition`, `LoadingResult<T>`, `AuthState` (sealed), `User`, `FirebaseIdToken`, `GoogleIdToken`, `DoorFcmState` (sealed), `DoorFcmTopic`, `FcmRegistrationStatus`, `RequestStatus`, `PushStatus`, `SnoozeRequestStatus`, `ServerConfig` |
+| `domain/repository/` | `DoorRepository`, `AuthRepository`, `PushRepository`, `ServerConfigRepository` (interfaces — signatures pending alignment with androidApp) |
+
+### Android App (`androidApp/`)
+
 All packages under `androidApp/src/main/java/com/chriscartland/garage/`:
 
 | Package | Purpose | Key Classes |
 |---------|---------|-------------|
 | `applogger/` | Event logging to Room DB, CSV export | `AppLoggerRepository`, `AppLoggerViewModel` |
-| `auth/` | Google Sign-In, Firebase Auth | `AuthRepository`, `AuthViewModel`, `AuthState` (sealed) |
-| `config/` | App configuration, server config caching | `APP_CONFIG`, `ServerConfigRepository` |
+| `auth/` | Google Sign-In, Firebase Auth | `AuthRepositoryImpl`, `AuthViewModelImpl` |
+| `config/` | App configuration, server config caching | `APP_CONFIG`, `ServerConfigRepositoryImpl` |
 | `coroutines/` | Testable dispatcher injection | `DispatcherProvider`, `DefaultDispatcherProvider` |
-| `db/` | Room database, DAOs, schema | `AppDatabase` (v11), `DoorEventDao`, `AppLoggerDao` |
-| `door/` | Core domain: door events, status | `DoorRepository`, `DoorViewModel`, `DoorEvent`, `DoorPosition`, `LoadingResult<T>` |
-| `fcm/` | FCM registration, push handling | `FCMService`, `DoorFcmRepository`, `DoorFcmState` (sealed) |
+| `db/` | Room database, DAOs, entity mapping | `AppDatabase` (v11), `DoorEventEntity` ↔ domain `DoorEvent`, `DoorEventDao` |
+| `door/` | Door repository and ViewModel | `DoorRepositoryImpl`, `DoorViewModelImpl` |
+| `fcm/` | FCM registration, push handling | `FCMService`, `FcmPayloadParser`, `DoorFcmRepositoryImpl` |
 | `internet/` | Retrofit service, response DTOs | `GarageNetworkService`, value classes for type-safe params |
 | `permissions/` | Notification permission (API 33+) | Accompanist-based permission request |
-| `remotebutton/` | Remote button with state machine | `RemoteButtonViewModel`, `PushRepository`, `RequestStatus` |
+| `remotebutton/` | Remote button with state machine | `RemoteButtonViewModelImpl`, `PushRepositoryImpl` |
 | `settings/` | SharedPreferences wrapper | `AppSettings`, type-safe `Setting` classes |
 | `snoozenotifications/` | Snooze duration options | `SnoozeDurationUIOption`, server conversion |
 | `ui/` | Compose screens and components | Screens, DoorStatusCard, AnimatableGarageDoor, theme |
+| `usecase/` | Extracted business logic | `EnsureFreshIdTokenUseCase` |
 | `version/` | App version info | `AppVersion` |
 
 Root files: `GarageApplication.kt` (@HiltAndroidApp), `MainActivity.kt` (Compose entry point).
