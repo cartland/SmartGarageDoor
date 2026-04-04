@@ -15,17 +15,14 @@
  *
  */
 
-package com.chriscartland.garage
+package com.chriscartland.garage.di
 
-import android.app.Application
-import com.chriscartland.garage.di.AppComponent
-import com.chriscartland.garage.di.create
-import dagger.hilt.android.HiltAndroidApp
+import me.tatarka.inject.annotations.Scope
 
-@HiltAndroidApp
-class GarageApplication : Application() {
-    /** kotlin-inject component — used by migrated ViewModels. */
-    val component: AppComponent by lazy {
-        AppComponent::class.create(this)
-    }
-}
+/**
+ * kotlin-inject scope for singleton instances.
+ * Equivalent to Hilt's SingletonComponent / javax.inject.Singleton.
+ */
+@Scope
+@Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER)
+annotation class Singleton

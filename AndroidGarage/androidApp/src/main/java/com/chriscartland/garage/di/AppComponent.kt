@@ -15,17 +15,20 @@
  *
  */
 
-package com.chriscartland.garage
+package com.chriscartland.garage.di
 
 import android.app.Application
-import com.chriscartland.garage.di.AppComponent
-import com.chriscartland.garage.di.create
-import dagger.hilt.android.HiltAndroidApp
+import me.tatarka.inject.annotations.Component
+import me.tatarka.inject.annotations.Provides
 
-@HiltAndroidApp
-class GarageApplication : Application() {
-    /** kotlin-inject component — used by migrated ViewModels. */
-    val component: AppComponent by lazy {
-        AppComponent::class.create(this)
-    }
-}
+/**
+ * Root kotlin-inject component.
+ *
+ * Dependencies will be added here as ViewModels and Repositories
+ * are migrated from Hilt. See docs/DI-MIGRATION.md for the plan.
+ */
+@Component
+@Singleton
+abstract class AppComponent(
+    @get:Provides val application: Application,
+)
