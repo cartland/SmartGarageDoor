@@ -1,0 +1,62 @@
+/*
+ * Copyright 2024 Chris Cartland. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+package com.chriscartland.garage.usecase
+
+import com.chriscartland.garage.domain.model.AuthState
+import com.chriscartland.garage.domain.repository.AuthRepository
+import com.chriscartland.garage.domain.repository.PushRepository
+import javax.inject.Inject
+
+/**
+ * Snoozes open-door notifications for a specified duration.
+ *
+ * Handles:
+ * - Verifying the user is authenticated
+ * - Ensuring the auth token is fresh
+ * - Delegating to PushRepository
+ *
+ * @return true if the snooze was initiated, false if not authenticated
+ *   or if lastChangeTimeSeconds is null
+ */
+class SnoozeNotificationsUseCase
+    @Inject
+    constructor(
+        private val ensureFreshIdToken: EnsureFreshIdTokenUseCase,
+    ) {
+        suspend operator fun invoke(
+            authRepository: AuthRepository,
+            pushRepository: PushRepository,
+            snoozeDurationHours: String,
+            lastChangeTimeSeconds: Long?,
+        ): Boolean {
+            val authState = authRepository.authState.value
+            if (authState !is AuthState.Authenticated) {
+                return false
+            }
+            if (lastChangeTimeSeconds == null) {
+                return false
+            }
+            val idToken = ensureFreshIdToken(authRepository, authState)
+            pushRepository.snoozeOpenDoorsNotifications(
+                snoozeDurationHours = snoozeDurationHours,
+                idToken = idToken.asString(),
+                snoozeEventTimestampSeconds = lastChangeTimeSeconds,
+            )
+            return true
+        }
+    }
