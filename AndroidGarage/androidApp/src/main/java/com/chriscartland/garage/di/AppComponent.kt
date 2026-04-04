@@ -18,17 +18,26 @@
 package com.chriscartland.garage.di
 
 import android.app.Application
+import com.chriscartland.garage.settings.AppSettings
+import com.chriscartland.garage.settings.AppSettingsImpl
+import com.chriscartland.garage.settings.AppSettingsViewModelImpl
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
 
 /**
  * Root kotlin-inject component.
  *
- * Dependencies will be added here as ViewModels and Repositories
+ * Dependencies are added here as ViewModels and Repositories
  * are migrated from Hilt. See docs/DI-MIGRATION.md for the plan.
  */
 @Component
 @Singleton
 abstract class AppComponent(
     @get:Provides val application: Application,
-)
+) {
+    abstract val appSettingsViewModel: AppSettingsViewModelImpl
+
+    @Provides
+    @Singleton
+    fun provideAppSettings(): AppSettings = AppSettingsImpl(application)
+}

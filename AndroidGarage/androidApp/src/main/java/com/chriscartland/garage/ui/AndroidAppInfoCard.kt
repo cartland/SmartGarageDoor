@@ -37,9 +37,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.settings.AppSettingsViewModel
-import com.chriscartland.garage.settings.AppSettingsViewModelImpl
 import com.chriscartland.garage.version.AppVersion
 
 const val PRIVACY_POLICY_URL: String = "https://chriscart.land/garage-privacy-policy"
@@ -47,9 +47,10 @@ const val PRIVACY_POLICY_URL: String = "https://chriscart.land/garage-privacy-po
 @Composable
 fun AndroidAppInfoCard(
     modifier: Modifier = Modifier,
-    settingsViewModel: AppSettingsViewModel = hiltViewModel<AppSettingsViewModelImpl>(),
     colors: CardColors = CardDefaults.cardColors(),
 ) {
+    val component = rememberAppComponent()
+    val settingsViewModel: AppSettingsViewModel = viewModel { component.appSettingsViewModel }
     val startAndroidAppInfoCardExpanded by settingsViewModel.profileAppCardExpanded.collectAsState()
     AndroidAppInfoCard(
         appVersion = LocalContext.current.AppVersion(),
