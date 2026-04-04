@@ -31,15 +31,19 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 
 ## Phase 2: Clean Architecture
 
-**Status:** Not started. Begin after Phase 1 is fully merged.
+**Status:** In progress.
 
 **Goal:** Separate business logic into testable layers.
 
-### 2.1 Extract Domain Module
-- Create `domain/` module with interfaces and models (no Android dependencies)
-- Move `DoorRepository`, `PushRepository`, `AuthRepository` interfaces to domain
-- Move `DoorEvent`, `DoorPosition`, `AuthState`, `LoadingResult` to domain
-- Domain depends on nothing
+### 2.1 Extract Domain Module — COMPLETE
+- Created `domain/` module (pure Kotlin, no Android dependencies) — `5453e27` (#43)
+- Defined domain model types and repository interfaces — `a9fe332` (#44)
+- Migrated all androidApp imports to use domain types — `258939f` (#45)
+- Created `DoorEventEntity` for Room persistence boundary with round-trip mappers
+- Added domain tests: `DoorPositionTest` (server string contract), `AuthModelTest`
+- Added `DoorEventEntityTest` for entity ↔ domain mapping correctness
+- Domain module types: `DoorEvent`, `DoorPosition`, `LoadingResult`, `AuthState`, `User`, `FirebaseIdToken`, `GoogleIdToken`, `DoorFcmState`, `DoorFcmTopic`, `FcmRegistrationStatus`, `RequestStatus`, `PushStatus`, `SnoozeRequestStatus`, `ServerConfig`
+- Repository interfaces in domain (signatures pending alignment with androidApp)
 
 ### 2.2 Extract UseCase Layer
 - Create `usecase/` module depending on domain
