@@ -45,13 +45,16 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 - Domain module types: `DoorEvent`, `DoorPosition`, `LoadingResult`, `AuthState`, `User`, `FirebaseIdToken`, `GoogleIdToken`, `DoorFcmState`, `DoorFcmTopic`, `FcmRegistrationStatus`, `RequestStatus`, `PushStatus`, `SnoozeRequestStatus`, `ServerConfig`
 - Repository interfaces in domain (signatures pending alignment with androidApp)
 
-### 2.2 Extract UseCase Layer
-- Create `usecase/` module depending on domain
-- Extract business logic from ViewModels into single-purpose UseCases:
-  - `FetchDoorStatusUseCase`
-  - `PushRemoteButtonUseCase`
-  - `RegisterFcmUseCase`
-  - `RefreshAuthTokenUseCase`
+### 2.2 Extract UseCase Layer — IN PROGRESS
+- Created `usecase/` package in androidApp (will become separate module when repository interfaces align)
+- Extracted `EnsureFreshIdTokenUseCase` — `79d3a6b` (#48)
+  - Token refresh logic with 6 tests covering all branches
+  - Wired into `RemoteButtonViewModelImpl` via Hilt `@Inject`
+- Remaining UseCases:
+  - `PushRemoteButtonUseCase` — auth check + push (blocked on Android-specific types in repository interfaces)
+  - `SnoozeNotificationsUseCase` — same pattern as push
+  - `FetchDoorStatusUseCase` — wraps repository fetch
+  - `RegisterFcmUseCase` — FCM registration (tightly coupled to Firebase APIs)
 - Each UseCase has `operator fun invoke()` for clean call syntax
 - ViewModels depend on UseCases, not Repositories
 

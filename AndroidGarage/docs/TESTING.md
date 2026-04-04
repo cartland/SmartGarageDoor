@@ -93,19 +93,11 @@ Already done (8 tests in PR #11). Covers caching, all null-validation branches, 
 
 ## Phase 3: Auth Token Lifecycle Tests
 
-`AuthRepository.refreshFirebaseAuthState()` uses `suspendCancellableCoroutine` with `addOnSuccessListener` but no `addOnFailureListener`. If the Firebase token fetch fails, the coroutine hangs forever.
+### 3.1 Auth Token Refresh Bug Fix — `9c469b8` (#53)
 
-### 3.1 Auth Token Refresh Tests
+`refreshFirebaseAuthState()` had `addOnSuccessListener` without `addOnFailureListener`. Fixed by adding failure listener that resumes with null (triggering existing Unauthenticated fallback).
 
-**Tests to write:**
-- Token refresh success → verify `AuthState.Authenticated` with fresh token
-- Token refresh failure (Firebase returns error) → verify fallback to `Unauthenticated` (not hang)
-- Token refresh with null `currentUser` → verify immediate `Unauthenticated`
-- Sign out → verify state transitions to `Unauthenticated`
-
-**Prerequisite:** Either mock `Firebase.auth` (difficult) or extract the Firebase calls behind an interface for testability. This may require a small refactor.
-
-**Files:** New `AuthRepositoryTest.kt`, possibly new `FirebaseAuthWrapper` interface
+**Remaining:** Full AuthRepository unit tests still need Firebase wrapper extraction. The fix was a one-line safety improvement, not a full test suite.
 
 ### 3.2 Token Expiry in RemoteButtonViewModel — COMPLETE (PR #48)
 
