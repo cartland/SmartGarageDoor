@@ -56,11 +56,24 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 
 **Next step (Phase 3):** Remove direct Repository references from ViewModels. ViewModels should only depend on UseCases. UseCases take Repositories via constructor injection (kotlin-inject wires this). This follows the battery-butler pattern where the DI layer enforces ViewModel→UseCase→Repository separation.
 
-### 2.3 Separate Data Modules
-- `data/` — Repository implementations
-- `data-local/` — Room database, DataStore, DAOs
-- `data-network/` — Network service, HTTP client
-- Each implements domain interfaces
+### 2.3 Separate Data Modules — COMPLETE
+- Created `data/` module with pure Kotlin data source interfaces — `19c8793` (#74), `af0c9c8` (#75)
+  - `LocalDoorDataSource` — abstracts Room
+  - `NetworkDoorDataSource` — abstracts Retrofit/Ktor for door events
+  - `NetworkConfigDataSource` — abstracts server config API
+  - `NetworkButtonDataSource` — abstracts push/snooze API
+- Wired all Repositories to data interfaces:
+  - `DoorRepository → NetworkDoorDataSource + LocalDoorDataSource` — `26d2f41` (#78)
+  - `PushRepository → NetworkButtonDataSource` — `c290171` (#79)
+  - `ServerConfigRepository → NetworkConfigDataSource` — `695d19e` (#80)
+- Created Retrofit adapter implementations (`RetrofitNetworkDoorDataSource`, `RetrofitNetworkButtonDataSource`, `RetrofitNetworkConfigDataSource`)
+- Consolidated `config.model.ServerConfig` into `domain.model.ServerConfig`
+- No Repository imports Retrofit or Room directly — swapping to Ktor means only new data source implementations
+
+**Remaining (optional, can defer to Phase 5/KMP):**
+- Extract `data-local/` as separate Gradle module (Room entities, DAOs, DatabaseLocalDoorDataSource)
+- Extract `data-network/` as separate Gradle module (Retrofit service, response DTOs, adapters)
+- These are structural — the abstraction boundary is already enforced by interfaces
 
 ## Phase 3: DI Migration (Hilt to kotlin-inject)
 
@@ -153,7 +166,7 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 | Phase | Effort | Prerequisite | Status |
 |-------|--------|-------------|--------|
 | 1. Testing | Medium | None | **COMPLETE** |
-| 2. Clean Architecture | Large | Phase 1 | **IN PROGRESS** (2.1, 2.2 done) |
+| 2. Clean Architecture | Large | Phase 1 | **COMPLETE** |
 | 3. DI Migration | Medium | Phase 2 | Not started |
 | 4. Network Migration | Medium | Phase 3 | Not started |
 | 5. KMP | Large | Phases 3 + 4 | Not started |
