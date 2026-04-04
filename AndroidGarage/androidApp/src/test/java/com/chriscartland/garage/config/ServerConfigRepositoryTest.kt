@@ -17,56 +17,45 @@
 
 package com.chriscartland.garage.config
 
-import com.chriscartland.garage.internet.GarageNetworkService
-import com.chriscartland.garage.internet.ServerConfigResponse
+import com.chriscartland.garage.data.NetworkConfigDataSource
+import com.chriscartland.garage.domain.model.ServerConfig
 import kotlinx.coroutines.test.runTest
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
-import org.mockito.ArgumentMatchers.anyString
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.times
-import org.mockito.Mockito.verify
-import org.mockito.Mockito.`when`
-import retrofit2.Response
+
+class FakeNetworkConfigDataSource : NetworkConfigDataSource {
+    var serverConfig: ServerConfig? = null
+    var fetchCount = 0
+
+    override suspend fun fetchServerConfig(serverConfigKey: String): ServerConfig? {
+        fetchCount++
+        return serverConfig
+    }
+}
 
 class ServerConfigRepositoryTest {
-    private lateinit var network: GarageNetworkService
+    private lateinit var networkConfig: FakeNetworkConfigDataSource
     private lateinit var repo: ServerConfigRepositoryImpl
 
-    private val validBody =
-        ServerConfigResponse.Body(
-            buildTimestamp = "2024-01-15T00:00:00Z",
-            deleteOldDataEnabledDryRun = false,
-            remoteButtonEnabled = true,
-            deleteOldDataEnabled = false,
-            path = "addRemoteButtonCommand",
-            remoteButtonPushKey = "test-push-key",
-            _remoteButtonBuildTimestamp = "2024-01-15T00%3A00%3A00Z",
-            host = "example.com",
-            remoteButtonAuthorizedEmails = emptyList(),
-        )
-
-    private val validResponse =
-        ServerConfigResponse(
-            firestoreDatabaseTimestamp = null,
-            firestoreDatabaseTimestampSeconds = null,
-            body = validBody,
-        )
+    private val validConfig = ServerConfig(
+        buildTimestamp = "2024-01-15T00:00:00Z",
+        remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
+        remoteButtonPushKey = "test-push-key",
+    )
 
     @Before
     fun setup() {
-        network = mock(GarageNetworkService::class.java)
-        repo = ServerConfigRepositoryImpl(network)
+        networkConfig = FakeNetworkConfigDataSource()
+        repo = ServerConfigRepositoryImpl(networkConfig)
     }
 
     @Test
-    fun fetchServerConfigReturnsConfigOnValidResponse() =
+    fun fetchServerConfigReturnsConfigOnSuccess() =
         runTest {
-            `when`(network.getServerConfig(anyString())).thenReturn(Response.success(validResponse))
+            networkConfig.serverConfig = validConfig
 
             val result = repo.fetchServerConfig()
 
@@ -76,56 +65,9 @@ class ServerConfigRepositoryTest {
         }
 
     @Test
-    fun fetchServerConfigReturnsNullOnNon200Response() =
+    fun fetchServerConfigReturnsNullOnFailure() =
         runTest {
-            `when`(network.getServerConfig(anyString()))
-                .thenReturn(Response.error(500, "error".toResponseBody()))
-
-            assertNull(repo.fetchServerConfig())
-        }
-
-    @Test
-    fun fetchServerConfigReturnsNullWhenBodyIsNull() =
-        runTest {
-            `when`(network.getServerConfig(anyString()))
-                .thenReturn(Response.success(null))
-
-            assertNull(repo.fetchServerConfig())
-        }
-
-    @Test
-    fun fetchServerConfigReturnsNullWhenBodyBodyIsNull() =
-        runTest {
-            val response = ServerConfigResponse(null, null, body = null)
-            `when`(network.getServerConfig(anyString())).thenReturn(Response.success(response))
-
-            assertNull(repo.fetchServerConfig())
-        }
-
-    @Test
-    fun fetchServerConfigReturnsNullWhenBuildTimestampIsEmpty() =
-        runTest {
-            val body = validBody.copy(buildTimestamp = "")
-            val response = validResponse.copy(body = body)
-            `when`(network.getServerConfig(anyString())).thenReturn(Response.success(response))
-
-            assertNull(repo.fetchServerConfig())
-        }
-
-    @Test
-    fun fetchServerConfigReturnsNullWhenRemoteButtonPushKeyIsEmpty() =
-        runTest {
-            val body = validBody.copy(remoteButtonPushKey = "")
-            val response = validResponse.copy(body = body)
-            `when`(network.getServerConfig(anyString())).thenReturn(Response.success(response))
-
-            assertNull(repo.fetchServerConfig())
-        }
-
-    @Test
-    fun fetchServerConfigReturnsNullOnException() =
-        runTest {
-            `when`(network.getServerConfig(anyString())).thenThrow(RuntimeException("network error"))
+            networkConfig.serverConfig = null
 
             assertNull(repo.fetchServerConfig())
         }
@@ -133,13 +75,31 @@ class ServerConfigRepositoryTest {
     @Test
     fun getServerConfigCachedReturnsCachedValueOnSecondCall() =
         runTest {
-            `when`(network.getServerConfig(anyString())).thenReturn(Response.success(validResponse))
+            networkConfig.serverConfig = validConfig
 
             val first = repo.getServerConfigCached()
             val second = repo.getServerConfigCached()
 
             assertEquals(first, second)
-            // Network should only be called once — second call uses cache
-            verify(network, times(1)).getServerConfig(anyString())
+            assertEquals(1, networkConfig.fetchCount)
+        }
+
+    @Test
+    fun getServerConfigCachedFetchesWhenNotCached() =
+        runTest {
+            networkConfig.serverConfig = validConfig
+
+            val result = repo.getServerConfigCached()
+
+            assertNotNull(result)
+            assertEquals(1, networkConfig.fetchCount)
+        }
+
+    @Test
+    fun getServerConfigCachedReturnsNullWhenFetchFails() =
+        runTest {
+            networkConfig.serverConfig = null
+
+            assertNull(repo.getServerConfigCached())
         }
 }
