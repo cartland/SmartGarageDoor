@@ -34,6 +34,8 @@ class FakeAuthRepository : AuthRepository {
     var refreshCount = 0
         private set
 
+    var refreshResult: AuthState? = null
+
     fun setAuthState(state: AuthState) {
         _authState.value = state
     }
@@ -45,7 +47,7 @@ class FakeAuthRepository : AuthRepository {
 
     override suspend fun refreshFirebaseAuthState(): AuthState {
         refreshCount++
-        return _authState.value
+        return refreshResult ?: _authState.value
     }
 
     override suspend fun signOut() {

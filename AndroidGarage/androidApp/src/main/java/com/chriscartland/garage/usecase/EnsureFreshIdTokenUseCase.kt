@@ -1,0 +1,51 @@
+/*
+ * Copyright 2024 Chris Cartland. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+package com.chriscartland.garage.usecase
+
+import com.chriscartland.garage.auth.AuthRepository
+import com.chriscartland.garage.domain.model.AuthState
+import com.chriscartland.garage.domain.model.FirebaseIdToken
+import javax.inject.Inject
+
+/**
+ * Ensures we have a fresh (non-expired) Firebase ID token for API calls.
+ *
+ * Logic:
+ * - If the cached token is still valid (exp > now), return it
+ * - Otherwise, refresh the auth state and return the new token
+ * - If refresh fails (user becomes unauthenticated), fall back to the cached token
+ */
+class EnsureFreshIdTokenUseCase
+    @Inject
+    constructor() {
+        suspend operator fun invoke(
+            authRepository: AuthRepository,
+            currentAuth: AuthState.Authenticated,
+            currentTimeMillis: Long = System.currentTimeMillis(),
+        ): FirebaseIdToken =
+            if (currentAuth.user.idToken.exp > currentTimeMillis) {
+                currentAuth.user.idToken
+            } else {
+                val refreshed = authRepository.refreshFirebaseAuthState()
+                if (refreshed is AuthState.Authenticated) {
+                    refreshed.user.idToken
+                } else {
+                    currentAuth.user.idToken
+                }
+            }
+    }
