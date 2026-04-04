@@ -153,6 +153,18 @@ Use `./scripts/release-android.sh` — never create or push tags directly (hooks
 
 The script computes the next tag as `android/<highest + 1>`. The `--confirm-tag` flag is a safety check — it must match the computed tag, it cannot override it. Deploys to Play Store internal track only — never production.
 
+### Releasing Firebase Server
+Use `./scripts/release-firebase.sh` — same pattern as Android releases.
+
+```bash
+./scripts/release-firebase.sh              # Interactive (terminal only)
+./scripts/release-firebase.sh --check      # Print latest + next tag
+./scripts/release-firebase.sh --confirm-tag server/N  # Non-interactive
+./scripts/release-firebase.sh --dry-run    # Preview without releasing
+```
+
+The script computes the next tag as `server/<highest + 1>`. Deploys Cloud Functions only.
+
 ### Secret Management (Android)
 The app requires secrets in `local.properties` (decrypted from GPG at build time):
 - `SERVER_CONFIG_KEY`, `GOOGLE_WEB_CLIENT_ID` — required for all builds
