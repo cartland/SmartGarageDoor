@@ -32,6 +32,7 @@ import com.chriscartland.garage.domain.repository.PushRepository
 import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
 import com.chriscartland.garage.snoozenotifications.toServer
 import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
+import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -74,6 +75,7 @@ class RemoteButtonViewModelImpl
         private val doorRepository: DoorRepository,
         private val dispatchers: DispatcherProvider,
         private val ensureFreshIdToken: EnsureFreshIdTokenUseCase,
+        private val pushRemoteButtonUseCase: PushRemoteButtonUseCase,
     ) : ViewModel(),
         RemoteButtonViewModel {
         // Listen to network events and door status updates.
@@ -286,15 +288,13 @@ class RemoteButtonViewModelImpl
         override fun pushRemoteButton(authRepository: AuthRepository) {
             Log.d(TAG, "pushRemoteButton")
             viewModelScope.launch(dispatchers.io) {
-                val authState = authRepository.authState.value
-                if (authState !is AuthState.Authenticated) {
-                    Log.e(TAG, "Not authenticated: $authState")
+                if (authRepository.authState.value !is AuthState.Authenticated) {
+                    Log.e(TAG, "Not authenticated — push skipped")
                     return@launch
                 }
-                val idToken = ensureFreshIdToken(authRepository, authState)
-                Log.d(TAG, "pushRemoteButton: Pushing remote button: $idToken")
-                pushRepository.push(
-                    idToken = idToken.asString(),
+                pushRemoteButtonUseCase(
+                    authRepository = authRepository,
+                    pushRepository = pushRepository,
                     buttonAckToken = createButtonAckToken(Date()),
                 )
             }

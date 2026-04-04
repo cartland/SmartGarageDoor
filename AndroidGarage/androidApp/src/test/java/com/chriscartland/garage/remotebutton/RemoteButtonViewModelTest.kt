@@ -28,6 +28,7 @@ import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.PushRepository
 import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
+import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -83,11 +84,13 @@ class RemoteButtonViewModelTest {
     }
 
     private fun createViewModel(): RemoteButtonViewModelImpl {
+        val ensureFreshIdToken = EnsureFreshIdTokenUseCase()
         val vm = RemoteButtonViewModelImpl(
             pushRepository,
             doorRepository,
             TestDispatcherProvider(testDispatcher),
-            EnsureFreshIdTokenUseCase(),
+            ensureFreshIdToken,
+            PushRemoteButtonUseCase(ensureFreshIdToken),
         )
         testDispatcher.scheduler.runCurrent()
         return vm
