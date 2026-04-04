@@ -19,7 +19,7 @@ package com.chriscartland.garage.testcommon
 
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
-import com.chriscartland.garage.remotebutton.PushRepository
+import com.chriscartland.garage.domain.repository.PushRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 

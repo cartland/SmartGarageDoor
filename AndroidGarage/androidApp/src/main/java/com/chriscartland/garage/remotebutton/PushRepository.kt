@@ -23,6 +23,7 @@ import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.config.ServerConfigRepository
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
+import com.chriscartland.garage.domain.repository.PushRepository
 import com.chriscartland.garage.internet.BuildTimestamp
 import com.chriscartland.garage.internet.ButtonAckToken
 import com.chriscartland.garage.internet.GarageNetworkService
@@ -41,25 +42,6 @@ import kotlinx.coroutines.time.delay
 import java.time.Duration
 import java.util.Date
 import javax.inject.Inject
-
-interface PushRepository {
-    val pushButtonStatus: StateFlow<PushStatus>
-    val snoozeRequestStatus: StateFlow<SnoozeRequestStatus>
-    val snoozeEndTimeSeconds: StateFlow<Long>
-
-    suspend fun push(
-        idToken: String,
-        buttonAckToken: String,
-    )
-
-    suspend fun fetchSnoozeEndTimeSeconds()
-
-    suspend fun snoozeOpenDoorsNotifications(
-        snoozeDurationHours: String,
-        idToken: String,
-        snoozeEventTimestampSeconds: Long,
-    )
-}
 
 class PushRepositoryImpl
     @Inject
