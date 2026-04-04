@@ -13,10 +13,12 @@
 
 ## Current State
 
-- **~90 unit tests** across ViewModels, Repositories, pure functions, and JSON parsing
-- **CI checks:** unit tests (3 build variants), Spotless formatting, Android Lint, debug APK build, release AAB build
-- **Completed:** Phase 1 (CI hardening), Phase 2 (network error tests), Phase 3.2 (token expiry via UseCase), Phase 4 (state machine completeness), Phase 5.2-5.3 (release safety)
-- **Remaining:** Phase 3.1 (auth token refresh — needs Firebase wrapper refactor), Phase 5.1 (ProGuard smoke test), Phase 6 (Firebase server)
+- **~125 unit tests** across 17 test files (15 androidApp + 2 domain module)
+- **CI checks:** unit tests (3 build variants), Spotless formatting (all modules), Detekt, Android Lint, debug APK build, release AAB build
+- **Local validation:** `./scripts/validate.sh` mirrors CI + Room schema drift check + domain tests
+- **Safety guardrails:** git hooks warn on Room entity changes, block push to main, enforce squash merge
+- **Completed:** Phase 1 (CI hardening), Phase 2 (network error tests), Phase 3 (auth token fix + UseCase tests), Phase 4 (state machine completeness), Phase 5.2-5.3 (release safety)
+- **Remaining:** Phase 5.1 (ProGuard smoke test), Phase 6 (Firebase server)
 
 ---
 

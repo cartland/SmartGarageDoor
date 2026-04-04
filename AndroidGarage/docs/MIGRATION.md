@@ -155,7 +155,7 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 | Phase | Effort | Prerequisite | Status |
 |-------|--------|-------------|--------|
 | 1. Testing | Medium | None | **COMPLETE** |
-| 2. Clean Architecture | Large | Phase 1 | Not started |
+| 2. Clean Architecture | Large | Phase 1 | **IN PROGRESS** (2.1 done, 2.2 started) |
 | 3. DI Migration | Medium | Phase 2 | Not started |
 | 4. Network Migration | Medium | Phase 3 | Not started |
 | 5. KMP | Large | Phases 3 + 4 | Not started |
