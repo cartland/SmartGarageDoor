@@ -44,6 +44,14 @@ if [[ "${1:-}" == "--check" ]]; then
     echo "Next tag:   $NEXT_TAG"
     echo "Branch:     $BRANCH"
     echo "Commit:     $SHORT_SHA"
+    if ! git diff --quiet HEAD 2>/dev/null; then
+        echo "WARNING: Uncommitted changes"
+    fi
+    UNTRACKED_CHECK=$(git ls-files --others --exclude-standard 2>/dev/null)
+    if [[ -n "$UNTRACKED_CHECK" ]]; then
+        UNTRACKED_COUNT=$(echo "$UNTRACKED_CHECK" | wc -l | tr -d ' ')
+        echo "WARNING: $UNTRACKED_COUNT untracked file(s)"
+    fi
     exit 0
 fi
 
@@ -56,10 +64,32 @@ if [[ "$BRANCH" != "main" ]]; then
     exit 1
 fi
 
-# Must have clean working tree (allow untracked files).
+# Must have clean working tree (tracked files).
 if ! git diff --quiet HEAD 2>/dev/null; then
     echo -e "${RED}ERROR: Working tree has uncommitted changes.${RESET}"
     exit 1
+fi
+
+# Warn on untracked files (could affect build).
+UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null)
+if [[ -n "$UNTRACKED" ]]; then
+    echo -e "WARNING: Untracked files detected:"
+    echo "$UNTRACKED" | head -10
+    UNTRACKED_COUNT=$(echo "$UNTRACKED" | wc -l | tr -d ' ')
+    if [[ "$UNTRACKED_COUNT" -gt 10 ]]; then
+        echo "  ... and $((UNTRACKED_COUNT - 10)) more"
+    fi
+    echo ""
+    if [[ -t 0 ]]; then
+        read -p "Continue with untracked files? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Aborted."
+            exit 1
+        fi
+    else
+        echo "Non-interactive: proceeding with untracked files."
+    fi
 fi
 
 # Check Firebase CI passed on HEAD.
