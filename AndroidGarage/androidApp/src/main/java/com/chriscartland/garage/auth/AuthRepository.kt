@@ -109,17 +109,22 @@ class AuthRepositoryImpl
                 val currentUser = Firebase.auth.currentUser ?: return AuthState.Unauthenticated.commit()
                 val idToken: FirebaseIdToken? =
                     suspendCancellableCoroutine { continuation ->
-                        currentUser.getIdToken(true).addOnSuccessListener { result ->
-                            Log.d(TAG, "Firebase ID Token: ${result.token}")
-                            continuation.resume(
-                                result.token?.let {
-                                    FirebaseIdToken(
-                                        idToken = it,
-                                        exp = result.expirationTimestamp,
-                                    )
-                                },
-                            )
-                        }
+                        currentUser
+                            .getIdToken(true)
+                            .addOnSuccessListener { result ->
+                                Log.d(TAG, "Firebase ID Token: ${result.token}")
+                                continuation.resume(
+                                    result.token?.let {
+                                        FirebaseIdToken(
+                                            idToken = it,
+                                            exp = result.expirationTimestamp,
+                                        )
+                                    },
+                                )
+                            }.addOnFailureListener { exception ->
+                                Log.e(TAG, "Failed to get Firebase ID Token", exception)
+                                continuation.resume(null)
+                            }
                     }
                 if (idToken == null) {
                     return AuthState.Unauthenticated.commit()
