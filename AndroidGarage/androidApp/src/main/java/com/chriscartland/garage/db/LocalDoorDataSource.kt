@@ -18,6 +18,7 @@
 package com.chriscartland.garage.db
 
 import android.util.Log
+import com.chriscartland.garage.data.LocalDoorDataSource
 import com.chriscartland.garage.domain.model.DoorEvent
 import dagger.Module
 import dagger.Provides
@@ -27,15 +28,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
-
-interface LocalDoorDataSource {
-    val currentDoorEvent: Flow<DoorEvent>
-    val recentDoorEvents: Flow<List<DoorEvent>>
-
-    fun insertDoorEvent(doorEvent: DoorEvent)
-
-    fun replaceDoorEvents(doorEvents: List<DoorEvent>)
-}
 
 class DatabaseLocalDoorDataSource
     @Inject
