@@ -110,6 +110,25 @@ CURRENT_COMMIT=$(git rev-parse HEAD)
 CURRENT_COMMIT_SHORT=$(git rev-parse --short HEAD)
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "(detached)")
 
+# Check for existing tags on this commit.
+TAGS_ON_COMMIT=$(git tag -l 'android/[0-9]*' --points-at HEAD 2>/dev/null | sort -t/ -k2 -n)
+check_existing_tags() {
+    if [ -n "$TAGS_ON_COMMIT" ]; then
+        TAG_COUNT=$(echo "$TAGS_ON_COMMIT" | wc -l | tr -d ' ')
+        NEWEST_TAG_ON_COMMIT=$(echo "$TAGS_ON_COMMIT" | tail -1)
+        if [ "$NEWEST_TAG_ON_COMMIT" = "$LATEST_TAG" ]; then
+            # Latest tag is on this commit — releasing again on same code
+            echo -e "${YELLOW}WARNING: This commit already has $LATEST_TAG.${RESET}"
+            echo "  Creating $NEW_TAG on the same commit (version bump, no code change)."
+        else
+            # An older tag is on this commit — rollback/rollforward
+            echo -e "${YELLOW}WARNING: This commit was previously released as: $TAGS_ON_COMMIT${RESET}"
+            echo "  Latest tag $LATEST_TAG is on a different commit."
+            echo "  Creating $NEW_TAG here (rollback/rollforward)."
+        fi
+    fi
+}
+
 # === --check mode ===
 if [ "$MODE" = "check" ]; then
     echo "Latest tag: $LATEST_TAG"
@@ -124,6 +143,7 @@ if [ "$MODE" = "check" ]; then
         UNTRACKED_COUNT=$(echo "$UNTRACKED_CHECK" | wc -l | tr -d ' ')
         echo -e "${YELLOW}WARNING: $UNTRACKED_COUNT untracked file(s)${RESET}"
     fi
+    check_existing_tags
     exit 0
 fi
 
@@ -171,6 +191,9 @@ if [ -n "$UNTRACKED" ]; then
         echo -e "${YELLOW}Non-interactive: proceeding with untracked files.${RESET}"
     fi
 fi
+
+# Check for existing tags on this commit
+check_existing_tags
 
 # Check CI status
 echo "Checking CI status on HEAD..."
