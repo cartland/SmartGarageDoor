@@ -3,6 +3,9 @@ set -euo pipefail
 
 # Local validation script — mirrors CI checks.
 # Run before pushing to catch issues early.
+#
+# Automatically discovers all modules with test sources so new
+# modules are covered without editing this script.
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 GRADLE="$REPO_ROOT/AndroidGarage/gradlew -p $REPO_ROOT/AndroidGarage"
@@ -25,8 +28,24 @@ $GRADLE :androidApp:detekt && pass "detekt" || fail "detekt"
 step "Android Lint"
 $GRADLE :androidApp:lint && pass "lint" || fail "lint"
 
-step "Domain module tests"
-$GRADLE :domain:test && pass "domain:test" || fail "domain:test"
+# Discover all non-Android modules with test sources and run their tests.
+# Android modules (androidApp) use variant-specific test tasks handled below.
+step "Pure Kotlin module tests (auto-discovered)"
+FOUND_MODULES=0
+for test_dir in "$REPO_ROOT"/AndroidGarage/*/src/test; do
+    [ -d "$test_dir" ] || continue
+    module_dir=$(dirname "$(dirname "$test_dir")")
+    module=$(basename "$module_dir")
+    # Skip androidApp — it has variant-specific test tasks
+    [ "$module" = "androidApp" ] && continue
+    # Only run if it's a real Gradle module
+    [ -f "$module_dir/build.gradle.kts" ] || [ -f "$module_dir/build.gradle" ] || continue
+    FOUND_MODULES=$((FOUND_MODULES + 1))
+    $GRADLE ":${module}:test" && pass ":${module}:test" || fail ":${module}:test"
+done
+if [ "$FOUND_MODULES" -eq 0 ]; then
+    echo "  (no pure Kotlin modules with tests found)"
+fi
 
 step "Unit Tests (debug)"
 $GRADLE :androidApp:testDebugUnitTest && pass "testDebugUnitTest" || fail "testDebugUnitTest"
