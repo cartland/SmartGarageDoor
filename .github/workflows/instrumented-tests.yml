@@ -57,3 +57,16 @@ jobs:
       - name: Clean secrets
         if: always()
         run: release/clean-secrets.sh
+
+  # Track failures via GitHub issues
+  track-failure:
+    if: always() && needs.detect-changes.outputs.android == 'true'
+    needs: [detect-changes, instrumented-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ci-failure-tracker
+        with:
+          label: ci-failure/instrumented-tests
+          result: ${{ needs.instrumented-tests.result }}
+          workflow-name: Instrumented Tests
