@@ -53,12 +53,15 @@ import java.time.Duration
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun ProfileContent(modifier: Modifier = Modifier) {
+fun ProfileContent(
+    modifier: Modifier = Modifier,
+    authViewModel: AuthViewModel? = null,
+) {
     val component = rememberAppComponent()
-    val authViewModel: AuthViewModel = viewModel { component.authViewModel }
+    val resolvedAuthViewModel = authViewModel ?: viewModel { component.authViewModel }
     val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
     val activity = LocalActivity.current
-    val authState by authViewModel.authState.collectAsState()
+    val authState by resolvedAuthViewModel.authState.collectAsState()
     val snoozeRequestStatus by buttonViewModel.snoozeRequestStatus.collectAsState()
     val snoozeEndTimeSeconds by buttonViewModel.snoozeEndTimeSeconds.collectAsState()
 
@@ -77,17 +80,17 @@ fun ProfileContent(modifier: Modifier = Modifier) {
         modifier = modifier,
         signIn = {
             if (activity != null) {
-                authViewModel.signInWithGoogle(activity)
+                resolvedAuthViewModel.signInWithGoogle(activity)
             } else {
                 Log.e(TAG, "Activity is null, cannot sign in with Google")
             }
         },
-        signOut = { authViewModel.signOut() },
+        signOut = { resolvedAuthViewModel.signOut() },
         snoozeEndTimeSeconds = snoozeEndTimeSeconds,
         snoozeRequestStatus = snoozeRequestStatus,
         onSnooze = {
             buttonViewModel.snoozeOpenDoorsNotifications(
-                authViewModel.authRepository,
+                resolvedAuthViewModel.authRepository,
                 it,
             )
         },
