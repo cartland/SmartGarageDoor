@@ -1,0 +1,6 @@
+# Annotations to ignore in /review-annotations.
+# One pattern per line (grep -F matching against annotation message).
+# Lines starting with # are comments.
+
+# GitHub Actions Node.js deprecation — tracked, will resolve when actions update
+Node.js 20 actions are deprecated

@@ -122,3 +122,9 @@ jobs:
           releaseFiles: AndroidGarage/androidApp/build/outputs/bundle/release/*.aab
           track: internal
           whatsNewDirectory: AndroidGarage/distribution/whatsnew
+
+      - name: Release summary
+        run: |
+          VERSION_CODE="${{ steps.validate.outputs.version_code }}"
+          TAG="android/$VERSION_CODE"
+          echo "::notice title=Android Release::Released $TAG to Play Store internal track (versionCode=$VERSION_CODE, package=com.chriscartland.garage)"
