@@ -125,27 +125,23 @@ See `docs/DI-MIGRATION.md` for the full migration guide with before/after code e
 - Net -841 lines
 - Zero `retrofit2`/`moshi`/`okhttp3` imports remain in source code
 
-## Phase 5: KMP Preparation
-
-**Status:** Not started. Android-only with KMP architecture (no iOS target).
+## Phase 5: KMP Preparation — COMPLETE
 
 **Goal:** Structure code for multiplatform, Android target only.
 
-### 5.1 Configure Multiplatform
-- Add `org.jetbrains.kotlin.multiplatform` plugin
-- Define targets: `androidTarget()` only (no iOS)
-- Create `commonMain`, `androidMain` source sets
+### 5.1 Convert domain/ and data/ to KMP — `82e1ed7` (#120)
+- Both modules: `kotlin("jvm")` → `kotlin("multiplatform")` + `com.android.library`
+- domain/: 13 source files + 2 test files → `src/commonMain/kotlin/` + `src/commonTest/kotlin/`
+- data/: 4 interface files → `src/commonMain/kotlin/`
+- Tests migrated from JUnit to `kotlin.test`
+- Zero Android imports — all code in commonMain
 
-### 5.2 Move Shared Code to Common
-- Domain layer (interfaces, models) → `commonMain`
-- UseCase layer → `commonMain`
-- Repository implementations → `commonMain` (with `expect`/`actual` for platform specifics)
-- ViewModels → `commonMain`
-
-### 5.3 Platform-Specific Implementations
-- `expect class DatabaseFactory` / `actual class DatabaseFactory` for Room
-- `expect class HttpClientFactory` / `actual class HttpClientFactory` for Ktor engine
-- Platform entry points create components with platform-specific dependencies
+### 5.2 Future: Move more code to commonMain
+Not needed for Android-only. When adding a second platform target:
+- UseCases (4 pure Kotlin files) → new `usecase/` KMP module
+- Ktor data sources → `commonMain` (already KMP-compatible)
+- `expect`/`actual` for Room (DatabaseFactory) and Firebase Auth
+- ViewModels → `commonMain` with Compose Multiplatform
 
 ## Phase 6: Screenshot Tests — COMPLETE
 
@@ -196,7 +192,7 @@ See `docs/DI-MIGRATION.md` for the full migration guide with before/after code e
 | 2. Clean Architecture | Large | Phase 1 | **COMPLETE** |
 | 3. DI Migration | Medium | Phase 2 | **COMPLETE** |
 | 4. Network Migration | Medium | Phase 3 | **COMPLETE** |
-| 5. KMP | Large | Phase 4 | Not started (Android-only) |
+| 5. KMP | Large | Phase 4 | **COMPLETE** (Android-only) |
 | 6. Screenshot Tests | Medium | None | **COMPLETE** |
 | 7. Instrumented Tests | Medium | None | **COMPLETE** |
 
