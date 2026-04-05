@@ -18,7 +18,6 @@
 package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -72,7 +71,7 @@ fun GarageDoorCanvas(
     color: Color = Color(0xFF3C5232),
 ) {
     val darkColor = blendColors(color, Color.Black, 0.5f)
-    Canvas(modifier = modifier.aspectRatio(VP_W / VP_H)) {
+    Canvas(modifier = modifier) {
         drawGarageDoor(doorOffset, color, darkColor)
     }
 }
