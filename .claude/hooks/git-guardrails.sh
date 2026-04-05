@@ -106,6 +106,26 @@ if echo "$STRIPPED" | grep -qE '\bgit\s+(add|commit)\b'; then
   fi
 fi
 
+# --- Warn when changes should trigger instrumented tests ---
+if echo "$STRIPPED" | grep -qE '\bgit\s+push\b'; then
+  if [ -n "$REPO_ROOT" ]; then
+    CHANGED_FILES=$(git diff --name-only origin/main...HEAD 2>/dev/null)
+    NEEDS_INSTRUMENTED=false
+    for f in $CHANGED_FILES; do
+      case "$f" in
+        *Entity.kt|*Dao.kt|*AppDatabase.kt|*AppComponent.kt|*MainActivity.kt|*Main.kt|*Navigation*.kt|*LocalDoorDataSource.kt|*DoorRepository*.kt)
+          NEEDS_INSTRUMENTED=true
+          break
+          ;;
+      esac
+    done
+    if [ "$NEEDS_INSTRUMENTED" = "true" ]; then
+      echo "WARNING: Changes touch Room/DI/navigation code." >&2
+      echo "  Consider running instrumented tests: ./scripts/run-instrumented-tests.sh" >&2
+    fi
+  fi
+fi
+
 # --- Block destructive git commands ---
 if echo "$STRIPPED" | grep -qE '\bgit\s+reset\s+--hard\b'; then
   deny "BLOCKED: git reset --hard discards commits. Use git stash or a backup branch."
