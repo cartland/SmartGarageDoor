@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface DoorEventDao {
     @Query("SELECT * FROM DoorEvent ORDER BY lastChangeTimeSeconds DESC LIMIT 1")
-    fun currentDoorEvent(): Flow<DoorEventEntity>
+    fun currentDoorEvent(): Flow<DoorEventEntity?>
 
     @Query("SELECT * FROM DoorEvent ORDER BY lastChangeTimeSeconds DESC")
     fun recentDoorEvents(): Flow<List<DoorEventEntity>>

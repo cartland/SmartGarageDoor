@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
  * without leaking implementation details to the Repository layer.
  */
 interface LocalDoorDataSource {
-    val currentDoorEvent: Flow<DoorEvent>
+    val currentDoorEvent: Flow<DoorEvent?>
     val recentDoorEvents: Flow<List<DoorEvent>>
 
     fun insertDoorEvent(doorEvent: DoorEvent)

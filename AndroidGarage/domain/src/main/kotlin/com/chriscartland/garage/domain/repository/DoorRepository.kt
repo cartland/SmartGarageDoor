@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface DoorRepository {
     val currentDoorPosition: Flow<DoorPosition>
-    val currentDoorEvent: Flow<DoorEvent>
+    val currentDoorEvent: Flow<DoorEvent?>
     val recentDoorEvents: Flow<List<DoorEvent>>
 
     suspend fun fetchBuildTimestampCached(): String?
