@@ -145,6 +145,15 @@ android {
 
     testOptions {
         unitTests.isReturnDefaultValues = true
+        managedDevices {
+            localDevices {
+                create("pixel6Api34") {
+                    device = "Pixel 6"
+                    apiLevel = 34
+                    systemImageSource = "aosp-atd"
+                }
+            }
+        }
     }
 
     compileOptions {
