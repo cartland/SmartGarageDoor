@@ -24,45 +24,42 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.ui.util.trace
-import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.auth.RC_ONE_TAP_SIGN_IN
 import com.chriscartland.garage.config.AppLoggerKeys
+import com.chriscartland.garage.di.activityViewModel
 import com.chriscartland.garage.ui.GarageApp
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     /**
-     * Activity-scoped AuthViewModel shared between Compose and onActivityResult.
+     * Activity-scoped ViewModels shared between Compose and Activity callbacks.
      *
-     * Must be the same instance because signInWithGoogle() stores the SignInClient,
-     * and processGoogleSignInResult() reads it back.
+     * Created via [activityViewModel] to ensure the same instance is stored in the
+     * Activity's ViewModelStore. Compose receives these as parameters and uses the
+     * same instances. This prevents bugs where instance state (like SignInClient)
+     * exists on one ViewModel but is accessed from a different instance.
      */
-    private val authViewModel: AuthViewModelImpl by lazy {
-        val component = (application as GarageApplication).component
-        androidx.lifecycle.ViewModelProvider(
-            this,
-            object : androidx.lifecycle.ViewModelProvider.Factory {
-                override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                    @Suppress("UNCHECKED_CAST")
-                    return component.authViewModel as T
-                }
-            },
-        )[AuthViewModelImpl::class.java]
-    }
+    private val component by lazy { (application as GarageApplication).component }
+    private val authViewModel by lazy { activityViewModel(this) { component.authViewModel } }
+    private val doorViewModel by lazy { activityViewModel(this) { component.doorViewModel } }
+    private val appLoggerViewModel by lazy { activityViewModel(this) { component.appLoggerViewModel } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge() // Edge-to-edge required on Android 15+ (target SDK 35).
-        val component = (application as GarageApplication).component
         trace("MainActivity.setContent") {
             setContent {
-                GarageApp(authViewModel = authViewModel)
+                GarageApp(
+                    authViewModel = authViewModel,
+                    doorViewModel = doorViewModel,
+                    appLoggerViewModel = appLoggerViewModel,
+                )
             }
         }
         Log.d(TAG, "onCreate: Try to subscribe to FCM topic")
-        component.doorViewModel.registerFcm(this)
-        component.appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
+        doorViewModel.registerFcm(this)
+        appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
     }
 
     // TODO: Migrate away from onActivityResult with Activity Result API and ActivityResultContract.

@@ -62,9 +62,17 @@ import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import java.time.Instant
 
 @Composable
-fun GarageApp(authViewModel: AuthViewModel) {
+fun GarageApp(
+    authViewModel: AuthViewModel,
+    doorViewModel: DoorViewModel,
+    appLoggerViewModel: AppLoggerViewModel,
+) {
     AppTheme {
-        AppNavigation(authViewModel = authViewModel)
+        AppNavigation(
+            authViewModel = authViewModel,
+            doorViewModel = doorViewModel,
+            appLoggerViewModel = appLoggerViewModel,
+        )
     }
 }
 
@@ -82,11 +90,13 @@ sealed class Screen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation(authViewModel: AuthViewModel) {
+fun AppNavigation(
+    authViewModel: AuthViewModel,
+    doorViewModel: DoorViewModel,
+    appLoggerViewModel: AppLoggerViewModel,
+) {
     val component = rememberAppComponent()
-    val doorViewModel: DoorViewModel = viewModel { component.doorViewModel }
     val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
-    val appLoggerViewModel: AppLoggerViewModel = viewModel { component.appLoggerViewModel }
     var isOld by remember { mutableStateOf(false) }
     val currentDoorEvent by doorViewModel.currentDoorEvent.collectAsState()
     val lastCheckInTime = currentDoorEvent.data?.lastCheckInTimeSeconds?.let {
@@ -148,6 +158,8 @@ fun AppNavigation(authViewModel: AuthViewModel) {
             composable(Screen.Home.route) {
                 HomeContent(
                     authViewModel = authViewModel,
+                    doorViewModel = doorViewModel,
+                    appLoggerViewModel = appLoggerViewModel,
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth(),
@@ -155,6 +167,8 @@ fun AppNavigation(authViewModel: AuthViewModel) {
             }
             composable(Screen.History.route) {
                 DoorHistoryContent(
+                    doorViewModel = doorViewModel,
+                    appLoggerViewModel = appLoggerViewModel,
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth(),
