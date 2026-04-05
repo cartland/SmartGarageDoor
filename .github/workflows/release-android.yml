@@ -35,12 +35,13 @@ jobs:
           TAG_SHA="${{ steps.get-sha.outputs.sha }}"
           echo "Checking CI status for commit $TAG_SHA..."
 
+          # Check post-merge CI results (check-run names from ci-checks.yml reusable workflow)
           TESTS_CONCLUSION=$(gh api "repos/${{ github.repository }}/commits/$TAG_SHA/check-runs" \
-            --jq '[.check_runs[] | select(.name == "Unit Tests")] | last | .conclusion')
+            --jq '[.check_runs[] | select(.name | contains("Unit Tests"))] | last | .conclusion')
           FORMAT_CONCLUSION=$(gh api "repos/${{ github.repository }}/commits/$TAG_SHA/check-runs" \
-            --jq '[.check_runs[] | select(.name == "Formatting & Static Analysis")] | last | .conclusion')
+            --jq '[.check_runs[] | select(.name | contains("Formatting"))] | last | .conclusion')
           BUILD_CONCLUSION=$(gh api "repos/${{ github.repository }}/commits/$TAG_SHA/check-runs" \
-            --jq '[.check_runs[] | select(.name == "Build Debug APK")] | last | .conclusion')
+            --jq '[.check_runs[] | select(.name | contains("Build Debug APK"))] | last | .conclusion')
 
           echo "Tests: $TESTS_CONCLUSION"
           echo "Formatting: $FORMAT_CONCLUSION"

@@ -199,13 +199,14 @@ check_existing_tags
 echo "Checking CI status on HEAD..."
 REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null || echo "")
 if [ -n "$REPO" ]; then
-    # Check the required CI checks (matches job names in ci.yml)
+    # Check the required CI checks (matches job names from ci-checks.yml reusable workflow)
+    # Names are "Checks / Unit Tests" (post-merge) or "Unit Tests" (PR). Use contains() for both.
     TESTS_STATUS=$(gh api "repos/${REPO}/commits/${CURRENT_COMMIT}/check-runs" \
-        --jq '[.check_runs[] | select(.name == "Unit Tests")] | last | .conclusion' 2>/dev/null || echo "")
+        --jq '[.check_runs[] | select(.name | contains("Unit Tests"))] | last | .conclusion' 2>/dev/null || echo "")
     FORMAT_STATUS=$(gh api "repos/${REPO}/commits/${CURRENT_COMMIT}/check-runs" \
-        --jq '[.check_runs[] | select(.name == "Formatting & Static Analysis")] | last | .conclusion' 2>/dev/null || echo "")
+        --jq '[.check_runs[] | select(.name | contains("Formatting"))] | last | .conclusion' 2>/dev/null || echo "")
     BUILD_STATUS=$(gh api "repos/${REPO}/commits/${CURRENT_COMMIT}/check-runs" \
-        --jq '[.check_runs[] | select(.name == "Build Debug APK")] | last | .conclusion' 2>/dev/null || echo "")
+        --jq '[.check_runs[] | select(.name | contains("Build Debug APK"))] | last | .conclusion' 2>/dev/null || echo "")
 
     if [ "$TESTS_STATUS" = "success" ] && [ "$FORMAT_STATUS" = "success" ] && [ "$BUILD_STATUS" = "success" ]; then
         echo -e "${GREEN}CI passed on HEAD.${RESET}"
