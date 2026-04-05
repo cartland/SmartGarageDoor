@@ -9,6 +9,10 @@ on:
   push:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+  issues: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -33,10 +37,10 @@ jobs:
             exit 0
           fi
 
-          if echo "$CHANGED" | grep -qE '^(AndroidGarage/|\.github/(workflows|actions)/)'; then
+          if echo "$CHANGED" | grep -qE '^(AndroidGarage/|scripts/|\.github/(workflows|actions)/)'; then
             echo "android=true" >> $GITHUB_OUTPUT
             echo "Android files changed:"
-            echo "$CHANGED" | grep -E '^(AndroidGarage/|\.github/(workflows|actions)/)'
+            echo "$CHANGED" | grep -E '^(AndroidGarage/|scripts/|\.github/(workflows|actions)/)'
           else
             echo "android=false" >> $GITHUB_OUTPUT
             echo "No Android files changed. Changed files:"
