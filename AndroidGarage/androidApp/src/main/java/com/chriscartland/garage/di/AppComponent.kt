@@ -89,7 +89,7 @@ abstract class AppComponent(
     @Singleton
     fun provideAppDatabase(): AppDatabase = AppDatabase.getDatabase(application)
 
-    // Network — Ktor HTTP client (replacing Retrofit — Phase 4)
+    // Network — Ktor HTTP client
     @Provides
     @Singleton
     fun provideHttpClient(): HttpClient = provideKtorHttpClient()

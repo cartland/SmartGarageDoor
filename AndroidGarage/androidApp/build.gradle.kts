@@ -123,19 +123,6 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".debug"
         }
-//        // Debug R8 optimizations with isMinifyEnabled = true
-//        val debugMinify by creating {
-//            initWith(debug)
-//            isMinifyEnabled = true
-//            isShrinkResources = true
-//            proguardFiles(
-//                getDefaultProguardFile("proguard-android-optimize.txt"),
-//                "proguard-rules.pro",
-//                "retrofit2.pro",
-//                "moshi.pro",
-//            )
-//            matchingFallbacks += listOf("release", "debug")
-//        }
         // Turn on R8 optimizations and sign with release key
         val release by getting {
             isMinifyEnabled = true
@@ -143,8 +130,6 @@ android {
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
-                "retrofit2.pro",
-                "moshi.pro",
             )
             signingConfig = signingConfigs.getByName("release")
         }
@@ -254,14 +239,7 @@ dependencies {
     // Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    // Retrofit (to be removed in Phase 4.3)
-    implementation(libs.squareup.moshi)
-    implementation(libs.squareup.moshi.kotlin)
-    implementation(libs.squareup.retrofit)
-    implementation(libs.squareup.retrofit.moshi.converter)
-    implementation(libs.okhttpLoggingInterceptor)
-    ksp(libs.squareup.moshi.kotlin.codegen)
-    // Ktor HTTP client + kotlinx.serialization (replacing Retrofit — Phase 4)
+    // Ktor HTTP client + kotlinx.serialization (replaced Retrofit — Phase 4)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.content.negotiation)

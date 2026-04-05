@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.snoozenotifications
 
-import com.chriscartland.garage.internet.SnoozeDurationParameter
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 
@@ -64,8 +63,3 @@ enum class SnoozeDurationServerOption(
     HOURS_11("11h"),
     HOURS_12("12h"),
 }
-
-/**
- * Type-safe way to get the string parameter to the server.
- */
-fun SnoozeDurationServerOption.toParam() = SnoozeDurationParameter(this.duration)

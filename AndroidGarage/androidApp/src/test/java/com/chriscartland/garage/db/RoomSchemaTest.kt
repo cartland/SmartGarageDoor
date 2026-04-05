@@ -18,9 +18,8 @@
 package com.chriscartland.garage.db
 
 import com.chriscartland.garage.domain.model.DoorPosition
-import com.squareup.moshi.JsonClass
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -41,24 +40,24 @@ import java.io.File
  * in AppDatabase.kt and commit the new schema JSON.
  */
 class RoomSchemaTest {
-    @JsonClass(generateAdapter = false)
+    @Serializable
     data class SchemaFile(
         val database: SchemaDatabase,
     )
 
-    @JsonClass(generateAdapter = false)
+    @Serializable
     data class SchemaDatabase(
         val version: Int,
         val entities: List<SchemaEntity>,
     )
 
-    @JsonClass(generateAdapter = false)
+    @Serializable
     data class SchemaEntity(
         val tableName: String,
         val fields: List<SchemaField>,
     )
 
-    @JsonClass(generateAdapter = false)
+    @Serializable
     data class SchemaField(
         val columnName: String,
         val affinity: String,
@@ -66,7 +65,7 @@ class RoomSchemaTest {
 
     private val schemaDir = File("schemas/com.chriscartland.garage.db.AppDatabase")
 
-    private val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
+    private val json = Json { ignoreUnknownKeys = true }
 
     private fun latestSchemaVersion(): Int {
         val files = schemaDir.listFiles { f -> f.extension == "json" } ?: emptyArray()
@@ -76,8 +75,7 @@ class RoomSchemaTest {
     private fun readSchema(version: Int): SchemaFile {
         val file = File(schemaDir, "$version.json")
         assertTrue("Schema file $version.json must exist", file.exists())
-        val adapter = moshi.adapter(SchemaFile::class.java)
-        return adapter.fromJson(file.readText())!!
+        return json.decodeFromString(file.readText())
     }
 
     @Test
