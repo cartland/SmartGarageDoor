@@ -89,6 +89,28 @@ jobs:
         working-directory: AndroidGarage
         run: ./release/clean-secrets.sh
 
+  # Gate job — single check-run name for release script to verify.
+  post-merge-complete:
+    name: Post-Merge Complete
+    if: always()
+    needs: [checks, instrumented-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          echo "Checks: ${{ needs.checks.result }}"
+          echo "Instrumented: ${{ needs.instrumented-tests.result }}"
+
+          if [[ "${{ needs.checks.result }}" == "failure" || \
+                "${{ needs.instrumented-tests.result }}" == "failure" || \
+                "${{ needs.checks.result }}" == "cancelled" || \
+                "${{ needs.instrumented-tests.result }}" == "cancelled" ]]; then
+            echo "::error::Post-merge CI failed"
+            exit 1
+          fi
+
+          echo "All post-merge checks passed (or skipped — no Android changes)"
+
   # Track post-merge failures via a single GitHub issue
   track-failure:
     name: Track Post-Merge Failure

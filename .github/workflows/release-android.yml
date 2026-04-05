@@ -35,36 +35,18 @@ jobs:
           TAG_SHA="${{ steps.get-sha.outputs.sha }}"
           echo "Checking CI status for commit $TAG_SHA..."
 
-          # Check post-merge CI results (check-run names from ci-checks.yml reusable workflow)
-          TESTS_CONCLUSION=$(gh api "repos/${{ github.repository }}/commits/$TAG_SHA/check-runs" \
-            --jq '[.check_runs[] | select(.name | contains("Unit Tests"))] | last | .conclusion')
-          FORMAT_CONCLUSION=$(gh api "repos/${{ github.repository }}/commits/$TAG_SHA/check-runs" \
-            --jq '[.check_runs[] | select(.name | contains("Formatting"))] | last | .conclusion')
-          BUILD_CONCLUSION=$(gh api "repos/${{ github.repository }}/commits/$TAG_SHA/check-runs" \
-            --jq '[.check_runs[] | select(.name | contains("Build Debug APK"))] | last | .conclusion')
+          # Check the single post-merge gate job
+          POST_MERGE=$(gh api "repos/${{ github.repository }}/commits/$TAG_SHA/check-runs" \
+            --jq '[.check_runs[] | select(.name == "Post-Merge Complete")] | last | .conclusion')
 
-          echo "Tests: $TESTS_CONCLUSION"
-          echo "Formatting: $FORMAT_CONCLUSION"
-          echo "Build: $BUILD_CONCLUSION"
+          echo "Post-Merge Complete: $POST_MERGE"
 
-          FAILED=false
-          if [ "$TESTS_CONCLUSION" != "success" ]; then
-            echo "::error::Unit Tests concluded '$TESTS_CONCLUSION', expected 'success'"
-            FAILED=true
-          fi
-          if [ "$FORMAT_CONCLUSION" != "success" ]; then
-            echo "::error::Formatting concluded '$FORMAT_CONCLUSION', expected 'success'"
-            FAILED=true
-          fi
-          if [ "$BUILD_CONCLUSION" != "success" ]; then
-            echo "::error::Build concluded '$BUILD_CONCLUSION', expected 'success'"
-            FAILED=true
-          fi
-          if [ "$FAILED" = true ]; then
+          if [ "$POST_MERGE" != "success" ]; then
+            echo "::error::Post-Merge Complete concluded '$POST_MERGE', expected 'success'"
             exit 1
           fi
 
-          echo "All CI checks passed on commit $TAG_SHA"
+          echo "Post-merge CI passed on commit $TAG_SHA"
         env:
           GH_TOKEN: ${{ github.token }}
 

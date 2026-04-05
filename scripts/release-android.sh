@@ -199,32 +199,24 @@ check_existing_tags
 echo "Checking CI status on HEAD..."
 REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null || echo "")
 if [ -n "$REPO" ]; then
-    # Check the required CI checks (matches job names from ci-checks.yml reusable workflow)
-    # Names are "Checks / Unit Tests" (post-merge) or "Unit Tests" (PR). Use contains() for both.
-    TESTS_STATUS=$(gh api "repos/${REPO}/commits/${CURRENT_COMMIT}/check-runs" \
-        --jq '[.check_runs[] | select(.name | contains("Unit Tests"))] | last | .conclusion' 2>/dev/null || echo "")
-    FORMAT_STATUS=$(gh api "repos/${REPO}/commits/${CURRENT_COMMIT}/check-runs" \
-        --jq '[.check_runs[] | select(.name | contains("Formatting"))] | last | .conclusion' 2>/dev/null || echo "")
-    BUILD_STATUS=$(gh api "repos/${REPO}/commits/${CURRENT_COMMIT}/check-runs" \
-        --jq '[.check_runs[] | select(.name | contains("Build Debug APK"))] | last | .conclusion' 2>/dev/null || echo "")
+    # Check the single post-merge gate job (ci-post-merge.yml → Post-Merge Complete)
+    POST_MERGE_STATUS=$(gh api "repos/${REPO}/commits/${CURRENT_COMMIT}/check-runs" \
+        --jq '[.check_runs[] | select(.name == "Post-Merge Complete")] | last | .conclusion' 2>/dev/null || echo "")
 
-    if [ "$TESTS_STATUS" = "success" ] && [ "$FORMAT_STATUS" = "success" ] && [ "$BUILD_STATUS" = "success" ]; then
+    if [ "$POST_MERGE_STATUS" = "success" ]; then
         echo -e "${GREEN}CI passed on HEAD.${RESET}"
-    elif [ -z "$TESTS_STATUS" ] && [ -z "$FORMAT_STATUS" ] && [ -z "$BUILD_STATUS" ]; then
-        echo -e "${YELLOW}Warning: No CI results found for HEAD.${RESET}"
+    elif [ -z "$POST_MERGE_STATUS" ] || [ "$POST_MERGE_STATUS" = "null" ]; then
+        echo -e "${YELLOW}Warning: Post-merge CI has not completed on HEAD.${RESET}"
         if [ "$MODE" = "interactive" ]; then
             read -p "Continue anyway? (y/N) " -n 1 -r
             echo ""
             [[ $REPLY =~ ^[Yy]$ ]] || { echo "Aborted."; exit 1; }
         else
-            echo -e "${RED}Error: CI has not run on HEAD. Cannot release without CI.${RESET}"
+            echo -e "${RED}Error: Post-merge CI has not run on HEAD. Cannot release without CI.${RESET}"
             exit 1
         fi
     else
-        echo -e "${RED}Error: CI did not pass on HEAD.${RESET}"
-        echo "  Tests: $TESTS_STATUS"
-        echo "  Formatting: $FORMAT_STATUS"
-        echo "  Build: $BUILD_STATUS"
+        echo -e "${RED}Error: Post-merge CI failed on HEAD (status: $POST_MERGE_STATUS).${RESET}"
         exit 1
     fi
 fi
