@@ -36,33 +36,35 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.config.AppLoggerKeys
+import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.door.DoorViewModel
-import com.chriscartland.garage.door.DoorViewModelImpl
 import java.time.Instant
 
 @Composable
 fun DoorHistoryContent(
     modifier: Modifier = Modifier,
-    viewModel: DoorViewModel = hiltViewModel<DoorViewModelImpl>(),
     appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>(),
 ) {
+    val component = rememberAppComponent()
+    val doorViewModel: DoorViewModel = viewModel { component.doorViewModel }
     val activity = LocalActivity.current
-    val recentDoorEvents by viewModel.recentDoorEvents.collectAsState()
+    val recentDoorEvents by doorViewModel.recentDoorEvents.collectAsState()
     DoorHistoryContent(
         recentDoorEvents = recentDoorEvents,
         modifier = modifier,
         onFetchRecentDoorEvents = {
             appLoggerViewModel.log(AppLoggerKeys.USER_FETCH_RECENT_DOOR)
-            viewModel.fetchRecentDoorEvents()
+            doorViewModel.fetchRecentDoorEvents()
         },
         onResetFcm = {
             if (activity != null) {
-                viewModel.deregisterFcm(activity)
+                doorViewModel.deregisterFcm(activity)
             } else {
                 Log.e(TAG, "Activity is null, cannot deregister FCM")
             }

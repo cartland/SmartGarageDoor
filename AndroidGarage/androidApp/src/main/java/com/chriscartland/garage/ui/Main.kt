@@ -57,22 +57,16 @@ import com.chriscartland.garage.auth.AuthViewModel
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.door.DoorViewModel
-import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.fcm.FCMRegistration
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModel
-import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.ui.theme.AppTheme
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import java.time.Instant
 
 @Composable
-fun GarageApp(
-    doorViewModel: DoorViewModel,
-    appLoggerViewModel: AppLoggerViewModel,
-) {
+fun GarageApp(appLoggerViewModel: AppLoggerViewModel) {
     AppTheme {
         AppNavigation(
-            doorViewModel = doorViewModel,
             appLoggerViewModel = appLoggerViewModel,
         )
     }
@@ -92,13 +86,11 @@ sealed class Screen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation(
-    doorViewModel: DoorViewModel = hiltViewModel<DoorViewModelImpl>(),
-    buttonViewModel: RemoteButtonViewModel = hiltViewModel<RemoteButtonViewModelImpl>(),
-    appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>(),
-) {
+fun AppNavigation(appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>()) {
     val component = rememberAppComponent()
+    val doorViewModel: DoorViewModel = viewModel { component.doorViewModel }
     val authViewModel: AuthViewModel = viewModel { component.authViewModel }
+    val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
     var isOld by remember { mutableStateOf(false) }
     val currentDoorEvent by doorViewModel.currentDoorEvent.collectAsState()
     val lastCheckInTime = currentDoorEvent.data?.lastCheckInTimeSeconds?.let {
@@ -125,7 +117,7 @@ fun AppNavigation(
     }
     trace("FCMRegistration") {
         // Register for FCM notifications.
-        FCMRegistration(viewModel = doorViewModel)
+        FCMRegistration()
     }
     val navController = rememberNavController()
     Scaffold(
@@ -159,8 +151,6 @@ fun AppNavigation(
         ) {
             composable(Screen.Home.route) {
                 HomeContent(
-                    viewModel = doorViewModel,
-                    buttonViewModel = buttonViewModel,
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth(),
@@ -168,7 +158,6 @@ fun AppNavigation(
             }
             composable(Screen.History.route) {
                 DoorHistoryContent(
-                    viewModel = doorViewModel,
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth(),

@@ -29,8 +29,6 @@ import com.chriscartland.garage.applogger.AppLoggerViewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.auth.RC_ONE_TAP_SIGN_IN
 import com.chriscartland.garage.config.AppLoggerKeys
-import com.chriscartland.garage.door.DoorViewModel
-import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.ui.GarageApp
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -39,18 +37,17 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge() // Edge-to-edge required on Android 15+ (target SDK 35).
-        val doorViewModel: DoorViewModel by viewModels<DoorViewModelImpl>()
+        val component = (application as GarageApplication).component
         val appLoggerViewModel: AppLoggerViewModel by viewModels<AppLoggerViewModelImpl>()
         trace("MainActivity.setContent") {
             setContent {
                 GarageApp(
-                    doorViewModel = doorViewModel,
                     appLoggerViewModel = appLoggerViewModel,
                 )
             }
         }
         Log.d(TAG, "onCreate: Try to subscribe to FCM topic")
-        doorViewModel.registerFcm(this)
+        component.doorViewModel.registerFcm(this)
         appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
     }
 

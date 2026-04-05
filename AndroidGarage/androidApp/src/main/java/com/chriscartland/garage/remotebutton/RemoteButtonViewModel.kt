@@ -36,7 +36,6 @@ import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
-import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,9 +43,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.time.delay
+import me.tatarka.inject.annotations.Inject
 import java.time.Duration
 import java.util.Date
-import javax.inject.Inject
 
 interface RemoteButtonViewModel {
     val requestStatus: StateFlow<RequestStatus>
@@ -65,269 +64,267 @@ interface RemoteButtonViewModel {
     fun fetchSnoozeEndTimeSeconds()
 }
 
-@HiltViewModel
-class RemoteButtonViewModelImpl
-    @Inject
-    constructor(
-        // Remote button repository focused on sending the request over the Internet.
-        private val pushRepository: PushRepository,
-        // Watch the door status, because we consider the request delivered when the door moves.
-        private val doorRepository: DoorRepository,
-        private val dispatchers: DispatcherProvider,
-        private val pushRemoteButtonUseCase: PushRemoteButtonUseCase,
-        private val snoozeNotificationsUseCase: SnoozeNotificationsUseCase,
-    ) : ViewModel(),
-        RemoteButtonViewModel {
-        // Listen to network events and door status updates.
-        private val _requestStatus = MutableStateFlow(RequestStatus.NONE)
-        override val requestStatus: StateFlow<RequestStatus> = _requestStatus
+@Inject
+class RemoteButtonViewModelImpl(
+    // Remote button repository focused on sending the request over the Internet.
+    private val pushRepository: PushRepository,
+    // Watch the door status, because we consider the request delivered when the door moves.
+    private val doorRepository: DoorRepository,
+    private val dispatchers: DispatcherProvider,
+    private val pushRemoteButtonUseCase: PushRemoteButtonUseCase,
+    private val snoozeNotificationsUseCase: SnoozeNotificationsUseCase,
+) : ViewModel(),
+    RemoteButtonViewModel {
+    // Listen to network events and door status updates.
+    private val _requestStatus = MutableStateFlow(RequestStatus.NONE)
+    override val requestStatus: StateFlow<RequestStatus> = _requestStatus
 
-        private val _snoozeRequestStatus = MutableStateFlow(SnoozeRequestStatus.IDLE)
-        override val snoozeRequestStatus: StateFlow<SnoozeRequestStatus> = _snoozeRequestStatus
+    private val _snoozeRequestStatus = MutableStateFlow(SnoozeRequestStatus.IDLE)
+    override val snoozeRequestStatus: StateFlow<SnoozeRequestStatus> = _snoozeRequestStatus
 
-        override val snoozeEndTimeSeconds: StateFlow<Long> = pushRepository.snoozeEndTimeSeconds
+    override val snoozeEndTimeSeconds: StateFlow<Long> = pushRepository.snoozeEndTimeSeconds
 
-        private val currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
+    private val currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
 
-        init {
-            setupRequestStateMachine()
-        }
+    init {
+        setupRequestStateMachine()
+    }
 
-        /**
-         * State machine for [requestStatus].
-         */
-        private fun setupRequestStateMachine() {
-            listenToButtonRepository()
-            listenToDoorPosition()
-            listenToDoorEvent()
-            listenToRequestTimeouts()
-            listenToSnoozeStatus()
-        }
+    /**
+     * State machine for [requestStatus].
+     */
+    private fun setupRequestStateMachine() {
+        listenToButtonRepository()
+        listenToDoorPosition()
+        listenToDoorEvent()
+        listenToRequestTimeouts()
+        listenToSnoozeStatus()
+    }
 
-        /**
-         * Listen to button pushes and update [requestStatus].
-         *
-         * When [PushStatus] becomes [PushStatus.SENDING], then [RequestStatus] is SENDING.
-         *
-         * When [PushStatus] becomes [PushStatus.IDLE]:
-         *   - if the [RequestStatus] is SENDING, [RequestStatus] becomes SENT.
-         *   - otherwise [RequestStatus] becomes NONE (reset state machine).
-         */
-        private fun listenToButtonRepository() {
-            viewModelScope.launch(dispatchers.io) {
-                pushRepository.pushButtonStatus.collect { sendStatus ->
-                    val old = _requestStatus.value
-                    _requestStatus.value = when (sendStatus) {
-                        PushStatus.SENDING -> {
-                            RequestStatus.SENDING
-                        }
+    /**
+     * Listen to button pushes and update [requestStatus].
+     *
+     * When [PushStatus] becomes [PushStatus.SENDING], then [RequestStatus] is SENDING.
+     *
+     * When [PushStatus] becomes [PushStatus.IDLE]:
+     *   - if the [RequestStatus] is SENDING, [RequestStatus] becomes SENT.
+     *   - otherwise [RequestStatus] becomes NONE (reset state machine).
+     */
+    private fun listenToButtonRepository() {
+        viewModelScope.launch(dispatchers.io) {
+            pushRepository.pushButtonStatus.collect { sendStatus ->
+                val old = _requestStatus.value
+                _requestStatus.value = when (sendStatus) {
+                    PushStatus.SENDING -> {
+                        RequestStatus.SENDING
+                    }
 
-                        PushStatus.IDLE -> {
-                            when (old) {
-                                RequestStatus.SENDING -> RequestStatus.SENT
-                                // All others -> NONE
-                                RequestStatus.NONE -> RequestStatus.NONE
-                                RequestStatus.SENT -> RequestStatus.NONE
-                                RequestStatus.RECEIVED -> RequestStatus.NONE
-                                RequestStatus.SENDING_TIMEOUT -> RequestStatus.NONE
-                                RequestStatus.SENT_TIMEOUT -> RequestStatus.NONE
-                            }
+                    PushStatus.IDLE -> {
+                        when (old) {
+                            RequestStatus.SENDING -> RequestStatus.SENT
+                            // All others -> NONE
+                            RequestStatus.NONE -> RequestStatus.NONE
+                            RequestStatus.SENT -> RequestStatus.NONE
+                            RequestStatus.RECEIVED -> RequestStatus.NONE
+                            RequestStatus.SENDING_TIMEOUT -> RequestStatus.NONE
+                            RequestStatus.SENT_TIMEOUT -> RequestStatus.NONE
                         }
                     }
-                    Log.d(
-                        TAG,
-                        "ButtonRequestStateMachine network: old $old -> " + "new ${_requestStatus.value.name}",
-                    )
                 }
-            }
-        }
-
-        /**
-         * Listen to door position changes. Assume any change means the request was received.
-         *
-         * When the door moves:
-         *   - If [RequestStatus] is NONE, ignore the door movement.
-         *   - Otherwise, [RequestStatus] becomes [RequestStatus.RECEIVED].
-         */
-        private fun listenToDoorPosition() {
-            viewModelScope.launch(dispatchers.io) {
-                doorRepository.currentDoorPosition.collect {
-                    val old = _requestStatus.value
-                    when (_requestStatus.value) {
-                        RequestStatus.NONE -> {} // Do nothing.
-                        // All others -> RECEIVED
-                        RequestStatus.SENDING -> _requestStatus.value = RequestStatus.RECEIVED
-
-                        RequestStatus.SENDING_TIMEOUT -> _requestStatus.value = RequestStatus.RECEIVED
-
-                        RequestStatus.SENT -> _requestStatus.value = RequestStatus.RECEIVED
-
-                        RequestStatus.SENT_TIMEOUT -> _requestStatus.value = RequestStatus.RECEIVED
-
-                        RequestStatus.RECEIVED -> _requestStatus.value = RequestStatus.RECEIVED
-                    }
-                    Log.d(
-                        TAG,
-                        "ButtonRequestStateMachine door: old $old -> " + "new ${_requestStatus.value.name}",
-                    )
-                }
-            }
-        }
-
-        private fun listenToDoorEvent() {
-            viewModelScope.launch(dispatchers.io) {
-                doorRepository.currentDoorEvent.collect {
-                    currentDoorEvent.value = it
-                }
-            }
-        }
-
-        /**
-         * State machine to handle timeouts.
-         *
-         * Track coroutine job to ensure only 1 is running at a time.
-         */
-        private fun listenToRequestTimeouts() {
-            var job: Job? = null // Job to track coroutines.
-            val mutex = Mutex()
-            viewModelScope.launch(dispatchers.io) {
-                requestStatus.collect {
-                    when (it) {
-                        RequestStatus.NONE -> {
-                            job?.cancel()
-                        } // Do nothing.
-                        RequestStatus.SENDING -> {
-                            mutex.lock()
-                            job?.cancel()
-                            job = viewModelScope.launch(dispatchers.io) {
-                                delay(Duration.ofSeconds(10))
-                                // Check to make sure state has not changed.
-                                if (_requestStatus.value != RequestStatus.SENDING) {
-                                    Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
-                                } else {
-                                    _requestStatus.value = RequestStatus.SENDING_TIMEOUT
-                                }
-                            }
-                            mutex.unlock()
-                        }
-
-                        RequestStatus.SENT -> {
-                            mutex.lock()
-                            job?.cancel()
-                            job = viewModelScope.launch(dispatchers.io) {
-                                delay(Duration.ofSeconds(10))
-                                if (_requestStatus.value != RequestStatus.SENT) {
-                                    Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
-                                } else {
-                                    _requestStatus.value = RequestStatus.SENT_TIMEOUT
-                                }
-                            }
-                            mutex.unlock()
-                        }
-
-                        RequestStatus.RECEIVED -> {
-                            mutex.lock()
-                            job?.cancel()
-                            job = viewModelScope.launch(dispatchers.io) {
-                                delay(Duration.ofSeconds(10))
-                                if (_requestStatus.value != RequestStatus.RECEIVED) {
-                                    Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
-                                }
-                                _requestStatus.value = RequestStatus.NONE
-                            }
-                            mutex.unlock()
-                        }
-
-                        RequestStatus.SENDING_TIMEOUT -> {
-                            mutex.lock()
-                            job?.cancel()
-                            job = viewModelScope.launch(dispatchers.io) {
-                                delay(Duration.ofSeconds(10))
-                                if (_requestStatus.value != RequestStatus.SENDING_TIMEOUT) {
-                                    Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
-                                }
-                                _requestStatus.value = RequestStatus.NONE
-                            }
-                            mutex.unlock()
-                        }
-
-                        RequestStatus.SENT_TIMEOUT -> {
-                            mutex.lock()
-                            job?.cancel()
-                            job = viewModelScope.launch(dispatchers.io) {
-                                delay(Duration.ofSeconds(10))
-                                if (_requestStatus.value != RequestStatus.SENT_TIMEOUT) {
-                                    Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
-                                }
-                                _requestStatus.value = RequestStatus.NONE
-                            }
-                            mutex.unlock()
-                        }
-                    }
-                    Log.d(
-                        TAG,
-                        "ButtonRequestStateMachine timeouts: " + _requestStatus.value.name,
-                    )
-                }
-            }
-        }
-
-        private fun listenToSnoozeStatus() {
-            viewModelScope.launch(dispatchers.io) {
-                pushRepository.snoozeRequestStatus.collect {
-                    _snoozeRequestStatus.value = it
-                }
-            }
-        }
-
-        /**
-         * Push the button.
-         *
-         * Requires an authenticated user.
-         */
-        override fun pushRemoteButton(authRepository: AuthRepository) {
-            Log.d(TAG, "pushRemoteButton")
-            viewModelScope.launch(dispatchers.io) {
-                if (authRepository.authState.value !is AuthState.Authenticated) {
-                    Log.e(TAG, "Not authenticated — push skipped")
-                    return@launch
-                }
-                pushRemoteButtonUseCase(
-                    authRepository = authRepository,
-                    pushRepository = pushRepository,
-                    buttonAckToken = createButtonAckToken(Date()),
+                Log.d(
+                    TAG,
+                    "ButtonRequestStateMachine network: old $old -> " + "new ${_requestStatus.value.name}",
                 )
-            }
-        }
-
-        override fun snoozeOpenDoorsNotifications(
-            authRepository: AuthRepository,
-            snoozeDuration: SnoozeDurationUIOption,
-        ) {
-            Log.d(TAG, "snoozeOpenDoorsNotifications")
-            viewModelScope.launch(dispatchers.io) {
-                val result = snoozeNotificationsUseCase(
-                    authRepository = authRepository,
-                    pushRepository = pushRepository,
-                    snoozeDurationHours = snoozeDuration.toServer().duration,
-                    lastChangeTimeSeconds = currentDoorEvent.value?.lastChangeTimeSeconds,
-                )
-                if (!result) {
-                    Log.e(TAG, "Snooze failed — not authenticated or no door event")
-                }
-            }
-        }
-
-        override fun resetRemoteButton() {
-            _requestStatus.value = RequestStatus.NONE
-        }
-
-        override fun fetchSnoozeEndTimeSeconds() {
-            viewModelScope.launch(dispatchers.io) {
-                pushRepository.fetchSnoozeEndTimeSeconds()
             }
         }
     }
+
+    /**
+     * Listen to door position changes. Assume any change means the request was received.
+     *
+     * When the door moves:
+     *   - If [RequestStatus] is NONE, ignore the door movement.
+     *   - Otherwise, [RequestStatus] becomes [RequestStatus.RECEIVED].
+     */
+    private fun listenToDoorPosition() {
+        viewModelScope.launch(dispatchers.io) {
+            doorRepository.currentDoorPosition.collect {
+                val old = _requestStatus.value
+                when (_requestStatus.value) {
+                    RequestStatus.NONE -> {} // Do nothing.
+                    // All others -> RECEIVED
+                    RequestStatus.SENDING -> _requestStatus.value = RequestStatus.RECEIVED
+
+                    RequestStatus.SENDING_TIMEOUT -> _requestStatus.value = RequestStatus.RECEIVED
+
+                    RequestStatus.SENT -> _requestStatus.value = RequestStatus.RECEIVED
+
+                    RequestStatus.SENT_TIMEOUT -> _requestStatus.value = RequestStatus.RECEIVED
+
+                    RequestStatus.RECEIVED -> _requestStatus.value = RequestStatus.RECEIVED
+                }
+                Log.d(
+                    TAG,
+                    "ButtonRequestStateMachine door: old $old -> " + "new ${_requestStatus.value.name}",
+                )
+            }
+        }
+    }
+
+    private fun listenToDoorEvent() {
+        viewModelScope.launch(dispatchers.io) {
+            doorRepository.currentDoorEvent.collect {
+                currentDoorEvent.value = it
+            }
+        }
+    }
+
+    /**
+     * State machine to handle timeouts.
+     *
+     * Track coroutine job to ensure only 1 is running at a time.
+     */
+    private fun listenToRequestTimeouts() {
+        var job: Job? = null // Job to track coroutines.
+        val mutex = Mutex()
+        viewModelScope.launch(dispatchers.io) {
+            requestStatus.collect {
+                when (it) {
+                    RequestStatus.NONE -> {
+                        job?.cancel()
+                    } // Do nothing.
+                    RequestStatus.SENDING -> {
+                        mutex.lock()
+                        job?.cancel()
+                        job = viewModelScope.launch(dispatchers.io) {
+                            delay(Duration.ofSeconds(10))
+                            // Check to make sure state has not changed.
+                            if (_requestStatus.value != RequestStatus.SENDING) {
+                                Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
+                            } else {
+                                _requestStatus.value = RequestStatus.SENDING_TIMEOUT
+                            }
+                        }
+                        mutex.unlock()
+                    }
+
+                    RequestStatus.SENT -> {
+                        mutex.lock()
+                        job?.cancel()
+                        job = viewModelScope.launch(dispatchers.io) {
+                            delay(Duration.ofSeconds(10))
+                            if (_requestStatus.value != RequestStatus.SENT) {
+                                Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
+                            } else {
+                                _requestStatus.value = RequestStatus.SENT_TIMEOUT
+                            }
+                        }
+                        mutex.unlock()
+                    }
+
+                    RequestStatus.RECEIVED -> {
+                        mutex.lock()
+                        job?.cancel()
+                        job = viewModelScope.launch(dispatchers.io) {
+                            delay(Duration.ofSeconds(10))
+                            if (_requestStatus.value != RequestStatus.RECEIVED) {
+                                Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
+                            }
+                            _requestStatus.value = RequestStatus.NONE
+                        }
+                        mutex.unlock()
+                    }
+
+                    RequestStatus.SENDING_TIMEOUT -> {
+                        mutex.lock()
+                        job?.cancel()
+                        job = viewModelScope.launch(dispatchers.io) {
+                            delay(Duration.ofSeconds(10))
+                            if (_requestStatus.value != RequestStatus.SENDING_TIMEOUT) {
+                                Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
+                            }
+                            _requestStatus.value = RequestStatus.NONE
+                        }
+                        mutex.unlock()
+                    }
+
+                    RequestStatus.SENT_TIMEOUT -> {
+                        mutex.lock()
+                        job?.cancel()
+                        job = viewModelScope.launch(dispatchers.io) {
+                            delay(Duration.ofSeconds(10))
+                            if (_requestStatus.value != RequestStatus.SENT_TIMEOUT) {
+                                Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
+                            }
+                            _requestStatus.value = RequestStatus.NONE
+                        }
+                        mutex.unlock()
+                    }
+                }
+                Log.d(
+                    TAG,
+                    "ButtonRequestStateMachine timeouts: " + _requestStatus.value.name,
+                )
+            }
+        }
+    }
+
+    private fun listenToSnoozeStatus() {
+        viewModelScope.launch(dispatchers.io) {
+            pushRepository.snoozeRequestStatus.collect {
+                _snoozeRequestStatus.value = it
+            }
+        }
+    }
+
+    /**
+     * Push the button.
+     *
+     * Requires an authenticated user.
+     */
+    override fun pushRemoteButton(authRepository: AuthRepository) {
+        Log.d(TAG, "pushRemoteButton")
+        viewModelScope.launch(dispatchers.io) {
+            if (authRepository.authState.value !is AuthState.Authenticated) {
+                Log.e(TAG, "Not authenticated — push skipped")
+                return@launch
+            }
+            pushRemoteButtonUseCase(
+                authRepository = authRepository,
+                pushRepository = pushRepository,
+                buttonAckToken = createButtonAckToken(Date()),
+            )
+        }
+    }
+
+    override fun snoozeOpenDoorsNotifications(
+        authRepository: AuthRepository,
+        snoozeDuration: SnoozeDurationUIOption,
+    ) {
+        Log.d(TAG, "snoozeOpenDoorsNotifications")
+        viewModelScope.launch(dispatchers.io) {
+            val result = snoozeNotificationsUseCase(
+                authRepository = authRepository,
+                pushRepository = pushRepository,
+                snoozeDurationHours = snoozeDuration.toServer().duration,
+                lastChangeTimeSeconds = currentDoorEvent.value?.lastChangeTimeSeconds,
+            )
+            if (!result) {
+                Log.e(TAG, "Snooze failed — not authenticated or no door event")
+            }
+        }
+    }
+
+    override fun resetRemoteButton() {
+        _requestStatus.value = RequestStatus.NONE
+    }
+
+    override fun fetchSnoozeEndTimeSeconds() {
+        viewModelScope.launch(dispatchers.io) {
+            pushRepository.fetchSnoozeEndTimeSeconds()
+        }
+    }
+}
 
 @Module
 @InstallIn(SingletonComponent::class)

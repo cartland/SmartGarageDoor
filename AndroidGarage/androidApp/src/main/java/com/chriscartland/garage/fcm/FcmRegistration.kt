@@ -23,10 +23,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.door.DoorViewModel
-import com.chriscartland.garage.door.DoorViewModelImpl
 
 /**
  * Register for FCM updates.
@@ -38,7 +38,9 @@ import com.chriscartland.garage.door.DoorViewModelImpl
  * 2) Subscribe to the FCM topic.
  */
 @Composable
-fun FCMRegistration(viewModel: DoorViewModel = hiltViewModel<DoorViewModelImpl>()) {
+fun FCMRegistration() {
+    val component = rememberAppComponent()
+    val viewModel: DoorViewModel = viewModel { component.doorViewModel }
     val activity = LocalActivity.current
     val fcmState by viewModel.fcmRegistrationStatus.collectAsState()
     LaunchedEffect(key1 = fcmState) {
