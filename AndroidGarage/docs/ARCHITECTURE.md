@@ -26,7 +26,7 @@ ViewModel (StateFlow, business coordination)
     ↓ suspend calls
 Repository (data abstraction, caching)
     ↓              ↓
-Retrofit         Room
+Ktor HTTP        Room
 (network)      (local DB)
     ↓
 Firebase Server
@@ -56,7 +56,7 @@ All packages under `androidApp/src/main/java/com/chriscartland/garage/`:
 | `db/` | Room database, DAOs, entity mapping | `AppDatabase` (v11), `DoorEventEntity` ↔ domain `DoorEvent`, `DoorEventDao` |
 | `door/` | Door repository and ViewModel | `DoorRepositoryImpl`, `DoorViewModelImpl` |
 | `fcm/` | FCM registration, push handling | `FCMService`, `FcmPayloadParser`, `DoorFcmRepositoryImpl` |
-| `internet/` | Retrofit service, response DTOs | `GarageNetworkService`, value classes for type-safe params |
+| `internet/` | Ktor HTTP client, data source implementations | `KtorNetworkDoorDataSource`, `KtorNetworkConfigDataSource`, `KtorNetworkButtonDataSource` |
 | `permissions/` | Notification permission (API 33+) | Accompanist-based permission request |
 | `remotebutton/` | Remote button with state machine | `RemoteButtonViewModelImpl`, `PushRepositoryImpl` |
 | `settings/` | SharedPreferences wrapper | `AppSettings`, type-safe `Setting` classes |
@@ -102,21 +102,25 @@ Root files: `GarageApplication.kt` (@HiltAndroidApp), `MainActivity.kt` (Compose
 4. `refreshFirebaseAuthState()` → `getIdToken(true)` → `AuthState.Authenticated`
 5. Token included as `X-AuthTokenGoogle` header in server requests
 
-## Dependency Injection (Hilt)
+## Dependency Injection (kotlin-inject)
 
-| Module | Provides | Scope |
-|--------|----------|-------|
-| `RetrofitModule` | `GarageNetworkService` | Singleton |
-| `AppDatabaseModule` | `AppDatabase` | Singleton |
-| `GarageRepositoryModule` | `DoorRepository` | Singleton |
-| `PushRepositoryModule` | `PushRepository` | Singleton |
-| `AuthRepositoryModule` | `AuthRepository` | Singleton |
-| `ServerConfigRepositoryModule` | `ServerConfigRepository` | Singleton |
-| `AppLoggerRepositoryModule` | `AppLoggerRepository` | Singleton |
-| `DoorFcmRepositoryModule` | `DoorFcmRepository` | Singleton |
-| `DispatcherModule` | `DispatcherProvider` | Singleton |
+All dependencies wired in `AppComponent` (see `docs/DI-MIGRATION.md`):
 
-ViewModels use `@HiltViewModel` and are scoped to the navigation graph.
+| Provider | Provides | Scope |
+|----------|----------|-------|
+| `provideHttpClient()` | `HttpClient` (Ktor) | Singleton |
+| `provideNetworkDoorDataSource()` | `NetworkDoorDataSource` | Singleton |
+| `provideNetworkConfigDataSource()` | `NetworkConfigDataSource` | Singleton |
+| `provideNetworkButtonDataSource()` | `NetworkButtonDataSource` | Singleton |
+| `provideAppDatabase()` | `AppDatabase` | Singleton |
+| `provideLocalDoorDataSource()` | `LocalDoorDataSource` | Singleton |
+| `provideDoorRepository()` | `DoorRepository` | Singleton |
+| `providePushRepository()` | `PushRepository` | Singleton |
+| `provideAuthRepository()` | `AuthRepository` | Singleton |
+| `provideServerConfigRepository()` | `ServerConfigRepository` | Singleton |
+| `provideDispatcherProvider()` | `DispatcherProvider` | Singleton |
+
+ViewModels are created via `activityViewModel()` helper for Activity-scoped sharing.
 
 ## State Management
 
