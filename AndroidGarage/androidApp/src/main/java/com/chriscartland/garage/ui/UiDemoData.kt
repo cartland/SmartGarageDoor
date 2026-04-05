@@ -20,15 +20,31 @@ package com.chriscartland.garage.ui
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import java.time.Instant
-import kotlin.random.Random
+
+/**
+ * Fixed timestamp for deterministic previews and screenshot tests.
+ * Never use Clock/Instant.now() in preview data — it causes screenshot diffs on every run.
+ */
+private val DEMO_TIMESTAMP = Instant.parse("2026-01-15T12:00:00Z").epochSecond
 
 val demoDoorEvents = generateDoorEventDemoData()
 
 fun generateDoorEventDemoData(numEvents: Int = 10): List<DoorEvent> {
-    val currentTimeSeconds = Instant.now().epochSecond
+    val positions = listOf(
+        DoorPosition.CLOSED,
+        DoorPosition.OPEN,
+        DoorPosition.OPENING,
+        DoorPosition.CLOSING,
+        DoorPosition.CLOSED,
+        DoorPosition.OPEN_MISALIGNED,
+        DoorPosition.OPENING_TOO_LONG,
+        DoorPosition.CLOSING_TOO_LONG,
+        DoorPosition.ERROR_SENSOR_CONFLICT,
+        DoorPosition.UNKNOWN,
+    )
 
-    return (1..numEvents).map { index ->
-        val doorPosition = DoorPosition.entries.toTypedArray().random()
+    return (0 until numEvents).map { index ->
+        val doorPosition = positions[index % positions.size]
         val message =
             when (doorPosition) {
                 DoorPosition.UNKNOWN -> "Unknown event"
@@ -45,20 +61,8 @@ fun generateDoorEventDemoData(numEvents: Int = 10): List<DoorEvent> {
         DoorEvent(
             doorPosition = doorPosition,
             message = message,
-            lastCheckInTimeSeconds =
-                currentTimeSeconds -
-                    Random.nextLong(
-                        1000,
-                        10000,
-                    ),
-            // Random time in the past
-            lastChangeTimeSeconds =
-                currentTimeSeconds -
-                    Random.nextLong(
-                        500,
-                        5000,
-                    ),
-            // Usually slightly before check-in
+            lastCheckInTimeSeconds = DEMO_TIMESTAMP - (index + 1) * 600L,
+            lastChangeTimeSeconds = DEMO_TIMESTAMP - (index + 1) * 300L,
         )
     }
 }
