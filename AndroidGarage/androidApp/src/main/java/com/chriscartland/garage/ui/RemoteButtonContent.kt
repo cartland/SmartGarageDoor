@@ -104,7 +104,6 @@ fun RemoteButtonContent(
         }
         GradientButton(
             modifier = Modifier
-                .weight(1f)
                 .widthIn(max = 192.dp)
                 .aspectRatio(1f)
                 .onSizeChanged { size ->
