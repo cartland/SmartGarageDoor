@@ -89,29 +89,28 @@ jobs:
         working-directory: AndroidGarage
         run: ./release/clean-secrets.sh
 
-  # Track build/test failures via GitHub issues
-  track-checks-failure:
-    name: Track Build Failure
+  # Track post-merge failures via a single GitHub issue
+  track-failure:
+    name: Track Post-Merge Failure
     if: always() && needs.changes.outputs.android == 'true'
-    needs: [changes, checks]
+    needs: [changes, checks, instrumented-tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Determine overall result
+        id: result
+        run: |
+          CHECKS="${{ needs.checks.result }}"
+          INSTRUMENTED="${{ needs.instrumented-tests.result }}"
+          echo "checks=$CHECKS" >> $GITHUB_OUTPUT
+          echo "instrumented=$INSTRUMENTED" >> $GITHUB_OUTPUT
+          if [[ "$CHECKS" == "failure" || "$INSTRUMENTED" == "failure" ]]; then
+            echo "overall=failure" >> $GITHUB_OUTPUT
+          else
+            echo "overall=success" >> $GITHUB_OUTPUT
+          fi
       - uses: ./.github/actions/ci-failure-tracker
         with:
-          label: ci-failure/build
-          result: ${{ needs.checks.result }}
-          workflow-name: Post-Merge Build Checks
-
-  track-instrumented-failure:
-    name: Track Instrumented Tests Failure
-    if: always() && needs.changes.outputs.android == 'true'
-    needs: [changes, instrumented-tests]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/ci-failure-tracker
-        with:
-          label: ci-failure/instrumented-tests
-          result: ${{ needs.instrumented-tests.result }}
-          workflow-name: Instrumented Tests
+          label: ci-failure/post-merge
+          result: ${{ steps.result.outputs.overall }}
+          workflow-name: "Post-Merge CI (checks: ${{ steps.result.outputs.checks }}, instrumented: ${{ steps.result.outputs.instrumented }})"
