@@ -132,7 +132,7 @@ Run `./scripts/validate.sh` before pushing. It mirrors CI: spotless (all modules
 
 ### CI Architecture
 - **Pre-submit** (`ci.yml` → `ci-checks.yml`): Runs on PRs. Gate job `CI Complete` is the required status check.
-- **Post-merge** (`ci-post-merge.yml` → `ci-checks.yml` + instrumented tests): Runs on push to main. Auto-creates GitHub issues on failure (`ci-failure/build`, `ci-failure/instrumented-tests`), auto-closes on fix with flakiness detection.
+- **Post-merge** (`ci-post-merge.yml` → `ci-checks.yml` + instrumented tests): Runs on push to main. Auto-creates GitHub issue on failure (`ci-failure/post-merge`), auto-closes on fix with flakiness detection.
 - **Screenshot generation**: Use `./scripts/generate-android-screenshots.sh` (never run screenshot Gradle tasks directly — hooks block this).
 
 ### Room Database Safety
