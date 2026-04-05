@@ -113,10 +113,21 @@ jobs:
         working-directory: AndroidGarage
         run: ./release/clean-secrets.sh
 
+      - name: Rename AAB with version code
+        run: |
+          VERSION_CODE="${{ steps.validate.outputs.version_code }}"
+          AAB_DIR="AndroidGarage/androidApp/build/outputs/bundle/release"
+          for f in "$AAB_DIR"/*.aab; do
+            base=$(basename "$f" .aab)
+            mv "$f" "$AAB_DIR/${base}-${VERSION_CODE}.aab"
+          done
+          echo "Renamed AAB files:"
+          ls "$AAB_DIR"/*.aab
+
       - name: Upload release AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-aab
+          name: release-aab-${{ steps.validate.outputs.version_code }}
           path: AndroidGarage/androidApp/build/outputs/bundle/release/
           retention-days: 30
 
