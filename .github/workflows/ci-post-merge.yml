@@ -1,0 +1,113 @@
+name: Post-Merge CI
+
+# Post-submit checks — runs on push to main only.
+# Re-runs all shared checks (catches merge-induced breakage)
+# plus instrumented tests (device/emulator only).
+# Failures auto-create GitHub issues; fixes auto-close them.
+
+on:
+  push:
+    branches: [ "main" ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      android: ${{ steps.filter.outputs.android }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for Android changes
+        id: filter
+        run: |
+          BASE="${{ github.event.before }}"
+          CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null || echo "UNKNOWN")
+
+          if [ "$CHANGED" = "UNKNOWN" ]; then
+            echo "android=true" >> $GITHUB_OUTPUT
+            echo "Could not determine changes, running all checks"
+            exit 0
+          fi
+
+          if echo "$CHANGED" | grep -qE '^(AndroidGarage/|\.github/(workflows|actions)/)'; then
+            echo "android=true" >> $GITHUB_OUTPUT
+            echo "Android files changed:"
+            echo "$CHANGED" | grep -E '^(AndroidGarage/|\.github/(workflows|actions)/)'
+          else
+            echo "android=false" >> $GITHUB_OUTPUT
+            echo "No Android files changed. Changed files:"
+            echo "$CHANGED"
+          fi
+
+  # Shared checks (same as PR CI)
+  checks:
+    name: Checks
+    needs: changes
+    uses: ./.github/workflows/ci-checks.yml
+    with:
+      android: ${{ needs.changes.outputs.android }}
+    secrets:
+      ENCRYPT_KEY: ${{ secrets.ENCRYPT_KEY }}
+      SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
+      GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+      GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }}
+      GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }}
+
+  # Instrumented tests — post-merge only
+  instrumented-tests:
+    name: Instrumented Tests
+    needs: changes
+    if: needs.changes.outputs.android == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-android
+        with:
+          encrypt-key: ${{ secrets.ENCRYPT_KEY }}
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run instrumented tests
+        working-directory: AndroidGarage
+        run: ./gradlew pixel6Api34DebugAndroidTest
+
+      - name: Clean secrets
+        if: always()
+        working-directory: AndroidGarage
+        run: ./release/clean-secrets.sh
+
+  # Track build/test failures via GitHub issues
+  track-checks-failure:
+    name: Track Build Failure
+    if: always() && needs.changes.outputs.android == 'true'
+    needs: [changes, checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ci-failure-tracker
+        with:
+          label: ci-failure/build
+          result: ${{ needs.checks.result }}
+          workflow-name: Post-Merge Build Checks
+
+  track-instrumented-failure:
+    name: Track Instrumented Tests Failure
+    if: always() && needs.changes.outputs.android == 'true'
+    needs: [changes, instrumented-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ci-failure-tracker
+        with:
+          label: ci-failure/instrumented-tests
+          result: ${{ needs.instrumented-tests.result }}
+          workflow-name: Instrumented Tests

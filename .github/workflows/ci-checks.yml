@@ -1,0 +1,129 @@
+name: CI Checks
+
+# Reusable workflow — called by ci.yml (PRs) and ci-post-merge.yml (main).
+# Contains all shared Android checks: formatting, tests, builds.
+
+on:
+  workflow_call:
+    inputs:
+      android:
+        description: Whether Android files changed
+        required: true
+        type: string
+    secrets:
+      ENCRYPT_KEY:
+        required: true
+      SERVER_CONFIG_KEY:
+        required: true
+      GOOGLE_WEB_CLIENT_ID:
+        required: true
+      GARAGE_RELEASE_KEYSTORE_PWD:
+        required: true
+      GARAGE_RELEASE_KEY_PWD:
+        required: true
+
+jobs:
+  formatting:
+    name: Formatting & Static Analysis
+    if: inputs.android == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-android
+        with:
+          encrypt-key: ${{ secrets.ENCRYPT_KEY }}
+      - name: Run Spotless Check
+        working-directory: AndroidGarage
+        run: ./gradlew spotlessCheck
+      - name: Run Detekt
+        working-directory: AndroidGarage
+        run: ./gradlew :androidApp:detekt
+      - name: Run Android Lint
+        working-directory: AndroidGarage
+        run: ./gradlew :androidApp:lint
+      - name: Compile Screenshot Tests
+        working-directory: AndroidGarage
+        run: ./gradlew :android-screenshot-tests:compileDebugScreenshotTestKotlin
+      - name: Clean secrets
+        if: always()
+        working-directory: AndroidGarage
+        run: ./release/clean-secrets.sh
+
+  unit_tests:
+    name: Unit Tests
+    if: inputs.android == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-android
+        with:
+          encrypt-key: ${{ secrets.ENCRYPT_KEY }}
+      - name: Run Unit Tests
+        working-directory: AndroidGarage
+        env:
+          SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+        run: ./gradlew test -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
+      - name: Clean secrets
+        if: always()
+        working-directory: AndroidGarage
+        run: ./release/clean-secrets.sh
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: AndroidGarage/androidApp/build/reports/tests/
+
+  build_debug:
+    name: Build Debug APK
+    if: inputs.android == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-android
+        with:
+          encrypt-key: ${{ secrets.ENCRYPT_KEY }}
+      - name: Build Debug
+        working-directory: AndroidGarage
+        env:
+          SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+        run: ./gradlew :androidApp:assembleDebug -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
+      - name: Clean secrets
+        if: always()
+        working-directory: AndroidGarage
+        run: ./release/clean-secrets.sh
+      - name: Upload debug APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk
+          path: AndroidGarage/androidApp/build/outputs/apk/debug/
+
+  build_release:
+    name: Build Release AAB
+    if: inputs.android == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-android
+        with:
+          encrypt-key: ${{ secrets.ENCRYPT_KEY }}
+      - name: Build Release AAB
+        working-directory: AndroidGarage
+        env:
+          SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }}
+          GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }}
+        run: ./gradlew :androidApp:bundleRelease -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" -PGARAGE_RELEASE_KEYSTORE_PWD="$GARAGE_RELEASE_KEYSTORE_PWD" -PGARAGE_RELEASE_KEY_PWD="$GARAGE_RELEASE_KEY_PWD"
+      - name: Clean secrets
+        if: always()
+        working-directory: AndroidGarage
+        run: ./release/clean-secrets.sh
+      - name: Upload release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-aab
+          path: AndroidGarage/androidApp/build/outputs/bundle/release/
