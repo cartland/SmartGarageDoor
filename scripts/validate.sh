@@ -59,6 +59,10 @@ $GRADLE :androidApp:testBenchmarkUnitTest && pass "testBenchmarkUnitTest" || fai
 step "Build Debug APK"
 $GRADLE :androidApp:assembleDebug && pass "assembleDebug" || fail "assembleDebug"
 
+step "Screenshot tests (compile)"
+$GRADLE :android-screenshot-tests:compileDebugScreenshotTestKotlin \
+    && pass "screenshot test compilation" || fail "screenshot test compilation"
+
 step "Room schema drift check"
 # After compilation, Room KSP generates schema JSON files.
 # If they differ from what's committed, the schema changed without being tracked.
