@@ -104,30 +104,30 @@ See `docs/DI-MIGRATION.md` for the full migration guide with before/after code e
 - **Fix:** `activityViewModel()` helper creates ViewModels in Activity's ViewModelStore.
   Compose receives them as nullable params with component fallback for Previews.
 
-## Phase 4: Network Migration (Retrofit to Ktor HTTP)
-
-**Status:** Not started. Begin after Phase 3.
+## Phase 4: Network Migration (Retrofit to Ktor HTTP) — COMPLETE
 
 **Goal:** KMP-compatible HTTP client.
 
-### 4.1 Add Ktor Client
-- Add `io.ktor:ktor-client-core`, `ktor-client-okhttp` (Android), `ktor-client-content-negotiation`
-- Add `io.ktor:ktor-serialization-kotlinx-json`
-- Configure base URL, logging, auth headers
+### 4.1 Add Ktor Client + Create Ktor Data Sources — `158c176` (#100)
+- Added Ktor 3.1.3 (client-core, client-okhttp, content-negotiation, logging)
+- Added kotlinx-serialization-json 1.8.1 + Gradle plugin
+- Created `KtorNetworkDoorDataSource`, `KtorNetworkConfigDataSource`, `KtorNetworkButtonDataSource`
+- Each uses `@Serializable` DTOs with `ignoreUnknownKeys` — only fields actually used
+- Ktor implementations bypass `GarageNetworkService` entirely — implement data source interfaces directly
+- Swapped DI wiring in `AppComponent` from Retrofit to Ktor
 
-### 4.2 Replace Retrofit Endpoints
-- Rewrite `GarageNetworkService` methods as Ktor `HttpClient` calls
-- Replace Moshi response DTOs with `@Serializable` data classes (kotlinx.serialization)
-- Migrate one endpoint at a time, keeping both active during transition
-
-### 4.3 Remove Retrofit
-- Delete Retrofit interface, annotations, Moshi adapters
-- Remove OkHttp logging interceptor (Ktor has its own)
-- Remove Retrofit/Moshi/OkHttp dependencies
+### 4.2 Remove Retrofit — `759443e` (#101)
+- Deleted `GarageNetworkService.kt` (Retrofit interface + inline value classes)
+- Deleted 3 Retrofit adapter implementations, 6 Moshi `@JsonClass` DTOs
+- Deleted `retrofit2.pro`, `moshi.pro` ProGuard rules
+- Removed 7 dependencies: retrofit2, moshi, moshi-kotlin, moshi-codegen, converter-moshi, okhttp3-logging-interceptor
+- Migrated `GarageNetworkServiceTest` and `RoomSchemaTest` from Moshi to kotlinx.serialization
+- Net -841 lines
+- Zero `retrofit2`/`moshi`/`okhttp3` imports remain in source code
 
 ## Phase 5: KMP Preparation
 
-**Status:** Not started. Begin after Phases 3 + 4.
+**Status:** Not started. Begin after Phase 4.
 
 **Goal:** Share code across platforms.
 
@@ -176,8 +176,8 @@ See `docs/DI-MIGRATION.md` for the full migration guide with before/after code e
 | 1. Testing | Medium | None | **COMPLETE** |
 | 2. Clean Architecture | Large | Phase 1 | **COMPLETE** |
 | 3. DI Migration | Medium | Phase 2 | **COMPLETE** |
-| 4. Network Migration | Medium | Phase 3 | Not started |
-| 5. KMP | Large | Phases 3 + 4 | Not started |
+| 4. Network Migration | Medium | Phase 3 | **COMPLETE** |
+| 5. KMP | Large | Phase 4 | Not started |
 | 6. Screenshot Tests | Medium | None | Not started |
 
 **Rule:** Finish each phase before starting the next. Update this document with commit hashes when items complete.
