@@ -45,22 +45,26 @@ import com.chriscartland.garage.door.DoorViewModel
 import java.time.Instant
 
 @Composable
-fun DoorHistoryContent(modifier: Modifier = Modifier) {
+fun DoorHistoryContent(
+    modifier: Modifier = Modifier,
+    doorViewModel: DoorViewModel? = null,
+    appLoggerViewModel: AppLoggerViewModel? = null,
+) {
     val component = rememberAppComponent()
-    val doorViewModel: DoorViewModel = viewModel { component.doorViewModel }
-    val appLoggerViewModel: AppLoggerViewModel = viewModel { component.appLoggerViewModel }
+    val resolvedDoorViewModel = doorViewModel ?: viewModel { component.doorViewModel }
+    val resolvedAppLoggerViewModel = appLoggerViewModel ?: viewModel { component.appLoggerViewModel }
     val activity = LocalActivity.current
-    val recentDoorEvents by doorViewModel.recentDoorEvents.collectAsState()
+    val recentDoorEvents by resolvedDoorViewModel.recentDoorEvents.collectAsState()
     DoorHistoryContent(
         recentDoorEvents = recentDoorEvents,
         modifier = modifier,
         onFetchRecentDoorEvents = {
-            appLoggerViewModel.log(AppLoggerKeys.USER_FETCH_RECENT_DOOR)
-            doorViewModel.fetchRecentDoorEvents()
+            resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_FETCH_RECENT_DOOR)
+            resolvedDoorViewModel.fetchRecentDoorEvents()
         },
         onResetFcm = {
             if (activity != null) {
-                doorViewModel.deregisterFcm(activity)
+                resolvedDoorViewModel.deregisterFcm(activity)
             } else {
                 Log.e(TAG, "Activity is null, cannot deregister FCM")
             }

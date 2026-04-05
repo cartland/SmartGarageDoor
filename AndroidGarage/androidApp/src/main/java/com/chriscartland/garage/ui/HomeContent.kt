@@ -66,14 +66,16 @@ import java.time.Instant
 fun HomeContent(
     modifier: Modifier = Modifier,
     authViewModel: AuthViewModel? = null,
+    doorViewModel: DoorViewModel? = null,
+    appLoggerViewModel: AppLoggerViewModel? = null,
 ) {
     val component = rememberAppComponent()
     val resolvedAuthViewModel = authViewModel ?: viewModel { component.authViewModel }
-    val doorViewModel: DoorViewModel = viewModel { component.doorViewModel }
+    val resolvedDoorViewModel = doorViewModel ?: viewModel { component.doorViewModel }
     val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
-    val appLoggerViewModel: AppLoggerViewModel = viewModel { component.appLoggerViewModel }
+    val resolvedAppLoggerViewModel = appLoggerViewModel ?: viewModel { component.appLoggerViewModel }
     val activity = LocalActivity.current
-    val currentDoorEvent by doorViewModel.currentDoorEvent.collectAsState()
+    val currentDoorEvent by resolvedDoorViewModel.currentDoorEvent.collectAsState()
     val buttonRequestStatus by buttonViewModel.requestStatus.collectAsState()
     val authState by resolvedAuthViewModel.authState.collectAsState()
     HomeContent(
@@ -81,8 +83,8 @@ fun HomeContent(
         remoteRequestStatus = buttonRequestStatus,
         modifier = modifier,
         onFetchCurrentDoorEvent = {
-            appLoggerViewModel.log(AppLoggerKeys.USER_FETCH_CURRENT_DOOR)
-            doorViewModel.fetchCurrentDoorEvent()
+            resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_FETCH_CURRENT_DOOR)
+            resolvedDoorViewModel.fetchCurrentDoorEvent()
         },
         onRemoteButtonClick = {
             when (authState) {
@@ -123,13 +125,13 @@ fun HomeContent(
         },
         onResetFcm = {
             if (activity != null) {
-                doorViewModel.deregisterFcm(activity)
+                resolvedDoorViewModel.deregisterFcm(activity)
             } else {
                 Log.e(TAG, "Activity is null, cannot deregister FCM")
             }
         },
         onLogNotificationPermissionRequested = {
-            appLoggerViewModel.log(AppLoggerKeys.USER_REQUESTED_NOTIFICATION_PERMISSION)
+            resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_REQUESTED_NOTIFICATION_PERMISSION)
         },
     )
 }
