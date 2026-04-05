@@ -68,6 +68,9 @@ jobs:
       - name: Run Android Lint
         working-directory: AndroidGarage
         run: ./gradlew :androidApp:lint
+      - name: Compile Screenshot Tests
+        working-directory: AndroidGarage
+        run: ./gradlew :android-screenshot-tests:compileDebugScreenshotTestKotlin
       - name: Clean secrets
         if: always()
         working-directory: AndroidGarage
