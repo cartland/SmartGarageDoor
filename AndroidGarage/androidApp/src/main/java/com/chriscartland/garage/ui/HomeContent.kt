@@ -42,10 +42,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModel
-import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.auth.AuthViewModel
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.di.rememberAppComponent
@@ -65,14 +63,12 @@ import java.time.Instant
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun HomeContent(
-    modifier: Modifier = Modifier,
-    appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>(),
-) {
+fun HomeContent(modifier: Modifier = Modifier) {
     val component = rememberAppComponent()
     val doorViewModel: DoorViewModel = viewModel { component.doorViewModel }
     val authViewModel: AuthViewModel = viewModel { component.authViewModel }
     val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
+    val appLoggerViewModel: AppLoggerViewModel = viewModel { component.appLoggerViewModel }
     val activity = LocalActivity.current
     val currentDoorEvent by doorViewModel.currentDoorEvent.collectAsState()
     val buttonRequestStatus by buttonViewModel.requestStatus.collectAsState()

@@ -23,10 +23,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.compose.ui.util.trace
-import com.chriscartland.garage.applogger.AppLoggerViewModel
-import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.auth.RC_ONE_TAP_SIGN_IN
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.ui.GarageApp
@@ -38,17 +35,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge() // Edge-to-edge required on Android 15+ (target SDK 35).
         val component = (application as GarageApplication).component
-        val appLoggerViewModel: AppLoggerViewModel by viewModels<AppLoggerViewModelImpl>()
         trace("MainActivity.setContent") {
             setContent {
-                GarageApp(
-                    appLoggerViewModel = appLoggerViewModel,
-                )
+                GarageApp()
             }
         }
         Log.d(TAG, "onCreate: Try to subscribe to FCM topic")
         component.doorViewModel.registerFcm(this)
-        appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
+        component.appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
     }
 
     // TODO: Migrate away from onActivityResult with Activity Result API and ActivityResultContract.

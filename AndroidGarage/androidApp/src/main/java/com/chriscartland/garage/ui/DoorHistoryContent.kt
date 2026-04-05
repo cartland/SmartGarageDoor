@@ -35,10 +35,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModel
-import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.DoorEvent
@@ -47,12 +45,10 @@ import com.chriscartland.garage.door.DoorViewModel
 import java.time.Instant
 
 @Composable
-fun DoorHistoryContent(
-    modifier: Modifier = Modifier,
-    appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>(),
-) {
+fun DoorHistoryContent(modifier: Modifier = Modifier) {
     val component = rememberAppComponent()
     val doorViewModel: DoorViewModel = viewModel { component.doorViewModel }
+    val appLoggerViewModel: AppLoggerViewModel = viewModel { component.appLoggerViewModel }
     val activity = LocalActivity.current
     val recentDoorEvents by doorViewModel.recentDoorEvents.collectAsState()
     DoorHistoryContent(

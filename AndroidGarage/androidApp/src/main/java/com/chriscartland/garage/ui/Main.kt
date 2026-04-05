@@ -43,7 +43,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.trace
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -52,7 +51,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.chriscartland.garage.applogger.AppLoggerViewModel
-import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.auth.AuthViewModel
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.di.rememberAppComponent
@@ -64,11 +62,9 @@ import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import java.time.Instant
 
 @Composable
-fun GarageApp(appLoggerViewModel: AppLoggerViewModel) {
+fun GarageApp() {
     AppTheme {
-        AppNavigation(
-            appLoggerViewModel = appLoggerViewModel,
-        )
+        AppNavigation()
     }
 }
 
@@ -86,11 +82,12 @@ sealed class Screen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation(appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>()) {
+fun AppNavigation() {
     val component = rememberAppComponent()
     val doorViewModel: DoorViewModel = viewModel { component.doorViewModel }
     val authViewModel: AuthViewModel = viewModel { component.authViewModel }
     val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
+    val appLoggerViewModel: AppLoggerViewModel = viewModel { component.appLoggerViewModel }
     var isOld by remember { mutableStateOf(false) }
     val currentDoorEvent by doorViewModel.currentDoorEvent.collectAsState()
     val lastCheckInTime = currentDoorEvent.data?.lastCheckInTimeSeconds?.let {

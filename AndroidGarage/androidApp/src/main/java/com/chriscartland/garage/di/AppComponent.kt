@@ -20,6 +20,7 @@ package com.chriscartland.garage.di
 import android.app.Application
 import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.applogger.AppLoggerRepositoryImpl
+import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.auth.AuthRepositoryImpl
 import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.config.ServerConfigRepository
@@ -76,6 +77,7 @@ abstract class AppComponent(
     abstract val authViewModel: AuthViewModelImpl
     abstract val doorViewModel: DoorViewModelImpl
     abstract val remoteButtonViewModel: RemoteButtonViewModelImpl
+    abstract val appLoggerViewModel: AppLoggerViewModelImpl
 
     // Settings
     @Provides
