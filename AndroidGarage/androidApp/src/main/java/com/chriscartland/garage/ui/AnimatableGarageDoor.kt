@@ -26,7 +26,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -106,7 +108,8 @@ private fun DirectionOverlay(
 ) {
     Box(
         modifier = Modifier
-            .fillMaxSize(0.3f)
+            .fillMaxWidth(0.3f)
+            .aspectRatio(1f)
             .background(MaterialTheme.colorScheme.background, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
@@ -125,7 +128,8 @@ private fun DirectionOverlay(
 private fun WarningOverlay() {
     Box(
         modifier = Modifier
-            .fillMaxSize(0.3f)
+            .fillMaxWidth(0.3f)
+            .aspectRatio(1f)
             .background(MaterialTheme.colorScheme.background, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
