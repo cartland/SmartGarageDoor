@@ -88,12 +88,23 @@ runs:
         EXISTING=$(gh issue list --label "$LABEL" --state open --json number --jq '.[0].number' 2>/dev/null)
 
         if [ -n "$EXISTING" ]; then
+          # Check if the failing issue mentions the same commit (flaky test)
+          ISSUE_BODY=$(gh issue view "$EXISTING" --json body --jq '.body' 2>/dev/null)
+          ISSUE_COMMENTS=$(gh api "repos/${{ github.repository }}/issues/${EXISTING}/comments" \
+            --jq '.[].body' 2>/dev/null || echo "")
+          ISSUE_TEXT="${ISSUE_BODY}${ISSUE_COMMENTS}"
+
+          FLAKY_NOTE=""
+          if echo "$ISSUE_TEXT" | grep -qF "$COMMIT_SHORT"; then
+            FLAKY_NOTE=$'\n\n> ⚠️ **Flaky test detected:** This passed on the same commit (`'"$COMMIT_SHORT"'`) that previously failed. No code change fixed it — the failure was non-deterministic.'
+          fi
+
           gh issue close "$EXISTING" --comment "$(cat <<EOF
         ### Fixed
 
         - **Run:** $RUN_URL
         - **Commit:** [\`$COMMIT_SHORT\`]($COMMIT_URL)
-        - **Fixed by:** $PR_INFO
+        - **Fixed by:** $PR_INFO${FLAKY_NOTE}
         EOF
           )"
           echo "Closed issue #$EXISTING"
