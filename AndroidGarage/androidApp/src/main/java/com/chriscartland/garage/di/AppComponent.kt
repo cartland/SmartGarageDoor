@@ -40,11 +40,10 @@ import com.chriscartland.garage.door.DoorRepositoryImpl
 import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.fcm.DoorFcmRepository
 import com.chriscartland.garage.fcm.DoorFcmRepositoryImpl
-import com.chriscartland.garage.internet.GarageNetworkService
-import com.chriscartland.garage.internet.RetrofitNetworkButtonDataSource
-import com.chriscartland.garage.internet.RetrofitNetworkConfigDataSource
-import com.chriscartland.garage.internet.RetrofitNetworkDoorDataSource
-import com.chriscartland.garage.internet.provideGarageNetworkService
+import com.chriscartland.garage.internet.KtorNetworkButtonDataSource
+import com.chriscartland.garage.internet.KtorNetworkConfigDataSource
+import com.chriscartland.garage.internet.KtorNetworkDoorDataSource
+import com.chriscartland.garage.internet.provideKtorHttpClient
 import com.chriscartland.garage.remotebutton.PushRepositoryImpl
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.settings.AppSettings
@@ -58,6 +57,7 @@ import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
+import io.ktor.client.HttpClient
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
 
@@ -89,18 +89,18 @@ abstract class AppComponent(
     @Singleton
     fun provideAppDatabase(): AppDatabase = AppDatabase.getDatabase(application)
 
-    // Network
+    // Network — Ktor HTTP client (replacing Retrofit — Phase 4)
     @Provides
     @Singleton
-    fun provideGarageNetwork(): GarageNetworkService = provideGarageNetworkService()
+    fun provideHttpClient(): HttpClient = provideKtorHttpClient()
 
     @Provides
     @Singleton
-    fun provideNetworkDoorDataSource(): NetworkDoorDataSource = RetrofitNetworkDoorDataSource(provideGarageNetwork())
+    fun provideNetworkDoorDataSource(): NetworkDoorDataSource = KtorNetworkDoorDataSource(provideHttpClient())
 
     @Provides
     @Singleton
-    fun provideNetworkConfigDataSource(): NetworkConfigDataSource = RetrofitNetworkConfigDataSource(provideGarageNetwork())
+    fun provideNetworkConfigDataSource(): NetworkConfigDataSource = KtorNetworkConfigDataSource(provideHttpClient())
 
     // Local data
     @Provides
@@ -157,7 +157,7 @@ abstract class AppComponent(
     // Network — button
     @Provides
     @Singleton
-    fun provideNetworkButtonDataSource(): NetworkButtonDataSource = RetrofitNetworkButtonDataSource(provideGarageNetwork())
+    fun provideNetworkButtonDataSource(): NetworkButtonDataSource = KtorNetworkButtonDataSource(provideHttpClient())
 
     // Repositories — push
     @Provides
