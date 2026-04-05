@@ -18,7 +18,7 @@
 - **CI path filtering:** Android CI skips for Firebase-only/docs-only changes, and vice versa
 - **Local validation:** `./scripts/validate.sh` mirrors CI + Room schema drift check + auto-discovered module tests
 - **Safety guardrails:** git hooks warn on Room entity changes, block push to main, enforce squash merge, warn on command substitution
-- **DI system:** kotlin-inject (Hilt fully removed as of Phase 3)
+- **DI system:** kotlin-inject (Hilt fully removed as of Phase 3), Ktor HTTP (Retrofit fully removed as of Phase 4)
 - **Completed:** Phase 1 (CI hardening), Phase 2 (network error tests), Phase 3 (auth token fix + UseCase tests), Phase 4 (state machine completeness), Phase 5.2-5.3 (release safety)
 - **Remaining:** Phase 5.1 (covered by Phase 7 instrumented tests), Phase 6 (Firebase server), Phase 7 (instrumented tests)
 
@@ -183,7 +183,7 @@ The server functions return error responses that the Android app must handle. If
 
 ## Phase 7: Instrumented Tests
 
-Instrumented tests run on a real device/emulator and catch runtime-only failures that unit tests miss (R8 stripping, Hilt graph resolution, Room migrations, navigation crashes). These run **post-merge only** (not on PRs) in a separate workflow using Gradle Managed Devices.
+Instrumented tests run on a real device/emulator and catch runtime-only failures that unit tests miss (R8 stripping, DI graph resolution, Room migrations, navigation crashes). These run **post-merge only** (not on PRs) in a separate workflow using Gradle Managed Devices.
 
 ### 7.1 Setup Gradle Managed Device
 
@@ -220,16 +220,16 @@ Verify the database can be created and basic DAO operations work. Catches R8 str
 
 **Files:** `src/androidTest/.../db/DatabaseSanityTest.kt`
 
-### 7.3 Hilt Dependency Graph Test
+### 7.3 kotlin-inject Component Test
 
-Verify the full Hilt DI graph resolves without errors. Catches missing `@Binds`, `@Provides`, or `@Module` annotations that only crash at runtime.
+Verify the full kotlin-inject DI graph resolves without errors. Catches missing `@Provides` methods or constructor wiring that only crash at runtime.
 
 **Tests:**
-- Launch `MainActivity` with Hilt test runner
+- Launch `MainActivity` with test runner
 - Verify Activity creates without crash
-- Verify key ViewModels can be obtained
+- Verify `AppComponent` creates and all ViewModels are accessible
 
-**Files:** `src/androidTest/.../HiltGraphTest.kt`
+**Files:** `src/androidTest/.../ComponentGraphTest.kt`
 
 ### 7.4 Navigation Smoke Tests
 
@@ -264,7 +264,7 @@ Verify all screens are reachable via navigation. Catches crashes from missing co
 | 5.1 ProGuard smoke test | Medium | Medium | Covered by Phase 7 |
 | 7.1 Gradle Managed Device setup | Medium | High | TODO |
 | 7.2 Room database sanity | Small | High | TODO |
-| 7.3 Hilt DI graph test | Small | High | TODO |
+| 7.3 kotlin-inject component test | Small | High | TODO |
 | 7.4 Navigation smoke tests | Medium | Medium | TODO |
 | 6.1 Migrate tslint | Medium | Low | TODO |
 
