@@ -128,7 +128,12 @@ Firestore Functions: Event-driven processing on data changes
 ## Development Workflow
 
 ### Local Validation
-Run `./scripts/validate.sh` before pushing. It mirrors CI: spotless (all modules), lint, unit tests (3 variants), domain tests, debug build, and Room schema drift check. Writes a validation marker so the git-guardrails hook can warn on stale pushes.
+Run `./scripts/validate.sh` before pushing. It mirrors CI: spotless (all modules), lint, unit tests (3 variants), domain tests, debug build, screenshot test compilation, and Room schema drift check. Writes a validation marker so the git-guardrails hook can warn on stale pushes.
+
+### CI Architecture
+- **Pre-submit** (`ci.yml` → `ci-checks.yml`): Runs on PRs. Gate job `CI Complete` is the required status check.
+- **Post-merge** (`ci-post-merge.yml` → `ci-checks.yml` + instrumented tests): Runs on push to main. Auto-creates GitHub issues on failure (`ci-failure/build`, `ci-failure/instrumented-tests`), auto-closes on fix with flakiness detection.
+- **Screenshot generation**: Use `./scripts/generate-android-screenshots.sh` (never run screenshot Gradle tasks directly — hooks block this).
 
 ### Room Database Safety
 Room schema changes break at runtime (not compile time). The following safeguards are in place:
@@ -207,6 +212,8 @@ gh pr update-branch <number>
 
 **Watch for PR starvation:** When many PRs queue up, the last one keeps getting pushed back as others merge ahead of it. Each merge makes it stale, requiring another CI run. If a PR has been open for a long time, prioritize merging it before creating new ones.
 
+**Auto-merge race condition:** Never push fix commits to a PR that has auto-merge enabled. The squash merge may execute before the fix arrives, losing the fix silently. If a PR needs a fix after `gh pr merge --auto` is set, check `gh pr view N --json state` first — if still open, create a NEW PR for the fix instead.
+
 ### Dev Mode
 Toggle: `touch .claude/.dev-mode` (enable) / `rm .claude/.dev-mode` (disable).
 
@@ -244,6 +251,19 @@ Detailed project documentation lives in `AndroidGarage/docs/`:
 - [Decisions](AndroidGarage/docs/DECISIONS.md) — Architectural decision records (ADRs): server-centric design, tech stack, testing philosophy, migration targets
 - [Migration](AndroidGarage/docs/MIGRATION.md) — Phased roadmap toward battery-butler tech stack (kotlin-inject, Ktor, clean architecture, KMP)
 - [Testing](AndroidGarage/docs/TESTING.md) — CI stability plan, testing phases, priority order
+
+## Safety Rules
+
+### FCM Push Notifications
+Push notifications are the hardest feature to verify in production. If topic names or payload parsing change, notifications silently stop working with no visible error.
+- Never change FCM topic name format or payload key names without explicit user approval
+- Verify contract tests pass before modifying: `FcmTopicTest`, `FcmPayloadParsingTest`
+- FCM-related code: `FCMService`, `DoorFcmRepository`, `FcmPayloadParser`, topic subscription flow
+
+### Code Patterns
+- Prefer parser objects over extension functions on generic types (e.g., `FcmPayloadParser.parse(data)` not `Map.asDoorEvent()`)
+- Avoid bare top-level utility functions — group in an `object {}`
+- See ADR-008 in `docs/DECISIONS.md` for rationale
 
 ## Known Limitations
 

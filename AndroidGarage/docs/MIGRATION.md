@@ -127,14 +127,14 @@ See `docs/DI-MIGRATION.md` for the full migration guide with before/after code e
 
 ## Phase 5: KMP Preparation
 
-**Status:** Not started. Begin after Phase 4.
+**Status:** Not started. Android-only with KMP architecture (no iOS target).
 
-**Goal:** Share code across platforms.
+**Goal:** Structure code for multiplatform, Android target only.
 
 ### 5.1 Configure Multiplatform
 - Add `org.jetbrains.kotlin.multiplatform` plugin
-- Define targets: `androidTarget()`, `iosArm64()`, `iosSimulatorArm64()`
-- Create `commonMain`, `androidMain`, `iosMain` source sets
+- Define targets: `androidTarget()` only (no iOS)
+- Create `commonMain`, `androidMain` source sets
 
 ### 5.2 Move Shared Code to Common
 - Domain layer (interfaces, models) → `commonMain`
@@ -145,29 +145,48 @@ See `docs/DI-MIGRATION.md` for the full migration guide with before/after code e
 ### 5.3 Platform-Specific Implementations
 - `expect class DatabaseFactory` / `actual class DatabaseFactory` for Room
 - `expect class HttpClientFactory` / `actual class HttpClientFactory` for Ktor engine
-- `expect class AuthBridge` / `actual class AuthBridge` for Firebase Auth (Android SDK / iOS SDK)
 - Platform entry points create components with platform-specific dependencies
 
-## Phase 6: Screenshot Tests
-
-**Status:** Not started. Can begin independently of other phases.
+## Phase 6: Screenshot Tests — COMPLETE
 
 **Goal:** Automated app screenshot generation for Play Store and documentation.
 
-### 6.1 Set Up Compose Screenshot Testing
-- Add Compose screenshot test dependencies (same approach as battery-butler)
-- Create screenshot test module or source set
+### 6.1 Set Up Compose Screenshot Testing — `56e742a` (#107)
+- Separate `android-screenshot-tests` module with AGP Screenshot Plugin 0.0.1-alpha12
+- `screenshotTest` source set with `@PreviewTest` + `@Preview` pattern
+- OOM prevention: blocks single-invocation runs, sequential script required
+- Screenshot compilation in CI and `validate.sh` (not generation)
+- Claude hook blocks direct screenshot Gradle tasks
 
-### 6.2 Write Deterministic Previews
-- All previews use fixed `Instant.parse(...)` timestamps, not `Clock.System.now()`
-- Thread time parameters through composable chain
-- Create preview data fixtures for consistent test data
+### 6.2 Screenshot Tests — `56e742a` (#107)
+- 17 preview tests (light + dark = 34 images)
+- Screens: Home, History, Profile
+- Components: DoorStatusCard, RemoteButton, ErrorCard, UserInfoCard, LogSummaryCard, SnoozeNotificationCard
+- Garage door states: Closed, Open, Opening, Closing, Midway, GarageIcon
 
-### 6.3 Generate Gallery
-- Write screenshot tests for key screens: Home, Door History, Remote Button, Profile
-- Write screenshot tests for key components: DoorStatusCard, AnimatableGarageDoor
-- Generate reference PNGs, commit to repository
-- Screenshots do NOT block CI — regenerated on demand
+### 6.3 Scripts and Tooling — `56e742a` (#107)
+- `scripts/generate-android-screenshots.sh` — sequential generation (avoids OOM)
+- `scripts/generate-android-screenshot-gallery.sh` — auto-generates SCREENSHOT_GALLERY.md
+- `/update-android-screenshots` Claude skill
+- Screenshots do NOT block CI — compilation only, generation on demand
+
+## Phase 7: Instrumented Tests — COMPLETE
+
+**Goal:** Runtime tests that catch failures unit tests miss.
+
+### 7.1 Gradle Managed Device — `b509fc3` (#105)
+- Pixel 6, API 34, aosp-atd
+- Post-merge CI workflow with failure tracking via GitHub issues
+- KVM acceleration on GitHub Actions
+
+### 7.2 Room Database Sanity — `b509fc3` (#105)
+- 6 tests: database creates, DAOs accessible, insert/read DoorEvent and AppEvent, replaceAll
+
+### 7.3 kotlin-inject Component Graph — `b509fc3` (#105)
+- 6 tests: AppComponent creates, all 5 ViewModels resolve
+
+### 7.4 Navigation Smoke — `56e742a` (#106)
+- 6 tests: Home displays, all tabs visible, navigate History/Profile/Home, sequential navigation
 
 ## Phase Summary
 
@@ -177,7 +196,8 @@ See `docs/DI-MIGRATION.md` for the full migration guide with before/after code e
 | 2. Clean Architecture | Large | Phase 1 | **COMPLETE** |
 | 3. DI Migration | Medium | Phase 2 | **COMPLETE** |
 | 4. Network Migration | Medium | Phase 3 | **COMPLETE** |
-| 5. KMP | Large | Phase 4 | Not started |
-| 6. Screenshot Tests | Medium | None | Not started |
+| 5. KMP | Large | Phase 4 | Not started (Android-only) |
+| 6. Screenshot Tests | Medium | None | **COMPLETE** |
+| 7. Instrumented Tests | Medium | None | **COMPLETE** |
 
 **Rule:** Finish each phase before starting the next. Update this document with commit hashes when items complete.
