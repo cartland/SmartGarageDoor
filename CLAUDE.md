@@ -128,7 +128,12 @@ Firestore Functions: Event-driven processing on data changes
 ## Development Workflow
 
 ### Local Validation
-Run `./scripts/validate.sh` before pushing. It mirrors CI: spotless (all modules), lint, unit tests (3 variants), domain tests, debug build, and Room schema drift check. Writes a validation marker so the git-guardrails hook can warn on stale pushes.
+Run `./scripts/validate.sh` before pushing. It mirrors CI: spotless (all modules), lint, unit tests (3 variants), domain tests, debug build, screenshot test compilation, and Room schema drift check. Writes a validation marker so the git-guardrails hook can warn on stale pushes.
+
+### CI Architecture
+- **Pre-submit** (`ci.yml` → `ci-checks.yml`): Runs on PRs. Gate job `CI Complete` is the required status check.
+- **Post-merge** (`ci-post-merge.yml` → `ci-checks.yml` + instrumented tests): Runs on push to main. Auto-creates GitHub issues on failure (`ci-failure/build`, `ci-failure/instrumented-tests`), auto-closes on fix with flakiness detection.
+- **Screenshot generation**: Use `./scripts/generate-android-screenshots.sh` (never run screenshot Gradle tasks directly — hooks block this).
 
 ### Room Database Safety
 Room schema changes break at runtime (not compile time). The following safeguards are in place:
