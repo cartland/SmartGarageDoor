@@ -75,26 +75,34 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 - Extract `data-network/` as separate Gradle module (Retrofit service, response DTOs, adapters)
 - These are structural — the abstraction boundary is already enforced by interfaces
 
-## Phase 3: DI Migration (Hilt to kotlin-inject)
-
-**Status:** Not started. Begin after Phase 2.
+## Phase 3: DI Migration (Hilt to kotlin-inject) — COMPLETE
 
 **Goal:** KMP-compatible dependency injection.
 
-### 3.1 Add kotlin-inject
-- Add `me.tatarka.inject` KSP plugin and runtime dependency
-- Create `AppComponent` with `@Component` annotation
-- Provide all singletons via `@Provides` methods
+See `docs/DI-MIGRATION.md` for the full migration guide with before/after code examples.
 
-### 3.2 Migrate ViewModels
-- Replace `@HiltViewModel` with `@Inject` constructor
-- Build ViewModel instances from component, not Hilt
-- Update Navigation to pass ViewModel factories
+### 3.1 Add kotlin-inject — `65f89c8` (#86)
+- Added `me.tatarka.inject:kotlin-inject-runtime` 0.9.0 + KSP compiler
+- Created `@Singleton` scope annotation and empty `AppComponent`
+- Both Hilt and kotlin-inject coexisted during migration
 
-### 3.3 Remove Hilt
-- Delete all `@Module`, `@InstallIn`, `@Binds` annotations
-- Remove Hilt Gradle plugin and dependencies
-- Remove `@HiltAndroidApp` from `GarageApplication`
+### 3.2 Migrate ViewModels — `a7c2ade` (#87), `953beb6` (#89), `9312b01` (#90)
+- AppSettingsViewModel (#87), AuthViewModel (#89), DoorViewModel + RemoteButtonViewModel (#90)
+- Pattern: `rememberAppComponent()` + `viewModel { component.xxxViewModel }`
+- Activity-scoped ViewModels via `activityViewModel()` helper for shared instances
+- AppLoggerViewModel + FCMService also migrated (#91)
+
+### 3.3 Remove Hilt — `c5d9d58` (#96)
+- Deleted all 15 `@Module` classes, `@HiltAndroidApp`, `@AndroidEntryPoint`
+- Removed Hilt Gradle plugin and all 3 dependencies
+- Zero `dagger`/`hilt` references remain in source code
+- Net -257 lines
+
+### 3.4 Fix ViewModel instance sharing — `0aebfb1` (#93), `28151ce` (#95)
+- **Bug:** `component.xxxViewModel` creates new instances. ViewModels with instance state
+  (SignInClient, FCM status, log counts) must share the same instance across Activity and Compose.
+- **Fix:** `activityViewModel()` helper creates ViewModels in Activity's ViewModelStore.
+  Compose receives them as nullable params with component fallback for Previews.
 
 ## Phase 4: Network Migration (Retrofit to Ktor HTTP)
 
@@ -167,7 +175,7 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 |-------|--------|-------------|--------|
 | 1. Testing | Medium | None | **COMPLETE** |
 | 2. Clean Architecture | Large | Phase 1 | **COMPLETE** |
-| 3. DI Migration | Medium | Phase 2 | Not started |
+| 3. DI Migration | Medium | Phase 2 | **COMPLETE** |
 | 4. Network Migration | Medium | Phase 3 | Not started |
 | 5. KMP | Large | Phases 3 + 4 | Not started |
 | 6. Screenshot Tests | Medium | None | Not started |

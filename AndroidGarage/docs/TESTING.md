@@ -13,12 +13,14 @@
 
 ## Current State
 
-- **~125 unit tests** across 17 test files (15 androidApp + 2 domain module)
+- **~135 unit tests** across 17 test files (15 androidApp + 2 domain module)
 - **CI checks:** unit tests (3 build variants), Spotless formatting (all modules), Detekt, Android Lint, debug APK build, release AAB build
-- **Local validation:** `./scripts/validate.sh` mirrors CI + Room schema drift check + domain tests
-- **Safety guardrails:** git hooks warn on Room entity changes, block push to main, enforce squash merge
+- **CI path filtering:** Android CI skips for Firebase-only/docs-only changes, and vice versa
+- **Local validation:** `./scripts/validate.sh` mirrors CI + Room schema drift check + auto-discovered module tests
+- **Safety guardrails:** git hooks warn on Room entity changes, block push to main, enforce squash merge, warn on command substitution
+- **DI system:** kotlin-inject (Hilt fully removed as of Phase 3)
 - **Completed:** Phase 1 (CI hardening), Phase 2 (network error tests), Phase 3 (auth token fix + UseCase tests), Phase 4 (state machine completeness), Phase 5.2-5.3 (release safety)
-- **Remaining:** Phase 5.1 (ProGuard smoke test), Phase 6 (Firebase server)
+- **Remaining:** Phase 5.1 (covered by Phase 7 instrumented tests), Phase 6 (Firebase server), Phase 7 (instrumented tests)
 
 ---
 
