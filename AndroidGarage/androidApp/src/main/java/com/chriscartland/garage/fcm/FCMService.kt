@@ -18,26 +18,26 @@
 package com.chriscartland.garage.fcm
 
 import android.util.Log
+import com.chriscartland.garage.GarageApplication
 import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@AndroidEntryPoint
 class FCMService : FirebaseMessagingService() {
-    @Inject
-    lateinit var doorRepository: DoorRepository
+    private val doorRepository: DoorRepository by lazy {
+        (application as GarageApplication).component.provideDoorRepository()
+    }
 
-    @Inject
-    lateinit var appLoggerRepository: AppLoggerRepository
+    private val appLoggerRepository: AppLoggerRepository by lazy {
+        (application as GarageApplication).component.provideAppLoggerRepository()
+    }
 
     // Create Job and CoroutineScope to schedule brief, concurrent work.
     private val supervisorJob = SupervisorJob()

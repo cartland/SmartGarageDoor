@@ -42,10 +42,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModel
-import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.settings.AppSettingsViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -58,10 +56,10 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun LogSummaryCard(
     modifier: Modifier = Modifier,
-    appLoggerViewModel: AppLoggerViewModel = hiltViewModel<AppLoggerViewModelImpl>(),
     colors: CardColors = CardDefaults.cardColors(),
 ) {
     val component = rememberAppComponent()
+    val appLoggerViewModel: AppLoggerViewModel = viewModel { component.appLoggerViewModel }
     val settingsViewModel: AppSettingsViewModel = viewModel { component.appSettingsViewModel }
     val startLogSummaryCardExpanded by settingsViewModel.profileLogCardExpanded.collectAsState()
     val initCurrent by appLoggerViewModel.initCurrentDoorCount.collectAsState()
