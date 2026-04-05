@@ -23,9 +23,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
@@ -39,44 +39,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewScreenSizes
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.ColorUtils
-import com.chriscartland.garage.R
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import java.time.Duration
 
-val DEFAULT_GARAGE_DOOR_ANIMATION_DURATION = Duration.ofSeconds(12)
+val DEFAULT_GARAGE_DOOR_ANIMATION_DURATION: Duration = Duration.ofSeconds(12)
 
 const val CLOSED_POSITION = 0.0f
 const val CLOSING_STATIC_POSITION = -0.2f
@@ -85,61 +59,99 @@ const val OPENING_STATIC_POSITION = -0.6f
 const val OPEN_POSITION = -0.65f
 
 @Composable
+private fun GarageDoorWithOverlay(
+    doorOffset: Float,
+    modifier: Modifier = Modifier,
+    color: Color = Color(0xFF3C5232),
+    animate: Boolean = false,
+    animationTarget: Float = doorOffset,
+    duration: Duration = DEFAULT_GARAGE_DOOR_ANIMATION_DURATION,
+    overlay: @Composable (BoxScope.() -> Unit)? = null,
+) {
+    val currentOffset = if (animate) {
+        val transition = rememberInfiniteTransition(label = "garageDoor")
+        val animatedValue by transition.animateFloat(
+            initialValue = doorOffset,
+            targetValue = animationTarget,
+            animationSpec = infiniteRepeatable(
+                animation = tween(duration.toMillis().toInt(), easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+            label = "doorOffset",
+        )
+        animatedValue
+    } else {
+        doorOffset
+    }
+
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center,
+    ) {
+        GarageDoorCanvas(
+            doorOffset = currentOffset,
+            modifier = Modifier.fillMaxSize(),
+            color = color,
+        )
+        if (overlay != null) {
+            overlay()
+        }
+    }
+}
+
+@Composable
+private fun DirectionOverlay(
+    rotationDegrees: Float,
+    contentDescription: String,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize(0.3f)
+            .background(MaterialTheme.colorScheme.background, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            tint = MaterialTheme.colorScheme.onBackground,
+            contentDescription = contentDescription,
+            modifier = Modifier
+                .rotate(rotationDegrees)
+                .fillMaxSize(0.9f),
+        )
+    }
+}
+
+@Composable
+private fun WarningOverlay() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize(0.3f)
+            .background(MaterialTheme.colorScheme.background, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Warning,
+            tint = MaterialTheme.colorScheme.onBackground,
+            contentDescription = "Warning Symbol",
+            modifier = Modifier.fillMaxSize(0.6f),
+        )
+    }
+}
+
+@Composable
 fun Opening(
     modifier: Modifier = Modifier,
     color: Color = LocalDoorStatusColorScheme.current.openFresh,
     static: Boolean = false,
 ) {
-    var garageDoorSize by remember { mutableStateOf(IntSize.Zero) }
-    Box(
+    GarageDoorWithOverlay(
+        doorOffset = if (static) OPENING_STATIC_POSITION else CLOSED_POSITION,
         modifier = modifier,
-        contentAlignment = Alignment.Center,
+        color = color,
+        animate = !static,
+        animationTarget = OPEN_POSITION,
     ) {
-        GarageDoorAnimation(
-            modifier = Modifier
-                .fillMaxSize()
-                .onGloballyPositioned { coordinates ->
-                    garageDoorSize = coordinates.size
-                },
-            yInitialOffset = if (static) OPENING_STATIC_POSITION else CLOSED_POSITION,
-            yTargetOffset = if (static) OPENING_STATIC_POSITION else OPEN_POSITION,
-            contentDescription = "Garage Door Opening",
-            color = color,
-        )
-        Box(
-            modifier = Modifier
-                .size(
-                    with(LocalDensity.current) {
-                        (minOf(garageDoorSize.width, garageDoorSize.height) * 0.3f).toDp()
-                    },
-                ).background(MaterialTheme.colorScheme.background, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                tint = MaterialTheme.colorScheme.onBackground,
-                contentDescription = "Up Arrow",
-                modifier = Modifier
-                    .rotate(-90f)
-                    .fillMaxSize(0.9f),
-            )
-        }
-    }
-}
-
-@PreviewScreenSizes
-@Preview(
-    name = "Foldable Open",
-    device = "spec:width=411dp,height=891dp,orientation=landscape,dpi=420",
-    showSystemUi = true,
-)
-@Composable
-fun OpeningPreview() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Opening()
+        DirectionOverlay(-90f, "Up Arrow")
     }
 }
 
@@ -149,42 +161,80 @@ fun Closing(
     color: Color = LocalDoorStatusColorScheme.current.openFresh,
     static: Boolean = false,
 ) {
-    var garageDoorSize by remember { mutableStateOf(IntSize.Zero) }
-
-    Box(
+    GarageDoorWithOverlay(
+        doorOffset = if (static) CLOSING_STATIC_POSITION else OPEN_POSITION,
         modifier = modifier,
+        color = color,
+        animate = !static,
+        animationTarget = CLOSED_POSITION,
+    ) {
+        DirectionOverlay(90f, "Down Arrow")
+    }
+}
+
+@Composable
+fun Closed(
+    modifier: Modifier = Modifier,
+    color: Color = LocalDoorStatusColorScheme.current.closedFresh,
+) {
+    GarageDoorWithOverlay(
+        doorOffset = CLOSED_POSITION,
+        modifier = modifier,
+        color = color,
+    )
+}
+
+@Composable
+fun Open(
+    modifier: Modifier = Modifier,
+    color: Color = LocalDoorStatusColorScheme.current.openFresh,
+) {
+    GarageDoorWithOverlay(
+        doorOffset = OPEN_POSITION,
+        modifier = modifier,
+        color = color,
+    )
+}
+
+@Composable
+fun Midway(
+    modifier: Modifier = Modifier,
+    color: Color = LocalDoorStatusColorScheme.current.openFresh,
+) {
+    GarageDoorWithOverlay(
+        doorOffset = MIDWAY_POSITION,
+        modifier = modifier,
+        color = color,
+    ) {
+        WarningOverlay()
+    }
+}
+
+fun blendColors(
+    color1: Color,
+    color2: Color,
+    ratio: Float,
+): Color {
+    val color1Int = color1.toArgb()
+    val color2Int = color2.toArgb()
+    return Color(ColorUtils.blendARGB(color1Int, color2Int, ratio))
+}
+
+// --- Previews ---
+
+@Preview(showBackground = true)
+@Composable
+fun OpeningPreview() {
+    Box(
+        modifier = Modifier.size(400.dp),
         contentAlignment = Alignment.Center,
     ) {
-        GarageDoorAnimation(
+        Opening(
             modifier = Modifier
-                .fillMaxSize()
-                .onGloballyPositioned { coordinates ->
-                    garageDoorSize = coordinates.size
-                },
-            yInitialOffset = if (static) CLOSING_STATIC_POSITION else OPEN_POSITION,
-            yTargetOffset = if (static) CLOSING_STATIC_POSITION else CLOSED_POSITION,
-            contentDescription = "Garage Door Closing",
-            color = color,
+                .wrapContentSize()
+                .heightIn(max = 200.dp)
+                .widthIn(max = 300.dp),
         )
-
-        Box(
-            modifier = Modifier
-                .size(
-                    with(LocalDensity.current) {
-                        (minOf(garageDoorSize.width, garageDoorSize.height) * 0.3f).toDp()
-                    },
-                ).background(MaterialTheme.colorScheme.background, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                tint = MaterialTheme.colorScheme.onBackground,
-                contentDescription = "Down Arrow",
-                modifier = Modifier
-                    .rotate(90f)
-                    .fillMaxSize(0.9f),
-            )
-        }
     }
 }
 
@@ -200,24 +250,6 @@ fun ClosingPreview() {
                 .wrapContentSize()
                 .heightIn(max = 200.dp)
                 .widthIn(max = 300.dp),
-        )
-    }
-}
-
-@Composable
-fun Closed(
-    modifier: Modifier = Modifier,
-    color: Color = LocalDoorStatusColorScheme.current.closedFresh,
-) {
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center,
-    ) {
-        GarageDoorAnimation(
-            yInitialOffset = CLOSED_POSITION,
-            yTargetOffset = CLOSED_POSITION,
-            contentDescription = "Garage Door Closing",
-            color = color,
         )
     }
 }
@@ -238,24 +270,6 @@ fun ClosedPreview() {
     }
 }
 
-@Composable
-fun Open(
-    modifier: Modifier = Modifier,
-    color: Color = LocalDoorStatusColorScheme.current.openFresh,
-) {
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center,
-    ) {
-        GarageDoorAnimation(
-            yInitialOffset = OPEN_POSITION,
-            yTargetOffset = OPEN_POSITION,
-            contentDescription = "Garage Door Open",
-            color = color,
-        )
-    }
-}
-
 @Preview(showBackground = true)
 @Composable
 fun OpenPreview() {
@@ -272,49 +286,6 @@ fun OpenPreview() {
     }
 }
 
-@Composable
-fun Midway(
-    modifier: Modifier = Modifier,
-    color: Color = LocalDoorStatusColorScheme.current.openFresh,
-) {
-    var garageDoorSize by remember { mutableStateOf(IntSize.Zero) }
-
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center,
-    ) {
-        GarageDoorAnimation(
-            modifier = Modifier
-                .fillMaxSize()
-                .onGloballyPositioned { coordinates ->
-                    garageDoorSize = coordinates.size
-                },
-            yInitialOffset = MIDWAY_POSITION,
-            yTargetOffset = MIDWAY_POSITION,
-            contentDescription = "Garage Door Unknown",
-            color = color,
-        )
-
-        Box(
-            modifier = Modifier
-                .size(
-                    with(LocalDensity.current) {
-                        (minOf(garageDoorSize.width, garageDoorSize.height) * 0.3f).toDp()
-                    },
-                ).background(MaterialTheme.colorScheme.background, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Warning,
-                tint = MaterialTheme.colorScheme.onBackground,
-                contentDescription = "Warning Symbol",
-                modifier = Modifier
-                    .fillMaxSize(0.6f),
-            )
-        }
-    }
-}
-
 @Preview(showBackground = true)
 @Composable
 fun MidwayPreview() {
@@ -328,179 +299,5 @@ fun MidwayPreview() {
                 .heightIn(max = 200.dp)
                 .widthIn(max = 300.dp),
         )
-    }
-}
-
-@Composable
-fun GarageDoorAnimation(
-    yInitialOffset: Float,
-    yTargetOffset: Float,
-    contentDescription: String?,
-    color: Color?,
-    modifier: Modifier = Modifier,
-    duration: Duration = DEFAULT_GARAGE_DOOR_ANIMATION_DURATION,
-    topDrawable: Int = R.drawable.garage_frame,
-    bottomDrawable: Int = R.drawable.garage_door_only,
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "")
-    val animatingValue by infiniteTransition.animateFloat(
-        initialValue = yInitialOffset,
-        targetValue = yTargetOffset,
-        animationSpec = infiniteRepeatable(
-            animation = tween(duration.toMillis().toInt(), easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "",
-    )
-    TopWithBottomOffset(
-        topDrawable = topDrawable,
-        bottomDrawable = bottomDrawable,
-        contentDescription = contentDescription,
-        modifier = modifier
-            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-            .drawWithContent {
-                drawContent()
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        0.3f to (color ?: Color.Blue),
-                        1F to blendColors(
-                            (color ?: Color.Blue),
-                            Color.Black,
-                            0.5f,
-                        ),
-                    ),
-                    blendMode = BlendMode.SrcIn,
-                )
-            },
-        offsetProportion = Offset(0f, animatingValue),
-        color = color,
-    )
-}
-
-fun blendColors(
-    color1: Color,
-    color2: Color,
-    ratio: Float,
-): Color {
-    val color1Int = color1.toArgb()
-    val color2Int = color2.toArgb()
-    return Color(ColorUtils.blendARGB(color1Int, color2Int, ratio))
-}
-
-@Composable
-fun TopWithBottomOffset(
-    topDrawable: Int,
-    bottomDrawable: Int,
-    contentDescription: String?,
-    modifier: Modifier = Modifier,
-    offsetProportion: Offset = Offset.Zero,
-    color: Color?,
-) {
-    val topPainter = painterResource(topDrawable)
-    val bottomPainter = painterResource(bottomDrawable)
-
-    TopWithBottomOffset(
-        topPainter = topPainter,
-        bottomPainter = bottomPainter,
-        contentDescription = contentDescription,
-        modifier = modifier,
-        offsetProportion = offsetProportion,
-        color = color,
-    )
-}
-
-@Composable
-fun TopWithBottomOffset(
-    topPainter: Painter,
-    bottomPainter: Painter,
-    contentDescription: String?,
-    modifier: Modifier = Modifier,
-    offsetProportion: Offset = Offset.Zero,
-    color: Color?,
-) {
-    val colorFilter = color?.let {
-        ColorFilter.tint(
-            color = it,
-        )
-    }
-    var topSize by remember { mutableStateOf(IntSize.Zero) }
-    val bottomOffset = Offset(
-        offsetProportion.x * topSize.width,
-        offsetProportion.y * topSize.height,
-    )
-    val clipOffset = OffsetRect(
-        Offset(
-            -bottomOffset.x,
-            -bottomOffset.y + 10, // Crop off the top of the door so it does not appear behind frame.
-        ),
-    )
-
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center,
-    ) {
-        Image(
-            painter = bottomPainter,
-            contentDescription = contentDescription,
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    translationX = bottomOffset.x
-                    translationY = bottomOffset.y
-                }.clip(clipOffset),
-            colorFilter = colorFilter,
-        )
-        Image(
-            painter = topPainter,
-            contentDescription = contentDescription,
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .fillMaxSize()
-                .onSizeChanged {
-                    topSize = it
-                },
-            colorFilter = colorFilter,
-        )
-    }
-}
-
-/**
- * Create Shape for clipping a layout after translation.
- *
- * When you want to translate a Compose drawing at the graphics layer,
- * it will draw outside of the original layout.
- *
- * To make sure the graphics are only drawn inside the original bounds,
- * it can be helpful to create a clip(Shape) of the original bounds.
- *
- * When you move the graphics down and to the right, this can generate the
- * opposite shape up and to the left. See `Usage` based on an Offset.
- *
- * Usage:
- *
- * modifier = Modifier
- *     .graphicsLayer {
- *         translationX = offset.x
- *         translationY = offset.y
- *     }
- *     .clip(OffsetRect(-offset))
- */
-class OffsetRect(
-    val offset: Offset = Offset.Zero,
-) : Shape {
-    override fun createOutline(
-        size: Size,
-        layoutDirection: LayoutDirection,
-        density: Density,
-    ): Outline {
-        val path = Path().apply {
-            moveTo(offset.x, offset.y)
-            lineTo(size.width + offset.x, offset.y)
-            lineTo(size.width + offset.x, size.height + offset.y)
-            lineTo(offset.x, size.height + offset.y)
-            close()
-        }
-        return Outline.Generic(path = path)
     }
 }
