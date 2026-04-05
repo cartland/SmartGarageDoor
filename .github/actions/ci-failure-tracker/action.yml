@@ -1,0 +1,102 @@
+name: CI Failure Tracker
+description: |
+  Creates a GitHub issue on CI failure, closes it on success.
+  Only one open issue per workflow at a time.
+
+inputs:
+  label:
+    description: Issue label for this workflow (e.g. "ci-failure/instrumented-tests")
+    required: true
+  result:
+    description: Job result ("success" or "failure")
+    required: true
+  workflow-name:
+    description: Human-readable workflow name for issue titles
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: On failure — create or update issue
+      if: inputs.result == 'failure'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        LABEL="${{ inputs.label }}"
+        WORKFLOW_NAME="${{ inputs.workflow-name }}"
+        RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        COMMIT_SHA="${{ github.sha }}"
+        COMMIT_SHORT="${COMMIT_SHA:0:7}"
+        COMMIT_URL="${{ github.server_url }}/${{ github.repository }}/commit/${COMMIT_SHA}"
+
+        # Find the PR that introduced this commit (if any)
+        PR_INFO=$(gh api "repos/${{ github.repository }}/commits/${COMMIT_SHA}/pulls" \
+          --jq '.[0] | "PR #\(.number) (\(.title))"' 2>/dev/null || echo "direct push")
+
+        # Ensure label exists
+        gh label create "$LABEL" --color "d73a4a" --description "Auto-created: $WORKFLOW_NAME failure" 2>/dev/null || true
+
+        # Check for existing open issue
+        EXISTING=$(gh issue list --label "$LABEL" --state open --json number --jq '.[0].number' 2>/dev/null)
+
+        if [ -n "$EXISTING" ]; then
+          # Add a comment to existing issue
+          gh issue comment "$EXISTING" --body "$(cat <<EOF
+        ### Still failing
+
+        - **Run:** $RUN_URL
+        - **Commit:** [\`$COMMIT_SHORT\`]($COMMIT_URL)
+        - **Source:** $PR_INFO
+        EOF
+          )"
+          echo "Updated existing issue #$EXISTING"
+        else
+          # Create new issue
+          gh issue create \
+            --title "CI: $WORKFLOW_NAME failing" \
+            --label "$LABEL" \
+            --body "$(cat <<EOF
+        ## $WORKFLOW_NAME is failing on main
+
+        **First failure:**
+        - **Run:** $RUN_URL
+        - **Commit:** [\`$COMMIT_SHORT\`]($COMMIT_URL)
+        - **Source:** $PR_INFO
+
+        This issue was auto-created and will be auto-closed when the workflow passes again.
+        EOF
+          )"
+          echo "Created new issue"
+        fi
+
+    - name: On success — close any open failure issue
+      if: inputs.result == 'success'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        LABEL="${{ inputs.label }}"
+        RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        COMMIT_SHA="${{ github.sha }}"
+        COMMIT_SHORT="${COMMIT_SHA:0:7}"
+        COMMIT_URL="${{ github.server_url }}/${{ github.repository }}/commit/${COMMIT_SHA}"
+
+        PR_INFO=$(gh api "repos/${{ github.repository }}/commits/${COMMIT_SHA}/pulls" \
+          --jq '.[0] | "PR #\(.number) (\(.title))"' 2>/dev/null || echo "direct push")
+
+        EXISTING=$(gh issue list --label "$LABEL" --state open --json number --jq '.[0].number' 2>/dev/null)
+
+        if [ -n "$EXISTING" ]; then
+          gh issue close "$EXISTING" --comment "$(cat <<EOF
+        ### Fixed
+
+        - **Run:** $RUN_URL
+        - **Commit:** [\`$COMMIT_SHORT\`]($COMMIT_URL)
+        - **Fixed by:** $PR_INFO
+        EOF
+          )"
+          echo "Closed issue #$EXISTING"
+        else
+          echo "No open failure issue to close"
+        fi
