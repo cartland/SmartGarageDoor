@@ -254,6 +254,7 @@ Detailed project documentation lives in `AndroidGarage/docs/`:
 - [Decisions](AndroidGarage/docs/DECISIONS.md) — Architectural decision records (ADRs): server-centric design, tech stack, testing philosophy, migration targets
 - [Migration](AndroidGarage/docs/MIGRATION.md) — Phased roadmap toward battery-butler tech stack (kotlin-inject, Ktor, clean architecture, KMP)
 - [Testing](AndroidGarage/docs/TESTING.md) — CI stability plan, testing phases, priority order
+- [Library Bugs](AndroidGarage/docs/library-bugs/) — Known third-party library bugs with mitigations
 
 ## Safety Rules
 
