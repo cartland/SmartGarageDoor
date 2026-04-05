@@ -33,10 +33,6 @@ import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
 import com.chriscartland.garage.snoozenotifications.toServer
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
-import dagger.Binds
-import dagger.Module
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -324,14 +320,6 @@ class RemoteButtonViewModelImpl(
             pushRepository.fetchSnoozeEndTimeSeconds()
         }
     }
-}
-
-@Module
-@InstallIn(SingletonComponent::class)
-@Suppress("unused")
-abstract class RemoteButtonViewModelModule {
-    @Binds
-    abstract fun bindRemoteButtonViewModel(remoteButtonViewModel: RemoteButtonViewModelImpl): RemoteButtonViewModel
 }
 
 private const val TAG = "RemoteButtonViewModel"

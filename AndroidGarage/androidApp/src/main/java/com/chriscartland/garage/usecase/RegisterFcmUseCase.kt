@@ -23,7 +23,6 @@ import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.fcm.DoorFcmRepository
 import com.chriscartland.garage.fcm.toFcmTopic
-import javax.inject.Inject
 
 /**
  * Maps [DoorFcmState] to the simpler [FcmRegistrationStatus] enum.
@@ -39,7 +38,6 @@ fun DoorFcmState.toRegistrationStatus(): FcmRegistrationStatus =
  * Fetches the current FCM registration status.
  */
 class FetchFcmStatusUseCase
-    @Inject
     constructor(
         private val doorFcmRepository: DoorFcmRepository,
     ) {
@@ -54,7 +52,6 @@ class FetchFcmStatusUseCase
  * and subscribes. Returns NOT_REGISTERED if build timestamp is unavailable.
  */
 class RegisterFcmUseCase
-    @Inject
     constructor(
         private val doorRepository: DoorRepository,
         private val doorFcmRepository: DoorFcmRepository,
@@ -71,7 +68,6 @@ class RegisterFcmUseCase
  * Deregisters from FCM door notifications.
  */
 class DeregisterFcmUseCase
-    @Inject
     constructor(
         private val doorFcmRepository: DoorFcmRepository,
     ) {

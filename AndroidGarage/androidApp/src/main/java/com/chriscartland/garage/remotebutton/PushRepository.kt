@@ -25,108 +25,101 @@ import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.domain.repository.PushRepository
-import dagger.Binds
-import dagger.Module
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.time.delay
 import java.time.Duration
 import java.util.Date
-import javax.inject.Inject
 
-class PushRepositoryImpl
-    @Inject
-    constructor(
-        private val networkButtonDataSource: NetworkButtonDataSource,
-        private val serverConfigRepository: ServerConfigRepository,
-    ) : PushRepository {
-        private val _pushButtonStatus = MutableStateFlow(PushStatus.IDLE)
-        override val pushButtonStatus: StateFlow<PushStatus> = _pushButtonStatus
+class PushRepositoryImpl(
+    private val networkButtonDataSource: NetworkButtonDataSource,
+    private val serverConfigRepository: ServerConfigRepository,
+) : PushRepository {
+    private val _pushButtonStatus = MutableStateFlow(PushStatus.IDLE)
+    override val pushButtonStatus: StateFlow<PushStatus> = _pushButtonStatus
 
-        private val _snoozeRequestStatus = MutableStateFlow(SnoozeRequestStatus.IDLE)
-        override val snoozeRequestStatus: StateFlow<SnoozeRequestStatus> = _snoozeRequestStatus
+    private val _snoozeRequestStatus = MutableStateFlow(SnoozeRequestStatus.IDLE)
+    override val snoozeRequestStatus: StateFlow<SnoozeRequestStatus> = _snoozeRequestStatus
 
-        private val _snoozeEndTimeSeconds = MutableStateFlow(0L)
-        override val snoozeEndTimeSeconds: StateFlow<Long> = _snoozeEndTimeSeconds
+    private val _snoozeEndTimeSeconds = MutableStateFlow(0L)
+    override val snoozeEndTimeSeconds: StateFlow<Long> = _snoozeEndTimeSeconds
 
-        override suspend fun push(
-            idToken: String,
-            buttonAckToken: String,
-        ) {
-            _pushButtonStatus.value = PushStatus.SENDING
-            val serverConfig = serverConfigRepository.getServerConfigCached()
-            if (serverConfig == null) {
-                Log.e(TAG, "Server config is null")
-                _pushButtonStatus.value = PushStatus.IDLE
-                return
-            }
-            if (!APP_CONFIG.remoteButtonPushEnabled) {
-                Log.w(TAG, "Remote button push is disabled")
-                delay(Duration.ofMillis(500))
-            }
-            if (APP_CONFIG.remoteButtonPushEnabled) {
-                networkButtonDataSource.pushButton(
-                    remoteButtonBuildTimestamp = serverConfig.remoteButtonBuildTimestamp,
-                    buttonAckToken = buttonAckToken,
-                    remoteButtonPushKey = serverConfig.remoteButtonPushKey,
-                    idToken = idToken,
-                )
-            }
+    override suspend fun push(
+        idToken: String,
+        buttonAckToken: String,
+    ) {
+        _pushButtonStatus.value = PushStatus.SENDING
+        val serverConfig = serverConfigRepository.getServerConfigCached()
+        if (serverConfig == null) {
+            Log.e(TAG, "Server config is null")
             _pushButtonStatus.value = PushStatus.IDLE
+            return
         }
-
-        override suspend fun fetchSnoozeEndTimeSeconds() {
-            val serverConfig = serverConfigRepository.getServerConfigCached()
-            if (serverConfig == null) {
-                Log.e(TAG, "Server config is null")
-                return
-            }
-            if (!APP_CONFIG.snoozeNotificationsOption) {
-                Log.w(TAG, "Snooze notifications disabled")
-                delay(Duration.ofMillis(500))
-            }
-            if (APP_CONFIG.snoozeNotificationsOption) {
-                val endTime = networkButtonDataSource.fetchSnoozeEndTimeSeconds(
-                    buildTimestamp = serverConfig.buildTimestamp,
-                )
-                _snoozeEndTimeSeconds.value = endTime
-            }
+        if (!APP_CONFIG.remoteButtonPushEnabled) {
+            Log.w(TAG, "Remote button push is disabled")
+            delay(Duration.ofMillis(500))
         }
+        if (APP_CONFIG.remoteButtonPushEnabled) {
+            networkButtonDataSource.pushButton(
+                remoteButtonBuildTimestamp = serverConfig.remoteButtonBuildTimestamp,
+                buttonAckToken = buttonAckToken,
+                remoteButtonPushKey = serverConfig.remoteButtonPushKey,
+                idToken = idToken,
+            )
+        }
+        _pushButtonStatus.value = PushStatus.IDLE
+    }
 
-        override suspend fun snoozeOpenDoorsNotifications(
-            snoozeDurationHours: String,
-            idToken: String,
-            snoozeEventTimestampSeconds: Long,
-        ) {
-            _snoozeRequestStatus.value = SnoozeRequestStatus.SENDING
-            val serverConfig = serverConfigRepository.getServerConfigCached()
-            if (serverConfig == null) {
-                Log.e(TAG, "Server config is null")
-                _snoozeRequestStatus.value = SnoozeRequestStatus.IDLE
-                return
-            }
-            if (!APP_CONFIG.snoozeNotificationsOption) {
-                Log.w(TAG, "Snooze notifications disabled")
-                delay(Duration.ofMillis(500))
-            }
-            if (APP_CONFIG.snoozeNotificationsOption) {
-                val success = networkButtonDataSource.snoozeNotifications(
-                    buildTimestamp = serverConfig.buildTimestamp,
-                    remoteButtonPushKey = serverConfig.remoteButtonPushKey,
-                    idToken = idToken,
-                    snoozeDurationHours = snoozeDurationHours,
-                    snoozeEventTimestampSeconds = snoozeEventTimestampSeconds,
-                )
-                if (!success) {
-                    _snoozeRequestStatus.value = SnoozeRequestStatus.ERROR
-                    return
-                }
-            }
-            _snoozeRequestStatus.value = SnoozeRequestStatus.IDLE
+    override suspend fun fetchSnoozeEndTimeSeconds() {
+        val serverConfig = serverConfigRepository.getServerConfigCached()
+        if (serverConfig == null) {
+            Log.e(TAG, "Server config is null")
+            return
+        }
+        if (!APP_CONFIG.snoozeNotificationsOption) {
+            Log.w(TAG, "Snooze notifications disabled")
+            delay(Duration.ofMillis(500))
+        }
+        if (APP_CONFIG.snoozeNotificationsOption) {
+            val endTime = networkButtonDataSource.fetchSnoozeEndTimeSeconds(
+                buildTimestamp = serverConfig.buildTimestamp,
+            )
+            _snoozeEndTimeSeconds.value = endTime
         }
     }
+
+    override suspend fun snoozeOpenDoorsNotifications(
+        snoozeDurationHours: String,
+        idToken: String,
+        snoozeEventTimestampSeconds: Long,
+    ) {
+        _snoozeRequestStatus.value = SnoozeRequestStatus.SENDING
+        val serverConfig = serverConfigRepository.getServerConfigCached()
+        if (serverConfig == null) {
+            Log.e(TAG, "Server config is null")
+            _snoozeRequestStatus.value = SnoozeRequestStatus.IDLE
+            return
+        }
+        if (!APP_CONFIG.snoozeNotificationsOption) {
+            Log.w(TAG, "Snooze notifications disabled")
+            delay(Duration.ofMillis(500))
+        }
+        if (APP_CONFIG.snoozeNotificationsOption) {
+            val success = networkButtonDataSource.snoozeNotifications(
+                buildTimestamp = serverConfig.buildTimestamp,
+                remoteButtonPushKey = serverConfig.remoteButtonPushKey,
+                idToken = idToken,
+                snoozeDurationHours = snoozeDurationHours,
+                snoozeEventTimestampSeconds = snoozeEventTimestampSeconds,
+            )
+            if (!success) {
+                _snoozeRequestStatus.value = SnoozeRequestStatus.ERROR
+                return
+            }
+        }
+        _snoozeRequestStatus.value = SnoozeRequestStatus.IDLE
+    }
+}
 
 /**
  * Create a button ack token.
@@ -144,14 +137,6 @@ fun createButtonAckToken(now: Date): String {
     val re = Regex("[^a-zA-Z0-9-_.]")
     val filtered = re.replace(buttonAckTokenData, ".")
     return filtered
-}
-
-@Module
-@InstallIn(SingletonComponent::class)
-@Suppress("unused")
-abstract class PushRepositoryModule {
-    @Binds
-    abstract fun bindPushRepository(pushRepository: PushRepositoryImpl): PushRepository
 }
 
 private const val TAG = "PushRepository"

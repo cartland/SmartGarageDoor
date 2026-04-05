@@ -20,7 +20,6 @@ package com.chriscartland.garage.usecase
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.PushRepository
-import javax.inject.Inject
 
 /**
  * Snoozes open-door notifications for a specified duration.
@@ -34,7 +33,6 @@ import javax.inject.Inject
  *   or if lastChangeTimeSeconds is null
  */
 class SnoozeNotificationsUseCase
-    @Inject
     constructor(
         private val ensureFreshIdToken: EnsureFreshIdTokenUseCase,
     ) {

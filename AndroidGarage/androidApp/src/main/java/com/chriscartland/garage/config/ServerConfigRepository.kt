@@ -19,12 +19,7 @@ package com.chriscartland.garage.config
 
 import com.chriscartland.garage.data.NetworkConfigDataSource
 import com.chriscartland.garage.domain.model.ServerConfig
-import dagger.Binds
-import dagger.Module
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.sync.Mutex
-import javax.inject.Inject
 
 interface ServerConfigRepository {
     suspend fun getServerConfigCached(): ServerConfig?
@@ -32,38 +27,28 @@ interface ServerConfigRepository {
     suspend fun fetchServerConfig(): ServerConfig?
 }
 
-class ServerConfigRepositoryImpl
-    @Inject
-    constructor(
-        private val networkConfigDataSource: NetworkConfigDataSource,
-    ) : ServerConfigRepository {
-        private var serverConfig: ServerConfig? = null
+class ServerConfigRepositoryImpl(
+    private val networkConfigDataSource: NetworkConfigDataSource,
+) : ServerConfigRepository {
+    private var serverConfig: ServerConfig? = null
 
-        private val mutex: Mutex = Mutex()
+    private val mutex: Mutex = Mutex()
 
-        override suspend fun getServerConfigCached(): ServerConfig? {
-            if (serverConfig != null) {
-                return serverConfig
-            }
-            mutex.lock()
-            val result = serverConfig ?: fetchServerConfig()
-            mutex.unlock()
-            return result
+    override suspend fun getServerConfigCached(): ServerConfig? {
+        if (serverConfig != null) {
+            return serverConfig
         }
-
-        override suspend fun fetchServerConfig(): ServerConfig? {
-            val config = networkConfigDataSource.fetchServerConfig(APP_CONFIG.serverConfigKey)
-            if (config != null) {
-                serverConfig = config
-            }
-            return config
-        }
+        mutex.lock()
+        val result = serverConfig ?: fetchServerConfig()
+        mutex.unlock()
+        return result
     }
 
-@Module
-@InstallIn(SingletonComponent::class)
-@Suppress("unused")
-abstract class ServerConfigRepositoryModule {
-    @Binds
-    abstract fun bindServerConfigRepository(serverConfigRepository: ServerConfigRepositoryImpl): ServerConfigRepository
+    override suspend fun fetchServerConfig(): ServerConfig? {
+        val config = networkConfigDataSource.fetchServerConfig(APP_CONFIG.serverConfigKey)
+        if (config != null) {
+            serverConfig = config
+        }
+        return config
+    }
 }

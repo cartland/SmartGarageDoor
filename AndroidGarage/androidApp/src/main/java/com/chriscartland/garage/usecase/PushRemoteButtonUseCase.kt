@@ -20,7 +20,6 @@ package com.chriscartland.garage.usecase
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.PushRepository
-import javax.inject.Inject
 
 /**
  * Pushes the remote garage button.
@@ -33,7 +32,6 @@ import javax.inject.Inject
  * @return true if the push was initiated, false if not authenticated
  */
 class PushRemoteButtonUseCase
-    @Inject
     constructor(
         private val ensureFreshIdToken: EnsureFreshIdTokenUseCase,
     ) {

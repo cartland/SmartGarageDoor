@@ -20,87 +20,71 @@ package com.chriscartland.garage.internet
 import android.util.Log
 import com.chriscartland.garage.data.NetworkDoorDataSource
 import com.chriscartland.garage.domain.model.DoorEvent
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Inject
-import javax.inject.Singleton
 
-class RetrofitNetworkDoorDataSource
-    @Inject
-    constructor(
-        private val network: GarageNetworkService,
-    ) : NetworkDoorDataSource {
-        override suspend fun fetchCurrentDoorEvent(buildTimestamp: String): DoorEvent? {
-            try {
-                val response = network.getCurrentEventData(
-                    buildTimestamp = buildTimestamp,
-                    session = null,
-                )
-                if (response.code() != 200) {
-                    Log.e(TAG, "Response code is ${response.code()}")
-                    return null
-                }
-                val body = response.body() ?: run {
-                    Log.e(TAG, "Response body is null")
-                    return null
-                }
-                return body.currentEventData?.currentEvent?.asDoorEvent().also {
-                    if (it == null) Log.e(TAG, "Door event is null")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error fetching current door event: $e")
+class RetrofitNetworkDoorDataSource(
+    private val network: GarageNetworkService,
+) : NetworkDoorDataSource {
+    override suspend fun fetchCurrentDoorEvent(buildTimestamp: String): DoorEvent? {
+        try {
+            val response = network.getCurrentEventData(
+                buildTimestamp = buildTimestamp,
+                session = null,
+            )
+            if (response.code() != 200) {
+                Log.e(TAG, "Response code is ${response.code()}")
                 return null
             }
-        }
-
-        override suspend fun fetchRecentDoorEvents(
-            buildTimestamp: String,
-            count: Int,
-        ): List<DoorEvent>? {
-            try {
-                val response = network.getRecentEventData(
-                    buildTimestamp = buildTimestamp,
-                    session = null,
-                    count = count,
-                )
-                if (response.code() != 200) {
-                    Log.e(TAG, "Response code is ${response.code()}")
-                    return null
-                }
-                val body = response.body() ?: run {
-                    Log.e(TAG, "Response body is null")
-                    return null
-                }
-                if (body.eventHistory.isNullOrEmpty()) {
-                    Log.i(TAG, "recentEventData is empty")
-                    return null
-                }
-                val doorEvents = body.eventHistory.mapNotNull {
-                    it.currentEvent?.asDoorEvent()
-                }
-                if (doorEvents.size != body.eventHistory.size) {
-                    Log.e(
-                        TAG,
-                        "Door events size ${doorEvents.size} " +
-                            "does not match response size ${body.eventHistory.size}",
-                    )
-                }
-                return doorEvents
-            } catch (e: Exception) {
-                Log.e(TAG, "Error fetching recent door events: $e")
+            val body = response.body() ?: run {
+                Log.e(TAG, "Response body is null")
                 return null
             }
+            return body.currentEventData?.currentEvent?.asDoorEvent().also {
+                if (it == null) Log.e(TAG, "Door event is null")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching current door event: $e")
+            return null
         }
     }
 
-@Module
-@InstallIn(SingletonComponent::class)
-object NetworkDoorDataSourceModule {
-    @Provides
-    @Singleton
-    fun provideNetworkDoorDataSource(network: GarageNetworkService): NetworkDoorDataSource = RetrofitNetworkDoorDataSource(network)
+    override suspend fun fetchRecentDoorEvents(
+        buildTimestamp: String,
+        count: Int,
+    ): List<DoorEvent>? {
+        try {
+            val response = network.getRecentEventData(
+                buildTimestamp = buildTimestamp,
+                session = null,
+                count = count,
+            )
+            if (response.code() != 200) {
+                Log.e(TAG, "Response code is ${response.code()}")
+                return null
+            }
+            val body = response.body() ?: run {
+                Log.e(TAG, "Response body is null")
+                return null
+            }
+            if (body.eventHistory.isNullOrEmpty()) {
+                Log.i(TAG, "recentEventData is empty")
+                return null
+            }
+            val doorEvents = body.eventHistory.mapNotNull {
+                it.currentEvent?.asDoorEvent()
+            }
+            if (doorEvents.size != body.eventHistory.size) {
+                Log.e(
+                    TAG,
+                    "Door events size ${doorEvents.size} " +
+                        "does not match response size ${body.eventHistory.size}",
+                )
+            }
+            return doorEvents
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching recent door events: $e")
+            return null
+        }
+    }
 }
 
 private const val TAG = "RetrofitNetworkDoor"

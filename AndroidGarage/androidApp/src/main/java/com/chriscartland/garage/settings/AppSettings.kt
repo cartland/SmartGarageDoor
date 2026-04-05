@@ -22,12 +22,6 @@ import com.chriscartland.garage.settings.SettingType.BooleanSetting
 import com.chriscartland.garage.settings.SettingType.IntSetting
 import com.chriscartland.garage.settings.SettingType.LongSetting
 import com.chriscartland.garage.settings.SettingType.StringSetting
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
 
 interface AppSettings :
     SettingContract,
@@ -84,16 +78,6 @@ class AppSettingsImpl(
         key: String,
         default: Long,
     ): LongSetting = LongSetting(prefs, key, default)
-}
-
-@Module
-@InstallIn(SingletonComponent::class)
-object SettingsModule {
-    @Provides
-    @Singleton
-    fun provideAppSettings(
-        @ApplicationContext appContext: Context,
-    ): AppSettings = AppSettingsImpl(appContext)
 }
 
 private const val APP_SETTINGS = "app_settings"

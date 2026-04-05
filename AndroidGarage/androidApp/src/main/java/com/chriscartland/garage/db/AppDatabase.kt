@@ -23,12 +23,6 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.chriscartland.garage.applogger.AppLoggerDao
 import com.chriscartland.garage.applogger.model.AppEvent
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
 
 @Database(
     entities = [
@@ -68,14 +62,4 @@ abstract class AppDatabase : RoomDatabase() {
                 ).fallbackToDestructiveMigration(false)
                 .build()
     }
-}
-
-@Module
-@InstallIn(SingletonComponent::class)
-object AppDatabaseModule {
-    @Provides
-    @Singleton
-    fun provideAppDatabase(
-        @ApplicationContext appContext: Context,
-    ): AppDatabase = AppDatabase.getDatabase(appContext)
 }

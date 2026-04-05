@@ -20,11 +20,9 @@ package com.chriscartland.garage
 import android.app.Application
 import com.chriscartland.garage.di.AppComponent
 import com.chriscartland.garage.di.create
-import dagger.hilt.android.HiltAndroidApp
 
-@HiltAndroidApp
 class GarageApplication : Application() {
-    /** kotlin-inject component — used by migrated ViewModels. */
+    /** kotlin-inject component for dependency injection. */
     val component: AppComponent by lazy {
         AppComponent::class.create(this)
     }

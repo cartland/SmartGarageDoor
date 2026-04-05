@@ -28,9 +28,7 @@ import com.chriscartland.garage.auth.RC_ONE_TAP_SIGN_IN
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.di.activityViewModel
 import com.chriscartland.garage.ui.GarageApp
-import dagger.hilt.android.AndroidEntryPoint
 
-@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     /**
      * Activity-scoped ViewModels shared between Compose and Activity callbacks.
