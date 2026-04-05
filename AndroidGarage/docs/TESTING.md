@@ -13,7 +13,7 @@
 
 ## Current State
 
-- **~135 unit tests** across 17 test files (15 androidApp + 2 domain module)
+- **138 unit tests** across 21 test files (19 androidApp + 2 domain module), including DaoNullabilityTest
 - **18 instrumented tests** across 4 test files (Room sanity, DI graph, navigation smoke, example)
 - **CI architecture:** pre-submit (`ci.yml` → `ci-checks.yml`) + post-merge (`ci-post-merge.yml` → `ci-checks.yml` + instrumented tests)
 - **CI checks:** unit tests (3 build variants), Spotless formatting (all modules), Detekt, Android Lint, screenshot test compilation, debug APK build, release AAB build
