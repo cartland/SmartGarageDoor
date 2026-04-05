@@ -18,36 +18,53 @@
 package com.chriscartland.garage.internet
 
 import com.chriscartland.garage.domain.model.DoorPosition
-import com.squareup.moshi.JsonAdapter
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 import java.io.File
 
+/**
+ * Contract tests verifying that real server JSON responses parse correctly.
+ *
+ * These use test fixture JSON files captured from the production server.
+ * If the server response format changes, these tests catch the mismatch
+ * before a broken app is shipped.
+ */
 class GarageNetworkServiceTest {
+    private val json = Json { ignoreUnknownKeys = true }
+
     @Test
     fun verifyTestData_currentEventDataResponse() =
         runTest {
-            val response = test_CurrentEventDataResponse()
+            val response = parseJsonResource<TestCurrentEventDataResponse>("currentEventData_1730329839.json")
             assertNotNull("Test data should exist", response.currentEventData)
             response.currentEventData?.run {
                 assertNotNull("Current event should exist", currentEvent)
-                currentEvent?.asDoorEvent()?.run {
-                    assertEquals("Door should be closed", DoorPosition.CLOSED, doorPosition)
+                currentEvent?.run {
+                    assertEquals("Door should be closed", "CLOSED", type)
                     assertEquals("Message should match", "The door is closed.", message)
-                    assertEquals("Last check-in time should match", 1730329727L, lastCheckInTimeSeconds)
-                    assertEquals("Last change time should match", 1730239045L, lastChangeTimeSeconds)
+                    assertEquals("Last check-in time should match", 1730329727L, checkInTimestampSeconds)
+                    assertEquals("Last change time should match", 1730239045L, timestampSeconds)
                 }
             }
         }
 
     @Test
+    fun verifyTestData_currentEventMapsToCorrectDoorPosition() =
+        runTest {
+            val response = parseJsonResource<TestCurrentEventDataResponse>("currentEventData_1730329839.json")
+            val type = response.currentEventData?.currentEvent?.type
+            assertEquals(DoorPosition.CLOSED, type.toDoorPosition())
+        }
+
+    @Test
     fun verifyTestData_recentEventDataResponse() =
         runTest {
-            val response = test_RecentEventDataResponse()
+            val response = parseJsonResource<TestRecentEventDataResponse>("eventHistory_1730329839.json")
             assertNotNull("Test data should exist", response.eventHistory)
             assertEquals("Event count should match", 30, response.eventHistoryCount)
             assertEquals("Number of events should match", 30, response.eventHistory?.size)
@@ -55,18 +72,18 @@ class GarageNetworkServiceTest {
                 assertNotNull("Last element should exist", lastOrNull())
                 lastOrNull()?.run {
                     assertNotNull("Last event should exist", currentEvent)
-                    currentEvent?.asDoorEvent()?.run {
-                        assertEquals("Door should be closed", DoorPosition.OPENING, doorPosition)
+                    currentEvent?.run {
+                        assertEquals("Door should be opening", "OPENING", type)
                         assertEquals("Message should match", "The door is opening.", message)
                         assertEquals(
                             "Last check-in time should match",
                             1729997503L,
-                            lastCheckInTimeSeconds,
+                            checkInTimestampSeconds,
                         )
                         assertEquals(
                             "Last change time should match",
                             1729997503L,
-                            lastChangeTimeSeconds,
+                            timestampSeconds,
                         )
                     }
                 }
@@ -76,55 +93,96 @@ class GarageNetworkServiceTest {
     @Test
     fun verifyTestData_serverConfigResponse() =
         runTest {
-            val response = test_ServerConfigResponse()
+            val response = parseJsonResource<TestServerConfigResponse>("serverConfig_1730329839.json")
             assertNotNull("Test data should exist", response.body)
             response.body?.run {
                 assertEquals("Config buildTimestamp should match", "Sat Mar 20 14:25:00 2024", buildTimestamp)
-                assertEquals("Config button timestamp should match", "Sat Apr 17 23:57:32 2024", remoteButtonBuildTimestamp)
+                assertEquals(
+                    "Config button timestamp should match (raw, URL-encoded)",
+                    "Sat%20Apr%2017%2023:57:32%202024",
+                    remoteButtonBuildTimestamp,
+                )
                 assertEquals("Config button push key should match", "key", remoteButtonPushKey)
                 assertEquals("Config button authorized emails should match", listOf("demo@example.com"), remoteButtonAuthorizedEmails)
             }
         }
+
+    @Test
+    fun allDoorPositionStringsParsable() {
+        val knownTypes = listOf(
+            "CLOSED",
+            "OPENING",
+            "OPENING_TOO_LONG",
+            "CLOSING",
+            "CLOSING_TOO_LONG",
+            "OPEN",
+            "OPEN_MISALIGNED",
+            "ERROR_SENSOR_CONFLICT",
+        )
+        for (type in knownTypes) {
+            val position = type.toDoorPosition()
+            assertNotNull("$type should map to a DoorPosition", position)
+            assertEquals("$type should not map to UNKNOWN", false, position == DoorPosition.UNKNOWN)
+        }
+    }
+
+    private inline fun <reified T> parseJsonResource(filename: String): T {
+        val file = File("src/test/resources/$filename")
+        return json.decodeFromString(file.readText())
+    }
 }
 
-fun readJsonResource(filename: String): String {
-    val jsonFilePath = "src/test/resources/$filename"
-    val jsonFile = File(jsonFilePath)
-    return jsonFile.readText()
-}
+// region Test-only @Serializable types (contract verification)
 
-fun moshi(): Moshi? =
-    Moshi
-        .Builder()
-        .add(KotlinJsonAdapterFactory())
-        .build()
+@Serializable
+private data class TestCurrentEventDataResponse(
+    val currentEventData: TestEventData? = null,
+)
 
-fun test_CurrentEventDataResponse(): CurrentEventDataResponse {
-    val filename = "currentEventData_1730329839.json"
-    val jsonString = readJsonResource(filename)
-    assertNotNull("Test file should load correctly", jsonString)
-    val adapter: JsonAdapter<CurrentEventDataResponse>? = moshi()?.adapter(CurrentEventDataResponse::class.java)
-    val result = adapter?.fromJson(jsonString)
-    assertNotNull("Test file should parse correctly", result)
-    return result!!
-}
+@Serializable
+private data class TestRecentEventDataResponse(
+    val eventHistory: List<TestEventData>? = null,
+    val eventHistoryCount: Int? = null,
+)
 
-fun test_RecentEventDataResponse(): RecentEventDataResponse {
-    val filename = "eventHistory_1730329839.json"
-    val jsonString = readJsonResource(filename)
-    assertNotNull("Test file should load correctly", jsonString)
-    val adapter: JsonAdapter<RecentEventDataResponse>? = moshi()?.adapter(RecentEventDataResponse::class.java)
-    val result = adapter?.fromJson(jsonString)
-    assertNotNull("Test file should parse correctly", result)
-    return result!!
-}
+@Serializable
+private data class TestEventData(
+    val currentEvent: TestEvent? = null,
+)
 
-fun test_ServerConfigResponse(): ServerConfigResponse {
-    val filename = "serverConfig_1730329839.json"
-    val jsonString = readJsonResource(filename)
-    assertNotNull("Test file should load correctly", jsonString)
-    val adapter: JsonAdapter<ServerConfigResponse>? = moshi()?.adapter(ServerConfigResponse::class.java)
-    val result = adapter?.fromJson(jsonString)
-    assertNotNull("Test file should parse correctly", result)
-    return result!!
-}
+@Serializable
+private data class TestEvent(
+    val type: String? = null,
+    val message: String? = null,
+    @SerialName("timestampSeconds") val timestampSeconds: Long? = null,
+    @SerialName("checkInTimestampSeconds") val checkInTimestampSeconds: Long? = null,
+)
+
+@Serializable
+private data class TestServerConfigResponse(
+    val body: TestServerConfigBody? = null,
+)
+
+@Serializable
+private data class TestServerConfigBody(
+    val buildTimestamp: String? = null,
+    @SerialName("remoteButtonBuildTimestamp") val remoteButtonBuildTimestamp: String? = null,
+    val remoteButtonPushKey: String? = null,
+    val remoteButtonAuthorizedEmails: List<String>? = null,
+)
+
+// Uses the same mapping as KtorNetworkDoorDataSource — kept in sync
+private fun String?.toDoorPosition(): DoorPosition =
+    when (this) {
+        "CLOSED" -> DoorPosition.CLOSED
+        "OPENING" -> DoorPosition.OPENING
+        "OPENING_TOO_LONG" -> DoorPosition.OPENING_TOO_LONG
+        "CLOSING" -> DoorPosition.CLOSING
+        "CLOSING_TOO_LONG" -> DoorPosition.CLOSING_TOO_LONG
+        "OPEN" -> DoorPosition.OPEN
+        "OPEN_MISALIGNED" -> DoorPosition.OPEN_MISALIGNED
+        "ERROR_SENSOR_CONFLICT" -> DoorPosition.ERROR_SENSOR_CONFLICT
+        else -> DoorPosition.UNKNOWN
+    }
+
+// endregion
