@@ -31,8 +31,6 @@ credentialsGoogleId = "1.1.1"
 espressoCore = "3.6.1"
 firebase-bom = "33.15.0"
 gms = "4.4.2"
-hilt = "2.56.2"
-hiltNavigation = "1.2.0"
 kotlinInject = "0.9.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -82,9 +80,6 @@ androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-toolin
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
 firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx" }
-hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
-hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigation" }
 kotlin-inject-runtime = { module = "me.tatarka.inject:kotlin-inject-runtime", version.ref = "kotlinInject" }
 kotlin-inject-compiler = { module = "me.tatarka.inject:kotlin-inject-compiler-ksp", version.ref = "kotlinInject" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -115,7 +110,6 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 gms = { id = "com.google.gms.google-services", version.ref = "gms" }
 google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp"}
-hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 room = { id = "androidx.room", version.ref = "room" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
