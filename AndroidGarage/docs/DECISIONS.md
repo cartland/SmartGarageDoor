@@ -18,25 +18,22 @@
 
 ## ADR-002: Current Tech Stack (Android)
 
-**Status:** Accepted, will migrate (see ADR-004)
+**Status:** Accepted, partially migrated toward KMP (see ADR-004)
 
-**Context:** The Android app was built with standard 2024 Android libraries.
+**Context:** The Android app was built with standard 2024 Android libraries. DI and networking have been migrated to KMP-compatible alternatives.
 
 **Decision:** Current stack:
-- **DI:** Hilt (Dagger-based, Android-specific)
-- **Network:** Retrofit + Moshi (REST, annotation-based)
+- **DI:** kotlin-inject (KMP-compatible, replaced Hilt in Phase 3)
+- **Network:** Ktor HTTP + kotlinx.serialization (KMP-compatible, replaced Retrofit+Moshi in Phase 4)
 - **Database:** Room (Android Jetpack)
 - **UI:** Jetpack Compose + Material 3
 - **Async:** Kotlin Coroutines + Flow
-- **Testing:** JUnit 4 + Mockito
+- **Testing:** JUnit 4 + Mockito (fakes preferred for new tests)
 
 **Consequences:**
-- Well-documented, large community, stable
-- Android-only: cannot share code with iOS/desktop
-- Hilt is not KMP-compatible
-- Retrofit is not KMP-compatible
-- Moshi is not KMP-compatible
-- These choices constrain the project to Android
+- DI and networking are now KMP-compatible
+- Room is still Android-only (will need expect/actual in Phase 5)
+- Clean architecture layers (domain, data, usecase) are pure Kotlin — ready for `commonMain`
 
 ## ADR-003: Testing Philosophy
 
@@ -55,13 +52,13 @@
 
 ## ADR-004: Target Tech Stack
 
-**Status:** Proposed (migration in progress)
+**Status:** In progress (DI and networking migrated, KMP setup remaining)
 
 **Context:** Want to eventually share code across platforms (KMP). The battery-butler project demonstrates the target architecture. Migration will happen through several independent refactoring projects.
 
 **Decision:** Target stack:
-- **DI:** kotlin-inject (compile-time, KMP-compatible)
-- **Network:** Ktor HTTP client + kotlinx.serialization (not gRPC — server uses REST)
+- **DI:** kotlin-inject (compile-time, KMP-compatible) — ✅ Done (Phase 3)
+- **Network:** Ktor HTTP client + kotlinx.serialization (not gRPC — server uses REST) — ✅ Done (Phase 4)
 - **Database:** Room with KMP support (alpha, same API)
 - **UI:** Compose Multiplatform
 - **Testing:** Fakes over Mockito, Kotlin Test, StandardTestDispatcher
