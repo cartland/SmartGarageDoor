@@ -14,11 +14,12 @@
 ## Current State
 
 - **138 unit tests** across 21 test files (19 androidApp + 2 domain module), including DaoNullabilityTest
-- **18 instrumented tests** across 4 test files (Room sanity, DI graph, navigation smoke, example)
+- **18 instrumented tests** across 3 test files (Room sanity, DI graph, navigation smoke)
 - **CI architecture:** pre-submit (`ci.yml` → `ci-checks.yml`) + post-merge (`ci-post-merge.yml` → `ci-checks.yml` + instrumented tests)
+- **CI gate jobs:** `CI Complete` (PRs), `Post-Merge Complete` (main) — single check-run names for branch protection and release script
 - **CI checks:** unit tests (3 build variants), Spotless formatting (all modules), Detekt, Android Lint, screenshot test compilation, debug APK build, release AAB build
 - **CI path filtering:** Android CI skips for Firebase-only/docs-only changes, and vice versa
-- **CI failure tracking:** post-merge failures auto-create GitHub issues (`ci-failure/build`, `ci-failure/instrumented-tests`), auto-close on fix, flakiness detection
+- **CI failure tracking:** post-merge failures auto-create GitHub issues (`ci-failure/post-merge`), auto-close on fix, flakiness detection
 - **Local validation:** `./scripts/validate.sh` mirrors CI + Room schema drift check + auto-discovered module tests + screenshot compilation
 - **Safety guardrails:** git hooks warn on Room entity changes, block push to main, enforce squash merge, block direct screenshot Gradle tasks
 - **DI system:** kotlin-inject (Hilt fully removed as of Phase 3), Ktor HTTP (Retrofit fully removed as of Phase 4)
