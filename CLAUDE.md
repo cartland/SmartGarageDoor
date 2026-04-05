@@ -71,13 +71,13 @@ idf.py menuconfig      # Enable fake implementations for testing
 
 ### Android Clean Architecture
 - **Domain module** (`domain/`): Pure Kotlin types and repository interfaces — no Android deps
-- **Data module** (`data/`): Pure Kotlin data source interfaces (`LocalDoorDataSource`, `NetworkDoorDataSource`, etc.) — abstracts Room/Retrofit
+- **Data module** (`data/`): Pure Kotlin data source interfaces (`LocalDoorDataSource`, `NetworkDoorDataSource`, etc.) — abstracts Room/Ktor
 - **UseCases** (`androidApp/usecase/`): Business logic extracted from ViewModels
 - **ViewModels**: `DoorViewModel`, `AuthViewModel`, `RemoteButtonViewModel` — delegate to UseCases
 - **Repositories**: `DoorRepository`, `AuthRepository`, `PushRepository` — implement domain interfaces, depend on data interfaces
 - **DI**: kotlin-inject (`AppComponent`) — Hilt fully removed. See `docs/DI-MIGRATION.md`
 - **Local storage**: Room database with offline-first caching
-- **Network**: Retrofit + Moshi for API communication
+- **Network**: Ktor HTTP client + kotlinx.serialization for API communication
 
 ### ESP32 Component Architecture
 ```
