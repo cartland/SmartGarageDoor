@@ -19,90 +19,74 @@ package com.chriscartland.garage.internet
 
 import android.util.Log
 import com.chriscartland.garage.data.NetworkButtonDataSource
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Inject
-import javax.inject.Singleton
 
-class RetrofitNetworkButtonDataSource
-    @Inject
-    constructor(
-        private val network: GarageNetworkService,
-    ) : NetworkButtonDataSource {
-        override suspend fun pushButton(
-            remoteButtonBuildTimestamp: String,
-            buttonAckToken: String,
-            remoteButtonPushKey: String,
-            idToken: String,
-        ): Boolean =
-            try {
-                val response = network.postRemoteButtonPush(
-                    remoteButtonBuildTimestamp = RemoteButtonBuildTimestamp(remoteButtonBuildTimestamp),
-                    buttonAckToken = ButtonAckToken(buttonAckToken),
-                    remoteButtonPushKey = RemoteButtonPushKey(remoteButtonPushKey),
-                    idToken = IdToken(idToken),
-                )
-                Log.i(TAG, "Push response: ${response.code()}")
-                response.isSuccessful
-            } catch (e: Exception) {
-                Log.e(TAG, "Push error: $e")
-                false
-            }
-
-        override suspend fun snoozeNotifications(
-            buildTimestamp: String,
-            remoteButtonPushKey: String,
-            idToken: String,
-            snoozeDurationHours: String,
-            snoozeEventTimestampSeconds: Long,
-        ): Boolean {
-            return try {
-                val response = network.postSnoozeOpenDoorsNotifications(
-                    buildTimestamp = BuildTimestamp(buildTimestamp),
-                    remoteButtonPushKey = RemoteButtonPushKey(remoteButtonPushKey),
-                    idToken = IdToken(idToken),
-                    snoozeDuration = SnoozeDurationParameter(snoozeDurationHours),
-                    snoozeEventTimestamp = SnoozeEventTimestampParameter(snoozeEventTimestampSeconds),
-                )
-                Log.i(TAG, "Snooze response: ${response.code()}")
-                val body = response.body()
-                if (body == null || body.error != null) {
-                    Log.e(TAG, "Snooze error: ${body?.error}")
-                    return false
-                }
-                true
-            } catch (e: Exception) {
-                Log.e(TAG, "Snooze error: $e")
-                false
-            }
+class RetrofitNetworkButtonDataSource(
+    private val network: GarageNetworkService,
+) : NetworkButtonDataSource {
+    override suspend fun pushButton(
+        remoteButtonBuildTimestamp: String,
+        buttonAckToken: String,
+        remoteButtonPushKey: String,
+        idToken: String,
+    ): Boolean =
+        try {
+            val response = network.postRemoteButtonPush(
+                remoteButtonBuildTimestamp = RemoteButtonBuildTimestamp(remoteButtonBuildTimestamp),
+                buttonAckToken = ButtonAckToken(buttonAckToken),
+                remoteButtonPushKey = RemoteButtonPushKey(remoteButtonPushKey),
+                idToken = IdToken(idToken),
+            )
+            Log.i(TAG, "Push response: ${response.code()}")
+            response.isSuccessful
+        } catch (e: Exception) {
+            Log.e(TAG, "Push error: $e")
+            false
         }
 
-        override suspend fun fetchSnoozeEndTimeSeconds(buildTimestamp: String): Long {
-            return try {
-                val response = network.getSnooze(
-                    buildTimestamp = BuildTimestamp(buildTimestamp),
-                )
-                val body = response.body()
-                if (body == null || body.error != null) {
-                    Log.e(TAG, "Snooze fetch error: ${body?.error}")
-                    return 0L
-                }
-                body.snooze?.snoozeEndTimeSeconds ?: 0L
-            } catch (e: Exception) {
-                Log.e(TAG, "Snooze fetch error: $e")
-                0L
+    override suspend fun snoozeNotifications(
+        buildTimestamp: String,
+        remoteButtonPushKey: String,
+        idToken: String,
+        snoozeDurationHours: String,
+        snoozeEventTimestampSeconds: Long,
+    ): Boolean {
+        return try {
+            val response = network.postSnoozeOpenDoorsNotifications(
+                buildTimestamp = BuildTimestamp(buildTimestamp),
+                remoteButtonPushKey = RemoteButtonPushKey(remoteButtonPushKey),
+                idToken = IdToken(idToken),
+                snoozeDuration = SnoozeDurationParameter(snoozeDurationHours),
+                snoozeEventTimestamp = SnoozeEventTimestampParameter(snoozeEventTimestampSeconds),
+            )
+            Log.i(TAG, "Snooze response: ${response.code()}")
+            val body = response.body()
+            if (body == null || body.error != null) {
+                Log.e(TAG, "Snooze error: ${body?.error}")
+                return false
             }
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Snooze error: $e")
+            false
         }
     }
 
-@Module
-@InstallIn(SingletonComponent::class)
-object NetworkButtonDataSourceModule {
-    @Provides
-    @Singleton
-    fun provideNetworkButtonDataSource(network: GarageNetworkService): NetworkButtonDataSource = RetrofitNetworkButtonDataSource(network)
+    override suspend fun fetchSnoozeEndTimeSeconds(buildTimestamp: String): Long {
+        return try {
+            val response = network.getSnooze(
+                buildTimestamp = BuildTimestamp(buildTimestamp),
+            )
+            val body = response.body()
+            if (body == null || body.error != null) {
+                Log.e(TAG, "Snooze fetch error: ${body?.error}")
+                return 0L
+            }
+            body.snooze?.snoozeEndTimeSeconds ?: 0L
+        } catch (e: Exception) {
+            Log.e(TAG, "Snooze fetch error: $e")
+            0L
+        }
+    }
 }
 
 private const val TAG = "RetrofitNetworkButton"

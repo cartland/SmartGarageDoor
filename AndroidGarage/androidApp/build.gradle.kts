@@ -24,7 +24,6 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.google.devtools.ksp)
-    alias(libs.plugins.hilt)
     alias(libs.plugins.gms)
     alias(libs.plugins.room)
     alias(libs.plugins.baselineprofile)
@@ -261,11 +260,7 @@ dependencies {
     implementation(libs.squareup.retrofit.moshi.converter)
     implementation(libs.okhttpLoggingInterceptor)
     ksp(libs.squareup.moshi.kotlin.codegen)
-    // Hilt (being migrated to kotlin-inject — see docs/DI-MIGRATION.md)
-    implementation(libs.hilt.android)
-    implementation(libs.hilt.navigation.compose)
-    ksp(libs.hilt.compiler)
-    // kotlin-inject
+    // kotlin-inject (replaced Hilt — see docs/DI-MIGRATION.md)
     implementation(libs.kotlin.inject.runtime)
     ksp(libs.kotlin.inject.compiler)
     // Room

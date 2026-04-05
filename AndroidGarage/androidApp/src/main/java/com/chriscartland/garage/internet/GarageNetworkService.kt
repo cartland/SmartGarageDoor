@@ -22,10 +22,6 @@ import com.chriscartland.garage.BuildConfig
 import com.chriscartland.garage.config.APP_CONFIG
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
@@ -35,7 +31,6 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Query
-import javax.inject.Singleton
 
 interface GarageNetworkService {
     suspend fun getCurrentEventData(
@@ -175,12 +170,4 @@ fun provideGarageNetworkService(): GarageNetworkService {
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
     return retrofit.create(RetrofitGarageNetworkService::class.java)
-}
-
-@Module
-@InstallIn(SingletonComponent::class)
-object RetrofitModule {
-    @Provides
-    @javax.inject.Singleton
-    fun provideGarageService(): GarageNetworkService = provideGarageNetworkService()
 }

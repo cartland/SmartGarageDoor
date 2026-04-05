@@ -20,7 +20,6 @@ package com.chriscartland.garage.usecase
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.repository.AuthRepository
-import javax.inject.Inject
 
 /**
  * Ensures we have a fresh (non-expired) Firebase ID token for API calls.
@@ -30,22 +29,20 @@ import javax.inject.Inject
  * - Otherwise, refresh the auth state and return the new token
  * - If refresh fails (user becomes unauthenticated), fall back to the cached token
  */
-class EnsureFreshIdTokenUseCase
-    @Inject
-    constructor() {
-        suspend operator fun invoke(
-            authRepository: AuthRepository,
-            currentAuth: AuthState.Authenticated,
-            currentTimeMillis: Long = System.currentTimeMillis(),
-        ): FirebaseIdToken =
-            if (currentAuth.user.idToken.exp > currentTimeMillis) {
-                currentAuth.user.idToken
+class EnsureFreshIdTokenUseCase {
+    suspend operator fun invoke(
+        authRepository: AuthRepository,
+        currentAuth: AuthState.Authenticated,
+        currentTimeMillis: Long = System.currentTimeMillis(),
+    ): FirebaseIdToken =
+        if (currentAuth.user.idToken.exp > currentTimeMillis) {
+            currentAuth.user.idToken
+        } else {
+            val refreshed = authRepository.refreshFirebaseAuthState()
+            if (refreshed is AuthState.Authenticated) {
+                refreshed.user.idToken
             } else {
-                val refreshed = authRepository.refreshFirebaseAuthState()
-                if (refreshed is AuthState.Authenticated) {
-                    refreshed.user.idToken
-                } else {
-                    currentAuth.user.idToken
-                }
+                currentAuth.user.idToken
             }
-    }
+        }
+}

@@ -18,7 +18,6 @@
 package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.repository.DoorRepository
-import javax.inject.Inject
 
 /**
  * Fetches the current door event from the network.
@@ -27,7 +26,6 @@ import javax.inject.Inject
  * server config lookup, network requests, and local database insertion.
  */
 class FetchCurrentDoorEventUseCase
-    @Inject
     constructor(
         private val doorRepository: DoorRepository,
     ) {
@@ -43,7 +41,6 @@ class FetchCurrentDoorEventUseCase
  * server config lookup, network requests, and local database replacement.
  */
 class FetchRecentDoorEventsUseCase
-    @Inject
     constructor(
         private val doorRepository: DoorRepository,
     ) {
