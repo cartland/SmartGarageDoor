@@ -56,10 +56,22 @@ fun MyComponentPreviewTest() {
 
 3. Run `./scripts/generate-android-screenshots.sh` to generate the reference PNGs
 
+## Cleanup
+
+The script automatically cleans old reference PNGs before generating new ones — outdated screenshots are removed, not accumulated. The gallery is regenerated from scratch each run, so orphaned entries are impossible.
+
+## Cross-Platform Consistency
+
+Screenshots render differently across platforms (macOS vs Linux CI). To avoid thrashing:
+- Only regenerate screenshots deliberately via this skill or the script
+- CI compiles screenshot tests but never generates or validates PNGs
+- Commit screenshots from a single platform consistently
+
 ## Notes
 
 - `updateDebugScreenshotTest` and `validateDebugScreenshotTest` can't run in the same Gradle invocation
 - To force single-invocation: `./gradlew :android-screenshot-tests:updateDebugScreenshotTest -PforceAllScreenshots`
-- Preview composables must be deterministic — use fixed `Instant.parse(...)` for timestamps, never `Clock.System.now()`
+- Preview composables must be deterministic — use fixed `Instant.parse(...)` for timestamps, never `Clock.System.now()` or `Random`
 - Reference PNGs are committed to git but are NOT validated in CI
 - The gallery markdown is auto-generated — do not edit it manually
+- Previews that depend on `rememberAppComponent()` render blank in screenshot tests — use stateless overloads instead

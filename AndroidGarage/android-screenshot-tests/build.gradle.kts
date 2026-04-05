@@ -59,7 +59,7 @@ tasks.register("cleanReferenceScreenshots") {
 tasks.register<Exec>("generateScreenshotGallery") {
     group = "screenshot"
     description = "Generates a Markdown gallery of all reference screenshots."
-    workingDir = rootProject.projectDir
+    workingDir = rootProject.projectDir.parentFile
     commandLine("./scripts/generate-android-screenshot-gallery.sh")
 }
 
@@ -68,7 +68,6 @@ tasks.whenTaskAdded {
         if (!project.hasProperty("retainedReferenceScreenshots")) {
             dependsOn("cleanReferenceScreenshots")
         }
-        finalizedBy("generateScreenshotGallery")
     }
     if (name in listOf("updateDebugScreenshotTest", "validateDebugScreenshotTest")) {
         doFirst {

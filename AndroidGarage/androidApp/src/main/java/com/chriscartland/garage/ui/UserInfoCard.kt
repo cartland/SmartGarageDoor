@@ -110,7 +110,7 @@ fun UserInfoCard(
 @Preview
 @Composable
 fun UserInfoNoUserPreview() {
-    UserInfoCard(user = null)
+    UserInfoCard(user = null, startExpanded = true)
 }
 
 @Preview
@@ -122,5 +122,6 @@ fun UserInfoCardPreview() {
             email = Email("demo@example.com"),
             idToken = FirebaseIdToken("abc123", 1234567890),
         ),
+        startExpanded = true,
     )
 }
