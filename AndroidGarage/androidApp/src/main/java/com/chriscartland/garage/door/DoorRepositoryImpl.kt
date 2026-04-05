@@ -38,10 +38,9 @@ class DoorRepositoryImpl(
         get() =
             localDoorDataSource.currentDoorEvent
                 .map {
-                    // [it] can be null -- this might be a Kotlin bug
                     it?.doorPosition ?: DoorPosition.UNKNOWN
                 }.distinctUntilChanged()
-    override val currentDoorEvent: Flow<DoorEvent> = localDoorDataSource.currentDoorEvent
+    override val currentDoorEvent: Flow<DoorEvent?> = localDoorDataSource.currentDoorEvent
     override val recentDoorEvents: Flow<List<DoorEvent>> = localDoorDataSource.recentDoorEvents
 
     override suspend fun fetchBuildTimestampCached(): String? = serverConfigRepository.getServerConfigCached()?.buildTimestamp

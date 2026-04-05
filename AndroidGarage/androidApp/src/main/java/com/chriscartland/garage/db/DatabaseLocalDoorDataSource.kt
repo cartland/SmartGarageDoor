@@ -26,8 +26,8 @@ import kotlinx.coroutines.flow.map
 class DatabaseLocalDoorDataSource(
     private val appDatabase: AppDatabase,
 ) : LocalDoorDataSource {
-    override val currentDoorEvent: Flow<DoorEvent> =
-        appDatabase.doorEventDao().currentDoorEvent().map { it.toDomain() }
+    override val currentDoorEvent: Flow<DoorEvent?> =
+        appDatabase.doorEventDao().currentDoorEvent().map { it?.toDomain() }
     override val recentDoorEvents: Flow<List<DoorEvent>> =
         appDatabase.doorEventDao().recentDoorEvents().map { entities ->
             entities.map { it.toDomain() }
