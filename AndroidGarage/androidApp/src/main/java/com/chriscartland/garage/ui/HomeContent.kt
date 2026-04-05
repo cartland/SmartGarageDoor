@@ -63,16 +63,19 @@ import java.time.Instant
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun HomeContent(modifier: Modifier = Modifier) {
+fun HomeContent(
+    modifier: Modifier = Modifier,
+    authViewModel: AuthViewModel? = null,
+) {
     val component = rememberAppComponent()
+    val resolvedAuthViewModel = authViewModel ?: viewModel { component.authViewModel }
     val doorViewModel: DoorViewModel = viewModel { component.doorViewModel }
-    val authViewModel: AuthViewModel = viewModel { component.authViewModel }
     val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
     val appLoggerViewModel: AppLoggerViewModel = viewModel { component.appLoggerViewModel }
     val activity = LocalActivity.current
     val currentDoorEvent by doorViewModel.currentDoorEvent.collectAsState()
     val buttonRequestStatus by buttonViewModel.requestStatus.collectAsState()
-    val authState by authViewModel.authState.collectAsState()
+    val authState by resolvedAuthViewModel.authState.collectAsState()
     HomeContent(
         currentDoorEvent = currentDoorEvent,
         remoteRequestStatus = buttonRequestStatus,
@@ -89,12 +92,12 @@ fun HomeContent(modifier: Modifier = Modifier) {
                         "Remote button clicked. " +
                             "AuthViewModel authState $authState",
                     )
-                    buttonViewModel.pushRemoteButton(authViewModel.authRepository)
+                    buttonViewModel.pushRemoteButton(resolvedAuthViewModel.authRepository)
                 }
 
                 AuthState.Unauthenticated -> {
                     if (activity != null) {
-                        authViewModel.signInWithGoogle(activity)
+                        resolvedAuthViewModel.signInWithGoogle(activity)
                     } else {
                         Log.e(TAG, "Activity is null, cannot sign in with Google")
                     }
@@ -102,7 +105,7 @@ fun HomeContent(modifier: Modifier = Modifier) {
 
                 AuthState.Unknown -> {
                     if (activity != null) {
-                        authViewModel.signInWithGoogle(activity)
+                        resolvedAuthViewModel.signInWithGoogle(activity)
                     } else {
                         Log.e(TAG, "Activity is null, cannot sign in with Google")
                     }
@@ -113,7 +116,7 @@ fun HomeContent(modifier: Modifier = Modifier) {
         authState = authState,
         onSignIn = {
             if (activity != null) {
-                authViewModel.signInWithGoogle(activity)
+                resolvedAuthViewModel.signInWithGoogle(activity)
             } else {
                 Log.e(TAG, "Activity is null, cannot sign in with Google")
             }

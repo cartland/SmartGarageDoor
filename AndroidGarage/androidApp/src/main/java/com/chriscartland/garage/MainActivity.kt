@@ -24,6 +24,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.ui.util.trace
+import com.chriscartland.garage.auth.AuthViewModelImpl
 import com.chriscartland.garage.auth.RC_ONE_TAP_SIGN_IN
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.ui.GarageApp
@@ -31,13 +32,32 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    /**
+     * Activity-scoped AuthViewModel shared between Compose and onActivityResult.
+     *
+     * Must be the same instance because signInWithGoogle() stores the SignInClient,
+     * and processGoogleSignInResult() reads it back.
+     */
+    private val authViewModel: AuthViewModelImpl by lazy {
+        val component = (application as GarageApplication).component
+        androidx.lifecycle.ViewModelProvider(
+            this,
+            object : androidx.lifecycle.ViewModelProvider.Factory {
+                override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                    @Suppress("UNCHECKED_CAST")
+                    return component.authViewModel as T
+                }
+            },
+        )[AuthViewModelImpl::class.java]
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge() // Edge-to-edge required on Android 15+ (target SDK 35).
         val component = (application as GarageApplication).component
         trace("MainActivity.setContent") {
             setContent {
-                GarageApp()
+                GarageApp(authViewModel = authViewModel)
             }
         }
         Log.d(TAG, "onCreate: Try to subscribe to FCM topic")
@@ -64,16 +84,6 @@ class MainActivity : ComponentActivity() {
                     Log.e("MainActivity", "onActivityResult: data is null")
                     return
                 }
-                val component = (application as GarageApplication).component
-                val authViewModel = androidx.lifecycle.ViewModelProvider(
-                    this,
-                    object : androidx.lifecycle.ViewModelProvider.Factory {
-                        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                            @Suppress("UNCHECKED_CAST")
-                            return component.authViewModel as T
-                        }
-                    },
-                )[com.chriscartland.garage.auth.AuthViewModelImpl::class.java]
                 authViewModel.processGoogleSignInResult(data)
             }
         }

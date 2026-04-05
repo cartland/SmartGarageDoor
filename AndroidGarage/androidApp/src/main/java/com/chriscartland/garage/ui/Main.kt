@@ -62,9 +62,9 @@ import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import java.time.Instant
 
 @Composable
-fun GarageApp() {
+fun GarageApp(authViewModel: AuthViewModel) {
     AppTheme {
-        AppNavigation()
+        AppNavigation(authViewModel = authViewModel)
     }
 }
 
@@ -82,10 +82,9 @@ sealed class Screen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation() {
+fun AppNavigation(authViewModel: AuthViewModel) {
     val component = rememberAppComponent()
     val doorViewModel: DoorViewModel = viewModel { component.doorViewModel }
-    val authViewModel: AuthViewModel = viewModel { component.authViewModel }
     val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
     val appLoggerViewModel: AppLoggerViewModel = viewModel { component.appLoggerViewModel }
     var isOld by remember { mutableStateOf(false) }
@@ -148,6 +147,7 @@ fun AppNavigation() {
         ) {
             composable(Screen.Home.route) {
                 HomeContent(
+                    authViewModel = authViewModel,
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth(),
@@ -162,6 +162,7 @@ fun AppNavigation() {
             }
             composable(Screen.Profile.route) {
                 ProfileContent(
+                    authViewModel = authViewModel,
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth(),
