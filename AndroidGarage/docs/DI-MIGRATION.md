@@ -125,8 +125,8 @@ class GarageApplication : Application() {
 
 ### Commit Reference
 
-<!-- Update with actual commit hash after implementation -->
-`_______` (#__) — Add kotlin-inject alongside Hilt
+<!-- Completed -->
+`65f89c8` (#86) — Add kotlin-inject alongside Hilt
 
 ---
 
@@ -173,7 +173,7 @@ val viewModel: AppSettingsViewModel = viewModel { component.appSettingsViewModel
 
 ### Commit Reference
 
-`_______` (#__) — Migrate AppSettingsViewModel to kotlin-inject
+`a7c2ade` (#87) — Migrate AppSettingsViewModel to kotlin-inject
 
 ---
 
@@ -199,10 +199,11 @@ val viewModel: AppSettingsViewModel = viewModel { component.appSettingsViewModel
 
 | ViewModel | Commit | PR |
 |-----------|--------|-----|
-| AppSettingsViewModel | `_______` | #__ |
-| AuthViewModel | `_______` | #__ |
-| DoorViewModel | `_______` | #__ |
-| RemoteButtonViewModel | `_______` | #__ |
+| AppSettingsViewModel | `a7c2ade` | #87 |
+| AuthViewModel | `953beb6` | #89 |
+| DoorViewModel | `9312b01` | #90 |
+| RemoteButtonViewModel | `9312b01` | #90 |
+| AppLoggerViewModel | `2185646` | #91 |
 
 ---
 
@@ -254,7 +255,7 @@ abstract class AppComponent(...) {
 
 ### Commit Reference
 
-`_______` (#__) — Migrate all bindings to AppComponent
+`c5d9d58` (#96) — Migrated alongside Hilt removal
 
 ---
 
@@ -289,7 +290,7 @@ class FCMService : FirebaseMessagingService() {
 
 ### Commit Reference
 
-`_______` (#__) — Migrate FCMService from @AndroidEntryPoint to manual injection
+`2185646` (#91) — Migrate FCMService to lazy component access
 
 ---
 
@@ -314,7 +315,7 @@ class FCMService : FirebaseMessagingService() {
 
 ### Commit Reference
 
-`_______` (#__) — Remove Hilt completely
+`c5d9d58` (#96) — Remove Hilt completely
 
 ---
 

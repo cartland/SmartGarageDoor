@@ -75,6 +75,7 @@ idf.py menuconfig      # Enable fake implementations for testing
 - **UseCases** (`androidApp/usecase/`): Business logic extracted from ViewModels
 - **ViewModels**: `DoorViewModel`, `AuthViewModel`, `RemoteButtonViewModel` — delegate to UseCases
 - **Repositories**: `DoorRepository`, `AuthRepository`, `PushRepository` — implement domain interfaces, depend on data interfaces
+- **DI**: kotlin-inject (`AppComponent`) — Hilt fully removed. See `docs/DI-MIGRATION.md`
 - **Local storage**: Room database with offline-first caching
 - **Network**: Retrofit + Moshi for API communication
 
