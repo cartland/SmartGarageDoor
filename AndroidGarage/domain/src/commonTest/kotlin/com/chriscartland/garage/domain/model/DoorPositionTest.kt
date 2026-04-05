@@ -1,7 +1,7 @@
 package com.chriscartland.garage.domain.model
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 /**
  * Tests for [DoorPosition] enum values.
@@ -31,9 +31,9 @@ class DoorPositionTest {
     @Test
     fun enumCountMatchesExpected() {
         assertEquals(
-            "DoorPosition count changed — update server, network parsing, and this test",
             9,
             DoorPosition.entries.size,
+            "DoorPosition count changed — update server, network parsing, and this test",
         )
     }
 }
