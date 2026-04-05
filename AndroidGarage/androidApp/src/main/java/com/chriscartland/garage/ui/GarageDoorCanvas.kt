@@ -18,6 +18,7 @@
 package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -71,7 +72,7 @@ fun GarageDoorCanvas(
     color: Color = Color(0xFF3C5232),
 ) {
     val darkColor = blendColors(color, Color.Black, 0.5f)
-    Canvas(modifier = modifier) {
+    Canvas(modifier = modifier.aspectRatio(VP_W / VP_H)) {
         drawGarageDoor(doorOffset, color, darkColor)
     }
 }
@@ -81,70 +82,75 @@ private fun DrawScope.drawGarageDoor(
     color: Color,
     darkColor: Color,
 ) {
-    val scaleX = size.width / VP_W
-    val scaleY = size.height / VP_H
+    // Uniform scale — fit within canvas without stretching.
+    val scale = minOf(size.width / VP_W, size.height / VP_H)
+    val drawW = VP_W * scale
+    val drawH = VP_H * scale
+    // Center the drawing within the canvas.
+    val offsetX = (size.width - drawW) / 2f
+    val offsetY = (size.height - drawH) / 2f
+
+    fun x(vp: Float) = vp * scale + offsetX
+
+    fun y(vp: Float) = vp * scale + offsetY
+
+    fun s(vp: Float) = vp * scale
 
     val gradient = Brush.verticalGradient(
         0.3f to color,
         1f to darkColor,
+        startY = offsetY,
+        endY = offsetY + drawH,
     )
 
     // Clip door panels to the interior of the frame so they don't draw outside.
-    val frameInsetX = (6.9f + FRAME_STROKE_WIDTH / 2f) * scaleX
-    val frameInsetTop = (6.9f + FRAME_STROKE_WIDTH / 2f) * scaleY
-    val frameBottom = size.height
+    val frameInset = 6.9f + FRAME_STROKE_WIDTH / 2f
 
     clipRect(
-        left = frameInsetX,
-        top = frameInsetTop,
-        right = size.width - frameInsetX,
-        bottom = frameBottom,
+        left = x(frameInset),
+        top = y(frameInset),
+        right = x(VP_W - frameInset),
+        bottom = y(VP_H),
     ) {
         // Door panels — translated vertically by doorOffset.
-        val panelOffsetPx = doorOffset * size.height
+        val panelOffsetPx = doorOffset * drawH
         for (panelY in PANEL_Y_STARTS) {
-            val y = panelY * scaleY + panelOffsetPx
-            val panelSize = Size(PANEL_WIDTH * scaleX, PANEL_HEIGHT * scaleY)
             drawRoundRect(
                 brush = gradient,
-                topLeft = Offset(PANEL_X * scaleX, y),
-                size = panelSize,
-                cornerRadius = CornerRadius(PANEL_RADIUS * scaleX, PANEL_RADIUS * scaleY),
+                topLeft = Offset(x(PANEL_X), y(panelY) + panelOffsetPx),
+                size = Size(s(PANEL_WIDTH), s(PANEL_HEIGHT)),
+                cornerRadius = CornerRadius(s(PANEL_RADIUS)),
             )
         }
 
         // Handle on bottom panel.
-        val handleY = HANDLE_Y * scaleY + panelOffsetPx
         drawRoundRect(
             color = Color(0xFF111111),
-            topLeft = Offset(HANDLE_X * scaleX, handleY),
-            size = Size(HANDLE_W * scaleX, HANDLE_H * scaleY),
-            cornerRadius = CornerRadius(HANDLE_RADIUS * scaleX, HANDLE_RADIUS * scaleY),
+            topLeft = Offset(x(HANDLE_X), y(HANDLE_Y) + panelOffsetPx),
+            size = Size(s(HANDLE_W), s(HANDLE_H)),
+            cornerRadius = CornerRadius(s(HANDLE_RADIUS)),
         )
     }
 
     // Frame — drawn on top as a stroke path (U-shape with rounded top corners).
+    val cr = s(FRAME_CORNER_RADIUS)
     val framePath = Path().apply {
-        val left = 6.9f * scaleX
-        val right = (VP_W - 6.9f) * scaleX
-        val top = 6.9f * scaleY
-        val bottom = 209.9f * scaleY
-        val cr = FRAME_CORNER_RADIUS * scaleX
-        val crY = FRAME_CORNER_RADIUS * scaleY
+        val left = x(6.9f)
+        val right = x(VP_W - 6.9f)
+        val top = y(6.9f)
+        val bottom = y(209.9f)
 
         moveTo(left, bottom)
-        lineTo(left, top + crY)
-        // Top-left corner.
+        lineTo(left, top + cr)
         arcTo(
-            rect = Rect(left, top, left + cr * 2, top + crY * 2),
+            rect = Rect(left, top, left + cr * 2, top + cr * 2),
             startAngleDegrees = 180f,
             sweepAngleDegrees = 90f,
             forceMoveTo = false,
         )
         lineTo(right - cr, top)
-        // Top-right corner.
         arcTo(
-            rect = Rect(right - cr * 2, top, right, top + crY * 2),
+            rect = Rect(right - cr * 2, top, right, top + cr * 2),
             startAngleDegrees = 270f,
             sweepAngleDegrees = 90f,
             forceMoveTo = false,
@@ -155,9 +161,6 @@ private fun DrawScope.drawGarageDoor(
     drawPath(
         path = framePath,
         brush = gradient,
-        style = Stroke(
-            width = FRAME_STROKE_WIDTH * scaleX,
-            cap = Stroke.DefaultCap,
-        ),
+        style = Stroke(width = s(FRAME_STROKE_WIDTH)),
     )
 }
