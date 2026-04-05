@@ -1,10 +1,11 @@
 name: Android CI
 
+# Pre-submit checks — runs on PRs only.
+# Post-merge checks are in ci-post-merge.yml.
+
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ "main" ]
-  push:
     branches: [ "main" ]
 
 jobs:
@@ -24,12 +25,8 @@ jobs:
             exit 0
           fi
 
-          if [ "${{ github.event_name }}" = "push" ]; then
-            BASE="${{ github.event.before }}"
-          else
-            BASE="origin/${{ github.base_ref }}"
-            git fetch --depth=1 origin "${{ github.base_ref }}" 2>/dev/null || true
-          fi
+          BASE="origin/${{ github.base_ref }}"
+          git fetch --depth=1 origin "${{ github.base_ref }}" 2>/dev/null || true
 
           CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null || echo "UNKNOWN")
 
@@ -39,152 +36,45 @@ jobs:
             exit 0
           fi
 
-          if echo "$CHANGED" | grep -qE '^(AndroidGarage/|\.github/workflows/ci\.yml|\.github/actions/)'; then
+          if echo "$CHANGED" | grep -qE '^(AndroidGarage/|\.github/(workflows|actions)/)'; then
             echo "android=true" >> $GITHUB_OUTPUT
             echo "Android files changed:"
-            echo "$CHANGED" | grep -E '^(AndroidGarage/|\.github/workflows/ci\.yml|\.github/actions/)'
+            echo "$CHANGED" | grep -E '^(AndroidGarage/|\.github/(workflows|actions)/)'
           else
             echo "android=false" >> $GITHUB_OUTPUT
             echo "No Android files changed. Changed files:"
             echo "$CHANGED"
           fi
 
-  formatting:
-    name: Formatting & Static Analysis
+  checks:
+    name: Checks
     needs: changes
-    if: needs.changes.outputs.android == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-android
-        with:
-          encrypt-key: ${{ secrets.ENCRYPT_KEY }}
-      - name: Run Spotless Check
-        working-directory: AndroidGarage
-        run: ./gradlew spotlessCheck
-      - name: Run Detekt
-        working-directory: AndroidGarage
-        run: ./gradlew :androidApp:detekt
-      - name: Run Android Lint
-        working-directory: AndroidGarage
-        run: ./gradlew :androidApp:lint
-      - name: Compile Screenshot Tests
-        working-directory: AndroidGarage
-        run: ./gradlew :android-screenshot-tests:compileDebugScreenshotTestKotlin
-      - name: Clean secrets
-        if: always()
-        working-directory: AndroidGarage
-        run: ./release/clean-secrets.sh
-
-  unit_tests:
-    name: Unit Tests
-    needs: changes
-    if: needs.changes.outputs.android == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-android
-        with:
-          encrypt-key: ${{ secrets.ENCRYPT_KEY }}
-      - name: Run Unit Tests
-        working-directory: AndroidGarage
-        env:
-          SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
-          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
-        run: ./gradlew test -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
-      - name: Clean secrets
-        if: always()
-        working-directory: AndroidGarage
-        run: ./release/clean-secrets.sh
-      - name: Upload test reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-reports
-          path: AndroidGarage/androidApp/build/reports/tests/
-
-  build_debug:
-    name: Build Debug APK
-    needs: changes
-    if: needs.changes.outputs.android == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-android
-        with:
-          encrypt-key: ${{ secrets.ENCRYPT_KEY }}
-      - name: Build Debug
-        working-directory: AndroidGarage
-        env:
-          SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
-          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
-        run: ./gradlew :androidApp:assembleDebug -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
-      - name: Clean secrets
-        if: always()
-        working-directory: AndroidGarage
-        run: ./release/clean-secrets.sh
-      - name: Upload debug APK
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-apk
-          path: AndroidGarage/androidApp/build/outputs/apk/debug/
-
-  build_release:
-    name: Build Release AAB
-    needs: changes
-    if: needs.changes.outputs.android == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-android
-        with:
-          encrypt-key: ${{ secrets.ENCRYPT_KEY }}
-      - name: Build Release AAB
-        working-directory: AndroidGarage
-        env:
-          SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
-          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
-          GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }}
-          GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }}
-        run: ./gradlew :androidApp:bundleRelease -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" -PGARAGE_RELEASE_KEYSTORE_PWD="$GARAGE_RELEASE_KEYSTORE_PWD" -PGARAGE_RELEASE_KEY_PWD="$GARAGE_RELEASE_KEY_PWD"
-      - name: Clean secrets
-        if: always()
-        working-directory: AndroidGarage
-        run: ./release/clean-secrets.sh
-      - name: Upload release AAB
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-aab
-          path: AndroidGarage/androidApp/build/outputs/bundle/release/
+    uses: ./.github/workflows/ci-checks.yml
+    with:
+      android: ${{ needs.changes.outputs.android }}
+    secrets:
+      ENCRYPT_KEY: ${{ secrets.ENCRYPT_KEY }}
+      SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
+      GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+      GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }}
+      GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }}
 
   # Gate job — the ONLY required status check in branch protection.
   # Succeeds when all CI jobs pass OR when they're skipped (no Android changes).
   ci-complete:
     name: CI Complete
     if: always()
-    needs: [formatting, unit_tests, build_debug, build_release]
+    needs: [checks]
     runs-on: ubuntu-latest
     steps:
       - name: Check results
         run: |
-          echo "Formatting: ${{ needs.formatting.result }}"
-          echo "Unit Tests: ${{ needs.unit_tests.result }}"
-          echo "Build Debug: ${{ needs.build_debug.result }}"
-          echo "Build Release: ${{ needs.build_release.result }}"
+          echo "Checks: ${{ needs.checks.result }}"
 
-          # Fail if any job failed or was cancelled
-          if [[ "${{ needs.formatting.result }}" == "failure" || \
-                "${{ needs.unit_tests.result }}" == "failure" || \
-                "${{ needs.build_debug.result }}" == "failure" || \
-                "${{ needs.build_release.result }}" == "failure" || \
-                "${{ needs.formatting.result }}" == "cancelled" || \
-                "${{ needs.unit_tests.result }}" == "cancelled" || \
-                "${{ needs.build_debug.result }}" == "cancelled" || \
-                "${{ needs.build_release.result }}" == "cancelled" ]]; then
-            echo "::error::One or more CI jobs failed"
+          if [[ "${{ needs.checks.result }}" == "failure" || \
+                "${{ needs.checks.result }}" == "cancelled" ]]; then
+            echo "::error::CI checks failed"
             exit 1
           fi
 
           echo "All CI checks passed (or skipped — no Android changes)"
-  # Deployment: .github/workflows/release-android.yml (triggered by android/N tags)
