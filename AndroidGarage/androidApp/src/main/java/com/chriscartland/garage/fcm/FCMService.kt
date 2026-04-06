@@ -21,7 +21,6 @@ import co.touchlab.kermit.Logger
 import com.chriscartland.garage.GarageApplication
 import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.config.AppLoggerKeys
-import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -39,70 +38,46 @@ class FCMService : FirebaseMessagingService() {
         (application as GarageApplication).component.provideAppLoggerRepository()
     }
 
-    // Create Job and CoroutineScope to schedule brief, concurrent work.
-    private val supervisorJob = SupervisorJob()
-    private val coroutineScope = CoroutineScope(Dispatchers.Main + supervisorJob)
+    private val serviceJob = SupervisorJob()
+    private val serviceScope = CoroutineScope(serviceJob + Dispatchers.Main.immediate)
 
     override fun onNewToken(token: String) {
         Logger.d { "FCM Instance Token: $token" }
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
-        // Not getting messages here? See why this may be: https://goo.gl/39bRNJ
         Logger.d { "onMessageReceived, from: ${remoteMessage.from}" }
 
-        // Check if message contains a data payload.
-        if (remoteMessage.data.isNotEmpty()) {
-            Logger.d { "Message data payload: ${remoteMessage.data}" }
-
-            val doorEvent = FcmPayloadParser.parseDoorEvent(remoteMessage.data)
-            if (doorEvent == null) {
-                Logger.e { "Unknown message type: ${remoteMessage.data.entries.joinToString()}" }
-                return
-            }
-            Logger.d { "DoorData: $doorEvent" }
-            coroutineScope.launch(Dispatchers.IO) {
-                Logger.d { "Logging FCM_DOOR_RECEIVED: ${AppLoggerKeys.FCM_DOOR_RECEIVED}" }
-                appLoggerRepository.log(AppLoggerKeys.FCM_DOOR_RECEIVED)
-            }
-            if (false) {
-                // Check if data needs to be processed by long running job
-
-                // For long-running tasks (10 seconds or more) use WorkManager.
-                scheduleJob()
-            } else {
-                // Handle message within 10 seconds
-                handleNow(doorEvent)
-            }
-        } else {
+        if (remoteMessage.data.isEmpty()) {
             Logger.d { "Message data payload is empty" }
+            return
         }
 
-        // Check if message contains a notification payload.
+        Logger.d { "Message data payload: ${remoteMessage.data}" }
+        val doorEvent = FcmPayloadParser.parseDoorEvent(remoteMessage.data)
+        if (doorEvent == null) {
+            Logger.e { "Failed to parse FCM payload: ${remoteMessage.data.entries.joinToString()}" }
+            return
+        }
+
+        Logger.d { "DoorData: $doorEvent" }
+        serviceScope.launch(Dispatchers.IO) {
+            appLoggerRepository.log(AppLoggerKeys.FCM_DOOR_RECEIVED)
+        }
+
+        try {
+            doorRepository.insertDoorEvent(doorEvent)
+        } catch (e: IllegalStateException) {
+            Logger.e { "Failed to insert door event: $e" }
+        }
+
         remoteMessage.notification?.let {
             Logger.d { "Message Notification Body: ${it.body}" }
         }
     }
 
-    private fun scheduleJob() {
-        Logger.d { "scheduleJob..." }
-    }
-
-    /**
-     * Handle the new door info now (complete within 10 seconds).
-     */
-    private fun handleNow(doorEvent: DoorEvent?) {
-        Logger.d { "handleNow..." }
-        if (doorEvent == null) {
-            Logger.d { "DoorEvent is null" }
-            return
-        }
-        Logger.d { "Inserting DoorEvent: $doorEvent" }
-        doorRepository.insertDoorEvent(doorEvent)
-    }
-
     override fun onDestroy() {
         super.onDestroy()
-        supervisorJob.cancel()
+        serviceJob.cancel()
     }
 }
