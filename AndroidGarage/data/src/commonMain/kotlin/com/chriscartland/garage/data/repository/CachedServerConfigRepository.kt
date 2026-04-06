@@ -22,7 +22,7 @@ import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import kotlinx.coroutines.sync.Mutex
 
-class ServerConfigRepositoryImpl(
+class CachedServerConfigRepository(
     private val networkConfigDataSource: NetworkConfigDataSource,
     private val serverConfigKey: String,
 ) : ServerConfigRepository {

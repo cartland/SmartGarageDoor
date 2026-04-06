@@ -28,7 +28,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
-class DoorRepositoryImpl(
+class NetworkDoorRepository(
     private val localDoorDataSource: LocalDoorDataSource,
     private val networkDoorDataSource: NetworkDoorDataSource,
     private val serverConfigRepository: ServerConfigRepository,

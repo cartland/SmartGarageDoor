@@ -138,7 +138,36 @@ ViewModels depend on UseCases, not Repositories directly. Each UseCase has a sin
 - No flaky CI from font rendering differences across environments
 - Requires disciplined preview authoring (deterministic data)
 
-## ADR-008: Parsing Objects Over Generic Extension Functions
+## ADR-008: Implementation Naming — No "Impl" Suffix
+
+**Status:** Accepted
+
+**Context:** The codebase uses `*Impl` suffixes for interface implementations (`DoorRepositoryImpl`, `AuthRepositoryImpl`). As the architecture grows with fakes, platform variants, and multiple real implementations, `Impl` conveys no information about _which_ implementation or _how_ it works.
+
+**Decision:** Name implementations with a descriptive prefix that explains the strategy. The description comes first. If no better name exists, `Default` is an acceptable prefix.
+
+**Naming patterns:**
+| Pattern | When to use | Example |
+|---------|------------|---------|
+| Strategy prefix | Implementation has a clear strategy | `CachedServerConfigRepository`, `NetworkDoorRepository` |
+| Platform prefix | Platform-specific implementation | `FirebaseAuthRepository`, `RoomAppLoggerRepository` |
+| `Default` prefix | No distinguishing strategy | `DefaultDispatcherProvider` |
+| Fake prefix | Test doubles — describe the fake type | `InMemoryDoorRepository`, `StubAuthRepository` |
+
+**Avoid:**
+- `*Impl` — says nothing about the implementation
+- `Fake*` without further description — `InMemory*` or `Stub*` is more descriptive
+
+**Migration:** Rename existing `*Impl` classes incrementally as they are touched. No bulk rename PR — renames happen alongside functional changes.
+
+**Consequences:**
+- Names communicate implementation strategy at a glance
+- Easier to distinguish multiple implementations of the same interface
+- Slightly longer class names (accepted tradeoff)
+
+## ADR-009: Parsing Objects Over Generic Extension Functions
+
+> _Was ADR-008 before the naming convention ADR was added._
 
 **Status:** Accepted
 

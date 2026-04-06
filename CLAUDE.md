@@ -267,7 +267,8 @@ Push notifications are the hardest feature to verify in production. If topic nam
 ### Code Patterns
 - Prefer parser objects over extension functions on generic types (e.g., `FcmPayloadParser.parse(data)` not `Map.asDoorEvent()`)
 - Avoid bare top-level utility functions — group in an `object {}`
-- See ADR-008 in `docs/DECISIONS.md` for rationale
+- See ADR-009 in `docs/DECISIONS.md` for rationale
+- No `*Impl` suffix on implementations — use descriptive prefixes (`Network*`, `Cached*`, `Firebase*`, `Default*`). See ADR-008
 
 ## Known Limitations
 
