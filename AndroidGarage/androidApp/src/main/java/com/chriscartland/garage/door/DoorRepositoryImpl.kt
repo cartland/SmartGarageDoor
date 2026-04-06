@@ -18,7 +18,6 @@
 package com.chriscartland.garage.door
 
 import co.touchlab.kermit.Logger
-import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.data.LocalDoorDataSource
 import com.chriscartland.garage.data.NetworkDoorDataSource
 import com.chriscartland.garage.domain.model.DoorEvent
@@ -33,6 +32,7 @@ class DoorRepositoryImpl(
     private val localDoorDataSource: LocalDoorDataSource,
     private val networkDoorDataSource: NetworkDoorDataSource,
     private val serverConfigRepository: ServerConfigRepository,
+    private val recentEventCount: Int,
 ) : DoorRepository {
     override val currentDoorPosition: Flow<DoorPosition>
         get() =
@@ -73,7 +73,7 @@ class DoorRepositoryImpl(
         }
         val doorEvents = networkDoorDataSource.fetchRecentDoorEvents(
             buildTimestamp = buildTimestamp,
-            count = APP_CONFIG.recentEventCount,
+            count = recentEventCount,
         )
         if (doorEvents == null) {
             Logger.e { "Failed to fetch recent door events" }

@@ -18,7 +18,6 @@
 package com.chriscartland.garage.remotebutton
 
 import co.touchlab.kermit.Logger
-import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
@@ -33,6 +32,8 @@ import java.util.Date
 class PushRepositoryImpl(
     private val networkButtonDataSource: NetworkButtonDataSource,
     private val serverConfigRepository: ServerConfigRepository,
+    private val remoteButtonPushEnabled: Boolean,
+    private val snoozeNotificationsOption: Boolean,
 ) : PushRepository {
     private val _pushButtonStatus = MutableStateFlow(PushStatus.IDLE)
     override val pushButtonStatus: StateFlow<PushStatus> = _pushButtonStatus
@@ -54,11 +55,11 @@ class PushRepositoryImpl(
             _pushButtonStatus.value = PushStatus.IDLE
             return
         }
-        if (!APP_CONFIG.remoteButtonPushEnabled) {
+        if (!remoteButtonPushEnabled) {
             Logger.w { "Remote button push is disabled" }
             delay(Duration.ofMillis(500))
         }
-        if (APP_CONFIG.remoteButtonPushEnabled) {
+        if (remoteButtonPushEnabled) {
             networkButtonDataSource.pushButton(
                 remoteButtonBuildTimestamp = serverConfig.remoteButtonBuildTimestamp,
                 buttonAckToken = buttonAckToken,
@@ -75,11 +76,11 @@ class PushRepositoryImpl(
             Logger.e { "Server config is null" }
             return
         }
-        if (!APP_CONFIG.snoozeNotificationsOption) {
+        if (!snoozeNotificationsOption) {
             Logger.w { "Snooze notifications disabled" }
             delay(Duration.ofMillis(500))
         }
-        if (APP_CONFIG.snoozeNotificationsOption) {
+        if (snoozeNotificationsOption) {
             val endTime = networkButtonDataSource.fetchSnoozeEndTimeSeconds(
                 buildTimestamp = serverConfig.buildTimestamp,
             )
@@ -99,11 +100,11 @@ class PushRepositoryImpl(
             _snoozeRequestStatus.value = SnoozeRequestStatus.IDLE
             return
         }
-        if (!APP_CONFIG.snoozeNotificationsOption) {
+        if (!snoozeNotificationsOption) {
             Logger.w { "Snooze notifications disabled" }
             delay(Duration.ofMillis(500))
         }
-        if (APP_CONFIG.snoozeNotificationsOption) {
+        if (snoozeNotificationsOption) {
             val success = networkButtonDataSource.snoozeNotifications(
                 buildTimestamp = serverConfig.buildTimestamp,
                 remoteButtonPushKey = serverConfig.remoteButtonPushKey,
