@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.trace
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -59,6 +60,7 @@ import com.chriscartland.garage.fcm.FCMRegistration
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModel
 import com.chriscartland.garage.ui.theme.AppTheme
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
+import kotlinx.serialization.Serializable
 import java.time.Instant
 
 @Composable
@@ -76,16 +78,34 @@ fun GarageApp(
     }
 }
 
-sealed class Screen(
-    val route: String,
+/**
+ * Type-safe navigation routes.
+ *
+ * Each route is a @Serializable object — the compiler ensures route references
+ * are valid and navigation arguments (if added later) are type-checked.
+ */
+object Route {
+    @Serializable
+    data object Home
+
+    @Serializable
+    data object History
+
+    @Serializable
+    data object Profile
+}
+
+/**
+ * Navigation tab definition linking a route to its UI metadata.
+ */
+enum class Tab(
+    val route: Any,
     val label: String,
     val icon: ImageVector,
 ) {
-    data object Home : Screen("home", "Home", Icons.Filled.Home)
-
-    data object History : Screen("history", "History", Icons.Filled.DateRange)
-
-    data object Profile : Screen("profile", "Settings", Icons.Filled.Person)
+    Home(Route.Home, "Home", Icons.Filled.Home),
+    History(Route.History, "History", Icons.Filled.DateRange),
+    Profile(Route.Profile, "Settings", Icons.Filled.Person),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -146,16 +166,16 @@ fun AppNavigation(
             )
         },
         bottomBar = {
-            BottomNavigationBar(navController, currentRoute = currentRoute(navController))
+            BottomNavigationBar(navController)
         },
     ) { innerPadding ->
         NavHost(
             navController,
-            startDestination = Screen.Home.route,
+            startDestination = Route.Home,
             Modifier
                 .padding(innerPadding),
         ) {
-            composable(Screen.Home.route) {
+            composable<Route.Home> {
                 HomeContent(
                     authViewModel = authViewModel,
                     doorViewModel = doorViewModel,
@@ -165,7 +185,7 @@ fun AppNavigation(
                         .fillMaxWidth(),
                 )
             }
-            composable(Screen.History.route) {
+            composable<Route.History> {
                 DoorHistoryContent(
                     doorViewModel = doorViewModel,
                     appLoggerViewModel = appLoggerViewModel,
@@ -174,7 +194,7 @@ fun AppNavigation(
                         .fillMaxWidth(),
                 )
             }
-            composable(Screen.Profile.route) {
+            composable<Route.Profile> {
                 ProfileContent(
                     authViewModel = authViewModel,
                     modifier = Modifier
@@ -187,35 +207,27 @@ fun AppNavigation(
 }
 
 @Composable
-private fun currentRoute(navController: NavController): String? {
+fun BottomNavigationBar(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    return navBackStackEntry?.destination?.route
-}
-
-@Composable
-fun BottomNavigationBar(
-    navController: NavController,
-    currentRoute: String?,
-) {
-    val items = listOf(Screen.Home, Screen.History, Screen.Profile)
+    val currentDestination = navBackStackEntry?.destination
 
     NavigationBar {
-        items.forEach { screen ->
+        Tab.entries.forEach { tab ->
             NavigationBarItem(
                 icon = {
                     Icon(
-                        imageVector = screen.icon,
-                        contentDescription = screen.label,
+                        imageVector = tab.icon,
+                        contentDescription = tab.label,
                     )
                 },
                 label = {
                     Text(
-                        text = screen.label,
+                        text = tab.label,
                     )
                 },
-                selected = currentRoute == screen.route,
+                selected = currentDestination?.hasRoute(tab.route::class) == true,
                 onClick = {
-                    navController.navigate(screen.route) {
+                    navController.navigate(tab.route) {
                         // Prevent multiple copies of the same destination
                         popUpTo(navController.graph.findStartDestination().id) {
                             saveState = true
