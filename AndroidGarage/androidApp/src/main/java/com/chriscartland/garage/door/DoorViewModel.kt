@@ -22,9 +22,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.applogger.AppLoggerRepository
-import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.config.AppLoggerKeys
-import com.chriscartland.garage.config.FetchOnViewModelInit
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
@@ -68,6 +66,7 @@ class DefaultDoorViewModel(
     private val fetchFcmStatusUseCase: FetchFcmStatusUseCase,
     private val registerFcmUseCase: RegisterFcmUseCase,
     private val deregisterFcmUseCase: DeregisterFcmUseCase,
+    private val fetchOnInit: Boolean = true,
 ) : ViewModel(),
     DoorViewModel {
     private val _fcmRegistrationStatus =
@@ -96,19 +95,13 @@ class DefaultDoorViewModel(
                 _recentDoorEvents.value = LoadingResult.Complete(it)
             }
         }
-        // Decide whether to fetch with network data when ViewModel is initialized
-        when (APP_CONFIG.fetchOnViewModelInit) {
-            FetchOnViewModelInit.Yes -> {
-                viewModelScope.launch(dispatchers.io) {
-                    appLoggerRepository.log(AppLoggerKeys.INIT_CURRENT_DOOR)
-                    appLoggerRepository.log(AppLoggerKeys.INIT_RECENT_DOOR)
-                }
-                fetchCurrentDoorEvent()
-                fetchRecentDoorEvents()
+        if (fetchOnInit) {
+            viewModelScope.launch(dispatchers.io) {
+                appLoggerRepository.log(AppLoggerKeys.INIT_CURRENT_DOOR)
+                appLoggerRepository.log(AppLoggerKeys.INIT_RECENT_DOOR)
             }
-
-            FetchOnViewModelInit.No -> { // Do nothing
-            }
+            fetchCurrentDoorEvent()
+            fetchRecentDoorEvents()
         }
     }
 
