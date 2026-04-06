@@ -68,7 +68,7 @@
 
 **Not adopted from battery-butler:**
 - gRPC/Wire (server uses REST endpoints forever, no proto definitions)
-- Navigation3 (too experimental for this project's needs)
+- Navigation3 (still alpha as of May 2025 — using type-safe routes via Navigation Compose 2.9 instead)
 - Desktop target (not needed for this project)
 
 **Consequences:**

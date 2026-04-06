@@ -248,14 +248,21 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 - `expect class LocalStorageBridge` — Android: Room + DataStore, iOS: CoreData + UserDefaults
 - iOS `actual` implementations come when adding iOS target
 
-## Phase 12: Navigation 3 (Nav3)
+## Phase 12: Type-Safe Navigation — IN PROGRESS
 
 **Goal:** Modern type-safe navigation.
 
-- Migrate from current navigation to Compose Navigation 3
-- Type-safe routes as `@Serializable` data classes in shared module
-- Declarative `NavHost` + `composable<Route>` pattern
-- Enables sharing route definitions with iOS
+### 12.1 Type-Safe Routes — COMPLETE
+- Migrated from string routes to `@Serializable` route objects (`Route.Home`, `Route.History`, `Route.Profile`)
+- Uses Navigation Compose 2.9 `composable<Route>` pattern
+- `Tab` enum links routes to UI metadata (label, icon)
+- `NavDestination.hasRoute()` for type-safe tab selection
+
+### 12.2 Nav3 Migration — DEFERRED
+- Nav3 was still alpha/experimental as of May 2025
+- Current Navigation Compose 2.9 with type-safe routes is sufficient
+- Type-safe routes are a stepping stone — Nav3 uses typed keys similarly
+- Revisit when Nav3 reaches beta/stable
 
 ## Phase 13: iOS Target (Future)
 
@@ -340,7 +347,7 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 | 9. Data Module Repos | Medium | Phase 8 | **COMPLETE** |
 | 10. Shared ViewModels | Medium | Phase 9 | 10.1 COMPLETE (state machine extracted) |
 | 11. Platform Abstractions | Small | Phase 9 | TODO |
-| 12. Nav3 Migration | Medium | None | TODO |
+| 12. Type-Safe Navigation | Medium | None | 12.1 COMPLETE (Nav3 deferred) |
 | 13. iOS Target | Large | Phases 10-11 | TODO |
 | 14. Typed Errors | Medium | Phase 8 | **COMPLETE** |
 | 15. Kermit Logging | Small | None | **COMPLETE** |
