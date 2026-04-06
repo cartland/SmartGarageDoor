@@ -15,9 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.fcm
-
-import com.chriscartland.garage.domain.model.DoorFcmTopic
+package com.chriscartland.garage.domain.model
 
 fun String.toFcmTopic(): DoorFcmTopic = DoorFcmTopic(toDoorOpenFcmTopic())
 
