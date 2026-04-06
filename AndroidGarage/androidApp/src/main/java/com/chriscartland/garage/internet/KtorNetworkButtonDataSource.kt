@@ -19,6 +19,7 @@ package com.chriscartland.garage.internet
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.NetworkButtonDataSource
+import com.chriscartland.garage.data.NetworkResult
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -26,6 +27,7 @@ import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.http.isSuccess
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 
 class KtorNetworkButtonDataSource(
@@ -36,7 +38,7 @@ class KtorNetworkButtonDataSource(
         buttonAckToken: String,
         remoteButtonPushKey: String,
         idToken: String,
-    ): Boolean =
+    ): NetworkResult<Unit> =
         try {
             val response = client.post("addRemoteButtonCommand") {
                 parameter("buildTimestamp", remoteButtonBuildTimestamp)
@@ -45,10 +47,16 @@ class KtorNetworkButtonDataSource(
                 header("X-AuthTokenGoogle", idToken)
             }
             Logger.i { "Push response: ${response.status.value}" }
-            response.status.isSuccess()
-        } catch (e: Exception) {
+            if (response.status.isSuccess()) {
+                NetworkResult.Success(Unit)
+            } else {
+                NetworkResult.HttpError(response.status.value)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
             Logger.e { "Push error: $e" }
-            false
+            NetworkResult.ConnectionFailed
         }
 
     override suspend fun snoozeNotifications(
@@ -57,7 +65,7 @@ class KtorNetworkButtonDataSource(
         idToken: String,
         snoozeDurationHours: String,
         snoozeEventTimestampSeconds: Long,
-    ): Boolean {
+    ): NetworkResult<Unit> {
         return try {
             val response = client.post("snoozeNotificationsRequest") {
                 parameter("buildTimestamp", buildTimestamp)
@@ -68,34 +76,41 @@ class KtorNetworkButtonDataSource(
             }
             Logger.i { "Snooze response: ${response.status.value}" }
             if (!response.status.isSuccess()) {
-                return false
+                return NetworkResult.HttpError(response.status.value)
             }
             val body = response.body<KtorSnoozeResponse>()
             if (body.error != null) {
                 Logger.e { "Snooze error: ${body.error}" }
-                return false
+                return NetworkResult.HttpError(response.status.value)
             }
-            true
-        } catch (e: Exception) {
+            NetworkResult.Success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
             Logger.e { "Snooze error: $e" }
-            false
+            NetworkResult.ConnectionFailed
         }
     }
 
-    override suspend fun fetchSnoozeEndTimeSeconds(buildTimestamp: String): Long {
+    override suspend fun fetchSnoozeEndTimeSeconds(buildTimestamp: String): NetworkResult<Long> {
         return try {
             val response = client.get("snoozeNotificationsLatest") {
                 parameter("buildTimestamp", buildTimestamp)
             }
+            if (!response.status.isSuccess()) {
+                return NetworkResult.HttpError(response.status.value)
+            }
             val body = response.body<KtorGetSnoozeResponse>()
             if (body.error != null) {
                 Logger.e { "Snooze fetch error: ${body.error}" }
-                return 0L
+                return NetworkResult.HttpError(response.status.value)
             }
-            body.snooze?.snoozeEndTimeSeconds ?: 0L
-        } catch (e: Exception) {
+            NetworkResult.Success(body.snooze?.snoozeEndTimeSeconds ?: 0L)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
             Logger.e { "Snooze fetch error: $e" }
-            0L
+            NetworkResult.ConnectionFailed
         }
     }
 }

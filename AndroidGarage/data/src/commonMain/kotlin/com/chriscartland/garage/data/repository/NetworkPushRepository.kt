@@ -19,6 +19,7 @@ package com.chriscartland.garage.data.repository
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.NetworkButtonDataSource
+import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.domain.repository.PushRepository
@@ -58,12 +59,18 @@ class NetworkPushRepository(
             delay(500)
         }
         if (remoteButtonPushEnabled) {
-            networkButtonDataSource.pushButton(
-                remoteButtonBuildTimestamp = serverConfig.remoteButtonBuildTimestamp,
-                buttonAckToken = buttonAckToken,
-                remoteButtonPushKey = serverConfig.remoteButtonPushKey,
-                idToken = idToken,
-            )
+            when (
+                val result = networkButtonDataSource.pushButton(
+                    remoteButtonBuildTimestamp = serverConfig.remoteButtonBuildTimestamp,
+                    buttonAckToken = buttonAckToken,
+                    remoteButtonPushKey = serverConfig.remoteButtonPushKey,
+                    idToken = idToken,
+                )
+            ) {
+                is NetworkResult.Success -> Logger.d { "Push succeeded" }
+                is NetworkResult.HttpError -> Logger.e { "Push HTTP ${result.code}" }
+                NetworkResult.ConnectionFailed -> Logger.e { "Push connection failed" }
+            }
         }
         _pushButtonStatus.value = PushStatus.IDLE
     }
@@ -79,10 +86,15 @@ class NetworkPushRepository(
             delay(500)
         }
         if (snoozeNotificationsOption) {
-            val endTime = networkButtonDataSource.fetchSnoozeEndTimeSeconds(
-                buildTimestamp = serverConfig.buildTimestamp,
-            )
-            _snoozeEndTimeSeconds.value = endTime
+            when (
+                val result = networkButtonDataSource.fetchSnoozeEndTimeSeconds(
+                    buildTimestamp = serverConfig.buildTimestamp,
+                )
+            ) {
+                is NetworkResult.Success -> _snoozeEndTimeSeconds.value = result.data
+                is NetworkResult.HttpError -> Logger.e { "Snooze fetch HTTP ${result.code}" }
+                NetworkResult.ConnectionFailed -> Logger.e { "Snooze fetch connection failed" }
+            }
         }
     }
 
@@ -103,16 +115,29 @@ class NetworkPushRepository(
             delay(500)
         }
         if (snoozeNotificationsOption) {
-            val success = networkButtonDataSource.snoozeNotifications(
-                buildTimestamp = serverConfig.buildTimestamp,
-                remoteButtonPushKey = serverConfig.remoteButtonPushKey,
-                idToken = idToken,
-                snoozeDurationHours = snoozeDurationHours,
-                snoozeEventTimestampSeconds = snoozeEventTimestampSeconds,
-            )
-            if (!success) {
-                _snoozeRequestStatus.value = SnoozeRequestStatus.ERROR
-                return
+            when (
+                val result = networkButtonDataSource.snoozeNotifications(
+                    buildTimestamp = serverConfig.buildTimestamp,
+                    remoteButtonPushKey = serverConfig.remoteButtonPushKey,
+                    idToken = idToken,
+                    snoozeDurationHours = snoozeDurationHours,
+                    snoozeEventTimestampSeconds = snoozeEventTimestampSeconds,
+                )
+            ) {
+                is NetworkResult.Success -> {
+                    _snoozeRequestStatus.value = SnoozeRequestStatus.IDLE
+                    return
+                }
+                is NetworkResult.HttpError -> {
+                    Logger.e { "Snooze HTTP ${result.code}" }
+                    _snoozeRequestStatus.value = SnoozeRequestStatus.ERROR
+                    return
+                }
+                NetworkResult.ConnectionFailed -> {
+                    Logger.e { "Snooze connection failed" }
+                    _snoozeRequestStatus.value = SnoozeRequestStatus.ERROR
+                    return
+                }
             }
         }
         _snoozeRequestStatus.value = SnoozeRequestStatus.IDLE

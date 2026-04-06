@@ -18,6 +18,7 @@
 package com.chriscartland.garage.data.repository
 
 import com.chriscartland.garage.data.NetworkConfigDataSource
+import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import kotlinx.coroutines.sync.Mutex
@@ -41,7 +42,11 @@ class CachedServerConfigRepository(
     }
 
     override suspend fun fetchServerConfig(): ServerConfig? {
-        val config = networkConfigDataSource.fetchServerConfig(serverConfigKey)
+        val config = when (val result = networkConfigDataSource.fetchServerConfig(serverConfigKey)) {
+            is NetworkResult.Success -> result.data
+            is NetworkResult.HttpError -> null
+            NetworkResult.ConnectionFailed -> null
+        }
         if (config != null) {
             serverConfig = config
         }
