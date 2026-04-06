@@ -138,9 +138,13 @@ class DefaultDoorViewModel(
                 is AppResult.Success -> {
                     // Data flows through repository → local cache → Flow observation
                 }
-                is AppResult.Error -> when (result.error) {
-                    FetchError.NotReady -> Logger.w { "Server config not ready" }
-                    FetchError.NetworkFailed -> Logger.w { "Network request failed" }
+                is AppResult.Error -> {
+                    // Restore previous data so UI exits Loading state
+                    _currentDoorEvent.value = LoadingResult.Complete(_currentDoorEvent.value.data)
+                    when (result.error) {
+                        FetchError.NotReady -> Logger.w { "Server config not ready" }
+                        FetchError.NetworkFailed -> Logger.w { "Network request failed" }
+                    }
                 }
             }
         }
@@ -154,9 +158,13 @@ class DefaultDoorViewModel(
                 is AppResult.Success -> {
                     // Data flows through repository → local cache → Flow observation
                 }
-                is AppResult.Error -> when (result.error) {
-                    FetchError.NotReady -> Logger.w { "Server config not ready" }
-                    FetchError.NetworkFailed -> Logger.w { "Network request failed" }
+                is AppResult.Error -> {
+                    // Restore previous data so UI exits Loading state
+                    _recentDoorEvents.value = LoadingResult.Complete(_recentDoorEvents.value.data)
+                    when (result.error) {
+                        FetchError.NotReady -> Logger.w { "Server config not ready" }
+                        FetchError.NetworkFailed -> Logger.w { "Network request failed" }
+                    }
                 }
             }
         }
