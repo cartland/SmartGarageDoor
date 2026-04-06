@@ -23,6 +23,7 @@ import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAuthBridge
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -54,7 +55,8 @@ class FirebaseAuthRepositoryTest {
     }
 
     private fun createRepository(): FirebaseAuthRepository {
-        val repo = FirebaseAuthRepository(authBridge, loggerRepo)
+        val testScope = CoroutineScope(testDispatcher)
+        val repo = FirebaseAuthRepository(authBridge, loggerRepo, testScope)
         testDispatcher.scheduler.runCurrent()
         return repo
     }
