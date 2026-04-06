@@ -20,14 +20,17 @@ package com.chriscartland.garage.data.repository
 import com.chriscartland.garage.data.testfakes.FakeNetworkConfigDataSource
 import com.chriscartland.garage.data.testfakes.FakeNetworkDoorDataSource
 import com.chriscartland.garage.data.testfakes.InMemoryLocalDoorDataSource
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.ServerConfig
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 
 /**
@@ -72,8 +75,10 @@ class NetworkDoorRepositoryIntegrationTest {
             networkDataSource.currentDoorEventResponse = event
 
             val repo = createRepository()
-            repo.fetchCurrentDoorEvent()
+            val result = repo.fetchCurrentDoorEvent()
 
+            assertIs<AppResult.Success<*>>(result)
+            assertEquals(event, result.data)
             assertEquals(event, localDataSource.currentDoorEvent.first())
             assertEquals(1, localDataSource.insertCount)
             assertEquals(1, networkDataSource.fetchCurrentCount)
@@ -101,19 +106,21 @@ class NetworkDoorRepositoryIntegrationTest {
         }
 
     @Test
-    fun fetchCurrentDoorEventWithNullServerConfigDoesNotCallNetwork() =
+    fun fetchCurrentDoorEventWithNullServerConfigReturnsNotReady() =
         runTest {
             configDataSource.serverConfigResponse = null
 
             val repo = createRepository()
-            repo.fetchCurrentDoorEvent()
+            val result = repo.fetchCurrentDoorEvent()
 
+            assertIs<AppResult.Error<*>>(result)
+            assertEquals(FetchError.NotReady, result.error)
             assertEquals(0, networkDataSource.fetchCurrentCount)
             assertEquals(0, localDataSource.insertCount)
         }
 
     @Test
-    fun fetchCurrentDoorEventWithNullNetworkResponseDoesNotInsert() =
+    fun fetchCurrentDoorEventWithNullNetworkResponseReturnsNetworkFailed() =
         runTest {
             configDataSource.serverConfigResponse = ServerConfig(
                 buildTimestamp = "2024-01-15T00:00:00Z",
@@ -123,8 +130,10 @@ class NetworkDoorRepositoryIntegrationTest {
             networkDataSource.currentDoorEventResponse = null
 
             val repo = createRepository()
-            repo.fetchCurrentDoorEvent()
+            val result = repo.fetchCurrentDoorEvent()
 
+            assertIs<AppResult.Error<*>>(result)
+            assertEquals(FetchError.NetworkFailed, result.error)
             assertEquals(1, networkDataSource.fetchCurrentCount)
             assertEquals(0, localDataSource.insertCount)
             assertNull(repo.currentDoorEvent.first())
@@ -148,26 +157,29 @@ class NetworkDoorRepositoryIntegrationTest {
             networkDataSource.recentDoorEventsResponse = events
 
             val repo = createRepository()
-            repo.fetchRecentDoorEvents()
+            val result = repo.fetchRecentDoorEvents()
 
+            assertIs<AppResult.Success<*>>(result)
             assertEquals(events, repo.recentDoorEvents.first())
             assertEquals(1, localDataSource.replaceCount)
         }
 
     @Test
-    fun fetchRecentDoorEventsWithNullServerConfigDoesNotCallNetwork() =
+    fun fetchRecentDoorEventsWithNullServerConfigReturnsNotReady() =
         runTest {
             configDataSource.serverConfigResponse = null
 
             val repo = createRepository()
-            repo.fetchRecentDoorEvents()
+            val result = repo.fetchRecentDoorEvents()
 
+            assertIs<AppResult.Error<*>>(result)
+            assertEquals(FetchError.NotReady, result.error)
             assertEquals(0, networkDataSource.fetchRecentCount)
             assertEquals(0, localDataSource.replaceCount)
         }
 
     @Test
-    fun fetchRecentDoorEventsWithNullNetworkResponseDoesNotReplace() =
+    fun fetchRecentDoorEventsWithNullNetworkResponseReturnsNetworkFailed() =
         runTest {
             configDataSource.serverConfigResponse = ServerConfig(
                 buildTimestamp = "2024-01-15T00:00:00Z",
@@ -177,8 +189,10 @@ class NetworkDoorRepositoryIntegrationTest {
             networkDataSource.recentDoorEventsResponse = null
 
             val repo = createRepository()
-            repo.fetchRecentDoorEvents()
+            val result = repo.fetchRecentDoorEvents()
 
+            assertIs<AppResult.Error<*>>(result)
+            assertEquals(FetchError.NetworkFailed, result.error)
             assertEquals(1, networkDataSource.fetchRecentCount)
             assertEquals(0, localDataSource.replaceCount)
         }

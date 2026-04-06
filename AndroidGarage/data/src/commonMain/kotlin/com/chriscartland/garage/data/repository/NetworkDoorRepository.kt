@@ -20,8 +20,10 @@ package com.chriscartland.garage.data.repository
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.LocalDoorDataSource
 import com.chriscartland.garage.data.NetworkDoorDataSource
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import kotlinx.coroutines.flow.Flow
@@ -50,26 +52,27 @@ class NetworkDoorRepository(
         localDoorDataSource.insertDoorEvent(doorEvent)
     }
 
-    override suspend fun fetchCurrentDoorEvent() {
+    override suspend fun fetchCurrentDoorEvent(): AppResult<DoorEvent, FetchError> {
         val buildTimestamp = fetchBuildTimestampCached()
         if (buildTimestamp == null) {
             Logger.e { "Server config is null" }
-            return
+            return AppResult.Error(FetchError.NotReady)
         }
         val doorEvent = networkDoorDataSource.fetchCurrentDoorEvent(buildTimestamp)
         if (doorEvent == null) {
             Logger.e { "Failed to fetch current door event" }
-            return
+            return AppResult.Error(FetchError.NetworkFailed)
         }
         Logger.d { "Success: $doorEvent" }
         localDoorDataSource.insertDoorEvent(doorEvent)
+        return AppResult.Success(doorEvent)
     }
 
-    override suspend fun fetchRecentDoorEvents() {
+    override suspend fun fetchRecentDoorEvents(): AppResult<List<DoorEvent>, FetchError> {
         val buildTimestamp = fetchBuildTimestampCached()
         if (buildTimestamp == null) {
             Logger.e { "Server config is null" }
-            return
+            return AppResult.Error(FetchError.NotReady)
         }
         val doorEvents = networkDoorDataSource.fetchRecentDoorEvents(
             buildTimestamp = buildTimestamp,
@@ -77,9 +80,10 @@ class NetworkDoorRepository(
         )
         if (doorEvents == null) {
             Logger.e { "Failed to fetch recent door events" }
-            return
+            return AppResult.Error(FetchError.NetworkFailed)
         }
         Logger.d { "Success: $doorEvents" }
         localDoorDataSource.replaceDoorEvents(doorEvents)
+        return AppResult.Success(doorEvents)
     }
 }

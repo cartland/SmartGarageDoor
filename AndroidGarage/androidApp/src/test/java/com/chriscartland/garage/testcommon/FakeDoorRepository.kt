@@ -17,8 +17,10 @@
 
 package com.chriscartland.garage.testcommon
 
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.repository.DoorRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,11 +56,13 @@ class FakeDoorRepository : DoorRepository {
         _currentDoorPosition.value = doorEvent.doorPosition ?: DoorPosition.UNKNOWN
     }
 
-    override suspend fun fetchCurrentDoorEvent() {
+    override suspend fun fetchCurrentDoorEvent(): AppResult<DoorEvent, FetchError> {
         fetchCurrentDoorEventCount++
+        return AppResult.Success(_currentDoorEvent.value)
     }
 
-    override suspend fun fetchRecentDoorEvents() {
+    override suspend fun fetchRecentDoorEvents(): AppResult<List<DoorEvent>, FetchError> {
         fetchRecentDoorEventsCount++
+        return AppResult.Success(_recentDoorEvents.value)
     }
 }

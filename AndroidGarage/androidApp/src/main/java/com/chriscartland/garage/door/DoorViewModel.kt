@@ -26,8 +26,10 @@ import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.config.FetchOnViewModelInit
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
+import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
@@ -139,7 +141,15 @@ class DefaultDoorViewModel(
         Logger.d { "fetchCurrentDoorEvent" }
         viewModelScope.launch(dispatchers.io) {
             _currentDoorEvent.value = LoadingResult.Loading(_currentDoorEvent.value.data)
-            fetchCurrentDoorEventUseCase()
+            when (val result = fetchCurrentDoorEventUseCase()) {
+                is AppResult.Success -> {
+                    // Data flows through repository → local cache → Flow observation
+                }
+                is AppResult.Error -> when (result.error) {
+                    FetchError.NotReady -> Logger.w { "Server config not ready" }
+                    FetchError.NetworkFailed -> Logger.w { "Network request failed" }
+                }
+            }
         }
     }
 
@@ -147,7 +157,15 @@ class DefaultDoorViewModel(
         Logger.d { "fetchRecentDoorEvents" }
         viewModelScope.launch(dispatchers.io) {
             _recentDoorEvents.value = LoadingResult.Loading(_recentDoorEvents.value.data)
-            fetchRecentDoorEventsUseCase()
+            when (val result = fetchRecentDoorEventsUseCase()) {
+                is AppResult.Success -> {
+                    // Data flows through repository → local cache → Flow observation
+                }
+                is AppResult.Error -> when (result.error) {
+                    FetchError.NotReady -> Logger.w { "Server config not ready" }
+                    FetchError.NetworkFailed -> Logger.w { "Network request failed" }
+                }
+            }
         }
     }
 }
