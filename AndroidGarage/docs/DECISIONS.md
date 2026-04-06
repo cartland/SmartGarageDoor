@@ -142,7 +142,7 @@ ViewModels depend on UseCases, not Repositories directly. Each UseCase has a sin
 
 **Status:** Accepted
 
-**Context:** The codebase uses `*Impl` suffixes for interface implementations (`DoorRepositoryImpl`, `AuthRepositoryImpl`). As the architecture grows with fakes, platform variants, and multiple real implementations, `Impl` conveys no information about _which_ implementation or _how_ it works.
+**Context:** The codebase used `*Impl` suffixes for interface implementations (`DoorRepositoryImpl`, `AuthRepositoryImpl`). As the architecture grows with fakes, platform variants, and multiple real implementations, `Impl` conveys no information about _which_ implementation or _how_ it works.
 
 **Decision:** Name implementations with a descriptive prefix that explains the strategy. The description comes first. If no better name exists, `Default` is an acceptable prefix.
 
@@ -165,30 +165,45 @@ ViewModels depend on UseCases, not Repositories directly. Each UseCase has a sin
 - Easier to distinguish multiple implementations of the same interface
 - Slightly longer class names (accepted tradeoff)
 
-## ADR-009: Parsing Objects Over Generic Extension Functions
+## ADR-009: Object-Scoped Functions Over Top-Level Functions
 
-> _Was ADR-008 before the naming convention ADR was added._
+> _Broadened from original ADR-008 (parsing objects over extension functions)._
 
 **Status:** Accepted
 
-**Context:** The codebase has extension functions on generic types like `Map<K, V>.asDoorEvent()` for parsing FCM payloads and network responses. These pollute autocomplete, make failure modes unclear, and create implicit coupling between unrelated types.
+**Context:** Bare top-level functions pollute the global namespace and make code harder to discover. Extension functions on generic types (e.g., `Map<K, V>.asDoorEvent()`) create implicit coupling. Both problems get worse in KMP where the public API surface is shared across platforms.
 
-**Decision:** Prefer parser objects with explicit function signatures over extension functions on generic receiver types. Group related parsing functions in an `object {}` rather than bare top-level functions.
+**Decision:** Group related functions in a named `object {}` rather than using bare top-level functions or extension functions on generic receiver types.
 
-**Example — current (avoid):**
+**Rules:**
+1. **No bare top-level utility functions** — group in an `object {}` with a descriptive name
+2. **No extension functions on generic types** — use explicit parameter types instead
+3. **Private top-level functions are fine** — the rule targets public/internal API surface
+4. **Composable functions are exempt** — Compose conventions expect top-level `@Composable` functions
+
+**Example — avoid:**
 ```kotlin
+// Bare top-level function — hard to discover, pollutes namespace
+fun createButtonAckToken(now: Date): String { ... }
+
+// Extension on generic type — implicit coupling
 private fun <K, V> Map<K, V>.asDoorEvent(): DoorEvent? { ... }
 ```
 
 **Example — preferred:**
 ```kotlin
+object ButtonAckTokens {
+    fun create(now: Date): String { ... }
+}
+
 object FcmPayloadParser {
     fun parseDoorEvent(data: Map<String, String>): DoorEvent? { ... }
 }
 ```
 
 **Consequences:**
-- Parsing logic is discoverable via the parser object, not hidden on generic types
-- Function signatures are explicit about expected input types (`Map<String, String>` not `Map<K, V>`)
-- Failure modes are clear at the call site
-- Migrate existing code only when safe — especially FCM-related code where silent breakage is the biggest risk
+- Functions are discoverable via the containing object
+- Cleaner namespace, especially in KMP public API surface
+- Function signatures are explicit about expected input types
+- Slightly more nesting (accepted tradeoff for discoverability)
+- Migrate existing code incrementally — prioritize public/shared module APIs

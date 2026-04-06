@@ -47,7 +47,7 @@ interface AppLoggerViewModel {
 }
 
 @Inject
-class AppLoggerViewModelImpl(
+class DefaultAppLoggerViewModel(
     private val appLoggerRepository: AppLoggerRepository,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel(),

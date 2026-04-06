@@ -41,7 +41,7 @@ enum class Key {
     PROFILE_APP_CARD_EXPANDED,
 }
 
-class AppSettingsImpl(
+class DataStoreAppSettings(
     context: Context,
 ) : AppSettings {
     val prefs = context.getSharedPreferences(APP_SETTINGS, Context.MODE_PRIVATE)

@@ -50,15 +50,15 @@ All packages under `androidApp/src/main/java/com/chriscartland/garage/`:
 | Package | Purpose | Key Classes |
 |---------|---------|-------------|
 | `applogger/` | Event logging to Room DB, CSV export | `AppLoggerRepository`, `AppLoggerViewModel` |
-| `auth/` | Google Sign-In, Firebase Auth | `AuthRepositoryImpl`, `AuthViewModelImpl` |
+| `auth/` | Google Sign-In, Firebase Auth | `FirebaseAuthRepository`, `DefaultAuthViewModel` |
 | `config/` | App configuration, server config caching | `APP_CONFIG`, `ServerConfigRepositoryImpl` |
 | `coroutines/` | Testable dispatcher injection | `DispatcherProvider`, `DefaultDispatcherProvider` |
 | `db/` | Room database, DAOs, entity mapping | `AppDatabase` (v11), `DoorEventEntity` ↔ domain `DoorEvent`, `DoorEventDao` |
-| `door/` | Door repository and ViewModel | `DoorRepositoryImpl`, `DoorViewModelImpl` |
-| `fcm/` | FCM registration, push handling | `FCMService`, `FcmPayloadParser`, `DoorFcmRepositoryImpl` |
+| `door/` | Door repository and ViewModel | `DoorRepositoryImpl`, `DefaultDoorViewModel` |
+| `fcm/` | FCM registration, push handling | `FCMService`, `FcmPayloadParser`, `FirebaseDoorFcmRepository` |
 | `internet/` | Ktor HTTP client, data source implementations | `KtorNetworkDoorDataSource`, `KtorNetworkConfigDataSource`, `KtorNetworkButtonDataSource` |
 | `permissions/` | Notification permission (API 33+) | Accompanist-based permission request |
-| `remotebutton/` | Remote button with state machine | `RemoteButtonViewModelImpl`, `PushRepositoryImpl` |
+| `remotebutton/` | Remote button with state machine | `DefaultRemoteButtonViewModel`, `PushRepositoryImpl` |
 | `settings/` | SharedPreferences wrapper | `AppSettings`, type-safe `Setting` classes |
 | `snoozenotifications/` | Snooze duration options | `SnoozeDurationUIOption`, server conversion |
 | `ui/` | Compose screens and components | Screens, DoorStatusCard, AnimatableGarageDoor, theme |

@@ -40,7 +40,7 @@ interface DoorFcmRepository {
     suspend fun deregisterDoor(activity: Activity): DoorFcmState
 }
 
-class DoorFcmRepositoryImpl(
+class FirebaseDoorFcmRepository(
     private val settings: AppSettings,
     private val appLoggerRepository: AppLoggerRepository,
 ) : DoorFcmRepository {

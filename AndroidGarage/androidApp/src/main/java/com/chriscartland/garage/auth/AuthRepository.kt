@@ -42,7 +42,7 @@ import kotlin.coroutines.suspendCoroutine
 
 const val RC_ONE_TAP_SIGN_IN = 1
 
-class AuthRepositoryImpl(
+class FirebaseAuthRepository(
     private val appLoggerRepository: AppLoggerRepository,
 ) : AuthRepository {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)

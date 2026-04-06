@@ -2,7 +2,7 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
-    <ID>ConstructorParameterNaming:AuthViewModel.kt$AuthViewModelImpl$private val _authRepository: AuthRepository</ID>
+    <ID>ConstructorParameterNaming:AuthViewModel.kt$DefaultAuthViewModel$private val _authRepository: AuthRepository</ID>
     <ID>ConstructorParameterNaming:ServerConfigResponse.kt$ServerConfigResponse.Body$@Json(name = "remoteButtonBuildTimestamp") val _remoteButtonBuildTimestamp: String?</ID>
     <ID>ImplicitDefaultLocale:TimeFormats.kt$String.format( "%d day%s, %dh %dm %ds", days, if (days &gt; 1) "s" else "", hours, minutes, seconds, )</ID>
     <ID>ImplicitDefaultLocale:TimeFormats.kt$String.format("%dh %dm %ds", hours, minutes, seconds)</ID>
@@ -10,7 +10,7 @@
     <ID>ImplicitDefaultLocale:TimeFormats.kt$String.format("%ds", seconds)</ID>
     <ID>MatchingDeclarationName:Parallelogram.kt$ParallelogramShape : Shape</ID>
     <ID>MatchingDeclarationName:VersionModel.kt$AppVersion</ID>
-    <ID>SwallowedException:AuthRepository.kt$AuthRepositoryImpl$e: Exception</ID>
+    <ID>SwallowedException:AuthRepository.kt$FirebaseAuthRepository$e: Exception</ID>
     <ID>SwallowedException:FCMService.kt$e: IllegalArgumentException</ID>
     <ID>UnusedPrivateMember:RemoteButtonContent.kt$private fun ButtonColors.selectContainer(enabled: Boolean)</ID>
     <ID>UnusedPrivateMember:RemoteButtonContent.kt$private fun ButtonColors.selectContent(enabled: Boolean)</ID>

@@ -86,11 +86,11 @@ class RemoteButtonViewModelTest {
 
     private lateinit var authRepository: AuthRepository
 
-    private fun createViewModel(authState: AuthState = AuthState.Unauthenticated): RemoteButtonViewModelImpl {
+    private fun createViewModel(authState: AuthState = AuthState.Unauthenticated): DefaultRemoteButtonViewModel {
         authRepository = mock(AuthRepository::class.java)
         `when`(authRepository.authState).thenReturn(MutableStateFlow(authState))
         val ensureFreshIdToken = EnsureFreshIdTokenUseCase(authRepository)
-        val vm = RemoteButtonViewModelImpl(
+        val vm = DefaultRemoteButtonViewModel(
             pushRepository,
             doorRepository,
             TestDispatcherProvider(testDispatcher),

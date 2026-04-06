@@ -52,7 +52,7 @@ interface AuthViewModel {
 }
 
 @Inject
-class AuthViewModelImpl(
+class DefaultAuthViewModel(
     private val _authRepository: AuthRepository,
     private val appLoggerRepository: AppLoggerRepository,
     private val dispatchers: DispatcherProvider,
