@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.usecase
 
+import com.chriscartland.garage.domain.model.ActionError
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
@@ -26,7 +28,6 @@ import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakePushRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -63,7 +64,7 @@ class PushRemoteButtonUseCaseTest {
         runTest {
             authenticateUser()
             val result = useCase("ack-123")
-            assertTrue("Push should succeed when authenticated", result)
+            assertTrue("Push should succeed", result is AppResult.Success)
             assertEquals(1, fakePush.pushCount)
         }
 
@@ -72,7 +73,8 @@ class PushRemoteButtonUseCaseTest {
         runTest {
             fakeAuth.setAuthState(AuthState.Unauthenticated)
             val result = useCase("ack-123")
-            assertFalse("Push should fail when unauthenticated", result)
+            assertTrue("Should be NotAuthenticated error", result is AppResult.Error)
+            assertEquals(ActionError.NotAuthenticated, (result as AppResult.Error).error)
             assertEquals(0, fakePush.pushCount)
         }
 
@@ -80,7 +82,8 @@ class PushRemoteButtonUseCaseTest {
     fun pushFailsWhenAuthUnknown() =
         runTest {
             val result = useCase("ack-123")
-            assertFalse("Push should fail when auth unknown", result)
+            assertTrue("Should be NotAuthenticated error", result is AppResult.Error)
+            assertEquals(ActionError.NotAuthenticated, (result as AppResult.Error).error)
             assertEquals(0, fakePush.pushCount)
         }
 

@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.usecase
 
+import com.chriscartland.garage.domain.model.ActionError
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.PushRepository
@@ -24,13 +26,8 @@ import com.chriscartland.garage.domain.repository.PushRepository
 /**
  * Snoozes open-door notifications for a specified duration.
  *
- * Handles:
- * - Verifying the user is authenticated
- * - Ensuring the auth token is fresh
- * - Delegating to PushRepository
- *
- * @return true if the snooze was initiated, false if not authenticated
- *   or if lastChangeTimeSeconds is null
+ * Returns [AppResult] so callers can handle [ActionError.NotAuthenticated]
+ * and [ActionError.MissingData] explicitly with exhaustive `when`.
  */
 class SnoozeNotificationsUseCase(
     private val ensureFreshIdToken: EnsureFreshIdTokenUseCase,
@@ -40,13 +37,13 @@ class SnoozeNotificationsUseCase(
     suspend operator fun invoke(
         snoozeDurationHours: String,
         lastChangeTimeSeconds: Long?,
-    ): Boolean {
+    ): AppResult<Unit, ActionError> {
         val authState = authRepository.authState.value
         if (authState !is AuthState.Authenticated) {
-            return false
+            return AppResult.Error(ActionError.NotAuthenticated)
         }
         if (lastChangeTimeSeconds == null) {
-            return false
+            return AppResult.Error(ActionError.MissingData)
         }
         val idToken = ensureFreshIdToken(authState)
         pushRepository.snoozeOpenDoorsNotifications(
@@ -54,6 +51,6 @@ class SnoozeNotificationsUseCase(
             idToken = idToken.asString(),
             snoozeEventTimestampSeconds = lastChangeTimeSeconds,
         )
-        return true
+        return AppResult.Success(Unit)
     }
 }
