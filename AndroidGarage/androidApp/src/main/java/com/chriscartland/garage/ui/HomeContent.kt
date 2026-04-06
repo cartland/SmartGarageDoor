@@ -120,11 +120,7 @@ fun HomeContent(
             }
         },
         onResetFcm = {
-            if (activity != null) {
-                resolvedDoorViewModel.deregisterFcm(activity)
-            } else {
-                Logger.e { "Activity is null, cannot deregister FCM" }
-            }
+            resolvedDoorViewModel.deregisterFcm()
         },
         onLogNotificationPermissionRequested = {
             resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_REQUESTED_NOTIFICATION_PERMISSION)

@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.fcm
 
-import android.app.Activity
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.data.MessagingBridge
@@ -27,14 +26,11 @@ import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.settings.AppSettings
 
 interface DoorFcmRepository {
-    suspend fun fetchStatus(activity: Activity): DoorFcmState
+    suspend fun fetchStatus(): DoorFcmState
 
-    suspend fun registerDoor(
-        activity: Activity,
-        fcmTopic: DoorFcmTopic,
-    ): DoorFcmState
+    suspend fun registerDoor(fcmTopic: DoorFcmTopic): DoorFcmState
 
-    suspend fun deregisterDoor(activity: Activity): DoorFcmState
+    suspend fun deregisterDoor(): DoorFcmState
 }
 
 /**
@@ -47,7 +43,7 @@ class FirebaseDoorFcmRepository(
     private val settings: AppSettings,
     private val appLoggerRepository: AppLoggerRepository,
 ) : DoorFcmRepository {
-    override suspend fun fetchStatus(activity: Activity): DoorFcmState {
+    override suspend fun fetchStatus(): DoorFcmState {
         Logger.d { "fetchStatus" }
         val topic = getFcmTopic()
         Logger.d { "fetchStatus: $topic" }
@@ -58,10 +54,7 @@ class FirebaseDoorFcmRepository(
         }
     }
 
-    override suspend fun registerDoor(
-        activity: Activity,
-        fcmTopic: DoorFcmTopic,
-    ): DoorFcmState {
+    override suspend fun registerDoor(fcmTopic: DoorFcmTopic): DoorFcmState {
         Logger.d { "registerDoor: $fcmTopic" }
         // Unsubscribe from old topic.
         val oldFcmTopic = getFcmTopic()
@@ -90,7 +83,7 @@ class FirebaseDoorFcmRepository(
         }
     }
 
-    override suspend fun deregisterDoor(activity: Activity): DoorFcmState {
+    override suspend fun deregisterDoor(): DoorFcmState {
         Logger.d { "deregisterDoor" }
         val oldFcmTopic = getFcmTopic()
         if (oldFcmTopic == null) {
