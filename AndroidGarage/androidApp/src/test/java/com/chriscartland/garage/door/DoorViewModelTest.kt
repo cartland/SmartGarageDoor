@@ -99,7 +99,7 @@ class DoorViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private suspend fun createViewModel(): DefaultDoorViewModel {
+    private suspend fun createViewModel(fetchOnInit: Boolean = true): DefaultDoorViewModel {
         stubFetchSuccess()
         val vm = DefaultDoorViewModel(
             appLoggerRepository,
@@ -110,6 +110,7 @@ class DoorViewModelTest {
             FetchFcmStatusUseCase(doorFcmRepository),
             RegisterFcmUseCase(doorRepository, doorFcmRepository),
             DeregisterFcmUseCase(doorFcmRepository),
+            fetchOnInit = fetchOnInit,
         )
         testDispatcher.scheduler.runCurrent()
         return vm
@@ -253,5 +254,15 @@ class DoorViewModelTest {
             testDispatcher.scheduler.runCurrent()
 
             assertEquals(FcmRegistrationStatus.UNKNOWN, viewModel.fcmRegistrationStatus.value)
+        }
+
+    @Test
+    fun fetchOnInitFalseDoesNotFetchOnCreate() =
+        runTest {
+            val viewModel = createViewModel(fetchOnInit = false)
+
+            // Flow collection still runs (shows repo data), but network fetch was NOT triggered
+            verify(doorRepository, org.mockito.Mockito.never()).fetchCurrentDoorEvent()
+            verify(doorRepository, org.mockito.Mockito.never()).fetchRecentDoorEvents()
         }
 }
