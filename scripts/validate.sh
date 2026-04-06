@@ -32,22 +32,27 @@ step "Android Lint"
 $GRADLE :androidApp:lint && pass "lint" || fail "lint"
 
 # Discover all non-Android modules with test sources and run their tests.
+# Checks both src/test/ (pure JVM) and src/commonTest/ (KMP).
 # Android modules (androidApp) use variant-specific test tasks handled below.
-step "Pure Kotlin module tests (auto-discovered)"
+step "Shared module tests (auto-discovered)"
 FOUND_MODULES=0
-for test_dir in "$REPO_ROOT"/AndroidGarage/*/src/test; do
-    [ -d "$test_dir" ] || continue
-    module_dir=$(dirname "$(dirname "$test_dir")")
+for module_dir in "$REPO_ROOT"/AndroidGarage/*/; do
     module=$(basename "$module_dir")
     # Skip androidApp — it has variant-specific test tasks
     [ "$module" = "androidApp" ] && continue
-    # Only run if it's a real Gradle module
+    # Skip non-Gradle directories
     [ -f "$module_dir/build.gradle.kts" ] || [ -f "$module_dir/build.gradle" ] || continue
+    # Check for test sources in either src/test/ or src/commonTest/
+    has_tests=false
+    [ -d "$module_dir/src/test" ] && has_tests=true
+    [ -d "$module_dir/src/commonTest" ] && has_tests=true
+    [ "$has_tests" = true ] || continue
     FOUND_MODULES=$((FOUND_MODULES + 1))
-    $GRADLE ":${module}:test" && pass ":${module}:test" || fail ":${module}:test"
+    # KMP Android library modules use testDebugUnitTest
+    $GRADLE ":${module}:testDebugUnitTest" && pass ":${module}:testDebugUnitTest" || fail ":${module}:testDebugUnitTest"
 done
 if [ "$FOUND_MODULES" -eq 0 ]; then
-    echo "  (no pure Kotlin modules with tests found)"
+    echo "  (no shared modules with tests found)"
 fi
 
 step "Unit Tests (debug)"
