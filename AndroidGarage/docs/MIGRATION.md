@@ -265,15 +265,26 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 - Implement `actual` declarations for iOS
 - Create SwiftUI app consuming shared ViewModels via KMP framework
 
-## Phase 14: Typed Error System
+## Phase 14: Typed Error System — COMPLETE
 
 **Goal:** Replace silent failures with typed error hierarchy.
 
-- `Result<D, E : AppError>` sealed interface in `domain/`
+### 14.1 Foundation — COMPLETE
+- `AppResult<D, E : AppError>` sealed interface in `domain/`
 - `AppError` base with `message` and `cause`
 - Hierarchies: `DataError.Network`, `DataError.Database`, `AuthError`
 - Extensions: `map`, `mapError`, `getOrNull`, `flatMap`, `onSuccess`, `onError`
-- Migrate repos/use cases from nullable/Boolean to `Result<T, E>`
+- 11 tests in `domain/src/commonTest/`
+
+### 14.2 DoorRepository Migration — COMPLETE
+- `fetchCurrentDoorEvent()` and `fetchRecentDoorEvents()` return `AppResult<D, FetchError>`
+- `FetchError` sealed interface: `NotReady`, `NetworkFailed`
+- ViewModel handles errors with exhaustive `when`
+
+### 14.3 UseCase Migration — COMPLETE
+- `PushRemoteButtonUseCase` and `SnoozeNotificationsUseCase` return `AppResult<Unit, ActionError>`
+- `ActionError` sealed interface: `NotAuthenticated`, `MissingData`
+- ADR-010 documents the typed API pattern (observation + one-time requests)
 
 ## Phase 15: KMP Logging (Kermit)
 
@@ -331,7 +342,7 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 | 11. Platform Abstractions | Small | Phase 9 | TODO |
 | 12. Nav3 Migration | Medium | None | TODO |
 | 13. iOS Target | Large | Phases 10-11 | TODO |
-| 14. Typed Errors | Medium | Phase 8 | **COMPLETE** (foundation) |
+| 14. Typed Errors | Medium | Phase 8 | **COMPLETE** |
 | 15. Kermit Logging | Small | None | **COMPLETE** |
 | 16. Integration Tests | Medium | Phase 9 | **COMPLETE** (data module) |
 | 17. Architecture Rules | Small | Phase 8 | **COMPLETE** (import boundaries) |
