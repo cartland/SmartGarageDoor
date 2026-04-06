@@ -18,7 +18,7 @@
 package com.chriscartland.garage.remotebutton
 
 import com.chriscartland.garage.data.NetworkButtonDataSource
-import com.chriscartland.garage.data.repository.PushRepositoryImpl
+import com.chriscartland.garage.data.repository.NetworkPushRepository
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
@@ -33,7 +33,7 @@ import org.mockito.Mockito.`when`
 class PushRepositoryTest {
     private lateinit var networkButtonDataSource: NetworkButtonDataSource
     private lateinit var serverConfigRepository: ServerConfigRepository
-    private lateinit var repo: PushRepositoryImpl
+    private lateinit var repo: NetworkPushRepository
 
     private val validServerConfig =
         ServerConfig(
@@ -46,7 +46,7 @@ class PushRepositoryTest {
     fun setup() {
         networkButtonDataSource = mock(NetworkButtonDataSource::class.java)
         serverConfigRepository = mock(ServerConfigRepository::class.java)
-        repo = PushRepositoryImpl(
+        repo = NetworkPushRepository(
             networkButtonDataSource,
             serverConfigRepository,
             remoteButtonPushEnabled = true,

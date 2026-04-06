@@ -18,7 +18,7 @@
 package com.chriscartland.garage.config
 
 import com.chriscartland.garage.data.NetworkConfigDataSource
-import com.chriscartland.garage.data.repository.ServerConfigRepositoryImpl
+import com.chriscartland.garage.data.repository.CachedServerConfigRepository
 import com.chriscartland.garage.domain.model.ServerConfig
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -39,7 +39,7 @@ class FakeNetworkConfigDataSource : NetworkConfigDataSource {
 
 class ServerConfigRepositoryTest {
     private lateinit var networkConfig: FakeNetworkConfigDataSource
-    private lateinit var repo: ServerConfigRepositoryImpl
+    private lateinit var repo: CachedServerConfigRepository
 
     private val validConfig = ServerConfig(
         buildTimestamp = "2024-01-15T00:00:00Z",
@@ -50,7 +50,7 @@ class ServerConfigRepositoryTest {
     @Before
     fun setup() {
         networkConfig = FakeNetworkConfigDataSource()
-        repo = ServerConfigRepositoryImpl(networkConfig, "test-config-key")
+        repo = CachedServerConfigRepository(networkConfig, "test-config-key")
     }
 
     @Test

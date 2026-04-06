@@ -28,7 +28,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.time.delay
 import java.time.Duration
 
-class PushRepositoryImpl(
+class NetworkPushRepository(
     private val networkButtonDataSource: NetworkButtonDataSource,
     private val serverConfigRepository: ServerConfigRepository,
     private val remoteButtonPushEnabled: Boolean,

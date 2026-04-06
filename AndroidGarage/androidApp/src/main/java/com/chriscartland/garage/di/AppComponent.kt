@@ -30,9 +30,9 @@ import com.chriscartland.garage.data.LocalDoorDataSource
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkConfigDataSource
 import com.chriscartland.garage.data.NetworkDoorDataSource
-import com.chriscartland.garage.data.repository.DoorRepositoryImpl
-import com.chriscartland.garage.data.repository.PushRepositoryImpl
-import com.chriscartland.garage.data.repository.ServerConfigRepositoryImpl
+import com.chriscartland.garage.data.repository.CachedServerConfigRepository
+import com.chriscartland.garage.data.repository.NetworkDoorRepository
+import com.chriscartland.garage.data.repository.NetworkPushRepository
 import com.chriscartland.garage.db.AppDatabase
 import com.chriscartland.garage.db.DatabaseLocalDoorDataSource
 import com.chriscartland.garage.domain.repository.AuthRepository
@@ -116,7 +116,7 @@ abstract class AppComponent(
     @Provides
     @Singleton
     fun provideDoorRepository(): DoorRepository =
-        DoorRepositoryImpl(
+        NetworkDoorRepository(
             provideLocalDoorDataSource(),
             provideNetworkDoorDataSource(),
             provideServerConfigRepository(),
@@ -126,7 +126,7 @@ abstract class AppComponent(
     @Provides
     @Singleton
     fun provideServerConfigRepository(): ServerConfigRepository =
-        ServerConfigRepositoryImpl(provideNetworkConfigDataSource(), APP_CONFIG.serverConfigKey)
+        CachedServerConfigRepository(provideNetworkConfigDataSource(), APP_CONFIG.serverConfigKey)
 
     @Provides
     @Singleton
@@ -172,7 +172,7 @@ abstract class AppComponent(
     @Provides
     @Singleton
     fun providePushRepository(): PushRepository =
-        PushRepositoryImpl(
+        NetworkPushRepository(
             provideNetworkButtonDataSource(),
             provideServerConfigRepository(),
             APP_CONFIG.remoteButtonPushEnabled,
