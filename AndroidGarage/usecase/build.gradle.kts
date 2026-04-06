@@ -16,9 +16,11 @@ kotlin {
         commonMain.dependencies {
             implementation(project(":domain"))
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kermit)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }

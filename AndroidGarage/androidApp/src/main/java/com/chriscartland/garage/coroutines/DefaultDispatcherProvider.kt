@@ -19,12 +19,10 @@ package com.chriscartland.garage.coroutines
 
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.Dispatchers
 
-class TestDispatcherProvider(
-    testDispatcher: TestDispatcher,
-) : DispatcherProvider {
-    override val main: CoroutineDispatcher = testDispatcher
-    override val io: CoroutineDispatcher = testDispatcher
-    override val default: CoroutineDispatcher = testDispatcher
+class DefaultDispatcherProvider : DispatcherProvider {
+    override val main: CoroutineDispatcher = Dispatchers.Main
+    override val io: CoroutineDispatcher = Dispatchers.IO
+    override val default: CoroutineDispatcher = Dispatchers.Default
 }

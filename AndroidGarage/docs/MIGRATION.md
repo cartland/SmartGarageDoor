@@ -218,15 +218,25 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 - Firebase repos (`AuthRepository`, `DoorFcmRepository`) stay in `androidApp`
 - Room code (`DatabaseLocalDoorDataSource`, DAOs) stays in `androidApp`
 
-## Phase 10: Shared ViewModel/Presentation Logic
+## Phase 10: Shared ViewModel/Presentation Logic — IN PROGRESS
 
 **Goal:** Share ViewModel business logic across platforms.
 
-- Extract pure state machine logic from ViewModels into shared presentation models
-  - `RemoteButtonStateMachine` — READY→ARMING→ARMED→TIMEOUT→COOLDOWN
-  - `DoorStatusPresenter` — combines door event + auth state → UI state
-- ViewModels become thin wrappers in `viewmodel/` KMP module
-- Following battery-butler: ViewModels in `commonMain` with `@Inject` constructor injection
+### 10.1 Extract RemoteButtonStateMachine — COMPLETE
+- Extracted pure state machine from `DefaultRemoteButtonViewModel` into `RemoteButtonStateMachine` in `usecase/src/commonMain/`
+- Takes `Flow<PushStatus>` + `Flow<DoorPosition>` inputs, produces `StateFlow<RequestStatus>`
+- 19 tests in `usecase/src/commonTest/` using `kotlin.test` (no Mockito)
+- ViewModel becomes thin wrapper delegating to state machine
+- Moved `DispatcherProvider` interface to `domain/src/commonMain/`
+- Replaced `java.time.Duration` with `kotlinx.coroutines.delay(millis)` for KMP compatibility
+
+### 10.2 DoorStatusPresenter — DEFERRED
+- DoorViewModel logic is mostly flow collection + FCM (Android-specific)
+- Not enough pure logic to justify extraction yet
+
+### 10.3 Shared ViewModel Module — DEFERRED
+- ViewModels still depend on `androidx.lifecycle.ViewModel` and `viewModelScope`
+- Full extraction to KMP module deferred until iOS target is added
 
 ## Phase 11: Platform Abstractions (expect/actual)
 
@@ -313,7 +323,7 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 | 7. Instrumented Tests | Medium | None | **COMPLETE** |
 | 8. UseCase Refactor + Module | Medium | Phase 2 | **COMPLETE** |
 | 9. Data Module Repos | Medium | Phase 8 | **COMPLETE** |
-| 10. Shared ViewModels | Medium | Phase 9 | TODO |
+| 10. Shared ViewModels | Medium | Phase 9 | 10.1 COMPLETE (state machine extracted) |
 | 11. Platform Abstractions | Small | Phase 9 | TODO |
 | 12. Nav3 Migration | Medium | None | TODO |
 | 13. iOS Target | Large | Phases 10-11 | TODO |
