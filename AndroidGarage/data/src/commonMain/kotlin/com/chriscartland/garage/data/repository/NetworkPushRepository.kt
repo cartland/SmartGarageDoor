@@ -23,10 +23,9 @@ import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.domain.repository.PushRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.time.delay
-import java.time.Duration
 
 class NetworkPushRepository(
     private val networkButtonDataSource: NetworkButtonDataSource,
@@ -56,7 +55,7 @@ class NetworkPushRepository(
         }
         if (!remoteButtonPushEnabled) {
             Logger.w { "Remote button push is disabled" }
-            delay(Duration.ofMillis(500))
+            delay(500)
         }
         if (remoteButtonPushEnabled) {
             networkButtonDataSource.pushButton(
@@ -77,7 +76,7 @@ class NetworkPushRepository(
         }
         if (!snoozeNotificationsOption) {
             Logger.w { "Snooze notifications disabled" }
-            delay(Duration.ofMillis(500))
+            delay(500)
         }
         if (snoozeNotificationsOption) {
             val endTime = networkButtonDataSource.fetchSnoozeEndTimeSeconds(
@@ -101,7 +100,7 @@ class NetworkPushRepository(
         }
         if (!snoozeNotificationsOption) {
             Logger.w { "Snooze notifications disabled" }
-            delay(Duration.ofMillis(500))
+            delay(500)
         }
         if (snoozeNotificationsOption) {
             val success = networkButtonDataSource.snoozeNotifications(
