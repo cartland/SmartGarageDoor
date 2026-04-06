@@ -237,6 +237,33 @@ when (val result = fetchUseCase(token)) {
 - Slightly more verbose than nullable returns, but the safety is worth it
 - Requires migrating existing nullable/Boolean APIs incrementally
 
+## ADR-011: No-Throw Error Handling
+
+**Status:** Accepted
+
+**Context:** The codebase has multiple places where library exceptions are caught and silently swallowed (`catch (e: Exception) { Logger.e { ... } }`). Callers can't distinguish success from failure. The Detekt `SwallowedException` rule was allowing `Exception` in its ignore list, defeating its purpose.
+
+**Decision:** Adopt a no-throw error handling policy:
+
+1. **Never throw** from application code (except `CancellationException` for coroutine cancellation)
+2. **Catch at boundaries** — library exceptions (Ktor, Firebase, Room) are caught at the data source/bridge layer and converted to sealed error types
+3. **Return sealed results** — use `AppResult<D, E>` or `NetworkResult<T>` instead of nullable returns or Boolean success flags
+4. **No `else` in `when` on sealed types** — always list every variant explicitly so the compiler forces handling new variants
+5. **Detekt enforcement** — `SwallowedException` and `TooGenericExceptionCaught` rules are active. Existing violations are baselined and must be resolved incrementally
+
+**Rules:**
+- Data sources return `NetworkResult<T>` (Success, HttpError, ConnectionFailed)
+- Repositories return `AppResult<D, FetchError>` or `AppResult<D, ActionError>`
+- UseCases return `AppResult<D, E>` to ViewModels
+- ViewModels handle errors with exhaustive `when` and update UI state accordingly
+- Only `CancellationException` may propagate — all others must be caught and typed
+
+**Consequences:**
+- Every error path is visible and compiler-checked
+- Adding a new error variant forces all callers to handle it
+- Baselined Detekt violations track technical debt — each resolved violation is a win
+- New code cannot swallow exceptions or catch generic Exception without baseline entry
+
 **Example — preferred:**
 ```kotlin
 object ButtonAckTokens {

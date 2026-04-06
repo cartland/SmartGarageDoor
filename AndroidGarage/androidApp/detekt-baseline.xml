@@ -2,24 +2,14 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
-    <ID>ConstructorParameterNaming:AuthViewModel.kt$DefaultAuthViewModel$private val _authRepository: AuthRepository</ID>
-    <ID>ConstructorParameterNaming:ServerConfigResponse.kt$ServerConfigResponse.Body$@Json(name = "remoteButtonBuildTimestamp") val _remoteButtonBuildTimestamp: String?</ID>
-    <ID>ImplicitDefaultLocale:TimeFormats.kt$String.format( "%d day%s, %dh %dm %ds", days, if (days &gt; 1) "s" else "", hours, minutes, seconds, )</ID>
-    <ID>ImplicitDefaultLocale:TimeFormats.kt$String.format("%dh %dm %ds", hours, minutes, seconds)</ID>
-    <ID>ImplicitDefaultLocale:TimeFormats.kt$String.format("%dm %ds", minutes, seconds)</ID>
-    <ID>ImplicitDefaultLocale:TimeFormats.kt$String.format("%ds", seconds)</ID>
-    <ID>MatchingDeclarationName:Parallelogram.kt$ParallelogramShape : Shape</ID>
-    <ID>MatchingDeclarationName:VersionModel.kt$AppVersion</ID>
     <ID>SwallowedException:AuthRepository.kt$FirebaseAuthRepository$e: Exception</ID>
-    <ID>SwallowedException:FCMService.kt$e: IllegalArgumentException</ID>
-    <ID>UnusedPrivateMember:RemoteButtonContent.kt$private fun ButtonColors.selectContainer(enabled: Boolean)</ID>
-    <ID>UnusedPrivateMember:RemoteButtonContent.kt$private fun ButtonColors.selectContent(enabled: Boolean)</ID>
-    <ID>UnusedPrivateProperty:AppSettings.kt$private const val TAG = "AppSettings"</ID>
-    <ID>UnusedPrivateProperty:DoorRepository.kt$private const val DIRECT_CURRENT = "com.chriscartland.garage.repository.DIRECT_CURRENT_DOOR_UPDATE"</ID>
-    <ID>UnusedPrivateProperty:DoorRepository.kt$private const val DIRECT_RECENT = "com.chriscartland.garage.repository.DIRECT_RECENT_DOOR_UPDATE"</ID>
-    <ID>UnusedPrivateProperty:DoorRepository.kt$private const val NETWORK_CURRENT = "com.chriscartland.garage.repository.NETWORK_CURRENT_DOOR_UPDATE"</ID>
-    <ID>UnusedPrivateProperty:DoorRepository.kt$private const val NETWORK_RECENT = "com.chriscartland.garage.repository.NETWORK_RECENT_DOOR_UPDATE"</ID>
-    <ID>UnusedPrivateProperty:PushRepository.kt$private const val TAG = "PushRepository"</ID>
-    <ID>UnusedPrivateProperty:PushRepositoryTest.kt$PushRepositoryTest$private val validServerConfig = ServerConfig( buildTimestamp = "2024-01-15T00:00:00Z", remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z", remoteButtonPushKey = "test-push-key", )</ID>
+    <ID>SwallowedException:FcmPayloadParser.kt$FcmPayloadParser$e: IllegalArgumentException</ID>
+    <ID>TooGenericExceptionCaught:AppLoggerRepository.kt$RoomAppLoggerRepository$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:AuthRepository.kt$FirebaseAuthRepository$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:FcmPayloadParser.kt$FcmPayloadParser$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:FirebaseAuthBridge.kt$FirebaseAuthBridge$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:KtorNetworkButtonDataSource.kt$KtorNetworkButtonDataSource$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:KtorNetworkConfigDataSource.kt$KtorNetworkConfigDataSource$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:KtorNetworkDoorDataSource.kt$KtorNetworkDoorDataSource$e: Exception</ID>
   </CurrentIssues>
 </SmellBaseline>

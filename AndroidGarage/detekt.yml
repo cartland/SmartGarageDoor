@@ -18,11 +18,13 @@ exceptions:
     active: true
     ignoredExceptionTypes:
       - InterruptedException
-      - NumberFormatException
-      - ParseException
-      - Exception
+      - CancellationException
   TooGenericExceptionCaught:
-    active: false
+    active: true
+    exceptionNames:
+      - Exception
+      - RuntimeException
+      - Throwable
 
 naming:
   active: true
