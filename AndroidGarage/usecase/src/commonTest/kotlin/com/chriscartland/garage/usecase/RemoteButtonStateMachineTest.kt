@@ -29,6 +29,8 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+private val TIMEOUT = RemoteButtonStateMachine.DEFAULT_TIMEOUT_MILLIS
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class RemoteButtonStateMachineTest {
     private lateinit var pushStatusFlow: MutableStateFlow<PushStatus>
@@ -176,7 +178,7 @@ class RemoteButtonStateMachineTest {
             testScheduler.runCurrent()
             assertEquals(RequestStatus.SENDING, sm.requestStatus.value)
 
-            advanceTimeBy(10_001)
+            advanceTimeBy(TIMEOUT + 1)
             testScheduler.runCurrent()
             assertEquals(RequestStatus.SENDING_TIMEOUT, sm.requestStatus.value)
         }
@@ -192,7 +194,7 @@ class RemoteButtonStateMachineTest {
             testScheduler.runCurrent()
             assertEquals(RequestStatus.SENT, sm.requestStatus.value)
 
-            advanceTimeBy(10_001)
+            advanceTimeBy(TIMEOUT + 1)
             testScheduler.runCurrent()
             assertEquals(RequestStatus.SENT_TIMEOUT, sm.requestStatus.value)
         }
@@ -206,12 +208,12 @@ class RemoteButtonStateMachineTest {
             testScheduler.runCurrent()
 
             // First timeout: SENDING -> SENDING_TIMEOUT
-            advanceTimeBy(10_001)
+            advanceTimeBy(TIMEOUT + 1)
             testScheduler.runCurrent()
             assertEquals(RequestStatus.SENDING_TIMEOUT, sm.requestStatus.value)
 
             // Second timeout: SENDING_TIMEOUT -> NONE
-            advanceTimeBy(10_001)
+            advanceTimeBy(TIMEOUT + 1)
             testScheduler.runCurrent()
             assertEquals(RequestStatus.NONE, sm.requestStatus.value)
         }
@@ -227,12 +229,12 @@ class RemoteButtonStateMachineTest {
             testScheduler.runCurrent()
 
             // First timeout: SENT -> SENT_TIMEOUT
-            advanceTimeBy(10_001)
+            advanceTimeBy(TIMEOUT + 1)
             testScheduler.runCurrent()
             assertEquals(RequestStatus.SENT_TIMEOUT, sm.requestStatus.value)
 
             // Second timeout: SENT_TIMEOUT -> NONE
-            advanceTimeBy(10_001)
+            advanceTimeBy(TIMEOUT + 1)
             testScheduler.runCurrent()
             assertEquals(RequestStatus.NONE, sm.requestStatus.value)
         }
@@ -248,7 +250,7 @@ class RemoteButtonStateMachineTest {
             testScheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, sm.requestStatus.value)
 
-            advanceTimeBy(10_001)
+            advanceTimeBy(TIMEOUT + 1)
             testScheduler.runCurrent()
             assertEquals(RequestStatus.NONE, sm.requestStatus.value)
         }
@@ -262,7 +264,7 @@ class RemoteButtonStateMachineTest {
             testScheduler.runCurrent()
 
             // Door moves before the 10s timeout
-            advanceTimeBy(5_000)
+            advanceTimeBy(TIMEOUT / 2)
             testScheduler.runCurrent()
             assertEquals(RequestStatus.SENDING, sm.requestStatus.value)
 
@@ -271,7 +273,7 @@ class RemoteButtonStateMachineTest {
             assertEquals(RequestStatus.RECEIVED, sm.requestStatus.value)
 
             // Original timeout fires but should not override RECEIVED
-            advanceTimeBy(6_000)
+            advanceTimeBy(TIMEOUT / 2 + 1_000)
             testScheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, sm.requestStatus.value)
         }
@@ -293,7 +295,7 @@ class RemoteButtonStateMachineTest {
             assertEquals(RequestStatus.NONE, sm.requestStatus.value)
 
             // Advance past where timeout would have fired
-            advanceTimeBy(15_000)
+            advanceTimeBy(TIMEOUT + TIMEOUT / 2)
             testScheduler.runCurrent()
             // Should still be NONE — timeout was cancelled by reset
             assertEquals(RequestStatus.NONE, sm.requestStatus.value)
@@ -318,7 +320,7 @@ class RemoteButtonStateMachineTest {
             assertEquals(RequestStatus.RECEIVED, sm.requestStatus.value)
 
             // Only the RECEIVED timeout should be active (10s → NONE)
-            advanceTimeBy(10_001)
+            advanceTimeBy(TIMEOUT + 1)
             testScheduler.runCurrent()
             assertEquals(RequestStatus.NONE, sm.requestStatus.value)
         }

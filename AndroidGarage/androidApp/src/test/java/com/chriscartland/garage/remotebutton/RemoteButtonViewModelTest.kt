@@ -29,6 +29,7 @@ import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.PushRepository
 import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
+import com.chriscartland.garage.usecase.RemoteButtonStateMachine
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -44,6 +45,8 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
+
+private val TIMEOUT = RemoteButtonStateMachine.DEFAULT_TIMEOUT_MILLIS
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RemoteButtonViewModelTest {
@@ -275,7 +278,7 @@ class RemoteButtonViewModelTest {
             assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
 
             // Advance past the 10-second timeout
-            advanceTimeBy(10_001)
+            advanceTimeBy(TIMEOUT + 1)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENDING_TIMEOUT, viewModel.requestStatus.value)
         }
@@ -292,7 +295,7 @@ class RemoteButtonViewModelTest {
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENT, viewModel.requestStatus.value)
 
-            advanceTimeBy(10_001)
+            advanceTimeBy(TIMEOUT + 1)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENT_TIMEOUT, viewModel.requestStatus.value)
         }
@@ -306,12 +309,12 @@ class RemoteButtonViewModelTest {
             testDispatcher.scheduler.runCurrent()
 
             // First timeout: SENDING -> SENDING_TIMEOUT
-            advanceTimeBy(10_001)
+            advanceTimeBy(TIMEOUT + 1)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENDING_TIMEOUT, viewModel.requestStatus.value)
 
             // Second timeout: SENDING_TIMEOUT -> NONE
-            advanceTimeBy(10_001)
+            advanceTimeBy(TIMEOUT + 1)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
         }
@@ -327,12 +330,12 @@ class RemoteButtonViewModelTest {
             testDispatcher.scheduler.runCurrent()
 
             // First timeout: SENT -> SENT_TIMEOUT
-            advanceTimeBy(10_001)
+            advanceTimeBy(TIMEOUT + 1)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENT_TIMEOUT, viewModel.requestStatus.value)
 
             // Second timeout: SENT_TIMEOUT -> NONE
-            advanceTimeBy(10_001)
+            advanceTimeBy(TIMEOUT + 1)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
         }
@@ -348,7 +351,7 @@ class RemoteButtonViewModelTest {
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
 
-            advanceTimeBy(10_001)
+            advanceTimeBy(TIMEOUT + 1)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
         }
@@ -362,7 +365,7 @@ class RemoteButtonViewModelTest {
             testDispatcher.scheduler.runCurrent()
 
             // Door moves before the 10s timeout
-            advanceTimeBy(5_000)
+            advanceTimeBy(TIMEOUT / 2)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
 
@@ -371,7 +374,7 @@ class RemoteButtonViewModelTest {
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
 
             // Original timeout fires but should not override RECEIVED
-            advanceTimeBy(6_000)
+            advanceTimeBy(TIMEOUT / 2 + 1_000)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
         }
@@ -393,7 +396,7 @@ class RemoteButtonViewModelTest {
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
 
             // Advance past where timeout would have fired
-            advanceTimeBy(15_000)
+            advanceTimeBy(TIMEOUT + TIMEOUT / 2)
             testDispatcher.scheduler.runCurrent()
             // Should still be NONE — timeout was cancelled by reset
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
@@ -418,7 +421,7 @@ class RemoteButtonViewModelTest {
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
 
             // Only the RECEIVED timeout should be active (10s → NONE)
-            advanceTimeBy(10_001)
+            advanceTimeBy(TIMEOUT + 1)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
         }
