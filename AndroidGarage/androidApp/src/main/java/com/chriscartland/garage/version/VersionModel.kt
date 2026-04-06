@@ -19,13 +19,15 @@ package com.chriscartland.garage.version
 
 import android.content.Context
 import android.os.Build
+import com.chriscartland.garage.BuildConfig
 
 data class AppVersion(
     val packageName: String,
     val versionCode: Long,
     val versionName: String,
+    val buildTimestamp: String,
 ) {
-    override fun toString(): String = "$packageName-$versionCode-$versionName"
+    override fun toString(): String = "$packageName-$versionName-$versionCode ($buildTimestamp)"
 }
 
 fun Context.AppVersion(): AppVersion =
@@ -45,4 +47,5 @@ fun Context.AppVersion(): AppVersion =
                     }
                 },
         versionName = packageManager.getPackageInfo(packageName, 0).versionName ?: "",
+        buildTimestamp = BuildConfig.BUILD_TIMESTAMP,
     )

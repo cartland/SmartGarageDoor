@@ -95,6 +95,11 @@ fun AndroidAppInfoCard(
             textAlign = TextAlign.Center,
         )
         Text(
+            "Build: ${appVersion.buildTimestamp}",
+            style = MaterialTheme.typography.labelSmall,
+            textAlign = TextAlign.Center,
+        )
+        Text(
             "Privacy Policy: $PRIVACY_POLICY_URL",
             style = MaterialTheme.typography.labelSmall,
             textAlign = TextAlign.Center,
@@ -137,7 +142,8 @@ fun AndroidAppInfoCardPreview() {
         appVersion = AppVersion(
             packageName = "com.example",
             versionCode = 1L,
-            versionName = "1.0.0 20241028.095244",
+            versionName = "2.3.0",
+            buildTimestamp = "20260405.120000",
         ),
         startExpanded = true,
     )
