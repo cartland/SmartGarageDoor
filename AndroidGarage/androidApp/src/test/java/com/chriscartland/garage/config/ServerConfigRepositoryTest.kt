@@ -18,6 +18,7 @@
 package com.chriscartland.garage.config
 
 import com.chriscartland.garage.data.NetworkConfigDataSource
+import com.chriscartland.garage.data.repository.ServerConfigRepositoryImpl
 import com.chriscartland.garage.domain.model.ServerConfig
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -49,7 +50,7 @@ class ServerConfigRepositoryTest {
     @Before
     fun setup() {
         networkConfig = FakeNetworkConfigDataSource()
-        repo = ServerConfigRepositoryImpl(networkConfig)
+        repo = ServerConfigRepositoryImpl(networkConfig, "test-config-key")
     }
 
     @Test

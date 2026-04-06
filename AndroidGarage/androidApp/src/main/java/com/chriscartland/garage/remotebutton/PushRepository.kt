@@ -19,11 +19,11 @@ package com.chriscartland.garage.remotebutton
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.config.APP_CONFIG
-import com.chriscartland.garage.config.ServerConfigRepository
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.domain.repository.PushRepository
+import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.time.delay

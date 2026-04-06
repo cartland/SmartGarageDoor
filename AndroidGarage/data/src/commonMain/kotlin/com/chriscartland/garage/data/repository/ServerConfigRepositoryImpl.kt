@@ -15,20 +15,16 @@
  *
  */
 
-package com.chriscartland.garage.config
+package com.chriscartland.garage.data.repository
 
 import com.chriscartland.garage.data.NetworkConfigDataSource
 import com.chriscartland.garage.domain.model.ServerConfig
+import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import kotlinx.coroutines.sync.Mutex
-
-interface ServerConfigRepository {
-    suspend fun getServerConfigCached(): ServerConfig?
-
-    suspend fun fetchServerConfig(): ServerConfig?
-}
 
 class ServerConfigRepositoryImpl(
     private val networkConfigDataSource: NetworkConfigDataSource,
+    private val serverConfigKey: String,
 ) : ServerConfigRepository {
     private var serverConfig: ServerConfig? = null
 
@@ -45,7 +41,7 @@ class ServerConfigRepositoryImpl(
     }
 
     override suspend fun fetchServerConfig(): ServerConfig? {
-        val config = networkConfigDataSource.fetchServerConfig(APP_CONFIG.serverConfigKey)
+        val config = networkConfigDataSource.fetchServerConfig(serverConfigKey)
         if (config != null) {
             serverConfig = config
         }

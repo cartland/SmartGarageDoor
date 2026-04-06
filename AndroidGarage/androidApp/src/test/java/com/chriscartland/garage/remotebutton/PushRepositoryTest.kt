@@ -17,11 +17,11 @@
 
 package com.chriscartland.garage.remotebutton
 
-import com.chriscartland.garage.config.ServerConfigRepository
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
+import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Before

@@ -23,19 +23,20 @@ import com.chriscartland.garage.applogger.AppLoggerRepositoryImpl
 import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
 import com.chriscartland.garage.auth.AuthRepositoryImpl
 import com.chriscartland.garage.auth.AuthViewModelImpl
-import com.chriscartland.garage.config.ServerConfigRepository
-import com.chriscartland.garage.config.ServerConfigRepositoryImpl
+import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.coroutines.DefaultDispatcherProvider
 import com.chriscartland.garage.coroutines.DispatcherProvider
 import com.chriscartland.garage.data.LocalDoorDataSource
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkConfigDataSource
 import com.chriscartland.garage.data.NetworkDoorDataSource
+import com.chriscartland.garage.data.repository.ServerConfigRepositoryImpl
 import com.chriscartland.garage.db.AppDatabase
 import com.chriscartland.garage.db.DatabaseLocalDoorDataSource
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.PushRepository
+import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.door.DoorRepositoryImpl
 import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.fcm.DoorFcmRepository
@@ -119,7 +120,8 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
-    fun provideServerConfigRepository(): ServerConfigRepository = ServerConfigRepositoryImpl(provideNetworkConfigDataSource())
+    fun provideServerConfigRepository(): ServerConfigRepository =
+        ServerConfigRepositoryImpl(provideNetworkConfigDataSource(), APP_CONFIG.serverConfigKey)
 
     @Provides
     @Singleton
