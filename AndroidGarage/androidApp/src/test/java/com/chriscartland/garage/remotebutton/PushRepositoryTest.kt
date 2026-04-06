@@ -45,7 +45,12 @@ class PushRepositoryTest {
     fun setup() {
         networkButtonDataSource = mock(NetworkButtonDataSource::class.java)
         serverConfigRepository = mock(ServerConfigRepository::class.java)
-        repo = PushRepositoryImpl(networkButtonDataSource, serverConfigRepository)
+        repo = PushRepositoryImpl(
+            networkButtonDataSource,
+            serverConfigRepository,
+            remoteButtonPushEnabled = true,
+            snoozeNotificationsOption = true,
+        )
     }
 
     @Test

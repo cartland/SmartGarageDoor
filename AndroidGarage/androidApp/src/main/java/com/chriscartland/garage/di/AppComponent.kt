@@ -116,7 +116,12 @@ abstract class AppComponent(
     @Provides
     @Singleton
     fun provideDoorRepository(): DoorRepository =
-        DoorRepositoryImpl(provideLocalDoorDataSource(), provideNetworkDoorDataSource(), provideServerConfigRepository())
+        DoorRepositoryImpl(
+            provideLocalDoorDataSource(),
+            provideNetworkDoorDataSource(),
+            provideServerConfigRepository(),
+            APP_CONFIG.recentEventCount,
+        )
 
     @Provides
     @Singleton
@@ -166,7 +171,13 @@ abstract class AppComponent(
     // Repositories — push
     @Provides
     @Singleton
-    fun providePushRepository(): PushRepository = PushRepositoryImpl(provideNetworkButtonDataSource(), provideServerConfigRepository())
+    fun providePushRepository(): PushRepository =
+        PushRepositoryImpl(
+            provideNetworkButtonDataSource(),
+            provideServerConfigRepository(),
+            APP_CONFIG.remoteButtonPushEnabled,
+            APP_CONFIG.snoozeNotificationsOption,
+        )
 
     // Coroutines
     @Provides
