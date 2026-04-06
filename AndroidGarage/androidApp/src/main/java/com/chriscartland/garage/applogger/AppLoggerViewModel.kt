@@ -22,7 +22,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.config.AppLoggerKeys
-import com.chriscartland.garage.coroutines.DispatcherProvider
+import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch

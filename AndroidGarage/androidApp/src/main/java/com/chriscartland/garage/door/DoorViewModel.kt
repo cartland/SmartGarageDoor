@@ -25,7 +25,7 @@ import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.config.FetchOnViewModelInit
-import com.chriscartland.garage.coroutines.DispatcherProvider
+import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.LoadingResult

@@ -25,7 +25,6 @@ import com.chriscartland.garage.auth.DefaultAuthViewModel
 import com.chriscartland.garage.auth.FirebaseAuthRepository
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.coroutines.DefaultDispatcherProvider
-import com.chriscartland.garage.coroutines.DispatcherProvider
 import com.chriscartland.garage.data.LocalDoorDataSource
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkConfigDataSource
@@ -35,6 +34,7 @@ import com.chriscartland.garage.data.repository.NetworkDoorRepository
 import com.chriscartland.garage.data.repository.NetworkPushRepository
 import com.chriscartland.garage.db.AppDatabase
 import com.chriscartland.garage.db.DatabaseLocalDoorDataSource
+import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.PushRepository
