@@ -296,3 +296,21 @@ class RemoteButtonViewModelImpl(
         }
     }
 }
+
+/**
+ * Create a button ack token.
+ *
+ * This token is created by the client so the server can acknowledge the remote button push.
+ * The client can send the same token to the server multiple times and the server is
+ * responsible for only processing the token once.
+ * When the server receives a button press, it will respond with the token to the client.
+ */
+fun createButtonAckToken(now: Date): String {
+    val humanReadable = java.text.SimpleDateFormat("yyyy-MM-dd hh:mm:ss a", java.util.Locale.US).format(now)
+    val timestampMillis = now.time
+    val appVersion = "AppVersionTODO"
+    val buttonAckTokenData = "android-$appVersion-$humanReadable-$timestampMillis"
+    val re = Regex("[^a-zA-Z0-9-_.]")
+    val filtered = re.replace(buttonAckTokenData, ".")
+    return filtered
+}
