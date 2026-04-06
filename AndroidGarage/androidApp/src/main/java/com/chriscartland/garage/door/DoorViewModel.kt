@@ -22,8 +22,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.applogger.AppLoggerRepository
-import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
+import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus

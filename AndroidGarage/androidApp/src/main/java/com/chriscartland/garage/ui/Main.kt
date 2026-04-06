@@ -53,8 +53,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.chriscartland.garage.applogger.AppLoggerViewModel
 import com.chriscartland.garage.auth.AuthViewModel
-import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.di.rememberAppComponent
+import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.door.DoorViewModel
 import com.chriscartland.garage.fcm.FCMRegistration
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModel

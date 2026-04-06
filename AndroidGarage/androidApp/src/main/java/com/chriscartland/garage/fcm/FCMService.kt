@@ -20,7 +20,7 @@ package com.chriscartland.garage.fcm
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.GarageApplication
 import com.chriscartland.garage.applogger.AppLoggerRepository
-import com.chriscartland.garage.config.AppLoggerKeys
+import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
