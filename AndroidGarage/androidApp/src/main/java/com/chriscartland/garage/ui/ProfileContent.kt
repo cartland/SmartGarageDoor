@@ -89,10 +89,7 @@ fun ProfileContent(
         snoozeEndTimeSeconds = snoozeEndTimeSeconds,
         snoozeRequestStatus = snoozeRequestStatus,
         onSnooze = {
-            buttonViewModel.snoozeOpenDoorsNotifications(
-                resolvedAuthViewModel.authRepository,
-                it,
-            )
+            buttonViewModel.snoozeOpenDoorsNotifications(it)
         },
     )
 }

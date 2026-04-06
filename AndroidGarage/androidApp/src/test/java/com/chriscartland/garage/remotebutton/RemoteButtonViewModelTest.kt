@@ -84,14 +84,18 @@ class RemoteButtonViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel(): RemoteButtonViewModelImpl {
-        val ensureFreshIdToken = EnsureFreshIdTokenUseCase()
+    private lateinit var authRepository: AuthRepository
+
+    private fun createViewModel(authState: AuthState = AuthState.Unauthenticated): RemoteButtonViewModelImpl {
+        authRepository = mock(AuthRepository::class.java)
+        `when`(authRepository.authState).thenReturn(MutableStateFlow(authState))
+        val ensureFreshIdToken = EnsureFreshIdTokenUseCase(authRepository)
         val vm = RemoteButtonViewModelImpl(
             pushRepository,
             doorRepository,
             TestDispatcherProvider(testDispatcher),
-            PushRemoteButtonUseCase(ensureFreshIdToken),
-            SnoozeNotificationsUseCase(ensureFreshIdToken),
+            PushRemoteButtonUseCase(ensureFreshIdToken, authRepository, pushRepository),
+            SnoozeNotificationsUseCase(ensureFreshIdToken, authRepository, pushRepository),
         )
         testDispatcher.scheduler.runCurrent()
         return vm
@@ -219,13 +223,9 @@ class RemoteButtonViewModelTest {
     @Test
     fun pushRemoteButtonDoesNothingWhenNotAuthenticated() =
         runTest {
-            val viewModel = createViewModel()
-            val authRepository = mock(AuthRepository::class.java)
-            `when`(authRepository.authState).thenReturn(
-                MutableStateFlow<AuthState>(AuthState.Unauthenticated),
-            )
+            val viewModel = createViewModel(authState = AuthState.Unauthenticated)
 
-            viewModel.pushRemoteButton(authRepository)
+            viewModel.pushRemoteButton()
             testDispatcher.scheduler.runCurrent()
 
             // Status should remain NONE since auth check fails before sending

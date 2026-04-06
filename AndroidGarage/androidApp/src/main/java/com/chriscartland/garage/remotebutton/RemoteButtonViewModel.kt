@@ -21,12 +21,10 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.coroutines.DispatcherProvider
-import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.RequestStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
-import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.PushRepository
 import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
@@ -48,14 +46,11 @@ interface RemoteButtonViewModel {
     val snoozeRequestStatus: StateFlow<SnoozeRequestStatus>
     val snoozeEndTimeSeconds: StateFlow<Long>
 
-    fun pushRemoteButton(authRepository: AuthRepository)
+    fun pushRemoteButton()
 
     fun resetRemoteButton()
 
-    fun snoozeOpenDoorsNotifications(
-        authRepository: AuthRepository,
-        snoozeDuration: SnoozeDurationUIOption,
-    )
+    fun snoozeOpenDoorsNotifications(snoozeDuration: SnoozeDurationUIOption)
 
     fun fetchSnoozeEndTimeSeconds()
 }
@@ -278,30 +273,19 @@ class RemoteButtonViewModelImpl(
      *
      * Requires an authenticated user.
      */
-    override fun pushRemoteButton(authRepository: AuthRepository) {
+    override fun pushRemoteButton() {
         Log.d(TAG, "pushRemoteButton")
         viewModelScope.launch(dispatchers.io) {
-            if (authRepository.authState.value !is AuthState.Authenticated) {
-                Log.e(TAG, "Not authenticated — push skipped")
-                return@launch
-            }
             pushRemoteButtonUseCase(
-                authRepository = authRepository,
-                pushRepository = pushRepository,
                 buttonAckToken = createButtonAckToken(Date()),
             )
         }
     }
 
-    override fun snoozeOpenDoorsNotifications(
-        authRepository: AuthRepository,
-        snoozeDuration: SnoozeDurationUIOption,
-    ) {
+    override fun snoozeOpenDoorsNotifications(snoozeDuration: SnoozeDurationUIOption) {
         Log.d(TAG, "snoozeOpenDoorsNotifications")
         viewModelScope.launch(dispatchers.io) {
             val result = snoozeNotificationsUseCase(
-                authRepository = authRepository,
-                pushRepository = pushRepository,
                 snoozeDurationHours = snoozeDuration.toServer().duration,
                 lastChangeTimeSeconds = currentDoorEvent.value?.lastChangeTimeSeconds,
             )

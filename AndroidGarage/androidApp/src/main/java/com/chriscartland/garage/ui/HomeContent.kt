@@ -94,7 +94,7 @@ fun HomeContent(
                         "Remote button clicked. " +
                             "AuthViewModel authState $authState",
                     )
-                    buttonViewModel.pushRemoteButton(resolvedAuthViewModel.authRepository)
+                    buttonViewModel.pushRemoteButton()
                 }
 
                 AuthState.Unauthenticated -> {

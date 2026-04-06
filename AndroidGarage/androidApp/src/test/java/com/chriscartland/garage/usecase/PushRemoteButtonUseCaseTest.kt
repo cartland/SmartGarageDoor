@@ -38,9 +38,9 @@ class PushRemoteButtonUseCaseTest {
 
     @Before
     fun setup() {
-        useCase = PushRemoteButtonUseCase(EnsureFreshIdTokenUseCase())
         fakeAuth = FakeAuthRepository()
         fakePush = FakePushRepository()
+        useCase = PushRemoteButtonUseCase(EnsureFreshIdTokenUseCase(fakeAuth), fakeAuth, fakePush)
     }
 
     private fun authenticateUser(
@@ -62,7 +62,7 @@ class PushRemoteButtonUseCaseTest {
     fun pushSucceedsWhenAuthenticated() =
         runTest {
             authenticateUser()
-            val result = useCase(fakeAuth, fakePush, "ack-123")
+            val result = useCase("ack-123")
             assertTrue("Push should succeed when authenticated", result)
             assertEquals(1, fakePush.pushCount)
         }
@@ -71,7 +71,7 @@ class PushRemoteButtonUseCaseTest {
     fun pushFailsWhenUnauthenticated() =
         runTest {
             fakeAuth.setAuthState(AuthState.Unauthenticated)
-            val result = useCase(fakeAuth, fakePush, "ack-123")
+            val result = useCase("ack-123")
             assertFalse("Push should fail when unauthenticated", result)
             assertEquals(0, fakePush.pushCount)
         }
@@ -79,7 +79,7 @@ class PushRemoteButtonUseCaseTest {
     @Test
     fun pushFailsWhenAuthUnknown() =
         runTest {
-            val result = useCase(fakeAuth, fakePush, "ack-123")
+            val result = useCase("ack-123")
             assertFalse("Push should fail when auth unknown", result)
             assertEquals(0, fakePush.pushCount)
         }
@@ -88,7 +88,7 @@ class PushRemoteButtonUseCaseTest {
     fun pushPassesCorrectIdToken() =
         runTest {
             authenticateUser(token = "my-token-123")
-            useCase(fakeAuth, fakePush, "ack-456")
+            useCase("ack-456")
             assertEquals("my-token-123", fakePush.lastIdToken)
         }
 
@@ -96,7 +96,7 @@ class PushRemoteButtonUseCaseTest {
     fun pushPassesButtonAckToken() =
         runTest {
             authenticateUser()
-            useCase(fakeAuth, fakePush, "ack-unique-789")
+            useCase("ack-unique-789")
             assertEquals(1, fakePush.pushCount)
         }
 
@@ -113,7 +113,7 @@ class PushRemoteButtonUseCaseTest {
             )
             fakeAuth.refreshResult = refreshedAuth
 
-            useCase(fakeAuth, fakePush, "ack-123")
+            useCase("ack-123")
 
             assertEquals("new-token", fakePush.lastIdToken)
             assertEquals(1, fakeAuth.refreshCount)

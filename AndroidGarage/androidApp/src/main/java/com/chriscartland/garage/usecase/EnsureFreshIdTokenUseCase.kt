@@ -29,9 +29,10 @@ import com.chriscartland.garage.domain.repository.AuthRepository
  * - Otherwise, refresh the auth state and return the new token
  * - If refresh fails (user becomes unauthenticated), fall back to the cached token
  */
-class EnsureFreshIdTokenUseCase {
+class EnsureFreshIdTokenUseCase(
+    private val authRepository: AuthRepository,
+) {
     suspend operator fun invoke(
-        authRepository: AuthRepository,
         currentAuth: AuthState.Authenticated,
         currentTimeMillis: Long = System.currentTimeMillis(),
     ): FirebaseIdToken =

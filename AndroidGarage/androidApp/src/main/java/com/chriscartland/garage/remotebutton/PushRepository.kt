@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.remotebutton
 
-import android.text.format.DateFormat
 import android.util.Log
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.config.ServerConfigRepository
@@ -130,7 +129,7 @@ class PushRepositoryImpl(
  * When the server receives a button press, it will respond with the token to the client.
  */
 fun createButtonAckToken(now: Date): String {
-    val humanReadable = DateFormat.format("yyyy-MM-dd hh:mm:ss a", now).toString()
+    val humanReadable = java.text.SimpleDateFormat("yyyy-MM-dd hh:mm:ss a", java.util.Locale.US).format(now)
     val timestampMillis = now.time
     val appVersion = "AppVersionTODO"
     val buttonAckTokenData = "android-$appVersion-$humanReadable-$timestampMillis"
