@@ -16,7 +16,7 @@
 
 import {
   SensorEvent, SensorEventType, SensorEventAsStringMap,
-  Unknown, ErrorSensorConflict, Closed, Closing, ClosingTooLong, Open, OpenMisaligned, Opening, OpeningTooLong
+  Unknown, ErrorSensorConflict, Closed, Closing, ClosingTooLong, Open, OpenMisaligned, Opening, OpeningTooLong,
 } from '../model/SensorEvent';
 
 import { SensorSnapshot } from '../model/SensorSnapshot';

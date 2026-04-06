@@ -38,7 +38,7 @@ export const httpDeleteOldData = functions.https.onRequest(async (request, respo
   const deleteCount = await deleteOldData(cutoffTimestampSeconds, dryRun);
   const result = {
     dryRun: dryRun,
-    summary: deleteCount
+    summary: deleteCount,
   };
   await response.status(200).send(result);
 });

@@ -52,7 +52,7 @@ export const httpRemoteButton = functions.https.onRequest(async (request, respon
   }
   const data = {
     queryParams: request.query,
-    body: request.body
+    body: request.body,
   };
   // The session ID allows a client to tell the server that multiple requests
   // come from the same session.
@@ -172,7 +172,7 @@ export const httpAddRemoteButtonCommand = functions.https.onRequest(async (reque
   // Echo query parameters and body.
   const data = {
     queryParams: request.query,
-    body: request.body
+    body: request.body,
   };
   // The session ID allows a client to tell the server that multiple requests
   // come from the same session.
