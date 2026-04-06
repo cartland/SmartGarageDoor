@@ -30,6 +30,10 @@ abstract class ImportBoundaryCheckTask : DefaultTask() {
         "androidx.",
         "com.google.firebase.",
         "com.google.android.",
+        "java.time.",
+        "java.text.",
+        "java.util.Date",
+        "java.util.Locale",
     )
 
     @TaskAction
