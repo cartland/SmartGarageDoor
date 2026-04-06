@@ -28,7 +28,6 @@ import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.domain.repository.AuthRepository
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,12 +44,13 @@ const val RC_ONE_TAP_SIGN_IN = 1
 class FirebaseAuthRepository(
     private val authBridge: AuthBridge,
     private val appLoggerRepository: AppLoggerRepository,
+    externalScope: CoroutineScope,
 ) : AuthRepository {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
     override val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
     init {
-        CoroutineScope(Dispatchers.IO).launch {
+        externalScope.launch {
             refreshFirebaseAuthState()
         }
     }

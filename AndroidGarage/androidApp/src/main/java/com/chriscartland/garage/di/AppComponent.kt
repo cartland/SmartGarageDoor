@@ -63,6 +63,9 @@ import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
 import io.ktor.client.HttpClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
 
@@ -119,7 +122,12 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
-    fun provideAuthRepository(): AuthRepository = FirebaseAuthRepository(provideAuthBridge(), provideAppLoggerRepository())
+    fun provideApplicationScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    @Provides
+    @Singleton
+    fun provideAuthRepository(): AuthRepository =
+        FirebaseAuthRepository(provideAuthBridge(), provideAppLoggerRepository(), provideApplicationScope())
 
     @Provides
     @Singleton
