@@ -31,24 +31,21 @@ import com.chriscartland.garage.domain.repository.PushRepository
  *
  * @return true if the push was initiated, false if not authenticated
  */
-class PushRemoteButtonUseCase
-    constructor(
-        private val ensureFreshIdToken: EnsureFreshIdTokenUseCase,
-    ) {
-        suspend operator fun invoke(
-            authRepository: AuthRepository,
-            pushRepository: PushRepository,
-            buttonAckToken: String,
-        ): Boolean {
-            val authState = authRepository.authState.value
-            if (authState !is AuthState.Authenticated) {
-                return false
-            }
-            val idToken = ensureFreshIdToken(authRepository, authState)
-            pushRepository.push(
-                idToken = idToken.asString(),
-                buttonAckToken = buttonAckToken,
-            )
-            return true
+class PushRemoteButtonUseCase(
+    private val ensureFreshIdToken: EnsureFreshIdTokenUseCase,
+    private val authRepository: AuthRepository,
+    private val pushRepository: PushRepository,
+) {
+    suspend operator fun invoke(buttonAckToken: String): Boolean {
+        val authState = authRepository.authState.value
+        if (authState !is AuthState.Authenticated) {
+            return false
         }
+        val idToken = ensureFreshIdToken(authState)
+        pushRepository.push(
+            idToken = idToken.asString(),
+            buttonAckToken = buttonAckToken,
+        )
+        return true
     }
+}

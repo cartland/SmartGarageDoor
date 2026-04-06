@@ -146,13 +146,15 @@ abstract class AppComponent(
     fun provideDeregisterFcmUseCase(): DeregisterFcmUseCase = DeregisterFcmUseCase(provideDoorFcmRepository())
 
     @Provides
-    fun provideEnsureFreshIdTokenUseCase(): EnsureFreshIdTokenUseCase = EnsureFreshIdTokenUseCase()
+    fun provideEnsureFreshIdTokenUseCase(): EnsureFreshIdTokenUseCase = EnsureFreshIdTokenUseCase(provideAuthRepository())
 
     @Provides
-    fun providePushRemoteButtonUseCase(): PushRemoteButtonUseCase = PushRemoteButtonUseCase(provideEnsureFreshIdTokenUseCase())
+    fun providePushRemoteButtonUseCase(): PushRemoteButtonUseCase =
+        PushRemoteButtonUseCase(provideEnsureFreshIdTokenUseCase(), provideAuthRepository(), providePushRepository())
 
     @Provides
-    fun provideSnoozeNotificationsUseCase(): SnoozeNotificationsUseCase = SnoozeNotificationsUseCase(provideEnsureFreshIdTokenUseCase())
+    fun provideSnoozeNotificationsUseCase(): SnoozeNotificationsUseCase =
+        SnoozeNotificationsUseCase(provideEnsureFreshIdTokenUseCase(), provideAuthRepository(), providePushRepository())
 
     // Network — button
     @Provides

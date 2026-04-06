@@ -38,9 +38,9 @@ class SnoozeNotificationsUseCaseTest {
 
     @Before
     fun setup() {
-        useCase = SnoozeNotificationsUseCase(EnsureFreshIdTokenUseCase())
         fakeAuth = FakeAuthRepository()
         fakePush = FakePushRepository()
+        useCase = SnoozeNotificationsUseCase(EnsureFreshIdTokenUseCase(fakeAuth), fakeAuth, fakePush)
     }
 
     private fun authenticateUser(
@@ -62,7 +62,7 @@ class SnoozeNotificationsUseCaseTest {
     fun snoozeSucceedsWhenAuthenticatedWithTimestamp() =
         runTest {
             authenticateUser()
-            val result = useCase(fakeAuth, fakePush, "1h", 1000L)
+            val result = useCase("1h", 1000L)
             assertTrue(result)
             assertEquals(1, fakePush.snoozeCount)
         }
@@ -71,7 +71,7 @@ class SnoozeNotificationsUseCaseTest {
     fun snoozeFailsWhenUnauthenticated() =
         runTest {
             fakeAuth.setAuthState(AuthState.Unauthenticated)
-            val result = useCase(fakeAuth, fakePush, "1h", 1000L)
+            val result = useCase("1h", 1000L)
             assertFalse(result)
             assertEquals(0, fakePush.snoozeCount)
         }
@@ -79,7 +79,7 @@ class SnoozeNotificationsUseCaseTest {
     @Test
     fun snoozeFailsWhenAuthUnknown() =
         runTest {
-            val result = useCase(fakeAuth, fakePush, "1h", 1000L)
+            val result = useCase("1h", 1000L)
             assertFalse(result)
             assertEquals(0, fakePush.snoozeCount)
         }
@@ -88,7 +88,7 @@ class SnoozeNotificationsUseCaseTest {
     fun snoozeFailsWhenTimestampIsNull() =
         runTest {
             authenticateUser()
-            val result = useCase(fakeAuth, fakePush, "1h", null)
+            val result = useCase("1h", null)
             assertFalse(result)
             assertEquals(0, fakePush.snoozeCount)
         }
@@ -97,7 +97,7 @@ class SnoozeNotificationsUseCaseTest {
     fun snoozeDoesNotRefreshTokenWhenTimestampNull() =
         runTest {
             authenticateUser(exp = 1000L)
-            useCase(fakeAuth, fakePush, "1h", null)
+            useCase("1h", null)
             assertEquals(0, fakeAuth.refreshCount)
         }
 
@@ -112,7 +112,7 @@ class SnoozeNotificationsUseCaseTest {
                     idToken = FirebaseIdToken(idToken = "fresh", exp = Long.MAX_VALUE),
                 ),
             )
-            useCase(fakeAuth, fakePush, "4h", 2000L)
+            useCase("4h", 2000L)
             assertEquals(1, fakeAuth.refreshCount)
         }
 }

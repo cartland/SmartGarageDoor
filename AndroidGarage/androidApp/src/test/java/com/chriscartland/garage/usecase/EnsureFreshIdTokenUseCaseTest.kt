@@ -34,8 +34,8 @@ class EnsureFreshIdTokenUseCaseTest {
 
     @Before
     fun setup() {
-        useCase = EnsureFreshIdTokenUseCase()
         fakeAuth = FakeAuthRepository()
+        useCase = EnsureFreshIdTokenUseCase(fakeAuth)
     }
 
     private fun makeAuth(
@@ -54,7 +54,7 @@ class EnsureFreshIdTokenUseCaseTest {
     fun returnsCachedTokenWhenNotExpired() =
         runTest {
             val auth = makeAuth(token = "cached-token", exp = 5000L)
-            val result = useCase(fakeAuth, auth, currentTimeMillis = 4999L)
+            val result = useCase(auth, currentTimeMillis = 4999L)
 
             assertEquals("cached-token", result.asString())
             assertEquals(0, fakeAuth.refreshCount)
@@ -67,7 +67,7 @@ class EnsureFreshIdTokenUseCaseTest {
             val refreshedAuth = makeAuth(token = "new-token", exp = 9000L)
             fakeAuth.refreshResult = refreshedAuth
 
-            val result = useCase(fakeAuth, auth, currentTimeMillis = 2000L)
+            val result = useCase(auth, currentTimeMillis = 2000L)
 
             assertEquals("new-token", result.asString())
             assertEquals(1, fakeAuth.refreshCount)
@@ -80,7 +80,7 @@ class EnsureFreshIdTokenUseCaseTest {
             val refreshedAuth = makeAuth(token = "new-token", exp = 9000L)
             fakeAuth.refreshResult = refreshedAuth
 
-            val result = useCase(fakeAuth, auth, currentTimeMillis = 1000L)
+            val result = useCase(auth, currentTimeMillis = 1000L)
 
             assertEquals("new-token", result.asString())
             assertEquals(1, fakeAuth.refreshCount)
@@ -92,7 +92,7 @@ class EnsureFreshIdTokenUseCaseTest {
             val auth = makeAuth(token = "old-token", exp = 1000L)
             fakeAuth.refreshResult = AuthState.Unauthenticated
 
-            val result = useCase(fakeAuth, auth, currentTimeMillis = 2000L)
+            val result = useCase(auth, currentTimeMillis = 2000L)
 
             assertEquals("old-token", result.asString())
             assertEquals(1, fakeAuth.refreshCount)
@@ -104,7 +104,7 @@ class EnsureFreshIdTokenUseCaseTest {
             val auth = makeAuth(token = "old-token", exp = 1000L)
             fakeAuth.refreshResult = AuthState.Unknown
 
-            val result = useCase(fakeAuth, auth, currentTimeMillis = 2000L)
+            val result = useCase(auth, currentTimeMillis = 2000L)
 
             assertEquals("old-token", result.asString())
             assertEquals(1, fakeAuth.refreshCount)
@@ -114,7 +114,7 @@ class EnsureFreshIdTokenUseCaseTest {
     fun doesNotRefreshWhenTokenHasLargeMargin() =
         runTest {
             val auth = makeAuth(token = "cached-token", exp = Long.MAX_VALUE)
-            val result = useCase(fakeAuth, auth, currentTimeMillis = System.currentTimeMillis())
+            val result = useCase(auth, currentTimeMillis = System.currentTimeMillis())
 
             assertEquals("cached-token", result.asString())
             assertEquals(0, fakeAuth.refreshCount)

@@ -32,29 +32,28 @@ import com.chriscartland.garage.domain.repository.PushRepository
  * @return true if the snooze was initiated, false if not authenticated
  *   or if lastChangeTimeSeconds is null
  */
-class SnoozeNotificationsUseCase
-    constructor(
-        private val ensureFreshIdToken: EnsureFreshIdTokenUseCase,
-    ) {
-        suspend operator fun invoke(
-            authRepository: AuthRepository,
-            pushRepository: PushRepository,
-            snoozeDurationHours: String,
-            lastChangeTimeSeconds: Long?,
-        ): Boolean {
-            val authState = authRepository.authState.value
-            if (authState !is AuthState.Authenticated) {
-                return false
-            }
-            if (lastChangeTimeSeconds == null) {
-                return false
-            }
-            val idToken = ensureFreshIdToken(authRepository, authState)
-            pushRepository.snoozeOpenDoorsNotifications(
-                snoozeDurationHours = snoozeDurationHours,
-                idToken = idToken.asString(),
-                snoozeEventTimestampSeconds = lastChangeTimeSeconds,
-            )
-            return true
+class SnoozeNotificationsUseCase(
+    private val ensureFreshIdToken: EnsureFreshIdTokenUseCase,
+    private val authRepository: AuthRepository,
+    private val pushRepository: PushRepository,
+) {
+    suspend operator fun invoke(
+        snoozeDurationHours: String,
+        lastChangeTimeSeconds: Long?,
+    ): Boolean {
+        val authState = authRepository.authState.value
+        if (authState !is AuthState.Authenticated) {
+            return false
         }
+        if (lastChangeTimeSeconds == null) {
+            return false
+        }
+        val idToken = ensureFreshIdToken(authState)
+        pushRepository.snoozeOpenDoorsNotifications(
+            snoozeDurationHours = snoozeDurationHours,
+            idToken = idToken.asString(),
+            snoozeEventTimestampSeconds = lastChangeTimeSeconds,
+        )
+        return true
     }
+}
