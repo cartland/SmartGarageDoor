@@ -20,6 +20,7 @@ package com.chriscartland.garage.door
 import android.app.Activity
 import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.coroutines.TestDispatcherProvider
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorFcmTopic
@@ -86,12 +87,20 @@ class DoorViewModelTest {
         `when`(doorRepository.currentDoorPosition).thenReturn(currentDoorPositionFlow)
     }
 
+    private suspend fun stubFetchSuccess() {
+        `when`(doorRepository.fetchCurrentDoorEvent())
+            .thenReturn(AppResult.Success(testDoorEvent))
+        `when`(doorRepository.fetchRecentDoorEvents())
+            .thenReturn(AppResult.Success(listOf(testDoorEvent)))
+    }
+
     @After
     fun tearDown() {
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel(): DefaultDoorViewModel {
+    private suspend fun createViewModel(): DefaultDoorViewModel {
+        stubFetchSuccess()
         val vm = DefaultDoorViewModel(
             appLoggerRepository,
             doorRepository,
@@ -107,11 +116,12 @@ class DoorViewModelTest {
     }
 
     @Test
-    fun initialFcmRegistrationStatusIsUnknown() {
-        val viewModel = createViewModel()
+    fun initialFcmRegistrationStatusIsUnknown() =
+        runTest {
+            val viewModel = createViewModel()
 
-        assertEquals(FcmRegistrationStatus.UNKNOWN, viewModel.fcmRegistrationStatus.value)
-    }
+            assertEquals(FcmRegistrationStatus.UNKNOWN, viewModel.fcmRegistrationStatus.value)
+        }
 
     @Test
     fun collectsCurrentDoorEventFromRepository() =

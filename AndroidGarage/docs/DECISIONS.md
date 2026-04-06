@@ -190,6 +190,53 @@ fun createButtonAckToken(now: Date): String { ... }
 private fun <K, V> Map<K, V>.asDoorEvent(): DoorEvent? { ... }
 ```
 
+## ADR-010: Typed API Patterns — Observation and One-Time Requests
+
+**Status:** Accepted
+
+**Context:** The app has two fundamental interaction patterns: ongoing state observation (door position, auth state) and discrete actions (push button, snooze, fetch data). Both patterns currently use nullable returns or Boolean success flags, which fail silently and don't enforce handling of edge cases.
+
+**Decision:** Adopt two typed API patterns throughout UseCase and ViewModel layers:
+
+1. **Observation APIs** — `Flow<Result<D, E>>` or `StateFlow<UiState>` where `UiState` is a sealed class with `Loading`, `Success`, `Error` variants. Use these for multi-stage transitions (e.g., button press tracking: SENDING → SENT → RECEIVED). The UI can show each phase.
+
+2. **One-time Request APIs** — `suspend fun action(): AppResult<D, E>` where both `D` (data) and `E` (error) are sealed or enum types. Use exhaustive `when` statements to handle every case at compile time. New edge cases produce compiler errors, not silent failures.
+
+**Rules:**
+- `D` and `E` should be sealed classes or enums — never open types
+- `invoke()` on UseCases returns `AppResult<D, E>`, not nullable types
+- ViewModels translate `AppResult` into UI-observable state (Flow or StateFlow)
+- Add new sealed variants when new edge cases are discovered — the compiler forces all call sites to handle them
+
+**Example:**
+```kotlin
+// UseCase returns typed result
+suspend operator fun invoke(token: String): AppResult<DoorEvent, FetchError>
+
+// Error is a sealed type — exhaustive when
+sealed interface FetchError : AppError {
+    data object NotReady : FetchError
+    data object NetworkFailed : FetchError
+    data class ServerError(val code: Int) : FetchError
+}
+
+// ViewModel handles exhaustively
+when (val result = fetchUseCase(token)) {
+    is AppResult.Success -> _state.value = UiState.Loaded(result.data)
+    is AppResult.Error -> when (result.error) {
+        FetchError.NotReady -> _state.value = UiState.ConfigMissing
+        FetchError.NetworkFailed -> _state.value = UiState.Offline
+        is FetchError.ServerError -> _state.value = UiState.Error(result.error.code)
+    }
+}
+```
+
+**Consequences:**
+- Eliminates silent failures — every error path is visible
+- New edge cases caught at compile time via exhaustive `when`
+- Slightly more verbose than nullable returns, but the safety is worth it
+- Requires migrating existing nullable/Boolean APIs incrementally
+
 **Example — preferred:**
 ```kotlin
 object ButtonAckTokens {
