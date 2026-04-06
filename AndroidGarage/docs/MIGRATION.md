@@ -284,15 +284,19 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 - No custom abstraction — Kermit is multiplatform-first
 - Enables logging in commonMain code
 
-## Phase 16: Integration Tests with Fakes
+## Phase 16: Integration Tests with Fakes — COMPLETE
 
 **Goal:** Test multi-class interactions with fake data sources.
 
-- Create `test-common/` KMP module with shared fakes in `commonMain`
-- Fakes: `FakeNetworkDoorDataSource`, `FakeLocalDoorDataSource`, etc.
-- Integration tests: real Repository + real UseCase + fake DataSource
-- Validates flows: "fetch door → cache locally → return to UI"
-- Move existing fakes from `androidApp/testcommon/`
+### 16.1 Data Module Integration Tests — COMPLETE
+- Fake data sources in `data/src/commonTest/`: `InMemoryLocalDoorDataSource`, `FakeNetworkDoorDataSource`, `FakeNetworkConfigDataSource`
+- 12 integration tests for `NetworkDoorRepository`: fetch→cache→flow pipeline, null server config, null responses
+- 6 tests for `CachedServerConfigRepository`: caching, retry after null, cache invalidation
+- All tests use `kotlin.test` (KMP-compatible, no Mockito)
+
+### 16.2 Move androidApp Fakes — DEFERRED
+- Existing `FakeDoorRepository`, `FakePushRepository`, `FakeAuthRepository` in `androidApp/testcommon/` still useful for ViewModel tests
+- Will move to shared module when adding iOS tests
 
 ## Phase 17: Architecture Enforcement Rules
 
@@ -329,7 +333,7 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 | 13. iOS Target | Large | Phases 10-11 | TODO |
 | 14. Typed Errors | Medium | Phase 8 | **COMPLETE** (foundation) |
 | 15. Kermit Logging | Small | None | **COMPLETE** |
-| 16. Integration Tests | Medium | Phase 9 | TODO |
+| 16. Integration Tests | Medium | Phase 9 | **COMPLETE** (data module) |
 | 17. Architecture Rules | Small | Phase 8 | **COMPLETE** (import boundaries) |
 | 18. Presentation-Model | Small | Phase 10 | TODO (optional) |
 
