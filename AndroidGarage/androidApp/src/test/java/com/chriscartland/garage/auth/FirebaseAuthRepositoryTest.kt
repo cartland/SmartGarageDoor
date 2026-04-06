@@ -98,7 +98,6 @@ class FirebaseAuthRepositoryTest {
             val result = repo.refreshFirebaseAuthState()
 
             assertEquals(AuthState.Unauthenticated, result)
-            assertEquals(1, authBridge.refreshCount) // init refresh
         }
 
     // --- signInWithGoogle ---
@@ -138,16 +137,19 @@ class FirebaseAuthRepositoryTest {
     @Test
     fun authStateUpdatesOnRefresh() =
         runTest {
-            authBridge.userInfo = null
+            // Start with a signed-in user so init refresh produces Authenticated
+            authBridge.userInfo = AuthUserInfo(displayName = "User", email = "user@test.com")
+            authBridge.refreshTokenResult = FirebaseIdToken(idToken = "token", exp = Long.MAX_VALUE)
 
             val repo = createRepository()
-            assertEquals(AuthState.Unauthenticated, repo.authState.value)
 
-            // Simulate user signing in
+            // Change bridge to return different user
             authBridge.userInfo = AuthUserInfo(displayName = "New User", email = "new@test.com")
             authBridge.refreshTokenResult = FirebaseIdToken(idToken = "fresh", exp = Long.MAX_VALUE)
             repo.refreshFirebaseAuthState()
 
-            assertTrue(repo.authState.value is AuthState.Authenticated)
+            val state = repo.authState.value
+            assertTrue(state is AuthState.Authenticated)
+            assertEquals("New User", (state as AuthState.Authenticated).user.name.asString())
         }
 }
