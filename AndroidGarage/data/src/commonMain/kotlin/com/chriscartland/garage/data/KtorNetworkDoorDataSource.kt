@@ -15,11 +15,9 @@
  *
  */
 
-package com.chriscartland.garage.internet
+package com.chriscartland.garage.data
 
 import co.touchlab.kermit.Logger
-import com.chriscartland.garage.data.NetworkDoorDataSource
-import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import io.ktor.client.HttpClient

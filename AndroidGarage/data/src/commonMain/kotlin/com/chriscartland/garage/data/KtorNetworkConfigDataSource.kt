@@ -15,11 +15,9 @@
  *
  */
 
-package com.chriscartland.garage.internet
+package com.chriscartland.garage.data
 
 import co.touchlab.kermit.Logger
-import com.chriscartland.garage.data.NetworkConfigDataSource
-import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.ServerConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -29,8 +27,6 @@ import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
 
 class KtorNetworkConfigDataSource(
     private val client: HttpClient,
@@ -66,10 +62,7 @@ class KtorNetworkConfigDataSource(
             NetworkResult.Success(
                 ServerConfig(
                     buildTimestamp = body.buildTimestamp,
-                    remoteButtonBuildTimestamp = URLDecoder.decode(
-                        remoteButtonBuildTimestamp,
-                        StandardCharsets.UTF_8.name(),
-                    ),
+                    remoteButtonBuildTimestamp = percentDecode(remoteButtonBuildTimestamp),
                     remoteButtonPushKey = body.remoteButtonPushKey,
                 ),
             )
@@ -80,6 +73,41 @@ class KtorNetworkConfigDataSource(
             NetworkResult.ConnectionFailed
         }
     }
+}
+
+/**
+ * Simple percent-decode for URL-encoded strings (KMP-compatible).
+ *
+ * Decodes `%XX` sequences to UTF-8 characters and `+` to space.
+ * Sufficient for server config values (e.g., URL-encoded build timestamps).
+ */
+internal fun percentDecode(encoded: String): String {
+    val bytes = mutableListOf<Byte>()
+    var i = 0
+    while (i < encoded.length) {
+        when {
+            encoded[i] == '%' && i + 2 < encoded.length -> {
+                val hex = encoded.substring(i + 1, i + 3)
+                val byte = hex.toIntOrNull(16)
+                if (byte != null) {
+                    bytes.add(byte.toByte())
+                    i += 3
+                } else {
+                    bytes.add(encoded[i].code.toByte())
+                    i++
+                }
+            }
+            encoded[i] == '+' -> {
+                bytes.add(' '.code.toByte())
+                i++
+            }
+            else -> {
+                bytes.add(encoded[i].code.toByte())
+                i++
+            }
+        }
+    }
+    return bytes.toByteArray().decodeToString()
 }
 
 // region Serializable response types

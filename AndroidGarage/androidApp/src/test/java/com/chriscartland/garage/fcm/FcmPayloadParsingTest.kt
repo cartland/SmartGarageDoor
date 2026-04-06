@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.fcm
 
+import com.chriscartland.garage.data.FcmPayloadParser
 import com.chriscartland.garage.domain.model.DoorPosition
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
