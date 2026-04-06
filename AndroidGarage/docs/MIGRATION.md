@@ -364,6 +364,20 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 | 15. Kermit Logging | Small | None | **COMPLETE** |
 | 16. Integration Tests | Medium | Phase 9 | **COMPLETE** (data module) |
 | 17. Architecture Rules | Small | Phase 8 | **COMPLETE** (import boundaries) |
-| 18. Presentation-Model | Small | Phase 10 | TODO (optional) |
+| 18. Presentation-Model | Small | Phase 10 | **COMPLETE** |
+
+### Architecture Hardening (completed alongside migration)
+
+| Phase | Description | PR |
+|-------|-------------|-----|
+| A | JVM import boundary enforcement | #156 |
+| B | Detekt error handling rules + ADR-011 | #157 |
+| C | NetworkResult<T> typed data sources | #158 |
+| D | Inject APP_CONFIG into ViewModel | #159 |
+| E | FCMService structured concurrency | #161 |
+| F | AuthRepository inject scope | #162 |
+| G | Error state propagation to UI | #163 |
+| H | Migrate DoorViewModelTest to fakes | #164 |
+| I | Test timeout constants | #160 |
 
 **Rule:** Finish each phase before starting the next. Update this document with commit hashes when items complete.

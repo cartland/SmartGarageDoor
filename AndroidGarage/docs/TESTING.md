@@ -13,7 +13,7 @@
 
 ## Current State
 
-- **192 unit tests** across 27 test files (20 androidApp + 4 domain + 1 usecase + 2 data), including FirebaseAuthRepositoryTest, RemoteButtonStateMachineTest, and data module integration tests
+- **192 unit tests** across 31 test files (21 androidApp + 4 domain + 1 usecase + 2 data + 3 androidApp fakes), including FirebaseAuthRepositoryTest, RemoteButtonStateMachineTest, data module integration tests, and 5 fake implementations
 - **18 instrumented tests** across 3 test files (Room sanity, DI graph, navigation smoke)
 - **CI architecture:** pre-submit (`ci.yml` → `ci-checks.yml`) + post-merge (`ci-post-merge.yml` → `ci-checks.yml` + instrumented tests)
 - **CI gate jobs:** `CI Complete` (PRs), `Post-Merge Complete` (main) — single check-run names for branch protection and release script

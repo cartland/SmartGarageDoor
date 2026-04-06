@@ -75,10 +75,11 @@ idf.py menuconfig      # Enable fake implementations for testing
 - **UseCase module** (`usecase/`): Shared business logic in `commonMain` — `RemoteButtonStateMachine`, fetch/push/snooze use cases
 - **ViewModels**: `DoorViewModel`, `AuthViewModel`, `RemoteButtonViewModel` — delegate to UseCases
 - **Repositories**: `DoorRepository`, `AuthRepository`, `PushRepository` — implement domain interfaces, depend on data interfaces
-- **Typed errors**: `AppResult<D, E>` with sealed error types (`FetchError`, `ActionError`) — exhaustive `when` handling. See ADR-010
+- **Typed errors**: `AppResult<D, E>` and `NetworkResult<T>` with sealed error types — exhaustive `when`, no `else`. See ADR-010, ADR-011
+- **Platform bridges**: `AuthBridge`, `MessagingBridge` decouple Firebase SDK — enables unit testing and future iOS
 - **DI**: kotlin-inject (`AppComponent`) — Hilt fully removed. See `docs/DI-MIGRATION.md`
 - **Local storage**: Room database with offline-first caching
-- **Network**: Ktor HTTP client + kotlinx.serialization for API communication
+- **Network**: Ktor HTTP client + kotlinx.serialization, `NetworkResult<T>` at data source boundary
 
 ### ESP32 Component Architecture
 ```
