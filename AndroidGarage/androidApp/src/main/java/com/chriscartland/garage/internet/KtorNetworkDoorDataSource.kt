@@ -19,6 +19,7 @@ package com.chriscartland.garage.internet
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.NetworkDoorDataSource
+import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import io.ktor.client.HttpClient
@@ -26,35 +27,41 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.http.isSuccess
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 class KtorNetworkDoorDataSource(
     private val client: HttpClient,
 ) : NetworkDoorDataSource {
-    override suspend fun fetchCurrentDoorEvent(buildTimestamp: String): DoorEvent? {
+    override suspend fun fetchCurrentDoorEvent(buildTimestamp: String): NetworkResult<DoorEvent> {
         return try {
             val response = client.get("currentEventData") {
                 parameter("buildTimestamp", buildTimestamp)
             }
             if (!response.status.isSuccess()) {
                 Logger.e { "Response code is ${response.status.value}" }
-                return null
+                return NetworkResult.HttpError(response.status.value)
             }
             val body = response.body<KtorCurrentEventDataResponse>()
-            body.currentEventData?.currentEvent?.toDoorEvent().also {
-                if (it == null) Logger.e { "Door event is null" }
+            val doorEvent = body.currentEventData?.currentEvent?.toDoorEvent()
+            if (doorEvent == null) {
+                Logger.e { "Door event is null in response" }
+                return NetworkResult.HttpError(response.status.value)
             }
-        } catch (e: Exception) {
+            NetworkResult.Success(doorEvent)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
             Logger.e { "Error fetching current door event: $e" }
-            null
+            NetworkResult.ConnectionFailed
         }
     }
 
     override suspend fun fetchRecentDoorEvents(
         buildTimestamp: String,
         count: Int,
-    ): List<DoorEvent>? {
+    ): NetworkResult<List<DoorEvent>> {
         return try {
             val response = client.get("eventHistory") {
                 parameter("buildTimestamp", buildTimestamp)
@@ -62,12 +69,12 @@ class KtorNetworkDoorDataSource(
             }
             if (!response.status.isSuccess()) {
                 Logger.e { "Response code is ${response.status.value}" }
-                return null
+                return NetworkResult.HttpError(response.status.value)
             }
             val body = response.body<KtorRecentEventDataResponse>()
             if (body.eventHistory.isNullOrEmpty()) {
                 Logger.i { "recentEventData is empty" }
-                return null
+                return NetworkResult.Success(emptyList())
             }
             val doorEvents = body.eventHistory.mapNotNull {
                 it.currentEvent?.toDoorEvent()
@@ -75,10 +82,12 @@ class KtorNetworkDoorDataSource(
             if (doorEvents.size != body.eventHistory.size) {
                 Logger.e { "Door events size ${doorEvents.size} does not match response size ${body.eventHistory.size}" }
             }
-            doorEvents
-        } catch (e: Exception) {
+            NetworkResult.Success(doorEvents)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
             Logger.e { "Error fetching recent door events: $e" }
-            null
+            NetworkResult.ConnectionFailed
         }
     }
 }

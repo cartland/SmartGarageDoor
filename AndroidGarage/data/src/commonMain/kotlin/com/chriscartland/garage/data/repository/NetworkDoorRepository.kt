@@ -20,6 +20,7 @@ package com.chriscartland.garage.data.repository
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.LocalDoorDataSource
 import com.chriscartland.garage.data.NetworkDoorDataSource
+import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
@@ -58,14 +59,21 @@ class NetworkDoorRepository(
             Logger.e { "Server config is null" }
             return AppResult.Error(FetchError.NotReady)
         }
-        val doorEvent = networkDoorDataSource.fetchCurrentDoorEvent(buildTimestamp)
-        if (doorEvent == null) {
-            Logger.e { "Failed to fetch current door event" }
-            return AppResult.Error(FetchError.NetworkFailed)
+        return when (val result = networkDoorDataSource.fetchCurrentDoorEvent(buildTimestamp)) {
+            is NetworkResult.Success -> {
+                Logger.d { "Success: ${result.data}" }
+                localDoorDataSource.insertDoorEvent(result.data)
+                AppResult.Success(result.data)
+            }
+            is NetworkResult.HttpError -> {
+                Logger.e { "HTTP ${result.code} fetching current door event" }
+                AppResult.Error(FetchError.NetworkFailed)
+            }
+            NetworkResult.ConnectionFailed -> {
+                Logger.e { "Connection failed fetching current door event" }
+                AppResult.Error(FetchError.NetworkFailed)
+            }
         }
-        Logger.d { "Success: $doorEvent" }
-        localDoorDataSource.insertDoorEvent(doorEvent)
-        return AppResult.Success(doorEvent)
     }
 
     override suspend fun fetchRecentDoorEvents(): AppResult<List<DoorEvent>, FetchError> {
@@ -74,16 +82,25 @@ class NetworkDoorRepository(
             Logger.e { "Server config is null" }
             return AppResult.Error(FetchError.NotReady)
         }
-        val doorEvents = networkDoorDataSource.fetchRecentDoorEvents(
-            buildTimestamp = buildTimestamp,
-            count = recentEventCount,
-        )
-        if (doorEvents == null) {
-            Logger.e { "Failed to fetch recent door events" }
-            return AppResult.Error(FetchError.NetworkFailed)
+        return when (
+            val result = networkDoorDataSource.fetchRecentDoorEvents(
+                buildTimestamp = buildTimestamp,
+                count = recentEventCount,
+            )
+        ) {
+            is NetworkResult.Success -> {
+                Logger.d { "Success: ${result.data}" }
+                localDoorDataSource.replaceDoorEvents(result.data)
+                AppResult.Success(result.data)
+            }
+            is NetworkResult.HttpError -> {
+                Logger.e { "HTTP ${result.code} fetching recent door events" }
+                AppResult.Error(FetchError.NetworkFailed)
+            }
+            NetworkResult.ConnectionFailed -> {
+                Logger.e { "Connection failed fetching recent door events" }
+                AppResult.Error(FetchError.NetworkFailed)
+            }
         }
-        Logger.d { "Success: $doorEvents" }
-        localDoorDataSource.replaceDoorEvents(doorEvents)
-        return AppResult.Success(doorEvents)
     }
 }

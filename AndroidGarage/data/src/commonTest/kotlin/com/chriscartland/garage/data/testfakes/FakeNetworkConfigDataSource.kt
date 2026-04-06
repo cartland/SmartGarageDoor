@@ -18,16 +18,17 @@
 package com.chriscartland.garage.data.testfakes
 
 import com.chriscartland.garage.data.NetworkConfigDataSource
+import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.ServerConfig
 
 class FakeNetworkConfigDataSource : NetworkConfigDataSource {
-    var serverConfigResponse: ServerConfig? = null
+    var serverConfigResult: NetworkResult<ServerConfig> = NetworkResult.ConnectionFailed
 
     var fetchCount = 0
         private set
 
-    override suspend fun fetchServerConfig(serverConfigKey: String): ServerConfig? {
+    override suspend fun fetchServerConfig(serverConfigKey: String): NetworkResult<ServerConfig> {
         fetchCount++
-        return serverConfigResponse
+        return serverConfigResult
     }
 }

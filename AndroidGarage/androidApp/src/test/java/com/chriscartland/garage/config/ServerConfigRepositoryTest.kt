@@ -18,6 +18,7 @@
 package com.chriscartland.garage.config
 
 import com.chriscartland.garage.data.NetworkConfigDataSource
+import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.data.repository.CachedServerConfigRepository
 import com.chriscartland.garage.domain.model.ServerConfig
 import kotlinx.coroutines.test.runTest
@@ -28,12 +29,12 @@ import org.junit.Before
 import org.junit.Test
 
 class FakeNetworkConfigDataSource : NetworkConfigDataSource {
-    var serverConfig: ServerConfig? = null
+    var serverConfigResult: NetworkResult<ServerConfig> = NetworkResult.ConnectionFailed
     var fetchCount = 0
 
-    override suspend fun fetchServerConfig(serverConfigKey: String): ServerConfig? {
+    override suspend fun fetchServerConfig(serverConfigKey: String): NetworkResult<ServerConfig> {
         fetchCount++
-        return serverConfig
+        return serverConfigResult
     }
 }
 
@@ -56,7 +57,7 @@ class ServerConfigRepositoryTest {
     @Test
     fun fetchServerConfigReturnsConfigOnSuccess() =
         runTest {
-            networkConfig.serverConfig = validConfig
+            networkConfig.serverConfigResult = NetworkResult.Success(validConfig)
 
             val result = repo.fetchServerConfig()
 
@@ -68,7 +69,7 @@ class ServerConfigRepositoryTest {
     @Test
     fun fetchServerConfigReturnsNullOnFailure() =
         runTest {
-            networkConfig.serverConfig = null
+            networkConfig.serverConfigResult = NetworkResult.ConnectionFailed
 
             assertNull(repo.fetchServerConfig())
         }
@@ -76,7 +77,7 @@ class ServerConfigRepositoryTest {
     @Test
     fun getServerConfigCachedReturnsCachedValueOnSecondCall() =
         runTest {
-            networkConfig.serverConfig = validConfig
+            networkConfig.serverConfigResult = NetworkResult.Success(validConfig)
 
             val first = repo.getServerConfigCached()
             val second = repo.getServerConfigCached()
@@ -88,7 +89,7 @@ class ServerConfigRepositoryTest {
     @Test
     fun getServerConfigCachedFetchesWhenNotCached() =
         runTest {
-            networkConfig.serverConfig = validConfig
+            networkConfig.serverConfigResult = NetworkResult.Success(validConfig)
 
             val result = repo.getServerConfigCached()
 
@@ -99,7 +100,7 @@ class ServerConfigRepositoryTest {
     @Test
     fun getServerConfigCachedReturnsNullWhenFetchFails() =
         runTest {
-            networkConfig.serverConfig = null
+            networkConfig.serverConfigResult = NetworkResult.ConnectionFailed
 
             assertNull(repo.getServerConfigCached())
         }

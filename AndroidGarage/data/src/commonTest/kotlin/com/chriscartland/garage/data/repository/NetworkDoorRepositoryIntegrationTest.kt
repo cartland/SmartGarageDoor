@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.data.repository
 
+import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.data.testfakes.FakeNetworkConfigDataSource
 import com.chriscartland.garage.data.testfakes.FakeNetworkDoorDataSource
 import com.chriscartland.garage.data.testfakes.InMemoryLocalDoorDataSource
@@ -61,10 +62,12 @@ class NetworkDoorRepositoryIntegrationTest {
     @Test
     fun fetchCurrentDoorEventStoresInLocal() =
         runTest {
-            configDataSource.serverConfigResponse = ServerConfig(
-                buildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonPushKey = "key",
+            configDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(
+                    buildTimestamp = "2024-01-15T00:00:00Z",
+                    remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
+                    remoteButtonPushKey = "key",
+                ),
             )
             val event = DoorEvent(
                 doorPosition = DoorPosition.OPEN,
@@ -72,7 +75,7 @@ class NetworkDoorRepositoryIntegrationTest {
                 lastCheckInTimeSeconds = 1000L,
                 lastChangeTimeSeconds = 900L,
             )
-            networkDataSource.currentDoorEventResponse = event
+            networkDataSource.currentDoorEventResult = NetworkResult.Success(event)
 
             val repo = createRepository()
             val result = repo.fetchCurrentDoorEvent()
@@ -87,16 +90,18 @@ class NetworkDoorRepositoryIntegrationTest {
     @Test
     fun fetchCurrentDoorEventExposedViaFlow() =
         runTest {
-            configDataSource.serverConfigResponse = ServerConfig(
-                buildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonPushKey = "key",
+            configDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(
+                    buildTimestamp = "2024-01-15T00:00:00Z",
+                    remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
+                    remoteButtonPushKey = "key",
+                ),
             )
             val event = DoorEvent(
                 doorPosition = DoorPosition.CLOSED,
                 message = "Door is closed",
             )
-            networkDataSource.currentDoorEventResponse = event
+            networkDataSource.currentDoorEventResult = NetworkResult.Success(event)
 
             val repo = createRepository()
             repo.fetchCurrentDoorEvent()
@@ -108,7 +113,7 @@ class NetworkDoorRepositoryIntegrationTest {
     @Test
     fun fetchCurrentDoorEventWithNullServerConfigReturnsNotReady() =
         runTest {
-            configDataSource.serverConfigResponse = null
+            configDataSource.serverConfigResult = NetworkResult.ConnectionFailed
 
             val repo = createRepository()
             val result = repo.fetchCurrentDoorEvent()
@@ -122,12 +127,14 @@ class NetworkDoorRepositoryIntegrationTest {
     @Test
     fun fetchCurrentDoorEventWithNullNetworkResponseReturnsNetworkFailed() =
         runTest {
-            configDataSource.serverConfigResponse = ServerConfig(
-                buildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonPushKey = "key",
+            configDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(
+                    buildTimestamp = "2024-01-15T00:00:00Z",
+                    remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
+                    remoteButtonPushKey = "key",
+                ),
             )
-            networkDataSource.currentDoorEventResponse = null
+            networkDataSource.currentDoorEventResult = NetworkResult.ConnectionFailed
 
             val repo = createRepository()
             val result = repo.fetchCurrentDoorEvent()
@@ -144,17 +151,19 @@ class NetworkDoorRepositoryIntegrationTest {
     @Test
     fun fetchRecentDoorEventsStoresInLocal() =
         runTest {
-            configDataSource.serverConfigResponse = ServerConfig(
-                buildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonPushKey = "key",
+            configDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(
+                    buildTimestamp = "2024-01-15T00:00:00Z",
+                    remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
+                    remoteButtonPushKey = "key",
+                ),
             )
             val events = listOf(
                 DoorEvent(doorPosition = DoorPosition.OPEN, lastChangeTimeSeconds = 300L),
                 DoorEvent(doorPosition = DoorPosition.CLOSED, lastChangeTimeSeconds = 200L),
                 DoorEvent(doorPosition = DoorPosition.OPENING, lastChangeTimeSeconds = 100L),
             )
-            networkDataSource.recentDoorEventsResponse = events
+            networkDataSource.recentDoorEventsResult = NetworkResult.Success(events)
 
             val repo = createRepository()
             val result = repo.fetchRecentDoorEvents()
@@ -167,7 +176,7 @@ class NetworkDoorRepositoryIntegrationTest {
     @Test
     fun fetchRecentDoorEventsWithNullServerConfigReturnsNotReady() =
         runTest {
-            configDataSource.serverConfigResponse = null
+            configDataSource.serverConfigResult = NetworkResult.ConnectionFailed
 
             val repo = createRepository()
             val result = repo.fetchRecentDoorEvents()
@@ -181,12 +190,14 @@ class NetworkDoorRepositoryIntegrationTest {
     @Test
     fun fetchRecentDoorEventsWithNullNetworkResponseReturnsNetworkFailed() =
         runTest {
-            configDataSource.serverConfigResponse = ServerConfig(
-                buildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonPushKey = "key",
+            configDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(
+                    buildTimestamp = "2024-01-15T00:00:00Z",
+                    remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
+                    remoteButtonPushKey = "key",
+                ),
             )
-            networkDataSource.recentDoorEventsResponse = null
+            networkDataSource.recentDoorEventsResult = NetworkResult.ConnectionFailed
 
             val repo = createRepository()
             val result = repo.fetchRecentDoorEvents()
@@ -240,10 +251,12 @@ class NetworkDoorRepositoryIntegrationTest {
     @Test
     fun fetchBuildTimestampCachedReturnsFromServerConfig() =
         runTest {
-            configDataSource.serverConfigResponse = ServerConfig(
-                buildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonPushKey = "key",
+            configDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(
+                    buildTimestamp = "2024-01-15T00:00:00Z",
+                    remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
+                    remoteButtonPushKey = "key",
+                ),
             )
 
             val repo = createRepository()
@@ -253,7 +266,7 @@ class NetworkDoorRepositoryIntegrationTest {
     @Test
     fun fetchBuildTimestampCachedReturnsNullWhenNoConfig() =
         runTest {
-            configDataSource.serverConfigResponse = null
+            configDataSource.serverConfigResult = NetworkResult.ConnectionFailed
 
             val repo = createRepository()
             assertNull(repo.fetchBuildTimestampCached())

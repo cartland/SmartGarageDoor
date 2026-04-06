@@ -18,27 +18,28 @@
 package com.chriscartland.garage.data.testfakes
 
 import com.chriscartland.garage.data.NetworkDoorDataSource
+import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.DoorEvent
 
 class FakeNetworkDoorDataSource : NetworkDoorDataSource {
-    var currentDoorEventResponse: DoorEvent? = null
-    var recentDoorEventsResponse: List<DoorEvent>? = null
+    var currentDoorEventResult: NetworkResult<DoorEvent> = NetworkResult.ConnectionFailed
+    var recentDoorEventsResult: NetworkResult<List<DoorEvent>> = NetworkResult.ConnectionFailed
 
     var fetchCurrentCount = 0
         private set
     var fetchRecentCount = 0
         private set
 
-    override suspend fun fetchCurrentDoorEvent(buildTimestamp: String): DoorEvent? {
+    override suspend fun fetchCurrentDoorEvent(buildTimestamp: String): NetworkResult<DoorEvent> {
         fetchCurrentCount++
-        return currentDoorEventResponse
+        return currentDoorEventResult
     }
 
     override suspend fun fetchRecentDoorEvents(
         buildTimestamp: String,
         count: Int,
-    ): List<DoorEvent>? {
+    ): NetworkResult<List<DoorEvent>> {
         fetchRecentCount++
-        return recentDoorEventsResponse
+        return recentDoorEventsResult
     }
 }

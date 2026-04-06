@@ -19,12 +19,14 @@ package com.chriscartland.garage.internet
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.NetworkConfigDataSource
+import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.ServerConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.http.isSuccess
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.net.URLDecoder
@@ -33,45 +35,49 @@ import java.nio.charset.StandardCharsets
 class KtorNetworkConfigDataSource(
     private val client: HttpClient,
 ) : NetworkConfigDataSource {
-    override suspend fun fetchServerConfig(serverConfigKey: String): ServerConfig? {
+    override suspend fun fetchServerConfig(serverConfigKey: String): NetworkResult<ServerConfig> {
         return try {
             val response = client.get("serverConfig") {
                 header("X-ServerConfigKey", serverConfigKey)
             }
             if (!response.status.isSuccess()) {
                 Logger.e { "Response code is ${response.status.value}" }
-                return null
+                return NetworkResult.HttpError(response.status.value)
             }
             val result = response.body<KtorServerConfigResponse>()
             val body = result.body
             if (body == null) {
                 Logger.e { "Response body is null" }
-                return null
+                return NetworkResult.HttpError(response.status.value)
             }
             if (body.buildTimestamp.isNullOrEmpty()) {
                 Logger.e { "buildTimestamp is empty" }
-                return null
+                return NetworkResult.HttpError(response.status.value)
             }
             val remoteButtonBuildTimestamp = body.remoteButtonBuildTimestamp
             if (remoteButtonBuildTimestamp.isNullOrEmpty()) {
                 Logger.e { "remoteButtonBuildTimestamp is empty" }
-                return null
+                return NetworkResult.HttpError(response.status.value)
             }
             if (body.remoteButtonPushKey.isNullOrEmpty()) {
                 Logger.e { "remoteButtonPushKey is empty" }
-                return null
+                return NetworkResult.HttpError(response.status.value)
             }
-            ServerConfig(
-                buildTimestamp = body.buildTimestamp,
-                remoteButtonBuildTimestamp = URLDecoder.decode(
-                    remoteButtonBuildTimestamp,
-                    StandardCharsets.UTF_8.name(),
+            NetworkResult.Success(
+                ServerConfig(
+                    buildTimestamp = body.buildTimestamp,
+                    remoteButtonBuildTimestamp = URLDecoder.decode(
+                        remoteButtonBuildTimestamp,
+                        StandardCharsets.UTF_8.name(),
+                    ),
+                    remoteButtonPushKey = body.remoteButtonPushKey,
                 ),
-                remoteButtonPushKey = body.remoteButtonPushKey,
             )
-        } catch (e: Exception) {
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
             Logger.e { "Error fetching server config: $e" }
-            null
+            NetworkResult.ConnectionFailed
         }
     }
 }
