@@ -25,11 +25,11 @@ import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.RequestStatus
+import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
+import com.chriscartland.garage.domain.model.toServer
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.PushRepository
-import com.chriscartland.garage.snoozenotifications.SnoozeDurationUIOption
-import com.chriscartland.garage.snoozenotifications.toServer
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RemoteButtonStateMachine
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase

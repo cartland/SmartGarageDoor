@@ -20,9 +20,9 @@ package com.chriscartland.garage.usecase
 import android.app.Activity
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
+import com.chriscartland.garage.domain.model.toFcmTopic
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.fcm.DoorFcmRepository
-import com.chriscartland.garage.fcm.toFcmTopic
 
 /**
  * Maps [DoorFcmState] to the simpler [FcmRegistrationStatus] enum.

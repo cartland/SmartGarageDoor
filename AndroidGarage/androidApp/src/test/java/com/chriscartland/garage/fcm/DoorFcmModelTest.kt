@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.fcm
 
+import com.chriscartland.garage.domain.model.toFcmTopic
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
