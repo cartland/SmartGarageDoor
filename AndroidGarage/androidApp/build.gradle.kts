@@ -15,7 +15,8 @@
  *
  */
 
-import java.time.LocalDateTime
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Properties
 
@@ -62,7 +63,11 @@ android {
         // Falls back to 1 for local development builds
         val tagVersionCode = (project.findProperty("VERSION_CODE") as? String)?.toIntOrNull()
         versionCode = tagVersionCode ?: 1
-        versionName = "2.2-" + generateVersionNameTimestamp()
+        // versionName from version.properties (manually bumped, semver)
+        val versionProps = Properties().apply {
+            rootProject.file("version.properties").inputStream().use { load(it) }
+        }
+        versionName = versionProps.getProperty("versionName")
         setProperty("archivesBaseName", "$applicationId-$versionName-$versionCode")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -91,6 +96,15 @@ android {
             "String",
             "GOOGLE_WEB_CLIENT_ID",
             "\"${googleWebClientId ?: ""}\"",
+        )
+        val buildTimestamp = DateTimeFormatter
+            .ofPattern("yyyyMMdd.HHmmss")
+            .withZone(ZoneOffset.UTC)
+            .format(Instant.now())
+        buildConfigField(
+            "String",
+            "BUILD_TIMESTAMP",
+            "\"$buildTimestamp\"",
         )
     }
 
@@ -205,12 +219,6 @@ androidComponents {
             }
         }
     }
-}
-
-fun generateVersionNameTimestamp(): String {
-    val currentDateTime = LocalDateTime.now()
-    val formatter = DateTimeFormatter.ofPattern("yyyyMMdd.HHmmss")
-    return currentDateTime.format(formatter)
 }
 
 room {
