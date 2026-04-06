@@ -56,7 +56,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         Logger.d { "onCreate: Try to subscribe to FCM topic" }
-        doorViewModel.registerFcm(this)
+        doorViewModel.registerFcm()
         appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
     }
 

@@ -48,11 +48,7 @@ fun FCMRegistration() {
         when (fcmState) {
             FcmRegistrationStatus.UNKNOWN -> {
                 Logger.d { "Unknown FCM registration status, fetching..." }
-                if (activity != null) {
-                    viewModel.fetchFcmRegistrationStatus(activity)
-                } else {
-                    Logger.e { "Activity is null, cannot fetch FCM registration status" }
-                }
+                viewModel.fetchFcmRegistrationStatus()
             }
 
             FcmRegistrationStatus.REGISTERED -> {

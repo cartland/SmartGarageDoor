@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.usecase
 
-import android.app.Activity
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
@@ -27,7 +26,6 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mockito.mock
 
 class FakeDoorFcmRepository : DoorFcmRepository {
     var fetchStatusResult: DoorFcmState = DoorFcmState.Unknown
@@ -36,18 +34,15 @@ class FakeDoorFcmRepository : DoorFcmRepository {
     var registerCount = 0
     var lastRegisteredTopic: DoorFcmTopic? = null
 
-    override suspend fun fetchStatus(activity: Activity): DoorFcmState = fetchStatusResult
+    override suspend fun fetchStatus(): DoorFcmState = fetchStatusResult
 
-    override suspend fun registerDoor(
-        activity: Activity,
-        fcmTopic: DoorFcmTopic,
-    ): DoorFcmState {
+    override suspend fun registerDoor(fcmTopic: DoorFcmTopic): DoorFcmState {
         registerCount++
         lastRegisteredTopic = fcmTopic
         return registerResult
     }
 
-    override suspend fun deregisterDoor(activity: Activity): DoorFcmState = deregisterResult
+    override suspend fun deregisterDoor(): DoorFcmState = deregisterResult
 }
 
 class DoorFcmStateToRegistrationStatusTest {
@@ -75,14 +70,12 @@ class RegisterFcmUseCaseTest {
     private lateinit var fakeDoor: FakeDoorRepository
     private lateinit var fakeFcm: FakeDoorFcmRepository
     private lateinit var useCase: RegisterFcmUseCase
-    private lateinit var mockActivity: Activity
 
     @Before
     fun setup() {
         fakeDoor = FakeDoorRepository()
         fakeFcm = FakeDoorFcmRepository()
         useCase = RegisterFcmUseCase(fakeDoor, fakeFcm)
-        mockActivity = mock(Activity::class.java)
     }
 
     @Test
@@ -92,7 +85,7 @@ class RegisterFcmUseCaseTest {
             fakeFcm.registerResult =
                 DoorFcmState.Registered(DoorFcmTopic("door_open-Sat.Mar.13.14.45.00.2021"))
 
-            val result = useCase(mockActivity)
+            val result = useCase()
 
             assertEquals(FcmRegistrationStatus.REGISTERED, result)
             assertEquals(1, fakeFcm.registerCount)
@@ -102,7 +95,7 @@ class RegisterFcmUseCaseTest {
     fun registerFailsWithNullBuildTimestamp() =
         runTest {
             fakeDoor.buildTimestamp = null
-            val result = useCase(mockActivity)
+            val result = useCase()
 
             assertEquals(FcmRegistrationStatus.NOT_REGISTERED, result)
             assertEquals(0, fakeFcm.registerCount)
@@ -114,7 +107,7 @@ class RegisterFcmUseCaseTest {
             fakeDoor.buildTimestamp = "Sat Mar 13 14:45:00 2021"
             fakeFcm.registerResult = DoorFcmState.Registered(DoorFcmTopic("test"))
 
-            useCase(mockActivity)
+            useCase()
 
             assertEquals("door_open-Sat.Mar.13.14.45.00.2021", fakeFcm.lastRegisteredTopic?.string)
         }
@@ -125,7 +118,7 @@ class RegisterFcmUseCaseTest {
             fakeDoor.buildTimestamp = "timestamp"
             fakeFcm.registerResult = DoorFcmState.NotRegistered
 
-            val result = useCase(mockActivity)
+            val result = useCase()
 
             assertEquals(FcmRegistrationStatus.NOT_REGISTERED, result)
         }

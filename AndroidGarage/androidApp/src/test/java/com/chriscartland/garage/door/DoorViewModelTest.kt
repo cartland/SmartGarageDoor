@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.door
 
-import android.app.Activity
 import com.chriscartland.garage.coroutines.TestDispatcherProvider
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorFcmState
@@ -44,7 +43,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mockito.mock
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DoorViewModelTest {
@@ -186,12 +184,11 @@ class DoorViewModelTest {
     fun fetchFcmRegistrationStatusMapsRegisteredState() =
         runTest {
             val viewModel = createViewModel()
-            val activity = mock(Activity::class.java)
 
             doorFcmRepository.fetchStatusResult =
                 DoorFcmState.Registered(topic = DoorFcmTopic("test-topic"))
 
-            viewModel.fetchFcmRegistrationStatus(activity)
+            viewModel.fetchFcmRegistrationStatus()
             testDispatcher.scheduler.runCurrent()
 
             assertEquals(FcmRegistrationStatus.REGISTERED, viewModel.fcmRegistrationStatus.value)
@@ -201,11 +198,10 @@ class DoorViewModelTest {
     fun fetchFcmRegistrationStatusMapsNotRegisteredState() =
         runTest {
             val viewModel = createViewModel()
-            val activity = mock(Activity::class.java)
 
             doorFcmRepository.fetchStatusResult = DoorFcmState.NotRegistered
 
-            viewModel.fetchFcmRegistrationStatus(activity)
+            viewModel.fetchFcmRegistrationStatus()
             testDispatcher.scheduler.runCurrent()
 
             assertEquals(
@@ -218,11 +214,10 @@ class DoorViewModelTest {
     fun fetchFcmRegistrationStatusMapsUnknownState() =
         runTest {
             val viewModel = createViewModel()
-            val activity = mock(Activity::class.java)
 
             doorFcmRepository.fetchStatusResult = DoorFcmState.Unknown
 
-            viewModel.fetchFcmRegistrationStatus(activity)
+            viewModel.fetchFcmRegistrationStatus()
             testDispatcher.scheduler.runCurrent()
 
             assertEquals(FcmRegistrationStatus.UNKNOWN, viewModel.fcmRegistrationStatus.value)

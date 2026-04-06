@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.testcommon
 
-import android.app.Activity
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.fcm.DoorFcmRepository
@@ -27,12 +26,9 @@ class FakeDoorFcmRepository : DoorFcmRepository {
     var registerResult: DoorFcmState = DoorFcmState.NotRegistered
     var deregisterResult: DoorFcmState = DoorFcmState.NotRegistered
 
-    override suspend fun fetchStatus(activity: Activity): DoorFcmState = fetchStatusResult
+    override suspend fun fetchStatus(): DoorFcmState = fetchStatusResult
 
-    override suspend fun registerDoor(
-        activity: Activity,
-        fcmTopic: DoorFcmTopic,
-    ): DoorFcmState = registerResult
+    override suspend fun registerDoor(fcmTopic: DoorFcmTopic): DoorFcmState = registerResult
 
-    override suspend fun deregisterDoor(activity: Activity): DoorFcmState = deregisterResult
+    override suspend fun deregisterDoor(): DoorFcmState = deregisterResult
 }

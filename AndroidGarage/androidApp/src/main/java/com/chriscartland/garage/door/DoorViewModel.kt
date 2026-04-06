@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.door
 
-import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
@@ -45,11 +44,11 @@ interface DoorViewModel {
     val currentDoorEvent: StateFlow<LoadingResult<DoorEvent?>>
     val recentDoorEvents: StateFlow<LoadingResult<List<DoorEvent>>>
 
-    fun fetchFcmRegistrationStatus(activity: Activity)
+    fun fetchFcmRegistrationStatus()
 
-    fun registerFcm(activity: Activity)
+    fun registerFcm()
 
-    fun deregisterFcm(activity: Activity)
+    fun deregisterFcm()
 
     fun fetchCurrentDoorEvent()
 
@@ -105,26 +104,26 @@ class DefaultDoorViewModel(
         }
     }
 
-    override fun fetchFcmRegistrationStatus(activity: Activity) {
+    override fun fetchFcmRegistrationStatus() {
         Logger.d { "fetchFcmRegistrationStatus" }
         viewModelScope.launch(dispatchers.io) {
-            _fcmRegistrationStatus.value = fetchFcmStatusUseCase(activity)
+            _fcmRegistrationStatus.value = fetchFcmStatusUseCase()
         }
     }
 
-    override fun registerFcm(activity: Activity) {
+    override fun registerFcm() {
         Logger.d { "registerFcm" }
         viewModelScope.launch(dispatchers.io) {
-            _fcmRegistrationStatus.value = registerFcmUseCase(activity).also {
+            _fcmRegistrationStatus.value = registerFcmUseCase().also {
                 Logger.d { "Updated FcmRegistrationStatus: $it" }
             }
         }
     }
 
-    override fun deregisterFcm(activity: Activity) {
+    override fun deregisterFcm() {
         Logger.d { "deregisterFcm" }
         viewModelScope.launch(dispatchers.io) {
-            _fcmRegistrationStatus.value = deregisterFcmUseCase(activity).also {
+            _fcmRegistrationStatus.value = deregisterFcmUseCase().also {
                 Logger.d { "Updated FcmRegistrationStatus: $it" }
             }
         }

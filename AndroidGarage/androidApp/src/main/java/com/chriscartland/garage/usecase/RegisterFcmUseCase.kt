@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.usecase
 
-import android.app.Activity
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.toFcmTopic
@@ -37,13 +36,11 @@ fun DoorFcmState.toRegistrationStatus(): FcmRegistrationStatus =
 /**
  * Fetches the current FCM registration status.
  */
-class FetchFcmStatusUseCase
-    constructor(
-        private val doorFcmRepository: DoorFcmRepository,
-    ) {
-        suspend operator fun invoke(activity: Activity): FcmRegistrationStatus =
-            doorFcmRepository.fetchStatus(activity).toRegistrationStatus()
-    }
+class FetchFcmStatusUseCase(
+    private val doorFcmRepository: DoorFcmRepository,
+) {
+    suspend operator fun invoke(): FcmRegistrationStatus = doorFcmRepository.fetchStatus().toRegistrationStatus()
+}
 
 /**
  * Registers for FCM door notifications.
@@ -51,26 +48,23 @@ class FetchFcmStatusUseCase
  * Fetches the build timestamp from server config, converts it to an FCM topic,
  * and subscribes. Returns NOT_REGISTERED if build timestamp is unavailable.
  */
-class RegisterFcmUseCase
-    constructor(
-        private val doorRepository: DoorRepository,
-        private val doorFcmRepository: DoorFcmRepository,
-    ) {
-        suspend operator fun invoke(activity: Activity): FcmRegistrationStatus {
-            val buildTimestamp = doorRepository.fetchBuildTimestampCached()
-                ?: return FcmRegistrationStatus.NOT_REGISTERED
-            val result = doorFcmRepository.registerDoor(activity, buildTimestamp.toFcmTopic())
-            return result.toRegistrationStatus()
-        }
+class RegisterFcmUseCase(
+    private val doorRepository: DoorRepository,
+    private val doorFcmRepository: DoorFcmRepository,
+) {
+    suspend operator fun invoke(): FcmRegistrationStatus {
+        val buildTimestamp = doorRepository.fetchBuildTimestampCached()
+            ?: return FcmRegistrationStatus.NOT_REGISTERED
+        val result = doorFcmRepository.registerDoor(buildTimestamp.toFcmTopic())
+        return result.toRegistrationStatus()
     }
+}
 
 /**
  * Deregisters from FCM door notifications.
  */
-class DeregisterFcmUseCase
-    constructor(
-        private val doorFcmRepository: DoorFcmRepository,
-    ) {
-        suspend operator fun invoke(activity: Activity): FcmRegistrationStatus =
-            doorFcmRepository.deregisterDoor(activity).toRegistrationStatus()
-    }
+class DeregisterFcmUseCase(
+    private val doorFcmRepository: DoorFcmRepository,
+) {
+    suspend operator fun invoke(): FcmRegistrationStatus = doorFcmRepository.deregisterDoor().toRegistrationStatus()
+}
