@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.usecase
 
+import com.chriscartland.garage.domain.model.ActionError
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
@@ -26,7 +28,6 @@ import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakePushRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -63,7 +64,7 @@ class SnoozeNotificationsUseCaseTest {
         runTest {
             authenticateUser()
             val result = useCase("1h", 1000L)
-            assertTrue(result)
+            assertTrue("Should succeed", result is AppResult.Success)
             assertEquals(1, fakePush.snoozeCount)
         }
 
@@ -72,7 +73,8 @@ class SnoozeNotificationsUseCaseTest {
         runTest {
             fakeAuth.setAuthState(AuthState.Unauthenticated)
             val result = useCase("1h", 1000L)
-            assertFalse(result)
+            assertTrue("Should be error", result is AppResult.Error)
+            assertEquals(ActionError.NotAuthenticated, (result as AppResult.Error).error)
             assertEquals(0, fakePush.snoozeCount)
         }
 
@@ -80,7 +82,8 @@ class SnoozeNotificationsUseCaseTest {
     fun snoozeFailsWhenAuthUnknown() =
         runTest {
             val result = useCase("1h", 1000L)
-            assertFalse(result)
+            assertTrue("Should be error", result is AppResult.Error)
+            assertEquals(ActionError.NotAuthenticated, (result as AppResult.Error).error)
             assertEquals(0, fakePush.snoozeCount)
         }
 
@@ -89,7 +92,8 @@ class SnoozeNotificationsUseCaseTest {
         runTest {
             authenticateUser()
             val result = useCase("1h", null)
-            assertFalse(result)
+            assertTrue("Should be MissingData error", result is AppResult.Error)
+            assertEquals(ActionError.MissingData, (result as AppResult.Error).error)
             assertEquals(0, fakePush.snoozeCount)
         }
 
@@ -98,6 +102,7 @@ class SnoozeNotificationsUseCaseTest {
         runTest {
             authenticateUser(exp = 1000L)
             useCase("1h", null)
+            // MissingData error returned before token refresh
             assertEquals(0, fakeAuth.refreshCount)
         }
 

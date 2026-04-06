@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.usecase
 
+import com.chriscartland.garage.domain.model.ActionError
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.PushRepository
@@ -24,28 +26,24 @@ import com.chriscartland.garage.domain.repository.PushRepository
 /**
  * Pushes the remote garage button.
  *
- * Handles:
- * - Verifying the user is authenticated
- * - Ensuring the auth token is fresh
- * - Delegating to PushRepository
- *
- * @return true if the push was initiated, false if not authenticated
+ * Returns [AppResult] so callers can handle [ActionError.NotAuthenticated]
+ * explicitly with exhaustive `when`.
  */
 class PushRemoteButtonUseCase(
     private val ensureFreshIdToken: EnsureFreshIdTokenUseCase,
     private val authRepository: AuthRepository,
     private val pushRepository: PushRepository,
 ) {
-    suspend operator fun invoke(buttonAckToken: String): Boolean {
+    suspend operator fun invoke(buttonAckToken: String): AppResult<Unit, ActionError> {
         val authState = authRepository.authState.value
         if (authState !is AuthState.Authenticated) {
-            return false
+            return AppResult.Error(ActionError.NotAuthenticated)
         }
         val idToken = ensureFreshIdToken(authState)
         pushRepository.push(
             idToken = idToken.asString(),
             buttonAckToken = buttonAckToken,
         )
-        return true
+        return AppResult.Success(Unit)
     }
 }

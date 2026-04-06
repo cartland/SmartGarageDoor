@@ -21,6 +21,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
+import com.chriscartland.garage.domain.model.ActionError
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.RequestStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
@@ -100,23 +102,36 @@ class DefaultRemoteButtonViewModel(
     override fun pushRemoteButton() {
         Logger.d { "pushRemoteButton" }
         viewModelScope.launch(dispatchers.io) {
-            pushRemoteButtonUseCase(
-                buttonAckToken = createButtonAckToken(Date()),
-            )
+            when (
+                val result = pushRemoteButtonUseCase(
+                    buttonAckToken = createButtonAckToken(Date()),
+                )
+            ) {
+                is AppResult.Success -> { /* State machine tracks via pushButtonStatus flow */ }
+                is AppResult.Error -> when (result.error) {
+                    ActionError.NotAuthenticated -> Logger.w { "Push failed — not authenticated" }
+                    ActionError.MissingData -> Logger.w { "Push failed — missing data" }
+                }
+            }
         }
     }
 
     override fun snoozeOpenDoorsNotifications(snoozeDuration: SnoozeDurationUIOption) {
         Logger.d { "snoozeOpenDoorsNotifications" }
         viewModelScope.launch(dispatchers.io) {
-            val result = snoozeNotificationsUseCase(
-                snoozeDurationHours = snoozeDuration.toServer().duration,
-                lastChangeTimeSeconds = currentDoorEvent.value?.lastChangeTimeSeconds,
-            )
-            if (result) {
-                pushRepository.fetchSnoozeEndTimeSeconds()
-            } else {
-                Logger.e { "Snooze failed — not authenticated or no door event" }
+            when (
+                val result = snoozeNotificationsUseCase(
+                    snoozeDurationHours = snoozeDuration.toServer().duration,
+                    lastChangeTimeSeconds = currentDoorEvent.value?.lastChangeTimeSeconds,
+                )
+            ) {
+                is AppResult.Success -> pushRepository.fetchSnoozeEndTimeSeconds()
+                is AppResult.Error -> when (result.error) {
+                    ActionError.NotAuthenticated ->
+                        Logger.e { "Snooze failed — not authenticated" }
+                    ActionError.MissingData ->
+                        Logger.e { "Snooze failed — no door event timestamp" }
+                }
             }
         }
     }
