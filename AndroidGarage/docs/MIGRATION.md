@@ -188,7 +188,7 @@ Not needed for Android-only. When adding a second platform target:
 
 **Goal:** Clean UseCase signatures, then extract to shared KMP module.
 
-### 8.1 Fix UseCase Signatures
+### 8.1 Fix UseCase Signatures — COMPLETE (#127)
 
 Several UseCases pass repositories as `invoke()` arguments instead of constructor parameters. This couples callers to wiring details and blocks DI.
 
@@ -200,14 +200,14 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 
 **Pattern:** `invoke()` should only take request-specific arguments (token, duration), not dependencies. Dependencies go in the constructor so DI can wire them.
 
-### 8.2 Extract UseCase Module
+### 8.2 Extract UseCase Module — COMPLETE (#128)
 
-- Create `usecase/` KMP module (commonMain, depends on `:domain` only)
+- Created `usecase/` KMP module (commonMain, depends on `:domain` only)
 - Move 5 pure Kotlin use cases from `androidApp/usecase/`
 - `RegisterFcmUseCase` stays in `androidApp` (depends on `android.app.Activity`)
 - Tests move to `usecase/src/commonTest/kotlin/` with `kotlin.test`
 
-## Phase 9: Repository Implementations in Data Module
+## Phase 9: Repository Implementations in Data Module — COMPLETE
 
 **Goal:** Move pure Kotlin repository implementations into `data/` module.
 
@@ -311,16 +311,16 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 | 5. KMP | Large | Phase 4 | **COMPLETE** (Android-only) |
 | 6. Screenshot Tests | Medium | None | **COMPLETE** |
 | 7. Instrumented Tests | Medium | None | **COMPLETE** |
-| 8. UseCase Refactor + Module | Medium | Phase 2 | TODO |
-| 9. Data Module Repos | Medium | Phase 8 | TODO |
+| 8. UseCase Refactor + Module | Medium | Phase 2 | **COMPLETE** |
+| 9. Data Module Repos | Medium | Phase 8 | **COMPLETE** |
 | 10. Shared ViewModels | Medium | Phase 9 | TODO |
 | 11. Platform Abstractions | Small | Phase 9 | TODO |
 | 12. Nav3 Migration | Medium | None | TODO |
 | 13. iOS Target | Large | Phases 10-11 | TODO |
-| 14. Typed Errors | Medium | Phase 8 | TODO |
-| 15. Kermit Logging | Small | None | TODO |
+| 14. Typed Errors | Medium | Phase 8 | **COMPLETE** (foundation) |
+| 15. Kermit Logging | Small | None | **COMPLETE** |
 | 16. Integration Tests | Medium | Phase 9 | TODO |
-| 17. Architecture Rules | Small | Phase 8 | TODO |
+| 17. Architecture Rules | Small | Phase 8 | **COMPLETE** (import boundaries) |
 | 18. Presentation-Model | Small | Phase 10 | TODO (optional) |
 
 **Rule:** Finish each phase before starting the next. Update this document with commit hashes when items complete.
