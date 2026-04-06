@@ -50,7 +50,7 @@ export async function deleteOldData(cutoffTimestampSeconds: number, dryRunReques
     updatesDeleted: updateCount,
     eventsDeleted: eventCount,
     requestsDeleted: requestCount,
-    commandsDeleted: commandCount
+    commandsDeleted: commandCount,
   };
   return summary
 }

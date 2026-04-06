@@ -71,7 +71,7 @@ export class TimeSeriesDatabase {
       .get();
 
     const latestItems = querySnapshot.docs.map(doc =>
-      TimeSeriesDatabase.convertFromFirestore(doc.data())
+      TimeSeriesDatabase.convertFromFirestore(doc.data()),
     );
     return latestItems;
   }

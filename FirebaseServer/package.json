@@ -1,10 +1,8 @@
 {
   "name": "functions",
   "scripts": {
-    "lint": "tslint --project tsconfig.json",
-    "build": "npm run build:mac || npm run build:windows",
-    "build:mac": "echo \"Trying Mac build...\" && ./node_modules/.bin/tslint -p tslint.json && ./node_modules/.bin/tsc",
-    "build:windows": "echo \"Trying Windows build...\" && node_modules\\.bin\\tslint -p tslint.json && node_modules\\.bin\\tsc",
+    "lint": "eslint src/ test/",
+    "build": "npm run lint && tsc",
     "serve": "npm run build && firebase serve --only functions",
     "shell": "npm run build && firebase experimental:functions:shell",
     "start": "npm run shell",
@@ -27,12 +25,14 @@
     "@types/mocha": "8.2.3",
     "@types/node": "20.19.39",
     "@types/sinon": "17.0.4",
+    "@typescript-eslint/eslint-plugin": "^8.58.0",
+    "@typescript-eslint/parser": "^8.58.0",
     "chai": "4.5.0",
     "copyfiles": "2.4.1",
+    "eslint": "^10.2.0",
     "mocha": "10.8.2",
     "sinon": "21.0.0",
     "ts-node": "10.9.2",
-    "tslint": "5.20.1",
     "typescript": "4.9.5"
   },
   "engines": {

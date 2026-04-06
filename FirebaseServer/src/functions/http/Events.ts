@@ -48,7 +48,7 @@ export const httpCurrentEventData = functions.https.onRequest(async (request, re
   // Echo query parameters and body.
   const data = {
     queryParams: request.query,
-    body: request.body
+    body: request.body,
   };
   // The session ID allows a client to tell the server that multiple requests
   // come from the same session.
@@ -68,7 +68,7 @@ export const httpCurrentEventData = functions.https.onRequest(async (request, re
   const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
   if (!buildTimestamp) {
     response.status(400).send({
-      'error': 'Invalid buildTimestamp'
+      'error': 'Invalid buildTimestamp',
     });
     return;
   }
@@ -91,7 +91,7 @@ export const httpEventHistory = functions.https.onRequest(async (request, respon
   // Echo query parameters and body.
   const data = {
     queryParams: request.query,
-    body: request.body
+    body: request.body,
   };
   // The session ID allows a client to tell the server that multiple requests
   // come from the same session.
@@ -111,7 +111,7 @@ export const httpEventHistory = functions.https.onRequest(async (request, respon
   const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
   if (!buildTimestamp) {
     response.status(400).send({
-      'error': 'Invalid buildTimestamp'
+      'error': 'Invalid buildTimestamp',
     });
     return;
   }
@@ -145,7 +145,7 @@ export const httpNextEvent = functions.https.onRequest(async (request, response)
   // Echo query parameters and body.
   const data = {
     queryParams: request.query,
-    body: request.body
+    body: request.body,
   };
   // The session ID allows a client to tell the server that multiple requests
   // come from the same session.

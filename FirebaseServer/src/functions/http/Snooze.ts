@@ -118,7 +118,7 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
     } catch (error) {
         const result = {
             error: 'Could not parse parameters: '
-                + BUILD_TIMESTAMP_PARAM_KEY + ', ' + SNOOZE_DURATION_PARAM_KEY + ', ' + SNOOZE_EVENT_TIMESTAMP_KEY
+                + BUILD_TIMESTAMP_PARAM_KEY + ', ' + SNOOZE_DURATION_PARAM_KEY + ', ' + SNOOZE_EVENT_TIMESTAMP_KEY,
         };
         console.error(result.error);
         response.status(400).send(result);

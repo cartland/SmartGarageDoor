@@ -50,7 +50,7 @@ export const pubsubCheckForRemoteButtonErrors = functions.pubsub
       firebase.firestore.Timestamp.now().seconds - remoteButtonRequest[DATABASE_TIMESTAMP_SECONDS_KEY];
     if (isNaN(secondsSinceDatabaseUpdate)) {
       const result = {
-        error: 'Could not compute seconds since last database update'
+        error: 'Could not compute seconds since last database update',
       };
       console.error(result.error);
       await REMOTE_BUTTON_REQUEST_ERROR_DATABASE.save(buildTimestamp, result);
@@ -59,7 +59,7 @@ export const pubsubCheckForRemoteButtonErrors = functions.pubsub
     if (secondsSinceDatabaseUpdate > REMOTE_BUTTON_REQUEST_ERROR_SECONDS) {
       const result = {
         error: 'Seconds since remote button status was checked is greater than expected: ' +
-          secondsSinceDatabaseUpdate + ' > ' + REMOTE_BUTTON_REQUEST_ERROR_SECONDS
+          secondsSinceDatabaseUpdate + ' > ' + REMOTE_BUTTON_REQUEST_ERROR_SECONDS,
       };
       console.error(result.error);
       Object.assign(result, remoteButtonRequest);

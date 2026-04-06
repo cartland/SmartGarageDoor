@@ -21,7 +21,7 @@ import { Config } from '../../database/ServerConfigDatabase';
 export const httpServerConfig = functions.https.onRequest(async (request, response) => {
   const data = {
     queryParams: request.query,
-    body: request.body
+    body: request.body,
   };
   const functionConfig = functions.config();
   if (!functionConfig
@@ -60,7 +60,7 @@ export const httpServerConfig = functions.https.onRequest(async (request, respon
 export const httpServerConfigUpdate = functions.https.onRequest(async (request, response) => {
   const data = {
     queryParams: request.query,
-    body: request.body
+    body: request.body,
   };
   const functionConfig = functions.config();
   if (!functionConfig
