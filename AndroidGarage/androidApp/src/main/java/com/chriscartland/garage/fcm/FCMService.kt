@@ -17,7 +17,7 @@
 
 package com.chriscartland.garage.fcm
 
-import android.util.Log
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.GarageApplication
 import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.config.AppLoggerKeys
@@ -44,25 +44,25 @@ class FCMService : FirebaseMessagingService() {
     private val coroutineScope = CoroutineScope(Dispatchers.Main + supervisorJob)
 
     override fun onNewToken(token: String) {
-        Log.d(TAG, "FCM Instance Token: $token")
+        Logger.d { "FCM Instance Token: $token" }
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         // Not getting messages here? See why this may be: https://goo.gl/39bRNJ
-        Log.d(TAG, "onMessageReceived, from: ${remoteMessage.from}")
+        Logger.d { "onMessageReceived, from: ${remoteMessage.from}" }
 
         // Check if message contains a data payload.
         if (remoteMessage.data.isNotEmpty()) {
-            Log.d(TAG, "Message data payload: ${remoteMessage.data}")
+            Logger.d { "Message data payload: ${remoteMessage.data}" }
 
             val doorEvent = FcmPayloadParser.parseDoorEvent(remoteMessage.data)
             if (doorEvent == null) {
-                Log.e(TAG, "Unknown message type: ${remoteMessage.data.entries.joinToString()}")
+                Logger.e { "Unknown message type: ${remoteMessage.data.entries.joinToString()}" }
                 return
             }
-            Log.d(TAG, "DoorData: $doorEvent")
+            Logger.d { "DoorData: $doorEvent" }
             coroutineScope.launch(Dispatchers.IO) {
-                Log.d(TAG, "Logging FCM_DOOR_RECEIVED: ${AppLoggerKeys.FCM_DOOR_RECEIVED}")
+                Logger.d { "Logging FCM_DOOR_RECEIVED: ${AppLoggerKeys.FCM_DOOR_RECEIVED}" }
                 appLoggerRepository.log(AppLoggerKeys.FCM_DOOR_RECEIVED)
             }
             if (false) {
@@ -75,29 +75,29 @@ class FCMService : FirebaseMessagingService() {
                 handleNow(doorEvent)
             }
         } else {
-            Log.d(TAG, "Message data payload is empty")
+            Logger.d { "Message data payload is empty" }
         }
 
         // Check if message contains a notification payload.
         remoteMessage.notification?.let {
-            Log.d(TAG, "Message Notification Body: ${it.body}")
+            Logger.d { "Message Notification Body: ${it.body}" }
         }
     }
 
     private fun scheduleJob() {
-        Log.d(TAG, "scheduleJob...")
+        Logger.d { "scheduleJob..." }
     }
 
     /**
      * Handle the new door info now (complete within 10 seconds).
      */
     private fun handleNow(doorEvent: DoorEvent?) {
-        Log.d(TAG, "handleNow...")
+        Logger.d { "handleNow..." }
         if (doorEvent == null) {
-            Log.d(TAG, "DoorEvent is null")
+            Logger.d { "DoorEvent is null" }
             return
         }
-        Log.d(TAG, "Inserting DoorEvent: $doorEvent")
+        Logger.d { "Inserting DoorEvent: $doorEvent" }
         doorRepository.insertDoorEvent(doorEvent)
     }
 
@@ -106,5 +106,3 @@ class FCMService : FirebaseMessagingService() {
         supervisorJob.cancel()
     }
 }
-
-private const val TAG = "FCMService"

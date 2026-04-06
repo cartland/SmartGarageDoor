@@ -17,7 +17,7 @@
 
 package com.chriscartland.garage.door
 
-import android.util.Log
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.config.ServerConfigRepository
 import com.chriscartland.garage.data.LocalDoorDataSource
@@ -46,29 +46,29 @@ class DoorRepositoryImpl(
     override suspend fun fetchBuildTimestampCached(): String? = serverConfigRepository.getServerConfigCached()?.buildTimestamp
 
     override fun insertDoorEvent(doorEvent: DoorEvent) {
-        Log.d(TAG, "Inserting DoorEvent: $doorEvent")
+        Logger.d { "Inserting DoorEvent: $doorEvent" }
         localDoorDataSource.insertDoorEvent(doorEvent)
     }
 
     override suspend fun fetchCurrentDoorEvent() {
         val buildTimestamp = fetchBuildTimestampCached()
         if (buildTimestamp == null) {
-            Log.e(TAG, "Server config is null")
+            Logger.e { "Server config is null" }
             return
         }
         val doorEvent = networkDoorDataSource.fetchCurrentDoorEvent(buildTimestamp)
         if (doorEvent == null) {
-            Log.e(TAG, "Failed to fetch current door event")
+            Logger.e { "Failed to fetch current door event" }
             return
         }
-        Log.d(TAG, "Success: $doorEvent")
+        Logger.d { "Success: $doorEvent" }
         localDoorDataSource.insertDoorEvent(doorEvent)
     }
 
     override suspend fun fetchRecentDoorEvents() {
         val buildTimestamp = fetchBuildTimestampCached()
         if (buildTimestamp == null) {
-            Log.e(TAG, "Server config is null")
+            Logger.e { "Server config is null" }
             return
         }
         val doorEvents = networkDoorDataSource.fetchRecentDoorEvents(
@@ -76,12 +76,10 @@ class DoorRepositoryImpl(
             count = APP_CONFIG.recentEventCount,
         )
         if (doorEvents == null) {
-            Log.e(TAG, "Failed to fetch recent door events")
+            Logger.e { "Failed to fetch recent door events" }
             return
         }
-        Log.d(TAG, "Success: $doorEvents")
+        Logger.d { "Success: $doorEvents" }
         localDoorDataSource.replaceDoorEvents(doorEvents)
     }
 }
-
-private const val TAG = "DoorRepository"

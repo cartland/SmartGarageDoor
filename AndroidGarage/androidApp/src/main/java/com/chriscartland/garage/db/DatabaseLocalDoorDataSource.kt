@@ -17,7 +17,7 @@
 
 package com.chriscartland.garage.db
 
-import android.util.Log
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.LocalDoorDataSource
 import com.chriscartland.garage.domain.model.DoorEvent
 import kotlinx.coroutines.flow.Flow
@@ -34,14 +34,12 @@ class DatabaseLocalDoorDataSource(
         }
 
     override fun insertDoorEvent(doorEvent: DoorEvent) {
-        Log.d(TAG, "Inserting DoorEvent: $doorEvent")
+        Logger.d { "Inserting DoorEvent: $doorEvent" }
         appDatabase.doorEventDao().insert(doorEvent.toEntity())
     }
 
     override fun replaceDoorEvents(doorEvents: List<DoorEvent>) {
-        Log.d(TAG, "Replacing DoorEvents: $doorEvents")
+        Logger.d { "Replacing DoorEvents: $doorEvents" }
         appDatabase.doorEventDao().replaceAll(doorEvents.map { it.toEntity() })
     }
 }
-
-private const val TAG = "LocalDoorDataSource"

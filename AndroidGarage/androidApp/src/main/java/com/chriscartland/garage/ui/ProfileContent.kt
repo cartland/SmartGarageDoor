@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.ui
 
-import android.util.Log
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.ReportDrawn
 import androidx.compose.foundation.layout.Arrangement
@@ -36,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.auth.AuthViewModel
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.di.rememberAppComponent
@@ -82,7 +82,7 @@ fun ProfileContent(
             if (activity != null) {
                 resolvedAuthViewModel.signInWithGoogle(activity)
             } else {
-                Log.e(TAG, "Activity is null, cannot sign in with Google")
+                Logger.e { "Activity is null, cannot sign in with Google" }
             }
         },
         signOut = { resolvedAuthViewModel.signOut() },
@@ -165,5 +165,3 @@ fun ProfileContent(
 fun ProfileContentPreview() {
     ProfileContent()
 }
-
-private const val TAG = "ProfileContent"

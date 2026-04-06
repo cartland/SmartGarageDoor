@@ -17,7 +17,7 @@
 
 package com.chriscartland.garage.remotebutton
 
-import android.util.Log
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.config.ServerConfigRepository
 import com.chriscartland.garage.data.NetworkButtonDataSource
@@ -50,12 +50,12 @@ class PushRepositoryImpl(
         _pushButtonStatus.value = PushStatus.SENDING
         val serverConfig = serverConfigRepository.getServerConfigCached()
         if (serverConfig == null) {
-            Log.e(TAG, "Server config is null")
+            Logger.e { "Server config is null" }
             _pushButtonStatus.value = PushStatus.IDLE
             return
         }
         if (!APP_CONFIG.remoteButtonPushEnabled) {
-            Log.w(TAG, "Remote button push is disabled")
+            Logger.w { "Remote button push is disabled" }
             delay(Duration.ofMillis(500))
         }
         if (APP_CONFIG.remoteButtonPushEnabled) {
@@ -72,11 +72,11 @@ class PushRepositoryImpl(
     override suspend fun fetchSnoozeEndTimeSeconds() {
         val serverConfig = serverConfigRepository.getServerConfigCached()
         if (serverConfig == null) {
-            Log.e(TAG, "Server config is null")
+            Logger.e { "Server config is null" }
             return
         }
         if (!APP_CONFIG.snoozeNotificationsOption) {
-            Log.w(TAG, "Snooze notifications disabled")
+            Logger.w { "Snooze notifications disabled" }
             delay(Duration.ofMillis(500))
         }
         if (APP_CONFIG.snoozeNotificationsOption) {
@@ -95,12 +95,12 @@ class PushRepositoryImpl(
         _snoozeRequestStatus.value = SnoozeRequestStatus.SENDING
         val serverConfig = serverConfigRepository.getServerConfigCached()
         if (serverConfig == null) {
-            Log.e(TAG, "Server config is null")
+            Logger.e { "Server config is null" }
             _snoozeRequestStatus.value = SnoozeRequestStatus.IDLE
             return
         }
         if (!APP_CONFIG.snoozeNotificationsOption) {
-            Log.w(TAG, "Snooze notifications disabled")
+            Logger.w { "Snooze notifications disabled" }
             delay(Duration.ofMillis(500))
         }
         if (APP_CONFIG.snoozeNotificationsOption) {
@@ -137,5 +137,3 @@ fun createButtonAckToken(now: Date): String {
     val filtered = re.replace(buttonAckTokenData, ".")
     return filtered
 }
-
-private const val TAG = "PushRepository"

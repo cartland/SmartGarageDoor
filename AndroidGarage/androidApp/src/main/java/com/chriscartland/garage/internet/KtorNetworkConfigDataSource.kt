@@ -17,7 +17,7 @@
 
 package com.chriscartland.garage.internet
 
-import android.util.Log
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.NetworkConfigDataSource
 import com.chriscartland.garage.domain.model.ServerConfig
 import io.ktor.client.HttpClient
@@ -39,26 +39,26 @@ class KtorNetworkConfigDataSource(
                 header("X-ServerConfigKey", serverConfigKey)
             }
             if (!response.status.isSuccess()) {
-                Log.e(TAG, "Response code is ${response.status.value}")
+                Logger.e { "Response code is ${response.status.value}" }
                 return null
             }
             val result = response.body<KtorServerConfigResponse>()
             val body = result.body
             if (body == null) {
-                Log.e(TAG, "Response body is null")
+                Logger.e { "Response body is null" }
                 return null
             }
             if (body.buildTimestamp.isNullOrEmpty()) {
-                Log.e(TAG, "buildTimestamp is empty")
+                Logger.e { "buildTimestamp is empty" }
                 return null
             }
             val remoteButtonBuildTimestamp = body.remoteButtonBuildTimestamp
             if (remoteButtonBuildTimestamp.isNullOrEmpty()) {
-                Log.e(TAG, "remoteButtonBuildTimestamp is empty")
+                Logger.e { "remoteButtonBuildTimestamp is empty" }
                 return null
             }
             if (body.remoteButtonPushKey.isNullOrEmpty()) {
-                Log.e(TAG, "remoteButtonPushKey is empty")
+                Logger.e { "remoteButtonPushKey is empty" }
                 return null
             }
             ServerConfig(
@@ -70,13 +70,11 @@ class KtorNetworkConfigDataSource(
                 remoteButtonPushKey = body.remoteButtonPushKey,
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching server config: $e")
+            Logger.e { "Error fetching server config: $e" }
             null
         }
     }
 }
-
-private const val TAG = "KtorNetworkConfig"
 
 // region Serializable response types
 

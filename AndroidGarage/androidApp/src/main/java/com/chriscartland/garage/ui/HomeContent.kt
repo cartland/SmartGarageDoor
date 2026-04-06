@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.ui
 
-import android.util.Log
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.clickable
@@ -43,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.applogger.AppLoggerViewModel
 import com.chriscartland.garage.auth.AuthViewModel
 import com.chriscartland.garage.config.AppLoggerKeys
@@ -89,11 +89,7 @@ fun HomeContent(
         onRemoteButtonClick = {
             when (authState) {
                 is AuthState.Authenticated -> {
-                    Log.d(
-                        TAG,
-                        "Remote button clicked. " +
-                            "AuthViewModel authState $authState",
-                    )
+                    Logger.d { "Remote button clicked. AuthViewModel authState $authState" }
                     buttonViewModel.pushRemoteButton()
                 }
 
@@ -101,7 +97,7 @@ fun HomeContent(
                     if (activity != null) {
                         resolvedAuthViewModel.signInWithGoogle(activity)
                     } else {
-                        Log.e(TAG, "Activity is null, cannot sign in with Google")
+                        Logger.e { "Activity is null, cannot sign in with Google" }
                     }
                 }
 
@@ -109,7 +105,7 @@ fun HomeContent(
                     if (activity != null) {
                         resolvedAuthViewModel.signInWithGoogle(activity)
                     } else {
-                        Log.e(TAG, "Activity is null, cannot sign in with Google")
+                        Logger.e { "Activity is null, cannot sign in with Google" }
                     }
                 }
             }
@@ -120,14 +116,14 @@ fun HomeContent(
             if (activity != null) {
                 resolvedAuthViewModel.signInWithGoogle(activity)
             } else {
-                Log.e(TAG, "Activity is null, cannot sign in with Google")
+                Logger.e { "Activity is null, cannot sign in with Google" }
             }
         },
         onResetFcm = {
             if (activity != null) {
                 resolvedDoorViewModel.deregisterFcm(activity)
             } else {
-                Log.e(TAG, "Activity is null, cannot deregister FCM")
+                Logger.e { "Activity is null, cannot deregister FCM" }
             }
         },
         onLogNotificationPermissionRequested = {
@@ -166,7 +162,7 @@ fun HomeContent(
             if (isOld) {
                 OldLastCheckInBanner(
                     action = {
-                        Log.e(TAG, "Trying to fix outdated info. Resetting FCM, and fetching data.")
+                        Logger.e { "Trying to fix outdated info. Resetting FCM, and fetching data." }
                         onResetFcm()
                         onFetchCurrentDoorEvent()
                     },
@@ -237,7 +233,7 @@ fun HomeContent(
                             modifier = Modifier
                                 .fillMaxSize(),
                             onSubmit = {
-                                Log.d("HomeContent", "Remote button clicked")
+                                Logger.d { "Remote button clicked" }
                                 onRemoteButtonClick()
                             },
                             onArming = {
@@ -269,5 +265,3 @@ fun HomeContentPreview() {
         },
     )
 }
-
-private const val TAG = "HomeContent"

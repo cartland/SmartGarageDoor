@@ -17,7 +17,7 @@
 
 package com.chriscartland.garage.internet
 
-import android.util.Log
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.NetworkDoorDataSource
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
@@ -38,15 +38,15 @@ class KtorNetworkDoorDataSource(
                 parameter("buildTimestamp", buildTimestamp)
             }
             if (!response.status.isSuccess()) {
-                Log.e(TAG, "Response code is ${response.status.value}")
+                Logger.e { "Response code is ${response.status.value}" }
                 return null
             }
             val body = response.body<KtorCurrentEventDataResponse>()
             body.currentEventData?.currentEvent?.toDoorEvent().also {
-                if (it == null) Log.e(TAG, "Door event is null")
+                if (it == null) Logger.e { "Door event is null" }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching current door event: $e")
+            Logger.e { "Error fetching current door event: $e" }
             null
         }
     }
@@ -61,33 +61,27 @@ class KtorNetworkDoorDataSource(
                 parameter("eventHistoryMaxCount", count)
             }
             if (!response.status.isSuccess()) {
-                Log.e(TAG, "Response code is ${response.status.value}")
+                Logger.e { "Response code is ${response.status.value}" }
                 return null
             }
             val body = response.body<KtorRecentEventDataResponse>()
             if (body.eventHistory.isNullOrEmpty()) {
-                Log.i(TAG, "recentEventData is empty")
+                Logger.i { "recentEventData is empty" }
                 return null
             }
             val doorEvents = body.eventHistory.mapNotNull {
                 it.currentEvent?.toDoorEvent()
             }
             if (doorEvents.size != body.eventHistory.size) {
-                Log.e(
-                    TAG,
-                    "Door events size ${doorEvents.size} " +
-                        "does not match response size ${body.eventHistory.size}",
-                )
+                Logger.e { "Door events size ${doorEvents.size} does not match response size ${body.eventHistory.size}" }
             }
             doorEvents
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching recent door events: $e")
+            Logger.e { "Error fetching recent door events: $e" }
             null
         }
     }
 }
-
-private const val TAG = "KtorNetworkDoor"
 
 // region Serializable response types
 

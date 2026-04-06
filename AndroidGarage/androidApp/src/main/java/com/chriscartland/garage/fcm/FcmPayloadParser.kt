@@ -17,7 +17,7 @@
 
 package com.chriscartland.garage.fcm
 
-import android.util.Log
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 
@@ -56,7 +56,7 @@ object FcmPayloadParser {
                 lastCheckInTimeSeconds = checkInTimestampSeconds,
             )
         } catch (e: Exception) {
-            Log.e("FcmPayloadParser", "Error parsing DoorEvent: $e")
+            Logger.e { "Error parsing DoorEvent: $e" }
             return null
         }
     }

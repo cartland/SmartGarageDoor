@@ -19,11 +19,11 @@ package com.chriscartland.garage
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.ui.util.trace
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.auth.RC_ONE_TAP_SIGN_IN
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.di.activityViewModel
@@ -55,7 +55,7 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
-        Log.d(TAG, "onCreate: Try to subscribe to FCM topic")
+        Logger.d { "onCreate: Try to subscribe to FCM topic" }
         doorViewModel.registerFcm(this)
         appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
     }
@@ -71,12 +71,12 @@ class MainActivity : ComponentActivity() {
         data: Intent?,
     ) {
         super.onActivityResult(requestCode, resultCode, data)
-        Log.d("MainActivity", "onActivityResult")
+        Logger.d { "onActivityResult" }
         when (requestCode) {
             RC_ONE_TAP_SIGN_IN -> {
-                Log.d("MainActivity", "RC_ONE_TAP_SIGN_IN")
+                Logger.d { "RC_ONE_TAP_SIGN_IN" }
                 if (data == null) {
-                    Log.e("MainActivity", "onActivityResult: data is null")
+                    Logger.e { "onActivityResult: data is null" }
                     return
                 }
                 authViewModel.processGoogleSignInResult(data)
@@ -84,5 +84,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-private const val TAG = "MainActivity"
