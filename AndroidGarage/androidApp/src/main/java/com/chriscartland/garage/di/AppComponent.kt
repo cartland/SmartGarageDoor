@@ -22,9 +22,11 @@ import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.applogger.DefaultAppLoggerViewModel
 import com.chriscartland.garage.applogger.RoomAppLoggerRepository
 import com.chriscartland.garage.auth.DefaultAuthViewModel
+import com.chriscartland.garage.auth.FirebaseAuthBridge
 import com.chriscartland.garage.auth.FirebaseAuthRepository
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.coroutines.DefaultDispatcherProvider
+import com.chriscartland.garage.data.AuthBridge
 import com.chriscartland.garage.data.LocalDoorDataSource
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkConfigDataSource
@@ -111,7 +113,11 @@ abstract class AppComponent(
     // Repositories
     @Provides
     @Singleton
-    fun provideAuthRepository(): AuthRepository = FirebaseAuthRepository(provideAppLoggerRepository())
+    fun provideAuthBridge(): AuthBridge = FirebaseAuthBridge()
+
+    @Provides
+    @Singleton
+    fun provideAuthRepository(): AuthRepository = FirebaseAuthRepository(provideAuthBridge(), provideAppLoggerRepository())
 
     @Provides
     @Singleton
