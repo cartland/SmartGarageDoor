@@ -17,7 +17,7 @@
 
 package com.chriscartland.garage.auth
 
-import android.util.Log
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AuthState
@@ -67,15 +67,15 @@ class AuthRepositoryImpl(
      */
     private suspend fun firebaseSignInWithGoogle(idToken: GoogleIdToken) {
         suspendCoroutine { continuation ->
-            Log.d(TAG, "firebaseAuthWithGoogle")
+            Logger.d { "firebaseAuthWithGoogle" }
             val credential = GoogleAuthProvider.getCredential(idToken.asString(), null)
             Firebase.auth
                 .signInWithCredential(credential)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
-                        Log.d(TAG, "Firebase signInWithGoogle: success")
+                        Logger.d { "Firebase signInWithGoogle: success" }
                     } else {
-                        Log.w(TAG, "Firebase signInWithGoogle: failure", task.exception)
+                        Logger.w { "Firebase signInWithGoogle: failure: ${task.exception}" }
                     }
                     continuation.resume(Unit)
                 }
@@ -96,7 +96,7 @@ class AuthRepositoryImpl(
                     currentUser
                         .getIdToken(true)
                         .addOnSuccessListener { result ->
-                            Log.d(TAG, "Firebase ID Token: ${result.token}")
+                            Logger.d { "Firebase ID Token: ${result.token}" }
                             continuation.resume(
                                 result.token?.let {
                                     FirebaseIdToken(
@@ -106,7 +106,7 @@ class AuthRepositoryImpl(
                                 },
                             )
                         }.addOnFailureListener { exception ->
-                            Log.e(TAG, "Failed to get Firebase ID Token", exception)
+                            Logger.e { "Failed to get Firebase ID Token: $exception" }
                             continuation.resume(null)
                         }
                 }
@@ -131,7 +131,7 @@ class AuthRepositoryImpl(
      * Commit the new AuthState and handle any side effects.
      */
     private suspend fun AuthState.commit(): AuthState {
-        Log.d(TAG, "AuthState.commit(): $this")
+        Logger.d { "AuthState.commit(): $this" }
         when (this) {
             is AuthState.Authenticated ->
                 appLoggerRepository.log(AppLoggerKeys.USER_AUTHENTICATED)
@@ -152,9 +152,7 @@ class AuthRepositoryImpl(
         try {
             Firebase.auth.signOut()
         } catch (e: Exception) {
-            Log.e(TAG, e.toString())
+            Logger.e { e.toString() }
         }
     }
 }
-
-private const val TAG = "AuthRepository"

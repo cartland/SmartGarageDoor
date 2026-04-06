@@ -17,9 +17,9 @@
 
 package com.chriscartland.garage.remotebutton
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.PushStatus
@@ -122,10 +122,7 @@ class RemoteButtonViewModelImpl(
                         }
                     }
                 }
-                Log.d(
-                    TAG,
-                    "ButtonRequestStateMachine network: old $old -> " + "new ${_requestStatus.value.name}",
-                )
+                Logger.d { "ButtonRequestStateMachine network: old $old -> new ${_requestStatus.value.name}" }
             }
         }
     }
@@ -154,10 +151,7 @@ class RemoteButtonViewModelImpl(
 
                     RequestStatus.RECEIVED -> _requestStatus.value = RequestStatus.RECEIVED
                 }
-                Log.d(
-                    TAG,
-                    "ButtonRequestStateMachine door: old $old -> " + "new ${_requestStatus.value.name}",
-                )
+                Logger.d { "ButtonRequestStateMachine door: old $old -> new ${_requestStatus.value.name}" }
             }
         }
     }
@@ -191,7 +185,7 @@ class RemoteButtonViewModelImpl(
                             delay(Duration.ofSeconds(10))
                             // Check to make sure state has not changed.
                             if (_requestStatus.value != RequestStatus.SENDING) {
-                                Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
+                                Logger.e { "ButtonRequestStatus unexpectedly changed" }
                             } else {
                                 _requestStatus.value = RequestStatus.SENDING_TIMEOUT
                             }
@@ -205,7 +199,7 @@ class RemoteButtonViewModelImpl(
                         job = viewModelScope.launch(dispatchers.io) {
                             delay(Duration.ofSeconds(10))
                             if (_requestStatus.value != RequestStatus.SENT) {
-                                Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
+                                Logger.e { "ButtonRequestStatus unexpectedly changed" }
                             } else {
                                 _requestStatus.value = RequestStatus.SENT_TIMEOUT
                             }
@@ -219,7 +213,7 @@ class RemoteButtonViewModelImpl(
                         job = viewModelScope.launch(dispatchers.io) {
                             delay(Duration.ofSeconds(10))
                             if (_requestStatus.value != RequestStatus.RECEIVED) {
-                                Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
+                                Logger.e { "ButtonRequestStatus unexpectedly changed" }
                             }
                             _requestStatus.value = RequestStatus.NONE
                         }
@@ -232,7 +226,7 @@ class RemoteButtonViewModelImpl(
                         job = viewModelScope.launch(dispatchers.io) {
                             delay(Duration.ofSeconds(10))
                             if (_requestStatus.value != RequestStatus.SENDING_TIMEOUT) {
-                                Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
+                                Logger.e { "ButtonRequestStatus unexpectedly changed" }
                             }
                             _requestStatus.value = RequestStatus.NONE
                         }
@@ -245,17 +239,14 @@ class RemoteButtonViewModelImpl(
                         job = viewModelScope.launch(dispatchers.io) {
                             delay(Duration.ofSeconds(10))
                             if (_requestStatus.value != RequestStatus.SENT_TIMEOUT) {
-                                Log.wtf(TAG, "ButtonRequestStatus unexpectedly changed")
+                                Logger.e { "ButtonRequestStatus unexpectedly changed" }
                             }
                             _requestStatus.value = RequestStatus.NONE
                         }
                         mutex.unlock()
                     }
                 }
-                Log.d(
-                    TAG,
-                    "ButtonRequestStateMachine timeouts: " + _requestStatus.value.name,
-                )
+                Logger.d { "ButtonRequestStateMachine timeouts: ${_requestStatus.value.name}" }
             }
         }
     }
@@ -274,7 +265,7 @@ class RemoteButtonViewModelImpl(
      * Requires an authenticated user.
      */
     override fun pushRemoteButton() {
-        Log.d(TAG, "pushRemoteButton")
+        Logger.d { "pushRemoteButton" }
         viewModelScope.launch(dispatchers.io) {
             pushRemoteButtonUseCase(
                 buttonAckToken = createButtonAckToken(Date()),
@@ -283,14 +274,14 @@ class RemoteButtonViewModelImpl(
     }
 
     override fun snoozeOpenDoorsNotifications(snoozeDuration: SnoozeDurationUIOption) {
-        Log.d(TAG, "snoozeOpenDoorsNotifications")
+        Logger.d { "snoozeOpenDoorsNotifications" }
         viewModelScope.launch(dispatchers.io) {
             val result = snoozeNotificationsUseCase(
                 snoozeDurationHours = snoozeDuration.toServer().duration,
                 lastChangeTimeSeconds = currentDoorEvent.value?.lastChangeTimeSeconds,
             )
             if (!result) {
-                Log.e(TAG, "Snooze failed — not authenticated or no door event")
+                Logger.e { "Snooze failed — not authenticated or no door event" }
             }
         }
     }
@@ -305,5 +296,3 @@ class RemoteButtonViewModelImpl(
         }
     }
 }
-
-private const val TAG = "RemoteButtonViewModel"

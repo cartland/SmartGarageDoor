@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.ui
 
-import android.util.Log
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.clickable
@@ -36,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.applogger.AppLoggerViewModel
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.di.rememberAppComponent
@@ -66,7 +66,7 @@ fun DoorHistoryContent(
             if (activity != null) {
                 resolvedDoorViewModel.deregisterFcm(activity)
             } else {
-                Log.e(TAG, "Activity is null, cannot deregister FCM")
+                Logger.e { "Activity is null, cannot deregister FCM" }
             }
         },
     )
@@ -92,10 +92,7 @@ fun DoorHistoryContent(
                     OldLastCheckInBanner(
                         modifier = Modifier.fillMaxWidth(),
                         action = {
-                            Log.e(
-                                TAG,
-                                "Trying to fix outdated info. Resetting FCM, and fetching data.",
-                            )
+                            Logger.e { "Trying to fix outdated info. Resetting FCM, and fetching data." }
                             onResetFcm()
                             onFetchRecentDoorEvents()
                         },
@@ -143,5 +140,3 @@ fun DoorHistoryContentPreview() {
         recentDoorEvents = LoadingResult.Complete(demoDoorEvents),
     )
 }
-
-private const val TAG = "DoorHistoryContent"

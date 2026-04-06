@@ -18,9 +18,9 @@
 package com.chriscartland.garage.door
 
 import android.app.Activity
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.config.AppLoggerKeys
@@ -81,16 +81,16 @@ class DoorViewModelImpl(
     override val recentDoorEvents: StateFlow<LoadingResult<List<DoorEvent>>> = _recentDoorEvents
 
     init {
-        Log.d(TAG, "init")
+        Logger.d { "init" }
         viewModelScope.launch(dispatchers.io) {
             doorRepository.currentDoorEvent.collect {
-                Log.d(TAG, "currentDoorEvent collect: $it")
+                Logger.d { "currentDoorEvent collect: $it" }
                 _currentDoorEvent.value = LoadingResult.Complete(it)
             }
         }
         viewModelScope.launch(dispatchers.io) {
             doorRepository.recentDoorEvents.collect {
-                Log.d(TAG, "recentDoorEvents collect: $it")
+                Logger.d { "recentDoorEvents collect: $it" }
                 _recentDoorEvents.value = LoadingResult.Complete(it)
             }
         }
@@ -111,32 +111,32 @@ class DoorViewModelImpl(
     }
 
     override fun fetchFcmRegistrationStatus(activity: Activity) {
-        Log.d(TAG, "fetchFcmRegistrationStatus")
+        Logger.d { "fetchFcmRegistrationStatus" }
         viewModelScope.launch(dispatchers.io) {
             _fcmRegistrationStatus.value = fetchFcmStatusUseCase(activity)
         }
     }
 
     override fun registerFcm(activity: Activity) {
-        Log.d(TAG, "registerFcm")
+        Logger.d { "registerFcm" }
         viewModelScope.launch(dispatchers.io) {
             _fcmRegistrationStatus.value = registerFcmUseCase(activity).also {
-                Log.d(TAG, "Updated FcmRegistrationStatus: $it")
+                Logger.d { "Updated FcmRegistrationStatus: $it" }
             }
         }
     }
 
     override fun deregisterFcm(activity: Activity) {
-        Log.d(TAG, "deregisterFcm")
+        Logger.d { "deregisterFcm" }
         viewModelScope.launch(dispatchers.io) {
             _fcmRegistrationStatus.value = deregisterFcmUseCase(activity).also {
-                Log.d(TAG, "Updated FcmRegistrationStatus: $it")
+                Logger.d { "Updated FcmRegistrationStatus: $it" }
             }
         }
     }
 
     override fun fetchCurrentDoorEvent() {
-        Log.d(TAG, "fetchCurrentDoorEvent")
+        Logger.d { "fetchCurrentDoorEvent" }
         viewModelScope.launch(dispatchers.io) {
             _currentDoorEvent.value = LoadingResult.Loading(_currentDoorEvent.value.data)
             fetchCurrentDoorEventUseCase()
@@ -144,12 +144,10 @@ class DoorViewModelImpl(
     }
 
     override fun fetchRecentDoorEvents() {
-        Log.d(TAG, "fetchRecentDoorEvents")
+        Logger.d { "fetchRecentDoorEvents" }
         viewModelScope.launch(dispatchers.io) {
             _recentDoorEvents.value = LoadingResult.Loading(_recentDoorEvents.value.data)
             fetchRecentDoorEventsUseCase()
         }
     }
 }
-
-private const val TAG = "DoorViewModel"

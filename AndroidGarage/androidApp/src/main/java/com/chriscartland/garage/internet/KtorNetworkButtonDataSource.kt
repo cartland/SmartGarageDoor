@@ -17,7 +17,7 @@
 
 package com.chriscartland.garage.internet
 
-import android.util.Log
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -44,10 +44,10 @@ class KtorNetworkButtonDataSource(
                 header("X-RemoteButtonPushKey", remoteButtonPushKey)
                 header("X-AuthTokenGoogle", idToken)
             }
-            Log.i(TAG, "Push response: ${response.status.value}")
+            Logger.i { "Push response: ${response.status.value}" }
             response.status.isSuccess()
         } catch (e: Exception) {
-            Log.e(TAG, "Push error: $e")
+            Logger.e { "Push error: $e" }
             false
         }
 
@@ -66,18 +66,18 @@ class KtorNetworkButtonDataSource(
                 parameter("snoozeDuration", snoozeDurationHours)
                 parameter("snoozeEventTimestamp", snoozeEventTimestampSeconds)
             }
-            Log.i(TAG, "Snooze response: ${response.status.value}")
+            Logger.i { "Snooze response: ${response.status.value}" }
             if (!response.status.isSuccess()) {
                 return false
             }
             val body = response.body<KtorSnoozeResponse>()
             if (body.error != null) {
-                Log.e(TAG, "Snooze error: ${body.error}")
+                Logger.e { "Snooze error: ${body.error}" }
                 return false
             }
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Snooze error: $e")
+            Logger.e { "Snooze error: $e" }
             false
         }
     }
@@ -89,18 +89,16 @@ class KtorNetworkButtonDataSource(
             }
             val body = response.body<KtorGetSnoozeResponse>()
             if (body.error != null) {
-                Log.e(TAG, "Snooze fetch error: ${body.error}")
+                Logger.e { "Snooze fetch error: ${body.error}" }
                 return 0L
             }
             body.snooze?.snoozeEndTimeSeconds ?: 0L
         } catch (e: Exception) {
-            Log.e(TAG, "Snooze fetch error: $e")
+            Logger.e { "Snooze fetch error: $e" }
             0L
         }
     }
 }
-
-private const val TAG = "KtorNetworkButton"
 
 // region Serializable response types
 

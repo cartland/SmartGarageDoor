@@ -17,13 +17,13 @@
 
 package com.chriscartland.garage.fcm
 
-import android.util.Log
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.door.DoorViewModel
@@ -47,23 +47,21 @@ fun FCMRegistration() {
         // Subscribe to FCM updates.
         when (fcmState) {
             FcmRegistrationStatus.UNKNOWN -> {
-                Log.d(TAG, "Unknown FCM registration status, fetching...")
+                Logger.d { "Unknown FCM registration status, fetching..." }
                 if (activity != null) {
                     viewModel.fetchFcmRegistrationStatus(activity)
                 } else {
-                    Log.e(TAG, "Activity is null, cannot fetch FCM registration status")
+                    Logger.e { "Activity is null, cannot fetch FCM registration status" }
                 }
             }
 
             FcmRegistrationStatus.REGISTERED -> {
-                Log.d(TAG, "FCM registration status is registered")
+                Logger.d { "FCM registration status is registered" }
             }
 
             FcmRegistrationStatus.NOT_REGISTERED -> {
-                Log.d(TAG, "FCM registration status is not registered, registering...")
+                Logger.d { "FCM registration status is not registered, registering..." }
             }
         }
     }
 }
-
-private const val TAG: String = "FcmRegistration"

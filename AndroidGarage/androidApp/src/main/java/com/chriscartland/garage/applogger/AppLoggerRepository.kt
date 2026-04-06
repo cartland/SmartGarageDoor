@@ -19,7 +19,7 @@ package com.chriscartland.garage.applogger
 
 import android.content.Context
 import android.net.Uri
-import android.util.Log
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.applogger.model.AppEvent
 import com.chriscartland.garage.db.AppDatabase
 import com.chriscartland.garage.version.AppVersion
@@ -47,7 +47,7 @@ class AppLoggerRepositoryImpl(
     private val appDatabase: AppDatabase,
 ) : AppLoggerRepository {
     override suspend fun log(key: String) {
-        Log.d(TAG, "Logging key: $key")
+        Logger.d { "Logging key: $key" }
         appDatabase.appLoggerDao().insert(
             AppEvent(
                 eventKey = key,
@@ -80,7 +80,7 @@ class AppLoggerRepositoryImpl(
                 }
             } catch (e: Exception) {
                 // Handle exceptions (e.g., file I/O errors)
-                Log.d("CreateTxtFile", "Error writing to file: ${e.message}")
+                Logger.d { "Error writing to file: ${e.message}" }
             }
         }
     }
@@ -94,5 +94,3 @@ class AppLoggerRepositoryImpl(
         return formatter.format(instant)
     }
 }
-
-private const val TAG = "AppLoggerRepository"

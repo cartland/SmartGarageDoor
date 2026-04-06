@@ -18,7 +18,7 @@
 package com.chriscartland.garage.fcm
 
 import android.app.Activity
-import android.util.Log
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorFcmState
@@ -45,9 +45,9 @@ class DoorFcmRepositoryImpl(
     private val appLoggerRepository: AppLoggerRepository,
 ) : DoorFcmRepository {
     override suspend fun fetchStatus(activity: Activity): DoorFcmState {
-        Log.d(TAG, "fetchStatus")
+        Logger.d { "fetchStatus" }
         val topic = getFcmTopic()
-        Log.d(TAG, "fetchStatus: $topic")
+        Logger.d { "fetchStatus: $topic" }
         return if (topic == null) {
             DoorFcmState.NotRegistered
         } else {
@@ -59,16 +59,16 @@ class DoorFcmRepositoryImpl(
         activity: Activity,
         fcmTopic: DoorFcmTopic,
     ): DoorFcmState {
-        Log.d(TAG, "registerDoor: $fcmTopic")
+        Logger.d { "registerDoor: $fcmTopic" }
         // Unsubscribe from old topic.
         val oldFcmTopic = getFcmTopic()
         if (oldFcmTopic != null && fcmTopic != oldFcmTopic) {
-            Log.i(TAG, "Unsubscribing from old FCM Topic: $oldFcmTopic")
+            Logger.i { "Unsubscribing from old FCM Topic: $oldFcmTopic" }
             Firebase.messaging.unsubscribeFromTopic(oldFcmTopic.string)
         }
         // Save new topic.
         setFcmTopic(fcmTopic)
-        Log.i(TAG, "Subscribing to FCM Topic: $fcmTopic")
+        Logger.i { "Subscribing to FCM Topic: $fcmTopic" }
         appLoggerRepository.log(AppLoggerKeys.FCM_SUBSCRIBE_TOPIC)
         val subscriptionSuccess =
             suspendCoroutine { continuation ->
@@ -76,20 +76,17 @@ class DoorFcmRepositoryImpl(
                     .subscribeToTopic(fcmTopic.string)
                     .addOnCompleteListener { task ->
                         if (task.isSuccessful) {
-                            Log.i(TAG, "Subscribed to FCM Topic $fcmTopic")
+                            Logger.i { "Subscribed to FCM Topic $fcmTopic" }
                             continuation.resume(true)
                         } else {
-                            Log.e(
-                                TAG,
-                                "Failed to subscribe to FCM Topic $fcmTopic: " + task.exception.toString(),
-                            )
+                            Logger.e { "Failed to subscribe to FCM Topic $fcmTopic: ${task.exception}" }
                             continuation.resume(false)
                         }
                     }
             }
         if (!subscriptionSuccess) {
             return DoorFcmState.NotRegistered.also {
-                Log.d(TAG, "Failed to subscribe to topic $fcmTopic, returning state $it")
+                Logger.d { "Failed to subscribe to topic $fcmTopic, returning state $it" }
             }
         }
         val token =
@@ -97,61 +94,59 @@ class DoorFcmRepositoryImpl(
                 Firebase.messaging.token
                     .addOnCompleteListener { task ->
                         if (!task.isSuccessful) {
-                            Log.w(TAG, "Fetching FCM registration token failed", task.exception)
+                            Logger.w { "Fetching FCM registration token failed: ${task.exception}" }
                             continuation.resume(null)
                         }
                         val token = task.result
                         if (token == null) {
-                            Log.d(TAG, "Fetching FCM registration token null")
+                            Logger.d { "Fetching FCM registration token null" }
                             continuation.resume(null)
                         } else {
-                            Log.d(TAG, "FCM Instance Token: $token")
+                            Logger.d { "FCM Instance Token: $token" }
                             continuation.resume(token)
                         }
                     }
             }
         if (token == null) {
             return DoorFcmState.NotRegistered.also {
-                Log.d(TAG, "Failed to get FCM registration token, returning state $it")
+                Logger.d { "Failed to get FCM registration token, returning state $it" }
             }
         }
         return DoorFcmState.Registered(topic = fcmTopic).also {
-            Log.d(TAG, "Successfully registered for topic $fcmTopic, returning state $it")
+            Logger.d { "Successfully registered for topic $fcmTopic, returning state $it" }
         }
     }
 
     override suspend fun deregisterDoor(activity: Activity): DoorFcmState {
-        Log.d(TAG, "deregisterDoor")
+        Logger.d { "deregisterDoor" }
         val oldFcmTopic = getFcmTopic()
         if (oldFcmTopic == null) {
             return DoorFcmState.NotRegistered.also {
-                Log.d(TAG, "No FCM topic to deregister, returning state $it")
+                Logger.d { "No FCM topic to deregister, returning state $it" }
             }
         }
         removeFcmTopic()
-        Log.i(TAG, "Unsubscribing from old FCM Topic: $oldFcmTopic")
+        Logger.i { "Unsubscribing from old FCM Topic: $oldFcmTopic" }
         Firebase.messaging.unsubscribeFromTopic(oldFcmTopic.string)
         return DoorFcmState.NotRegistered.also {
-            Log.d(TAG, "Successfully deregistered for topic $oldFcmTopic, returning state $it")
+            Logger.d { "Successfully deregistered for topic $oldFcmTopic, returning state $it" }
         }
     }
 
     private fun getFcmTopic(): DoorFcmTopic? {
-        Log.d(TAG, "getFcmTopic")
+        Logger.d { "getFcmTopic" }
         return settings.fcmDoorTopic.get().let {
             DoorFcmTopic(it)
         }
     }
 
     private fun setFcmTopic(topic: DoorFcmTopic) {
-        Log.d(TAG, "setFcmTopic: $topic")
+        Logger.d { "setFcmTopic: $topic" }
         settings.fcmDoorTopic.set(topic.string)
     }
 
     private fun removeFcmTopic() {
-        Log.d(TAG, "removeFcmTopic")
+        Logger.d { "removeFcmTopic" }
         settings.fcmDoorTopic.restoreDefault()
     }
 }
-
-private const val TAG = "DoorFcmRepository"
