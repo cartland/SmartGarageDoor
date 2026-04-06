@@ -184,6 +184,122 @@ Not needed for Android-only. When adding a second platform target:
 ### 7.4 Navigation Smoke — `56e742a` (#106)
 - 6 tests: Home displays, all tabs visible, navigate History/Profile/Home, sequential navigation
 
+## Phase 8: UseCase Refactor + Module Extraction
+
+**Goal:** Clean UseCase signatures, then extract to shared KMP module.
+
+### 8.1 Fix UseCase Signatures
+
+Several UseCases pass repositories as `invoke()` arguments instead of constructor parameters. This couples callers to wiring details and blocks DI.
+
+| UseCase | `invoke()` args → constructor params |
+|---------|--------------------------------------|
+| `EnsureFreshIdTokenUseCase` | `authRepository: AuthRepository` |
+| `PushRemoteButtonUseCase` | `authRepository`, `pushRepository` |
+| `SnoozeNotificationsUseCase` | `authRepository`, `pushRepository` |
+
+**Pattern:** `invoke()` should only take request-specific arguments (token, duration), not dependencies. Dependencies go in the constructor so DI can wire them.
+
+### 8.2 Extract UseCase Module
+
+- Create `usecase/` KMP module (commonMain, depends on `:domain` only)
+- Move 5 pure Kotlin use cases from `androidApp/usecase/`
+- `RegisterFcmUseCase` stays in `androidApp` (depends on `android.app.Activity`)
+- Tests move to `usecase/src/commonTest/kotlin/` with `kotlin.test`
+
+## Phase 9: Repository Implementations in Data Module
+
+**Goal:** Move pure Kotlin repository implementations into `data/` module.
+
+- `ServerConfigRepository` → `data/src/commonMain/` (pure Kotlin)
+- `DoorRepositoryImpl` → `data/src/commonMain/` (depends on data source interfaces)
+- `PushRepositoryImpl` → `data/src/commonMain/` (depends on data source interfaces)
+- Ktor data sources → `data/src/commonMain/` with expect/actual for HTTP engine
+- Firebase repos (`AuthRepository`, `DoorFcmRepository`) stay in `androidApp`
+- Room code (`DatabaseLocalDoorDataSource`, DAOs) stays in `androidApp`
+
+## Phase 10: Shared ViewModel/Presentation Logic
+
+**Goal:** Share ViewModel business logic across platforms.
+
+- Extract pure state machine logic from ViewModels into shared presentation models
+  - `RemoteButtonStateMachine` — READY→ARMING→ARMED→TIMEOUT→COOLDOWN
+  - `DoorStatusPresenter` — combines door event + auth state → UI state
+- ViewModels become thin wrappers in `viewmodel/` KMP module
+- Following battery-butler: ViewModels in `commonMain` with `@Inject` constructor injection
+
+## Phase 11: Platform Abstractions (expect/actual)
+
+**Goal:** Define platform boundary contracts for iOS.
+
+- `expect class HttpClientFactory` — Android: OkHttp, iOS: Darwin engine
+- `expect class AuthBridge` — Android: Firebase Auth, iOS: native auth
+- `expect class PushNotificationBridge` — Android: FCM, iOS: APNs
+- `expect class LocalStorageBridge` — Android: Room + DataStore, iOS: CoreData + UserDefaults
+- iOS `actual` implementations come when adding iOS target
+
+## Phase 12: Navigation 3 (Nav3)
+
+**Goal:** Modern type-safe navigation.
+
+- Migrate from current navigation to Compose Navigation 3
+- Type-safe routes as `@Serializable` data classes in shared module
+- Declarative `NavHost` + `composable<Route>` pattern
+- Enables sharing route definitions with iOS
+
+## Phase 13: iOS Target (Future)
+
+**Goal:** Add iOS framework target to shared modules.
+
+- Add `iosX64()`, `iosArm64()`, `iosSimulatorArm64()` targets
+- Implement `actual` declarations for iOS
+- Create SwiftUI app consuming shared ViewModels via KMP framework
+
+## Phase 14: Typed Error System
+
+**Goal:** Replace silent failures with typed error hierarchy.
+
+- `Result<D, E : AppError>` sealed interface in `domain/`
+- `AppError` base with `message` and `cause`
+- Hierarchies: `DataError.Network`, `DataError.Database`, `AuthError`
+- Extensions: `map`, `mapError`, `getOrNull`, `flatMap`, `onSuccess`, `onError`
+- Migrate repos/use cases from nullable/Boolean to `Result<T, E>`
+
+## Phase 15: KMP Logging (Kermit)
+
+**Goal:** Multiplatform logging to replace `android.util.Log`.
+
+- Add Kermit dependency to shared modules
+- Replace `Log.d/e/w` with `Logger.d/e/w` (API is nearly identical)
+- No custom abstraction — Kermit is multiplatform-first
+- Enables logging in commonMain code
+
+## Phase 16: Integration Tests with Fakes
+
+**Goal:** Test multi-class interactions with fake data sources.
+
+- Create `test-common/` KMP module with shared fakes in `commonMain`
+- Fakes: `FakeNetworkDoorDataSource`, `FakeLocalDoorDataSource`, etc.
+- Integration tests: real Repository + real UseCase + fake DataSource
+- Validates flows: "fetch door → cache locally → return to UI"
+- Move existing fakes from `androidApp/testcommon/`
+
+## Phase 17: Architecture Enforcement Rules
+
+**Goal:** Detekt rules and Gradle checks for module purity.
+
+- Import boundary: shared modules must not import `android.*` in commonMain
+- Hardcoded string detection in Compose (battery-butler's Detekt rule)
+- Module dependency direction enforcement: domain ← usecase ← data ← viewmodel ← app
+
+## Phase 18: Presentation-Model Module (Optional)
+
+**Goal:** Separate UI state definitions from ViewModel logic.
+
+- `presentation-model/` KMP module for screen state data classes
+- Depends only on `:domain`
+- Deferred until after Phase 10 when the boundary is clearer
+
 ## Phase Summary
 
 | Phase | Effort | Prerequisite | Status |
@@ -195,5 +311,16 @@ Not needed for Android-only. When adding a second platform target:
 | 5. KMP | Large | Phase 4 | **COMPLETE** (Android-only) |
 | 6. Screenshot Tests | Medium | None | **COMPLETE** |
 | 7. Instrumented Tests | Medium | None | **COMPLETE** |
+| 8. UseCase Refactor + Module | Medium | Phase 2 | TODO |
+| 9. Data Module Repos | Medium | Phase 8 | TODO |
+| 10. Shared ViewModels | Medium | Phase 9 | TODO |
+| 11. Platform Abstractions | Small | Phase 9 | TODO |
+| 12. Nav3 Migration | Medium | None | TODO |
+| 13. iOS Target | Large | Phases 10-11 | TODO |
+| 14. Typed Errors | Medium | Phase 8 | TODO |
+| 15. Kermit Logging | Small | None | TODO |
+| 16. Integration Tests | Medium | Phase 9 | TODO |
+| 17. Architecture Rules | Small | Phase 8 | TODO |
+| 18. Presentation-Model | Small | Phase 10 | TODO (optional) |
 
 **Rule:** Finish each phase before starting the next. Update this document with commit hashes when items complete.
