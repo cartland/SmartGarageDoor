@@ -28,6 +28,7 @@ import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.coroutines.DefaultDispatcherProvider
 import com.chriscartland.garage.data.AuthBridge
 import com.chriscartland.garage.data.LocalDoorDataSource
+import com.chriscartland.garage.data.MessagingBridge
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkConfigDataSource
 import com.chriscartland.garage.data.NetworkDoorDataSource
@@ -44,6 +45,7 @@ import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.door.DefaultDoorViewModel
 import com.chriscartland.garage.fcm.DoorFcmRepository
 import com.chriscartland.garage.fcm.FirebaseDoorFcmRepository
+import com.chriscartland.garage.fcm.FirebaseMessagingBridge
 import com.chriscartland.garage.internet.KtorNetworkButtonDataSource
 import com.chriscartland.garage.internet.KtorNetworkConfigDataSource
 import com.chriscartland.garage.internet.KtorNetworkDoorDataSource
@@ -136,7 +138,12 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
-    fun provideDoorFcmRepository(): DoorFcmRepository = FirebaseDoorFcmRepository(provideAppSettings(), provideAppLoggerRepository())
+    fun provideMessagingBridge(): MessagingBridge = FirebaseMessagingBridge()
+
+    @Provides
+    @Singleton
+    fun provideDoorFcmRepository(): DoorFcmRepository =
+        FirebaseDoorFcmRepository(provideMessagingBridge(), provideAppSettings(), provideAppLoggerRepository())
 
     @Provides
     @Singleton

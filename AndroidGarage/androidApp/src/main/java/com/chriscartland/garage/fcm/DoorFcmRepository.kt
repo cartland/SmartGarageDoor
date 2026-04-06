@@ -21,13 +21,10 @@ import android.app.Activity
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.config.AppLoggerKeys
+import com.chriscartland.garage.data.MessagingBridge
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.settings.AppSettings
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.messaging.ktx.messaging
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 interface DoorFcmRepository {
     suspend fun fetchStatus(activity: Activity): DoorFcmState
@@ -40,7 +37,13 @@ interface DoorFcmRepository {
     suspend fun deregisterDoor(activity: Activity): DoorFcmState
 }
 
+/**
+ * FCM repository that delegates all messaging calls to [MessagingBridge].
+ *
+ * No Firebase imports — all Firebase interaction happens through the bridge.
+ */
 class FirebaseDoorFcmRepository(
+    private val messagingBridge: MessagingBridge,
     private val settings: AppSettings,
     private val appLoggerRepository: AppLoggerRepository,
 ) : DoorFcmRepository {
@@ -64,49 +67,19 @@ class FirebaseDoorFcmRepository(
         val oldFcmTopic = getFcmTopic()
         if (oldFcmTopic != null && fcmTopic != oldFcmTopic) {
             Logger.i { "Unsubscribing from old FCM Topic: $oldFcmTopic" }
-            Firebase.messaging.unsubscribeFromTopic(oldFcmTopic.string)
+            messagingBridge.unsubscribeFromTopic(oldFcmTopic.string)
         }
         // Save new topic.
         setFcmTopic(fcmTopic)
         Logger.i { "Subscribing to FCM Topic: $fcmTopic" }
         appLoggerRepository.log(AppLoggerKeys.FCM_SUBSCRIBE_TOPIC)
-        val subscriptionSuccess =
-            suspendCoroutine { continuation ->
-                Firebase.messaging
-                    .subscribeToTopic(fcmTopic.string)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            Logger.i { "Subscribed to FCM Topic $fcmTopic" }
-                            continuation.resume(true)
-                        } else {
-                            Logger.e { "Failed to subscribe to FCM Topic $fcmTopic: ${task.exception}" }
-                            continuation.resume(false)
-                        }
-                    }
-            }
+        val subscriptionSuccess = messagingBridge.subscribeToTopic(fcmTopic.string)
         if (!subscriptionSuccess) {
             return DoorFcmState.NotRegistered.also {
                 Logger.d { "Failed to subscribe to topic $fcmTopic, returning state $it" }
             }
         }
-        val token =
-            suspendCoroutine { continuation ->
-                Firebase.messaging.token
-                    .addOnCompleteListener { task ->
-                        if (!task.isSuccessful) {
-                            Logger.w { "Fetching FCM registration token failed: ${task.exception}" }
-                            continuation.resume(null)
-                        }
-                        val token = task.result
-                        if (token == null) {
-                            Logger.d { "Fetching FCM registration token null" }
-                            continuation.resume(null)
-                        } else {
-                            Logger.d { "FCM Instance Token: $token" }
-                            continuation.resume(token)
-                        }
-                    }
-            }
+        val token = messagingBridge.getToken()
         if (token == null) {
             return DoorFcmState.NotRegistered.also {
                 Logger.d { "Failed to get FCM registration token, returning state $it" }
@@ -127,7 +100,7 @@ class FirebaseDoorFcmRepository(
         }
         removeFcmTopic()
         Logger.i { "Unsubscribing from old FCM Topic: $oldFcmTopic" }
-        Firebase.messaging.unsubscribeFromTopic(oldFcmTopic.string)
+        messagingBridge.unsubscribeFromTopic(oldFcmTopic.string)
         return DoorFcmState.NotRegistered.also {
             Logger.d { "Successfully deregistered for topic $oldFcmTopic, returning state $it" }
         }
