@@ -2,11 +2,11 @@
 # One class name per line. Lines starting with # are comments.
 
 # ViewModels — pending tests (needs Firebase wrapper refactor for auth)
-AuthViewModelImpl
-AppLoggerViewModelImpl
-AppSettingsViewModelImpl
+DefaultAuthViewModel
+DefaultAppLoggerViewModel
+DefaultAppSettingsViewModel
 
 # Repositories — pending tests (needs Firebase mocking)
-AuthRepositoryImpl
-DoorFcmRepositoryImpl
-AppLoggerRepositoryImpl
+FirebaseAuthRepository
+FirebaseDoorFcmRepository
+RoomAppLoggerRepository

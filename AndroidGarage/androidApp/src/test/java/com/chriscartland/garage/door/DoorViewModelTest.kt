@@ -91,8 +91,8 @@ class DoorViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel(): DoorViewModelImpl {
-        val vm = DoorViewModelImpl(
+    private fun createViewModel(): DefaultDoorViewModel {
+        val vm = DefaultDoorViewModel(
             appLoggerRepository,
             doorRepository,
             TestDispatcherProvider(testDispatcher),

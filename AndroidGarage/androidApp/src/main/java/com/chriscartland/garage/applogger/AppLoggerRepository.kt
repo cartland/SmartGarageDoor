@@ -42,7 +42,7 @@ interface AppLoggerRepository {
     fun countKey(key: String): Flow<Long>
 }
 
-class AppLoggerRepositoryImpl(
+class RoomAppLoggerRepository(
     private val context: Context,
     private val appDatabase: AppDatabase,
 ) : AppLoggerRepository {

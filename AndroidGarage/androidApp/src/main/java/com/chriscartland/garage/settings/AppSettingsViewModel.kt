@@ -38,7 +38,7 @@ interface AppSettingsViewModel {
 }
 
 @Inject
-class AppSettingsViewModelImpl(
+class DefaultAppSettingsViewModel(
     private val settings: AppSettings,
 ) : ViewModel(),
     AppSettingsViewModel {

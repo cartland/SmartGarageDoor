@@ -57,7 +57,7 @@ interface DoorViewModel {
 }
 
 @Inject
-class DoorViewModelImpl(
+class DefaultDoorViewModel(
     private val appLoggerRepository: AppLoggerRepository,
     private val doorRepository: DoorRepository,
     private val dispatchers: DispatcherProvider,

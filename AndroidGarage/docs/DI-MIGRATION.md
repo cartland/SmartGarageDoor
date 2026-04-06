@@ -29,7 +29,7 @@ Before starting this migration, the codebase should have:
 |-----------|-------|-------|
 | `@HiltAndroidApp` | 1 | `GarageApplication.kt` |
 | `@AndroidEntryPoint` | 2 | `MainActivity.kt`, `FCMService.kt` |
-| `@HiltViewModel` | 4 | `DoorViewModelImpl`, `RemoteButtonViewModelImpl`, `AuthViewModelImpl`, `AppSettingsViewModelImpl` |
+| `@HiltViewModel` | 4 | `DefaultDoorViewModel`, `DefaultRemoteButtonViewModel`, `DefaultAuthViewModel`, `DefaultAppSettingsViewModel` |
 | `@Module @InstallIn` | 10 | Repository modules, data source modules, network modules |
 | `@Binds` | 6 | Repository and ViewModel interface bindings |
 | `@Provides` | 4 | `AppDatabase`, `LocalDoorDataSource`, network data sources |
@@ -40,7 +40,7 @@ Before starting this migration, the codebase should have:
 ```
 GarageApplication (@HiltAndroidApp)
 ├── MainActivity (@AndroidEntryPoint)
-│   ├── DoorViewModelImpl (@HiltViewModel)
+│   ├── DefaultDoorViewModel (@HiltViewModel)
 │   │   ├── AppLoggerRepository
 │   │   ├── DoorRepository (via @Binds)
 │   │   ├── DispatcherProvider (via @Provides)
@@ -49,17 +49,17 @@ GarageApplication (@HiltAndroidApp)
 │   │   ├── FetchFcmStatusUseCase
 │   │   ├── RegisterFcmUseCase
 │   │   └── DeregisterFcmUseCase
-│   ├── RemoteButtonViewModelImpl (@HiltViewModel)
+│   ├── DefaultRemoteButtonViewModel (@HiltViewModel)
 │   │   ├── PushRepository (via @Binds)
 │   │   ├── DoorRepository (via @Binds)
 │   │   ├── DispatcherProvider (via @Provides)
 │   │   ├── PushRemoteButtonUseCase
 │   │   └── SnoozeNotificationsUseCase
-│   ├── AuthViewModelImpl (@HiltViewModel)
+│   ├── DefaultAuthViewModel (@HiltViewModel)
 │   │   ├── AuthRepository (via @Binds)
 │   │   ├── AppLoggerRepository
 │   │   └── DispatcherProvider (via @Provides)
-│   └── AppSettingsViewModelImpl (@HiltViewModel)
+│   └── DefaultAppSettingsViewModel (@HiltViewModel)
 │       └── AppSettings
 └── FCMService (@AndroidEntryPoint)
     ├── DoorRepository (via @Binds)
@@ -138,24 +138,24 @@ class GarageApplication : Application() {
 
 ```kotlin
 @HiltViewModel
-class AppSettingsViewModelImpl @Inject constructor(
+class DefaultAppSettingsViewModel @Inject constructor(
     private val appSettings: AppSettings,
 ) : ViewModel(), AppSettingsViewModel { ... }
 
 // In Composable:
-val viewModel: AppSettingsViewModel = hiltViewModel<AppSettingsViewModelImpl>()
+val viewModel: AppSettingsViewModel = hiltViewModel<DefaultAppSettingsViewModel>()
 ```
 
 ### After (kotlin-inject)
 
 ```kotlin
 // No @HiltViewModel — just @Inject
-class AppSettingsViewModelImpl @Inject constructor(
+class DefaultAppSettingsViewModel @Inject constructor(
     private val appSettings: AppSettings,
 ) : ViewModel(), AppSettingsViewModel { ... }
 
 // In AppComponent:
-abstract val appSettingsViewModel: AppSettingsViewModelImpl
+abstract val appSettingsViewModel: DefaultAppSettingsViewModel
 
 // In Composable:
 val component = (LocalContext.current.applicationContext as GarageApplication).component

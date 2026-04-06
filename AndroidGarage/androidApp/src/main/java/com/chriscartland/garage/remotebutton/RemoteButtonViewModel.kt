@@ -56,7 +56,7 @@ interface RemoteButtonViewModel {
 }
 
 @Inject
-class RemoteButtonViewModelImpl(
+class DefaultRemoteButtonViewModel(
     // Remote button repository focused on sending the request over the Internet.
     private val pushRepository: PushRepository,
     // Watch the door status, because we consider the request delivered when the door moves.

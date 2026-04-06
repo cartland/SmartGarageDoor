@@ -19,10 +19,10 @@ package com.chriscartland.garage.di
 
 import android.app.Application
 import com.chriscartland.garage.applogger.AppLoggerRepository
-import com.chriscartland.garage.applogger.AppLoggerRepositoryImpl
-import com.chriscartland.garage.applogger.AppLoggerViewModelImpl
-import com.chriscartland.garage.auth.AuthRepositoryImpl
-import com.chriscartland.garage.auth.AuthViewModelImpl
+import com.chriscartland.garage.applogger.DefaultAppLoggerViewModel
+import com.chriscartland.garage.applogger.RoomAppLoggerRepository
+import com.chriscartland.garage.auth.DefaultAuthViewModel
+import com.chriscartland.garage.auth.FirebaseAuthRepository
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.coroutines.DefaultDispatcherProvider
 import com.chriscartland.garage.coroutines.DispatcherProvider
@@ -39,17 +39,17 @@ import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.PushRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
-import com.chriscartland.garage.door.DoorViewModelImpl
+import com.chriscartland.garage.door.DefaultDoorViewModel
 import com.chriscartland.garage.fcm.DoorFcmRepository
-import com.chriscartland.garage.fcm.DoorFcmRepositoryImpl
+import com.chriscartland.garage.fcm.FirebaseDoorFcmRepository
 import com.chriscartland.garage.internet.KtorNetworkButtonDataSource
 import com.chriscartland.garage.internet.KtorNetworkConfigDataSource
 import com.chriscartland.garage.internet.KtorNetworkDoorDataSource
 import com.chriscartland.garage.internet.provideKtorHttpClient
-import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
+import com.chriscartland.garage.remotebutton.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.settings.AppSettings
-import com.chriscartland.garage.settings.AppSettingsImpl
-import com.chriscartland.garage.settings.AppSettingsViewModelImpl
+import com.chriscartland.garage.settings.DataStoreAppSettings
+import com.chriscartland.garage.settings.DefaultAppSettingsViewModel
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
@@ -74,16 +74,16 @@ abstract class AppComponent(
     @get:Provides val application: Application,
 ) {
     // ViewModels
-    abstract val appSettingsViewModel: AppSettingsViewModelImpl
-    abstract val authViewModel: AuthViewModelImpl
-    abstract val doorViewModel: DoorViewModelImpl
-    abstract val remoteButtonViewModel: RemoteButtonViewModelImpl
-    abstract val appLoggerViewModel: AppLoggerViewModelImpl
+    abstract val appSettingsViewModel: DefaultAppSettingsViewModel
+    abstract val authViewModel: DefaultAuthViewModel
+    abstract val doorViewModel: DefaultDoorViewModel
+    abstract val remoteButtonViewModel: DefaultRemoteButtonViewModel
+    abstract val appLoggerViewModel: DefaultAppLoggerViewModel
 
     // Settings
     @Provides
     @Singleton
-    fun provideAppSettings(): AppSettings = AppSettingsImpl(application)
+    fun provideAppSettings(): AppSettings = DataStoreAppSettings(application)
 
     // Database
     @Provides
@@ -111,7 +111,7 @@ abstract class AppComponent(
     // Repositories
     @Provides
     @Singleton
-    fun provideAuthRepository(): AuthRepository = AuthRepositoryImpl(provideAppLoggerRepository())
+    fun provideAuthRepository(): AuthRepository = FirebaseAuthRepository(provideAppLoggerRepository())
 
     @Provides
     @Singleton
@@ -130,11 +130,11 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
-    fun provideDoorFcmRepository(): DoorFcmRepository = DoorFcmRepositoryImpl(provideAppSettings(), provideAppLoggerRepository())
+    fun provideDoorFcmRepository(): DoorFcmRepository = FirebaseDoorFcmRepository(provideAppSettings(), provideAppLoggerRepository())
 
     @Provides
     @Singleton
-    fun provideAppLoggerRepository(): AppLoggerRepository = AppLoggerRepositoryImpl(application.applicationContext, provideAppDatabase())
+    fun provideAppLoggerRepository(): AppLoggerRepository = RoomAppLoggerRepository(application.applicationContext, provideAppDatabase())
 
     // UseCases
     @Provides
