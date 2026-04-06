@@ -1,0 +1,38 @@
+/*
+ * Copyright 2024 Chris Cartland. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+package com.chriscartland.garage.testcommon
+
+import android.app.Activity
+import com.chriscartland.garage.domain.model.DoorFcmState
+import com.chriscartland.garage.domain.model.DoorFcmTopic
+import com.chriscartland.garage.fcm.DoorFcmRepository
+
+class FakeDoorFcmRepository : DoorFcmRepository {
+    var fetchStatusResult: DoorFcmState = DoorFcmState.Unknown
+    var registerResult: DoorFcmState = DoorFcmState.NotRegistered
+    var deregisterResult: DoorFcmState = DoorFcmState.NotRegistered
+
+    override suspend fun fetchStatus(activity: Activity): DoorFcmState = fetchStatusResult
+
+    override suspend fun registerDoor(
+        activity: Activity,
+        fcmTopic: DoorFcmTopic,
+    ): DoorFcmState = registerResult
+
+    override suspend fun deregisterDoor(activity: Activity): DoorFcmState = deregisterResult
+}

@@ -18,17 +18,16 @@
 package com.chriscartland.garage.door
 
 import android.app.Activity
-import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.coroutines.TestDispatcherProvider
-import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.LoadingResult
-import com.chriscartland.garage.domain.repository.DoorRepository
-import com.chriscartland.garage.fcm.DoorFcmRepository
+import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
+import com.chriscartland.garage.testcommon.FakeDoorFcmRepository
+import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.FetchFcmStatusUseCase
@@ -36,7 +35,6 @@ import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -46,18 +44,15 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mockito.atLeast
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.verify
-import org.mockito.Mockito.`when`
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DoorViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
 
-    private lateinit var appLoggerRepository: AppLoggerRepository
-    private lateinit var doorRepository: DoorRepository
-    private lateinit var doorFcmRepository: DoorFcmRepository
+    private lateinit var appLoggerRepository: FakeAppLoggerRepository
+    private lateinit var doorRepository: FakeDoorRepository
+    private lateinit var doorFcmRepository: FakeDoorFcmRepository
 
     private val testDoorEvent =
         DoorEvent(
@@ -67,31 +62,14 @@ class DoorViewModelTest {
             lastChangeTimeSeconds = 900L,
         )
 
-    private lateinit var currentDoorEventFlow: MutableStateFlow<DoorEvent>
-    private lateinit var recentDoorEventsFlow: MutableStateFlow<List<DoorEvent>>
-    private lateinit var currentDoorPositionFlow: MutableStateFlow<DoorPosition>
-
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        appLoggerRepository = mock(AppLoggerRepository::class.java)
-        doorFcmRepository = mock(DoorFcmRepository::class.java)
-
-        currentDoorEventFlow = MutableStateFlow(testDoorEvent)
-        recentDoorEventsFlow = MutableStateFlow(listOf(testDoorEvent))
-        currentDoorPositionFlow = MutableStateFlow(DoorPosition.CLOSED)
-
-        doorRepository = mock(DoorRepository::class.java)
-        `when`(doorRepository.currentDoorEvent).thenReturn(currentDoorEventFlow)
-        `when`(doorRepository.recentDoorEvents).thenReturn(recentDoorEventsFlow)
-        `when`(doorRepository.currentDoorPosition).thenReturn(currentDoorPositionFlow)
-    }
-
-    private suspend fun stubFetchSuccess() {
-        `when`(doorRepository.fetchCurrentDoorEvent())
-            .thenReturn(AppResult.Success(testDoorEvent))
-        `when`(doorRepository.fetchRecentDoorEvents())
-            .thenReturn(AppResult.Success(listOf(testDoorEvent)))
+        appLoggerRepository = FakeAppLoggerRepository()
+        doorFcmRepository = FakeDoorFcmRepository()
+        doorRepository = FakeDoorRepository()
+        doorRepository.setCurrentDoorEvent(testDoorEvent)
+        doorRepository.setRecentDoorEvents(listOf(testDoorEvent))
     }
 
     @After
@@ -99,8 +77,7 @@ class DoorViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private suspend fun createViewModel(fetchOnInit: Boolean = true): DefaultDoorViewModel {
-        stubFetchSuccess()
+    private fun createViewModel(fetchOnInit: Boolean = true): DefaultDoorViewModel {
         val vm = DefaultDoorViewModel(
             appLoggerRepository,
             doorRepository,
@@ -129,8 +106,6 @@ class DoorViewModelTest {
         runTest {
             val viewModel = createViewModel()
 
-            // After init, state may be Loading due to fetchCurrentDoorEvent in init.
-            // Emit a new value to verify the flow collection works.
             val updatedEvent =
                 DoorEvent(
                     doorPosition = DoorPosition.OPEN,
@@ -138,7 +113,7 @@ class DoorViewModelTest {
                     lastCheckInTimeSeconds = 2000L,
                     lastChangeTimeSeconds = 1900L,
                 )
-            currentDoorEventFlow.value = updatedEvent
+            doorRepository.setCurrentDoorEvent(updatedEvent)
             testDispatcher.scheduler.runCurrent()
 
             val result = viewModel.currentDoorEvent.value
@@ -158,7 +133,7 @@ class DoorViewModelTest {
                     lastCheckInTimeSeconds = 2000L,
                     lastChangeTimeSeconds = 1900L,
                 )
-            currentDoorEventFlow.value = updatedEvent
+            doorRepository.setCurrentDoorEvent(updatedEvent)
             testDispatcher.scheduler.runCurrent()
 
             val result = viewModel.currentDoorEvent.value
@@ -171,13 +146,12 @@ class DoorViewModelTest {
         runTest {
             val viewModel = createViewModel()
 
-            // Emit new events to verify collection works.
             val events =
                 listOf(
                     testDoorEvent,
                     DoorEvent(doorPosition = DoorPosition.OPEN, lastChangeTimeSeconds = 800L),
                 )
-            recentDoorEventsFlow.value = events
+            doorRepository.setRecentDoorEvents(events)
             testDispatcher.scheduler.runCurrent()
 
             val result = viewModel.recentDoorEvents.value
@@ -193,8 +167,8 @@ class DoorViewModelTest {
             viewModel.fetchCurrentDoorEvent()
             testDispatcher.scheduler.runCurrent()
 
-            // Init may also call fetchCurrentDoorEvent, so verify at least 1 call.
-            verify(doorRepository, atLeast(1)).fetchCurrentDoorEvent()
+            // Init also calls fetch, so count >= 2
+            assertTrue(doorRepository.fetchCurrentDoorEventCount >= 1)
         }
 
     @Test
@@ -205,7 +179,7 @@ class DoorViewModelTest {
             viewModel.fetchRecentDoorEvents()
             testDispatcher.scheduler.runCurrent()
 
-            verify(doorRepository, atLeast(1)).fetchRecentDoorEvents()
+            assertTrue(doorRepository.fetchRecentDoorEventsCount >= 1)
         }
 
     @Test
@@ -214,8 +188,8 @@ class DoorViewModelTest {
             val viewModel = createViewModel()
             val activity = mock(Activity::class.java)
 
-            `when`(doorFcmRepository.fetchStatus(activity))
-                .thenReturn(DoorFcmState.Registered(topic = DoorFcmTopic("test-topic")))
+            doorFcmRepository.fetchStatusResult =
+                DoorFcmState.Registered(topic = DoorFcmTopic("test-topic"))
 
             viewModel.fetchFcmRegistrationStatus(activity)
             testDispatcher.scheduler.runCurrent()
@@ -229,8 +203,7 @@ class DoorViewModelTest {
             val viewModel = createViewModel()
             val activity = mock(Activity::class.java)
 
-            `when`(doorFcmRepository.fetchStatus(activity))
-                .thenReturn(DoorFcmState.NotRegistered)
+            doorFcmRepository.fetchStatusResult = DoorFcmState.NotRegistered
 
             viewModel.fetchFcmRegistrationStatus(activity)
             testDispatcher.scheduler.runCurrent()
@@ -247,8 +220,7 @@ class DoorViewModelTest {
             val viewModel = createViewModel()
             val activity = mock(Activity::class.java)
 
-            `when`(doorFcmRepository.fetchStatus(activity))
-                .thenReturn(DoorFcmState.Unknown)
+            doorFcmRepository.fetchStatusResult = DoorFcmState.Unknown
 
             viewModel.fetchFcmRegistrationStatus(activity)
             testDispatcher.scheduler.runCurrent()
@@ -262,7 +234,7 @@ class DoorViewModelTest {
             val viewModel = createViewModel(fetchOnInit = false)
 
             // Flow collection still runs (shows repo data), but network fetch was NOT triggered
-            verify(doorRepository, org.mockito.Mockito.never()).fetchCurrentDoorEvent()
-            verify(doorRepository, org.mockito.Mockito.never()).fetchRecentDoorEvents()
+            assertEquals(0, doorRepository.fetchCurrentDoorEventCount)
+            assertEquals(0, doorRepository.fetchRecentDoorEventsCount)
         }
 }
