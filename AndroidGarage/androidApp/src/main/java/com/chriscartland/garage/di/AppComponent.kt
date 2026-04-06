@@ -30,6 +30,8 @@ import com.chriscartland.garage.data.LocalDoorDataSource
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkConfigDataSource
 import com.chriscartland.garage.data.NetworkDoorDataSource
+import com.chriscartland.garage.data.repository.DoorRepositoryImpl
+import com.chriscartland.garage.data.repository.PushRepositoryImpl
 import com.chriscartland.garage.data.repository.ServerConfigRepositoryImpl
 import com.chriscartland.garage.db.AppDatabase
 import com.chriscartland.garage.db.DatabaseLocalDoorDataSource
@@ -37,7 +39,6 @@ import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.PushRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
-import com.chriscartland.garage.door.DoorRepositoryImpl
 import com.chriscartland.garage.door.DoorViewModelImpl
 import com.chriscartland.garage.fcm.DoorFcmRepository
 import com.chriscartland.garage.fcm.DoorFcmRepositoryImpl
@@ -45,7 +46,6 @@ import com.chriscartland.garage.internet.KtorNetworkButtonDataSource
 import com.chriscartland.garage.internet.KtorNetworkConfigDataSource
 import com.chriscartland.garage.internet.KtorNetworkDoorDataSource
 import com.chriscartland.garage.internet.provideKtorHttpClient
-import com.chriscartland.garage.remotebutton.PushRepositoryImpl
 import com.chriscartland.garage.remotebutton.RemoteButtonViewModelImpl
 import com.chriscartland.garage.settings.AppSettings
 import com.chriscartland.garage.settings.AppSettingsImpl
