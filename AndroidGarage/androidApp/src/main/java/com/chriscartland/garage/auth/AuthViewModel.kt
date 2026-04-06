@@ -26,8 +26,8 @@ import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.BuildConfig
 import com.chriscartland.garage.applogger.AppLoggerRepository
-import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
+import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.repository.AuthRepository

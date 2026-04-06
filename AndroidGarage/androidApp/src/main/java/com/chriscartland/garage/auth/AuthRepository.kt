@@ -19,8 +19,8 @@ package com.chriscartland.garage.auth
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.applogger.AppLoggerRepository
-import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.data.AuthBridge
+import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email

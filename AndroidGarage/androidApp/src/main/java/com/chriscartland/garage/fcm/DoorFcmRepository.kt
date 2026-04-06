@@ -20,8 +20,8 @@ package com.chriscartland.garage.fcm
 import android.app.Activity
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.applogger.AppLoggerRepository
-import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.data.MessagingBridge
+import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.settings.AppSettings

@@ -25,8 +25,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.ui.util.trace
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.auth.RC_ONE_TAP_SIGN_IN
-import com.chriscartland.garage.config.AppLoggerKeys
 import com.chriscartland.garage.di.activityViewModel
+import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.ui.GarageApp
 
 class MainActivity : ComponentActivity() {
