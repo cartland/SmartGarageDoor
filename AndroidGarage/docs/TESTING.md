@@ -13,7 +13,7 @@
 
 ## Current State
 
-- **186 unit tests** across 26 test files (19 androidApp + 4 domain + 1 usecase + 2 data), including DaoNullabilityTest, AppResultTest, RemoteButtonStateMachineTest, and data module integration tests
+- **192 unit tests** across 27 test files (20 androidApp + 4 domain + 1 usecase + 2 data), including FirebaseAuthRepositoryTest, RemoteButtonStateMachineTest, and data module integration tests
 - **18 instrumented tests** across 3 test files (Room sanity, DI graph, navigation smoke)
 - **CI architecture:** pre-submit (`ci.yml` → `ci-checks.yml`) + post-merge (`ci-post-merge.yml` → `ci-checks.yml` + instrumented tests)
 - **CI gate jobs:** `CI Complete` (PRs), `Post-Merge Complete` (main) — single check-run names for branch protection and release script
@@ -23,8 +23,8 @@
 - **Local validation:** `./scripts/validate.sh` mirrors CI + Room schema drift check + auto-discovered module tests + screenshot compilation + import boundary check (shared modules)
 - **Safety guardrails:** git hooks warn on Room entity changes, block push to main, enforce squash merge, block direct screenshot Gradle tasks
 - **DI system:** kotlin-inject (Hilt fully removed as of Phase 3), Ktor HTTP (Retrofit fully removed as of Phase 4)
-- **Completed:** Phase 1 (CI hardening), Phase 2 (network error tests), Phase 3 (auth token fix + UseCase tests), Phase 4 (state machine completeness), Phase 5.2-5.3 (release safety), Phase 6.1 (ESLint migration), Phase 7 (instrumented tests)
-- **Remaining:** Phase 3.1 (auth token tests — needs Firebase wrapper refactor), Phase 6.2 (server contract tests)
+- **Completed:** Phase 1 (CI hardening), Phase 2 (network error tests), Phase 3 (auth token fix + UseCase tests + AuthBridge extraction), Phase 4 (state machine completeness), Phase 5.2-5.3 (release safety), Phase 6.1 (ESLint migration), Phase 7 (instrumented tests)
+- **Remaining:** Phase 6.2 (server contract tests)
 
 ---
 
@@ -264,7 +264,7 @@ Verify all screens are reachable via navigation. Catches crashes from missing co
 | 4.1 Timeout edge cases | Small | Medium | Done |
 | 5.2 Disable release logging | Small | High | Done |
 | 5.3 BuildConfig validation | Small | Medium | Done |
-| 3.1 Auth token tests | Large | High | TODO — needs Firebase wrapper refactor |
+| 3.1 Auth token tests | Large | High | Done (#152) — AuthBridge extraction + 6 tests |
 | 5.1 ProGuard smoke test | Medium | Medium | Covered by Phase 7 |
 | 7.1 Gradle Managed Device setup | Medium | High | Done (#105) |
 | 7.2 Room database sanity | Small | High | Done (#105) |

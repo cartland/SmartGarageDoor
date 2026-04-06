@@ -238,15 +238,26 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 - ViewModels still depend on `androidx.lifecycle.ViewModel` and `viewModelScope`
 - Full extraction to KMP module deferred until iOS target is added
 
-## Phase 11: Platform Abstractions (expect/actual)
+## Phase 11: Platform Abstractions — COMPLETE
 
-**Goal:** Define platform boundary contracts for iOS.
+**Goal:** Decouple platform SDKs behind injectable interfaces for testability and iOS readiness.
 
-- `expect class HttpClientFactory` — Android: OkHttp, iOS: Darwin engine
-- `expect class AuthBridge` — Android: Firebase Auth, iOS: native auth
-- `expect class PushNotificationBridge` — Android: FCM, iOS: APNs
-- `expect class LocalStorageBridge` — Android: Room + DataStore, iOS: CoreData + UserDefaults
-- iOS `actual` implementations come when adding iOS target
+### 11.1 AuthBridge — COMPLETE (#152)
+- `AuthBridge` interface in `data/src/commonMain/` abstracts Firebase Auth
+- `FirebaseAuthBridge` implementation in androidApp
+- `FirebaseAuthRepository` no longer imports Firebase directly
+- 6 new unit tests via `FakeAuthBridge`
+- Fixed: double-resume bug in original token refresh callback
+
+### 11.2 MessagingBridge — COMPLETE (#153)
+- `MessagingBridge` interface in `data/src/commonMain/` abstracts FCM
+- `FirebaseMessagingBridge` implementation in androidApp
+- Fixed: double-resume bug in original getToken callback
+
+### 11.3 Existing Abstractions
+- HTTP: `NetworkDoorDataSource`, `NetworkConfigDataSource`, `NetworkButtonDataSource` (Ktor behind interfaces)
+- Local storage: `LocalDoorDataSource` (Room behind interface)
+- `expect/actual` declarations deferred until iOS target is added
 
 ## Phase 12: Type-Safe Navigation — IN PROGRESS
 
@@ -346,7 +357,7 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 | 8. UseCase Refactor + Module | Medium | Phase 2 | **COMPLETE** |
 | 9. Data Module Repos | Medium | Phase 8 | **COMPLETE** |
 | 10. Shared ViewModels | Medium | Phase 9 | 10.1 COMPLETE (state machine extracted) |
-| 11. Platform Abstractions | Small | Phase 9 | TODO |
+| 11. Platform Abstractions | Small | Phase 9 | **COMPLETE** (bridges extracted) |
 | 12. Type-Safe Navigation | Medium | None | 12.1 COMPLETE (Nav3 deferred) |
 | 13. iOS Target | Large | Phases 10-11 | TODO |
 | 14. Typed Errors | Medium | Phase 8 | **COMPLETE** |
