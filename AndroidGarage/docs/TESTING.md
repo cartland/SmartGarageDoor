@@ -23,8 +23,8 @@
 - **Local validation:** `./scripts/validate.sh` mirrors CI + Room schema drift check + auto-discovered module tests + screenshot compilation + import boundary check (shared modules)
 - **Safety guardrails:** git hooks warn on Room entity changes, block push to main, enforce squash merge, block direct screenshot Gradle tasks
 - **DI system:** kotlin-inject (Hilt fully removed as of Phase 3), Ktor HTTP (Retrofit fully removed as of Phase 4)
-- **Completed:** Phase 1 (CI hardening), Phase 2 (network error tests), Phase 3 (auth token fix + UseCase tests), Phase 4 (state machine completeness), Phase 5.2-5.3 (release safety), Phase 7 (instrumented tests)
-- **Remaining:** Phase 5.1 (covered by Phase 7 instrumented tests), Phase 6 (Firebase server)
+- **Completed:** Phase 1 (CI hardening), Phase 2 (network error tests), Phase 3 (auth token fix + UseCase tests), Phase 4 (state machine completeness), Phase 5.2-5.3 (release safety), Phase 6.1 (ESLint migration), Phase 7 (instrumented tests)
+- **Remaining:** Phase 3.1 (auth token tests — needs Firebase wrapper refactor), Phase 6.2 (server contract tests)
 
 ---
 
@@ -270,7 +270,7 @@ Verify all screens are reachable via navigation. Catches crashes from missing co
 | 7.2 Room database sanity | Small | High | Done (#105) |
 | 7.3 kotlin-inject component test | Small | High | Done (#105) |
 | 7.4 Navigation smoke tests | Medium | Medium | Done (#106) |
-| 6.1 Migrate tslint | Medium | Low | TODO |
+| 6.1 Migrate tslint | Medium | Low | Done (#150) |
 
 ---
 
