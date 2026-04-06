@@ -113,7 +113,9 @@ class DefaultRemoteButtonViewModel(
                 snoozeDurationHours = snoozeDuration.toServer().duration,
                 lastChangeTimeSeconds = currentDoorEvent.value?.lastChangeTimeSeconds,
             )
-            if (!result) {
+            if (result) {
+                pushRepository.fetchSnoozeEndTimeSeconds()
+            } else {
                 Logger.e { "Snooze failed — not authenticated or no door event" }
             }
         }
