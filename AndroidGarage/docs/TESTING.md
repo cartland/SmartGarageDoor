@@ -13,7 +13,7 @@
 
 ## Current State
 
-- **144 unit tests** across 22 test files (19 androidApp + 3 domain module), including DaoNullabilityTest and AppResultTest
+- **186 unit tests** across 26 test files (19 androidApp + 4 domain + 1 usecase + 2 data), including DaoNullabilityTest, AppResultTest, RemoteButtonStateMachineTest, and data module integration tests
 - **18 instrumented tests** across 3 test files (Room sanity, DI graph, navigation smoke)
 - **CI architecture:** pre-submit (`ci.yml` → `ci-checks.yml`) + post-merge (`ci-post-merge.yml` → `ci-checks.yml` + instrumented tests)
 - **CI gate jobs:** `CI Complete` (PRs), `Post-Merge Complete` (main) — single check-run names for branch protection and release script
