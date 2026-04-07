@@ -358,7 +358,7 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 | 9. Data Module Repos | Medium | Phase 8 | **COMPLETE** |
 | 10. Shared ViewModels | Medium | Phase 9 | **COMPLETE** (all 5 ViewModels in shared modules) |
 | 11. Platform Abstractions | Small | Phase 9 | **COMPLETE** (bridges extracted) |
-| 12. Type-Safe Navigation | Medium | None | 12.1 COMPLETE (Nav3 deferred) |
+| 12. Type-Safe Navigation | Medium | None | **COMPLETE** (Nav2→Nav3 in #192) |
 | 13. iOS Target | Large | Phase 38 | TODO (renumbered to Phase 38) |
 | 14. Typed Errors | Medium | Phase 8 | **COMPLETE** |
 | 15. Kermit Logging | Small | None | **COMPLETE** |
@@ -399,15 +399,21 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 | 31 | Move DispatcherProvider + FcmRepository to shared | #183 |
 | 32 | Move demo data to presentation-model | #184 |
 | — | FQN enforcement (NoFullyQualifiedNames check) | #180 |
+| 33 | Create data-local KMP module with Room database | #187 |
+| — | Import boundary for data-local + exemption cleanup | #188 |
+| — | Clean stale detekt baseline | #189 |
+| — | FcmRepository tests + shared fakes | #190 |
+| — | ViewModel tests (13 tests) + remove 4 exemptions | #191 |
+| — | Navigation 2 → Navigation 3 migration | #192 |
+| — | Nav2 import enforcement (NoNav2ImportsTask) | #192 |
 
-**Result:** All ViewModels, UseCases, Repositories, and data sources live in shared KMP modules. androidApp only contains: Compose UI, Firebase bridge implementations, Room database, DI wiring, and Android framework code.
+**Result:** All ViewModels, UseCases, Repositories, data sources, and local database live in shared KMP modules. Navigation uses Nav3 (NavDisplay + entryProvider). androidApp only contains: Compose UI, Firebase bridge implementations, DI wiring, and Android framework code.
 
 ### What remains in androidApp
 
 | Category | Files | Can share? | Path forward |
 |----------|-------|------------|--------------|
 | Compose UI | `ui/*.kt`, `ui/theme/*.kt` | **Yes** | Move to shared Compose modules (Phase 34) |
-| Room database | `db/*.kt`, `applogger/AppLoggerDao.kt` | **Yes** | Move to `data-local` module (Phase 33) |
 | Firebase bridges | `FirebaseAuthBridge`, `FirebaseMessagingBridge`, `FCMService` | No | Android-only Firebase SDK; iOS gets its own impls |
 | Google Sign-In | `GoogleSignInState.kt` | No | Android GMS API; iOS uses Apple Sign-In |
 | DI wiring | `AppComponent.kt`, `ActivityViewModels.kt`, `ComponentProvider.kt`, `Singleton.kt` | Partial | `Singleton` can move; `AppComponent` stays per-platform |
@@ -434,19 +440,15 @@ compose-app/         Android app + iOS framework + Desktop
 fixtures/            commonMain — test data and demo fixtures
 ```
 
-### Phase 33: Move Room to shared `data-local` module
+### Phase 33: Move Room to shared `data-local` module — COMPLETE (#187)
 
-**Goal:** Room is KMP-compatible (since 2.7.0). Move database out of androidApp.
-
-**Changes:**
-- Create `data-local/` KMP module with Room plugin + KSP
-- Move `AppDatabase`, `DoorEventDao`, `DoorEventEntity`, `DatabaseLocalDoorDataSource`
-- Move `AppLoggerDao`, `AppEvent` entity
-- Configure KSP for each target (Android, iOS, JVM)
-- Add `sqlite-bundled` for cross-platform SQLite
-- Use expect/actual for `AppDatabase.getDatabase()` (needs platform Context on Android)
-
-**Blocker:** Room KMP requires alpha dependencies (2.7.x). Evaluate stability.
+Room 2.7.2 (stable) with KMP support. Created `data-local/` module with:
+- `AppDatabase` with `@ConstructedBy` for KMP compatibility
+- All entities (`DoorEventEntity`, `AppEvent`), DAOs, `DatabaseLocalDoorDataSource`
+- `BundledSQLiteDriver` for cross-platform SQLite
+- Android-specific `DatabaseFactory` in androidMain (iOS impl in Phase 37)
+- `expect/actual currentTimeMillis()` replacing `System.currentTimeMillis()`
+- Import boundary enforcement (allows `androidx.room.*`, `androidx.sqlite.*`)
 
 ### Phase 34: Extract shared Compose modules
 
