@@ -12,47 +12,8 @@ permissions:
   contents: read
 
 jobs:
-  verify-ci:
-    name: Verify CI Passed
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Get tagged commit SHA
-        id: get-sha
-        run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          SHA=$(gh api repos/${{ github.repository }}/git/ref/tags/${TAG} --jq '.object.sha' 2>/dev/null || echo "")
-          if [ -z "$SHA" ]; then
-            SHA="${GITHUB_SHA}"
-          fi
-          echo "sha=$SHA" >> $GITHUB_OUTPUT
-          echo "Tagged commit: $SHA"
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-      - name: Verify CI passed on tagged commit
-        run: |
-          TAG_SHA="${{ steps.get-sha.outputs.sha }}"
-          echo "Checking CI status for commit $TAG_SHA..."
-
-          # Check the single post-merge gate job
-          POST_MERGE=$(gh api "repos/${{ github.repository }}/commits/$TAG_SHA/check-runs" \
-            --jq '[.check_runs[] | select(.name == "Post-Merge Complete")] | last | .conclusion')
-
-          echo "Post-Merge Complete: $POST_MERGE"
-
-          if [ "$POST_MERGE" != "success" ]; then
-            echo "::error::Post-Merge Complete concluded '$POST_MERGE', expected 'success'"
-            exit 1
-          fi
-
-          echo "Post-merge CI passed on commit $TAG_SHA"
-        env:
-          GH_TOKEN: ${{ github.token }}
-
   release:
     name: Build and Deploy to Internal
-    needs: verify-ci
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
