@@ -18,7 +18,7 @@
 package com.chriscartland.garage.di
 
 import android.app.Application
-import com.chriscartland.garage.applogger.AppLoggerRepository
+import com.chriscartland.garage.applogger.AndroidAppLoggerRepository
 import com.chriscartland.garage.applogger.DefaultAppLoggerViewModel
 import com.chriscartland.garage.applogger.RoomAppLoggerRepository
 import com.chriscartland.garage.auth.DefaultAuthViewModel
@@ -163,7 +163,12 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
-    fun provideAppLoggerRepository(): AppLoggerRepository = RoomAppLoggerRepository(application.applicationContext, provideAppDatabase())
+    fun provideAndroidAppLoggerRepository(): AndroidAppLoggerRepository =
+        RoomAppLoggerRepository(application.applicationContext, provideAppDatabase())
+
+    @Provides
+    @Singleton
+    fun provideAppLoggerRepository(): com.chriscartland.garage.domain.repository.AppLoggerRepository = provideAndroidAppLoggerRepository()
 
     // UseCases
     @Provides

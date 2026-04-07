@@ -18,11 +18,11 @@
 package com.chriscartland.garage.fcm
 
 import co.touchlab.kermit.Logger
-import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.data.MessagingBridge
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorFcmTopic
+import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.settings.AppSettings
 
 interface DoorFcmRepository {

@@ -20,7 +20,6 @@ package com.chriscartland.garage.door
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
-import com.chriscartland.garage.applogger.AppLoggerRepository
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AppResult
@@ -28,6 +27,7 @@ import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.LoadingResult
+import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase

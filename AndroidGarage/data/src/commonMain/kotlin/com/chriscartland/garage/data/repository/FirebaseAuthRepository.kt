@@ -18,7 +18,6 @@
 package com.chriscartland.garage.data.repository
 
 import co.touchlab.kermit.Logger
-import com.chriscartland.garage.data.AppLoggerDataSource
 import com.chriscartland.garage.data.AuthBridge
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AuthState
@@ -26,6 +25,7 @@ import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.User
+import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.AuthRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,7 +41,7 @@ import kotlinx.coroutines.launch
  */
 class FirebaseAuthRepository(
     private val authBridge: AuthBridge,
-    private val appLogger: AppLoggerDataSource,
+    private val appLogger: AppLoggerRepository,
     externalScope: CoroutineScope,
 ) : AuthRepository {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
