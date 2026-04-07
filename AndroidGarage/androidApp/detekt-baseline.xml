@@ -2,14 +2,7 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
-    <ID>SwallowedException:AuthRepository.kt$FirebaseAuthRepository$e: Exception</ID>
-    <ID>SwallowedException:FcmPayloadParser.kt$FcmPayloadParser$e: IllegalArgumentException</ID>
     <ID>TooGenericExceptionCaught:AppLoggerRepository.kt$RoomAppLoggerRepository$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:AuthRepository.kt$FirebaseAuthRepository$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:FcmPayloadParser.kt$FcmPayloadParser$e: Exception</ID>
     <ID>TooGenericExceptionCaught:FirebaseAuthBridge.kt$FirebaseAuthBridge$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:KtorNetworkButtonDataSource.kt$KtorNetworkButtonDataSource$e: Throwable</ID>
-    <ID>TooGenericExceptionCaught:KtorNetworkConfigDataSource.kt$KtorNetworkConfigDataSource$e: Throwable</ID>
-    <ID>TooGenericExceptionCaught:KtorNetworkDoorDataSource.kt$KtorNetworkDoorDataSource$e: Throwable</ID>
   </CurrentIssues>
 </SmellBaseline>
