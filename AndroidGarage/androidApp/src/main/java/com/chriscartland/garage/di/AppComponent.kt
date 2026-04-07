@@ -23,7 +23,6 @@ import com.chriscartland.garage.applogger.DefaultAppLoggerViewModel
 import com.chriscartland.garage.applogger.RoomAppLoggerRepository
 import com.chriscartland.garage.auth.DefaultAuthViewModel
 import com.chriscartland.garage.auth.FirebaseAuthBridge
-import com.chriscartland.garage.auth.FirebaseAuthRepository
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.coroutines.DefaultDispatcherProvider
 import com.chriscartland.garage.data.AuthBridge
@@ -36,6 +35,7 @@ import com.chriscartland.garage.data.ktor.KtorNetworkButtonDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkConfigDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkDoorDataSource
 import com.chriscartland.garage.data.repository.CachedServerConfigRepository
+import com.chriscartland.garage.data.repository.FirebaseAuthRepository
 import com.chriscartland.garage.data.repository.NetworkDoorRepository
 import com.chriscartland.garage.data.repository.NetworkPushRepository
 import com.chriscartland.garage.db.AppDatabase

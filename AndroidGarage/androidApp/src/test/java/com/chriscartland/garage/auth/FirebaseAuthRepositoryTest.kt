@@ -18,6 +18,7 @@
 package com.chriscartland.garage.auth
 
 import com.chriscartland.garage.data.AuthUserInfo
+import com.chriscartland.garage.data.repository.FirebaseAuthRepository
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.GoogleIdToken
