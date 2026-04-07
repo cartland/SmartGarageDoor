@@ -1,23 +1,30 @@
 package com.chriscartland.garage.domain.repository
 
+import kotlinx.coroutines.flow.Flow
+
 /**
- * Platform-agnostic key-value setting.
+ * Platform-agnostic reactive key-value setting.
+ *
+ * Backed by DataStore on all platforms. Changes propagate reactively via [flow].
  */
 interface Setting<T> {
     val key: String
 
-    fun get(): T
+    /** Observe this setting's value reactively. Emits the current value immediately. */
+    val flow: Flow<T>
 
-    fun set(value: T)
+    /** Update this setting's value. */
+    suspend fun set(value: T)
 
-    fun restoreDefault()
+    /** Reset to the default value. */
+    suspend fun restoreDefault()
 }
 
 /**
  * Platform-agnostic settings contract.
  *
- * Defines the settings the app needs without referencing SharedPreferences
- * or any other platform storage.
+ * Defines the settings the app needs without referencing SharedPreferences,
+ * DataStore, or any other platform storage directly.
  */
 interface AppSettingsRepository {
     val fcmDoorTopic: Setting<String>

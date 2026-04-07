@@ -6,6 +6,7 @@ import com.chriscartland.garage.data.testfakes.FakeMessagingBridge
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorFcmTopic
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -46,7 +47,7 @@ class FirebaseDoorFcmRepositoryTest {
             assertIs<DoorFcmState.Registered>(state)
             assertEquals(topic, state.topic)
             assertTrue(bridge.subscribedTopics.contains("new-topic"))
-            assertEquals("new-topic", settings.fcmDoorTopic.get())
+            assertEquals("new-topic", settings.fcmDoorTopic.flow.first())
         }
 
     @Test
@@ -110,7 +111,7 @@ class FirebaseDoorFcmRepositoryTest {
             repo.deregisterDoor()
 
             // After restoreDefault, setting returns "" (the default)
-            assertEquals("", settings.fcmDoorTopic.get())
+            assertEquals("", settings.fcmDoorTopic.flow.first())
         }
 
     @Test
