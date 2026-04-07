@@ -52,10 +52,12 @@ fun AndroidAppInfoCard(
     val component = rememberAppComponent()
     val settingsViewModel: AppSettingsViewModel = viewModel { component.appSettingsViewModel }
     val startAndroidAppInfoCardExpanded by settingsViewModel.profileAppCardExpanded.collectAsState()
+    // Don't render until DataStore loads the persisted value.
+    val expanded = startAndroidAppInfoCardExpanded ?: return
     AndroidAppInfoCard(
         appVersion = LocalContext.current.AppVersion(),
         modifier = modifier,
-        startExpanded = startAndroidAppInfoCardExpanded,
+        startExpanded = expanded,
         onExpandedChange = {
             settingsViewModel.setProfileAppCardExpanded(it)
         },

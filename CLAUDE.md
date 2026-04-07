@@ -220,7 +220,16 @@ gh pr update-branch <number>
 
 **Watch for PR starvation:** When many PRs queue up, the last one keeps getting pushed back as others merge ahead of it. Each merge makes it stale, requiring another CI run. If a PR has been open for a long time, prioritize merging it before creating new ones.
 
-**Auto-merge race condition:** Never push commits to a PR that has auto-merge enabled. The squash merge may execute before the push arrives, losing commits silently. A guardrail hook blocks `git push` when auto-merge is active on the target PR. If a PR needs changes after `gh pr merge --auto` is set, disable auto-merge first, push, then re-enable.
+**Auto-merge rule:** Before modifying a PR in any way (pushing commits, amending, force-pushing), you MUST first check if auto-merge is enabled and disable it:
+```bash
+# Check if auto-merge is enabled
+gh pr view <number> --json autoMergeRequest --jq '.autoMergeRequest'
+# Disable auto-merge before modifying
+gh pr merge --disable-auto <number>
+# After pushing, re-enable
+gh pr merge --auto --squash --delete-branch <number>
+```
+A guardrail hook blocks `git push` when auto-merge is active on the target PR. If the push is blocked, disable auto-merge first, push, then re-enable. Never push to a PR with auto-merge enabled — the merge may execute before the push arrives, silently losing commits.
 
 ### Dev Mode
 Toggle: `touch .claude/.dev-mode` (enable) / `rm .claude/.dev-mode` (disable).
