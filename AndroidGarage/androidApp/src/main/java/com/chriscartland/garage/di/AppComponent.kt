@@ -32,6 +32,9 @@ import com.chriscartland.garage.data.MessagingBridge
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkConfigDataSource
 import com.chriscartland.garage.data.NetworkDoorDataSource
+import com.chriscartland.garage.data.ktor.KtorNetworkButtonDataSource
+import com.chriscartland.garage.data.ktor.KtorNetworkConfigDataSource
+import com.chriscartland.garage.data.ktor.KtorNetworkDoorDataSource
 import com.chriscartland.garage.data.repository.CachedServerConfigRepository
 import com.chriscartland.garage.data.repository.NetworkDoorRepository
 import com.chriscartland.garage.data.repository.NetworkPushRepository
@@ -46,9 +49,6 @@ import com.chriscartland.garage.door.DefaultDoorViewModel
 import com.chriscartland.garage.fcm.DoorFcmRepository
 import com.chriscartland.garage.fcm.FirebaseDoorFcmRepository
 import com.chriscartland.garage.fcm.FirebaseMessagingBridge
-import com.chriscartland.garage.internet.KtorNetworkButtonDataSource
-import com.chriscartland.garage.internet.KtorNetworkConfigDataSource
-import com.chriscartland.garage.internet.KtorNetworkDoorDataSource
 import com.chriscartland.garage.internet.provideKtorHttpClient
 import com.chriscartland.garage.remotebutton.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.settings.AppSettings
