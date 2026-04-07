@@ -229,6 +229,7 @@ dependencies {
     implementation(project(":domain"))
     implementation(project(":data"))
     implementation(project(":usecase"))
+    implementation(project(":presentation-model"))
     implementation(libs.kermit)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

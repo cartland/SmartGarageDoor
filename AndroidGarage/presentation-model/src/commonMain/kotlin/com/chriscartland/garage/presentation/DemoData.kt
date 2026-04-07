@@ -15,17 +15,18 @@
  *
  */
 
-package com.chriscartland.garage.ui
+package com.chriscartland.garage.presentation
 
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
-import java.time.Instant
 
 /**
  * Fixed timestamp for deterministic previews and screenshot tests.
  * Never use Clock/Instant.now() in preview data — it causes screenshot diffs on every run.
+ *
+ * Equivalent to Instant.parse("2026-01-15T12:00:00Z").epochSecond
  */
-private val DEMO_TIMESTAMP = Instant.parse("2026-01-15T12:00:00Z").epochSecond
+private const val DEMO_TIMESTAMP = 1768507200L
 
 val demoDoorEvents = generateDoorEventDemoData()
 

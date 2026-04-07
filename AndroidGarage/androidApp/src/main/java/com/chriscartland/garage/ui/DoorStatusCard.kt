@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.theme.DoorColorState
 import com.chriscartland.garage.ui.theme.DoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
