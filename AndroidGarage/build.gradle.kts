@@ -33,6 +33,17 @@ plugins {
     alias(libs.plugins.detekt) apply false
 }
 
+tasks.register<codestyle.NoFullyQualifiedNamesTask>("checkNoFullyQualifiedNames") {
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+        "$rootDir/androidApp/src/test/java",
+        "$rootDir/domain/src/commonMain/kotlin",
+        "$rootDir/data/src/commonMain/kotlin",
+        "$rootDir/usecase/src/commonMain/kotlin",
+        "$rootDir/presentation-model/src/commonMain/kotlin",
+    )
+}
+
 tasks.register<testcoverage.TestCoverageCheckTask>("checkTestCoverage") {
     sourceDir = "$rootDir/androidApp/src/main/java/com/chriscartland/garage"
     testDir = "$rootDir/androidApp/src/test/java/com/chriscartland/garage"

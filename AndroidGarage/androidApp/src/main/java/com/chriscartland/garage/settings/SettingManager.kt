@@ -19,6 +19,7 @@ package com.chriscartland.garage.settings
 
 import android.content.SharedPreferences
 import co.touchlab.kermit.Logger
+import com.chriscartland.garage.domain.repository.Setting
 import com.chriscartland.garage.settings.SettingType.BooleanSetting
 import com.chriscartland.garage.settings.SettingType.IntSetting
 import com.chriscartland.garage.settings.SettingType.LongSetting
@@ -46,7 +47,7 @@ interface SettingManager {
     ): LongSetting
 }
 
-sealed class SettingType<T> : com.chriscartland.garage.domain.repository.Setting<T> {
+sealed class SettingType<T> : Setting<T> {
     class StringSetting(
         private val prefs: SharedPreferences,
         override val key: String,

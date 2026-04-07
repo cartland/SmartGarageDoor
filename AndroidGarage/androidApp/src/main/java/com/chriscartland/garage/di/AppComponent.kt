@@ -40,6 +40,7 @@ import com.chriscartland.garage.data.repository.NetworkPushRepository
 import com.chriscartland.garage.db.AppDatabase
 import com.chriscartland.garage.db.DatabaseLocalDoorDataSource
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
+import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.DoorFcmRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
@@ -186,7 +187,7 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
-    fun provideAppLoggerRepository(): com.chriscartland.garage.domain.repository.AppLoggerRepository = provideAndroidAppLoggerRepository()
+    fun provideAppLoggerRepository(): AppLoggerRepository = provideAndroidAppLoggerRepository()
 
     // UseCases
     @Provides
