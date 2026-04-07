@@ -41,7 +41,7 @@ import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.LoadingResult
-import com.chriscartland.garage.door.DoorViewModel
+import com.chriscartland.garage.usecase.DoorViewModel
 import java.time.Instant
 
 @Composable

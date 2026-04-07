@@ -20,8 +20,8 @@ package com.chriscartland.garage.usecase
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.toFcmTopic
+import com.chriscartland.garage.domain.repository.DoorFcmRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
-import com.chriscartland.garage.fcm.DoorFcmRepository
 
 /**
  * Maps [DoorFcmState] to the simpler [FcmRegistrationStatus] enum.
