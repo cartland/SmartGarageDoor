@@ -10,14 +10,18 @@ set -euo pipefail
 # Usage:
 #   ./scripts/release-android.sh              # Interactive mode (fails in CI/non-TTY)
 #   ./scripts/release-android.sh --check      # Print latest and next tag, exit
-#   ./scripts/release-android.sh --confirm-tag android/N  # Non-interactive release
+#   ./scripts/release-android.sh --confirm-tag android/N  # Non-interactive release from main HEAD
+#   ./scripts/release-android.sh --confirm-tag android/N --confirm-hash <ref>  # Any commit
+#   ./scripts/release-android.sh --confirm-tag android/N --skip-validation     # Skip validation check
 #   ./scripts/release-android.sh --dry-run    # Show what would happen
 #
-# Safety:
-#   - Only this script can push tags (Claude hooks block git tag commands)
-#   - --confirm-tag must exactly match the computed next tag (cannot override)
-#   - Requires clean working tree and CI passing on HEAD
-#   - Requires main branch (or --confirm-hash for non-main)
+# Default gates (all enforced):
+#   1. Must be on main branch         — override with --confirm-hash <ref>
+#   2. Must have passed validate.sh   — override with --skip-validation
+#   3. --confirm-tag must match next   — no override (always required in non-interactive)
+#
+# The release workflow (release-android.yml) does NOT re-check these gates.
+# It trusts the tag and builds whatever commit the tag points to.
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 
@@ -31,6 +35,7 @@ RESET='\033[0m'
 MODE="interactive"
 CONFIRM_TAG=""
 CONFIRM_HASH=""
+SKIP_VALIDATION=false
 DRY_RUN=false
 
 show_help() {
@@ -42,16 +47,18 @@ show_help() {
     echo "  --confirm-tag <tag>        Non-interactive release. Tag must match computed next tag."
     echo "  --dry-run                  Show what would happen without creating tags"
     echo ""
-    echo "Options:"
-    echo "  --confirm-hash <sha>       Required when releasing from non-main branch."
-    echo "                             Must match HEAD's full SHA. This is a safety check"
-    echo "                             to confirm you intend to release from this commit."
+    echo "Override flags:"
+    echo "  --confirm-hash <ref>       Release a specific commit (SHA, tag, branch)."
+    echo "                             Bypasses the main-branch requirement."
+    echo "  --skip-validation          Skip the validate.sh check. Use when you need to"
+    echo "                             release urgently without local validation."
     echo "  -h, --help                 Show this help"
     echo ""
     echo "Examples:"
     echo "  ./scripts/release-android.sh --check"
-    echo "  ./scripts/release-android.sh --confirm-tag android/2"
-    echo "  ./scripts/release-android.sh --confirm-tag android/2 --confirm-hash \$(git rev-parse HEAD)"
+    echo "  ./scripts/release-android.sh --confirm-tag android/141"
+    echo "  ./scripts/release-android.sh --confirm-tag android/141 --confirm-hash android/139"
+    echo "  ./scripts/release-android.sh --confirm-tag android/141 --skip-validation"
     echo "  ./scripts/release-android.sh --dry-run"
     echo ""
     echo "Multiple tags on the same commit are allowed — tag numbers always increment."
@@ -71,6 +78,10 @@ while [[ $# -gt 0 ]]; do
         --confirm-hash)
             CONFIRM_HASH="$2"
             shift 2
+            ;;
+        --skip-validation)
+            SKIP_VALIDATION=true
+            shift
             ;;
         --dry-run)
             DRY_RUN=true
@@ -106,27 +117,47 @@ else
 fi
 
 NEW_TAG="android/$NEXT_VERSION"
-CURRENT_COMMIT=$(git rev-parse HEAD)
-CURRENT_COMMIT_SHORT=$(git rev-parse --short HEAD)
+
+# Resolve target commit
+if [ -n "$CONFIRM_HASH" ]; then
+    TARGET_COMMIT=$(git rev-parse --verify "$CONFIRM_HASH" 2>/dev/null) || {
+        echo -e "${RED}Error: --confirm-hash '$CONFIRM_HASH' is not a valid git ref.${RESET}"
+        exit 1
+    }
+    TARGET_COMMIT_SHORT=$(git rev-parse --short "$TARGET_COMMIT")
+    TARGET_SOURCE="--confirm-hash $CONFIRM_HASH → $TARGET_COMMIT_SHORT"
+else
+    TARGET_COMMIT=$(git rev-parse HEAD)
+    TARGET_COMMIT_SHORT=$(git rev-parse --short HEAD)
+    TARGET_SOURCE="HEAD ($TARGET_COMMIT_SHORT)"
+fi
+
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "(detached)")
 
-# Check for existing tags on this commit.
-TAGS_ON_COMMIT=$(git tag -l 'android/[0-9]*' --points-at HEAD 2>/dev/null | sort -t/ -k2 -n)
+# Check for existing android tags on target commit
+TAGS_ON_COMMIT=$(git tag -l 'android/[0-9]*' --points-at "$TARGET_COMMIT" 2>/dev/null | sort -t/ -k2 -n || true)
 check_existing_tags() {
     if [ -n "$TAGS_ON_COMMIT" ]; then
-        TAG_COUNT=$(echo "$TAGS_ON_COMMIT" | wc -l | tr -d ' ')
         NEWEST_TAG_ON_COMMIT=$(echo "$TAGS_ON_COMMIT" | tail -1)
         if [ "$NEWEST_TAG_ON_COMMIT" = "$LATEST_TAG" ]; then
-            # Latest tag is on this commit — releasing again on same code
             echo -e "${YELLOW}WARNING: This commit already has $LATEST_TAG.${RESET}"
             echo "  Creating $NEW_TAG on the same commit (version bump, no code change)."
         else
-            # An older tag is on this commit — rollback/rollforward
-            echo -e "${YELLOW}WARNING: This commit was previously released as: $TAGS_ON_COMMIT${RESET}"
+            echo -e "${YELLOW}WARNING: This commit was previously released as: $(echo "$TAGS_ON_COMMIT" | tr '\n' ' ')${RESET}"
             echo "  Latest tag $LATEST_TAG is on a different commit."
             echo "  Creating $NEW_TAG here (rollback/rollforward)."
         fi
     fi
+}
+
+# Check if validate.sh passed on the target commit
+VALIDATION_FILE="$REPO_ROOT/.claude/.validation-passed"
+check_validation() {
+    if [ ! -f "$VALIDATION_FILE" ]; then
+        return 1
+    fi
+    VALIDATED_COMMIT=$(cat "$VALIDATION_FILE" 2>/dev/null | tr -d '[:space:]')
+    [ "$VALIDATED_COMMIT" = "$TARGET_COMMIT" ]
 }
 
 # === --check mode ===
@@ -134,14 +165,14 @@ if [ "$MODE" = "check" ]; then
     echo "Latest tag: $LATEST_TAG"
     echo "Next tag:   $NEW_TAG"
     echo "Branch:     $CURRENT_BRANCH"
-    echo "Commit:     $CURRENT_COMMIT_SHORT"
-    if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+    echo "Target:     $TARGET_SOURCE"
+    if [ -z "$CONFIRM_HASH" ] && ! git diff-index --quiet HEAD -- 2>/dev/null; then
         echo -e "${RED}WARNING: Uncommitted changes${RESET}"
     fi
-    UNTRACKED_CHECK=$(git ls-files --others --exclude-standard 2>/dev/null)
-    if [ -n "$UNTRACKED_CHECK" ]; then
-        UNTRACKED_COUNT=$(echo "$UNTRACKED_CHECK" | wc -l | tr -d ' ')
-        echo -e "${YELLOW}WARNING: $UNTRACKED_COUNT untracked file(s)${RESET}"
+    if check_validation; then
+        echo -e "${GREEN}Validation: passed${RESET}"
+    else
+        echo -e "${YELLOW}Validation: not passed for this commit${RESET}"
     fi
     check_existing_tags
     exit 0
@@ -163,95 +194,88 @@ fi
 echo -e "${BOLD}=== Android Release ===${RESET}"
 echo ""
 
-# Check clean working tree (tracked files)
-if ! git diff-index --quiet HEAD --; then
-    echo -e "${RED}Error: Working tree has uncommitted changes.${RESET}"
-    echo "Commit or stash changes before releasing."
+# === Gate 1: Clean working tree (only when tagging HEAD) ===
+if [ -z "$CONFIRM_HASH" ]; then
+    if ! git diff-index --quiet HEAD --; then
+        echo -e "${RED}Error: Working tree has uncommitted changes.${RESET}"
+        echo "Commit or stash changes before releasing."
+        exit 1
+    fi
+
+    # Warn on untracked files
+    UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null)
+    if [ -n "$UNTRACKED" ]; then
+        echo -e "${YELLOW}Warning: Untracked files detected:${RESET}"
+        echo "$UNTRACKED" | head -10
+        UNTRACKED_COUNT=$(echo "$UNTRACKED" | wc -l | tr -d ' ')
+        if [ "$UNTRACKED_COUNT" -gt 10 ]; then
+            echo "  ... and $((UNTRACKED_COUNT - 10)) more"
+        fi
+        echo ""
+        if [ "$MODE" = "interactive" ]; then
+            read -p "Continue with untracked files? (y/N) " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo "Aborted. Remove or .gitignore untracked files before releasing."
+                exit 1
+            fi
+        else
+            echo -e "${YELLOW}Non-interactive: proceeding with untracked files.${RESET}"
+        fi
+    fi
+fi
+
+# === Gate 2: Must be on main — override with --confirm-hash ===
+if [ -z "$CONFIRM_HASH" ] && [ "$CURRENT_BRANCH" != "main" ]; then
+    echo -e "${RED}Error: Not on main branch (on '$CURRENT_BRANCH').${RESET}"
+    echo ""
+    echo "To release from a specific commit, use --confirm-hash:"
+    echo "  ./scripts/release-android.sh --confirm-tag $NEW_TAG --confirm-hash $(git rev-parse HEAD)"
     exit 1
 fi
 
-# Warn on untracked files (could affect build)
-UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null)
-if [ -n "$UNTRACKED" ]; then
-    echo -e "${YELLOW}Warning: Untracked files detected:${RESET}"
-    echo "$UNTRACKED" | head -10
-    UNTRACKED_COUNT=$(echo "$UNTRACKED" | wc -l | tr -d ' ')
-    if [ "$UNTRACKED_COUNT" -gt 10 ]; then
-        echo "  ... and $((UNTRACKED_COUNT - 10)) more"
-    fi
+if [ -n "$CONFIRM_HASH" ]; then
+    echo -e "${YELLOW}Releasing specific commit: $TARGET_COMMIT_SHORT${RESET}"
+    echo "  Resolved from: $CONFIRM_HASH"
+    echo "  Full SHA:      $TARGET_COMMIT"
     echo ""
+fi
+
+# === Gate 3: Must have passed validate.sh — override with --skip-validation ===
+if [ "$SKIP_VALIDATION" = true ]; then
+    echo -e "${YELLOW}Warning: Validation check skipped (--skip-validation).${RESET}"
+    echo ""
+elif check_validation; then
+    echo -e "${GREEN}Validation passed for this commit.${RESET}"
+else
+    echo -e "${YELLOW}Warning: validate.sh has not passed on commit $TARGET_COMMIT_SHORT.${RESET}"
     if [ "$MODE" = "interactive" ]; then
-        read -p "Continue with untracked files? (y/N) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo "Aborted. Remove or .gitignore untracked files before releasing."
-            exit 1
-        fi
+        read -p "Continue without validation? (y/N) " -n 1 -r
+        echo ""
+        [[ $REPLY =~ ^[Yy]$ ]] || { echo "Aborted. Run ./scripts/validate.sh first."; exit 1; }
     else
-        echo -e "${YELLOW}Non-interactive: proceeding with untracked files.${RESET}"
+        echo -e "${RED}Error: validate.sh has not passed on this commit.${RESET}"
+        echo "Run ./scripts/validate.sh first, or use --skip-validation to override."
+        exit 1
     fi
 fi
 
-# Check for existing tags on this commit
 check_existing_tags
 
-# Check CI status
-echo "Checking CI status on HEAD..."
-REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null || echo "")
-if [ -n "$REPO" ]; then
-    # Check the single post-merge gate job (ci-post-merge.yml → Post-Merge Complete)
-    POST_MERGE_STATUS=$(gh api "repos/${REPO}/commits/${CURRENT_COMMIT}/check-runs" \
-        --jq '[.check_runs[] | select(.name == "Post-Merge Complete")] | last | .conclusion' 2>/dev/null || echo "")
-
-    if [ "$POST_MERGE_STATUS" = "success" ]; then
-        echo -e "${GREEN}CI passed on HEAD.${RESET}"
-    elif [ -z "$POST_MERGE_STATUS" ] || [ "$POST_MERGE_STATUS" = "null" ]; then
-        echo -e "${YELLOW}Warning: Post-merge CI has not completed on HEAD.${RESET}"
-        if [ "$MODE" = "interactive" ]; then
-            read -p "Continue anyway? (y/N) " -n 1 -r
-            echo ""
-            [[ $REPLY =~ ^[Yy]$ ]] || { echo "Aborted."; exit 1; }
-        else
-            echo -e "${RED}Error: Post-merge CI has not run on HEAD. Cannot release without CI.${RESET}"
-            exit 1
-        fi
-    else
-        echo -e "${RED}Error: Post-merge CI failed on HEAD (status: $POST_MERGE_STATUS).${RESET}"
-        exit 1
-    fi
-fi
-echo ""
-
-# Branch safety
-if [ "$CURRENT_BRANCH" != "main" ]; then
-    if [ -z "$CONFIRM_HASH" ]; then
-        echo -e "${RED}Error: Not on main branch (on '$CURRENT_BRANCH').${RESET}"
-        echo ""
-        echo "Release from non-main requires --confirm-hash:"
-        echo "  ./scripts/release-android.sh --confirm-hash $(git rev-parse HEAD)"
-        exit 1
-    elif [ "$CONFIRM_HASH" != "$CURRENT_COMMIT" ]; then
-        echo -e "${RED}Error: --confirm-hash does not match HEAD.${RESET}"
-        echo "  Provided: $CONFIRM_HASH"
-        echo "  HEAD:     $CURRENT_COMMIT"
-        exit 1
-    fi
-    echo -e "${YELLOW}Warning: Releasing from non-main branch '$CURRENT_BRANCH'.${RESET}"
-    echo ""
-fi
-
 # Release details
+echo ""
 echo "=== Release Details ==="
+echo "  Target:     $TARGET_SOURCE"
 echo "  Branch:     $CURRENT_BRANCH"
 echo "  Latest tag: $LATEST_TAG"
 echo "  New tag:    $NEW_TAG"
-echo "  Commit:     $CURRENT_COMMIT_SHORT ($CURRENT_COMMIT)"
+echo "  Commit:     $TARGET_COMMIT_SHORT ($TARGET_COMMIT)"
 echo ""
 
-# Note existing tags on this commit (not blocking — tag numbers always increment)
-EXISTING_TAGS=$(git tag --points-at HEAD | grep -E '^android/[0-9]+$' || true)
+# Note existing tags on this commit
+EXISTING_TAGS=$(git tag --points-at "$TARGET_COMMIT" | grep -E '^android/[0-9]+$' || true)
 if [ -n "$EXISTING_TAGS" ]; then
-    echo -e "${YELLOW}Note: This commit already has tag(s): $EXISTING_TAGS${RESET}"
+    echo -e "${YELLOW}Note: This commit already has tag(s): $(echo "$EXISTING_TAGS" | tr '\n' ' ')${RESET}"
     echo "  New tag $NEW_TAG will be created with the next number."
     echo ""
 fi
@@ -278,7 +302,7 @@ fi
 # Dry run
 if [ "$DRY_RUN" = true ]; then
     echo -e "${YELLOW}=== Dry Run ===${RESET}"
-    echo "Would create tag $NEW_TAG on commit $CURRENT_COMMIT_SHORT"
+    echo "Would create tag $NEW_TAG on commit $TARGET_COMMIT_SHORT"
     echo "Would push tag to origin"
     echo "No tags were created or pushed."
     exit 0
@@ -286,8 +310,8 @@ fi
 
 # Create and push tag
 echo ""
-echo "Creating tag $NEW_TAG..."
-git tag "$NEW_TAG"
+echo "Creating tag $NEW_TAG on $TARGET_COMMIT_SHORT..."
+git tag "$NEW_TAG" "$TARGET_COMMIT"
 
 echo "Pushing tag to origin..."
 if git push origin "$NEW_TAG"; then
