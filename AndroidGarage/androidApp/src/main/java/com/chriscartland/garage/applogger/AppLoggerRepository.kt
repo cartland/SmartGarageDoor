@@ -31,15 +31,15 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-interface AppLoggerRepository {
-    suspend fun log(key: String)
-
+/**
+ * Android-specific logger repository that extends the shared [AppLoggerDataSource]
+ * with Android-specific CSV export capability.
+ */
+interface AppLoggerRepository : com.chriscartland.garage.data.AppLoggerDataSource {
     suspend fun writeCsvToUri(
         context: Context,
         uri: Uri,
     )
-
-    fun countKey(key: String): Flow<Long>
 }
 
 class RoomAppLoggerRepository(
