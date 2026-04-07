@@ -63,8 +63,9 @@ fun ExpandableColumnCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var expanded by remember { mutableStateOf(startExpanded) }
-    LaunchedEffect(expanded) {
-        onExpandedChange(expanded)
+    // Sync external state changes (e.g., DataStore loading the persisted value)
+    LaunchedEffect(startExpanded) {
+        expanded = startExpanded
     }
     Card(
         modifier = modifier,
@@ -81,7 +82,10 @@ fun ExpandableColumnCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = !expanded },
+                    .clickable {
+                        expanded = !expanded
+                        onExpandedChange(expanded)
+                    },
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -96,7 +100,10 @@ fun ExpandableColumnCard(
                     modifier = Modifier.size(36.dp),
                 ) {
                     IconButton(
-                        onClick = { expanded = !expanded },
+                        onClick = {
+                            expanded = !expanded
+                            onExpandedChange(expanded)
+                        },
                     ) {
                         Icon(
                             imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
