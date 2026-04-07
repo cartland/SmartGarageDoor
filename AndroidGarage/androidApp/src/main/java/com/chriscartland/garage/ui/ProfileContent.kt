@@ -34,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.chriscartland.garage.auth.AuthViewModel
 import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.di.rememberAppComponent
@@ -43,6 +42,7 @@ import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
+import com.chriscartland.garage.usecase.AuthViewModel
 import com.chriscartland.garage.usecase.RemoteButtonViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState

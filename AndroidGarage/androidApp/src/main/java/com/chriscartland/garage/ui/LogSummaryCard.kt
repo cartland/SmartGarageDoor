@@ -43,10 +43,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.chriscartland.garage.GarageApplication
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.AppSettingsViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -73,8 +75,8 @@ fun LogSummaryCard(
     LogSummaryCard(
         modifier = modifier,
         onDownload = { context, uri ->
-            val app = context.applicationContext as com.chriscartland.garage.GarageApplication
-            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            val app = context.applicationContext as GarageApplication
+            CoroutineScope(Dispatchers.IO).launch {
                 app.component.provideAndroidAppLoggerRepository().writeCsvToUri(context, uri)
             }
         },

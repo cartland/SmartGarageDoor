@@ -51,13 +51,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.chriscartland.garage.auth.AuthViewModel
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.fcm.FCMRegistration
 import com.chriscartland.garage.ui.theme.AppTheme
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.usecase.AppLoggerViewModel
+import com.chriscartland.garage.usecase.AuthViewModel
 import com.chriscartland.garage.usecase.DoorViewModel
 import com.chriscartland.garage.usecase.RemoteButtonViewModel
 import kotlinx.serialization.Serializable
