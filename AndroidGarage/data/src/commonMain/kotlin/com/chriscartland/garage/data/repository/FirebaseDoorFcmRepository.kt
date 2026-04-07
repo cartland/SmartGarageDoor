@@ -25,6 +25,7 @@ import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import com.chriscartland.garage.domain.repository.DoorFcmRepository
+import kotlinx.coroutines.flow.first
 
 /**
  * FCM repository that delegates all messaging calls to [MessagingBridge].
@@ -92,19 +93,19 @@ class FirebaseDoorFcmRepository(
         }
     }
 
-    private fun getFcmTopic(): DoorFcmTopic? {
+    private suspend fun getFcmTopic(): DoorFcmTopic? {
         Logger.d { "getFcmTopic" }
-        return settings.fcmDoorTopic.get().let {
+        return settings.fcmDoorTopic.flow.first().let {
             DoorFcmTopic(it)
         }
     }
 
-    private fun setFcmTopic(topic: DoorFcmTopic) {
+    private suspend fun setFcmTopic(topic: DoorFcmTopic) {
         Logger.d { "setFcmTopic: $topic" }
         settings.fcmDoorTopic.set(topic.string)
     }
 
-    private fun removeFcmTopic() {
+    private suspend fun removeFcmTopic() {
         Logger.d { "removeFcmTopic" }
         settings.fcmDoorTopic.restoreDefault()
     }

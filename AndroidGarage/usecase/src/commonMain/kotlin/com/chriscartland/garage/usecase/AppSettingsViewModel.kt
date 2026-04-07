@@ -18,9 +18,12 @@
 package com.chriscartland.garage.usecase
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.domain.repository.AppSettingsRepository
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 interface AppSettingsViewModel {
     val fcmDoorTopic: StateFlow<String>
@@ -41,35 +44,31 @@ class DefaultAppSettingsViewModel(
     private val settings: AppSettingsRepository,
 ) : ViewModel(),
     AppSettingsViewModel {
-    private val _fcmDoorTopic = MutableStateFlow(settings.fcmDoorTopic.get())
-    override val fcmDoorTopic: StateFlow<String> = _fcmDoorTopic
+    override val fcmDoorTopic: StateFlow<String> = settings.fcmDoorTopic.flow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+
+    override val profileUserCardExpanded: StateFlow<Boolean> = settings.profileUserCardExpanded.flow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    override val profileLogCardExpanded: StateFlow<Boolean> = settings.profileLogCardExpanded.flow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    override val profileAppCardExpanded: StateFlow<Boolean> = settings.profileAppCardExpanded.flow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
     override fun setFcmDoorTopic(topic: String) {
-        _fcmDoorTopic.value = topic
-        settings.fcmDoorTopic.set(topic)
+        viewModelScope.launch { settings.fcmDoorTopic.set(topic) }
     }
-
-    private val _profileUserCardExpanded = MutableStateFlow(settings.profileUserCardExpanded.get())
-    override val profileUserCardExpanded: StateFlow<Boolean> = _profileUserCardExpanded
 
     override fun setProfileUserCardExpanded(expanded: Boolean) {
-        _profileUserCardExpanded.value = expanded
-        settings.profileUserCardExpanded.set(expanded)
+        viewModelScope.launch { settings.profileUserCardExpanded.set(expanded) }
     }
-
-    private val _profileLogCardExpanded = MutableStateFlow(settings.profileLogCardExpanded.get())
-    override val profileLogCardExpanded: StateFlow<Boolean> = _profileLogCardExpanded
 
     override fun setProfileLogCardExpanded(expanded: Boolean) {
-        _profileLogCardExpanded.value = expanded
-        settings.profileLogCardExpanded.set(expanded)
+        viewModelScope.launch { settings.profileLogCardExpanded.set(expanded) }
     }
 
-    private val _profileAppCardExpanded = MutableStateFlow(settings.profileAppCardExpanded.get())
-    override val profileAppCardExpanded: StateFlow<Boolean> = _profileAppCardExpanded
-
     override fun setProfileAppCardExpanded(expanded: Boolean) {
-        _profileAppCardExpanded.value = expanded
-        settings.profileAppCardExpanded.set(expanded)
+        viewModelScope.launch { settings.profileAppCardExpanded.set(expanded) }
     }
 }

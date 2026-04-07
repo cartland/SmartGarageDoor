@@ -2,6 +2,8 @@ package com.chriscartland.garage.data.testfakes
 
 import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import com.chriscartland.garage.domain.repository.Setting
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 
 class FakeAppSettingsRepository : AppSettingsRepository {
     override val fcmDoorTopic: Setting<String> = InMemorySetting("")
@@ -14,15 +16,14 @@ class InMemorySetting<T>(
     private val default: T,
 ) : Setting<T> {
     override val key: String = "fake"
-    private var value: T = default
+    private val _flow = MutableStateFlow(default)
+    override val flow: Flow<T> = _flow
 
-    override fun get(): T = value
-
-    override fun set(value: T) {
-        this.value = value
+    override suspend fun set(value: T) {
+        _flow.value = value
     }
 
-    override fun restoreDefault() {
-        value = default
+    override suspend fun restoreDefault() {
+        _flow.value = default
     }
 }
