@@ -15,26 +15,19 @@
  *
  */
 
-package com.chriscartland.garage.applogger
+package com.chriscartland.garage.usecase
 
-import android.content.Context
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppLoggerKeys
+import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import me.tatarka.inject.annotations.Inject
 
 interface AppLoggerViewModel {
     fun log(key: String)
-
-    fun writeCsvToUri(
-        context: Context,
-        uri: Uri,
-    )
 
     val initCurrentDoorCount: StateFlow<Long>
     val initRecentDoorCount: StateFlow<Long>
@@ -46,9 +39,8 @@ interface AppLoggerViewModel {
     val timeWithoutFcmInExpectedRangeCount: StateFlow<Long>
 }
 
-@Inject
 class DefaultAppLoggerViewModel(
-    private val appLoggerRepository: AndroidAppLoggerRepository,
+    private val appLoggerRepository: AppLoggerRepository,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel(),
     AppLoggerViewModel {
@@ -122,15 +114,6 @@ class DefaultAppLoggerViewModel(
     override fun log(key: String) {
         viewModelScope.launch(dispatchers.io) {
             appLoggerRepository.log(key)
-        }
-    }
-
-    override fun writeCsvToUri(
-        context: Context,
-        uri: Uri,
-    ) {
-        viewModelScope.launch(dispatchers.io) {
-            appLoggerRepository.writeCsvToUri(context, uri)
         }
     }
 }
