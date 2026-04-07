@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.remotebutton
+package com.chriscartland.garage.usecase
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -30,14 +30,9 @@ import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.domain.model.toServer
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.PushRepository
-import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
-import com.chriscartland.garage.usecase.RemoteButtonStateMachine
-import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import me.tatarka.inject.annotations.Inject
-import java.util.Date
 
 interface RemoteButtonViewModel {
     val requestStatus: StateFlow<RequestStatus>
@@ -53,7 +48,6 @@ interface RemoteButtonViewModel {
     fun fetchSnoozeEndTimeSeconds()
 }
 
-@Inject
 class DefaultRemoteButtonViewModel(
     private val pushRepository: PushRepository,
     private val doorRepository: DoorRepository,
@@ -104,7 +98,9 @@ class DefaultRemoteButtonViewModel(
         viewModelScope.launch(dispatchers.io) {
             when (
                 val result = pushRemoteButtonUseCase(
-                    buttonAckToken = createButtonAckToken(Date()),
+                    buttonAckToken = createButtonAckToken(
+                        currentTimeMillis = System.currentTimeMillis(),
+                    ),
                 )
             ) {
                 is AppResult.Success -> { /* State machine tracks via pushButtonStatus flow */ }
@@ -148,18 +144,15 @@ class DefaultRemoteButtonViewModel(
 }
 
 /**
- * Create a button ack token.
+ * Create a button ack token from the current time.
  *
  * This token is created by the client so the server can acknowledge the remote button push.
  * The client can send the same token to the server multiple times and the server is
  * responsible for only processing the token once.
- * When the server receives a button press, it will respond with the token to the client.
  */
-fun createButtonAckToken(now: Date): String {
-    val humanReadable = java.text.SimpleDateFormat("yyyy-MM-dd hh:mm:ss a", java.util.Locale.US).format(now)
-    val timestampMillis = now.time
+fun createButtonAckToken(currentTimeMillis: Long): String {
     val appVersion = "AppVersionTODO"
-    val buttonAckTokenData = "android-$appVersion-$humanReadable-$timestampMillis"
+    val buttonAckTokenData = "android-$appVersion-$currentTimeMillis"
     val re = Regex("[^a-zA-Z0-9-_.]")
     val filtered = re.replace(buttonAckTokenData, ".")
     return filtered

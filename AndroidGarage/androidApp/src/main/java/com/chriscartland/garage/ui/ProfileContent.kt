@@ -44,7 +44,7 @@ import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
-import com.chriscartland.garage.remotebutton.RemoteButtonViewModel
+import com.chriscartland.garage.usecase.RemoteButtonViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
