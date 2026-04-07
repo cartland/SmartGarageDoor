@@ -25,7 +25,7 @@ import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.testcommon.FakeAuthRepository
-import com.chriscartland.garage.testcommon.FakePushRepository
+import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -35,12 +35,12 @@ import org.junit.Test
 class PushRemoteButtonUseCaseTest {
     private lateinit var useCase: PushRemoteButtonUseCase
     private lateinit var fakeAuth: FakeAuthRepository
-    private lateinit var fakePush: FakePushRepository
+    private lateinit var fakePush: FakeRemoteButtonRepository
 
     @Before
     fun setup() {
         fakeAuth = FakeAuthRepository()
-        fakePush = FakePushRepository()
+        fakePush = FakeRemoteButtonRepository()
         useCase = PushRemoteButtonUseCase(EnsureFreshIdTokenUseCase(fakeAuth), fakeAuth, fakePush)
     }
 

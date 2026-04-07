@@ -20,60 +20,23 @@ package com.chriscartland.garage.data.repository
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkResult
-import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
-import com.chriscartland.garage.domain.repository.PushRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
+import com.chriscartland.garage.domain.repository.SnoozeRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-class NetworkPushRepository(
+class NetworkSnoozeRepository(
     private val networkButtonDataSource: NetworkButtonDataSource,
     private val serverConfigRepository: ServerConfigRepository,
-    private val remoteButtonPushEnabled: Boolean,
     private val snoozeNotificationsOption: Boolean,
-) : PushRepository {
-    private val _pushButtonStatus = MutableStateFlow(PushStatus.IDLE)
-    override val pushButtonStatus: StateFlow<PushStatus> = _pushButtonStatus
-
+) : SnoozeRepository {
     private val _snoozeRequestStatus = MutableStateFlow(SnoozeRequestStatus.IDLE)
     override val snoozeRequestStatus: StateFlow<SnoozeRequestStatus> = _snoozeRequestStatus
 
     private val _snoozeEndTimeSeconds = MutableStateFlow(0L)
     override val snoozeEndTimeSeconds: StateFlow<Long> = _snoozeEndTimeSeconds
-
-    override suspend fun push(
-        idToken: String,
-        buttonAckToken: String,
-    ) {
-        _pushButtonStatus.value = PushStatus.SENDING
-        val serverConfig = serverConfigRepository.getServerConfigCached()
-        if (serverConfig == null) {
-            Logger.e { "Server config is null" }
-            _pushButtonStatus.value = PushStatus.IDLE
-            return
-        }
-        if (!remoteButtonPushEnabled) {
-            Logger.w { "Remote button push is disabled" }
-            delay(500)
-        }
-        if (remoteButtonPushEnabled) {
-            when (
-                val result = networkButtonDataSource.pushButton(
-                    remoteButtonBuildTimestamp = serverConfig.remoteButtonBuildTimestamp,
-                    buttonAckToken = buttonAckToken,
-                    remoteButtonPushKey = serverConfig.remoteButtonPushKey,
-                    idToken = idToken,
-                )
-            ) {
-                is NetworkResult.Success -> Logger.d { "Push succeeded" }
-                is NetworkResult.HttpError -> Logger.e { "Push HTTP ${result.code}" }
-                NetworkResult.ConnectionFailed -> Logger.e { "Push connection failed" }
-            }
-        }
-        _pushButtonStatus.value = PushStatus.IDLE
-    }
 
     override suspend fun fetchSnoozeEndTimeSeconds() {
         val serverConfig = serverConfigRepository.getServerConfigCached()
@@ -98,7 +61,7 @@ class NetworkPushRepository(
         }
     }
 
-    override suspend fun snoozeOpenDoorsNotifications(
+    override suspend fun snoozeNotifications(
         snoozeDurationHours: String,
         idToken: String,
         snoozeEventTimestampSeconds: Long,

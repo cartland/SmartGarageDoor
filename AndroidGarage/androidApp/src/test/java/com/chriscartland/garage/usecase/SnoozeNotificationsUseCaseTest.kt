@@ -25,7 +25,7 @@ import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.testcommon.FakeAuthRepository
-import com.chriscartland.garage.testcommon.FakePushRepository
+import com.chriscartland.garage.testcommon.FakeSnoozeRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -35,13 +35,13 @@ import org.junit.Test
 class SnoozeNotificationsUseCaseTest {
     private lateinit var useCase: SnoozeNotificationsUseCase
     private lateinit var fakeAuth: FakeAuthRepository
-    private lateinit var fakePush: FakePushRepository
+    private lateinit var fakeSnooze: FakeSnoozeRepository
 
     @Before
     fun setup() {
         fakeAuth = FakeAuthRepository()
-        fakePush = FakePushRepository()
-        useCase = SnoozeNotificationsUseCase(EnsureFreshIdTokenUseCase(fakeAuth), fakeAuth, fakePush)
+        fakeSnooze = FakeSnoozeRepository()
+        useCase = SnoozeNotificationsUseCase(EnsureFreshIdTokenUseCase(fakeAuth), fakeAuth, fakeSnooze)
     }
 
     private fun authenticateUser(
@@ -65,7 +65,7 @@ class SnoozeNotificationsUseCaseTest {
             authenticateUser()
             val result = useCase("1h", 1000L)
             assertTrue("Should succeed", result is AppResult.Success)
-            assertEquals(1, fakePush.snoozeCount)
+            assertEquals(1, fakeSnooze.snoozeCount)
         }
 
     @Test
@@ -75,7 +75,7 @@ class SnoozeNotificationsUseCaseTest {
             val result = useCase("1h", 1000L)
             assertTrue("Should be error", result is AppResult.Error)
             assertEquals(ActionError.NotAuthenticated, (result as AppResult.Error).error)
-            assertEquals(0, fakePush.snoozeCount)
+            assertEquals(0, fakeSnooze.snoozeCount)
         }
 
     @Test
@@ -84,7 +84,7 @@ class SnoozeNotificationsUseCaseTest {
             val result = useCase("1h", 1000L)
             assertTrue("Should be error", result is AppResult.Error)
             assertEquals(ActionError.NotAuthenticated, (result as AppResult.Error).error)
-            assertEquals(0, fakePush.snoozeCount)
+            assertEquals(0, fakeSnooze.snoozeCount)
         }
 
     @Test
@@ -94,7 +94,7 @@ class SnoozeNotificationsUseCaseTest {
             val result = useCase("1h", null)
             assertTrue("Should be MissingData error", result is AppResult.Error)
             assertEquals(ActionError.MissingData, (result as AppResult.Error).error)
-            assertEquals(0, fakePush.snoozeCount)
+            assertEquals(0, fakeSnooze.snoozeCount)
         }
 
     @Test

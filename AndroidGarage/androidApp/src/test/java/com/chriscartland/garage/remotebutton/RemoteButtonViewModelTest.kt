@@ -26,7 +26,8 @@ import com.chriscartland.garage.domain.model.RequestStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
-import com.chriscartland.garage.domain.repository.PushRepository
+import com.chriscartland.garage.domain.repository.RemoteButtonRepository
+import com.chriscartland.garage.domain.repository.SnoozeRepository
 import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
@@ -59,7 +60,8 @@ class RemoteButtonViewModelTest {
     private lateinit var doorPositionFlow: MutableStateFlow<DoorPosition>
     private lateinit var doorEventFlow: MutableStateFlow<DoorEvent>
 
-    private lateinit var pushRepository: PushRepository
+    private lateinit var remoteButtonRepository: RemoteButtonRepository
+    private lateinit var snoozeRepository: SnoozeRepository
     private lateinit var doorRepository: DoorRepository
 
     @Before
@@ -72,10 +74,12 @@ class RemoteButtonViewModelTest {
         doorPositionFlow = MutableStateFlow(DoorPosition.CLOSED)
         doorEventFlow = MutableStateFlow(DoorEvent(doorPosition = DoorPosition.CLOSED))
 
-        pushRepository = mock(PushRepository::class.java)
-        `when`(pushRepository.pushButtonStatus).thenReturn(pushStatusFlow)
-        `when`(pushRepository.snoozeRequestStatus).thenReturn(snoozeStatusFlow)
-        `when`(pushRepository.snoozeEndTimeSeconds).thenReturn(snoozeEndTimeFlow)
+        remoteButtonRepository = mock(RemoteButtonRepository::class.java)
+        `when`(remoteButtonRepository.pushButtonStatus).thenReturn(pushStatusFlow)
+
+        snoozeRepository = mock(SnoozeRepository::class.java)
+        `when`(snoozeRepository.snoozeRequestStatus).thenReturn(snoozeStatusFlow)
+        `when`(snoozeRepository.snoozeEndTimeSeconds).thenReturn(snoozeEndTimeFlow)
 
         doorRepository = mock(DoorRepository::class.java)
         `when`(doorRepository.currentDoorPosition).thenReturn(doorPositionFlow)
@@ -95,11 +99,12 @@ class RemoteButtonViewModelTest {
         `when`(authRepository.authState).thenReturn(MutableStateFlow(authState))
         val ensureFreshIdToken = EnsureFreshIdTokenUseCase(authRepository)
         val vm = DefaultRemoteButtonViewModel(
-            pushRepository,
+            remoteButtonRepository,
+            snoozeRepository,
             doorRepository,
             TestDispatcherProvider(testDispatcher),
-            PushRemoteButtonUseCase(ensureFreshIdToken, authRepository, pushRepository),
-            SnoozeNotificationsUseCase(ensureFreshIdToken, authRepository, pushRepository),
+            PushRemoteButtonUseCase(ensureFreshIdToken, authRepository, remoteButtonRepository),
+            SnoozeNotificationsUseCase(ensureFreshIdToken, authRepository, snoozeRepository),
         )
         testDispatcher.scheduler.runCurrent()
         return vm
