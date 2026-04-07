@@ -26,7 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
-import com.chriscartland.garage.door.DoorViewModel
+import com.chriscartland.garage.usecase.DoorViewModel
 
 /**
  * Register for FCM updates.

@@ -42,17 +42,17 @@ import com.chriscartland.garage.db.AppDatabase
 import com.chriscartland.garage.db.DatabaseLocalDoorDataSource
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.repository.AuthRepository
+import com.chriscartland.garage.domain.repository.DoorFcmRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.PushRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
-import com.chriscartland.garage.door.DefaultDoorViewModel
-import com.chriscartland.garage.fcm.DoorFcmRepository
 import com.chriscartland.garage.fcm.FirebaseDoorFcmRepository
 import com.chriscartland.garage.fcm.FirebaseMessagingBridge
 import com.chriscartland.garage.internet.provideKtorHttpClient
 import com.chriscartland.garage.settings.AppSettings
 import com.chriscartland.garage.settings.DataStoreAppSettings
 import com.chriscartland.garage.settings.DefaultAppSettingsViewModel
+import com.chriscartland.garage.usecase.DefaultDoorViewModel
 import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
@@ -83,8 +83,19 @@ abstract class AppComponent(
     // ViewModels
     abstract val appSettingsViewModel: DefaultAppSettingsViewModel
     abstract val authViewModel: DefaultAuthViewModel
-    abstract val doorViewModel: DefaultDoorViewModel
     abstract val appLoggerViewModel: DefaultAppLoggerViewModel
+
+    val doorViewModel: DefaultDoorViewModel
+        @Provides get() = DefaultDoorViewModel(
+            provideAppLoggerRepository(),
+            provideDoorRepository(),
+            provideDispatcherProvider(),
+            provideFetchCurrentDoorEventUseCase(),
+            provideFetchRecentDoorEventsUseCase(),
+            provideFetchFcmStatusUseCase(),
+            provideRegisterFcmUseCase(),
+            provideDeregisterFcmUseCase(),
+        )
 
     val remoteButtonViewModel: DefaultRemoteButtonViewModel
         @Provides get() = DefaultRemoteButtonViewModel(

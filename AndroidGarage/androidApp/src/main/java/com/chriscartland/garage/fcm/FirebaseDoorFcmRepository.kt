@@ -23,15 +23,8 @@ import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
+import com.chriscartland.garage.domain.repository.DoorFcmRepository
 import com.chriscartland.garage.settings.AppSettings
-
-interface DoorFcmRepository {
-    suspend fun fetchStatus(): DoorFcmState
-
-    suspend fun registerDoor(fcmTopic: DoorFcmTopic): DoorFcmState
-
-    suspend fun deregisterDoor(): DoorFcmState
-}
 
 /**
  * FCM repository that delegates all messaging calls to [MessagingBridge].

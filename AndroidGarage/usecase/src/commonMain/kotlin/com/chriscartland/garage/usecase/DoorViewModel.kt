@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.door
+package com.chriscartland.garage.usecase
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -29,15 +29,9 @@ import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
-import com.chriscartland.garage.usecase.DeregisterFcmUseCase
-import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
-import com.chriscartland.garage.usecase.FetchFcmStatusUseCase
-import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
-import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import me.tatarka.inject.annotations.Inject
 
 interface DoorViewModel {
     val fcmRegistrationStatus: StateFlow<FcmRegistrationStatus>
@@ -55,7 +49,6 @@ interface DoorViewModel {
     fun fetchRecentDoorEvents()
 }
 
-@Inject
 class DefaultDoorViewModel(
     private val appLoggerRepository: AppLoggerRepository,
     private val doorRepository: DoorRepository,

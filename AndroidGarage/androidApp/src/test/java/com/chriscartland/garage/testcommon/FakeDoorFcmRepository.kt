@@ -19,7 +19,7 @@ package com.chriscartland.garage.testcommon
 
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorFcmTopic
-import com.chriscartland.garage.fcm.DoorFcmRepository
+import com.chriscartland.garage.domain.repository.DoorFcmRepository
 
 class FakeDoorFcmRepository : DoorFcmRepository {
     var fetchStatusResult: DoorFcmState = DoorFcmState.Unknown

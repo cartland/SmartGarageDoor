@@ -20,7 +20,7 @@ package com.chriscartland.garage.usecase
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
-import com.chriscartland.garage.fcm.DoorFcmRepository
+import com.chriscartland.garage.domain.repository.DoorFcmRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
