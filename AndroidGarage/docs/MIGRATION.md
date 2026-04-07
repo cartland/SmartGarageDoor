@@ -356,7 +356,7 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 | 7. Instrumented Tests | Medium | None | **COMPLETE** |
 | 8. UseCase Refactor + Module | Medium | Phase 2 | **COMPLETE** |
 | 9. Data Module Repos | Medium | Phase 8 | **COMPLETE** |
-| 10. Shared ViewModels | Medium | Phase 9 | 10.1 COMPLETE (state machine extracted) |
+| 10. Shared ViewModels | Medium | Phase 9 | **COMPLETE** (all 5 ViewModels in shared modules) |
 | 11. Platform Abstractions | Small | Phase 9 | **COMPLETE** (bridges extracted) |
 | 12. Type-Safe Navigation | Medium | None | 12.1 COMPLETE (Nav3 deferred) |
 | 13. iOS Target | Large | Phases 10-11 | TODO |
@@ -379,5 +379,42 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 | G | Error state propagation to UI | #163 |
 | H | Migrate DoorViewModelTest to fakes | #164 |
 | I | Test timeout constants | #160 |
+
+### Android Purity — Move business logic to shared KMP modules
+
+| Phase | Description | PR |
+|-------|-------------|-----|
+| 19 | Move snooze + FCM models to domain | #169 |
+| 20 | Remove unused Activity param from FCM chain | #170 |
+| 21 | Move Ktor data sources to data module | #171 |
+| 22 | Move FirebaseAuthRepository to data module | #174 |
+| 23 | Extract AppConfig types to domain | #173 (combined with 24) |
+| 24 | Move HTTP client config to data module | #173 |
+| 25 | Extract AppLoggerDataSource to data module | #172 |
+| 26 | Move Google Sign-In to Compose layer | #181 |
+| 27 | Move RemoteButton + Door ViewModels to usecase | #175, #177 |
+| 28 | Move AppSettings ViewModel to usecase | #178 |
+| 29 | Move AppLogger ViewModel to usecase | #179 |
+| 30 | Move AuthViewModel to usecase | #182 |
+| 31 | Move DispatcherProvider + FcmRepository to shared | #183 |
+| 32 | Move demo data to presentation-model | #184 |
+| — | FQN enforcement (NoFullyQualifiedNames check) | #180 |
+
+**Result:** All ViewModels, UseCases, Repositories, and data sources live in shared KMP modules. androidApp only contains: Compose UI, Firebase bridge implementations, Room database, DI wiring, and Android framework code.
+
+### What remains in androidApp (Android-specific only)
+
+| Category | Files | Why |
+|----------|-------|-----|
+| Compose UI | `ui/*.kt`, `ui/theme/*.kt` | `androidx.compose.*` |
+| Room database | `db/*.kt`, `applogger/AppLoggerDao.kt` | `androidx.room` |
+| Firebase bridges | `FirebaseAuthBridge`, `FirebaseMessagingBridge`, `FCMService` | Firebase SDK |
+| Google Sign-In | `GoogleSignInState.kt` | GMS Auth API |
+| DI wiring | `AppComponent.kt`, `ActivityViewModels.kt`, `ComponentProvider.kt`, `Singleton.kt` | `android.app.Application` |
+| Settings impl | `AppSettings.kt`, `SettingManager.kt` | `SharedPreferences` |
+| Platform | `MainActivity.kt`, `GarageApplication.kt`, permissions, version | Android framework |
+| Time formatting | `TimeFormats.kt` | `java.time` locale-aware formatting |
+| Config values | `LocalConfig.kt` | `BuildConfig` |
+| HTTP engine | `KtorHttpClientProvider.kt` | OkHttp engine (platform-specific) |
 
 **Rule:** Finish each phase before starting the next. Update this document with commit hashes when items complete.
