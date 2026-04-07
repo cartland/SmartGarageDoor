@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.auth
+package com.chriscartland.garage.usecase
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -28,7 +28,6 @@ import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import me.tatarka.inject.annotations.Inject
 
 interface AuthViewModel {
     val authState: StateFlow<AuthState>
@@ -38,7 +37,6 @@ interface AuthViewModel {
     fun signOut()
 }
 
-@Inject
 class DefaultAuthViewModel(
     private val authRepository: AuthRepository,
     private val appLoggerRepository: AppLoggerRepository,

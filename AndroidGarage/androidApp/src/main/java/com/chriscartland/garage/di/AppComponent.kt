@@ -20,7 +20,6 @@ package com.chriscartland.garage.di
 import android.app.Application
 import com.chriscartland.garage.applogger.AndroidAppLoggerRepository
 import com.chriscartland.garage.applogger.RoomAppLoggerRepository
-import com.chriscartland.garage.auth.DefaultAuthViewModel
 import com.chriscartland.garage.auth.FirebaseAuthBridge
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.coroutines.DefaultDispatcherProvider
@@ -53,6 +52,7 @@ import com.chriscartland.garage.settings.AppSettings
 import com.chriscartland.garage.settings.DataStoreAppSettings
 import com.chriscartland.garage.usecase.DefaultAppLoggerViewModel
 import com.chriscartland.garage.usecase.DefaultAppSettingsViewModel
+import com.chriscartland.garage.usecase.DefaultAuthViewModel
 import com.chriscartland.garage.usecase.DefaultDoorViewModel
 import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
@@ -82,7 +82,12 @@ abstract class AppComponent(
     @get:Provides val application: Application,
 ) {
     // ViewModels
-    abstract val authViewModel: DefaultAuthViewModel
+    val authViewModel: DefaultAuthViewModel
+        @Provides get() = DefaultAuthViewModel(
+            provideAuthRepository(),
+            provideAppLoggerRepository(),
+            provideDispatcherProvider(),
+        )
 
     val appLoggerViewModel: DefaultAppLoggerViewModel
         @Provides get() = DefaultAppLoggerViewModel(
