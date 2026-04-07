@@ -22,6 +22,7 @@ import android.net.Uri
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.applogger.model.AppEvent
 import com.chriscartland.garage.db.AppDatabase
+import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.version.AppVersion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -35,7 +36,7 @@ import java.time.format.DateTimeFormatter
  * Android-specific logger that extends the shared [AppLoggerRepository][com.chriscartland.garage.domain.repository.AppLoggerRepository]
  * with Android-specific CSV export capability.
  */
-interface AndroidAppLoggerRepository : com.chriscartland.garage.domain.repository.AppLoggerRepository {
+interface AndroidAppLoggerRepository : AppLoggerRepository {
     suspend fun writeCsvToUri(
         context: Context,
         uri: Uri,

@@ -18,13 +18,14 @@
 package com.chriscartland.garage.settings
 
 import android.content.Context
+import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import com.chriscartland.garage.settings.SettingType.BooleanSetting
 import com.chriscartland.garage.settings.SettingType.IntSetting
 import com.chriscartland.garage.settings.SettingType.LongSetting
 import com.chriscartland.garage.settings.SettingType.StringSetting
 
 interface AppSettings :
-    com.chriscartland.garage.domain.repository.AppSettingsRepository,
+    AppSettingsRepository,
     SettingContract,
     SettingManager
 
