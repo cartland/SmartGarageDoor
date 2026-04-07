@@ -18,6 +18,7 @@
 package com.chriscartland.garage.di
 
 import android.app.Application
+import com.chriscartland.garage.BuildConfig
 import com.chriscartland.garage.applogger.AndroidAppLoggerRepository
 import com.chriscartland.garage.applogger.RoomAppLoggerRepository
 import com.chriscartland.garage.auth.FirebaseAuthBridge
@@ -32,6 +33,7 @@ import com.chriscartland.garage.data.coroutines.DefaultDispatcherProvider
 import com.chriscartland.garage.data.ktor.KtorNetworkButtonDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkConfigDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkDoorDataSource
+import com.chriscartland.garage.data.ktor.createHttpClient
 import com.chriscartland.garage.data.repository.CachedServerConfigRepository
 import com.chriscartland.garage.data.repository.FirebaseAuthRepository
 import com.chriscartland.garage.data.repository.FirebaseDoorFcmRepository
@@ -50,7 +52,6 @@ import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.PushRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.fcm.FirebaseMessagingBridge
-import com.chriscartland.garage.internet.provideKtorHttpClient
 import com.chriscartland.garage.usecase.DefaultAppLoggerViewModel
 import com.chriscartland.garage.usecase.DefaultAppSettingsViewModel
 import com.chriscartland.garage.usecase.DefaultAuthViewModel
@@ -133,7 +134,11 @@ abstract class AppComponent(
     // Network — Ktor HTTP client
     @Provides
     @Singleton
-    fun provideHttpClient(): HttpClient = provideKtorHttpClient()
+    fun provideHttpClient(): HttpClient =
+        createHttpClient(
+            baseUrl = APP_CONFIG.baseUrl,
+            debug = BuildConfig.DEBUG,
+        )
 
     @Provides
     @Singleton
