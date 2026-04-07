@@ -172,11 +172,7 @@ fun AppNavigation(
         bottomBar = {
             BottomNavigationBar(
                 currentScreen = backStack.lastOrNull(),
-                onTabSelected = { screen ->
-                    // Replace the back stack with a single tab screen.
-                    backStack.clear()
-                    backStack.add(screen)
-                },
+                onTabSelected = { screen -> navigateToTab(backStack, screen) },
             )
         },
     ) { innerPadding ->
@@ -243,6 +239,36 @@ fun BottomNavigationBar(
                 selected = currentScreen == tab.screen,
                 onClick = { onTabSelected(tab.screen) },
             )
+        }
+    }
+}
+
+/**
+ * Navigate to a tab screen.
+ *
+ * Home is always at the bottom of the stack. Non-Home tabs replace each other
+ * on top of Home. The stack is always `[Home]` or `[Home, <tab>]` (max depth 2).
+ *
+ * - Tap Home → pop to Home
+ * - Tap current tab → no-op
+ * - Tap different tab → replace non-Home tab on top
+ * - Back from non-Home → reveals Home
+ * - Back from Home → exits app
+ */
+fun navigateToTab(
+    backStack: MutableList<Screen>,
+    screen: Screen,
+) {
+    when {
+        screen is Screen.Home -> {
+            while (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
+        }
+        backStack.lastOrNull() == screen -> {
+            // Already on this tab, no-op.
+        }
+        else -> {
+            while (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
+            backStack.add(screen)
         }
     }
 }
