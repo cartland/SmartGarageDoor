@@ -21,7 +21,7 @@ import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.repository.AuthRepository
-import com.chriscartland.garage.domain.repository.PushRepository
+import com.chriscartland.garage.domain.repository.RemoteButtonRepository
 
 /**
  * Pushes the remote garage button.
@@ -32,7 +32,7 @@ import com.chriscartland.garage.domain.repository.PushRepository
 class PushRemoteButtonUseCase(
     private val ensureFreshIdToken: EnsureFreshIdTokenUseCase,
     private val authRepository: AuthRepository,
-    private val pushRepository: PushRepository,
+    private val remoteButtonRepository: RemoteButtonRepository,
 ) {
     suspend operator fun invoke(buttonAckToken: String): AppResult<Unit, ActionError> {
         val authState = authRepository.authState.value
@@ -40,7 +40,7 @@ class PushRemoteButtonUseCase(
             return AppResult.Error(ActionError.NotAuthenticated)
         }
         val idToken = ensureFreshIdToken(authState)
-        pushRepository.push(
+        remoteButtonRepository.pushButton(
             idToken = idToken.asString(),
             buttonAckToken = buttonAckToken,
         )

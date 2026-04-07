@@ -18,9 +18,9 @@
 package com.chriscartland.garage.remotebutton
 
 import com.chriscartland.garage.data.NetworkButtonDataSource
-import com.chriscartland.garage.data.repository.NetworkPushRepository
+import com.chriscartland.garage.data.repository.NetworkRemoteButtonRepository
+import com.chriscartland.garage.data.repository.NetworkSnoozeRepository
 import com.chriscartland.garage.domain.model.PushStatus
-import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import kotlinx.coroutines.test.runTest
@@ -30,33 +30,50 @@ import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 
-class PushRepositoryTest {
+class RemoteButtonRepositoryTest {
     private lateinit var networkButtonDataSource: NetworkButtonDataSource
     private lateinit var serverConfigRepository: ServerConfigRepository
-    private lateinit var repo: NetworkPushRepository
-
-    private val validServerConfig =
-        ServerConfig(
-            buildTimestamp = "2024-01-15T00:00:00Z",
-            remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
-            remoteButtonPushKey = "test-push-key",
-        )
+    private lateinit var repo: NetworkRemoteButtonRepository
 
     @Before
     fun setup() {
         networkButtonDataSource = mock(NetworkButtonDataSource::class.java)
         serverConfigRepository = mock(ServerConfigRepository::class.java)
-        repo = NetworkPushRepository(
+        repo = NetworkRemoteButtonRepository(
             networkButtonDataSource,
             serverConfigRepository,
             remoteButtonPushEnabled = true,
-            snoozeNotificationsOption = true,
         )
     }
 
     @Test
     fun initialPushStatusIsIdle() {
         assertEquals(PushStatus.IDLE, repo.pushButtonStatus.value)
+    }
+
+    @Test
+    fun pushResetsToIdleWhenServerConfigIsNull() =
+        runTest {
+            `when`(serverConfigRepository.getServerConfigCached()).thenReturn(null)
+            repo.pushButton("token", "ack-token")
+            assertEquals(PushStatus.IDLE, repo.pushButtonStatus.value)
+        }
+}
+
+class SnoozeRepositoryTest {
+    private lateinit var networkButtonDataSource: NetworkButtonDataSource
+    private lateinit var serverConfigRepository: ServerConfigRepository
+    private lateinit var repo: NetworkSnoozeRepository
+
+    @Before
+    fun setup() {
+        networkButtonDataSource = mock(NetworkButtonDataSource::class.java)
+        serverConfigRepository = mock(ServerConfigRepository::class.java)
+        repo = NetworkSnoozeRepository(
+            networkButtonDataSource,
+            serverConfigRepository,
+            snoozeNotificationsOption = true,
+        )
     }
 
     @Test
@@ -70,26 +87,14 @@ class PushRepositoryTest {
     }
 
     @Test
-    fun pushResetsToIdleWhenServerConfigIsNull() =
-        runTest {
-            `when`(serverConfigRepository.getServerConfigCached()).thenReturn(null)
-
-            repo.push("token", "ack-token")
-
-            assertEquals(PushStatus.IDLE, repo.pushButtonStatus.value)
-        }
-
-    @Test
     fun snoozeResetsToIdleWhenServerConfigIsNull() =
         runTest {
             `when`(serverConfigRepository.getServerConfigCached()).thenReturn(null)
-
-            repo.snoozeOpenDoorsNotifications(
+            repo.snoozeNotifications(
                 snoozeDurationHours = "1h",
                 idToken = "token",
                 snoozeEventTimestampSeconds = 1000L,
             )
-
             assertEquals(SnoozeRequestStatus.IDLE, repo.snoozeRequestStatus.value)
         }
 }

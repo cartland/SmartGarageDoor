@@ -21,7 +21,7 @@ import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.repository.AuthRepository
-import com.chriscartland.garage.domain.repository.PushRepository
+import com.chriscartland.garage.domain.repository.SnoozeRepository
 
 /**
  * Snoozes open-door notifications for a specified duration.
@@ -32,7 +32,7 @@ import com.chriscartland.garage.domain.repository.PushRepository
 class SnoozeNotificationsUseCase(
     private val ensureFreshIdToken: EnsureFreshIdTokenUseCase,
     private val authRepository: AuthRepository,
-    private val pushRepository: PushRepository,
+    private val snoozeRepository: SnoozeRepository,
 ) {
     suspend operator fun invoke(
         snoozeDurationHours: String,
@@ -46,7 +46,7 @@ class SnoozeNotificationsUseCase(
             return AppResult.Error(ActionError.MissingData)
         }
         val idToken = ensureFreshIdToken(authState)
-        pushRepository.snoozeOpenDoorsNotifications(
+        snoozeRepository.snoozeNotifications(
             snoozeDurationHours = snoozeDurationHours,
             idToken = idToken.asString(),
             snoozeEventTimestampSeconds = lastChangeTimeSeconds,

@@ -1,22 +1,21 @@
 package com.chriscartland.garage.domain.repository
 
-import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import kotlinx.coroutines.flow.StateFlow
 
-interface PushRepository {
-    val pushButtonStatus: StateFlow<PushStatus>
+/**
+ * Manages snooze-notification state for the garage door.
+ *
+ * Snoozing suppresses open-door notifications for a specified duration.
+ * The snooze end time is persisted server-side and fetched on demand.
+ */
+interface SnoozeRepository {
     val snoozeRequestStatus: StateFlow<SnoozeRequestStatus>
     val snoozeEndTimeSeconds: StateFlow<Long>
 
-    suspend fun push(
-        idToken: String,
-        buttonAckToken: String,
-    )
-
     suspend fun fetchSnoozeEndTimeSeconds()
 
-    suspend fun snoozeOpenDoorsNotifications(
+    suspend fun snoozeNotifications(
         snoozeDurationHours: String,
         idToken: String,
         snoozeEventTimestampSeconds: Long,

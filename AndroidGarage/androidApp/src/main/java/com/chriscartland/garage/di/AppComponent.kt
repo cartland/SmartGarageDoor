@@ -38,7 +38,8 @@ import com.chriscartland.garage.data.repository.CachedServerConfigRepository
 import com.chriscartland.garage.data.repository.FirebaseAuthRepository
 import com.chriscartland.garage.data.repository.FirebaseDoorFcmRepository
 import com.chriscartland.garage.data.repository.NetworkDoorRepository
-import com.chriscartland.garage.data.repository.NetworkPushRepository
+import com.chriscartland.garage.data.repository.NetworkRemoteButtonRepository
+import com.chriscartland.garage.data.repository.NetworkSnoozeRepository
 import com.chriscartland.garage.datalocal.AppDatabase
 import com.chriscartland.garage.datalocal.DataStoreSettingsFactory
 import com.chriscartland.garage.datalocal.DatabaseFactory
@@ -49,8 +50,9 @@ import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.DoorFcmRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
-import com.chriscartland.garage.domain.repository.PushRepository
+import com.chriscartland.garage.domain.repository.RemoteButtonRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
+import com.chriscartland.garage.domain.repository.SnoozeRepository
 import com.chriscartland.garage.fcm.FirebaseMessagingBridge
 import com.chriscartland.garage.usecase.DefaultAppLoggerViewModel
 import com.chriscartland.garage.usecase.DefaultAppSettingsViewModel
@@ -114,7 +116,8 @@ abstract class AppComponent(
 
     val remoteButtonViewModel: DefaultRemoteButtonViewModel
         @Provides get() = DefaultRemoteButtonViewModel(
-            providePushRepository(),
+            provideRemoteButtonRepository(),
+            provideSnoozeRepository(),
             provideDoorRepository(),
             provideDispatcherProvider(),
             providePushRemoteButtonUseCase(),
@@ -221,25 +224,34 @@ abstract class AppComponent(
 
     @Provides
     fun providePushRemoteButtonUseCase(): PushRemoteButtonUseCase =
-        PushRemoteButtonUseCase(provideEnsureFreshIdTokenUseCase(), provideAuthRepository(), providePushRepository())
+        PushRemoteButtonUseCase(provideEnsureFreshIdTokenUseCase(), provideAuthRepository(), provideRemoteButtonRepository())
 
     @Provides
     fun provideSnoozeNotificationsUseCase(): SnoozeNotificationsUseCase =
-        SnoozeNotificationsUseCase(provideEnsureFreshIdTokenUseCase(), provideAuthRepository(), providePushRepository())
+        SnoozeNotificationsUseCase(provideEnsureFreshIdTokenUseCase(), provideAuthRepository(), provideSnoozeRepository())
 
-    // Network — button
+    // Network — button + snooze data source
     @Provides
     @Singleton
     fun provideNetworkButtonDataSource(): NetworkButtonDataSource = KtorNetworkButtonDataSource(provideHttpClient())
 
-    // Repositories — push
+    // Repositories — remote button
     @Provides
     @Singleton
-    fun providePushRepository(): PushRepository =
-        NetworkPushRepository(
+    fun provideRemoteButtonRepository(): RemoteButtonRepository =
+        NetworkRemoteButtonRepository(
             provideNetworkButtonDataSource(),
             provideServerConfigRepository(),
             APP_CONFIG.remoteButtonPushEnabled,
+        )
+
+    // Repositories — snooze
+    @Provides
+    @Singleton
+    fun provideSnoozeRepository(): SnoozeRepository =
+        NetworkSnoozeRepository(
+            provideNetworkButtonDataSource(),
+            provideServerConfigRepository(),
             APP_CONFIG.snoozeNotificationsOption,
         )
 
