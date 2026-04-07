@@ -15,16 +15,13 @@
  *
  */
 
-package com.chriscartland.garage.db
+package com.chriscartland.garage.datalocal
 
-import com.chriscartland.garage.datalocal.DoorEventEntity
-import com.chriscartland.garage.datalocal.toDomain
-import com.chriscartland.garage.datalocal.toEntity
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class DoorEventEntityTest {
     @Test
@@ -113,9 +110,9 @@ class DoorEventEntityTest {
             val original = DoorEvent(doorPosition = position)
             val roundTripped = original.toEntity().toDomain()
             assertEquals(
-                "DoorPosition.$position failed round trip",
                 original,
                 roundTripped,
+                "DoorPosition.$position failed round trip",
             )
         }
     }
