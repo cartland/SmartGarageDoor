@@ -17,27 +17,17 @@
 
 package com.chriscartland.garage
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.ui.util.trace
 import co.touchlab.kermit.Logger
-import com.chriscartland.garage.auth.RC_ONE_TAP_SIGN_IN
 import com.chriscartland.garage.di.activityViewModel
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.ui.GarageApp
 
 class MainActivity : ComponentActivity() {
-    /**
-     * Activity-scoped ViewModels shared between Compose and Activity callbacks.
-     *
-     * Created via [activityViewModel] to ensure the same instance is stored in the
-     * Activity's ViewModelStore. Compose receives these as parameters and uses the
-     * same instances. This prevents bugs where instance state (like SignInClient)
-     * exists on one ViewModel but is accessed from a different instance.
-     */
     private val component by lazy { (application as GarageApplication).component }
     private val authViewModel by lazy { activityViewModel(this) { component.authViewModel } }
     private val doorViewModel by lazy { activityViewModel(this) { component.doorViewModel } }
@@ -58,29 +48,5 @@ class MainActivity : ComponentActivity() {
         Logger.d { "onCreate: Try to subscribe to FCM topic" }
         doorViewModel.registerFcm()
         appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
-    }
-
-    // TODO: Migrate away from onActivityResult with Activity Result API and ActivityResultContract.
-    @Deprecated(
-        "This method has been deprecated in favor of using the Activity Result API",
-        level = DeprecationLevel.WARNING,
-    )
-    override fun onActivityResult(
-        requestCode: Int,
-        resultCode: Int,
-        data: Intent?,
-    ) {
-        super.onActivityResult(requestCode, resultCode, data)
-        Logger.d { "onActivityResult" }
-        when (requestCode) {
-            RC_ONE_TAP_SIGN_IN -> {
-                Logger.d { "RC_ONE_TAP_SIGN_IN" }
-                if (data == null) {
-                    Logger.e { "onActivityResult: data is null" }
-                    return
-                }
-                authViewModel.processGoogleSignInResult(data)
-            }
-        }
     }
 }

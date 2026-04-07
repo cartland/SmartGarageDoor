@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.ui
 
-import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.auth.AuthViewModel
+import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AuthState
@@ -74,7 +74,9 @@ fun HomeContent(
     val resolvedDoorViewModel = doorViewModel ?: viewModel { component.doorViewModel }
     val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
     val resolvedAppLoggerViewModel = appLoggerViewModel ?: viewModel { component.appLoggerViewModel }
-    val activity = LocalActivity.current
+    val googleSignIn = rememberGoogleSignIn(
+        onTokenReceived = { token -> resolvedAuthViewModel.signInWithGoogle(token) },
+    )
     val currentDoorEvent by resolvedDoorViewModel.currentDoorEvent.collectAsState()
     val buttonRequestStatus by buttonViewModel.requestStatus.collectAsState()
     val authState by resolvedAuthViewModel.authState.collectAsState()
@@ -94,31 +96,17 @@ fun HomeContent(
                 }
 
                 AuthState.Unauthenticated -> {
-                    if (activity != null) {
-                        resolvedAuthViewModel.signInWithGoogle(activity)
-                    } else {
-                        Logger.e { "Activity is null, cannot sign in with Google" }
-                    }
+                    googleSignIn.launchSignIn()
                 }
 
                 AuthState.Unknown -> {
-                    if (activity != null) {
-                        resolvedAuthViewModel.signInWithGoogle(activity)
-                    } else {
-                        Logger.e { "Activity is null, cannot sign in with Google" }
-                    }
+                    googleSignIn.launchSignIn()
                 }
             }
         },
         onResetRemote = { buttonViewModel.resetRemoteButton() },
         authState = authState,
-        onSignIn = {
-            if (activity != null) {
-                resolvedAuthViewModel.signInWithGoogle(activity)
-            } else {
-                Logger.e { "Activity is null, cannot sign in with Google" }
-            }
-        },
+        onSignIn = { googleSignIn.launchSignIn() },
         onResetFcm = {
             resolvedDoorViewModel.deregisterFcm()
         },

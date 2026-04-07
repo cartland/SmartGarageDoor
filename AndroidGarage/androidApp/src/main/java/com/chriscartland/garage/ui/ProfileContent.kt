@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.ui
 
-import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.ReportDrawn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
@@ -35,8 +34,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import co.touchlab.kermit.Logger
 import com.chriscartland.garage.auth.AuthViewModel
+import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AuthState
@@ -60,7 +59,9 @@ fun ProfileContent(
     val component = rememberAppComponent()
     val resolvedAuthViewModel = authViewModel ?: viewModel { component.authViewModel }
     val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
-    val activity = LocalActivity.current
+    val googleSignIn = rememberGoogleSignIn(
+        onTokenReceived = { token -> resolvedAuthViewModel.signInWithGoogle(token) },
+    )
     val authState by resolvedAuthViewModel.authState.collectAsState()
     val snoozeRequestStatus by buttonViewModel.snoozeRequestStatus.collectAsState()
     val snoozeEndTimeSeconds by buttonViewModel.snoozeEndTimeSeconds.collectAsState()
@@ -78,13 +79,7 @@ fun ProfileContent(
             AuthState.Unknown -> null
         },
         modifier = modifier,
-        signIn = {
-            if (activity != null) {
-                resolvedAuthViewModel.signInWithGoogle(activity)
-            } else {
-                Logger.e { "Activity is null, cannot sign in with Google" }
-            }
-        },
+        signIn = { googleSignIn.launchSignIn() },
         signOut = { resolvedAuthViewModel.signOut() },
         snoozeEndTimeSeconds = snoozeEndTimeSeconds,
         snoozeRequestStatus = snoozeRequestStatus,
