@@ -77,7 +77,7 @@ $GRADLE :android-screenshot-tests:compileDebugScreenshotTestKotlin \
 step "Room schema drift check"
 # After compilation, Room KSP generates schema JSON files.
 # If they differ from what's committed, the schema changed without being tracked.
-SCHEMA_DIR="$REPO_ROOT/AndroidGarage/androidApp/schemas"
+SCHEMA_DIR="$REPO_ROOT/AndroidGarage/data-local/schemas"
 if git diff --quiet -- "$SCHEMA_DIR" 2>/dev/null && \
    [ -z "$(git ls-files --others --exclude-standard -- "$SCHEMA_DIR" 2>/dev/null)" ]; then
     pass "Room schema unchanged"

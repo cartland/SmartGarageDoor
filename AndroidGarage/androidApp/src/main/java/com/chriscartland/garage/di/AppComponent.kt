@@ -37,8 +37,9 @@ import com.chriscartland.garage.data.repository.FirebaseAuthRepository
 import com.chriscartland.garage.data.repository.FirebaseDoorFcmRepository
 import com.chriscartland.garage.data.repository.NetworkDoorRepository
 import com.chriscartland.garage.data.repository.NetworkPushRepository
-import com.chriscartland.garage.db.AppDatabase
-import com.chriscartland.garage.db.DatabaseLocalDoorDataSource
+import com.chriscartland.garage.datalocal.AppDatabase
+import com.chriscartland.garage.datalocal.DatabaseFactory
+import com.chriscartland.garage.datalocal.DatabaseLocalDoorDataSource
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.AuthRepository
@@ -127,7 +128,7 @@ abstract class AppComponent(
     // Database
     @Provides
     @Singleton
-    fun provideAppDatabase(): AppDatabase = AppDatabase.getDatabase(application)
+    fun provideAppDatabase(): AppDatabase = DatabaseFactory.getDatabase(application)
 
     // Network — Ktor HTTP client
     @Provides

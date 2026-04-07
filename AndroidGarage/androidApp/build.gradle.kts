@@ -27,7 +27,6 @@ plugins {
     alias(libs.plugins.google.devtools.ksp)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.gms)
-    alias(libs.plugins.room)
     alias(libs.plugins.baselineprofile)
 }
 
@@ -221,13 +220,10 @@ androidComponents {
     }
 }
 
-room {
-    schemaDirectory("$projectDir/schemas")
-}
-
 dependencies {
     implementation(project(":domain"))
     implementation(project(":data"))
+    implementation(project(":data-local"))
     implementation(project(":usecase"))
     implementation(project(":presentation-model"))
     implementation(libs.kermit)
@@ -269,10 +265,6 @@ dependencies {
     // kotlin-inject (replaced Hilt — see docs/DI-MIGRATION.md)
     implementation(libs.kotlin.inject.runtime)
     ksp(libs.kotlin.inject.compiler)
-    // Room
-    implementation(libs.androidx.room.common)
-    implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
     // DataStore
     implementation(libs.androidx.datastore.preferences)
     // Firebase

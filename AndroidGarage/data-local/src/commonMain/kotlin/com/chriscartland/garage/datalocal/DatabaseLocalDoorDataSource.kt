@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.db
+package com.chriscartland.garage.datalocal
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.LocalDoorDataSource

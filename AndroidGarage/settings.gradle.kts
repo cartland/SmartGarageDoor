@@ -40,6 +40,7 @@ rootProject.name = "AndroidGarage"
 include(":androidApp")
 include(":android-screenshot-tests")
 include(":data")
+include(":data-local")
 include(":domain")
 include(":macrobenchmark")
 include(":presentation-model")

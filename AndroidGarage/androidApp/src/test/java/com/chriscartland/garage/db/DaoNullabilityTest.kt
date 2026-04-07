@@ -32,7 +32,7 @@ import java.io.File
  * aggregate like Long/Int) must use a nullable return type (T? or Flow<T?>).
  */
 class DaoNullabilityTest {
-    private val daoDir = File("src/main/java/com/chriscartland/garage")
+    private val daoDir = File("../data-local/src/commonMain/kotlin/com/chriscartland/garage")
 
     @Test
     fun daoQueriesReturningSingleObjectsMustBeNullable() {

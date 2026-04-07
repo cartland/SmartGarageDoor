@@ -20,8 +20,8 @@ package com.chriscartland.garage.applogger
 import android.content.Context
 import android.net.Uri
 import co.touchlab.kermit.Logger
-import com.chriscartland.garage.applogger.model.AppEvent
-import com.chriscartland.garage.db.AppDatabase
+import com.chriscartland.garage.datalocal.AppDatabase
+import com.chriscartland.garage.datalocal.AppEvent
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.version.AppVersion
 import kotlinx.coroutines.Dispatchers

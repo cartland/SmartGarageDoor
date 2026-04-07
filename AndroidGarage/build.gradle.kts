@@ -39,6 +39,7 @@ tasks.register<codestyle.NoFullyQualifiedNamesTask>("checkNoFullyQualifiedNames"
         "$rootDir/androidApp/src/test/java",
         "$rootDir/domain/src/commonMain/kotlin",
         "$rootDir/data/src/commonMain/kotlin",
+        "$rootDir/data-local/src/commonMain/kotlin",
         "$rootDir/usecase/src/commonMain/kotlin",
         "$rootDir/presentation-model/src/commonMain/kotlin",
     )
