@@ -51,6 +51,7 @@ import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.RequestStatus
 import com.chriscartland.garage.permissions.notificationJustificationText
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
+import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.AuthViewModel
 import com.chriscartland.garage.usecase.DoorViewModel
