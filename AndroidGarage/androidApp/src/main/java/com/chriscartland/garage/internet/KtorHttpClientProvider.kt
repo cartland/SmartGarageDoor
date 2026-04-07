@@ -19,29 +19,20 @@ package com.chriscartland.garage.internet
 
 import com.chriscartland.garage.BuildConfig
 import com.chriscartland.garage.config.APP_CONFIG
+import com.chriscartland.garage.data.ktor.configureSharedHttpClient
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.plugins.defaultRequest
-import io.ktor.client.plugins.logging.LogLevel
-import io.ktor.client.plugins.logging.Logging
-import io.ktor.serialization.kotlinx.json.json
-import kotlinx.serialization.json.Json
 
+/**
+ * Android-specific HTTP client using OkHttp engine.
+ *
+ * Shared configuration (JSON, logging, base URL) is applied via
+ * [configureSharedHttpClient]. Only the engine choice is platform-specific.
+ */
 fun provideKtorHttpClient(): HttpClient =
     HttpClient(OkHttp) {
-        install(ContentNegotiation) {
-            json(
-                Json {
-                    ignoreUnknownKeys = true
-                    isLenient = true
-                },
-            )
-        }
-        install(Logging) {
-            level = if (BuildConfig.DEBUG) LogLevel.BODY else LogLevel.NONE
-        }
-        defaultRequest {
-            url(APP_CONFIG.baseUrl)
-        }
+        configureSharedHttpClient(
+            baseUrl = APP_CONFIG.baseUrl,
+            debug = BuildConfig.DEBUG,
+        )
     }
