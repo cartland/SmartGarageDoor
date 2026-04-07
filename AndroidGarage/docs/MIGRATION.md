@@ -423,21 +423,20 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 | Config values | `LocalConfig.kt` | Partial | Types shared; `BuildConfig` values stay per-platform |
 | HTTP engine | `KtorHttpClientProvider.kt` | expect/actual | Engine selection via KMP expect/actual (Phase 37) |
 
-## Next: Full KMP Alignment (battery-butler target)
+## Next: KMP Shared Business Logic + Native UI
 
-Target module structure matching [battery-butler](https://github.com/cartland/battery-butler):
+**Architecture:** Shared KMP modules for business logic. Platform-native UI: Compose on Android, SwiftUI on iOS. No Compose Multiplatform — UI stays native per platform.
+
+Target module structure:
 
 ```
 domain/              commonMain — models, repository interfaces, error types
-data/                commonMain — repository implementations, bridges
+data/                commonMain — repository implementations, bridges, HTTP (expect/actual engine)
 data-local/          commonMain — Room database + DataStore (KMP)
-data-network/        commonMain — Ktor HTTP data sources (already here)
 usecase/             commonMain — use cases (already here)
-viewmodel/           commonMain — ViewModels (currently usecase/, rename later)
 presentation-model/  commonMain — screen state data classes (already here)
-presentation-core/   commonMain — shared Compose UI components
-compose-app/         Android app + iOS framework + Desktop
-fixtures/            commonMain — test data and demo fixtures
+androidApp/          Android Compose UI + Firebase bridges + DI wiring
+ios/                 SwiftUI + Apple platform bridges + Swift DI
 ```
 
 ### Phase 33: Move Room to shared `data-local` module — COMPLETE (#187)
@@ -450,19 +449,9 @@ Room 2.7.2 (stable) with KMP support. Created `data-local/` module with:
 - `expect/actual currentTimeMillis()` replacing `System.currentTimeMillis()`
 - Import boundary enforcement (allows `androidx.room.*`, `androidx.sqlite.*`)
 
-### Phase 34: Extract shared Compose modules
+### Phase 34: SKIPPED — No Compose Multiplatform
 
-**Goal:** Compose Multiplatform lets UI components be shared across Android, iOS, Desktop.
-
-**Changes:**
-- Create `presentation-core/` KMP module with JetBrains Compose plugin
-- Move reusable components: `DoorStatusCard`, `ErrorCard`, `ExpandableColumnCard`, `RemoteButtonContent`, `SnoozeNotificationCard`, `UserInfoCard`, `GarageDoorCanvas`, `AnimatableGarageDoor`
-- Move theme: `Color.kt`, `DoorStatusColorScheme.kt`, `Type.kt`, `Theme.kt`
-- Create `compose-app/` as the actual application entry point
-- androidApp becomes a thin shell: `MainActivity` + `GarageApplication` + platform DI + Firebase
-- Replace `painterResource(R.drawable.*)` with Compose Multiplatform resources
-
-**Blocker:** Compose Multiplatform maturity for production iOS. Evaluate JetBrains Compose version.
+UI stays platform-native: Compose on Android, SwiftUI on iOS. Shared modules provide ViewModels, UseCases, Repositories, and domain types. Each platform builds its own UI.
 
 ### Phase 35: Replace SharedPreferences with reactive DataStore — COMPLETE (#199)
 
@@ -480,37 +469,46 @@ Three build-time checks in validate.sh:
 - **SingletonGuardTask** — `@Singleton` required on Database/Settings/HttpClient providers
 - **LayerImportCheckTask** — ViewModels can't import DataSource/Repository impls; UseCases can't import data layer
 
-### Phase 36: Replace `java.time` with `kotlinx-datetime`
+### Phase 36: Date/time formatting boundaries
 
-**Goal:** `java.time` is JVM-only. `kotlinx-datetime` works on all KMP targets.
-
-**Changes:**
-- Add `kotlinx-datetime` dependency to domain/data modules
-- Replace `java.time.Instant` with `kotlinx.datetime.Instant` in shared code
-- Replace `java.time.Duration` with `kotlin.time.Duration`
-- Move `toFriendlyDuration()` to shared module (pure math)
-- `toFriendlyDate()`/`toFriendlyTime()` need expect/actual for locale formatting
-- Move `DurationSince` composable to shared Compose module (after Phase 34)
-
-### Phase 37: KMP expect/actual for platform-specific code
-
-**Goal:** Replace remaining Android-only implementations with expect/actual.
+**Goal:** Clear boundary between shared time logic and platform-specific locale formatting.
 
 **Changes:**
-- HTTP engine: expect `HttpClient` factory, actual = OkHttp (Android) / Darwin (iOS)
-- Database instance: expect `AppDatabase` factory, actual = Room with Context (Android) / Room with path (iOS)
+- Move pure math formatting (`toFriendlyDuration`) to shared module
+- Locale-aware date/time formatting stays per-platform (Android: `java.time.DateTimeFormatter`, iOS: `DateFormatter`)
+- Optionally add `kotlinx-datetime` for shared `Instant`/`Duration` types in domain layer
+
+### Phase 37: KMP expect/actual — PARTIALLY COMPLETE
+
+**HTTP engine:** COMPLETE (#201) — `expect createPlatformHttpEngine()`, actual = OkHttp on Android.
+
+**Remaining:**
+- Database factory: `DatabaseFactory` in data-local/androidMain (iOS impl needed)
+- `currentTimeMillis()`: expect/actual in data-local (iOS impl needed)
 - Config values: expect `AppConfig` provider, actual reads BuildConfig (Android) / Info.plist (iOS)
 - Version info: expect `AppVersion`, actual reads PackageManager (Android) / Bundle (iOS)
 
-### Phase 38: iOS target
+### Phase 39: Split PushRepository + code smell audit
 
-**Goal:** Add iOS app consuming shared KMP modules.
+**Goal:** Clean up vertical stacks that accumulated without careful layering.
 
 **Changes:**
-- Add iOS targets to all shared modules (domain, data, data-local, usecase, viewmodel)
-- Create `ios-swift-di/` module for Swift-side DI bridge
-- Implement iOS platform bridges: `AppleAuthBridge`, `AppleMessagingBridge`
-- Either: shared Compose UI (Phase 34) or native SwiftUI consuming shared ViewModels
-- Xcode project setup, signing, CI
+- Split `PushRepository` into `SnoozeRepository` (persisted state) + rethink button push abstraction
+- Rename `NetworkButtonDataSource` to match the new concepts
+- Audit all Repository and DataSource names for clarity
+- Ensure each class has a single purpose
+
+### Phase 38: iOS target (SwiftUI)
+
+**Goal:** Add iOS app consuming shared KMP modules via SwiftUI.
+
+**Changes:**
+- Add iOS targets (iosArm64, iosSimulatorArm64) to shared modules
+- Add `actual` implementations: Darwin HTTP engine, iOS database factory, currentTimeMillis
+- iOS auth: Google Sign-In SDK → Firebase Auth (same backend, iOS-specific SDK)
+- iOS push: Firebase Cloud Messaging or APNs (whichever is more maintainable)
+- Create Swift DI bridge module (`ios-swift-di`)
+- SwiftUI screens observing shared ViewModels via `@ObservableObject` wrapper
+- Xcode project, signing, CI
 
 **Rule:** Finish each phase before starting the next. Update this document with commit hashes when items complete.
