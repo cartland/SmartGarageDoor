@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.coroutines
+package com.chriscartland.garage.data.coroutines
 
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import kotlinx.coroutines.CoroutineDispatcher
