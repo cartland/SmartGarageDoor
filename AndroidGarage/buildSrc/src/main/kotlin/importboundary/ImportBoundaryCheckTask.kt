@@ -36,6 +36,13 @@ abstract class ImportBoundaryCheckTask : DefaultTask() {
         "java.util.Locale",
     )
 
+    /**
+     * Prefixes that are allowed even if they match a forbidden prefix.
+     * Use for KMP-compatible androidx libraries (e.g., "androidx.lifecycle.").
+     */
+    @get:Input
+    var allowedPrefixes: List<String> = emptyList()
+
     @TaskAction
     fun check() {
         val srcDir = File(sourceDir)
@@ -54,10 +61,13 @@ abstract class ImportBoundaryCheckTask : DefaultTask() {
                     val trimmed = line.trim()
                     if (trimmed.startsWith("import ")) {
                         val importPath = trimmed.removePrefix("import ").trim()
-                        for (prefix in forbiddenPrefixes) {
-                            if (importPath.startsWith(prefix)) {
-                                val relativePath = file.relativeTo(srcDir).path
-                                violations.add("  $relativePath:${index + 1}: import $importPath")
+                        val isAllowed = allowedPrefixes.any { importPath.startsWith(it) }
+                        if (!isAllowed) {
+                            for (prefix in forbiddenPrefixes) {
+                                if (importPath.startsWith(prefix)) {
+                                    val relativePath = file.relativeTo(srcDir).path
+                                    violations.add("  $relativePath:${index + 1}: import $importPath")
+                                }
                             }
                         }
                     }

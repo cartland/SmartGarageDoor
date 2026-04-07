@@ -27,6 +27,7 @@ import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.PushRepository
+import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RemoteButtonStateMachine

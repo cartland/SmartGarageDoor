@@ -50,10 +50,10 @@ import com.chriscartland.garage.fcm.DoorFcmRepository
 import com.chriscartland.garage.fcm.FirebaseDoorFcmRepository
 import com.chriscartland.garage.fcm.FirebaseMessagingBridge
 import com.chriscartland.garage.internet.provideKtorHttpClient
-import com.chriscartland.garage.remotebutton.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.settings.AppSettings
 import com.chriscartland.garage.settings.DataStoreAppSettings
 import com.chriscartland.garage.settings.DefaultAppSettingsViewModel
+import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
@@ -84,8 +84,16 @@ abstract class AppComponent(
     abstract val appSettingsViewModel: DefaultAppSettingsViewModel
     abstract val authViewModel: DefaultAuthViewModel
     abstract val doorViewModel: DefaultDoorViewModel
-    abstract val remoteButtonViewModel: DefaultRemoteButtonViewModel
     abstract val appLoggerViewModel: DefaultAppLoggerViewModel
+
+    val remoteButtonViewModel: DefaultRemoteButtonViewModel
+        @Provides get() = DefaultRemoteButtonViewModel(
+            providePushRepository(),
+            provideDoorRepository(),
+            provideDispatcherProvider(),
+            providePushRemoteButtonUseCase(),
+            provideSnoozeNotificationsUseCase(),
+        )
 
     // Settings
     @Provides

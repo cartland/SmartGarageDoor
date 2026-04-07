@@ -7,6 +7,7 @@ plugins {
 
 tasks.register<ImportBoundaryCheckTask>("checkImportBoundary") {
     sourceDir = "$projectDir/src/commonMain/kotlin"
+    allowedPrefixes = listOf("androidx.lifecycle.")
 }
 
 kotlin {
@@ -17,6 +18,7 @@ kotlin {
             implementation(project(":domain"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kermit)
+            implementation(libs.androidx.lifecycle.viewmodel)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

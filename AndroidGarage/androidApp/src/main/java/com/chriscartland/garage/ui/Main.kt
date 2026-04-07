@@ -57,9 +57,9 @@ import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.door.DoorViewModel
 import com.chriscartland.garage.fcm.FCMRegistration
-import com.chriscartland.garage.remotebutton.RemoteButtonViewModel
 import com.chriscartland.garage.ui.theme.AppTheme
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
+import com.chriscartland.garage.usecase.RemoteButtonViewModel
 import kotlinx.serialization.Serializable
 import java.time.Instant
 
