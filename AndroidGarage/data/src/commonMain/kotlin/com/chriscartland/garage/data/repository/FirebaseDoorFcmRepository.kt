@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.fcm
+package com.chriscartland.garage.data.repository
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.MessagingBridge
@@ -23,8 +23,8 @@ import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
+import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import com.chriscartland.garage.domain.repository.DoorFcmRepository
-import com.chriscartland.garage.settings.AppSettings
 
 /**
  * FCM repository that delegates all messaging calls to [MessagingBridge].
@@ -33,7 +33,7 @@ import com.chriscartland.garage.settings.AppSettings
  */
 class FirebaseDoorFcmRepository(
     private val messagingBridge: MessagingBridge,
-    private val settings: AppSettings,
+    private val settings: AppSettingsRepository,
     private val appLoggerRepository: AppLoggerRepository,
 ) : DoorFcmRepository {
     override suspend fun fetchStatus(): DoorFcmState {
