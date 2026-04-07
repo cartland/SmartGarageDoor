@@ -162,6 +162,8 @@ Use `./scripts/release-android.sh` — never create or push tags directly (hooks
 ./scripts/release-android.sh              # Interactive (terminal only)
 ./scripts/release-android.sh --check      # Print latest + next tag
 ./scripts/release-android.sh --confirm-tag android/N  # Non-interactive
+./scripts/release-android.sh --confirm-tag android/N --confirm-hash android/M  # Rollback to old tag
+./scripts/release-android.sh --confirm-tag android/N --skip-validation  # Skip validation gate
 ./scripts/release-android.sh --dry-run    # Preview without releasing
 ```
 
@@ -217,7 +219,7 @@ gh pr update-branch <number>
 
 **Watch for PR starvation:** When many PRs queue up, the last one keeps getting pushed back as others merge ahead of it. Each merge makes it stale, requiring another CI run. If a PR has been open for a long time, prioritize merging it before creating new ones.
 
-**Auto-merge race condition:** Never push fix commits to a PR that has auto-merge enabled. The squash merge may execute before the fix arrives, losing the fix silently. If a PR needs a fix after `gh pr merge --auto` is set, check `gh pr view N --json state` first — if still open, create a NEW PR for the fix instead.
+**Auto-merge race condition:** Never push commits to a PR that has auto-merge enabled. The squash merge may execute before the push arrives, losing commits silently. A guardrail hook blocks `git push` when auto-merge is active on the target PR. If a PR needs changes after `gh pr merge --auto` is set, disable auto-merge first, push, then re-enable.
 
 ### Dev Mode
 Toggle: `touch .claude/.dev-mode` (enable) / `rm .claude/.dev-mode` (disable).
@@ -237,7 +239,7 @@ When active, a Stop hook blocks Claude from ending its turn and directs it to:
 
 ### Claude Hooks (.claude/hooks/)
 - **block-admin-bypass.sh** — Denies `--admin` on PR merges
-- **git-guardrails.sh** — Blocks push to main, force push, destructive commands; enforces squash merge; warns on stale validation
+- **git-guardrails.sh** — Blocks push to main, force push, destructive commands; enforces squash merge; warns on stale validation; blocks push to branches with auto-merge enabled
 - **check-pr-backlog.sh** — Warns at 5+ open PRs, blocks at 10+
 - **dev-mode.sh** — Keeps Claude working when `.claude/.dev-mode` exists
 - **warn-shell-loops.sh** — Warns on `for`/`while` loops (prefer separate Bash calls)
