@@ -105,14 +105,14 @@ class NavigateToTabTest {
     @Test
     fun backFromHistoryRevealsHome() {
         val stack = backStack(Screen.Home, Screen.History)
-        stack.removeLast() // simulate system back
+        stack.removeAt(stack.lastIndex) // simulate system back
         assertEquals(listOf(Screen.Home), stack.toList())
     }
 
     @Test
     fun backFromSettingsRevealsHome() {
         val stack = backStack(Screen.Home, Screen.Profile)
-        stack.removeLast() // simulate system back
+        stack.removeAt(stack.lastIndex) // simulate system back
         assertEquals(listOf(Screen.Home), stack.toList())
     }
 
@@ -136,7 +136,7 @@ class NavigateToTabTest {
 
         // Home → Settings → Back → Home
         navigateToTab(stack, Screen.Profile)
-        stack.removeLast()
+        stack.removeAt(stack.lastIndex)
         assertEquals(listOf(Screen.Home), stack.toList())
     }
 }

@@ -178,7 +178,7 @@ fun AppNavigation(
     ) { innerPadding ->
         NavDisplay(
             backStack = backStack,
-            onBack = { backStack.removeLastOrNull() },
+            onBack = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) },
             entryDecorators = listOf(
                 rememberSaveableStateHolderNavEntryDecorator<Screen>(),
                 rememberViewModelStoreNavEntryDecorator<Screen>(),
