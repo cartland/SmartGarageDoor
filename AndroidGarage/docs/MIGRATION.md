@@ -359,7 +359,7 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 | 10. Shared ViewModels | Medium | Phase 9 | **COMPLETE** (all 5 ViewModels in shared modules) |
 | 11. Platform Abstractions | Small | Phase 9 | **COMPLETE** (bridges extracted) |
 | 12. Type-Safe Navigation | Medium | None | 12.1 COMPLETE (Nav3 deferred) |
-| 13. iOS Target | Large | Phases 10-11 | TODO |
+| 13. iOS Target | Large | Phase 38 | TODO (renumbered to Phase 38) |
 | 14. Typed Errors | Medium | Phase 8 | **COMPLETE** |
 | 15. Kermit Logging | Small | None | **COMPLETE** |
 | 16. Integration Tests | Medium | Phase 9 | **COMPLETE** (data module) |
@@ -402,19 +402,110 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 
 **Result:** All ViewModels, UseCases, Repositories, and data sources live in shared KMP modules. androidApp only contains: Compose UI, Firebase bridge implementations, Room database, DI wiring, and Android framework code.
 
-### What remains in androidApp (Android-specific only)
+### What remains in androidApp
 
-| Category | Files | Why |
-|----------|-------|-----|
-| Compose UI | `ui/*.kt`, `ui/theme/*.kt` | `androidx.compose.*` |
-| Room database | `db/*.kt`, `applogger/AppLoggerDao.kt` | `androidx.room` |
-| Firebase bridges | `FirebaseAuthBridge`, `FirebaseMessagingBridge`, `FCMService` | Firebase SDK |
-| Google Sign-In | `GoogleSignInState.kt` | GMS Auth API |
-| DI wiring | `AppComponent.kt`, `ActivityViewModels.kt`, `ComponentProvider.kt`, `Singleton.kt` | `android.app.Application` |
-| Settings impl | `AppSettings.kt`, `SettingManager.kt` | `SharedPreferences` |
-| Platform | `MainActivity.kt`, `GarageApplication.kt`, permissions, version | Android framework |
-| Time formatting | `TimeFormats.kt` | `java.time` locale-aware formatting |
-| Config values | `LocalConfig.kt` | `BuildConfig` |
-| HTTP engine | `KtorHttpClientProvider.kt` | OkHttp engine (platform-specific) |
+| Category | Files | Can share? | Path forward |
+|----------|-------|------------|--------------|
+| Compose UI | `ui/*.kt`, `ui/theme/*.kt` | **Yes** | Move to shared Compose modules (Phase 34) |
+| Room database | `db/*.kt`, `applogger/AppLoggerDao.kt` | **Yes** | Move to `data-local` module (Phase 33) |
+| Firebase bridges | `FirebaseAuthBridge`, `FirebaseMessagingBridge`, `FCMService` | No | Android-only Firebase SDK; iOS gets its own impls |
+| Google Sign-In | `GoogleSignInState.kt` | No | Android GMS API; iOS uses Apple Sign-In |
+| DI wiring | `AppComponent.kt`, `ActivityViewModels.kt`, `ComponentProvider.kt`, `Singleton.kt` | Partial | `Singleton` can move; `AppComponent` stays per-platform |
+| Settings impl | `AppSettings.kt`, `SettingManager.kt` | **Yes** | Replace SharedPreferences with DataStore (Phase 35) |
+| Platform | `MainActivity.kt`, `GarageApplication.kt`, permissions, version | No | Android framework entry points |
+| Time formatting | `TimeFormats.kt` | **Yes** | Replace `java.time` with `kotlinx-datetime` (Phase 36) |
+| Config values | `LocalConfig.kt` | Partial | Types shared; `BuildConfig` values stay per-platform |
+| HTTP engine | `KtorHttpClientProvider.kt` | expect/actual | Engine selection via KMP expect/actual (Phase 37) |
+
+## Next: Full KMP Alignment (battery-butler target)
+
+Target module structure matching [battery-butler](https://github.com/cartland/battery-butler):
+
+```
+domain/              commonMain — models, repository interfaces, error types
+data/                commonMain — repository implementations, bridges
+data-local/          commonMain — Room database + DataStore (KMP)
+data-network/        commonMain — Ktor HTTP data sources (already here)
+usecase/             commonMain — use cases (already here)
+viewmodel/           commonMain — ViewModels (currently usecase/, rename later)
+presentation-model/  commonMain — screen state data classes (already here)
+presentation-core/   commonMain — shared Compose UI components
+compose-app/         Android app + iOS framework + Desktop
+fixtures/            commonMain — test data and demo fixtures
+```
+
+### Phase 33: Move Room to shared `data-local` module
+
+**Goal:** Room is KMP-compatible (since 2.7.0). Move database out of androidApp.
+
+**Changes:**
+- Create `data-local/` KMP module with Room plugin + KSP
+- Move `AppDatabase`, `DoorEventDao`, `DoorEventEntity`, `DatabaseLocalDoorDataSource`
+- Move `AppLoggerDao`, `AppEvent` entity
+- Configure KSP for each target (Android, iOS, JVM)
+- Add `sqlite-bundled` for cross-platform SQLite
+- Use expect/actual for `AppDatabase.getDatabase()` (needs platform Context on Android)
+
+**Blocker:** Room KMP requires alpha dependencies (2.7.x). Evaluate stability.
+
+### Phase 34: Extract shared Compose modules
+
+**Goal:** Compose Multiplatform lets UI components be shared across Android, iOS, Desktop.
+
+**Changes:**
+- Create `presentation-core/` KMP module with JetBrains Compose plugin
+- Move reusable components: `DoorStatusCard`, `ErrorCard`, `ExpandableColumnCard`, `RemoteButtonContent`, `SnoozeNotificationCard`, `UserInfoCard`, `GarageDoorCanvas`, `AnimatableGarageDoor`
+- Move theme: `Color.kt`, `DoorStatusColorScheme.kt`, `Type.kt`, `Theme.kt`
+- Create `compose-app/` as the actual application entry point
+- androidApp becomes a thin shell: `MainActivity` + `GarageApplication` + platform DI + Firebase
+- Replace `painterResource(R.drawable.*)` with Compose Multiplatform resources
+
+**Blocker:** Compose Multiplatform maturity for production iOS. Evaluate JetBrains Compose version.
+
+### Phase 35: Replace SharedPreferences with DataStore
+
+**Goal:** DataStore is KMP-compatible. SharedPreferences is Android-only.
+
+**Changes:**
+- Add `androidx.datastore:datastore-preferences-core` to `data-local/`
+- Rewrite `SettingManager`/`SettingType` to use DataStore instead of SharedPreferences
+- `AppSettingsRepository` interface stays unchanged (already platform-agnostic)
+- `DataStoreAppSettings` replaces `SharedPreferences`-based impl
+- Move to `data-local/commonMain/` so iOS can use the same storage
+
+**Alternative:** Use `multiplatform-settings` (com.russhwolf) for simpler key-value needs.
+
+### Phase 36: Replace `java.time` with `kotlinx-datetime`
+
+**Goal:** `java.time` is JVM-only. `kotlinx-datetime` works on all KMP targets.
+
+**Changes:**
+- Add `kotlinx-datetime` dependency to domain/data modules
+- Replace `java.time.Instant` with `kotlinx.datetime.Instant` in shared code
+- Replace `java.time.Duration` with `kotlin.time.Duration`
+- Move `toFriendlyDuration()` to shared module (pure math)
+- `toFriendlyDate()`/`toFriendlyTime()` need expect/actual for locale formatting
+- Move `DurationSince` composable to shared Compose module (after Phase 34)
+
+### Phase 37: KMP expect/actual for platform-specific code
+
+**Goal:** Replace remaining Android-only implementations with expect/actual.
+
+**Changes:**
+- HTTP engine: expect `HttpClient` factory, actual = OkHttp (Android) / Darwin (iOS)
+- Database instance: expect `AppDatabase` factory, actual = Room with Context (Android) / Room with path (iOS)
+- Config values: expect `AppConfig` provider, actual reads BuildConfig (Android) / Info.plist (iOS)
+- Version info: expect `AppVersion`, actual reads PackageManager (Android) / Bundle (iOS)
+
+### Phase 38: iOS target
+
+**Goal:** Add iOS app consuming shared KMP modules.
+
+**Changes:**
+- Add iOS targets to all shared modules (domain, data, data-local, usecase, viewmodel)
+- Create `ios-swift-di/` module for Swift-side DI bridge
+- Implement iOS platform bridges: `AppleAuthBridge`, `AppleMessagingBridge`
+- Either: shared Compose UI (Phase 34) or native SwiftUI consuming shared ViewModels
+- Xcode project setup, signing, CI
 
 **Rule:** Finish each phase before starting the next. Update this document with commit hashes when items complete.
