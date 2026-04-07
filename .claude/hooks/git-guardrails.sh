@@ -54,6 +54,17 @@ if echo "$STRIPPED" | grep -qE '\bgit\s+push\b'; then
     deny "BLOCKED: Use --force-with-lease instead of --force for safety."
   fi
 
+  # Block push to a branch whose PR has auto-merge enabled (race condition risk)
+  if [ -n "$REPO_ROOT" ]; then
+    PUSH_BRANCH=$(git branch --show-current 2>/dev/null)
+    if [ -n "$PUSH_BRANCH" ] && [ "$PUSH_BRANCH" != "main" ] && [ "$PUSH_BRANCH" != "master" ]; then
+      PR_AUTO_MERGE=$(gh pr list --head "$PUSH_BRANCH" --json number,autoMergeRequest --jq '.[0] | select(.autoMergeRequest != null) | .number' 2>/dev/null || true)
+      if [ -n "$PR_AUTO_MERGE" ]; then
+        deny "BLOCKED: PR #$PR_AUTO_MERGE has auto-merge enabled. Pushing now risks the merge executing before your commits arrive, silently losing them. Disable auto-merge first: gh pr merge --disable-auto $PR_AUTO_MERGE"
+      fi
+    fi
+  fi
+
   # Warn if validate.sh hasn't been run
   if [ -n "$REPO_ROOT" ]; then
     MARKER="$REPO_ROOT/.claude/.validation-passed"
