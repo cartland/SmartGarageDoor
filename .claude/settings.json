@@ -1,5 +1,11 @@
 {
   "permissions": {
+    "ask": [
+      "Bash(./scripts/release-android.sh *)",
+      "Bash(./scripts/release-android.sh)",
+      "Bash(./scripts/release-firebase.sh *)",
+      "Bash(./scripts/release-firebase.sh)"
+    ],
     "allow": [
       "Bash(git *)",
       "Bash(gh *)",
