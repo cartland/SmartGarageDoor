@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.internet
+package com.chriscartland.garage.data.ktor
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.NetworkDoorDataSource

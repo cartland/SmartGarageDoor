@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.internet
+package com.chriscartland.garage.data.ktor
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.NetworkConfigDataSource
@@ -29,8 +29,6 @@ import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
 
 class KtorNetworkConfigDataSource(
     private val client: HttpClient,
@@ -66,10 +64,7 @@ class KtorNetworkConfigDataSource(
             NetworkResult.Success(
                 ServerConfig(
                     buildTimestamp = body.buildTimestamp,
-                    remoteButtonBuildTimestamp = URLDecoder.decode(
-                        remoteButtonBuildTimestamp,
-                        StandardCharsets.UTF_8.name(),
-                    ),
+                    remoteButtonBuildTimestamp = percentDecode(remoteButtonBuildTimestamp),
                     remoteButtonPushKey = body.remoteButtonPushKey,
                 ),
             )
@@ -97,3 +92,28 @@ private data class KtorServerConfigBody(
 )
 
 // endregion
+
+/**
+ * KMP-compatible percent-decode (replaces java.net.URLDecoder).
+ */
+private fun percentDecode(encoded: String): String =
+    buildString {
+        var i = 0
+        while (i < encoded.length) {
+            if (encoded[i] == '%' && i + 2 < encoded.length) {
+                val hex = encoded.substring(i + 1, i + 3)
+                val code = hex.toIntOrNull(16)
+                if (code != null) {
+                    append(code.toChar())
+                    i += 3
+                    continue
+                }
+            }
+            if (encoded[i] == '+') {
+                append(' ')
+            } else {
+                append(encoded[i])
+            }
+            i++
+        }
+    }

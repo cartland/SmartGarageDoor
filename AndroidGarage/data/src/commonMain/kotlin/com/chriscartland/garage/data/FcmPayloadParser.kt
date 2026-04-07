@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.fcm
+package com.chriscartland.garage.data
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.domain.model.DoorEvent
