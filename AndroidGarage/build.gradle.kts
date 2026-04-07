@@ -45,6 +45,12 @@ tasks.register<codestyle.NoFullyQualifiedNamesTask>("checkNoFullyQualifiedNames"
     )
 }
 
+tasks.register<codestyle.NoNav2ImportsTask>("checkNoNav2Imports") {
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+    )
+}
+
 tasks.register<testcoverage.TestCoverageCheckTask>("checkTestCoverage") {
     sourceDir = "$rootDir/androidApp/src/main/java/com/chriscartland/garage"
     testDir = "$rootDir/androidApp/src/test/java/com/chriscartland/garage"

@@ -10,7 +10,7 @@ kotlin {
     // See: https://kotlinlang.org/docs/multiplatform-discover-project.html#targets
     androidLibrary {
         namespace = "com.chriscartland.garage.shared"
-        compileSdk = 35
+        compileSdk = 36
         minSdk = 24
 
         withHostTestBuilder {

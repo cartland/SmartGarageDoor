@@ -28,6 +28,9 @@ $GRADLE :domain:checkImportBoundary :data:checkImportBoundary :data-local:checkI
 step "No fully qualified names in code"
 $GRADLE checkNoFullyQualifiedNames && pass "no FQNs" || fail "no FQNs"
 
+step "No Navigation 2 imports (use Nav3)"
+$GRADLE checkNoNav2Imports && pass "no Nav2" || fail "no Nav2"
+
 step "Detekt (static analysis)"
 $GRADLE :androidApp:detekt && pass "detekt" || fail "detekt"
 
