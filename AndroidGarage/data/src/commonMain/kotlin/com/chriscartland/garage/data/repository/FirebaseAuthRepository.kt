@@ -15,10 +15,10 @@
  *
  */
 
-package com.chriscartland.garage.auth
+package com.chriscartland.garage.data.repository
 
 import co.touchlab.kermit.Logger
-import com.chriscartland.garage.applogger.AppLoggerRepository
+import com.chriscartland.garage.data.AppLoggerDataSource
 import com.chriscartland.garage.data.AuthBridge
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AuthState
@@ -33,8 +33,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-const val RC_ONE_TAP_SIGN_IN = 1
-
 /**
  * Auth repository that delegates all platform auth calls to [AuthBridge].
  *
@@ -43,7 +41,7 @@ const val RC_ONE_TAP_SIGN_IN = 1
  */
 class FirebaseAuthRepository(
     private val authBridge: AuthBridge,
-    private val appLoggerRepository: AppLoggerRepository,
+    private val appLogger: AppLoggerDataSource,
     externalScope: CoroutineScope,
 ) : AuthRepository {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
@@ -85,13 +83,13 @@ class FirebaseAuthRepository(
         Logger.d { "AuthState.commit(): $this" }
         when (this) {
             is AuthState.Authenticated ->
-                appLoggerRepository.log(AppLoggerKeys.USER_AUTHENTICATED)
+                appLogger.log(AppLoggerKeys.USER_AUTHENTICATED)
 
             AuthState.Unauthenticated ->
-                appLoggerRepository.log(AppLoggerKeys.USER_UNAUTHENTICATED)
+                appLogger.log(AppLoggerKeys.USER_UNAUTHENTICATED)
 
             AuthState.Unknown ->
-                appLoggerRepository.log(AppLoggerKeys.USER_AUTH_UNKNOWN)
+                appLogger.log(AppLoggerKeys.USER_AUTH_UNKNOWN)
         }
         return this.also {
             _authState.value = it
