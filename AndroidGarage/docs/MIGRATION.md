@@ -417,7 +417,7 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 | Firebase bridges | `FirebaseAuthBridge`, `FirebaseMessagingBridge`, `FCMService` | No | Android-only Firebase SDK; iOS gets its own impls |
 | Google Sign-In | `GoogleSignInState.kt` | No | Android GMS API; iOS uses Apple Sign-In |
 | DI wiring | `AppComponent.kt`, `ActivityViewModels.kt`, `ComponentProvider.kt`, `Singleton.kt` | Partial | `Singleton` can move; `AppComponent` stays per-platform |
-| Settings impl | `AppSettings.kt`, `SettingManager.kt` | **Yes** | Replace SharedPreferences with DataStore (Phase 35) |
+| Settings impl | ~~`AppSettings.kt`, `SettingManager.kt`~~ | **Done** | Replaced with reactive DataStore (#199) |
 | Platform | `MainActivity.kt`, `GarageApplication.kt`, permissions, version | No | Android framework entry points |
 | Time formatting | `TimeFormats.kt` | **Yes** | Replace `java.time` with `kotlinx-datetime` (Phase 36) |
 | Config values | `LocalConfig.kt` | Partial | Types shared; `BuildConfig` values stay per-platform |
@@ -464,18 +464,21 @@ Room 2.7.2 (stable) with KMP support. Created `data-local/` module with:
 
 **Blocker:** Compose Multiplatform maturity for production iOS. Evaluate JetBrains Compose version.
 
-### Phase 35: Replace SharedPreferences with DataStore
+### Phase 35: Replace SharedPreferences with reactive DataStore — COMPLETE (#199)
 
-**Goal:** DataStore is KMP-compatible. SharedPreferences is Android-only.
+Migrated settings from synchronous SharedPreferences to reactive DataStore:
+- `Setting<T>` interface now Flow-based: `val flow: Flow<T>`, `suspend fun set()`, `suspend fun restoreDefault()`
+- `DataStoreAppSettings` in `data-local/commonMain` backed by `DataStore<Preferences>`
+- `DataStoreSettingsFactory` in androidMain creates singleton DataStore instance
+- `AppSettingsViewModel` collects flows via `stateIn(Eagerly)` — UI reactively updates
+- Deleted `AppSettings.kt`, `SettingManager.kt` (180 lines of SharedPreferences boilerplate)
 
-**Changes:**
-- Add `androidx.datastore:datastore-preferences-core` to `data-local/`
-- Rewrite `SettingManager`/`SettingType` to use DataStore instead of SharedPreferences
-- `AppSettingsRepository` interface stays unchanged (already platform-agnostic)
-- `DataStoreAppSettings` replaces `SharedPreferences`-based impl
-- Move to `data-local/commonMain/` so iOS can use the same storage
+### Architecture Enforcement — COMPLETE (#196)
 
-**Alternative:** Use `multiplatform-settings` (com.russhwolf) for simpler key-value needs.
+Three build-time checks in validate.sh:
+- **ArchitectureCheckTask** — module dependency graph validation
+- **SingletonGuardTask** — `@Singleton` required on Database/Settings/HttpClient providers
+- **LayerImportCheckTask** — ViewModels can't import DataSource/Repository impls; UseCases can't import data layer
 
 ### Phase 36: Replace `java.time` with `kotlinx-datetime`
 
