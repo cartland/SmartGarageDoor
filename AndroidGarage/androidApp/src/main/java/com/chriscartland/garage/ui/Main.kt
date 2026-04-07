@@ -39,7 +39,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -147,7 +146,9 @@ fun AppNavigation(
     }
 
     // Nav3: back stack is a simple mutable list of Screen objects.
-    val backStack = rememberSaveable { mutableStateListOf<Screen>(Screen.Home) }
+    // Using remember (not rememberSaveable) because Screen objects aren't Bundle-saveable.
+    // For tab navigation this is fine — process death just restarts on Home tab.
+    val backStack = remember { mutableStateListOf<Screen>(Screen.Home) }
 
     Scaffold(
         topBar = {
