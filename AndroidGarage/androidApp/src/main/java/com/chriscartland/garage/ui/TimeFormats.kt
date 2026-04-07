@@ -23,12 +23,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.chriscartland.garage.domain.model.FriendlyDuration
 import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import kotlin.time.toKotlinDuration
 
 /**
  * Convert Unix timestamp seconds to a human-readable date string.
@@ -55,37 +57,12 @@ fun Long.toFriendlyTimeShort(): String? =
         .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
 
 /**
- * Convert Unix timestamp seconds to a human-readable duration string.
+ * Convert a [java.time.Duration] to a human-readable string.
  *
- * 0:59
- * 59:59
- * 23:59:59
- * 1 day, 23:59:59
- * 2 days, 23:59:59
+ * Delegates to [FriendlyDuration.format] (shared KMP code) after converting
+ * from java.time.Duration to kotlin.time.Duration.
  */
-fun Duration.toFriendlyDuration(): String {
-    val days = toDays().coerceAtLeast(0L)
-    val hours = (toHours() % 24).coerceAtLeast(0L)
-    val minutes = (toMinutes() % 60).coerceAtLeast(0L)
-    val seconds = (seconds % 60).coerceAtLeast(0L)
-
-    return when {
-        days > 0 -> String.format(
-            "%d day%s, %dh %dm %ds",
-            days,
-            if (days > 1) "s" else "",
-            hours,
-            minutes,
-            seconds,
-        )
-
-        hours > 0 -> String.format("%dh %dm %ds", hours, minutes, seconds)
-
-        minutes > 0 -> String.format("%dm %ds", minutes, seconds)
-
-        else -> String.format("%ds", seconds)
-    }
-}
+fun Duration.toFriendlyDuration(): String = FriendlyDuration.format(this.toKotlinDuration())
 
 /**
  * Composable that updates periodically based on the duration since a specific time.
