@@ -36,21 +36,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.trace
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
-import androidx.navigation.NavDestination.Companion.hasRoute
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.ui.NavDisplay
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.fcm.FCMRegistration
@@ -83,29 +82,30 @@ fun GarageApp(
  *
  * Each route is a @Serializable object — the compiler ensures route references
  * are valid and navigation arguments (if added later) are type-checked.
+ * Used with Navigation 3's NavDisplay + entryProvider.
  */
-object Route {
+sealed interface Screen {
     @Serializable
-    data object Home
+    data object Home : Screen
 
     @Serializable
-    data object History
+    data object History : Screen
 
     @Serializable
-    data object Profile
+    data object Profile : Screen
 }
 
 /**
- * Navigation tab definition linking a route to its UI metadata.
+ * Navigation tab definition linking a screen to its UI metadata.
  */
 enum class Tab(
-    val route: Any,
+    val screen: Screen,
     val label: String,
     val icon: ImageVector,
 ) {
-    Home(Route.Home, "Home", Icons.Filled.Home),
-    History(Route.History, "History", Icons.Filled.DateRange),
-    Profile(Route.Profile, "Settings", Icons.Filled.Person),
+    Home(Screen.Home, "Home", Icons.Filled.Home),
+    History(Screen.History, "History", Icons.Filled.DateRange),
+    Profile(Screen.Profile, "Settings", Icons.Filled.Person),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -145,7 +145,10 @@ fun AppNavigation(
         // Register for FCM notifications.
         FCMRegistration()
     }
-    val navController = rememberNavController()
+
+    // Nav3: back stack is a simple mutable list of Screen objects.
+    val backStack = rememberSaveable { mutableStateListOf<Screen>(Screen.Home) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -166,51 +169,62 @@ fun AppNavigation(
             )
         },
         bottomBar = {
-            BottomNavigationBar(navController)
+            BottomNavigationBar(
+                currentScreen = backStack.lastOrNull(),
+                onTabSelected = { screen ->
+                    // Replace the back stack with a single tab screen.
+                    backStack.clear()
+                    backStack.add(screen)
+                },
+            )
         },
     ) { innerPadding ->
-        NavHost(
-            navController,
-            startDestination = Route.Home,
-            Modifier
-                .padding(innerPadding),
-        ) {
-            composable<Route.Home> {
-                HomeContent(
-                    authViewModel = authViewModel,
-                    doorViewModel = doorViewModel,
-                    appLoggerViewModel = appLoggerViewModel,
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .fillMaxWidth(),
-                )
-            }
-            composable<Route.History> {
-                DoorHistoryContent(
-                    doorViewModel = doorViewModel,
-                    appLoggerViewModel = appLoggerViewModel,
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .fillMaxWidth(),
-                )
-            }
-            composable<Route.Profile> {
-                ProfileContent(
-                    authViewModel = authViewModel,
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .fillMaxWidth(),
-                )
-            }
-        }
+        NavDisplay(
+            backStack = backStack,
+            onBack = { backStack.removeLastOrNull() },
+            entryDecorators = listOf(
+                rememberSaveableStateHolderNavEntryDecorator<Screen>(),
+                rememberViewModelStoreNavEntryDecorator<Screen>(),
+            ),
+            modifier = Modifier.padding(innerPadding),
+            entryProvider = entryProvider {
+                entry<Screen.Home> {
+                    HomeContent(
+                        authViewModel = authViewModel,
+                        doorViewModel = doorViewModel,
+                        appLoggerViewModel = appLoggerViewModel,
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .fillMaxWidth(),
+                    )
+                }
+                entry<Screen.History> {
+                    DoorHistoryContent(
+                        doorViewModel = doorViewModel,
+                        appLoggerViewModel = appLoggerViewModel,
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .fillMaxWidth(),
+                    )
+                }
+                entry<Screen.Profile> {
+                    ProfileContent(
+                        authViewModel = authViewModel,
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .fillMaxWidth(),
+                    )
+                }
+            },
+        )
     }
 }
 
 @Composable
-fun BottomNavigationBar(navController: NavController) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
-
+fun BottomNavigationBar(
+    currentScreen: Screen?,
+    onTabSelected: (Screen) -> Unit,
+) {
     NavigationBar {
         Tab.entries.forEach { tab ->
             NavigationBarItem(
@@ -225,17 +239,8 @@ fun BottomNavigationBar(navController: NavController) {
                         text = tab.label,
                     )
                 },
-                selected = currentDestination?.hasRoute(tab.route::class) == true,
-                onClick = {
-                    navController.navigate(tab.route) {
-                        // Prevent multiple copies of the same destination
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
+                selected = currentScreen == tab.screen,
+                onClick = { onTabSelected(tab.screen) },
             )
         }
     }

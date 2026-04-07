@@ -29,7 +29,7 @@ kotlin {
 
 android {
     namespace = "com.chriscartland.garage.usecase"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         minSdk = 26
     }

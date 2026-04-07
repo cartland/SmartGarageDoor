@@ -52,7 +52,7 @@ val localProperties = Properties().apply {
 
 android {
     namespace = "com.chriscartland.garage"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.chriscartland.garage"
@@ -241,8 +241,10 @@ dependencies {
     implementation(libs.accompanist.permissions)
     // Baseline Profiles
     implementation(libs.androidx.profileinstaller)
-    // Navigation
-    implementation(libs.androidx.navigation.compose)
+    // Navigation 3
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.play.services.auth)
     // Testing
     testImplementation(libs.junit)
