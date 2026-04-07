@@ -10,22 +10,51 @@ import java.io.File
  * Gradle task that detects fully qualified class names used inline in code.
  *
  * Fully qualified names hide dependencies — use imports instead so each file's
- * dependencies are visible at the top. This check scans Kotlin source files
- * for patterns like `com.example.Foo` outside of import statements.
+ * dependencies are visible at the top. Uses two detection strategies:
+ *
+ * 1. **Known prefixes** — exact package prefixes for project and dependencies
+ * 2. **TLD regex** — catches `com.`, `org.`, `io.`, `net.` followed by lowercase
+ *    segments (looks like a Java/Kotlin package path)
  */
 abstract class NoFullyQualifiedNamesTask : DefaultTask() {
     @get:Input
     var sourceDirs: List<String> = emptyList()
 
     /**
-     * Package prefixes to check for inline usage.
-     * Only these prefixes are flagged — standard library and annotation usage is allowed.
+     * Known package prefixes to flag. Covers project code and all dependencies.
      */
     @get:Input
     var checkedPrefixes: List<String> = listOf(
+        // Project
         "com.chriscartland.garage.",
+        // Kotlin/KotlinX
         "kotlinx.coroutines.",
         "kotlinx.serialization.",
+        "kotlin.time.",
+        // AndroidX
+        "androidx.lifecycle.",
+        "androidx.compose.",
+        "androidx.navigation.",
+        "androidx.room.",
+        // Ktor
+        "io.ktor.",
+        // Firebase
+        "com.google.firebase.",
+        "com.google.android.",
+        // Kermit logging
+        "co.touchlab.kermit.",
+        // kotlin-inject
+        "me.tatarka.inject.",
+    )
+
+    /**
+     * Regex patterns that match common TLD-based package paths.
+     * Catches FQNs from libraries not in the known prefix list.
+     * Pattern: TLD + lowercase segment + dot + more segments + uppercase class name.
+     */
+    private val tldPatterns: List<Regex> = listOf(
+        // com.foo.bar.Baz, org.foo.bar.Baz, io.foo.bar.Baz, net.foo.bar.Baz
+        Regex("""(?<!\w)(com|org|io|net)\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*\.[A-Z]"""),
     )
 
     @TaskAction
@@ -53,10 +82,22 @@ abstract class NoFullyQualifiedNamesTask : DefaultTask() {
                         }
                         // Strip string literals to avoid false positives
                         val withoutStrings = trimmed.replace(Regex("\"[^\"]*\""), "\"\"")
+
+                        // Check known prefixes
                         for (prefix in checkedPrefixes) {
                             if (withoutStrings.contains(prefix)) {
                                 val relativePath = file.relativeTo(dir).path
                                 violations.add("  $relativePath:${index + 1}: $trimmed")
+                                return@forEachIndexed // One violation per line
+                            }
+                        }
+
+                        // Check TLD regex patterns
+                        for (pattern in tldPatterns) {
+                            if (pattern.containsMatchIn(withoutStrings)) {
+                                val relativePath = file.relativeTo(dir).path
+                                violations.add("  $relativePath:${index + 1}: $trimmed")
+                                return@forEachIndexed
                             }
                         }
                     }
