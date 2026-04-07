@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.ui
 
-import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -54,7 +53,6 @@ fun DoorHistoryContent(
     val component = rememberAppComponent()
     val resolvedDoorViewModel = doorViewModel ?: viewModel { component.doorViewModel }
     val resolvedAppLoggerViewModel = appLoggerViewModel ?: viewModel { component.appLoggerViewModel }
-    val activity = LocalActivity.current
     val recentDoorEvents by resolvedDoorViewModel.recentDoorEvents.collectAsState()
     DoorHistoryContent(
         recentDoorEvents = recentDoorEvents,
