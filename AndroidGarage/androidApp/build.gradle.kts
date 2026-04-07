@@ -267,8 +267,6 @@ dependencies {
     // kotlin-inject (replaced Hilt — see docs/DI-MIGRATION.md)
     implementation(libs.kotlin.inject.runtime)
     ksp(libs.kotlin.inject.compiler)
-    // DataStore
-    implementation(libs.androidx.datastore.preferences)
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth.ktx)

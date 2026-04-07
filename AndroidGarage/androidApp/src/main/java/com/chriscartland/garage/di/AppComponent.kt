@@ -40,8 +40,10 @@ import com.chriscartland.garage.data.repository.NetworkPushRepository
 import com.chriscartland.garage.datalocal.AppDatabase
 import com.chriscartland.garage.datalocal.DatabaseFactory
 import com.chriscartland.garage.datalocal.DatabaseLocalDoorDataSource
+import com.chriscartland.garage.datalocal.MultiplatformAppSettings
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
+import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.DoorFcmRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
@@ -49,8 +51,6 @@ import com.chriscartland.garage.domain.repository.PushRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.fcm.FirebaseMessagingBridge
 import com.chriscartland.garage.internet.provideKtorHttpClient
-import com.chriscartland.garage.settings.AppSettings
-import com.chriscartland.garage.settings.DataStoreAppSettings
 import com.chriscartland.garage.usecase.DefaultAppLoggerViewModel
 import com.chriscartland.garage.usecase.DefaultAppSettingsViewModel
 import com.chriscartland.garage.usecase.DefaultAuthViewModel
@@ -64,6 +64,7 @@ import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
+import com.russhwolf.settings.SharedPreferencesSettings
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -123,7 +124,12 @@ abstract class AppComponent(
     // Settings
     @Provides
     @Singleton
-    fun provideAppSettings(): AppSettings = DataStoreAppSettings(application)
+    fun provideAppSettings(): AppSettingsRepository =
+        MultiplatformAppSettings(
+            SharedPreferencesSettings(
+                application.getSharedPreferences("app_settings", android.content.Context.MODE_PRIVATE),
+            ),
+        )
 
     // Database
     @Provides

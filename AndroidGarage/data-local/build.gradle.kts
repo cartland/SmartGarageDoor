@@ -12,6 +12,7 @@ tasks.register<ImportBoundaryCheckTask>("checkImportBoundary") {
     allowedPrefixes = listOf(
         "androidx.room.",
         "androidx.sqlite.",
+        "com.russhwolf.settings.",
     )
 }
 
@@ -30,6 +31,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             api(libs.androidx.room.runtime)
             implementation(libs.sqlite.bundled)
+            api(libs.multiplatform.settings)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
