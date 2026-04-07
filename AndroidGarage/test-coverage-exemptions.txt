@@ -7,6 +7,5 @@ DefaultAppLoggerViewModel
 DefaultAppSettingsViewModel
 
 # Repositories — pending tests (needs Firebase mocking)
-FirebaseAuthRepository
 FirebaseDoorFcmRepository
 RoomAppLoggerRepository
