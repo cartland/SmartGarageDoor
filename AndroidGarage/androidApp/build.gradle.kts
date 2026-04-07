@@ -257,12 +257,7 @@ dependencies {
     // Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    // Ktor HTTP client + kotlinx.serialization (replaced Retrofit — Phase 4)
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.okhttp)
-    implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.ktor.serialization.kotlinx.json)
-    implementation(libs.ktor.client.logging)
+    // kotlinx.serialization (Ktor HTTP client is in :data module)
     implementation(libs.kotlinx.serialization.json)
     // kotlin-inject (replaced Hilt — see docs/DI-MIGRATION.md)
     implementation(libs.kotlin.inject.runtime)
