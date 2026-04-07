@@ -51,6 +51,48 @@ tasks.register<codestyle.NoNav2ImportsTask>("checkNoNav2Imports") {
     )
 }
 
+tasks.register<architecture.ArchitectureCheckTask>("checkArchitecture") {
+    // Capture module dependencies at configuration time (Gradle 9 compatible)
+    moduleDependencies = subprojects
+        .flatMap { subproject ->
+            val moduleName = ":" + subproject.path.removePrefix(":")
+            subproject.configurations
+                .filter { config ->
+                    val name = config.name.lowercase()
+                    !name.contains("test") && !name.contains("ksp") && !name.contains("detekt")
+                }.flatMap { config ->
+                    config.dependencies
+                        .filterIsInstance<org.gradle.api.artifacts.ProjectDependency>()
+                        .map { dep -> "$moduleName -> ${dep.path}" }
+                }
+        }.distinct()
+}
+
+tasks.register<architecture.SingletonGuardTask>("checkSingletonGuard") {
+    sourceDir = "$rootDir/androidApp/src/main/java"
+}
+
+tasks.register<architecture.LayerImportCheckTask>("checkLayerImports") {
+    sourceDirs = listOf(
+        "$rootDir/usecase/src/commonMain/kotlin",
+        "$rootDir/androidApp/src/main/java",
+    )
+    rules = listOf(
+        // ViewModels must not import DataSource or concrete Repository/Bridge implementations
+        listOf(
+            ".*ViewModel\\.kt",
+            "com.chriscartland.garage.data.Local,com.chriscartland.garage.data.Network,com.chriscartland.garage.data.ktor.,com.chriscartland.garage.data.repository.,com.chriscartland.garage.datalocal.",
+            "ViewModels must depend on UseCases and domain interfaces, not data layer implementations.",
+        ),
+        // UseCases must not import DataSource or concrete implementations
+        listOf(
+            ".*UseCase\\.kt",
+            "com.chriscartland.garage.data.Local,com.chriscartland.garage.data.Network,com.chriscartland.garage.data.ktor.,com.chriscartland.garage.data.repository.,com.chriscartland.garage.datalocal.",
+            "UseCases must depend on domain repository interfaces, not data layer implementations.",
+        ),
+    )
+}
+
 tasks.register<testcoverage.TestCoverageCheckTask>("checkTestCoverage") {
     sourceDir = "$rootDir/androidApp/src/main/java/com/chriscartland/garage"
     testDir = "$rootDir/androidApp/src/test/java/com/chriscartland/garage"

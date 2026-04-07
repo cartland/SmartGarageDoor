@@ -31,6 +31,15 @@ $GRADLE checkNoFullyQualifiedNames && pass "no FQNs" || fail "no FQNs"
 step "No Navigation 2 imports (use Nav3)"
 $GRADLE checkNoNav2Imports && pass "no Nav2" || fail "no Nav2"
 
+step "Architecture (module dependency graph)"
+$GRADLE checkArchitecture && pass "architecture" || fail "architecture"
+
+step "Singleton guard (Database, Settings, HttpClient)"
+$GRADLE checkSingletonGuard && pass "singleton guard" || fail "singleton guard"
+
+step "Layer imports (ViewModel→UseCase, UseCase→domain)"
+$GRADLE checkLayerImports && pass "layer imports" || fail "layer imports"
+
 step "Detekt (static analysis)"
 $GRADLE :androidApp:detekt && pass "detekt" || fail "detekt"
 
