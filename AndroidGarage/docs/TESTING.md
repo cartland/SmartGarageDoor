@@ -13,16 +13,19 @@
 
 ## Current State
 
-- **192 unit tests** across 31 test files (21 androidApp + 4 domain + 1 usecase + 2 data + 3 androidApp fakes), including FirebaseAuthRepositoryTest, RemoteButtonStateMachineTest, data module integration tests, and 5 fake implementations
+- **234 unit tests** across 30 test files (19 androidApp + 3 domain + 4 usecase + 3 data + 1 data-local), including ViewModelTests, RepositoryTests, UseCaseTests, RemoteButtonStateMachineTest, data module integration tests, and 8 fake implementations across modules
 - **18 instrumented tests** across 3 test files (Room sanity, DI graph, navigation smoke)
 - **CI architecture:** pre-submit (`ci.yml` → `ci-checks.yml`) + post-merge (`ci-post-merge.yml` → `ci-checks.yml` + instrumented tests)
 - **CI gate jobs:** `CI Complete` (PRs), `Post-Merge Complete` (main) — single check-run names for branch protection and release script
 - **CI checks:** unit tests (3 build variants), Spotless formatting (all modules), Detekt, Android Lint, screenshot test compilation, debug APK build, release AAB build
 - **CI path filtering:** Android CI skips for Firebase-only/docs-only changes, and vice versa
 - **CI failure tracking:** post-merge failures auto-create GitHub issues (`ci-failure/post-merge`), auto-close on fix, flakiness detection
-- **Local validation:** `./scripts/validate.sh` mirrors CI + Room schema drift check + auto-discovered module tests + screenshot compilation + import boundary check (shared modules)
-- **Safety guardrails:** git hooks warn on Room entity changes, block push to main, enforce squash merge, block direct screenshot Gradle tasks
+- **Local validation:** `./scripts/validate.sh` mirrors CI + Room schema drift check + auto-discovered module tests + screenshot compilation + import boundary check + architecture check + singleton guard + layer import check + Nav2 import check
+- **Safety guardrails:** git hooks warn on Room entity changes, block push to main, enforce squash merge, block direct screenshot Gradle tasks, block absolute paths to gradlew
 - **DI system:** kotlin-inject (Hilt fully removed as of Phase 3), Ktor HTTP (Retrofit fully removed as of Phase 4)
+- **Navigation:** Navigation 3 (Nav2 fully removed, enforcement check blocks re-introduction)
+- **Architecture enforcement:** ArchitectureCheckTask (module deps), SingletonGuardTask (DB/Settings/HTTP scoping), LayerImportCheckTask (ViewModel→UseCase, UseCase→domain boundaries)
+- **Test coverage:** Only `RoomAppLoggerRepository` exempt (requires Android Context for CSV export)
 - **Completed:** Phase 1 (CI hardening), Phase 2 (network error tests), Phase 3 (auth token fix + UseCase tests + AuthBridge extraction), Phase 4 (state machine completeness), Phase 5.2-5.3 (release safety), Phase 6.1 (ESLint migration), Phase 7 (instrumented tests)
 - **Remaining:** Phase 6.2 (server contract tests)
 
