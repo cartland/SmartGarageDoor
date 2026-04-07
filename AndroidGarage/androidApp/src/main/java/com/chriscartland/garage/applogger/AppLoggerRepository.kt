@@ -32,10 +32,10 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 /**
- * Android-specific logger repository that extends the shared [AppLoggerDataSource]
+ * Android-specific logger that extends the shared [AppLoggerRepository][com.chriscartland.garage.domain.repository.AppLoggerRepository]
  * with Android-specific CSV export capability.
  */
-interface AppLoggerRepository : com.chriscartland.garage.data.AppLoggerDataSource {
+interface AndroidAppLoggerRepository : com.chriscartland.garage.domain.repository.AppLoggerRepository {
     suspend fun writeCsvToUri(
         context: Context,
         uri: Uri,
@@ -45,7 +45,7 @@ interface AppLoggerRepository : com.chriscartland.garage.data.AppLoggerDataSourc
 class RoomAppLoggerRepository(
     private val context: Context,
     private val appDatabase: AppDatabase,
-) : AppLoggerRepository {
+) : AndroidAppLoggerRepository {
     override suspend fun log(key: String) {
         Logger.d { "Logging key: $key" }
         appDatabase.appLoggerDao().insert(

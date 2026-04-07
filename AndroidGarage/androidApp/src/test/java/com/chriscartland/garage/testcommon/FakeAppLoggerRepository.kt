@@ -19,11 +19,11 @@ package com.chriscartland.garage.testcommon
 
 import android.content.Context
 import android.net.Uri
-import com.chriscartland.garage.applogger.AppLoggerRepository
+import com.chriscartland.garage.applogger.AndroidAppLoggerRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
-class FakeAppLoggerRepository : AppLoggerRepository {
+class FakeAppLoggerRepository : AndroidAppLoggerRepository {
     val loggedKeys = mutableListOf<String>()
 
     override suspend fun log(key: String) {
