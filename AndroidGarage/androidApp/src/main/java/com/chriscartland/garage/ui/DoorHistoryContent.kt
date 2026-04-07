@@ -36,11 +36,11 @@ import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.touchlab.kermit.Logger
-import com.chriscartland.garage.applogger.AppLoggerViewModel
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.LoadingResult
+import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.DoorViewModel
 import java.time.Instant
 
