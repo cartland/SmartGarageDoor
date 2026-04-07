@@ -26,4 +26,12 @@ class GarageApplication : Application() {
     val component: AppComponent by lazy {
         AppComponent::class.create(this)
     }
+
+    override fun onCreate() {
+        super.onCreate()
+        // Warm the DataStore cache so settings are available before first composition.
+        // DataStore reads are local file I/O — typically <10ms.
+        // This ensures card expand/collapse state is correct on first render.
+        component
+    }
 }
