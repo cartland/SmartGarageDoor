@@ -63,7 +63,8 @@ fun ExpandableColumnCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var expanded by remember { mutableStateOf(startExpanded) }
-    // Sync external state changes (e.g., DataStore loading the persisted value)
+    // Sync external state changes (e.g., DataStore loading the persisted value).
+    // No animation hack needed — callers don't render until the correct value loads.
     LaunchedEffect(startExpanded) {
         expanded = startExpanded
     }

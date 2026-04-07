@@ -64,6 +64,8 @@ fun LogSummaryCard(
     val appLoggerViewModel: AppLoggerViewModel = viewModel { component.appLoggerViewModel }
     val settingsViewModel: AppSettingsViewModel = viewModel { component.appSettingsViewModel }
     val startLogSummaryCardExpanded by settingsViewModel.profileLogCardExpanded.collectAsState()
+    // Don't render until DataStore loads the persisted value.
+    val expanded = startLogSummaryCardExpanded ?: return
     val initCurrent by appLoggerViewModel.initCurrentDoorCount.collectAsState()
     val initRecent by appLoggerViewModel.initRecentDoorCount.collectAsState()
     val fetchCurrent by appLoggerViewModel.userFetchCurrentDoorCount.collectAsState()
@@ -88,7 +90,7 @@ fun LogSummaryCard(
         fcmSubscribe = fcmSubscribe,
         exceededExpectedTimeWithoutFcm = exceededExpectedTimeWithoutFcm,
         timeWithoutFcmInExpectedRange = timeWithoutFcmInExpectedRange,
-        startExpanded = startLogSummaryCardExpanded,
+        startExpanded = expanded,
         onExpandedChange = {
             settingsViewModel.setProfileLogCardExpanded(it)
         },

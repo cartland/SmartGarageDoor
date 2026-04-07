@@ -27,9 +27,15 @@ import kotlinx.coroutines.launch
 
 interface AppSettingsViewModel {
     val fcmDoorTopic: StateFlow<String>
-    val profileUserCardExpanded: StateFlow<Boolean>
-    val profileLogCardExpanded: StateFlow<Boolean>
-    val profileAppCardExpanded: StateFlow<Boolean>
+
+    /** Null until DataStore loads — callers should skip rendering until non-null. */
+    val profileUserCardExpanded: StateFlow<Boolean?>
+
+    /** Null until DataStore loads — callers should skip rendering until non-null. */
+    val profileLogCardExpanded: StateFlow<Boolean?>
+
+    /** Null until DataStore loads — callers should skip rendering until non-null. */
+    val profileAppCardExpanded: StateFlow<Boolean?>
 
     fun setFcmDoorTopic(topic: String)
 
@@ -47,14 +53,14 @@ class DefaultAppSettingsViewModel(
     override val fcmDoorTopic: StateFlow<String> = settings.fcmDoorTopic.flow
         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
 
-    override val profileUserCardExpanded: StateFlow<Boolean> = settings.profileUserCardExpanded.flow
-        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    override val profileUserCardExpanded: StateFlow<Boolean?> = settings.profileUserCardExpanded.flow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    override val profileLogCardExpanded: StateFlow<Boolean> = settings.profileLogCardExpanded.flow
-        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    override val profileLogCardExpanded: StateFlow<Boolean?> = settings.profileLogCardExpanded.flow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    override val profileAppCardExpanded: StateFlow<Boolean> = settings.profileAppCardExpanded.flow
-        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    override val profileAppCardExpanded: StateFlow<Boolean?> = settings.profileAppCardExpanded.flow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     override fun setFcmDoorTopic(topic: String) {
         viewModelScope.launch { settings.fcmDoorTopic.set(topic) }

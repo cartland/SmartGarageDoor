@@ -51,12 +51,14 @@ fun UserInfoCard(
     val component = rememberAppComponent()
     val settingsViewModel: AppSettingsViewModel = viewModel { component.appSettingsViewModel }
     val startUserCardExpanded by settingsViewModel.profileUserCardExpanded.collectAsState()
+    // Don't render until DataStore loads the persisted value.
+    val expanded = startUserCardExpanded ?: return
     UserInfoCard(
         user = user,
         modifier = modifier,
         signIn = signIn,
         signOut = signOut,
-        startExpanded = startUserCardExpanded,
+        startExpanded = expanded,
         onExpandedChange = {
             settingsViewModel.setProfileUserCardExpanded(it)
         },
