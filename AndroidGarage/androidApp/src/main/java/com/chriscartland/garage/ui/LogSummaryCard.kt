@@ -45,7 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.applogger.AppLoggerViewModel
 import com.chriscartland.garage.di.rememberAppComponent
-import com.chriscartland.garage.settings.AppSettingsViewModel
+import com.chriscartland.garage.usecase.AppSettingsViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

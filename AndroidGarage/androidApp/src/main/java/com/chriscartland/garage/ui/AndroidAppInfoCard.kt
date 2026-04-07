@@ -39,7 +39,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.di.rememberAppComponent
-import com.chriscartland.garage.settings.AppSettingsViewModel
+import com.chriscartland.garage.usecase.AppSettingsViewModel
 import com.chriscartland.garage.version.AppVersion
 
 const val PRIVACY_POLICY_URL: String = "https://chriscart.land/garage-privacy-policy"

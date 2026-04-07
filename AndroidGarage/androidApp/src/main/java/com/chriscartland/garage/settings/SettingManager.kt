@@ -46,17 +46,7 @@ interface SettingManager {
     ): LongSetting
 }
 
-interface Setting<T> {
-    val key: String
-
-    fun get(): T
-
-    fun set(value: T)
-
-    fun restoreDefault()
-}
-
-sealed class SettingType<T> : Setting<T> {
+sealed class SettingType<T> : com.chriscartland.garage.domain.repository.Setting<T> {
     class StringSetting(
         private val prefs: SharedPreferences,
         override val key: String,

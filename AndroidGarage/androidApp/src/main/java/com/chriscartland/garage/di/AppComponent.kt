@@ -51,7 +51,7 @@ import com.chriscartland.garage.fcm.FirebaseMessagingBridge
 import com.chriscartland.garage.internet.provideKtorHttpClient
 import com.chriscartland.garage.settings.AppSettings
 import com.chriscartland.garage.settings.DataStoreAppSettings
-import com.chriscartland.garage.settings.DefaultAppSettingsViewModel
+import com.chriscartland.garage.usecase.DefaultAppSettingsViewModel
 import com.chriscartland.garage.usecase.DefaultDoorViewModel
 import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
@@ -81,9 +81,11 @@ abstract class AppComponent(
     @get:Provides val application: Application,
 ) {
     // ViewModels
-    abstract val appSettingsViewModel: DefaultAppSettingsViewModel
     abstract val authViewModel: DefaultAuthViewModel
     abstract val appLoggerViewModel: DefaultAppLoggerViewModel
+
+    val appSettingsViewModel: DefaultAppSettingsViewModel
+        @Provides get() = DefaultAppSettingsViewModel(provideAppSettings())
 
     val doorViewModel: DefaultDoorViewModel
         @Provides get() = DefaultDoorViewModel(

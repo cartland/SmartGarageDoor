@@ -38,7 +38,7 @@ import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.User
-import com.chriscartland.garage.settings.AppSettingsViewModel
+import com.chriscartland.garage.usecase.AppSettingsViewModel
 
 @Composable
 fun UserInfoCard(

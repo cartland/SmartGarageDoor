@@ -15,12 +15,12 @@
  *
  */
 
-package com.chriscartland.garage.settings
+package com.chriscartland.garage.usecase
 
 import androidx.lifecycle.ViewModel
+import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import me.tatarka.inject.annotations.Inject
 
 interface AppSettingsViewModel {
     val fcmDoorTopic: StateFlow<String>
@@ -37,9 +37,8 @@ interface AppSettingsViewModel {
     fun setProfileAppCardExpanded(expanded: Boolean)
 }
 
-@Inject
 class DefaultAppSettingsViewModel(
-    private val settings: AppSettings,
+    private val settings: AppSettingsRepository,
 ) : ViewModel(),
     AppSettingsViewModel {
     private val _fcmDoorTopic = MutableStateFlow(settings.fcmDoorTopic.get())
