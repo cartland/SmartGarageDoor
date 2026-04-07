@@ -163,11 +163,12 @@ Use `./scripts/release-android.sh` — never create or push tags directly (hooks
 ./scripts/release-android.sh --check      # Print latest + next tag
 ./scripts/release-android.sh --confirm-tag android/N  # Non-interactive
 ./scripts/release-android.sh --confirm-tag android/N --confirm-hash android/M  # Rollback to old tag
-./scripts/release-android.sh --confirm-tag android/N --skip-validation  # Skip validation gate
 ./scripts/release-android.sh --dry-run    # Preview without releasing
 ```
 
 The script computes the next tag as `android/<highest + 1>`. The `--confirm-tag` flag is a safety check — it must match the computed tag, it cannot override it. Deploys to Play Store internal track only — never production.
+
+**Validation is required by default.** Run `./scripts/validate.sh` before releasing. If validation hasn't passed on the commit, the release script will block. `--skip-validation` exists for emergencies (e.g., rollbacks to old tags) but should NOT be used routinely. Always ask the user before using `--skip-validation`.
 
 ### Releasing Firebase Server
 Use `./scripts/release-firebase.sh` — same pattern as Android releases.

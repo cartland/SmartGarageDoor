@@ -16,35 +16,40 @@ git checkout main && git pull
 git status  # Must be clean
 ```
 
-Verify CI is green on latest main:
+### 2. Run validation
+
+**Always run validation before releasing.** Do not skip this step.
+
 ```bash
-gh run list --branch main --limit 1 --json conclusion,headSha --jq '.[0]'
+./scripts/validate.sh
 ```
 
-### 2. Check release state
+If validation fails, fix the issue before releasing. Do NOT use `--skip-validation` unless the user explicitly confirms they want to release without validation (e.g., emergency rollback).
+
+### 3. Check release state
 
 ```bash
 scripts/release-android.sh --check
 ```
 
-This prints the latest tag and the computed next tag (`android/<N+1>`).
+This prints the latest tag and the computed next tag (`android/<N+1>`). Verify validation shows "passed".
 
-### 3. Cut the release
+### 4. Cut the release
 
 ```bash
 scripts/release-android.sh --confirm-tag android/N
 ```
 
-Where `N` is the next tag number from step 2. The `--confirm-tag` is a safety check — it must match the computed tag exactly (cannot override).
+Where `N` is the next tag number from step 3. The `--confirm-tag` is a safety check — it must match the computed tag exactly (cannot override).
 
 The script will:
 - Verify clean git state
 - Verify on main branch
-- Verify CI passed on HEAD
+- Verify validate.sh passed on HEAD
 - Create and push the tag
 - The tag triggers `.github/workflows/release-android.yml`
 
-### 4. Verify deployment
+### 5. Verify deployment
 
 Watch the release workflow:
 ```bash
@@ -57,4 +62,5 @@ gh run watch <run-id>
 - **Never push tags directly** — hooks block `git tag` (except `git tag -l`). Only the release script can create tags.
 - **Never deploy to production** — internal track only.
 - **Tag version = versionCode** — `android/120` → `versionCode=120`.
-- **Don't skip CI** — the script verifies CI passed before tagging.
+- **Always validate first** — run `./scripts/validate.sh` before every release.
+- **Never use `--skip-validation` without asking the user.** It exists for emergencies only (rollbacks, hotfixes). If validation hasn't passed, tell the user and ask whether to run validation or skip it.

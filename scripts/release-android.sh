@@ -242,8 +242,12 @@ if [ -n "$CONFIRM_HASH" ]; then
 fi
 
 # === Gate 3: Must have passed validate.sh — override with --skip-validation ===
+# --skip-validation is for emergencies only (e.g., rollbacks to old tags).
+# Normal releases should ALWAYS pass validate.sh first.
 if [ "$SKIP_VALIDATION" = true ]; then
-    echo -e "${YELLOW}Warning: Validation check skipped (--skip-validation).${RESET}"
+    echo -e "${RED}WARNING: Validation check skipped (--skip-validation).${RESET}"
+    echo "  This should only be used for emergencies (rollbacks, hotfixes)."
+    echo "  Normal releases should always run ./scripts/validate.sh first."
     echo ""
 elif check_validation; then
     echo -e "${GREEN}Validation passed for this commit.${RESET}"
