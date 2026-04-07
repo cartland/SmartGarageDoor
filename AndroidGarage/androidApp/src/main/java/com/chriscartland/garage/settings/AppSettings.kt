@@ -24,6 +24,7 @@ import com.chriscartland.garage.settings.SettingType.LongSetting
 import com.chriscartland.garage.settings.SettingType.StringSetting
 
 interface AppSettings :
+    com.chriscartland.garage.domain.repository.AppSettingsRepository,
     SettingContract,
     SettingManager
 
