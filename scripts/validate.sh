@@ -23,7 +23,7 @@ step "Spotless (formatting — all modules)"
 $GRADLE spotlessCheck && pass "spotlessCheck" || fail "spotlessCheck"
 
 step "Import boundary check (shared modules)"
-$GRADLE :domain:checkImportBoundary :data:checkImportBoundary :usecase:checkImportBoundary :presentation-model:checkImportBoundary && pass "import boundaries" || fail "import boundaries"
+$GRADLE :domain:checkImportBoundary :data:checkImportBoundary :data-local:checkImportBoundary :usecase:checkImportBoundary :presentation-model:checkImportBoundary && pass "import boundaries" || fail "import boundaries"
 
 step "No fully qualified names in code"
 $GRADLE checkNoFullyQualifiedNames && pass "no FQNs" || fail "no FQNs"
