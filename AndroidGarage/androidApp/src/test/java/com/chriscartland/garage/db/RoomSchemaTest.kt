@@ -63,7 +63,7 @@ class RoomSchemaTest {
         val affinity: String,
     )
 
-    private val schemaDir = File("schemas/com.chriscartland.garage.db.AppDatabase")
+    private val schemaDir = File("../data-local/schemas/com.chriscartland.garage.datalocal.AppDatabase")
 
     private val json = Json { ignoreUnknownKeys = true }
 

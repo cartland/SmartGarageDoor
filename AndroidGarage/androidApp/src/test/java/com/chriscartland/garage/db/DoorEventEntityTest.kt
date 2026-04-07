@@ -17,6 +17,9 @@
 
 package com.chriscartland.garage.db
 
+import com.chriscartland.garage.datalocal.DoorEventEntity
+import com.chriscartland.garage.datalocal.toDomain
+import com.chriscartland.garage.datalocal.toEntity
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import org.junit.Assert.assertEquals

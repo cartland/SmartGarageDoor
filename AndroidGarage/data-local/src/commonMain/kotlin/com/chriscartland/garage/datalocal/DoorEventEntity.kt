@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.db
+package com.chriscartland.garage.datalocal
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -28,7 +28,7 @@ import com.chriscartland.garage.domain.model.DoorPosition
  * This is the persistence representation of [DoorEvent].
  * Use [toDomain] and [DoorEvent.toEntity] to convert between them.
  *
- * The table name "doorEvent" matches the previous @Entity class name
+ * The table name "DoorEvent" matches the previous @Entity class name
  * to avoid a Room schema migration.
  */
 @Entity(tableName = "DoorEvent")

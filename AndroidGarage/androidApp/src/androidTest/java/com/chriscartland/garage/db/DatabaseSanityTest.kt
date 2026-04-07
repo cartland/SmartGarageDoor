@@ -20,7 +20,9 @@ package com.chriscartland.garage.db
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.chriscartland.garage.applogger.model.AppEvent
+import com.chriscartland.garage.datalocal.AppDatabase
+import com.chriscartland.garage.datalocal.AppEvent
+import com.chriscartland.garage.datalocal.DoorEventEntity
 import com.chriscartland.garage.domain.model.DoorPosition
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Chris Cartland. All rights reserved.
+ * Copyright 2021 Chris Cartland. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,26 +15,35 @@
  *
  */
 
-package com.chriscartland.garage.applogger
+package com.chriscartland.garage.datalocal
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.chriscartland.garage.applogger.model.AppEvent
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface AppLoggerDao {
+interface DoorEventDao {
+    @Query("SELECT * FROM DoorEvent ORDER BY lastChangeTimeSeconds DESC LIMIT 1")
+    fun currentDoorEvent(): Flow<DoorEventEntity?>
+
+    @Query("SELECT * FROM DoorEvent ORDER BY lastChangeTimeSeconds DESC")
+    fun recentDoorEvents(): Flow<List<DoorEventEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(appEvent: AppEvent)
+    fun insert(doorEvent: DoorEventEntity)
 
-    @Query("SELECT * FROM appEvent ORDER BY timestamp ASC")
-    fun getAll(): Flow<List<AppEvent>>
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertList(doorEvents: List<DoorEventEntity>)
 
-    @Query("SELECT count(*) from appEvent WHERE eventKey = :key")
-    fun countKey(key: String): Flow<Long>
+    @Transaction
+    fun replaceAll(doorEvents: List<DoorEventEntity>) {
+        deleteAll()
+        insertList(doorEvents)
+    }
 
-    @Query("DELETE FROM doorEvent")
+    @Query("DELETE FROM DoorEvent")
     fun deleteAll()
 }
