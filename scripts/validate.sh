@@ -31,6 +31,9 @@ $GRADLE checkNoFullyQualifiedNames && pass "no FQNs" || fail "no FQNs"
 step "No Navigation 2 imports (use Nav3)"
 $GRADLE checkNoNav2Imports && pass "no Nav2" || fail "no Nav2"
 
+step "RememberSaveable guard (no unsaved custom types)"
+$GRADLE checkRememberSaveable && pass "rememberSaveable guard" || fail "rememberSaveable guard"
+
 step "Architecture (module dependency graph)"
 $GRADLE checkArchitecture && pass "architecture" || fail "architecture"
 
