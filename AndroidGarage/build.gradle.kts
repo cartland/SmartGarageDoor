@@ -93,6 +93,12 @@ tasks.register<architecture.LayerImportCheckTask>("checkLayerImports") {
     )
 }
 
+tasks.register<codestyle.RememberSaveableGuardTask>("checkRememberSaveable") {
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+    )
+}
+
 tasks.register<testcoverage.TestCoverageCheckTask>("checkTestCoverage") {
     sourceDir = "$rootDir/androidApp/src/main/java/com/chriscartland/garage"
     testDir = "$rootDir/androidApp/src/test/java/com/chriscartland/garage"
