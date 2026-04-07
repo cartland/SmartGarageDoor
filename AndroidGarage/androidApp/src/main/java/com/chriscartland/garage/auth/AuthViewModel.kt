@@ -17,159 +17,47 @@
 
 package com.chriscartland.garage.auth
 
-import android.app.Activity
-import android.content.Context
-import android.content.Intent
-import android.content.IntentSender
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
-import com.chriscartland.garage.BuildConfig
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.AuthRepository
-import com.google.android.gms.auth.api.identity.BeginSignInRequest
-import com.google.android.gms.auth.api.identity.Identity
-import com.google.android.gms.auth.api.identity.SignInClient
-import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.common.api.CommonStatusCodes
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Inject
 
 interface AuthViewModel {
     val authState: StateFlow<AuthState>
-    val authRepository: AuthRepository
 
-    fun signInWithGoogle(activity: Activity)
+    fun signInWithGoogle(idToken: GoogleIdToken)
 
     fun signOut()
-
-    fun processGoogleSignInResult(data: Intent)
 }
 
 @Inject
 class DefaultAuthViewModel(
-    private val _authRepository: AuthRepository,
+    private val authRepository: AuthRepository,
     private val appLoggerRepository: AppLoggerRepository,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel(),
     AuthViewModel {
-    override val authRepository: AuthRepository = _authRepository
+    override val authState: StateFlow<AuthState> = authRepository.authState
 
-    override val authState: StateFlow<AuthState> = _authRepository.authState
-
-    override fun signInWithGoogle(activity: Activity) {
+    override fun signInWithGoogle(idToken: GoogleIdToken) {
         viewModelScope.launch(dispatchers.io) {
             appLoggerRepository.log(AppLoggerKeys.BEGIN_GOOGLE_SIGN_IN)
-            checkSignInConfiguration()
-            Logger.d { "beginSignIn" }
-            // Dialog Sign-In configuration.
-            val dialogSignInRequest = BeginSignInRequest
-                .builder()
-                .setGoogleIdTokenRequestOptions(
-                    BeginSignInRequest.GoogleIdTokenRequestOptions
-                        .builder()
-                        .setSupported(true)
-                        .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
-                        .setFilterByAuthorizedAccounts(false)
-                        .build(),
-                ).setAutoSelectEnabled(false) // Let user choose the account.
-                .build()
-            createSignInClient(activity)
-                .beginSignIn(dialogSignInRequest)
-                .addOnSuccessListener(activity) { result ->
-                    try {
-                        activity.startIntentSenderForResult(
-                            result.pendingIntent.intentSender,
-                            RC_ONE_TAP_SIGN_IN,
-                            null,
-                            0,
-                            0,
-                            0,
-                            null,
-                        )
-                    } catch (e: IntentSender.SendIntentException) {
-                        Logger.e { "Couldn't start One Tap UI: ${e.localizedMessage}" }
-                    }
-                }.addOnFailureListener(activity) { e ->
-                    // No saved credentials found. Launch the One Tap sign-up flow, or
-                    // do nothing and continue presenting the signed-out UI.
-                    Logger.d { e.localizedMessage ?: "" }
-                }
+            Logger.d { "signInWithGoogle" }
+            authRepository.signInWithGoogle(idToken)
         }
     }
 
     override fun signOut() {
         viewModelScope.launch(dispatchers.io) {
-            _authRepository.signOut()
-        }
-    }
-
-    override fun processGoogleSignInResult(data: Intent) {
-        viewModelScope.launch(dispatchers.io) {
-            val googleIdToken = googleIdTokenFromIntent(data)
-            if (googleIdToken == null) {
-                Logger.e { "Google sign-in failed" }
-                return@launch
-            }
-            _authRepository.signInWithGoogle(googleIdToken)
-        }
-    }
-
-    /**
-     * Extract the Google ID Token from the Intent.
-     */
-    private fun googleIdTokenFromIntent(data: Intent): GoogleIdToken? {
-        Logger.d { "googleIdTokenFromIntent" }
-        val client = signInClient
-        if (client == null) {
-            Logger.e { "Cannot sign in without a Google client" }
-            return null
-        }
-        try {
-            val credential = client.getSignInCredentialFromIntent(data)
-            return credential.googleIdToken?.let { GoogleIdToken(it) }
-        } catch (e: ApiException) {
-            Logger.e { "ApiException: handleOneTapSignIn ${e.message}" }
-            when (e.statusCode) {
-                CommonStatusCodes.CANCELED -> {
-                    Logger.d { "One-tap dialog was closed." }
-                }
-                CommonStatusCodes.NETWORK_ERROR -> {
-                    Logger.d { "One-tap encountered a network error." }
-                }
-                else -> {
-                    Logger.d { "Couldn't get credential from result. ApiException.statusCode: ${e.statusCode} (${e.localizedMessage})" }
-                }
-            }
-        }
-        return null
-    }
-
-    private var signInClient: SignInClient? = null
-
-    // Google API for identity.
-    private fun createSignInClient(context: Context) = Identity.getSignInClient(context).also { signInClient = it }
-
-    /**
-     * Check to make sure we've updated the client ID.
-     */
-    private val incorrectWebClientId =
-        "123456789012-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz.apps.googleusercontent.com"
-
-    /**
-     * Log a warning if the sign-in configuration is not correct.
-     */
-    private fun checkSignInConfiguration() {
-        val googleClientIdForWeb = BuildConfig.GOOGLE_WEB_CLIENT_ID
-        if (googleClientIdForWeb == incorrectWebClientId) {
-            Logger.e {
-                "The web client ID matches the INCORRECT_WEB_CLIENT_ID. One Tap Sign-In with Google will not work. Update the web client ID to be used with setServerClientId(). https://developers.google.com/identity/one-tap/android/get-saved-credentials Create a web client ID in this Google Cloud Console https://console.cloud.google.com/apis/credentials"
-            }
+            authRepository.signOut()
         }
     }
 }

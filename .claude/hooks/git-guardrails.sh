@@ -21,6 +21,11 @@ deny() {
 # Strip heredoc bodies and quoted strings to avoid false positives on PR body text.
 STRIPPED=$(echo "$COMMAND" | sed '/<<.*EOF/,/^EOF/d' | sed -E "s/'[^']*'//g; s/\"[^\"]*\"//g")
 
+# --- Block absolute paths to gradlew (use repo-relative paths) ---
+if echo "$STRIPPED" | grep -qE '(^|[;&|]\s*)/[^ ]*gradlew\b'; then
+  deny "BLOCKED: Use repo-relative path to gradlew (e.g., AndroidGarage/gradlew -p AndroidGarage), not an absolute path."
+fi
+
 # --- Block cd (run everything from repo root) ---
 # Match cd as a command (start of line, or after && || ; |), not as part of a word like "block-cd"
 if echo "$STRIPPED" | grep -qE '(^|[;&|]\s*)cd\s'; then
