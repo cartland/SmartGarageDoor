@@ -17,27 +17,33 @@
 
 package com.chriscartland.garage.data.repository
 
+import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.PushStatus
+import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
-import com.chriscartland.garage.testcommon.FakeServerConfigRepository
+import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+/**
+ * Tests use real [CachedServerConfigRepository] with [FakeNetworkConfigDataSource],
+ * exercising the actual caching and null-handling logic in the repository.
+ */
 class RemoteButtonRepositoryTest {
     private lateinit var networkButtonDataSource: FakeNetworkButtonDataSource
-    private lateinit var serverConfigRepository: FakeServerConfigRepository
+    private lateinit var networkConfigDataSource: FakeNetworkConfigDataSource
     private lateinit var repo: NetworkRemoteButtonRepository
 
     @BeforeTest
     fun setup() {
         networkButtonDataSource = FakeNetworkButtonDataSource()
-        serverConfigRepository = FakeServerConfigRepository()
+        networkConfigDataSource = FakeNetworkConfigDataSource()
         repo = NetworkRemoteButtonRepository(
             networkButtonDataSource,
-            serverConfigRepository,
+            CachedServerConfigRepository(networkConfigDataSource, "test-key"),
             remoteButtonPushEnabled = true,
         )
     }
@@ -48,26 +54,36 @@ class RemoteButtonRepositoryTest {
     }
 
     @Test
-    fun pushResetsToIdleWhenServerConfigIsNull() =
+    fun pushResetsToIdleWhenServerConfigFetchFails() =
         runTest {
-            serverConfigRepository.serverConfig = null
+            networkConfigDataSource.serverConfigResult = NetworkResult.ConnectionFailed
             repo.pushButton("token", "ack-token")
             assertEquals(PushStatus.IDLE, repo.pushButtonStatus.value)
+        }
+
+    @Test
+    fun pushSendsWhenServerConfigAvailable() =
+        runTest {
+            networkConfigDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+            )
+            repo.pushButton("token", "ack-token")
+            assertEquals(1, networkButtonDataSource.pushCount)
         }
 }
 
 class SnoozeRepositoryTest {
     private lateinit var networkButtonDataSource: FakeNetworkButtonDataSource
-    private lateinit var serverConfigRepository: FakeServerConfigRepository
+    private lateinit var networkConfigDataSource: FakeNetworkConfigDataSource
     private lateinit var repo: NetworkSnoozeRepository
 
     @BeforeTest
     fun setup() {
         networkButtonDataSource = FakeNetworkButtonDataSource()
-        serverConfigRepository = FakeServerConfigRepository()
+        networkConfigDataSource = FakeNetworkConfigDataSource()
         repo = NetworkSnoozeRepository(
             networkButtonDataSource,
-            serverConfigRepository,
+            CachedServerConfigRepository(networkConfigDataSource, "test-key"),
             snoozeNotificationsOption = true,
         )
     }
@@ -83,9 +99,9 @@ class SnoozeRepositoryTest {
     }
 
     @Test
-    fun snoozeResetsToIdleWhenServerConfigIsNull() =
+    fun snoozeResetsToIdleWhenServerConfigFetchFails() =
         runTest {
-            serverConfigRepository.serverConfig = null
+            networkConfigDataSource.serverConfigResult = NetworkResult.ConnectionFailed
             repo.snoozeNotifications(
                 snoozeDurationHours = "1h",
                 idToken = "token",
