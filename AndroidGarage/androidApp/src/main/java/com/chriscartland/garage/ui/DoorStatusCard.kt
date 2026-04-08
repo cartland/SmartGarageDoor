@@ -220,7 +220,7 @@ fun RecentDoorEventListItem(
                 FadedGarageIcon(
                     doorPosition = doorPosition,
                     modifier = Modifier
-                        .height(96.dp),
+                        .height(56.dp),
                     static = true,
                     color = doorColor,
                 )

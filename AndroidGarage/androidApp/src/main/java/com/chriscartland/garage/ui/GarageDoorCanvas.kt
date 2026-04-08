@@ -46,6 +46,7 @@ private const val FRAME_BOTTOM = 290f
 private const val INTERIOR_TOP = FRAME_INSET + FRAME_STROKE_WIDTH / 2f // 16
 
 // Door panel layout — 4 panels, evenly spaced (gap = pad = 6, radius = gap/2).
+private const val PANEL_GAP = 6f
 private const val PANEL_X = 20f
 private const val PANEL_WIDTH = 260f
 private const val PANEL_HEIGHT = 61f
@@ -107,8 +108,9 @@ private fun DrawScope.drawGarageDoor(
         endY = offsetY + drawSize,
     )
 
-    // Clip door panels to the interior of the frame so they don't draw outside.
-    val clipInset = FRAME_INSET + FRAME_STROKE_WIDTH / 2f
+    // Clip panels inside the frame with a gap matching the panel spacing.
+    // This creates a reliable visual separator between panels and frame.
+    val clipInset = FRAME_INSET + FRAME_STROKE_WIDTH / 2f + PANEL_GAP
 
     clipRect(
         left = x(clipInset),
