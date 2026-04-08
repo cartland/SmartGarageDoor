@@ -23,10 +23,10 @@ import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.LoadingResult
-import com.chriscartland.garage.usecase.testfakes.FakeAppLoggerRepository
-import com.chriscartland.garage.usecase.testfakes.FakeDoorFcmRepository
-import com.chriscartland.garage.usecase.testfakes.FakeDoorRepository
-import com.chriscartland.garage.usecase.testfakes.TestDispatcherProvider
+import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
+import com.chriscartland.garage.testcommon.FakeDoorFcmRepository
+import com.chriscartland.garage.testcommon.FakeDoorRepository
+import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher

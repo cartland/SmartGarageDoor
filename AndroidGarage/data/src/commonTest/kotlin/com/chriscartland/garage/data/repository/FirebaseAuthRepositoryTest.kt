@@ -18,11 +18,11 @@
 package com.chriscartland.garage.data.repository
 
 import com.chriscartland.garage.data.AuthUserInfo
-import com.chriscartland.garage.data.testfakes.FakeAppLoggerRepository
-import com.chriscartland.garage.data.testfakes.FakeAuthBridge
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.GoogleIdToken
+import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
+import com.chriscartland.garage.testcommon.FakeAuthBridge
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.data.testfakes
+package com.chriscartland.garage.testcommon
 
 import com.chriscartland.garage.data.LocalDoorDataSource
 import com.chriscartland.garage.domain.model.DoorEvent

@@ -23,11 +23,11 @@ import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.RequestStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
-import com.chriscartland.garage.usecase.testfakes.FakeAuthRepository
-import com.chriscartland.garage.usecase.testfakes.FakeDoorRepository
-import com.chriscartland.garage.usecase.testfakes.FakeRemoteButtonRepository
-import com.chriscartland.garage.usecase.testfakes.FakeSnoozeRepository
-import com.chriscartland.garage.usecase.testfakes.TestDispatcherProvider
+import com.chriscartland.garage.testcommon.FakeAuthRepository
+import com.chriscartland.garage.testcommon.FakeDoorRepository
+import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
+import com.chriscartland.garage.testcommon.FakeSnoozeRepository
+import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher

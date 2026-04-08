@@ -24,8 +24,8 @@ import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.User
-import com.chriscartland.garage.usecase.testfakes.FakeAuthRepository
-import com.chriscartland.garage.usecase.testfakes.FakeRemoteButtonRepository
+import com.chriscartland.garage.testcommon.FakeAuthRepository
+import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test

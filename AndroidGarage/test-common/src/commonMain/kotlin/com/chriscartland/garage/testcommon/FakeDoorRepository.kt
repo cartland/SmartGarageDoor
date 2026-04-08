@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.usecase.testfakes
+package com.chriscartland.garage.testcommon
 
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent

@@ -18,8 +18,8 @@
 package com.chriscartland.garage.data.repository
 
 import com.chriscartland.garage.data.NetworkResult
-import com.chriscartland.garage.data.testfakes.FakeNetworkConfigDataSource
 import com.chriscartland.garage.domain.model.ServerConfig
+import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test

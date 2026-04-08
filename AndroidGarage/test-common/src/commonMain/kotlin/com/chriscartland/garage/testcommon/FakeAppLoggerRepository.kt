@@ -1,4 +1,4 @@
-package com.chriscartland.garage.usecase.testfakes
+package com.chriscartland.garage.testcommon
 
 import com.chriscartland.garage.domain.model.AppLogEvent
 import com.chriscartland.garage.domain.repository.AppLoggerRepository

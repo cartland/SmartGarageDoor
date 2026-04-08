@@ -1,6 +1,6 @@
 package com.chriscartland.garage.usecase
 
-import com.chriscartland.garage.usecase.testfakes.FakeAppSettingsRepository
+import com.chriscartland.garage.testcommon.FakeAppSettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first

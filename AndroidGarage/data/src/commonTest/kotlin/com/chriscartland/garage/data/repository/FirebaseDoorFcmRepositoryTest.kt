@@ -1,11 +1,11 @@
 package com.chriscartland.garage.data.repository
 
-import com.chriscartland.garage.data.testfakes.FakeAppLoggerRepository
-import com.chriscartland.garage.data.testfakes.FakeAppSettingsRepository
-import com.chriscartland.garage.data.testfakes.FakeMessagingBridge
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorFcmTopic
+import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
+import com.chriscartland.garage.testcommon.FakeAppSettingsRepository
+import com.chriscartland.garage.testcommon.FakeMessagingBridge
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test

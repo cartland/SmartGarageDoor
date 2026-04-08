@@ -17,10 +17,10 @@
 
 package com.chriscartland.garage.data.repository
 
-import com.chriscartland.garage.data.testfakes.FakeNetworkButtonDataSource
-import com.chriscartland.garage.data.testfakes.FakeServerConfigRepository
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
+import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
+import com.chriscartland.garage.testcommon.FakeServerConfigRepository
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test

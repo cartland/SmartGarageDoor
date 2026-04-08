@@ -1,4 +1,4 @@
-package com.chriscartland.garage.data.testfakes
+package com.chriscartland.garage.testcommon
 
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.domain.repository.ServerConfigRepository

@@ -1,13 +1,6 @@
-import importboundary.ImportBoundaryCheckTask
-
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.library)
-}
-
-tasks.register<ImportBoundaryCheckTask>("checkImportBoundary") {
-    sourceDir = "$projectDir/src/commonMain/kotlin"
-    allowedPrefixes = listOf("androidx.lifecycle.")
 }
 
 kotlin {
@@ -16,20 +9,15 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":domain"))
+            implementation(project(":data"))
             implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.kermit)
-            implementation(libs.androidx.lifecycle.viewmodel)
-        }
-        commonTest.dependencies {
-            implementation(project(":test-common"))
-            implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
         }
     }
 }
 
 android {
-    namespace = "com.chriscartland.garage.usecase"
+    namespace = "com.chriscartland.garage.testcommon"
     compileSdk = 36
     defaultConfig {
         minSdk = 26

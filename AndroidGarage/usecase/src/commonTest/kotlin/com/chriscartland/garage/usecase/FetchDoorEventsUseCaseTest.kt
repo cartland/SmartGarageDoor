@@ -17,7 +17,7 @@
 
 package com.chriscartland.garage.usecase
 
-import com.chriscartland.garage.usecase.testfakes.FakeDoorRepository
+import com.chriscartland.garage.testcommon.FakeDoorRepository
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
