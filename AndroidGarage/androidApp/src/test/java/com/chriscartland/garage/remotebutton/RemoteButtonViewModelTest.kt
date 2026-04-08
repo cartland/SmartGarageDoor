@@ -24,10 +24,10 @@ import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.RequestStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
-import com.chriscartland.garage.domain.repository.AuthRepository
-import com.chriscartland.garage.domain.repository.DoorRepository
-import com.chriscartland.garage.domain.repository.RemoteButtonRepository
-import com.chriscartland.garage.domain.repository.SnoozeRepository
+import com.chriscartland.garage.testcommon.FakeAuthRepository
+import com.chriscartland.garage.testcommon.FakeDoorRepository
+import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
+import com.chriscartland.garage.testcommon.FakeSnoozeRepository
 import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
@@ -35,7 +35,6 @@ import com.chriscartland.garage.usecase.RemoteButtonStateMachine
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
@@ -45,8 +44,6 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.`when`
 
 private val TIMEOUT = RemoteButtonStateMachine.DEFAULT_TIMEOUT_MILLIS
 
@@ -54,37 +51,19 @@ private val TIMEOUT = RemoteButtonStateMachine.DEFAULT_TIMEOUT_MILLIS
 class RemoteButtonViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
 
-    private lateinit var pushStatusFlow: MutableStateFlow<PushStatus>
-    private lateinit var snoozeStatusFlow: MutableStateFlow<SnoozeRequestStatus>
-    private lateinit var snoozeEndTimeFlow: MutableStateFlow<Long>
-    private lateinit var doorPositionFlow: MutableStateFlow<DoorPosition>
-    private lateinit var doorEventFlow: MutableStateFlow<DoorEvent>
-
-    private lateinit var remoteButtonRepository: RemoteButtonRepository
-    private lateinit var snoozeRepository: SnoozeRepository
-    private lateinit var doorRepository: DoorRepository
+    private lateinit var remoteButtonRepository: FakeRemoteButtonRepository
+    private lateinit var snoozeRepository: FakeSnoozeRepository
+    private lateinit var doorRepository: FakeDoorRepository
+    private lateinit var authRepository: FakeAuthRepository
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
 
-        pushStatusFlow = MutableStateFlow(PushStatus.IDLE)
-        snoozeStatusFlow = MutableStateFlow(SnoozeRequestStatus.IDLE)
-        snoozeEndTimeFlow = MutableStateFlow(0L)
-        doorPositionFlow = MutableStateFlow(DoorPosition.CLOSED)
-        doorEventFlow = MutableStateFlow(DoorEvent(doorPosition = DoorPosition.CLOSED))
-
-        remoteButtonRepository = mock(RemoteButtonRepository::class.java)
-        `when`(remoteButtonRepository.pushButtonStatus).thenReturn(pushStatusFlow)
-
-        snoozeRepository = mock(SnoozeRepository::class.java)
-        `when`(snoozeRepository.snoozeRequestStatus).thenReturn(snoozeStatusFlow)
-        `when`(snoozeRepository.snoozeEndTimeSeconds).thenReturn(snoozeEndTimeFlow)
-
-        doorRepository = mock(DoorRepository::class.java)
-        `when`(doorRepository.currentDoorPosition).thenReturn(doorPositionFlow)
-        `when`(doorRepository.currentDoorEvent).thenReturn(doorEventFlow)
-        `when`(doorRepository.recentDoorEvents).thenReturn(MutableStateFlow(emptyList()))
+        remoteButtonRepository = FakeRemoteButtonRepository()
+        snoozeRepository = FakeSnoozeRepository()
+        doorRepository = FakeDoorRepository()
+        authRepository = FakeAuthRepository()
     }
 
     @After
@@ -92,11 +71,8 @@ class RemoteButtonViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private lateinit var authRepository: AuthRepository
-
     private fun createViewModel(authState: AuthState = AuthState.Unauthenticated): DefaultRemoteButtonViewModel {
-        authRepository = mock(AuthRepository::class.java)
-        `when`(authRepository.authState).thenReturn(MutableStateFlow(authState))
+        authRepository.setAuthState(authState)
         val ensureFreshIdToken = EnsureFreshIdTokenUseCase(authRepository)
         val vm = DefaultRemoteButtonViewModel(
             remoteButtonRepository,
@@ -127,7 +103,7 @@ class RemoteButtonViewModelTest {
         runTest {
             val viewModel = createViewModel()
 
-            pushStatusFlow.value = PushStatus.SENDING
+            remoteButtonRepository.setPushStatus(PushStatus.SENDING)
             testDispatcher.scheduler.runCurrent()
 
             assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
@@ -138,11 +114,11 @@ class RemoteButtonViewModelTest {
         runTest {
             val viewModel = createViewModel()
 
-            pushStatusFlow.value = PushStatus.SENDING
+            remoteButtonRepository.setPushStatus(PushStatus.SENDING)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
 
-            pushStatusFlow.value = PushStatus.IDLE
+            remoteButtonRepository.setPushStatus(PushStatus.IDLE)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENT, viewModel.requestStatus.value)
         }
@@ -152,11 +128,11 @@ class RemoteButtonViewModelTest {
         runTest {
             val viewModel = createViewModel()
 
-            pushStatusFlow.value = PushStatus.SENDING
+            remoteButtonRepository.setPushStatus(PushStatus.SENDING)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
 
-            doorPositionFlow.value = DoorPosition.OPENING
+            doorRepository.setCurrentDoorEvent(DoorEvent(doorPosition = DoorPosition.OPENING))
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
         }
@@ -166,14 +142,14 @@ class RemoteButtonViewModelTest {
         runTest {
             val viewModel = createViewModel()
 
-            pushStatusFlow.value = PushStatus.SENDING
+            remoteButtonRepository.setPushStatus(PushStatus.SENDING)
             testDispatcher.scheduler.runCurrent()
 
-            pushStatusFlow.value = PushStatus.IDLE
+            remoteButtonRepository.setPushStatus(PushStatus.IDLE)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENT, viewModel.requestStatus.value)
 
-            doorPositionFlow.value = DoorPosition.OPENING
+            doorRepository.setCurrentDoorEvent(DoorEvent(doorPosition = DoorPosition.OPENING))
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
         }
@@ -184,7 +160,7 @@ class RemoteButtonViewModelTest {
             val viewModel = createViewModel()
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
 
-            doorPositionFlow.value = DoorPosition.OPENING
+            doorRepository.setCurrentDoorEvent(DoorEvent(doorPosition = DoorPosition.OPENING))
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
         }
@@ -194,7 +170,7 @@ class RemoteButtonViewModelTest {
         runTest {
             val viewModel = createViewModel()
 
-            pushStatusFlow.value = PushStatus.SENDING
+            remoteButtonRepository.setPushStatus(PushStatus.SENDING)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
 
@@ -204,28 +180,28 @@ class RemoteButtonViewModelTest {
         }
 
     @Test
-    fun snoozeRequestStatusFollowsPushRepository() =
+    fun snoozeRequestStatusFollowsSnoozeRepository() =
         runTest {
             val viewModel = createViewModel()
 
-            snoozeStatusFlow.value = SnoozeRequestStatus.SENDING
+            snoozeRepository.setSnoozeStatus(SnoozeRequestStatus.SENDING)
             testDispatcher.scheduler.runCurrent()
             assertEquals(SnoozeRequestStatus.SENDING, viewModel.snoozeRequestStatus.value)
 
-            snoozeStatusFlow.value = SnoozeRequestStatus.ERROR
+            snoozeRepository.setSnoozeStatus(SnoozeRequestStatus.ERROR)
             testDispatcher.scheduler.runCurrent()
             assertEquals(SnoozeRequestStatus.ERROR, viewModel.snoozeRequestStatus.value)
 
-            snoozeStatusFlow.value = SnoozeRequestStatus.IDLE
+            snoozeRepository.setSnoozeStatus(SnoozeRequestStatus.IDLE)
             testDispatcher.scheduler.runCurrent()
             assertEquals(SnoozeRequestStatus.IDLE, viewModel.snoozeRequestStatus.value)
         }
 
     @Test
-    fun snoozeEndTimeSecondsComesFromPushRepository() {
+    fun snoozeEndTimeSecondsComesFromSnoozeRepository() {
         val viewModel = createViewModel()
 
-        snoozeEndTimeFlow.value = 12345L
+        snoozeRepository.setSnoozeEndTime(12345L)
         assertEquals(12345L, viewModel.snoozeEndTimeSeconds.value)
     }
 
@@ -247,7 +223,7 @@ class RemoteButtonViewModelTest {
             val viewModel = createViewModel()
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
 
-            pushStatusFlow.value = PushStatus.IDLE
+            remoteButtonRepository.setPushStatus(PushStatus.IDLE)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
         }
@@ -259,15 +235,15 @@ class RemoteButtonViewModelTest {
 
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
 
-            pushStatusFlow.value = PushStatus.SENDING
+            remoteButtonRepository.setPushStatus(PushStatus.SENDING)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
 
-            pushStatusFlow.value = PushStatus.IDLE
+            remoteButtonRepository.setPushStatus(PushStatus.IDLE)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENT, viewModel.requestStatus.value)
 
-            doorPositionFlow.value = DoorPosition.OPENING
+            doorRepository.setCurrentDoorEvent(DoorEvent(doorPosition = DoorPosition.OPENING))
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
         }
@@ -279,11 +255,10 @@ class RemoteButtonViewModelTest {
         runTest {
             val viewModel = createViewModel()
 
-            pushStatusFlow.value = PushStatus.SENDING
+            remoteButtonRepository.setPushStatus(PushStatus.SENDING)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
 
-            // Advance past the 10-second timeout
             advanceTimeBy(TIMEOUT + 1)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENDING_TIMEOUT, viewModel.requestStatus.value)
@@ -294,10 +269,10 @@ class RemoteButtonViewModelTest {
         runTest {
             val viewModel = createViewModel()
 
-            pushStatusFlow.value = PushStatus.SENDING
+            remoteButtonRepository.setPushStatus(PushStatus.SENDING)
             testDispatcher.scheduler.runCurrent()
 
-            pushStatusFlow.value = PushStatus.IDLE
+            remoteButtonRepository.setPushStatus(PushStatus.IDLE)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENT, viewModel.requestStatus.value)
 
@@ -311,15 +286,13 @@ class RemoteButtonViewModelTest {
         runTest {
             val viewModel = createViewModel()
 
-            pushStatusFlow.value = PushStatus.SENDING
+            remoteButtonRepository.setPushStatus(PushStatus.SENDING)
             testDispatcher.scheduler.runCurrent()
 
-            // First timeout: SENDING -> SENDING_TIMEOUT
             advanceTimeBy(TIMEOUT + 1)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENDING_TIMEOUT, viewModel.requestStatus.value)
 
-            // Second timeout: SENDING_TIMEOUT -> NONE
             advanceTimeBy(TIMEOUT + 1)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
@@ -330,17 +303,15 @@ class RemoteButtonViewModelTest {
         runTest {
             val viewModel = createViewModel()
 
-            pushStatusFlow.value = PushStatus.SENDING
+            remoteButtonRepository.setPushStatus(PushStatus.SENDING)
             testDispatcher.scheduler.runCurrent()
-            pushStatusFlow.value = PushStatus.IDLE
+            remoteButtonRepository.setPushStatus(PushStatus.IDLE)
             testDispatcher.scheduler.runCurrent()
 
-            // First timeout: SENT -> SENT_TIMEOUT
             advanceTimeBy(TIMEOUT + 1)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENT_TIMEOUT, viewModel.requestStatus.value)
 
-            // Second timeout: SENT_TIMEOUT -> NONE
             advanceTimeBy(TIMEOUT + 1)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
@@ -351,9 +322,9 @@ class RemoteButtonViewModelTest {
         runTest {
             val viewModel = createViewModel()
 
-            pushStatusFlow.value = PushStatus.SENDING
+            remoteButtonRepository.setPushStatus(PushStatus.SENDING)
             testDispatcher.scheduler.runCurrent()
-            doorPositionFlow.value = DoorPosition.OPENING
+            doorRepository.setCurrentDoorEvent(DoorEvent(doorPosition = DoorPosition.OPENING))
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
 
@@ -367,19 +338,17 @@ class RemoteButtonViewModelTest {
         runTest {
             val viewModel = createViewModel()
 
-            pushStatusFlow.value = PushStatus.SENDING
+            remoteButtonRepository.setPushStatus(PushStatus.SENDING)
             testDispatcher.scheduler.runCurrent()
 
-            // Door moves before the 10s timeout
             advanceTimeBy(TIMEOUT / 2)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
 
-            doorPositionFlow.value = DoorPosition.OPENING
+            doorRepository.setCurrentDoorEvent(DoorEvent(doorPosition = DoorPosition.OPENING))
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
 
-            // Original timeout fires but should not override RECEIVED
             advanceTimeBy(TIMEOUT / 2 + 1_000)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
@@ -392,19 +361,16 @@ class RemoteButtonViewModelTest {
         runTest {
             val viewModel = createViewModel()
 
-            pushStatusFlow.value = PushStatus.SENDING
+            remoteButtonRepository.setPushStatus(PushStatus.SENDING)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENDING, viewModel.requestStatus.value)
 
-            // Reset before timeout fires
             viewModel.resetRemoteButton()
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
 
-            // Advance past where timeout would have fired
             advanceTimeBy(TIMEOUT + TIMEOUT / 2)
             testDispatcher.scheduler.runCurrent()
-            // Should still be NONE — timeout was cancelled by reset
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
         }
 
@@ -413,20 +379,16 @@ class RemoteButtonViewModelTest {
         runTest {
             val viewModel = createViewModel()
 
-            // SENDING
-            pushStatusFlow.value = PushStatus.SENDING
+            remoteButtonRepository.setPushStatus(PushStatus.SENDING)
             testDispatcher.scheduler.runCurrent()
 
-            // Quickly transition to SENT
-            pushStatusFlow.value = PushStatus.IDLE
+            remoteButtonRepository.setPushStatus(PushStatus.IDLE)
             testDispatcher.scheduler.runCurrent()
 
-            // Quickly transition to RECEIVED
-            doorPositionFlow.value = DoorPosition.OPENING
+            doorRepository.setCurrentDoorEvent(DoorEvent(doorPosition = DoorPosition.OPENING))
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
 
-            // Only the RECEIVED timeout should be active (10s → NONE)
             advanceTimeBy(TIMEOUT + 1)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
@@ -437,24 +399,21 @@ class RemoteButtonViewModelTest {
         runTest {
             val viewModel = createViewModel()
 
-            pushStatusFlow.value = PushStatus.SENDING
+            remoteButtonRepository.setPushStatus(PushStatus.SENDING)
             testDispatcher.scheduler.runCurrent()
-            pushStatusFlow.value = PushStatus.IDLE
+            remoteButtonRepository.setPushStatus(PushStatus.IDLE)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.SENT, viewModel.requestStatus.value)
 
-            // First door change → RECEIVED
-            doorPositionFlow.value = DoorPosition.OPENING
+            doorRepository.setCurrentDoorEvent(DoorEvent(doorPosition = DoorPosition.OPENING))
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
 
-            // Second door change → still RECEIVED (not oscillating)
-            doorPositionFlow.value = DoorPosition.OPEN
+            doorRepository.setCurrentDoorEvent(DoorEvent(doorPosition = DoorPosition.OPEN))
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
 
-            // Third door change → still RECEIVED
-            doorPositionFlow.value = DoorPosition.CLOSING
+            doorRepository.setCurrentDoorEvent(DoorEvent(doorPosition = DoorPosition.CLOSING))
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.RECEIVED, viewModel.requestStatus.value)
         }

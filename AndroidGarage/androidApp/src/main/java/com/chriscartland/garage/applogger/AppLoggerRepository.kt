@@ -20,12 +20,9 @@ package com.chriscartland.garage.applogger
 import android.content.Context
 import android.net.Uri
 import co.touchlab.kermit.Logger
-import com.chriscartland.garage.datalocal.AppDatabase
-import com.chriscartland.garage.datalocal.AppEvent
+import com.chriscartland.garage.domain.model.AppLogEvent
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
-import com.chriscartland.garage.version.AppVersion
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -33,8 +30,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 /**
- * Android-specific logger that extends the shared [AppLoggerRepository][com.chriscartland.garage.domain.repository.AppLoggerRepository]
- * with Android-specific CSV export capability.
+ * Android-specific logger that extends the shared [AppLoggerRepository]
+ * with CSV export capability (requires Android Context and Uri).
  */
 interface AndroidAppLoggerRepository : AppLoggerRepository {
     suspend fun writeCsvToUri(
@@ -43,22 +40,13 @@ interface AndroidAppLoggerRepository : AppLoggerRepository {
     )
 }
 
-class RoomAppLoggerRepository(
-    private val context: Context,
-    private val appDatabase: AppDatabase,
-) : AndroidAppLoggerRepository {
-    override suspend fun log(key: String) {
-        Logger.d { "Logging key: $key" }
-        appDatabase.appLoggerDao().insert(
-            AppEvent(
-                eventKey = key,
-                appVersion = context.AppVersion().toString(),
-            ),
-        )
-    }
-
-    override fun countKey(key: String): Flow<Long> = appDatabase.appLoggerDao().countKey(key)
-
+/**
+ * Wraps the shared [AppLoggerRepository] and adds Android-specific CSV export.
+ */
+class AndroidAppLoggerRepositoryImpl(
+    private val delegate: AppLoggerRepository,
+) : AndroidAppLoggerRepository,
+    AppLoggerRepository by delegate {
     override suspend fun writeCsvToUri(
         context: Context,
         uri: Uri,
@@ -67,31 +55,21 @@ class RoomAppLoggerRepository(
             try {
                 context.contentResolver.openOutputStream(uri)?.use { outputStream ->
                     outputStream.write("Key,Time,Epoch,Version\n".toByteArray())
-                    appDatabase.appLoggerDao().getAll().firstOrNull()?.forEach {
-                        outputStream.write(
-                            (
-                                "${it.eventKey}" +
-                                    ",${it.timestamp.readableTime()}" +
-                                    ",${it.timestamp}" +
-                                    ",${it.appVersion}" +
-                                    "\n"
-                            ).toByteArray(),
-                        )
+                    delegate.getAll().firstOrNull()?.forEach {
+                        outputStream.write(it.toCsvRow().toByteArray())
                     }
                 }
-            } catch (e: Exception) {
-                // Handle exceptions (e.g., file I/O errors)
+            } catch (e: java.io.IOException) {
                 Logger.d { "Error writing to file: ${e.message}" }
             }
         }
     }
+}
 
-    private fun Long.readableTime(): String {
-        val instant = Instant.ofEpochMilli(this)
-        val formatter =
-            DateTimeFormatter
-                .ofPattern("yyyyMMdd.HHmmss.SSS")
-                .withZone(ZoneId.systemDefault())
-        return formatter.format(instant)
-    }
+private fun AppLogEvent.toCsvRow(): String {
+    val formatter = DateTimeFormatter
+        .ofPattern("yyyyMMdd.HHmmss.SSS")
+        .withZone(ZoneId.systemDefault())
+    val readableTime = formatter.format(Instant.ofEpochMilli(timestampMillis))
+    return "$eventKey,$readableTime,$timestampMillis,$appVersion\n"
 }
