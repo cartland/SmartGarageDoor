@@ -498,6 +498,59 @@ Moved pure math formatting to shared domain module:
 - Data tests use real repos with fake data sources (#219)
 - Deleted `AndroidAppLoggerRepository` wrapper — replaced with `exportAppLogCsvToUri()` function (#217)
 
+### Phase 40: SDK 36 + Predictive Back
+
+**Goal:** Target Android 16 (SDK 36) and add predictive back fade transitions.
+
+**Changes:**
+- Bump `targetSdk` from 35 to 36 in androidApp and macrobenchmark
+- Add `transitionSpec`, `popTransitionSpec`, `predictivePopTransitionSpec` with fade animations to NavDisplay
+- Extract `navTween()` helper for consistent animation timing (300ms, FastOutSlowIn)
+- App exit (back-to-home) uses default system predictive back animation
+
+### Phase 41: Adaptive Layout (Level 3)
+
+**Goal:** Optimize UI for tablets, foldables, and large screens (600dp+). SDK 36 ignores fixed orientation constraints on large screens, so the app must look good at any size.
+
+**Changes:**
+
+#### 41.1 WindowSizeClass Detection
+- Add `material3-window-size-class` dependency
+- Call `calculateWindowSizeClass()` in MainActivity
+- Pass size class down via CompositionLocal or parameter
+
+#### 41.2 Adaptive Navigation
+- **Compact** (< 600dp): Bottom NavigationBar (current)
+- **Medium** (600-840dp): NavigationRail on the left
+- **Expanded** (840dp+): Persistent NavigationDrawer
+
+Use `material3-adaptive-navigation-suite` (`NavigationSuiteScaffold`) to handle this automatically.
+
+#### 41.3 Home Screen Adaptive Layout
+- **Compact**: Vertical stack — door status card on top, remote button below (current)
+- **Medium/Expanded**: Side-by-side — door status on left, remote button on right
+- Remove `widthIn(max = 192.dp)` cap on remote button; use `fillMaxWidth(0.5f)` on expanded
+
+#### 41.4 History Screen Two-Column Grid
+- **Compact**: Single-column LazyColumn (current)
+- **Medium/Expanded**: Two-column LazyVerticalGrid with `GridCells.Fixed(2)`
+
+#### 41.5 Settings Screen Adaptive Width
+- **Compact**: Full-width cards (current)
+- **Expanded**: Constrain content to `maxWidth = 600.dp` centered, avoiding overly wide cards
+
+#### 41.6 Foldable Support
+- Add `material3-adaptive` dependency for `FoldingFeature` awareness
+- Avoid placing interactive elements on the fold hinge
+- Test with foldable emulator profiles
+
+**Dependencies:** `material3-window-size-class`, `material3-adaptive-navigation-suite`
+
+**Testing:**
+- Preview composables at Compact, Medium, Expanded widths
+- Screenshot tests for each size class
+- Manual testing on tablet emulator (Pixel Tablet, 10.1")
+
 ### Phase 38: iOS target (SwiftUI)
 
 **Goal:** Add iOS app consuming shared KMP modules via SwiftUI.
