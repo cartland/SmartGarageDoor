@@ -22,12 +22,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -205,20 +203,23 @@ fun RecentDoorEventListItem(
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            GarageIcon(
-                doorPosition = doorPosition,
-                modifier = Modifier
-                    .size(56.dp),
-                static = true,
-                color = doorColor,
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = doorPosition.toFriendlyName(),
-                style = MaterialTheme.typography.labelMedium,
+            Column(
                 modifier = Modifier.weight(1f),
-            )
-            Spacer(modifier = Modifier.width(4.dp))
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = doorPosition.toFriendlyName(),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                )
+                GarageIcon(
+                    doorPosition = doorPosition,
+                    modifier = Modifier.size(56.dp),
+                    static = true,
+                    color = doorColor,
+                )
+            }
 
             Column(
                 modifier = Modifier
