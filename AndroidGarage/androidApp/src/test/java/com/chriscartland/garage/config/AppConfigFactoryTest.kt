@@ -20,9 +20,10 @@ package com.chriscartland.garage.config
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class LocalConfigTest {
+class AppConfigFactoryTest {
     @Test
     fun appConfig_remoteButtonIsEnabled() {
-        assertTrue("Button should be enabled", APP_CONFIG.remoteButtonPushEnabled)
+        val config = AppConfigFactory.create()
+        assertTrue("Button should be enabled", config.remoteButtonPushEnabled)
     }
 }

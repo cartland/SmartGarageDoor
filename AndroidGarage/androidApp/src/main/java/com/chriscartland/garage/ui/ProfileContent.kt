@@ -35,7 +35,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.auth.rememberGoogleSignIn
-import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
@@ -72,6 +71,7 @@ fun ProfileContent(
             delay(Duration.ofMinutes(1).toMillis())
         }
     }
+    val appConfig = component.provideAppConfig()
     ProfileContent(
         user = when (val it = authState) {
             is AuthState.Authenticated -> it.user
@@ -86,6 +86,8 @@ fun ProfileContent(
         onSnooze = {
             buttonViewModel.snoozeOpenDoorsNotifications(it)
         },
+        showSnooze = appConfig.snoozeNotificationsOption,
+        showLogSummary = appConfig.logSummary,
     )
 }
 
@@ -99,6 +101,8 @@ fun ProfileContent(
     snoozeEndTimeSeconds: Long? = null,
     snoozeRequestStatus: SnoozeRequestStatus = SnoozeRequestStatus.IDLE,
     onSnooze: (snooze: SnoozeDurationUIOption) -> Unit = {},
+    showSnooze: Boolean = true,
+    showLogSummary: Boolean = true,
     notificationPermissionState: PermissionState = rememberNotificationPermissionState(),
 ) {
     val cardColors = CardDefaults.cardColors(
@@ -112,7 +116,7 @@ fun ProfileContent(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (APP_CONFIG.snoozeNotificationsOption && notificationPermissionState.status.isGranted) {
+        if (showSnooze && notificationPermissionState.status.isGranted) {
             item {
                 SnoozeNotificationCard(
                     snoozeText = "Snooze",
@@ -140,7 +144,7 @@ fun ProfileContent(
                 colors = cardColors,
             )
         }
-        if (APP_CONFIG.logSummary) {
+        if (showLogSummary) {
             item {
                 LogSummaryCard(
                     modifier = Modifier.fillMaxWidth(),
