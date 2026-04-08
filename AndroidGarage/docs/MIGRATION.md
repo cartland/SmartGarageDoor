@@ -469,14 +469,13 @@ Three build-time checks in validate.sh:
 - **SingletonGuardTask** — `@Singleton` required on Database/Settings/HttpClient providers
 - **LayerImportCheckTask** — ViewModels can't import DataSource/Repository impls; UseCases can't import data layer
 
-### Phase 36: Date/time formatting boundaries
+### Phase 36: Date/time formatting boundaries — COMPLETE (#214)
 
-**Goal:** Clear boundary between shared time logic and platform-specific locale formatting.
-
-**Changes:**
-- Move pure math formatting (`toFriendlyDuration`) to shared module
-- Locale-aware date/time formatting stays per-platform (Android: `java.time.DateTimeFormatter`, iOS: `DateFormatter`)
-- Optionally add `kotlinx-datetime` for shared `Instant`/`Duration` types in domain layer
+Moved pure math formatting to shared domain module:
+- `FriendlyDuration.format()` — pure `kotlin.time.Duration` formatting ("5m 30s")
+- `Staleness.isStale()` — pure `Long` timestamp comparison
+- 13 shared tests (9 FriendlyDuration + 4 Staleness)
+- Locale-aware formatting (`toFriendlyDate`, `toFriendlyTime`) stays in androidApp
 
 ### Phase 37: KMP expect/actual — PARTIALLY COMPLETE
 
@@ -488,15 +487,16 @@ Three build-time checks in validate.sh:
 - Config values: expect `AppConfig` provider, actual reads BuildConfig (Android) / Info.plist (iOS)
 - Version info: expect `AppVersion`, actual reads PackageManager (Android) / Bundle (iOS)
 
-### Phase 39: Split PushRepository + code smell audit
+### Phase 39: Code smell audit + test consolidation — COMPLETE (#203, #215-#220)
 
-**Goal:** Clean up vertical stacks that accumulated without careful layering.
-
-**Changes:**
-- Split `PushRepository` into `SnoozeRepository` (persisted state) + rethink button push abstraction
-- Rename `NetworkButtonDataSource` to match the new concepts
-- Audit all Repository and DataSource names for clarity
-- Ensure each class has a single purpose
+- Split `PushRepository` → `RemoteButtonRepository` + `SnoozeRepository` (#203)
+- Removed Mockito entirely — all tests use fakes (#215)
+- Moved AppLoggerRepository to KMP, CSV export as standalone function (#215, #217)
+- Injected AppConfig via DI, removed hardcoded URLs (#216)
+- Created `test-common` module with 14 shared fakes (#218)
+- Moved all tests next to the code they test (#218, #220)
+- Data tests use real repos with fake data sources (#219)
+- Deleted `AndroidAppLoggerRepository` wrapper — replaced with `exportAppLogCsvToUri()` function (#217)
 
 ### Phase 38: iOS target (SwiftUI)
 
