@@ -45,16 +45,16 @@ private const val FRAME_CORNER_RADIUS = 16f
 private const val FRAME_BOTTOM = 290f
 private const val INTERIOR_TOP = FRAME_INSET + FRAME_STROKE_WIDTH / 2f // 16
 
-// Door panel layout — 4 panels, evenly spaced.
+// Door panel layout — 4 panels, evenly spaced (gap = pad = 10).
 private const val PANEL_X = 20f
 private const val PANEL_WIDTH = 260f
-private const val PANEL_HEIGHT = 40f
+private const val PANEL_HEIGHT = 56f
 private const val PANEL_RADIUS = 8f
-private val PANEL_Y_STARTS = floatArrayOf(40f, 102f, 164f, 226f)
+private val PANEL_Y_STARTS = floatArrayOf(26f, 92f, 158f, 224f)
 
 // Handle on bottom panel.
 private const val HANDLE_X = 139f
-private const val HANDLE_Y = 260f
+private const val HANDLE_Y = 274f
 private const val HANDLE_W = 22f
 private const val HANDLE_H = 4f
 private const val HANDLE_RADIUS = 2f
