@@ -91,25 +91,16 @@ private fun GarageDoorWithOverlay(
     }
 
     Box(
-        modifier = modifier,
+        modifier = modifier.aspectRatio(GARAGE_DOOR_ASPECT_RATIO),
         contentAlignment = Alignment.Center,
     ) {
-        // Inner Box constrained to the door's aspect ratio so overlays
-        // scale proportionally to the door, not the parent container.
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .aspectRatio(GARAGE_DOOR_ASPECT_RATIO),
-            contentAlignment = Alignment.Center,
-        ) {
-            GarageDoorCanvas(
-                doorOffset = currentOffset,
-                modifier = Modifier.fillMaxSize(),
-                color = color,
-            )
-            if (overlay != null) {
-                overlay()
-            }
+        GarageDoorCanvas(
+            doorOffset = currentOffset,
+            modifier = Modifier.fillMaxSize(),
+            color = color,
+        )
+        if (overlay != null) {
+            overlay()
         }
     }
 }

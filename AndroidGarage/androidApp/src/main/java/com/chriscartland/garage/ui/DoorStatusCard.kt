@@ -102,7 +102,7 @@ fun DoorStatusCard(
                             style = MaterialTheme.typography.labelSmall,
                         )
                     }
-                    FadedGarageIcon(
+                    GarageIcon(
                         doorPosition = doorPosition,
                         modifier = Modifier
                             .weight(1f),
@@ -205,7 +205,7 @@ fun RecentDoorEventListItem(
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            FadedGarageIcon(
+            GarageIcon(
                 doorPosition = doorPosition,
                 modifier = Modifier
                     .size(56.dp),
