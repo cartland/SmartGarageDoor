@@ -204,7 +204,7 @@ fun RecentDoorEventListItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(96.dp)
-                .padding(16.dp),
+                .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
@@ -212,17 +212,18 @@ fun RecentDoorEventListItem(
                     .weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = doorPosition.toFriendlyName(),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.titleMedium,
-                )
                 FadedGarageIcon(
                     doorPosition = doorPosition,
                     modifier = Modifier
-                        .size(48.dp),
+                        .weight(1f),
                     static = true,
                     color = doorColor,
+                )
+                Text(
+                    text = doorPosition.toFriendlyName(),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
                 )
             }
 
