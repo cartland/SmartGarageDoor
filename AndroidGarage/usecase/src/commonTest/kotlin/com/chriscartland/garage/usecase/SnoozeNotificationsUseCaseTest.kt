@@ -25,23 +25,23 @@ import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.testcommon.FakeAuthRepository
-import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
+import com.chriscartland.garage.testcommon.FakeSnoozeRepository
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Before
-import org.junit.Test
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
-class PushRemoteButtonUseCaseTest {
-    private lateinit var useCase: PushRemoteButtonUseCase
+class SnoozeNotificationsUseCaseTest {
+    private lateinit var useCase: SnoozeNotificationsUseCase
     private lateinit var fakeAuth: FakeAuthRepository
-    private lateinit var fakePush: FakeRemoteButtonRepository
+    private lateinit var fakeSnooze: FakeSnoozeRepository
 
-    @Before
+    @BeforeTest
     fun setup() {
         fakeAuth = FakeAuthRepository()
-        fakePush = FakeRemoteButtonRepository()
-        useCase = PushRemoteButtonUseCase(EnsureFreshIdTokenUseCase(fakeAuth), fakeAuth, fakePush)
+        fakeSnooze = FakeSnoozeRepository()
+        useCase = SnoozeNotificationsUseCase(EnsureFreshIdTokenUseCase(fakeAuth), fakeAuth, fakeSnooze)
     }
 
     private fun authenticateUser(
@@ -60,65 +60,64 @@ class PushRemoteButtonUseCaseTest {
     }
 
     @Test
-    fun pushSucceedsWhenAuthenticated() =
+    fun snoozeSucceedsWhenAuthenticatedWithTimestamp() =
         runTest {
             authenticateUser()
-            val result = useCase("ack-123")
-            assertTrue("Push should succeed", result is AppResult.Success)
-            assertEquals(1, fakePush.pushCount)
+            val result = useCase("1h", 1000L)
+            assertTrue(result is AppResult.Success, "Should succeed")
+            assertEquals(1, fakeSnooze.snoozeCount)
         }
 
     @Test
-    fun pushFailsWhenUnauthenticated() =
+    fun snoozeFailsWhenUnauthenticated() =
         runTest {
             fakeAuth.setAuthState(AuthState.Unauthenticated)
-            val result = useCase("ack-123")
-            assertTrue("Should be NotAuthenticated error", result is AppResult.Error)
+            val result = useCase("1h", 1000L)
+            assertTrue(result is AppResult.Error, "Should be error")
             assertEquals(ActionError.NotAuthenticated, (result as AppResult.Error).error)
-            assertEquals(0, fakePush.pushCount)
+            assertEquals(0, fakeSnooze.snoozeCount)
         }
 
     @Test
-    fun pushFailsWhenAuthUnknown() =
+    fun snoozeFailsWhenAuthUnknown() =
         runTest {
-            val result = useCase("ack-123")
-            assertTrue("Should be NotAuthenticated error", result is AppResult.Error)
+            val result = useCase("1h", 1000L)
+            assertTrue(result is AppResult.Error, "Should be error")
             assertEquals(ActionError.NotAuthenticated, (result as AppResult.Error).error)
-            assertEquals(0, fakePush.pushCount)
+            assertEquals(0, fakeSnooze.snoozeCount)
         }
 
     @Test
-    fun pushPassesCorrectIdToken() =
-        runTest {
-            authenticateUser(token = "my-token-123")
-            useCase("ack-456")
-            assertEquals("my-token-123", fakePush.lastIdToken)
-        }
-
-    @Test
-    fun pushPassesButtonAckToken() =
+    fun snoozeFailsWhenTimestampIsNull() =
         runTest {
             authenticateUser()
-            useCase("ack-unique-789")
-            assertEquals(1, fakePush.pushCount)
+            val result = useCase("1h", null)
+            assertTrue(result is AppResult.Error, "Should be MissingData error")
+            assertEquals(ActionError.MissingData, (result as AppResult.Error).error)
+            assertEquals(0, fakeSnooze.snoozeCount)
         }
 
     @Test
-    fun pushRefreshesExpiredToken() =
+    fun snoozeDoesNotRefreshTokenWhenTimestampNull() =
         runTest {
-            authenticateUser(token = "old-token", exp = 1000L)
-            val refreshedAuth = AuthState.Authenticated(
+            authenticateUser(exp = 1000L)
+            useCase("1h", null)
+            // MissingData error returned before token refresh
+            assertEquals(0, fakeAuth.refreshCount)
+        }
+
+    @Test
+    fun snoozeRefreshesExpiredToken() =
+        runTest {
+            authenticateUser(token = "old", exp = 1000L)
+            fakeAuth.refreshResult = AuthState.Authenticated(
                 user = User(
                     name = DisplayName("Test"),
                     email = Email("test@test.com"),
-                    idToken = FirebaseIdToken(idToken = "new-token", exp = Long.MAX_VALUE),
+                    idToken = FirebaseIdToken(idToken = "fresh", exp = Long.MAX_VALUE),
                 ),
             )
-            fakeAuth.refreshResult = refreshedAuth
-
-            useCase("ack-123")
-
-            assertEquals("new-token", fakePush.lastIdToken)
+            useCase("4h", 2000L)
             assertEquals(1, fakeAuth.refreshCount)
         }
 }

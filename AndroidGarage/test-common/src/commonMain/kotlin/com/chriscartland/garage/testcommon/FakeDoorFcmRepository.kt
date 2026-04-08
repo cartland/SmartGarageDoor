@@ -25,10 +25,16 @@ class FakeDoorFcmRepository : DoorFcmRepository {
     var fetchStatusResult: DoorFcmState = DoorFcmState.Unknown
     var registerResult: DoorFcmState = DoorFcmState.NotRegistered
     var deregisterResult: DoorFcmState = DoorFcmState.NotRegistered
+    var registerCount = 0
+    var lastRegisteredTopic: DoorFcmTopic? = null
 
     override suspend fun fetchStatus(): DoorFcmState = fetchStatusResult
 
-    override suspend fun registerDoor(fcmTopic: DoorFcmTopic): DoorFcmState = registerResult
+    override suspend fun registerDoor(fcmTopic: DoorFcmTopic): DoorFcmState {
+        registerCount++
+        lastRegisteredTopic = fcmTopic
+        return registerResult
+    }
 
     override suspend fun deregisterDoor(): DoorFcmState = deregisterResult
 }

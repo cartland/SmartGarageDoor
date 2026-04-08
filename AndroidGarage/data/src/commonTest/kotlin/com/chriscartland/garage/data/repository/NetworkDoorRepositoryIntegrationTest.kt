@@ -18,14 +18,14 @@
 package com.chriscartland.garage.data.repository
 
 import com.chriscartland.garage.data.NetworkResult
-import com.chriscartland.garage.data.testfakes.FakeNetworkConfigDataSource
-import com.chriscartland.garage.data.testfakes.FakeNetworkDoorDataSource
-import com.chriscartland.garage.data.testfakes.InMemoryLocalDoorDataSource
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.ServerConfig
+import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
+import com.chriscartland.garage.testcommon.FakeNetworkDoorDataSource
+import com.chriscartland.garage.testcommon.InMemoryLocalDoorDataSource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest

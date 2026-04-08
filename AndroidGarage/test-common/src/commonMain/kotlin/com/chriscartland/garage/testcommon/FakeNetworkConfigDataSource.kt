@@ -15,16 +15,20 @@
  *
  */
 
-package com.chriscartland.garage.coroutines
+package com.chriscartland.garage.testcommon
 
-import com.chriscartland.garage.domain.coroutines.DispatcherProvider
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.test.TestDispatcher
+import com.chriscartland.garage.data.NetworkConfigDataSource
+import com.chriscartland.garage.data.NetworkResult
+import com.chriscartland.garage.domain.model.ServerConfig
 
-class TestDispatcherProvider(
-    testDispatcher: TestDispatcher,
-) : DispatcherProvider {
-    override val main: CoroutineDispatcher = testDispatcher
-    override val io: CoroutineDispatcher = testDispatcher
-    override val default: CoroutineDispatcher = testDispatcher
+class FakeNetworkConfigDataSource : NetworkConfigDataSource {
+    var serverConfigResult: NetworkResult<ServerConfig> = NetworkResult.ConnectionFailed
+
+    var fetchCount = 0
+        private set
+
+    override suspend fun fetchServerConfig(serverConfigKey: String): NetworkResult<ServerConfig> {
+        fetchCount++
+        return serverConfigResult
+    }
 }

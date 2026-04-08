@@ -15,25 +15,23 @@
  *
  */
 
-package com.chriscartland.garage.remotebutton
+package com.chriscartland.garage.data.repository
 
-import com.chriscartland.garage.data.repository.NetworkRemoteButtonRepository
-import com.chriscartland.garage.data.repository.NetworkSnoozeRepository
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.SnoozeRequestStatus
 import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
 import com.chriscartland.garage.testcommon.FakeServerConfigRepository
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Before
-import org.junit.Test
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class RemoteButtonRepositoryTest {
     private lateinit var networkButtonDataSource: FakeNetworkButtonDataSource
     private lateinit var serverConfigRepository: FakeServerConfigRepository
     private lateinit var repo: NetworkRemoteButtonRepository
 
-    @Before
+    @BeforeTest
     fun setup() {
         networkButtonDataSource = FakeNetworkButtonDataSource()
         serverConfigRepository = FakeServerConfigRepository()
@@ -63,7 +61,7 @@ class SnoozeRepositoryTest {
     private lateinit var serverConfigRepository: FakeServerConfigRepository
     private lateinit var repo: NetworkSnoozeRepository
 
-    @Before
+    @BeforeTest
     fun setup() {
         networkButtonDataSource = FakeNetworkButtonDataSource()
         serverConfigRepository = FakeServerConfigRepository()

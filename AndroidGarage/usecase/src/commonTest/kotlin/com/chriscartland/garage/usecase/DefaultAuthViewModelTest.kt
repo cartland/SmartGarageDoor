@@ -6,9 +6,9 @@ import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.User
-import com.chriscartland.garage.usecase.testfakes.FakeAppLoggerRepository
-import com.chriscartland.garage.usecase.testfakes.FakeAuthRepository
-import com.chriscartland.garage.usecase.testfakes.TestDispatcherProvider
+import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
+import com.chriscartland.garage.testcommon.FakeAuthRepository
+import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -62,6 +62,13 @@ class DefaultAuthViewModelTest {
     fun signOutUpdatesAuthState() =
         runTest(testDispatcher) {
             // First sign in
+            authRepo.signInResult = AuthState.Authenticated(
+                user = User(
+                    name = DisplayName("Test"),
+                    email = Email("test@test.com"),
+                    idToken = FirebaseIdToken("token", exp = 9999999999L),
+                ),
+            )
             viewModel.signInWithGoogle(GoogleIdToken("token"))
             advanceUntilIdle()
             assertIs<AuthState.Authenticated>(viewModel.authState.value)

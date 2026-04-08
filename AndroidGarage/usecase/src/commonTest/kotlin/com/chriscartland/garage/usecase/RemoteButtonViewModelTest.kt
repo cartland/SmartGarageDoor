@@ -15,9 +15,8 @@
  *
  */
 
-package com.chriscartland.garage.remotebutton
+package com.chriscartland.garage.usecase
 
-import com.chriscartland.garage.coroutines.TestDispatcherProvider
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
@@ -28,11 +27,7 @@ import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import com.chriscartland.garage.testcommon.FakeSnoozeRepository
-import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
-import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
-import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
-import com.chriscartland.garage.usecase.RemoteButtonStateMachine
-import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
+import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -40,10 +35,10 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Before
-import org.junit.Test
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 private val TIMEOUT = RemoteButtonStateMachine.DEFAULT_TIMEOUT_MILLIS
 
@@ -56,7 +51,7 @@ class RemoteButtonViewModelTest {
     private lateinit var doorRepository: FakeDoorRepository
     private lateinit var authRepository: FakeAuthRepository
 
-    @Before
+    @BeforeTest
     fun setup() {
         Dispatchers.setMain(testDispatcher)
 
@@ -66,7 +61,7 @@ class RemoteButtonViewModelTest {
         authRepository = FakeAuthRepository()
     }
 
-    @After
+    @AfterTest
     fun tearDown() {
         Dispatchers.resetMain()
     }

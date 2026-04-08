@@ -34,6 +34,7 @@ class FakeAuthRepository : AuthRepository {
     var refreshCount = 0
         private set
 
+    var signInResult: AuthState? = null
     var refreshResult: AuthState? = null
 
     fun setAuthState(state: AuthState) {
@@ -42,7 +43,9 @@ class FakeAuthRepository : AuthRepository {
 
     override suspend fun signInWithGoogle(idToken: GoogleIdToken): AuthState {
         signInCount++
-        return _authState.value
+        val result = signInResult ?: _authState.value
+        _authState.value = result
+        return result
     }
 
     override suspend fun refreshFirebaseAuthState(): AuthState {

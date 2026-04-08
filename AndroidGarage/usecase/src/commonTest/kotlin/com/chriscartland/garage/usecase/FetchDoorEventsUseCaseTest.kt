@@ -19,16 +19,16 @@ package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Before
-import org.junit.Test
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class FetchDoorEventsUseCaseTest {
     private lateinit var fakeDoor: FakeDoorRepository
     private lateinit var fetchCurrent: FetchCurrentDoorEventUseCase
     private lateinit var fetchRecent: FetchRecentDoorEventsUseCase
 
-    @Before
+    @BeforeTest
     fun setup() {
         fakeDoor = FakeDoorRepository()
         fetchCurrent = FetchCurrentDoorEventUseCase(fakeDoor)

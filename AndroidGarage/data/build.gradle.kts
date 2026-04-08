@@ -28,6 +28,7 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
         }
         commonTest.dependencies {
+            implementation(project(":test-common"))
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
         }
