@@ -55,13 +55,13 @@ import java.time.Duration
 val DEFAULT_GARAGE_DOOR_ANIMATION_DURATION: Duration = Duration.ofSeconds(12)
 
 // Door offset positions as proportion of viewport height (300×300 square).
-// Negative = door slides up (opening). Panels start at y=40..266.
-// To fully clear the frame top (y=16): offset ≈ -0.84.
+// Negative = door slides up (opening). Panels at y=[22, 89, 156, 223], height 61.
+// At -0.70, only panel 4 is partially visible (top at y=13).
 const val CLOSED_POSITION = 0.0f
-const val CLOSING_STATIC_POSITION = -0.15f
-const val MIDWAY_POSITION = -0.38f
-const val OPENING_STATIC_POSITION = -0.45f
-const val OPEN_POSITION = -0.50f
+const val CLOSING_STATIC_POSITION = -0.20f
+const val MIDWAY_POSITION = -0.35f
+const val OPENING_STATIC_POSITION = -0.60f
+const val OPEN_POSITION = -0.70f
 
 @Composable
 private fun GarageDoorWithOverlay(
