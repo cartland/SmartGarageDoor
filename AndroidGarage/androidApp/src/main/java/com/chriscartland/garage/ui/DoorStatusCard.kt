@@ -207,43 +207,23 @@ fun RecentDoorEventListItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            FadedGarageIcon(
-                doorPosition = doorPosition,
-                modifier = Modifier
-                    .size(48.dp),
-                static = true,
-                color = doorColor,
-            )
             Column(
                 modifier = Modifier
                     .weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
                     text = doorPosition.toFriendlyName(),
+                    textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.titleMedium,
                 )
-                when (doorPosition) {
-                    in listOf(
-                        DoorPosition.UNKNOWN,
-                        DoorPosition.OPENING_TOO_LONG,
-                        DoorPosition.OPEN_MISALIGNED,
-                        DoorPosition.CLOSING_TOO_LONG,
-                        DoorPosition.ERROR_SENSOR_CONFLICT,
-                    ),
-                    -> doorEvent.message?.let { msg ->
-                        if (msg.isNotBlank()) {
-                            Text(
-                                text = msg,
-                                textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                        }
-                    }
-
-                    else -> {
-                        // Nothing
-                    }
-                }
+                FadedGarageIcon(
+                    doorPosition = doorPosition,
+                    modifier = Modifier
+                        .size(48.dp),
+                    static = true,
+                    color = doorColor,
+                )
             }
 
             Spacer(modifier = Modifier.width(16.dp))
