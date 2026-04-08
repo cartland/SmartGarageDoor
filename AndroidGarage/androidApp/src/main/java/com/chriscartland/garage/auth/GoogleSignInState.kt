@@ -19,6 +19,7 @@ package com.chriscartland.garage.auth
 
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
@@ -75,7 +76,7 @@ fun rememberGoogleSignIn(onTokenReceived: (GoogleIdToken) -> Unit): GoogleSignIn
  */
 class GoogleSignInState internal constructor(
     private val signInClient: SignInClient,
-    private val launcher: androidx.activity.result.ActivityResultLauncher<IntentSenderRequest>,
+    private val launcher: ActivityResultLauncher<IntentSenderRequest>,
 ) {
     fun launchSignIn() {
         checkSignInConfiguration()

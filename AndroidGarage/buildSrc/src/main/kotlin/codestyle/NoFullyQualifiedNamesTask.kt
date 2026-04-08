@@ -31,11 +31,8 @@ abstract class NoFullyQualifiedNamesTask : DefaultTask() {
         "kotlinx.coroutines.",
         "kotlinx.serialization.",
         "kotlin.time.",
-        // AndroidX
-        "androidx.lifecycle.",
-        "androidx.compose.",
-        "androidx.navigation.",
-        "androidx.room.",
+        // AndroidX (covers all androidx.* packages)
+        "androidx.",
         // Ktor
         "io.ktor.",
         // Firebase
