@@ -22,17 +22,17 @@ import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.User
-import com.chriscartland.garage.testcommon.FakeAuthRepository
+import com.chriscartland.garage.usecase.testfakes.FakeAuthRepository
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Before
-import org.junit.Test
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class EnsureFreshIdTokenUseCaseTest {
     private lateinit var useCase: EnsureFreshIdTokenUseCase
     private lateinit var fakeAuth: FakeAuthRepository
 
-    @Before
+    @BeforeTest
     fun setup() {
         fakeAuth = FakeAuthRepository()
         useCase = EnsureFreshIdTokenUseCase(fakeAuth)
@@ -114,7 +114,7 @@ class EnsureFreshIdTokenUseCaseTest {
     fun doesNotRefreshWhenTokenHasLargeMargin() =
         runTest {
             val auth = makeAuth(token = "cached-token", exp = Long.MAX_VALUE)
-            val result = useCase(auth, currentTimeMillis = System.currentTimeMillis())
+            val result = useCase(auth, currentTimeMillis = 1000L)
 
             assertEquals("cached-token", result.asString())
             assertEquals(0, fakeAuth.refreshCount)

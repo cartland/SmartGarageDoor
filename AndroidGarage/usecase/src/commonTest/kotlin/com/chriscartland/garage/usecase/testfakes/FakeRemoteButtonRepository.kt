@@ -1,4 +1,4 @@
-package com.chriscartland.garage.testcommon
+package com.chriscartland.garage.usecase.testfakes
 
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.repository.RemoteButtonRepository

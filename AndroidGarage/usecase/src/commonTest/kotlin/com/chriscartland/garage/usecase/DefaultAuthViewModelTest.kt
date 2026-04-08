@@ -62,6 +62,13 @@ class DefaultAuthViewModelTest {
     fun signOutUpdatesAuthState() =
         runTest(testDispatcher) {
             // First sign in
+            authRepo.signInResult = AuthState.Authenticated(
+                user = User(
+                    name = DisplayName("Test"),
+                    email = Email("test@test.com"),
+                    idToken = FirebaseIdToken("token", exp = 9999999999L),
+                ),
+            )
             viewModel.signInWithGoogle(GoogleIdToken("token"))
             advanceUntilIdle()
             assertIs<AuthState.Authenticated>(viewModel.authState.value)

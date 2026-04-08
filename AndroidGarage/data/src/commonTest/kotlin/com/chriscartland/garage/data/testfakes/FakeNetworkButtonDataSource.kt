@@ -1,4 +1,4 @@
-package com.chriscartland.garage.testcommon
+package com.chriscartland.garage.data.testfakes
 
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkResult

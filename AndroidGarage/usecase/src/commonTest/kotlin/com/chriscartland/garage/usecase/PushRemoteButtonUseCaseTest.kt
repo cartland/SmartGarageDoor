@@ -24,20 +24,20 @@ import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.User
-import com.chriscartland.garage.testcommon.FakeAuthRepository
-import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
+import com.chriscartland.garage.usecase.testfakes.FakeAuthRepository
+import com.chriscartland.garage.usecase.testfakes.FakeRemoteButtonRepository
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Before
-import org.junit.Test
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class PushRemoteButtonUseCaseTest {
     private lateinit var useCase: PushRemoteButtonUseCase
     private lateinit var fakeAuth: FakeAuthRepository
     private lateinit var fakePush: FakeRemoteButtonRepository
 
-    @Before
+    @BeforeTest
     fun setup() {
         fakeAuth = FakeAuthRepository()
         fakePush = FakeRemoteButtonRepository()
@@ -64,7 +64,7 @@ class PushRemoteButtonUseCaseTest {
         runTest {
             authenticateUser()
             val result = useCase("ack-123")
-            assertTrue("Push should succeed", result is AppResult.Success)
+            assertTrue(result is AppResult.Success, "Push should succeed")
             assertEquals(1, fakePush.pushCount)
         }
 
@@ -73,7 +73,7 @@ class PushRemoteButtonUseCaseTest {
         runTest {
             fakeAuth.setAuthState(AuthState.Unauthenticated)
             val result = useCase("ack-123")
-            assertTrue("Should be NotAuthenticated error", result is AppResult.Error)
+            assertTrue(result is AppResult.Error, "Should be NotAuthenticated error")
             assertEquals(ActionError.NotAuthenticated, (result as AppResult.Error).error)
             assertEquals(0, fakePush.pushCount)
         }
@@ -82,7 +82,7 @@ class PushRemoteButtonUseCaseTest {
     fun pushFailsWhenAuthUnknown() =
         runTest {
             val result = useCase("ack-123")
-            assertTrue("Should be NotAuthenticated error", result is AppResult.Error)
+            assertTrue(result is AppResult.Error, "Should be NotAuthenticated error")
             assertEquals(ActionError.NotAuthenticated, (result as AppResult.Error).error)
             assertEquals(0, fakePush.pushCount)
         }

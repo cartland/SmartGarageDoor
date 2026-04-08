@@ -15,35 +15,29 @@
  *
  */
 
-package com.chriscartland.garage.door
+package com.chriscartland.garage.usecase
 
-import com.chriscartland.garage.coroutines.TestDispatcherProvider
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.LoadingResult
-import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
-import com.chriscartland.garage.testcommon.FakeDoorFcmRepository
-import com.chriscartland.garage.testcommon.FakeDoorRepository
-import com.chriscartland.garage.usecase.DefaultDoorViewModel
-import com.chriscartland.garage.usecase.DeregisterFcmUseCase
-import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
-import com.chriscartland.garage.usecase.FetchFcmStatusUseCase
-import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
-import com.chriscartland.garage.usecase.RegisterFcmUseCase
+import com.chriscartland.garage.usecase.testfakes.FakeAppLoggerRepository
+import com.chriscartland.garage.usecase.testfakes.FakeDoorFcmRepository
+import com.chriscartland.garage.usecase.testfakes.FakeDoorRepository
+import com.chriscartland.garage.usecase.testfakes.TestDispatcherProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Before
-import org.junit.Test
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DoorViewModelTest {
@@ -61,7 +55,7 @@ class DoorViewModelTest {
             lastChangeTimeSeconds = 900L,
         )
 
-    @Before
+    @BeforeTest
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         appLoggerRepository = FakeAppLoggerRepository()
@@ -71,7 +65,7 @@ class DoorViewModelTest {
         doorRepository.setRecentDoorEvents(listOf(testDoorEvent))
     }
 
-    @After
+    @AfterTest
     fun tearDown() {
         Dispatchers.resetMain()
     }
@@ -116,7 +110,7 @@ class DoorViewModelTest {
             testDispatcher.scheduler.runCurrent()
 
             val result = viewModel.currentDoorEvent.value
-            assertTrue("Should be Complete after collection", result is LoadingResult.Complete)
+            assertTrue(result is LoadingResult.Complete, "Should be Complete after collection")
             assertEquals(updatedEvent, result.data)
         }
 
@@ -136,7 +130,7 @@ class DoorViewModelTest {
             testDispatcher.scheduler.runCurrent()
 
             val result = viewModel.currentDoorEvent.value
-            assertTrue("Should be Complete", result is LoadingResult.Complete)
+            assertTrue(result is LoadingResult.Complete, "Should be Complete")
             assertEquals(updatedEvent, result.data)
         }
 
@@ -154,7 +148,7 @@ class DoorViewModelTest {
             testDispatcher.scheduler.runCurrent()
 
             val result = viewModel.recentDoorEvents.value
-            assertTrue("Should be Complete after collection", result is LoadingResult.Complete)
+            assertTrue(result is LoadingResult.Complete, "Should be Complete after collection")
             assertEquals(2, result.data?.size)
         }
 

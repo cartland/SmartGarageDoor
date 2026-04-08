@@ -15,15 +15,14 @@
  *
  */
 
-package com.chriscartland.garage.auth
+package com.chriscartland.garage.data.repository
 
 import com.chriscartland.garage.data.AuthUserInfo
-import com.chriscartland.garage.data.repository.FirebaseAuthRepository
+import com.chriscartland.garage.data.testfakes.FakeAppLoggerRepository
+import com.chriscartland.garage.data.testfakes.FakeAuthBridge
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.GoogleIdToken
-import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
-import com.chriscartland.garage.testcommon.FakeAuthBridge
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -31,11 +30,11 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Before
-import org.junit.Test
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FirebaseAuthRepositoryTest {
@@ -43,14 +42,14 @@ class FirebaseAuthRepositoryTest {
     private lateinit var authBridge: FakeAuthBridge
     private lateinit var loggerRepo: FakeAppLoggerRepository
 
-    @Before
+    @BeforeTest
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         authBridge = FakeAuthBridge()
         loggerRepo = FakeAppLoggerRepository()
     }
 
-    @After
+    @AfterTest
     fun tearDown() {
         Dispatchers.resetMain()
     }

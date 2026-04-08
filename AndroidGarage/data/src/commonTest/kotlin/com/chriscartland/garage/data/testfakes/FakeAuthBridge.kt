@@ -15,43 +15,44 @@
  *
  */
 
-package com.chriscartland.garage.testcommon
+package com.chriscartland.garage.data.testfakes
 
-import com.chriscartland.garage.domain.model.AuthState
+import com.chriscartland.garage.data.AuthBridge
+import com.chriscartland.garage.data.AuthUserInfo
+import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.GoogleIdToken
-import com.chriscartland.garage.domain.repository.AuthRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 
-class FakeAuthRepository : AuthRepository {
-    private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
-    override val authState: StateFlow<AuthState> = _authState
+/**
+ * Fake [AuthBridge] for unit testing.
+ *
+ * All responses are configurable. Tracks call counts for verification.
+ */
+class FakeAuthBridge : AuthBridge {
+    var signInResult: Boolean = true
+    var userInfo: AuthUserInfo? = null
+    var refreshTokenResult: FirebaseIdToken? = null
 
     var signInCount = 0
         private set
-    var signOutCount = 0
-        private set
     var refreshCount = 0
         private set
+    var signOutCount = 0
+        private set
 
-    var refreshResult: AuthState? = null
-
-    fun setAuthState(state: AuthState) {
-        _authState.value = state
-    }
-
-    override suspend fun signInWithGoogle(idToken: GoogleIdToken): AuthState {
+    override suspend fun signInWithGoogleToken(idToken: GoogleIdToken): Boolean {
         signInCount++
-        return _authState.value
+        return signInResult
     }
 
-    override suspend fun refreshFirebaseAuthState(): AuthState {
+    override fun getCurrentUser(): AuthUserInfo? = userInfo
+
+    override suspend fun refreshIdToken(): FirebaseIdToken? {
         refreshCount++
-        return refreshResult ?: _authState.value
+        return refreshTokenResult
     }
 
     override suspend fun signOut() {
         signOutCount++
-        _authState.value = AuthState.Unauthenticated
+        userInfo = null
     }
 }

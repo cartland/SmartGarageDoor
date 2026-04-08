@@ -20,30 +20,12 @@ package com.chriscartland.garage.usecase
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
-import com.chriscartland.garage.domain.repository.DoorFcmRepository
-import com.chriscartland.garage.testcommon.FakeDoorRepository
+import com.chriscartland.garage.usecase.testfakes.FakeDoorFcmRepository
+import com.chriscartland.garage.usecase.testfakes.FakeDoorRepository
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Before
-import org.junit.Test
-
-class FakeDoorFcmRepository : DoorFcmRepository {
-    var fetchStatusResult: DoorFcmState = DoorFcmState.Unknown
-    var registerResult: DoorFcmState = DoorFcmState.NotRegistered
-    var deregisterResult: DoorFcmState = DoorFcmState.NotRegistered
-    var registerCount = 0
-    var lastRegisteredTopic: DoorFcmTopic? = null
-
-    override suspend fun fetchStatus(): DoorFcmState = fetchStatusResult
-
-    override suspend fun registerDoor(fcmTopic: DoorFcmTopic): DoorFcmState {
-        registerCount++
-        lastRegisteredTopic = fcmTopic
-        return registerResult
-    }
-
-    override suspend fun deregisterDoor(): DoorFcmState = deregisterResult
-}
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class DoorFcmStateToRegistrationStatusTest {
     @Test
@@ -71,7 +53,7 @@ class RegisterFcmUseCaseTest {
     private lateinit var fakeFcm: FakeDoorFcmRepository
     private lateinit var useCase: RegisterFcmUseCase
 
-    @Before
+    @BeforeTest
     fun setup() {
         fakeDoor = FakeDoorRepository()
         fakeFcm = FakeDoorFcmRepository()
