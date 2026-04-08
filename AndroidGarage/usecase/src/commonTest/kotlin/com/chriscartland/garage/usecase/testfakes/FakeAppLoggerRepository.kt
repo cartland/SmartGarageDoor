@@ -1,5 +1,6 @@
 package com.chriscartland.garage.usecase.testfakes
 
+import com.chriscartland.garage.domain.model.AppLogEvent
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,4 +15,6 @@ class FakeAppLoggerRepository : AppLoggerRepository {
     }
 
     override fun countKey(key: String): Flow<Long> = counts.getOrPut(key) { MutableStateFlow(0L) }
+
+    override fun getAll(): Flow<List<AppLogEvent>> = MutableStateFlow(emptyList())
 }

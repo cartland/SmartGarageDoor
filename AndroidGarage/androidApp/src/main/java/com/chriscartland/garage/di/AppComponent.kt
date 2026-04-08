@@ -20,7 +20,7 @@ package com.chriscartland.garage.di
 import android.app.Application
 import com.chriscartland.garage.BuildConfig
 import com.chriscartland.garage.applogger.AndroidAppLoggerRepository
-import com.chriscartland.garage.applogger.RoomAppLoggerRepository
+import com.chriscartland.garage.applogger.AndroidAppLoggerRepositoryImpl
 import com.chriscartland.garage.auth.FirebaseAuthBridge
 import com.chriscartland.garage.config.APP_CONFIG
 import com.chriscartland.garage.data.AuthBridge
@@ -44,6 +44,7 @@ import com.chriscartland.garage.datalocal.AppDatabase
 import com.chriscartland.garage.datalocal.DataStoreSettingsFactory
 import com.chriscartland.garage.datalocal.DatabaseFactory
 import com.chriscartland.garage.datalocal.DatabaseLocalDoorDataSource
+import com.chriscartland.garage.datalocal.RoomAppLoggerRepository
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.AppSettingsRepository
@@ -67,6 +68,7 @@ import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
+import com.chriscartland.garage.version.AppVersion
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -196,12 +198,15 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
-    fun provideAndroidAppLoggerRepository(): AndroidAppLoggerRepository =
-        RoomAppLoggerRepository(application.applicationContext, provideAppDatabase())
+    fun provideAppLoggerRepository(): AppLoggerRepository =
+        RoomAppLoggerRepository(
+            provideAppDatabase(),
+            application.applicationContext.AppVersion().toString(),
+        )
 
     @Provides
     @Singleton
-    fun provideAppLoggerRepository(): AppLoggerRepository = provideAndroidAppLoggerRepository()
+    fun provideAndroidAppLoggerRepository(): AndroidAppLoggerRepository = AndroidAppLoggerRepositoryImpl(provideAppLoggerRepository())
 
     // UseCases
     @Provides

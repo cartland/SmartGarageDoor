@@ -20,6 +20,7 @@ package com.chriscartland.garage.testcommon
 import android.content.Context
 import android.net.Uri
 import com.chriscartland.garage.applogger.AndroidAppLoggerRepository
+import com.chriscartland.garage.domain.model.AppLogEvent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -38,4 +39,6 @@ class FakeAppLoggerRepository : AndroidAppLoggerRepository {
     }
 
     override fun countKey(key: String): Flow<Long> = MutableStateFlow(0L)
+
+    override fun getAll(): Flow<List<AppLogEvent>> = MutableStateFlow(emptyList())
 }
