@@ -215,12 +215,11 @@ fun RecentDoorEventListItem(
                     text = doorPosition.toFriendlyName(),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(bottom = 8.dp),
                 )
                 FadedGarageIcon(
                     doorPosition = doorPosition,
                     modifier = Modifier
-                        .height(56.dp),
+                        .weight(1f),
                     static = true,
                     color = doorColor,
                 )
