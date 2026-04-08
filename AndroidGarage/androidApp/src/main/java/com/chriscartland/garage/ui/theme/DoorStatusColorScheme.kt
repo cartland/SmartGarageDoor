@@ -20,8 +20,10 @@ package com.chriscartland.garage.ui.theme
 import androidx.compose.ui.graphics.Color
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.domain.model.Staleness
 import java.time.Duration
 import java.time.Instant
+import kotlin.time.toKotlinDuration
 
 /**
  * Color scheme selected by the app theme.
@@ -126,7 +128,8 @@ fun DoorEvent?.isStale(
     maxAge: Duration,
     now: Instant = Instant.now(),
 ): Boolean =
-    this?.lastCheckInTimeSeconds?.let { utcSeconds ->
-        val limit = now.minusSeconds(maxAge.seconds)
-        Instant.ofEpochSecond(utcSeconds).isBefore(limit)
-    } == true
+    Staleness.isStale(
+        lastCheckInTimeSeconds = this?.lastCheckInTimeSeconds,
+        maxAge = maxAge.toKotlinDuration(),
+        nowEpochSeconds = now.epochSecond,
+    )
