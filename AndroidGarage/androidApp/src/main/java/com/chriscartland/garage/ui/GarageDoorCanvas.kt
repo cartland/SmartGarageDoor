@@ -31,27 +31,33 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 
-// Original SVG viewport dimensions.
-private const val VP_W = 284.8f
-private const val VP_H = 216.8f
+// Design viewport — all coordinates below are in this unit space.
+// The Canvas scales uniformly to fit the available size.
+private const val VP = 300f
 
-// Door panel layout in viewport coordinates.
-private const val PANEL_X = 17.5f
-private const val PANEL_WIDTH = 249f // 266.5 - 17.5
-private const val PANEL_HEIGHT = 34f // 59 - 25 (inner fill height)
+/** Aspect ratio of the garage door design (1:1 square). */
+const val GARAGE_DOOR_ASPECT_RATIO = 1f
+
+// Frame layout.
+private const val FRAME_INSET = 10f
+private const val FRAME_STROKE_WIDTH = 12f
+private const val FRAME_CORNER_RADIUS = 16f
+private const val FRAME_BOTTOM = 290f
+private const val INTERIOR_TOP = FRAME_INSET + FRAME_STROKE_WIDTH / 2f // 16
+
+// Door panel layout — 4 panels, evenly spaced.
+private const val PANEL_X = 20f
+private const val PANEL_WIDTH = 260f
+private const val PANEL_HEIGHT = 40f
 private const val PANEL_RADIUS = 8f
-private val PANEL_Y_STARTS = floatArrayOf(17f, 64f, 111f, 158f)
+private val PANEL_Y_STARTS = floatArrayOf(40f, 102f, 164f, 226f)
 
 // Handle on bottom panel.
-private const val HANDLE_X = 131.5f
-private const val HANDLE_Y = 190f
-private const val HANDLE_W = 21f
+private const val HANDLE_X = 139f
+private const val HANDLE_Y = 260f
+private const val HANDLE_W = 22f
 private const val HANDLE_H = 4f
 private const val HANDLE_RADIUS = 2f
-
-// Frame stroke.
-private const val FRAME_STROKE_WIDTH = 13.8f
-private const val FRAME_CORNER_RADIUS = 18.4f
 
 /**
  * Draws a garage door at a given vertical offset using pure Compose Canvas.
@@ -82,12 +88,11 @@ private fun DrawScope.drawGarageDoor(
     darkColor: Color,
 ) {
     // Uniform scale — fit within canvas without stretching.
-    val scale = minOf(size.width / VP_W, size.height / VP_H)
-    val drawW = VP_W * scale
-    val drawH = VP_H * scale
+    val scale = minOf(size.width / VP, size.height / VP)
+    val drawSize = VP * scale
     // Center the drawing within the canvas.
-    val offsetX = (size.width - drawW) / 2f
-    val offsetY = (size.height - drawH) / 2f
+    val offsetX = (size.width - drawSize) / 2f
+    val offsetY = (size.height - drawSize) / 2f
 
     fun x(vp: Float) = vp * scale + offsetX
 
@@ -99,20 +104,20 @@ private fun DrawScope.drawGarageDoor(
         0.3f to color,
         1f to darkColor,
         startY = offsetY,
-        endY = offsetY + drawH,
+        endY = offsetY + drawSize,
     )
 
     // Clip door panels to the interior of the frame so they don't draw outside.
-    val frameInset = 6.9f + FRAME_STROKE_WIDTH / 2f
+    val clipInset = FRAME_INSET + FRAME_STROKE_WIDTH / 2f
 
     clipRect(
-        left = x(frameInset),
-        top = y(frameInset),
-        right = x(VP_W - frameInset),
-        bottom = y(VP_H),
+        left = x(clipInset),
+        top = y(clipInset),
+        right = x(VP - clipInset),
+        bottom = y(VP),
     ) {
         // Door panels — translated vertically by doorOffset.
-        val panelOffsetPx = doorOffset * drawH
+        val panelOffsetPx = doorOffset * drawSize
         for (panelY in PANEL_Y_STARTS) {
             drawRoundRect(
                 brush = gradient,
@@ -134,10 +139,10 @@ private fun DrawScope.drawGarageDoor(
     // Frame — drawn on top as a stroke path (U-shape with rounded top corners).
     val cr = s(FRAME_CORNER_RADIUS)
     val framePath = Path().apply {
-        val left = x(6.9f)
-        val right = x(VP_W - 6.9f)
-        val top = y(6.9f)
-        val bottom = y(209.9f)
+        val left = x(FRAME_INSET)
+        val right = x(VP - FRAME_INSET)
+        val top = y(FRAME_INSET)
+        val bottom = y(FRAME_BOTTOM)
 
         moveTo(left, bottom)
         lineTo(left, top + cr)
