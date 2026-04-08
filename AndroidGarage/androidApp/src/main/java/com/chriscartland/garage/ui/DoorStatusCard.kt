@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -203,52 +202,23 @@ fun RecentDoorEventListItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(
+            FadedGarageIcon(
+                doorPosition = doorPosition,
                 modifier = Modifier
-                    .weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = doorPosition.toFriendlyName(),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(bottom = 8.dp),
-                )
-                FadedGarageIcon(
-                    doorPosition = doorPosition,
-                    modifier = Modifier
-                        .height(96.dp),
-                    static = true,
-                    color = doorColor,
-                )
-                when (doorPosition) {
-                    in listOf(
-                        DoorPosition.UNKNOWN,
-                        DoorPosition.OPENING_TOO_LONG,
-                        DoorPosition.OPEN_MISALIGNED,
-                        DoorPosition.CLOSING_TOO_LONG,
-                        DoorPosition.ERROR_SENSOR_CONFLICT,
-                    ),
-                    -> doorEvent.message?.let { msg ->
-                        if (msg.isNotBlank()) {
-                            Text(
-                                text = msg,
-                                textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                        }
-                    }
-
-                    else -> {
-                        // Nothing
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
+                    .size(56.dp),
+                static = true,
+                color = doorColor,
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = doorPosition.toFriendlyName(),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(modifier = Modifier.width(4.dp))
 
             Column(
                 modifier = Modifier

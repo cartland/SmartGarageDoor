@@ -54,11 +54,15 @@ import java.time.Duration
 
 val DEFAULT_GARAGE_DOOR_ANIMATION_DURATION: Duration = Duration.ofSeconds(12)
 
+// Door offset positions as proportion of viewport height (300×300 square).
+// Negative = door slides up (opening). Panels at y=[22, 89, 156, 223], height 61.
+// Clip inset at y=22 (frame + gap). At -0.75 (shift 225px):
+//   Panel 4 bottom = 284 - 225 = 59, visible = 59 - 22 = 37px (≈60% of panel).
 const val CLOSED_POSITION = 0.0f
-const val CLOSING_STATIC_POSITION = -0.2f
-const val MIDWAY_POSITION = -0.5f
-const val OPENING_STATIC_POSITION = -0.6f
-const val OPEN_POSITION = -0.65f
+const val CLOSING_STATIC_POSITION = -0.20f
+const val MIDWAY_POSITION = -0.35f
+const val OPENING_STATIC_POSITION = -0.65f
+const val OPEN_POSITION = -0.75f
 
 @Composable
 private fun GarageDoorWithOverlay(
@@ -90,13 +94,22 @@ private fun GarageDoorWithOverlay(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
-        GarageDoorCanvas(
-            doorOffset = currentOffset,
-            modifier = Modifier.fillMaxSize(),
-            color = color,
-        )
-        if (overlay != null) {
-            overlay()
+        // Inner Box constrained to the door's aspect ratio so overlays
+        // scale proportionally to the door, not the parent container.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .aspectRatio(GARAGE_DOOR_ASPECT_RATIO),
+            contentAlignment = Alignment.Center,
+        ) {
+            GarageDoorCanvas(
+                doorOffset = currentOffset,
+                modifier = Modifier.fillMaxSize(),
+                color = color,
+            )
+            if (overlay != null) {
+                overlay()
+            }
         }
     }
 }
