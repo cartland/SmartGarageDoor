@@ -38,7 +38,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -69,24 +68,34 @@ fun ExpandableColumnCard(
         expanded = startExpanded
     }
     Card(
-        modifier = modifier,
+        modifier = modifier.then(
+            // When collapsed, the entire card is clickable to expand.
+            if (!expanded) {
+                Modifier.clickable {
+                    expanded = true
+                    onExpandedChange(expanded)
+                }
+            } else {
+                Modifier
+            },
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = colors,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = horizontalAlignment,
             verticalArrangement = Arrangement.Center,
         ) {
+            // Header row — clickable to collapse when expanded. Padding on the
+            // header only so the touch target extends to the card edges.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
                         expanded = !expanded
                         onExpandedChange(expanded)
-                    },
+                    }.padding(16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -99,18 +108,16 @@ fun ExpandableColumnCard(
                 )
                 Box(
                     modifier = Modifier.size(36.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    IconButton(
-                        onClick = {
-                            expanded = !expanded
-                            onExpandedChange(expanded)
+                    Icon(
+                        imageVector = if (expanded) {
+                            Icons.Filled.KeyboardArrowUp
+                        } else {
+                            Icons.Filled.KeyboardArrowDown
                         },
-                    ) {
-                        Icon(
-                            imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                            contentDescription = if (expanded) "Collapse" else "Expand",
-                        )
-                    }
+                        contentDescription = if (expanded) "Collapse" else "Expand",
+                    )
                 }
             }
             AnimatedVisibility(
@@ -120,7 +127,9 @@ fun ExpandableColumnCard(
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 16.dp),
                     horizontalAlignment = horizontalAlignment,
                 ) {
                     content()
