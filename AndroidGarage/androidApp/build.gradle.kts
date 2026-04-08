@@ -57,7 +57,7 @@ android {
     defaultConfig {
         applicationId = "com.chriscartland.garage"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         // versionCode comes from android/N tag via -PVERSION_CODE=N
         // Falls back to 1 for local development builds
         val tagVersionCode = (project.findProperty("VERSION_CODE") as? String)?.toIntOrNull()

@@ -17,6 +17,11 @@
 
 package com.chriscartland.garage.ui
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -75,6 +80,11 @@ fun GarageApp(
         )
     }
 }
+
+private const val NAV_ANIM_DURATION = 300
+
+/** Reusable tween with FastOutSlowIn easing for all nav animations. */
+private inline fun <reified T> navTween() = tween<T>(NAV_ANIM_DURATION, easing = FastOutSlowInEasing)
 
 /**
  * Type-safe navigation routes.
@@ -179,6 +189,9 @@ fun AppNavigation(
         NavDisplay(
             backStack = backStack,
             onBack = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) },
+            transitionSpec = { fadeIn(navTween()) togetherWith fadeOut(navTween()) },
+            popTransitionSpec = { fadeIn(navTween()) togetherWith fadeOut(navTween()) },
+            predictivePopTransitionSpec = { fadeIn(navTween()) togetherWith fadeOut(navTween()) },
             entryDecorators = listOf(
                 rememberSaveableStateHolderNavEntryDecorator<Screen>(),
                 rememberViewModelStoreNavEntryDecorator<Screen>(),
