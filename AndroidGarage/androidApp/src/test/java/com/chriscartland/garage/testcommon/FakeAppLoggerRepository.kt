@@ -17,25 +17,16 @@
 
 package com.chriscartland.garage.testcommon
 
-import android.content.Context
-import android.net.Uri
-import com.chriscartland.garage.applogger.AndroidAppLoggerRepository
 import com.chriscartland.garage.domain.model.AppLogEvent
+import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
-class FakeAppLoggerRepository : AndroidAppLoggerRepository {
+class FakeAppLoggerRepository : AppLoggerRepository {
     val loggedKeys = mutableListOf<String>()
 
     override suspend fun log(key: String) {
         loggedKeys.add(key)
-    }
-
-    override suspend fun writeCsvToUri(
-        context: Context,
-        uri: Uri,
-    ) {
-        // No-op
     }
 
     override fun countKey(key: String): Flow<Long> = MutableStateFlow(0L)

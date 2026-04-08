@@ -10,4 +10,7 @@ data class AppLogEvent(
     val eventKey: String,
     val timestampMillis: Long,
     val appVersion: String,
-)
+) {
+    /** CSV row for export. Platform layer adds the header and writes to file. */
+    fun toCsvRow(): String = "$eventKey,$timestampMillis,$appVersion\n"
+}

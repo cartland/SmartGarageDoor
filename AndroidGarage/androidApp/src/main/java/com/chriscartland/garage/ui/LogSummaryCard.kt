@@ -44,6 +44,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.GarageApplication
+import com.chriscartland.garage.applogger.exportAppLogCsvToUri
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.AppSettingsViewModel
@@ -79,7 +80,7 @@ fun LogSummaryCard(
         onDownload = { context, uri ->
             val app = context.applicationContext as GarageApplication
             CoroutineScope(Dispatchers.IO).launch {
-                app.component.provideAndroidAppLoggerRepository().writeCsvToUri(context, uri)
+                exportAppLogCsvToUri(app.component.provideAppLoggerRepository(), context, uri)
             }
         },
         initCurrent = initCurrent,
