@@ -19,8 +19,6 @@ package com.chriscartland.garage.di
 
 import android.app.Application
 import com.chriscartland.garage.BuildConfig
-import com.chriscartland.garage.applogger.AndroidAppLoggerRepository
-import com.chriscartland.garage.applogger.AndroidAppLoggerRepositoryImpl
 import com.chriscartland.garage.auth.FirebaseAuthBridge
 import com.chriscartland.garage.config.AppConfigFactory
 import com.chriscartland.garage.data.AuthBridge
@@ -209,10 +207,6 @@ abstract class AppComponent(
             provideAppDatabase(),
             application.applicationContext.AppVersion().toString(),
         )
-
-    @Provides
-    @Singleton
-    fun provideAndroidAppLoggerRepository(): AndroidAppLoggerRepository = AndroidAppLoggerRepositoryImpl(provideAppLoggerRepository())
 
     // UseCases
     @Provides
