@@ -1,28 +1,10 @@
-/*
- * Copyright 2024 Chris Cartland. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+package com.chriscartland.garage.data
 
-package com.chriscartland.garage.fcm
-
-import com.chriscartland.garage.data.FcmPayloadParser
 import com.chriscartland.garage.domain.model.DoorPosition
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 /**
  * Contract tests for FCM data payload parsing.
@@ -50,8 +32,8 @@ class FcmPayloadParsingTest {
         val payload = makePayload()
         val event = FcmPayloadParser.parseDoorEvent(payload)
 
-        assertNotNull("Valid payload should parse to DoorEvent", event)
-        assertEquals(DoorPosition.CLOSED, event!!.doorPosition)
+        assertNotNull(event, "Valid payload should parse to DoorEvent")
+        assertEquals(DoorPosition.CLOSED, event.doorPosition)
         assertEquals("The door is closed.", event.message)
         assertEquals(1000L, event.lastChangeTimeSeconds)
         assertEquals(1100L, event.lastCheckInTimeSeconds)
@@ -62,8 +44,8 @@ class FcmPayloadParsingTest {
         DoorPosition.entries.forEach { position ->
             val payload = makePayload(type = position.name)
             val event = FcmPayloadParser.parseDoorEvent(payload)
-            assertNotNull("Position ${position.name} should parse", event)
-            assertEquals(position, event!!.doorPosition)
+            assertNotNull(event, "Position ${position.name} should parse")
+            assertEquals(position, event.doorPosition)
         }
     }
 
@@ -71,26 +53,26 @@ class FcmPayloadParsingTest {
     fun unknownTypeParsesAsUnknown() {
         val payload = makePayload(type = "NEVER_SEEN_BEFORE")
         val event = FcmPayloadParser.parseDoorEvent(payload)
-        assertNotNull("Unknown type should still parse", event)
-        assertEquals(DoorPosition.UNKNOWN, event!!.doorPosition)
+        assertNotNull(event, "Unknown type should still parse")
+        assertEquals(DoorPosition.UNKNOWN, event.doorPosition)
     }
 
     @Test
     fun missingTypeReturnsNull() {
         val payload = makePayload(type = null)
-        assertNull("Missing 'type' key should return null", FcmPayloadParser.parseDoorEvent(payload))
+        assertNull(FcmPayloadParser.parseDoorEvent(payload), "Missing 'type' key should return null")
     }
 
     @Test
     fun missingTimestampReturnsNull() {
         val payload = makePayload(timestampSeconds = null)
-        assertNull("Missing 'timestampSeconds' should return null", FcmPayloadParser.parseDoorEvent(payload))
+        assertNull(FcmPayloadParser.parseDoorEvent(payload), "Missing 'timestampSeconds' should return null")
     }
 
     @Test
     fun missingCheckInTimestampReturnsNull() {
         val payload = makePayload(checkInTimestampSeconds = null)
-        assertNull("Missing 'checkInTimestampSeconds' should return null", FcmPayloadParser.parseDoorEvent(payload))
+        assertNull(FcmPayloadParser.parseDoorEvent(payload), "Missing 'checkInTimestampSeconds' should return null")
     }
 
     @Test
@@ -98,25 +80,23 @@ class FcmPayloadParsingTest {
         val payload = makePayload(message = null)
         val event = FcmPayloadParser.parseDoorEvent(payload)
         assertNotNull(event)
-        assertEquals("", event!!.message)
+        assertEquals("", event.message)
     }
 
     @Test
     fun nonNumericTimestampReturnsNull() {
         val payload = makePayload(timestampSeconds = "not-a-number")
-        assertNull("Non-numeric timestamp should return null", FcmPayloadParser.parseDoorEvent(payload))
+        assertNull(FcmPayloadParser.parseDoorEvent(payload), "Non-numeric timestamp should return null")
     }
 
     @Test
     fun emptyPayloadReturnsNull() {
         val payload = emptyMap<String, String>()
-        assertNull("Empty payload should return null", FcmPayloadParser.parseDoorEvent(payload))
+        assertNull(FcmPayloadParser.parseDoorEvent(payload), "Empty payload should return null")
     }
 
     @Test
     fun realServerPayloadFormat() {
-        // This matches the actual format sent by the Firebase server.
-        // If this test fails, push notifications are broken.
         val payload = mapOf(
             "type" to "OPEN",
             "message" to "The door is open.",
@@ -124,8 +104,8 @@ class FcmPayloadParsingTest {
             "checkInTimestampSeconds" to "1710000060",
         )
         val event = FcmPayloadParser.parseDoorEvent(payload)
-        assertNotNull("Real server payload must parse successfully", event)
-        assertEquals(DoorPosition.OPEN, event!!.doorPosition)
+        assertNotNull(event, "Real server payload must parse successfully")
+        assertEquals(DoorPosition.OPEN, event.doorPosition)
         assertEquals("The door is open.", event.message)
         assertEquals(1710000000L, event.lastChangeTimeSeconds)
         assertEquals(1710000060L, event.lastCheckInTimeSeconds)
