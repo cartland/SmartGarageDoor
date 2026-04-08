@@ -105,6 +105,11 @@ android {
             "BUILD_TIMESTAMP",
             "\"$buildTimestamp\"",
         )
+        buildConfigField(
+            "String",
+            "BASE_URL",
+            "\"https://us-central1-escape-echo.cloudfunctions.net/\"",
+        )
     }
 
     signingConfigs {

@@ -22,7 +22,7 @@ import com.chriscartland.garage.BuildConfig
 import com.chriscartland.garage.applogger.AndroidAppLoggerRepository
 import com.chriscartland.garage.applogger.AndroidAppLoggerRepositoryImpl
 import com.chriscartland.garage.auth.FirebaseAuthBridge
-import com.chriscartland.garage.config.APP_CONFIG
+import com.chriscartland.garage.config.AppConfigFactory
 import com.chriscartland.garage.data.AuthBridge
 import com.chriscartland.garage.data.LocalDoorDataSource
 import com.chriscartland.garage.data.MessagingBridge
@@ -46,6 +46,7 @@ import com.chriscartland.garage.datalocal.DatabaseFactory
 import com.chriscartland.garage.datalocal.DatabaseLocalDoorDataSource
 import com.chriscartland.garage.datalocal.RoomAppLoggerRepository
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
+import com.chriscartland.garage.domain.model.AppConfig
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import com.chriscartland.garage.domain.repository.AuthRepository
@@ -126,6 +127,11 @@ abstract class AppComponent(
             provideSnoozeNotificationsUseCase(),
         )
 
+    // Configuration
+    @Provides
+    @Singleton
+    fun provideAppConfig(): AppConfig = AppConfigFactory.create()
+
     // Settings
     @Provides
     @Singleton
@@ -141,7 +147,7 @@ abstract class AppComponent(
     @Singleton
     fun provideHttpClient(): HttpClient =
         createHttpClient(
-            baseUrl = APP_CONFIG.baseUrl,
+            baseUrl = provideAppConfig().baseUrl,
             debug = BuildConfig.DEBUG,
         )
 
@@ -179,13 +185,13 @@ abstract class AppComponent(
             provideLocalDoorDataSource(),
             provideNetworkDoorDataSource(),
             provideServerConfigRepository(),
-            APP_CONFIG.recentEventCount,
+            provideAppConfig().recentEventCount,
         )
 
     @Provides
     @Singleton
     fun provideServerConfigRepository(): ServerConfigRepository =
-        CachedServerConfigRepository(provideNetworkConfigDataSource(), APP_CONFIG.serverConfigKey)
+        CachedServerConfigRepository(provideNetworkConfigDataSource(), provideAppConfig().serverConfigKey)
 
     @Provides
     @Singleton
@@ -247,7 +253,7 @@ abstract class AppComponent(
         NetworkRemoteButtonRepository(
             provideNetworkButtonDataSource(),
             provideServerConfigRepository(),
-            APP_CONFIG.remoteButtonPushEnabled,
+            provideAppConfig().remoteButtonPushEnabled,
         )
 
     // Repositories — snooze
@@ -257,7 +263,7 @@ abstract class AppComponent(
         NetworkSnoozeRepository(
             provideNetworkButtonDataSource(),
             provideServerConfigRepository(),
-            APP_CONFIG.snoozeNotificationsOption,
+            provideAppConfig().snoozeNotificationsOption,
         )
 
     // Coroutines
