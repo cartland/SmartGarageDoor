@@ -20,7 +20,7 @@ package com.chriscartland.garage.data.repository
 import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.ServerConfig
-import com.chriscartland.garage.domain.model.SnoozeRequestStatus
+import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import kotlinx.coroutines.test.runTest
@@ -85,21 +85,17 @@ class SnoozeRepositoryTest {
             networkButtonDataSource,
             CachedServerConfigRepository(networkConfigDataSource, "test-key"),
             snoozeNotificationsOption = true,
+            currentTimeSeconds = { 1000L },
         )
     }
 
     @Test
-    fun initialSnoozeRequestStatusIsIdle() {
-        assertEquals(SnoozeRequestStatus.IDLE, repo.snoozeRequestStatus.value)
+    fun initialSnoozeStateIsLoading() {
+        assertEquals(SnoozeState.Loading, repo.snoozeState.value)
     }
 
     @Test
-    fun initialSnoozeEndTimeIsZero() {
-        assertEquals(0L, repo.snoozeEndTimeSeconds.value)
-    }
-
-    @Test
-    fun snoozeResetsToIdleWhenServerConfigFetchFails() =
+    fun snoozeDoesNotCrashWhenServerConfigFetchFails() =
         runTest {
             networkConfigDataSource.serverConfigResult = NetworkResult.ConnectionFailed
             repo.snoozeNotifications(
@@ -107,6 +103,7 @@ class SnoozeRepositoryTest {
                 idToken = "token",
                 snoozeEventTimestampSeconds = 1000L,
             )
-            assertEquals(SnoozeRequestStatus.IDLE, repo.snoozeRequestStatus.value)
+            // State remains Loading — no crash, no error propagation
+            assertEquals(SnoozeState.Loading, repo.snoozeState.value)
         }
 }

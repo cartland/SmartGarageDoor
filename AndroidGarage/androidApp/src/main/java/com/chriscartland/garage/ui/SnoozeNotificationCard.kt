@@ -24,11 +24,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -41,18 +43,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
-import com.chriscartland.garage.domain.model.SnoozeRequestStatus
-import java.time.Instant
+import com.chriscartland.garage.domain.model.SnoozeState
 
 @Composable
 fun SnoozeNotificationCard(
-    snoozeText: String,
-    noneSelectedText: String,
-    saveText: String,
+    snoozeState: SnoozeState,
+    snoozeAction: SnoozeAction,
     modifier: Modifier = Modifier,
-    snoozeEndTimeSeconds: Long?,
-    snoozeRequestStatus: SnoozeRequestStatus,
     onSnooze: (snooze: SnoozeDurationUIOption) -> Unit = {},
     colors: CardColors = CardDefaults.cardColors(),
 ) {
@@ -76,53 +75,35 @@ fun SnoozeNotificationCard(
                         .weight(1f)
                         .align(Alignment.CenterVertically),
                 ) {
-                    val snoozeEnd = snoozeEndTimeSeconds?.let { Instant.ofEpochSecond(it) }
-                    val snoozeTime = snoozeEndTimeSeconds?.toFriendlyTimeShort()
-                    val snoozing = (snoozeEnd != null && snoozeEnd.isAfter(Instant.now()))
-
-                    Text(
-                        text = when (snoozeRequestStatus) {
-                            SnoozeRequestStatus.IDLE -> if (snoozing) {
-                                "Snoozing notifications until $snoozeTime"
-                            } else {
-                                "Snooze notifications"
-                            }
-
-                            SnoozeRequestStatus.SENDING -> "Saving..."
-
-                            SnoozeRequestStatus.ERROR -> "Error saving snooze settings"
-                        },
-                    )
-                    if (snoozing && snoozeRequestStatus == SnoozeRequestStatus.IDLE) {
-                        Text(
-                            text = "or until the door moves",
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
+                    SnoozeStatusText(snoozeState)
+                    SnoozeActionOverlay(snoozeAction)
                 }
                 Spacer(Modifier.width(16.dp))
-                Button(onClick = {
-                    if (showOptions) { // Save
-                        selectedOption?.let {
-                            onSnooze(it)
-                            selectedOption = null
-                        }
-                    }
-                    showOptions = !showOptions
-                }) {
-                    Text(
-                        if (showOptions) {
-                            if (selectedOption == null) {
-                                noneSelectedText
-                            } else {
-                                saveText
-                            }
-                        } else {
-                            snoozeText
-                        },
-                        maxLines = 2,
-                        modifier = Modifier.align(Alignment.CenterVertically),
+                if (snoozeAction is SnoozeAction.Sending) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(36.dp),
+                        strokeWidth = 3.dp,
                     )
+                } else {
+                    Button(onClick = {
+                        if (showOptions) {
+                            selectedOption?.let {
+                                onSnooze(it)
+                                selectedOption = null
+                            }
+                        }
+                        showOptions = !showOptions
+                    }) {
+                        Text(
+                            if (showOptions) {
+                                if (selectedOption == null) "Cancel" else "Save"
+                            } else {
+                                "Snooze"
+                            },
+                            maxLines = 2,
+                            modifier = Modifier.align(Alignment.CenterVertically),
+                        )
+                    }
                 }
             }
             if (showOptions) {
@@ -131,7 +112,6 @@ fun SnoozeNotificationCard(
                     selectedOption = selectedOption,
                     onOptionSelected = { option ->
                         if (option == selectedOption) {
-                            // If you select the selected item, deselect it.
                             selectedOption = null
                         } else {
                             selectedOption = option
@@ -142,23 +122,14 @@ fun SnoozeNotificationCard(
                             val components = mutableListOf<String>()
                             when (hours) {
                                 0L -> {}
-
                                 1L -> components.add("1 hour")
-
-                                else -> {
-                                    components.add("$hours hours")
-                                }
+                                else -> components.add("$hours hours")
                             }
                             when (minutes) {
                                 0 -> {}
-
                                 1 -> components.add("1 minute")
-
-                                else -> {
-                                    components.add("$minutes minutes")
-                                }
+                                else -> components.add("$minutes minutes")
                             }
-                            // When there are no components, add a disable option.
                             when (components.size) {
                                 0 -> components.add("Do not snooze")
                             }
@@ -171,15 +142,74 @@ fun SnoozeNotificationCard(
     }
 }
 
+@Composable
+private fun SnoozeStatusText(snoozeState: SnoozeState) {
+    when (snoozeState) {
+        SnoozeState.Loading -> {
+            Text("Loading snooze status...")
+        }
+        SnoozeState.NotSnoozing -> {
+            Text("Snooze notifications")
+        }
+        is SnoozeState.Snoozing -> {
+            val snoozeTime = snoozeState.untilEpochSeconds.toFriendlyTimeShort()
+            Text("Snoozing notifications until $snoozeTime")
+            Text(
+                text = "or until the door moves",
+                style = MaterialTheme.typography.labelSmall,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SnoozeActionOverlay(snoozeAction: SnoozeAction) {
+    when (snoozeAction) {
+        SnoozeAction.Idle -> { /* No overlay */ }
+        SnoozeAction.Sending -> {
+            Text(
+                text = "Saving...",
+                style = MaterialTheme.typography.labelSmall,
+            )
+        }
+        is SnoozeAction.Succeeded -> {
+            val snoozeTime = snoozeAction.untilEpochSeconds.toFriendlyTimeShort()
+            Text(
+                text = "Saved! Snoozing until $snoozeTime",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        SnoozeAction.Failed.NotAuthenticated -> {
+            Text(
+                text = "Sign in to snooze notifications",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+        SnoozeAction.Failed.MissingData -> {
+            Text(
+                text = "No door event available",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+        SnoozeAction.Failed.NetworkError -> {
+            Text(
+                text = "Couldn't reach server",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+    }
+}
+
 @Preview
 @Composable
 fun SnoozeNotificationCardPreview() {
     SnoozeNotificationCard(
-        snoozeText = "Snooze",
-        noneSelectedText = "Cancel",
-        saveText = "Save",
-        snoozeEndTimeSeconds = 999999999999L,
-        snoozeRequestStatus = SnoozeRequestStatus.IDLE,
+        snoozeState = SnoozeState.Snoozing(999999999999L),
+        snoozeAction = SnoozeAction.Idle,
     )
 }
 

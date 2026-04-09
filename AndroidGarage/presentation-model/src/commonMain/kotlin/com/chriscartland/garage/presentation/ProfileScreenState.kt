@@ -1,6 +1,7 @@
 package com.chriscartland.garage.presentation
 
-import com.chriscartland.garage.domain.model.SnoozeRequestStatus
+import com.chriscartland.garage.domain.model.SnoozeAction
+import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.User
 
 /**
@@ -10,6 +11,6 @@ import com.chriscartland.garage.domain.model.User
  */
 data class ProfileScreenState(
     val user: User? = null,
-    val snoozeEndTimeSeconds: Long = 0L,
-    val snoozeRequestStatus: SnoozeRequestStatus = SnoozeRequestStatus.IDLE,
+    val snoozeState: SnoozeState = SnoozeState.Loading,
+    val snoozeAction: SnoozeAction = SnoozeAction.Idle,
 )

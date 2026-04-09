@@ -22,7 +22,8 @@ import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.RequestStatus
-import com.chriscartland.garage.domain.model.SnoozeRequestStatus
+import com.chriscartland.garage.domain.model.SnoozeAction
+import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
@@ -71,11 +72,12 @@ class RemoteButtonViewModelTest {
         val ensureFreshIdToken = EnsureFreshIdTokenUseCase(authRepository)
         val vm = DefaultRemoteButtonViewModel(
             remoteButtonRepository,
-            snoozeRepository,
             doorRepository,
             TestDispatcherProvider(testDispatcher),
             PushRemoteButtonUseCase(ensureFreshIdToken, authRepository, remoteButtonRepository),
             SnoozeNotificationsUseCase(ensureFreshIdToken, authRepository, snoozeRepository),
+            FetchSnoozeStatusUseCase(snoozeRepository),
+            ObserveSnoozeStateUseCase(snoozeRepository),
         )
         testDispatcher.scheduler.runCurrent()
         return vm
@@ -88,10 +90,30 @@ class RemoteButtonViewModelTest {
     }
 
     @Test
-    fun initialSnoozeRequestStatusIsIdle() {
+    fun initialSnoozeStateIsLoading() {
         val viewModel = createViewModel()
-        assertEquals(SnoozeRequestStatus.IDLE, viewModel.snoozeRequestStatus.value)
+        assertEquals(SnoozeState.Loading, viewModel.snoozeState.value)
     }
+
+    @Test
+    fun initialSnoozeActionIsIdle() {
+        val viewModel = createViewModel()
+        assertEquals(SnoozeAction.Idle, viewModel.snoozeAction.value)
+    }
+
+    @Test
+    fun snoozeStateFollowsRepository() =
+        runTest {
+            val viewModel = createViewModel()
+
+            snoozeRepository.setSnoozeState(SnoozeState.Snoozing(12345L))
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(SnoozeState.Snoozing(12345L), viewModel.snoozeState.value)
+
+            snoozeRepository.setSnoozeState(SnoozeState.NotSnoozing)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(SnoozeState.NotSnoozing, viewModel.snoozeState.value)
+        }
 
     @Test
     fun pushStatusSendingTransitionsRequestStatusToSending() =
@@ -173,32 +195,6 @@ class RemoteButtonViewModelTest {
             testDispatcher.scheduler.runCurrent()
             assertEquals(RequestStatus.NONE, viewModel.requestStatus.value)
         }
-
-    @Test
-    fun snoozeRequestStatusFollowsSnoozeRepository() =
-        runTest {
-            val viewModel = createViewModel()
-
-            snoozeRepository.setSnoozeStatus(SnoozeRequestStatus.SENDING)
-            testDispatcher.scheduler.runCurrent()
-            assertEquals(SnoozeRequestStatus.SENDING, viewModel.snoozeRequestStatus.value)
-
-            snoozeRepository.setSnoozeStatus(SnoozeRequestStatus.ERROR)
-            testDispatcher.scheduler.runCurrent()
-            assertEquals(SnoozeRequestStatus.ERROR, viewModel.snoozeRequestStatus.value)
-
-            snoozeRepository.setSnoozeStatus(SnoozeRequestStatus.IDLE)
-            testDispatcher.scheduler.runCurrent()
-            assertEquals(SnoozeRequestStatus.IDLE, viewModel.snoozeRequestStatus.value)
-        }
-
-    @Test
-    fun snoozeEndTimeSecondsComesFromSnoozeRepository() {
-        val viewModel = createViewModel()
-
-        snoozeRepository.setSnoozeEndTime(12345L)
-        assertEquals(12345L, viewModel.snoozeEndTimeSeconds.value)
-    }
 
     @Test
     fun pushRemoteButtonDoesNothingWhenNotAuthenticated() =

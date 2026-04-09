@@ -20,7 +20,7 @@ package com.chriscartland.garage.data.repository
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkResult
-import com.chriscartland.garage.domain.model.SnoozeRequestStatus
+import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.domain.repository.SnoozeRepository
 import kotlinx.coroutines.delay
@@ -31,14 +31,12 @@ class NetworkSnoozeRepository(
     private val networkButtonDataSource: NetworkButtonDataSource,
     private val serverConfigRepository: ServerConfigRepository,
     private val snoozeNotificationsOption: Boolean,
+    private val currentTimeSeconds: () -> Long,
 ) : SnoozeRepository {
-    private val _snoozeRequestStatus = MutableStateFlow(SnoozeRequestStatus.IDLE)
-    override val snoozeRequestStatus: StateFlow<SnoozeRequestStatus> = _snoozeRequestStatus
+    private val _snoozeState = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
+    override val snoozeState: StateFlow<SnoozeState> = _snoozeState
 
-    private val _snoozeEndTimeSeconds = MutableStateFlow(0L)
-    override val snoozeEndTimeSeconds: StateFlow<Long> = _snoozeEndTimeSeconds
-
-    override suspend fun fetchSnoozeEndTimeSeconds() {
+    override suspend fun fetchSnoozeStatus() {
         val serverConfig = serverConfigRepository.getServerConfigCached()
         if (serverConfig == null) {
             Logger.e { "Server config is null" }
@@ -54,7 +52,9 @@ class NetworkSnoozeRepository(
                     buildTimestamp = serverConfig.buildTimestamp,
                 )
             ) {
-                is NetworkResult.Success -> _snoozeEndTimeSeconds.value = result.data
+                is NetworkResult.Success -> {
+                    _snoozeState.value = snoozeStateFromEndTime(result.data)
+                }
                 is NetworkResult.HttpError -> Logger.e { "Snooze fetch HTTP ${result.code}" }
                 NetworkResult.ConnectionFailed -> Logger.e { "Snooze fetch connection failed" }
             }
@@ -66,11 +66,9 @@ class NetworkSnoozeRepository(
         idToken: String,
         snoozeEventTimestampSeconds: Long,
     ) {
-        _snoozeRequestStatus.value = SnoozeRequestStatus.SENDING
         val serverConfig = serverConfigRepository.getServerConfigCached()
         if (serverConfig == null) {
             Logger.e { "Server config is null" }
-            _snoozeRequestStatus.value = SnoozeRequestStatus.IDLE
             return
         }
         if (!snoozeNotificationsOption) {
@@ -87,22 +85,25 @@ class NetworkSnoozeRepository(
                     snoozeEventTimestampSeconds = snoozeEventTimestampSeconds,
                 )
             ) {
-                is NetworkResult.Success -> {
-                    _snoozeRequestStatus.value = SnoozeRequestStatus.IDLE
-                    return
-                }
+                is NetworkResult.Success -> return
                 is NetworkResult.HttpError -> {
                     Logger.e { "Snooze HTTP ${result.code}" }
-                    _snoozeRequestStatus.value = SnoozeRequestStatus.ERROR
                     return
                 }
                 NetworkResult.ConnectionFailed -> {
                     Logger.e { "Snooze connection failed" }
-                    _snoozeRequestStatus.value = SnoozeRequestStatus.ERROR
                     return
                 }
             }
         }
-        _snoozeRequestStatus.value = SnoozeRequestStatus.IDLE
+    }
+
+    private fun snoozeStateFromEndTime(endTimeSeconds: Long): SnoozeState {
+        if (endTimeSeconds <= 0) return SnoozeState.NotSnoozing
+        return if (endTimeSeconds > currentTimeSeconds()) {
+            SnoozeState.Snoozing(endTimeSeconds)
+        } else {
+            SnoozeState.NotSnoozing
+        }
     }
 }
