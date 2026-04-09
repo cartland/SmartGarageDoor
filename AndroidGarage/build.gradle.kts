@@ -84,6 +84,15 @@ tasks.register<architecture.LayerImportCheckTask>("checkLayerImports") {
             "com.chriscartland.garage.data.Local,com.chriscartland.garage.data.Network,com.chriscartland.garage.data.ktor.,com.chriscartland.garage.data.repository.,com.chriscartland.garage.datalocal.",
             "ViewModels must depend on UseCases and domain interfaces, not data layer implementations.",
         ),
+        // ViewModels must not import domain repository interfaces — only UseCases.
+        // Phase 43: ViewModels orchestrate UI state via UseCases, never reach into the
+        // repository layer directly. This keeps the dependency graph clean and
+        // enables future module separation (battery-butler pattern).
+        listOf(
+            ".*ViewModel\\.kt",
+            "com.chriscartland.garage.domain.repository.",
+            "ViewModels must depend on UseCases, not domain repository interfaces. Wrap repository access in a UseCase.",
+        ),
         // UseCases must not import DataSource or concrete implementations
         listOf(
             ".*UseCase\\.kt",
