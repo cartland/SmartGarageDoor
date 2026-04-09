@@ -32,7 +32,7 @@ class DefaultAppSettingsViewModelTest {
     @Test
     fun initialStateReflectsSettings() =
         runTest(testDispatcher) {
-            val viewModel = DefaultAppSettingsViewModel(settings)
+            val viewModel = DefaultAppSettingsViewModel(AppSettingsUseCase(settings))
             advanceUntilIdle()
 
             assertEquals("", viewModel.fcmDoorTopic.value)
@@ -44,7 +44,7 @@ class DefaultAppSettingsViewModelTest {
     @Test
     fun setFcmDoorTopicUpdatesFlowAndSetting() =
         runTest(testDispatcher) {
-            val viewModel = DefaultAppSettingsViewModel(settings)
+            val viewModel = DefaultAppSettingsViewModel(AppSettingsUseCase(settings))
             advanceUntilIdle()
 
             viewModel.setFcmDoorTopic("new-topic")
@@ -57,7 +57,7 @@ class DefaultAppSettingsViewModelTest {
     @Test
     fun setProfileUserCardExpandedUpdatesFlowAndSetting() =
         runTest(testDispatcher) {
-            val viewModel = DefaultAppSettingsViewModel(settings)
+            val viewModel = DefaultAppSettingsViewModel(AppSettingsUseCase(settings))
             advanceUntilIdle()
 
             viewModel.setProfileUserCardExpanded(false)
@@ -70,7 +70,7 @@ class DefaultAppSettingsViewModelTest {
     @Test
     fun setProfileLogCardExpandedUpdatesFlowAndSetting() =
         runTest(testDispatcher) {
-            val viewModel = DefaultAppSettingsViewModel(settings)
+            val viewModel = DefaultAppSettingsViewModel(AppSettingsUseCase(settings))
             advanceUntilIdle()
 
             viewModel.setProfileLogCardExpanded(true)
@@ -83,7 +83,7 @@ class DefaultAppSettingsViewModelTest {
     @Test
     fun setProfileAppCardExpandedUpdatesFlowAndSetting() =
         runTest(testDispatcher) {
-            val viewModel = DefaultAppSettingsViewModel(settings)
+            val viewModel = DefaultAppSettingsViewModel(AppSettingsUseCase(settings))
             advanceUntilIdle()
 
             viewModel.setProfileAppCardExpanded(false)
@@ -99,7 +99,7 @@ class DefaultAppSettingsViewModelTest {
             settings.fcmDoorTopic.set("pre-existing")
             settings.profileLogCardExpanded.set(true)
 
-            val vm = DefaultAppSettingsViewModel(settings)
+            val vm = DefaultAppSettingsViewModel(AppSettingsUseCase(settings))
             advanceUntilIdle()
 
             assertEquals("pre-existing", vm.fcmDoorTopic.value)

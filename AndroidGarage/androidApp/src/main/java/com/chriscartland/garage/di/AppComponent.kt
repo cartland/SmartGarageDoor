@@ -54,6 +54,7 @@ import com.chriscartland.garage.domain.repository.RemoteButtonRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.domain.repository.SnoozeRepository
 import com.chriscartland.garage.fcm.FirebaseMessagingBridge
+import com.chriscartland.garage.usecase.AppSettingsUseCase
 import com.chriscartland.garage.usecase.DefaultAppLoggerViewModel
 import com.chriscartland.garage.usecase.DefaultAppSettingsViewModel
 import com.chriscartland.garage.usecase.DefaultAuthViewModel
@@ -103,7 +104,10 @@ abstract class AppComponent(
         )
 
     val appSettingsViewModel: DefaultAppSettingsViewModel
-        @Provides get() = DefaultAppSettingsViewModel(provideAppSettings())
+        @Provides get() = DefaultAppSettingsViewModel(provideAppSettingsUseCase())
+
+    @Provides
+    fun provideAppSettingsUseCase(): AppSettingsUseCase = AppSettingsUseCase(provideAppSettings())
 
     val doorViewModel: DefaultDoorViewModel
         @Provides get() = DefaultDoorViewModel(
