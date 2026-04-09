@@ -40,7 +40,7 @@ Pure Kotlin module (no Android dependencies). Single source of truth for shared 
 
 | Package | Contents |
 |---------|----------|
-| `domain/model/` | `DoorEvent`, `DoorPosition`, `LoadingResult<T>`, `AuthState` (sealed), `User`, `FirebaseIdToken`, `GoogleIdToken`, `DoorFcmState` (sealed), `DoorFcmTopic`, `FcmRegistrationStatus`, `RequestStatus`, `PushStatus`, `SnoozeRequestStatus`, `ServerConfig` |
+| `domain/model/` | `DoorEvent`, `DoorPosition`, `LoadingResult<T>`, `AuthState` (sealed), `User`, `FirebaseIdToken`, `GoogleIdToken`, `DoorFcmState` (sealed), `DoorFcmTopic`, `FcmRegistrationStatus`, `RemoteButtonState` (sealed), `PushStatus`, `SnoozeState` (sealed), `SnoozeAction` (sealed), `ServerConfig` |
 | `domain/repository/` | `DoorRepository`, `AuthRepository`, `PushRepository`, `ServerConfigRepository` (interfaces — signatures pending alignment with androidApp) |
 
 ### Android App (`androidApp/`)
@@ -125,7 +125,9 @@ ViewModels are created via `activityViewModel()` helper for Activity-scoped shar
 ## State Management
 
 - **`LoadingResult<T>`** (sealed class): `Loading(data?)`, `Complete(data?)`, `Error(exception)`. Used by DoorViewModel to represent fetch state.
-- **`RequestStatus`** (enum): NONE, SENDING, SENDING_TIMEOUT, SENT, SENT_TIMEOUT, RECEIVED. Drives RemoteButton UI feedback.
+- **`RemoteButtonState`** (sealed): Ready, Arming, Armed, NotConfirmed, Sending, Sent, Received, SendingTimeout, SentTimeout. Unified state for the remote garage button — combines tap-to-confirm interaction and network/door request lifecycle. Owned by `ButtonStateMachine` in `usecase/`.
+- **`SnoozeState`** (sealed): Loading, NotSnoozing, Snoozing(until). Always-visible current snooze status from server.
+- **`SnoozeAction`** (sealed): Idle, Sending, Succeeded.{Cleared, Set}, Failed.{NotAuthenticated, MissingData, NetworkError}. Overlay on top of SnoozeState; auto-resets to Idle after 10s.
 - **`AuthState`** (sealed): Unknown, Unauthenticated, Authenticated(user). Drives sign-in UI.
 - **`DoorFcmState`** (sealed): Unknown, NotRegistered, Registered(topic). Tracks FCM subscription.
 
