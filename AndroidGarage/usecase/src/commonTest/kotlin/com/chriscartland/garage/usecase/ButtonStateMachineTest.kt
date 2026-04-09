@@ -388,4 +388,52 @@ class ButtonStateMachineTest {
             testScheduler.runCurrent()
             assertEquals(1, submitCount)
         }
+
+    @Test
+    fun rapidDoubleTapInArmedDoesNotSubmitTwice() =
+        runTest {
+            val sm = create()
+            sm.onTap()
+            testScheduler.runCurrent()
+            advanceTimeBy(ARMING_DELAY + 1)
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.Armed, sm.state.value)
+
+            // Rapid double tap — second tap arrives while we're already in Sending
+            sm.onTap()
+            sm.onTap()
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.Sending, sm.state.value)
+            assertEquals(1, submitCount)
+        }
+
+    @Test
+    fun resetDuringArmingThenTapStartsArmingAgain() =
+        runTest {
+            val sm = create()
+            sm.onTap()
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.Arming, sm.state.value)
+
+            sm.reset()
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.Ready, sm.state.value)
+
+            sm.onTap()
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.Arming, sm.state.value)
+        }
+
+    @Test
+    fun displayTimeoutFromSendingTimeoutReturnsToReady() =
+        runTest {
+            val sm = armAndConfirm()
+            advanceTimeBy(NETWORK_TIMEOUT + 1)
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.SendingTimeout, sm.state.value)
+
+            advanceTimeBy(DISPLAY + 1)
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.Ready, sm.state.value)
+        }
 }
