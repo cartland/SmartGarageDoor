@@ -120,4 +120,16 @@ class SnoozeNotificationsUseCaseTest {
             useCase("4h", 2000L)
             assertEquals(1, fakeAuth.refreshCount)
         }
+
+    @Test
+    fun snoozeReturnsNetworkFailedWhenRepositoryReturnsFalse() =
+        runTest {
+            authenticateUser()
+            fakeSnooze.snoozeResult = false
+
+            val result = useCase("1h", 1000L)
+
+            assertTrue(result is AppResult.Error, "Should be error")
+            assertEquals(ActionError.NetworkFailed, (result as AppResult.Error).error)
+        }
 }
