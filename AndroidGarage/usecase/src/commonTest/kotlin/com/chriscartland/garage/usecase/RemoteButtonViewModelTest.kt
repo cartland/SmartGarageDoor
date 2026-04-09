@@ -257,6 +257,20 @@ class RemoteButtonViewModelTest {
         }
 
     @Test
+    fun snoozeActionFailedNetworkErrorWhenRepositoryReturnsFalse() =
+        runTest {
+            val viewModel = createAuthenticatedViewModel()
+            doorRepository.setCurrentDoorEvent(DoorEvent(lastChangeTimeSeconds = 1000L))
+            snoozeRepository.snoozeResult = false
+            testDispatcher.scheduler.runCurrent()
+
+            viewModel.snoozeOpenDoorsNotifications(SnoozeDurationUIOption.OneHour)
+            testDispatcher.scheduler.runCurrent()
+
+            assertEquals(SnoozeAction.Failed.NetworkError, viewModel.snoozeAction.value)
+        }
+
+    @Test
     fun snoozeActionWithNoneDurationDoesNotShowSnoozingTime() =
         runTest {
             val viewModel = createAuthenticatedViewModel()

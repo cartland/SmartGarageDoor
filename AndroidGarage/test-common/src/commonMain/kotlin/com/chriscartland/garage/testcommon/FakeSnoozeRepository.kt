@@ -15,6 +15,9 @@ class FakeSnoozeRepository : SnoozeRepository {
     var fetchCount = 0
         private set
 
+    /** Set this to false to make snoozeNotifications() return false (network failure). */
+    var snoozeResult: Boolean = true
+
     fun setSnoozeState(state: SnoozeState) {
         _snoozeState.value = state
     }
@@ -27,7 +30,8 @@ class FakeSnoozeRepository : SnoozeRepository {
         snoozeDurationHours: String,
         idToken: String,
         snoozeEventTimestampSeconds: Long,
-    ) {
+    ): Boolean {
         snoozeCount++
+        return snoozeResult
     }
 }

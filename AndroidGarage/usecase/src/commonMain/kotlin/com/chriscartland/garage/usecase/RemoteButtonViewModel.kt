@@ -111,6 +111,7 @@ class DefaultRemoteButtonViewModel(
                 is AppResult.Error -> when (result.error) {
                     ActionError.NotAuthenticated -> Logger.w { "Push failed — not authenticated" }
                     ActionError.MissingData -> Logger.w { "Push failed — missing data" }
+                    ActionError.NetworkFailed -> Logger.w { "Push failed — network error" }
                 }
             }
         }
@@ -142,6 +143,7 @@ class DefaultRemoteButtonViewModel(
                     _snoozeAction.value = when (result.error) {
                         ActionError.NotAuthenticated -> SnoozeAction.Failed.NotAuthenticated
                         ActionError.MissingData -> SnoozeAction.Failed.MissingData
+                        ActionError.NetworkFailed -> SnoozeAction.Failed.NetworkError
                     }
                     scheduleActionReset()
                 }

@@ -96,16 +96,62 @@ class SnoozeRepositoryTest {
     }
 
     @Test
-    fun snoozeDoesNotCrashWhenServerConfigFetchFails() =
+    fun snoozeReturnsFalseWhenServerConfigFetchFails() =
         runTest {
             networkConfigDataSource.serverConfigResult = NetworkResult.ConnectionFailed
-            repo.snoozeNotifications(
+            val success = repo.snoozeNotifications(
                 snoozeDurationHours = "1h",
                 idToken = "token",
                 snoozeEventTimestampSeconds = 1000L,
             )
-            // State remains Loading — no crash, no error propagation
+            assertEquals(false, success)
+            // State unchanged (still Loading from initial)
             assertEquals(SnoozeState.Loading, repo.snoozeState.value)
+        }
+
+    @Test
+    fun snoozeReturnsTrueOnSuccess() =
+        runTest {
+            networkConfigDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+            )
+            networkButtonDataSource.snoozeResult = NetworkResult.Success(Unit)
+            val success = repo.snoozeNotifications(
+                snoozeDurationHours = "1h",
+                idToken = "token",
+                snoozeEventTimestampSeconds = 1000L,
+            )
+            assertEquals(true, success)
+        }
+
+    @Test
+    fun snoozeReturnsFalseOnHttpError() =
+        runTest {
+            networkConfigDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+            )
+            networkButtonDataSource.snoozeResult = NetworkResult.HttpError(500)
+            val success = repo.snoozeNotifications(
+                snoozeDurationHours = "1h",
+                idToken = "token",
+                snoozeEventTimestampSeconds = 1000L,
+            )
+            assertEquals(false, success)
+        }
+
+    @Test
+    fun snoozeReturnsFalseOnConnectionFailure() =
+        runTest {
+            networkConfigDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+            )
+            networkButtonDataSource.snoozeResult = NetworkResult.ConnectionFailed
+            val success = repo.snoozeNotifications(
+                snoozeDurationHours = "1h",
+                idToken = "token",
+                snoozeEventTimestampSeconds = 1000L,
+            )
+            assertEquals(false, success)
         }
 
     @Test

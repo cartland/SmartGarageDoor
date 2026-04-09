@@ -17,4 +17,9 @@ sealed interface ActionError : AppError {
     data object MissingData : ActionError {
         override val message: String = "Required data not available"
     }
+
+    /** Network call failed (HTTP error or connection failure). */
+    data object NetworkFailed : ActionError {
+        override val message: String = "Network request failed"
+    }
 }
