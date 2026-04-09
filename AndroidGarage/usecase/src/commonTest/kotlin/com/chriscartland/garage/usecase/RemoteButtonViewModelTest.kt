@@ -83,13 +83,13 @@ class RemoteButtonViewModelTest {
         authRepository.setAuthState(authState)
         val ensureFreshIdToken = EnsureFreshIdTokenUseCase(authRepository)
         val vm = DefaultRemoteButtonViewModel(
-            remoteButtonRepository,
-            doorRepository,
-            TestDispatcherProvider(testDispatcher),
-            PushRemoteButtonUseCase(ensureFreshIdToken, authRepository, remoteButtonRepository),
-            SnoozeNotificationsUseCase(ensureFreshIdToken, authRepository, snoozeRepository),
-            FetchSnoozeStatusUseCase(snoozeRepository),
-            ObserveSnoozeStateUseCase(snoozeRepository),
+            observePushButtonStatus = ObservePushButtonStatusUseCase(remoteButtonRepository),
+            observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
+            dispatchers = TestDispatcherProvider(testDispatcher),
+            pushRemoteButtonUseCase = PushRemoteButtonUseCase(ensureFreshIdToken, authRepository, remoteButtonRepository),
+            snoozeNotificationsUseCase = SnoozeNotificationsUseCase(ensureFreshIdToken, authRepository, snoozeRepository),
+            fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
+            observeSnoozeStateUseCase = ObserveSnoozeStateUseCase(snoozeRepository),
         )
         testDispatcher.scheduler.runCurrent()
         return vm

@@ -29,8 +29,6 @@ import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.toServer
-import com.chriscartland.garage.domain.repository.DoorRepository
-import com.chriscartland.garage.domain.repository.RemoteButtonRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -53,8 +51,8 @@ interface RemoteButtonViewModel {
 }
 
 class DefaultRemoteButtonViewModel(
-    remoteButtonRepository: RemoteButtonRepository,
-    private val doorRepository: DoorRepository,
+    observePushButtonStatus: ObservePushButtonStatusUseCase,
+    private val observeDoorEvents: ObserveDoorEventsUseCase,
     private val dispatchers: DispatcherProvider,
     private val pushRemoteButtonUseCase: PushRemoteButtonUseCase,
     private val snoozeNotificationsUseCase: SnoozeNotificationsUseCase,
@@ -63,8 +61,8 @@ class DefaultRemoteButtonViewModel(
 ) : ViewModel(),
     RemoteButtonViewModel {
     private val stateMachine = ButtonStateMachine(
-        pushButtonStatus = remoteButtonRepository.pushButtonStatus,
-        doorPosition = doorRepository.currentDoorPosition,
+        pushButtonStatus = observePushButtonStatus(),
+        doorPosition = observeDoorEvents.position(),
         onSubmit = ::submitButtonPress,
         scope = viewModelScope,
         dispatcher = dispatchers.io,
@@ -85,7 +83,7 @@ class DefaultRemoteButtonViewModel(
 
     private fun listenToDoorEvent() {
         viewModelScope.launch(dispatchers.io) {
-            doorRepository.currentDoorEvent.collect {
+            observeDoorEvents.current().collect {
                 currentDoorEvent.value = it
             }
         }

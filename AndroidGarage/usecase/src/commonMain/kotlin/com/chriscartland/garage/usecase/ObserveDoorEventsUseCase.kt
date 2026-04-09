@@ -18,6 +18,7 @@
 package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.repository.DoorRepository
 import kotlinx.coroutines.flow.Flow
 
@@ -33,4 +34,7 @@ class ObserveDoorEventsUseCase(
     fun current(): Flow<DoorEvent?> = doorRepository.currentDoorEvent
 
     fun recent(): Flow<List<DoorEvent>> = doorRepository.recentDoorEvents
+
+    /** Stream of door position changes — needed by ButtonStateMachine. */
+    fun position(): Flow<DoorPosition> = doorRepository.currentDoorPosition
 }
