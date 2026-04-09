@@ -71,6 +71,46 @@ class RemoteButtonRepositoryTest {
             repo.pushButton("token", "ack-token")
             assertEquals(1, networkButtonDataSource.pushCount)
         }
+
+    @Test
+    fun pushResetsToIdleAfterHttpError() =
+        runTest {
+            networkConfigDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+            )
+            networkButtonDataSource.pushResult = NetworkResult.HttpError(500)
+            repo.pushButton("token", "ack-token")
+            // Status returns to IDLE even on HTTP error (state machine needs the IDLE signal)
+            assertEquals(PushStatus.IDLE, repo.pushButtonStatus.value)
+            assertEquals(1, networkButtonDataSource.pushCount)
+        }
+
+    @Test
+    fun pushResetsToIdleAfterConnectionFailure() =
+        runTest {
+            networkConfigDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+            )
+            networkButtonDataSource.pushResult = NetworkResult.ConnectionFailed
+            repo.pushButton("token", "ack-token")
+            assertEquals(PushStatus.IDLE, repo.pushButtonStatus.value)
+        }
+
+    @Test
+    fun pushDoesNotCallNetworkWhenFeatureDisabled() =
+        runTest {
+            val disabledRepo = NetworkRemoteButtonRepository(
+                networkButtonDataSource,
+                CachedServerConfigRepository(networkConfigDataSource, "test-key"),
+                remoteButtonPushEnabled = false,
+            )
+            networkConfigDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+            )
+            disabledRepo.pushButton("token", "ack-token")
+            assertEquals(0, networkButtonDataSource.pushCount)
+            assertEquals(PushStatus.IDLE, disabledRepo.pushButtonStatus.value)
+        }
 }
 
 class SnoozeRepositoryTest {
