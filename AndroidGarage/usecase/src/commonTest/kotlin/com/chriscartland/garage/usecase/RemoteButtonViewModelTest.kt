@@ -181,6 +181,21 @@ class RemoteButtonViewModelTest {
         }
 
     @Test
+    fun snoozeActionWithNoneDurationDoesNotShowSnoozingTime() =
+        runTest {
+            val viewModel = createAuthenticatedViewModel()
+            doorRepository.setCurrentDoorEvent(DoorEvent(lastChangeTimeSeconds = 1000L))
+            testDispatcher.scheduler.runCurrent()
+
+            viewModel.snoozeOpenDoorsNotifications(SnoozeDurationUIOption.None)
+            testDispatcher.scheduler.runCurrent()
+
+            // None means "do not snooze" — should show as cleared, not Snoozing(now)
+            val action = viewModel.snoozeAction.value
+            assertEquals(true, action is SnoozeAction.Succeeded.Cleared)
+        }
+
+    @Test
     fun snoozeActionFailedMissingDataWhenNoDoorEvent() =
         runTest {
             val viewModel = createAuthenticatedViewModel()

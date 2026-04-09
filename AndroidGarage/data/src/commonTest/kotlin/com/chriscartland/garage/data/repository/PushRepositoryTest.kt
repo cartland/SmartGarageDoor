@@ -158,6 +158,33 @@ class SnoozeRepositoryTest {
         }
 
     @Test
+    fun fetchSnoozeStatusClearsLoadingWhenServerConfigIsNull() =
+        runTest {
+            assertEquals(SnoozeState.Loading, repo.snoozeState.value)
+            // Default serverConfigResult is ConnectionFailed → cached config is null
+            networkConfigDataSource.serverConfigResult = NetworkResult.ConnectionFailed
+            repo.fetchSnoozeStatus()
+            assertNotEquals(SnoozeState.Loading, repo.snoozeState.value)
+        }
+
+    @Test
+    fun fetchSnoozeStatusClearsLoadingWhenFeatureDisabled() =
+        runTest {
+            val disabledRepo = NetworkSnoozeRepository(
+                networkButtonDataSource,
+                CachedServerConfigRepository(networkConfigDataSource, "test-key"),
+                snoozeNotificationsOption = false,
+                currentTimeSeconds = { 1000L },
+            )
+            networkConfigDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+            )
+            assertEquals(SnoozeState.Loading, disabledRepo.snoozeState.value)
+            disabledRepo.fetchSnoozeStatus()
+            assertNotEquals(SnoozeState.Loading, disabledRepo.snoozeState.value)
+        }
+
+    @Test
     fun subsequentFetchFailureKeepsLastKnownState() =
         runTest {
             networkConfigDataSource.serverConfigResult = NetworkResult.Success(

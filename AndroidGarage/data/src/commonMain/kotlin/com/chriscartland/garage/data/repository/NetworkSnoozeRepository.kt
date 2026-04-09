@@ -40,29 +40,30 @@ class NetworkSnoozeRepository(
         val serverConfig = serverConfigRepository.getServerConfigCached()
         if (serverConfig == null) {
             Logger.e { "Server config is null" }
+            clearLoadingState()
             return
         }
         if (!snoozeNotificationsOption) {
             Logger.w { "Snooze notifications disabled" }
             delay(500)
+            clearLoadingState()
+            return
         }
-        if (snoozeNotificationsOption) {
-            when (
-                val result = networkButtonDataSource.fetchSnoozeEndTimeSeconds(
-                    buildTimestamp = serverConfig.buildTimestamp,
-                )
-            ) {
-                is NetworkResult.Success -> {
-                    _snoozeState.value = snoozeStateFromEndTime(result.data)
-                }
-                is NetworkResult.HttpError -> {
-                    Logger.e { "Snooze fetch HTTP ${result.code}" }
-                    clearLoadingState()
-                }
-                NetworkResult.ConnectionFailed -> {
-                    Logger.e { "Snooze fetch connection failed" }
-                    clearLoadingState()
-                }
+        when (
+            val result = networkButtonDataSource.fetchSnoozeEndTimeSeconds(
+                buildTimestamp = serverConfig.buildTimestamp,
+            )
+        ) {
+            is NetworkResult.Success -> {
+                _snoozeState.value = snoozeStateFromEndTime(result.data)
+            }
+            is NetworkResult.HttpError -> {
+                Logger.e { "Snooze fetch HTTP ${result.code}" }
+                clearLoadingState()
+            }
+            NetworkResult.ConnectionFailed -> {
+                Logger.e { "Snooze fetch connection failed" }
+                clearLoadingState()
             }
         }
     }
