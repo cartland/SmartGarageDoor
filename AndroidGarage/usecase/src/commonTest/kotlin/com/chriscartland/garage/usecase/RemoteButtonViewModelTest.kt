@@ -102,6 +102,18 @@ class RemoteButtonViewModelTest {
     }
 
     @Test
+    fun fetchSnoozeStatusCallsThroughToRepository() =
+        runTest {
+            val viewModel = createViewModel()
+            assertEquals(0, snoozeRepository.fetchCount)
+
+            viewModel.fetchSnoozeStatus()
+            testDispatcher.scheduler.runCurrent()
+
+            assertEquals(1, snoozeRepository.fetchCount)
+        }
+
+    @Test
     fun snoozeStateFollowsRepository() =
         runTest {
             val viewModel = createViewModel()
