@@ -54,10 +54,16 @@ sealed interface SnoozeAction {
     /** Request in flight — show spinner. */
     data object Sending : SnoozeAction
 
-    /** Save succeeded — shows new time, auto-resets to [Idle] after timeout. */
-    data class Succeeded(
-        val untilEpochSeconds: Long,
-    ) : SnoozeAction
+    /** Save succeeded — auto-resets to [Idle] after timeout. */
+    sealed interface Succeeded : SnoozeAction {
+        /** Snooze cleared (user selected "Do not snooze"). */
+        data object Cleared : Succeeded
+
+        /** Snoozing until [untilEpochSeconds] (optimistic). */
+        data class Set(
+            val untilEpochSeconds: Long,
+        ) : Succeeded
+    }
 
     /** Save failed with a specific, actionable reason. */
     sealed interface Failed : SnoozeAction {

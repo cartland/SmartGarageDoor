@@ -120,10 +120,14 @@ class DefaultRemoteButtonViewModel(
                 )
             ) {
                 is AppResult.Success -> {
-                    // Compute optimistic snooze end time from duration.
-                    val durationSeconds = snoozeDuration.duration.inWholeSeconds
-                    val optimisticEnd = System.currentTimeMillis() / 1000 + durationSeconds
-                    _snoozeAction.value = SnoozeAction.Succeeded(optimisticEnd)
+                    _snoozeAction.value = if (snoozeDuration == SnoozeDurationUIOption.None) {
+                        SnoozeAction.Succeeded.Cleared
+                    } else {
+                        // Compute optimistic snooze end time from duration.
+                        val durationSeconds = snoozeDuration.duration.inWholeSeconds
+                        val optimisticEnd = System.currentTimeMillis() / 1000 + durationSeconds
+                        SnoozeAction.Succeeded.Set(optimisticEnd)
+                    }
                     fetchSnoozeStatusUseCase()
                     scheduleActionReset()
                 }

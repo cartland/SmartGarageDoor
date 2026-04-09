@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Wed Apr  8 22:10:28 PDT 2026
+Generated on Thu Apr  9 10:01:22 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -41,6 +41,12 @@ Generated on Wed Apr  8 22:10:28 PDT 2026
 
 ### RemoteButtonContentPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### SnoozeNotificationCardClearedPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardClearedPreviewTest_Dark_77106447_0.png" width="300" />
+
+### SnoozeNotificationCardClearedPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardClearedPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### SnoozeNotificationCardErrorPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardErrorPreviewTest_Dark_77106447_0.png" width="300" />

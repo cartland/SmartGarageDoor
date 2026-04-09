@@ -172,7 +172,14 @@ private fun SnoozeActionOverlay(snoozeAction: SnoozeAction) {
                 style = MaterialTheme.typography.labelSmall,
             )
         }
-        is SnoozeAction.Succeeded -> {
+        SnoozeAction.Succeeded.Cleared -> {
+            Text(
+                text = "Notifications resumed",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+        is SnoozeAction.Succeeded.Set -> {
             val snoozeTime = snoozeAction.untilEpochSeconds.toFriendlyTimeShort()
             Text(
                 text = "Saved! Snoozing until $snoozeTime",
@@ -236,7 +243,16 @@ fun SnoozeNotificationCardSendingPreview() {
 fun SnoozeNotificationCardSucceededPreview() {
     SnoozeNotificationCard(
         snoozeState = SnoozeState.NotSnoozing,
-        snoozeAction = SnoozeAction.Succeeded(999999999999L),
+        snoozeAction = SnoozeAction.Succeeded.Set(999999999999L),
+    )
+}
+
+@Preview
+@Composable
+fun SnoozeNotificationCardClearedPreview() {
+    SnoozeNotificationCard(
+        snoozeState = SnoozeState.NotSnoozing,
+        snoozeAction = SnoozeAction.Succeeded.Cleared,
     )
 }
 
