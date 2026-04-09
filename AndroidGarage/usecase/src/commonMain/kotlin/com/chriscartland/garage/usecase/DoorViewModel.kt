@@ -27,8 +27,6 @@ import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.LoadingResult
-import com.chriscartland.garage.domain.repository.AppLoggerRepository
-import com.chriscartland.garage.domain.repository.DoorRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -50,8 +48,8 @@ interface DoorViewModel {
 }
 
 class DefaultDoorViewModel(
-    private val appLoggerRepository: AppLoggerRepository,
-    private val doorRepository: DoorRepository,
+    observeDoorEvents: ObserveDoorEventsUseCase,
+    private val logAppEvent: LogAppEventUseCase,
     private val dispatchers: DispatcherProvider,
     private val fetchCurrentDoorEventUseCase: FetchCurrentDoorEventUseCase,
     private val fetchRecentDoorEventsUseCase: FetchRecentDoorEventsUseCase,
@@ -76,21 +74,21 @@ class DefaultDoorViewModel(
     init {
         Logger.d { "init" }
         viewModelScope.launch(dispatchers.io) {
-            doorRepository.currentDoorEvent.collect {
+            observeDoorEvents.current().collect {
                 Logger.d { "currentDoorEvent collect: $it" }
                 _currentDoorEvent.value = LoadingResult.Complete(it)
             }
         }
         viewModelScope.launch(dispatchers.io) {
-            doorRepository.recentDoorEvents.collect {
+            observeDoorEvents.recent().collect {
                 Logger.d { "recentDoorEvents collect: $it" }
                 _recentDoorEvents.value = LoadingResult.Complete(it)
             }
         }
         if (fetchOnInit) {
             viewModelScope.launch(dispatchers.io) {
-                appLoggerRepository.log(AppLoggerKeys.INIT_CURRENT_DOOR)
-                appLoggerRepository.log(AppLoggerKeys.INIT_RECENT_DOOR)
+                logAppEvent(AppLoggerKeys.INIT_CURRENT_DOOR)
+                logAppEvent(AppLoggerKeys.INIT_RECENT_DOOR)
             }
             fetchCurrentDoorEvent()
             fetchRecentDoorEvents()

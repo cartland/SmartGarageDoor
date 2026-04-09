@@ -72,14 +72,14 @@ class DoorViewModelTest {
 
     private fun createViewModel(fetchOnInit: Boolean = true): DefaultDoorViewModel {
         val vm = DefaultDoorViewModel(
-            appLoggerRepository,
-            doorRepository,
-            TestDispatcherProvider(testDispatcher),
-            FetchCurrentDoorEventUseCase(doorRepository),
-            FetchRecentDoorEventsUseCase(doorRepository),
-            FetchFcmStatusUseCase(doorFcmRepository),
-            RegisterFcmUseCase(doorRepository, doorFcmRepository),
-            DeregisterFcmUseCase(doorFcmRepository),
+            observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
+            logAppEvent = LogAppEventUseCase(appLoggerRepository),
+            dispatchers = TestDispatcherProvider(testDispatcher),
+            fetchCurrentDoorEventUseCase = FetchCurrentDoorEventUseCase(doorRepository),
+            fetchRecentDoorEventsUseCase = FetchRecentDoorEventsUseCase(doorRepository),
+            fetchFcmStatusUseCase = FetchFcmStatusUseCase(doorFcmRepository),
+            registerFcmUseCase = RegisterFcmUseCase(doorRepository, doorFcmRepository),
+            deregisterFcmUseCase = DeregisterFcmUseCase(doorFcmRepository),
             fetchOnInit = fetchOnInit,
         )
         testDispatcher.scheduler.runCurrent()

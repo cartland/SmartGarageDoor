@@ -69,6 +69,7 @@ import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveAppLogCountUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
+import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveSnoozeStateUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
@@ -126,6 +127,9 @@ abstract class AppComponent(
     @Provides
     fun provideObserveAppLogCountUseCase(): ObserveAppLogCountUseCase = ObserveAppLogCountUseCase(provideAppLoggerRepository())
 
+    @Provides
+    fun provideObserveDoorEventsUseCase(): ObserveDoorEventsUseCase = ObserveDoorEventsUseCase(provideDoorRepository())
+
     val appSettingsViewModel: DefaultAppSettingsViewModel
         @Provides get() = DefaultAppSettingsViewModel(provideAppSettingsUseCase())
 
@@ -134,8 +138,8 @@ abstract class AppComponent(
 
     val doorViewModel: DefaultDoorViewModel
         @Provides get() = DefaultDoorViewModel(
-            provideAppLoggerRepository(),
-            provideDoorRepository(),
+            provideObserveDoorEventsUseCase(),
+            provideLogAppEventUseCase(),
             provideDispatcherProvider(),
             provideFetchCurrentDoorEventUseCase(),
             provideFetchRecentDoorEventsUseCase(),
