@@ -603,6 +603,20 @@ sealed interface SnoozeAction {
 - UI uses exhaustive `when` on both sealed types — compiler guarantees all states handled
 - Add small loading animation (CircularProgressIndicator or similar) for Sending state
 
+### Phase 43: Enforce ViewModel → UseCase only — COMPLETE
+
+All 5 ViewModels migrated (#240, #242, #243, #247, #250) and lint rule
+added (#252) blocking `domain.repository.*` imports in ViewModel files.
+Future ViewModels cannot regress.
+
+New UseCases created for the migration:
+- `LogAppEventUseCase`, `ObserveAppLogCountUseCase`
+- `AppSettingsUseCase` (8 methods, one façade for all settings)
+- `SignInWithGoogleUseCase`, `SignOutUseCase`, `ObserveAuthStateUseCase`
+- `ObserveDoorEventsUseCase` (current, recent, position)
+- `ObservePushButtonStatusUseCase`
+- `FetchSnoozeStatusUseCase`, `ObserveSnoozeStateUseCase` (from Phase 42)
+
 ### Phase 43: Enforce ViewModel → UseCase only (no direct Repository access)
 
 **Goal:** ViewModels must depend only on UseCases and domain model types, never on Repository interfaces. This keeps ViewModels thin (orchestrate UI state) and UseCases testable (own business logic). Even thin wrappers are worth it — they enforce the layer boundary, keep the dependency graph consistent, and prevent logic from gradually leaking into ViewModels.
