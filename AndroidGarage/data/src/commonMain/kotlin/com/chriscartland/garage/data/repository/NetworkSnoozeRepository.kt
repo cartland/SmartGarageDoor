@@ -55,8 +55,14 @@ class NetworkSnoozeRepository(
                 is NetworkResult.Success -> {
                     _snoozeState.value = snoozeStateFromEndTime(result.data)
                 }
-                is NetworkResult.HttpError -> Logger.e { "Snooze fetch HTTP ${result.code}" }
-                NetworkResult.ConnectionFailed -> Logger.e { "Snooze fetch connection failed" }
+                is NetworkResult.HttpError -> {
+                    Logger.e { "Snooze fetch HTTP ${result.code}" }
+                    clearLoadingState()
+                }
+                NetworkResult.ConnectionFailed -> {
+                    Logger.e { "Snooze fetch connection failed" }
+                    clearLoadingState()
+                }
             }
         }
     }
@@ -95,6 +101,13 @@ class NetworkSnoozeRepository(
                     return
                 }
             }
+        }
+    }
+
+    /** If still Loading (first fetch), fall back to NotSnoozing so the UI doesn't show "Loading..." forever. */
+    private fun clearLoadingState() {
+        if (_snoozeState.value is SnoozeState.Loading) {
+            _snoozeState.value = SnoozeState.NotSnoozing
         }
     }
 
