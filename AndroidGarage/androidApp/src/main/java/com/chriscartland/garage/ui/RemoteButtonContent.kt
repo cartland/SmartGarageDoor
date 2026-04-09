@@ -211,8 +211,53 @@ private fun RemoteButtonState.toProgressData(): ProgressIndicatorData =
 @Preview(showBackground = true)
 @Composable
 fun RemoteButtonContentPreview() {
-    RemoteButtonContent(
-        state = RemoteButtonState.Ready,
-        onTap = {},
-    )
+    RemoteButtonContent(state = RemoteButtonState.Ready, onTap = {})
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RemoteButtonContentArmingPreview() {
+    RemoteButtonContent(state = RemoteButtonState.Arming, onTap = {})
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RemoteButtonContentArmedPreview() {
+    RemoteButtonContent(state = RemoteButtonState.Armed, onTap = {})
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RemoteButtonContentNotConfirmedPreview() {
+    RemoteButtonContent(state = RemoteButtonState.NotConfirmed, onTap = {})
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RemoteButtonContentSendingPreview() {
+    RemoteButtonContent(state = RemoteButtonState.Sending, onTap = {})
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RemoteButtonContentSentPreview() {
+    RemoteButtonContent(state = RemoteButtonState.Sent, onTap = {})
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RemoteButtonContentReceivedPreview() {
+    RemoteButtonContent(state = RemoteButtonState.Received, onTap = {})
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RemoteButtonContentSendingTimeoutPreview() {
+    RemoteButtonContent(state = RemoteButtonState.SendingTimeout, onTap = {})
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RemoteButtonContentSentTimeoutPreview() {
+    RemoteButtonContent(state = RemoteButtonState.SentTimeout, onTap = {})
 }
