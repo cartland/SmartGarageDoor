@@ -27,6 +27,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 
 /**
  * Tests use real [CachedServerConfigRepository] with [FakeNetworkConfigDataSource],
@@ -105,5 +106,30 @@ class SnoozeRepositoryTest {
             )
             // State remains Loading — no crash, no error propagation
             assertEquals(SnoozeState.Loading, repo.snoozeState.value)
+        }
+
+    @Test
+    fun fetchSnoozeStatusTransitionsFromLoadingToNotSnoozing() =
+        runTest {
+            assertEquals(SnoozeState.Loading, repo.snoozeState.value)
+            networkConfigDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+            )
+            networkButtonDataSource.fetchSnoozeResult = NetworkResult.Success(0L)
+            repo.fetchSnoozeStatus()
+            assertEquals(SnoozeState.NotSnoozing, repo.snoozeState.value)
+        }
+
+    @Test
+    fun fetchSnoozeStatusTransitionsFromLoadingEvenOnFailure() =
+        runTest {
+            assertEquals(SnoozeState.Loading, repo.snoozeState.value)
+            networkConfigDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+            )
+            networkButtonDataSource.fetchSnoozeResult = NetworkResult.ConnectionFailed
+            repo.fetchSnoozeStatus()
+            // Must not stay Loading — user would see "Loading..." forever
+            assertNotEquals(SnoozeState.Loading, repo.snoozeState.value)
         }
 }
