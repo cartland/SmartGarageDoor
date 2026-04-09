@@ -3,7 +3,7 @@ package com.chriscartland.garage.presentation
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.LoadingResult
-import com.chriscartland.garage.domain.model.RequestStatus
+import com.chriscartland.garage.domain.model.RemoteButtonState
 
 /**
  * Complete UI state for the Home screen.
@@ -14,6 +14,6 @@ import com.chriscartland.garage.domain.model.RequestStatus
  */
 data class HomeScreenState(
     val currentDoorEvent: LoadingResult<DoorEvent?> = LoadingResult.Loading(null),
-    val remoteRequestStatus: RequestStatus = RequestStatus.NONE,
+    val remoteButtonState: RemoteButtonState = RemoteButtonState.Ready,
     val authState: AuthState = AuthState.Unknown,
 )

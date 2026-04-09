@@ -48,7 +48,7 @@ import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.LoadingResult
-import com.chriscartland.garage.domain.model.RequestStatus
+import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.permissions.notificationJustificationText
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
 import com.chriscartland.garage.presentation.demoDoorEvents
@@ -79,21 +79,21 @@ fun HomeContent(
         onTokenReceived = { token -> resolvedAuthViewModel.signInWithGoogle(token) },
     )
     val currentDoorEvent by resolvedDoorViewModel.currentDoorEvent.collectAsState()
-    val buttonRequestStatus by buttonViewModel.requestStatus.collectAsState()
+    val buttonState by buttonViewModel.buttonState.collectAsState()
     val authState by resolvedAuthViewModel.authState.collectAsState()
     HomeContent(
         currentDoorEvent = currentDoorEvent,
-        remoteRequestStatus = buttonRequestStatus,
+        remoteButtonState = buttonState,
         modifier = modifier,
         onFetchCurrentDoorEvent = {
             resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_FETCH_CURRENT_DOOR)
             resolvedDoorViewModel.fetchCurrentDoorEvent()
         },
-        onRemoteButtonClick = {
+        onRemoteButtonTap = {
             when (authState) {
                 is AuthState.Authenticated -> {
-                    Logger.d { "Remote button clicked. AuthViewModel authState $authState" }
-                    buttonViewModel.pushRemoteButton()
+                    Logger.d { "Remote button tapped. AuthViewModel authState $authState" }
+                    buttonViewModel.onButtonTap()
                 }
 
                 AuthState.Unauthenticated -> {
@@ -105,7 +105,6 @@ fun HomeContent(
                 }
             }
         },
-        onResetRemote = { buttonViewModel.resetRemoteButton() },
         authState = authState,
         onSignIn = { googleSignIn.launchSignIn() },
         onResetFcm = {
@@ -122,10 +121,9 @@ fun HomeContent(
 fun HomeContent(
     currentDoorEvent: LoadingResult<DoorEvent?>,
     modifier: Modifier = Modifier,
-    remoteRequestStatus: RequestStatus = RequestStatus.NONE,
+    remoteButtonState: RemoteButtonState = RemoteButtonState.Ready,
     onFetchCurrentDoorEvent: () -> Unit = {},
-    onRemoteButtonClick: () -> Unit = {},
-    onResetRemote: () -> Unit = {},
+    onRemoteButtonTap: () -> Unit = {},
     authState: AuthState = AuthState.Unauthenticated,
     onSignIn: () -> Unit = {},
     notificationPermissionState: PermissionState = rememberNotificationPermissionState(),
@@ -217,14 +215,8 @@ fun HomeContent(
                         RemoteButtonContent(
                             modifier = Modifier
                                 .fillMaxSize(),
-                            onSubmit = {
-                                Logger.d { "Remote button clicked" }
-                                onRemoteButtonClick()
-                            },
-                            onArming = {
-                                onResetRemote()
-                            },
-                            remoteRequestStatus = remoteRequestStatus,
+                            state = remoteButtonState,
+                            onTap = onRemoteButtonTap,
                         )
                     }
                 }

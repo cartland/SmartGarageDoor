@@ -24,7 +24,7 @@ import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
-import com.chriscartland.garage.domain.model.RequestStatus
+import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
@@ -39,13 +39,13 @@ import kotlinx.coroutines.launch
 private const val SNOOZE_ACTION_RESET_DELAY_MS = 10_000L
 
 interface RemoteButtonViewModel {
-    val requestStatus: StateFlow<RequestStatus>
+    val buttonState: StateFlow<RemoteButtonState>
     val snoozeState: StateFlow<SnoozeState>
     val snoozeAction: StateFlow<SnoozeAction>
 
-    fun pushRemoteButton()
+    fun onButtonTap()
 
-    fun resetRemoteButton()
+    fun resetButton()
 
     fun snoozeOpenDoorsNotifications(snoozeDuration: SnoozeDurationUIOption)
 
@@ -53,7 +53,7 @@ interface RemoteButtonViewModel {
 }
 
 class DefaultRemoteButtonViewModel(
-    private val remoteButtonRepository: RemoteButtonRepository,
+    remoteButtonRepository: RemoteButtonRepository,
     private val doorRepository: DoorRepository,
     private val dispatchers: DispatcherProvider,
     private val pushRemoteButtonUseCase: PushRemoteButtonUseCase,
@@ -62,14 +62,15 @@ class DefaultRemoteButtonViewModel(
     private val observeSnoozeStateUseCase: ObserveSnoozeStateUseCase,
 ) : ViewModel(),
     RemoteButtonViewModel {
-    private val stateMachine = RemoteButtonStateMachine(
+    private val stateMachine = ButtonStateMachine(
         pushButtonStatus = remoteButtonRepository.pushButtonStatus,
         doorPosition = doorRepository.currentDoorPosition,
+        onSubmit = ::submitButtonPress,
         scope = viewModelScope,
         dispatcher = dispatchers.io,
     )
 
-    override val requestStatus: StateFlow<RequestStatus> = stateMachine.requestStatus
+    override val buttonState: StateFlow<RemoteButtonState> = stateMachine.state
 
     override val snoozeState: StateFlow<SnoozeState> = observeSnoozeStateUseCase()
 
@@ -90,8 +91,16 @@ class DefaultRemoteButtonViewModel(
         }
     }
 
-    override fun pushRemoteButton() {
-        Logger.d { "pushRemoteButton" }
+    override fun onButtonTap() {
+        stateMachine.onTap()
+    }
+
+    override fun resetButton() {
+        stateMachine.reset()
+    }
+
+    private fun submitButtonPress() {
+        Logger.d { "submitButtonPress" }
         viewModelScope.launch(dispatchers.io) {
             when (
                 val result = pushRemoteButtonUseCase(
@@ -140,10 +149,6 @@ class DefaultRemoteButtonViewModel(
                 }
             }
         }
-    }
-
-    override fun resetRemoteButton() {
-        stateMachine.reset()
     }
 
     override fun fetchSnoozeStatus() {
