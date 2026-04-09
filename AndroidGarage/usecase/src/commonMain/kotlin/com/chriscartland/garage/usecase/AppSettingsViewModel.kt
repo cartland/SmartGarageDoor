@@ -19,7 +19,6 @@ package com.chriscartland.garage.usecase
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -47,34 +46,38 @@ interface AppSettingsViewModel {
 }
 
 class DefaultAppSettingsViewModel(
-    private val settings: AppSettingsRepository,
+    private val settings: AppSettingsUseCase,
 ) : ViewModel(),
     AppSettingsViewModel {
-    override val fcmDoorTopic: StateFlow<String> = settings.fcmDoorTopic.flow
+    override val fcmDoorTopic: StateFlow<String> = settings
+        .observeFcmDoorTopic()
         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
 
-    override val profileUserCardExpanded: StateFlow<Boolean?> = settings.profileUserCardExpanded.flow
+    override val profileUserCardExpanded: StateFlow<Boolean?> = settings
+        .observeProfileUserCardExpanded()
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    override val profileLogCardExpanded: StateFlow<Boolean?> = settings.profileLogCardExpanded.flow
+    override val profileLogCardExpanded: StateFlow<Boolean?> = settings
+        .observeProfileLogCardExpanded()
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    override val profileAppCardExpanded: StateFlow<Boolean?> = settings.profileAppCardExpanded.flow
+    override val profileAppCardExpanded: StateFlow<Boolean?> = settings
+        .observeProfileAppCardExpanded()
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     override fun setFcmDoorTopic(topic: String) {
-        viewModelScope.launch { settings.fcmDoorTopic.set(topic) }
+        viewModelScope.launch { settings.setFcmDoorTopic(topic) }
     }
 
     override fun setProfileUserCardExpanded(expanded: Boolean) {
-        viewModelScope.launch { settings.profileUserCardExpanded.set(expanded) }
+        viewModelScope.launch { settings.setProfileUserCardExpanded(expanded) }
     }
 
     override fun setProfileLogCardExpanded(expanded: Boolean) {
-        viewModelScope.launch { settings.profileLogCardExpanded.set(expanded) }
+        viewModelScope.launch { settings.setProfileLogCardExpanded(expanded) }
     }
 
     override fun setProfileAppCardExpanded(expanded: Boolean) {
-        viewModelScope.launch { settings.profileAppCardExpanded.set(expanded) }
+        viewModelScope.launch { settings.setProfileAppCardExpanded(expanded) }
     }
 }
