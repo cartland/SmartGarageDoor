@@ -21,6 +21,58 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 
 /**
+ * Current snooze status from the server. Always visible in the UI.
+ *
+ * Only [Loading] on the very first fetch (app launch). Subsequent poll
+ * failures silently keep the last known state — stale data is better
+ * than error noise on a 60-second poll.
+ */
+sealed interface SnoozeState {
+    /** First fetch in progress (app launch). */
+    data object Loading : SnoozeState
+
+    /** No active snooze. */
+    data object NotSnoozing : SnoozeState
+
+    /** Notifications are snoozed until [untilEpochSeconds]. */
+    data class Snoozing(
+        val untilEpochSeconds: Long,
+    ) : SnoozeState
+}
+
+/**
+ * Result of the last user-initiated snooze save. Overlays on top of
+ * [SnoozeState] — the current snooze status is always visible underneath.
+ *
+ * [Succeeded] carries the new snooze time for optimistic UI updates
+ * and auto-resets to [Idle] after a timeout.
+ */
+sealed interface SnoozeAction {
+    /** No pending action. */
+    data object Idle : SnoozeAction
+
+    /** Request in flight — show spinner. */
+    data object Sending : SnoozeAction
+
+    /** Save succeeded — shows new time, auto-resets to [Idle] after timeout. */
+    data class Succeeded(
+        val untilEpochSeconds: Long,
+    ) : SnoozeAction
+
+    /** Save failed with a specific, actionable reason. */
+    sealed interface Failed : SnoozeAction {
+        /** User must sign in before snoozing. */
+        data object NotAuthenticated : Failed
+
+        /** No door event available (needed for snooze timestamp). */
+        data object MissingData : Failed
+
+        /** Server unreachable or returned an error. */
+        data object NetworkError : Failed
+    }
+}
+
+/**
  * Limited set of options available in the Android app.
  */
 enum class SnoozeDurationUIOption(

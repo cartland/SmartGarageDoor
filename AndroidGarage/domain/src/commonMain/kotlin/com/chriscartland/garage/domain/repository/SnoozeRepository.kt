@@ -1,6 +1,6 @@
 package com.chriscartland.garage.domain.repository
 
-import com.chriscartland.garage.domain.model.SnoozeRequestStatus
+import com.chriscartland.garage.domain.model.SnoozeState
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -10,10 +10,9 @@ import kotlinx.coroutines.flow.StateFlow
  * The snooze end time is persisted server-side and fetched on demand.
  */
 interface SnoozeRepository {
-    val snoozeRequestStatus: StateFlow<SnoozeRequestStatus>
-    val snoozeEndTimeSeconds: StateFlow<Long>
+    val snoozeState: StateFlow<SnoozeState>
 
-    suspend fun fetchSnoozeEndTimeSeconds()
+    suspend fun fetchSnoozeStatus()
 
     suspend fun snoozeNotifications(
         snoozeDurationHours: String,

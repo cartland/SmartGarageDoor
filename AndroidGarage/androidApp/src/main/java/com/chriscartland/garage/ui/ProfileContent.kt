@@ -37,8 +37,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AuthState
+import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
-import com.chriscartland.garage.domain.model.SnoozeRequestStatus
+import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
 import com.chriscartland.garage.usecase.AuthViewModel
@@ -62,12 +63,12 @@ fun ProfileContent(
         onTokenReceived = { token -> resolvedAuthViewModel.signInWithGoogle(token) },
     )
     val authState by resolvedAuthViewModel.authState.collectAsState()
-    val snoozeRequestStatus by buttonViewModel.snoozeRequestStatus.collectAsState()
-    val snoozeEndTimeSeconds by buttonViewModel.snoozeEndTimeSeconds.collectAsState()
+    val snoozeState by buttonViewModel.snoozeState.collectAsState()
+    val snoozeAction by buttonViewModel.snoozeAction.collectAsState()
 
-    LaunchedEffect(key1 = snoozeRequestStatus) {
+    LaunchedEffect(Unit) {
         while (true) {
-            buttonViewModel.fetchSnoozeEndTimeSeconds()
+            buttonViewModel.fetchSnoozeStatus()
             delay(Duration.ofMinutes(1).toMillis())
         }
     }
@@ -81,8 +82,8 @@ fun ProfileContent(
         modifier = modifier,
         signIn = { googleSignIn.launchSignIn() },
         signOut = { resolvedAuthViewModel.signOut() },
-        snoozeEndTimeSeconds = snoozeEndTimeSeconds,
-        snoozeRequestStatus = snoozeRequestStatus,
+        snoozeState = snoozeState,
+        snoozeAction = snoozeAction,
         onSnooze = {
             buttonViewModel.snoozeOpenDoorsNotifications(it)
         },
@@ -98,8 +99,8 @@ fun ProfileContent(
     modifier: Modifier = Modifier,
     signIn: () -> Unit,
     signOut: () -> Unit,
-    snoozeEndTimeSeconds: Long? = null,
-    snoozeRequestStatus: SnoozeRequestStatus = SnoozeRequestStatus.IDLE,
+    snoozeState: SnoozeState = SnoozeState.Loading,
+    snoozeAction: SnoozeAction = SnoozeAction.Idle,
     onSnooze: (snooze: SnoozeDurationUIOption) -> Unit = {},
     showSnooze: Boolean = true,
     showLogSummary: Boolean = true,
@@ -119,12 +120,9 @@ fun ProfileContent(
         if (showSnooze && notificationPermissionState.status.isGranted) {
             item {
                 SnoozeNotificationCard(
-                    snoozeText = "Snooze",
-                    saveText = "Save",
-                    noneSelectedText = "Cancel",
+                    snoozeState = snoozeState,
+                    snoozeAction = snoozeAction,
                     onSnooze = onSnooze,
-                    snoozeRequestStatus = snoozeRequestStatus,
-                    snoozeEndTimeSeconds = snoozeEndTimeSeconds,
                     colors = cardColors,
                 )
             }

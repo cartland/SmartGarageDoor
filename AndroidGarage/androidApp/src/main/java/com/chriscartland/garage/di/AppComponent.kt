@@ -64,6 +64,8 @@ import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.FetchFcmStatusUseCase
 import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
+import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
+import com.chriscartland.garage.usecase.ObserveSnoozeStateUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
@@ -118,11 +120,12 @@ abstract class AppComponent(
     val remoteButtonViewModel: DefaultRemoteButtonViewModel
         @Provides get() = DefaultRemoteButtonViewModel(
             provideRemoteButtonRepository(),
-            provideSnoozeRepository(),
             provideDoorRepository(),
             provideDispatcherProvider(),
             providePushRemoteButtonUseCase(),
             provideSnoozeNotificationsUseCase(),
+            provideFetchSnoozeStatusUseCase(),
+            provideObserveSnoozeStateUseCase(),
         )
 
     // Configuration
@@ -235,6 +238,12 @@ abstract class AppComponent(
     fun provideSnoozeNotificationsUseCase(): SnoozeNotificationsUseCase =
         SnoozeNotificationsUseCase(provideEnsureFreshIdTokenUseCase(), provideAuthRepository(), provideSnoozeRepository())
 
+    @Provides
+    fun provideFetchSnoozeStatusUseCase(): FetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(provideSnoozeRepository())
+
+    @Provides
+    fun provideObserveSnoozeStateUseCase(): ObserveSnoozeStateUseCase = ObserveSnoozeStateUseCase(provideSnoozeRepository())
+
     // Network — button + snooze data source
     @Provides
     @Singleton
@@ -258,6 +267,7 @@ abstract class AppComponent(
             provideNetworkButtonDataSource(),
             provideServerConfigRepository(),
             provideAppConfig().snoozeNotificationsOption,
+            currentTimeSeconds = { System.currentTimeMillis() / 1000 },
         )
 
     // Coroutines

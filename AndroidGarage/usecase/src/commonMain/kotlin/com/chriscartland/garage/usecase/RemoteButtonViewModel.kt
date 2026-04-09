@@ -25,20 +25,23 @@ import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.RequestStatus
+import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
-import com.chriscartland.garage.domain.model.SnoozeRequestStatus
+import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.toServer
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.RemoteButtonRepository
-import com.chriscartland.garage.domain.repository.SnoozeRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+private const val SNOOZE_ACTION_RESET_DELAY_MS = 10_000L
+
 interface RemoteButtonViewModel {
     val requestStatus: StateFlow<RequestStatus>
-    val snoozeRequestStatus: StateFlow<SnoozeRequestStatus>
-    val snoozeEndTimeSeconds: StateFlow<Long>
+    val snoozeState: StateFlow<SnoozeState>
+    val snoozeAction: StateFlow<SnoozeAction>
 
     fun pushRemoteButton()
 
@@ -46,16 +49,17 @@ interface RemoteButtonViewModel {
 
     fun snoozeOpenDoorsNotifications(snoozeDuration: SnoozeDurationUIOption)
 
-    fun fetchSnoozeEndTimeSeconds()
+    fun fetchSnoozeStatus()
 }
 
 class DefaultRemoteButtonViewModel(
     private val remoteButtonRepository: RemoteButtonRepository,
-    private val snoozeRepository: SnoozeRepository,
     private val doorRepository: DoorRepository,
     private val dispatchers: DispatcherProvider,
     private val pushRemoteButtonUseCase: PushRemoteButtonUseCase,
     private val snoozeNotificationsUseCase: SnoozeNotificationsUseCase,
+    private val fetchSnoozeStatusUseCase: FetchSnoozeStatusUseCase,
+    private val observeSnoozeStateUseCase: ObserveSnoozeStateUseCase,
 ) : ViewModel(),
     RemoteButtonViewModel {
     private val stateMachine = RemoteButtonStateMachine(
@@ -67,30 +71,21 @@ class DefaultRemoteButtonViewModel(
 
     override val requestStatus: StateFlow<RequestStatus> = stateMachine.requestStatus
 
-    private val _snoozeRequestStatus = MutableStateFlow(SnoozeRequestStatus.IDLE)
-    override val snoozeRequestStatus: StateFlow<SnoozeRequestStatus> = _snoozeRequestStatus
+    override val snoozeState: StateFlow<SnoozeState> = observeSnoozeStateUseCase()
 
-    override val snoozeEndTimeSeconds: StateFlow<Long> = snoozeRepository.snoozeEndTimeSeconds
+    private val _snoozeAction = MutableStateFlow<SnoozeAction>(SnoozeAction.Idle)
+    override val snoozeAction: StateFlow<SnoozeAction> = _snoozeAction
 
     private val currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
 
     init {
         listenToDoorEvent()
-        listenToSnoozeStatus()
     }
 
     private fun listenToDoorEvent() {
         viewModelScope.launch(dispatchers.io) {
             doorRepository.currentDoorEvent.collect {
                 currentDoorEvent.value = it
-            }
-        }
-    }
-
-    private fun listenToSnoozeStatus() {
-        viewModelScope.launch(dispatchers.io) {
-            snoozeRepository.snoozeRequestStatus.collect {
-                _snoozeRequestStatus.value = it
             }
         }
     }
@@ -116,6 +111,7 @@ class DefaultRemoteButtonViewModel(
 
     override fun snoozeOpenDoorsNotifications(snoozeDuration: SnoozeDurationUIOption) {
         Logger.d { "snoozeOpenDoorsNotifications" }
+        _snoozeAction.value = SnoozeAction.Sending
         viewModelScope.launch(dispatchers.io) {
             when (
                 val result = snoozeNotificationsUseCase(
@@ -123,12 +119,20 @@ class DefaultRemoteButtonViewModel(
                     lastChangeTimeSeconds = currentDoorEvent.value?.lastChangeTimeSeconds,
                 )
             ) {
-                is AppResult.Success -> snoozeRepository.fetchSnoozeEndTimeSeconds()
-                is AppResult.Error -> when (result.error) {
-                    ActionError.NotAuthenticated ->
-                        Logger.e { "Snooze failed — not authenticated" }
-                    ActionError.MissingData ->
-                        Logger.e { "Snooze failed — no door event timestamp" }
+                is AppResult.Success -> {
+                    // Compute optimistic snooze end time from duration.
+                    val durationSeconds = snoozeDuration.duration.inWholeSeconds
+                    val optimisticEnd = System.currentTimeMillis() / 1000 + durationSeconds
+                    _snoozeAction.value = SnoozeAction.Succeeded(optimisticEnd)
+                    fetchSnoozeStatusUseCase()
+                    scheduleActionReset()
+                }
+                is AppResult.Error -> {
+                    _snoozeAction.value = when (result.error) {
+                        ActionError.NotAuthenticated -> SnoozeAction.Failed.NotAuthenticated
+                        ActionError.MissingData -> SnoozeAction.Failed.MissingData
+                    }
+                    scheduleActionReset()
                 }
             }
         }
@@ -138,9 +142,16 @@ class DefaultRemoteButtonViewModel(
         stateMachine.reset()
     }
 
-    override fun fetchSnoozeEndTimeSeconds() {
+    override fun fetchSnoozeStatus() {
         viewModelScope.launch(dispatchers.io) {
-            snoozeRepository.fetchSnoozeEndTimeSeconds()
+            fetchSnoozeStatusUseCase()
+        }
+    }
+
+    private fun scheduleActionReset() {
+        viewModelScope.launch {
+            delay(SNOOZE_ACTION_RESET_DELAY_MS)
+            _snoozeAction.value = SnoozeAction.Idle
         }
     }
 }

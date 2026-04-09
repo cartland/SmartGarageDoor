@@ -13,9 +13,3 @@ enum class PushStatus {
     IDLE,
     SENDING,
 }
-
-enum class SnoozeRequestStatus {
-    IDLE,
-    SENDING,
-    ERROR,
-}
