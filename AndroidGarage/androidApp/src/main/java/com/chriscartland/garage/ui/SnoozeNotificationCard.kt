@@ -177,28 +177,28 @@ private fun SnoozeActionOverlay(snoozeAction: SnoozeAction) {
             Text(
                 text = "Saved! Snoozing until $snoozeTime",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
         }
         SnoozeAction.Failed.NotAuthenticated -> {
             Text(
                 text = "Sign in to snooze notifications",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.error,
+                color = MaterialTheme.colorScheme.onErrorContainer,
             )
         }
         SnoozeAction.Failed.MissingData -> {
             Text(
                 text = "No door event available",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.error,
+                color = MaterialTheme.colorScheme.onErrorContainer,
             )
         }
         SnoozeAction.Failed.NetworkError -> {
             Text(
                 text = "Couldn't reach server",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.error,
+                color = MaterialTheme.colorScheme.onErrorContainer,
             )
         }
     }
