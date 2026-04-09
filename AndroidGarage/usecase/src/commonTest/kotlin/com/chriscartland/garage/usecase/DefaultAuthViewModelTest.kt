@@ -22,7 +22,13 @@ class DefaultAuthViewModelTest {
     private val authRepo = FakeAuthRepository()
     private val logger = FakeAppLoggerRepository()
     private val dispatchers = TestDispatcherProvider(testDispatcher)
-    private val viewModel = DefaultAuthViewModel(authRepo, logger, dispatchers)
+    private val viewModel = DefaultAuthViewModel(
+        observeAuthState = ObserveAuthStateUseCase(authRepo),
+        signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepo),
+        signOutUseCase = SignOutUseCase(authRepo),
+        logAppEvent = LogAppEventUseCase(logger),
+        dispatchers = dispatchers,
+    )
 
     @Test
     fun initialAuthStateIsUnknown() {

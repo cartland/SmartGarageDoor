@@ -24,8 +24,6 @@ import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.GoogleIdToken
-import com.chriscartland.garage.domain.repository.AppLoggerRepository
-import com.chriscartland.garage.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
@@ -38,24 +36,26 @@ interface AuthViewModel {
 }
 
 class DefaultAuthViewModel(
-    private val authRepository: AuthRepository,
-    private val appLoggerRepository: AppLoggerRepository,
+    observeAuthState: ObserveAuthStateUseCase,
+    private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
+    private val signOutUseCase: SignOutUseCase,
+    private val logAppEvent: LogAppEventUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel(),
     AuthViewModel {
-    override val authState: StateFlow<AuthState> = authRepository.authState
+    override val authState: StateFlow<AuthState> = observeAuthState()
 
     override fun signInWithGoogle(idToken: GoogleIdToken) {
         viewModelScope.launch(dispatchers.io) {
-            appLoggerRepository.log(AppLoggerKeys.BEGIN_GOOGLE_SIGN_IN)
+            logAppEvent(AppLoggerKeys.BEGIN_GOOGLE_SIGN_IN)
             Logger.d { "signInWithGoogle" }
-            authRepository.signInWithGoogle(idToken)
+            signInWithGoogleUseCase(idToken)
         }
     }
 
     override fun signOut() {
         viewModelScope.launch(dispatchers.io) {
-            authRepository.signOut()
+            signOutUseCase()
         }
     }
 }

@@ -68,9 +68,12 @@ import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveAppLogCountUseCase
+import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveSnoozeStateUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
+import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
+import com.chriscartland.garage.usecase.SignOutUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
 import com.chriscartland.garage.version.AppVersion
 import io.ktor.client.HttpClient
@@ -94,10 +97,21 @@ abstract class AppComponent(
     // ViewModels
     val authViewModel: DefaultAuthViewModel
         @Provides get() = DefaultAuthViewModel(
-            provideAuthRepository(),
-            provideAppLoggerRepository(),
+            provideObserveAuthStateUseCase(),
+            provideSignInWithGoogleUseCase(),
+            provideSignOutUseCase(),
+            provideLogAppEventUseCase(),
             provideDispatcherProvider(),
         )
+
+    @Provides
+    fun provideObserveAuthStateUseCase(): ObserveAuthStateUseCase = ObserveAuthStateUseCase(provideAuthRepository())
+
+    @Provides
+    fun provideSignInWithGoogleUseCase(): SignInWithGoogleUseCase = SignInWithGoogleUseCase(provideAuthRepository())
+
+    @Provides
+    fun provideSignOutUseCase(): SignOutUseCase = SignOutUseCase(provideAuthRepository())
 
     val appLoggerViewModel: DefaultAppLoggerViewModel
         @Provides get() = DefaultAppLoggerViewModel(
