@@ -7,7 +7,15 @@ import com.chriscartland.garage.ui.DoorStatusCardPreview
 import com.chriscartland.garage.ui.ErrorCardPreview
 import com.chriscartland.garage.ui.LogSummaryCardPreview
 import com.chriscartland.garage.ui.RecentDoorEventListItemPreview
+import com.chriscartland.garage.ui.RemoteButtonContentArmedPreview
+import com.chriscartland.garage.ui.RemoteButtonContentArmingPreview
+import com.chriscartland.garage.ui.RemoteButtonContentNotConfirmedPreview
 import com.chriscartland.garage.ui.RemoteButtonContentPreview
+import com.chriscartland.garage.ui.RemoteButtonContentReceivedPreview
+import com.chriscartland.garage.ui.RemoteButtonContentSendingPreview
+import com.chriscartland.garage.ui.RemoteButtonContentSendingTimeoutPreview
+import com.chriscartland.garage.ui.RemoteButtonContentSentPreview
+import com.chriscartland.garage.ui.RemoteButtonContentSentTimeoutPreview
 import com.chriscartland.garage.ui.SnoozeNotificationCardClearedPreview
 import com.chriscartland.garage.ui.SnoozeNotificationCardErrorPreview
 import com.chriscartland.garage.ui.SnoozeNotificationCardLoadingPreview
@@ -58,6 +66,102 @@ fun RemoteButtonContentPreviewTest() {
     AppTheme {
         RemoteButtonContentPreview()
     }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteButtonContentArmingPreviewTest() {
+    AppTheme { RemoteButtonContentArmingPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteButtonContentArmedPreviewTest() {
+    AppTheme { RemoteButtonContentArmedPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteButtonContentNotConfirmedPreviewTest() {
+    AppTheme { RemoteButtonContentNotConfirmedPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteButtonContentSendingPreviewTest() {
+    AppTheme { RemoteButtonContentSendingPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteButtonContentSentPreviewTest() {
+    AppTheme { RemoteButtonContentSentPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteButtonContentReceivedPreviewTest() {
+    AppTheme { RemoteButtonContentReceivedPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteButtonContentSendingTimeoutPreviewTest() {
+    AppTheme { RemoteButtonContentSendingTimeoutPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteButtonContentSentTimeoutPreviewTest() {
+    AppTheme { RemoteButtonContentSentTimeoutPreview() }
 }
 
 @PreviewTest
