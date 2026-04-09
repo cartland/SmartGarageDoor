@@ -18,12 +18,17 @@
 package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.model.AuthState
+import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.domain.model.Email
+import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.RequestStatus
 import com.chriscartland.garage.domain.model.SnoozeAction
+import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
+import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
@@ -66,6 +71,17 @@ class RemoteButtonViewModelTest {
     fun tearDown() {
         Dispatchers.resetMain()
     }
+
+    private fun createAuthenticatedViewModel(): DefaultRemoteButtonViewModel =
+        createViewModel(
+            authState = AuthState.Authenticated(
+                user = User(
+                    name = DisplayName("Test"),
+                    email = Email("test@test.com"),
+                    idToken = FirebaseIdToken(idToken = "token", exp = Long.MAX_VALUE),
+                ),
+            ),
+        )
 
     private fun createViewModel(authState: AuthState = AuthState.Unauthenticated): DefaultRemoteButtonViewModel {
         authRepository.setAuthState(authState)
@@ -111,6 +127,68 @@ class RemoteButtonViewModelTest {
             testDispatcher.scheduler.runCurrent()
 
             assertEquals(1, snoozeRepository.fetchCount)
+        }
+
+    @Test
+    fun snoozeActionTransitionsToSendingThenSucceeded() =
+        runTest {
+            val viewModel = createAuthenticatedViewModel()
+            doorRepository.setCurrentDoorEvent(DoorEvent(lastChangeTimeSeconds = 1000L))
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(SnoozeAction.Idle, viewModel.snoozeAction.value)
+
+            viewModel.snoozeOpenDoorsNotifications(SnoozeDurationUIOption.OneHour)
+            testDispatcher.scheduler.runCurrent()
+
+            // After Sending completes, transitions to Succeeded
+            assertEquals(true, viewModel.snoozeAction.value is SnoozeAction.Succeeded)
+        }
+
+    @Test
+    fun snoozeActionSucceededAutoResetsToIdleAfter10Seconds() =
+        runTest {
+            val viewModel = createAuthenticatedViewModel()
+            doorRepository.setCurrentDoorEvent(DoorEvent(lastChangeTimeSeconds = 1000L))
+            testDispatcher.scheduler.runCurrent()
+
+            viewModel.snoozeOpenDoorsNotifications(SnoozeDurationUIOption.OneHour)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(true, viewModel.snoozeAction.value is SnoozeAction.Succeeded)
+
+            // 9 seconds later — still Succeeded
+            advanceTimeBy(9_000)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(true, viewModel.snoozeAction.value is SnoozeAction.Succeeded)
+
+            // After 10 seconds — back to Idle
+            advanceTimeBy(2_000)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(SnoozeAction.Idle, viewModel.snoozeAction.value)
+        }
+
+    @Test
+    fun snoozeActionFailedNotAuthenticatedAutoResetsToIdle() =
+        runTest {
+            val viewModel = createViewModel(authState = AuthState.Unauthenticated)
+
+            viewModel.snoozeOpenDoorsNotifications(SnoozeDurationUIOption.OneHour)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(SnoozeAction.Failed.NotAuthenticated, viewModel.snoozeAction.value)
+
+            advanceTimeBy(11_000)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(SnoozeAction.Idle, viewModel.snoozeAction.value)
+        }
+
+    @Test
+    fun snoozeActionFailedMissingDataWhenNoDoorEvent() =
+        runTest {
+            val viewModel = createAuthenticatedViewModel()
+            // No door event set — currentDoorEvent.value is null
+
+            viewModel.snoozeOpenDoorsNotifications(SnoozeDurationUIOption.OneHour)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(SnoozeAction.Failed.MissingData, viewModel.snoozeAction.value)
         }
 
     @Test
