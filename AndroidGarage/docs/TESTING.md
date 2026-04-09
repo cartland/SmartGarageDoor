@@ -95,7 +95,7 @@ The highest-risk untested area. The app has ~15 null-check branches in network c
 - Push with HTTP 500 response → verify `pushButtonStatus` reflects error (not IDLE)
 - Push with null server config → verify status is not stuck in SENDING
 - Push with `remoteButtonPushEnabled = false` → verify no network call made
-- Snooze with error response body → verify `snoozeRequestStatus` is ERROR
+- Snooze with error response body → verify `snoozeAction` becomes `Failed.NetworkError`
 
 **Files:** New `PushRepositoryTest.kt`
 
