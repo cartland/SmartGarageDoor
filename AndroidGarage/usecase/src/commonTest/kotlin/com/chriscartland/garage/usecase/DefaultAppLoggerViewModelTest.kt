@@ -13,7 +13,11 @@ class DefaultAppLoggerViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val logger = FakeAppLoggerRepository()
     private val dispatchers = TestDispatcherProvider(testDispatcher)
-    private val viewModel = DefaultAppLoggerViewModel(logger, dispatchers)
+    private val viewModel = DefaultAppLoggerViewModel(
+        logAppEvent = LogAppEventUseCase(logger),
+        observeAppLogCount = ObserveAppLogCountUseCase(logger),
+        dispatchers = dispatchers,
+    )
 
     @Test
     fun logDelegatesToRepository() =
