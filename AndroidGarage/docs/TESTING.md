@@ -26,7 +26,7 @@
 - **Safety guardrails:** git hooks warn on Room entity changes, block push to main, enforce squash merge, block direct screenshot Gradle tasks, block absolute paths to gradlew, block push to branches with auto-merge enabled
 - **DI system:** kotlin-inject (Hilt fully removed as of Phase 3), Ktor HTTP (Retrofit fully removed as of Phase 4)
 - **Navigation:** Navigation 3 (Nav2 fully removed, enforcement check blocks re-introduction)
-- **Architecture enforcement:** ArchitectureCheckTask (module deps), SingletonGuardTask (DB/Settings/HTTP scoping), LayerImportCheckTask (ViewModel→UseCase, UseCase→domain boundaries), RememberSaveableGuardTask (blocks unsafe rememberSaveable without saver). **Gap:** LayerImportCheckTask blocks data *implementation* imports but not `domain.repository.*` imports in ViewModels — Phase 43 will close this gap
+- **Architecture enforcement:** ArchitectureCheckTask (module deps), SingletonGuardTask (DB/Settings/HTTP scoping), LayerImportCheckTask (ViewModel→UseCase strict, UseCase→domain boundaries), RememberSaveableGuardTask (blocks unsafe rememberSaveable without saver). ViewModels are blocked from importing both data layer implementations AND `domain.repository.*` interfaces — must go through a UseCase
 - **Test coverage:** No exemptions remaining (RoomAppLoggerRepository moved to data-local KMP module)
 - **Test pattern:** usecase tests fake at repository interface; data tests use real repos with fake data sources
 - **Completed:** Phase 1 (CI hardening), Phase 2 (network error tests), Phase 3 (auth token fix + UseCase tests + AuthBridge extraction), Phase 4 (state machine completeness), Phase 5.2-5.3 (release safety), Phase 6.1 (ESLint migration), Phase 7 (instrumented tests)
