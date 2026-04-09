@@ -562,19 +562,22 @@ Use `material3-adaptive-navigation-suite` (`NavigationSuiteScaffold`) to handle 
 The snooze card shows two independent pieces of information that must not overwrite each other:
 
 ```kotlin
-// What's currently active on the server (always visible)
+// What's currently active on the server (always visible).
+// Only Loading on first fetch — subsequent poll failures keep showing
+// the last known state rather than flashing FetchFailed every 60s.
 sealed interface SnoozeState {
-    data object Loading : SnoozeState               // Initial fetch in progress
+    data object Loading : SnoozeState               // First fetch only (app launch)
     data object NotSnoozing : SnoozeState            // No active snooze
     data class Snoozing(val until: Instant) : SnoozeState  // Active snooze
-    data object FetchFailed : SnoozeState            // Couldn't check server
 }
 
-// Result of the last user-initiated save (overlay on top of SnoozeState)
+// Result of the last user-initiated save (overlay on top of SnoozeState).
+// Succeeded carries the new snooze time so the UI can show it immediately
+// without waiting for the server poll to confirm.
 sealed interface SnoozeAction {
     data object Idle : SnoozeAction                  // No pending action
     data object Sending : SnoozeAction               // Request in flight (spinner)
-    data object Succeeded : SnoozeAction             // Brief confirmation, auto-resets to Idle after 10s
+    data class Succeeded(val until: Instant) : SnoozeAction  // Shows new time, auto-resets to Idle after 10s
     sealed interface Failed : SnoozeAction {          // Shown until dismissed or retry
         data object NotAuthenticated : Failed        // "Sign in to snooze"
         data object MissingData : Failed             // "No door event available"
@@ -586,13 +589,15 @@ sealed interface SnoozeAction {
 **UX behavior:**
 - SnoozeState is always visible — a failed save never erases "Snoozing until 2:30 PM"
 - SnoozeAction overlays on SnoozeState — spinner shown alongside current status
-- Succeeded auto-resets to Idle after 10 seconds
+- Succeeded shows the new snooze time immediately (optimistic), auto-resets to Idle after 10s
 - Failed states are specific and actionable (not generic "Error")
-- Loading state shown during initial fetch (app launch)
+- Loading shown only on first fetch — subsequent poll failures silently keep the last known state
+- No FetchFailed state — poll failures are invisible to the user (stale data is better than error noise on a 60s poll)
 
 **Changes:**
 - Add `SnoozeState` and `SnoozeAction` sealed interfaces to domain model (replace `SnoozeRequestStatus` enum)
 - Add `FetchSnoozeStatusUseCase` — the read path currently bypasses the UseCase layer
+- Add `ObserveSnoozeStateUseCase` — expose `Flow<SnoozeState>` from repository
 - ViewModel exposes `StateFlow<SnoozeState>` + `StateFlow<SnoozeAction>` (not repository directly)
 - SnoozeAction.Succeeded auto-resets via `delay(10_000)` + `_snoozeAction.value = Idle`
 - UI uses exhaustive `when` on both sealed types — compiler guarantees all states handled
@@ -600,7 +605,7 @@ sealed interface SnoozeAction {
 
 ### Phase 43: Enforce ViewModel → UseCase only (no direct Repository access)
 
-**Goal:** ViewModels must depend only on UseCases and domain model types, never on Repository interfaces. This keeps ViewModels thin (orchestrate UI state) and UseCases testable (own business logic).
+**Goal:** ViewModels must depend only on UseCases and domain model types, never on Repository interfaces. This keeps ViewModels thin (orchestrate UI state) and UseCases testable (own business logic). Even thin wrappers are worth it — they enforce the layer boundary, keep the dependency graph consistent, and prevent logic from gradually leaking into ViewModels.
 
 **Problem:** Today, every ViewModel imports repository interfaces directly:
 - `RemoteButtonViewModel` → `DoorRepository`, `RemoteButtonRepository`, `SnoozeRepository`
@@ -614,14 +619,22 @@ This means business logic leaks into ViewModels (e.g., `snoozeRepository.fetchSn
 **Approach (matches battery-butler):**
 
 1. **Add missing UseCases** for every Repository method currently called from a ViewModel:
-   - `FetchSnoozeStatusUseCase` (read snooze end time)
-   - `FetchCurrentDoorEventUseCase` already exists — wire it up
-   - `ObserveDoorEventsUseCase` (expose `Flow<DoorEvent>` from repository)
-   - `ObserveAuthStateUseCase` (expose `Flow<AuthState>`)
-   - `ObserveSnoozeStateUseCase` (expose `Flow<SnoozeState>`)
-   - `LogAppEventUseCase` (wrap `appLoggerRepository.log()`)
-   - `ObserveAppSettingsUseCase` / `UpdateAppSettingUseCase`
-   - Others as needed — audit each ViewModel constructor
+
+   **Actions (suspend):**
+   - `FetchSnoozeStatusUseCase` — fetch snooze end time from server
+   - `LogAppEventUseCase` — write log entry to DB (called from 3 ViewModels)
+   - `SignInWithGoogleUseCase` — wrap `authRepository.signInWithGoogle(idToken)`
+   - `SignOutUseCase` — wrap `authRepository.signOut()`
+   - `FetchCurrentDoorEventUseCase` — already exists, wire into DoorViewModel
+   - `FetchRecentDoorEventsUseCase` — already exists, wire into DoorViewModel
+
+   **Observations (Flow):**
+   - `ObserveDoorEventsUseCase` — expose `Flow<DoorEvent>` + `Flow<List<DoorEvent>>`
+   - `ObserveAuthStateUseCase` — expose `Flow<AuthState>`
+   - `ObserveSnoozeStateUseCase` — expose `Flow<SnoozeState>`
+   - `ObservePushButtonStatusUseCase` — expose `Flow<PushButtonStatus>` + `Flow<DoorPosition>`
+   - `ObserveAppLogCountsUseCase` — expose log count Flows for each key
+   - `ObserveAppSettingsUseCase` / `UpdateAppSettingUseCase` — expose Setting<T> Flows + save
 
 2. **Add LayerImportCheck rule** blocking `domain.repository.` imports in ViewModel files:
    ```
@@ -638,8 +651,8 @@ This means business logic leaks into ViewModels (e.g., `snoozeRepository.fetchSn
 4. **Verify** with `./scripts/validate.sh` — the import check runs automatically
 
 **Migration order:**
-- Phase 42 first (adds `FetchSnoozeStatusUseCase`, establishes the pattern)
-- Then systematically replace repository deps in each ViewModel
+- Phase 42 first (adds `FetchSnoozeStatusUseCase` + `ObserveSnoozeStateUseCase`, establishes the pattern)
+- Then systematically replace repository deps in each ViewModel (one ViewModel per PR)
 - Add the lint rule last (once all ViewModels are clean)
 
 **Future (battery-butler pattern):** When ViewModels move to a separate `:viewmodel` module (Phase 27), the module dependency graph (`ArchitectureCheckTask`) will enforce this at the Gradle level too. The import check is a bridge until then.
