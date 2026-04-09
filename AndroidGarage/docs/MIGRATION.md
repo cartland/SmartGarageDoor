@@ -551,6 +551,99 @@ Use `material3-adaptive-navigation-suite` (`NavigationSuiteScaffold`) to handle 
 - Screenshot tests for each size class
 - Manual testing on tablet emulator (Pixel Tablet, 10.1")
 
+### Phase 42: Snooze UX — SnoozeState + SnoozeAction
+
+**Goal:** Show loading, success, and specific error states in the snooze card. Never lose the last-known-good snooze status during a request.
+
+**Problem:** Today, pressing "Save" shows "Saving..." text and "Error saving snooze settings" on failure. No loading animation. Silent failures when not authenticated or no door event. Success has no confirmation. Errors are generic and not actionable.
+
+**Design: Two independent state types**
+
+The snooze card shows two independent pieces of information that must not overwrite each other:
+
+```kotlin
+// What's currently active on the server (always visible)
+sealed interface SnoozeState {
+    data object Loading : SnoozeState               // Initial fetch in progress
+    data object NotSnoozing : SnoozeState            // No active snooze
+    data class Snoozing(val until: Instant) : SnoozeState  // Active snooze
+    data object FetchFailed : SnoozeState            // Couldn't check server
+}
+
+// Result of the last user-initiated save (overlay on top of SnoozeState)
+sealed interface SnoozeAction {
+    data object Idle : SnoozeAction                  // No pending action
+    data object Sending : SnoozeAction               // Request in flight (spinner)
+    data object Succeeded : SnoozeAction             // Brief confirmation, auto-resets to Idle after 10s
+    sealed interface Failed : SnoozeAction {          // Shown until dismissed or retry
+        data object NotAuthenticated : Failed        // "Sign in to snooze"
+        data object MissingData : Failed             // "No door event available"
+        data object NetworkError : Failed            // "Couldn't reach server. Retry?"
+    }
+}
+```
+
+**UX behavior:**
+- SnoozeState is always visible — a failed save never erases "Snoozing until 2:30 PM"
+- SnoozeAction overlays on SnoozeState — spinner shown alongside current status
+- Succeeded auto-resets to Idle after 10 seconds
+- Failed states are specific and actionable (not generic "Error")
+- Loading state shown during initial fetch (app launch)
+
+**Changes:**
+- Add `SnoozeState` and `SnoozeAction` sealed interfaces to domain model (replace `SnoozeRequestStatus` enum)
+- Add `FetchSnoozeStatusUseCase` — the read path currently bypasses the UseCase layer
+- ViewModel exposes `StateFlow<SnoozeState>` + `StateFlow<SnoozeAction>` (not repository directly)
+- SnoozeAction.Succeeded auto-resets via `delay(10_000)` + `_snoozeAction.value = Idle`
+- UI uses exhaustive `when` on both sealed types — compiler guarantees all states handled
+- Add small loading animation (CircularProgressIndicator or similar) for Sending state
+
+### Phase 43: Enforce ViewModel → UseCase only (no direct Repository access)
+
+**Goal:** ViewModels must depend only on UseCases and domain model types, never on Repository interfaces. This keeps ViewModels thin (orchestrate UI state) and UseCases testable (own business logic).
+
+**Problem:** Today, every ViewModel imports repository interfaces directly:
+- `RemoteButtonViewModel` → `DoorRepository`, `RemoteButtonRepository`, `SnoozeRepository`
+- `DoorViewModel` → `DoorRepository`, `AppLoggerRepository`
+- `AuthViewModel` → `AuthRepository`, `AppLoggerRepository`
+- `AppLoggerViewModel` → `AppLoggerRepository`
+- `AppSettingsViewModel` → `AppSettingsRepository`
+
+This means business logic leaks into ViewModels (e.g., `snoozeRepository.fetchSnoozeEndTimeSeconds()` called directly) and the UseCase layer is incomplete.
+
+**Approach (matches battery-butler):**
+
+1. **Add missing UseCases** for every Repository method currently called from a ViewModel:
+   - `FetchSnoozeStatusUseCase` (read snooze end time)
+   - `FetchCurrentDoorEventUseCase` already exists — wire it up
+   - `ObserveDoorEventsUseCase` (expose `Flow<DoorEvent>` from repository)
+   - `ObserveAuthStateUseCase` (expose `Flow<AuthState>`)
+   - `ObserveSnoozeStateUseCase` (expose `Flow<SnoozeState>`)
+   - `LogAppEventUseCase` (wrap `appLoggerRepository.log()`)
+   - `ObserveAppSettingsUseCase` / `UpdateAppSettingUseCase`
+   - Others as needed — audit each ViewModel constructor
+
+2. **Add LayerImportCheck rule** blocking `domain.repository.` imports in ViewModel files:
+   ```
+   // In build.gradle.kts checkLayerImports rules:
+   listOf(
+       ".*ViewModel\\.kt",
+       "com.chriscartland.garage.domain.repository.",
+       "ViewModels must depend on UseCases, not repository interfaces.",
+   )
+   ```
+
+3. **Refactor each ViewModel** to inject UseCases instead of Repositories
+
+4. **Verify** with `./scripts/validate.sh` — the import check runs automatically
+
+**Migration order:**
+- Phase 42 first (adds `FetchSnoozeStatusUseCase`, establishes the pattern)
+- Then systematically replace repository deps in each ViewModel
+- Add the lint rule last (once all ViewModels are clean)
+
+**Future (battery-butler pattern):** When ViewModels move to a separate `:viewmodel` module (Phase 27), the module dependency graph (`ArchitectureCheckTask`) will enforce this at the Gradle level too. The import check is a bridge until then.
+
 ### Phase 38: iOS target (SwiftUI)
 
 **Goal:** Add iOS app consuming shared KMP modules via SwiftUI.
