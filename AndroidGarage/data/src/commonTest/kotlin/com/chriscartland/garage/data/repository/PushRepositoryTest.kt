@@ -132,4 +132,45 @@ class SnoozeRepositoryTest {
             // Must not stay Loading — user would see "Loading..." forever
             assertNotEquals(SnoozeState.Loading, repo.snoozeState.value)
         }
+
+    @Test
+    fun fetchSnoozeStatusReturnsSnoozingWhenEndTimeInFuture() =
+        runTest {
+            networkConfigDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+            )
+            // currentTimeSeconds returns 1000L (from setup), so 2000L is in the future
+            networkButtonDataSource.fetchSnoozeResult = NetworkResult.Success(2000L)
+            repo.fetchSnoozeStatus()
+            assertEquals(SnoozeState.Snoozing(2000L), repo.snoozeState.value)
+        }
+
+    @Test
+    fun fetchSnoozeStatusReturnsNotSnoozingWhenEndTimeInPast() =
+        runTest {
+            networkConfigDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+            )
+            // currentTimeSeconds returns 1000L (from setup), so 500L is in the past
+            networkButtonDataSource.fetchSnoozeResult = NetworkResult.Success(500L)
+            repo.fetchSnoozeStatus()
+            assertEquals(SnoozeState.NotSnoozing, repo.snoozeState.value)
+        }
+
+    @Test
+    fun subsequentFetchFailureKeepsLastKnownState() =
+        runTest {
+            networkConfigDataSource.serverConfigResult = NetworkResult.Success(
+                ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+            )
+            // First fetch succeeds — snoozing
+            networkButtonDataSource.fetchSnoozeResult = NetworkResult.Success(2000L)
+            repo.fetchSnoozeStatus()
+            assertEquals(SnoozeState.Snoozing(2000L), repo.snoozeState.value)
+
+            // Second fetch fails — should keep Snoozing, not revert to NotSnoozing
+            networkButtonDataSource.fetchSnoozeResult = NetworkResult.ConnectionFailed
+            repo.fetchSnoozeStatus()
+            assertEquals(SnoozeState.Snoozing(2000L), repo.snoozeState.value)
+        }
 }
