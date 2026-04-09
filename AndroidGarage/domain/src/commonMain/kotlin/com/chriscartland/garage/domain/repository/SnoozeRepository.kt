@@ -14,9 +14,13 @@ interface SnoozeRepository {
 
     suspend fun fetchSnoozeStatus()
 
+    /**
+     * Send a snooze request. Returns true on success, false on any failure
+     * (server config missing, HTTP error, connection failure).
+     */
     suspend fun snoozeNotifications(
         snoozeDurationHours: String,
         idToken: String,
         snoozeEventTimestampSeconds: Long,
-    )
+    ): Boolean
 }

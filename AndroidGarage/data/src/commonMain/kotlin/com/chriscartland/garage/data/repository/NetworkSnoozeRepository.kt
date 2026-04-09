@@ -72,35 +72,34 @@ class NetworkSnoozeRepository(
         snoozeDurationHours: String,
         idToken: String,
         snoozeEventTimestampSeconds: Long,
-    ) {
+    ): Boolean {
         val serverConfig = serverConfigRepository.getServerConfigCached()
         if (serverConfig == null) {
             Logger.e { "Server config is null" }
-            return
+            return false
         }
         if (!snoozeNotificationsOption) {
             Logger.w { "Snooze notifications disabled" }
             delay(500)
+            return true // Treat as success in feature-disabled mode
         }
-        if (snoozeNotificationsOption) {
-            when (
-                val result = networkButtonDataSource.snoozeNotifications(
-                    buildTimestamp = serverConfig.buildTimestamp,
-                    remoteButtonPushKey = serverConfig.remoteButtonPushKey,
-                    idToken = idToken,
-                    snoozeDurationHours = snoozeDurationHours,
-                    snoozeEventTimestampSeconds = snoozeEventTimestampSeconds,
-                )
-            ) {
-                is NetworkResult.Success -> return
-                is NetworkResult.HttpError -> {
-                    Logger.e { "Snooze HTTP ${result.code}" }
-                    return
-                }
-                NetworkResult.ConnectionFailed -> {
-                    Logger.e { "Snooze connection failed" }
-                    return
-                }
+        return when (
+            val result = networkButtonDataSource.snoozeNotifications(
+                buildTimestamp = serverConfig.buildTimestamp,
+                remoteButtonPushKey = serverConfig.remoteButtonPushKey,
+                idToken = idToken,
+                snoozeDurationHours = snoozeDurationHours,
+                snoozeEventTimestampSeconds = snoozeEventTimestampSeconds,
+            )
+        ) {
+            is NetworkResult.Success -> true
+            is NetworkResult.HttpError -> {
+                Logger.e { "Snooze HTTP ${result.code}" }
+                false
+            }
+            NetworkResult.ConnectionFailed -> {
+                Logger.e { "Snooze connection failed" }
+                false
             }
         }
     }

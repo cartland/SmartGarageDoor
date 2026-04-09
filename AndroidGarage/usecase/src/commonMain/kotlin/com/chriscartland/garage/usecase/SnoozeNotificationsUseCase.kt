@@ -46,11 +46,15 @@ class SnoozeNotificationsUseCase(
             return AppResult.Error(ActionError.MissingData)
         }
         val idToken = ensureFreshIdToken(authState)
-        snoozeRepository.snoozeNotifications(
+        val success = snoozeRepository.snoozeNotifications(
             snoozeDurationHours = snoozeDurationHours,
             idToken = idToken.asString(),
             snoozeEventTimestampSeconds = lastChangeTimeSeconds,
         )
-        return AppResult.Success(Unit)
+        return if (success) {
+            AppResult.Success(Unit)
+        } else {
+            AppResult.Error(ActionError.NetworkFailed)
+        }
     }
 }
