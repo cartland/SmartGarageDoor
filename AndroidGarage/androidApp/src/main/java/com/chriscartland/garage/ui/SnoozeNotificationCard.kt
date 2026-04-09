@@ -213,6 +213,42 @@ fun SnoozeNotificationCardPreview() {
     )
 }
 
+@Preview
+@Composable
+fun SnoozeNotificationCardLoadingPreview() {
+    SnoozeNotificationCard(
+        snoozeState = SnoozeState.Loading,
+        snoozeAction = SnoozeAction.Idle,
+    )
+}
+
+@Preview
+@Composable
+fun SnoozeNotificationCardSendingPreview() {
+    SnoozeNotificationCard(
+        snoozeState = SnoozeState.NotSnoozing,
+        snoozeAction = SnoozeAction.Sending,
+    )
+}
+
+@Preview
+@Composable
+fun SnoozeNotificationCardSucceededPreview() {
+    SnoozeNotificationCard(
+        snoozeState = SnoozeState.NotSnoozing,
+        snoozeAction = SnoozeAction.Succeeded(999999999999L),
+    )
+}
+
+@Preview
+@Composable
+fun SnoozeNotificationCardErrorPreview() {
+    SnoozeNotificationCard(
+        snoozeState = SnoozeState.Snoozing(999999999999L),
+        snoozeAction = SnoozeAction.Failed.NetworkError,
+    )
+}
+
 @Composable
 fun <T> RadioGroup(
     options: List<T>,
