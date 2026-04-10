@@ -502,3 +502,63 @@ Completely invisible during normal operation. On failure:
 - Poor connectivity during sign-in: 30s timeout → network error banner
 - Background-to-foreground with expired token: refresh on first network request, not on resume
 - Server-side account removal: 403 → immediate sign-out + "This account no longer has access"
+
+## 10. Accessibility
+
+### Touch Targets
+
+| Element | Minimum | Recommended | Notes |
+|---------|---------|-------------|-------|
+| Door action button | 48×48dp | 72×72dp | Larger for safety criticality, glove/wet-hand use |
+| Navigation items | 48×48dp | 48×48dp | Material 3 standard |
+| History list rows | 48dp height | 56dp height | Tappable rows must meet minimum |
+| Snooze/Save buttons | 48×48dp | 56×56dp | Secondary action |
+
+All touch targets must have ≥8dp spacing. Door action button must have ≥16dp clearance from contradictory actions.
+
+### Color Contrast (WCAG AA)
+
+| Context | Required ratio | Target |
+|---------|---------------|--------|
+| Body text (14sp+) | 4.5:1 | 7:1 |
+| Large text (18sp+) | 3:1 | 4.5:1 |
+| Icon-only controls | 3:1 | 4.5:1 |
+
+All door status colors (open/closed/unknown) must meet 4.5:1 against their background in both themes. Never rely on color alone — every status has a distinct icon shape and text label.
+
+### Screen Reader Flow (TalkBack)
+
+Focus order: top bar → door status card (live region, polite) → action button → snooze → history heading → history rows → bottom nav.
+
+- Door status card: `POLITE` live region. Announces state changes once, without stealing focus.
+- Error banners: `ASSERTIVE` live region. Announced immediately.
+- Loading indicators: not announced to avoid "loading" spam.
+
+### Motion Reduction
+
+All animations respect system "Remove animations" setting. When active:
+- Door icon transitions are instant
+- Status color transitions are instant
+- All states distinguishable from a single static frame
+
+### One-Handed Reachability
+
+- Door action button in lower-center quadrant (thumb zone for ≤6.7" phones)
+- Destructive/infrequent actions (sign out, settings) in upper region
+- No critical action requires swipe — all achievable via single tap
+
+### Text Scaling
+
+All text respects system font size up to 200% without truncation. Door status label may wrap to two lines — layout accommodates this.
+
+### Validation Checklist
+
+| Test | Pass criteria |
+|------|--------------|
+| Touch targets ≥48dp | No violations in Accessibility Scanner |
+| Contrast ratios | No AA violations in light or dark theme |
+| TalkBack focus order | Matches specified order, no orphaned elements |
+| Live region announcements | Status change announced once, politely |
+| Reduced motion | No animation plays; all states distinguishable |
+| 200% font scale | No truncation, no overlap |
+| Color independence (grayscale) | All statuses distinguishable by icon + text |
