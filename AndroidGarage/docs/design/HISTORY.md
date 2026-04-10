@@ -150,3 +150,13 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 11: Remote Button Visual Feedback
+
+**Focus:** Per-state button colors, animated transitions, haptics. Refines proposal 5.2.
+
+**Decision:** Each of the 9 states gets a distinct fill color. Sending=indigo, Sent=soft green, Received=strong green, timeouts=red/orange. Animated transitions 150-600ms. Haptic on Armed, Received, and errors.
+
+**What changed:** SPEC.md section 11 added with light/dark color tables, transition timing, haptics, and accessibility verification.
+
+---
+

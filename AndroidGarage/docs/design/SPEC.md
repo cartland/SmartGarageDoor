@@ -562,3 +562,63 @@ All text respects system font size up to 200% without truncation. Door status la
 | Reduced motion | No animation plays; all states distinguishable |
 | 200% font scale | No truncation, no overlap |
 | Color independence (grayscale) | All statuses distinguishable by icon + text |
+
+## 11. Remote Button — Visual Feedback by State
+
+Refines section 3's state table with per-state colors, animated transitions, and haptic feedback.
+
+### 11.1 Button Fill Colors (Light Theme)
+
+| State | Fill (top gradient) | Text Color | Progress Accent |
+|-------|-------------------|------------|-----------------|
+| Ready | `#E1E2DC` (surfaceDim) | `#1B1C18` (onSurface) | `#3333FF` (blue) |
+| Arming | `#D0D1CB` (slightly darker) | `#1B1C18` | `#3333FF` |
+| Armed | `#A6C8FF` (primary) | `#002868` (onPrimary) | `#3333FF` |
+| NotConfirmed | `#F2B8B5` (errorContainer) | `#601410` | `#FF3333` (red) |
+| Sending | `#C8BFFF` (light indigo) | `#1D1148` | `#7C4DFF` (purple) |
+| Sent | `#90D6A0` (soft green) | `#0A3818` | `#2E7D32` (green) |
+| Received | `#4CAF50` (strong green) | `#FFFFFF` | `#1B5E20` (dark green) |
+| SendingTimeout | `#FF8A80` (light red) | `#601410` | `#D32F2F` (red) |
+| SentTimeout | `#FFAB91` (light orange) | `#601410` | `#E64A19` (orange) |
+
+Bottom gradient: each fill blended 50% toward black via existing `blendColors()`.
+
+### 11.2 Dark Theme Overrides
+
+| State | Fill | Text Color |
+|-------|------|------------|
+| Ready | `#434740` | `#E4E3DD` |
+| Arming | `#3B3F39` | `#E4E3DD` |
+| Armed | `#6F8FD5` | `#143469` |
+| NotConfirmed | `#93000A` | `#FFDAD6` |
+| Sending | `#9E8CFF` | `#E8E0FF` |
+| Sent | `#66BB6A` | `#0A3818` |
+| Received | `#388E3C` | `#FFFFFF` |
+| SendingTimeout | `#EF5350` | `#FFDAD6` |
+| SentTimeout | `#FF7043` | `#FFDAD6` |
+
+### 11.3 Color Transition Animation
+
+| Transition | Duration | Easing |
+|-----------|----------|--------|
+| Ready → Arming | 150ms | Linear |
+| Arming → Armed | 300ms | EaseOut |
+| Armed → Sending | 200ms | EaseOut |
+| Sending → Sent | 400ms | EaseInOut |
+| Sent → Received | 300ms | EaseOut |
+| Any → failure state | 250ms | EaseIn |
+| Any → Ready (timeout) | 600ms | EaseInOut |
+
+Use `animateColorAsState` on both fill and text colors.
+
+### 11.4 Haptic Feedback
+
+| Event | Pattern |
+|-------|---------|
+| Armed (first tap acknowledged) | `HapticFeedbackType.LongPress` |
+| Received (door moved) | 50ms vibration |
+| Timeout/Error | Double pulse: 40ms on, 60ms off, 40ms on |
+
+### 11.5 Accessibility
+
+All fill/text pairings meet WCAG AA (≥4.5:1). Color is never the sole indicator — progress bar segment count and text label provide redundant information.
