@@ -130,3 +130,13 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 9: Authentication Flow UX
+
+**Focus:** Sign-in gate, in-progress states, token refresh transparency, sign-out with undo, edge cases.
+
+**Decision:** Progressive auth flow — fast happy path, failure-only surfacing for token refresh, sign-out with Snackbar undo instead of confirmation dialog.
+
+**What changed:** SPEC.md section 9 added.
+
+---
+
