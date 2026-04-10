@@ -807,6 +807,52 @@ Never show seconds (false precision from polling sensors).
 
 Content description uses unabbreviated words: "Opened at 2:34 PM, open for 23 minutes so far."
 
+## 16. FCM Push Notification Design
+
+### 16.1 Channels
+
+| Channel | Name | Importance | Sound | Vibrate |
+|---------|------|-----------|-------|---------|
+| `door_alert` | Door Alerts | HIGH | Default | Yes |
+| `door_status` | Door Status Updates | MIN | None | No |
+
+`door_alert` for user-visible warnings (door left open). `door_status` reserved for future silent status notifications.
+
+### 16.2 Notification Anatomy
+
+**Collapsed:**
+- Small icon: monochrome garage silhouette, 24dp, accent `#226B43` (green — app identity)
+- Large icon: 40dp circle, door-state color fill, white garage glyph
+- Title: "Garage door open" (varies by state)
+- Body: "Open for more than 15 minutes"
+
+**Expanded (2 action buttons):**
+- "Snooze 1h" — sends snooze via BroadcastReceiver without opening app
+- "Open App" — launches MainActivity
+
+### 16.3 Grouping
+
+- Collapse key: `door_not_closed` (server-set). Replaces previous alert.
+- Tag: `door_alert_current`, ID: 1001. Only one alert visible at a time.
+- Auto-cancel: true. Ongoing: false (swipeable).
+
+### 16.4 Content by Door State
+
+| State | Title | Body |
+|-------|-------|------|
+| Open | Garage door open | Open for more than {duration} |
+| Opening/ClosingTooLong | Door not closed | Door not closed for more than {duration} |
+| Unknown | Unknown door status | Error not resolved for longer than {duration} |
+| ErrorSensorConflict | Door error | Door error for longer than {duration} |
+
+### 16.5 Lock Screen
+
+Visibility: PUBLIC (not sensitive — user needs to see "door open" without unlocking). Heads-up on first post only; updates don't re-trigger.
+
+### 16.6 Snooze from Notification
+
+Tap "Snooze 1h" → BroadcastReceiver → SnoozeNotificationsUseCase. On success: notification body → "Snoozed until {time}", auto-dismiss 3s. On failure: toast "Could not snooze. Open the app to try again."
+
 ### 14.5 Landscape / Tablet
 
 - **Landscape:** Side-by-side — door status left, button right (50/50 horizontal)

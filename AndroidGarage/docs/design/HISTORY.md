@@ -196,3 +196,11 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 16: FCM Push Notification Design
+
+**Focus:** Notification channels, anatomy (collapsed/expanded), grouping/collapse strategy, per-state content, lock screen visibility, snooze-from-notification interaction.
+
+**What changed:** SPEC.md section 16 added.
+
+---
+
