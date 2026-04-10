@@ -411,3 +411,54 @@ Cached data stays visible. Error card appears above content with error message +
 - Tab switches show cached content immediately — no blank frame
 - Fade transition includes loading indicators
 - `ReportDrawnWhen` gates on `Complete` for performance metrics
+
+## 8. Error States Catalog
+
+### 8.1 Error Severity Tiers
+
+| Tier | Name | UI Treatment | Blocks Interaction | Auto-Dismiss |
+|------|------|-------------|-------------------|--------------|
+| T1 | **Blocking** | Full-screen overlay | Yes | No |
+| T2 | **Degraded** | Persistent inline banner | No | When resolved |
+| T3 | **Transient** | Snackbar or inline text | No | 6-10 seconds |
+
+### 8.2 Error Inventory
+
+#### T1 — Blocking
+
+| ID | Trigger | Display | Recovery |
+|----|---------|---------|----------|
+| E-AUTH-001 | Not signed in | Centered: app icon + "Sign in to continue" + Google sign-in button | Sign-in flow |
+| E-AUTH-002 | User not on allowlist | "Access Denied" + explanation. No retry — only sign-out | Contact owner |
+| E-AUTH-003 | Token refresh failed (3 attempts) | "Session Expired" + sign-in button | Re-authenticate |
+
+#### T2 — Degraded
+
+Appear as banners between top bar and content. Max 1 banner visible (priority: network > stale > notifications).
+
+| ID | Trigger | Banner Text | Background | Action |
+|----|---------|-------------|------------|--------|
+| E-NET-001 | No connectivity | "No internet connection" | errorContainer | Auto-resolves |
+| E-NET-002 | Server unreachable (3 failures) | "Server unavailable" | errorContainer | "Retry" |
+| E-DATA-001 | Data older than 5 minutes | "Door status may be outdated" | tertiaryContainer | "Refresh" |
+| E-DATA-002 | Notifications disabled | "Notifications are off" | surfaceVariant | "Enable" |
+
+Banner spec: 40dp height, 16dp horizontal padding, icon (18dp) + 8dp + text (Body Small) + action button. Full-bleed (no corner radius). Slide-down entry 300ms, fade-out exit 200ms.
+
+#### T3 — Transient
+
+| ID | Trigger | Text | Action | Duration |
+|----|---------|------|--------|----------|
+| E-BTN-001 | Button press HTTP error | "Couldn't send command" | "Retry" | 6s |
+| E-FETCH-001 | Refresh failed | "Couldn't refresh — try again" | "Retry" | 6s |
+| E-SNOOZE-* | Snooze save failed | Inline overlay (see section 3) | Auto-reset | 10s |
+
+Snooze errors use the SnoozeAction.Failed overlay (section 3) instead of Snackbar — they appear inline in the snooze card.
+
+### 8.3 Retry Rules
+
+1. Automatic retries: max 3 (auth) or 5 (network), exponential backoff (1s, 2s, 4s...)
+2. User "Retry" resets the automatic retry counter
+3. No retry on 4xx (except 401 → silent token refresh)
+4. No retry on 429 — show wait message only
+5. Optimistic UI for button press — show pending state, revert on failure
