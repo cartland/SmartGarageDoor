@@ -110,3 +110,13 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 7: Loading States & Data Freshness
+
+**Focus:** Document what users see during loading — cold start (no cache), cached refresh, and error recovery. The hybrid offline-first approach means most opens show data instantly, but the empty-cache and refresh paths need clear spec.
+
+**Decision:** Document LoadingResult model, cold start displays per screen, cached refresh indicators, fetch triggers, and screen transition behavior.
+
+**What changed:** SPEC.md section 7 added.
+
+---
+

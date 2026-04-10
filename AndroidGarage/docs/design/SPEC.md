@@ -362,3 +362,52 @@ Direction icons fill 90% of badge; warning icon fills 60%.
 |---------|------|--------|
 | Home screen | Fills available space (weight 1f) | No (animated) |
 | History list item | 56dp × 56dp | Yes |
+
+## 7. Loading States & Data Freshness
+
+The app uses offline-first data: Room caches the last-known state, network fetches update it. Most app opens show data instantly.
+
+### LoadingResult Model
+
+| Variant | `.data` | Meaning |
+|---------|---------|---------|
+| `Loading(data)` | Cached or null | Fetch in progress |
+| `Complete(data)` | Fresh | Fetch succeeded |
+| `Error(exception, data)` | Cached or null | Fetch failed |
+
+**Principle:** Never hide valid cached data during a refresh.
+
+### Cold Start (No Cache)
+
+| Screen | Display |
+|--------|---------|
+| Home — door status | "Loading..." text (`titleMedium`), top-left of card area |
+| Home — button area | "Checking authentication..." centered |
+| History | "Loading..." as first list item |
+| Settings — snooze | "Loading snooze status..." inside card body |
+| Settings — user info | Renders immediately (shows sign-in or user details) |
+
+### Cached Refresh
+
+| Screen | Indicator |
+|--------|-----------|
+| Home — door status | "Loading..." overlay, top-left corner, 8dp from edges |
+| History | "Loading..." as first item, pushes cached events down |
+| Settings | No visible indicator (silent 1-minute polling) |
+
+### Fetch Triggers
+
+- App foreground (automatic)
+- FCM push notification (automatic, background)
+- Tap on door status card (manual)
+- Tap on history list item (manual)
+
+### Error Recovery
+
+Cached data stays visible. Error card appears above content with error message + "Retry" button. See section 8 for detailed error catalog.
+
+### Screen Transition During Load
+
+- Tab switches show cached content immediately — no blank frame
+- Fade transition includes loading indicators
+- `ReportDrawnWhen` gates on `Complete` for performance metrics
