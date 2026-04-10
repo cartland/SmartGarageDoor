@@ -1090,6 +1090,24 @@ Small/Medium: entire surface → opens app. Large: surface + "View Details" butt
 - Group spacing: 0dp between rows (padding handles separation)
 - Max visible: 5 options. Beyond that, content scrolls (maxHeight 288dp).
 
+## 24. History List Item Anatomy
+
+### Event Row
+
+- Row min height: 56dp, 16dp horizontal padding, 12dp vertical padding
+- Status dot: 10dp circle, 12dp end margin. Colors: `primary` (open), `tertiary` (closed), `error` (error), `outlineVariant` (unknown)
+- Event title: `bodyLarge`
+- Timestamp: `bodySmall`, `onSurfaceVariant`. Format: "Today 3:42 PM" / "Mar 7, 3:42 PM"
+- Duration tag (optional): `SuggestionChip` style, 24dp height, 8dp horizontal padding, `labelSmall`, `secondaryContainer` background, 8dp corner radius. Shows "Open 14m". Only visible when open > 1 min.
+- Divider: 0.5dp `outlineVariant` between rows
+
+### Date Header (Sticky)
+
+- Height: 32dp (8dp padding + 16dp text + 8dp padding)
+- Background: `surfaceContainerLow` (contrast when sticky-scrolled)
+- Text: `labelLarge`, `onSurfaceVariant`. "Today" / "Yesterday" / "Mon, Mar 7"
+- `LazyColumn` `stickyHeader` — pins to top of list
+
 ### 14.5 Landscape / Tablet
 
 - **Landscape:** Side-by-side — door status left, button right (50/50 horizontal)

@@ -260,3 +260,11 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 24: History List Item Anatomy
+
+**Focus:** Event row dimensions, status dots, duration tags, sticky date headers.
+
+**What changed:** SPEC.md section 24 added.
+
+---
+
