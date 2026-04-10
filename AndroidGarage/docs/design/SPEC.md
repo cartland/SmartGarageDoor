@@ -462,3 +462,43 @@ Snooze errors use the SnoozeAction.Failed overlay (section 3) instead of Snackba
 3. No retry on 4xx (except 401 → silent token refresh)
 4. No retry on 429 — show wait message only
 5. Optimistic UI for button press — show pending state, revert on failure
+
+## 9. Authentication Flow UX
+
+### Sign-In Gate
+
+Full-screen surface when no session exists. Google Sign-In button (standard branding). No skip option — auth is mandatory. System back exits the app.
+
+### Sign-In In-Progress
+
+1. Google account picker appears immediately (system sheet)
+2. After selection: button disabled (opacity 0.38), CircularProgressIndicator (24dp) + "Verifying access..."
+3. Success → instant transition to Home (no animation)
+4. Failure → inline error banner between text and button
+
+**Error banner variants:**
+- Network failure: "No internet connection. Check your network and try again."
+- Not authorized: "This account doesn't have access. Contact the garage owner."
+- Unknown: "Something went wrong. Try again."
+
+### Token Refresh
+
+Completely invisible during normal operation. On failure:
+1. Silent retry (2 attempts, 1s apart)
+2. If exhausted: persistent banner "Session expired. Tap to sign in again." Entire banner tappable.
+3. Last known door status visible with staleness timestamp
+4. Remote button enters disabled state
+
+### Sign-Out Flow
+
+1. User taps profile row → bottom sheet with photo, name, email, "Sign out" row (error color)
+2. No confirmation dialog — executes immediately
+3. Snackbar on sign-in gate: "Signed out" with "Undo" action (5s window)
+4. Undo uses cached credentials if still valid
+
+### Edge Cases
+
+- Multiple accounts: Google picker handles natively
+- Poor connectivity during sign-in: 30s timeout → network error banner
+- Background-to-foreground with expired token: refresh on first network request, not on resume
+- Server-side account removal: 403 → immediate sign-out + "This account no longer has access"
