@@ -160,3 +160,13 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 12: Stale Data Progressive Warning
+
+**Focus:** Replace binary fresh/stale with 4 graduated tiers (FRESH/AGING/STALE/EXPIRED). Refines proposal 5.5.
+
+**Decision:** Freshness badge pill below door status, animated dot pulsing at higher severities, text desaturation, icon overlay at EXPIRED, tappable refresh. Timer cadence varies by tier to avoid recomposition waste.
+
+**What changed:** SPEC.md section 12 added.
+
+---
+
