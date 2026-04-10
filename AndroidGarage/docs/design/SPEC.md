@@ -1024,6 +1024,38 @@ All breakpoints: centered column, max-width 360dp. Vertically centered with -48d
 
 When `FoldingFeature` reports a vertical hinge, align the pane split to the hinge boundary instead of 50/50.
 
+## 21. Home Screen Widget
+
+### 21.1 Variants
+
+| Variant | Grid | Content |
+|---------|------|---------|
+| Small | 2×1 | Icon + status label |
+| Medium | 3×2 | Icon + status + timestamp (centered) |
+| Large | 4×2 | Icon + status + timestamp + "View Details" button |
+
+No remote-action button in any widget — prevents accidental presses (physical-confirmation philosophy).
+
+### 21.2 State Mapping
+
+| State | Label | Background |
+|-------|-------|------------|
+| Closed | "Closed" | surfaceContainer |
+| Open | "Open" | warningContainer (amber) |
+| Opening/Closing | "Opening…"/"Closing…" | surfaceContainer |
+| Error | "Check Door" | errorContainer |
+| Unknown / stale | "Updating…" | surfaceContainerHighest |
+
+### 21.3 Refresh
+
+- Periodic: every 15 min (Android minimum)
+- On app foreground: broadcast triggers widget update
+- On FCM push: refresh before notification display
+
+### 21.4 Tap Behavior
+
+Small/Medium: entire surface → opens app. Large: surface + "View Details" button → opens app.
+
 ### 14.5 Landscape / Tablet
 
 - **Landscape:** Side-by-side — door status left, button right (50/50 horizontal)

@@ -236,3 +236,11 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 21: Home Screen Widget
+
+**Focus:** Three widget sizes (Small/Medium/Large), state mapping, refresh strategy. No remote-action button — prevents accidental presses.
+
+**What changed:** SPEC.md section 21 added.
+
+---
+
