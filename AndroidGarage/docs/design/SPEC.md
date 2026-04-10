@@ -622,3 +622,61 @@ Use `animateColorAsState` on both fill and text colors.
 ### 11.5 Accessibility
 
 All fill/text pairings meet WCAG AA (≥4.5:1). Color is never the sole indicator — progress bar segment count and text label provide redundant information.
+
+## 12. Stale Data Progressive Warning
+
+Refines proposal 5.5. Replaces the binary fresh/stale switch with graduated tiers.
+
+### 12.1 Freshness Tiers
+
+| Tier | Age Range | Severity |
+|------|-----------|----------|
+| FRESH | 0–30s | None (no indicator) |
+| AGING | 30s–2min | Low |
+| STALE | 2–10min | Medium |
+| EXPIRED | >10min | High |
+
+### 12.2 Freshness Badge
+
+Horizontal pill below door status text. 28dp height, 14dp corner radius, 12dp horizontal padding. Contains: status dot (8dp) + label text (`labelSmall`).
+
+| Tier | Dot Color | Badge Background | Text |
+|------|-----------|-----------------|------|
+| FRESH | — | (hidden) | — |
+| AGING | `#4CAF50` (green) | surface variant 10% | "Updated {N}s ago" |
+| STALE | `#FF9800` (orange) | orange 10% | "Last updated {N} min ago" |
+| EXPIRED | `#F44336` (red) | red 10% + 1dp red border | "Door status may be outdated" |
+
+**Dot animation:** STALE = slow pulse (2000ms), EXPIRED = faster pulse (1200ms).
+
+### 12.3 Door Status Text Desaturation
+
+| Tier | Status text opacity |
+|------|-------------------|
+| FRESH / AGING | 100% |
+| STALE | 75% |
+| EXPIRED | 50% |
+
+Transitions use 600ms ease-in-out.
+
+### 12.4 EXPIRED Icon Overlay
+
+When EXPIRED: garage door icon gets a semi-transparent scrim with centered `cloud_off` icon (48dp, red). Fade-in 400ms, fade-out 300ms.
+
+### 12.5 Refresh Affordance
+
+Badge is tappable at STALE and EXPIRED (48dp touch target). Shows "Refreshing..." during fetch, "Refresh failed — tap to retry" on error (3s hold).
+
+### 12.6 Timer Cadence
+
+| Tier | Update interval |
+|------|----------------|
+| AGING | 5s |
+| STALE | 60s |
+| EXPIRED | Static text |
+
+Tier boundary checks: every 5 seconds.
+
+### 12.7 Dark Theme
+
+Dot colors shift to 300-weight variants: green `#81C784`, orange `#FFB74D`, red `#E57373`. Badge backgrounds use same 10% opacity of the lighter color.
