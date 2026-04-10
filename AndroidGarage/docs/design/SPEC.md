@@ -762,6 +762,51 @@ Proposed: `weight(2f)` status / `weight(1f)` button (67/33 split)
 
 This gives the door status ~67% of available space. On a typical 640dp content area (minus top bar and bottom nav), the status gets ~427dp and the button gets ~213dp — enough for a 192dp button with 21dp of breathing room.
 
+## 15. History — Duration in State
+
+Closes proposal 5.3. Each history row shows how long the door stayed in that state.
+
+### 15.1 Layout
+
+Duration badge on the same line as the timestamp, separated by middle-dot:
+
+```
+[Icon]  Opened
+        2:34 PM · Open 23 min
+```
+
+- Duration text: `bodySmall`, `onSurfaceVariant`
+- Middle-dot: U+00B7 with spaces
+- Current (topmost) event: "Open 23 min so far" in `primary` color (live-updating)
+
+### 15.2 Calculation
+
+- Event N duration = `timestamp(N+1) - timestamp(N)`
+- Current event = `now - timestamp(0)`, updated every 60s
+- If server provides `durationSeconds`, use it directly
+
+### 15.3 Formatting
+
+| Duration | Display |
+|----------|---------|
+| < 1 min | "Under 1 min" |
+| 1-59 min | "{n} min" |
+| 1-23 hr | "{h} hr {m} min" |
+| 1+ days | "{d} days {h} hr" |
+
+Never show seconds (false precision from polling sensors).
+
+### 15.4 Edge Cases
+
+- Missing timestamp → omit badge
+- Negative duration (clock skew) → omit badge, log warning
+- Single event → treat as ongoing with "so far"
+- Device offline → freeze at last-known time; stale banner is primary signal
+
+### 15.5 Accessibility
+
+Content description uses unabbreviated words: "Opened at 2:34 PM, open for 23 minutes so far."
+
 ### 14.5 Landscape / Tablet
 
 - **Landscape:** Side-by-side — door status left, button right (50/50 horizontal)
