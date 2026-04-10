@@ -1108,6 +1108,33 @@ Small/Medium: entire surface → opens app. Large: surface + "View Details" butt
 - Text: `labelLarge`, `onSurfaceVariant`. "Today" / "Yesterday" / "Mon, Mar 7"
 - `LazyColumn` `stickyHeader` — pins to top of list
 
+## 25. Onboarding / First-Run
+
+### Detection
+
+First run = no stored auth token + no cached door data. Single Activity route, not a separate Activity.
+
+### Flow (3-step horizontal pager)
+
+**Step 1 — Welcome:**
+- App icon 80dp centered, "Smart Garage Door" (`headlineMedium`), "Monitor and control your garage door remotely." (`bodyLarge`, `onSurfaceVariant`, max 280dp)
+- CTA: "Get Started" FilledButton, 56dp height
+
+**Step 2 — Sign In:**
+- Lock icon 48dp, "Sign in with Google", "Your account must be authorized by the garage owner."
+- CTA: "Sign In" → Google Sign-In flow. No skip option.
+
+**Step 3 — Permissions (conditional, API 33+):**
+- Bell icon 48dp, "Stay notified", "Get alerts when your garage door is left open."
+- CTA: "Enable Notifications" → system permission dialog
+- Secondary: "Maybe Later" TextButton → skips, completes onboarding
+
+### Pager
+
+- 3 dots (or 2 if step 3 skipped): 8dp circles, `primary` active, `outlineVariant` inactive, 8dp spacing
+- Swipe disabled — progression via buttons only (prevents skipping sign-in)
+- Completion sets `onboarding_complete` flag in DataStore
+
 ### 14.5 Landscape / Tablet
 
 - **Landscape:** Side-by-side — door status left, button right (50/50 horizontal)

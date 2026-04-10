@@ -268,3 +268,11 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 25: Onboarding / First-Run (FINAL)
+
+**Focus:** 3-step pager: welcome, sign-in (required), notification permission (optional). Swipe disabled to enforce sign-in gate.
+
+**What changed:** SPEC.md section 25 added. All 25 iterations complete.
+
+---
+
