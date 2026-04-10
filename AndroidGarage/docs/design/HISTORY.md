@@ -244,3 +244,11 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 22: Haptic Feedback Catalog
+
+**Focus:** Every haptic event mapped to API constant and pattern. Rules for system compliance.
+
+**What changed:** SPEC.md section 22 added.
+
+---
+

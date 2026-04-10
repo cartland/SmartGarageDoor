@@ -1056,6 +1056,20 @@ No remote-action button in any widget — prevents accidental presses (physical-
 
 Small/Medium: entire surface → opens app. Large: surface + "View Details" button → opens app.
 
+## 22. Haptic Feedback Catalog
+
+| Trigger | API | Pattern |
+|---------|-----|---------|
+| Button tap | `CONFIRM` | Confirms press registered |
+| Button long-press start | `LONG_PRESS` | Hold threshold reached |
+| Button release (sent) | `createOneShot` 30ms/180 | Crisp "sent" tick |
+| Pull-to-refresh threshold | `GESTURE_THRESHOLD_ACTIVATE` | Snap point |
+| Refresh complete | `CONFIRM` | Data landed |
+| Error / failed action | Waveform 40ms-20ms-40ms | Double-buzz |
+| Radio button select | `CLOCK_TICK` | Minimal |
+
+**Rules:** Disabled when system "Touch feedback" is off. No haptics on passive state changes (status updates, notifications). Gate `VibrationEffect` on API 26+.
+
 ### 14.5 Landscape / Tablet
 
 - **Landscape:** Side-by-side — door status left, button right (50/50 horizontal)
