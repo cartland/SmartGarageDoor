@@ -21,11 +21,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LocalContentColor
@@ -39,8 +37,10 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.domain.model.RemoteButtonState
@@ -58,47 +58,131 @@ fun RemoteButtonContent(
     onTap: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    val tappable = state.isTappable()
+    val color = if (state == RemoteButtonState.Armed) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.surfaceDim
+    }
+    val onColor = if (state == RemoteButtonState.Armed) {
+        MaterialTheme.colorScheme.onPrimary
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    SquareButtonWithProgress(
         modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        val tappable = state.isTappable()
-        val color = if (state == RemoteButtonState.Armed) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.surfaceDim
-        }
-        val onColor = if (state == RemoteButtonState.Armed) {
-            MaterialTheme.colorScheme.onPrimary
-        } else {
-            MaterialTheme.colorScheme.onSurface
-        }
-        GradientButton(
-            modifier = Modifier
-                .widthIn(max = 192.dp)
-                .aspectRatio(1f)
-                .shadow(4.dp, CircleShape),
-            enabled = tappable,
-            onClick = onTap,
-            shape = CircleShape,
-            contentColor = onColor,
-            colorStops = arrayOf(
-                0.5f to color,
-                1.0f to blendColors(color, Color.Black, 0.5f),
+        button = {
+            GradientButton(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .shadow(4.dp, CircleShape),
+                enabled = tappable,
+                onClick = onTap,
+                shape = CircleShape,
+                contentColor = onColor,
+                colorStops = arrayOf(
+                    0.5f to color,
+                    1.0f to blendColors(color, Color.Black, 0.5f),
+                ),
+                contentPadding = PaddingValues(0.dp),
+            ) {
+                Text(
+                    text = state.buttonLabel(),
+                    fontSize = MaterialTheme.typography.titleLarge.fontSize,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        },
+        progress = {
+            ButtonProgressIndicator(
+                state = state,
+                indicatorHeight = 10.dp,
+            )
+        },
+    )
+}
+
+/**
+ * Custom layout that places a circular [button] above a [progress] indicator,
+ * where the button is a perfect square sized to fill the available space and
+ * the progress indicator matches the button's width exactly.
+ *
+ * Layout algorithm:
+ * 1. Measure [progress] at its intrinsic height (full available width).
+ * 2. Compute button side = min(maxWidth, maxHeight − progressHeight − spacing, maxButtonSize).
+ * 3. Re-measure [button] at exactly Constraints.fixed(buttonSide, buttonSide).
+ * 4. Re-measure [progress] at width = buttonSide.
+ * 5. Stack them vertically, centered horizontally inside the layout.
+ *
+ * Single measurement pass per child (button measured once, progress measured twice
+ * because its height is variable). No subcomposition. No view hopping on first frame.
+ * Falls back to [maxButtonSize] when constraints are unbounded (e.g. inside vertical scroll).
+ */
+@Composable
+fun SquareButtonWithProgress(
+    button: @Composable () -> Unit,
+    progress: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    spacing: Dp = 8.dp,
+    maxButtonSize: Dp = 192.dp,
+) {
+    Layout(
+        contents = listOf(button, progress),
+        modifier = modifier,
+    ) { (buttonMeasurables, progressMeasurables), constraints ->
+        val spacingPx = spacing.roundToPx()
+        val maxButtonPx = maxButtonSize.roundToPx()
+
+        // Compute the candidate button side based on incoming constraints, before
+        // measuring anything. This bounds the progress measurement to avoid passing
+        // unbounded width into a child Column (which would collapse rendering).
+        val widthBound = if (constraints.hasBoundedWidth) constraints.maxWidth else maxButtonPx
+        val candidateButtonSide = minOf(widthBound, maxButtonPx).coerceAtLeast(0)
+
+        // Step 1: measure progress at the candidate width to learn its natural height.
+        val tempProgress = progressMeasurables.first().measure(
+            Constraints(
+                minWidth = candidateButtonSide,
+                maxWidth = candidateButtonSide,
+                minHeight = 0,
+                maxHeight = Constraints.Infinity,
             ),
-            contentPadding = PaddingValues(0.dp),
-        ) {
-            Text(
-                text = state.buttonLabel(),
-                fontSize = MaterialTheme.typography.titleLarge.fontSize,
-                textAlign = TextAlign.Center,
+        )
+        val progressHeight = tempProgress.height
+
+        // Step 2: refine button side using the now-known progress height.
+        val maxFromHeight = if (constraints.hasBoundedHeight) {
+            constraints.maxHeight - progressHeight - spacingPx
+        } else {
+            maxButtonPx
+        }
+        val buttonSide = minOf(widthBound, maxFromHeight, maxButtonPx).coerceAtLeast(0)
+
+        // Step 3: measure button as a fixed square.
+        val buttonPlaceable = buttonMeasurables.first().measure(
+            Constraints.fixed(buttonSide, buttonSide),
+        )
+
+        // Step 4: re-measure progress at exactly the button's width (in case the
+        // candidate differed from the final button side due to height constraints).
+        val progressPlaceable = if (buttonSide == candidateButtonSide) {
+            tempProgress
+        } else {
+            progressMeasurables.first().measure(
+                Constraints.fixed(buttonSide, progressHeight),
             )
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        ButtonProgressIndicator(
-            state = state,
-            indicatorHeight = 10.dp,
-        )
+
+        val totalHeight = buttonSide + spacingPx + progressPlaceable.height
+
+        // Center horizontally within the available width.
+        val parentWidth = if (constraints.hasBoundedWidth) constraints.maxWidth else buttonSide
+        val xOffset = ((parentWidth - buttonSide) / 2).coerceAtLeast(0)
+
+        layout(parentWidth, totalHeight) {
+            buttonPlaceable.placeRelative(xOffset, 0)
+            progressPlaceable.placeRelative(xOffset, buttonSide + spacingPx)
+        }
     }
 }
 
@@ -186,12 +270,17 @@ fun ButtonProgressIndicator(
         modifier = modifier,
     ) {
         ParallelogramProgressBar(
+            modifier = Modifier.fillMaxWidth(),
             max = 5,
             complete = data.complete,
             colorComplete = colorComplete,
             height = indicatorHeight,
         )
-        Text(text = data.text, textAlign = TextAlign.Center)
+        Text(
+            text = data.text,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
