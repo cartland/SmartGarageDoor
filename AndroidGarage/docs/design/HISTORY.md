@@ -228,3 +228,11 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 20: Responsive Layout
+
+**Focus:** WindowSizeClass breakpoints (Compact/Medium/Expanded), per-screen adaptation, foldable hinge handling.
+
+**What changed:** SPEC.md section 20 added.
+
+---
+

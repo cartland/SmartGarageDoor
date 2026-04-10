@@ -990,6 +990,40 @@ When `areAnimatorsEnabled() == false`: all animations complete at 0ms. No motion
 - Durations in UI: "3 min ago", "1 hr ago". In prose: "30 minutes"
 - Never negative or "0 seconds" — floor to "Just now"
 
+## 20. Responsive Layout
+
+### 20.1 WindowSizeClass Breakpoints
+
+| Class | Width | Typical devices |
+|-------|-------|----------------|
+| Compact | < 600dp | Phone portrait |
+| Medium | 600–839dp | Phone landscape, small tablet |
+| Expanded | ≥ 840dp | Tablet landscape, large tablet, foldables |
+
+### 20.2 Home Screen
+
+**Compact:** Single column. Door status (`weight(2f)`) above button (`weight(1f)`).
+
+**Medium:** Side-by-side 50/50. Left: door status + button (centered, max 360dp). Right: history list.
+
+**Expanded:** Centered max 960dp. Left pane 400dp fixed (status + button). Right pane fills remainder (history, max 560dp).
+
+### 20.3 Settings Screen
+
+All breakpoints: centered column, max-width 480dp. No two-pane layout — settings content doesn't benefit from it.
+
+### 20.4 History List
+
+No multi-column grid at any breakpoint — list items are sequential. Items span full pane width. At Expanded, items capped at 560dp with 32dp end padding.
+
+### 20.5 Auth Screen
+
+All breakpoints: centered column, max-width 360dp. Vertically centered with -48dp offset.
+
+### 20.6 Foldable
+
+When `FoldingFeature` reports a vertical hinge, align the pane split to the hinge boundary instead of 50/50.
+
 ### 14.5 Landscape / Tablet
 
 - **Landscape:** Side-by-side — door status left, button right (50/50 horizontal)
