@@ -120,3 +120,13 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 8: Error States Catalog
+
+**Focus:** Exhaustive inventory of all user-facing errors with tiered severity (blocking/degraded/transient), specific UI treatments, retry behavior, and dismissal rules.
+
+**Decision:** Three-tier error system. T1 blocking (full-screen, auth failures), T2 degraded (persistent banners, network/stale/notification issues), T3 transient (snackbar/inline, single action failures). Snooze errors use the existing SnoozeAction overlay instead of snackbar.
+
+**What changed:** SPEC.md section 8 added with complete error catalog (9 error types), banner/snackbar specs, and retry rules.
+
+---
+
