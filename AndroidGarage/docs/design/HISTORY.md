@@ -220,3 +220,11 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 19: Micro-Copy Guide
+
+**Focus:** Voice principles, canonical term list, sentence structure rules, error message templates, numeric formatting. Ensures every string feels like one author wrote it.
+
+**What changed:** SPEC.md section 19 added. Target reduced from 50 to 25.
+
+---
+

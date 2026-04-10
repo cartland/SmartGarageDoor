@@ -942,6 +942,54 @@ Allow Material You to override `primary`/`secondary` but NOT door-state colors. 
 
 When `areAnimatorsEnabled() == false`: all animations complete at 0ms. No motion.
 
+## 19. Micro-Copy Guide
+
+### 19.1 Voice Principles
+
+| Principle | Example |
+|-----------|---------|
+| **Direct** | "Door is open" not "Sensor reading indicates open state" |
+| **Calm** | "Could not reach server" not "CRITICAL CONNECTION FAILURE" |
+| **Brief** | One sentence for status; two max for errors (what + what to do) |
+| **Honest** | "Door status unknown" not "Door is closed" when data is stale |
+
+### 19.2 Canonical Terms
+
+| Use | Never use |
+|-----|-----------|
+| door | garage, gate, panel |
+| open / closed | up / down |
+| tap | click, press |
+| sign in / sign out | log in / log out |
+| server | cloud, backend |
+| unknown | unavailable, N/A |
+| snooze | mute, silence |
+
+### 19.3 Sentence Rules
+
+- **Status labels:** Sentence case, no period. "Door is open"
+- **Action buttons:** Verb phrase, title case. "Sign In", "Retry"
+- **Error body:** Problem + remedy, two clauses. "Could not reach server. Check your connection."
+- **Empty states:** What will appear, sentence case, period. "Door activity will appear here."
+- **Timestamps:** Relative < 24h ("3 min ago"), absolute otherwise ("Apr 8, 2:14 PM"). Never raw epoch.
+
+### 19.4 Error Message Templates
+
+| Scenario | Short | Body | Action |
+|----------|-------|------|--------|
+| No network | "No connection" | "Could not reach server. Check your connection and try again." | "Retry" |
+| Token expired | "Session expired" | "Sign-in expired. Tap to sign in again." | "Sign In" |
+| Server error | "Server error" | "Something went wrong on our end. Try again in a moment." | "Retry" |
+| Unknown state | "Status unknown" | "Door status could not be determined." | "Refresh" |
+| Press failed | "Press failed" | "Could not send the door command." | "Retry" |
+| Not authorized | "Not authorized" | "Your account does not have access. Contact the door owner." | "Sign Out" |
+
+### 19.5 Numeric Rules
+
+- "1 event" / "2 events" — always include count
+- Durations in UI: "3 min ago", "1 hr ago". In prose: "30 minutes"
+- Never negative or "0 seconds" — floor to "Just now"
+
 ### 14.5 Landscape / Tablet
 
 - **Landscape:** Side-by-side — door status left, button right (50/50 horizontal)
