@@ -725,3 +725,44 @@ Replaces the current text-only sign-in prompt.
 ### 13.6 Accessibility
 
 All illustrations have `contentDescription = null` (decorative). Title + body merged as single semantics block. Action buttons have minimum 48dp touch target.
+
+## 14. Home Screen Layout Refinement
+
+Closes proposal 5.1 — make door status the hero, button secondary.
+
+### 14.1 Vertical Zones
+
+| Zone | Content | Height | Notes |
+|------|---------|--------|-------|
+| A — Alerts | Error cards, notification permission, stale banner | Auto | Conditional, 0 height when absent |
+| B — Hero Status | Door status card with icon, position label, duration, timestamp | `weight(2f)` | Dominates the screen |
+| C — Action | Remote button + progress indicator | `weight(1f)` | Intentionally smaller |
+
+**Ratio:** Door status gets 2/3 of the flexible space, button gets 1/3. This reflects actual usage — most opens are "check the door" not "press the button."
+
+### 14.2 Zone B — Hero Status
+
+- Garage icon fills available height (aspect ratio 1:1, centered)
+- Door position label: `titleLarge`, centered above icon
+- Duration: `labelSmall`, centered below position label
+- Date/time row: calendar icon + `labelSmall`, centered at bottom
+- Entire card tappable to refresh
+
+### 14.3 Zone C — Action Button
+
+- `SquareButtonWithProgress` layout (section from code)
+- Max button size: 192dp (existing cap)
+- Button + progress bar centered in zone
+- Progress bar matches button width exactly
+
+### 14.4 Weight Change from Current
+
+Current: `weight(1f)` each (50/50 split)
+Proposed: `weight(2f)` status / `weight(1f)` button (67/33 split)
+
+This gives the door status ~67% of available space. On a typical 640dp content area (minus top bar and bottom nav), the status gets ~427dp and the button gets ~213dp — enough for a 192dp button with 21dp of breathing room.
+
+### 14.5 Landscape / Tablet
+
+- **Landscape:** Side-by-side — door status left, button right (50/50 horizontal)
+- **Tablet (600dp+):** Max content width 480dp centered. Status icon grows to 120dp, status label to 40sp. Button stays 192dp.

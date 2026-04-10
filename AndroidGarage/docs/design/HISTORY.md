@@ -180,3 +180,11 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 14: Home Screen Layout Refinement
+
+**Focus:** Closes proposal 5.1. Change vertical split from 50/50 to 67/33 (door status hero / button secondary). Exact weight ratios, zone definitions, landscape/tablet adaptation.
+
+**What changed:** SPEC.md section 14 added.
+
+---
+
