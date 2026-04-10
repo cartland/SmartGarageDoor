@@ -188,3 +188,11 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 15: History — Duration in State
+
+**Focus:** Closes proposal 5.3. Each history row shows computed duration badge. Live-updating "so far" for current event. Formatting rules, edge cases, accessibility.
+
+**What changed:** SPEC.md section 15 added. All 6 original UX proposals (5.1-5.6) now fully detailed.
+
+---
+
