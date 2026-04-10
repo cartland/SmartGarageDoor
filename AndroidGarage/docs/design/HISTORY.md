@@ -204,3 +204,11 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 17: Dark Mode & OLED
+
+**Focus:** Surface hierarchy for OLED (pure black background), desaturated state colors meeting WCAG AA, per-component dark adjustments, Dynamic Color rules.
+
+**What changed:** SPEC.md section 17 added.
+
+---
+
