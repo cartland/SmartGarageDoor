@@ -1,42 +1,43 @@
 # Iteration Plan
 
-Each iteration follows these steps in order. Update files as you go so progress is never lost.
+Each iteration is executed by a sub-agent. The orchestrator reads the current state, dispatches the agent, writes results, commits, and increments.
 
-## Step 1: Review Current State
+## Orchestrator Steps (run by main Claude)
 
-- Read `SPEC.md` to understand the current design specification
-- Read `HISTORY.md` to recall prior decisions
-- Note which areas are well-defined and which are thin or missing
+1. Read `ITERATION.txt` and `TARGET.txt`. If current >= target, stop.
+2. Read `SPEC.md` and `HISTORY.md` to build context for the agent.
+3. Dispatch a sub-agent with the full context + instructions below.
+4. Write the agent's output to `SPEC.md` and `HISTORY.md`.
+5. Increment `ITERATION.txt`.
+6. Commit: `docs: Design iteration N — [one-line summary]`
+7. Repeat from step 1.
 
-## Step 2: Brainstorm Improvement Areas
+## Sub-Agent Prompt Template
 
-- List 3-5 areas that could be improved, added, or refined
-- Consider: layout, color, typography, interaction, animation, accessibility, information hierarchy, error states, empty states, onboarding, responsiveness
-- Briefly describe why each area matters
+The sub-agent receives:
+- The current SPEC.md content
+- The current HISTORY.md content  
+- The iteration number
 
-## Step 3: Pick One Area
+The sub-agent must return:
+- **area**: which area to improve (1 line)
+- **rationale**: why this area (2-3 sentences)
+- **options**: 3 concrete improvement options considered
+- **decision**: which option chosen and why (2-3 sentences)
+- **spec_addition**: the new or updated section for SPEC.md (full markdown)
+- **summary**: one-line summary for the commit message
 
-- Choose the area with the highest impact given the current state of the spec
-- Early iterations should establish foundations (screen inventory, color, typography)
-- Later iterations should refine details (micro-interactions, edge cases, responsive breakpoints)
-- Write the choice and rationale to `HISTORY.md`
+## Sub-Agent Instructions
 
-## Step 4: Brainstorm Improvements for That Area
+You are a UX designer iterating on a garage door controller app's design specification.
 
-- Generate 3-5 concrete improvement ideas for the chosen area
-- Consider trade-offs, consistency with existing design, and implementation feasibility
-- Write the options to `HISTORY.md`
+Review the current spec and history. Identify one area that is:
+- Missing or underspecified
+- Could be meaningfully improved with concrete detail
+- Not already well-covered by recent iterations
 
-## Step 5: Improve the Spec
+Early iterations (1-10) should establish foundations. Middle iterations (11-30) should detail specific components and screens. Late iterations (31-50) should refine edge cases, micro-interactions, and polish.
 
-- Pick the best option (or combine ideas) and update `SPEC.md`
-- Be specific: include colors (hex), sizes (dp), spacing, state descriptions
-- Reference existing code where relevant (file paths, composable names)
-- Write the decision and rationale to `HISTORY.md`
+Be specific: include dimensions (dp), colors (hex), timing (ms), and exact text strings where relevant. Reference existing spec sections. Do not repeat what's already documented — extend or refine it.
 
-## Step 6: Update and Increment
-
-- Verify `SPEC.md` reflects the improvement
-- Verify `HISTORY.md` has the full decision trail for this iteration
-- Increment the number in `ITERATION.txt`
-- Summarize what changed in one line at the top of the `HISTORY.md` entry
+Each iteration should make the spec meaningfully better in one focused area. Small, concrete improvements beat broad vague ones.
