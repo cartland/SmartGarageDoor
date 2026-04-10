@@ -140,3 +140,13 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 10: Accessibility
+
+**Focus:** Touch targets, contrast ratios, screen reader flow, motion reduction, reachability, text scaling, and a validation checklist.
+
+**Decision:** Full spec with testing checklist. Garage controller is safety-critical — accessibility failures are usability failures for everyone.
+
+**What changed:** SPEC.md section 10 added.
+
+---
+
