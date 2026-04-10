@@ -890,6 +890,58 @@ Desaturated, lighter variants for contrast against dark surfaces:
 
 Allow Material You to override `primary`/`secondary` but NOT door-state colors. State colors are safety-critical and must remain fixed.
 
+## 18. Transition Animations Catalog
+
+### 18.1 Motion Principles
+
+- **Fast by default.** No animation exceeds 400ms. Users check door status in a hurry.
+- **Informative, not decorative.** Every animation communicates a state change.
+- **Interruptible.** All animations cancelable mid-flight.
+
+### 18.2 Easing Curves
+
+| Token | Curve | Use |
+|-------|-------|-----|
+| Standard | `CubicBezier(0.2, 0.0, 0.0, 1.0)` | Most transitions |
+| Decelerate | `CubicBezier(0.0, 0.0, 0.0, 1.0)` | Elements entering |
+| Accelerate | `CubicBezier(0.3, 0.0, 1.0, 1.0)` | Elements exiting |
+
+### 18.3 Navigation
+
+| Transition | Type | Duration |
+|-----------|------|----------|
+| Tab switch | Crossfade | 150ms |
+| Auth → Home | Shared axis (vertical, +30dp) | 300ms |
+| Back | Reverse shared axis | 250ms |
+
+### 18.4 Door State Changes
+
+- Color crossfade + icon morph: 300ms
+- Icon uses fade-through: old out (90ms), gap (30ms), new in (180ms)
+- Warning banners: slide down 250ms enter, fade out 200ms exit
+
+### 18.5 Card Expand / Collapse
+
+- Expand: 250ms, content fades in at 60% of height animation
+- Collapse: 200ms (faster than expand per Material guidance), content fades out first (100ms)
+- Chevron rotates 0° ↔ 180°
+
+### 18.6 History List
+
+- Initial load: staggered fade-in (50ms per item, 200ms each)
+- New event prepended: slide from top + fade, 250ms
+- Beyond-fold items animate only when scrolled into view
+
+### 18.7 Error Transitions
+
+- Banner enter: slide down 250ms
+- Banner dismiss: fade + collapse 200ms
+- Retry fail: shake animation (±4dp → ±2dp → 0, 300ms)
+
+### 18.8 Accessibility Override
+
+When `areAnimatorsEnabled() == false`: all animations complete at 0ms. No motion.
+
 ### 14.5 Landscape / Tablet
 
 - **Landscape:** Side-by-side — door status left, button right (50/50 horizontal)
