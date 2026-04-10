@@ -853,6 +853,43 @@ Visibility: PUBLIC (not sensitive — user needs to see "door open" without unlo
 
 Tap "Snooze 1h" → BroadcastReceiver → SnoozeNotificationsUseCase. On success: notification body → "Snoozed until {time}", auto-dismiss 3s. On failure: toast "Could not snooze. Open the app to try again."
 
+## 17. Dark Mode & OLED
+
+### 17.1 Surface Hierarchy
+
+| Tier | Light | Dark (OLED) | Usage |
+|------|-------|-------------|-------|
+| Background | `#FFFBFE` | `#000000` | App canvas |
+| Surface 1 | `#F4EFF4` | `#0E0E0E` | Door status card, history list |
+| Surface 2 | `#E8E0E5` | `#1A1A1A` | Elevated cards (settings) |
+| Surface 3 | `#DDD8DD` | `#252525` | Bottom nav, top app bar |
+
+OLED rule: background is always pure black. No in-app dark/light toggle — follow system setting.
+
+### 17.2 Door State Colors (Dark)
+
+Desaturated, lighter variants for contrast against dark surfaces:
+
+| State | Light | Dark | Min contrast vs `#0E0E0E` |
+|-------|-------|------|--------------------------|
+| Closed | `#2E7D32` | `#81C784` | 4.8:1 |
+| Open | `#E65100` | `#FFB74D` | 5.1:1 |
+| Opening/Closing | `#F9A825` | `#FFF176` | 5.4:1 |
+| Error/Unknown | `#C62828` | `#EF9A9A` | 4.6:1 |
+
+### 17.3 Component Adjustments
+
+- **Status indicator:** Outlined circle (2dp stroke) instead of filled — prevents bright region at night
+- **Action button:** Tonal variant — state color at 24% opacity over Surface 2
+- **History dividers:** `outlineVariant` at 16% opacity (near-invisible on OLED, rely on spacing)
+- **Settings cards:** Surface 2 background (visually separates from near-black Surface 1)
+- **Error screens:** Surface 2 dialog background; error icon uses `#EF9A9A` (avoids halation)
+- **Loading:** Pure black background + single progress indicator (avoids OLED burn-in)
+
+### 17.4 Dynamic Color
+
+Allow Material You to override `primary`/`secondary` but NOT door-state colors. State colors are safety-critical and must remain fixed.
+
 ### 14.5 Landscape / Tablet
 
 - **Landscape:** Side-by-side — door status left, button right (50/50 horizontal)
