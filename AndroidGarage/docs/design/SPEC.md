@@ -680,3 +680,48 @@ Tier boundary checks: every 5 seconds.
 ### 12.7 Dark Theme
 
 Dot colors shift to 300-weight variants: green `#81C784`, orange `#FFB74D`, red `#E57373`. Badge backgrounds use same 10% opacity of the lighter color.
+
+## 13. Empty States
+
+Centered vertical stack: illustration (96dp) → title (`titleLarge`) → body (`labelSmall`, `onSurfaceVariant`) → optional action. Max width 280dp, offset 32dp above true center.
+
+### 13.1 History — No Events
+
+- Illustration: Garage door icon at CLOSED, 20% opacity, no animation
+- Title: "No recent events"
+- Body: "Door activity will appear here"
+- Action: None
+
+### 13.2 History — Loading Failed, No Cache
+
+- Illustration: `cloud_off` icon, 96dp, 40% opacity
+- Title: "Couldn't load history"
+- Body: "Check your connection and try again"
+- Action: "Retry" TextButton
+
+### 13.3 Home — Not Authenticated
+
+- Illustration: `lock_outline` icon, 96dp, 40% opacity
+- Title: "Sign in to continue"
+- Body: "Control your garage door and view its status"
+- Action: Google Sign-In button (standard branding)
+
+Replaces the current text-only sign-in prompt.
+
+### 13.4 Home — Door Status Unavailable
+
+- Illustration: Garage door icon at midway position, unknown color, 30% opacity
+- Title: "No door status"
+- Body: "Waiting for the first check-in from your garage"
+- Action: "Refresh" TextButton
+
+### 13.5 Transitions
+
+| From → To | Animation |
+|-----------|-----------|
+| Loading → Empty | Fade-in 300ms |
+| Empty → Content | Crossfade 200ms |
+
+### 13.6 Accessibility
+
+All illustrations have `contentDescription = null` (decorative). Title + body merged as single semantics block. Action buttons have minimum 48dp touch target.

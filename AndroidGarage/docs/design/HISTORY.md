@@ -170,3 +170,13 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 13: Empty States
+
+**Focus:** Design what users see when there's no content — no events, not signed in, no door status. Closes proposal 5.4.
+
+**Decision:** Shared layout container (illustration + title + body + action). Four specific empty states: history empty, history load failed, unauthenticated home, door status unavailable.
+
+**What changed:** SPEC.md section 13 added.
+
+---
+
