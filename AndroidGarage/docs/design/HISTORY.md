@@ -252,3 +252,11 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 23: Settings Card Anatomy
+
+**Focus:** Exact dp for expandable card structure, radio button rows, content scrolling.
+
+**What changed:** SPEC.md section 23 added.
+
+---
+

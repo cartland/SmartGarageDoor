@@ -1070,6 +1070,26 @@ Small/Medium: entire surface → opens app. Large: surface + "View Details" butt
 
 **Rules:** Disabled when system "Touch feedback" is off. No haptics on passive state changes (status updates, notifications). Gate `VibrationEffect` on API 26+.
 
+## 23. Settings Card Anatomy
+
+### Expandable Card
+
+- Card: 16dp horizontal margin, `surfaceContainerLow` fill, 16dp corner radius, 0dp elevation
+- Header row: 56dp min height, 16dp padding all sides
+- Title: `titleMedium`. Subtitle: `bodySmall`, `onSurfaceVariant`
+- Chevron: 24dp, rotates 0°↔180° over 300ms
+- Divider: 1dp `outlineVariant` between header and content
+- Content: 16dp padding, `animateContentSize` 300ms EaseInOut
+
+### Radio Button Row (Snooze Card)
+
+- Row: 48dp min touch target, 12dp vertical padding
+- Radio button: 20dp circle, `primary` when selected
+- Label: `bodyLarge`, 16dp start margin from button
+- Helper text: `bodySmall`, `onSurfaceVariant`
+- Group spacing: 0dp between rows (padding handles separation)
+- Max visible: 5 options. Beyond that, content scrolls (maxHeight 288dp).
+
 ### 14.5 Landscape / Tablet
 
 - **Landscape:** Side-by-side — door status left, button right (50/50 horizontal)
