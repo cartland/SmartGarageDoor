@@ -196,3 +196,83 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 16: FCM Push Notification Design
+
+**Focus:** Notification channels, anatomy (collapsed/expanded), grouping/collapse strategy, per-state content, lock screen visibility, snooze-from-notification interaction.
+
+**What changed:** SPEC.md section 16 added.
+
+---
+
+## Iteration 17: Dark Mode & OLED
+
+**Focus:** Surface hierarchy for OLED (pure black background), desaturated state colors meeting WCAG AA, per-component dark adjustments, Dynamic Color rules.
+
+**What changed:** SPEC.md section 17 added.
+
+---
+
+## Iteration 18: Transition Animations Catalog
+
+**Focus:** Comprehensive motion spec: easing curves, navigation transitions, state changes, card expand/collapse, list entries, error banners, accessibility override.
+
+**What changed:** SPEC.md section 18 added.
+
+---
+
+## Iteration 19: Micro-Copy Guide
+
+**Focus:** Voice principles, canonical term list, sentence structure rules, error message templates, numeric formatting. Ensures every string feels like one author wrote it.
+
+**What changed:** SPEC.md section 19 added. Target reduced from 50 to 25.
+
+---
+
+## Iteration 20: Responsive Layout
+
+**Focus:** WindowSizeClass breakpoints (Compact/Medium/Expanded), per-screen adaptation, foldable hinge handling.
+
+**What changed:** SPEC.md section 20 added.
+
+---
+
+## Iteration 21: Home Screen Widget
+
+**Focus:** Three widget sizes (Small/Medium/Large), state mapping, refresh strategy. No remote-action button — prevents accidental presses.
+
+**What changed:** SPEC.md section 21 added.
+
+---
+
+## Iteration 22: Haptic Feedback Catalog
+
+**Focus:** Every haptic event mapped to API constant and pattern. Rules for system compliance.
+
+**What changed:** SPEC.md section 22 added.
+
+---
+
+## Iteration 23: Settings Card Anatomy
+
+**Focus:** Exact dp for expandable card structure, radio button rows, content scrolling.
+
+**What changed:** SPEC.md section 23 added.
+
+---
+
+## Iteration 24: History List Item Anatomy
+
+**Focus:** Event row dimensions, status dots, duration tags, sticky date headers.
+
+**What changed:** SPEC.md section 24 added.
+
+---
+
+## Iteration 25: Onboarding / First-Run (FINAL)
+
+**Focus:** 3-step pager: welcome, sign-in (required), notification permission (optional). Swipe disabled to enforce sign-in gate.
+
+**What changed:** SPEC.md section 25 added. All 25 iterations complete.
+
+---
+

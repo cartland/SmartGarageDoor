@@ -807,6 +807,334 @@ Never show seconds (false precision from polling sensors).
 
 Content description uses unabbreviated words: "Opened at 2:34 PM, open for 23 minutes so far."
 
+## 16. FCM Push Notification Design
+
+### 16.1 Channels
+
+| Channel | Name | Importance | Sound | Vibrate |
+|---------|------|-----------|-------|---------|
+| `door_alert` | Door Alerts | HIGH | Default | Yes |
+| `door_status` | Door Status Updates | MIN | None | No |
+
+`door_alert` for user-visible warnings (door left open). `door_status` reserved for future silent status notifications.
+
+### 16.2 Notification Anatomy
+
+**Collapsed:**
+- Small icon: monochrome garage silhouette, 24dp, accent `#226B43` (green — app identity)
+- Large icon: 40dp circle, door-state color fill, white garage glyph
+- Title: "Garage door open" (varies by state)
+- Body: "Open for more than 15 minutes"
+
+**Expanded (2 action buttons):**
+- "Snooze 1h" — sends snooze via BroadcastReceiver without opening app
+- "Open App" — launches MainActivity
+
+### 16.3 Grouping
+
+- Collapse key: `door_not_closed` (server-set). Replaces previous alert.
+- Tag: `door_alert_current`, ID: 1001. Only one alert visible at a time.
+- Auto-cancel: true. Ongoing: false (swipeable).
+
+### 16.4 Content by Door State
+
+| State | Title | Body |
+|-------|-------|------|
+| Open | Garage door open | Open for more than {duration} |
+| Opening/ClosingTooLong | Door not closed | Door not closed for more than {duration} |
+| Unknown | Unknown door status | Error not resolved for longer than {duration} |
+| ErrorSensorConflict | Door error | Door error for longer than {duration} |
+
+### 16.5 Lock Screen
+
+Visibility: PUBLIC (not sensitive — user needs to see "door open" without unlocking). Heads-up on first post only; updates don't re-trigger.
+
+### 16.6 Snooze from Notification
+
+Tap "Snooze 1h" → BroadcastReceiver → SnoozeNotificationsUseCase. On success: notification body → "Snoozed until {time}", auto-dismiss 3s. On failure: toast "Could not snooze. Open the app to try again."
+
+## 17. Dark Mode & OLED
+
+### 17.1 Surface Hierarchy
+
+| Tier | Light | Dark (OLED) | Usage |
+|------|-------|-------------|-------|
+| Background | `#FFFBFE` | `#000000` | App canvas |
+| Surface 1 | `#F4EFF4` | `#0E0E0E` | Door status card, history list |
+| Surface 2 | `#E8E0E5` | `#1A1A1A` | Elevated cards (settings) |
+| Surface 3 | `#DDD8DD` | `#252525` | Bottom nav, top app bar |
+
+OLED rule: background is always pure black. No in-app dark/light toggle — follow system setting.
+
+### 17.2 Door State Colors (Dark)
+
+Desaturated, lighter variants for contrast against dark surfaces:
+
+| State | Light | Dark | Min contrast vs `#0E0E0E` |
+|-------|-------|------|--------------------------|
+| Closed | `#2E7D32` | `#81C784` | 4.8:1 |
+| Open | `#E65100` | `#FFB74D` | 5.1:1 |
+| Opening/Closing | `#F9A825` | `#FFF176` | 5.4:1 |
+| Error/Unknown | `#C62828` | `#EF9A9A` | 4.6:1 |
+
+### 17.3 Component Adjustments
+
+- **Status indicator:** Outlined circle (2dp stroke) instead of filled — prevents bright region at night
+- **Action button:** Tonal variant — state color at 24% opacity over Surface 2
+- **History dividers:** `outlineVariant` at 16% opacity (near-invisible on OLED, rely on spacing)
+- **Settings cards:** Surface 2 background (visually separates from near-black Surface 1)
+- **Error screens:** Surface 2 dialog background; error icon uses `#EF9A9A` (avoids halation)
+- **Loading:** Pure black background + single progress indicator (avoids OLED burn-in)
+
+### 17.4 Dynamic Color
+
+Allow Material You to override `primary`/`secondary` but NOT door-state colors. State colors are safety-critical and must remain fixed.
+
+## 18. Transition Animations Catalog
+
+### 18.1 Motion Principles
+
+- **Fast by default.** No animation exceeds 400ms. Users check door status in a hurry.
+- **Informative, not decorative.** Every animation communicates a state change.
+- **Interruptible.** All animations cancelable mid-flight.
+
+### 18.2 Easing Curves
+
+| Token | Curve | Use |
+|-------|-------|-----|
+| Standard | `CubicBezier(0.2, 0.0, 0.0, 1.0)` | Most transitions |
+| Decelerate | `CubicBezier(0.0, 0.0, 0.0, 1.0)` | Elements entering |
+| Accelerate | `CubicBezier(0.3, 0.0, 1.0, 1.0)` | Elements exiting |
+
+### 18.3 Navigation
+
+| Transition | Type | Duration |
+|-----------|------|----------|
+| Tab switch | Crossfade | 150ms |
+| Auth → Home | Shared axis (vertical, +30dp) | 300ms |
+| Back | Reverse shared axis | 250ms |
+
+### 18.4 Door State Changes
+
+- Color crossfade + icon morph: 300ms
+- Icon uses fade-through: old out (90ms), gap (30ms), new in (180ms)
+- Warning banners: slide down 250ms enter, fade out 200ms exit
+
+### 18.5 Card Expand / Collapse
+
+- Expand: 250ms, content fades in at 60% of height animation
+- Collapse: 200ms (faster than expand per Material guidance), content fades out first (100ms)
+- Chevron rotates 0° ↔ 180°
+
+### 18.6 History List
+
+- Initial load: staggered fade-in (50ms per item, 200ms each)
+- New event prepended: slide from top + fade, 250ms
+- Beyond-fold items animate only when scrolled into view
+
+### 18.7 Error Transitions
+
+- Banner enter: slide down 250ms
+- Banner dismiss: fade + collapse 200ms
+- Retry fail: shake animation (±4dp → ±2dp → 0, 300ms)
+
+### 18.8 Accessibility Override
+
+When `areAnimatorsEnabled() == false`: all animations complete at 0ms. No motion.
+
+## 19. Micro-Copy Guide
+
+### 19.1 Voice Principles
+
+| Principle | Example |
+|-----------|---------|
+| **Direct** | "Door is open" not "Sensor reading indicates open state" |
+| **Calm** | "Could not reach server" not "CRITICAL CONNECTION FAILURE" |
+| **Brief** | One sentence for status; two max for errors (what + what to do) |
+| **Honest** | "Door status unknown" not "Door is closed" when data is stale |
+
+### 19.2 Canonical Terms
+
+| Use | Never use |
+|-----|-----------|
+| door | garage, gate, panel |
+| open / closed | up / down |
+| tap | click, press |
+| sign in / sign out | log in / log out |
+| server | cloud, backend |
+| unknown | unavailable, N/A |
+| snooze | mute, silence |
+
+### 19.3 Sentence Rules
+
+- **Status labels:** Sentence case, no period. "Door is open"
+- **Action buttons:** Verb phrase, title case. "Sign In", "Retry"
+- **Error body:** Problem + remedy, two clauses. "Could not reach server. Check your connection."
+- **Empty states:** What will appear, sentence case, period. "Door activity will appear here."
+- **Timestamps:** Relative < 24h ("3 min ago"), absolute otherwise ("Apr 8, 2:14 PM"). Never raw epoch.
+
+### 19.4 Error Message Templates
+
+| Scenario | Short | Body | Action |
+|----------|-------|------|--------|
+| No network | "No connection" | "Could not reach server. Check your connection and try again." | "Retry" |
+| Token expired | "Session expired" | "Sign-in expired. Tap to sign in again." | "Sign In" |
+| Server error | "Server error" | "Something went wrong on our end. Try again in a moment." | "Retry" |
+| Unknown state | "Status unknown" | "Door status could not be determined." | "Refresh" |
+| Press failed | "Press failed" | "Could not send the door command." | "Retry" |
+| Not authorized | "Not authorized" | "Your account does not have access. Contact the door owner." | "Sign Out" |
+
+### 19.5 Numeric Rules
+
+- "1 event" / "2 events" — always include count
+- Durations in UI: "3 min ago", "1 hr ago". In prose: "30 minutes"
+- Never negative or "0 seconds" — floor to "Just now"
+
+## 20. Responsive Layout
+
+### 20.1 WindowSizeClass Breakpoints
+
+| Class | Width | Typical devices |
+|-------|-------|----------------|
+| Compact | < 600dp | Phone portrait |
+| Medium | 600–839dp | Phone landscape, small tablet |
+| Expanded | ≥ 840dp | Tablet landscape, large tablet, foldables |
+
+### 20.2 Home Screen
+
+**Compact:** Single column. Door status (`weight(2f)`) above button (`weight(1f)`).
+
+**Medium:** Side-by-side 50/50. Left: door status + button (centered, max 360dp). Right: history list.
+
+**Expanded:** Centered max 960dp. Left pane 400dp fixed (status + button). Right pane fills remainder (history, max 560dp).
+
+### 20.3 Settings Screen
+
+All breakpoints: centered column, max-width 480dp. No two-pane layout — settings content doesn't benefit from it.
+
+### 20.4 History List
+
+No multi-column grid at any breakpoint — list items are sequential. Items span full pane width. At Expanded, items capped at 560dp with 32dp end padding.
+
+### 20.5 Auth Screen
+
+All breakpoints: centered column, max-width 360dp. Vertically centered with -48dp offset.
+
+### 20.6 Foldable
+
+When `FoldingFeature` reports a vertical hinge, align the pane split to the hinge boundary instead of 50/50.
+
+## 21. Home Screen Widget
+
+### 21.1 Variants
+
+| Variant | Grid | Content |
+|---------|------|---------|
+| Small | 2×1 | Icon + status label |
+| Medium | 3×2 | Icon + status + timestamp (centered) |
+| Large | 4×2 | Icon + status + timestamp + "View Details" button |
+
+No remote-action button in any widget — prevents accidental presses (physical-confirmation philosophy).
+
+### 21.2 State Mapping
+
+| State | Label | Background |
+|-------|-------|------------|
+| Closed | "Closed" | surfaceContainer |
+| Open | "Open" | warningContainer (amber) |
+| Opening/Closing | "Opening…"/"Closing…" | surfaceContainer |
+| Error | "Check Door" | errorContainer |
+| Unknown / stale | "Updating…" | surfaceContainerHighest |
+
+### 21.3 Refresh
+
+- Periodic: every 15 min (Android minimum)
+- On app foreground: broadcast triggers widget update
+- On FCM push: refresh before notification display
+
+### 21.4 Tap Behavior
+
+Small/Medium: entire surface → opens app. Large: surface + "View Details" button → opens app.
+
+## 22. Haptic Feedback Catalog
+
+| Trigger | API | Pattern |
+|---------|-----|---------|
+| Button tap | `CONFIRM` | Confirms press registered |
+| Button long-press start | `LONG_PRESS` | Hold threshold reached |
+| Button release (sent) | `createOneShot` 30ms/180 | Crisp "sent" tick |
+| Pull-to-refresh threshold | `GESTURE_THRESHOLD_ACTIVATE` | Snap point |
+| Refresh complete | `CONFIRM` | Data landed |
+| Error / failed action | Waveform 40ms-20ms-40ms | Double-buzz |
+| Radio button select | `CLOCK_TICK` | Minimal |
+
+**Rules:** Disabled when system "Touch feedback" is off. No haptics on passive state changes (status updates, notifications). Gate `VibrationEffect` on API 26+.
+
+## 23. Settings Card Anatomy
+
+### Expandable Card
+
+- Card: 16dp horizontal margin, `surfaceContainerLow` fill, 16dp corner radius, 0dp elevation
+- Header row: 56dp min height, 16dp padding all sides
+- Title: `titleMedium`. Subtitle: `bodySmall`, `onSurfaceVariant`
+- Chevron: 24dp, rotates 0°↔180° over 300ms
+- Divider: 1dp `outlineVariant` between header and content
+- Content: 16dp padding, `animateContentSize` 300ms EaseInOut
+
+### Radio Button Row (Snooze Card)
+
+- Row: 48dp min touch target, 12dp vertical padding
+- Radio button: 20dp circle, `primary` when selected
+- Label: `bodyLarge`, 16dp start margin from button
+- Helper text: `bodySmall`, `onSurfaceVariant`
+- Group spacing: 0dp between rows (padding handles separation)
+- Max visible: 5 options. Beyond that, content scrolls (maxHeight 288dp).
+
+## 24. History List Item Anatomy
+
+### Event Row
+
+- Row min height: 56dp, 16dp horizontal padding, 12dp vertical padding
+- Status dot: 10dp circle, 12dp end margin. Colors: `primary` (open), `tertiary` (closed), `error` (error), `outlineVariant` (unknown)
+- Event title: `bodyLarge`
+- Timestamp: `bodySmall`, `onSurfaceVariant`. Format: "Today 3:42 PM" / "Mar 7, 3:42 PM"
+- Duration tag (optional): `SuggestionChip` style, 24dp height, 8dp horizontal padding, `labelSmall`, `secondaryContainer` background, 8dp corner radius. Shows "Open 14m". Only visible when open > 1 min.
+- Divider: 0.5dp `outlineVariant` between rows
+
+### Date Header (Sticky)
+
+- Height: 32dp (8dp padding + 16dp text + 8dp padding)
+- Background: `surfaceContainerLow` (contrast when sticky-scrolled)
+- Text: `labelLarge`, `onSurfaceVariant`. "Today" / "Yesterday" / "Mon, Mar 7"
+- `LazyColumn` `stickyHeader` — pins to top of list
+
+## 25. Onboarding / First-Run
+
+### Detection
+
+First run = no stored auth token + no cached door data. Single Activity route, not a separate Activity.
+
+### Flow (3-step horizontal pager)
+
+**Step 1 — Welcome:**
+- App icon 80dp centered, "Smart Garage Door" (`headlineMedium`), "Monitor and control your garage door remotely." (`bodyLarge`, `onSurfaceVariant`, max 280dp)
+- CTA: "Get Started" FilledButton, 56dp height
+
+**Step 2 — Sign In:**
+- Lock icon 48dp, "Sign in with Google", "Your account must be authorized by the garage owner."
+- CTA: "Sign In" → Google Sign-In flow. No skip option.
+
+**Step 3 — Permissions (conditional, API 33+):**
+- Bell icon 48dp, "Stay notified", "Get alerts when your garage door is left open."
+- CTA: "Enable Notifications" → system permission dialog
+- Secondary: "Maybe Later" TextButton → skips, completes onboarding
+
+### Pager
+
+- 3 dots (or 2 if step 3 skipped): 8dp circles, `primary` active, `outlineVariant` inactive, 8dp spacing
+- Swipe disabled — progression via buttons only (prevents skipping sign-in)
+- Completion sets `onboarding_complete` flag in DataStore
+
 ### 14.5 Landscape / Tablet
 
 - **Landscape:** Side-by-side — door status left, button right (50/50 horizontal)
