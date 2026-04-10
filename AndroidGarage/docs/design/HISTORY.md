@@ -212,3 +212,11 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 18: Transition Animations Catalog
+
+**Focus:** Comprehensive motion spec: easing curves, navigation transitions, state changes, card expand/collapse, list entries, error banners, accessibility override.
+
+**What changed:** SPEC.md section 18 added.
+
+---
+
