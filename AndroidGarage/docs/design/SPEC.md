@@ -277,3 +277,88 @@ Areas identified during spec review that would improve the user experience. Orde
 **Problem:** No explicit accessibility annotations documented. Content descriptions exist for icons but contrast ratios, touch target sizes (48dp minimum), and screen reader flow aren't specified.
 
 **Proposal:** Add accessibility section to this spec: minimum touch targets, contrast ratio requirements (WCAG AA), screen reader content descriptions for all interactive elements.
+
+## 6. Garage Door Icon Component
+
+The garage door icon is a custom Canvas-drawn component that appears in two contexts: large and animated on the Home screen, and small and static in History list items. It is the app's primary visual identity element.
+
+### 6.1 Viewport & Coordinate System
+
+The icon is drawn on a **300×300 unit viewport** with a 1:1 aspect ratio. The Canvas scales uniformly to fit the available size, centered within its bounds.
+
+### 6.2 Frame
+
+A U-shaped stroke path (open at bottom) with rounded top corners. Drawn ON TOP of door panels.
+
+| Property | Value |
+|----------|-------|
+| Inset from viewport edge | 10 |
+| Stroke width | 12 |
+| Corner radius | 16 (top corners only) |
+| Bottom edge Y | 290 |
+| Fill | Vertical gradient (door color → 50% black blend) |
+
+### 6.3 Door Panels
+
+Four identical rectangular panels stacked vertically with uniform gaps. Clipped to the frame interior.
+
+| Property | Value |
+|----------|-------|
+| Panel count | 4 |
+| Panel X / width | 20 / 260 |
+| Panel height | 61 |
+| Panel corner radius | 3 |
+| Gap between panels | 6 |
+| Panel Y starts | 22, 89, 156, 223 |
+| Clip inset | 22 (frame + stroke/2 + gap) on top and sides |
+
+Fill: shared vertical gradient from door state color (30%) to dark blend (100%).
+
+### 6.4 Handle
+
+Small dark rectangle on the bottom panel: X=139, Y=278, 22×4, radius=2, color `#111111`.
+
+### 6.5 Door Positions
+
+| Position | Offset | Description |
+|----------|--------|-------------|
+| Closed | 0.0 | All 4 panels visible |
+| Closing (static) | -0.20 | ~80% visible |
+| Midway | -0.35 | Roughly half-open |
+| Opening (static) | -0.65 | ~35% visible |
+| Open | -0.75 | Only bottom of last panel |
+
+### 6.6 Animation
+
+Opening/Closing use `infiniteRepeatable` with `LinearEasing`, `RepeatMode.Restart`, 12-second duration. Intentionally slow for gentle background motion.
+
+### 6.7 Overlays
+
+Centered circular badges (30% of icon width, background-colored fill):
+
+| Door State | Overlay | Icon | Rotation |
+|------------|---------|------|----------|
+| Opening | Direction arrow | ArrowForward | -90° (up) |
+| Closing | Direction arrow | ArrowForward | +90° (down) |
+| Midway states | Warning | Warning | None |
+| Closed / Open | None | — | — |
+
+Direction icons fill 90% of badge; warning icon fills 60%.
+
+### 6.8 DoorPosition → Icon Mapping
+
+| DoorPosition | Position | Animated | Overlay |
+|-------------|----------|----------|---------|
+| CLOSED | 0.0 | No | None |
+| OPEN / OPEN_MISALIGNED | -0.75 | No | None |
+| OPENING | 0.0 → -0.75 | Yes | Up arrow |
+| CLOSING | -0.75 → 0.0 | Yes | Down arrow |
+| OPENING_TOO_LONG / CLOSING_TOO_LONG | -0.35 | No | Warning |
+| ERROR_SENSOR_CONFLICT / UNKNOWN | -0.35 | No | Warning |
+
+### 6.9 Sizing in Context
+
+| Context | Size | Static |
+|---------|------|--------|
+| Home screen | Fills available space (weight 1f) | No (animated) |
+| History list item | 56dp × 56dp | Yes |

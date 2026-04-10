@@ -100,3 +100,13 @@ Decision log for each iteration. Read top-to-bottom to understand how the spec e
 
 ---
 
+## Iteration 6: Garage Door Icon Component
+
+**Focus:** Document the garage door icon — the app's most distinctive visual element. Appears on Home (large, animated) and History (small, static) but had zero spec documentation.
+
+**Decision:** Full component spec covering viewport geometry, panel layout, frame, handle, door positions, animation, overlays, and DoorPosition mapping.
+
+**What changed:** SPEC.md section 6 added with complete icon component specification.
+
+---
+
