@@ -149,9 +149,11 @@ class ButtonStateMachine(
             }
             RemoteButtonState.Armed -> {
                 // Confirm — trigger the network request and optimistically transition to Sending.
+                // Do NOT start the network timeout here. The timeout starts when
+                // PushStatus.SENDING arrives, which is when the HTTP request actually begins.
+                // Starting it here would include token refresh + config fetch in the budget.
                 onSubmit()
                 transitionTo(RemoteButtonState.Sending)
-                scheduleTimer(networkTimeoutMillis, Event.NetworkTimedOut)
             }
             // Tap ignored in all other states — Arming, NotConfirmed,
             // Sending, Sent, Received, *Timeout
@@ -165,11 +167,11 @@ class ButtonStateMachine(
     ) {
         when (status) {
             PushStatus.SENDING -> {
-                // Idempotent — we already optimistically transitioned to Sending on confirm.
-                if (current != RemoteButtonState.Sending) {
-                    transitionTo(RemoteButtonState.Sending)
-                    scheduleTimer(networkTimeoutMillis, Event.NetworkTimedOut)
-                }
+                // The HTTP request has actually started. Transition to Sending if not
+                // already there (we optimistically moved on confirm tap), and start/restart
+                // the network timeout. This is the true start of the network clock.
+                transitionTo(RemoteButtonState.Sending)
+                scheduleTimer(networkTimeoutMillis, Event.NetworkTimedOut)
             }
             PushStatus.IDLE -> {
                 if (current == RemoteButtonState.Sending) {

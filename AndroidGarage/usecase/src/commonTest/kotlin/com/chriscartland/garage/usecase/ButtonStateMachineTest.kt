@@ -212,6 +212,11 @@ class ButtonStateMachineTest {
     fun sendingTimesOutToSendingTimeoutThenReady() =
         runTest {
             val sm = armAndConfirm()
+
+            // Network timeout starts when PushStatus.SENDING arrives, not on confirm tap.
+            pushStatus.value = PushStatus.SENDING
+            testScheduler.runCurrent()
+
             advanceTimeBy(NETWORK_TIMEOUT + 1)
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.SendingTimeout, sm.state.value)
@@ -219,6 +224,19 @@ class ButtonStateMachineTest {
             advanceTimeBy(DISPLAY + 1)
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.Ready, sm.state.value)
+        }
+
+    @Test
+    fun sendingDoesNotTimeOutBeforePushStatusSending() =
+        runTest {
+            val sm = armAndConfirm()
+            assertEquals(RemoteButtonState.Sending, sm.state.value)
+
+            // No PushStatus.SENDING yet — timeout timer hasn't started.
+            // Even well past the network timeout, state stays Sending.
+            advanceTimeBy(NETWORK_TIMEOUT * 3)
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.Sending, sm.state.value)
         }
 
     @Test
@@ -332,9 +350,11 @@ class ButtonStateMachineTest {
         }
 
     @Test
-    fun pushStatusSendingArrivingAfterOptimisticIsIdempotent() =
+    fun pushStatusSendingArrivingAfterOptimisticStaysInSending() =
         runTest {
             val sm = armAndConfirm()
+            // Already in Sending from optimistic transition. PushStatus.SENDING
+            // keeps us there but starts the network timeout timer.
             pushStatus.value = PushStatus.SENDING
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.Sending, sm.state.value)
@@ -344,6 +364,8 @@ class ButtonStateMachineTest {
     fun doorMovementInSendingTimeoutTransitionsToReceived() =
         runTest {
             val sm = armAndConfirm()
+            pushStatus.value = PushStatus.SENDING
+            testScheduler.runCurrent()
             advanceTimeBy(NETWORK_TIMEOUT + 1)
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.SendingTimeout, sm.state.value)
@@ -428,6 +450,9 @@ class ButtonStateMachineTest {
     fun displayTimeoutFromSendingTimeoutReturnsToReady() =
         runTest {
             val sm = armAndConfirm()
+            pushStatus.value = PushStatus.SENDING
+            testScheduler.runCurrent()
+
             advanceTimeBy(NETWORK_TIMEOUT + 1)
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.SendingTimeout, sm.state.value)
