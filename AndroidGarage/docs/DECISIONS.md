@@ -281,3 +281,56 @@ object FcmPayloadParser {
 - Function signatures are explicit about expected input types
 - Slightly more nesting (accepted tradeoff for discoverability)
 - Migrate existing code incrementally — prioritize public/shared module APIs
+
+## ADR-012: Garage Door Button UX Redesign
+
+**Status:** Accepted
+
+**Context:** The remote garage button had several UX problems:
+1. Military terminology ("Arming"/"Armed") for a garage door button
+2. "Sending"/"Sent" describes network packets, not what the user cares about (the door)
+3. A numbered progress bar (0-5) with gaps and no clear meaning
+4. The button was a custom circular gradient — distinctive but non-standard
+5. No visual distinction between success and failure states (only text differed)
+6. The user cannot know whether the door will open or close — the button toggles
+
+**Decision:** Redesign the button and progress indicator:
+
+### Button
+- Standard Material3 rectangular button (not custom circle/gradient)
+- Idle text: "Garage Door Button" (clear that it's a button)
+- Confirmation text: "Door will move." (line 1) + "Confirm?" (line 2, separate Text composable)
+- Idle: default Material3 `FilledTonalButton`
+- Confirmation: amber/caution color (not red — caution, not danger)
+- Post-confirm: button disabled with simple status text (Sending.../Waiting.../Done!/Failed/Cancelled)
+- Parent layout gives both states the same width for visual stability
+
+### Network Diagram (replaces progress bar)
+- Three-node diagram: Phone → Server → Door (icon drawables, not emoji)
+- Connected by animated lines showing request flow
+- Gray dashed line: not started
+- Animated dotted line moving forward: in progress
+- Solid green line: succeeded
+- Solid red line: failed
+- Generic composable — takes node/edge states, not `RemoteButtonState` directly
+
+### State Renames
+| Old | New | User-facing text |
+|-----|-----|-----------------|
+| Ready | Ready | "Garage Door Button" |
+| Arming | Preparing | "Garage Door Button" (disabled) |
+| Armed | AwaitingConfirmation | "Door will move." / "Confirm?" |
+| NotConfirmed | Cancelled | "Cancelled" |
+| Sending | SendingToServer | "Sending..." |
+| Sent | SendingToDoor | "Waiting..." |
+| Received | Succeeded | "Done!" |
+| SendingTimeout | ServerFailed | "Failed" |
+| SentTimeout | DoorFailed | "Failed" |
+
+**Consequences:**
+- User sees where their command is in the Phone→Server→Door chain
+- Failures show exactly where the chain broke (red on the failed edge)
+- No military/network jargon — language describes physical outcomes
+- Standard M3 button is more accessible and consistent with platform conventions
+- Network diagram component is reusable (generic node/edge state model)
+- Touches domain (sealed interface), usecase (state machine + VM), UI (composables), and tests
