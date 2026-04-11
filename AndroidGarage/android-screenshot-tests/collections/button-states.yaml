@@ -1,0 +1,22 @@
+title: "Garage Door Button States"
+# Test class that contains these screenshots.
+test_class: ComponentsScreenshotTestKt
+screenshots:
+  - test: GarageDoorButtonReadyPreviewTest_Light
+    description: "Ready"
+  - test: GarageDoorButtonPreparingPreviewTest_Light
+    description: "Preparing"
+  - test: GarageDoorButtonAwaitingConfirmationPreviewTest_Light
+    description: "Confirm?"
+  - test: GarageDoorButtonSendingToServerPreviewTest_Light
+    description: "Sending"
+  - test: GarageDoorButtonSendingToDoorPreviewTest_Light
+    description: "Waiting"
+  - test: GarageDoorButtonSucceededPreviewTest_Light
+    description: "Done!"
+  - test: GarageDoorButtonCancelledPreviewTest_Light
+    description: "Cancelled"
+  - test: GarageDoorButtonServerFailedPreviewTest_Light
+    description: "Server Failed"
+  - test: GarageDoorButtonDoorFailedPreviewTest_Light
+    description: "Door Failed"
