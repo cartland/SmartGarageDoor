@@ -3,14 +3,19 @@
 # Generates Markdown files from YAML screenshot collection declarations.
 #
 # For each .yaml file in android-screenshot-tests/collections/, this script:
-# 1. Deletes the corresponding .md file (clean slate)
-# 2. Reads the YAML to extract title, test_class, and screenshot entries
+# 1. Deletes all .md files in the directory (clean slate)
+# 2. Reads each YAML to extract title and screenshot entries
 # 3. Finds matching reference PNGs (by stable test name prefix)
 # 4. Generates a Markdown file with metadata, descriptions, and inline images
 #
-# Usage: ./scripts/generate-screenshot-collections.sh
+# YAML format:
+#   title: "Collection Title"
+#   screenshots:
+#     - test_class: ComponentsScreenshotTestKt
+#       test: TestFunctionName_Light
+#       description: "What this shows"
 #
-# Requires: No external YAML parser — uses grep/sed since the format is simple.
+# Usage: ./scripts/generate-screenshot-collections.sh
 
 set -euo pipefail
 
@@ -40,27 +45,23 @@ for yaml_file in "$COLLECTIONS_DIR"/*.yaml; do
     # Parse title
     title="$(grep '^title:' "$yaml_file" | sed 's/^title: *"\{0,1\}\(.*\)"\{0,1\}$/\1/' | sed 's/"$//')"
 
-    # Parse test_class
-    test_class="$(grep '^test_class:' "$yaml_file" | sed 's/^test_class: *//')"
-
-    if [ -z "$title" ] || [ -z "$test_class" ]; then
-        echo "ERROR: $yaml_file missing title or test_class"
+    if [ -z "$title" ]; then
+        echo "ERROR: $yaml_file missing title"
         error_count=$((error_count + 1))
         continue
     fi
 
-    class_dir="$REFERENCE_DIR/$test_class"
-    if [ ! -d "$class_dir" ]; then
-        echo "WARNING: Reference directory not found: $class_dir"
-    fi
-
-    # Extract screenshot entries (test + description pairs)
-    # Simple line-by-line parser for the flat YAML structure
+    # Extract screenshot entries (test_class, test, description)
+    test_classes=()
     tests=()
     descriptions=()
+    current_class=""
     while IFS= read -r line; do
-        if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*test:[[:space:]]*(.*) ]]; then
+        if [[ "$line" =~ test_class:[[:space:]]*(.*) ]]; then
+            current_class="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ ^[[:space:]]*-?[[:space:]]*test:[[:space:]]*(.*) ]]; then
             tests+=("${BASH_REMATCH[1]}")
+            test_classes+=("$current_class")
         elif [[ "$line" =~ ^[[:space:]]*description:[[:space:]]*\"(.*)\" ]]; then
             descriptions+=("${BASH_REMATCH[1]}")
         elif [[ "$line" =~ ^[[:space:]]*description:[[:space:]]*(.*) ]]; then
@@ -77,11 +78,21 @@ for yaml_file in "$COLLECTIONS_DIR"/*.yaml; do
     # Find matching PNG for each test name
     image_paths=()
     missing=0
-    for test_name in "${tests[@]}"; do
-        # Glob for {test_name}_*_0.png (the hash varies)
+    for i in "${!tests[@]}"; do
+        test_name="${tests[$i]}"
+        class="${test_classes[$i]}"
+        class_dir="$REFERENCE_DIR/$class"
+
+        if [ ! -d "$class_dir" ]; then
+            echo "WARNING: Reference directory not found: $class_dir"
+            image_paths+=("")
+            missing=$((missing + 1))
+            continue
+        fi
+
+        # Glob for {test_name}_*_0.png (the hash varies across generations)
         matches=("$class_dir"/${test_name}_*_0.png)
         if [ -f "${matches[0]}" ]; then
-            # Store path relative to collections/ dir for Markdown links
             rel_path="$(python3 -c "import os.path; print(os.path.relpath('${matches[0]}', '$COLLECTIONS_DIR'))")"
             image_paths+=("$rel_path")
         else

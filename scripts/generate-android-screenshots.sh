@@ -28,4 +28,8 @@ echo "Generating screenshot gallery..."
 echo "Generating screenshot collections..."
 ./scripts/generate-screenshot-collections.sh
 
+echo ""
+echo "Running screenshot health check..."
+./scripts/check-screenshot-health.sh
+
 echo "All screenshot tests completed."

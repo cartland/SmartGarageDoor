@@ -1,0 +1,63 @@
+title: "Smart Garage Door — App Overview"
+# Goal: Full-screen screenshots showing each tab with the navigation bar,
+# illustrating the main features of the app at a glance. Each screenshot
+# should be a complete screen (Scaffold + tabs + content) with demo data.
+#
+# TODO: Replace component-only screenshots with full-screen tab previews.
+#   Requires stateless overloads for HomeContent and ProfileContent that
+#   accept demo data as parameters (DoorHistoryContent already works).
+#   Each full-screen preview wraps content in Scaffold + AppNavigationBar.
+# TODO: Add full Home screen with door closed + button ready
+# TODO: Add full Home screen with door open + button ready
+# TODO: Add full Settings/Profile screen with signed-in user + snooze options
+# TODO: Add error banner screenshot (e.g., network error, stale data)
+#
+# Current: component-level screenshots as placeholders until full-screen previews exist.
+screenshots:
+  # Home tab — the door button
+  - test_class: ComponentsScreenshotTestKt
+    test: RemoteButtonContentPreviewTest_Light
+    description: "Home: garage door button (ready)"
+  - test_class: ComponentsScreenshotTestKt
+    test: RemoteButtonContentAwaitingConfirmationPreviewTest_Light
+    description: "Home: confirm door action"
+  - test_class: ComponentsScreenshotTestKt
+    test: RemoteButtonContentSendingToServerPreviewTest_Light
+    description: "Home: sending command to server"
+  - test_class: ComponentsScreenshotTestKt
+    test: RemoteButtonContentSucceededPreviewTest_Light
+    description: "Home: door moved successfully"
+  - test_class: ComponentsScreenshotTestKt
+    test: RemoteButtonContentServerFailedPreviewTest_Light
+    description: "Home: server request failed"
+  # Home tab — door status
+  - test_class: ComponentsScreenshotTestKt
+    test: DoorStatusCardPreviewTest_Light
+    description: "Door status card"
+  # History tab
+  - test_class: ScreensScreenshotTestKt
+    test: DoorHistoryScreenPreviewTest_Light
+    description: "History: recent door events"
+  - test_class: ComponentsScreenshotTestKt
+    test: RecentDoorEventListItemPreviewTest_Light
+    description: "History: single event card"
+  # Settings tab
+  - test_class: ComponentsScreenshotTestKt
+    test: UserInfoCardPreviewTest_Light
+    description: "Settings: signed-in user"
+  - test_class: ComponentsScreenshotTestKt
+    test: SnoozeNotificationCardPreviewTest_Light
+    description: "Settings: snooze notifications"
+  - test_class: ComponentsScreenshotTestKt
+    test: SnoozeNotificationCardSucceededPreviewTest_Light
+    description: "Settings: snooze active"
+  # Door icon states
+  - test_class: GarageDoorScreenshotTestKt
+    test: GarageDoorClosedPreviewTest_Light
+    description: "Door: closed"
+  - test_class: GarageDoorScreenshotTestKt
+    test: GarageDoorOpenPreviewTest_Light
+    description: "Door: open"
+  - test_class: GarageDoorScreenshotTestKt
+    test: GarageDoorOpeningPreviewTest_Light
+    description: "Door: opening"
