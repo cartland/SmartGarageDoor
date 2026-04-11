@@ -108,10 +108,16 @@ class DefaultRemoteButtonViewModel(
                 )
             ) {
                 is AppResult.Success -> { /* State machine tracks via pushButtonStatus flow */ }
-                is AppResult.Error -> when (result.error) {
-                    ActionError.NotAuthenticated -> Logger.w { "Push failed — not authenticated" }
-                    ActionError.MissingData -> Logger.w { "Push failed — missing data" }
-                    ActionError.NetworkFailed -> Logger.w { "Push failed — network error" }
+                is AppResult.Error -> {
+                    // The state machine is in SendingToServer but PushStatus.SENDING
+                    // will never arrive because the UseCase failed before calling the
+                    // repository. Reset to avoid being stuck forever.
+                    stateMachine.reset()
+                    when (result.error) {
+                        ActionError.NotAuthenticated -> Logger.w { "Push failed — not authenticated" }
+                        ActionError.MissingData -> Logger.w { "Push failed — missing data" }
+                        ActionError.NetworkFailed -> Logger.w { "Push failed — network error" }
+                    }
                 }
             }
         }

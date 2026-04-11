@@ -137,7 +137,7 @@ class RemoteButtonViewModelTest {
         }
 
     @Test
-    fun confirmWhenNotAuthenticatedDoesNotIncrementPushButPushFailsSilently() =
+    fun confirmWhenNotAuthenticatedResetsToReady() =
         runTest {
             val viewModel = createViewModel(authState = AuthState.Unauthenticated)
 
@@ -148,9 +148,8 @@ class RemoteButtonViewModelTest {
             viewModel.onButtonTap()
             testDispatcher.scheduler.runCurrent()
 
-            // The state machine still optimistically transitions to SendingToServer,
-            // but the use case fails the auth check and never calls pushButton.
-            assertEquals(RemoteButtonState.SendingToServer, viewModel.buttonState.value)
+            // UseCase fails auth check, ViewModel resets state machine.
+            assertEquals(RemoteButtonState.Ready, viewModel.buttonState.value)
             assertEquals(0, remoteButtonRepository.pushCount)
         }
 
