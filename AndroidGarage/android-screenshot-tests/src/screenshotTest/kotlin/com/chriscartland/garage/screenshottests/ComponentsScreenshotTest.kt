@@ -5,6 +5,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
 import com.chriscartland.garage.ui.DoorStatusCardPreview
 import com.chriscartland.garage.ui.ErrorCardPreview
+import com.chriscartland.garage.ui.GarageDoorButtonAwaitingConfirmationPreview
+import com.chriscartland.garage.ui.GarageDoorButtonCancelledPreview
+import com.chriscartland.garage.ui.GarageDoorButtonDoorFailedPreview
+import com.chriscartland.garage.ui.GarageDoorButtonPreparingPreview
+import com.chriscartland.garage.ui.GarageDoorButtonReadyPreview
+import com.chriscartland.garage.ui.GarageDoorButtonSendingToDoorPreview
+import com.chriscartland.garage.ui.GarageDoorButtonSendingToServerPreview
+import com.chriscartland.garage.ui.GarageDoorButtonServerFailedPreview
+import com.chriscartland.garage.ui.GarageDoorButtonSucceededPreview
 import com.chriscartland.garage.ui.LogSummaryCardPreview
 import com.chriscartland.garage.ui.NetworkDiagramDoorFailedPreview
 import com.chriscartland.garage.ui.NetworkDiagramIdlePreview
@@ -380,4 +389,112 @@ fun NetworkDiagramServerFailedPreviewTest() {
 @Composable
 fun NetworkDiagramDoorFailedPreviewTest() {
     AppTheme { NetworkDiagramDoorFailedPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun GarageDoorButtonReadyPreviewTest() {
+    AppTheme { GarageDoorButtonReadyPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun GarageDoorButtonPreparingPreviewTest() {
+    AppTheme { GarageDoorButtonPreparingPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun GarageDoorButtonAwaitingConfirmationPreviewTest() {
+    AppTheme { GarageDoorButtonAwaitingConfirmationPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun GarageDoorButtonCancelledPreviewTest() {
+    AppTheme { GarageDoorButtonCancelledPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun GarageDoorButtonSendingToServerPreviewTest() {
+    AppTheme { GarageDoorButtonSendingToServerPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun GarageDoorButtonSendingToDoorPreviewTest() {
+    AppTheme { GarageDoorButtonSendingToDoorPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun GarageDoorButtonSucceededPreviewTest() {
+    AppTheme { GarageDoorButtonSucceededPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun GarageDoorButtonServerFailedPreviewTest() {
+    AppTheme { GarageDoorButtonServerFailedPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun GarageDoorButtonDoorFailedPreviewTest() {
+    AppTheme { GarageDoorButtonDoorFailedPreview() }
 }
