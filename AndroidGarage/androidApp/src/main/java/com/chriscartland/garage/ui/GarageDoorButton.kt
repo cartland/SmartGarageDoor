@@ -28,16 +28,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.ui.theme.AppTheme
-
-/** Amber/caution color for the confirmation state. */
-private val CautionContainerColor = Color(0xFFFFC107)
-private val OnCautionContainerColor = Color(0xFF1B1B1B)
+import com.chriscartland.garage.ui.theme.cautionContainer
+import com.chriscartland.garage.ui.theme.onCautionContainer
 
 /**
  * Material3 button for the garage door remote.
@@ -77,8 +74,8 @@ fun GarageDoorButton(
                     .fillMaxWidth()
                     .heightIn(min = 64.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = CautionContainerColor,
-                    contentColor = OnCautionContainerColor,
+                    containerColor = cautionContainer,
+                    contentColor = onCautionContainer,
                 ),
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {

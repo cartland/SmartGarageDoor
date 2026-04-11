@@ -41,13 +41,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.ui.theme.AppTheme
+import com.chriscartland.garage.ui.theme.networkFailed
+import com.chriscartland.garage.ui.theme.networkNotStarted
+import com.chriscartland.garage.ui.theme.networkSucceeded
 
 /** Status of a node (phone, server, door) in the diagram. */
 enum class NodeStatus { Idle, Active, Succeeded, Failed }
@@ -69,9 +71,6 @@ data class NetworkDiagramState(
     }
 }
 
-private val SUCCEEDED_COLOR = Color(0xFF4CAF50)
-private val FAILED_COLOR = Color(0xFFE53935)
-private val NOT_STARTED_COLOR = Color(0xFFBDBDBD)
 private const val ANIMATION_DURATION_MS = 1000
 
 /**
@@ -139,10 +138,10 @@ private fun NodeIcon(
     size: Dp,
 ) {
     val tint = when (status) {
-        NodeStatus.Idle -> NOT_STARTED_COLOR
+        NodeStatus.Idle -> networkNotStarted
         NodeStatus.Active -> MaterialTheme.colorScheme.primary
-        NodeStatus.Succeeded -> SUCCEEDED_COLOR
-        NodeStatus.Failed -> FAILED_COLOR
+        NodeStatus.Succeeded -> networkSucceeded
+        NodeStatus.Failed -> networkFailed
     }
     Icon(
         imageVector = icon,
@@ -160,10 +159,10 @@ private fun EdgeLine(
     thickness: Float = 4f,
 ) {
     val color = when (status) {
-        EdgeStatus.NotStarted -> NOT_STARTED_COLOR
+        EdgeStatus.NotStarted -> networkNotStarted
         EdgeStatus.InProgress -> MaterialTheme.colorScheme.primary
-        EdgeStatus.Succeeded -> SUCCEEDED_COLOR
-        EdgeStatus.Failed -> FAILED_COLOR
+        EdgeStatus.Succeeded -> networkSucceeded
+        EdgeStatus.Failed -> networkFailed
     }
 
     Box(modifier = modifier.height(thickness.dp)) {

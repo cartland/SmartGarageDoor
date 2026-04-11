@@ -129,3 +129,12 @@ val unknownFreshDark = Color(0xFF555555)
 val onUnknownFreshDark = Color(0xFFC9C9C9)
 val unknownStaleDark = Color(0xFF555555)
 val onUnknownStaleDark = Color(0xFFC9C9C9)
+
+// Network Diagram Colors
+val networkSucceeded = Color(0xFF4CAF50)
+val networkFailed = Color(0xFFE53935)
+val networkNotStarted = Color(0xFFBDBDBD)
+
+// Caution Button Colors (amber confirmation)
+val cautionContainer = Color(0xFFFFC107)
+val onCautionContainer = Color(0xFF1B1B1B)

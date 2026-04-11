@@ -20,6 +20,8 @@ package com.chriscartland.garage.ui.theme
 import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertTrue
 import org.junit.Test
+// Network diagram colors are not paired — they're used on varying backgrounds.
+// Only the caution button pair needs contrast testing.
 
 /**
  * Verifies WCAG AA contrast ratios for all color pairs in the app theme.
@@ -98,7 +100,15 @@ class ThemeContrastTest {
 
     // endregion
 
-    private val allPairs = lightM3Pairs + darkM3Pairs + lightDoorPairs + darkDoorPairs
+    // region Custom color pairs
+
+    private val customPairs = listOf(
+        ColorPair("caution: onCautionContainer / cautionContainer", onCautionContainer, cautionContainer),
+    )
+
+    // endregion
+
+    private val allPairs = lightM3Pairs + darkM3Pairs + lightDoorPairs + darkDoorPairs + customPairs
 
     @Test
     fun allThemeColorPairsMeetWcagAA() {
