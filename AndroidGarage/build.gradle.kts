@@ -113,9 +113,6 @@ tasks.register<architecture.HardcodedColorCheckTask>("checkHardcodedColors") {
         // Canvas/drawing files use Color for rendering, not text contrast.
         "GarageDoorCanvas\\.kt",
         "AnimatableGarageDoor\\.kt",
-        // Legacy progress bar — will be removed by button UX redesign.
-        "Parallelogram\\.kt",
-        "RemoteButtonContent\\.kt",
     )
 }
 

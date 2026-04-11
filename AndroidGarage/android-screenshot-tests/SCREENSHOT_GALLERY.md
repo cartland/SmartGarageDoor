@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Sat Apr 11 00:17:47 PDT 2026
+Generated on Sat Apr 11 00:31:20 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -24,11 +24,101 @@ Generated on Sat Apr 11 00:17:47 PDT 2026
 ### ErrorCardPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/ErrorCardPreviewTest_Light_fc5b723e_0.png" width="300" />
 
+### GarageDoorButtonAwaitingConfirmationPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonAwaitingConfirmationPreviewTest_Dark_77106447_0.png" width="300" />
+
+### GarageDoorButtonAwaitingConfirmationPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonAwaitingConfirmationPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### GarageDoorButtonCancelledPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonCancelledPreviewTest_Dark_77106447_0.png" width="300" />
+
+### GarageDoorButtonCancelledPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonCancelledPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### GarageDoorButtonDoorFailedPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonDoorFailedPreviewTest_Dark_77106447_0.png" width="300" />
+
+### GarageDoorButtonDoorFailedPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonDoorFailedPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### GarageDoorButtonPreparingPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonPreparingPreviewTest_Dark_77106447_0.png" width="300" />
+
+### GarageDoorButtonPreparingPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonPreparingPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### GarageDoorButtonReadyPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonReadyPreviewTest_Dark_77106447_0.png" width="300" />
+
+### GarageDoorButtonReadyPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonReadyPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### GarageDoorButtonSendingToDoorPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSendingToDoorPreviewTest_Dark_77106447_0.png" width="300" />
+
+### GarageDoorButtonSendingToDoorPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSendingToDoorPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### GarageDoorButtonSendingToServerPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSendingToServerPreviewTest_Dark_77106447_0.png" width="300" />
+
+### GarageDoorButtonSendingToServerPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSendingToServerPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### GarageDoorButtonServerFailedPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonServerFailedPreviewTest_Dark_77106447_0.png" width="300" />
+
+### GarageDoorButtonServerFailedPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonServerFailedPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### GarageDoorButtonSucceededPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSucceededPreviewTest_Dark_77106447_0.png" width="300" />
+
+### GarageDoorButtonSucceededPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSucceededPreviewTest_Light_fc5b723e_0.png" width="300" />
+
 ### LogSummaryCardPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/LogSummaryCardPreviewTest_Dark_77106447_0.png" width="300" />
 
 ### LogSummaryCardPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/LogSummaryCardPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### NetworkDiagramDoorFailedPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramDoorFailedPreviewTest_Dark_77106447_0.png" width="300" />
+
+### NetworkDiagramDoorFailedPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramDoorFailedPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### NetworkDiagramIdlePreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramIdlePreviewTest_Dark_77106447_0.png" width="300" />
+
+### NetworkDiagramIdlePreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramIdlePreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### NetworkDiagramSendingToDoorPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSendingToDoorPreviewTest_Dark_77106447_0.png" width="300" />
+
+### NetworkDiagramSendingToDoorPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSendingToDoorPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### NetworkDiagramSendingToServerPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSendingToServerPreviewTest_Dark_77106447_0.png" width="300" />
+
+### NetworkDiagramSendingToServerPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSendingToServerPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### NetworkDiagramServerFailedPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramServerFailedPreviewTest_Dark_77106447_0.png" width="300" />
+
+### NetworkDiagramServerFailedPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramServerFailedPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### NetworkDiagramSucceededPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSucceededPreviewTest_Dark_77106447_0.png" width="300" />
+
+### NetworkDiagramSucceededPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSucceededPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### RecentDoorEventListItemPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RecentDoorEventListItemPreviewTest_Dark_77106447_0.png" width="300" />
@@ -36,23 +126,29 @@ Generated on Sat Apr 11 00:17:47 PDT 2026
 ### RecentDoorEventListItemPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RecentDoorEventListItemPreviewTest_Light_fc5b723e_0.png" width="300" />
 
-### RemoteButtonContentArmedPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentArmedPreviewTest_Dark_77106447_0.png" width="300" />
+### RemoteButtonContentAwaitingConfirmationPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentAwaitingConfirmationPreviewTest_Dark_77106447_0.png" width="300" />
 
-### RemoteButtonContentArmedPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentArmedPreviewTest_Light_fc5b723e_0.png" width="300" />
+### RemoteButtonContentAwaitingConfirmationPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentAwaitingConfirmationPreviewTest_Light_fc5b723e_0.png" width="300" />
 
-### RemoteButtonContentArmingPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentArmingPreviewTest_Dark_77106447_0.png" width="300" />
+### RemoteButtonContentCancelledPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentCancelledPreviewTest_Dark_77106447_0.png" width="300" />
 
-### RemoteButtonContentArmingPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentArmingPreviewTest_Light_fc5b723e_0.png" width="300" />
+### RemoteButtonContentCancelledPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentCancelledPreviewTest_Light_fc5b723e_0.png" width="300" />
 
-### RemoteButtonContentNotConfirmedPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentNotConfirmedPreviewTest_Dark_77106447_0.png" width="300" />
+### RemoteButtonContentDoorFailedPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentDoorFailedPreviewTest_Dark_77106447_0.png" width="300" />
 
-### RemoteButtonContentNotConfirmedPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentNotConfirmedPreviewTest_Light_fc5b723e_0.png" width="300" />
+### RemoteButtonContentDoorFailedPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentDoorFailedPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### RemoteButtonContentPreparingPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreparingPreviewTest_Dark_77106447_0.png" width="300" />
+
+### RemoteButtonContentPreparingPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreparingPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### RemoteButtonContentPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreviewTest_Dark_77106447_0.png" width="300" />
@@ -60,35 +156,29 @@ Generated on Sat Apr 11 00:17:47 PDT 2026
 ### RemoteButtonContentPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreviewTest_Light_fc5b723e_0.png" width="300" />
 
-### RemoteButtonContentReceivedPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentReceivedPreviewTest_Dark_77106447_0.png" width="300" />
+### RemoteButtonContentSendingToDoorPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingToDoorPreviewTest_Dark_77106447_0.png" width="300" />
 
-### RemoteButtonContentReceivedPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentReceivedPreviewTest_Light_fc5b723e_0.png" width="300" />
+### RemoteButtonContentSendingToDoorPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingToDoorPreviewTest_Light_fc5b723e_0.png" width="300" />
 
-### RemoteButtonContentSendingPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingPreviewTest_Dark_77106447_0.png" width="300" />
+### RemoteButtonContentSendingToServerPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingToServerPreviewTest_Dark_77106447_0.png" width="300" />
 
-### RemoteButtonContentSendingPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingPreviewTest_Light_fc5b723e_0.png" width="300" />
+### RemoteButtonContentSendingToServerPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingToServerPreviewTest_Light_fc5b723e_0.png" width="300" />
 
-### RemoteButtonContentSendingTimeoutPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingTimeoutPreviewTest_Dark_77106447_0.png" width="300" />
+### RemoteButtonContentServerFailedPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentServerFailedPreviewTest_Dark_77106447_0.png" width="300" />
 
-### RemoteButtonContentSendingTimeoutPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingTimeoutPreviewTest_Light_fc5b723e_0.png" width="300" />
+### RemoteButtonContentServerFailedPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentServerFailedPreviewTest_Light_fc5b723e_0.png" width="300" />
 
-### RemoteButtonContentSentPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSentPreviewTest_Dark_77106447_0.png" width="300" />
+### RemoteButtonContentSucceededPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSucceededPreviewTest_Dark_77106447_0.png" width="300" />
 
-### RemoteButtonContentSentPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSentPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### RemoteButtonContentSentTimeoutPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSentTimeoutPreviewTest_Dark_77106447_0.png" width="300" />
-
-### RemoteButtonContentSentTimeoutPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSentTimeoutPreviewTest_Light_fc5b723e_0.png" width="300" />
+### RemoteButtonContentSucceededPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSucceededPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### SnoozeNotificationCardClearedPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardClearedPreviewTest_Dark_77106447_0.png" width="300" />

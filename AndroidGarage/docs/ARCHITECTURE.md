@@ -88,12 +88,13 @@ Root files: `GarageApplication.kt` (@HiltAndroidApp), `MainActivity.kt` (Compose
 ### Remote Button Press
 
 1. UI → `RemoteButtonViewModel.onButtonTap()` → `ButtonStateMachine.onTap()`
-2. State machine: Ready → Arming (500ms) → Armed (5s timeout) → tap → Sending
+2. State machine: Ready → Preparing (500ms) → AwaitingConfirmation (5s timeout) → tap → SendingToServer
 3. On confirm: `onSubmit` callback → `PushRemoteButtonUseCase` checks auth, refreshes token if expired
 4. `PushRepository.push(idToken, buttonAckToken)` → POST `/addRemoteButtonCommand`
-5. State machine observes `pushButtonStatus`: Sending → Sent (server ack) → Received (door moves)
-6. Failure paths: SendingTimeout / SentTimeout → Ready after display delay
+5. State machine observes `pushButtonStatus`: SendingToServer → SendingToDoor (server ack) → Succeeded (door moves)
+6. Failure paths: ServerFailed / DoorFailed → Ready after display delay
 7. All transitions atomic via single Channel consumer; testable with virtual time
+8. UI: GarageDoorButton (M3) + NetworkProgressDiagram (phone → server → door)
 
 ### Authentication
 

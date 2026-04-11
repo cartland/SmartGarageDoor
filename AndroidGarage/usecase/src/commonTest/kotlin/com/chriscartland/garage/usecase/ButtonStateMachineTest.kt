@@ -29,8 +29,8 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-private const val ARMING_DELAY = 500L
-private const val ARMED_TIMEOUT = 5_000L
+private const val PREPARING_DELAY = 500L
+private const val CONFIRMATION_TIMEOUT = 5_000L
 private const val NETWORK_TIMEOUT = 10_000L
 private const val DISPLAY = 10_000L
 
@@ -51,8 +51,8 @@ class ButtonStateMachineTest {
             onSubmit = { submitCount++ },
             scope = backgroundScope,
             dispatcher = dispatcher,
-            armingDelayMillis = ARMING_DELAY,
-            armedTimeoutMillis = ARMED_TIMEOUT,
+            preparingDelayMillis = PREPARING_DELAY,
+            confirmationTimeoutMillis = CONFIRMATION_TIMEOUT,
             networkTimeoutMillis = NETWORK_TIMEOUT,
             displayMillis = DISPLAY,
         )
@@ -60,11 +60,11 @@ class ButtonStateMachineTest {
         return sm
     }
 
-    private fun TestScope.armAndConfirm(): ButtonStateMachine {
+    private fun TestScope.prepareAndConfirm(): ButtonStateMachine {
         val sm = create()
         sm.onTap()
         testScheduler.runCurrent()
-        advanceTimeBy(ARMING_DELAY + 1)
+        advanceTimeBy(PREPARING_DELAY + 1)
         testScheduler.runCurrent()
         sm.onTap()
         testScheduler.runCurrent()
@@ -83,70 +83,70 @@ class ButtonStateMachineTest {
     // --- Tap-to-confirm flow ---
 
     @Test
-    fun firstTapTransitionsReadyToArming() =
+    fun firstTapTransitionsReadyToPreparing() =
         runTest {
             val sm = create()
             sm.onTap()
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Arming, sm.state.value)
+            assertEquals(RemoteButtonState.Preparing, sm.state.value)
         }
 
     @Test
-    fun armingTransitionsToArmedAfterDelay() =
+    fun preparingTransitionsToAwaitingConfirmationAfterDelay() =
         runTest {
             val sm = create()
             sm.onTap()
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Arming, sm.state.value)
+            assertEquals(RemoteButtonState.Preparing, sm.state.value)
 
-            advanceTimeBy(ARMING_DELAY + 1)
+            advanceTimeBy(PREPARING_DELAY + 1)
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Armed, sm.state.value)
+            assertEquals(RemoteButtonState.AwaitingConfirmation, sm.state.value)
         }
 
     @Test
-    fun secondTapInArmedConfirmsAndCallsSubmit() =
+    fun secondTapInAwaitingConfirmationConfirmsAndCallsSubmit() =
         runTest {
             val sm = create()
             sm.onTap()
             testScheduler.runCurrent()
-            advanceTimeBy(ARMING_DELAY + 1)
+            advanceTimeBy(PREPARING_DELAY + 1)
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Armed, sm.state.value)
+            assertEquals(RemoteButtonState.AwaitingConfirmation, sm.state.value)
 
             sm.onTap()
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Sending, sm.state.value)
+            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
             assertEquals(1, submitCount)
         }
 
     @Test
-    fun tapDuringArmingIsIgnored() =
+    fun tapDuringPreparingIsIgnored() =
         runTest {
             val sm = create()
             sm.onTap()
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Arming, sm.state.value)
+            assertEquals(RemoteButtonState.Preparing, sm.state.value)
 
             sm.onTap()
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Arming, sm.state.value)
+            assertEquals(RemoteButtonState.Preparing, sm.state.value)
             assertEquals(0, submitCount)
         }
 
     @Test
-    fun armedTimesOutToNotConfirmedThenReady() =
+    fun awaitingConfirmationTimesOutToCancelledThenReady() =
         runTest {
             val sm = create()
             sm.onTap()
             testScheduler.runCurrent()
-            advanceTimeBy(ARMING_DELAY + 1)
+            advanceTimeBy(PREPARING_DELAY + 1)
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Armed, sm.state.value)
+            assertEquals(RemoteButtonState.AwaitingConfirmation, sm.state.value)
 
-            advanceTimeBy(ARMED_TIMEOUT + 1)
+            advanceTimeBy(CONFIRMATION_TIMEOUT + 1)
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.NotConfirmed, sm.state.value)
+            assertEquals(RemoteButtonState.Cancelled, sm.state.value)
 
             advanceTimeBy(DISPLAY + 1)
             testScheduler.runCurrent()
@@ -156,52 +156,52 @@ class ButtonStateMachineTest {
     // --- Network/door request flow ---
 
     @Test
-    fun pushStatusIdleAfterSendingTransitionsToSent() =
+    fun pushStatusIdleAfterSendingTransitionsToSendingToDoor() =
         runTest {
-            val sm = armAndConfirm()
-            assertEquals(RemoteButtonState.Sending, sm.state.value)
+            val sm = prepareAndConfirm()
+            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
 
             // Realistic flow: repo sets SENDING then IDLE
             pushStatus.value = PushStatus.SENDING
             testScheduler.runCurrent()
             pushStatus.value = PushStatus.IDLE
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Sent, sm.state.value)
+            assertEquals(RemoteButtonState.SendingToDoor, sm.state.value)
         }
 
     @Test
-    fun doorMovementDuringSendingTransitionsToReceived() =
+    fun doorMovementDuringSendingToServerTransitionsToSucceeded() =
         runTest {
-            val sm = armAndConfirm()
+            val sm = prepareAndConfirm()
 
             doorPosition.value = DoorPosition.OPENING
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Received, sm.state.value)
+            assertEquals(RemoteButtonState.Succeeded, sm.state.value)
         }
 
     @Test
-    fun doorMovementDuringSentTransitionsToReceived() =
+    fun doorMovementDuringSendingToDoorTransitionsToSucceeded() =
         runTest {
-            val sm = armAndConfirm()
+            val sm = prepareAndConfirm()
             // Realistic flow: repo sets SENDING then IDLE
             pushStatus.value = PushStatus.SENDING
             testScheduler.runCurrent()
             pushStatus.value = PushStatus.IDLE
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Sent, sm.state.value)
+            assertEquals(RemoteButtonState.SendingToDoor, sm.state.value)
 
             doorPosition.value = DoorPosition.OPENING
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Received, sm.state.value)
+            assertEquals(RemoteButtonState.Succeeded, sm.state.value)
         }
 
     @Test
-    fun receivedAutoResetsToReadyAfterDisplayTimeout() =
+    fun succeededAutoResetsToReadyAfterDisplayTimeout() =
         runTest {
-            val sm = armAndConfirm()
+            val sm = prepareAndConfirm()
             doorPosition.value = DoorPosition.OPENING
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Received, sm.state.value)
+            assertEquals(RemoteButtonState.Succeeded, sm.state.value)
 
             advanceTimeBy(DISPLAY + 1)
             testScheduler.runCurrent()
@@ -209,9 +209,9 @@ class ButtonStateMachineTest {
         }
 
     @Test
-    fun sendingTimesOutToSendingTimeoutThenReady() =
+    fun sendingToServerTimesOutToServerFailedThenReady() =
         runTest {
-            val sm = armAndConfirm()
+            val sm = prepareAndConfirm()
 
             // Network timeout starts when PushStatus.SENDING arrives, not on confirm tap.
             pushStatus.value = PushStatus.SENDING
@@ -219,7 +219,7 @@ class ButtonStateMachineTest {
 
             advanceTimeBy(NETWORK_TIMEOUT + 1)
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.SendingTimeout, sm.state.value)
+            assertEquals(RemoteButtonState.ServerFailed, sm.state.value)
 
             advanceTimeBy(DISPLAY + 1)
             testScheduler.runCurrent()
@@ -227,32 +227,32 @@ class ButtonStateMachineTest {
         }
 
     @Test
-    fun sendingDoesNotTimeOutBeforePushStatusSending() =
+    fun sendingToServerDoesNotTimeOutBeforePushStatusSending() =
         runTest {
-            val sm = armAndConfirm()
-            assertEquals(RemoteButtonState.Sending, sm.state.value)
+            val sm = prepareAndConfirm()
+            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
 
             // No PushStatus.SENDING yet — timeout timer hasn't started.
-            // Even well past the network timeout, state stays Sending.
+            // Even well past the network timeout, state stays SendingToServer.
             advanceTimeBy(NETWORK_TIMEOUT * 3)
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Sending, sm.state.value)
+            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
         }
 
     @Test
-    fun sentTimesOutToSentTimeoutThenReady() =
+    fun sendingToDoorTimesOutToDoorFailedThenReady() =
         runTest {
-            val sm = armAndConfirm()
+            val sm = prepareAndConfirm()
             // Realistic flow: repo sets SENDING then IDLE
             pushStatus.value = PushStatus.SENDING
             testScheduler.runCurrent()
             pushStatus.value = PushStatus.IDLE
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Sent, sm.state.value)
+            assertEquals(RemoteButtonState.SendingToDoor, sm.state.value)
 
             advanceTimeBy(NETWORK_TIMEOUT + 1)
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.SentTimeout, sm.state.value)
+            assertEquals(RemoteButtonState.DoorFailed, sm.state.value)
 
             advanceTimeBy(DISPLAY + 1)
             testScheduler.runCurrent()
@@ -262,21 +262,21 @@ class ButtonStateMachineTest {
     // --- Full happy path ---
 
     @Test
-    fun fullHappyPathReadyToReceivedToReady() =
+    fun fullHappyPathReadyToSucceededToReady() =
         runTest {
             val sm = create()
 
             sm.onTap()
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Arming, sm.state.value)
+            assertEquals(RemoteButtonState.Preparing, sm.state.value)
 
-            advanceTimeBy(ARMING_DELAY + 1)
+            advanceTimeBy(PREPARING_DELAY + 1)
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Armed, sm.state.value)
+            assertEquals(RemoteButtonState.AwaitingConfirmation, sm.state.value)
 
             sm.onTap()
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Sending, sm.state.value)
+            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
             assertEquals(1, submitCount)
 
             // Realistic flow: repo sets SENDING then IDLE
@@ -284,11 +284,11 @@ class ButtonStateMachineTest {
             testScheduler.runCurrent()
             pushStatus.value = PushStatus.IDLE
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Sent, sm.state.value)
+            assertEquals(RemoteButtonState.SendingToDoor, sm.state.value)
 
             doorPosition.value = DoorPosition.OPENING
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Received, sm.state.value)
+            assertEquals(RemoteButtonState.Succeeded, sm.state.value)
 
             advanceTimeBy(DISPLAY + 1)
             testScheduler.runCurrent()
@@ -298,22 +298,22 @@ class ButtonStateMachineTest {
     // --- Edge cases ---
 
     @Test
-    fun tapDuringSendingIsIgnored() =
+    fun tapDuringSendingToServerIsIgnored() =
         runTest {
-            val sm = armAndConfirm()
+            val sm = prepareAndConfirm()
             val before = submitCount
 
             sm.onTap()
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Sending, sm.state.value)
+            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
             assertEquals(before, submitCount)
         }
 
     @Test
     fun resetFromAnyStateGoesToReady() =
         runTest {
-            val sm = armAndConfirm()
-            assertEquals(RemoteButtonState.Sending, sm.state.value)
+            val sm = prepareAndConfirm()
+            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
 
             sm.reset()
             testScheduler.runCurrent()
@@ -326,16 +326,16 @@ class ButtonStateMachineTest {
             val sm = create()
             sm.onTap()
             testScheduler.runCurrent()
-            advanceTimeBy(ARMING_DELAY + 1)
+            advanceTimeBy(PREPARING_DELAY + 1)
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Armed, sm.state.value)
+            assertEquals(RemoteButtonState.AwaitingConfirmation, sm.state.value)
 
             sm.reset()
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.Ready, sm.state.value)
 
-            // Advance past where the armed timeout would have fired
-            advanceTimeBy(ARMED_TIMEOUT + DISPLAY)
+            // Advance past where the confirmation timeout would have fired
+            advanceTimeBy(CONFIRMATION_TIMEOUT + DISPLAY)
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.Ready, sm.state.value)
         }
@@ -350,38 +350,38 @@ class ButtonStateMachineTest {
         }
 
     @Test
-    fun pushStatusSendingArrivingAfterOptimisticStaysInSending() =
+    fun pushStatusSendingArrivingAfterOptimisticStaysInSendingToServer() =
         runTest {
-            val sm = armAndConfirm()
-            // Already in Sending from optimistic transition. PushStatus.SENDING
+            val sm = prepareAndConfirm()
+            // Already in SendingToServer from optimistic transition. PushStatus.SENDING
             // keeps us there but starts the network timeout timer.
             pushStatus.value = PushStatus.SENDING
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Sending, sm.state.value)
+            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
         }
 
     @Test
-    fun doorMovementInSendingTimeoutTransitionsToReceived() =
+    fun doorMovementInServerFailedTransitionsToSucceeded() =
         runTest {
-            val sm = armAndConfirm()
+            val sm = prepareAndConfirm()
             pushStatus.value = PushStatus.SENDING
             testScheduler.runCurrent()
             advanceTimeBy(NETWORK_TIMEOUT + 1)
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.SendingTimeout, sm.state.value)
+            assertEquals(RemoteButtonState.ServerFailed, sm.state.value)
 
             doorPosition.value = DoorPosition.OPENING
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Received, sm.state.value)
+            assertEquals(RemoteButtonState.Succeeded, sm.state.value)
         }
 
     @Test
-    fun secondTapAfterCompleteFlowStartsNewArming() =
+    fun secondTapAfterCompleteFlowStartsPreparing() =
         runTest {
             val sm = create()
             sm.onTap()
             testScheduler.runCurrent()
-            advanceTimeBy(ARMING_DELAY + 1)
+            advanceTimeBy(PREPARING_DELAY + 1)
             testScheduler.runCurrent()
             sm.onTap()
             testScheduler.runCurrent()
@@ -398,13 +398,13 @@ class ButtonStateMachineTest {
 
             sm.onTap()
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Arming, sm.state.value)
+            assertEquals(RemoteButtonState.Preparing, sm.state.value)
         }
 
     @Test
     fun confirmCallsOnSubmitExactlyOnce() =
         runTest {
-            val sm = armAndConfirm()
+            val sm = prepareAndConfirm()
             pushStatus.value = PushStatus.SENDING
             pushStatus.value = PushStatus.IDLE
             testScheduler.runCurrent()
@@ -412,30 +412,30 @@ class ButtonStateMachineTest {
         }
 
     @Test
-    fun rapidDoubleTapInArmedDoesNotSubmitTwice() =
+    fun rapidDoubleTapInAwaitingConfirmationDoesNotSubmitTwice() =
         runTest {
             val sm = create()
             sm.onTap()
             testScheduler.runCurrent()
-            advanceTimeBy(ARMING_DELAY + 1)
+            advanceTimeBy(PREPARING_DELAY + 1)
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Armed, sm.state.value)
+            assertEquals(RemoteButtonState.AwaitingConfirmation, sm.state.value)
 
-            // Rapid double tap — second tap arrives while we're already in Sending
+            // Rapid double tap — second tap arrives while we're already in SendingToServer
             sm.onTap()
             sm.onTap()
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Sending, sm.state.value)
+            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
             assertEquals(1, submitCount)
         }
 
     @Test
-    fun resetDuringArmingThenTapStartsArmingAgain() =
+    fun resetDuringPreparingThenTapStartsPreparingAgain() =
         runTest {
             val sm = create()
             sm.onTap()
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Arming, sm.state.value)
+            assertEquals(RemoteButtonState.Preparing, sm.state.value)
 
             sm.reset()
             testScheduler.runCurrent()
@@ -443,19 +443,19 @@ class ButtonStateMachineTest {
 
             sm.onTap()
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Arming, sm.state.value)
+            assertEquals(RemoteButtonState.Preparing, sm.state.value)
         }
 
     @Test
-    fun displayTimeoutFromSendingTimeoutReturnsToReady() =
+    fun displayTimeoutFromServerFailedReturnsToReady() =
         runTest {
-            val sm = armAndConfirm()
+            val sm = prepareAndConfirm()
             pushStatus.value = PushStatus.SENDING
             testScheduler.runCurrent()
 
             advanceTimeBy(NETWORK_TIMEOUT + 1)
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.SendingTimeout, sm.state.value)
+            assertEquals(RemoteButtonState.ServerFailed, sm.state.value)
 
             advanceTimeBy(DISPLAY + 1)
             testScheduler.runCurrent()
