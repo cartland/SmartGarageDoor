@@ -145,10 +145,9 @@ fun SnoozeNotificationCard(
 @Composable
 private fun SnoozeStatusText(snoozeState: SnoozeState) {
     when (snoozeState) {
-        SnoozeState.Loading -> {
-            Text("Loading snooze status...")
-        }
-        SnoozeState.NotSnoozing -> {
+        SnoozeState.Loading,
+        SnoozeState.NotSnoozing,
+        -> {
             Text("Snooze notifications")
         }
         is SnoozeState.Snoozing -> {
