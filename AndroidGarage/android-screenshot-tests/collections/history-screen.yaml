@@ -1,0 +1,7 @@
+title: "History Screen"
+test_class: ScreensScreenshotTestKt
+screenshots:
+  - test: DoorHistoryScreenPreviewTest_Light
+    description: "Light"
+  - test: DoorHistoryScreenPreviewTest_Dark
+    description: "Dark"

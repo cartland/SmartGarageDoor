@@ -25,4 +25,7 @@ done
 echo "Generating screenshot gallery..."
 ./scripts/generate-android-screenshot-gallery.sh
 
+echo "Generating screenshot collections..."
+./scripts/generate-screenshot-collections.sh
+
 echo "All screenshot tests completed."
