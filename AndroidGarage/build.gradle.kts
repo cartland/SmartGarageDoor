@@ -102,6 +102,23 @@ tasks.register<architecture.LayerImportCheckTask>("checkLayerImports") {
     )
 }
 
+tasks.register<architecture.HardcodedColorCheckTask>("checkHardcodedColors") {
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+    )
+    // Only these files may define Color(0x...) — all others must use theme colors.
+    allowedFilePatterns = listOf(
+        "Color\\.kt",
+        "DoorStatusColorScheme\\.kt",
+        // Canvas/drawing files use Color for rendering, not text contrast.
+        "GarageDoorCanvas\\.kt",
+        "AnimatableGarageDoor\\.kt",
+        // Legacy progress bar — will be removed by button UX redesign.
+        "Parallelogram\\.kt",
+        "RemoteButtonContent\\.kt",
+    )
+}
+
 tasks.register<codestyle.RememberSaveableGuardTask>("checkRememberSaveable") {
     sourceDirs = listOf(
         "$rootDir/androidApp/src/main/java",
