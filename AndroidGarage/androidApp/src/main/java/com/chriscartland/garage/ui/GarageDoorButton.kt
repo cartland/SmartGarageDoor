@@ -102,6 +102,10 @@ fun GarageDoorButton(
                     .fillMaxWidth()
                     .heightIn(min = 64.dp),
                 enabled = false,
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                ),
             ) {
                 Text(
                     text = state.disabledLabel(),
