@@ -6,6 +6,12 @@ import com.android.tools.screenshot.PreviewTest
 import com.chriscartland.garage.ui.DoorStatusCardPreview
 import com.chriscartland.garage.ui.ErrorCardPreview
 import com.chriscartland.garage.ui.LogSummaryCardPreview
+import com.chriscartland.garage.ui.NetworkDiagramDoorFailedPreview
+import com.chriscartland.garage.ui.NetworkDiagramIdlePreview
+import com.chriscartland.garage.ui.NetworkDiagramSendingToDoorPreview
+import com.chriscartland.garage.ui.NetworkDiagramSendingToServerPreview
+import com.chriscartland.garage.ui.NetworkDiagramServerFailedPreview
+import com.chriscartland.garage.ui.NetworkDiagramSucceededPreview
 import com.chriscartland.garage.ui.RecentDoorEventListItemPreview
 import com.chriscartland.garage.ui.RemoteButtonContentAwaitingConfirmationPreview
 import com.chriscartland.garage.ui.RemoteButtonContentCancelledPreview
@@ -302,4 +308,76 @@ fun SnoozeNotificationCardErrorPreviewTest() {
     AppTheme {
         SnoozeNotificationCardErrorPreview()
     }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun NetworkDiagramIdlePreviewTest() {
+    AppTheme { NetworkDiagramIdlePreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun NetworkDiagramSendingToServerPreviewTest() {
+    AppTheme { NetworkDiagramSendingToServerPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun NetworkDiagramSendingToDoorPreviewTest() {
+    AppTheme { NetworkDiagramSendingToDoorPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun NetworkDiagramSucceededPreviewTest() {
+    AppTheme { NetworkDiagramSucceededPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun NetworkDiagramServerFailedPreviewTest() {
+    AppTheme { NetworkDiagramServerFailedPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun NetworkDiagramDoorFailedPreviewTest() {
+    AppTheme { NetworkDiagramDoorFailedPreview() }
 }
