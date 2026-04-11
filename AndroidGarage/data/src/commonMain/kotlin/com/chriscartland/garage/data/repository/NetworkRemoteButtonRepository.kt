@@ -39,13 +39,15 @@ class NetworkRemoteButtonRepository(
         idToken: String,
         buttonAckToken: String,
     ) {
-        _pushButtonStatus.value = PushStatus.SENDING
+        // Resolve server config BEFORE setting SENDING. This ensures that
+        // PushStatus.SENDING means the HTTP request is imminent, so the state
+        // machine's network timeout accurately reflects the actual request.
         val serverConfig = serverConfigRepository.getServerConfigCached()
         if (serverConfig == null) {
-            Logger.e { "Server config is null" }
-            _pushButtonStatus.value = PushStatus.IDLE
-            return
+            Logger.e { "Server config is null — cannot send button press" }
+            throw IllegalStateException("Server config not available")
         }
+        _pushButtonStatus.value = PushStatus.SENDING
         if (!remoteButtonPushEnabled) {
             Logger.w { "Remote button push is disabled" }
             delay(500)

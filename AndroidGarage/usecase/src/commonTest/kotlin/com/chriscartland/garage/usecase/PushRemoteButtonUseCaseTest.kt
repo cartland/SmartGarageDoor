@@ -121,4 +121,29 @@ class PushRemoteButtonUseCaseTest {
             assertEquals("new-token", fakePush.lastIdToken)
             assertEquals(1, fakeAuth.refreshCount)
         }
+
+    @Test
+    fun pushReturnsNetworkFailedWhenRepositoryThrows() =
+        runTest {
+            authenticateUser()
+            fakePush.pushException = IllegalStateException("Server config not available")
+
+            val result = useCase("ack-123")
+
+            assertTrue(result is AppResult.Error, "Should be NetworkFailed error")
+            assertEquals(ActionError.NetworkFailed, (result as AppResult.Error).error)
+        }
+
+    @Test
+    fun pushReturnsNetworkFailedWhenTokenRefreshThrows() =
+        runTest {
+            authenticateUser(token = "old-token", exp = 1000L)
+            fakeAuth.refreshException = RuntimeException("Network error during refresh")
+
+            val result = useCase("ack-123")
+
+            assertTrue(result is AppResult.Error, "Should be NetworkFailed error")
+            assertEquals(ActionError.NetworkFailed, (result as AppResult.Error).error)
+            assertEquals(0, fakePush.pushCount)
+        }
 }

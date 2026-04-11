@@ -37,6 +37,9 @@ class FakeAuthRepository : AuthRepository {
     var signInResult: AuthState? = null
     var refreshResult: AuthState? = null
 
+    /** When non-null, [refreshFirebaseAuthState] throws this exception. */
+    var refreshException: Exception? = null
+
     fun setAuthState(state: AuthState) {
         _authState.value = state
     }
@@ -50,6 +53,7 @@ class FakeAuthRepository : AuthRepository {
 
     override suspend fun refreshFirebaseAuthState(): AuthState {
         refreshCount++
+        refreshException?.let { throw it }
         return refreshResult ?: _authState.value
     }
 

@@ -17,11 +17,13 @@
 
 package com.chriscartland.garage.usecase
 
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.RemoteButtonRepository
+import kotlinx.coroutines.CancellationException
 
 /**
  * Pushes the remote garage button.
@@ -39,11 +41,18 @@ class PushRemoteButtonUseCase(
         if (authState !is AuthState.Authenticated) {
             return AppResult.Error(ActionError.NotAuthenticated)
         }
-        val idToken = ensureFreshIdToken(authState)
-        remoteButtonRepository.pushButton(
-            idToken = idToken.asString(),
-            buttonAckToken = buttonAckToken,
-        )
-        return AppResult.Success(Unit)
+        return try {
+            val idToken = ensureFreshIdToken(authState)
+            remoteButtonRepository.pushButton(
+                idToken = idToken.asString(),
+                buttonAckToken = buttonAckToken,
+            )
+            AppResult.Success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.e(e) { "Push failed — unexpected error" }
+            AppResult.Error(ActionError.NetworkFailed)
+        }
     }
 }

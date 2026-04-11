@@ -29,6 +29,7 @@ import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.toServer
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -100,25 +101,35 @@ class DefaultRemoteButtonViewModel(
     private fun submitButtonPress() {
         Logger.d { "submitButtonPress" }
         viewModelScope.launch(dispatchers.io) {
-            when (
-                val result = pushRemoteButtonUseCase(
-                    buttonAckToken = createButtonAckToken(
-                        currentTimeMillis = System.currentTimeMillis(),
-                    ),
-                )
-            ) {
-                is AppResult.Success -> { /* State machine tracks via pushButtonStatus flow */ }
-                is AppResult.Error -> {
-                    // The state machine is in SendingToServer but PushStatus.SENDING
-                    // will never arrive because the UseCase failed before calling the
-                    // repository. Reset to avoid being stuck forever.
-                    stateMachine.reset()
-                    when (result.error) {
-                        ActionError.NotAuthenticated -> Logger.w { "Push failed — not authenticated" }
-                        ActionError.MissingData -> Logger.w { "Push failed — missing data" }
-                        ActionError.NetworkFailed -> Logger.w { "Push failed — network error" }
+            try {
+                when (
+                    val result = pushRemoteButtonUseCase(
+                        buttonAckToken = createButtonAckToken(
+                            currentTimeMillis = System.currentTimeMillis(),
+                        ),
+                    )
+                ) {
+                    is AppResult.Success -> { /* State machine tracks via pushButtonStatus flow */ }
+                    is AppResult.Error -> {
+                        // The state machine is in SendingToServer but PushStatus.SENDING
+                        // will never arrive because the UseCase failed before calling the
+                        // repository. Reset to avoid being stuck forever.
+                        stateMachine.reset()
+                        when (result.error) {
+                            ActionError.NotAuthenticated -> Logger.w { "Push failed — not authenticated" }
+                            ActionError.MissingData -> Logger.w { "Push failed — missing data" }
+                            ActionError.NetworkFailed -> Logger.w { "Push failed — network error" }
+                        }
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Safety net: if an unexpected exception escapes the UseCase,
+                // reset the state machine so the UI doesn't get stuck in
+                // SendingToServer indefinitely.
+                Logger.e(e) { "submitButtonPress: unexpected error" }
+                stateMachine.reset()
             }
         }
     }

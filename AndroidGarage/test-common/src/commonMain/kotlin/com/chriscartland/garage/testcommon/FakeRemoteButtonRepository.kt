@@ -14,6 +14,9 @@ class FakeRemoteButtonRepository : RemoteButtonRepository {
     var lastIdToken: String? = null
         private set
 
+    /** When non-null, [pushButton] throws this exception instead of succeeding. */
+    var pushException: Exception? = null
+
     fun setPushStatus(status: PushStatus) {
         _pushButtonStatus.value = status
     }
@@ -24,6 +27,7 @@ class FakeRemoteButtonRepository : RemoteButtonRepository {
     ) {
         pushCount++
         lastIdToken = idToken
+        pushException?.let { throw it }
         _pushButtonStatus.value = PushStatus.SENDING
         _pushButtonStatus.value = PushStatus.IDLE
     }

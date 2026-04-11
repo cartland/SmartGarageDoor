@@ -154,6 +154,29 @@ class RemoteButtonViewModelTest {
         }
 
     @Test
+    fun confirmWhenRepositoryThrowsResetsToReady() =
+        runTest {
+            val viewModel = createAuthenticatedViewModel()
+            remoteButtonRepository.pushException =
+                IllegalStateException("Server config not available")
+
+            // Tap to arm
+            viewModel.onButtonTap()
+            testDispatcher.scheduler.runCurrent()
+            advanceTimeBy(ButtonStateMachine.DEFAULT_PREPARING_DELAY + 1)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(RemoteButtonState.AwaitingConfirmation, viewModel.buttonState.value)
+
+            // Confirm — repository throws, UseCase catches and returns Error,
+            // ViewModel resets state machine.
+            viewModel.onButtonTap()
+            testDispatcher.scheduler.runCurrent()
+
+            assertEquals(RemoteButtonState.Ready, viewModel.buttonState.value)
+            assertEquals(1, remoteButtonRepository.pushCount)
+        }
+
+    @Test
     fun resetButtonReturnsToReady() =
         runTest {
             val viewModel = createViewModel()
