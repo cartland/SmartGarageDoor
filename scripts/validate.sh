@@ -43,6 +43,9 @@ $GRADLE checkSingletonGuard && pass "singleton guard" || fail "singleton guard"
 step "Layer imports (ViewModel→UseCase, UseCase→domain)"
 $GRADLE checkLayerImports && pass "layer imports" || fail "layer imports"
 
+step "Hardcoded colors (must use theme)"
+$GRADLE checkHardcodedColors && pass "hardcoded colors" || fail "hardcoded colors"
+
 step "Detekt (static analysis)"
 $GRADLE :androidApp:detekt && pass "detekt" || fail "detekt"
 
