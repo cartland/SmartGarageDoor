@@ -52,6 +52,7 @@ import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.permissions.notificationJustificationText
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
 import com.chriscartland.garage.presentation.demoDoorEvents
+import com.chriscartland.garage.ui.theme.AppTheme
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.AuthViewModel
 import com.chriscartland.garage.usecase.DoorViewModel
@@ -226,19 +227,20 @@ fun HomeContent(
     ReportDrawnWhen { currentDoorEvent is LoadingResult.Complete }
 }
 
+@Suppress("EmptyFunctionBlock")
 @OptIn(ExperimentalPermissionsApi::class)
 @Preview(showBackground = true)
 @Composable
 fun HomeContentPreview() {
-    HomeContent(
-        currentDoorEvent = LoadingResult.Complete(demoDoorEvents.firstOrNull()),
-        notificationPermissionState = object : PermissionState {
-            override val permission = "android.permission.POST_NOTIFICATIONS"
-            override val status = PermissionStatus.Denied(false)
+    AppTheme {
+        HomeContent(
+            currentDoorEvent = LoadingResult.Complete(demoDoorEvents.firstOrNull()),
+            notificationPermissionState = object : PermissionState {
+                override val permission = "android.permission.POST_NOTIFICATIONS"
+                override val status = PermissionStatus.Denied(false)
 
-            override fun launchPermissionRequest() {
-                // Do nothing
-            }
-        },
-    )
+                override fun launchPermissionRequest() {}
+            },
+        )
+    }
 }

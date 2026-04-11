@@ -46,6 +46,7 @@ import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.presentation.demoDoorEvents
+import com.chriscartland.garage.ui.theme.AppTheme
 import com.chriscartland.garage.ui.theme.DoorColorState
 import com.chriscartland.garage.ui.theme.DoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
@@ -267,7 +268,9 @@ private fun DoorPosition.toFriendlyName(): String =
 @Preview(showBackground = true)
 @Composable
 fun DoorStatusCardPreview() {
-    DoorStatusCard(demoDoorEvents.firstOrNull())
+    AppTheme {
+        DoorStatusCard(demoDoorEvents.firstOrNull())
+    }
 }
 
 @Preview(showBackground = true)

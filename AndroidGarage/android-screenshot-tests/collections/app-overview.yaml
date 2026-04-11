@@ -1,0 +1,44 @@
+title: "Smart Garage Door — App Overview"
+# Goal: Full-screen screenshots showing each tab with the navigation bar,
+# illustrating the main features of the app at a glance.
+screenshots:
+  # Full-screen tabs
+  - test_class: ScreensScreenshotTestKt
+    test: HomeTabPreviewTest_Light
+    description: "Home tab"
+  - test_class: ScreensScreenshotTestKt
+    test: HistoryTabPreviewTest_Light
+    description: "History tab"
+  - test_class: ScreensScreenshotTestKt
+    test: SettingsTabPreviewTest_Light
+    description: "Settings tab"
+  # Key interactions
+  - test_class: ComponentsScreenshotTestKt
+    test: RemoteButtonContentAwaitingConfirmationPreviewTest_Light
+    description: "Button: confirm action"
+  - test_class: ComponentsScreenshotTestKt
+    test: RemoteButtonContentSendingToServerPreviewTest_Light
+    description: "Button: sending"
+  - test_class: ComponentsScreenshotTestKt
+    test: RemoteButtonContentSucceededPreviewTest_Light
+    description: "Button: success"
+  - test_class: ComponentsScreenshotTestKt
+    test: RemoteButtonContentServerFailedPreviewTest_Light
+    description: "Button: failed"
+  # Components
+  - test_class: ComponentsScreenshotTestKt
+    test: SnoozeNotificationCardPreviewTest_Light
+    description: "Snooze notifications"
+  - test_class: ComponentsScreenshotTestKt
+    test: SnoozeNotificationCardSucceededPreviewTest_Light
+    description: "Snooze active"
+  # Door icons
+  - test_class: GarageDoorScreenshotTestKt
+    test: GarageDoorClosedPreviewTest_Light
+    description: "Door closed"
+  - test_class: GarageDoorScreenshotTestKt
+    test: GarageDoorOpenPreviewTest_Light
+    description: "Door open"
+  - test_class: GarageDoorScreenshotTestKt
+    test: GarageDoorOpeningPreviewTest_Light
+    description: "Door opening"
