@@ -215,7 +215,7 @@ fun RecentDoorEventListItem(
                 )
                 GarageIcon(
                     doorPosition = doorPosition,
-                    modifier = Modifier.size(56.dp),
+                    modifier = Modifier.size(84.dp),
                     static = true,
                     color = doorColor,
                 )
