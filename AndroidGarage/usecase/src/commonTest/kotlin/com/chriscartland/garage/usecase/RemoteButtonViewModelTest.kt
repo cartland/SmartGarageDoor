@@ -104,14 +104,14 @@ class RemoteButtonViewModelTest {
     }
 
     @Test
-    fun onButtonTapTransitionsToArming() =
+    fun onButtonTapTransitionsToPreparing() =
         runTest {
             val viewModel = createViewModel()
 
             viewModel.onButtonTap()
             testDispatcher.scheduler.runCurrent()
 
-            assertEquals(RemoteButtonState.Arming, viewModel.buttonState.value)
+            assertEquals(RemoteButtonState.Preparing, viewModel.buttonState.value)
         }
 
     @Test
@@ -123,16 +123,16 @@ class RemoteButtonViewModelTest {
             // Tap to arm
             viewModel.onButtonTap()
             testDispatcher.scheduler.runCurrent()
-            // Wait for arming delay (500ms default)
-            advanceTimeBy(ButtonStateMachine.DEFAULT_ARMING_DELAY + 1)
+            // Wait for preparing delay (500ms default)
+            advanceTimeBy(ButtonStateMachine.DEFAULT_PREPARING_DELAY + 1)
             testDispatcher.scheduler.runCurrent()
-            assertEquals(RemoteButtonState.Armed, viewModel.buttonState.value)
+            assertEquals(RemoteButtonState.AwaitingConfirmation, viewModel.buttonState.value)
 
             // Confirm
             viewModel.onButtonTap()
             testDispatcher.scheduler.runCurrent()
 
-            assertEquals(RemoteButtonState.Sending, viewModel.buttonState.value)
+            assertEquals(RemoteButtonState.SendingToServer, viewModel.buttonState.value)
             assertEquals(1, remoteButtonRepository.pushCount)
         }
 
@@ -143,14 +143,14 @@ class RemoteButtonViewModelTest {
 
             viewModel.onButtonTap()
             testDispatcher.scheduler.runCurrent()
-            advanceTimeBy(ButtonStateMachine.DEFAULT_ARMING_DELAY + 1)
+            advanceTimeBy(ButtonStateMachine.DEFAULT_PREPARING_DELAY + 1)
             testDispatcher.scheduler.runCurrent()
             viewModel.onButtonTap()
             testDispatcher.scheduler.runCurrent()
 
-            // The state machine still optimistically transitions to Sending,
+            // The state machine still optimistically transitions to SendingToServer,
             // but the use case fails the auth check and never calls pushButton.
-            assertEquals(RemoteButtonState.Sending, viewModel.buttonState.value)
+            assertEquals(RemoteButtonState.SendingToServer, viewModel.buttonState.value)
             assertEquals(0, remoteButtonRepository.pushCount)
         }
 
@@ -161,7 +161,7 @@ class RemoteButtonViewModelTest {
 
             viewModel.onButtonTap()
             testDispatcher.scheduler.runCurrent()
-            assertEquals(RemoteButtonState.Arming, viewModel.buttonState.value)
+            assertEquals(RemoteButtonState.Preparing, viewModel.buttonState.value)
 
             viewModel.resetButton()
             testDispatcher.scheduler.runCurrent()

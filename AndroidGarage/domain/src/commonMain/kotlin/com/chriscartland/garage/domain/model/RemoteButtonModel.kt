@@ -12,40 +12,41 @@ enum class PushStatus {
  * into a single sum type. The button can only be in one state at a time.
  *
  * State flow (happy path):
- *   Ready → tap → Arming → Armed → tap → Sending → Sent → Received → Ready
+ *   Ready → tap → Preparing → AwaitingConfirmation → tap →
+ *   SendingToServer → SendingToDoor → Succeeded → Ready
  *
  * Failure paths:
- *   Armed → (5s timeout) → NotConfirmed → Ready
- *   Sending → (10s timeout) → SendingTimeout → Ready
- *   Sent → (10s timeout) → SentTimeout → Ready
+ *   AwaitingConfirmation → (5s timeout) → Cancelled → Ready
+ *   SendingToServer → (10s timeout) → ServerFailed → Ready
+ *   SendingToDoor → (10s timeout) → DoorFailed → Ready
  *
  * See ButtonStateMachine for transition logic.
  */
 sealed interface RemoteButtonState {
-    /** Default state. First tap arms the button. */
+    /** Default state. First tap begins the confirmation flow. */
     data object Ready : RemoteButtonState
 
     /** Brief pause after first tap (anti-bounce). */
-    data object Arming : RemoteButtonState
+    data object Preparing : RemoteButtonState
 
-    /** Waiting for second tap to confirm. Times out to NotConfirmed. */
-    data object Armed : RemoteButtonState
+    /** Waiting for second tap to confirm. Times out to Cancelled. */
+    data object AwaitingConfirmation : RemoteButtonState
 
     /** User did not confirm in time. Brief display before returning to Ready. */
-    data object NotConfirmed : RemoteButtonState
+    data object Cancelled : RemoteButtonState
 
-    /** Network request in flight. */
-    data object Sending : RemoteButtonState
+    /** Network request to server in flight. */
+    data object SendingToServer : RemoteButtonState
 
-    /** Network call returned, waiting for door movement. */
-    data object Sent : RemoteButtonState
+    /** Server acknowledged, waiting for door movement. */
+    data object SendingToDoor : RemoteButtonState
 
     /** Door moved — request fulfilled. Brief display before returning to Ready. */
-    data object Received : RemoteButtonState
+    data object Succeeded : RemoteButtonState
 
-    /** Network call did not return in time. */
-    data object SendingTimeout : RemoteButtonState
+    /** Network call to server did not return in time. */
+    data object ServerFailed : RemoteButtonState
 
-    /** Door did not move after sending. */
-    data object SentTimeout : RemoteButtonState
+    /** Door did not move after server acknowledged. */
+    data object DoorFailed : RemoteButtonState
 }

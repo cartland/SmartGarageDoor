@@ -35,8 +35,10 @@ import kotlinx.coroutines.launch
 /**
  * Unified state machine for the remote garage button.
  *
- * Owns BOTH the tap-to-confirm interaction (Ready → Arming → Armed → confirm)
- * AND the network/door request lifecycle (Sending → Sent → Received).
+ * Owns BOTH the tap-to-confirm interaction
+ * (Ready → Preparing → AwaitingConfirmation → confirm)
+ * AND the network/door request lifecycle
+ * (SendingToServer → SendingToDoor → Succeeded).
  *
  * Architecture:
  * - All inputs (taps, push status changes, door movement, timer events) flow
@@ -51,13 +53,17 @@ import kotlinx.coroutines.launch
  *   request, which will eventually flip [pushButtonStatus] to SENDING.
  *
  * Happy path:
- *   Ready --tap--> Arming --(armingDelayMillis)--> Armed --tap--> Sending
- *     --PushStatus.IDLE--> Sent --doorMoves--> Received --(displayMillis)--> Ready
+ *   Ready --tap--> Preparing --(preparingDelayMillis)--> AwaitingConfirmation
+ *     --tap--> SendingToServer --PushStatus.IDLE--> SendingToDoor
+ *     --doorMoves--> Succeeded --(displayMillis)--> Ready
  *
  * Failure paths:
- *   Armed --(armedTimeoutMillis)--> NotConfirmed --(displayMillis)--> Ready
- *   Sending --(networkTimeoutMillis)--> SendingTimeout --(displayMillis)--> Ready
- *   Sent --(networkTimeoutMillis)--> SentTimeout --(displayMillis)--> Ready
+ *   AwaitingConfirmation --(confirmationTimeoutMillis)--> Cancelled
+ *     --(displayMillis)--> Ready
+ *   SendingToServer --(networkTimeoutMillis)--> ServerFailed
+ *     --(displayMillis)--> Ready
+ *   SendingToDoor --(networkTimeoutMillis)--> DoorFailed
+ *     --(displayMillis)--> Ready
  */
 class ButtonStateMachine(
     pushButtonStatus: Flow<PushStatus>,
@@ -65,8 +71,8 @@ class ButtonStateMachine(
     private val onSubmit: () -> Unit,
     private val scope: CoroutineScope,
     private val dispatcher: CoroutineDispatcher,
-    private val armingDelayMillis: Long = DEFAULT_ARMING_DELAY,
-    private val armedTimeoutMillis: Long = DEFAULT_ARMED_TIMEOUT,
+    private val preparingDelayMillis: Long = DEFAULT_PREPARING_DELAY,
+    private val confirmationTimeoutMillis: Long = DEFAULT_CONFIRMATION_TIMEOUT,
     private val networkTimeoutMillis: Long = DEFAULT_NETWORK_TIMEOUT,
     private val displayMillis: Long = DEFAULT_DISPLAY,
 ) {
@@ -111,30 +117,32 @@ class ButtonStateMachine(
             Event.Reset -> transitionTo(RemoteButtonState.Ready)
             is Event.PushStatusChanged -> handlePushStatusChanged(current, event.status)
             Event.DoorMoved -> handleDoorMoved(current)
-            Event.ArmingComplete -> if (current == RemoteButtonState.Arming) {
-                transitionTo(RemoteButtonState.Armed)
-                scheduleTimer(armedTimeoutMillis, Event.ArmedTimedOut)
+            Event.PreparingComplete -> if (current == RemoteButtonState.Preparing) {
+                transitionTo(RemoteButtonState.AwaitingConfirmation)
+                scheduleTimer(confirmationTimeoutMillis, Event.ConfirmationTimedOut)
             }
-            Event.ArmedTimedOut -> if (current == RemoteButtonState.Armed) {
-                transitionTo(RemoteButtonState.NotConfirmed)
-                scheduleTimer(displayMillis, Event.DisplayTimedOut)
-            }
-            Event.NetworkTimedOut -> when (current) {
-                RemoteButtonState.Sending -> {
-                    transitionTo(RemoteButtonState.SendingTimeout)
+            Event.ConfirmationTimedOut -> {
+                if (current == RemoteButtonState.AwaitingConfirmation) {
+                    transitionTo(RemoteButtonState.Cancelled)
                     scheduleTimer(displayMillis, Event.DisplayTimedOut)
                 }
-                RemoteButtonState.Sent -> {
-                    transitionTo(RemoteButtonState.SentTimeout)
+            }
+            Event.NetworkTimedOut -> when (current) {
+                RemoteButtonState.SendingToServer -> {
+                    transitionTo(RemoteButtonState.ServerFailed)
+                    scheduleTimer(displayMillis, Event.DisplayTimedOut)
+                }
+                RemoteButtonState.SendingToDoor -> {
+                    transitionTo(RemoteButtonState.DoorFailed)
                     scheduleTimer(displayMillis, Event.DisplayTimedOut)
                 }
                 else -> {} // Stale timer, ignore
             }
             Event.DisplayTimedOut -> when (current) {
-                RemoteButtonState.NotConfirmed,
-                RemoteButtonState.Received,
-                RemoteButtonState.SendingTimeout,
-                RemoteButtonState.SentTimeout,
+                RemoteButtonState.Cancelled,
+                RemoteButtonState.Succeeded,
+                RemoteButtonState.ServerFailed,
+                RemoteButtonState.DoorFailed,
                 -> transitionTo(RemoteButtonState.Ready)
                 else -> {} // Stale timer, ignore
             }
@@ -144,19 +152,20 @@ class ButtonStateMachine(
     private fun handleTap(current: RemoteButtonState) {
         when (current) {
             RemoteButtonState.Ready -> {
-                transitionTo(RemoteButtonState.Arming)
-                scheduleTimer(armingDelayMillis, Event.ArmingComplete)
+                transitionTo(RemoteButtonState.Preparing)
+                scheduleTimer(preparingDelayMillis, Event.PreparingComplete)
             }
-            RemoteButtonState.Armed -> {
-                // Confirm — trigger the network request and optimistically transition to Sending.
+            RemoteButtonState.AwaitingConfirmation -> {
+                // Confirm — trigger the network request and optimistically
+                // transition to SendingToServer.
                 // Do NOT start the network timeout here. The timeout starts when
                 // PushStatus.SENDING arrives, which is when the HTTP request actually begins.
                 // Starting it here would include token refresh + config fetch in the budget.
                 onSubmit()
-                transitionTo(RemoteButtonState.Sending)
+                transitionTo(RemoteButtonState.SendingToServer)
             }
-            // Tap ignored in all other states — Arming, NotConfirmed,
-            // Sending, Sent, Received, *Timeout
+            // Tap ignored in all other states — Preparing, Cancelled,
+            // SendingToServer, SendingToDoor, Succeeded, *Failed
             else -> {}
         }
     }
@@ -167,15 +176,15 @@ class ButtonStateMachine(
     ) {
         when (status) {
             PushStatus.SENDING -> {
-                // The HTTP request has actually started. Transition to Sending if not
+                // The HTTP request has actually started. Transition to SendingToServer if not
                 // already there (we optimistically moved on confirm tap), and start/restart
                 // the network timeout. This is the true start of the network clock.
-                transitionTo(RemoteButtonState.Sending)
+                transitionTo(RemoteButtonState.SendingToServer)
                 scheduleTimer(networkTimeoutMillis, Event.NetworkTimedOut)
             }
             PushStatus.IDLE -> {
-                if (current == RemoteButtonState.Sending) {
-                    transitionTo(RemoteButtonState.Sent)
+                if (current == RemoteButtonState.SendingToServer) {
+                    transitionTo(RemoteButtonState.SendingToDoor)
                     scheduleTimer(networkTimeoutMillis, Event.NetworkTimedOut)
                 }
             }
@@ -184,12 +193,12 @@ class ButtonStateMachine(
 
     private fun handleDoorMoved(current: RemoteButtonState) {
         when (current) {
-            RemoteButtonState.Sending,
-            RemoteButtonState.Sent,
-            RemoteButtonState.SendingTimeout,
-            RemoteButtonState.SentTimeout,
+            RemoteButtonState.SendingToServer,
+            RemoteButtonState.SendingToDoor,
+            RemoteButtonState.ServerFailed,
+            RemoteButtonState.DoorFailed,
             -> {
-                transitionTo(RemoteButtonState.Received)
+                transitionTo(RemoteButtonState.Succeeded)
                 scheduleTimer(displayMillis, Event.DisplayTimedOut)
             }
             // Door movement ignored if not in a request state
@@ -230,11 +239,11 @@ class ButtonStateMachine(
         /** External flow: door position changed. */
         data object DoorMoved : Event
 
-        /** Internal timer: arming delay complete. */
-        data object ArmingComplete : Event
+        /** Internal timer: preparing delay complete. */
+        data object PreparingComplete : Event
 
-        /** Internal timer: armed without confirmation. */
-        data object ArmedTimedOut : Event
+        /** Internal timer: awaiting confirmation timed out. */
+        data object ConfirmationTimedOut : Event
 
         /** Internal timer: network call exceeded timeout. */
         data object NetworkTimedOut : Event
@@ -244,8 +253,8 @@ class ButtonStateMachine(
     }
 
     companion object {
-        const val DEFAULT_ARMING_DELAY = 500L
-        const val DEFAULT_ARMED_TIMEOUT = 5_000L
+        const val DEFAULT_PREPARING_DELAY = 500L
+        const val DEFAULT_CONFIRMATION_TIMEOUT = 5_000L
         const val DEFAULT_NETWORK_TIMEOUT = 10_000L
         const val DEFAULT_DISPLAY = 10_000L
     }

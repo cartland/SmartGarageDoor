@@ -59,12 +59,12 @@ fun RemoteButtonContent(
     modifier: Modifier = Modifier,
 ) {
     val tappable = state.isTappable()
-    val color = if (state == RemoteButtonState.Armed) {
+    val color = if (state == RemoteButtonState.AwaitingConfirmation) {
         MaterialTheme.colorScheme.primary
     } else {
         MaterialTheme.colorScheme.surfaceDim
     }
-    val onColor = if (state == RemoteButtonState.Armed) {
+    val onColor = if (state == RemoteButtonState.AwaitingConfirmation) {
         MaterialTheme.colorScheme.onPrimary
     } else {
         MaterialTheme.colorScheme.onSurface
@@ -188,21 +188,21 @@ fun SquareButtonWithProgress(
 
 private fun RemoteButtonState.isTappable(): Boolean =
     when (this) {
-        RemoteButtonState.Ready, RemoteButtonState.Armed -> true
+        RemoteButtonState.Ready, RemoteButtonState.AwaitingConfirmation -> true
         else -> false
     }
 
 private fun RemoteButtonState.buttonLabel(): String =
     when (this) {
         RemoteButtonState.Ready -> "Garage\nButton"
-        RemoteButtonState.Arming -> "Preparing..."
-        RemoteButtonState.Armed -> "Tap Again\nTo Confirm"
-        RemoteButtonState.NotConfirmed -> "Not Pressed"
-        RemoteButtonState.Sending -> "Sending..."
-        RemoteButtonState.Sent -> "Sent"
-        RemoteButtonState.Received -> "Door Moved!"
-        RemoteButtonState.SendingTimeout -> "Send Timeout"
-        RemoteButtonState.SentTimeout -> "No Response"
+        RemoteButtonState.Preparing -> "Preparing..."
+        RemoteButtonState.AwaitingConfirmation -> "Tap Again\nTo Confirm"
+        RemoteButtonState.Cancelled -> "Not Pressed"
+        RemoteButtonState.SendingToServer -> "Sending..."
+        RemoteButtonState.SendingToDoor -> "Sent"
+        RemoteButtonState.Succeeded -> "Door Moved!"
+        RemoteButtonState.ServerFailed -> "Send Timeout"
+        RemoteButtonState.DoorFailed -> "No Response"
     }
 
 @Composable
@@ -287,14 +287,14 @@ fun ButtonProgressIndicator(
 private fun RemoteButtonState.toProgressData(): ProgressIndicatorData =
     when (this) {
         RemoteButtonState.Ready -> ProgressIndicatorData("Ready", 0)
-        RemoteButtonState.Arming -> ProgressIndicatorData("Arming", 0)
-        RemoteButtonState.Armed -> ProgressIndicatorData("Tap to confirm", 0)
-        RemoteButtonState.NotConfirmed -> ProgressIndicatorData("Not confirmed", 0, failure = true)
-        RemoteButtonState.Sending -> ProgressIndicatorData("Sending", 1)
-        RemoteButtonState.Sent -> ProgressIndicatorData("Sent", 3)
-        RemoteButtonState.Received -> ProgressIndicatorData("Door moved", 5)
-        RemoteButtonState.SendingTimeout -> ProgressIndicatorData("Sending failed", 2, failure = true)
-        RemoteButtonState.SentTimeout -> ProgressIndicatorData("Command not delivered", 4, failure = true)
+        RemoteButtonState.Preparing -> ProgressIndicatorData("Arming", 0)
+        RemoteButtonState.AwaitingConfirmation -> ProgressIndicatorData("Tap to confirm", 0)
+        RemoteButtonState.Cancelled -> ProgressIndicatorData("Not confirmed", 0, failure = true)
+        RemoteButtonState.SendingToServer -> ProgressIndicatorData("Sending", 1)
+        RemoteButtonState.SendingToDoor -> ProgressIndicatorData("Sent", 3)
+        RemoteButtonState.Succeeded -> ProgressIndicatorData("Door moved", 5)
+        RemoteButtonState.ServerFailed -> ProgressIndicatorData("Sending failed", 2, failure = true)
+        RemoteButtonState.DoorFailed -> ProgressIndicatorData("Command not delivered", 4, failure = true)
     }
 
 @Preview(showBackground = true)
@@ -305,48 +305,48 @@ fun RemoteButtonContentPreview() {
 
 @Preview(showBackground = true)
 @Composable
-fun RemoteButtonContentArmingPreview() {
-    RemoteButtonContent(state = RemoteButtonState.Arming, onTap = {})
+fun RemoteButtonContentPreparingPreview() {
+    RemoteButtonContent(state = RemoteButtonState.Preparing, onTap = {})
 }
 
 @Preview(showBackground = true)
 @Composable
-fun RemoteButtonContentArmedPreview() {
-    RemoteButtonContent(state = RemoteButtonState.Armed, onTap = {})
+fun RemoteButtonContentAwaitingConfirmationPreview() {
+    RemoteButtonContent(state = RemoteButtonState.AwaitingConfirmation, onTap = {})
 }
 
 @Preview(showBackground = true)
 @Composable
-fun RemoteButtonContentNotConfirmedPreview() {
-    RemoteButtonContent(state = RemoteButtonState.NotConfirmed, onTap = {})
+fun RemoteButtonContentCancelledPreview() {
+    RemoteButtonContent(state = RemoteButtonState.Cancelled, onTap = {})
 }
 
 @Preview(showBackground = true)
 @Composable
-fun RemoteButtonContentSendingPreview() {
-    RemoteButtonContent(state = RemoteButtonState.Sending, onTap = {})
+fun RemoteButtonContentSendingToServerPreview() {
+    RemoteButtonContent(state = RemoteButtonState.SendingToServer, onTap = {})
 }
 
 @Preview(showBackground = true)
 @Composable
-fun RemoteButtonContentSentPreview() {
-    RemoteButtonContent(state = RemoteButtonState.Sent, onTap = {})
+fun RemoteButtonContentSendingToDoorPreview() {
+    RemoteButtonContent(state = RemoteButtonState.SendingToDoor, onTap = {})
 }
 
 @Preview(showBackground = true)
 @Composable
-fun RemoteButtonContentReceivedPreview() {
-    RemoteButtonContent(state = RemoteButtonState.Received, onTap = {})
+fun RemoteButtonContentSucceededPreview() {
+    RemoteButtonContent(state = RemoteButtonState.Succeeded, onTap = {})
 }
 
 @Preview(showBackground = true)
 @Composable
-fun RemoteButtonContentSendingTimeoutPreview() {
-    RemoteButtonContent(state = RemoteButtonState.SendingTimeout, onTap = {})
+fun RemoteButtonContentServerFailedPreview() {
+    RemoteButtonContent(state = RemoteButtonState.ServerFailed, onTap = {})
 }
 
 @Preview(showBackground = true)
 @Composable
-fun RemoteButtonContentSentTimeoutPreview() {
-    RemoteButtonContent(state = RemoteButtonState.SentTimeout, onTap = {})
+fun RemoteButtonContentDoorFailedPreview() {
+    RemoteButtonContent(state = RemoteButtonState.DoorFailed, onTap = {})
 }
