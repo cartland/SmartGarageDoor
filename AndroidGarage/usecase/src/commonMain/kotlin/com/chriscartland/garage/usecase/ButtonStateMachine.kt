@@ -158,11 +158,15 @@ class ButtonStateMachine(
             RemoteButtonState.AwaitingConfirmation -> {
                 // Confirm — trigger the network request and optimistically
                 // transition to SendingToServer.
-                // Do NOT start the network timeout here. The timeout starts when
-                // PushStatus.SENDING arrives, which is when the HTTP request actually begins.
-                // Starting it here would include token refresh + config fetch in the budget.
+                // Start a fallback network timeout now so the machine cannot be
+                // stuck forever if PushStatus.SENDING is never received (e.g.
+                // exception before the repository call, or StateFlow conflation
+                // on fast error paths). When PushStatus.SENDING does arrive, the
+                // timer is restarted from that point — so in the happy path the
+                // effective timeout still begins when the HTTP request starts.
                 onSubmit()
                 transitionTo(RemoteButtonState.SendingToServer)
+                scheduleTimer(networkTimeoutMillis, Event.NetworkTimedOut)
             }
             // Tap ignored in all other states — Preparing, Cancelled,
             // SendingToServer, SendingToDoor, Succeeded, *Failed
@@ -176,11 +180,14 @@ class ButtonStateMachine(
     ) {
         when (status) {
             PushStatus.SENDING -> {
-                // The HTTP request has actually started. Transition to SendingToServer if not
-                // already there (we optimistically moved on confirm tap), and start/restart
-                // the network timeout. This is the true start of the network clock.
-                transitionTo(RemoteButtonState.SendingToServer)
-                scheduleTimer(networkTimeoutMillis, Event.NetworkTimedOut)
+                // The HTTP request has actually started. Restart the network
+                // timeout so the clock starts from the true request start, not
+                // from the earlier confirm-tap fallback timer. Guard on state so
+                // a spurious or late SENDING emission cannot jump the machine
+                // into SendingToServer from an unrelated state (e.g. Ready).
+                if (current == RemoteButtonState.SendingToServer) {
+                    scheduleTimer(networkTimeoutMillis, Event.NetworkTimedOut)
+                }
             }
             PushStatus.IDLE -> {
                 if (current == RemoteButtonState.SendingToServer) {

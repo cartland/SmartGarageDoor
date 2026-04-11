@@ -227,16 +227,16 @@ class ButtonStateMachineTest {
         }
 
     @Test
-    fun sendingToServerDoesNotTimeOutBeforePushStatusSending() =
+    fun sendingToServerTimesOutEvenWithoutPushStatusSending() =
         runTest {
             val sm = prepareAndConfirm()
             assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
 
-            // No PushStatus.SENDING yet — timeout timer hasn't started.
-            // Even well past the network timeout, state stays SendingToServer.
-            advanceTimeBy(NETWORK_TIMEOUT * 3)
+            // A fallback timeout starts on confirm so the machine cannot be stuck
+            // forever if PushStatus.SENDING is never received.
+            advanceTimeBy(NETWORK_TIMEOUT + 1)
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
+            assertEquals(RemoteButtonState.ServerFailed, sm.state.value)
         }
 
     @Test
@@ -458,6 +458,46 @@ class ButtonStateMachineTest {
             assertEquals(RemoteButtonState.ServerFailed, sm.state.value)
 
             advanceTimeBy(DISPLAY + 1)
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.Ready, sm.state.value)
+        }
+
+    @Test
+    fun pushStatusSendingRestartsTimerFromConfirmFallback() =
+        runTest {
+            val sm = prepareAndConfirm()
+            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
+
+            // Advance most of the fallback timeout, then SENDING arrives and
+            // restarts the clock. The machine should survive past the original
+            // fallback deadline.
+            advanceTimeBy(NETWORK_TIMEOUT - 1_000)
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
+
+            pushStatus.value = PushStatus.SENDING
+            testScheduler.runCurrent()
+
+            // 2 seconds later — past the original fallback, but within the
+            // restarted timer — still SendingToServer.
+            advanceTimeBy(2_000)
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
+
+            // Full timeout from the SENDING restart → ServerFailed.
+            advanceTimeBy(NETWORK_TIMEOUT - 2_000 + 1)
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.ServerFailed, sm.state.value)
+        }
+
+    @Test
+    fun spuriousPushStatusSendingInReadyIsIgnored() =
+        runTest {
+            val sm = create()
+            assertEquals(RemoteButtonState.Ready, sm.state.value)
+
+            // A late or spurious SENDING emission must not jump to SendingToServer.
+            pushStatus.value = PushStatus.SENDING
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.Ready, sm.state.value)
         }
