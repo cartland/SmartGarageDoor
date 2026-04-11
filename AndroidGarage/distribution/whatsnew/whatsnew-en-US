@@ -1,3 +1,4 @@
+2.4: Redesigned garage door button with confirmation flow and network status diagram. Improved color contrast for accessibility.
 2.3: Improved architecture and performance.
 2.2: New colors and design!
 2.1: Snooze the garage notifications! When the garage is open, you can snooze everyone's notifications for a limited time. The feature will only be enabled for the current garage door position.
