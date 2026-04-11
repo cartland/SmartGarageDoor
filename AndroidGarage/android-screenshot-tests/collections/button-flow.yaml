@@ -1,0 +1,18 @@
+title: "Button Press Flow"
+# TODO: Add dark mode variant collection once full-screen Home preview works
+screenshots:
+  - test_class: ComponentsScreenshotTestKt
+    test: RemoteButtonContentPreviewTest_Light
+    description: "1. Ready — tap to start"
+  - test_class: ComponentsScreenshotTestKt
+    test: RemoteButtonContentAwaitingConfirmationPreviewTest_Light
+    description: "2. Confirm — tap again"
+  - test_class: ComponentsScreenshotTestKt
+    test: RemoteButtonContentSendingToServerPreviewTest_Light
+    description: "3. Sending to server"
+  - test_class: ComponentsScreenshotTestKt
+    test: RemoteButtonContentSendingToDoorPreviewTest_Light
+    description: "4. Server forwarding to door"
+  - test_class: ComponentsScreenshotTestKt
+    test: RemoteButtonContentSucceededPreviewTest_Light
+    description: "5. Door moved"
