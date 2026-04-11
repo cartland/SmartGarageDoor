@@ -83,7 +83,6 @@ class RemoteButtonViewModelTest {
         authRepository.setAuthState(authState)
         val ensureFreshIdToken = EnsureFreshIdTokenUseCase(authRepository)
         val vm = DefaultRemoteButtonViewModel(
-            observePushButtonStatus = ObservePushButtonStatusUseCase(remoteButtonRepository),
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
             dispatchers = TestDispatcherProvider(testDispatcher),
             pushRemoteButtonUseCase = PushRemoteButtonUseCase(ensureFreshIdToken, authRepository, remoteButtonRepository),
@@ -115,7 +114,7 @@ class RemoteButtonViewModelTest {
         }
 
     @Test
-    fun confirmTriggersPushUseCaseAndIncrementsRepoCounter() =
+    fun confirmTriggersPushUseCaseAndTransitionsToSendingToDoor() =
         runTest {
             val viewModel = createAuthenticatedViewModel()
             assertEquals(0, remoteButtonRepository.pushCount)
@@ -128,11 +127,12 @@ class RemoteButtonViewModelTest {
             testDispatcher.scheduler.runCurrent()
             assertEquals(RemoteButtonState.AwaitingConfirmation, viewModel.buttonState.value)
 
-            // Confirm
+            // Confirm — use case completes synchronously in fake, so the
+            // ViewModel calls onNetworkCompleted() in the same scheduler frame.
             viewModel.onButtonTap()
             testDispatcher.scheduler.runCurrent()
 
-            assertEquals(RemoteButtonState.SendingToServer, viewModel.buttonState.value)
+            assertEquals(RemoteButtonState.SendingToDoor, viewModel.buttonState.value)
             assertEquals(1, remoteButtonRepository.pushCount)
         }
 

@@ -18,7 +18,6 @@
 package com.chriscartland.garage.data.repository
 
 import com.chriscartland.garage.data.NetworkResult
-import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
@@ -50,16 +49,11 @@ class RemoteButtonRepositoryTest {
     }
 
     @Test
-    fun initialPushStatusIsIdle() {
-        assertEquals(PushStatus.IDLE, repo.pushButtonStatus.value)
-    }
-
-    @Test
-    fun pushResetsToIdleWhenServerConfigFetchFails() =
+    fun pushReturnsWhenServerConfigFetchFails() =
         runTest {
             networkConfigDataSource.serverConfigResult = NetworkResult.ConnectionFailed
             repo.pushButton("token", "ack-token")
-            assertEquals(PushStatus.IDLE, repo.pushButtonStatus.value)
+            assertEquals(0, networkButtonDataSource.pushCount)
         }
 
     @Test
@@ -80,8 +74,6 @@ class RemoteButtonRepositoryTest {
             )
             networkButtonDataSource.pushResult = NetworkResult.HttpError(500)
             repo.pushButton("token", "ack-token")
-            // Status returns to IDLE even on HTTP error (state machine needs the IDLE signal)
-            assertEquals(PushStatus.IDLE, repo.pushButtonStatus.value)
             assertEquals(1, networkButtonDataSource.pushCount)
         }
 
@@ -93,7 +85,7 @@ class RemoteButtonRepositoryTest {
             )
             networkButtonDataSource.pushResult = NetworkResult.ConnectionFailed
             repo.pushButton("token", "ack-token")
-            assertEquals(PushStatus.IDLE, repo.pushButtonStatus.value)
+            assertEquals(1, networkButtonDataSource.pushCount)
         }
 
     @Test
@@ -109,7 +101,6 @@ class RemoteButtonRepositoryTest {
             )
             disabledRepo.pushButton("token", "ack-token")
             assertEquals(0, networkButtonDataSource.pushCount)
-            assertEquals(PushStatus.IDLE, disabledRepo.pushButtonStatus.value)
         }
 }
 

@@ -19,7 +19,6 @@ package com.chriscartland.garage.usecase
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.domain.model.DoorPosition
-import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -41,7 +40,7 @@ import kotlinx.coroutines.launch
  * (SendingToServer → SendingToDoor → Succeeded).
  *
  * Architecture:
- * - All inputs (taps, push status changes, door movement, timer events) flow
+ * - All inputs (taps, network completion, door movement, timer events) flow
  *   through a single [Channel] consumed by one coroutine. This serializes
  *   transitions and eliminates races by construction.
  * - Timers are scheduled via [scope.launch][CoroutineScope.launch] + [delay].
@@ -50,11 +49,11 @@ import kotlinx.coroutines.launch
  * - The state machine is pure: it does NOT call use cases or repositories
  *   directly. The [onSubmit] callback is invoked when the user confirms,
  *   and the caller (ViewModel) is responsible for triggering the network
- *   request, which will eventually flip [pushButtonStatus] to SENDING.
+ *   request and calling [onNetworkCompleted] when it finishes.
  *
  * Happy path:
  *   Ready --tap--> Preparing --(preparingDelayMillis)--> AwaitingConfirmation
- *     --tap--> SendingToServer --PushStatus.IDLE--> SendingToDoor
+ *     --tap--> SendingToServer --onNetworkCompleted--> SendingToDoor
  *     --doorMoves--> Succeeded --(displayMillis)--> Ready
  *
  * Failure paths:
@@ -66,7 +65,6 @@ import kotlinx.coroutines.launch
  *     --(displayMillis)--> Ready
  */
 class ButtonStateMachine(
-    pushButtonStatus: Flow<PushStatus>,
     doorPosition: Flow<DoorPosition>,
     private val onSubmit: () -> Unit,
     private val scope: CoroutineScope,
@@ -83,12 +81,9 @@ class ButtonStateMachine(
     private var timerJob: Job? = null
 
     init {
-        // Forward external flows into the channel.
+        // Forward door-position changes into the channel.
         // drop(1) skips the StateFlow's initial replay so cold-start doesn't
-        // emit a spurious PushStatus.IDLE that would confuse transitions.
-        scope.launch(dispatcher) {
-            pushButtonStatus.drop(1).collect { events.send(Event.PushStatusChanged(it)) }
-        }
+        // emit a spurious door event that would confuse transitions.
         scope.launch(dispatcher) {
             doorPosition.drop(1).collect { events.send(Event.DoorMoved) }
         }
@@ -110,12 +105,28 @@ class ButtonStateMachine(
         events.trySend(Event.Reset)
     }
 
+    /**
+     * The network request completed (server acknowledged the button press).
+     *
+     * Called by the ViewModel after the push-button use case returns
+     * successfully. Using a direct method call instead of a Flow ensures
+     * guaranteed delivery — no risk of StateFlow conflation dropping the signal.
+     */
+    fun onNetworkCompleted() {
+        events.trySend(Event.NetworkCompleted)
+    }
+
     private fun handleEvent(event: Event) {
         val current = _state.value
         when (event) {
             Event.Tap -> handleTap(current)
             Event.Reset -> transitionTo(RemoteButtonState.Ready)
-            is Event.PushStatusChanged -> handlePushStatusChanged(current, event.status)
+            Event.NetworkCompleted -> {
+                if (current == RemoteButtonState.SendingToServer) {
+                    transitionTo(RemoteButtonState.SendingToDoor)
+                    scheduleTimer(networkTimeoutMillis, Event.NetworkTimedOut)
+                }
+            }
             Event.DoorMoved -> handleDoorMoved(current)
             Event.PreparingComplete -> if (current == RemoteButtonState.Preparing) {
                 transitionTo(RemoteButtonState.AwaitingConfirmation)
@@ -157,13 +168,7 @@ class ButtonStateMachine(
             }
             RemoteButtonState.AwaitingConfirmation -> {
                 // Confirm — trigger the network request and optimistically
-                // transition to SendingToServer.
-                // Start a fallback network timeout now so the machine cannot be
-                // stuck forever if PushStatus.SENDING is never received (e.g.
-                // exception before the repository call, or StateFlow conflation
-                // on fast error paths). When PushStatus.SENDING does arrive, the
-                // timer is restarted from that point — so in the happy path the
-                // effective timeout still begins when the HTTP request starts.
+                // transition to SendingToServer with a network timeout.
                 onSubmit()
                 transitionTo(RemoteButtonState.SendingToServer)
                 scheduleTimer(networkTimeoutMillis, Event.NetworkTimedOut)
@@ -171,30 +176,6 @@ class ButtonStateMachine(
             // Tap ignored in all other states — Preparing, Cancelled,
             // SendingToServer, SendingToDoor, Succeeded, *Failed
             else -> {}
-        }
-    }
-
-    private fun handlePushStatusChanged(
-        current: RemoteButtonState,
-        status: PushStatus,
-    ) {
-        when (status) {
-            PushStatus.SENDING -> {
-                // The HTTP request has actually started. Restart the network
-                // timeout so the clock starts from the true request start, not
-                // from the earlier confirm-tap fallback timer. Guard on state so
-                // a spurious or late SENDING emission cannot jump the machine
-                // into SendingToServer from an unrelated state (e.g. Ready).
-                if (current == RemoteButtonState.SendingToServer) {
-                    scheduleTimer(networkTimeoutMillis, Event.NetworkTimedOut)
-                }
-            }
-            PushStatus.IDLE -> {
-                if (current == RemoteButtonState.SendingToServer) {
-                    transitionTo(RemoteButtonState.SendingToDoor)
-                    scheduleTimer(networkTimeoutMillis, Event.NetworkTimedOut)
-                }
-            }
         }
     }
 
@@ -238,10 +219,8 @@ class ButtonStateMachine(
         /** Caller requested reset. */
         data object Reset : Event
 
-        /** External flow: push button network status changed. */
-        data class PushStatusChanged(
-            val status: PushStatus,
-        ) : Event
+        /** The push-button network request completed successfully. */
+        data object NetworkCompleted : Event
 
         /** External flow: door position changed. */
         data object DoorMoved : Event

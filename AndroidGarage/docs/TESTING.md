@@ -92,8 +92,8 @@ The highest-risk untested area. The app has ~15 null-check branches in network c
 `PushRepositoryImpl.push()` never checks the HTTP response code. A 401 or 500 looks identical to success from the user's perspective.
 
 **Tests to write:**
-- Push with HTTP 500 response → verify `pushButtonStatus` reflects error (not IDLE)
-- Push with null server config → verify status is not stuck in SENDING
+- Push with HTTP 500 response → verify no network call success logged
+- Push with null server config → verify no network call made
 - Push with `remoteButtonPushEnabled = false` → verify no network call made
 - Snooze with error response body → verify `snoozeAction` becomes `Failed.NetworkError`
 

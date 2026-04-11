@@ -40,7 +40,7 @@ Pure Kotlin module (no Android dependencies). Single source of truth for shared 
 
 | Package | Contents |
 |---------|----------|
-| `domain/model/` | `DoorEvent`, `DoorPosition`, `LoadingResult<T>`, `AuthState` (sealed), `User`, `FirebaseIdToken`, `GoogleIdToken`, `DoorFcmState` (sealed), `DoorFcmTopic`, `FcmRegistrationStatus`, `RemoteButtonState` (sealed), `PushStatus`, `SnoozeState` (sealed), `SnoozeAction` (sealed), `ServerConfig` |
+| `domain/model/` | `DoorEvent`, `DoorPosition`, `LoadingResult<T>`, `AuthState` (sealed), `User`, `FirebaseIdToken`, `GoogleIdToken`, `DoorFcmState` (sealed), `DoorFcmTopic`, `FcmRegistrationStatus`, `RemoteButtonState` (sealed), `SnoozeState` (sealed), `SnoozeAction` (sealed), `ServerConfig` |
 | `domain/repository/` | `DoorRepository`, `AuthRepository`, `PushRepository`, `ServerConfigRepository` (interfaces — signatures pending alignment with androidApp) |
 
 ### Android App (`androidApp/`)
@@ -91,7 +91,7 @@ Root files: `GarageApplication.kt` (@HiltAndroidApp), `MainActivity.kt` (Compose
 2. State machine: Ready → Preparing (500ms) → AwaitingConfirmation (5s timeout) → tap → SendingToServer
 3. On confirm: `onSubmit` callback → `PushRemoteButtonUseCase` checks auth, refreshes token if expired
 4. `PushRepository.push(idToken, buttonAckToken)` → POST `/addRemoteButtonCommand`
-5. State machine observes `pushButtonStatus`: SendingToServer → SendingToDoor (server ack) → Succeeded (door moves)
+5. ViewModel calls `stateMachine.onNetworkCompleted()`: SendingToServer → SendingToDoor (server ack) → Succeeded (door moves)
 6. Failure paths: ServerFailed / DoorFailed → Ready after display delay
 7. All transitions atomic via single Channel consumer; testable with virtual time
 8. UI: GarageDoorButton (M3) + NetworkProgressDiagram (phone → server → door)

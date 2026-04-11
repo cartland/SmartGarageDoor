@@ -33,6 +33,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 private const val SNOOZE_ACTION_RESET_DELAY_MS = 10_000L
 
@@ -51,7 +52,6 @@ interface RemoteButtonViewModel {
 }
 
 class DefaultRemoteButtonViewModel(
-    observePushButtonStatus: ObservePushButtonStatusUseCase,
     private val observeDoorEvents: ObserveDoorEventsUseCase,
     private val dispatchers: DispatcherProvider,
     private val pushRemoteButtonUseCase: PushRemoteButtonUseCase,
@@ -61,7 +61,6 @@ class DefaultRemoteButtonViewModel(
 ) : ViewModel(),
     RemoteButtonViewModel {
     private val stateMachine = ButtonStateMachine(
-        pushButtonStatus = observePushButtonStatus(),
         doorPosition = observeDoorEvents.position(),
         onSubmit = ::submitButtonPress,
         scope = viewModelScope,
@@ -100,25 +99,29 @@ class DefaultRemoteButtonViewModel(
     private fun submitButtonPress() {
         Logger.d { "submitButtonPress" }
         viewModelScope.launch(dispatchers.io) {
-            when (
-                val result = pushRemoteButtonUseCase(
-                    buttonAckToken = createButtonAckToken(
-                        currentTimeMillis = System.currentTimeMillis(),
-                    ),
-                )
-            ) {
-                is AppResult.Success -> { /* State machine tracks via pushButtonStatus flow */ }
-                is AppResult.Error -> {
-                    // The state machine is in SendingToServer but PushStatus.SENDING
-                    // will never arrive because the UseCase failed before calling the
-                    // repository. Reset to avoid being stuck forever.
-                    stateMachine.reset()
-                    when (result.error) {
-                        ActionError.NotAuthenticated -> Logger.w { "Push failed — not authenticated" }
-                        ActionError.MissingData -> Logger.w { "Push failed — missing data" }
-                        ActionError.NetworkFailed -> Logger.w { "Push failed — network error" }
+            try {
+                when (
+                    val result = pushRemoteButtonUseCase(
+                        buttonAckToken = createButtonAckToken(
+                            currentTimeMillis = System.currentTimeMillis(),
+                        ),
+                    )
+                ) {
+                    is AppResult.Success -> stateMachine.onNetworkCompleted()
+                    is AppResult.Error -> {
+                        stateMachine.reset()
+                        when (result.error) {
+                            ActionError.NotAuthenticated -> Logger.w { "Push failed — not authenticated" }
+                            ActionError.MissingData -> Logger.w { "Push failed — missing data" }
+                            ActionError.NetworkFailed -> Logger.w { "Push failed — network error" }
+                        }
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.e(e) { "submitButtonPress failed unexpectedly" }
+                stateMachine.reset()
             }
         }
     }

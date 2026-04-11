@@ -18,7 +18,6 @@
 package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.model.DoorPosition
-import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,17 +35,14 @@ private const val DISPLAY = 10_000L
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ButtonStateMachineTest {
-    private lateinit var pushStatus: MutableStateFlow<PushStatus>
     private lateinit var doorPosition: MutableStateFlow<DoorPosition>
     private var submitCount = 0
 
     private fun TestScope.create(): ButtonStateMachine {
-        pushStatus = MutableStateFlow(PushStatus.IDLE)
         doorPosition = MutableStateFlow(DoorPosition.CLOSED)
         submitCount = 0
         val dispatcher = StandardTestDispatcher(testScheduler)
         val sm = ButtonStateMachine(
-            pushButtonStatus = pushStatus,
             doorPosition = doorPosition,
             onSubmit = { submitCount++ },
             scope = backgroundScope,
@@ -156,15 +152,12 @@ class ButtonStateMachineTest {
     // --- Network/door request flow ---
 
     @Test
-    fun pushStatusIdleAfterSendingTransitionsToSendingToDoor() =
+    fun networkCompletedTransitionsToSendingToDoor() =
         runTest {
             val sm = prepareAndConfirm()
             assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
 
-            // Realistic flow: repo sets SENDING then IDLE
-            pushStatus.value = PushStatus.SENDING
-            testScheduler.runCurrent()
-            pushStatus.value = PushStatus.IDLE
+            sm.onNetworkCompleted()
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.SendingToDoor, sm.state.value)
         }
@@ -183,10 +176,7 @@ class ButtonStateMachineTest {
     fun doorMovementDuringSendingToDoorTransitionsToSucceeded() =
         runTest {
             val sm = prepareAndConfirm()
-            // Realistic flow: repo sets SENDING then IDLE
-            pushStatus.value = PushStatus.SENDING
-            testScheduler.runCurrent()
-            pushStatus.value = PushStatus.IDLE
+            sm.onNetworkCompleted()
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.SendingToDoor, sm.state.value)
 
@@ -212,11 +202,9 @@ class ButtonStateMachineTest {
     fun sendingToServerTimesOutToServerFailedThenReady() =
         runTest {
             val sm = prepareAndConfirm()
+            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
 
-            // Network timeout starts when PushStatus.SENDING arrives, not on confirm tap.
-            pushStatus.value = PushStatus.SENDING
-            testScheduler.runCurrent()
-
+            // Network timeout starts on confirm tap.
             advanceTimeBy(NETWORK_TIMEOUT + 1)
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.ServerFailed, sm.state.value)
@@ -227,26 +215,10 @@ class ButtonStateMachineTest {
         }
 
     @Test
-    fun sendingToServerTimesOutEvenWithoutPushStatusSending() =
-        runTest {
-            val sm = prepareAndConfirm()
-            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
-
-            // A fallback timeout starts on confirm so the machine cannot be stuck
-            // forever if PushStatus.SENDING is never received.
-            advanceTimeBy(NETWORK_TIMEOUT + 1)
-            testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.ServerFailed, sm.state.value)
-        }
-
-    @Test
     fun sendingToDoorTimesOutToDoorFailedThenReady() =
         runTest {
             val sm = prepareAndConfirm()
-            // Realistic flow: repo sets SENDING then IDLE
-            pushStatus.value = PushStatus.SENDING
-            testScheduler.runCurrent()
-            pushStatus.value = PushStatus.IDLE
+            sm.onNetworkCompleted()
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.SendingToDoor, sm.state.value)
 
@@ -279,10 +251,7 @@ class ButtonStateMachineTest {
             assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
             assertEquals(1, submitCount)
 
-            // Realistic flow: repo sets SENDING then IDLE
-            pushStatus.value = PushStatus.SENDING
-            testScheduler.runCurrent()
-            pushStatus.value = PushStatus.IDLE
+            sm.onNetworkCompleted()
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.SendingToDoor, sm.state.value)
 
@@ -350,22 +319,18 @@ class ButtonStateMachineTest {
         }
 
     @Test
-    fun pushStatusSendingArrivingAfterOptimisticStaysInSendingToServer() =
+    fun networkCompletedInReadyIsIgnored() =
         runTest {
-            val sm = prepareAndConfirm()
-            // Already in SendingToServer from optimistic transition. PushStatus.SENDING
-            // keeps us there but starts the network timeout timer.
-            pushStatus.value = PushStatus.SENDING
+            val sm = create()
+            sm.onNetworkCompleted()
             testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
+            assertEquals(RemoteButtonState.Ready, sm.state.value)
         }
 
     @Test
     fun doorMovementInServerFailedTransitionsToSucceeded() =
         runTest {
             val sm = prepareAndConfirm()
-            pushStatus.value = PushStatus.SENDING
-            testScheduler.runCurrent()
             advanceTimeBy(NETWORK_TIMEOUT + 1)
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.ServerFailed, sm.state.value)
@@ -385,10 +350,7 @@ class ButtonStateMachineTest {
             testScheduler.runCurrent()
             sm.onTap()
             testScheduler.runCurrent()
-            // Realistic flow: SENDING then IDLE
-            pushStatus.value = PushStatus.SENDING
-            testScheduler.runCurrent()
-            pushStatus.value = PushStatus.IDLE
+            sm.onNetworkCompleted()
             testScheduler.runCurrent()
             doorPosition.value = DoorPosition.OPENING
             testScheduler.runCurrent()
@@ -405,8 +367,7 @@ class ButtonStateMachineTest {
     fun confirmCallsOnSubmitExactlyOnce() =
         runTest {
             val sm = prepareAndConfirm()
-            pushStatus.value = PushStatus.SENDING
-            pushStatus.value = PushStatus.IDLE
+            sm.onNetworkCompleted()
             testScheduler.runCurrent()
             assertEquals(1, submitCount)
         }
@@ -450,54 +411,12 @@ class ButtonStateMachineTest {
     fun displayTimeoutFromServerFailedReturnsToReady() =
         runTest {
             val sm = prepareAndConfirm()
-            pushStatus.value = PushStatus.SENDING
-            testScheduler.runCurrent()
 
             advanceTimeBy(NETWORK_TIMEOUT + 1)
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.ServerFailed, sm.state.value)
 
             advanceTimeBy(DISPLAY + 1)
-            testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.Ready, sm.state.value)
-        }
-
-    @Test
-    fun pushStatusSendingRestartsTimerFromConfirmFallback() =
-        runTest {
-            val sm = prepareAndConfirm()
-            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
-
-            // Advance most of the fallback timeout, then SENDING arrives and
-            // restarts the clock. The machine should survive past the original
-            // fallback deadline.
-            advanceTimeBy(NETWORK_TIMEOUT - 1_000)
-            testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
-
-            pushStatus.value = PushStatus.SENDING
-            testScheduler.runCurrent()
-
-            // 2 seconds later — past the original fallback, but within the
-            // restarted timer — still SendingToServer.
-            advanceTimeBy(2_000)
-            testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
-
-            // Full timeout from the SENDING restart → ServerFailed.
-            advanceTimeBy(NETWORK_TIMEOUT - 2_000 + 1)
-            testScheduler.runCurrent()
-            assertEquals(RemoteButtonState.ServerFailed, sm.state.value)
-        }
-
-    @Test
-    fun spuriousPushStatusSendingInReadyIsIgnored() =
-        runTest {
-            val sm = create()
-            assertEquals(RemoteButtonState.Ready, sm.state.value)
-
-            // A late or spurious SENDING emission must not jump to SendingToServer.
-            pushStatus.value = PushStatus.SENDING
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.Ready, sm.state.value)
         }

@@ -20,30 +20,22 @@ package com.chriscartland.garage.data.repository
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkResult
-import com.chriscartland.garage.domain.model.PushStatus
 import com.chriscartland.garage.domain.repository.RemoteButtonRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 
 class NetworkRemoteButtonRepository(
     private val networkButtonDataSource: NetworkButtonDataSource,
     private val serverConfigRepository: ServerConfigRepository,
     private val remoteButtonPushEnabled: Boolean,
 ) : RemoteButtonRepository {
-    private val _pushButtonStatus = MutableStateFlow(PushStatus.IDLE)
-    override val pushButtonStatus: StateFlow<PushStatus> = _pushButtonStatus
-
     override suspend fun pushButton(
         idToken: String,
         buttonAckToken: String,
     ) {
-        _pushButtonStatus.value = PushStatus.SENDING
         val serverConfig = serverConfigRepository.getServerConfigCached()
         if (serverConfig == null) {
             Logger.e { "Server config is null" }
-            _pushButtonStatus.value = PushStatus.IDLE
             return
         }
         if (!remoteButtonPushEnabled) {
@@ -64,6 +56,5 @@ class NetworkRemoteButtonRepository(
                 NetworkResult.ConnectionFailed -> Logger.e { "Push connection failed" }
             }
         }
-        _pushButtonStatus.value = PushStatus.IDLE
     }
 }
