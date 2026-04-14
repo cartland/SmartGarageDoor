@@ -40,10 +40,14 @@ class PushRemoteButtonUseCase(
             return AppResult.Error(ActionError.NotAuthenticated)
         }
         val idToken = ensureFreshIdToken(authState)
-        remoteButtonRepository.pushButton(
+        val success = remoteButtonRepository.pushButton(
             idToken = idToken.asString(),
             buttonAckToken = buttonAckToken,
         )
-        return AppResult.Success(Unit)
+        return if (success) {
+            AppResult.Success(Unit)
+        } else {
+            AppResult.Error(ActionError.NetworkFailed)
+        }
     }
 }

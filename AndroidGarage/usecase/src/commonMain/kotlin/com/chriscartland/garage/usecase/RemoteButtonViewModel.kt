@@ -51,7 +51,6 @@ interface RemoteButtonViewModel {
 }
 
 class DefaultRemoteButtonViewModel(
-    observePushButtonStatus: ObservePushButtonStatusUseCase,
     private val observeDoorEvents: ObserveDoorEventsUseCase,
     private val dispatchers: DispatcherProvider,
     private val pushRemoteButtonUseCase: PushRemoteButtonUseCase,
@@ -61,7 +60,6 @@ class DefaultRemoteButtonViewModel(
 ) : ViewModel(),
     RemoteButtonViewModel {
     private val stateMachine = ButtonStateMachine(
-        pushButtonStatus = observePushButtonStatus(),
         doorPosition = observeDoorEvents.position(),
         onSubmit = ::submitButtonPress,
         scope = viewModelScope,
@@ -99,6 +97,7 @@ class DefaultRemoteButtonViewModel(
 
     private fun submitButtonPress() {
         Logger.d { "submitButtonPress" }
+        stateMachine.onNetworkStarted()
         viewModelScope.launch(dispatchers.io) {
             when (
                 val result = pushRemoteButtonUseCase(
@@ -107,16 +106,26 @@ class DefaultRemoteButtonViewModel(
                     ),
                 )
             ) {
-                is AppResult.Success -> { /* State machine tracks via pushButtonStatus flow */ }
-                is AppResult.Error -> {
-                    // The state machine is in SendingToServer but PushStatus.SENDING
-                    // will never arrive because the UseCase failed before calling the
-                    // repository. Reset to avoid being stuck forever.
-                    stateMachine.reset()
-                    when (result.error) {
-                        ActionError.NotAuthenticated -> Logger.w { "Push failed — not authenticated" }
-                        ActionError.MissingData -> Logger.w { "Push failed — missing data" }
-                        ActionError.NetworkFailed -> Logger.w { "Push failed — network error" }
+                is AppResult.Success -> {
+                    // Server acknowledged. Transition to SendingToDoor
+                    // (waiting for door to physically move).
+                    stateMachine.onNetworkCompleted()
+                }
+                is AppResult.Error -> when (result.error) {
+                    ActionError.NotAuthenticated -> {
+                        // Couldn't even try — reset silently.
+                        Logger.w { "Push failed — not authenticated" }
+                        stateMachine.reset()
+                    }
+                    ActionError.MissingData -> {
+                        // Couldn't even try — reset silently.
+                        Logger.w { "Push failed — missing data" }
+                        stateMachine.reset()
+                    }
+                    ActionError.NetworkFailed -> {
+                        // Server rejected or connection failed — show error to user.
+                        Logger.w { "Push failed — network error" }
+                        stateMachine.onNetworkFailed()
                     }
                 }
             }
