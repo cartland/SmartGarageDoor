@@ -334,3 +334,60 @@ object FcmPayloadParser {
 - Standard M3 button is more accessible and consistent with platform conventions
 - Network diagram component is reusable (generic node/edge state model)
 - Touches domain (sealed interface), usecase (state machine + VM), UI (composables), and tests
+
+## ADR-013: Flow and StateFlow Boundaries
+
+**Status:** Accepted (supersedes StateFlow guidance in ADR-010)
+
+**Context:** A critical bug was caused by using `StateFlow<PushStatus>` in a repository to signal transient events (SENDING → IDLE). StateFlow conflates intermediate values — if SENDING and IDLE are set in quick succession, collectors may only see IDLE, silently dropping the SENDING signal. This caused the button state machine to get stuck indefinitely. The root problem: StateFlow is a *state* primitive, not an *event* primitive.
+
+**Decision:** Restrict where each Flow type may be used:
+
+### UseCases return one of two types:
+
+1. **One-shot operations:** `suspend fun invoke(): AppResult<D, E>`
+   - Call it, await the result, done
+   - The suspend function return *is* the completion signal
+   - Example: push button, snooze notifications, fetch data
+
+2. **Observations:** `fun invoke(): Flow<T>`
+   - Non-suspend — creating the Flow does nothing
+   - Collection requires a coroutine scope (caller's responsibility)
+   - Lifecycle is controlled by the collector's scope
+   - Example: observe door events, observe auth state
+
+### StateFlow lives only in ViewModels:
+
+- ViewModels expose `StateFlow<T>` for Compose to collect
+- Every StateFlow has an initial value (the UI must always show something)
+- The ViewModel is the only layer that converts Flow/AppResult into StateFlow
+- No UseCase, Repository, or data layer may expose StateFlow without explicit approval
+
+### Repositories use Flow and suspend:
+
+- Streams: `val events: Flow<T>` (cold Flow, backed by Room/DataStore)
+- Actions: `suspend fun doThing(): Result` (returns when complete)
+- Repositories must not use StateFlow for transient signals
+- If a repository needs to expose changing state, use Flow (not StateFlow)
+
+### Exceptions require individual approval:
+
+Any use of StateFlow below the ViewModel layer must be reviewed and approved on a case-by-case basis. The justification must explain why Flow is insufficient and how StateFlow conflation won't cause missed updates.
+
+**Current violations to review:**
+- `RemoteButtonRepository.pushButtonStatus: StateFlow<PushStatus>` — caused the button stuck bug. Must be replaced with suspend return or direct callback.
+- `AuthRepository.authState: StateFlow<AuthState>` — pending review.
+- `SnoozeRepository.snoozeState: StateFlow<SnoozeState>` — pending review.
+
+**Rules:**
+- `suspend fun` return = completion signal. Don't add a parallel StateFlow for the same information.
+- `Flow<T>` = observation stream. Collector manages lifecycle.
+- `StateFlow<T>` = UI state in ViewModel only. Always has initial value.
+- If every intermediate value matters (SENDING → IDLE), do not use StateFlow — use suspend return, Channel, or callback.
+
+**Consequences:**
+- Eliminates the class of bugs where StateFlow conflation silently drops signals
+- Clear ownership: ViewModel owns UI state, everything below produces raw data
+- Forces one-shot operations to use suspend returns, which are simpler and more reliable
+- Existing StateFlow usages in repositories must be reviewed and migrated
+- New code cannot add StateFlow below ViewModel without approval
