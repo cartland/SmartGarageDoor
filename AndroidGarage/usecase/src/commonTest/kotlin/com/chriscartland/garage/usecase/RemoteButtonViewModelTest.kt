@@ -115,24 +115,25 @@ class RemoteButtonViewModelTest {
         }
 
     @Test
-    fun confirmTriggersPushUseCaseAndIncrementsRepoCounter() =
+    fun confirmTriggersPushAndTransitionsToSendingToDoor() =
         runTest {
             val viewModel = createAuthenticatedViewModel()
             assertEquals(0, remoteButtonRepository.pushCount)
 
-            // Tap to arm
+            // Prepare and confirm
             viewModel.onButtonTap()
             testDispatcher.scheduler.runCurrent()
-            // Wait for preparing delay (500ms default)
             advanceTimeBy(ButtonStateMachine.DEFAULT_PREPARING_DELAY + 1)
             testDispatcher.scheduler.runCurrent()
             assertEquals(RemoteButtonState.AwaitingConfirmation, viewModel.buttonState.value)
 
-            // Confirm
+            // Confirm — triggers UseCase → repository sets SENDING→yield→IDLE
             viewModel.onButtonTap()
             testDispatcher.scheduler.runCurrent()
 
-            assertEquals(RemoteButtonState.SendingToServer, viewModel.buttonState.value)
+            // After the fake repository completes (SENDING → yield → IDLE),
+            // the state machine transitions: SendingToServer → SendingToDoor.
+            assertEquals(RemoteButtonState.SendingToDoor, viewModel.buttonState.value)
             assertEquals(1, remoteButtonRepository.pushCount)
         }
 
