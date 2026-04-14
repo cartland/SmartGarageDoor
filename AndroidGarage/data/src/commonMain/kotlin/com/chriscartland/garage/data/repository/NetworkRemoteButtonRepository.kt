@@ -26,6 +26,7 @@ import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.yield
 
 class NetworkRemoteButtonRepository(
     private val networkButtonDataSource: NetworkButtonDataSource,
@@ -40,6 +41,11 @@ class NetworkRemoteButtonRepository(
         buttonAckToken: String,
     ) {
         _pushButtonStatus.value = PushStatus.SENDING
+        // Yield so StateFlow collectors observe SENDING before any subsequent
+        // state change. Without this, if getServerConfigCached() returns
+        // synchronously (cached hit) and the HTTP call is fast, StateFlow
+        // conflation can swallow SENDING — the state machine never sees it.
+        yield()
         val serverConfig = serverConfigRepository.getServerConfigCached()
         if (serverConfig == null) {
             Logger.e { "Server config is null" }
