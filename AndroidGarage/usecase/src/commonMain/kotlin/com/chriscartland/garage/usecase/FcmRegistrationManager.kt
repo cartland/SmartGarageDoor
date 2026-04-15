@@ -72,6 +72,9 @@ class FcmRegistrationManager(
      * Force re-registration. Cancels any running retry, resets status,
      * and starts fresh. Use when the FCM topic may have changed
      * (e.g., server config updated) or registration needs to be refreshed.
+     *
+     * TODO: Call this when server config buildTimestamp changes (new topic).
+     *  Currently nothing detects topic changes at runtime.
      */
     fun restart() {
         Logger.d { "FcmRegistrationManager: restarting" }
