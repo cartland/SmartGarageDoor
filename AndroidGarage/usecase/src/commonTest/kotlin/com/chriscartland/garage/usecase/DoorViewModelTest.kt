@@ -221,7 +221,32 @@ class DoorViewModelTest {
         }
 
     @Test
-    fun isCheckInStale_isTrue_whenCheckInIsOld() =
+    fun isCheckInStale_isTrue_whenStaleEventArrives() =
+        runTest {
+            // Start with fresh check-in.
+            val clock = FakeClock(nowSeconds = 1000L)
+            doorRepository.setCurrentDoorEvent(
+                testDoorEvent.copy(lastCheckInTimeSeconds = 1000L),
+            )
+            val viewModel = createViewModel(
+                scope = backgroundScope,
+                clock = clock,
+            )
+            assertEquals(false, viewModel.isCheckInStale.value)
+
+            // Emit a new event with old check-in — reactive path (no ticker needed).
+            val staleCheckInTime = clock.nowEpochSeconds() -
+                DefaultDoorViewModel.CHECK_IN_STALE_THRESHOLD_SECONDS - 1
+            doorRepository.setCurrentDoorEvent(
+                testDoorEvent.copy(lastCheckInTimeSeconds = staleCheckInTime),
+            )
+            testDispatcher.scheduler.runCurrent()
+
+            assertEquals(true, viewModel.isCheckInStale.value)
+        }
+
+    @Test
+    fun isCheckInStale_isTrue_whenCheckInIsOld_viaTicker() =
         runTest {
             val checkInTime = 1000L
             val clock = FakeClock(

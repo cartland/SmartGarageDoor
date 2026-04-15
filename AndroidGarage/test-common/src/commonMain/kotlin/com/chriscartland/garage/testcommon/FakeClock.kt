@@ -21,6 +21,9 @@ import com.chriscartland.garage.domain.coroutines.AppClock
 
 /**
  * Test clock with controllable time. Advance with [advanceSeconds].
+ *
+ * Not thread-safe — use only with single-threaded test dispatchers
+ * (e.g., [kotlinx.coroutines.test.StandardTestDispatcher]).
  */
 class FakeClock(
     private var nowSeconds: Long = 0L,
