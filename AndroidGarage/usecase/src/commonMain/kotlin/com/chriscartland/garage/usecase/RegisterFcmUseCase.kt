@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.usecase
 
+import com.chriscartland.garage.domain.model.ActionError
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.toFcmTopic
@@ -43,20 +45,24 @@ class FetchFcmStatusUseCase(
 }
 
 /**
- * Registers for FCM door notifications.
+ * Registers for FCM door notifications. Single attempt — returns result.
  *
  * Fetches the build timestamp from server config, converts it to an FCM topic,
- * and subscribes. Returns NOT_REGISTERED if build timestamp is unavailable.
+ * and subscribes. Caller owns retry policy (see ADR-015).
  */
-class RegisterFcmUseCase(
+open class RegisterFcmUseCase(
     private val doorRepository: DoorRepository,
     private val doorFcmRepository: DoorFcmRepository,
 ) {
-    suspend operator fun invoke(): FcmRegistrationStatus {
+    open suspend operator fun invoke(): AppResult<Unit, ActionError> {
         val buildTimestamp = doorRepository.fetchBuildTimestampCached()
-            ?: return FcmRegistrationStatus.NOT_REGISTERED
+            ?: return AppResult.Error(ActionError.MissingData)
         val result = doorFcmRepository.registerDoor(buildTimestamp.toFcmTopic())
-        return result.toRegistrationStatus()
+        return when (result) {
+            is DoorFcmState.Registered -> AppResult.Success(Unit)
+            DoorFcmState.NotRegistered -> AppResult.Error(ActionError.NetworkFailed)
+            DoorFcmState.Unknown -> AppResult.Error(ActionError.NetworkFailed)
+        }
     }
 }
 

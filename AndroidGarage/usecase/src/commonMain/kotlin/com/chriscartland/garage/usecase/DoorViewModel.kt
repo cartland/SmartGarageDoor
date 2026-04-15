@@ -28,17 +28,15 @@ import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.LoadingResult
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 interface DoorViewModel {
     val fcmRegistrationStatus: StateFlow<FcmRegistrationStatus>
     val currentDoorEvent: StateFlow<LoadingResult<DoorEvent?>>
     val recentDoorEvents: StateFlow<LoadingResult<List<DoorEvent>>>
-
-    fun fetchFcmRegistrationStatus()
-
-    fun registerFcm()
 
     fun deregisterFcm()
 
@@ -53,15 +51,15 @@ class DefaultDoorViewModel(
     private val dispatchers: DispatcherProvider,
     private val fetchCurrentDoorEventUseCase: FetchCurrentDoorEventUseCase,
     private val fetchRecentDoorEventsUseCase: FetchRecentDoorEventsUseCase,
-    private val fetchFcmStatusUseCase: FetchFcmStatusUseCase,
-    private val registerFcmUseCase: RegisterFcmUseCase,
     private val deregisterFcmUseCase: DeregisterFcmUseCase,
+    fcmRegistrationManager: FcmRegistrationManager,
     private val fetchOnInit: Boolean = true,
 ) : ViewModel(),
     DoorViewModel {
-    private val _fcmRegistrationStatus =
-        MutableStateFlow<FcmRegistrationStatus>(FcmRegistrationStatus.UNKNOWN)
-    override val fcmRegistrationStatus: StateFlow<FcmRegistrationStatus> = _fcmRegistrationStatus
+    // Observe FCM status from the app-scoped manager (ADR-014, ADR-015).
+    override val fcmRegistrationStatus: StateFlow<FcmRegistrationStatus> =
+        fcmRegistrationManager.registrationStatus
+            .stateIn(viewModelScope, SharingStarted.Eagerly, FcmRegistrationStatus.UNKNOWN)
 
     private val _currentDoorEvent =
         MutableStateFlow<LoadingResult<DoorEvent?>>(LoadingResult.Loading(null))
@@ -95,28 +93,10 @@ class DefaultDoorViewModel(
         }
     }
 
-    override fun fetchFcmRegistrationStatus() {
-        Logger.d { "fetchFcmRegistrationStatus" }
-        viewModelScope.launch(dispatchers.io) {
-            _fcmRegistrationStatus.value = fetchFcmStatusUseCase()
-        }
-    }
-
-    override fun registerFcm() {
-        Logger.d { "registerFcm" }
-        viewModelScope.launch(dispatchers.io) {
-            _fcmRegistrationStatus.value = registerFcmUseCase().also {
-                Logger.d { "Updated FcmRegistrationStatus: $it" }
-            }
-        }
-    }
-
     override fun deregisterFcm() {
         Logger.d { "deregisterFcm" }
         viewModelScope.launch(dispatchers.io) {
-            _fcmRegistrationStatus.value = deregisterFcmUseCase().also {
-                Logger.d { "Updated FcmRegistrationStatus: $it" }
-            }
+            deregisterFcmUseCase()
         }
     }
 

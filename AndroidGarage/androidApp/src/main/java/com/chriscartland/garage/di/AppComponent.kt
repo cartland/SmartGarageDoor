@@ -62,6 +62,7 @@ import com.chriscartland.garage.usecase.DefaultDoorViewModel
 import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
+import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.FetchFcmStatusUseCase
 import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
@@ -143,9 +144,8 @@ abstract class AppComponent(
             provideDispatcherProvider(),
             provideFetchCurrentDoorEventUseCase(),
             provideFetchRecentDoorEventsUseCase(),
-            provideFetchFcmStatusUseCase(),
-            provideRegisterFcmUseCase(),
             provideDeregisterFcmUseCase(),
+            provideFcmRegistrationManager(),
         )
 
     val remoteButtonViewModel: DefaultRemoteButtonViewModel
@@ -256,6 +256,15 @@ abstract class AppComponent(
 
     @Provides
     fun provideDeregisterFcmUseCase(): DeregisterFcmUseCase = DeregisterFcmUseCase(provideDoorFcmRepository())
+
+    @Provides
+    @Singleton
+    fun provideFcmRegistrationManager(): FcmRegistrationManager =
+        FcmRegistrationManager(
+            provideRegisterFcmUseCase(),
+            provideApplicationScope(),
+            provideDispatcherProvider().io,
+        )
 
     @Provides
     fun provideEnsureFreshIdTokenUseCase(): EnsureFreshIdTokenUseCase = EnsureFreshIdTokenUseCase(provideAuthRepository())

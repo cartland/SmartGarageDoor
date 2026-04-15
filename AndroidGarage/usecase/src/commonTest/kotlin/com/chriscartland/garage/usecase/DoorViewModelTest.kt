@@ -18,8 +18,6 @@
 package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.model.DoorEvent
-import com.chriscartland.garage.domain.model.DoorFcmState
-import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.LoadingResult
@@ -71,15 +69,19 @@ class DoorViewModelTest {
     }
 
     private fun createViewModel(fetchOnInit: Boolean = true): DefaultDoorViewModel {
+        val fcmManager = FcmRegistrationManager(
+            registerFcmUseCase = RegisterFcmUseCase(doorRepository, doorFcmRepository),
+            scope = kotlinx.coroutines.CoroutineScope(testDispatcher),
+            dispatcher = testDispatcher,
+        )
         val vm = DefaultDoorViewModel(
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
             logAppEvent = LogAppEventUseCase(appLoggerRepository),
             dispatchers = TestDispatcherProvider(testDispatcher),
             fetchCurrentDoorEventUseCase = FetchCurrentDoorEventUseCase(doorRepository),
             fetchRecentDoorEventsUseCase = FetchRecentDoorEventsUseCase(doorRepository),
-            fetchFcmStatusUseCase = FetchFcmStatusUseCase(doorFcmRepository),
-            registerFcmUseCase = RegisterFcmUseCase(doorRepository, doorFcmRepository),
             deregisterFcmUseCase = DeregisterFcmUseCase(doorFcmRepository),
+            fcmRegistrationManager = fcmManager,
             fetchOnInit = fetchOnInit,
         )
         testDispatcher.scheduler.runCurrent()
@@ -173,49 +175,6 @@ class DoorViewModelTest {
             testDispatcher.scheduler.runCurrent()
 
             assertTrue(doorRepository.fetchRecentDoorEventsCount >= 1)
-        }
-
-    @Test
-    fun fetchFcmRegistrationStatusMapsRegisteredState() =
-        runTest {
-            val viewModel = createViewModel()
-
-            doorFcmRepository.fetchStatusResult =
-                DoorFcmState.Registered(topic = DoorFcmTopic("test-topic"))
-
-            viewModel.fetchFcmRegistrationStatus()
-            testDispatcher.scheduler.runCurrent()
-
-            assertEquals(FcmRegistrationStatus.REGISTERED, viewModel.fcmRegistrationStatus.value)
-        }
-
-    @Test
-    fun fetchFcmRegistrationStatusMapsNotRegisteredState() =
-        runTest {
-            val viewModel = createViewModel()
-
-            doorFcmRepository.fetchStatusResult = DoorFcmState.NotRegistered
-
-            viewModel.fetchFcmRegistrationStatus()
-            testDispatcher.scheduler.runCurrent()
-
-            assertEquals(
-                FcmRegistrationStatus.NOT_REGISTERED,
-                viewModel.fcmRegistrationStatus.value,
-            )
-        }
-
-    @Test
-    fun fetchFcmRegistrationStatusMapsUnknownState() =
-        runTest {
-            val viewModel = createViewModel()
-
-            doorFcmRepository.fetchStatusResult = DoorFcmState.Unknown
-
-            viewModel.fetchFcmRegistrationStatus()
-            testDispatcher.scheduler.runCurrent()
-
-            assertEquals(FcmRegistrationStatus.UNKNOWN, viewModel.fcmRegistrationStatus.value)
         }
 
     @Test

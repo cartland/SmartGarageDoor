@@ -48,7 +48,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.trace
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
@@ -56,7 +55,6 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AppLoggerKeys
-import com.chriscartland.garage.fcm.FCMRegistration
 import com.chriscartland.garage.ui.theme.AppTheme
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.usecase.AppLoggerViewModel
@@ -150,10 +148,8 @@ fun AppNavigation(
         }
         isFirstValue = false
     }
-    trace("FCMRegistration") {
-        // Register for FCM notifications.
-        FCMRegistration()
-    }
+    // FCM registration is handled by FcmRegistrationManager (ADR-014, ADR-015)
+    // triggered via AppStartupActions in MainActivity.onCreate().
 
     // Nav3: back stack is a simple mutable list of Screen objects.
     // Using remember (not rememberSaveable) because Screen objects aren't Bundle-saveable.
