@@ -18,6 +18,7 @@
 package com.chriscartland.garage.di
 
 import android.app.Application
+import com.chriscartland.garage.AppStartupActions
 import com.chriscartland.garage.BuildConfig
 import com.chriscartland.garage.auth.FirebaseAuthBridge
 import com.chriscartland.garage.config.AppConfigFactory
@@ -264,6 +265,13 @@ abstract class AppComponent(
             provideRegisterFcmUseCase(),
             provideApplicationScope(),
             provideDispatcherProvider().io,
+        )
+
+    @Provides
+    fun provideAppStartupActions(): AppStartupActions =
+        AppStartupActions(
+            provideFcmRegistrationManager(),
+            appLoggerViewModel,
         )
 
     @Provides

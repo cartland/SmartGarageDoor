@@ -43,6 +43,6 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
-        AppStartupActions(component.provideFcmRegistrationManager(), appLoggerViewModel).onActivityCreated()
+        component.provideAppStartupActions().onActivityCreated()
     }
 }

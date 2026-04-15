@@ -68,6 +68,21 @@ class FcmRegistrationManager(
         }
     }
 
+    /**
+     * Force re-registration. Cancels any running retry, resets status,
+     * and starts fresh. Use when the FCM topic may have changed
+     * (e.g., server config updated) or registration needs to be refreshed.
+     */
+    fun restart() {
+        Logger.d { "FcmRegistrationManager: restarting" }
+        retryJob?.cancel()
+        retryJob = null
+        statusFlow.value = FcmRegistrationStatus.UNKNOWN
+        retryJob = scope.launch(dispatcher) {
+            attemptWithRetry()
+        }
+    }
+
     private suspend fun attemptWithRetry() {
         while (true) {
             Logger.d { "FcmRegistrationManager: attempting registration" }

@@ -148,9 +148,6 @@ fun AppNavigation(
         }
         isFirstValue = false
     }
-    // FCM registration is handled by FcmRegistrationManager (ADR-014, ADR-015)
-    // triggered via AppStartupActions in MainActivity.onCreate().
-
     // Nav3: back stack is a simple mutable list of Screen objects.
     // Using remember (not rememberSaveable) because Screen objects aren't Bundle-saveable.
     // For tab navigation this is fine — process death just restarts on Home tab.

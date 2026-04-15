@@ -184,4 +184,29 @@ class FcmRegistrationManagerTest {
 
             assertEquals(FcmRegistrationStatus.UNKNOWN, manager.registrationStatus.first())
         }
+
+    @Test
+    fun restartReRegistersAfterSuccess() =
+        runTest {
+            useCaseResults.add(AppResult.Success(Unit))
+            useCaseResults.add(AppResult.Success(Unit))
+            val testDispatcher = StandardTestDispatcher(testScheduler)
+            val manager = FcmRegistrationManager(
+                registerFcmUseCase = createUseCase(),
+                scope = this,
+                dispatcher = testDispatcher,
+                retryDelayMillis = RETRY_DELAY,
+            )
+
+            manager.start()
+            testScheduler.runCurrent()
+            assertEquals(FcmRegistrationStatus.REGISTERED, manager.registrationStatus.first())
+            assertEquals(1, useCaseCallCount)
+
+            // restart() forces re-registration even though already registered
+            manager.restart()
+            testScheduler.runCurrent()
+            assertEquals(FcmRegistrationStatus.REGISTERED, manager.registrationStatus.first())
+            assertEquals(2, useCaseCallCount)
+        }
 }
