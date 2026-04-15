@@ -13,7 +13,7 @@
 
 ## Current State
 
-- **280+ unit tests** across 48 test files (7 androidApp + 9 domain + 25 usecase + 6 data + 1 data-local), all KMP-compatible (kotlin.test)
+- **290+ unit tests** across 49 test files (7 androidApp + 9 domain + 26 usecase + 6 data + 1 data-local), all KMP-compatible (kotlin.test)
 - **25 instrumented tests** across 5 test files (Room sanity, DI graph, navigation smoke, state restoration, configuration change)
 - **14 shared fakes** in `test-common` module — one copy each, no duplicates across modules
 - **Zero Mockito** — all tests use fake implementations
