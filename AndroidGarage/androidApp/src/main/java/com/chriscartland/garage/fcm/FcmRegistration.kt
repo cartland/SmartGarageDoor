@@ -17,16 +17,15 @@
 
 package com.chriscartland.garage.fcm
 
-import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
-import co.touchlab.kermit.Logger
 import com.chriscartland.garage.di.rememberAppComponent
-import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.usecase.DoorViewModel
+import com.chriscartland.garage.usecase.FcmRegistrationAction
+import com.chriscartland.garage.usecase.toAction
 
 /**
  * Register for FCM updates.
@@ -41,23 +40,12 @@ import com.chriscartland.garage.usecase.DoorViewModel
 fun FCMRegistration() {
     val component = rememberAppComponent()
     val viewModel: DoorViewModel = viewModel { component.doorViewModel }
-    val activity = LocalActivity.current
     val fcmState by viewModel.fcmRegistrationStatus.collectAsState()
     LaunchedEffect(key1 = fcmState) {
-        // Subscribe to FCM updates.
-        when (fcmState) {
-            FcmRegistrationStatus.UNKNOWN -> {
-                Logger.d { "Unknown FCM registration status, fetching..." }
-                viewModel.fetchFcmRegistrationStatus()
-            }
-
-            FcmRegistrationStatus.REGISTERED -> {
-                Logger.d { "FCM registration status is registered" }
-            }
-
-            FcmRegistrationStatus.NOT_REGISTERED -> {
-                Logger.d { "FCM registration status is not registered, registering..." }
-            }
+        when (fcmState.toAction()) {
+            FcmRegistrationAction.FETCH_STATUS -> viewModel.fetchFcmRegistrationStatus()
+            FcmRegistrationAction.REGISTER -> viewModel.registerFcm()
+            FcmRegistrationAction.NONE -> { /* Already registered */ }
         }
     }
 }
