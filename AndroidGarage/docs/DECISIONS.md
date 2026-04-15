@@ -391,3 +391,56 @@ Any use of StateFlow below the ViewModel layer must be reviewed and approved on 
 - Forces one-shot operations to use suspend returns, which are simpler and more reliable
 - Existing StateFlow usages in repositories must be reviewed and migrated
 - New code cannot add StateFlow below ViewModel without approval
+
+## ADR-014: FCM Architecture — Service, UseCase, and ViewModel Boundaries
+
+**Status:** Accepted
+
+**Context:** FCM registration logic currently lives in `DoorViewModel`. This is wrong for two reasons:
+1. ViewModels are tied to UI lifecycle — if the screen is closed, the ViewModel may not exist to handle registration retry
+2. `DoorViewModel` is a door-status ViewModel with FCM registration bolted on — mixed responsibilities
+
+The `FCMService` correctly inserts door events into the repository (data layer), but registration, retry, and status management need clearer ownership.
+
+**Decision:** FCM components are distributed across layers as follows:
+
+### Data Layer (infrastructure)
+- `FCMService` — Android entry point. Receives messages, delegates to `FcmMessageHandler`. Does not contain business logic.
+- `FcmMessageHandler` — Parses payload, inserts into `DoorRepository`, logs. Testable with fakes.
+- `FirebaseDoorFcmRepository` — Wraps Firebase subscribe/unsubscribe SDK calls behind `DoorFcmRepository` interface. Persists topic in DataStore.
+- `MessagingBridge` — Abstracts Firebase Messaging SDK for testability.
+
+### Domain Layer (business logic)
+- `RegisterFcmUseCase` — Single attempt: fetch build timestamp, subscribe to topic. Returns `AppResult<Unit, ActionError>`. Does not retry — caller decides retry policy.
+- `FetchFcmStatusUseCase` — Reads current registration status from repository.
+- `DoorFcmRepository` interface — Domain-level contract for FCM operations.
+- Domain models: `DoorFcmTopic`, `DoorFcmState`, `FcmRegistrationStatus`. No Firebase imports.
+
+### Presentation Layer (ViewModel)
+- ViewModel **observes** FCM registration status via `Flow<FcmRegistrationStatus>` from the repository
+- ViewModel does **not own** registration logic or retry policy
+- Registration is triggered by app startup (`AppStartupActions`), not by ViewModel
+
+### App Startup
+- `AppStartupActions` calls `RegisterFcmUseCase` with retry
+- Retry policy: fixed delay, retry forever (FCM is critical for the app)
+- Retry is app-scoped (via `ApplicationScope`), not screen-scoped
+- If registration succeeds, status updates via repository Flow → ViewModel → UI
+
+### Rules
+- `FCMService` must not contain business logic — delegate to handler/UseCase
+- Registration logic must not live in a ViewModel — it's app-scoped, not screen-scoped
+- FCM payload parsing happens in the data layer (`FcmPayloadParser`) — domain models have no Firebase imports
+- Registration retry is the caller's responsibility, not the UseCase's
+
+### Current violations to resolve
+- `DoorViewModel.registerFcm()` — must move to `AppStartupActions`
+- `DoorViewModel.fcmRegistrationStatus` — must become an observation of repository state
+- `DoorViewModel.fetchFcmRegistrationStatus()` — must move to startup or be removed
+- `FcmRegistration.kt` composable — remove, replace with ViewModel observation
+
+**Consequences:**
+- FCM registration works even when no screen is visible (app-scoped retry)
+- DoorViewModel becomes purely about door status — no FCM responsibility
+- Testable at every layer: handler, UseCase, retry policy, ViewModel observation
+- FCM message handling is already correct (FCMService → repository → Room → Flow → UI)
