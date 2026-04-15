@@ -147,6 +147,7 @@ abstract class AppComponent(
             provideFetchRecentDoorEventsUseCase(),
             provideDeregisterFcmUseCase(),
             provideFcmRegistrationManager(),
+            scope = provideApplicationScope(),
         )
 
     val remoteButtonViewModel: DefaultRemoteButtonViewModel

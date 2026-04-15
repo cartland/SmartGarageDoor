@@ -64,7 +64,6 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.isGranted
-import java.time.Instant
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -85,9 +84,11 @@ fun HomeContent(
     val currentDoorEvent by resolvedDoorViewModel.currentDoorEvent.collectAsState()
     val buttonState by buttonViewModel.buttonState.collectAsState()
     val authState by resolvedAuthViewModel.authState.collectAsState()
+    val isCheckInStale by resolvedDoorViewModel.isCheckInStale.collectAsState()
     HomeContent(
         currentDoorEvent = currentDoorEvent,
         remoteButtonState = buttonState,
+        isCheckInStale = isCheckInStale,
         modifier = modifier,
         onFetchCurrentDoorEvent = {
             resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_FETCH_CURRENT_DOOR)
@@ -126,6 +127,7 @@ fun HomeContent(
     currentDoorEvent: LoadingResult<DoorEvent?>,
     modifier: Modifier = Modifier,
     remoteButtonState: RemoteButtonState = RemoteButtonState.Ready,
+    isCheckInStale: Boolean = false,
     onFetchCurrentDoorEvent: () -> Unit = {},
     onRemoteButtonTap: () -> Unit = {},
     authState: AuthState = AuthState.Unauthenticated,
@@ -138,91 +140,87 @@ fun HomeContent(
     // Show the current door event.
     val doorEvent = currentDoorEvent.data
 
-    val lastCheckInTime = doorEvent?.lastCheckInTimeSeconds
-    DurationSince(lastCheckInTime?.let { Instant.ofEpochSecond(it) }) { duration ->
-        val isOld = lastCheckInTime != null && duration > OLD_DURATION_FOR_DOOR_CHECK_IN
-        Column(
-            modifier = modifier,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        if (isCheckInStale) {
+            OldLastCheckInBanner(
+                action = {
+                    Logger.e { "Trying to fix outdated info. Resetting FCM, and fetching data." }
+                    onResetFcm()
+                    onFetchCurrentDoorEvent()
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        // Add a card at the top if the notification permission is not granted.
+        if (!notificationPermissionState.status.isGranted) {
+            ErrorCard(
+                text = notificationJustificationText(permissionRequestCount),
+                buttonText = "Allow",
+                onClick = {
+                    permissionRequestCount++
+                    notificationPermissionState.launchPermissionRequest()
+                    onLogNotificationPermissionRequested()
+                },
+            )
+        }
+
+        // If the current event had an error, show an error card.
+        if (currentDoorEvent is LoadingResult.Error) {
+            ErrorCard(
+                text = "Error fetching current door event: " +
+                    currentDoorEvent.exception.toString().take(500),
+                buttonText = "Retry",
+                onClick = { onFetchCurrentDoorEvent() },
+            )
+        }
+
+        Box(
+            modifier = Modifier.weight(1f),
         ) {
-            if (isOld) {
-                OldLastCheckInBanner(
-                    action = {
-                        Logger.e { "Trying to fix outdated info. Resetting FCM, and fetching data." }
-                        onResetFcm()
-                        onFetchCurrentDoorEvent()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
+            DoorStatusCard(
+                doorEvent = doorEvent,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable { onFetchCurrentDoorEvent() },
+            )
+            // If the current event is loading, show a loading indicator.
+            if (currentDoorEvent is LoadingResult.Loading) {
+                Text(
+                    text = "Loading...",
+                    modifier = Modifier.padding(8.dp),
+                    style = MaterialTheme.typography.titleMedium,
                 )
             }
-            // Add a card at the top if the notification permission is not granted.
-            if (!notificationPermissionState.status.isGranted) {
-                ErrorCard(
-                    text = notificationJustificationText(permissionRequestCount),
-                    buttonText = "Allow",
-                    onClick = {
-                        permissionRequestCount++
-                        notificationPermissionState.launchPermissionRequest()
-                        onLogNotificationPermissionRequested()
-                    },
-                )
-            }
+        }
 
-            // If the current event had an error, show an error card.
-            if (currentDoorEvent is LoadingResult.Error) {
-                ErrorCard(
-                    text = "Error fetching current door event: " +
-                        currentDoorEvent.exception.toString().take(500),
-                    buttonText = "Retry",
-                    onClick = { onFetchCurrentDoorEvent() },
-                )
-            }
+        Spacer(modifier = Modifier.height(8.dp))
 
-            Box(
-                modifier = Modifier.weight(1f),
-            ) {
-                DoorStatusCard(
-                    doorEvent = doorEvent,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clickable { onFetchCurrentDoorEvent() },
-                )
-                // If the current event is loading, show a loading indicator.
-                if (currentDoorEvent is LoadingResult.Loading) {
-                    Text(
-                        text = "Loading...",
-                        modifier = Modifier.padding(8.dp),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
+        Box(
+            modifier = Modifier.weight(1f),
+            contentAlignment = Alignment.Center,
+        ) {
+            when (authState) {
+                AuthState.Unknown -> {
+                    Text(text = "Checking authentication...")
                 }
-            }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.Center,
-            ) {
-                when (authState) {
-                    AuthState.Unknown -> {
-                        Text(text = "Checking authentication...")
+                AuthState.Unauthenticated -> {
+                    Button(onClick = { onSignIn() }) {
+                        Text("Sign to access garage remote button")
                     }
+                }
 
-                    AuthState.Unauthenticated -> {
-                        Button(onClick = { onSignIn() }) {
-                            Text("Sign to access garage remote button")
-                        }
-                    }
-
-                    is AuthState.Authenticated -> {
-                        RemoteButtonContent(
-                            modifier = Modifier
-                                .fillMaxSize(),
-                            state = remoteButtonState,
-                            onTap = onRemoteButtonTap,
-                        )
-                    }
+                is AuthState.Authenticated -> {
+                    RemoteButtonContent(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        state = remoteButtonState,
+                        onTap = onRemoteButtonTap,
+                    )
                 }
             }
         }

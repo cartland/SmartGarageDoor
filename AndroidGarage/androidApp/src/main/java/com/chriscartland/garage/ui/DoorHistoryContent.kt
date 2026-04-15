@@ -42,7 +42,6 @@ import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.DoorViewModel
-import java.time.Instant
 
 @Composable
 fun DoorHistoryContent(
@@ -54,8 +53,10 @@ fun DoorHistoryContent(
     val resolvedDoorViewModel = doorViewModel ?: viewModel { component.doorViewModel }
     val resolvedAppLoggerViewModel = appLoggerViewModel ?: viewModel { component.appLoggerViewModel }
     val recentDoorEvents by resolvedDoorViewModel.recentDoorEvents.collectAsState()
+    val isCheckInStale by resolvedDoorViewModel.isCheckInStale.collectAsState()
     DoorHistoryContent(
         recentDoorEvents = recentDoorEvents,
+        isCheckInStale = isCheckInStale,
         modifier = modifier,
         onFetchRecentDoorEvents = {
             resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_FETCH_RECENT_DOOR)
@@ -71,58 +72,55 @@ fun DoorHistoryContent(
 fun DoorHistoryContent(
     modifier: Modifier = Modifier,
     recentDoorEvents: LoadingResult<List<DoorEvent>?>,
+    isCheckInStale: Boolean = false,
     onFetchRecentDoorEvents: () -> Unit = {},
     onResetFcm: () -> Unit = {},
 ) {
-    val lastCheckInTime = recentDoorEvents.data?.firstOrNull()?.lastCheckInTimeSeconds
-    DurationSince(lastCheckInTime?.let { Instant.ofEpochSecond(it) }) { duration ->
-        val isOld = lastCheckInTime != null && duration > OLD_DURATION_FOR_DOOR_CHECK_IN
-        LazyColumn(
-            modifier = modifier,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            if (isOld) {
-                item {
-                    OldLastCheckInBanner(
-                        modifier = Modifier.fillMaxWidth(),
-                        action = {
-                            Logger.e { "Trying to fix outdated info. Resetting FCM, and fetching data." }
-                            onResetFcm()
-                            onFetchRecentDoorEvents()
-                        },
-                    )
-                }
-            }
-            // If the recent events are loading, show a loading indicator.
-            if (recentDoorEvents is LoadingResult.Loading) {
-                item {
-                    Text(text = "Loading...")
-                }
-            }
-            // If the recent events had an error, show an error card.
-            if (recentDoorEvents is LoadingResult.Error) {
-                item {
-                    ErrorCard(
-                        text = "Error fetching recent door events:" +
-                            recentDoorEvents.exception.toString().take(500),
-                        buttonText = "Retry",
-                        onClick = { onFetchRecentDoorEvents() },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-            // Show the recent door events.
-            items(recentDoorEvents.data ?: emptyList()) { item ->
-                RecentDoorEventListItem(
-                    doorEvent = item,
-                    modifier = Modifier
-                        .clickable { onFetchRecentDoorEvents() }, // Fetch on click.
+    LazyColumn(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        if (isCheckInStale) {
+            item {
+                OldLastCheckInBanner(
+                    modifier = Modifier.fillMaxWidth(),
+                    action = {
+                        Logger.e { "Trying to fix outdated info. Resetting FCM, and fetching data." }
+                        onResetFcm()
+                        onFetchRecentDoorEvents()
+                    },
                 )
             }
+        }
+        // If the recent events are loading, show a loading indicator.
+        if (recentDoorEvents is LoadingResult.Loading) {
             item {
-                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = "Loading...")
             }
+        }
+        // If the recent events had an error, show an error card.
+        if (recentDoorEvents is LoadingResult.Error) {
+            item {
+                ErrorCard(
+                    text = "Error fetching recent door events:" +
+                        recentDoorEvents.exception.toString().take(500),
+                    buttonText = "Retry",
+                    onClick = { onFetchRecentDoorEvents() },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+        // Show the recent door events.
+        items(recentDoorEvents.data ?: emptyList()) { item ->
+            RecentDoorEventListItem(
+                doorEvent = item,
+                modifier = Modifier
+                    .clickable { onFetchRecentDoorEvents() }, // Fetch on click.
+            )
+        }
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
     ReportDrawnWhen { recentDoorEvents is LoadingResult.Complete }

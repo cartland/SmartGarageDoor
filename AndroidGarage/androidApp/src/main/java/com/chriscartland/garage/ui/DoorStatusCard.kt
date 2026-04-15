@@ -35,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -82,33 +83,34 @@ fun DoorStatusCard(
                     text = doorPosition.toFriendlyName(),
                     style = MaterialTheme.typography.titleLarge,
                 )
-                DurationSince(lastChangeTimeSeconds?.let { Instant.ofEpochSecond(it) }) { duration ->
-                    Row(
-                        modifier = Modifier,
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.clock_icon),
-                            contentDescription = "Date icon",
-                            modifier = Modifier
-                                .size(32.dp)
-                                .padding(start = 8.dp, end = 8.dp),
-                            colorFilter = ColorFilter.tint(contentColor),
-                        )
-                        Text(
-                            text = duration.toFriendlyDuration(),
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
-                    GarageIcon(
-                        doorPosition = doorPosition,
+                val lastChangeDuration by rememberDurationSince(
+                    lastChangeTimeSeconds?.let { Instant.ofEpochSecond(it) },
+                )
+                Row(
+                    modifier = Modifier,
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.clock_icon),
+                        contentDescription = "Date icon",
                         modifier = Modifier
-                            .weight(1f),
-                        static = false,
-                        color = color,
+                            .size(32.dp)
+                            .padding(start = 8.dp, end = 8.dp),
+                        colorFilter = ColorFilter.tint(contentColor),
+                    )
+                    Text(
+                        text = lastChangeDuration.toFriendlyDuration(),
+                        style = MaterialTheme.typography.labelSmall,
                     )
                 }
+                GarageIcon(
+                    doorPosition = doorPosition,
+                    modifier = Modifier
+                        .weight(1f),
+                    static = false,
+                    color = color,
+                )
                 Row(
                     modifier = Modifier,
                     verticalAlignment = Alignment.CenterVertically,
@@ -240,13 +242,14 @@ fun RecentDoorEventListItem(
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelSmall,
                 )
-                DurationSince(eventTimeSeconds?.let { Instant.ofEpochSecond(it) }) { duration ->
-                    Text(
-                        text = "${duration.toFriendlyDuration()} ago",
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                }
+                val eventDuration by rememberDurationSince(
+                    eventTimeSeconds?.let { Instant.ofEpochSecond(it) },
+                )
+                Text(
+                    text = "${eventDuration.toFriendlyDuration()} ago",
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelSmall,
+                )
             }
         }
     }
