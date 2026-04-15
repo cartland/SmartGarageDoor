@@ -2,12 +2,11 @@ package com.chriscartland.garage.testcommon
 
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.repository.SnoozeRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 
 class FakeSnoozeRepository : SnoozeRepository {
-    private val _snoozeState = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
-    override val snoozeState: StateFlow<SnoozeState> = _snoozeState
+    private val snoozeStateFlow = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
 
     var snoozeCount = 0
         private set
@@ -19,8 +18,10 @@ class FakeSnoozeRepository : SnoozeRepository {
     var snoozeResult: Boolean = true
 
     fun setSnoozeState(state: SnoozeState) {
-        _snoozeState.value = state
+        snoozeStateFlow.value = state
     }
+
+    override fun observeSnoozeState(): Flow<SnoozeState> = snoozeStateFlow
 
     override suspend fun fetchSnoozeStatus() {
         fetchCount++

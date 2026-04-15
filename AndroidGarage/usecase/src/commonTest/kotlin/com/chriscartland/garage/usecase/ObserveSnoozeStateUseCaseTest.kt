@@ -19,25 +19,29 @@ package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.testcommon.FakeSnoozeRepository
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ObserveSnoozeStateUseCaseTest {
     @Test
-    fun invokeReturnsRepositoryState() {
-        val repo = FakeSnoozeRepository()
-        val useCase = ObserveSnoozeStateUseCase(repo)
+    fun invokeReturnsRepositoryState() =
+        runTest {
+            val repo = FakeSnoozeRepository()
+            val useCase = ObserveSnoozeStateUseCase(repo)
 
-        assertEquals(SnoozeState.Loading, useCase().value)
-    }
+            assertEquals(SnoozeState.Loading, useCase().first())
+        }
 
     @Test
-    fun invokeReflectsRepositoryUpdates() {
-        val repo = FakeSnoozeRepository()
-        val useCase = ObserveSnoozeStateUseCase(repo)
+    fun invokeReflectsRepositoryUpdates() =
+        runTest {
+            val repo = FakeSnoozeRepository()
+            val useCase = ObserveSnoozeStateUseCase(repo)
 
-        repo.setSnoozeState(SnoozeState.Snoozing(12345L))
+            repo.setSnoozeState(SnoozeState.Snoozing(12345L))
 
-        assertEquals(SnoozeState.Snoozing(12345L), useCase().value)
-    }
+            assertEquals(SnoozeState.Snoozing(12345L), useCase().first())
+        }
 }

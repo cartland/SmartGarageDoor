@@ -24,8 +24,8 @@ import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.domain.repository.SnoozeRepository
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 
 class NetworkSnoozeRepository(
     private val networkButtonDataSource: NetworkButtonDataSource,
@@ -33,8 +33,9 @@ class NetworkSnoozeRepository(
     private val snoozeNotificationsOption: Boolean,
     private val currentTimeSeconds: () -> Long,
 ) : SnoozeRepository {
-    private val _snoozeState = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
-    override val snoozeState: StateFlow<SnoozeState> = _snoozeState
+    private val snoozeStateFlow = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
+
+    override fun observeSnoozeState(): Flow<SnoozeState> = snoozeStateFlow
 
     override suspend fun fetchSnoozeStatus() {
         val serverConfig = serverConfigRepository.getServerConfigCached()
@@ -55,7 +56,7 @@ class NetworkSnoozeRepository(
             )
         ) {
             is NetworkResult.Success -> {
-                _snoozeState.value = snoozeStateFromEndTime(result.data)
+                snoozeStateFlow.value = snoozeStateFromEndTime(result.data)
             }
             is NetworkResult.HttpError -> {
                 Logger.e { "Snooze fetch HTTP ${result.code}" }
@@ -106,8 +107,8 @@ class NetworkSnoozeRepository(
 
     /** If still Loading (first fetch), fall back to NotSnoozing so the UI doesn't show "Loading..." forever. */
     private fun clearLoadingState() {
-        if (_snoozeState.value is SnoozeState.Loading) {
-            _snoozeState.value = SnoozeState.NotSnoozing
+        if (snoozeStateFlow.value is SnoozeState.Loading) {
+            snoozeStateFlow.value = SnoozeState.NotSnoozing
         }
     }
 
