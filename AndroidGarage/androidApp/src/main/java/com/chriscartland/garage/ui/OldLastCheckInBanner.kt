@@ -41,10 +41,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
-import java.time.Duration
 import java.time.Instant
-
-val OLD_DURATION_FOR_DOOR_CHECK_IN = Duration.ofMinutes(11)
 
 data class PillColors(
     val backgroundColor: Color,

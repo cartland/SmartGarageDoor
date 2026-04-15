@@ -186,6 +186,7 @@ fun HomeContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .clickable { onFetchCurrentDoorEvent() },
+                isCheckInStale = isCheckInStale,
             )
             // If the current event is loading, show a loading indicator.
             if (currentDoorEvent is LoadingResult.Loading) {

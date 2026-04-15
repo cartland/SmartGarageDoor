@@ -53,20 +53,20 @@ import com.chriscartland.garage.ui.theme.DoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.doorColorState
-import com.chriscartland.garage.ui.theme.isStale
 import java.time.Instant
 
 @Composable
 fun DoorStatusCard(
     doorEvent: DoorEvent?,
     modifier: Modifier = Modifier,
+    isCheckInStale: Boolean = false,
 ) {
     val doorPosition = doorEvent?.doorPosition ?: DoorPosition.UNKNOWN
     val lastChangeTimeSeconds = doorEvent?.lastChangeTimeSeconds
     val date = lastChangeTimeSeconds?.toFriendlyDate()
     val time = lastChangeTimeSeconds?.toFriendlyTime()
     // Select the door color based on the door state.
-    val color = doorEvent.color(LocalDoorStatusColorScheme.current)
+    val color = doorEvent.color(LocalDoorStatusColorScheme.current, isStale = isCheckInStale)
     // Blend the door color into the color of the text on background.
     val contentColor = blendColors(color, MaterialTheme.colorScheme.onBackground, 0.5f)
     CompositionLocalProvider(LocalContentColor provides contentColor) {
@@ -156,8 +156,10 @@ fun DoorStatusCard(
     }
 }
 
-fun DoorEvent?.color(scheme: DoorStatusColorScheme): Color {
-    val isStale = isStale(maxAge = OLD_DURATION_FOR_DOOR_CHECK_IN)
+fun DoorEvent?.color(
+    scheme: DoorStatusColorScheme,
+    isStale: Boolean,
+): Color {
     val colorSet = scheme.doorColorSet(isStale = isStale)
     return when (doorColorState()) {
         DoorColorState.OPEN -> colorSet.open
@@ -166,8 +168,10 @@ fun DoorEvent?.color(scheme: DoorStatusColorScheme): Color {
     }
 }
 
-fun DoorEvent?.onColor(scheme: DoorStatusColorScheme): Color {
-    val isStale = isStale(maxAge = OLD_DURATION_FOR_DOOR_CHECK_IN)
+fun DoorEvent?.onColor(
+    scheme: DoorStatusColorScheme,
+    isStale: Boolean,
+): Color {
     val colorSet = scheme.doorColorSet(isStale = isStale)
     return when (doorColorState()) {
         DoorColorState.OPEN -> colorSet.onOpen

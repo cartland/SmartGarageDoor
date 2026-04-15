@@ -20,10 +20,6 @@ package com.chriscartland.garage.ui.theme
 import androidx.compose.ui.graphics.Color
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
-import com.chriscartland.garage.domain.model.Staleness
-import java.time.Duration
-import java.time.Instant
-import kotlin.time.toKotlinDuration
 
 /**
  * Color scheme selected by the app theme.
@@ -123,13 +119,3 @@ fun DoorEvent?.doorColorState(): DoorColorState =
         DoorPosition.CLOSED -> DoorColorState.CLOSED
         else -> DoorColorState.OPEN
     }
-
-fun DoorEvent?.isStale(
-    maxAge: Duration,
-    now: Instant = Instant.now(),
-): Boolean =
-    Staleness.isStale(
-        lastCheckInTimeSeconds = this?.lastCheckInTimeSeconds,
-        maxAge = maxAge.toKotlinDuration(),
-        nowEpochSeconds = now.epochSecond,
-    )
