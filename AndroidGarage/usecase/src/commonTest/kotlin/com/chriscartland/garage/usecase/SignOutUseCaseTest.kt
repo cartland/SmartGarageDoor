@@ -44,6 +44,6 @@ class SignOutUseCaseTest {
 
             useCase()
 
-            assertIs<AuthState.Unauthenticated>(repo.authState.value)
+            assertIs<AuthState.Unauthenticated>(repo.getAuthState())
         }
 }

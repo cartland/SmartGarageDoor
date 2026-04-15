@@ -19,26 +19,30 @@ package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.testcommon.FakeAuthRepository
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 class ObserveAuthStateUseCaseTest {
     @Test
-    fun invokeReturnsRepositoryAuthState() {
-        val repo = FakeAuthRepository()
-        val useCase = ObserveAuthStateUseCase(repo)
+    fun invokeReturnsRepositoryAuthState() =
+        runTest {
+            val repo = FakeAuthRepository()
+            val useCase = ObserveAuthStateUseCase(repo)
 
-        assertIs<AuthState.Unknown>(useCase().value)
-    }
+            assertIs<AuthState.Unknown>(useCase().first())
+        }
 
     @Test
-    fun invokeReflectsRepositoryUpdates() {
-        val repo = FakeAuthRepository()
-        val useCase = ObserveAuthStateUseCase(repo)
+    fun invokeReflectsRepositoryUpdates() =
+        runTest {
+            val repo = FakeAuthRepository()
+            val useCase = ObserveAuthStateUseCase(repo)
 
-        repo.setAuthState(AuthState.Unauthenticated)
+            repo.setAuthState(AuthState.Unauthenticated)
 
-        assertEquals(AuthState.Unauthenticated, useCase().value)
-    }
+            assertEquals(AuthState.Unauthenticated, useCase().first())
+        }
 }

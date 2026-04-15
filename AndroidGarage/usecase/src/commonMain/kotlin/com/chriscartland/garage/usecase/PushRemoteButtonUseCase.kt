@@ -35,7 +35,7 @@ class PushRemoteButtonUseCase(
     private val remoteButtonRepository: RemoteButtonRepository,
 ) {
     suspend operator fun invoke(buttonAckToken: String): AppResult<Unit, ActionError> {
-        val authState = authRepository.authState.value
+        val authState = authRepository.getAuthState()
         if (authState !is AuthState.Authenticated) {
             return AppResult.Error(ActionError.NotAuthenticated)
         }

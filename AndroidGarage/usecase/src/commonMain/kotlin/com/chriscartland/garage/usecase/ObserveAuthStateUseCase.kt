@@ -19,16 +19,15 @@ package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.repository.AuthRepository
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Observes the current authentication state.
  *
- * Wraps [AuthRepository.authState] so ViewModels can depend on this
- * UseCase instead of the repository directly.
+ * Returns a [Flow] — the ViewModel converts to StateFlow for the UI.
  */
 class ObserveAuthStateUseCase(
     private val authRepository: AuthRepository,
 ) {
-    operator fun invoke(): StateFlow<AuthState> = authRepository.authState
+    operator fun invoke(): Flow<AuthState> = authRepository.observeAuthState()
 }
