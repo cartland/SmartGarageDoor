@@ -472,3 +472,29 @@ The `FCMService` correctly inserts door events into the repository (data layer),
 - App-scoped operations survive screen rotation and navigation
 - Testable: manager tested with fake UseCase and test dispatcher for time control
 - New pattern to learn, but limited to truly app-scoped operations (FCM, token refresh, sync)
+
+## ADR-016: Scope Injection for ViewModel Coroutines with Delay
+
+**Status:** Accepted
+
+**Context:** `DurationSince` was a Compose content-lambda composable wrapping entire UI trees to provide a live-updating `Duration`. This caused blank screenshots (content renders inside `LaunchedEffect` timing) and mixed display concerns (show "3 min ago") with business concerns (is the check-in stale?). When replacing it, the ViewModel's periodic staleness ticker (`while(true) { delay(30s) }`) hung `runTest` because `Dispatchers.setMain(testDispatcher)` routes `viewModelScope` coroutines to the test scheduler, and `runTest` tries to drain all pending virtual time.
+
+**Decision:** Split into two layers and inject `CoroutineScope` for timer coroutines:
+
+- **Display**: `rememberDurationSince()` returns `State<Duration>`, updated every 1s via `LaunchedEffect`. Lives in `androidApp` UI layer.
+- **Business**: `DoorViewModel.isCheckInStale: StateFlow<Boolean>` computed from `AppClock` + periodic 30s ticker + reactive data-change collect. Staleness logging moved from composable to ViewModel.
+- **Scope injection**: `DefaultDoorViewModel` accepts `CoroutineScope` for staleness coroutines (same pattern as `FcmRegistrationManager`, ADR-015). Production passes `applicationScope`; tests pass `backgroundScope` from `runTest`. Jobs tracked and cancelled in `onCleared()`.
+- **Clock injection**: `AppClock` interface in domain module. Tests use `FakeClock` to control wall-clock time independently from coroutine virtual time.
+
+**Rules:**
+- ViewModel coroutines that use `delay` or infinite loops must run in injected scope, not `viewModelScope`
+- Display-layer timers (1s "ago" text) use `rememberDurationSince` — no business logic
+- Staleness boolean comes from ViewModel, never computed locally in composables
+- Two time axes in tests: `FakeClock.advanceSeconds()` for wall clock, `advanceTimeBy()` for coroutine delays
+
+**Consequences:**
+- No blank screenshots from content-lambda wrapping
+- Staleness is testable with virtual time + fake clock
+- One source of truth for "is check-in stale" (ViewModel, not composable)
+- Tests never hang — `backgroundScope` cancelled on test completion
+- Slight complexity: two scopes in ViewModel (viewModelScope for screen-scoped, injected scope for timer-scoped)
