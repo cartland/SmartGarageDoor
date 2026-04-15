@@ -31,7 +31,7 @@ import kotlinx.coroutines.test.TestScope
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class AppStartupActionsTest {
+class AppStartupTest {
     private val testDispatcher = StandardTestDispatcher()
 
     private fun createManager(scope: TestScope): FcmRegistrationManager {
@@ -70,9 +70,9 @@ class AppStartupActionsTest {
         val scope = TestScope(testDispatcher)
         val manager = createManager(scope)
         val appLoggerViewModel = FakeAppLoggerViewModel()
-        val actions = AppStartupActions(manager, appLoggerViewModel)
+        val actions = AppStartup(manager, appLoggerViewModel)
 
-        actions.onActivityCreated()
+        actions.run()
 
         assertEquals(
             listOf(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC),
@@ -85,9 +85,9 @@ class AppStartupActionsTest {
         val scope = TestScope(testDispatcher)
         val manager = createManager(scope)
         val appLoggerViewModel = FakeAppLoggerViewModel()
-        val actions = AppStartupActions(manager, appLoggerViewModel)
+        val actions = AppStartup(manager, appLoggerViewModel)
 
-        val result = actions.onActivityCreated()
+        val result = actions.run()
 
         assertEquals(listOf("startFcmRegistration", "logFcmSubscribe"), result)
     }

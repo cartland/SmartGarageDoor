@@ -43,6 +43,6 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
-        component.provideAppStartupActions().onActivityCreated()
+        component.provideAppStartup().run()
     }
 }

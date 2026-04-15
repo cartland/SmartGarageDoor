@@ -23,11 +23,12 @@ import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.FcmRegistrationManager
 
 /**
- * Actions performed on app startup. Extracted from MainActivity for testability.
+ * App startup actions. Extracted from MainActivity for testability.
  *
- * Call [onActivityCreated] from MainActivity.onCreate() after setContent.
+ * If this grows past simple orchestration into conditional logic,
+ * promote to a UseCase.
  */
-class AppStartupActions(
+class AppStartup(
     private val fcmRegistrationManager: FcmRegistrationManager,
     private val appLoggerViewModel: AppLoggerViewModel,
 ) {
@@ -35,7 +36,7 @@ class AppStartupActions(
      * Performs startup actions: FCM registration and logging.
      * Returns the list of actions taken (for testing/logging).
      */
-    fun onActivityCreated(): List<String> {
+    fun run(): List<String> {
         val actions = mutableListOf<String>()
 
         Logger.d { "AppStartup: Starting FCM registration manager" }
