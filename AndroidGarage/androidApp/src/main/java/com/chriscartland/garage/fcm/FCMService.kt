@@ -19,10 +19,6 @@ package com.chriscartland.garage.fcm
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.GarageApplication
-import com.chriscartland.garage.data.FcmPayloadParser
-import com.chriscartland.garage.domain.model.AppLoggerKeys
-import com.chriscartland.garage.domain.repository.AppLoggerRepository
-import com.chriscartland.garage.domain.repository.DoorRepository
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineScope
@@ -31,12 +27,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 class FCMService : FirebaseMessagingService() {
-    private val doorRepository: DoorRepository by lazy {
-        (application as GarageApplication).component.provideDoorRepository()
-    }
-
-    private val appLoggerRepository: AppLoggerRepository by lazy {
-        (application as GarageApplication).component.provideAppLoggerRepository()
+    private val handler: FcmMessageHandler by lazy {
+        val component = (application as GarageApplication).component
+        FcmMessageHandler(
+            doorRepository = component.provideDoorRepository(),
+            appLoggerRepository = component.provideAppLoggerRepository(),
+        )
     }
 
     private val serviceJob = SupervisorJob()
@@ -48,28 +44,14 @@ class FCMService : FirebaseMessagingService() {
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         Logger.d { "onMessageReceived, from: ${remoteMessage.from}" }
-
-        if (remoteMessage.data.isEmpty()) {
-            Logger.d { "Message data payload is empty" }
-            return
-        }
-
         Logger.d { "Message data payload: ${remoteMessage.data}" }
-        val doorEvent = FcmPayloadParser.parseDoorEvent(remoteMessage.data)
-        if (doorEvent == null) {
-            Logger.e { "Failed to parse FCM payload: ${remoteMessage.data.entries.joinToString()}" }
-            return
-        }
 
-        Logger.d { "DoorData: $doorEvent" }
         serviceScope.launch(Dispatchers.IO) {
-            appLoggerRepository.log(AppLoggerKeys.FCM_DOOR_RECEIVED)
-        }
-
-        try {
-            doorRepository.insertDoorEvent(doorEvent)
-        } catch (e: IllegalStateException) {
-            Logger.e { "Failed to insert door event: $e" }
+            try {
+                handler.handleDoorMessage(remoteMessage.data)
+            } catch (e: IllegalStateException) {
+                Logger.e { "Failed to handle door message: $e" }
+            }
         }
 
         remoteMessage.notification?.let {
