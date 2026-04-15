@@ -19,15 +19,15 @@ package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.repository.SnoozeRepository
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.Flow
 
 /**
- * Observes the current snooze state as a [StateFlow].
+ * Observes the current snooze state as a [Flow].
  *
- * Provides the reactive snooze status without exposing the repository directly.
+ * The ViewModel converts to StateFlow for the UI.
  */
 class ObserveSnoozeStateUseCase(
     private val snoozeRepository: SnoozeRepository,
 ) {
-    operator fun invoke(): StateFlow<SnoozeState> = snoozeRepository.snoozeState
+    operator fun invoke(): Flow<SnoozeState> = snoozeRepository.observeSnoozeState()
 }

@@ -1,7 +1,7 @@
 package com.chriscartland.garage.domain.repository
 
 import com.chriscartland.garage.domain.model.SnoozeState
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Manages snooze-notification state for the garage door.
@@ -10,7 +10,8 @@ import kotlinx.coroutines.flow.StateFlow
  * The snooze end time is persisted server-side and fetched on demand.
  */
 interface SnoozeRepository {
-    val snoozeState: StateFlow<SnoozeState>
+    /** Observation: snooze state changes over time. */
+    fun observeSnoozeState(): Flow<SnoozeState>
 
     suspend fun fetchSnoozeStatus()
 
