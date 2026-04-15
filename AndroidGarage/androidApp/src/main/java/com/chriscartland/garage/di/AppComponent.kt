@@ -70,7 +70,6 @@ import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveAppLogCountUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
-import com.chriscartland.garage.usecase.ObservePushButtonStatusUseCase
 import com.chriscartland.garage.usecase.ObserveSnoozeStateUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
@@ -151,7 +150,6 @@ abstract class AppComponent(
 
     val remoteButtonViewModel: DefaultRemoteButtonViewModel
         @Provides get() = DefaultRemoteButtonViewModel(
-            provideObservePushButtonStatusUseCase(),
             provideObserveDoorEventsUseCase(),
             provideDispatcherProvider(),
             providePushRemoteButtonUseCase(),
@@ -159,10 +157,6 @@ abstract class AppComponent(
             provideFetchSnoozeStatusUseCase(),
             provideObserveSnoozeStateUseCase(),
         )
-
-    @Provides
-    fun provideObservePushButtonStatusUseCase(): ObservePushButtonStatusUseCase =
-        ObservePushButtonStatusUseCase(provideRemoteButtonRepository())
 
     // Configuration
     @Provides

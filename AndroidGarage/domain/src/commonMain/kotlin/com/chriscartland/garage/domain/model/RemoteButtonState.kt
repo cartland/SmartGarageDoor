@@ -1,10 +1,5 @@
 package com.chriscartland.garage.domain.model
 
-enum class PushStatus {
-    IDLE,
-    SENDING,
-}
-
 /**
  * Unified state for the remote garage button.
  *

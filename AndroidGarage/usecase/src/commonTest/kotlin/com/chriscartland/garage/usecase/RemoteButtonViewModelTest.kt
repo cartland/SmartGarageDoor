@@ -83,7 +83,6 @@ class RemoteButtonViewModelTest {
         authRepository.setAuthState(authState)
         val ensureFreshIdToken = EnsureFreshIdTokenUseCase(authRepository)
         val vm = DefaultRemoteButtonViewModel(
-            observePushButtonStatus = ObservePushButtonStatusUseCase(remoteButtonRepository),
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
             dispatchers = TestDispatcherProvider(testDispatcher),
             pushRemoteButtonUseCase = PushRemoteButtonUseCase(ensureFreshIdToken, authRepository, remoteButtonRepository),
@@ -152,6 +151,24 @@ class RemoteButtonViewModelTest {
             // UseCase fails auth check, ViewModel resets state machine.
             assertEquals(RemoteButtonState.Ready, viewModel.buttonState.value)
             assertEquals(0, remoteButtonRepository.pushCount)
+        }
+
+    @Test
+    fun confirmWhenNetworkFailsShowsServerFailed() =
+        runTest {
+            remoteButtonRepository.pushSucceeds = false
+            val viewModel = createAuthenticatedViewModel()
+
+            viewModel.onButtonTap()
+            testDispatcher.scheduler.runCurrent()
+            advanceTimeBy(ButtonStateMachine.DEFAULT_PREPARING_DELAY + 1)
+            testDispatcher.scheduler.runCurrent()
+            viewModel.onButtonTap()
+            testDispatcher.scheduler.runCurrent()
+
+            // UseCase returns NetworkFailed, ViewModel calls onNetworkFailed().
+            assertEquals(RemoteButtonState.ServerFailed, viewModel.buttonState.value)
+            assertEquals(1, remoteButtonRepository.pushCount)
         }
 
     @Test
