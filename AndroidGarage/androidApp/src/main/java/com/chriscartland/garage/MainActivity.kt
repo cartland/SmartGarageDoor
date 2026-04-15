@@ -22,9 +22,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.ui.util.trace
-import co.touchlab.kermit.Logger
 import com.chriscartland.garage.di.activityViewModel
-import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.ui.GarageApp
 
 class MainActivity : ComponentActivity() {
@@ -45,8 +43,6 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
-        Logger.d { "onCreate: Try to subscribe to FCM topic" }
-        doorViewModel.registerFcm()
-        appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
+        AppStartupActions(doorViewModel, appLoggerViewModel).onActivityCreated()
     }
 }
