@@ -9,26 +9,45 @@ import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class DefaultAuthViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
-    private val authRepo = FakeAuthRepository()
-    private val logger = FakeAppLoggerRepository()
-    private val dispatchers = TestDispatcherProvider(testDispatcher)
-    private val viewModel = DefaultAuthViewModel(
-        observeAuthState = ObserveAuthStateUseCase(authRepo),
-        signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepo),
-        signOutUseCase = SignOutUseCase(authRepo),
-        logAppEvent = LogAppEventUseCase(logger),
-        dispatchers = dispatchers,
-    )
+    private lateinit var authRepo: FakeAuthRepository
+    private lateinit var logger: FakeAppLoggerRepository
+    private lateinit var viewModel: DefaultAuthViewModel
+
+    @BeforeTest
+    fun setup() {
+        Dispatchers.setMain(testDispatcher)
+        authRepo = FakeAuthRepository()
+        logger = FakeAppLoggerRepository()
+        viewModel = DefaultAuthViewModel(
+            observeAuthState = ObserveAuthStateUseCase(authRepo),
+            signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepo),
+            signOutUseCase = SignOutUseCase(authRepo),
+            logAppEvent = LogAppEventUseCase(logger),
+            dispatchers = TestDispatcherProvider(testDispatcher),
+        )
+    }
+
+    @AfterTest
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
 
     @Test
     fun initialAuthStateIsUnknown() {

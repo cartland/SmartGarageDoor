@@ -20,12 +20,11 @@ package com.chriscartland.garage.testcommon
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.repository.AuthRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 
 class FakeAuthRepository : AuthRepository {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
-    override val authState: StateFlow<AuthState> = _authState
 
     var signInCount = 0
         private set
@@ -40,6 +39,10 @@ class FakeAuthRepository : AuthRepository {
     fun setAuthState(state: AuthState) {
         _authState.value = state
     }
+
+    override suspend fun getAuthState(): AuthState = _authState.value
+
+    override fun observeAuthState(): Flow<AuthState> = _authState
 
     override suspend fun signInWithGoogle(idToken: GoogleIdToken): AuthState {
         signInCount++

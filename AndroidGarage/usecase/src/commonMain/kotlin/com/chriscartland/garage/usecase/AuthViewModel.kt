@@ -24,7 +24,9 @@ import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.GoogleIdToken
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 interface AuthViewModel {
@@ -44,6 +46,7 @@ class DefaultAuthViewModel(
 ) : ViewModel(),
     AuthViewModel {
     override val authState: StateFlow<AuthState> = observeAuthState()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AuthState.Unknown)
 
     override fun signInWithGoogle(idToken: GoogleIdToken) {
         viewModelScope.launch(dispatchers.io) {

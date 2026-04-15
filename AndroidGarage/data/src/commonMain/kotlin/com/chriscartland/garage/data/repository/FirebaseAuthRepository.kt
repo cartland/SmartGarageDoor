@@ -28,8 +28,8 @@ import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.AuthRepository
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
@@ -45,7 +45,10 @@ class FirebaseAuthRepository(
     externalScope: CoroutineScope,
 ) : AuthRepository {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
-    override val authState: StateFlow<AuthState> = _authState.asStateFlow()
+
+    override suspend fun getAuthState(): AuthState = _authState.value
+
+    override fun observeAuthState(): Flow<AuthState> = _authState.asStateFlow()
 
     init {
         externalScope.launch {

@@ -131,7 +131,7 @@ class FirebaseAuthRepositoryTest {
             repo.signOut()
 
             assertEquals(1, authBridge.signOutCount)
-            assertEquals(AuthState.Unauthenticated, repo.authState.value)
+            assertEquals(AuthState.Unauthenticated, repo.getAuthState())
         }
 
     // --- authState flow ---
@@ -150,7 +150,7 @@ class FirebaseAuthRepositoryTest {
             authBridge.refreshTokenResult = FirebaseIdToken(idToken = "fresh", exp = Long.MAX_VALUE)
             repo.refreshFirebaseAuthState()
 
-            val state = repo.authState.value
+            val state = repo.getAuthState()
             assertTrue(state is AuthState.Authenticated)
             assertEquals("New User", (state as AuthState.Authenticated).user.name.asString())
         }
