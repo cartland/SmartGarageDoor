@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Sat Apr 11 01:10:52 PDT 2026
+Generated on Wed Apr 15 09:01:20 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -274,14 +274,32 @@ Generated on Sat Apr 11 01:10:52 PDT 2026
 ### DoorHistoryScreenPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/DoorHistoryScreenPreviewTest_Light_fc5b723e_0.png" width="300" />
 
+### HistoryTabPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HistoryTabPreviewTest_Dark_77106447_0.png" width="300" />
+
+### HistoryTabPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HistoryTabPreviewTest_Light_fc5b723e_0.png" width="300" />
+
 ### HomeScreenPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeScreenPreviewTest_Dark_77106447_0.png" width="300" />
 
 ### HomeScreenPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeScreenPreviewTest_Light_fc5b723e_0.png" width="300" />
 
+### HomeTabPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeTabPreviewTest_Dark_77106447_0.png" width="300" />
+
+### HomeTabPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeTabPreviewTest_Light_fc5b723e_0.png" width="300" />
+
 ### ProfileScreenPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ProfileScreenPreviewTest_Dark_77106447_0.png" width="300" />
 
 ### ProfileScreenPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ProfileScreenPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### SettingsTabPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/SettingsTabPreviewTest_Dark_77106447_0.png" width="300" />
+
+### SettingsTabPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/SettingsTabPreviewTest_Light_fc5b723e_0.png" width="300" />

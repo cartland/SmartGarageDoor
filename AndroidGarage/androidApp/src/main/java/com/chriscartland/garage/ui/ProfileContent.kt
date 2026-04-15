@@ -37,6 +37,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AuthState
+import com.chriscartland.garage.domain.model.DisplayName
+import com.chriscartland.garage.domain.model.Email
+import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
@@ -46,6 +49,7 @@ import com.chriscartland.garage.usecase.AuthViewModel
 import com.chriscartland.garage.usecase.RemoteButtonViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.isGranted
 import kotlinx.coroutines.delay
 import java.time.Duration
@@ -157,8 +161,29 @@ fun ProfileContent(
     ReportDrawn()
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Preview(showBackground = true)
 @Composable
 fun ProfileContentPreview() {
-    ProfileContent()
+    ProfileContent(
+        user = User(
+            name = DisplayName("Chris Cartland"),
+            email = Email("chris@example.com"),
+            idToken = FirebaseIdToken(idToken = "preview", exp = 0),
+        ),
+        signIn = {},
+        signOut = {},
+        snoozeState = SnoozeState.NotSnoozing,
+        onSnooze = {},
+        showSnooze = true,
+        showLogSummary = false,
+        notificationPermissionState = object : PermissionState {
+            override val permission = "android.permission.POST_NOTIFICATIONS"
+            override val status = PermissionStatus.Granted
+
+            override fun launchPermissionRequest() {
+                // No-op for preview.
+            }
+        },
+    )
 }

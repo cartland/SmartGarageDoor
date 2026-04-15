@@ -46,9 +46,13 @@ import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AuthState
+import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.Email
+import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.RemoteButtonState
+import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.permissions.notificationJustificationText
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
 import com.chriscartland.garage.presentation.demoDoorEvents
@@ -232,12 +236,20 @@ fun HomeContent(
 fun HomeContentPreview() {
     HomeContent(
         currentDoorEvent = LoadingResult.Complete(demoDoorEvents.firstOrNull()),
+        modifier = Modifier.height(600.dp),
+        authState = AuthState.Authenticated(
+            User(
+                name = DisplayName("Chris"),
+                email = Email("chris@example.com"),
+                idToken = FirebaseIdToken(idToken = "preview", exp = 0),
+            ),
+        ),
         notificationPermissionState = object : PermissionState {
             override val permission = "android.permission.POST_NOTIFICATIONS"
-            override val status = PermissionStatus.Denied(false)
+            override val status = PermissionStatus.Granted
 
             override fun launchPermissionRequest() {
-                // Do nothing
+                // No-op for preview.
             }
         },
     )
