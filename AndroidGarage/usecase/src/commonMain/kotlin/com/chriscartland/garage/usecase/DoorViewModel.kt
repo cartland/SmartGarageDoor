@@ -29,6 +29,7 @@ import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.LoadingResult
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -41,7 +42,7 @@ interface DoorViewModel {
     val currentDoorEvent: StateFlow<LoadingResult<DoorEvent?>>
     val recentDoorEvents: StateFlow<LoadingResult<List<DoorEvent>>>
 
-    /** True when the last check-in is older than [CHECK_IN_STALE_THRESHOLD_SECONDS]. */
+    /** True when the last check-in is older than the staleness threshold (11 min). */
     val isCheckInStale: StateFlow<Boolean>
 
     fun deregisterFcm()
@@ -59,8 +60,8 @@ class DefaultDoorViewModel(
     private val fetchRecentDoorEventsUseCase: FetchRecentDoorEventsUseCase,
     private val deregisterFcmUseCase: DeregisterFcmUseCase,
     fcmRegistrationManager: FcmRegistrationManager,
-    private val clock: AppClock = AppClock { System.currentTimeMillis() / 1000 },
     private val scope: CoroutineScope,
+    private val clock: AppClock = AppClock { System.currentTimeMillis() / 1000 },
     private val fetchOnInit: Boolean = true,
 ) : ViewModel(),
     DoorViewModel {
@@ -79,6 +80,9 @@ class DefaultDoorViewModel(
 
     private val _isCheckInStale = MutableStateFlow(false)
     override val isCheckInStale: StateFlow<Boolean> = _isCheckInStale
+
+    /** Staleness coroutines — cancelled in [onCleared] to avoid leaking past ViewModel lifetime. */
+    private val stalenessJobs = mutableListOf<Job>()
 
     init {
         Logger.d { "init" }
@@ -104,19 +108,20 @@ class DefaultDoorViewModel(
         }
         // Staleness: re-evaluate on data change and periodically.
         // Uses injected scope (not viewModelScope) so tests control the lifecycle.
-        scope.launch(dispatchers.io) {
+        // Jobs are tracked and cancelled in onCleared() to avoid leaking past ViewModel lifetime.
+        stalenessJobs += scope.launch(dispatchers.io) {
             _currentDoorEvent.collect { event ->
                 _isCheckInStale.value = computeStale(event)
             }
         }
-        scope.launch(dispatchers.io) {
+        stalenessJobs += scope.launch(dispatchers.io) {
             while (true) {
                 delay(STALE_CHECK_INTERVAL_MS)
                 _isCheckInStale.value = computeStale(_currentDoorEvent.value)
             }
         }
         // Log staleness transitions (moved from Main.kt composable).
-        scope.launch(dispatchers.io) {
+        stalenessJobs += scope.launch(dispatchers.io) {
             var isFirstEmission = true
             isCheckInStale.collect { stale ->
                 if (stale) {
@@ -127,6 +132,11 @@ class DefaultDoorViewModel(
                 isFirstEmission = false
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stalenessJobs.forEach { it.cancel() }
     }
 
     override fun deregisterFcm() {

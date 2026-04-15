@@ -54,6 +54,7 @@ data class PillColors(
 @Composable
 fun CheckInRow(
     lastCheckIn: Instant?,
+    isCheckInStale: Boolean,
     modifier: Modifier = Modifier,
     pillColors: PillColors = PillColors(
         backgroundColor = LocalDoorStatusColorScheme.current.unknownFresh,
@@ -63,7 +64,6 @@ fun CheckInRow(
     // This is called in a RowScope in TopAppBar.
     val pillShape = RoundedCornerShape(50)
     val duration by rememberDurationSince(lastCheckIn)
-    val isOld = lastCheckIn != null && duration > OLD_DURATION_FOR_DOOR_CHECK_IN
     CompositionLocalProvider(LocalContentColor provides pillColors.contentColor) {
         Box(
             modifier = Modifier
@@ -85,7 +85,7 @@ fun CheckInRow(
                 }
                 Image(
                     modifier = Modifier.scale(0.7f),
-                    painter = if (isOld) {
+                    painter = if (isCheckInStale) {
                         painterResource(id = R.drawable.outline_signal_disconnected_24)
                     } else {
                         painterResource(id = R.drawable.baseline_cell_tower_24)
@@ -126,7 +126,7 @@ fun LastCheckInRowPreview() {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // This is called in a RowScope by TopAppBar.
-        CheckInRow(Instant.now().minusSeconds(123))
+        CheckInRow(Instant.now().minusSeconds(123), isCheckInStale = false)
     }
 }
 
@@ -137,7 +137,7 @@ fun LastCheckInRowOldPreview() {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // This is called in a RowScope by TopAppBar.
-        CheckInRow(Instant.now().minusSeconds(1234))
+        CheckInRow(Instant.now().minusSeconds(1234), isCheckInStale = true)
     }
 }
 

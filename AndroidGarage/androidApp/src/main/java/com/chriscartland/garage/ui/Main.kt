@@ -126,6 +126,7 @@ fun AppNavigation(
     }
     val doorColor = currentDoorEvent.data.color(LocalDoorStatusColorScheme.current)
     val onDoorColor = currentDoorEvent.data.onColor(LocalDoorStatusColorScheme.current)
+    val isCheckInStale by doorViewModel.isCheckInStale.collectAsState()
     // Nav3: back stack is a simple mutable list of Screen objects.
     // Using remember (not rememberSaveable) because Screen objects aren't Bundle-saveable.
     // For tab navigation this is fine — process death just restarts on Home tab.
@@ -140,6 +141,7 @@ fun AppNavigation(
                 actions = {
                     CheckInRow(
                         lastCheckIn = lastCheckInTime,
+                        isCheckInStale = isCheckInStale,
                         pillColors = PillColors(
                             // Match the door color
                             backgroundColor = doorColor,
