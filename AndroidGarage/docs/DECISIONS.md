@@ -444,3 +444,31 @@ The `FCMService` correctly inserts door events into the repository (data layer),
 - DoorViewModel becomes purely about door status — no FCM responsibility
 - Testable at every layer: handler, UseCase, retry policy, ViewModel observation
 - FCM message handling is already correct (FCMService → repository → Room → Flow → UI)
+
+## ADR-015: App-Scoped Managers for Lifecycle Operations
+
+**Status:** Accepted
+
+**Context:** Some operations (like FCM registration with retry) must outlive any single screen. UseCases are single-attempt by design (ADR-013). ViewModels are screen-scoped. We need a pattern for app-scoped operations that retry, poll, or run continuously.
+
+**Decision:** Use a **manager class** that owns the lifecycle of an app-scoped operation. The manager calls UseCases but adds lifecycle behavior (retry, cancellation, deduplication).
+
+**Pattern:**
+- Manager is created by DI with `ApplicationScope` (singleton coroutine scope)
+- Manager has a `start()` method called from `AppStartupActions`
+- Manager calls a UseCase (single-attempt, returns `AppResult`)
+- Manager owns the retry loop (fixed delay, forever or bounded)
+- Manager guards against concurrent starts (only one retry loop active)
+- Manager exposes status as `Flow` for ViewModel observation
+
+**Rules:**
+- UseCases remain single-attempt — never retry internally
+- Managers never touch UI state — they produce `Flow` that ViewModels observe
+- Managers are singleton — one instance per app process
+- `start()` is idempotent — calling twice doesn't create two retry loops
+
+**Consequences:**
+- Clear separation: UseCase = logic, Manager = lifecycle, ViewModel = UI state
+- App-scoped operations survive screen rotation and navigation
+- Testable: manager tested with fake UseCase and test dispatcher for time control
+- New pattern to learn, but limited to truly app-scoped operations (FCM, token refresh, sync)

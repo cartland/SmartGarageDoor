@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.usecase
 
+import com.chriscartland.garage.domain.model.ActionError
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
@@ -26,6 +28,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 
 class DoorFcmStateToRegistrationStatusTest {
     @Test
@@ -69,7 +72,7 @@ class RegisterFcmUseCaseTest {
 
             val result = useCase()
 
-            assertEquals(FcmRegistrationStatus.REGISTERED, result)
+            assertIs<AppResult.Success<Unit>>(result)
             assertEquals(1, fakeFcm.registerCount)
         }
 
@@ -79,7 +82,8 @@ class RegisterFcmUseCaseTest {
             fakeDoor.buildTimestamp = null
             val result = useCase()
 
-            assertEquals(FcmRegistrationStatus.NOT_REGISTERED, result)
+            assertIs<AppResult.Error<ActionError>>(result)
+            assertEquals(ActionError.MissingData, (result as AppResult.Error).error)
             assertEquals(0, fakeFcm.registerCount)
         }
 
@@ -95,13 +99,14 @@ class RegisterFcmUseCaseTest {
         }
 
     @Test
-    fun registerReturnsNotRegisteredOnFailure() =
+    fun registerReturnsNetworkFailedOnSubscribeFailure() =
         runTest {
             fakeDoor.buildTimestamp = "timestamp"
             fakeFcm.registerResult = DoorFcmState.NotRegistered
 
             val result = useCase()
 
-            assertEquals(FcmRegistrationStatus.NOT_REGISTERED, result)
+            assertIs<AppResult.Error<ActionError>>(result)
+            assertEquals(ActionError.NetworkFailed, (result as AppResult.Error).error)
         }
 }

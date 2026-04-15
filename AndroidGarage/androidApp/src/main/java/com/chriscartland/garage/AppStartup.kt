@@ -20,27 +20,28 @@ package com.chriscartland.garage
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.usecase.AppLoggerViewModel
-import com.chriscartland.garage.usecase.DoorViewModel
+import com.chriscartland.garage.usecase.FcmRegistrationManager
 
 /**
- * Actions performed on app startup. Extracted from MainActivity for testability.
+ * App startup actions. Extracted from MainActivity for testability.
  *
- * Call [onActivityCreated] from MainActivity.onCreate() after setContent.
+ * If this grows past simple orchestration into conditional logic,
+ * promote to a UseCase.
  */
-class AppStartupActions(
-    private val doorViewModel: DoorViewModel,
+class AppStartup(
+    private val fcmRegistrationManager: FcmRegistrationManager,
     private val appLoggerViewModel: AppLoggerViewModel,
 ) {
     /**
-     * Performs startup actions: FCM registration and initial data fetch.
+     * Performs startup actions: FCM registration and logging.
      * Returns the list of actions taken (for testing/logging).
      */
-    fun onActivityCreated(): List<String> {
+    fun run(): List<String> {
         val actions = mutableListOf<String>()
 
-        Logger.d { "AppStartup: Registering FCM" }
-        doorViewModel.registerFcm()
-        actions.add("registerFcm")
+        Logger.d { "AppStartup: Starting FCM registration manager" }
+        fcmRegistrationManager.start()
+        actions.add("startFcmRegistration")
 
         appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
         actions.add("logFcmSubscribe")

@@ -17,40 +17,35 @@
 
 package com.chriscartland.garage
 
+import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppLoggerKeys
-import com.chriscartland.garage.domain.model.DoorEvent
-import com.chriscartland.garage.domain.model.FcmRegistrationStatus
-import com.chriscartland.garage.domain.model.LoadingResult
+import com.chriscartland.garage.domain.model.AppResult
+import com.chriscartland.garage.testcommon.FakeDoorFcmRepository
+import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.usecase.AppLoggerViewModel
-import com.chriscartland.garage.usecase.DoorViewModel
+import com.chriscartland.garage.usecase.FcmRegistrationManager
+import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class AppStartupActionsTest {
-    private class FakeDoorViewModel : DoorViewModel {
-        var registerFcmCalled = false
+class AppStartupTest {
+    private val testDispatcher = StandardTestDispatcher()
 
-        override val fcmRegistrationStatus =
-            MutableStateFlow(FcmRegistrationStatus.UNKNOWN)
-        override val currentDoorEvent: StateFlow<LoadingResult<DoorEvent?>> =
-            MutableStateFlow(LoadingResult.Loading(null))
-        override val recentDoorEvents: StateFlow<LoadingResult<List<DoorEvent>>> =
-            MutableStateFlow(LoadingResult.Loading(listOf()))
-
-        override fun fetchFcmRegistrationStatus() = Unit
-
-        override fun registerFcm() {
-            registerFcmCalled = true
+    private fun createManager(scope: TestScope): FcmRegistrationManager {
+        val useCase = object : RegisterFcmUseCase(
+            FakeDoorRepository(),
+            FakeDoorFcmRepository(),
+        ) {
+            override suspend operator fun invoke(): AppResult<Unit, ActionError> = AppResult.Success(Unit)
         }
-
-        override fun deregisterFcm() = Unit
-
-        override fun fetchCurrentDoorEvent() = Unit
-
-        override fun fetchRecentDoorEvents() = Unit
+        return FcmRegistrationManager(
+            registerFcmUseCase = useCase,
+            scope = scope.backgroundScope,
+            dispatcher = testDispatcher,
+        )
     }
 
     private class FakeAppLoggerViewModel : AppLoggerViewModel {
@@ -71,23 +66,13 @@ class AppStartupActionsTest {
     }
 
     @Test
-    fun onActivityCreated_registersFcm() {
-        val doorViewModel = FakeDoorViewModel()
-        val appLoggerViewModel = FakeAppLoggerViewModel()
-        val actions = AppStartupActions(doorViewModel, appLoggerViewModel)
-
-        actions.onActivityCreated()
-
-        assertTrue("registerFcm should be called", doorViewModel.registerFcmCalled)
-    }
-
-    @Test
     fun onActivityCreated_logsFcmSubscribe() {
-        val doorViewModel = FakeDoorViewModel()
+        val scope = TestScope(testDispatcher)
+        val manager = createManager(scope)
         val appLoggerViewModel = FakeAppLoggerViewModel()
-        val actions = AppStartupActions(doorViewModel, appLoggerViewModel)
+        val actions = AppStartup(manager, appLoggerViewModel)
 
-        actions.onActivityCreated()
+        actions.run()
 
         assertEquals(
             listOf(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC),
@@ -97,12 +82,13 @@ class AppStartupActionsTest {
 
     @Test
     fun onActivityCreated_returnsAllActions() {
-        val doorViewModel = FakeDoorViewModel()
+        val scope = TestScope(testDispatcher)
+        val manager = createManager(scope)
         val appLoggerViewModel = FakeAppLoggerViewModel()
-        val actions = AppStartupActions(doorViewModel, appLoggerViewModel)
+        val actions = AppStartup(manager, appLoggerViewModel)
 
-        val result = actions.onActivityCreated()
+        val result = actions.run()
 
-        assertEquals(listOf("registerFcm", "logFcmSubscribe"), result)
+        assertEquals(listOf("startFcmRegistration", "logFcmSubscribe"), result)
     }
 }

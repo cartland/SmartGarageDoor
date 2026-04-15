@@ -43,6 +43,6 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
-        AppStartupActions(doorViewModel, appLoggerViewModel).onActivityCreated()
+        component.provideAppStartup().run()
     }
 }
