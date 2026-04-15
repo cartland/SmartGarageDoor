@@ -19,10 +19,9 @@ package com.chriscartland.garage.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import com.chriscartland.garage.domain.model.FriendlyDuration
 import kotlinx.coroutines.delay
 import java.time.Duration
@@ -65,25 +64,24 @@ fun Long.toFriendlyTimeShort(): String? =
 fun Duration.toFriendlyDuration(): String = FriendlyDuration.format(this.toKotlinDuration())
 
 /**
- * Composable that updates periodically based on the duration since a specific time.
+ * Returns a [State] holding the live [Duration] since [time], updated every second.
+ *
+ * Replaces the old `DurationSince` content-lambda composable. Callers read
+ * the value directly instead of being wrapped in a lambda, which fixes blank
+ * screenshots and keeps layout trees flat.
  */
 @Composable
-fun DurationSince(
-    time: Instant?,
-    defaultDuration: Duration = Duration.ZERO,
-    updatePeriod: Duration = Duration.ofSeconds(1),
-    content: @Composable (duration: Duration) -> Unit,
-) {
-    var checkInDuration by remember { mutableStateOf(defaultDuration) }
-    LaunchedEffect(key1 = time) {
+fun rememberDurationSince(time: Instant?): State<Duration> {
+    val duration = remember { mutableStateOf(Duration.ZERO) }
+    LaunchedEffect(time) {
         while (true) {
-            checkInDuration = if (time == null) {
-                defaultDuration
-            } else {
+            duration.value = if (time != null) {
                 Duration.between(time, Instant.now())
+            } else {
+                Duration.ZERO
             }
-            delay(updatePeriod.toMillis())
+            delay(1_000L)
         }
     }
-    content(checkInDuration)
+    return duration
 }

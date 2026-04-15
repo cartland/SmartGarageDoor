@@ -38,13 +38,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -54,7 +51,6 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.chriscartland.garage.di.rememberAppComponent
-import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.ui.theme.AppTheme
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.usecase.AppLoggerViewModel
@@ -124,30 +120,13 @@ fun AppNavigation(
 ) {
     val component = rememberAppComponent()
     val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
-    var isOld by remember { mutableStateOf(false) }
     val currentDoorEvent by doorViewModel.currentDoorEvent.collectAsState()
     val lastCheckInTime = currentDoorEvent.data?.lastCheckInTimeSeconds?.let {
         Instant.ofEpochSecond(it)
     }
     val doorColor = currentDoorEvent.data.color(LocalDoorStatusColorScheme.current)
     val onDoorColor = currentDoorEvent.data.onColor(LocalDoorStatusColorScheme.current)
-    var isTimeWithoutFcmTooLong by remember { mutableStateOf(false) }
-    var isFirstValue by remember { mutableStateOf(true) }
-    DurationSince(lastCheckInTime) { duration ->
-        isOld = lastCheckInTime != null && duration > OLD_DURATION_FOR_DOOR_CHECK_IN
-        LaunchedEffect(isOld) {
-            isTimeWithoutFcmTooLong = isOld
-        }
-    }
-    LaunchedEffect(isTimeWithoutFcmTooLong) {
-        if (isTimeWithoutFcmTooLong) {
-            appLoggerViewModel.log(AppLoggerKeys.EXCEEDED_EXPECTED_TIME_WITHOUT_FCM)
-        } else if (!isFirstValue) {
-            // Do not log the first time if everything is ok.
-            appLoggerViewModel.log(AppLoggerKeys.TIME_WITHOUT_FCM_IN_EXPECTED_RANGE)
-        }
-        isFirstValue = false
-    }
+    val isCheckInStale by doorViewModel.isCheckInStale.collectAsState()
     // Nav3: back stack is a simple mutable list of Screen objects.
     // Using remember (not rememberSaveable) because Screen objects aren't Bundle-saveable.
     // For tab navigation this is fine — process death just restarts on Home tab.
@@ -162,6 +141,7 @@ fun AppNavigation(
                 actions = {
                     CheckInRow(
                         lastCheckIn = lastCheckInTime,
+                        isCheckInStale = isCheckInStale,
                         pillColors = PillColors(
                             // Match the door color
                             backgroundColor = doorColor,

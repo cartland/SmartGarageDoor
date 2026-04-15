@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -53,6 +54,7 @@ data class PillColors(
 @Composable
 fun CheckInRow(
     lastCheckIn: Instant?,
+    isCheckInStale: Boolean,
     modifier: Modifier = Modifier,
     pillColors: PillColors = PillColors(
         backgroundColor = LocalDoorStatusColorScheme.current.unknownFresh,
@@ -61,38 +63,36 @@ fun CheckInRow(
 ) {
     // This is called in a RowScope in TopAppBar.
     val pillShape = RoundedCornerShape(50)
-    DurationSince(lastCheckIn) { duration ->
-        val isOld = lastCheckIn != null && duration > OLD_DURATION_FOR_DOOR_CHECK_IN
-        CompositionLocalProvider(LocalContentColor provides pillColors.contentColor) {
-            Box(
-                modifier = Modifier
-                    .background(
-                        color = pillColors.backgroundColor,
-                        shape = pillShape,
-                    ).padding(start = 8.dp, end = 4.dp),
+    val duration by rememberDurationSince(lastCheckIn)
+    CompositionLocalProvider(LocalContentColor provides pillColors.contentColor) {
+        Box(
+            modifier = Modifier
+                .background(
+                    color = pillColors.backgroundColor,
+                    shape = pillShape,
+                ).padding(start = 8.dp, end = 4.dp),
+        ) {
+            Row(
+                modifier = modifier,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = modifier,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (lastCheckIn != null) {
-                        Text(
-                            text = ("${duration.toFriendlyDuration()} ago"),
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                    }
-                    Image(
-                        modifier = Modifier.scale(0.7f),
-                        painter = if (isOld) {
-                            painterResource(id = R.drawable.outline_signal_disconnected_24)
-                        } else {
-                            painterResource(id = R.drawable.baseline_cell_tower_24)
-                        },
-                        colorFilter = ColorFilter.tint(LocalContentColor.current),
-                        contentDescription = "Door Broadcast Icon",
+                if (lastCheckIn != null) {
+                    Text(
+                        text = ("${duration.toFriendlyDuration()} ago"),
+                        style = MaterialTheme.typography.labelSmall,
                     )
+                    Spacer(modifier = Modifier.width(4.dp))
                 }
+                Image(
+                    modifier = Modifier.scale(0.7f),
+                    painter = if (isCheckInStale) {
+                        painterResource(id = R.drawable.outline_signal_disconnected_24)
+                    } else {
+                        painterResource(id = R.drawable.baseline_cell_tower_24)
+                    },
+                    colorFilter = ColorFilter.tint(LocalContentColor.current),
+                    contentDescription = "Door Broadcast Icon",
+                )
             }
         }
     }
@@ -126,7 +126,7 @@ fun LastCheckInRowPreview() {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // This is called in a RowScope by TopAppBar.
-        CheckInRow(Instant.now().minusSeconds(123))
+        CheckInRow(Instant.now().minusSeconds(123), isCheckInStale = false)
     }
 }
 
@@ -137,7 +137,7 @@ fun LastCheckInRowOldPreview() {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // This is called in a RowScope by TopAppBar.
-        CheckInRow(Instant.now().minusSeconds(1234))
+        CheckInRow(Instant.now().minusSeconds(1234), isCheckInStale = true)
     }
 }
 
