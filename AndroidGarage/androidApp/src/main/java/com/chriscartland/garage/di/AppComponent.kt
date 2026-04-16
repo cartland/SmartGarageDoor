@@ -44,6 +44,7 @@ import com.chriscartland.garage.datalocal.DataStoreSettingsFactory
 import com.chriscartland.garage.datalocal.DatabaseFactory
 import com.chriscartland.garage.datalocal.DatabaseLocalDoorDataSource
 import com.chriscartland.garage.datalocal.RoomAppLoggerRepository
+import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppConfig
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
@@ -56,6 +57,7 @@ import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.domain.repository.SnoozeRepository
 import com.chriscartland.garage.fcm.FirebaseMessagingBridge
 import com.chriscartland.garage.usecase.AppSettingsUseCase
+import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultAppLoggerViewModel
 import com.chriscartland.garage.usecase.DefaultAppSettingsViewModel
 import com.chriscartland.garage.usecase.DefaultAuthViewModel
@@ -147,7 +149,7 @@ abstract class AppComponent(
             provideFetchRecentDoorEventsUseCase(),
             provideDeregisterFcmUseCase(),
             provideFcmRegistrationManager(),
-            scope = provideApplicationScope(),
+            provideCheckInStalenessManager(),
         )
 
     val remoteButtonViewModel: DefaultRemoteButtonViewModel
@@ -269,9 +271,25 @@ abstract class AppComponent(
         )
 
     @Provides
+    @Singleton
+    fun provideAppClock(): AppClock = AppClock { System.currentTimeMillis() / 1000 }
+
+    @Provides
+    @Singleton
+    fun provideCheckInStalenessManager(): CheckInStalenessManager =
+        CheckInStalenessManager(
+            observeDoorEvents = provideObserveDoorEventsUseCase(),
+            logAppEvent = provideLogAppEventUseCase(),
+            scope = provideApplicationScope(),
+            dispatcher = provideDispatcherProvider().io,
+            clock = provideAppClock(),
+        )
+
+    @Provides
     fun provideAppStartup(): AppStartup =
         AppStartup(
             provideFcmRegistrationManager(),
+            provideCheckInStalenessManager(),
             appLoggerViewModel,
         )
 
