@@ -3,21 +3,39 @@ package com.chriscartland.garage.usecase
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class DefaultAppLoggerViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val logger = FakeAppLoggerRepository()
     private val dispatchers = TestDispatcherProvider(testDispatcher)
-    private val viewModel = DefaultAppLoggerViewModel(
-        logAppEvent = LogAppEventUseCase(logger),
-        observeAppLogCount = ObserveAppLogCountUseCase(logger),
-        dispatchers = dispatchers,
-    )
+    private lateinit var viewModel: DefaultAppLoggerViewModel
+
+    @BeforeTest
+    fun setup() {
+        Dispatchers.setMain(testDispatcher)
+        viewModel = DefaultAppLoggerViewModel(
+            logAppEvent = LogAppEventUseCase(logger),
+            observeAppLogCount = ObserveAppLogCountUseCase(logger),
+            dispatchers = dispatchers,
+        )
+    }
+
+    @AfterTest
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
 
     @Test
     fun logDelegatesToRepository() =
