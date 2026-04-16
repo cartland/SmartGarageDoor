@@ -3,10 +3,15 @@ package com.chriscartland.garage.testcommon
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkResult
 
+/**
+ * Fake [NetworkButtonDataSource] for unit testing.
+ *
+ * Configure responses with `setX()` methods. ADR-017 Rule 5.
+ */
 class FakeNetworkButtonDataSource : NetworkButtonDataSource {
-    var pushResult: NetworkResult<Unit> = NetworkResult.Success(Unit)
-    var snoozeResult: NetworkResult<Unit> = NetworkResult.Success(Unit)
-    var fetchSnoozeResult: NetworkResult<Long> = NetworkResult.Success(0L)
+    private var pushResult: NetworkResult<Unit> = NetworkResult.Success(Unit)
+    private var snoozeResult: NetworkResult<Unit> = NetworkResult.Success(Unit)
+    private var fetchSnoozeResult: NetworkResult<Long> = NetworkResult.Success(0L)
 
     var pushCount = 0
         private set
@@ -14,6 +19,18 @@ class FakeNetworkButtonDataSource : NetworkButtonDataSource {
         private set
     var fetchSnoozeCount = 0
         private set
+
+    fun setPushResult(value: NetworkResult<Unit>) {
+        pushResult = value
+    }
+
+    fun setSnoozeResult(value: NetworkResult<Unit>) {
+        snoozeResult = value
+    }
+
+    fun setFetchSnoozeResult(value: NetworkResult<Long>) {
+        fetchSnoozeResult = value
+    }
 
     override suspend fun pushButton(
         remoteButtonBuildTimestamp: String,

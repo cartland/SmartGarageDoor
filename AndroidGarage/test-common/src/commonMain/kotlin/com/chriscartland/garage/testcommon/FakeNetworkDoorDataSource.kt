@@ -21,14 +21,27 @@ import com.chriscartland.garage.data.NetworkDoorDataSource
 import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.DoorEvent
 
+/**
+ * Fake [NetworkDoorDataSource] for unit testing.
+ *
+ * Configure responses with `setX()` methods. ADR-017 Rule 5.
+ */
 class FakeNetworkDoorDataSource : NetworkDoorDataSource {
-    var currentDoorEventResult: NetworkResult<DoorEvent> = NetworkResult.ConnectionFailed
-    var recentDoorEventsResult: NetworkResult<List<DoorEvent>> = NetworkResult.ConnectionFailed
+    private var currentDoorEventResult: NetworkResult<DoorEvent> = NetworkResult.ConnectionFailed
+    private var recentDoorEventsResult: NetworkResult<List<DoorEvent>> = NetworkResult.ConnectionFailed
 
     var fetchCurrentCount = 0
         private set
     var fetchRecentCount = 0
         private set
+
+    fun setCurrentDoorEventResult(value: NetworkResult<DoorEvent>) {
+        currentDoorEventResult = value
+    }
+
+    fun setRecentDoorEventsResult(value: NetworkResult<List<DoorEvent>>) {
+        recentDoorEventsResult = value
+    }
 
     override suspend fun fetchCurrentDoorEvent(buildTimestamp: String): NetworkResult<DoorEvent> {
         fetchCurrentCount++

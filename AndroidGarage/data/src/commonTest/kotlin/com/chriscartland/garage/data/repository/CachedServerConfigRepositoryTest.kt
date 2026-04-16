@@ -48,7 +48,7 @@ class CachedServerConfigRepositoryTest {
                 remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
                 remoteButtonPushKey = "key",
             )
-            configDataSource.serverConfigResult = NetworkResult.Success(config)
+            configDataSource.setServerConfigResult(NetworkResult.Success(config))
 
             val repo = createRepository()
             val result = repo.getServerConfigCached()
@@ -65,7 +65,7 @@ class CachedServerConfigRepositoryTest {
                 remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
                 remoteButtonPushKey = "key",
             )
-            configDataSource.serverConfigResult = NetworkResult.Success(config)
+            configDataSource.setServerConfigResult(NetworkResult.Success(config))
 
             val repo = createRepository()
             repo.getServerConfigCached()
@@ -77,7 +77,7 @@ class CachedServerConfigRepositoryTest {
     @Test
     fun getServerConfigCachedReturnsNullWhenNetworkFails() =
         runTest {
-            configDataSource.serverConfigResult = NetworkResult.ConnectionFailed
+            configDataSource.setServerConfigResult(NetworkResult.ConnectionFailed)
 
             val repo = createRepository()
             assertNull(repo.getServerConfigCached())
@@ -87,7 +87,7 @@ class CachedServerConfigRepositoryTest {
     @Test
     fun getServerConfigCachedRetriesAfterNullResponse() =
         runTest {
-            configDataSource.serverConfigResult = NetworkResult.ConnectionFailed
+            configDataSource.setServerConfigResult(NetworkResult.ConnectionFailed)
 
             val repo = createRepository()
             assertNull(repo.getServerConfigCached())
@@ -98,7 +98,7 @@ class CachedServerConfigRepositoryTest {
                 remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
                 remoteButtonPushKey = "key",
             )
-            configDataSource.serverConfigResult = NetworkResult.Success(config)
+            configDataSource.setServerConfigResult(NetworkResult.Success(config))
             assertEquals(config, repo.getServerConfigCached())
             assertEquals(2, configDataSource.fetchCount)
         }
@@ -111,7 +111,7 @@ class CachedServerConfigRepositoryTest {
                 remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
                 remoteButtonPushKey = "key1",
             )
-            configDataSource.serverConfigResult = NetworkResult.Success(config1)
+            configDataSource.setServerConfigResult(NetworkResult.Success(config1))
 
             val repo = createRepository()
             repo.getServerConfigCached()
@@ -122,7 +122,7 @@ class CachedServerConfigRepositoryTest {
                 remoteButtonBuildTimestamp = "2024-01-16T00:00:00Z",
                 remoteButtonPushKey = "key2",
             )
-            configDataSource.serverConfigResult = NetworkResult.Success(config2)
+            configDataSource.setServerConfigResult(NetworkResult.Success(config2))
             repo.fetchServerConfig()
 
             // Cached value should now be updated
@@ -139,13 +139,13 @@ class CachedServerConfigRepositoryTest {
                 remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
                 remoteButtonPushKey = "key",
             )
-            configDataSource.serverConfigResult = NetworkResult.Success(config)
+            configDataSource.setServerConfigResult(NetworkResult.Success(config))
 
             val repo = createRepository()
             repo.getServerConfigCached()
 
             // Network now returns null
-            configDataSource.serverConfigResult = NetworkResult.ConnectionFailed
+            configDataSource.setServerConfigResult(NetworkResult.ConnectionFailed)
             repo.fetchServerConfig()
 
             // Cache should retain the old value
