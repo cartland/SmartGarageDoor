@@ -7,20 +7,22 @@ import org.gradle.api.tasks.TaskAction
 import java.io.File
 
 /**
- * Bans public `var` properties on `Fake*` test doubles (ADR-017 Rule 5).
+ * Bans public mutable state on `Fake*` test doubles (ADR-017 Rule 5).
  *
  * Public mutable state on fakes lets tests write whenever, gives no single
  * call site to grep for mutations, and makes test ordering load-bearing.
  *
- * Allowed patterns inside `Fake*.kt`:
- * - `private var x = ...` (mutated only by the fake itself)
- * - `var x = ...` followed on the next line by `private set` (counters / last-call)
- * - `val x = ...` (immutable)
+ * Two patterns flagged:
  *
- * Forbidden:
- * - `var x: T = ...` (no `private`, no `private set`)
+ * 1. Public `var` properties.
+ *    Allowed: `private var`, `var ... private set`, `val`.
+ *    Use `setX()` methods backed by `private var` instead.
  *
- * Configure result responses with `setX()` methods backed by `private var` instead.
+ * 2. Public `val xs = mutableListOf<...>()` (or `mutableMapOf`, `mutableSetOf`).
+ *    Even though the field is `val`, the collection itself is mutable —
+ *    tests can `xs.add(...)`, `xs.clear()`, etc.
+ *    Use the call-list pattern: `private val _xs = mutableListOf<...>()` +
+ *    `val xs: List<...> get() = _xs`.
  */
 abstract class FakePublicVarCheckTask : DefaultTask() {
     @get:Input
@@ -30,6 +32,10 @@ abstract class FakePublicVarCheckTask : DefaultTask() {
 
     /** Matches a property declaration `    var name...` (4-space indent, class-level). */
     private val varPattern = Regex("""^\s{4}var\s+\w+""")
+
+    /** Matches `    val name = mutableListOf/MapOf/SetOf(...)` at class level. */
+    private val mutableCollectionPattern =
+        Regex("""^\s{4}val\s+\w+\s*=\s*mutable(List|Map|Set)Of""")
 
     @TaskAction
     fun check() {
@@ -45,17 +51,8 @@ abstract class FakePublicVarCheckTask : DefaultTask() {
                 .forEach { file ->
                     val lines = file.readLines()
                     lines.forEachIndexed { index, line ->
-                        if (!varPattern.containsMatchIn(line)) return@forEachIndexed
-                        if (line.contains("private")) return@forEachIndexed
-                        // Allow `var x = 0` followed by `        private set` on next line.
-                        val nextLine = lines.getOrNull(index + 1)?.trim()
-                        if (nextLine == "private set") return@forEachIndexed
-                        violations.add(
-                            "${file.relativeTo(dir).path}:${index + 1}: " +
-                                "public `var` on a Fake* class is banned (ADR-017 Rule 5). " +
-                                "Use `private var` + `setX()` method, or add `private set`. " +
-                                "Line: ${line.trim()}",
-                        )
+                        checkVarLine(file, dir, lines, index, line, violations)
+                        checkMutableCollectionLine(file, dir, index, line, violations)
                     }
                 }
         }
@@ -66,6 +63,46 @@ abstract class FakePublicVarCheckTask : DefaultTask() {
                     violations.joinToString("\n\n") { "  $it" },
             )
         }
-        logger.lifecycle("Fake public var check passed: no unguarded public `var` on Fake* classes.")
+        logger.lifecycle("Fake public var check passed: no unguarded public mutable state on Fake* classes.")
+    }
+
+    private fun checkVarLine(
+        file: File,
+        dir: File,
+        lines: List<String>,
+        index: Int,
+        line: String,
+        violations: MutableList<String>,
+    ) {
+        if (!varPattern.containsMatchIn(line)) return
+        if (line.contains("private")) return
+        // Allow `var x = 0` followed by `        private set` on next line.
+        val nextLine = lines.getOrNull(index + 1)?.trim()
+        if (nextLine == "private set") return
+        violations.add(
+            "${file.relativeTo(dir).path}:${index + 1}: " +
+                "public `var` on a Fake* class is banned (ADR-017 Rule 5). " +
+                "Use `private var` + `setX()` method, or add `private set`. " +
+                "Line: ${line.trim()}",
+        )
+    }
+
+    private fun checkMutableCollectionLine(
+        file: File,
+        dir: File,
+        index: Int,
+        line: String,
+        violations: MutableList<String>,
+    ) {
+        if (!mutableCollectionPattern.containsMatchIn(line)) return
+        if (line.contains("private")) return
+        violations.add(
+            "${file.relativeTo(dir).path}:${index + 1}: " +
+                "public `val xs = mutableListOf(...)` on a Fake* class is banned (ADR-017 Rule 5). " +
+                "The collection is mutable even though the field is `val`. " +
+                "Use call-list pattern: `private val _xs = mutableListOf<...>(); " +
+                "val xs: List<...> get() = _xs`. " +
+                "Line: ${line.trim()}",
+        )
     }
 }
