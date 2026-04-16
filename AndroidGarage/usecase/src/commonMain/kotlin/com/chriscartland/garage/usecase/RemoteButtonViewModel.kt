@@ -57,6 +57,7 @@ class DefaultRemoteButtonViewModel(
     private val snoozeNotificationsUseCase: SnoozeNotificationsUseCase,
     private val fetchSnoozeStatusUseCase: FetchSnoozeStatusUseCase,
     private val observeSnoozeStateUseCase: ObserveSnoozeStateUseCase,
+    private val appVersion: String,
 ) : ViewModel(),
     RemoteButtonViewModel {
     private val stateMachine = ButtonStateMachine(
@@ -108,6 +109,7 @@ class DefaultRemoteButtonViewModel(
                 val result = pushRemoteButtonUseCase(
                     buttonAckToken = createButtonAckToken(
                         currentTimeMillis = System.currentTimeMillis(),
+                        appVersion = appVersion,
                     ),
                 )
             ) {
@@ -186,14 +188,19 @@ class DefaultRemoteButtonViewModel(
 }
 
 /**
- * Create a button ack token from the current time.
+ * Create a button ack token from the current time and app version.
  *
  * This token is created by the client so the server can acknowledge the remote button push.
  * The client can send the same token to the server multiple times and the server is
  * responsible for only processing the token once.
+ *
+ * The app version is included so server logs can correlate button activity with client
+ * versions (e.g., when diagnosing version-specific bugs).
  */
-fun createButtonAckToken(currentTimeMillis: Long): String {
-    val appVersion = "AppVersionTODO"
+fun createButtonAckToken(
+    currentTimeMillis: Long,
+    appVersion: String,
+): String {
     val buttonAckTokenData = "android-$appVersion-$currentTimeMillis"
     val re = Regex("[^a-zA-Z0-9-_.]")
     val filtered = re.replace(buttonAckTokenData, ".")

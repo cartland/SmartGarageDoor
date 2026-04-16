@@ -160,7 +160,13 @@ abstract class AppComponent(
             provideSnoozeNotificationsUseCase(),
             provideFetchSnoozeStatusUseCase(),
             provideObserveSnoozeStateUseCase(),
+            provideAppVersionName(),
         )
+
+    /** App version name used in button ack tokens (server logs correlate by version). */
+    @Provides
+    @Singleton
+    fun provideAppVersionName(): String = application.applicationContext.AppVersion().versionName
 
     // Configuration
     @Provides

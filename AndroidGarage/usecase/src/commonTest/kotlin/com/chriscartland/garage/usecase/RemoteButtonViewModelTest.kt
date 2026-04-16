@@ -89,6 +89,7 @@ class RemoteButtonViewModelTest {
             snoozeNotificationsUseCase = SnoozeNotificationsUseCase(ensureFreshIdToken, authRepository, snoozeRepository),
             fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
             observeSnoozeStateUseCase = ObserveSnoozeStateUseCase(snoozeRepository),
+            appVersion = "test-version",
         )
         testDispatcher.scheduler.runCurrent()
         return vm
