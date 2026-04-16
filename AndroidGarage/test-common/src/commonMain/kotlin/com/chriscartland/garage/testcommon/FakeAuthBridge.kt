@@ -25,20 +25,25 @@ import com.chriscartland.garage.domain.model.GoogleIdToken
 /**
  * Fake [AuthBridge] for unit testing.
  *
- * Configure responses with `setX()` methods. Tracks call counts for verification.
- * ADR-017 Rule 5: result configuration uses setters, not public `var`.
+ * Configure responses with `setX()` methods. Tracks each call via call lists
+ * (ADR-017 Rule 5 — call-list pattern), so tests can assert on the exact
+ * arguments passed (e.g., the `idToken` from sign-in attempts), not just call
+ * counts. The `*Count` accessors are convenience reads backed by the lists.
  */
 class FakeAuthBridge : AuthBridge {
     private var signInResult: Boolean = true
     private var userInfo: AuthUserInfo? = null
     private var refreshTokenResult: FirebaseIdToken? = null
 
-    var signInCount = 0
-        private set
-    var refreshCount = 0
-        private set
-    var signOutCount = 0
-        private set
+    private val _signInCalls = mutableListOf<GoogleIdToken>()
+    val signInCalls: List<GoogleIdToken> get() = _signInCalls
+    val signInCount: Int get() = _signInCalls.size
+
+    private var _refreshCount: Int = 0
+    val refreshCount: Int get() = _refreshCount
+
+    private var _signOutCount: Int = 0
+    val signOutCount: Int get() = _signOutCount
 
     fun setSignInResult(value: Boolean) {
         signInResult = value
@@ -53,19 +58,19 @@ class FakeAuthBridge : AuthBridge {
     }
 
     override suspend fun signInWithGoogleToken(idToken: GoogleIdToken): Boolean {
-        signInCount++
+        _signInCalls.add(idToken)
         return signInResult
     }
 
     override fun getCurrentUser(): AuthUserInfo? = userInfo
 
     override suspend fun refreshIdToken(): FirebaseIdToken? {
-        refreshCount++
+        _refreshCount++
         return refreshTokenResult
     }
 
     override suspend fun signOut() {
-        signOutCount++
+        _signOutCount++
         userInfo = null
     }
 }
