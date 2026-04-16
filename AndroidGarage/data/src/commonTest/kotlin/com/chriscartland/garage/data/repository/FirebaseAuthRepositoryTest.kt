@@ -66,8 +66,8 @@ class FirebaseAuthRepositoryTest {
     @Test
     fun refreshReturnsAuthenticatedWhenUserAndTokenExist() =
         runTest {
-            authBridge.userInfo = AuthUserInfo(displayName = "Test User", email = "test@test.com")
-            authBridge.refreshTokenResult = FirebaseIdToken(idToken = "token-123", exp = Long.MAX_VALUE)
+            authBridge.setUserInfo(AuthUserInfo(displayName = "Test User", email = "test@test.com"))
+            authBridge.setRefreshTokenResult(FirebaseIdToken(idToken = "token-123", exp = Long.MAX_VALUE))
 
             val repo = createRepository()
             val result = repo.refreshFirebaseAuthState()
@@ -82,7 +82,7 @@ class FirebaseAuthRepositoryTest {
     @Test
     fun refreshReturnsUnauthenticatedWhenNoUser() =
         runTest {
-            authBridge.userInfo = null
+            authBridge.setUserInfo(null)
 
             val repo = createRepository()
             val result = repo.refreshFirebaseAuthState()
@@ -93,8 +93,8 @@ class FirebaseAuthRepositoryTest {
     @Test
     fun refreshReturnsUnauthenticatedWhenTokenRefreshFails() =
         runTest {
-            authBridge.userInfo = AuthUserInfo(displayName = "Test", email = "test@test.com")
-            authBridge.refreshTokenResult = null
+            authBridge.setUserInfo(AuthUserInfo(displayName = "Test", email = "test@test.com"))
+            authBridge.setRefreshTokenResult(null)
 
             val repo = createRepository()
             val result = repo.refreshFirebaseAuthState()
@@ -107,9 +107,9 @@ class FirebaseAuthRepositoryTest {
     @Test
     fun signInDelegatesAndRefreshes() =
         runTest {
-            authBridge.signInResult = true
-            authBridge.userInfo = AuthUserInfo(displayName = "Signed In", email = "user@test.com")
-            authBridge.refreshTokenResult = FirebaseIdToken(idToken = "new-token", exp = Long.MAX_VALUE)
+            authBridge.setSignInResult(true)
+            authBridge.setUserInfo(AuthUserInfo(displayName = "Signed In", email = "user@test.com"))
+            authBridge.setRefreshTokenResult(FirebaseIdToken(idToken = "new-token", exp = Long.MAX_VALUE))
 
             val repo = createRepository()
             val result = repo.signInWithGoogle(GoogleIdToken("google-token"))
@@ -124,8 +124,8 @@ class FirebaseAuthRepositoryTest {
     @Test
     fun signOutDelegatesToBridgeAndUpdatesState() =
         runTest {
-            authBridge.userInfo = AuthUserInfo(displayName = "Test", email = "test@test.com")
-            authBridge.refreshTokenResult = FirebaseIdToken(idToken = "token", exp = Long.MAX_VALUE)
+            authBridge.setUserInfo(AuthUserInfo(displayName = "Test", email = "test@test.com"))
+            authBridge.setRefreshTokenResult(FirebaseIdToken(idToken = "token", exp = Long.MAX_VALUE))
 
             val repo = createRepository()
             repo.signOut()
@@ -140,14 +140,14 @@ class FirebaseAuthRepositoryTest {
     fun authStateUpdatesOnRefresh() =
         runTest {
             // Start with a signed-in user so init refresh produces Authenticated
-            authBridge.userInfo = AuthUserInfo(displayName = "User", email = "user@test.com")
-            authBridge.refreshTokenResult = FirebaseIdToken(idToken = "token", exp = Long.MAX_VALUE)
+            authBridge.setUserInfo(AuthUserInfo(displayName = "User", email = "user@test.com"))
+            authBridge.setRefreshTokenResult(FirebaseIdToken(idToken = "token", exp = Long.MAX_VALUE))
 
             val repo = createRepository()
 
             // Change bridge to return different user
-            authBridge.userInfo = AuthUserInfo(displayName = "New User", email = "new@test.com")
-            authBridge.refreshTokenResult = FirebaseIdToken(idToken = "fresh", exp = Long.MAX_VALUE)
+            authBridge.setUserInfo(AuthUserInfo(displayName = "New User", email = "new@test.com"))
+            authBridge.setRefreshTokenResult(FirebaseIdToken(idToken = "fresh", exp = Long.MAX_VALUE))
             repo.refreshFirebaseAuthState()
 
             val state = repo.getAuthState()
