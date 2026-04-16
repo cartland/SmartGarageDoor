@@ -26,17 +26,23 @@ import kotlinx.coroutines.flow.MutableStateFlow
 /**
  * Fake [AuthRepository] for unit testing.
  *
- * Configure responses with `setX()` methods. ADR-017 Rule 5.
+ * Configure responses with `setX()` methods. Tracks sign-in calls via
+ * `signInCalls` (ADR-017 Rule 5 — call-list pattern), so tests can assert on
+ * the exact `idToken` passed. `refresh` and `signOut` take no args, so they
+ * stay as plain counter accessors.
  */
 class FakeAuthRepository : AuthRepository {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
 
-    var signInCount = 0
-        private set
-    var signOutCount = 0
-        private set
-    var refreshCount = 0
-        private set
+    private val _signInCalls = mutableListOf<GoogleIdToken>()
+    val signInCalls: List<GoogleIdToken> get() = _signInCalls
+    val signInCount: Int get() = _signInCalls.size
+
+    private var _signOutCount: Int = 0
+    val signOutCount: Int get() = _signOutCount
+
+    private var _refreshCount: Int = 0
+    val refreshCount: Int get() = _refreshCount
 
     private var signInResult: AuthState? = null
     private var refreshResult: AuthState? = null
@@ -58,19 +64,19 @@ class FakeAuthRepository : AuthRepository {
     override fun observeAuthState(): Flow<AuthState> = _authState
 
     override suspend fun signInWithGoogle(idToken: GoogleIdToken): AuthState {
-        signInCount++
+        _signInCalls.add(idToken)
         val result = signInResult ?: _authState.value
         _authState.value = result
         return result
     }
 
     override suspend fun refreshFirebaseAuthState(): AuthState {
-        refreshCount++
+        _refreshCount++
         return refreshResult ?: _authState.value
     }
 
     override suspend fun signOut() {
-        signOutCount++
+        _signOutCount++
         _authState.value = AuthState.Unauthenticated
     }
 }
