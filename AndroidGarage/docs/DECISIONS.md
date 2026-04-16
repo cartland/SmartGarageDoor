@@ -483,7 +483,11 @@ The `FCMService` correctly inserts door events into the repository (data layer),
 
 - **Display**: `rememberDurationSince()` returns `State<Duration>`, updated every 1s via `LaunchedEffect`. Lives in `androidApp` UI layer.
 - **Business**: `DoorViewModel.isCheckInStale: StateFlow<Boolean>` computed from `AppClock` + periodic 30s ticker + reactive data-change collect. Staleness logging moved from composable to ViewModel.
-- **Scope injection**: `DefaultDoorViewModel` accepts `CoroutineScope` for staleness coroutines (same pattern as `FcmRegistrationManager`, ADR-015). Production passes `applicationScope`; tests pass `backgroundScope` from `runTest`. Jobs tracked and cancelled in `onCleared()`.
+- **Scope injection**: `DefaultDoorViewModel` accepts `CoroutineScope` for staleness coroutines (same pattern as `FcmRegistrationManager`, ADR-015). Production passes `applicationScope`. Jobs tracked and cancelled in `onCleared()`.
+
+**Test scope choice — `this` vs `backgroundScope`:**
+- `runTest { scope = this }` — use when the injected coroutine has a natural end (e.g., retry loop stops on success). `FcmRegistrationManagerTest` does this. `runTest` blocks until all children of `this` complete, so infinite loops would hang.
+- `runTest { scope = backgroundScope }` — use when the coroutine never ends (e.g., periodic ticker). `DoorViewModelTest` does this. `backgroundScope` is cancelled at test completion without blocking — the right choice for `while(true)` timer loops.
 - **Clock injection**: `AppClock` interface in domain module. Tests use `FakeClock` to control wall-clock time independently from coroutine virtual time.
 
 **Rules:**
