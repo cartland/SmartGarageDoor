@@ -24,20 +24,24 @@ import com.chriscartland.garage.domain.model.ServerConfig
 /**
  * Fake [NetworkConfigDataSource] for unit testing.
  *
- * Configure responses with `setX()` methods. ADR-017 Rule 5.
+ * Configure responses with `setX()` methods. Tracks each call via
+ * `fetchServerConfigKeys` (ADR-017 Rule 5 — call-list pattern), so tests can
+ * assert on the exact `serverConfigKey` passed. The `fetchCount` accessor is
+ * a convenience read backed by the list.
  */
 class FakeNetworkConfigDataSource : NetworkConfigDataSource {
     private var serverConfigResult: NetworkResult<ServerConfig> = NetworkResult.ConnectionFailed
 
-    var fetchCount = 0
-        private set
+    private val _fetchServerConfigKeys = mutableListOf<String>()
+    val fetchServerConfigKeys: List<String> get() = _fetchServerConfigKeys
+    val fetchCount: Int get() = _fetchServerConfigKeys.size
 
     fun setServerConfigResult(value: NetworkResult<ServerConfig>) {
         serverConfigResult = value
     }
 
     override suspend fun fetchServerConfig(serverConfigKey: String): NetworkResult<ServerConfig> {
-        fetchCount++
+        _fetchServerConfigKeys.add(serverConfigKey)
         return serverConfigResult
     }
 }
