@@ -65,7 +65,7 @@ class EnsureFreshIdTokenUseCaseTest {
         runTest {
             val auth = makeAuth(token = "old-token", exp = 1000L)
             val refreshedAuth = makeAuth(token = "new-token", exp = 9000L)
-            fakeAuth.refreshResult = refreshedAuth
+            fakeAuth.setRefreshResult(refreshedAuth)
 
             val result = useCase(auth, currentTimeMillis = 2000L)
 
@@ -78,7 +78,7 @@ class EnsureFreshIdTokenUseCaseTest {
         runTest {
             val auth = makeAuth(token = "old-token", exp = 1000L)
             val refreshedAuth = makeAuth(token = "new-token", exp = 9000L)
-            fakeAuth.refreshResult = refreshedAuth
+            fakeAuth.setRefreshResult(refreshedAuth)
 
             val result = useCase(auth, currentTimeMillis = 1000L)
 
@@ -90,7 +90,7 @@ class EnsureFreshIdTokenUseCaseTest {
     fun fallsBackToCachedTokenWhenRefreshFailsWithUnauthenticated() =
         runTest {
             val auth = makeAuth(token = "old-token", exp = 1000L)
-            fakeAuth.refreshResult = AuthState.Unauthenticated
+            fakeAuth.setRefreshResult(AuthState.Unauthenticated)
 
             val result = useCase(auth, currentTimeMillis = 2000L)
 
@@ -102,7 +102,7 @@ class EnsureFreshIdTokenUseCaseTest {
     fun fallsBackToCachedTokenWhenRefreshFailsWithUnknown() =
         runTest {
             val auth = makeAuth(token = "old-token", exp = 1000L)
-            fakeAuth.refreshResult = AuthState.Unknown
+            fakeAuth.setRefreshResult(AuthState.Unknown)
 
             val result = useCase(auth, currentTimeMillis = 2000L)
 

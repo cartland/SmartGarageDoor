@@ -62,7 +62,7 @@ class DefaultAuthViewModelTest {
                 email = Email("alice@test.com"),
                 idToken = FirebaseIdToken("token", exp = 9999999999L),
             )
-            authRepo.signInResult = AuthState.Authenticated(user)
+            authRepo.setSignInResult(AuthState.Authenticated(user))
 
             viewModel.signInWithGoogle(GoogleIdToken("test-token"))
             advanceUntilIdle()
@@ -87,11 +87,13 @@ class DefaultAuthViewModelTest {
     fun signOutUpdatesAuthState() =
         runTest(testDispatcher) {
             // First sign in
-            authRepo.signInResult = AuthState.Authenticated(
-                user = User(
-                    name = DisplayName("Test"),
-                    email = Email("test@test.com"),
-                    idToken = FirebaseIdToken("token", exp = 9999999999L),
+            authRepo.setSignInResult(
+                AuthState.Authenticated(
+                    user = User(
+                        name = DisplayName("Test"),
+                        email = Email("test@test.com"),
+                        idToken = FirebaseIdToken("token", exp = 9999999999L),
+                    ),
                 ),
             )
             viewModel.signInWithGoogle(GoogleIdToken("token"))

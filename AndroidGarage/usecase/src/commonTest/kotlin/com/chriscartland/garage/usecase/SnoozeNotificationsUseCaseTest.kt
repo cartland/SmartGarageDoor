@@ -110,11 +110,13 @@ class SnoozeNotificationsUseCaseTest {
     fun snoozeRefreshesExpiredToken() =
         runTest {
             authenticateUser(token = "old", exp = 1000L)
-            fakeAuth.refreshResult = AuthState.Authenticated(
-                user = User(
-                    name = DisplayName("Test"),
-                    email = Email("test@test.com"),
-                    idToken = FirebaseIdToken(idToken = "fresh", exp = Long.MAX_VALUE),
+            fakeAuth.setRefreshResult(
+                AuthState.Authenticated(
+                    user = User(
+                        name = DisplayName("Test"),
+                        email = Email("test@test.com"),
+                        idToken = FirebaseIdToken(idToken = "fresh", exp = Long.MAX_VALUE),
+                    ),
                 ),
             )
             useCase("4h", 2000L)
@@ -125,7 +127,7 @@ class SnoozeNotificationsUseCaseTest {
     fun snoozeReturnsNetworkFailedWhenRepositoryReturnsFalse() =
         runTest {
             authenticateUser()
-            fakeSnooze.snoozeResult = false
+            fakeSnooze.setSnoozeResult(false)
 
             val result = useCase("1h", 1000L)
 

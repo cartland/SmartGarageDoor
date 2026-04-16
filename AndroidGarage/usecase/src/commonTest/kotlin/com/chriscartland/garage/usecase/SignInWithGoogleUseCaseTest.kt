@@ -45,11 +45,13 @@ class SignInWithGoogleUseCaseTest {
     fun invokeUpdatesAuthStateOnSuccess() =
         runTest {
             val repo = FakeAuthRepository()
-            repo.signInResult = AuthState.Authenticated(
-                user = User(
-                    name = DisplayName("Alice"),
-                    email = Email("alice@test.com"),
-                    idToken = FirebaseIdToken("token", exp = Long.MAX_VALUE),
+            repo.setSignInResult(
+                AuthState.Authenticated(
+                    user = User(
+                        name = DisplayName("Alice"),
+                        email = Email("alice@test.com"),
+                        idToken = FirebaseIdToken("token", exp = Long.MAX_VALUE),
+                    ),
                 ),
             )
             val useCase = SignInWithGoogleUseCase(repo)

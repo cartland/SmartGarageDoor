@@ -156,7 +156,7 @@ class RemoteButtonViewModelTest {
     @Test
     fun confirmWhenNetworkFailsShowsServerFailed() =
         runTest {
-            remoteButtonRepository.pushSucceeds = false
+            remoteButtonRepository.setPushSucceeds(false)
             val viewModel = createAuthenticatedViewModel()
 
             viewModel.onButtonTap()
@@ -278,7 +278,7 @@ class RemoteButtonViewModelTest {
         runTest {
             val viewModel = createAuthenticatedViewModel()
             doorRepository.setCurrentDoorEvent(DoorEvent(lastChangeTimeSeconds = 1000L))
-            snoozeRepository.snoozeResult = false
+            snoozeRepository.setSnoozeResult(false)
             testDispatcher.scheduler.runCurrent()
 
             viewModel.snoozeOpenDoorsNotifications(SnoozeDurationUIOption.OneHour)
