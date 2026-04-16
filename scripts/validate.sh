@@ -49,6 +49,9 @@ $GRADLE checkHardcodedColors && pass "hardcoded colors" || fail "hardcoded color
 step "ViewModel StateFlow (no stateIn(viewModelScope, ...))"
 $GRADLE checkViewModelStateFlow && pass "viewmodel stateflow" || fail "viewmodel stateflow"
 
+step "Fake public var (no unguarded public var on Fake* classes)"
+$GRADLE checkFakePublicVar && pass "fake public var" || fail "fake public var"
+
 step "Detekt (static analysis)"
 $GRADLE :androidApp:detekt && pass "detekt" || fail "detekt"
 

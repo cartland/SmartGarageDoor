@@ -129,6 +129,12 @@ tasks.register<architecture.ViewModelStateFlowCheckTask>("checkViewModelStateFlo
     )
 }
 
+tasks.register<architecture.FakePublicVarCheckTask>("checkFakePublicVar") {
+    sourceDirs = listOf(
+        "$rootDir/test-common/src/commonMain/kotlin",
+    )
+}
+
 tasks.register<testcoverage.TestCoverageCheckTask>("checkTestCoverage") {
     sourceDir = "$rootDir/androidApp/src/main/java/com/chriscartland/garage"
     testDir = "$rootDir/androidApp/src/test/java/com/chriscartland/garage"
