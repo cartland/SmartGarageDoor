@@ -21,11 +21,20 @@ import com.chriscartland.garage.data.NetworkConfigDataSource
 import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.ServerConfig
 
+/**
+ * Fake [NetworkConfigDataSource] for unit testing.
+ *
+ * Configure responses with `setX()` methods. ADR-017 Rule 5.
+ */
 class FakeNetworkConfigDataSource : NetworkConfigDataSource {
-    var serverConfigResult: NetworkResult<ServerConfig> = NetworkResult.ConnectionFailed
+    private var serverConfigResult: NetworkResult<ServerConfig> = NetworkResult.ConnectionFailed
 
     var fetchCount = 0
         private set
+
+    fun setServerConfigResult(value: NetworkResult<ServerConfig>) {
+        serverConfigResult = value
+    }
 
     override suspend fun fetchServerConfig(serverConfigKey: String): NetworkResult<ServerConfig> {
         fetchCount++

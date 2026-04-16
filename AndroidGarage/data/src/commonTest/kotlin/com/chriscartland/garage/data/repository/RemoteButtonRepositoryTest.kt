@@ -32,7 +32,7 @@ class RemoteButtonRepositoryTest {
     @Test
     fun pushReturnsFalseWhenServerConfigFetchFails() =
         runTest {
-            networkConfigDataSource.serverConfigResult = NetworkResult.ConnectionFailed
+            networkConfigDataSource.setServerConfigResult(NetworkResult.ConnectionFailed)
             val result = repo.pushButton("token", "ack-token")
             assertEquals(false, result)
             assertEquals(0, networkButtonDataSource.pushCount)
@@ -41,8 +41,10 @@ class RemoteButtonRepositoryTest {
     @Test
     fun pushReturnsTrueWhenServerConfigAvailable() =
         runTest {
-            networkConfigDataSource.serverConfigResult = NetworkResult.Success(
-                ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+            networkConfigDataSource.setServerConfigResult(
+                NetworkResult.Success(
+                    ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+                ),
             )
             val result = repo.pushButton("token", "ack-token")
             assertEquals(true, result)
@@ -52,10 +54,12 @@ class RemoteButtonRepositoryTest {
     @Test
     fun pushReturnsFalseAfterHttpError() =
         runTest {
-            networkConfigDataSource.serverConfigResult = NetworkResult.Success(
-                ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+            networkConfigDataSource.setServerConfigResult(
+                NetworkResult.Success(
+                    ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+                ),
             )
-            networkButtonDataSource.pushResult = NetworkResult.HttpError(500)
+            networkButtonDataSource.setPushResult(NetworkResult.HttpError(500))
             val result = repo.pushButton("token", "ack-token")
             assertEquals(false, result)
             assertEquals(1, networkButtonDataSource.pushCount)
@@ -64,10 +68,12 @@ class RemoteButtonRepositoryTest {
     @Test
     fun pushReturnsFalseAfterConnectionFailure() =
         runTest {
-            networkConfigDataSource.serverConfigResult = NetworkResult.Success(
-                ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+            networkConfigDataSource.setServerConfigResult(
+                NetworkResult.Success(
+                    ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+                ),
             )
-            networkButtonDataSource.pushResult = NetworkResult.ConnectionFailed
+            networkButtonDataSource.setPushResult(NetworkResult.ConnectionFailed)
             val result = repo.pushButton("token", "ack-token")
             assertEquals(false, result)
         }
@@ -80,8 +86,10 @@ class RemoteButtonRepositoryTest {
                 CachedServerConfigRepository(networkConfigDataSource, "test-key"),
                 remoteButtonPushEnabled = false,
             )
-            networkConfigDataSource.serverConfigResult = NetworkResult.Success(
-                ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+            networkConfigDataSource.setServerConfigResult(
+                NetworkResult.Success(
+                    ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+                ),
             )
             val result = disabledRepo.pushButton("token", "ack-token")
             assertEquals(false, result)
