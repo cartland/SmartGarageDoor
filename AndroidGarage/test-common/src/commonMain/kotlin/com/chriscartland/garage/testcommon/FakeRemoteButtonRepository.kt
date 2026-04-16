@@ -5,13 +5,20 @@ import com.chriscartland.garage.domain.repository.RemoteButtonRepository
 /**
  * Fake [RemoteButtonRepository] for unit testing.
  *
- * Configure responses with `setX()` methods. ADR-017 Rule 5.
+ * Tracks each call via [pushCalls] (call-list pattern, ADR-017 Rule 5) so tests
+ * can assert on the exact arguments passed, not just call counts. `pushCount` is
+ * a convenience accessor backed by the call list.
  */
 class FakeRemoteButtonRepository : RemoteButtonRepository {
-    var pushCount = 0
-        private set
-    var lastIdToken: String? = null
-        private set
+    data class PushCall(
+        val idToken: String,
+        val buttonAckToken: String,
+    )
+
+    private val _pushCalls = mutableListOf<PushCall>()
+    val pushCalls: List<PushCall> get() = _pushCalls
+    val pushCount: Int get() = _pushCalls.size
+    val lastIdToken: String? get() = _pushCalls.lastOrNull()?.idToken
 
     /** Set to false to simulate network failure. */
     private var pushSucceeds = true
@@ -24,8 +31,7 @@ class FakeRemoteButtonRepository : RemoteButtonRepository {
         idToken: String,
         buttonAckToken: String,
     ): Boolean {
-        pushCount++
-        lastIdToken = idToken
+        _pushCalls.add(PushCall(idToken = idToken, buttonAckToken = buttonAckToken))
         return pushSucceeds
     }
 }
