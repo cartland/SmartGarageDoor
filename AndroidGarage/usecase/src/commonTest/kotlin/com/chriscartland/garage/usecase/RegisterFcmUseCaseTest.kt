@@ -67,8 +67,9 @@ class RegisterFcmUseCaseTest {
     fun registerSucceedsWithBuildTimestamp() =
         runTest {
             fakeDoor.buildTimestamp = "Sat Mar 13 14:45:00 2021"
-            fakeFcm.registerResult =
-                DoorFcmState.Registered(DoorFcmTopic("door_open-Sat.Mar.13.14.45.00.2021"))
+            fakeFcm.setRegisterResult(
+                DoorFcmState.Registered(DoorFcmTopic("door_open-Sat.Mar.13.14.45.00.2021")),
+            )
 
             val result = useCase()
 
@@ -91,7 +92,7 @@ class RegisterFcmUseCaseTest {
     fun registerConvertsTimestampToTopic() =
         runTest {
             fakeDoor.buildTimestamp = "Sat Mar 13 14:45:00 2021"
-            fakeFcm.registerResult = DoorFcmState.Registered(DoorFcmTopic("test"))
+            fakeFcm.setRegisterResult(DoorFcmState.Registered(DoorFcmTopic("test")))
 
             useCase()
 
@@ -102,7 +103,7 @@ class RegisterFcmUseCaseTest {
     fun registerReturnsNetworkFailedOnSubscribeFailure() =
         runTest {
             fakeDoor.buildTimestamp = "timestamp"
-            fakeFcm.registerResult = DoorFcmState.NotRegistered
+            fakeFcm.setRegisterResult(DoorFcmState.NotRegistered)
 
             val result = useCase()
 

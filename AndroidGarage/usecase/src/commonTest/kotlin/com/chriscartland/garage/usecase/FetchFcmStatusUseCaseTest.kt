@@ -30,7 +30,7 @@ class FetchFcmStatusUseCaseTest {
     fun returnsRegisteredWhenRepoReturnsRegistered() =
         runTest {
             val repo = FakeDoorFcmRepository()
-            repo.fetchStatusResult = DoorFcmState.Registered(DoorFcmTopic("test"))
+            repo.setFetchStatusResult(DoorFcmState.Registered(DoorFcmTopic("test")))
             val useCase = FetchFcmStatusUseCase(repo)
 
             assertEquals(FcmRegistrationStatus.REGISTERED, useCase())
@@ -40,7 +40,7 @@ class FetchFcmStatusUseCaseTest {
     fun returnsNotRegisteredWhenRepoReturnsNotRegistered() =
         runTest {
             val repo = FakeDoorFcmRepository()
-            repo.fetchStatusResult = DoorFcmState.NotRegistered
+            repo.setFetchStatusResult(DoorFcmState.NotRegistered)
             val useCase = FetchFcmStatusUseCase(repo)
 
             assertEquals(FcmRegistrationStatus.NOT_REGISTERED, useCase())
@@ -50,7 +50,7 @@ class FetchFcmStatusUseCaseTest {
     fun returnsUnknownWhenRepoReturnsUnknown() =
         runTest {
             val repo = FakeDoorFcmRepository()
-            repo.fetchStatusResult = DoorFcmState.Unknown
+            repo.setFetchStatusResult(DoorFcmState.Unknown)
             val useCase = FetchFcmStatusUseCase(repo)
 
             assertEquals(FcmRegistrationStatus.UNKNOWN, useCase())
