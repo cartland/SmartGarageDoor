@@ -103,4 +103,36 @@ class DefaultAuthViewModelTest {
             advanceUntilIdle()
             assertIs<AuthState.Unauthenticated>(viewModel.authState.value)
         }
+
+    /**
+     * Verifies that direct repository state changes (not via ViewModel methods)
+     * propagate to the ViewModel's authState StateFlow.
+     *
+     * Previously the ViewModel used stateIn(Eagerly) which had subtle timing
+     * issues causing the Compose UI to not reflect auth state changes.
+     * This test ensures the explicit MutableStateFlow + collect pattern
+     * (matching DoorViewModel) works correctly.
+     */
+    @Test
+    fun authState_reflectsRepositoryChanges() =
+        runTest(testDispatcher) {
+            // Initial state is Unknown.
+            advanceUntilIdle()
+            assertIs<AuthState.Unknown>(viewModel.authState.value)
+
+            // Repository emits Authenticated (simulating Firebase auth update).
+            val user = User(
+                name = DisplayName("Alice"),
+                email = Email("alice@test.com"),
+                idToken = FirebaseIdToken("token", exp = 9999999999L),
+            )
+            authRepo.setAuthState(AuthState.Authenticated(user))
+            advanceUntilIdle()
+            assertIs<AuthState.Authenticated>(viewModel.authState.value)
+
+            // Repository emits Unauthenticated.
+            authRepo.setAuthState(AuthState.Unauthenticated)
+            advanceUntilIdle()
+            assertIs<AuthState.Unauthenticated>(viewModel.authState.value)
+        }
 }

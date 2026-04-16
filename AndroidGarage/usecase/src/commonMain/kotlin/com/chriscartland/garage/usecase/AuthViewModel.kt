@@ -24,9 +24,8 @@ import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.GoogleIdToken
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 interface AuthViewModel {
@@ -45,8 +44,18 @@ class DefaultAuthViewModel(
     private val dispatchers: DispatcherProvider,
 ) : ViewModel(),
     AuthViewModel {
-    override val authState: StateFlow<AuthState> = observeAuthState()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, AuthState.Unknown)
+    // Explicit MutableStateFlow + collect pattern (matches DoorViewModel).
+    // Previously used stateIn(Eagerly) but that caused UI to not reflect
+    // auth state changes on real devices — Compose collectAsState would see
+    // only the initial Unknown value.
+    private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
+    override val authState: StateFlow<AuthState> = _authState
+
+    init {
+        viewModelScope.launch(dispatchers.io) {
+            observeAuthState().collect { _authState.value = it }
+        }
+    }
 
     override fun signInWithGoogle(idToken: GoogleIdToken) {
         viewModelScope.launch(dispatchers.io) {
