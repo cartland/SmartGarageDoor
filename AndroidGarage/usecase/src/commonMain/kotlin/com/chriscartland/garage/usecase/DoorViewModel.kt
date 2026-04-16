@@ -20,7 +20,6 @@ package com.chriscartland.garage.usecase
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
-import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AppResult
@@ -28,9 +27,6 @@ import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.LoadingResult
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -58,13 +54,11 @@ class DefaultDoorViewModel(
     private val fetchRecentDoorEventsUseCase: FetchRecentDoorEventsUseCase,
     private val deregisterFcmUseCase: DeregisterFcmUseCase,
     private val fcmRegistrationManager: FcmRegistrationManager,
-    private val scope: CoroutineScope,
-    private val clock: AppClock = AppClock { System.currentTimeMillis() / 1000 },
+    private val checkInStalenessManager: CheckInStalenessManager,
     private val fetchOnInit: Boolean = true,
 ) : ViewModel(),
     DoorViewModel {
-    // Observe FCM status from the app-scoped manager (ADR-014, ADR-015).
-    // Uses explicit MutableStateFlow + collect (ADR-017 Rule 6).
+    // ADR-017 Rule 6: explicit MutableStateFlow + collect, no stateIn in ViewModels.
     private val _fcmRegistrationStatus = MutableStateFlow(FcmRegistrationStatus.UNKNOWN)
     override val fcmRegistrationStatus: StateFlow<FcmRegistrationStatus> = _fcmRegistrationStatus
 
@@ -79,14 +73,16 @@ class DefaultDoorViewModel(
     private val _isCheckInStale = MutableStateFlow(false)
     override val isCheckInStale: StateFlow<Boolean> = _isCheckInStale
 
-    /** Staleness coroutines — cancelled in [onCleared] to avoid leaking past ViewModel lifetime. */
-    private val stalenessJobs = mutableListOf<Job>()
-
     init {
         Logger.d { "init" }
         viewModelScope.launch(dispatchers.io) {
             fcmRegistrationManager.registrationStatus.collect {
                 _fcmRegistrationStatus.value = it
+            }
+        }
+        viewModelScope.launch(dispatchers.io) {
+            checkInStalenessManager.isCheckInStale.collect {
+                _isCheckInStale.value = it
             }
         }
         viewModelScope.launch(dispatchers.io) {
@@ -109,37 +105,6 @@ class DefaultDoorViewModel(
             fetchCurrentDoorEvent()
             fetchRecentDoorEvents()
         }
-        // Staleness: re-evaluate on data change and periodically.
-        // Uses injected scope (not viewModelScope) so tests control the lifecycle.
-        // Jobs are tracked and cancelled in onCleared() to avoid leaking past ViewModel lifetime.
-        stalenessJobs += scope.launch(dispatchers.io) {
-            _currentDoorEvent.collect { event ->
-                _isCheckInStale.value = computeStale(event)
-            }
-        }
-        stalenessJobs += scope.launch(dispatchers.io) {
-            while (true) {
-                delay(STALE_CHECK_INTERVAL_MS)
-                _isCheckInStale.value = computeStale(_currentDoorEvent.value)
-            }
-        }
-        // Log staleness transitions (moved from Main.kt composable).
-        stalenessJobs += scope.launch(dispatchers.io) {
-            var isFirstEmission = true
-            isCheckInStale.collect { stale ->
-                if (stale) {
-                    logAppEvent(AppLoggerKeys.EXCEEDED_EXPECTED_TIME_WITHOUT_FCM)
-                } else if (!isFirstEmission) {
-                    logAppEvent(AppLoggerKeys.TIME_WITHOUT_FCM_IN_EXPECTED_RANGE)
-                }
-                isFirstEmission = false
-            }
-        }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        stalenessJobs.forEach { it.cancel() }
     }
 
     override fun deregisterFcm() {
@@ -187,19 +152,5 @@ class DefaultDoorViewModel(
                 }
             }
         }
-    }
-
-    private fun computeStale(event: LoadingResult<DoorEvent?>): Boolean {
-        val checkInTime = event.data?.lastCheckInTimeSeconds ?: return false
-        val age = clock.nowEpochSeconds() - checkInTime
-        return age > CHECK_IN_STALE_THRESHOLD_SECONDS
-    }
-
-    companion object {
-        /** 11 minutes — matches the old OldLastCheckInBanner threshold. */
-        const val CHECK_IN_STALE_THRESHOLD_SECONDS = 11L * 60
-
-        /** Re-evaluate staleness every 30 seconds. */
-        const val STALE_CHECK_INTERVAL_MS = 30_000L
     }
 }

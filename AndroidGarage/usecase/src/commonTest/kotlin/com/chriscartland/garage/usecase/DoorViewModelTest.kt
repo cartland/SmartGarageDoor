@@ -18,13 +18,11 @@
 package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.coroutines.AppClock
-import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
-import com.chriscartland.garage.testcommon.FakeClock
 import com.chriscartland.garage.testcommon.FakeDoorFcmRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
@@ -73,18 +71,25 @@ class DoorViewModelTest {
     }
 
     /**
-     * Pass the [scope] from `runTest { this }` so staleness coroutines
-     * are cancelled when the test completes (same pattern as FcmRegistrationManagerTest).
+     * [scope] is used for the FcmRegistrationManager and CheckInStalenessManager
+     * (which contain infinite loops). Tests pass `backgroundScope` from `runTest`
+     * so those loops are cancelled when the test completes.
      */
     private fun createViewModel(
         scope: CoroutineScope,
-        clock: AppClock = AppClock { 0L },
         fetchOnInit: Boolean = true,
     ): DefaultDoorViewModel {
         val fcmManager = FcmRegistrationManager(
             registerFcmUseCase = RegisterFcmUseCase(doorRepository, doorFcmRepository),
             scope = scope,
             dispatcher = testDispatcher,
+        )
+        val stalenessManager = CheckInStalenessManager(
+            observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
+            logAppEvent = LogAppEventUseCase(appLoggerRepository),
+            scope = scope,
+            dispatcher = testDispatcher,
+            clock = AppClock { 0L },
         )
         val vm = DefaultDoorViewModel(
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
@@ -94,8 +99,7 @@ class DoorViewModelTest {
             fetchRecentDoorEventsUseCase = FetchRecentDoorEventsUseCase(doorRepository),
             deregisterFcmUseCase = DeregisterFcmUseCase(doorFcmRepository),
             fcmRegistrationManager = fcmManager,
-            clock = clock,
-            scope = scope,
+            checkInStalenessManager = stalenessManager,
             fetchOnInit = fetchOnInit,
         )
         testDispatcher.scheduler.runCurrent()
@@ -199,172 +203,5 @@ class DoorViewModelTest {
             // Flow collection still runs (shows repo data), but network fetch was NOT triggered
             assertEquals(0, doorRepository.fetchCurrentDoorEventCount)
             assertEquals(0, doorRepository.fetchRecentDoorEventsCount)
-        }
-
-    // --- Staleness tests ---
-
-    private val staleCheckInterval = DefaultDoorViewModel.STALE_CHECK_INTERVAL_MS
-
-    @Test
-    fun isCheckInStale_isFalse_whenCheckInIsRecent() =
-        runTest {
-            val clock = FakeClock(nowSeconds = 1000L)
-            doorRepository.setCurrentDoorEvent(
-                testDoorEvent.copy(lastCheckInTimeSeconds = 1000L),
-            )
-            val viewModel = createViewModel(
-                scope = backgroundScope,
-                clock = clock,
-            )
-
-            assertEquals(false, viewModel.isCheckInStale.value)
-        }
-
-    @Test
-    fun isCheckInStale_isTrue_whenStaleEventArrives() =
-        runTest {
-            // Start with fresh check-in.
-            val clock = FakeClock(nowSeconds = 1000L)
-            doorRepository.setCurrentDoorEvent(
-                testDoorEvent.copy(lastCheckInTimeSeconds = 1000L),
-            )
-            val viewModel = createViewModel(
-                scope = backgroundScope,
-                clock = clock,
-            )
-            assertEquals(false, viewModel.isCheckInStale.value)
-
-            // Emit a new event with old check-in — reactive path (no ticker needed).
-            val staleCheckInTime = clock.nowEpochSeconds() -
-                DefaultDoorViewModel.CHECK_IN_STALE_THRESHOLD_SECONDS - 1
-            doorRepository.setCurrentDoorEvent(
-                testDoorEvent.copy(lastCheckInTimeSeconds = staleCheckInTime),
-            )
-            testDispatcher.scheduler.runCurrent()
-
-            assertEquals(true, viewModel.isCheckInStale.value)
-        }
-
-    @Test
-    fun isCheckInStale_isTrue_whenCheckInIsOld_viaTicker() =
-        runTest {
-            val checkInTime = 1000L
-            val clock = FakeClock(
-                nowSeconds = checkInTime + DefaultDoorViewModel.CHECK_IN_STALE_THRESHOLD_SECONDS + 1,
-            )
-            doorRepository.setCurrentDoorEvent(
-                testDoorEvent.copy(lastCheckInTimeSeconds = checkInTime),
-            )
-            val viewModel = createViewModel(
-                scope = backgroundScope,
-                clock = clock,
-            )
-
-            // Advance past the ticker interval so the periodic check fires.
-            testDispatcher.scheduler.advanceTimeBy(staleCheckInterval + 1)
-            testDispatcher.scheduler.runCurrent()
-
-            assertEquals(true, viewModel.isCheckInStale.value)
-        }
-
-    @Test
-    fun isCheckInStale_becomesTrue_afterClockAdvances() =
-        runTest {
-            val checkInTime = 1000L
-            val clock = FakeClock(nowSeconds = checkInTime)
-            doorRepository.setCurrentDoorEvent(
-                testDoorEvent.copy(lastCheckInTimeSeconds = checkInTime),
-            )
-            val viewModel = createViewModel(
-                scope = backgroundScope,
-                clock = clock,
-            )
-
-            assertEquals(false, viewModel.isCheckInStale.value)
-
-            // Advance the fake clock past threshold.
-            clock.advanceSeconds(DefaultDoorViewModel.CHECK_IN_STALE_THRESHOLD_SECONDS + 1)
-            // Advance coroutine time so the ticker fires.
-            testDispatcher.scheduler.advanceTimeBy(staleCheckInterval + 1)
-            testDispatcher.scheduler.runCurrent()
-
-            assertEquals(true, viewModel.isCheckInStale.value)
-        }
-
-    @Test
-    fun isCheckInStale_becomesFresh_whenNewEventArrives() =
-        runTest {
-            val checkInTime = 1000L
-            val clock = FakeClock(
-                nowSeconds = checkInTime + DefaultDoorViewModel.CHECK_IN_STALE_THRESHOLD_SECONDS + 1,
-            )
-            doorRepository.setCurrentDoorEvent(
-                testDoorEvent.copy(lastCheckInTimeSeconds = checkInTime),
-            )
-            val viewModel = createViewModel(
-                scope = backgroundScope,
-                clock = clock,
-            )
-
-            // Becomes stale via ticker.
-            testDispatcher.scheduler.advanceTimeBy(staleCheckInterval + 1)
-            testDispatcher.scheduler.runCurrent()
-            assertEquals(true, viewModel.isCheckInStale.value)
-
-            // New event arrives with fresh check-in time — triggers collect, not ticker.
-            doorRepository.setCurrentDoorEvent(
-                testDoorEvent.copy(lastCheckInTimeSeconds = clock.nowEpochSeconds()),
-            )
-            testDispatcher.scheduler.runCurrent()
-
-            assertEquals(false, viewModel.isCheckInStale.value)
-        }
-
-    @Test
-    fun logsStaleEvent_whenCheckInBecomesStale() =
-        runTest {
-            val checkInTime = 1000L
-            val clock = FakeClock(nowSeconds = checkInTime)
-            doorRepository.setCurrentDoorEvent(
-                testDoorEvent.copy(lastCheckInTimeSeconds = checkInTime),
-            )
-            createViewModel(
-                scope = backgroundScope,
-                clock = clock,
-            )
-
-            // Advance past threshold.
-            clock.advanceSeconds(DefaultDoorViewModel.CHECK_IN_STALE_THRESHOLD_SECONDS + 1)
-            testDispatcher.scheduler.advanceTimeBy(staleCheckInterval + 1)
-            testDispatcher.scheduler.runCurrent()
-
-            assertTrue(
-                appLoggerRepository.loggedKeys.contains(
-                    AppLoggerKeys.EXCEEDED_EXPECTED_TIME_WITHOUT_FCM,
-                ),
-                "Expected staleness log, got: ${appLoggerRepository.loggedKeys}",
-            )
-        }
-
-    @Test
-    fun doesNotLogFresh_onFirstEmission() =
-        runTest {
-            val clock = FakeClock(nowSeconds = 1000L)
-            doorRepository.setCurrentDoorEvent(
-                testDoorEvent.copy(lastCheckInTimeSeconds = 1000L),
-            )
-            createViewModel(
-                scope = backgroundScope,
-                clock = clock,
-            )
-
-            // The first emission is false (fresh) — should NOT log "in range".
-            val freshLogs = appLoggerRepository.loggedKeys.filter {
-                it == AppLoggerKeys.TIME_WITHOUT_FCM_IN_EXPECTED_RANGE
-            }
-            assertTrue(
-                freshLogs.isEmpty(),
-                "Should not log fresh on first emission, got: ${appLoggerRepository.loggedKeys}",
-            )
         }
 }

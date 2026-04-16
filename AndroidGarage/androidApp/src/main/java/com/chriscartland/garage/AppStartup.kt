@@ -20,6 +20,7 @@ package com.chriscartland.garage
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.usecase.AppLoggerViewModel
+import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.FcmRegistrationManager
 
 /**
@@ -30,10 +31,11 @@ import com.chriscartland.garage.usecase.FcmRegistrationManager
  */
 class AppStartup(
     private val fcmRegistrationManager: FcmRegistrationManager,
+    private val checkInStalenessManager: CheckInStalenessManager,
     private val appLoggerViewModel: AppLoggerViewModel,
 ) {
     /**
-     * Performs startup actions: FCM registration and logging.
+     * Performs startup actions: FCM registration, staleness tracking, and logging.
      * Returns the list of actions taken (for testing/logging).
      */
     fun run(): List<String> {
@@ -42,6 +44,10 @@ class AppStartup(
         Logger.d { "AppStartup: Starting FCM registration manager" }
         fcmRegistrationManager.start()
         actions.add("startFcmRegistration")
+
+        Logger.d { "AppStartup: Starting check-in staleness manager" }
+        checkInStalenessManager.start()
+        actions.add("startCheckInStaleness")
 
         appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
         actions.add("logFcmSubscribe")
