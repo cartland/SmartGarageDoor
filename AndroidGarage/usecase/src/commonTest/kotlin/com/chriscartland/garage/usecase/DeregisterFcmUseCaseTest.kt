@@ -29,7 +29,7 @@ class DeregisterFcmUseCaseTest {
     fun deregisterReturnsNotRegisteredOnSuccess() =
         runTest {
             val repo = FakeDoorFcmRepository()
-            repo.deregisterResult = DoorFcmState.NotRegistered
+            repo.setDeregisterResult(DoorFcmState.NotRegistered)
             val useCase = DeregisterFcmUseCase(repo)
 
             assertEquals(FcmRegistrationStatus.NOT_REGISTERED, useCase())
@@ -39,7 +39,7 @@ class DeregisterFcmUseCaseTest {
     fun deregisterReturnsUnknownOnFailure() =
         runTest {
             val repo = FakeDoorFcmRepository()
-            repo.deregisterResult = DoorFcmState.Unknown
+            repo.setDeregisterResult(DoorFcmState.Unknown)
             val useCase = DeregisterFcmUseCase(repo)
 
             assertEquals(FcmRegistrationStatus.UNKNOWN, useCase())

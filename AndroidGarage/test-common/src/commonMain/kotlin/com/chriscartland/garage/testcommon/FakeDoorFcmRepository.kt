@@ -21,12 +21,32 @@ import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.domain.repository.DoorFcmRepository
 
+/**
+ * Fake [DoorFcmRepository] for unit testing.
+ *
+ * Configure responses with `setX()` methods. ADR-017 Rule 5.
+ */
 class FakeDoorFcmRepository : DoorFcmRepository {
-    var fetchStatusResult: DoorFcmState = DoorFcmState.Unknown
-    var registerResult: DoorFcmState = DoorFcmState.NotRegistered
-    var deregisterResult: DoorFcmState = DoorFcmState.NotRegistered
+    private var fetchStatusResult: DoorFcmState = DoorFcmState.Unknown
+    private var registerResult: DoorFcmState = DoorFcmState.NotRegistered
+    private var deregisterResult: DoorFcmState = DoorFcmState.NotRegistered
+
     var registerCount = 0
+        private set
     var lastRegisteredTopic: DoorFcmTopic? = null
+        private set
+
+    fun setFetchStatusResult(value: DoorFcmState) {
+        fetchStatusResult = value
+    }
+
+    fun setRegisterResult(value: DoorFcmState) {
+        registerResult = value
+    }
+
+    fun setDeregisterResult(value: DoorFcmState) {
+        deregisterResult = value
+    }
 
     override suspend fun fetchStatus(): DoorFcmState = fetchStatusResult
 
