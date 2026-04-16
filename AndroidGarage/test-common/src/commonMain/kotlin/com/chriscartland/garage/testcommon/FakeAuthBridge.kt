@@ -25,12 +25,13 @@ import com.chriscartland.garage.domain.model.GoogleIdToken
 /**
  * Fake [AuthBridge] for unit testing.
  *
- * All responses are configurable. Tracks call counts for verification.
+ * Configure responses with `setX()` methods. Tracks call counts for verification.
+ * ADR-017 Rule 5: result configuration uses setters, not public `var`.
  */
 class FakeAuthBridge : AuthBridge {
-    var signInResult: Boolean = true
-    var userInfo: AuthUserInfo? = null
-    var refreshTokenResult: FirebaseIdToken? = null
+    private var signInResult: Boolean = true
+    private var userInfo: AuthUserInfo? = null
+    private var refreshTokenResult: FirebaseIdToken? = null
 
     var signInCount = 0
         private set
@@ -38,6 +39,18 @@ class FakeAuthBridge : AuthBridge {
         private set
     var signOutCount = 0
         private set
+
+    fun setSignInResult(value: Boolean) {
+        signInResult = value
+    }
+
+    fun setUserInfo(value: AuthUserInfo?) {
+        userInfo = value
+    }
+
+    fun setRefreshTokenResult(value: FirebaseIdToken?) {
+        refreshTokenResult = value
+    }
 
     override suspend fun signInWithGoogleToken(idToken: GoogleIdToken): Boolean {
         signInCount++
