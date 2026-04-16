@@ -24,17 +24,20 @@ import com.chriscartland.garage.domain.repository.DoorFcmRepository
 /**
  * Fake [DoorFcmRepository] for unit testing.
  *
- * Configure responses with `setX()` methods. ADR-017 Rule 5.
+ * Configure responses with `setX()` methods. Tracks register calls via
+ * `registerCalls` (ADR-017 Rule 5 — call-list pattern). The `registerCount`
+ * and `lastRegisteredTopic` accessors are convenience reads backed by the
+ * list, so existing tests continue to work without changes.
  */
 class FakeDoorFcmRepository : DoorFcmRepository {
     private var fetchStatusResult: DoorFcmState = DoorFcmState.Unknown
     private var registerResult: DoorFcmState = DoorFcmState.NotRegistered
     private var deregisterResult: DoorFcmState = DoorFcmState.NotRegistered
 
-    var registerCount = 0
-        private set
-    var lastRegisteredTopic: DoorFcmTopic? = null
-        private set
+    private val _registerCalls = mutableListOf<DoorFcmTopic>()
+    val registerCalls: List<DoorFcmTopic> get() = _registerCalls
+    val registerCount: Int get() = _registerCalls.size
+    val lastRegisteredTopic: DoorFcmTopic? get() = _registerCalls.lastOrNull()
 
     fun setFetchStatusResult(value: DoorFcmState) {
         fetchStatusResult = value
@@ -51,8 +54,7 @@ class FakeDoorFcmRepository : DoorFcmRepository {
     override suspend fun fetchStatus(): DoorFcmState = fetchStatusResult
 
     override suspend fun registerDoor(fcmTopic: DoorFcmTopic): DoorFcmState {
-        registerCount++
-        lastRegisteredTopic = fcmTopic
+        _registerCalls.add(fcmTopic)
         return registerResult
     }
 
