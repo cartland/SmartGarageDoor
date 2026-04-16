@@ -79,7 +79,7 @@ class FirebaseDoorFcmRepositoryTest {
     @Test
     fun registerDoorReturnsNotRegisteredOnSubscribeFailure() =
         runTest {
-            bridge.subscribeResult = false
+            bridge.setSubscribeResult(false)
             val state = repo.registerDoor(DoorFcmTopic("topic"))
 
             assertIs<DoorFcmState.NotRegistered>(state)
@@ -88,7 +88,7 @@ class FirebaseDoorFcmRepositoryTest {
     @Test
     fun registerDoorReturnsNotRegisteredWhenNoToken() =
         runTest {
-            bridge.token = null
+            bridge.setToken(null)
             val state = repo.registerDoor(DoorFcmTopic("topic"))
 
             assertIs<DoorFcmState.NotRegistered>(state)
