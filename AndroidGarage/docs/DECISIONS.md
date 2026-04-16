@@ -643,12 +643,18 @@ These were tracked as separate follow-up PRs. The rules above apply immediately 
 2. Refactor `DoorViewModel` staleness ticker into `CheckInStalenessManager` (Rule 2 + ADR-015) — DONE (#299)
 3. Audit all ViewModels for `stateIn` usage; convert to explicit pattern (Rule 6) — DONE (#298)
 4. Add lint check banning `stateIn(viewModelScope, ...)` in ViewModel files (Rule 6 enforcement) — DONE (#300)
-5. Convert fakes with public `var` for results to `setX()` methods (Rule 5) — DONE (#301, #302, #303, #304, #305)
-6. Adopt call-list pattern for new fakes; migrate counter-style fakes opportunistically (Rule 5) — Ongoing
+5. Convert fakes with public `var` for results to `setX()` methods (Rule 5) — DONE (#301, #302, #303, #304, #305, #308)
+6. Adopt call-list pattern for new fakes; migrate counter-style fakes opportunistically (Rule 5) — DONE (#307, #309, #313, #314, #315, #316, #317, #318, #319, #320)
+
+### Enforcement
+
+- `ViewModelStateFlowCheckTask` (#300) bans `.stateIn(viewModelScope, ...)` in ViewModel files (Rule 6)
+- `FakePublicVarCheckTask` (#310, #313) bans public `var` and public mutable collections on `Fake*` classes (Rule 5)
 
 ### Consequences
 
 - One pattern per test concern — no "which style do I use" decisions for new code
-- The auth state UI bug (PR #295) is now a structural impossibility — Rule 6 enforced by `ViewModelStateFlowCheckTask` (PR #300)
+- The auth state UI bug (PR #295) is now a structural impossibility — Rule 6 enforced
 - Test code reads consistently across modules, easier to onboard
-- All mandatory migration tasks completed in 2026-04-16; only the opportunistic call-list migration remains
+- All migration tasks (mandatory + opportunistic) completed 2026-04-16
+- Every fake whose methods take meaningful args now exposes a `*Calls: List<…>` for argument assertions; counter-only fakes (no-arg methods) keep simple counter accessors
