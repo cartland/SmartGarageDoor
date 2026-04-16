@@ -114,7 +114,7 @@ class PushRemoteButtonUseCaseTest {
                     idToken = FirebaseIdToken(idToken = "new-token", exp = Long.MAX_VALUE),
                 ),
             )
-            fakeAuth.refreshResult = refreshedAuth
+            fakeAuth.setRefreshResult(refreshedAuth)
 
             useCase("ack-123")
 

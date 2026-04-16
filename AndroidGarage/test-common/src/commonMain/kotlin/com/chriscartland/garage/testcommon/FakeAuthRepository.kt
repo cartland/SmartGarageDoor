@@ -23,6 +23,11 @@ import com.chriscartland.garage.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
+/**
+ * Fake [AuthRepository] for unit testing.
+ *
+ * Configure responses with `setX()` methods. ADR-017 Rule 5.
+ */
 class FakeAuthRepository : AuthRepository {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
 
@@ -33,11 +38,19 @@ class FakeAuthRepository : AuthRepository {
     var refreshCount = 0
         private set
 
-    var signInResult: AuthState? = null
-    var refreshResult: AuthState? = null
+    private var signInResult: AuthState? = null
+    private var refreshResult: AuthState? = null
 
     fun setAuthState(state: AuthState) {
         _authState.value = state
+    }
+
+    fun setSignInResult(value: AuthState?) {
+        signInResult = value
+    }
+
+    fun setRefreshResult(value: AuthState?) {
+        refreshResult = value
     }
 
     override suspend fun getAuthState(): AuthState = _authState.value
