@@ -38,7 +38,11 @@ class FakeDoorRepository : DoorRepository {
         private set
     var fetchRecentDoorEventsCount = 0
         private set
-    var buildTimestamp: String? = "2024-01-15T00:00:00Z"
+    private var buildTimestamp: String? = "2024-01-15T00:00:00Z"
+
+    fun setBuildTimestamp(value: String?) {
+        buildTimestamp = value
+    }
 
     fun setCurrentDoorEvent(event: DoorEvent) {
         _currentDoorEvent.value = event
