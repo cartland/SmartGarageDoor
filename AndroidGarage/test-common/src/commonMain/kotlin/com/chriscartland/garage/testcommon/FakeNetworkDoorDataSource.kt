@@ -24,16 +24,27 @@ import com.chriscartland.garage.domain.model.DoorEvent
 /**
  * Fake [NetworkDoorDataSource] for unit testing.
  *
- * Configure responses with `setX()` methods. ADR-017 Rule 5.
+ * Configure responses with `setX()` methods. Tracks each call via `*Calls`
+ * lists (ADR-017 Rule 5 — call-list pattern), so tests can assert on the
+ * exact arguments passed (build timestamps, page sizes). The `*Count`
+ * accessors are convenience reads backed by the lists.
  */
 class FakeNetworkDoorDataSource : NetworkDoorDataSource {
+    data class FetchRecentCall(
+        val buildTimestamp: String,
+        val count: Int,
+    )
+
     private var currentDoorEventResult: NetworkResult<DoorEvent> = NetworkResult.ConnectionFailed
     private var recentDoorEventsResult: NetworkResult<List<DoorEvent>> = NetworkResult.ConnectionFailed
 
-    var fetchCurrentCount = 0
-        private set
-    var fetchRecentCount = 0
-        private set
+    private val _fetchCurrentBuildTimestamps = mutableListOf<String>()
+    val fetchCurrentBuildTimestamps: List<String> get() = _fetchCurrentBuildTimestamps
+    val fetchCurrentCount: Int get() = _fetchCurrentBuildTimestamps.size
+
+    private val _fetchRecentCalls = mutableListOf<FetchRecentCall>()
+    val fetchRecentCalls: List<FetchRecentCall> get() = _fetchRecentCalls
+    val fetchRecentCount: Int get() = _fetchRecentCalls.size
 
     fun setCurrentDoorEventResult(value: NetworkResult<DoorEvent>) {
         currentDoorEventResult = value
@@ -44,7 +55,7 @@ class FakeNetworkDoorDataSource : NetworkDoorDataSource {
     }
 
     override suspend fun fetchCurrentDoorEvent(buildTimestamp: String): NetworkResult<DoorEvent> {
-        fetchCurrentCount++
+        _fetchCurrentBuildTimestamps.add(buildTimestamp)
         return currentDoorEventResult
     }
 
@@ -52,7 +63,7 @@ class FakeNetworkDoorDataSource : NetworkDoorDataSource {
         buildTimestamp: String,
         count: Int,
     ): NetworkResult<List<DoorEvent>> {
-        fetchRecentCount++
+        _fetchRecentCalls.add(FetchRecentCall(buildTimestamp = buildTimestamp, count = count))
         return recentDoorEventsResult
     }
 }
