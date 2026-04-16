@@ -502,3 +502,153 @@ The `FCMService` correctly inserts door events into the repository (data layer),
 - One source of truth for "is check-in stale" (ViewModel, not composable)
 - Tests never hang — `backgroundScope` cancelled on test completion
 - Slight complexity: two scopes in ViewModel (viewModelScope for screen-scoped, injected scope for timer-scoped)
+
+## ADR-017: Test Conventions
+
+**Status:** Accepted
+
+**Context:** Test patterns across `*ViewModelTest.kt`, `*ManagerTest.kt`, and `Fake*.kt` files had drifted into multiple competing styles. An audit found three different ViewModel test setup patterns, mixed scope handling for tests with infinite coroutines, mixed state-observation styles (`.value` vs `.first()`), and mixed fake mutation styles (10 fakes use public `var`, 4 use `setX()` methods). This ADR locks in the conventions to follow.
+
+### Rule 1: ViewModel test setup
+
+Tests for classes that extend `androidx.lifecycle.ViewModel` MUST set up the Main dispatcher.
+
+```kotlin
+@BeforeTest fun setup() { Dispatchers.setMain(testDispatcher) }
+@AfterTest fun tearDown() { Dispatchers.resetMain() }
+```
+
+Tests for non-ViewModel classes (e.g., `FcmRegistrationManager`) don't need this — they have no `viewModelScope`.
+
+**Why:** `viewModelScope` uses `Dispatchers.Main.immediate`. Without `setMain`, ViewModel construction fails with "Module with the Main dispatcher is missing." Adding it where it's not needed pretends a class uses lifecycle infrastructure it doesn't.
+
+### Rule 2: Test control of ViewModel coroutines
+
+Tests MUST be able to cancel ViewModel coroutines before `runTest` drains the scheduler. An infinite `delay()` loop in `viewModelScope` will hang `runTest` indefinitely (the test scheduler tries to drain unbounded virtual time). Three techniques satisfy this rule — pick by what the timer is for:
+
+| Situation | Technique |
+|-----------|-----------|
+| App-scoped state (shared across screens, must outlive any single screen) | **Manager** (ADR-015): extract to a class that accepts `scope: CoroutineScope`. Production passes `applicationScope`; tests pass `this` or `backgroundScope` |
+| Screen-scoped timer (countdown, debounce, animation tick) | **`ViewModelStore.clear()` in test**: keep timer in `viewModelScope`, clean up explicitly per test (`try { ... } finally { store.clear() }`) — mirrors production cleanup |
+| Hybrid edge case where timer logic genuinely belongs in ViewModel but should outlive the screen | **Inject `scope: CoroutineScope`** into ViewModel constructor |
+
+**Test scope choice — `this` vs `backgroundScope`:**
+- `runTest { scope = this }` — use when the injected coroutine has a natural end (e.g., retry loop stops on success). `runTest` blocks until all children complete, so infinite loops would hang.
+- `runTest { scope = backgroundScope }` — use when the coroutine never ends (e.g., periodic ticker). `backgroundScope` is cancelled at test completion without blocking.
+
+**Why:** A blanket "no timers in ViewModels" rule is too broad. The core requirement is test cancellation, achievable three ways depending on the lifecycle of the state.
+
+### Rule 3: Manager scope in production
+
+App-scoped managers (FCM registration, staleness ticker) use `applicationScope` (singleton, lives for process lifetime).
+
+**Why:** These managers must keep working across screen rotations, navigation, and backgrounding. Cost of an idle `delay()` loop is negligible.
+
+**Tradeoff:** If a Manager ever does expensive polling/network work in its loop, switch to `SharingStarted.WhileSubscribed` so the loop pauses when nothing observes.
+
+### Rule 4: State observation in tests
+
+| Test target | Assertion |
+|-------------|-----------|
+| `StateFlow` (always direct exposure per Rule 6) | `.value` |
+| Plain `Flow` (no current value semantics) | `.first()` for single value, `launch { .toList(buf) }` for sequence |
+| `Flow` where intermediate emissions are part of the contract | sequence collection |
+
+**Why:** With Rule 6, every ViewModel `StateFlow` is direct exposure of an owned `MutableStateFlow` field — `.value` is identical to what subscribers see. There's no separate subscription path that can fail silently.
+
+### Rule 5: Fake state mutation
+
+Apply by field type:
+
+| Field type | Pattern |
+|------------|---------|
+| State others observe (Flow needed) | `private val _x = MutableStateFlow(...)` + `setX()` method |
+| State others read but don't write (counters, last-call) | `var x: T = ...` with `private set`, OR call-list (preferred) |
+| Result configuration mutated by tests | `setX()` method (no public `var`) |
+| Truly immutable | `val` |
+
+**Counter style — call-list preferred:**
+
+```kotlin
+// Good — call-list (richer, all val)
+private val _pushCalls = mutableListOf<PushArgs>()
+val pushCalls: List<PushArgs> get() = _pushCalls
+val pushCount: Int get() = _pushCalls.size
+
+// Acceptable — counter
+var pushCount: Int = 0
+    private set
+```
+
+Call-list lets tests assert on call arguments, not just count. Both fields stay `val`.
+
+**Anti-pattern (forbidden):** public `var pushResult: NetworkResult<Unit>` — tests can write whenever, no single call site to grep, test ordering becomes load-bearing.
+
+**Why:** The real risk of `var` is **public** mutability. `private set` removes that risk while keeping syntax minimal. `MutableStateFlow` is needed when observation is part of the contract; using it for plain counters adds ceremony without safety gain.
+
+### Rule 6: ViewModel `StateFlow` construction
+
+ViewModels expose `StateFlow` via direct `MutableStateFlow` field, populated by an `init`-block collector. **No `stateIn` in ViewModels.**
+
+```kotlin
+// Required pattern
+private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
+override val authState: StateFlow<AuthState> = _authState
+
+init {
+    viewModelScope.launch(dispatchers.io) {
+        observeAuthState().collect { _authState.value = it }
+    }
+}
+
+// Forbidden pattern
+override val authState: StateFlow<AuthState> = observeAuthState()
+    .stateIn(viewModelScope, SharingStarted.Eagerly, AuthState.Unknown)
+```
+
+**Why:** `stateIn(Eagerly)` had subtle timing issues that caused real production bugs (auth state UI not updating, see PR #295). The explicit pattern is predictable, matches `DoorViewModel.currentDoorEvent` (which never had this issue), and ensures `.value` always reflects what subscribers see.
+
+**Enforcement:** lint check / `LayerImportCheckTask` extension that bans `.stateIn(viewModelScope, ...)` in ViewModel files.
+
+### Rule 7: Test data construction
+
+| Type complexity | Pattern |
+|-----------------|---------|
+| Type has 3+ fields, used in multiple tests | Factory function with sensible defaults |
+| Used once or trivially small | Inline literal |
+
+```kotlin
+// Factory — DoorEvent has 4+ fields, used everywhere
+private fun makeDoorEvent(
+    position: DoorPosition = DoorPosition.CLOSED,
+    lastCheckInTimeSeconds: Long = 1000L,
+    lastChangeTimeSeconds: Long = 900L,
+    message: String = "",
+): DoorEvent = DoorEvent(...)
+
+// Inline — small/local
+val token = GoogleIdToken("test-token")
+```
+
+### Bonus: Naming
+
+- `Fake*` for test doubles (e.g., `FakeAuthRepository`)
+- `InMemory*` for real implementations backed by collections that could ship in production (e.g., `InMemoryLocalDoorDataSource`)
+
+### Migration tasks (mandatory)
+
+These are tracked as separate follow-up PRs. The rules above apply immediately to new code; existing code must be migrated before the rules take full effect.
+
+1. Add `setMain`/`resetMain` to `DefaultAppLoggerViewModelTest` (Rule 1)
+2. Refactor `DoorViewModel` staleness ticker into `CheckInStalenessManager` (Rule 2 + ADR-015)
+3. Audit all ViewModels for `stateIn` usage; convert to explicit pattern (Rule 6)
+4. Add lint check banning `stateIn(viewModelScope, ...)` in ViewModel files (Rule 6 enforcement)
+5. Convert 10 fakes with public `var` for results to `setX()` methods (Rule 5)
+6. Adopt call-list pattern for new fakes; migrate counter-style fakes opportunistically (Rule 5)
+
+### Consequences
+
+- One pattern per test concern — no "which style do I use" decisions for new code
+- The auth state UI bug (PR #295) becomes a structural impossibility once Rule 6 is enforced
+- Test code reads consistently across modules, easier to onboard
+- Migration cost: ~10 fakes to convert, 3-4 ViewModels to audit, one Manager to extract
