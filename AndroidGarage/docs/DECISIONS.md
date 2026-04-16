@@ -637,18 +637,18 @@ val token = GoogleIdToken("test-token")
 
 ### Migration tasks (mandatory)
 
-These are tracked as separate follow-up PRs. The rules above apply immediately to new code; existing code must be migrated before the rules take full effect.
+These were tracked as separate follow-up PRs. The rules above apply immediately to new code; existing code was migrated to the rules in PRs #297–#305.
 
-1. Add `setMain`/`resetMain` to `DefaultAppLoggerViewModelTest` (Rule 1)
-2. Refactor `DoorViewModel` staleness ticker into `CheckInStalenessManager` (Rule 2 + ADR-015)
-3. Audit all ViewModels for `stateIn` usage; convert to explicit pattern (Rule 6)
-4. Add lint check banning `stateIn(viewModelScope, ...)` in ViewModel files (Rule 6 enforcement)
-5. Convert 10 fakes with public `var` for results to `setX()` methods (Rule 5)
-6. Adopt call-list pattern for new fakes; migrate counter-style fakes opportunistically (Rule 5)
+1. Add `setMain`/`resetMain` to `DefaultAppLoggerViewModelTest` (Rule 1) — DONE (#297)
+2. Refactor `DoorViewModel` staleness ticker into `CheckInStalenessManager` (Rule 2 + ADR-015) — DONE (#299)
+3. Audit all ViewModels for `stateIn` usage; convert to explicit pattern (Rule 6) — DONE (#298)
+4. Add lint check banning `stateIn(viewModelScope, ...)` in ViewModel files (Rule 6 enforcement) — DONE (#300)
+5. Convert fakes with public `var` for results to `setX()` methods (Rule 5) — DONE (#301, #302, #303, #304, #305)
+6. Adopt call-list pattern for new fakes; migrate counter-style fakes opportunistically (Rule 5) — Ongoing
 
 ### Consequences
 
 - One pattern per test concern — no "which style do I use" decisions for new code
-- The auth state UI bug (PR #295) becomes a structural impossibility once Rule 6 is enforced
+- The auth state UI bug (PR #295) is now a structural impossibility — Rule 6 enforced by `ViewModelStateFlowCheckTask` (PR #300)
 - Test code reads consistently across modules, easier to onboard
-- Migration cost: ~10 fakes to convert, 3-4 ViewModels to audit, one Manager to extract
+- All mandatory migration tasks completed in 2026-04-16; only the opportunistic call-list migration remains
