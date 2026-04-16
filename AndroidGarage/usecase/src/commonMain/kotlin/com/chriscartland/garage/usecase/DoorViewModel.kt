@@ -32,9 +32,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 interface DoorViewModel {
@@ -59,16 +57,16 @@ class DefaultDoorViewModel(
     private val fetchCurrentDoorEventUseCase: FetchCurrentDoorEventUseCase,
     private val fetchRecentDoorEventsUseCase: FetchRecentDoorEventsUseCase,
     private val deregisterFcmUseCase: DeregisterFcmUseCase,
-    fcmRegistrationManager: FcmRegistrationManager,
+    private val fcmRegistrationManager: FcmRegistrationManager,
     private val scope: CoroutineScope,
     private val clock: AppClock = AppClock { System.currentTimeMillis() / 1000 },
     private val fetchOnInit: Boolean = true,
 ) : ViewModel(),
     DoorViewModel {
     // Observe FCM status from the app-scoped manager (ADR-014, ADR-015).
-    override val fcmRegistrationStatus: StateFlow<FcmRegistrationStatus> =
-        fcmRegistrationManager.registrationStatus
-            .stateIn(viewModelScope, SharingStarted.Eagerly, FcmRegistrationStatus.UNKNOWN)
+    // Uses explicit MutableStateFlow + collect (ADR-017 Rule 6).
+    private val _fcmRegistrationStatus = MutableStateFlow(FcmRegistrationStatus.UNKNOWN)
+    override val fcmRegistrationStatus: StateFlow<FcmRegistrationStatus> = _fcmRegistrationStatus
 
     private val _currentDoorEvent =
         MutableStateFlow<LoadingResult<DoorEvent?>>(LoadingResult.Loading(null))
@@ -86,6 +84,11 @@ class DefaultDoorViewModel(
 
     init {
         Logger.d { "init" }
+        viewModelScope.launch(dispatchers.io) {
+            fcmRegistrationManager.registrationStatus.collect {
+                _fcmRegistrationStatus.value = it
+            }
+        }
         viewModelScope.launch(dispatchers.io) {
             observeDoorEvents.current().collect {
                 Logger.d { "currentDoorEvent collect: $it" }

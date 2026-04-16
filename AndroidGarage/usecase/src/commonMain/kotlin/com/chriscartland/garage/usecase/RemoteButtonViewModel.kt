@@ -31,9 +31,7 @@ import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.toServer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 private const val SNOOZE_ACTION_RESET_DELAY_MS = 10_000L
@@ -70,8 +68,9 @@ class DefaultRemoteButtonViewModel(
 
     override val buttonState: StateFlow<RemoteButtonState> = stateMachine.state
 
-    override val snoozeState: StateFlow<SnoozeState> = observeSnoozeStateUseCase()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, SnoozeState.Loading)
+    // ADR-017 Rule 6: explicit MutableStateFlow + collect, no stateIn in ViewModels.
+    private val _snoozeState = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
+    override val snoozeState: StateFlow<SnoozeState> = _snoozeState
 
     private val _snoozeAction = MutableStateFlow<SnoozeAction>(SnoozeAction.Idle)
     override val snoozeAction: StateFlow<SnoozeAction> = _snoozeAction
@@ -80,6 +79,9 @@ class DefaultRemoteButtonViewModel(
 
     init {
         listenToDoorEvent()
+        viewModelScope.launch(dispatchers.io) {
+            observeSnoozeStateUseCase().collect { _snoozeState.value = it }
+        }
     }
 
     private fun listenToDoorEvent() {
