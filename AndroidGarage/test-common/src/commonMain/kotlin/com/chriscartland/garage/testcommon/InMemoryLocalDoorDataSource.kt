@@ -22,6 +22,14 @@ import com.chriscartland.garage.domain.model.DoorEvent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
+/**
+ * In-memory [LocalDoorDataSource] suitable for tests and lightweight production scenarios.
+ *
+ * Insert and replace calls are recorded via `insertCalls` / `replaceCalls`
+ * (ADR-017 Rule 5 — call-list pattern), so tests can assert on the exact
+ * `DoorEvent` arguments passed. The `*Count` accessors are convenience reads
+ * backed by the lists.
+ */
 class InMemoryLocalDoorDataSource : LocalDoorDataSource {
     private val _currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
     private val _recentDoorEvents = MutableStateFlow<List<DoorEvent>>(emptyList())
@@ -29,18 +37,21 @@ class InMemoryLocalDoorDataSource : LocalDoorDataSource {
     override val currentDoorEvent: Flow<DoorEvent?> = _currentDoorEvent
     override val recentDoorEvents: Flow<List<DoorEvent>> = _recentDoorEvents
 
-    var insertCount = 0
-        private set
-    var replaceCount = 0
-        private set
+    private val _insertCalls = mutableListOf<DoorEvent>()
+    val insertCalls: List<DoorEvent> get() = _insertCalls
+    val insertCount: Int get() = _insertCalls.size
+
+    private val _replaceCalls = mutableListOf<List<DoorEvent>>()
+    val replaceCalls: List<List<DoorEvent>> get() = _replaceCalls
+    val replaceCount: Int get() = _replaceCalls.size
 
     override fun insertDoorEvent(doorEvent: DoorEvent) {
-        insertCount++
+        _insertCalls.add(doorEvent)
         _currentDoorEvent.value = doorEvent
     }
 
     override fun replaceDoorEvents(doorEvents: List<DoorEvent>) {
-        replaceCount++
+        _replaceCalls.add(doorEvents)
         _recentDoorEvents.value = doorEvents
         if (doorEvents.isNotEmpty()) {
             _currentDoorEvent.value = doorEvents.first()
