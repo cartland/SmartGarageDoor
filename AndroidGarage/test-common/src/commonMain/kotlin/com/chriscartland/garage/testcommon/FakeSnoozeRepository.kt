@@ -8,16 +8,26 @@ import kotlinx.coroutines.flow.MutableStateFlow
 /**
  * Fake [SnoozeRepository] for unit testing.
  *
- * Configure responses with `setX()` methods. ADR-017 Rule 5.
+ * Configure responses with `setX()` methods. Tracks snooze calls via
+ * `snoozeCalls` (ADR-017 Rule 5 — call-list pattern), so tests can assert on
+ * the exact duration / token / timestamp passed. `fetchSnoozeStatus` takes no
+ * args so it stays as a plain counter accessor.
  */
 class FakeSnoozeRepository : SnoozeRepository {
+    data class SnoozeCall(
+        val snoozeDurationHours: String,
+        val idToken: String,
+        val snoozeEventTimestampSeconds: Long,
+    )
+
     private val snoozeStateFlow = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
 
-    var snoozeCount = 0
-        private set
+    private val _snoozeCalls = mutableListOf<SnoozeCall>()
+    val snoozeCalls: List<SnoozeCall> get() = _snoozeCalls
+    val snoozeCount: Int get() = _snoozeCalls.size
 
-    var fetchCount = 0
-        private set
+    private var _fetchCount: Int = 0
+    val fetchCount: Int get() = _fetchCount
 
     /** Set this to false to make snoozeNotifications() return false (network failure). */
     private var snoozeResult: Boolean = true
@@ -33,7 +43,7 @@ class FakeSnoozeRepository : SnoozeRepository {
     override fun observeSnoozeState(): Flow<SnoozeState> = snoozeStateFlow
 
     override suspend fun fetchSnoozeStatus() {
-        fetchCount++
+        _fetchCount++
     }
 
     override suspend fun snoozeNotifications(
@@ -41,7 +51,13 @@ class FakeSnoozeRepository : SnoozeRepository {
         idToken: String,
         snoozeEventTimestampSeconds: Long,
     ): Boolean {
-        snoozeCount++
+        _snoozeCalls.add(
+            SnoozeCall(
+                snoozeDurationHours = snoozeDurationHours,
+                idToken = idToken,
+                snoozeEventTimestampSeconds = snoozeEventTimestampSeconds,
+            ),
+        )
         return snoozeResult
     }
 }
