@@ -122,6 +122,13 @@ tasks.register<codestyle.RememberSaveableGuardTask>("checkRememberSaveable") {
     )
 }
 
+tasks.register<architecture.ViewModelStateFlowCheckTask>("checkViewModelStateFlow") {
+    sourceDirs = listOf(
+        "$rootDir/usecase/src/commonMain/kotlin",
+        "$rootDir/androidApp/src/main/java",
+    )
+}
+
 tasks.register<testcoverage.TestCoverageCheckTask>("checkTestCoverage") {
     sourceDir = "$rootDir/androidApp/src/main/java/com/chriscartland/garage"
     testDir = "$rootDir/androidApp/src/test/java/com/chriscartland/garage"

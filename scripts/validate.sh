@@ -46,6 +46,9 @@ $GRADLE checkLayerImports && pass "layer imports" || fail "layer imports"
 step "Hardcoded colors (must use theme)"
 $GRADLE checkHardcodedColors && pass "hardcoded colors" || fail "hardcoded colors"
 
+step "ViewModel StateFlow (no stateIn(viewModelScope, ...))"
+$GRADLE checkViewModelStateFlow && pass "viewmodel stateflow" || fail "viewmodel stateflow"
+
 step "Detekt (static analysis)"
 $GRADLE :androidApp:detekt && pass "detekt" || fail "detekt"
 
