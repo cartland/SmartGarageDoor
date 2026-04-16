@@ -282,6 +282,7 @@ Push notifications are the hardest feature to verify in production. If topic nam
 - No bare top-level functions — group in a named `object {}` for discoverability (Composables exempt). See ADR-009
 - No extension functions on generic types (e.g., `FcmPayloadParser.parse(data)` not `Map.asDoorEvent()`)
 - No `*Impl` suffix on implementations — use descriptive prefixes (`Network*`, `Cached*`, `Firebase*`, `Default*`). See ADR-008
+- Generic naming over platform-specific terms for app-scoped classes: `AppStartup.run()` not `AppStartupActions.onActivityCreated()`. App-scoped code should be platform-agnostic (KMP target). Only call sites in Activities know about Android lifecycles
 
 ## Known Limitations
 
