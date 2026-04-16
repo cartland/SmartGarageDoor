@@ -7,10 +7,15 @@ import org.gradle.api.tasks.TaskAction
 import java.io.File
 
 /**
- * Bans public mutable state on `Fake*` test doubles (ADR-017 Rule 5).
+ * Bans public mutable state on `Fake*` and `InMemory*` test doubles (ADR-017 Rule 5).
  *
- * Public mutable state on fakes lets tests write whenever, gives no single
- * call site to grep for mutations, and makes test ordering load-bearing.
+ * Public mutable state on test doubles lets tests write whenever, gives no
+ * single call site to grep for mutations, and makes test ordering load-bearing.
+ *
+ * `Fake*` is the primary naming for test doubles. `InMemory*` is used for real
+ * implementations backed by collections that could ship in production (per
+ * ADR-017 naming bonus); they are still subject to Rule 5 because their
+ * counter / call-tracking fields exist for tests.
  *
  * Two patterns flagged:
  *
@@ -28,7 +33,7 @@ abstract class FakePublicVarCheckTask : DefaultTask() {
     @get:Input
     var sourceDirs: List<String> = emptyList()
 
-    private val fileNameRegex = Regex("Fake.*\\.kt")
+    private val fileNameRegex = Regex("(Fake|InMemory).*\\.kt")
 
     /** Matches a property declaration `    var name...` (4-space indent, class-level). */
     private val varPattern = Regex("""^\s{4}var\s+\w+""")
@@ -63,7 +68,7 @@ abstract class FakePublicVarCheckTask : DefaultTask() {
                     violations.joinToString("\n\n") { "  $it" },
             )
         }
-        logger.lifecycle("Fake public var check passed: no unguarded public mutable state on Fake* classes.")
+        logger.lifecycle("Fake public var check passed: no unguarded public mutable state on Fake*/InMemory* classes.")
     }
 
     private fun checkVarLine(
@@ -81,7 +86,7 @@ abstract class FakePublicVarCheckTask : DefaultTask() {
         if (nextLine == "private set") return
         violations.add(
             "${file.relativeTo(dir).path}:${index + 1}: " +
-                "public `var` on a Fake* class is banned (ADR-017 Rule 5). " +
+                "public `var` on a Fake*/InMemory* class is banned (ADR-017 Rule 5). " +
                 "Use `private var` + `setX()` method, or add `private set`. " +
                 "Line: ${line.trim()}",
         )
@@ -98,7 +103,7 @@ abstract class FakePublicVarCheckTask : DefaultTask() {
         if (line.contains("private")) return
         violations.add(
             "${file.relativeTo(dir).path}:${index + 1}: " +
-                "public `val xs = mutableListOf(...)` on a Fake* class is banned (ADR-017 Rule 5). " +
+                "public `val xs = mutableListOf(...)` on a Fake*/InMemory* class is banned (ADR-017 Rule 5). " +
                 "The collection is mutable even though the field is `val`. " +
                 "Use call-list pattern: `private val _xs = mutableListOf<...>(); " +
                 "val xs: List<...> get() = _xs`. " +
