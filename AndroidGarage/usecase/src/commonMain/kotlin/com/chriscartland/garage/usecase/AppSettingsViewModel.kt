@@ -19,9 +19,8 @@ package com.chriscartland.garage.usecase
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 interface AppSettingsViewModel {
@@ -49,21 +48,33 @@ class DefaultAppSettingsViewModel(
     private val settings: AppSettingsUseCase,
 ) : ViewModel(),
     AppSettingsViewModel {
-    override val fcmDoorTopic: StateFlow<String> = settings
-        .observeFcmDoorTopic()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    // ADR-017 Rule 6: explicit MutableStateFlow + collect, no stateIn in ViewModels.
+    private val _fcmDoorTopic = MutableStateFlow("")
+    override val fcmDoorTopic: StateFlow<String> = _fcmDoorTopic
 
-    override val profileUserCardExpanded: StateFlow<Boolean?> = settings
-        .observeProfileUserCardExpanded()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    private val _profileUserCardExpanded = MutableStateFlow<Boolean?>(null)
+    override val profileUserCardExpanded: StateFlow<Boolean?> = _profileUserCardExpanded
 
-    override val profileLogCardExpanded: StateFlow<Boolean?> = settings
-        .observeProfileLogCardExpanded()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    private val _profileLogCardExpanded = MutableStateFlow<Boolean?>(null)
+    override val profileLogCardExpanded: StateFlow<Boolean?> = _profileLogCardExpanded
 
-    override val profileAppCardExpanded: StateFlow<Boolean?> = settings
-        .observeProfileAppCardExpanded()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    private val _profileAppCardExpanded = MutableStateFlow<Boolean?>(null)
+    override val profileAppCardExpanded: StateFlow<Boolean?> = _profileAppCardExpanded
+
+    init {
+        viewModelScope.launch {
+            settings.observeFcmDoorTopic().collect { _fcmDoorTopic.value = it }
+        }
+        viewModelScope.launch {
+            settings.observeProfileUserCardExpanded().collect { _profileUserCardExpanded.value = it }
+        }
+        viewModelScope.launch {
+            settings.observeProfileLogCardExpanded().collect { _profileLogCardExpanded.value = it }
+        }
+        viewModelScope.launch {
+            settings.observeProfileAppCardExpanded().collect { _profileAppCardExpanded.value = it }
+        }
+    }
 
     override fun setFcmDoorTopic(topic: String) {
         viewModelScope.launch { settings.setFcmDoorTopic(topic) }
