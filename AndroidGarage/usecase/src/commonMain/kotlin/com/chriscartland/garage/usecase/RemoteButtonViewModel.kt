@@ -83,6 +83,8 @@ class DefaultRemoteButtonViewModel(
         viewModelScope.launch(dispatchers.io) {
             observeSnoozeStateUseCase().collect { _snoozeState.value = it }
         }
+        // Trigger initial fetch so state moves from Loading immediately.
+        fetchSnoozeStatus()
     }
 
     private fun listenToDoorEvent() {
