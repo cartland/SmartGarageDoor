@@ -68,42 +68,44 @@ fun SnoozeNotificationCard(
                 modifier = Modifier
                     .height(IntrinsicSize.Min)
                     .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
             ) {
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .align(Alignment.CenterVertically),
+                        .weight(1f),
                 ) {
                     SnoozeStatusText(snoozeState)
-                    SnoozeActionOverlay(snoozeAction)
                 }
                 Spacer(Modifier.width(16.dp))
-                if (snoozeAction is SnoozeAction.Sending) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(36.dp),
-                        strokeWidth = 3.dp,
-                    )
-                } else {
-                    Button(onClick = {
-                        if (showOptions) {
-                            selectedOption?.let {
-                                onSnooze(it)
-                                selectedOption = null
-                            }
-                        }
-                        showOptions = !showOptions
-                    }) {
-                        Text(
-                            if (showOptions) {
-                                if (selectedOption == null) "Cancel" else "Save"
-                            } else {
-                                "Snooze"
-                            },
-                            maxLines = 2,
-                            modifier = Modifier.align(Alignment.CenterVertically),
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    if (snoozeAction is SnoozeAction.Sending) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(36.dp),
+                            strokeWidth = 3.dp,
                         )
+                    } else {
+                        Button(onClick = {
+                            if (showOptions) {
+                                selectedOption?.let {
+                                    onSnooze(it)
+                                    selectedOption = null
+                                }
+                            }
+                            showOptions = !showOptions
+                        }) {
+                            Text(
+                                if (showOptions) {
+                                    if (selectedOption == null) "Cancel" else "Save"
+                                } else {
+                                    "Snooze"
+                                },
+                                maxLines = 2,
+                            )
+                        }
                     }
+                    SnoozeActionOverlay(snoozeAction)
                 }
             }
             if (showOptions) {
@@ -145,14 +147,15 @@ fun SnoozeNotificationCard(
 @Composable
 private fun SnoozeStatusText(snoozeState: SnoozeState) {
     when (snoozeState) {
-        SnoozeState.Loading,
-        SnoozeState.NotSnoozing,
-        -> {
-            Text("Snooze notifications")
+        SnoozeState.Loading -> {
+            Text("Door notifications")
+        }
+        SnoozeState.NotSnoozing -> {
+            Text("Door notifications enabled")
         }
         is SnoozeState.Snoozing -> {
             val snoozeTime = snoozeState.untilEpochSeconds.toFriendlyTimeShort()
-            Text("Snoozing notifications until $snoozeTime")
+            Text("Door notifications snoozed until $snoozeTime")
             Text(
                 text = "or until the door moves",
                 style = MaterialTheme.typography.labelSmall,
@@ -224,6 +227,15 @@ fun SnoozeNotificationCardPreview() {
 fun SnoozeNotificationCardLoadingPreview() {
     SnoozeNotificationCard(
         snoozeState = SnoozeState.Loading,
+        snoozeAction = SnoozeAction.Idle,
+    )
+}
+
+@Preview
+@Composable
+fun SnoozeNotificationCardNotSnoozingPreview() {
+    SnoozeNotificationCard(
+        snoozeState = SnoozeState.NotSnoozing,
         snoozeAction = SnoozeAction.Idle,
     )
 }
