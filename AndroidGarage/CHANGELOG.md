@@ -2,6 +2,11 @@
 
 Internal release history. For Play Store "What's New" text, see `distribution/whatsnew/`.
 
+## 2.4.2
+- Snooze card shows "Door notifications enabled" / "Door notifications snoozed until X"
+- Action feedback (Saved/Error) aligned under button
+- Improved card layout alignment
+
 ## 2.4.1
 - Faster sign-in updates and improved stability
 - Fixed auth state not updating UI until app restart (reactive AuthStateListener)
