@@ -66,7 +66,7 @@ class FirebaseAuthRepository(
             val userInfo = authBridge.getCurrentUser()
                 ?: return AuthState.Unauthenticated.commit()
 
-            val idToken = authBridge.refreshIdToken()
+            val idToken = authBridge.getIdToken(forceRefresh = true)
                 ?: return AuthState.Unauthenticated.commit()
 
             return AuthState
