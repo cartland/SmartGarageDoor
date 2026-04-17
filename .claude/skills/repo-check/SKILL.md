@@ -72,7 +72,7 @@ CI:         passing/failing (last run: date)
 Issues:     N open
 Releases:   android/N, server/N
 Migration:  Phases 1-4,6,7 complete. Next: Phase 5 (KMP)
-Local:      main, clean
+Local:      main, clean | main, dirty (list changed files)
 ```
 
-Expand on anything that needs attention (conflicts, failures, stale PRs).
+Expand on anything that needs attention (conflicts, failures, stale PRs, uncommitted changes). A dirty working tree is NOT clean — always report it as needing attention.
