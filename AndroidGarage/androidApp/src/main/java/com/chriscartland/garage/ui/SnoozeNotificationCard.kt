@@ -18,14 +18,13 @@
 package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
@@ -66,9 +65,8 @@ fun SnoozeNotificationCard(
         Column {
             Row(
                 modifier = Modifier
-                    .height(IntrinsicSize.Min)
                     .padding(16.dp),
-                verticalAlignment = Alignment.Top,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(
                     modifier = Modifier
@@ -78,6 +76,7 @@ fun SnoozeNotificationCard(
                 }
                 Spacer(Modifier.width(16.dp))
                 Column(
+                    modifier = Modifier.widthIn(max = 160.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     if (snoozeAction is SnoozeAction.Sending) {
