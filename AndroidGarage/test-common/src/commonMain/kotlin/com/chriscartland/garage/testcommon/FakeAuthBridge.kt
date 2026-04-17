@@ -21,26 +21,30 @@ import com.chriscartland.garage.data.AuthBridge
 import com.chriscartland.garage.data.AuthUserInfo
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.GoogleIdToken
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * Fake [AuthBridge] for unit testing.
  *
  * Configure responses with `setX()` methods. Tracks each call via call lists
- * (ADR-017 Rule 5 — call-list pattern), so tests can assert on the exact
- * arguments passed (e.g., the `idToken` from sign-in attempts), not just call
- * counts. The `*Count` accessors are convenience reads backed by the lists.
+ * (ADR-017 Rule 5 — call-list pattern).
+ *
+ * [observeAuthUser] emits from a controllable [MutableStateFlow]. Set it via
+ * [setAuthUser] to simulate Firebase AuthStateListener events.
+ * [getIdToken] returns the value set by [setIdTokenResult].
  */
 class FakeAuthBridge : AuthBridge {
+    private val authUserFlow = MutableStateFlow<AuthUserInfo?>(null)
     private var signInResult: Boolean = true
-    private var userInfo: AuthUserInfo? = null
-    private var refreshTokenResult: FirebaseIdToken? = null
+    private var idTokenResult: FirebaseIdToken? = null
 
     private val _signInCalls = mutableListOf<GoogleIdToken>()
     val signInCalls: List<GoogleIdToken> get() = _signInCalls
     val signInCount: Int get() = _signInCalls.size
 
-    private var _refreshCount: Int = 0
-    val refreshCount: Int get() = _refreshCount
+    private var _getIdTokenCount: Int = 0
+    val getIdTokenCount: Int get() = _getIdTokenCount
 
     private var _signOutCount: Int = 0
     val signOutCount: Int get() = _signOutCount
@@ -49,28 +53,30 @@ class FakeAuthBridge : AuthBridge {
         signInResult = value
     }
 
-    fun setUserInfo(value: AuthUserInfo?) {
-        userInfo = value
+    fun setAuthUser(value: AuthUserInfo?) {
+        authUserFlow.value = value
     }
 
-    fun setRefreshTokenResult(value: FirebaseIdToken?) {
-        refreshTokenResult = value
+    fun setIdTokenResult(value: FirebaseIdToken?) {
+        idTokenResult = value
     }
+
+    override fun observeAuthUser(): Flow<AuthUserInfo?> = authUserFlow
 
     override suspend fun signInWithGoogleToken(idToken: GoogleIdToken): Boolean {
         _signInCalls.add(idToken)
         return signInResult
     }
 
-    override fun getCurrentUser(): AuthUserInfo? = userInfo
+    override fun getCurrentUser(): AuthUserInfo? = authUserFlow.value
 
-    override suspend fun refreshIdToken(): FirebaseIdToken? {
-        _refreshCount++
-        return refreshTokenResult
+    override suspend fun getIdToken(forceRefresh: Boolean): FirebaseIdToken? {
+        _getIdTokenCount++
+        return idTokenResult
     }
 
     override suspend fun signOut() {
         _signOutCount++
-        userInfo = null
+        authUserFlow.value = null
     }
 }

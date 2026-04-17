@@ -23,8 +23,12 @@ import com.chriscartland.garage.data.AuthUserInfo
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth.AuthStateListener
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -36,6 +40,23 @@ import kotlin.coroutines.suspendCoroutine
  * never directly import Firebase types.
  */
 class FirebaseAuthBridge : AuthBridge {
+    override fun observeAuthUser(): Flow<AuthUserInfo?> =
+        callbackFlow {
+            val listener = AuthStateListener { auth ->
+                val user = auth.currentUser
+                trySend(
+                    user?.let {
+                        AuthUserInfo(
+                            displayName = it.displayName ?: "",
+                            email = it.email ?: "",
+                        )
+                    },
+                )
+            }
+            Firebase.auth.addAuthStateListener(listener)
+            awaitClose { Firebase.auth.removeAuthStateListener(listener) }
+        }
+
     override suspend fun signInWithGoogleToken(idToken: GoogleIdToken): Boolean =
         suspendCoroutine { continuation ->
             val credential = GoogleAuthProvider.getCredential(idToken.asString(), null)
@@ -59,13 +80,13 @@ class FirebaseAuthBridge : AuthBridge {
         )
     }
 
-    override suspend fun refreshIdToken(): FirebaseIdToken? {
+    override suspend fun getIdToken(forceRefresh: Boolean): FirebaseIdToken? {
         val currentUser = Firebase.auth.currentUser ?: return null
         return suspendCancellableCoroutine { continuation ->
             currentUser
-                .getIdToken(true)
+                .getIdToken(forceRefresh)
                 .addOnSuccessListener { result ->
-                    Logger.d { "Firebase ID Token refreshed" }
+                    Logger.d { "Firebase ID Token retrieved (forceRefresh=$forceRefresh)" }
                     continuation.resume(
                         result.token?.let {
                             FirebaseIdToken(
