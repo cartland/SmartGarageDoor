@@ -245,7 +245,7 @@ When active, a Stop hook blocks Claude from ending its turn and directs it to:
 
 **Interaction with backlog hook:** The `check-pr-backlog.sh` hook warns at 5+ open PRs and blocks at 10+. Dev mode yields (stops blocking) when 10+ PRs are open AND none are mergeable — this prevents an infinite loop where dev mode says "keep working" but backlog says "merge first" with nothing to merge.
 
-**Known issue:** If the backlog hook fires as a blocking stop hook while all PRs wait on CI, Claude cannot stop on its own. The user must run `rm .claude/.dev-mode` or press Ctrl+C.
+**Stopping dev mode:** When the user clearly indicates they want you to stop (says "stop", "pause", "that's enough", confirms via `AskUserQuestion`, etc.), run `rm .claude/.dev-mode` yourself. Do not just tell the user to run it — the next Stop hook fires before they can act, leaving the loop active. If intent is ambiguous, ask via `AskUserQuestion` first; once they confirm, remove the file. The user can still `rm` it themselves or press Ctrl+C.
 
 ### Claude Hooks (.claude/hooks/)
 - **block-admin-bypass.sh** — Denies `--admin` on PR merges
