@@ -107,18 +107,13 @@ class PushRemoteButtonUseCaseTest {
     fun pushRefreshesExpiredToken() =
         runTest {
             authenticateUser(token = "old-token", exp = 1000L)
-            val refreshedAuth = AuthState.Authenticated(
-                user = User(
-                    name = DisplayName("Test"),
-                    email = Email("test@test.com"),
-                    idToken = FirebaseIdToken(idToken = "new-token", exp = Long.MAX_VALUE),
-                ),
+            fakeAuth.setRefreshIdTokenResult(
+                FirebaseIdToken(idToken = "new-token", exp = Long.MAX_VALUE),
             )
-            fakeAuth.setRefreshResult(refreshedAuth)
 
             useCase("ack-123")
 
             assertEquals("new-token", fakePush.lastIdToken)
-            assertEquals(1, fakeAuth.refreshCount)
+            assertEquals(1, fakeAuth.refreshIdTokenCount)
         }
 }

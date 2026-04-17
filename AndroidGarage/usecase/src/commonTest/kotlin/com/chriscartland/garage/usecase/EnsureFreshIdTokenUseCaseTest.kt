@@ -57,57 +57,47 @@ class EnsureFreshIdTokenUseCaseTest {
             val result = useCase(auth, currentTimeMillis = 4999L)
 
             assertEquals("cached-token", result.asString())
-            assertEquals(0, fakeAuth.refreshCount)
+            assertEquals(0, fakeAuth.refreshIdTokenCount)
         }
 
     @Test
     fun refreshesTokenWhenExpired() =
         runTest {
             val auth = makeAuth(token = "old-token", exp = 1000L)
-            val refreshedAuth = makeAuth(token = "new-token", exp = 9000L)
-            fakeAuth.setRefreshResult(refreshedAuth)
+            fakeAuth.setRefreshIdTokenResult(
+                FirebaseIdToken(idToken = "new-token", exp = 9000L),
+            )
 
             val result = useCase(auth, currentTimeMillis = 2000L)
 
             assertEquals("new-token", result.asString())
-            assertEquals(1, fakeAuth.refreshCount)
+            assertEquals(1, fakeAuth.refreshIdTokenCount)
         }
 
     @Test
     fun refreshesTokenWhenExactlyExpired() =
         runTest {
             val auth = makeAuth(token = "old-token", exp = 1000L)
-            val refreshedAuth = makeAuth(token = "new-token", exp = 9000L)
-            fakeAuth.setRefreshResult(refreshedAuth)
+            fakeAuth.setRefreshIdTokenResult(
+                FirebaseIdToken(idToken = "new-token", exp = 9000L),
+            )
 
             val result = useCase(auth, currentTimeMillis = 1000L)
 
             assertEquals("new-token", result.asString())
-            assertEquals(1, fakeAuth.refreshCount)
+            assertEquals(1, fakeAuth.refreshIdTokenCount)
         }
 
     @Test
-    fun fallsBackToCachedTokenWhenRefreshFailsWithUnauthenticated() =
+    fun fallsBackToCachedTokenWhenRefreshReturnsNull() =
         runTest {
             val auth = makeAuth(token = "old-token", exp = 1000L)
-            fakeAuth.setRefreshResult(AuthState.Unauthenticated)
+            fakeAuth.setRefreshIdTokenResult(null)
 
             val result = useCase(auth, currentTimeMillis = 2000L)
 
             assertEquals("old-token", result.asString())
-            assertEquals(1, fakeAuth.refreshCount)
-        }
-
-    @Test
-    fun fallsBackToCachedTokenWhenRefreshFailsWithUnknown() =
-        runTest {
-            val auth = makeAuth(token = "old-token", exp = 1000L)
-            fakeAuth.setRefreshResult(AuthState.Unknown)
-
-            val result = useCase(auth, currentTimeMillis = 2000L)
-
-            assertEquals("old-token", result.asString())
-            assertEquals(1, fakeAuth.refreshCount)
+            assertEquals(1, fakeAuth.refreshIdTokenCount)
         }
 
     @Test
@@ -117,6 +107,6 @@ class EnsureFreshIdTokenUseCaseTest {
             val result = useCase(auth, currentTimeMillis = 1000L)
 
             assertEquals("cached-token", result.asString())
-            assertEquals(0, fakeAuth.refreshCount)
+            assertEquals(0, fakeAuth.refreshIdTokenCount)
         }
 }

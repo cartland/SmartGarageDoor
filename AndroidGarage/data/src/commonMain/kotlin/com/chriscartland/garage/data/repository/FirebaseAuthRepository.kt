@@ -23,6 +23,7 @@ import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
+import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
@@ -97,6 +98,18 @@ class FirebaseAuthRepository(
         return this.also {
             _authState.value = it
         }
+    }
+
+    override suspend fun refreshIdToken(): FirebaseIdToken? {
+        val token = authBridge.getIdToken(forceRefresh = true) ?: return null
+        // Update _authState so the UI stays in sync with the fresh token.
+        val current = _authState.value
+        if (current is AuthState.Authenticated) {
+            _authState.value = current.copy(
+                user = current.user.copy(idToken = token),
+            )
+        }
+        return token
     }
 
     override suspend fun signOut() {

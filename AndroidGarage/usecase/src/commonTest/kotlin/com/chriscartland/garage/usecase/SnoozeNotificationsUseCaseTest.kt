@@ -103,24 +103,18 @@ class SnoozeNotificationsUseCaseTest {
             authenticateUser(exp = 1000L)
             useCase("1h", null)
             // MissingData error returned before token refresh
-            assertEquals(0, fakeAuth.refreshCount)
+            assertEquals(0, fakeAuth.refreshIdTokenCount)
         }
 
     @Test
     fun snoozeRefreshesExpiredToken() =
         runTest {
             authenticateUser(token = "old", exp = 1000L)
-            fakeAuth.setRefreshResult(
-                AuthState.Authenticated(
-                    user = User(
-                        name = DisplayName("Test"),
-                        email = Email("test@test.com"),
-                        idToken = FirebaseIdToken(idToken = "fresh", exp = Long.MAX_VALUE),
-                    ),
-                ),
+            fakeAuth.setRefreshIdTokenResult(
+                FirebaseIdToken(idToken = "fresh", exp = Long.MAX_VALUE),
             )
             useCase("4h", 2000L)
-            assertEquals(1, fakeAuth.refreshCount)
+            assertEquals(1, fakeAuth.refreshIdTokenCount)
         }
 
     @Test
