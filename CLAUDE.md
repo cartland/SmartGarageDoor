@@ -218,6 +218,23 @@ gh pr update-branch <number>
 3. Resolve conflicts
 4. Force push: `git push --force-with-lease`
 
+**Stacked PRs (dependent branches):**
+When PRs must merge in order (e.g., PR B depends on PR A's code):
+
+1. **Always use `--base main`** — GitHub CI only runs on PRs targeting protected branches. Using `--base feature-branch` means CI never triggers, and changing the base later does NOT re-trigger workflows.
+
+2. **Document merge order in each PR body** — every PR in a stack must state its position and dependencies so reviewers (and auto-merge) don't merge out of order:
+   ```
+   ## Merge order
+   This is PR 2 of 3 in the auth refactor stack.
+   ⚠️ Merge AFTER #326. Do not merge before #326 lands on main.
+   Full stack: #326 → #327 → #328
+   ```
+
+3. **Enable auto-merge on all PRs** — they serialize naturally. After PR A merges, PR B becomes stale (behind main), GitHub auto-updates it, CI re-runs, then auto-merge fires. Each waits for the previous CI cycle (~5-10 min per PR).
+
+4. **PR diff shows parent commits temporarily** — after the parent squash-merges, GitHub auto-updates the stacked PR to show only its own changes.
+
 **Watch for PR starvation:** When many PRs queue up, the last one keeps getting pushed back as others merge ahead of it. Each merge makes it stale, requiring another CI run. If a PR has been open for a long time, prioritize merging it before creating new ones.
 
 **Auto-merge rule:** Before modifying a PR in any way (pushing commits, amending, force-pushing), you MUST first check if auto-merge is enabled and disable it:
