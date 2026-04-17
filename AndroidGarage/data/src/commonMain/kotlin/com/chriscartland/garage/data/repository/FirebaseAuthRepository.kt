@@ -35,10 +35,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
- * Auth repository that delegates all platform auth calls to [AuthBridge].
+ * Auth repository driven by the platform's auth state listener.
  *
- * No Firebase imports — all Firebase interaction happens through the bridge,
- * enabling unit testing with a fake bridge.
+ * State propagation is fully reactive:
+ * - [observeAuthUser][AuthBridge.observeAuthUser] emits whenever the platform
+ *   auth state changes (sign-in, sign-out, token refresh).
+ * - This collector maps each emission to [AuthState] and updates [_authState].
+ * - Commands ([signInWithGoogle], [signOut]) are fire-and-forget — the listener
+ *   picks up the resulting state change automatically.
+ *
+ * No Firebase imports — all platform interaction happens through [AuthBridge].
  */
 class FirebaseAuthRepository(
     private val authBridge: AuthBridge,
@@ -52,52 +58,44 @@ class FirebaseAuthRepository(
     override fun observeAuthState(): Flow<AuthState> = _authState.asStateFlow()
 
     init {
+        // Reactive: collect auth user changes from the platform listener.
+        // Firebase's AuthStateListener fires immediately when registered,
+        // so _authState transitions from Unknown → Authenticated/Unauthenticated
+        // within the first emission.
         externalScope.launch {
-            refreshFirebaseAuthState()
+            authBridge.observeAuthUser().collect { userInfo ->
+                val newState = if (userInfo != null) {
+                    val token = authBridge.getIdToken(forceRefresh = false)
+                    if (token != null) {
+                        AuthState.Authenticated(
+                            user = User(
+                                name = DisplayName(userInfo.displayName),
+                                email = Email(userInfo.email),
+                                idToken = token,
+                            ),
+                        )
+                    } else {
+                        // User exists but token unavailable — treat as unauthenticated.
+                        // This is defensive; Firebase should have a cached token after
+                        // AuthStateListener fires.
+                        Logger.w { "Auth user present but getIdToken returned null" }
+                        AuthState.Unauthenticated
+                    }
+                } else {
+                    AuthState.Unauthenticated
+                }
+                logStateChange(newState)
+                _authState.value = newState
+            }
         }
     }
 
     override suspend fun signInWithGoogle(idToken: GoogleIdToken): AuthState {
         authBridge.signInWithGoogleToken(idToken)
-        return refreshFirebaseAuthState()
-    }
-
-    override suspend fun refreshFirebaseAuthState(): AuthState {
-        try {
-            val userInfo = authBridge.getCurrentUser()
-                ?: return AuthState.Unauthenticated.commit()
-
-            val idToken = authBridge.getIdToken(forceRefresh = true)
-                ?: return AuthState.Unauthenticated.commit()
-
-            return AuthState
-                .Authenticated(
-                    user = User(
-                        name = DisplayName(userInfo.displayName),
-                        email = Email(userInfo.email),
-                        idToken = idToken,
-                    ),
-                ).commit()
-        } catch (e: Exception) {
-            return AuthState.Unauthenticated.commit()
-        }
-    }
-
-    private suspend fun AuthState.commit(): AuthState {
-        Logger.d { "AuthState.commit(): $this" }
-        when (this) {
-            is AuthState.Authenticated ->
-                appLogger.log(AppLoggerKeys.USER_AUTHENTICATED)
-
-            AuthState.Unauthenticated ->
-                appLogger.log(AppLoggerKeys.USER_UNAUTHENTICATED)
-
-            AuthState.Unknown ->
-                appLogger.log(AppLoggerKeys.USER_AUTH_UNKNOWN)
-        }
-        return this.also {
-            _authState.value = it
-        }
+        // State update happens reactively via the AuthStateListener collector.
+        // Return the current state (may still be pre-sign-in if the listener
+        // hasn't fired yet — callers should observe the Flow, not this return).
+        return _authState.value
     }
 
     override suspend fun refreshIdToken(): FirebaseIdToken? {
@@ -112,8 +110,30 @@ class FirebaseAuthRepository(
         return token
     }
 
+    @Deprecated("Use refreshIdToken() instead — this method is kept only for migration.")
+    override suspend fun refreshFirebaseAuthState(): AuthState {
+        // Delegate to the listener-based approach: just return current state.
+        // The reactive collector handles state updates.
+        return _authState.value
+    }
+
     override suspend fun signOut() {
-        AuthState.Unauthenticated.commit()
+        // Eagerly update UI before the bridge call — no visible delay.
+        _authState.value = AuthState.Unauthenticated
+        logStateChange(AuthState.Unauthenticated)
         authBridge.signOut()
+        // The AuthStateListener will also fire and confirm Unauthenticated.
+    }
+
+    private suspend fun logStateChange(state: AuthState) {
+        Logger.d { "AuthState: $state" }
+        when (state) {
+            is AuthState.Authenticated ->
+                appLogger.log(AppLoggerKeys.USER_AUTHENTICATED)
+            AuthState.Unauthenticated ->
+                appLogger.log(AppLoggerKeys.USER_UNAUTHENTICATED)
+            AuthState.Unknown ->
+                appLogger.log(AppLoggerKeys.USER_AUTH_UNKNOWN)
+        }
     }
 }
