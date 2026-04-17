@@ -34,6 +34,7 @@ import com.chriscartland.garage.ui.RemoteButtonContentSucceededPreview
 import com.chriscartland.garage.ui.SnoozeNotificationCardClearedPreview
 import com.chriscartland.garage.ui.SnoozeNotificationCardErrorPreview
 import com.chriscartland.garage.ui.SnoozeNotificationCardLoadingPreview
+import com.chriscartland.garage.ui.SnoozeNotificationCardNotSnoozingPreview
 import com.chriscartland.garage.ui.SnoozeNotificationCardPreview
 import com.chriscartland.garage.ui.SnoozeNotificationCardSendingPreview
 import com.chriscartland.garage.ui.SnoozeNotificationCardSucceededPreview
@@ -260,6 +261,20 @@ fun SnoozeNotificationCardPreviewTest() {
 fun SnoozeNotificationCardLoadingPreviewTest() {
     AppTheme {
         SnoozeNotificationCardLoadingPreview()
+    }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun SnoozeNotificationCardNotSnoozingPreviewTest() {
+    AppTheme {
+        SnoozeNotificationCardNotSnoozingPreview()
     }
 }
 
