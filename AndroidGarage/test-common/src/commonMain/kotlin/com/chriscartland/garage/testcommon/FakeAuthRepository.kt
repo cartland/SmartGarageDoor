@@ -18,6 +18,7 @@
 package com.chriscartland.garage.testcommon
 
 import com.chriscartland.garage.domain.model.AuthState
+import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
@@ -27,9 +28,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
  * Fake [AuthRepository] for unit testing.
  *
  * Configure responses with `setX()` methods. Tracks sign-in calls via
- * `signInCalls` (ADR-017 Rule 5 — call-list pattern), so tests can assert on
- * the exact `idToken` passed. `refresh` and `signOut` take no args, so they
- * stay as plain counter accessors.
+ * `signInCalls` (ADR-017 Rule 5 — call-list pattern).
  */
 class FakeAuthRepository : AuthRepository {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
@@ -41,11 +40,16 @@ class FakeAuthRepository : AuthRepository {
     private var _signOutCount: Int = 0
     val signOutCount: Int get() = _signOutCount
 
-    private var _refreshCount: Int = 0
-    val refreshCount: Int get() = _refreshCount
+    private var _refreshIdTokenCount: Int = 0
+    val refreshIdTokenCount: Int get() = _refreshIdTokenCount
 
     private var signInResult: AuthState? = null
-    private var refreshResult: AuthState? = null
+    private var refreshIdTokenResult: FirebaseIdToken? = null
+
+    // Keep deprecated field for tests that still use refreshFirebaseAuthState
+    private var legacyRefreshCount: Int = 0
+    val refreshCount: Int get() = legacyRefreshCount
+    private var legacyRefreshResult: AuthState? = null
 
     fun setAuthState(state: AuthState) {
         _authState.value = state
@@ -55,8 +59,13 @@ class FakeAuthRepository : AuthRepository {
         signInResult = value
     }
 
+    fun setRefreshIdTokenResult(value: FirebaseIdToken?) {
+        refreshIdTokenResult = value
+    }
+
+    @Deprecated("Use setRefreshIdTokenResult instead")
     fun setRefreshResult(value: AuthState?) {
-        refreshResult = value
+        legacyRefreshResult = value
     }
 
     override suspend fun getAuthState(): AuthState = _authState.value
@@ -70,9 +79,15 @@ class FakeAuthRepository : AuthRepository {
         return result
     }
 
+    override suspend fun refreshIdToken(): FirebaseIdToken? {
+        _refreshIdTokenCount++
+        return refreshIdTokenResult
+    }
+
+    @Deprecated("Use refreshIdToken() instead")
     override suspend fun refreshFirebaseAuthState(): AuthState {
-        _refreshCount++
-        return refreshResult ?: _authState.value
+        legacyRefreshCount++
+        return legacyRefreshResult ?: _authState.value
     }
 
     override suspend fun signOut() {

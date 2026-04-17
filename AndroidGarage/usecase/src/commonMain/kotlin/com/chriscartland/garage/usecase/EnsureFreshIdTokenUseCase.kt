@@ -26,8 +26,11 @@ import com.chriscartland.garage.domain.repository.AuthRepository
  *
  * Logic:
  * - If the cached token is still valid (exp > now), return it
- * - Otherwise, refresh the auth state and return the new token
- * - If refresh fails (user becomes unauthenticated), fall back to the cached token
+ * - Otherwise, force-refresh the token via the auth provider
+ * - If refresh fails, fall back to the cached token (best-effort)
+ *
+ * The refresh also updates the repository's auth state so the UI stays
+ * in sync with the new token expiry (no split-brain).
  */
 class EnsureFreshIdTokenUseCase(
     private val authRepository: AuthRepository,
@@ -39,11 +42,6 @@ class EnsureFreshIdTokenUseCase(
         if (currentAuth.user.idToken.exp > currentTimeMillis) {
             currentAuth.user.idToken
         } else {
-            val refreshed = authRepository.refreshFirebaseAuthState()
-            if (refreshed is AuthState.Authenticated) {
-                refreshed.user.idToken
-            } else {
-                currentAuth.user.idToken
-            }
+            authRepository.refreshIdToken() ?: currentAuth.user.idToken
         }
 }
