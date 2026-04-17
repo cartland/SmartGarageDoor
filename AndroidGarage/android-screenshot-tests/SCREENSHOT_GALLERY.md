@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Wed Apr 15 13:22:57 PDT 2026
+Generated on Fri Apr 17 13:24:40 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -197,6 +197,12 @@ Generated on Wed Apr 15 13:22:57 PDT 2026
 
 ### SnoozeNotificationCardLoadingPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardLoadingPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### SnoozeNotificationCardNotSnoozingPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardNotSnoozingPreviewTest_Dark_77106447_0.png" width="300" />
+
+### SnoozeNotificationCardNotSnoozingPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardNotSnoozingPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### SnoozeNotificationCardPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardPreviewTest_Dark_77106447_0.png" width="300" />
