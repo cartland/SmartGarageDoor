@@ -658,3 +658,34 @@ These were tracked as separate follow-up PRs. The rules above apply immediately 
 - Test code reads consistently across modules, easier to onboard
 - All migration tasks (mandatory + opportunistic) completed 2026-04-16
 - Every fake whose methods take meaningful args now exposes a `*Calls: List<…>` for argument assertions; counter-only fakes (no-arg methods) keep simple counter accessors
+
+## ADR-018: Reactive Auth State — Use Platform Listeners, Not Imperative Polling
+
+**Status:** Accepted
+
+**Context:** Auth state UI stopped updating on sign-in/sign-out in `android/159`. The root cause had two parts:
+
+1. **Latent bug (Oct 2024):** `FirebaseAuthRepository.signInWithGoogle()` called `refreshFirebaseAuthState()` which did `getIdToken(forceRefresh=true)` — a network round-trip. Right after `signInWithCredential()` completed, this network call could fail or return null, causing the repo to commit `Unauthenticated` even though sign-in succeeded.
+
+2. **Trigger (PR #283, Apr 2026):** Replaced the direct `StateFlow` reference (`authRepository.authState`) with `observeAuthState(): Flow` + `stateIn(Eagerly)`. Before this change, even if the repo briefly committed the wrong state, the direct reference meant the UI saw subsequent corrections instantly. After the change, the `stateIn` layer faithfully propagated the wrong state with no self-correction mechanism.
+
+**Decision:** Auth state propagation must be reactive — driven by the platform's auth state listener, not imperative polling.
+
+### Rules
+
+1. **Use the platform's listener mechanism.** Firebase has `AuthStateListener`; future providers have their own. Wrap it in `callbackFlow` and expose as `observeAuthUser(): Flow<AuthUserInfo?>` on the bridge.
+
+2. **Commands are fire-and-forget.** `signInWithGoogle()` and `signOut()` call the bridge and return. The listener handles state propagation. No return values from commands.
+
+3. **No `getIdToken(forceRefresh=true)` in the sign-in/sign-out path.** Use `getIdToken(forceRefresh=false)` (cached token) in the listener collector. Force-refresh only for `EnsureFreshIdTokenUseCase` when the cached token is expired.
+
+4. **Don't wrap StateFlow in another StateFlow unnecessarily.** If a repository already exposes a `StateFlow`, pass the reference through — don't add `stateIn` or `MutableStateFlow + collect` unless converting from a cold `Flow`. Every intermediate subscription is a layer where bugs can hide.
+
+5. **Instrumented UI tests for critical state propagation.** Unit tests with fakes can't catch races between the platform SDK and the reactive chain. Add Compose instrumented tests (`createComposeRule`) that verify StateFlow changes trigger UI recomposition for critical user-facing state (auth, door events).
+
+### Consequences
+
+- Sign-in/sign-out UI updates are driven by Firebase's `AuthStateListener` — no network call in the critical path, no race condition.
+- `refreshFirebaseAuthState()` deleted. `getAuthState()` removed from the interface.
+- The auth state bug is structurally impossible: the listener fires after every auth change, and the repo just maps the emission to `AuthState`.
+- Compose UI tests (`AuthStateUIPropagationTest`) verify the full rendering chain on device.
