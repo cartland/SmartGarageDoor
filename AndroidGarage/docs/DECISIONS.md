@@ -689,3 +689,75 @@ These were tracked as separate follow-up PRs. The rules above apply immediately 
 - `refreshFirebaseAuthState()` deleted. `getAuthState()` removed from the interface.
 - The auth state bug is structurally impossible: the listener fires after every auth change, and the repo just maps the emission to `AuthState`.
 - Compose UI tests (`AuthStateUIPropagationTest`) verify the full rendering chain on device.
+
+## ADR-019: Repository Side-Effects on `externalScope`; State From Authoritative Server Responses
+
+**Status:** Accepted
+
+**Context:** The snooze card UI stayed stuck on "Door notifications enabled" after a user saved a snooze (android/164 through android/166). Root cause had two parts:
+
+1. **VM-scope cancellation stranded the singleton.** `NetworkSnoozeRepository.snoozeStateFlow` is a `@Singleton`, but every write to it originated from a `viewModelScope.launch { ... }` in `DefaultRemoteButtonViewModel` (the init fetch, the polling `LaunchedEffect`, and the post-submit refetch). Ktor's `snoozeNotifications` / `fetchSnoozeEndTimeSeconds` rethrow `CancellationException` on cancellation. If the VM scope cancelled after the HTTP call returned but before the `when(result) { is Success -> snoozeStateFlow.value = ... }` branch ran, the write was skipped and the singleton's flow stayed on its previous value forever. Every future VM and subscriber saw the stale state.
+
+2. **Post-submit state relied on a follow-up GET.** The VM POSTed a snooze, then explicitly called `fetchSnoozeStatusUseCase()` to GET the new state. This added a second network call, a second cancellation window, and a second race against server read-after-write consistency. The server already returns the full `SnoozeRequest` (with `snoozeEndTimeSeconds`) in the POST response body — the client was discarding authoritative data and reaching for it again.
+
+**Decision:** Two complementary rules.
+
+### Rule 1 — Repository side-effects that must survive UI lifecycle run on `externalScope`
+
+Mirror the `FirebaseAuthRepository` pattern (ADR-018). Repositories that own shared mutable state must accept an `externalScope: CoroutineScope` (wired to `provideApplicationScope()`) and run every side-effecting call on it:
+
+```kotlin
+class NetworkSnoozeRepository(
+    // ...
+    private val externalScope: CoroutineScope,
+) : SnoozeRepository {
+    init { externalScope.launch { doFetchSnoozeStatus() } }
+
+    override suspend fun fetchSnoozeStatus() {
+        externalScope.launch { doFetchSnoozeStatus() }.join()
+    }
+
+    override suspend fun snoozeNotifications(...): Boolean =
+        externalScope.async { doSnoozeNotifications(...) }.await()
+}
+```
+
+- The caller still suspends (via `.join()` or `.await()`). If the caller's scope cancels, the `join`/`await` throws `CancellationException` in the caller — but the launched child is scoped to `externalScope`, **not** the caller, so it continues to completion.
+- State writes happen on a scope that cannot be cancelled by UI lifecycle. The singleton is correct for every subsequent subscriber.
+- VM `init` does **not** trigger the first fetch. The repository's own `init` does it, on `externalScope`.
+
+### Rule 2 — Update state from the authoritative server response, not a follow-up GET
+
+When the server's `POST` response already contains the domain-relevant data, parse it at the data-source layer and update state directly from it. Don't follow up with a `GET`.
+
+```kotlin
+// NetworkButtonDataSource
+suspend fun snoozeNotifications(...): NetworkResult<Long> // snoozeEndTimeSeconds
+
+// NetworkSnoozeRepository.doSnoozeNotifications — Success branch
+is NetworkResult.Success -> {
+    snoozeStateFlow.value = snoozeStateFromEndTime(result.data)
+    true
+}
+```
+
+- One network call, one interpretation function (`snoozeStateFromEndTime`), one write.
+- No race between the `POST` write and the follow-up `GET`'s read.
+- No client-side optimistic update. The end time comes from the server's response body.
+
+### Non-rules (explicit)
+
+- **No optimistic local writes to domain state.** The action-overlay optimistic text (`SnoozeAction.Succeeded.Set(optimisticEnd)`) is UI feedback, not state — it's ephemeral and auto-resets. The persistent `SnoozeState` only changes in response to real server data.
+- **Don't use `.join()` from a non-caller scope as a bridge.** The pattern only works because the launched child is a *child of `externalScope`*, not a child of the caller. If you wrote `externalScope.coroutineContext.launch { ... }.join()` from a viewModelScope coroutine, the child would still be scoped to the viewModelScope's Job — defeating the purpose.
+
+### Consequences
+
+- The snooze Loading / stale-state class of bugs is structurally impossible: state only transitions via `externalScope`-owned writes, so no caller-scope cancellation can strand the singleton.
+- Post-submit refetch removed; the repo writes `SnoozeState` directly from the POST response.
+- VM no longer triggers the initial fetch in `init` — the repository does, on its own scope.
+- Repository gains slightly more complexity (the `async`/`await` dance) but in exchange owns all its side effects in one file.
+- Tests can reproduce the original bug by cancelling a `vmScope` mid-fetch and asserting the singleton reached the correct terminal state anyway (see `NetworkSnoozeRepositoryTest`).
+
+### When to apply
+
+Rule 1 applies to any repository that owns a singleton `MutableStateFlow` whose writes happen from suspend functions called across VM boundaries. Rule 2 applies to any `POST` endpoint that returns the updated entity — prefer the response body over a follow-up `GET`.
