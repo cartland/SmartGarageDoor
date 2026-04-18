@@ -24,32 +24,63 @@ import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.domain.repository.SnoozeRepository
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * All network work (fetch + submit) runs on [externalScope] so that VM-scope
+ * cancellation can never strand the singleton state.
+ *
+ * Why: callers (ViewModels) launch these suspend calls on viewModelScope.
+ * If the VM is cancelled after a network call returns but before the state
+ * write, Ktor's rethrown CancellationException skips the write — the
+ * singleton's StateFlow gets stuck, and every future subscriber sees stale
+ * data. See ADR-018 and [FirebaseAuthRepository] for the same pattern.
+ *
+ * The caller still suspends via [kotlinx.coroutines.Deferred.await]/
+ * [kotlinx.coroutines.Job.join]. If the caller is cancelled, their
+ * `await`/`join` throws, but the launched coroutine continues on
+ * [externalScope] and completes the state update independently.
+ */
 class NetworkSnoozeRepository(
     private val networkButtonDataSource: NetworkButtonDataSource,
     private val serverConfigRepository: ServerConfigRepository,
     private val snoozeNotificationsOption: Boolean,
     private val currentTimeSeconds: () -> Long,
-    externalScope: CoroutineScope,
+    private val externalScope: CoroutineScope,
 ) : SnoozeRepository {
     private val snoozeStateFlow = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
 
     init {
-        // Drive the first fetch from an app-lifetime scope so VM cancellation
-        // can't strand the singleton at Loading. Mirrors FirebaseAuthRepository
-        // (ADR-018). If a VM-scoped fetch is cancelled after the network call
-        // returns but before the state write, CancellationException skips the
-        // when(result) branch — leaving the singleton stuck Loading forever.
-        externalScope.launch { fetchSnoozeStatus() }
+        externalScope.launch { doFetchSnoozeStatus() }
     }
 
     override fun observeSnoozeState(): Flow<SnoozeState> = snoozeStateFlow
 
     override suspend fun fetchSnoozeStatus() {
+        externalScope.launch { doFetchSnoozeStatus() }.join()
+    }
+
+    override suspend fun snoozeNotifications(
+        snoozeDurationHours: String,
+        idToken: String,
+        snoozeEventTimestampSeconds: Long,
+    ): Boolean {
+        val success = externalScope
+            .async {
+                doSnoozeNotifications(snoozeDurationHours, idToken, snoozeEventTimestampSeconds)
+            }.await()
+        if (success) {
+            // Refresh from real server data — no optimistic local write.
+            externalScope.launch { doFetchSnoozeStatus() }
+        }
+        return success
+    }
+
+    private suspend fun doFetchSnoozeStatus() {
         val serverConfig = serverConfigRepository.getServerConfigCached()
         if (serverConfig == null) {
             Logger.e { "Server config is null" }
@@ -81,7 +112,7 @@ class NetworkSnoozeRepository(
         }
     }
 
-    override suspend fun snoozeNotifications(
+    private suspend fun doSnoozeNotifications(
         snoozeDurationHours: String,
         idToken: String,
         snoozeEventTimestampSeconds: Long,
