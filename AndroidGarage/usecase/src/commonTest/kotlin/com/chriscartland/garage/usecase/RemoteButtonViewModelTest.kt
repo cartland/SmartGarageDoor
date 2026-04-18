@@ -215,21 +215,24 @@ class RemoteButtonViewModelTest {
         }
 
     @Test
-    fun initFetchesSnoozeStatus() {
+    fun initDoesNotFetchSnoozeStatus() {
+        // First fetch is driven by NetworkSnoozeRepository.init on app scope,
+        // not by the ViewModel. Running it from viewModelScope risked
+        // cancellation mid-fetch stranding the singleton at Loading.
         createViewModel()
-        assertEquals(1, snoozeRepository.fetchCount)
+        assertEquals(0, snoozeRepository.fetchCount)
     }
 
     @Test
     fun fetchSnoozeStatusCallsThroughToRepository() =
         runTest {
             val viewModel = createViewModel()
-            assertEquals(1, snoozeRepository.fetchCount) // 1 from init
+            assertEquals(0, snoozeRepository.fetchCount)
 
             viewModel.fetchSnoozeStatus()
             testDispatcher.scheduler.runCurrent()
 
-            assertEquals(2, snoozeRepository.fetchCount)
+            assertEquals(1, snoozeRepository.fetchCount)
         }
 
     @Test

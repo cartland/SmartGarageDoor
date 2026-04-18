@@ -340,6 +340,7 @@ abstract class AppComponent(
             provideServerConfigRepository(),
             provideAppConfig().snoozeNotificationsOption,
             currentTimeSeconds = { System.currentTimeMillis() / 1000 },
+            externalScope = provideApplicationScope(),
         )
 
     // Coroutines

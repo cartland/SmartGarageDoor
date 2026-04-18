@@ -23,17 +23,29 @@ import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.domain.repository.SnoozeRepository
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 
 class NetworkSnoozeRepository(
     private val networkButtonDataSource: NetworkButtonDataSource,
     private val serverConfigRepository: ServerConfigRepository,
     private val snoozeNotificationsOption: Boolean,
     private val currentTimeSeconds: () -> Long,
+    externalScope: CoroutineScope,
 ) : SnoozeRepository {
     private val snoozeStateFlow = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
+
+    init {
+        // Drive the first fetch from an app-lifetime scope so VM cancellation
+        // can't strand the singleton at Loading. Mirrors FirebaseAuthRepository
+        // (ADR-018). If a VM-scoped fetch is cancelled after the network call
+        // returns but before the state write, CancellationException skips the
+        // when(result) branch — leaving the singleton stuck Loading forever.
+        externalScope.launch { fetchSnoozeStatus() }
+    }
 
     override fun observeSnoozeState(): Flow<SnoozeState> = snoozeStateFlow
 

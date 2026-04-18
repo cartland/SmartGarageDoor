@@ -1,0 +1,178 @@
+/*
+ * Copyright 2024 Chris Cartland. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+package com.chriscartland.garage.data.repository
+
+import com.chriscartland.garage.data.NetworkResult
+import com.chriscartland.garage.domain.model.ServerConfig
+import com.chriscartland.garage.domain.model.SnoozeState
+import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
+import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+/**
+ * Protects against the android/164 "stuck Loading" bug.
+ *
+ * The singleton's first fetch must run on an app-lifetime scope. If it runs
+ * on a VM scope and the VM is destroyed mid-fetch, Ktor rethrows
+ * CancellationException, the when(result) branch never executes, and the
+ * singleton's StateFlow is permanently stuck at Loading for every future
+ * subscriber. See [androidApp/.../FirebaseAuthRepository] for the reference
+ * pattern (ADR-018).
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+class NetworkSnoozeRepositoryTest {
+    private val validConfig = NetworkResult.Success(
+        ServerConfig(
+            buildTimestamp = "test",
+            remoteButtonBuildTimestamp = "test",
+            remoteButtonPushKey = "key",
+        ),
+    )
+
+    @Test
+    fun initOnExternalScopeFetchesAndTransitionsOffLoading() =
+        runTest {
+            val buttonDs = FakeNetworkButtonDataSource()
+            val configDs = FakeNetworkConfigDataSource().apply { setServerConfigResult(validConfig) }
+            buttonDs.setFetchSnoozeResult(NetworkResult.Success(0L))
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+
+            val repo = NetworkSnoozeRepository(
+                networkButtonDataSource = buttonDs,
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key"),
+                snoozeNotificationsOption = true,
+                currentTimeSeconds = { 0L },
+                externalScope = externalScope,
+            )
+            advanceUntilIdle()
+
+            assertEquals(SnoozeState.NotSnoozing, repo.observeSnoozeState().first())
+            assertEquals(1, buttonDs.fetchSnoozeCount)
+        }
+
+    @Test
+    fun vmScopeCancellationCannotStrandSingletonAtLoading() =
+        runTest {
+            // Simulate the bug: a slow network call and a VM scope that cancels
+            // mid-flight. With the fix, the repo's own init fetch (on external
+            // scope) runs to completion regardless. Without the fix, the
+            // repo-scoped fetch was absent and VM-scoped fetches could leave
+            // state at Loading forever.
+            val buttonDs = FakeNetworkButtonDataSource()
+            val configDs = FakeNetworkConfigDataSource().apply { setServerConfigResult(validConfig) }
+            buttonDs.setFetchSnoozeResult(NetworkResult.Success(0L))
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val vmScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+
+            val repo = NetworkSnoozeRepository(
+                networkButtonDataSource = buttonDs,
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key"),
+                snoozeNotificationsOption = true,
+                currentTimeSeconds = { 0L },
+                externalScope = externalScope,
+            )
+            // VM-scoped fetch starts then is cancelled before it can complete.
+            vmScope.launch { repo.fetchSnoozeStatus() }
+            advanceTimeBy(10)
+            vmScope.coroutineContext.cancelChildren()
+            advanceUntilIdle()
+
+            // External-scope fetch from init still completed — state is NOT stuck.
+            assertEquals(SnoozeState.NotSnoozing, repo.observeSnoozeState().first())
+
+            externalScope.cancel()
+            vmScope.cancel()
+        }
+
+    @Test
+    fun initHandlesConnectionFailureByClearingLoading() =
+        runTest {
+            val buttonDs = FakeNetworkButtonDataSource()
+            val configDs = FakeNetworkConfigDataSource().apply {
+                setServerConfigResult(NetworkResult.ConnectionFailed)
+            }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+
+            val repo = NetworkSnoozeRepository(
+                networkButtonDataSource = buttonDs,
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key"),
+                snoozeNotificationsOption = true,
+                currentTimeSeconds = { 0L },
+                externalScope = externalScope,
+            )
+            advanceUntilIdle()
+
+            // Server config unavailable → fall back to NotSnoozing, never stay Loading.
+            assertEquals(SnoozeState.NotSnoozing, repo.observeSnoozeState().first())
+
+            externalScope.cancel()
+        }
+
+    @Test
+    fun snoozingStateReflectsFutureEndTime() =
+        runTest {
+            val now = 1000L
+            val futureEnd = 5000L
+            val buttonDs = FakeNetworkButtonDataSource().apply {
+                setFetchSnoozeResult(NetworkResult.Success(futureEnd))
+            }
+            val configDs = FakeNetworkConfigDataSource().apply { setServerConfigResult(validConfig) }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+
+            val repo = NetworkSnoozeRepository(
+                networkButtonDataSource = buttonDs,
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key"),
+                snoozeNotificationsOption = true,
+                currentTimeSeconds = { now },
+                externalScope = externalScope,
+            )
+            advanceUntilIdle()
+
+            assertEquals(SnoozeState.Snoozing(futureEnd), repo.observeSnoozeState().first())
+
+            externalScope.cancel()
+        }
+
+    @Test
+    fun featureDisabledTransitionsOffLoading() =
+        runTest {
+            val buttonDs = FakeNetworkButtonDataSource()
+            val configDs = FakeNetworkConfigDataSource().apply { setServerConfigResult(validConfig) }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+
+            val repo = NetworkSnoozeRepository(
+                networkButtonDataSource = buttonDs,
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key"),
+                snoozeNotificationsOption = false,
+                currentTimeSeconds = { 0L },
+                externalScope = externalScope,
+            )
+            // Feature-disabled path has a delay(500); advanceUntilIdle covers it.
+            advanceUntilIdle()
+
+            assertEquals(SnoozeState.NotSnoozing, repo.observeSnoozeState().first())
+            assertEquals(0, buttonDs.fetchSnoozeCount)
+
+            externalScope.cancel()
+        }
+}
