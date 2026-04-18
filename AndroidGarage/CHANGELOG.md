@@ -4,6 +4,7 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 ## 2.4.2
 - Snooze card shows "Door notifications enabled" / "Door notifications snoozed until X"
+- Snooze status loads immediately instead of showing "Loading"
 - Action feedback (Saved/Error) aligned under button
 - Improved card layout alignment
 
