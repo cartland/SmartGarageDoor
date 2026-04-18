@@ -2,6 +2,9 @@
 
 Internal release history. For Play Store "What's New" text, see `distribution/whatsnew/`.
 
+## 2.4.3
+- Snooze card updates to "snoozed until X" immediately after saving (no app restart needed)
+
 ## 2.4.2
 - Snooze card shows "Door notifications enabled" / "Door notifications snoozed until X"
 - Snooze status loads immediately instead of showing "Loading"
