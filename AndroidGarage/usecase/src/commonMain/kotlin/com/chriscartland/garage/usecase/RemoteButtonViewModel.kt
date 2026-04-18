@@ -162,7 +162,8 @@ class DefaultRemoteButtonViewModel(
                         val optimisticEnd = System.currentTimeMillis() / 1000 + durationSeconds
                         SnoozeAction.Succeeded.Set(optimisticEnd)
                     }
-                    fetchSnoozeStatusUseCase()
+                    // The repo writes the authoritative snoozeState from the
+                    // POST response itself — no follow-up fetch needed.
                     scheduleActionReset()
                 }
                 is AppResult.Error -> {

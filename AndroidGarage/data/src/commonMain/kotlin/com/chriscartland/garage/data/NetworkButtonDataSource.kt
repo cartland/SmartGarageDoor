@@ -13,13 +13,18 @@ interface NetworkButtonDataSource {
         idToken: String,
     ): NetworkResult<Unit>
 
+    /**
+     * Submits a snooze request. On success, returns the authoritative
+     * `snoozeEndTimeSeconds` from the server response so callers can update
+     * state without a follow-up GET.
+     */
     suspend fun snoozeNotifications(
         buildTimestamp: String,
         remoteButtonPushKey: String,
         idToken: String,
         snoozeDurationHours: String,
         snoozeEventTimestampSeconds: Long,
-    ): NetworkResult<Unit>
+    ): NetworkResult<Long>
 
     suspend fun fetchSnoozeEndTimeSeconds(buildTimestamp: String): NetworkResult<Long>
 }
