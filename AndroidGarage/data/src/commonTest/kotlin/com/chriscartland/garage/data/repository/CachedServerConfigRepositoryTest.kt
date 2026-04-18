@@ -17,14 +17,17 @@
 
 package com.chriscartland.garage.data.repository
 
+import com.chriscartland.garage.data.NetworkConfigDataSource
 import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.fail
 
 /**
  * Integration tests for [CachedServerConfigRepository] with fake network data source.
@@ -129,6 +132,42 @@ class CachedServerConfigRepositoryTest {
             assertEquals(config2, repo.getServerConfigCached())
             // 3 fetches: initial getServerConfigCached, fetchServerConfig, getServerConfigCached (cached)
             assertEquals(2, configDataSource.fetchCount)
+        }
+
+    @Test
+    fun mutexReleasedAfterFetchThrowsSoSubsequentCallsDoNotDeadlock() =
+        runTest {
+            val validConfig = ServerConfig(
+                buildTimestamp = "2024-01-15T00:00:00Z",
+                remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
+                remoteButtonPushKey = "key",
+            )
+            val throwingDataSource = object : NetworkConfigDataSource {
+                var throwNext = true
+
+                override suspend fun fetchServerConfig(serverConfigKey: String): NetworkResult<ServerConfig> {
+                    if (throwNext) {
+                        throwNext = false
+                        throw RuntimeException("simulated transient error")
+                    }
+                    return NetworkResult.Success(validConfig)
+                }
+            }
+            val repo = CachedServerConfigRepository(throwingDataSource, "key")
+
+            // First call throws. Before the fix, the bare mutex.lock() + unlock()
+            // pair leaked the mutex on exception, permanently blocking every
+            // future caller.
+            try {
+                repo.getServerConfigCached()
+                fail("Expected exception was not thrown")
+            } catch (_: RuntimeException) {
+                // expected
+            }
+
+            // Second call must return — if the mutex is leaked, this hangs.
+            val result = withTimeout(1_000) { repo.getServerConfigCached() }
+            assertEquals(validConfig, result)
         }
 
     @Test
