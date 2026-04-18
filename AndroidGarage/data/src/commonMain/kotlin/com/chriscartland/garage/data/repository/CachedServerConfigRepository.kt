@@ -22,6 +22,7 @@ import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class CachedServerConfigRepository(
     private val networkConfigDataSource: NetworkConfigDataSource,
@@ -32,13 +33,11 @@ class CachedServerConfigRepository(
     private val mutex: Mutex = Mutex()
 
     override suspend fun getServerConfigCached(): ServerConfig? {
-        if (serverConfig != null) {
-            return serverConfig
-        }
-        mutex.lock()
-        val result = serverConfig ?: fetchServerConfig()
-        mutex.unlock()
-        return result
+        serverConfig?.let { return it }
+        // withLock guarantees unlock on any exit path including cancellation.
+        // The bare lock()/unlock() form leaked the mutex on any exception from
+        // fetchServerConfig(), permanently blocking every future caller.
+        return mutex.withLock { serverConfig ?: fetchServerConfig() }
     }
 
     override suspend fun fetchServerConfig(): ServerConfig? {
