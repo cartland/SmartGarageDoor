@@ -13,7 +13,7 @@
 
 ## Current State
 
-- **290+ unit tests** across 49 test files (7 androidApp + 9 domain + 26 usecase + 6 data + 1 data-local), all KMP-compatible (kotlin.test)
+- **305+ unit tests** across 51 test files (7 androidApp + 9 domain + 27 usecase + 7 data + 1 data-local), all KMP-compatible (kotlin.test). Includes `NetworkSnoozeRepositoryTest` (9 tests, guards the snooze externalScope pattern per ADR-019) and `SnoozeStateFlowPropagationTest` (6 tests, documents Flow/StateFlow propagation through the repo→VM→collect chain).
 - **25 instrumented tests** across 5 test files (Room sanity, DI graph, navigation smoke, state restoration, configuration change)
 - **14 shared fakes** in `test-common` module — one copy each, no duplicates across modules
 - **Zero Mockito** — all tests use fake implementations
