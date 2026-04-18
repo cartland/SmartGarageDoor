@@ -207,4 +207,40 @@ describe('getDoorNotClosedMessageFromEvent', () => {
         expect(actual).to.not.be.null;
         expect(actual).to.not.be.empty;
     });
+    it('returns body with 20 minutes for open door after 20 minutes', () => {
+        const buildTimestamp = 'Sat Mar 13 14:45:00 2021';
+        const currentEvent = <SensorEvent>{
+            type: SensorEventType.Open,
+            timestampSeconds: 1725781091,
+            message: "Test message",
+            checkInTimestampSeconds: 1725781092,
+        };
+        const now = 1725781091 + 20 * 60;
+        const message: TopicMessage = getDoorNotClosedMessageFromEvent(buildTimestamp, currentEvent, now);
+        expect(message.notification.body).to.equal('Open for more than 20 minutes');
+    });
+    it('returns body with 0 minutes for open door after 0 seconds', () => {
+        const buildTimestamp = 'Sat Mar 13 14:45:00 2021';
+        const currentEvent = <SensorEvent>{
+            type: SensorEventType.Open,
+            timestampSeconds: 1725781091,
+            message: "Test message",
+            checkInTimestampSeconds: 1725781092,
+        };
+        const now = 1725781091; // Same time as event — 0 seconds elapsed
+        const message: TopicMessage = getDoorNotClosedMessageFromEvent(buildTimestamp, currentEvent, now);
+        expect(message.notification.body).to.equal('Open for more than 0 minutes');
+    });
+    it('returns body with 1 hours for open door after 90 minutes', () => {
+        const buildTimestamp = 'Sat Mar 13 14:45:00 2021';
+        const currentEvent = <SensorEvent>{
+            type: SensorEventType.Open,
+            timestampSeconds: 1725781091,
+            message: "Test message",
+            checkInTimestampSeconds: 1725781092,
+        };
+        const now = 1725781091 + 90 * 60;
+        const message: TopicMessage = getDoorNotClosedMessageFromEvent(buildTimestamp, currentEvent, now);
+        expect(message.notification.body).to.equal('Open for more than 1 hours');
+    });
 });
