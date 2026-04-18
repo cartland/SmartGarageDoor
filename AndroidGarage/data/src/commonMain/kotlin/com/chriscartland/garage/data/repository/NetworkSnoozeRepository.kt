@@ -68,17 +68,11 @@ class NetworkSnoozeRepository(
         snoozeDurationHours: String,
         idToken: String,
         snoozeEventTimestampSeconds: Long,
-    ): Boolean {
-        val success = externalScope
+    ): Boolean =
+        externalScope
             .async {
                 doSnoozeNotifications(snoozeDurationHours, idToken, snoozeEventTimestampSeconds)
             }.await()
-        if (success) {
-            // Refresh from real server data — no optimistic local write.
-            externalScope.launch { doFetchSnoozeStatus() }
-        }
-        return success
-    }
 
     private suspend fun doFetchSnoozeStatus() {
         val serverConfig = serverConfigRepository.getServerConfigCached()
@@ -136,7 +130,13 @@ class NetworkSnoozeRepository(
                 snoozeEventTimestampSeconds = snoozeEventTimestampSeconds,
             )
         ) {
-            is NetworkResult.Success -> true
+            is NetworkResult.Success -> {
+                // Write state directly from the server's POST response — the
+                // authoritative snoozeEndTimeSeconds is already in hand, no
+                // follow-up GET needed.
+                snoozeStateFlow.value = snoozeStateFromEndTime(result.data)
+                true
+            }
             is NetworkResult.HttpError -> {
                 Logger.e { "Snooze HTTP ${result.code}" }
                 false

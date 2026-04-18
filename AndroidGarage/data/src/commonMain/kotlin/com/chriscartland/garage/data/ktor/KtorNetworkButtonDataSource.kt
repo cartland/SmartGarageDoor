@@ -65,7 +65,7 @@ class KtorNetworkButtonDataSource(
         idToken: String,
         snoozeDurationHours: String,
         snoozeEventTimestampSeconds: Long,
-    ): NetworkResult<Unit> {
+    ): NetworkResult<Long> {
         return try {
             val response = client.post("snoozeNotificationsRequest") {
                 parameter("buildTimestamp", buildTimestamp)
@@ -78,12 +78,16 @@ class KtorNetworkButtonDataSource(
             if (!response.status.isSuccess()) {
                 return NetworkResult.HttpError(response.status.value)
             }
-            val body = response.body<KtorSnoozeResponse>()
+            // Server returns the SnoozeRequest object directly (see
+            // FirebaseServer/src/functions/http/Snooze.ts — it sends the
+            // snooze, not a wrapper). The authoritative end time is here.
+            val body = response.body<KtorSnoozeSubmitResponse>()
             if (body.error != null) {
                 Logger.e { "Snooze error: ${body.error}" }
                 return NetworkResult.HttpError(response.status.value)
             }
-            NetworkResult.Success(Unit)
+            val endTime = body.snoozeEndTimeSeconds ?: 0L
+            NetworkResult.Success(endTime)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
@@ -117,8 +121,14 @@ class KtorNetworkButtonDataSource(
 
 // region Serializable response types
 
+/**
+ * Server response for POST /snoozeNotificationsRequest. The server sends the
+ * `SnoozeRequest` object at the top level (not nested under `snooze`), so
+ * `snoozeEndTimeSeconds` is a direct field here.
+ */
 @Serializable
-private data class KtorSnoozeResponse(
+private data class KtorSnoozeSubmitResponse(
+    val snoozeEndTimeSeconds: Long? = null,
     val error: String? = null,
 )
 

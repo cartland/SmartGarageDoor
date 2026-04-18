@@ -154,15 +154,16 @@ class NetworkSnoozeRepositoryTest {
         }
 
     @Test
-    fun successfulSubmitTriggersFetchUpdatingStateFromRealServerResponse() =
+    fun successfulSubmitUpdatesStateFromPostResponse() =
         runTest {
-            // After submit succeeds, the server flips the snooze to an active
-            // window. The next fetch must return that new end time and update
-            // the singleton state — no optimistic local write in the repo.
+            // The server returns the snoozeEndTimeSeconds in the POST response
+            // body. The repo writes state directly from it — no follow-up GET
+            // needed (authoritative data is already in hand).
             val now = 1000L
             val submittedSnoozeEnd = 5000L
             val buttonDs = FakeNetworkButtonDataSource().apply {
                 setFetchSnoozeResult(NetworkResult.Success(0L)) // initial: no snooze
+                setSnoozeResult(NetworkResult.Success(submittedSnoozeEnd)) // POST returns end time
             }
             val configDs = FakeNetworkConfigDataSource().apply { setServerConfigResult(validConfig) }
             val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
@@ -177,9 +178,6 @@ class NetworkSnoozeRepositoryTest {
             advanceUntilIdle()
             assertEquals(SnoozeState.NotSnoozing, repo.observeSnoozeState().first())
 
-            // Simulate server: after submit the GET returns the new snooze end.
-            buttonDs.setFetchSnoozeResult(NetworkResult.Success(submittedSnoozeEnd))
-
             val submitted = repo.snoozeNotifications(
                 snoozeDurationHours = "1h",
                 idToken = "t",
@@ -188,11 +186,9 @@ class NetworkSnoozeRepositoryTest {
             advanceUntilIdle()
 
             assertEquals(true, submitted)
-            // State reflects the server's GET response, not any client-side
-            // optimistic computation.
             assertEquals(SnoozeState.Snoozing(submittedSnoozeEnd), repo.observeSnoozeState().first())
-            // submit POST + post-submit GET = 1 submit + 2 fetches (init + post-submit).
-            assertEquals(2, buttonDs.fetchSnoozeCount)
+            // Only the init fetch runs — no follow-up GET after the POST.
+            assertEquals(1, buttonDs.fetchSnoozeCount)
             assertEquals(1, buttonDs.snoozeCount)
 
             externalScope.cancel()
@@ -202,12 +198,13 @@ class NetworkSnoozeRepositoryTest {
     fun callerCancellationDuringSubmitDoesNotStrandState() =
         runTest {
             // The VM scope calls snoozeNotifications then is cancelled. The
-            // submit runs on externalScope and completes; the post-submit
-            // fetch updates state even though the VM's await threw.
+            // submit runs on externalScope and writes state from the POST
+            // response even though the VM's await threw.
             val now = 1000L
             val snoozeEnd = 5000L
             val buttonDs = FakeNetworkButtonDataSource().apply {
-                setFetchSnoozeResult(NetworkResult.Success(snoozeEnd))
+                setFetchSnoozeResult(NetworkResult.Success(0L))
+                setSnoozeResult(NetworkResult.Success(snoozeEnd))
             }
             val configDs = FakeNetworkConfigDataSource().apply { setServerConfigResult(validConfig) }
             val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
@@ -276,7 +273,7 @@ class NetworkSnoozeRepositoryTest {
         }
 
     @Test
-    fun failedSubmitDoesNotTriggerExtraFetch() =
+    fun failedSubmitDoesNotTouchState() =
         runTest {
             val buttonDs = FakeNetworkButtonDataSource().apply {
                 setFetchSnoozeResult(NetworkResult.Success(0L))
@@ -293,14 +290,12 @@ class NetworkSnoozeRepositoryTest {
                 externalScope = externalScope,
             )
             advanceUntilIdle()
-            val fetchesAfterInit = buttonDs.fetchSnoozeCount
 
             val submitted = repo.snoozeNotifications("1h", "t", 0L)
             advanceUntilIdle()
 
             assertEquals(false, submitted)
-            // No post-submit fetch on failure — the state is untouched.
-            assertEquals(fetchesAfterInit, buttonDs.fetchSnoozeCount)
+            assertEquals(SnoozeState.NotSnoozing, repo.observeSnoozeState().first())
 
             externalScope.cancel()
         }

@@ -29,7 +29,7 @@ class FakeNetworkButtonDataSource : NetworkButtonDataSource {
     )
 
     private var pushResult: NetworkResult<Unit> = NetworkResult.Success(Unit)
-    private var snoozeResult: NetworkResult<Unit> = NetworkResult.Success(Unit)
+    private var snoozeResult: NetworkResult<Long> = NetworkResult.Success(0L)
     private var fetchSnoozeResult: NetworkResult<Long> = NetworkResult.Success(0L)
 
     private val _pushCalls = mutableListOf<PushCall>()
@@ -48,7 +48,7 @@ class FakeNetworkButtonDataSource : NetworkButtonDataSource {
         pushResult = value
     }
 
-    fun setSnoozeResult(value: NetworkResult<Unit>) {
+    fun setSnoozeResult(value: NetworkResult<Long>) {
         snoozeResult = value
     }
 
@@ -79,7 +79,7 @@ class FakeNetworkButtonDataSource : NetworkButtonDataSource {
         idToken: String,
         snoozeDurationHours: String,
         snoozeEventTimestampSeconds: Long,
-    ): NetworkResult<Unit> {
+    ): NetworkResult<Long> {
         _snoozeCalls.add(
             SnoozeCall(
                 buildTimestamp = buildTimestamp,
