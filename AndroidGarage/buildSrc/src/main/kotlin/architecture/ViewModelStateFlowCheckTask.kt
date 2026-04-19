@@ -19,16 +19,22 @@ import java.io.File
  * Only literal `viewModelScope` is banned — `stateIn(applicationScope, ...)`
  * in a Manager class is legitimate.
  *
- * ### Rule 2 (ADR-022, withdrawn): previously banned VM-local mirror of
- * repository-owned state types.
+ * ### Rule 2 (ADR-022): no VM-local mirror of repository-owned state types
  *
- * Withdrawn after android/170 shipped the pass-through pattern and the
- * repo-owned `StateFlow` failed to reach Compose on production devices
- * even though every debug instrumented test passed. The VM-local mirror
- * + init-collect + direct-write-from-command pattern (PR #354 /
- * android/169) is the empirically-reliable shape. The allowlist is now
- * empty — `bannedStateTypesInViewModels` is kept as a knob in case we
- * ever need selective enforcement again, but it's intentionally inert.
+ * Domain state types whose ownership lives on a `@Singleton` repository
+ * must never be re-declared inside a ViewModel as a private
+ * `MutableStateFlow<T>`. The repo owns the authoritative flow; the VM
+ * exposes it by reference via the observe-UseCase.
+ *
+ * History: this rule was briefly withdrawn on 2026-04-19 after the
+ * android/170 regression, then reinstated on android/174 once Phase 2f
+ * fixed the kotlin-inject `@Singleton` scoping bug that silently broke
+ * the pass-through chain. See `docs/DI_SINGLETON_REQUIREMENTS.md` —
+ * this rule is meaningless without the DI fix, which itself is guarded
+ * by `ComponentGraphTest.*IsSingleton` tests.
+ *
+ * Extend the allowlist (`bannedStateTypesInViewModels`) as more state-y
+ * types migrate to the ADR-022 shape.
  */
 abstract class ViewModelStateFlowCheckTask : DefaultTask() {
     @get:Input
@@ -39,11 +45,14 @@ abstract class ViewModelStateFlowCheckTask : DefaultTask() {
      * `MutableStateFlow<X>` with any of these type arguments inside a
      * ViewModel is a mirror and fails the check.
      *
-     * Intentionally empty after ADR-022 Rule 2 was withdrawn — see class
-     * KDoc. Re-populate only if a future ADR revives the selective ban.
+     * Add new types as their repository migrations land.
      */
     @get:Input
-    var bannedStateTypesInViewModels: List<String> = emptyList()
+    var bannedStateTypesInViewModels: List<String> = listOf(
+        "SnoozeState",
+        "AuthState",
+        "FcmRegistrationStatus",
+    )
 
     private val stateInPattern = Regex("""\.stateIn\s*\(\s*viewModelScope""")
     private val fileNameRegex = Regex(".*ViewModel\\.kt")

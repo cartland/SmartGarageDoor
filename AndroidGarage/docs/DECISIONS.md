@@ -971,45 +971,44 @@ After this change, three VMs don't multiply the truth. They multiply only their 
 
 ## ADR-022: `StateFlow` at the Repository Boundary for State-y Data
 
-**Status:** **Withdrawn (2026-04-19) after android/170 regression.** The
-Rule 2 "VM exposes repo's `StateFlow` by reference" requirement proved
-empirically unreliable on production devices — the snooze card title
-failed to update despite every debug instrumented test passing. See
-"Withdrawal" section below. The repository **still** owns a
-`StateFlow<T>` as its observation API (that part stays). What changed:
-ViewModels must keep their own `MutableStateFlow<T>` mirror, collect from
-the repo in `init`, and direct-write from command results — the PR #354
-/ android/169 pattern.
+**Status:** **Accepted and enforced (2026-04-19, restored on android/174).**
+Partially supersedes ADR-013.
 
-`checkViewModelStateFlow` Rule 2 enforcement was removed alongside the
-withdrawal. The `checkSingletonGuard` requirement for state-owning
-repositories stays.
+**Enforcement:**
+- `checkViewModelStateFlow` bans `MutableStateFlow<T>` in `*ViewModel.kt`
+  when `T` matches `bannedStateTypesInViewModels` (`SnoozeState`,
+  `AuthState`, `FcmRegistrationStatus`). Extend the list as more state-y
+  types migrate.
+- `checkSingletonGuard` requires `@Singleton` on every
+  `provide<State-owning-Repository>` method in `AppComponent`.
+- `ComponentGraphTest.*IsSingleton` runs `assertSame` on every `@Singleton`
+  entry point — without this, `@Singleton` is a lie. See
+  `docs/DI_SINGLETON_REQUIREMENTS.md`.
 
-### Withdrawal
+### Timeline: withdrawal and restoration
 
-android/170 shipped the by-reference pattern from this ADR's original
-rollout (PR #358–#365). Users reported immediately that the snooze card
-title did not update after saving, while the overlay below the button
-(VM-local `SnoozeAction`) did — the exact android/167 symptom. The
-regression reproduces only on production APKs; every debug instrumented
-test (`SnoozeStateInstrumentedPropagationTest`,
-`SnoozeMultiSubscriberIntegrationTest`, `assertSame` reference-identity
-checks) passed. Rolled back to android/169 via android/171 (rollforward
-with `--confirm-hash`). An R8-enabled benchmark-variant harness
-(`R8_INSTRUMENTED_TESTS.md`) was added for future diagnosis but is not
-the trigger — R8 stripping would crash with `ClassNotFoundException`
-rather than selectively failing one StateFlow subscription while others
-work.
+- **android/170** — shipped this ADR's original rollout (PR #358–#365).
+  Users reported the snooze card title did not update after saving; the
+  overlay (VM-local `SnoozeAction`) did. Matched the android/167 symptom.
+- **android/171** — rollback to android/169's commit via `--confirm-hash`.
+- **android/172** — VM-local `_snoozeState` mirror + direct write hotfix
+  (PR #354 pattern). ADR-022 Rule 2 marked **Withdrawn** on the
+  assumption that the pass-through pattern itself was unreliable.
+- **android/173** — Phase 2f: fixed the kotlin-inject `@Singleton`
+  scoping bug. The generated `InjectAppComponent.kt` had been 15 lines of
+  empty subclass; no `@Singleton` provider was cached. Multiple
+  `NetworkSnoozeRepository` instances coexisted — POST wrote to one
+  flow, VM observed another. Pass-through had been correct all along;
+  the DI was lying about singletons.
+- **android/174** — removed the android/172 hotfix, restored the
+  pass-through. On device: snooze still works. The DI fix was the
+  complete root cause. ADR-022 Rule 2 **restored**.
 
-The VM-local mirror pattern (this ADR's anti-pattern) is the shape that
-actually ships reliably. android/169 used it and users did not report
-the bug. Keeping both `repo.snoozeState` as the source of truth and a
-VM mirror as a defensive layer is redundant — but the redundancy is
-what guarantees propagation. Rule 2 is withdrawn.
-
-Open question: *why* does the by-reference chain break on device while
-passing in debug tests? Hypotheses tracked in `MIGRATION_PLAN.md` Phase
-2f. Until the root cause is understood, do not re-enable the ban.
+Lesson: the debug instrumented tests passed because they construct a
+single VM with a single manually-wired repo — the production multi-
+instance DI graph was never exercised. `ComponentGraphTest.*IsSingleton`
+is now the load-bearing regression guard; without it, a future
+`AppComponent` drift would silently resurrect the same bug.
 
 ### Glossary
 
