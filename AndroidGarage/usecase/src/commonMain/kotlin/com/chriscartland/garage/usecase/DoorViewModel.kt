@@ -58,9 +58,9 @@ class DefaultDoorViewModel(
     private val fetchOnInit: Boolean = true,
 ) : ViewModel(),
     DoorViewModel {
-    // ADR-017 Rule 6: explicit MutableStateFlow + collect, no stateIn in ViewModels.
-    private val _fcmRegistrationStatus = MutableStateFlow(FcmRegistrationStatus.UNKNOWN)
-    override val fcmRegistrationStatus: StateFlow<FcmRegistrationStatus> = _fcmRegistrationStatus
+    // ADR-022: expose the manager's StateFlow by reference — no mirror.
+    override val fcmRegistrationStatus: StateFlow<FcmRegistrationStatus> =
+        fcmRegistrationManager.registrationStatus
 
     private val _currentDoorEvent =
         MutableStateFlow<LoadingResult<DoorEvent?>>(LoadingResult.Loading(null))
@@ -75,11 +75,6 @@ class DefaultDoorViewModel(
 
     init {
         Logger.d { "init" }
-        viewModelScope.launch(dispatchers.io) {
-            fcmRegistrationManager.registrationStatus.collect {
-                _fcmRegistrationStatus.value = it
-            }
-        }
         viewModelScope.launch(dispatchers.io) {
             checkInStalenessManager.isCheckInStale.collect {
                 _isCheckInStale.value = it
