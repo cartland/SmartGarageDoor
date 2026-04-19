@@ -99,7 +99,13 @@ import me.tatarka.inject.annotations.Provides
 abstract class AppComponent(
     @get:Provides val application: Application,
 ) {
-    // ViewModels
+    // ViewModels.
+    //
+    // These providers are intentionally NOT @Singleton — each call site (Compose
+    // rememberViewModelStoreNavEntryDecorator<Screen>) receives its own VM
+    // instance scoped to that nav entry's lifecycle. This is the ADR-021 Rule 4
+    // pattern: multiple VMs are allowed, correctness comes from the single
+    // @Singleton repositories they share (ADR-021 Rule 1, ADR-022).
     val authViewModel: DefaultAuthViewModel
         @Provides get() = DefaultAuthViewModel(
             provideObserveAuthStateUseCase(),
