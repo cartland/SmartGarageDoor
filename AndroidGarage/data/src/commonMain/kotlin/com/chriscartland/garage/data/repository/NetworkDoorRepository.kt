@@ -46,7 +46,11 @@ class NetworkDoorRepository(
     override val currentDoorEvent: Flow<DoorEvent?> = localDoorDataSource.currentDoorEvent
     override val recentDoorEvents: Flow<List<DoorEvent>> = localDoorDataSource.recentDoorEvents
 
-    override suspend fun fetchBuildTimestampCached(): String? = serverConfigRepository.getServerConfigCached()?.buildTimestamp
+    override suspend fun fetchBuildTimestampCached(): String? {
+        val cached = serverConfigRepository.serverConfig.value
+            ?: serverConfigRepository.fetchServerConfig()
+        return cached?.buildTimestamp
+    }
 
     override fun insertDoorEvent(doorEvent: DoorEvent) {
         Logger.d { "Inserting DoorEvent: $doorEvent" }

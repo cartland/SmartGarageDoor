@@ -84,7 +84,7 @@ class SharedRepositoryUseCasesTest {
         val configDs = FakeNetworkConfigDataSource().apply { setServerConfigResult(validConfig) }
         val repo: SnoozeRepository = NetworkSnoozeRepository(
             networkButtonDataSource = buttonDs,
-            serverConfigRepository = CachedServerConfigRepository(configDs, "key"),
+            serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
             snoozeNotificationsOption = true,
             currentTimeSeconds = { now },
             externalScope = externalScope,

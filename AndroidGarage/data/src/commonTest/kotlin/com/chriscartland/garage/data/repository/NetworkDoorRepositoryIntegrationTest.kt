@@ -26,8 +26,11 @@ import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkDoorDataSource
 import com.chriscartland.garage.testcommon.InMemoryLocalDoorDataSource
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -48,6 +51,7 @@ class NetworkDoorRepositoryIntegrationTest {
         val serverConfigRepo = CachedServerConfigRepository(
             networkConfigDataSource = configDataSource,
             serverConfigKey = "test-key",
+            externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher()),
         )
         return NetworkDoorRepository(
             localDoorDataSource = localDataSource,

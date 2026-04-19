@@ -60,7 +60,7 @@ class NetworkSnoozeRepositoryTest {
 
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
-                serverConfigRepository = CachedServerConfigRepository(configDs, "key"),
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,
@@ -87,7 +87,7 @@ class NetworkSnoozeRepositoryTest {
 
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
-                serverConfigRepository = CachedServerConfigRepository(configDs, "key"),
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,
@@ -116,7 +116,7 @@ class NetworkSnoozeRepositoryTest {
 
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
-                serverConfigRepository = CachedServerConfigRepository(configDs, "key"),
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,
@@ -142,7 +142,7 @@ class NetworkSnoozeRepositoryTest {
 
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
-                serverConfigRepository = CachedServerConfigRepository(configDs, "key"),
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,
@@ -171,7 +171,7 @@ class NetworkSnoozeRepositoryTest {
 
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
-                serverConfigRepository = CachedServerConfigRepository(configDs, "key"),
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,
@@ -218,7 +218,7 @@ class NetworkSnoozeRepositoryTest {
 
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
-                serverConfigRepository = CachedServerConfigRepository(configDs, "key"),
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,
@@ -256,7 +256,7 @@ class NetworkSnoozeRepositoryTest {
 
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
-                serverConfigRepository = CachedServerConfigRepository(configDs, "key"),
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,
@@ -290,7 +290,7 @@ class NetworkSnoozeRepositoryTest {
 
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
-                serverConfigRepository = CachedServerConfigRepository(configDs, "key"),
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,
@@ -315,7 +315,7 @@ class NetworkSnoozeRepositoryTest {
 
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
-                serverConfigRepository = CachedServerConfigRepository(configDs, "key"),
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 snoozeNotificationsOption = false,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,

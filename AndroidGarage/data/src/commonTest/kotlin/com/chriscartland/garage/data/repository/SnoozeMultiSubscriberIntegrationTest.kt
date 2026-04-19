@@ -69,7 +69,7 @@ class SnoozeMultiSubscriberIntegrationTest {
     ): NetworkSnoozeRepository =
         NetworkSnoozeRepository(
             networkButtonDataSource = buttonDs,
-            serverConfigRepository = CachedServerConfigRepository(configDs, "key"),
+            serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
             snoozeNotificationsOption = true,
             currentTimeSeconds = { currentTime },
             externalScope = externalScope,
