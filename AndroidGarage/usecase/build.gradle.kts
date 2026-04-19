@@ -22,6 +22,9 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(project(":test-common"))
+            // Test-only: lets us wire the REAL NetworkSnoozeRepository into VM
+            // tests so propagation goes through production code, not fakes.
+            implementation(project(":data"))
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
         }
