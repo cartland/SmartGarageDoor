@@ -24,8 +24,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -35,7 +35,9 @@ import kotlinx.coroutines.launch
  * retries with fixed delay on failure, stops on success.
  *
  * [start] is idempotent — calling twice doesn't create two retry loops.
- * Status is observable via [registrationStatus].
+ * Status is observable via [registrationStatus] — per ADR-022, this is a
+ * `StateFlow<FcmRegistrationStatus>` so subscribers read `.value` for the
+ * current status and VMs expose it by reference.
  */
 class FcmRegistrationManager(
     private val registerFcmUseCase: RegisterFcmUseCase,
@@ -43,10 +45,10 @@ class FcmRegistrationManager(
     private val dispatcher: CoroutineDispatcher,
     private val retryDelayMillis: Long = DEFAULT_RETRY_DELAY,
 ) {
-    private val statusFlow = MutableStateFlow(FcmRegistrationStatus.UNKNOWN)
+    private val _registrationStatus = MutableStateFlow(FcmRegistrationStatus.UNKNOWN)
 
-    /** Observable registration status. ViewModel collects this. */
-    val registrationStatus: Flow<FcmRegistrationStatus> = statusFlow
+    /** Observable registration status (ADR-022). */
+    val registrationStatus: StateFlow<FcmRegistrationStatus> = _registrationStatus
 
     private var retryJob: Job? = null
 
@@ -55,7 +57,7 @@ class FcmRegistrationManager(
      * or already registered, this is a no-op.
      */
     fun start() {
-        if (statusFlow.value == FcmRegistrationStatus.REGISTERED) {
+        if (_registrationStatus.value == FcmRegistrationStatus.REGISTERED) {
             Logger.d { "FcmRegistrationManager: already registered" }
             return
         }
@@ -80,7 +82,8 @@ class FcmRegistrationManager(
         Logger.d { "FcmRegistrationManager: restarting" }
         retryJob?.cancel()
         retryJob = null
-        statusFlow.value = FcmRegistrationStatus.UNKNOWN
+        _registrationStatus.value = FcmRegistrationStatus.UNKNOWN
+        Logger.i { "fcmRegistrationStatus <- UNKNOWN (source=restart)" }
         retryJob = scope.launch(dispatcher) {
             attemptWithRetry()
         }
@@ -91,13 +94,15 @@ class FcmRegistrationManager(
             Logger.d { "FcmRegistrationManager: attempting registration" }
             when (val result = registerFcmUseCase()) {
                 is AppResult.Success -> {
-                    Logger.d { "FcmRegistrationManager: registered" }
-                    statusFlow.value = FcmRegistrationStatus.REGISTERED
+                    _registrationStatus.value = FcmRegistrationStatus.REGISTERED
+                    Logger.i { "fcmRegistrationStatus <- REGISTERED (source=registerUseCase)" }
                     return
                 }
                 is AppResult.Error -> {
-                    Logger.w { "FcmRegistrationManager: failed (${result.error}), retrying in ${retryDelayMillis}ms" }
-                    statusFlow.value = FcmRegistrationStatus.NOT_REGISTERED
+                    _registrationStatus.value = FcmRegistrationStatus.NOT_REGISTERED
+                    Logger.w {
+                        "fcmRegistrationStatus <- NOT_REGISTERED (source=registerUseCase error=${result.error}); retry in ${retryDelayMillis}ms"
+                    }
                     delay(retryDelayMillis)
                 }
             }
