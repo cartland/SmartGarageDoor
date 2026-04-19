@@ -1,10 +1,11 @@
 name: Firebase CI
 
+# Pre-submit checks — runs on PRs only.
+# Post-merge checks are in firebase-ci-post-merge.yml.
+
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ "main" ]
-  push:
     branches: [ "main" ]
 
 jobs:
@@ -26,12 +27,8 @@ jobs:
             exit 0
           fi
 
-          if [ "${{ github.event_name }}" = "push" ]; then
-            BASE="${{ github.event.before }}"
-          else
-            BASE="origin/${{ github.base_ref }}"
-            git fetch --depth=1 origin "${{ github.base_ref }}" 2>/dev/null || true
-          fi
+          BASE="origin/${{ github.base_ref }}"
+          git fetch --depth=1 origin "${{ github.base_ref }}" 2>/dev/null || true
 
           CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null || echo "UNKNOWN")
 
@@ -64,50 +61,26 @@ jobs:
             echo "$CHANGED"
           fi
 
-  test:
-    name: Run Unit Tests
+  checks:
+    name: Checks
     needs: changes
-    if: needs.changes.outputs.firebase == 'true' && needs.changes.outputs.docs_only != 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install dependencies
-        working-directory: FirebaseServer
-        run: npm install
-      - name: Build
-        working-directory: FirebaseServer
-        run: npm run build
-      - name: Run Unit Tests
-        working-directory: FirebaseServer
-        run: npm run tests
-      - name: Check for outdated dependencies
-        working-directory: FirebaseServer
-        continue-on-error: true
-        run: |
-          echo "::group::Outdated dependencies"
-          npm outdated || true
-          echo "::endgroup::"
-          OUTDATED=$(npm outdated --json 2>/dev/null || echo "{}")
-          if [ "$OUTDATED" != "{}" ]; then
-            echo "::warning::Some dependencies have newer versions available. Run 'npm outdated' locally to review."
-          fi
+    if: needs.changes.outputs.docs_only != 'true'
+    uses: ./.github/workflows/firebase-ci-checks.yml
+    with:
+      firebase: ${{ needs.changes.outputs.firebase }}
 
   # Gate job — required status check for Firebase.
   firebase-ci-complete:
     name: Firebase CI Complete
     if: always()
-    needs: [test]
+    needs: [checks]
     runs-on: ubuntu-latest
     steps:
       - name: Check results
         run: |
-          echo "Tests: ${{ needs.test.result }}"
-          if [[ "${{ needs.test.result }}" == "failure" || \
-                "${{ needs.test.result }}" == "cancelled" ]]; then
+          echo "Checks: ${{ needs.checks.result }}"
+          if [[ "${{ needs.checks.result }}" == "failure" || \
+                "${{ needs.checks.result }}" == "cancelled" ]]; then
             echo "::error::Firebase CI failed"
             exit 1
           fi

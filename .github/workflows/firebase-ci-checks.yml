@@ -1,0 +1,44 @@
+name: Firebase CI Checks
+
+# Reusable workflow — called by both firebase-ci.yml (PR trigger)
+# and firebase-ci-post-merge.yml (push main trigger).
+
+on:
+  workflow_call:
+    inputs:
+      firebase:
+        description: Whether Firebase files changed
+        required: true
+        type: string
+
+jobs:
+  test:
+    name: Run Unit Tests
+    if: inputs.firebase == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        working-directory: FirebaseServer
+        run: npm install
+      - name: Build
+        working-directory: FirebaseServer
+        run: npm run build
+      - name: Run Unit Tests
+        working-directory: FirebaseServer
+        run: npm run tests
+      - name: Check for outdated dependencies
+        working-directory: FirebaseServer
+        continue-on-error: true
+        run: |
+          echo "::group::Outdated dependencies"
+          npm outdated || true
+          echo "::endgroup::"
+          OUTDATED=$(npm outdated --json 2>/dev/null || echo "{}")
+          if [ "$OUTDATED" != "{}" ]; then
+            echo "::warning::Some dependencies have newer versions available. Run 'npm outdated' locally to review."
+          fi
