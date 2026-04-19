@@ -323,33 +323,26 @@ the allowlist wasn't updated.
 
 ### Phase 2f — Fix kotlin-inject `@Singleton` scoping (load-bearing)
 
-**Status (2026-04-19):** Identified as the root cause of the android/170
-snooze regression that triggered the Phase 1 rollback. The generated
-`InjectAppComponent.kt` is an empty subclass — no `@Singleton` provider
-is being cached. See `DI_SINGLETON_REQUIREMENTS.md` for the full
-analysis, detection recipes, fix direction, and verification checklist.
+**Status:** ✅ Complete as of 2026-04-19 (android/173, PR #371). Validated
+empirically by android/174 (PR #372) — removing the android/172 VM-local
+mirror + direct-write, restoring the ADR-022 pass-through, snooze still
+works on device.
 
-Summary: `AppComponent` uses concrete `val x: T @Provides get() = ...`
-providers. kotlin-inject only generates scoped caching for **abstract
-entry points** — nothing to override here means nothing cached. Every
-`provideSnoozeRepository()` call constructs a fresh
-`NetworkSnoozeRepository` with its own `MutableStateFlow`. Within one VM
-the observe-UseCase's repo and the submit-UseCase's repo are different
-instances; the POST's `_snoozeState.value = newState` never reaches the
-observer.
+Resolution: converted `AppComponent` from concrete `val x: T @Provides
+get() = ...` providers to **abstract entry points** (`abstract val x: T`)
+with parameter-based `@Provides fun provide...()` bodies. The generated
+`InjectAppComponent.kt` grew from 15 → 304 lines; every `@Singleton`
+provider now routes through `_scoped.get(...)`. `ComponentGraphTest`
+added 14 identity-guard tests (`assertSame` on every `@Singleton` entry,
+`assertNotSame` on ViewModels) that would have caught this bug on day
+one if they had existed.
 
-The android/172 hotfix (restore VM-local mirror + direct write) sidesteps
-the DI bug but leaves the root cause in place. Fixing Phase 2f is a
-prerequisite for:
-- Reviving ADR-022 Rule 2 (VM exposes repo `StateFlow` by reference)
-- Removing the VM-local mirror in `RemoteButtonViewModel`
-- Trusting every other `@Singleton` provider (auth, door, server config,
-  FCM) to actually be singletons
+Downstream cleanup (also landed):
+- ADR-022 Rule 2 restored: VMs expose repo `StateFlow` by reference.
+- android/172 VM-local `_snoozeState` mirror + direct-write removed.
+- `ViewModelStateFlowCheckTask.bannedStateTypesInViewModels` re-populated.
 
-Trigger: schedule this as deliberate architectural work, not a hotfix.
-It re-shapes `AppComponent` and needs the
-`ComponentGraphTest.singletonRepositoriesReturnSameInstance` regression
-guard added first so the fix is proven at merge time.
+Full write-up: `DI_SINGLETON_REQUIREMENTS.md`.
 
 ## Phase 3 — iOS (Phase 38 in MIGRATION.md)
 
