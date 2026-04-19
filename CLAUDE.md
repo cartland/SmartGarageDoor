@@ -203,6 +203,8 @@ The script computes the next tag as `android/<highest + 1>`. The `--confirm-tag`
 
 **Validation is required by default.** Run `./scripts/validate.sh` before releasing. If validation hasn't passed on the commit, the release script will block. `--skip-validation` exists for emergencies (e.g., rollbacks to old tags) but should NOT be used routinely. Always ask the user before using `--skip-validation`.
 
+**Versioning rule (see [CHANGELOG.md](AndroidGarage/CHANGELOG.md#versioning)):** major = rewrite or core-experience shift; minor = added or removed user-facing feature/capability; patch = fixes, polish, refactors. `CHANGELOG.md` logs every version; `distribution/whatsnew/` gets one line per minor/major (patches roll up).
+
 ### Releasing Firebase Server
 Use `./scripts/release-firebase.sh` — same pattern as Android releases.
 
