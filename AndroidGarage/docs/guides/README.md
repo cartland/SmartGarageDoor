@@ -14,6 +14,10 @@ guide — the content is deliberately non-repo-specific.
 - [`kotlin-inject.md`](kotlin-inject.md) — `@Singleton` scoping only
   works through abstract entry points; runtime identity tests are the
   only proof of singleton-ness.
+- [`repository-api-patterns.md`](repository-api-patterns.md) —
+  repository `StateFlow` + `fetchX()` contract: always-refresh
+  semantics, null-preserves-cache, exception resilience, and the three
+  tests that encode them.
 
 ## How to use these guides in another project
 
