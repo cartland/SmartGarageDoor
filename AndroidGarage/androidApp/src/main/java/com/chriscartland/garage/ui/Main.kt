@@ -45,18 +45,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.ui.theme.AppTheme
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.AuthViewModel
 import com.chriscartland.garage.usecase.DoorViewModel
-import com.chriscartland.garage.usecase.RemoteButtonViewModel
 import kotlinx.serialization.Serializable
 import java.time.Instant
 
@@ -118,8 +115,6 @@ fun AppNavigation(
     doorViewModel: DoorViewModel,
     appLoggerViewModel: AppLoggerViewModel,
 ) {
-    val component = rememberAppComponent()
-    val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
     val currentDoorEvent by doorViewModel.currentDoorEvent.collectAsState()
     val lastCheckInTime = currentDoorEvent.data?.lastCheckInTimeSeconds?.let {
         Instant.ofEpochSecond(it)
