@@ -260,6 +260,13 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
+    // Needed by SnoozeStateInstrumentedPropagationTest to wire the real
+    // NetworkSnoozeRepository + DefaultRemoteButtonViewModel around fakes.
+    androidTestImplementation(project(":test-common"))
+    androidTestImplementation(project(":data"))
+    androidTestImplementation(project(":domain"))
+    androidTestImplementation(project(":usecase"))
+    androidTestImplementation(libs.kotlinx.coroutines.test)
     // Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

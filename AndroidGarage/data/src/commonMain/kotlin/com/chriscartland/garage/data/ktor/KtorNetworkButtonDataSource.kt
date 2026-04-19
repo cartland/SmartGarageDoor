@@ -29,6 +29,12 @@ import io.ktor.client.request.post
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+
+private val snoozeSubmitJson: Json = Json {
+    ignoreUnknownKeys = true
+    isLenient = true
+}
 
 class KtorNetworkButtonDataSource(
     private val client: HttpClient,
@@ -81,12 +87,19 @@ class KtorNetworkButtonDataSource(
             // Server returns the SnoozeRequest object directly (see
             // FirebaseServer/src/functions/http/Snooze.ts — it sends the
             // snooze, not a wrapper). The authoritative end time is here.
-            val body = response.body<KtorSnoozeSubmitResponse>()
+            // Read the body once as text so we can log it verbatim for
+            // on-device diagnosis, then parse from string.
+            val rawBody: String = response.body()
+            val body = snoozeSubmitJson.decodeFromString(
+                KtorSnoozeSubmitResponse.serializer(),
+                rawBody,
+            )
             if (body.error != null) {
                 Logger.e { "Snooze error: ${body.error}" }
                 return NetworkResult.HttpError(response.status.value)
             }
             val endTime = body.snoozeEndTimeSeconds ?: 0L
+            Logger.i { "Snooze POST parsed endTime=$endTime rawBody=$rawBody" }
             NetworkResult.Success(endTime)
         } catch (e: CancellationException) {
             throw e
