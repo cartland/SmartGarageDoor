@@ -233,6 +233,7 @@ abstract class AppComponent(
             provideNetworkDoorDataSource(),
             provideServerConfigRepository(),
             provideAppConfig().recentEventCount,
+            provideApplicationScope(),
         )
 
     @Provides

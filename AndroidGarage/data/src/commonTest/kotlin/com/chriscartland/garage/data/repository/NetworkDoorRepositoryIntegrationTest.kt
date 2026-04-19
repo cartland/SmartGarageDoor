@@ -47,7 +47,9 @@ class NetworkDoorRepositoryIntegrationTest {
     private val networkDataSource = FakeNetworkDoorDataSource()
     private val configDataSource = FakeNetworkConfigDataSource()
 
-    private fun createRepository(): NetworkDoorRepository {
+    private fun createRepository(
+        externalScope: CoroutineScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher()),
+    ): NetworkDoorRepository {
         val serverConfigRepo = CachedServerConfigRepository(
             networkConfigDataSource = configDataSource,
             serverConfigKey = "test-key",
@@ -58,6 +60,7 @@ class NetworkDoorRepositoryIntegrationTest {
             networkDoorDataSource = networkDataSource,
             serverConfigRepository = serverConfigRepo,
             recentEventCount = 10,
+            externalScope = externalScope,
         )
     }
 
