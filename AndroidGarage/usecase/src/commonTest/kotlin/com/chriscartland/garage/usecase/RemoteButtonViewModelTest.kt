@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.usecase
 
+import com.chriscartland.garage.domain.model.ActionError
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.DoorEvent
@@ -288,7 +290,7 @@ class RemoteButtonViewModelTest {
         runTest {
             val viewModel = createAuthenticatedViewModel()
             doorRepository.setCurrentDoorEvent(DoorEvent(lastChangeTimeSeconds = 1000L))
-            snoozeRepository.setSnoozeResult(false)
+            snoozeRepository.setSnoozeResult(AppResult.Error(ActionError.NetworkFailed))
             testDispatcher.scheduler.runCurrent()
 
             viewModel.snoozeOpenDoorsNotifications(SnoozeDurationUIOption.OneHour)

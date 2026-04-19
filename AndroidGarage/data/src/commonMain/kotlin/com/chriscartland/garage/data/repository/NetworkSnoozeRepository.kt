@@ -20,6 +20,8 @@ package com.chriscartland.garage.data.repository
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkResult
+import com.chriscartland.garage.domain.model.ActionError
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.domain.repository.SnoozeRepository
@@ -68,7 +70,7 @@ class NetworkSnoozeRepository(
         snoozeDurationHours: String,
         idToken: String,
         snoozeEventTimestampSeconds: Long,
-    ): Boolean =
+    ): AppResult<SnoozeState, ActionError> =
         externalScope
             .async {
                 doSnoozeNotifications(snoozeDurationHours, idToken, snoozeEventTimestampSeconds)
@@ -110,16 +112,18 @@ class NetworkSnoozeRepository(
         snoozeDurationHours: String,
         idToken: String,
         snoozeEventTimestampSeconds: Long,
-    ): Boolean {
+    ): AppResult<SnoozeState, ActionError> {
         val serverConfig = serverConfigRepository.getServerConfigCached()
         if (serverConfig == null) {
             Logger.e { "Server config is null" }
-            return false
+            return AppResult.Error(ActionError.NetworkFailed)
         }
         if (!snoozeNotificationsOption) {
             Logger.w { "Snooze notifications disabled" }
             delay(500)
-            return true // Treat as success in feature-disabled mode
+            // Feature disabled: pretend it succeeded and surface the current
+            // flow value so callers don't see a phantom network failure.
+            return AppResult.Success(snoozeStateFlow.value)
         }
         return when (
             val result = networkButtonDataSource.snoozeNotifications(
@@ -131,19 +135,21 @@ class NetworkSnoozeRepository(
             )
         ) {
             is NetworkResult.Success -> {
-                // Write state directly from the server's POST response — the
-                // authoritative snoozeEndTimeSeconds is already in hand, no
-                // follow-up GET needed.
-                snoozeStateFlow.value = snoozeStateFromEndTime(result.data)
-                true
+                // Compute the new state from the server's authoritative end
+                // time, write it to the observable flow, and return the SAME
+                // value. Callers can use the return value directly (no
+                // observer race) or subscribe via observeSnoozeState().
+                val newState = snoozeStateFromEndTime(result.data)
+                snoozeStateFlow.value = newState
+                AppResult.Success(newState)
             }
             is NetworkResult.HttpError -> {
                 Logger.e { "Snooze HTTP ${result.code}" }
-                false
+                AppResult.Error(ActionError.NetworkFailed)
             }
             NetworkResult.ConnectionFailed -> {
                 Logger.e { "Snooze connection failed" }
-                false
+                AppResult.Error(ActionError.NetworkFailed)
             }
         }
     }

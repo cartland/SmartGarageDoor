@@ -1,5 +1,7 @@
 package com.chriscartland.garage.domain.repository
 
+import com.chriscartland.garage.domain.model.ActionError
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.SnoozeState
 import kotlinx.coroutines.flow.Flow
 
@@ -16,15 +18,16 @@ interface SnoozeRepository {
     suspend fun fetchSnoozeStatus()
 
     /**
-     * Send a snooze request. Returns true on success, false on any failure
-     * (server config missing, HTTP error, connection failure).
+     * Send a snooze request. On success returns the new [SnoozeState]
+     * computed from the server's authoritative response — the same value
+     * is simultaneously written to the flow exposed by [observeSnoozeState].
      *
-     * TODO: return [com.chriscartland.garage.domain.model.AppResult]
-     * `<Unit, ActionError>` instead of `Boolean`. Boolean collapses
-     * NotAuthenticated / MissingData / NetworkFailed into one signal; the
-     * UseCase above it already discriminates via AppResult and the UI shows
-     * different messages per case. Surfacing ActionError here lets the
-     * repository carry that signal end-to-end without reconstruction.
+     * Callers can use the returned state directly (no observer race) or
+     * rely on [observeSnoozeState] for broader reactivity.
+     *
+     * Returns [AppResult.Error] with [ActionError.NetworkFailed] on any
+     * network-layer failure. Auth/input errors (NotAuthenticated,
+     * MissingData) are not produced here — they're the UseCase's concern.
      *
      * TODO: replace [snoozeDurationHours]: String with a domain value type
      * (e.g. SnoozeDurationServerOption). The "0h".."12h" encoding is
@@ -35,5 +38,5 @@ interface SnoozeRepository {
         snoozeDurationHours: String,
         idToken: String,
         snoozeEventTimestampSeconds: Long,
-    ): Boolean
+    ): AppResult<SnoozeState, ActionError>
 }
