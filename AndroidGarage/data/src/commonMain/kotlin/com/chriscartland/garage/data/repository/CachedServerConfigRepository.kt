@@ -53,13 +53,20 @@ class CachedServerConfigRepository(
         externalScope.launch { fetchServerConfig() }
     }
 
-    override suspend fun fetchServerConfig(): ServerConfig? {
-        // withLock coalesces concurrent fetch attempts: the second caller
-        // waits for the in-flight fetch, then reads the cached result
-        // instead of issuing a duplicate network call.
-        return fetchMutex.withLock {
-            val cached = _serverConfig.value
-            if (cached != null) return@withLock cached
+    /**
+     * Force-refresh the server config.
+     *
+     * Always hits the network and writes a successful result to
+     * [serverConfig]. The mutex serializes concurrent callers — two racing
+     * calls will each issue one network request (no in-flight coalescing);
+     * the second just waits for the first to return its lock.
+     *
+     * Returns the freshly-fetched [ServerConfig] on success, or null on any
+     * HTTP / connection / exception failure. Null does NOT overwrite a
+     * previously-cached successful value.
+     */
+    override suspend fun fetchServerConfig(): ServerConfig? =
+        fetchMutex.withLock {
             val config = try {
                 when (val result = networkConfigDataSource.fetchServerConfig(serverConfigKey)) {
                     is NetworkResult.Success -> result.data
@@ -67,14 +74,13 @@ class CachedServerConfigRepository(
                     NetworkResult.ConnectionFailed -> null
                 }
             } catch (e: Exception) {
-                Logger.e(e) { "Server config fetch threw — leaving cache null" }
+                Logger.e(e) { "Server config fetch threw — leaving cache untouched" }
                 null
             }
             if (config != null) {
                 _serverConfig.value = config
-                Logger.i { "serverConfig <- cached (source=GET)" }
+                Logger.i { "serverConfig <- $config (source=GET)" }
             }
             config
         }
-    }
 }
