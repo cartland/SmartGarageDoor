@@ -821,3 +821,104 @@ Tests can verify the happy path and known errors, but they cannot replicate the 
 ### When to apply
 
 Any new `@Serializable` response type under `data.ktor.*` is covered by Rule 1's package keep — no action needed. When adding a new endpoint producing state-critical data (repository writes, auth, FCM tokens), add raw-body logging at the data-source boundary per Rule 2, even if happy-path tests all pass.
+
+## ADR-021: State Ownership and ViewModel Scoping Principles
+
+**Status:** Accepted
+
+**Context:** The android/164-168 snooze-state propagation bug (see `VIEWMODEL_SCOPING_ISSUE.md`) exposed an unstated assumption in the architecture: that "there is one `RemoteButtonViewModel`." In fact there were three — Activity-scope (dead code), Home nav entry, Profile nav entry — each with its own `_snoozeState: MutableStateFlow<SnoozeState>` mirroring the singleton repository. Compose read from one; the others emitted independently. Under production conditions the read-side VM could silently miss an emission while the other two saw it.
+
+The root issue is that *the same domain state existed as multiple copies*. Every VM held its own `MutableStateFlow` fed by an observer coroutine that mirrored the singleton. Three copies, three observers, three chances for something to go wrong. PR #354 worked around the symptom by writing directly to one of those copies from the suspend call's return value. The real fix is to stop copying.
+
+This ADR writes down the principles that make "multiple ViewModels is fine" structurally safe.
+
+### The core distinction — domain state vs. presentation state
+
+- **Domain state** is the single source of truth about the world. Snooze end time, current door event, auth state, FCM registration. There is ONE. It lives in a `@Singleton` Repository. Every consumer observes the SAME object.
+- **Presentation state** is local to a screen. Action overlays ("Saved!"), form input, dialog visibility, loading spinners. Each screen can legitimately have its own. It lives in a ViewModel.
+
+Mixing them — a VM holding a `MutableStateFlow<SnoozeState>` that mirrors the repository — is the anti-pattern. The mirror has no information the repository doesn't, but it's a separate object that can diverge.
+
+### Rules
+
+**Rule 1 — Domain state lives in `@Singleton` repositories.**
+If a piece of data must be consistent app-wide (snooze, auth, door events, FCM, server config), its authoritative owner is a `@Singleton` Repository that exposes a `StateFlow<T>`. Writes happen only inside the repository. Everyone else observes.
+
+**Rule 2 — ViewModels expose repository `StateFlow`s by reference, not by mirror.**
+```kotlin
+// Yes — pass-through, same object
+val snoozeState: StateFlow<SnoozeState> = observeSnoozeStateUseCase()
+
+// No — creates a local copy that must be kept in sync
+private val _snoozeState = MutableStateFlow<SnoozeState>(Loading)
+val snoozeState: StateFlow<SnoozeState> = _snoozeState
+init { viewModelScope.launch { observeSnoozeStateUseCase().collect { _snoozeState.value = it } } }
+```
+
+The "no" form is the anti-pattern that caused the bug. It's acceptable ONLY when the VM is transforming the data (combining with another flow, debouncing, etc.) or when the repository exposes a cold `Flow` that needs to be materialized. Neither applies for simple exposure.
+
+**Rule 3 — ViewModel-local state is only for per-screen presentation.**
+`_snoozeAction` (the "Saved!" overlay that auto-resets after 10s), `buttonState` (the confirm-flow machine), pending dialog visibility, text field input — these are legitimately per-screen. They stay in the VM as `MutableStateFlow` and don't need to survive the VM's lifecycle.
+
+**Rule 4 — Multiple ViewModel instances are allowed; they must converge via the repository, not via synchronization.**
+Home's `RemoteButtonViewModel` and Profile's `RemoteButtonViewModel` can both exist. They expose the same `snoozeState` (Rule 2 — the literal same object from the repo) and their own independent `snoozeAction` (Rule 3 — it's fine for Profile to show "Saved!" while Home shows nothing). No cross-VM communication is needed or allowed.
+
+**Rule 5 — ViewModel instantiation scope is explicit at every call site.**
+No implicit `LocalViewModelStoreOwner.current`. Either use `activityViewModel(owner) { ... }` (see `androidApp/.../di/ActivityViewModels.kt`) with an explicit owner, or rely on the default Nav3 per-entry scope and document that the VM is per-screen-instance-of-presentation-state.
+
+**Rule 6 — Repositories are `@Singleton` in DI; ViewModels are not.**
+`@Singleton` on a ViewModel is a code smell: it implies either (a) the VM is holding domain state (→ move it to a Repository) or (b) you're trying to share presentation state across screens (→ rethink — either it's not really presentation state, or the screens should share a single owner).
+
+**Rule 7 — Background/domain work on `externalScope`; UI reactions on `viewModelScope`.**
+Repository writes, state mutations, and background refresh happen on `externalScope` (= application scope). The VM's auto-reset timer, the "Saved!" fade, navigation events that a screen triggers — those are on `viewModelScope`. Mixing is how we got the stranded-state bug in ADR-019.
+
+**Rule 8 — Dead ViewModel references are deleted, not tolerated.**
+If `val x = viewModel { ... }` is never read, remove it. A ghost VM running observer coroutines for no subscriber is a resource leak and a debugging trap.
+
+### How the snooze path looks under these rules
+
+```
+NetworkSnoozeRepository (@Singleton)
+  └─ snoozeStateFlow: MutableStateFlow<SnoozeState>           ← Rule 1
+        │ writes happen on externalScope (Rule 7)
+        │ exposed as: observeSnoozeState(): StateFlow<SnoozeState>
+        │             (not widened to Flow — callers get .value)
+        ▼
+  ObserveSnoozeStateUseCase.invoke(): StateFlow<SnoozeState>  ← passthrough, Rule 2
+        │ same object, no transform
+        ▼
+  DefaultRemoteButtonViewModel (N instances allowed, Rule 4)
+        │ val snoozeState: StateFlow<SnoozeState> = observeSnoozeStateUseCase()
+        │   ← same object every VM exposes (Rule 2)
+        │ private val _snoozeAction = MutableStateFlow(Idle)
+        │   ← per-VM presentation state (Rule 3)
+        ▼
+  Compose collectAsState — reads the SAME StateFlow regardless of which VM
+```
+
+After this change, three VMs don't multiply the truth. They multiply only their local overlays, which is what we want.
+
+### Trade-offs and open choices
+
+- **`StateFlow` in the domain interface.** Rule 2 asks repositories to expose `StateFlow<T>`, not `Flow<T>`. This is a stronger contract: it guarantees a current value, enables `.value` synchronous reads, and prevents downstream `stateIn` layers. The cost is one more thing a Repository implementation has to commit to. Worth it for domain state where "there is always a current value" is true by construction.
+- **Per-screen VM that wraps shared state.** A VM that *only* forwards shared state and has no local presentation state is a sign the VM may not be needed at all — the Composable could consume the UseCase directly. Keep the VM if it owns local state; delete it if it's a passthrough shell.
+- **Instance-state VMs (e.g., auth's SignInClient).** `AuthViewModel` holds a `GoogleSignInClient` that can't safely be duplicated per nav entry. It uses `activityViewModel(...)` explicitly. That's the correct pattern for "state is per-instance but that instance must be shared" cases — distinct from "state is domain-wide and lives in a repo."
+
+### Consequences
+
+- The workaround in PR #354 (direct write to `_snoozeState` from the return value) becomes unnecessary. Applying Rule 2 removes `_snoozeState` entirely; the VM's `snoozeState` points at the repo's flow.
+- Tests that build a single VM directly are still valuable, but they can't catch scoping bugs alone. Add one integration test per feature that wires the full DI graph (see `SharedRepositoryUseCasesTest` as the model).
+- New features that introduce shared state must add the Repository first, with its `StateFlow` observable, and only then expose it via UseCase + VM property. "Put it in a VM for now" is not a valid stepping stone.
+
+### Enforcement
+
+- Code review: reject `private val _xState = MutableStateFlow(...)` in a VM when `x` is a domain concept owned by a repository.
+- Lint/architecture check: consider adding a Detekt rule that flags VM properties whose type is `StateFlow<T>` backed by a `MutableStateFlow<T>` where `T` matches a known domain state type. (Not automated yet — open task.)
+- Every repository exposing state should export `StateFlow`, not `Flow`. If it exports `Flow`, document why (cold/transformed).
+
+### Related
+
+- `VIEWMODEL_SCOPING_ISSUE.md` — the background analysis that motivated this ADR.
+- ADR-018 — reactive auth listener; an instance of Rule 1 applied to auth state.
+- ADR-019 — repository side-effects on `externalScope`; an instance of Rule 7.
+- `ActivityViewModels.kt:31` — `activityViewModel(...)` helper for explicit-owner scoping.
