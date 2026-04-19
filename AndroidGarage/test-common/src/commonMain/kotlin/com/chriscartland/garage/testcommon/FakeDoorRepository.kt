@@ -24,14 +24,15 @@ import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.repository.DoorRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 class FakeDoorRepository : DoorRepository {
-    private val _currentDoorEvent = MutableStateFlow(DoorEvent())
+    private val _currentDoorEvent = MutableStateFlow<DoorEvent?>(DoorEvent())
     private val _recentDoorEvents = MutableStateFlow<List<DoorEvent>>(emptyList())
     private val _currentDoorPosition = MutableStateFlow(DoorPosition.UNKNOWN)
 
     override val currentDoorPosition: Flow<DoorPosition> = _currentDoorPosition
-    override val currentDoorEvent: Flow<DoorEvent?> = _currentDoorEvent
+    override val currentDoorEvent: StateFlow<DoorEvent?> = _currentDoorEvent
     override val recentDoorEvents: Flow<List<DoorEvent>> = _recentDoorEvents
 
     var fetchCurrentDoorEventCount = 0
@@ -62,7 +63,8 @@ class FakeDoorRepository : DoorRepository {
 
     override suspend fun fetchCurrentDoorEvent(): AppResult<DoorEvent, FetchError> {
         fetchCurrentDoorEventCount++
-        return AppResult.Success(_currentDoorEvent.value)
+        return _currentDoorEvent.value?.let { AppResult.Success(it) }
+            ?: AppResult.Error(FetchError.NotReady)
     }
 
     override suspend fun fetchRecentDoorEvents(): AppResult<List<DoorEvent>, FetchError> {
