@@ -18,6 +18,16 @@ guide — the content is deliberately non-repo-specific.
   repository `StateFlow` + `fetchX()` contract: always-refresh
   semantics, null-preserves-cache, exception resilience, and the three
   tests that encode them.
+- [`r8-keep-rules.md`](r8-keep-rules.md) — R8 silently strips
+  reflection / codegen / generic-erased code. Categories, symptoms,
+  keep-rule templates, and release-variant smoke testing.
+- [`compose-nav3-vm-scoping.md`](compose-nav3-vm-scoping.md) — Nav3
+  creates one VM per nav entry. Design for N instances; put shared
+  state in `@Singleton` repositories.
+- [`reactive-auth-listener.md`](reactive-auth-listener.md) — auth is
+  a stream, not a one-shot. Repository subscribes to the platform's
+  auth callback on app-lifetime scope; commands are fire-and-forget;
+  the listener is the source of truth.
 
 ## How to use these guides in another project
 
