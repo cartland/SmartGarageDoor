@@ -70,6 +70,21 @@ tasks.register<architecture.ArchitectureCheckTask>("checkArchitecture") {
 
 tasks.register<architecture.SingletonGuardTask>("checkSingletonGuard") {
     sourceDir = "$rootDir/androidApp/src/main/java"
+    guardedMethodPatterns = listOf(
+        // Framework singletons — multiple instances crash or corrupt.
+        "provideAppDatabase",
+        "provideAppSettings",
+        "provideHttpClient",
+        // ADR-022 state-owning repositories — if not @Singleton, the owned
+        // StateFlow is instantiated per-caller and every subscriber sees its
+        // own timeline (the android/164-168 class of bug).
+        "provideAuthRepository",
+        "provideSnoozeRepository",
+        "provideDoorRepository",
+        "provideServerConfigRepository",
+        "provideDoorFcmRepository",
+        "provideFcmRegistrationManager",
+    )
 }
 
 tasks.register<architecture.LayerImportCheckTask>("checkLayerImports") {
