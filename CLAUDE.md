@@ -155,6 +155,39 @@ Room schema changes break at runtime (not compile time). The following safeguard
 4. Commit the new schema JSON file alongside your code change
 5. `fallbackToDestructiveMigration` handles upgrades (users lose cached data, which is re-fetched from server)
 
+### AppComponent / kotlin-inject Safety
+
+kotlin-inject's `@Singleton` annotation is silent when misused. The
+generated `InjectAppComponent.kt` is the authoritative source for what
+the framework actually cached — "tests pass" + "annotation present" is
+not enough to prove singletons are singletons. This bit the app hard
+during the android/170 snooze regression (see ADR-022 timeline and
+`docs/DI_SINGLETON_REQUIREMENTS.md` for the full postmortem).
+
+**Rules for `AppComponent.kt`:**
+1. Every `@Singleton` provider must be reachable via an abstract entry
+   point (`abstract val x: T`). Concrete `val x: T @Provides get() = ...`
+   gives kotlin-inject nothing to override — `@Singleton` is ignored.
+2. Every `@Provides fun` body takes its deps as parameters. **Never**
+   call a sibling `provideX()` inside a body — that call is regular
+   Kotlin and bypasses the `_scoped` cache.
+3. The in-file KDoc at the top of `AppComponent.kt` restates both rules.
+   Respect it; don't "simplify" back to concrete providers.
+
+**When modifying `AppComponent.kt`:**
+1. Make the change.
+2. Run `./gradlew :androidApp:kspDebugKotlin` to regenerate.
+3. Read `androidApp/build/generated/ksp/debug/kotlin/com/chriscartland/garage/di/InjectAppComponent.kt`.
+   Healthy file is ~300 lines with one `override val X: T get() = _scoped.get(...)`
+   per `@Singleton` entry. If it's under 20 lines or missing `_scoped.get(...)`
+   for your new provider, scoping is broken.
+4. Run the identity tests: `./gradlew :androidApp:connectedDebugAndroidTest
+   -Pandroid.testInstrumentationRunnerArguments.class=com.chriscartland.garage.di.ComponentGraphTest`.
+   All `*IsSingleton` tests must pass.
+5. If you add a new `@Singleton` state-owning provider, add a matching
+   `abstract val` entry + an `assertSame` identity test in
+   `ComponentGraphTest`.
+
 ### Releasing Android
 Use `./scripts/release-android.sh` — never create or push tags directly (hooks block `git tag`).
 
