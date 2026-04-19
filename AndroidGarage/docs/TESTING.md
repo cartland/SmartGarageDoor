@@ -13,8 +13,8 @@
 
 ## Current State
 
-- **305+ unit tests** across 51 test files (7 androidApp + 9 domain + 27 usecase + 7 data + 1 data-local), all KMP-compatible (kotlin.test). Includes `NetworkSnoozeRepositoryTest` (9 tests, guards the snooze externalScope pattern per ADR-019) and `SnoozeStateFlowPropagationTest` (6 tests, documents Flow/StateFlow propagation through the repo→VM→collect chain).
-- **25 instrumented tests** across 5 test files (Room sanity, DI graph, navigation smoke, state restoration, configuration change)
+- **305+ unit tests** across 52 test files (7 androidApp + 9 domain + 28 usecase + 7 data + 1 data-local), all KMP-compatible (kotlin.test). Includes `NetworkSnoozeRepositoryTest` (9 tests, guards the snooze externalScope pattern per ADR-019), `SnoozeStateFlowPropagationTest` (6 tests, documents Flow/StateFlow propagation through the repo→VM→collect chain), and `RealNetworkSnoozeRepositoryPropagationTest` (2 tests, wires the real `NetworkSnoozeRepository` + real `DefaultRemoteButtonViewModel` around fakes — catches regressions in the full production chain without needing an emulator).
+- **26 instrumented tests** across 6 test files (Room sanity, DI graph, navigation smoke, state restoration, configuration change, snooze-state Compose propagation). The snooze test is intentional belt-and-suspenders for the VM→flow→`collectAsState` path but **cannot catch R8-specific regressions** (runs against the debug variant) — see ADR-020.
 - **14 shared fakes** in `test-common` module — one copy each, no duplicates across modules
 - **Zero Mockito** — all tests use fake implementations
 - **CI architecture:** pre-submit (`ci.yml` → `ci-checks.yml`) + post-merge (`ci-post-merge.yml` → `ci-checks.yml` + instrumented tests)
