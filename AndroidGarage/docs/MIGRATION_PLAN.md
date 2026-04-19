@@ -321,6 +321,36 @@ Trigger: when a fourth state-y type (e.g. `DoorEvent?`,
 `ServerConfig?`) migrates and lint silently misses the mirror because
 the allowlist wasn't updated.
 
+### Phase 2f — Fix kotlin-inject `@Singleton` scoping (load-bearing)
+
+**Status (2026-04-19):** Identified as the root cause of the android/170
+snooze regression that triggered the Phase 1 rollback. The generated
+`InjectAppComponent.kt` is an empty subclass — no `@Singleton` provider
+is being cached. See `DI_SINGLETON_REQUIREMENTS.md` for the full
+analysis, detection recipes, fix direction, and verification checklist.
+
+Summary: `AppComponent` uses concrete `val x: T @Provides get() = ...`
+providers. kotlin-inject only generates scoped caching for **abstract
+entry points** — nothing to override here means nothing cached. Every
+`provideSnoozeRepository()` call constructs a fresh
+`NetworkSnoozeRepository` with its own `MutableStateFlow`. Within one VM
+the observe-UseCase's repo and the submit-UseCase's repo are different
+instances; the POST's `_snoozeState.value = newState` never reaches the
+observer.
+
+The android/172 hotfix (restore VM-local mirror + direct write) sidesteps
+the DI bug but leaves the root cause in place. Fixing Phase 2f is a
+prerequisite for:
+- Reviving ADR-022 Rule 2 (VM exposes repo `StateFlow` by reference)
+- Removing the VM-local mirror in `RemoteButtonViewModel`
+- Trusting every other `@Singleton` provider (auth, door, server config,
+  FCM) to actually be singletons
+
+Trigger: schedule this as deliberate architectural work, not a hotfix.
+It re-shapes `AppComponent` and needs the
+`ComponentGraphTest.singletonRepositoriesReturnSameInstance` regression
+guard added first so the fix is proven at merge time.
+
 ## Phase 3 — iOS (Phase 38 in MIGRATION.md)
 
 When iOS lands: wire Skie for `StateFlow<T>` → `@Published` / 
