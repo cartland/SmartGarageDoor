@@ -851,7 +851,7 @@ Rule 2 (raw-body logging at network-data-source boundaries) is a specific instan
 
 ## ADR-021: State Ownership and ViewModel Scoping Principles
 
-**Status:** Accepted
+**Status:** Accepted and enforced.
 
 **Context:** The android/164-168 snooze-state propagation bug (see `VIEWMODEL_SCOPING_ISSUE.md`) exposed an unstated assumption in the architecture: that "there is one `RemoteButtonViewModel`." In fact there were three — Activity-scope (dead code), Home nav entry, Profile nav entry — each with its own `_snoozeState: MutableStateFlow<SnoozeState>` mirroring the singleton repository. Compose read from one; the others emitted independently. Under production conditions the read-side VM could silently miss an emission while the other two saw it.
 
@@ -971,7 +971,16 @@ After this change, three VMs don't multiply the truth. They multiply only their 
 
 ## ADR-022: `StateFlow` at the Repository Boundary for State-y Data
 
-**Status:** Accepted. Partially supersedes ADR-013.
+**Status:** Accepted and enforced. Partially supersedes ADR-013.
+
+**Enforcement** (per `MIGRATION_PLAN.md` PR 8):
+- `checkViewModelStateFlow` bans `MutableStateFlow<T>` in `*ViewModel.kt`
+  when `T` matches the domain-state allowlist (`SnoozeState`, `AuthState`,
+  `FcmRegistrationStatus`). Add a type to the allowlist in
+  `ViewModelStateFlowCheckTask.bannedStateTypesInViewModels` when its
+  repository migration lands.
+- `checkSingletonGuard` requires `@Singleton` on every
+  `provide<State-owning-Repository>` method in `AppComponent`.
 
 ### Glossary
 
