@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       firebase: ${{ steps.filter.outputs.firebase }}
+      docs_only: ${{ steps.filter.outputs.docs_only }}
     steps:
       - uses: actions/checkout@v4
       - name: Check for Firebase changes
@@ -20,6 +21,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "firebase=true" >> $GITHUB_OUTPUT
+            echo "docs_only=false" >> $GITHUB_OUTPUT
             echo "workflow_dispatch: running all checks"
             exit 0
           fi
@@ -35,9 +37,22 @@ jobs:
 
           if [ "$CHANGED" = "UNKNOWN" ]; then
             echo "firebase=true" >> $GITHUB_OUTPUT
+            echo "docs_only=false" >> $GITHUB_OUTPUT
             echo "Could not determine changes, running all checks"
             exit 0
           fi
+
+          # Docs-only fast path — see ci.yml for rationale.
+          NON_DOCS=$(echo "$CHANGED" | grep -vE '^(.*\.md$|docs/|.*/docs/|\.claude/|LICENSE$|\.gitignore$|AndroidGarage/distribution/whatsnew/)' || true)
+          if [ -z "$NON_DOCS" ] && [ -n "$CHANGED" ]; then
+            echo "firebase=false" >> $GITHUB_OUTPUT
+            echo "docs_only=true" >> $GITHUB_OUTPUT
+            echo "Docs-only change — skipping Firebase CI. Changed files:"
+            echo "$CHANGED"
+            exit 0
+          fi
+
+          echo "docs_only=false" >> $GITHUB_OUTPUT
 
           if echo "$CHANGED" | grep -qE '^(FirebaseServer/|\.github/workflows/firebase-ci\.yml)'; then
             echo "firebase=true" >> $GITHUB_OUTPUT
@@ -52,7 +67,7 @@ jobs:
   test:
     name: Run Unit Tests
     needs: changes
-    if: needs.changes.outputs.firebase == 'true'
+    if: needs.changes.outputs.firebase == 'true' && needs.changes.outputs.docs_only != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -96,4 +111,4 @@ jobs:
             echo "::error::Firebase CI failed"
             exit 1
           fi
-          echo "Firebase CI passed (or skipped — no Firebase changes)"
+          echo "Firebase CI passed (or skipped — no Firebase changes / docs-only)"
