@@ -23,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       android: ${{ steps.filter.outputs.android }}
+      docs_only: ${{ steps.filter.outputs.docs_only }}
     steps:
       - uses: actions/checkout@v4
       - name: Check for Android changes
@@ -33,9 +34,22 @@ jobs:
 
           if [ "$CHANGED" = "UNKNOWN" ]; then
             echo "android=true" >> $GITHUB_OUTPUT
+            echo "docs_only=false" >> $GITHUB_OUTPUT
             echo "Could not determine changes, running all checks"
             exit 0
           fi
+
+          # Docs-only fast path — see ci.yml for rationale.
+          NON_DOCS=$(echo "$CHANGED" | grep -vE '^(.*\.md$|docs/|.*/docs/|\.claude/|LICENSE$|\.gitignore$|AndroidGarage/distribution/whatsnew/)' || true)
+          if [ -z "$NON_DOCS" ] && [ -n "$CHANGED" ]; then
+            echo "android=false" >> $GITHUB_OUTPUT
+            echo "docs_only=true" >> $GITHUB_OUTPUT
+            echo "Docs-only change — skipping Android post-merge CI. Changed files:"
+            echo "$CHANGED"
+            exit 0
+          fi
+
+          echo "docs_only=false" >> $GITHUB_OUTPUT
 
           if echo "$CHANGED" | grep -qE '^(AndroidGarage/|scripts/|\.github/(workflows|actions)/)'; then
             echo "android=true" >> $GITHUB_OUTPUT
@@ -51,6 +65,7 @@ jobs:
   checks:
     name: Checks
     needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
     uses: ./.github/workflows/ci-checks.yml
     with:
       android: ${{ needs.changes.outputs.android }}
@@ -109,7 +124,7 @@ jobs:
             exit 1
           fi
 
-          echo "All post-merge checks passed (or skipped — no Android changes)"
+          echo "All post-merge checks passed (or skipped — no Android changes / docs-only)"
 
   # Track post-merge failures via a single GitHub issue
   track-failure:
