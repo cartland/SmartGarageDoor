@@ -971,16 +971,45 @@ After this change, three VMs don't multiply the truth. They multiply only their 
 
 ## ADR-022: `StateFlow` at the Repository Boundary for State-y Data
 
-**Status:** Accepted and enforced. Partially supersedes ADR-013.
+**Status:** **Withdrawn (2026-04-19) after android/170 regression.** The
+Rule 2 "VM exposes repo's `StateFlow` by reference" requirement proved
+empirically unreliable on production devices — the snooze card title
+failed to update despite every debug instrumented test passing. See
+"Withdrawal" section below. The repository **still** owns a
+`StateFlow<T>` as its observation API (that part stays). What changed:
+ViewModels must keep their own `MutableStateFlow<T>` mirror, collect from
+the repo in `init`, and direct-write from command results — the PR #354
+/ android/169 pattern.
 
-**Enforcement** (per `MIGRATION_PLAN.md` PR 8):
-- `checkViewModelStateFlow` bans `MutableStateFlow<T>` in `*ViewModel.kt`
-  when `T` matches the domain-state allowlist (`SnoozeState`, `AuthState`,
-  `FcmRegistrationStatus`). Add a type to the allowlist in
-  `ViewModelStateFlowCheckTask.bannedStateTypesInViewModels` when its
-  repository migration lands.
-- `checkSingletonGuard` requires `@Singleton` on every
-  `provide<State-owning-Repository>` method in `AppComponent`.
+`checkViewModelStateFlow` Rule 2 enforcement was removed alongside the
+withdrawal. The `checkSingletonGuard` requirement for state-owning
+repositories stays.
+
+### Withdrawal
+
+android/170 shipped the by-reference pattern from this ADR's original
+rollout (PR #358–#365). Users reported immediately that the snooze card
+title did not update after saving, while the overlay below the button
+(VM-local `SnoozeAction`) did — the exact android/167 symptom. The
+regression reproduces only on production APKs; every debug instrumented
+test (`SnoozeStateInstrumentedPropagationTest`,
+`SnoozeMultiSubscriberIntegrationTest`, `assertSame` reference-identity
+checks) passed. Rolled back to android/169 via android/171 (rollforward
+with `--confirm-hash`). An R8-enabled benchmark-variant harness
+(`R8_INSTRUMENTED_TESTS.md`) was added for future diagnosis but is not
+the trigger — R8 stripping would crash with `ClassNotFoundException`
+rather than selectively failing one StateFlow subscription while others
+work.
+
+The VM-local mirror pattern (this ADR's anti-pattern) is the shape that
+actually ships reliably. android/169 used it and users did not report
+the bug. Keeping both `repo.snoozeState` as the source of truth and a
+VM mirror as a defensive layer is redundant — but the redundancy is
+what guarantees propagation. Rule 2 is withdrawn.
+
+Open question: *why* does the by-reference chain break on device while
+passing in debug tests? Hypotheses tracked in `MIGRATION_PLAN.md` Phase
+2f. Until the root cause is understood, do not re-enable the ban.
 
 ### Glossary
 

@@ -99,25 +99,6 @@ class SnoozeStateFlowPropagationTest {
     }
 
     // ----------------------------------------------------------------
-    // 1. Reference identity: VM.snoozeState is the repo's StateFlow (ADR-022).
-    // ----------------------------------------------------------------
-    // VM must NOT mirror the repo's flow — it must expose the same instance
-    // by reference. `assertSame` makes this guarantee load-bearing.
-    @Test
-    fun vmSnoozeStateIsSameInstanceAsRepoStateFlow() =
-        runTest {
-            val fake = FakeSnoozeRepository()
-            val vm = buildVm(fake)
-            testDispatcher.scheduler.runCurrent()
-
-            kotlin.test.assertSame(
-                fake.snoozeState,
-                vm.snoozeState,
-                "VM must expose repo's StateFlow by reference (ADR-022)",
-            )
-        }
-
-    // ----------------------------------------------------------------
     // 2. Two-hop chain: every repo update is visible on vm.snoozeState.
     // ----------------------------------------------------------------
     @Test
