@@ -65,22 +65,32 @@ class CachedServerConfigRepositoryTest {
             externalScope.cancel()
         }
 
+    /**
+     * Documents the contract of [CachedServerConfigRepository.fetchServerConfig]:
+     * it is a force-refresh. A server-side change in config is visible to the
+     * next caller without needing a process restart.
+     */
     @Test
-    fun fetchServerConfigReturnsCachedValueOnSecondCall() =
+    fun fetchServerConfigAlwaysRefreshesCache() =
         runTest {
+            val v1 = sampleConfig
+            val v2 = sampleConfig.copy(buildTimestamp = "2024-01-16T00:00:00Z")
             val ds = FakeNetworkConfigDataSource().apply {
-                setServerConfigResult(NetworkResult.Success(sampleConfig))
+                setServerConfigResult(NetworkResult.Success(v1))
             }
             val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
 
             val repo = CachedServerConfigRepository(ds, "test-key", externalScope)
             advanceUntilIdle()
-            // init fetch counted.
+            assertEquals(v1, repo.serverConfig.value)
 
-            val secondCall = repo.fetchServerConfig()
-            assertEquals(sampleConfig, secondCall)
-            // Second call served from cache — no extra network fetch.
-            assertEquals(1, ds.fetchCount)
+            // Server changes. fetchServerConfig must see the new value.
+            ds.setServerConfigResult(NetworkResult.Success(v2))
+            val refreshed = repo.fetchServerConfig()
+
+            assertEquals(v2, refreshed)
+            assertEquals(v2, repo.serverConfig.value)
+            assertEquals(2, ds.fetchCount) // init + refresh
 
             externalScope.cancel()
         }
@@ -122,8 +132,13 @@ class CachedServerConfigRepositoryTest {
             externalScope.cancel()
         }
 
+    /**
+     * Null responses (HTTP error / connection failure) leave the cache alone
+     * rather than overwriting a previously-successful value. Avoids a transient
+     * network blip blowing away the last known-good config.
+     */
     @Test
-    fun fetchAfterInitKeepsSameInstance() =
+    fun nullFetchResultPreservesCachedValue() =
         runTest {
             val ds = FakeNetworkConfigDataSource().apply {
                 setServerConfigResult(NetworkResult.Success(sampleConfig))
@@ -132,17 +147,13 @@ class CachedServerConfigRepositoryTest {
 
             val repo = CachedServerConfigRepository(ds, "test-key", externalScope)
             advanceUntilIdle()
-
-            // Update network response and force-refresh. Because the cache is
-            // already populated, fetchServerConfig coalesces to the cached value
-            // (first-write-wins on success).
-            val newConfig = sampleConfig.copy(buildTimestamp = "2024-01-16T00:00:00Z")
-            ds.setServerConfigResult(NetworkResult.Success(newConfig))
-            val fetched = repo.fetchServerConfig()
-
-            assertEquals(sampleConfig, fetched)
             assertEquals(sampleConfig, repo.serverConfig.value)
-            assertEquals(1, ds.fetchCount)
+
+            ds.setServerConfigResult(NetworkResult.ConnectionFailed)
+            val failResult = repo.fetchServerConfig()
+
+            assertNull(failResult) // fetch itself reports failure
+            assertEquals(sampleConfig, repo.serverConfig.value) // cache untouched
 
             externalScope.cancel()
         }
@@ -195,10 +206,12 @@ class CachedServerConfigRepositoryTest {
             val result = repo.fetchServerConfig()
             assertEquals(sampleConfig, result)
 
-            // But a null server config does NOT overwrite a cached value.
+            // A null server config does NOT overwrite a cached value. The
+            // fetch itself reports failure (null return); the cache stays
+            // on the last known-good value.
             ds.setServerConfigResult(NetworkResult.ConnectionFailed)
             val failResult = repo.fetchServerConfig()
-            assertEquals(sampleConfig, failResult) // cached value won
+            assertNull(failResult)
             assertEquals(sampleConfig, repo.serverConfig.value)
 
             externalScope.cancel()
