@@ -136,9 +136,22 @@ Run `./scripts/validate.sh` before pushing. It mirrors CI: spotless (all modules
 Run `./scripts/run-instrumented-tests.sh` when changing Room entities/DAOs, DI wiring (AppComponent), navigation, or Activity lifecycle code. Requires a connected device or emulator. Not part of `validate.sh` (too slow for every run). A git hook warns on push when these files are changed.
 
 ### CI Architecture
+
+**Android:**
 - **Pre-submit** (`ci.yml` → `ci-checks.yml`): Runs on PRs. Gate job `CI Complete` is the required status check.
 - **Post-merge** (`ci-post-merge.yml` → `ci-checks.yml` + instrumented tests): Runs on push to main. Auto-creates GitHub issue on failure (`ci-failure/post-merge`), auto-closes on fix with flakiness detection.
-- **Screenshot generation**: Use `./scripts/generate-android-screenshots.sh` (never run screenshot Gradle tasks directly — hooks block this).
+
+**Firebase** (mirrors Android):
+- **Pre-submit** (`firebase-ci.yml` → `firebase-ci-checks.yml`): Runs on PRs. Gate job `Firebase CI Complete` is the required status check.
+- **Post-merge** (`firebase-ci-post-merge.yml` → `firebase-ci-checks.yml`): Runs on push to main. Auto-creates GitHub issue on failure (`ci-failure/firebase-post-merge`), auto-closes on fix.
+- The `firebase-deploy.yml` `verify-ci` step matches the `Run Unit Tests` check-run via `endswith(...)`, so it works whether the check comes from the inline name or the reusable-workflow-prefixed name.
+
+**Docs-only fast path (Android + Firebase):**
+- When every changed file matches `**/*.md`, `docs/**`, `.claude/**`, `LICENSE`, `.gitignore`, or `AndroidGarage/distribution/whatsnew/**`, the `checks` reusable workflow is skipped and the gate jobs post success in ~20–30s.
+- Mixed PRs (docs + code) take the full pipeline. Anything under `.github/**` or `scripts/**` is NOT docs — workflow and script edits still trigger full CI.
+- Rule: skip CI only when the change cannot affect what CI verifies.
+
+**Screenshot generation**: Use `./scripts/generate-android-screenshots.sh` (never run screenshot Gradle tasks directly — hooks block this).
 
 ### Room Database Safety
 Room schema changes break at runtime (not compile time). The following safeguards are in place:
