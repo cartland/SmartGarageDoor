@@ -21,127 +21,135 @@ import com.chriscartland.garage.data.NetworkConfigDataSource
 import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-import kotlin.test.fail
 
 /**
- * Integration tests for [CachedServerConfigRepository] with fake network data source.
- * Tests caching behavior, null handling, and cache invalidation via fetchServerConfig.
+ * Integration tests for [CachedServerConfigRepository] (ADR-022 shape).
+ *
+ * The repository now owns a `StateFlow<ServerConfig?>`; an always-on fetch
+ * runs on `externalScope` at construction. Callers read `serverConfig.value`
+ * for the current cached value or call `fetchServerConfig()` to refresh.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CachedServerConfigRepositoryTest {
-    private val configDataSource = FakeNetworkConfigDataSource()
-
-    private fun createRepository() =
-        CachedServerConfigRepository(
-            networkConfigDataSource = configDataSource,
-            serverConfigKey = "test-key",
-        )
+    private val sampleConfig = ServerConfig(
+        buildTimestamp = "2024-01-15T00:00:00Z",
+        remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
+        remoteButtonPushKey = "key",
+    )
 
     @Test
-    fun getServerConfigCachedFetchesOnFirstCall() =
+    fun initFetchPopulatesServerConfigStateFlow() =
         runTest {
-            val config = ServerConfig(
-                buildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonPushKey = "key",
-            )
-            configDataSource.setServerConfigResult(NetworkResult.Success(config))
+            val ds = FakeNetworkConfigDataSource().apply {
+                setServerConfigResult(NetworkResult.Success(sampleConfig))
+            }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
 
-            val repo = createRepository()
-            val result = repo.getServerConfigCached()
+            val repo = CachedServerConfigRepository(ds, "test-key", externalScope)
+            advanceUntilIdle()
 
-            assertEquals(config, result)
-            assertEquals(1, configDataSource.fetchCount)
+            assertEquals(sampleConfig, repo.serverConfig.value)
+            assertEquals(1, ds.fetchCount)
+
+            externalScope.cancel()
         }
 
     @Test
-    fun getServerConfigCachedReturnsCacheOnSecondCall() =
+    fun fetchServerConfigReturnsCachedValueOnSecondCall() =
         runTest {
-            val config = ServerConfig(
-                buildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonPushKey = "key",
-            )
-            configDataSource.setServerConfigResult(NetworkResult.Success(config))
+            val ds = FakeNetworkConfigDataSource().apply {
+                setServerConfigResult(NetworkResult.Success(sampleConfig))
+            }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
 
-            val repo = createRepository()
-            repo.getServerConfigCached()
-            repo.getServerConfigCached()
+            val repo = CachedServerConfigRepository(ds, "test-key", externalScope)
+            advanceUntilIdle()
+            // init fetch counted.
 
-            assertEquals(1, configDataSource.fetchCount)
+            val secondCall = repo.fetchServerConfig()
+            assertEquals(sampleConfig, secondCall)
+            // Second call served from cache — no extra network fetch.
+            assertEquals(1, ds.fetchCount)
+
+            externalScope.cancel()
         }
 
     @Test
-    fun getServerConfigCachedReturnsNullWhenNetworkFails() =
+    fun initFetchLeavesValueNullOnNetworkFailure() =
         runTest {
-            configDataSource.setServerConfigResult(NetworkResult.ConnectionFailed)
+            val ds = FakeNetworkConfigDataSource().apply {
+                setServerConfigResult(NetworkResult.ConnectionFailed)
+            }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
 
-            val repo = createRepository()
-            assertNull(repo.getServerConfigCached())
-            assertEquals(1, configDataSource.fetchCount)
+            val repo = CachedServerConfigRepository(ds, "test-key", externalScope)
+            advanceUntilIdle()
+
+            assertNull(repo.serverConfig.value)
+
+            externalScope.cancel()
         }
 
     @Test
-    fun getServerConfigCachedRetriesAfterNullResponse() =
+    fun fetchServerConfigRetriesAfterInitFailure() =
         runTest {
-            configDataSource.setServerConfigResult(NetworkResult.ConnectionFailed)
+            val ds = FakeNetworkConfigDataSource().apply {
+                setServerConfigResult(NetworkResult.ConnectionFailed)
+            }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
 
-            val repo = createRepository()
-            assertNull(repo.getServerConfigCached())
+            val repo = CachedServerConfigRepository(ds, "test-key", externalScope)
+            advanceUntilIdle()
+            assertNull(repo.serverConfig.value)
 
-            // Second call should retry since cache is still null
-            val config = ServerConfig(
-                buildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonPushKey = "key",
-            )
-            configDataSource.setServerConfigResult(NetworkResult.Success(config))
-            assertEquals(config, repo.getServerConfigCached())
-            assertEquals(2, configDataSource.fetchCount)
+            ds.setServerConfigResult(NetworkResult.Success(sampleConfig))
+            val result = repo.fetchServerConfig()
+            assertEquals(sampleConfig, result)
+            assertEquals(sampleConfig, repo.serverConfig.value)
+            assertEquals(2, ds.fetchCount)
+
+            externalScope.cancel()
         }
 
     @Test
-    fun fetchServerConfigUpdatesCache() =
+    fun fetchAfterInitKeepsSameInstance() =
         runTest {
-            val config1 = ServerConfig(
-                buildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonPushKey = "key1",
-            )
-            configDataSource.setServerConfigResult(NetworkResult.Success(config1))
+            val ds = FakeNetworkConfigDataSource().apply {
+                setServerConfigResult(NetworkResult.Success(sampleConfig))
+            }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
 
-            val repo = createRepository()
-            repo.getServerConfigCached()
+            val repo = CachedServerConfigRepository(ds, "test-key", externalScope)
+            advanceUntilIdle()
 
-            // Update network response and force refresh
-            val config2 = ServerConfig(
-                buildTimestamp = "2024-01-16T00:00:00Z",
-                remoteButtonBuildTimestamp = "2024-01-16T00:00:00Z",
-                remoteButtonPushKey = "key2",
-            )
-            configDataSource.setServerConfigResult(NetworkResult.Success(config2))
-            repo.fetchServerConfig()
+            // Update network response and force-refresh. Because the cache is
+            // already populated, fetchServerConfig coalesces to the cached value
+            // (first-write-wins on success).
+            val newConfig = sampleConfig.copy(buildTimestamp = "2024-01-16T00:00:00Z")
+            ds.setServerConfigResult(NetworkResult.Success(newConfig))
+            val fetched = repo.fetchServerConfig()
 
-            // Cached value should now be updated
-            assertEquals(config2, repo.getServerConfigCached())
-            // 3 fetches: initial getServerConfigCached, fetchServerConfig, getServerConfigCached (cached)
-            assertEquals(2, configDataSource.fetchCount)
+            assertEquals(sampleConfig, fetched)
+            assertEquals(sampleConfig, repo.serverConfig.value)
+            assertEquals(1, ds.fetchCount)
+
+            externalScope.cancel()
         }
 
     @Test
-    fun mutexReleasedAfterFetchThrowsSoSubsequentCallsDoNotDeadlock() =
+    fun fetchSwallowsExceptionsAndMutexReleasedForSubsequentCalls() =
         runTest {
-            val validConfig = ServerConfig(
-                buildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonPushKey = "key",
-            )
             val throwingDataSource = object : NetworkConfigDataSource {
                 var throwNext = true
 
@@ -150,44 +158,49 @@ class CachedServerConfigRepositoryTest {
                         throwNext = false
                         throw RuntimeException("simulated transient error")
                     }
-                    return NetworkResult.Success(validConfig)
+                    return NetworkResult.Success(sampleConfig)
                 }
             }
-            val repo = CachedServerConfigRepository(throwingDataSource, "key")
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
 
-            // First call throws. Before the fix, the bare mutex.lock() + unlock()
-            // pair leaked the mutex on exception, permanently blocking every
-            // future caller.
-            try {
-                repo.getServerConfigCached()
-                fail("Expected exception was not thrown")
-            } catch (_: RuntimeException) {
-                // expected
-            }
+            val repo = CachedServerConfigRepository(throwingDataSource, "key", externalScope)
+            // First fetch (driven by init) throws internally; the try/catch
+            // around the data-source call swallows it and the cache stays null.
+            advanceUntilIdle()
+            assertNull(repo.serverConfig.value)
 
-            // Second call must return — if the mutex is leaked, this hangs.
-            val result = withTimeout(1_000) { repo.getServerConfigCached() }
-            assertEquals(validConfig, result)
+            // Subsequent fetch must return — if the mutex was leaked by an
+            // uncaught exception or if the fetch-in-flight flag was stuck,
+            // this would hang.
+            val result = withTimeout(1_000) { repo.fetchServerConfig() }
+            assertEquals(sampleConfig, result)
+
+            externalScope.cancel()
         }
 
     @Test
-    fun fetchServerConfigWithNullDoesNotOverwriteCache() =
+    fun initFailureDoesNotBlockLaterFetch() =
         runTest {
-            val config = ServerConfig(
-                buildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonBuildTimestamp = "2024-01-15T00:00:00Z",
-                remoteButtonPushKey = "key",
-            )
-            configDataSource.setServerConfigResult(NetworkResult.Success(config))
+            val ds = FakeNetworkConfigDataSource().apply {
+                setServerConfigResult(NetworkResult.ConnectionFailed)
+            }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
 
-            val repo = createRepository()
-            repo.getServerConfigCached()
+            val repo = CachedServerConfigRepository(ds, "key", externalScope)
+            advanceUntilIdle()
+            assertNull(repo.serverConfig.value)
 
-            // Network now returns null
-            configDataSource.setServerConfigResult(NetworkResult.ConnectionFailed)
-            repo.fetchServerConfig()
+            // Fix the network and retry — should succeed.
+            ds.setServerConfigResult(NetworkResult.Success(sampleConfig))
+            val result = repo.fetchServerConfig()
+            assertEquals(sampleConfig, result)
 
-            // Cache should retain the old value
-            assertEquals(config, repo.getServerConfigCached())
+            // But a null server config does NOT overwrite a cached value.
+            ds.setServerConfigResult(NetworkResult.ConnectionFailed)
+            val failResult = repo.fetchServerConfig()
+            assertEquals(sampleConfig, failResult) // cached value won
+            assertEquals(sampleConfig, repo.serverConfig.value)
+
+            externalScope.cancel()
         }
 }

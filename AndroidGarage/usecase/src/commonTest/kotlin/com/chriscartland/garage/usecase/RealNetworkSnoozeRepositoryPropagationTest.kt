@@ -159,6 +159,7 @@ class RealNetworkSnoozeRepositoryPropagationTest {
                 serverConfigRepository = CachedServerConfigRepository(
                     configDs,
                     "test-key",
+                    externalScope,
                 ),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
@@ -256,7 +257,7 @@ class RealNetworkSnoozeRepositoryPropagationTest {
             )
             val snoozeRepository = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
-                serverConfigRepository = CachedServerConfigRepository(configDs, "test-key"),
+                serverConfigRepository = CachedServerConfigRepository(configDs, "test-key", externalScope),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,

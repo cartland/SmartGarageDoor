@@ -238,7 +238,11 @@ abstract class AppComponent(
     @Provides
     @Singleton
     fun provideServerConfigRepository(): ServerConfigRepository =
-        CachedServerConfigRepository(provideNetworkConfigDataSource(), provideAppConfig().serverConfigKey)
+        CachedServerConfigRepository(
+            provideNetworkConfigDataSource(),
+            provideAppConfig().serverConfigKey,
+            provideApplicationScope(),
+        )
 
     @Provides
     @Singleton

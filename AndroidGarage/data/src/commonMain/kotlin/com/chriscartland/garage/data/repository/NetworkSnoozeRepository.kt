@@ -78,7 +78,8 @@ class NetworkSnoozeRepository(
             }.await()
 
     private suspend fun doFetchSnoozeStatus() {
-        val serverConfig = serverConfigRepository.getServerConfigCached()
+        val serverConfig = serverConfigRepository.serverConfig.value
+            ?: serverConfigRepository.fetchServerConfig()
         if (serverConfig == null) {
             Logger.e { "Server config is null" }
             clearLoadingState()
@@ -116,7 +117,8 @@ class NetworkSnoozeRepository(
         idToken: String,
         snoozeEventTimestampSeconds: Long,
     ): AppResult<SnoozeState, ActionError> {
-        val serverConfig = serverConfigRepository.getServerConfigCached()
+        val serverConfig = serverConfigRepository.serverConfig.value
+            ?: serverConfigRepository.fetchServerConfig()
         if (serverConfig == null) {
             Logger.e { "Server config is null" }
             return AppResult.Error(ActionError.NetworkFailed)

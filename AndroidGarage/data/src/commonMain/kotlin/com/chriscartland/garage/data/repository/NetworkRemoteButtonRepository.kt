@@ -33,7 +33,8 @@ class NetworkRemoteButtonRepository(
         idToken: String,
         buttonAckToken: String,
     ): Boolean {
-        val serverConfig = serverConfigRepository.getServerConfigCached()
+        val serverConfig = serverConfigRepository.serverConfig.value
+            ?: serverConfigRepository.fetchServerConfig()
         if (serverConfig == null) {
             Logger.e { "Server config is null" }
             return false
