@@ -19,17 +19,16 @@ import java.io.File
  * Only literal `viewModelScope` is banned — `stateIn(applicationScope, ...)`
  * in a Manager class is legitimate.
  *
- * ### Rule 2 (ADR-022): no VM-local mirror of repository-owned state types
+ * ### Rule 2 (ADR-022, withdrawn): previously banned VM-local mirror of
+ * repository-owned state types.
  *
- * Domain state types whose ownership lives on a `@Singleton` repository
- * (ADR-022) must never be re-declared inside a ViewModel as a private
- * `MutableStateFlow<T>`. If a VM owns its own `MutableStateFlow<SnoozeState>`,
- * it's mirroring the repo's flow and will drift under multiple VM
- * instances (android/164-168).
- *
- * The allowlist holds the domain state types we've migrated so far. Adding
- * a new type to the list is how we extend enforcement as more state-y data
- * moves to repository ownership.
+ * Withdrawn after android/170 shipped the pass-through pattern and the
+ * repo-owned `StateFlow` failed to reach Compose on production devices
+ * even though every debug instrumented test passed. The VM-local mirror
+ * + init-collect + direct-write-from-command pattern (PR #354 /
+ * android/169) is the empirically-reliable shape. The allowlist is now
+ * empty — `bannedStateTypesInViewModels` is kept as a knob in case we
+ * ever need selective enforcement again, but it's intentionally inert.
  */
 abstract class ViewModelStateFlowCheckTask : DefaultTask() {
     @get:Input
@@ -39,13 +38,12 @@ abstract class ViewModelStateFlowCheckTask : DefaultTask() {
      * Domain state types that must be owned on the repository. A
      * `MutableStateFlow<X>` with any of these type arguments inside a
      * ViewModel is a mirror and fails the check.
+     *
+     * Intentionally empty after ADR-022 Rule 2 was withdrawn — see class
+     * KDoc. Re-populate only if a future ADR revives the selective ban.
      */
     @get:Input
-    var bannedStateTypesInViewModels: List<String> = listOf(
-        "SnoozeState",
-        "AuthState",
-        "FcmRegistrationStatus",
-    )
+    var bannedStateTypesInViewModels: List<String> = emptyList()
 
     private val stateInPattern = Regex("""\.stateIn\s*\(\s*viewModelScope""")
     private val fileNameRegex = Regex(".*ViewModel\\.kt")
@@ -54,9 +52,9 @@ abstract class ViewModelStateFlowCheckTask : DefaultTask() {
     fun check() {
         val violations = mutableListOf<String>()
 
-        val bannedTypeRegex = Regex(
-            """\bMutableStateFlow\s*<\s*(${bannedStateTypesInViewModels.joinToString("|")})\s*\??\s*>""",
-        )
+        val bannedTypeRegex = bannedStateTypesInViewModels
+            .takeIf { it.isNotEmpty() }
+            ?.let { Regex("""\bMutableStateFlow\s*<\s*(${it.joinToString("|")})\s*\??\s*>""") }
 
         for (dirPath in sourceDirs) {
             val dir = File(dirPath)
@@ -75,14 +73,13 @@ abstract class ViewModelStateFlowCheckTask : DefaultTask() {
                                     "Line: ${line.trim()}",
                             )
                         }
-                        val bannedMatch = bannedTypeRegex.find(line)
+                        val bannedMatch = bannedTypeRegex?.find(line)
                         if (bannedMatch != null) {
                             val typeArg = bannedMatch.groupValues[1]
                             violations.add(
                                 "${file.relativeTo(dir).path}:${index + 1}: " +
-                                    "VM-local MutableStateFlow<$typeArg> is banned (ADR-022). " +
-                                    "State-y types are owned by a @Singleton repository — expose the " +
-                                    "repo's StateFlow by reference (observeXUseCase()), do not mirror. " +
+                                    "VM-local MutableStateFlow<$typeArg> is banned. " +
+                                    "State-y types are owned by a @Singleton repository. " +
                                     "Line: ${line.trim()}",
                             )
                         }
@@ -96,6 +93,6 @@ abstract class ViewModelStateFlowCheckTask : DefaultTask() {
                     violations.joinToString("\n\n") { "  $it" },
             )
         }
-        logger.lifecycle("ViewModel StateFlow check passed: no stateIn(viewModelScope, ...) usages and no banned VM-local mirrors.")
+        logger.lifecycle("ViewModel StateFlow check passed: no stateIn(viewModelScope, ...) usages.")
     }
 }
