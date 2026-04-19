@@ -80,7 +80,7 @@ fun LogSummaryCard(
         onDownload = { context, uri ->
             val app = context.applicationContext as GarageApplication
             CoroutineScope(Dispatchers.IO).launch {
-                exportAppLogCsvToUri(app.component.provideAppLoggerRepository(), context, uri)
+                exportAppLogCsvToUri(app.component.appLoggerRepository, context, uri)
             }
         },
         initCurrent = initCurrent,

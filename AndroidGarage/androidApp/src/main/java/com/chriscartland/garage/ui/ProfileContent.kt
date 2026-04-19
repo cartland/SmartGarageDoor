@@ -76,7 +76,7 @@ fun ProfileContent(
             delay(Duration.ofMinutes(1).toMillis())
         }
     }
-    val appConfig = component.provideAppConfig()
+    val appConfig = component.appConfig
     ProfileContent(
         user = when (val it = authState) {
             is AuthState.Authenticated -> it.user

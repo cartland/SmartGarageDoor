@@ -91,159 +91,238 @@ import me.tatarka.inject.annotations.Provides
 /**
  * Root kotlin-inject component.
  *
- * Dependencies are added here as ViewModels and Repositories
- * are migrated from Hilt. See docs/DI-MIGRATION.md for the plan.
+ * **Abstract entry points + parameter-based providers are load-bearing.**
+ *
+ * kotlin-inject generates scoped (`@Singleton`) caching by overriding
+ * abstract entry points on this component. When a `@Provides fun`
+ * declares its deps as parameters, the generator injects scoped
+ * instances via `_scoped.get(...)`. If the function instead calls
+ * sibling `@Provides fun`s inside its body, those calls bypass the
+ * cache and construct fresh — which is how the android/170 snooze
+ * regression happened. See `docs/DI_SINGLETON_REQUIREMENTS.md`.
+ *
+ * Rules for this file:
+ *   1. ViewModels are abstract entry points (non-`@Singleton`,
+ *      per-nav-entry by design). Their overrides build a fresh VM each
+ *      access; deps are injected as parameters so transitive
+ *      `@Singleton` providers route through `_scoped`.
+ *   2. Every `@Singleton` provider is reachable via an abstract entry
+ *      point. Declaring it abstract is also how `ComponentGraphTest`
+ *      identity-tests the singletons externally.
+ *   3. Every `@Provides fun` declares its deps as constructor-style
+ *      parameters — never call sibling `provide*()` inside the body.
  */
 @Component
 @Singleton
 abstract class AppComponent(
     @get:Provides val application: Application,
 ) {
-    // ViewModels.
-    //
-    // These providers are intentionally NOT @Singleton — each call site (Compose
-    // rememberViewModelStoreNavEntryDecorator<Screen>) receives its own VM
-    // instance scoped to that nav entry's lifecycle. This is the ADR-021 Rule 4
-    // pattern: multiple VMs are allowed, correctness comes from the single
-    // @Singleton repositories they share (ADR-021 Rule 1, ADR-022).
-    val authViewModel: DefaultAuthViewModel
-        @Provides get() = DefaultAuthViewModel(
-            provideObserveAuthStateUseCase(),
-            provideSignInWithGoogleUseCase(),
-            provideSignOutUseCase(),
-            provideLogAppEventUseCase(),
-            provideDispatcherProvider(),
+    // --- Entry points: ViewModels (per-nav-entry, NOT singleton) ---
+    abstract val authViewModel: DefaultAuthViewModel
+    abstract val appLoggerViewModel: DefaultAppLoggerViewModel
+    abstract val appSettingsViewModel: DefaultAppSettingsViewModel
+    abstract val doorViewModel: DefaultDoorViewModel
+    abstract val remoteButtonViewModel: DefaultRemoteButtonViewModel
+
+    // --- Entry points: @Singleton providers (testable via assertSame) ---
+    abstract val appConfig: AppConfig
+    abstract val appStartup: AppStartup
+    abstract val applicationScope: CoroutineScope
+    abstract val httpClient: HttpClient
+    abstract val appDatabase: AppDatabase
+    abstract val appSettings: AppSettingsRepository
+    abstract val appLoggerRepository: AppLoggerRepository
+    abstract val authBridge: AuthBridge
+    abstract val messagingBridge: MessagingBridge
+    abstract val authRepository: AuthRepository
+    abstract val doorRepository: DoorRepository
+    abstract val serverConfigRepository: ServerConfigRepository
+    abstract val snoozeRepository: SnoozeRepository
+    abstract val remoteButtonRepository: RemoteButtonRepository
+    abstract val doorFcmRepository: DoorFcmRepository
+    abstract val fcmRegistrationManager: FcmRegistrationManager
+    abstract val checkInStalenessManager: CheckInStalenessManager
+    abstract val appClock: AppClock
+    abstract val dispatcherProvider: DispatcherProvider
+    abstract val networkButtonDataSource: NetworkButtonDataSource
+    abstract val networkConfigDataSource: NetworkConfigDataSource
+    abstract val networkDoorDataSource: NetworkDoorDataSource
+    abstract val localDoorDataSource: LocalDoorDataSource
+
+    // --- ViewModels ---
+
+    @Provides
+    fun provideAuthViewModel(
+        observeAuthState: ObserveAuthStateUseCase,
+        signInWithGoogle: SignInWithGoogleUseCase,
+        signOut: SignOutUseCase,
+        logAppEvent: LogAppEventUseCase,
+        dispatchers: DispatcherProvider,
+    ): DefaultAuthViewModel = DefaultAuthViewModel(observeAuthState, signInWithGoogle, signOut, logAppEvent, dispatchers)
+
+    @Provides
+    fun provideAppLoggerViewModel(
+        logAppEvent: LogAppEventUseCase,
+        observeAppLogCount: ObserveAppLogCountUseCase,
+        dispatchers: DispatcherProvider,
+    ): DefaultAppLoggerViewModel = DefaultAppLoggerViewModel(logAppEvent, observeAppLogCount, dispatchers)
+
+    @Provides
+    fun provideAppSettingsViewModel(appSettings: AppSettingsUseCase): DefaultAppSettingsViewModel = DefaultAppSettingsViewModel(appSettings)
+
+    @Provides
+    fun provideDoorViewModel(
+        observeDoorEvents: ObserveDoorEventsUseCase,
+        logAppEvent: LogAppEventUseCase,
+        dispatchers: DispatcherProvider,
+        fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
+        fetchRecentDoorEvents: FetchRecentDoorEventsUseCase,
+        deregisterFcm: DeregisterFcmUseCase,
+        fcmRegistrationManager: FcmRegistrationManager,
+        checkInStalenessManager: CheckInStalenessManager,
+    ): DefaultDoorViewModel =
+        DefaultDoorViewModel(
+            observeDoorEvents,
+            logAppEvent,
+            dispatchers,
+            fetchCurrentDoorEvent,
+            fetchRecentDoorEvents,
+            deregisterFcm,
+            fcmRegistrationManager,
+            checkInStalenessManager,
         )
 
     @Provides
-    fun provideObserveAuthStateUseCase(): ObserveAuthStateUseCase = ObserveAuthStateUseCase(provideAuthRepository())
-
-    @Provides
-    fun provideSignInWithGoogleUseCase(): SignInWithGoogleUseCase = SignInWithGoogleUseCase(provideAuthRepository())
-
-    @Provides
-    fun provideSignOutUseCase(): SignOutUseCase = SignOutUseCase(provideAuthRepository())
-
-    val appLoggerViewModel: DefaultAppLoggerViewModel
-        @Provides get() = DefaultAppLoggerViewModel(
-            provideLogAppEventUseCase(),
-            provideObserveAppLogCountUseCase(),
-            provideDispatcherProvider(),
+    fun provideRemoteButtonViewModel(
+        observeDoorEvents: ObserveDoorEventsUseCase,
+        dispatchers: DispatcherProvider,
+        pushRemoteButton: PushRemoteButtonUseCase,
+        snoozeNotifications: SnoozeNotificationsUseCase,
+        fetchSnoozeStatus: FetchSnoozeStatusUseCase,
+        observeSnoozeState: ObserveSnoozeStateUseCase,
+        appVersion: String,
+    ): DefaultRemoteButtonViewModel =
+        DefaultRemoteButtonViewModel(
+            observeDoorEvents,
+            dispatchers,
+            pushRemoteButton,
+            snoozeNotifications,
+            fetchSnoozeStatus,
+            observeSnoozeState,
+            appVersion,
         )
 
-    @Provides
-    fun provideLogAppEventUseCase(): LogAppEventUseCase = LogAppEventUseCase(provideAppLoggerRepository())
+    // --- UseCases (constructors are single-dep or small, kept concise) ---
 
     @Provides
-    fun provideObserveAppLogCountUseCase(): ObserveAppLogCountUseCase = ObserveAppLogCountUseCase(provideAppLoggerRepository())
+    fun provideObserveAuthStateUseCase(authRepository: AuthRepository): ObserveAuthStateUseCase = ObserveAuthStateUseCase(authRepository)
 
     @Provides
-    fun provideObserveDoorEventsUseCase(): ObserveDoorEventsUseCase = ObserveDoorEventsUseCase(provideDoorRepository())
-
-    val appSettingsViewModel: DefaultAppSettingsViewModel
-        @Provides get() = DefaultAppSettingsViewModel(provideAppSettingsUseCase())
+    fun provideSignInWithGoogleUseCase(authRepository: AuthRepository): SignInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository)
 
     @Provides
-    fun provideAppSettingsUseCase(): AppSettingsUseCase = AppSettingsUseCase(provideAppSettings())
+    fun provideSignOutUseCase(authRepository: AuthRepository): SignOutUseCase = SignOutUseCase(authRepository)
 
-    val doorViewModel: DefaultDoorViewModel
-        @Provides get() = DefaultDoorViewModel(
-            provideObserveDoorEventsUseCase(),
-            provideLogAppEventUseCase(),
-            provideDispatcherProvider(),
-            provideFetchCurrentDoorEventUseCase(),
-            provideFetchRecentDoorEventsUseCase(),
-            provideDeregisterFcmUseCase(),
-            provideFcmRegistrationManager(),
-            provideCheckInStalenessManager(),
-        )
+    @Provides
+    fun provideLogAppEventUseCase(appLoggerRepository: AppLoggerRepository): LogAppEventUseCase = LogAppEventUseCase(appLoggerRepository)
 
-    val remoteButtonViewModel: DefaultRemoteButtonViewModel
-        @Provides get() = DefaultRemoteButtonViewModel(
-            provideObserveDoorEventsUseCase(),
-            provideDispatcherProvider(),
-            providePushRemoteButtonUseCase(),
-            provideSnoozeNotificationsUseCase(),
-            provideFetchSnoozeStatusUseCase(),
-            provideObserveSnoozeStateUseCase(),
-            provideAppVersionName(),
-        )
+    @Provides
+    fun provideObserveAppLogCountUseCase(appLoggerRepository: AppLoggerRepository): ObserveAppLogCountUseCase =
+        ObserveAppLogCountUseCase(appLoggerRepository)
 
-    /** App version name used in button ack tokens (server logs correlate by version). */
+    @Provides
+    fun provideObserveDoorEventsUseCase(doorRepository: DoorRepository): ObserveDoorEventsUseCase = ObserveDoorEventsUseCase(doorRepository)
+
+    @Provides
+    fun provideAppSettingsUseCase(appSettings: AppSettingsRepository): AppSettingsUseCase = AppSettingsUseCase(appSettings)
+
+    @Provides
+    fun provideFetchCurrentDoorEventUseCase(doorRepository: DoorRepository): FetchCurrentDoorEventUseCase =
+        FetchCurrentDoorEventUseCase(doorRepository)
+
+    @Provides
+    fun provideFetchRecentDoorEventsUseCase(doorRepository: DoorRepository): FetchRecentDoorEventsUseCase =
+        FetchRecentDoorEventsUseCase(doorRepository)
+
+    @Provides
+    fun provideFetchFcmStatusUseCase(doorFcmRepository: DoorFcmRepository): FetchFcmStatusUseCase = FetchFcmStatusUseCase(doorFcmRepository)
+
+    @Provides
+    fun provideRegisterFcmUseCase(
+        doorRepository: DoorRepository,
+        doorFcmRepository: DoorFcmRepository,
+    ): RegisterFcmUseCase = RegisterFcmUseCase(doorRepository, doorFcmRepository)
+
+    @Provides
+    fun provideDeregisterFcmUseCase(doorFcmRepository: DoorFcmRepository): DeregisterFcmUseCase = DeregisterFcmUseCase(doorFcmRepository)
+
+    @Provides
+    fun provideEnsureFreshIdTokenUseCase(authRepository: AuthRepository): EnsureFreshIdTokenUseCase =
+        EnsureFreshIdTokenUseCase(authRepository)
+
+    @Provides
+    fun providePushRemoteButtonUseCase(
+        ensureFreshIdToken: EnsureFreshIdTokenUseCase,
+        authRepository: AuthRepository,
+        remoteButtonRepository: RemoteButtonRepository,
+    ): PushRemoteButtonUseCase = PushRemoteButtonUseCase(ensureFreshIdToken, authRepository, remoteButtonRepository)
+
+    @Provides
+    fun provideSnoozeNotificationsUseCase(
+        ensureFreshIdToken: EnsureFreshIdTokenUseCase,
+        authRepository: AuthRepository,
+        snoozeRepository: SnoozeRepository,
+    ): SnoozeNotificationsUseCase = SnoozeNotificationsUseCase(ensureFreshIdToken, authRepository, snoozeRepository)
+
+    @Provides
+    fun provideFetchSnoozeStatusUseCase(snoozeRepository: SnoozeRepository): FetchSnoozeStatusUseCase =
+        FetchSnoozeStatusUseCase(snoozeRepository)
+
+    @Provides
+    fun provideObserveSnoozeStateUseCase(snoozeRepository: SnoozeRepository): ObserveSnoozeStateUseCase =
+        ObserveSnoozeStateUseCase(snoozeRepository)
+
+    // --- @Singleton providers (bodies take parameters so caching is honored) ---
+
     @Provides
     @Singleton
     fun provideAppVersionName(): String = application.applicationContext.AppVersion().versionName
 
-    // Configuration
     @Provides
     @Singleton
     fun provideAppConfig(): AppConfig = AppConfigFactory.create()
 
-    // Settings
     @Provides
     @Singleton
     fun provideAppSettings(): AppSettingsRepository = DataStoreSettingsFactory.create(application)
 
-    // Database
     @Provides
     @Singleton
     fun provideAppDatabase(): AppDatabase = DatabaseFactory.getDatabase(application)
 
-    // Network — Ktor HTTP client
     @Provides
     @Singleton
-    fun provideHttpClient(): HttpClient =
-        createHttpClient(
-            baseUrl = provideAppConfig().baseUrl,
-            debug = BuildConfig.DEBUG,
-        )
+    fun provideHttpClient(appConfig: AppConfig): HttpClient = createHttpClient(baseUrl = appConfig.baseUrl, debug = BuildConfig.DEBUG)
 
     @Provides
     @Singleton
-    fun provideNetworkDoorDataSource(): NetworkDoorDataSource = KtorNetworkDoorDataSource(provideHttpClient())
+    fun provideNetworkDoorDataSource(httpClient: HttpClient): NetworkDoorDataSource = KtorNetworkDoorDataSource(httpClient)
 
     @Provides
     @Singleton
-    fun provideNetworkConfigDataSource(): NetworkConfigDataSource = KtorNetworkConfigDataSource(provideHttpClient())
+    fun provideNetworkConfigDataSource(httpClient: HttpClient): NetworkConfigDataSource = KtorNetworkConfigDataSource(httpClient)
 
-    // Local data
     @Provides
     @Singleton
-    fun provideLocalDoorDataSource(): LocalDoorDataSource = DatabaseLocalDoorDataSource(provideAppDatabase())
+    fun provideNetworkButtonDataSource(httpClient: HttpClient): NetworkButtonDataSource = KtorNetworkButtonDataSource(httpClient)
 
-    // Repositories
+    @Provides
+    @Singleton
+    fun provideLocalDoorDataSource(appDatabase: AppDatabase): LocalDoorDataSource = DatabaseLocalDoorDataSource(appDatabase)
+
     @Provides
     @Singleton
     fun provideAuthBridge(): AuthBridge = FirebaseAuthBridge()
-
-    @Provides
-    @Singleton
-    fun provideApplicationScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
-    @Provides
-    @Singleton
-    fun provideAuthRepository(): AuthRepository =
-        FirebaseAuthRepository(provideAuthBridge(), provideAppLoggerRepository(), provideApplicationScope())
-
-    @Provides
-    @Singleton
-    fun provideDoorRepository(): DoorRepository =
-        NetworkDoorRepository(
-            provideLocalDoorDataSource(),
-            provideNetworkDoorDataSource(),
-            provideServerConfigRepository(),
-            provideAppConfig().recentEventCount,
-            provideApplicationScope(),
-        )
-
-    @Provides
-    @Singleton
-    fun provideServerConfigRepository(): ServerConfigRepository =
-        CachedServerConfigRepository(
-            provideNetworkConfigDataSource(),
-            provideAppConfig().serverConfigKey,
-            provideApplicationScope(),
-        )
 
     @Provides
     @Singleton
@@ -251,41 +330,11 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
-    fun provideDoorFcmRepository(): DoorFcmRepository =
-        FirebaseDoorFcmRepository(provideMessagingBridge(), provideAppSettings(), provideAppLoggerRepository())
+    fun provideApplicationScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Provides
     @Singleton
-    fun provideAppLoggerRepository(): AppLoggerRepository =
-        RoomAppLoggerRepository(
-            provideAppDatabase(),
-            application.applicationContext.AppVersion().toString(),
-        )
-
-    // UseCases
-    @Provides
-    fun provideFetchCurrentDoorEventUseCase(): FetchCurrentDoorEventUseCase = FetchCurrentDoorEventUseCase(provideDoorRepository())
-
-    @Provides
-    fun provideFetchRecentDoorEventsUseCase(): FetchRecentDoorEventsUseCase = FetchRecentDoorEventsUseCase(provideDoorRepository())
-
-    @Provides
-    fun provideFetchFcmStatusUseCase(): FetchFcmStatusUseCase = FetchFcmStatusUseCase(provideDoorFcmRepository())
-
-    @Provides
-    fun provideRegisterFcmUseCase(): RegisterFcmUseCase = RegisterFcmUseCase(provideDoorRepository(), provideDoorFcmRepository())
-
-    @Provides
-    fun provideDeregisterFcmUseCase(): DeregisterFcmUseCase = DeregisterFcmUseCase(provideDoorFcmRepository())
-
-    @Provides
-    @Singleton
-    fun provideFcmRegistrationManager(): FcmRegistrationManager =
-        FcmRegistrationManager(
-            provideRegisterFcmUseCase(),
-            provideApplicationScope(),
-            provideDispatcherProvider().io,
-        )
+    fun provideDispatcherProvider(): DispatcherProvider = DefaultDispatcherProvider()
 
     @Provides
     @Singleton
@@ -293,69 +342,104 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
-    fun provideCheckInStalenessManager(): CheckInStalenessManager =
-        CheckInStalenessManager(
-            observeDoorEvents = provideObserveDoorEventsUseCase(),
-            logAppEvent = provideLogAppEventUseCase(),
-            scope = provideApplicationScope(),
-            dispatcher = provideDispatcherProvider().io,
-            clock = provideAppClock(),
+    fun provideAppLoggerRepository(appDatabase: AppDatabase): AppLoggerRepository =
+        RoomAppLoggerRepository(appDatabase, application.applicationContext.AppVersion().toString())
+
+    @Provides
+    @Singleton
+    fun provideAuthRepository(
+        authBridge: AuthBridge,
+        appLoggerRepository: AppLoggerRepository,
+        applicationScope: CoroutineScope,
+    ): AuthRepository = FirebaseAuthRepository(authBridge, appLoggerRepository, applicationScope)
+
+    @Provides
+    @Singleton
+    fun provideServerConfigRepository(
+        networkConfigDataSource: NetworkConfigDataSource,
+        appConfig: AppConfig,
+        applicationScope: CoroutineScope,
+    ): ServerConfigRepository = CachedServerConfigRepository(networkConfigDataSource, appConfig.serverConfigKey, applicationScope)
+
+    @Provides
+    @Singleton
+    fun provideDoorRepository(
+        localDoorDataSource: LocalDoorDataSource,
+        networkDoorDataSource: NetworkDoorDataSource,
+        serverConfigRepository: ServerConfigRepository,
+        appConfig: AppConfig,
+        applicationScope: CoroutineScope,
+    ): DoorRepository =
+        NetworkDoorRepository(
+            localDoorDataSource,
+            networkDoorDataSource,
+            serverConfigRepository,
+            appConfig.recentEventCount,
+            applicationScope,
         )
 
     @Provides
-    fun provideAppStartup(): AppStartup =
-        AppStartup(
-            provideFcmRegistrationManager(),
-            provideCheckInStalenessManager(),
-            appLoggerViewModel,
-        )
+    @Singleton
+    fun provideRemoteButtonRepository(
+        networkButtonDataSource: NetworkButtonDataSource,
+        serverConfigRepository: ServerConfigRepository,
+        appConfig: AppConfig,
+    ): RemoteButtonRepository =
+        NetworkRemoteButtonRepository(networkButtonDataSource, serverConfigRepository, appConfig.remoteButtonPushEnabled)
 
-    @Provides
-    fun provideEnsureFreshIdTokenUseCase(): EnsureFreshIdTokenUseCase = EnsureFreshIdTokenUseCase(provideAuthRepository())
-
-    @Provides
-    fun providePushRemoteButtonUseCase(): PushRemoteButtonUseCase =
-        PushRemoteButtonUseCase(provideEnsureFreshIdTokenUseCase(), provideAuthRepository(), provideRemoteButtonRepository())
-
-    @Provides
-    fun provideSnoozeNotificationsUseCase(): SnoozeNotificationsUseCase =
-        SnoozeNotificationsUseCase(provideEnsureFreshIdTokenUseCase(), provideAuthRepository(), provideSnoozeRepository())
-
-    @Provides
-    fun provideFetchSnoozeStatusUseCase(): FetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(provideSnoozeRepository())
-
-    @Provides
-    fun provideObserveSnoozeStateUseCase(): ObserveSnoozeStateUseCase = ObserveSnoozeStateUseCase(provideSnoozeRepository())
-
-    // Network — button + snooze data source
     @Provides
     @Singleton
-    fun provideNetworkButtonDataSource(): NetworkButtonDataSource = KtorNetworkButtonDataSource(provideHttpClient())
-
-    // Repositories — remote button
-    @Provides
-    @Singleton
-    fun provideRemoteButtonRepository(): RemoteButtonRepository =
-        NetworkRemoteButtonRepository(
-            provideNetworkButtonDataSource(),
-            provideServerConfigRepository(),
-            provideAppConfig().remoteButtonPushEnabled,
-        )
-
-    // Repositories — snooze
-    @Provides
-    @Singleton
-    fun provideSnoozeRepository(): SnoozeRepository =
+    fun provideSnoozeRepository(
+        networkButtonDataSource: NetworkButtonDataSource,
+        serverConfigRepository: ServerConfigRepository,
+        appConfig: AppConfig,
+        applicationScope: CoroutineScope,
+    ): SnoozeRepository =
         NetworkSnoozeRepository(
-            provideNetworkButtonDataSource(),
-            provideServerConfigRepository(),
-            provideAppConfig().snoozeNotificationsOption,
+            networkButtonDataSource,
+            serverConfigRepository,
+            appConfig.snoozeNotificationsOption,
             currentTimeSeconds = { System.currentTimeMillis() / 1000 },
-            externalScope = provideApplicationScope(),
+            externalScope = applicationScope,
         )
 
-    // Coroutines
     @Provides
     @Singleton
-    fun provideDispatcherProvider(): DispatcherProvider = DefaultDispatcherProvider()
+    fun provideDoorFcmRepository(
+        messagingBridge: MessagingBridge,
+        appSettings: AppSettingsRepository,
+        appLoggerRepository: AppLoggerRepository,
+    ): DoorFcmRepository = FirebaseDoorFcmRepository(messagingBridge, appSettings, appLoggerRepository)
+
+    @Provides
+    @Singleton
+    fun provideFcmRegistrationManager(
+        registerFcm: RegisterFcmUseCase,
+        applicationScope: CoroutineScope,
+        dispatchers: DispatcherProvider,
+    ): FcmRegistrationManager = FcmRegistrationManager(registerFcm, applicationScope, dispatchers.io)
+
+    @Provides
+    @Singleton
+    fun provideCheckInStalenessManager(
+        observeDoorEvents: ObserveDoorEventsUseCase,
+        logAppEvent: LogAppEventUseCase,
+        applicationScope: CoroutineScope,
+        dispatchers: DispatcherProvider,
+        appClock: AppClock,
+    ): CheckInStalenessManager =
+        CheckInStalenessManager(
+            observeDoorEvents = observeDoorEvents,
+            logAppEvent = logAppEvent,
+            scope = applicationScope,
+            dispatcher = dispatchers.io,
+            clock = appClock,
+        )
+
+    @Provides
+    fun provideAppStartup(
+        fcmRegistrationManager: FcmRegistrationManager,
+        checkInStalenessManager: CheckInStalenessManager,
+        appLoggerViewModel: DefaultAppLoggerViewModel,
+    ): AppStartup = AppStartup(fcmRegistrationManager, checkInStalenessManager, appLoggerViewModel)
 }
