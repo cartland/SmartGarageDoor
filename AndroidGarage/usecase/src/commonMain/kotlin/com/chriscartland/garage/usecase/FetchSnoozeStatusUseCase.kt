@@ -22,7 +22,7 @@ import com.chriscartland.garage.domain.repository.SnoozeRepository
 /**
  * Fetches the current snooze status from the server.
  *
- * Updates the snooze state observable via [SnoozeRepository.observeSnoozeState].
+ * Updates the snooze state observable via [SnoozeRepository.snoozeState].
  */
 class FetchSnoozeStatusUseCase(
     private val snoozeRepository: SnoozeRepository,

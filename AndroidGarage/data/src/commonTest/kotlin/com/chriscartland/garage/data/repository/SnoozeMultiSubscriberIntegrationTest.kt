@@ -28,7 +28,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -48,9 +47,9 @@ import kotlin.test.assertTrue
  * write from the VM as a workaround; this test proves the repository-only path
  * is sufficient so the workaround can be removed in PR 2.
  *
- * Every subscriber here reads through [SnoozeRepository.observeSnoozeState] —
- * no one consults `snoozeNotifications()`'s return value. If the repository's
- * flow is correct, every subscriber must converge to the submitted state.
+ * Every subscriber here reads through [SnoozeRepository.snoozeState] — no one
+ * consults `snoozeNotifications()`'s return value. If the repository's flow is
+ * correct, every subscriber must converge to the submitted state.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SnoozeMultiSubscriberIntegrationTest {
@@ -101,7 +100,7 @@ class SnoozeMultiSubscriberIntegrationTest {
             val repo = buildRepo(externalScope, buttonDs, configDs, now)
             advanceUntilIdle()
             // Initial fetch: NotSnoozing.
-            assertEquals(SnoozeState.NotSnoozing, repo.observeSnoozeState().first())
+            assertEquals(SnoozeState.NotSnoozing, repo.snoozeState.value)
 
             val seenA = mutableListOf<SnoozeState>()
             val seenB = mutableListOf<SnoozeState>()
@@ -118,13 +117,13 @@ class SnoozeMultiSubscriberIntegrationTest {
             )
             val jobs = mutableListOf<Job>()
             jobs += subscriberScopeA.launch {
-                repo.observeSnoozeState().collect { seenA.add(it) }
+                repo.snoozeState.collect { seenA.add(it) }
             }
             jobs += subscriberScopeB.launch {
-                repo.observeSnoozeState().collect { seenB.add(it) }
+                repo.snoozeState.collect { seenB.add(it) }
             }
             jobs += subscriberScopeC.launch {
-                repo.observeSnoozeState().collect { seenC.add(it) }
+                repo.snoozeState.collect { seenC.add(it) }
             }
             advanceUntilIdle()
             // All three subscribers got the initial replay.
@@ -203,7 +202,7 @@ class SnoozeMultiSubscriberIntegrationTest {
                 SupervisorJob() + UnconfinedTestDispatcher(testScheduler),
             )
             val lateJob = lateScope.launch {
-                repo.observeSnoozeState().collect { lateSeen.add(it) }
+                repo.snoozeState.collect { lateSeen.add(it) }
             }
             advanceUntilIdle()
 
@@ -250,10 +249,10 @@ class SnoozeMultiSubscriberIntegrationTest {
                 SupervisorJob() + UnconfinedTestDispatcher(testScheduler),
             )
             val jobA = scopeA.launch {
-                repo.observeSnoozeState().collect { seenA.add(it) }
+                repo.snoozeState.collect { seenA.add(it) }
             }
             val jobB = scopeB.launch {
-                repo.observeSnoozeState().collect { seenB.add(it) }
+                repo.snoozeState.collect { seenB.add(it) }
             }
             advanceUntilIdle()
 

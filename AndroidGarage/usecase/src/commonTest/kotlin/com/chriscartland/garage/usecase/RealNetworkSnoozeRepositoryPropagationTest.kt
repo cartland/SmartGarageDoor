@@ -41,7 +41,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -169,7 +168,7 @@ class RealNetworkSnoozeRepositoryPropagationTest {
             // Repository init fetch resolves to NotSnoozing (server returned 0).
             // This matches the production precondition: card shows
             // "Door notifications enabled".
-            assertEquals(SnoozeState.NotSnoozing, snoozeRepository.observeSnoozeState().first())
+            assertEquals(SnoozeState.NotSnoozing, snoozeRepository.snoozeState.value)
 
             val testDispatcher = UnconfinedTestDispatcher(testScheduler)
             val ensureFreshIdToken = EnsureFreshIdTokenUseCase(authRepository)

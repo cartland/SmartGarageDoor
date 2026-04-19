@@ -69,9 +69,9 @@ class DefaultRemoteButtonViewModel(
 
     override val buttonState: StateFlow<RemoteButtonState> = stateMachine.state
 
-    // ADR-017 Rule 6: explicit MutableStateFlow + collect, no stateIn in ViewModels.
-    private val _snoozeState = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
-    override val snoozeState: StateFlow<SnoozeState> = _snoozeState
+    // ADR-022: expose the repository's StateFlow by reference — no mirror.
+    // Every subscriber across the app reads from the same singleton instance.
+    override val snoozeState: StateFlow<SnoozeState> = observeSnoozeStateUseCase()
 
     private val _snoozeAction = MutableStateFlow<SnoozeAction>(SnoozeAction.Idle)
     override val snoozeAction: StateFlow<SnoozeAction> = _snoozeAction
@@ -80,9 +80,6 @@ class DefaultRemoteButtonViewModel(
 
     init {
         listenToDoorEvent()
-        viewModelScope.launch(dispatchers.io) {
-            observeSnoozeStateUseCase().collect { _snoozeState.value = it }
-        }
         // First fetch is driven by SnoozeRepository.init on an app-lifetime
         // scope (see NetworkSnoozeRepository). Running it from here on
         // viewModelScope risked cancellation mid-fetch stranding the
@@ -154,13 +151,11 @@ class DefaultRemoteButtonViewModel(
                 )
             ) {
                 is AppResult.Success -> {
-                    // The repo returned the authoritative SnoozeState computed
-                    // from the server's response. Use it directly for both the
-                    // action overlay AND the observable _snoozeState — direct
-                    // write bypasses any fragility in the observer chain so
-                    // the UI updates immediately regardless of flow plumbing.
+                    // Repo already wrote [result.data] into its [snoozeState]
+                    // before returning, so the card title updates via the
+                    // shared flow (ADR-022). Here we only compute the
+                    // VM-local overlay action (Rule 3 — presentation state).
                     val newState = result.data
-                    _snoozeState.value = newState
                     _snoozeAction.value = when (newState) {
                         is SnoozeState.Snoozing -> SnoozeAction.Succeeded.Set(newState.untilEpochSeconds)
                         SnoozeState.NotSnoozing -> SnoozeAction.Succeeded.Cleared

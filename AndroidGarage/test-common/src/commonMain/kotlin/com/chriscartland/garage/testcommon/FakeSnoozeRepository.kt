@@ -4,8 +4,8 @@ import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.repository.SnoozeRepository
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Fake [SnoozeRepository] for unit testing.
@@ -26,7 +26,8 @@ class FakeSnoozeRepository : SnoozeRepository {
         val snoozeEventTimestampSeconds: Long,
     )
 
-    private val snoozeStateFlow = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
+    private val _snoozeState = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
+    override val snoozeState: StateFlow<SnoozeState> = _snoozeState
 
     private val _snoozeCalls = mutableListOf<SnoozeCall>()
     val snoozeCalls: List<SnoozeCall> get() = _snoozeCalls
@@ -40,14 +41,12 @@ class FakeSnoozeRepository : SnoozeRepository {
         AppResult.Success(SnoozeState.NotSnoozing)
 
     fun setSnoozeState(state: SnoozeState) {
-        snoozeStateFlow.value = state
+        _snoozeState.value = state
     }
 
     fun setSnoozeResult(value: AppResult<SnoozeState, ActionError>) {
         snoozeResult = value
     }
-
-    override fun observeSnoozeState(): Flow<SnoozeState> = snoozeStateFlow
 
     override suspend fun fetchSnoozeStatus() {
         _fetchCount++
@@ -68,7 +67,7 @@ class FakeSnoozeRepository : SnoozeRepository {
         // Mirror the production repo: on success, propagate the result value
         // to the observable flow so observers see it too.
         if (snoozeResult is AppResult.Success) {
-            snoozeStateFlow.value = (snoozeResult as AppResult.Success<SnoozeState>).data
+            _snoozeState.value = (snoozeResult as AppResult.Success<SnoozeState>).data
         }
         return snoozeResult
     }

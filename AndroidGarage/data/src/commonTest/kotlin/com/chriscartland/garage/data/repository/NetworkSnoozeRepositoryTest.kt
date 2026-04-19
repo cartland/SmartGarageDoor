@@ -21,7 +21,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -68,7 +67,7 @@ class NetworkSnoozeRepositoryTest {
             )
             advanceUntilIdle()
 
-            assertEquals(SnoozeState.NotSnoozing, repo.observeSnoozeState().first())
+            assertEquals(SnoozeState.NotSnoozing, repo.snoozeState.value)
             assertEquals(1, buttonDs.fetchSnoozeCount)
         }
 
@@ -100,7 +99,7 @@ class NetworkSnoozeRepositoryTest {
             advanceUntilIdle()
 
             // External-scope fetch from init still completed — state is NOT stuck.
-            assertEquals(SnoozeState.NotSnoozing, repo.observeSnoozeState().first())
+            assertEquals(SnoozeState.NotSnoozing, repo.snoozeState.value)
 
             externalScope.cancel()
             vmScope.cancel()
@@ -125,7 +124,7 @@ class NetworkSnoozeRepositoryTest {
             advanceUntilIdle()
 
             // Server config unavailable → fall back to NotSnoozing, never stay Loading.
-            assertEquals(SnoozeState.NotSnoozing, repo.observeSnoozeState().first())
+            assertEquals(SnoozeState.NotSnoozing, repo.snoozeState.value)
 
             externalScope.cancel()
         }
@@ -150,7 +149,7 @@ class NetworkSnoozeRepositoryTest {
             )
             advanceUntilIdle()
 
-            assertEquals(SnoozeState.Snoozing(futureEnd), repo.observeSnoozeState().first())
+            assertEquals(SnoozeState.Snoozing(futureEnd), repo.snoozeState.value)
 
             externalScope.cancel()
         }
@@ -178,7 +177,7 @@ class NetworkSnoozeRepositoryTest {
                 externalScope = externalScope,
             )
             advanceUntilIdle()
-            assertEquals(SnoozeState.NotSnoozing, repo.observeSnoozeState().first())
+            assertEquals(SnoozeState.NotSnoozing, repo.snoozeState.value)
 
             val submitted = repo.snoozeNotifications(
                 snoozeDurationHours = "1h",
@@ -193,7 +192,7 @@ class NetworkSnoozeRepositoryTest {
                 (submitted as AppResult.Success).data,
             )
             // Return value matches the flow value — repo writes both.
-            assertEquals(SnoozeState.Snoozing(submittedSnoozeEnd), repo.observeSnoozeState().first())
+            assertEquals(SnoozeState.Snoozing(submittedSnoozeEnd), repo.snoozeState.value)
             // Only the init fetch runs — no follow-up GET after the POST.
             assertEquals(1, buttonDs.fetchSnoozeCount)
             assertEquals(1, buttonDs.snoozeCount)
@@ -234,7 +233,7 @@ class NetworkSnoozeRepositoryTest {
             advanceUntilIdle()
 
             // State reaches Snoozing despite VM cancellation.
-            assertEquals(SnoozeState.Snoozing(snoozeEnd), repo.observeSnoozeState().first())
+            assertEquals(SnoozeState.Snoozing(snoozeEnd), repo.snoozeState.value)
 
             externalScope.cancel()
             vmScope.cancel()
@@ -263,7 +262,7 @@ class NetworkSnoozeRepositoryTest {
                 externalScope = externalScope,
             )
             advanceUntilIdle()
-            assertEquals(SnoozeState.NotSnoozing, repo.observeSnoozeState().first())
+            assertEquals(SnoozeState.NotSnoozing, repo.snoozeState.value)
 
             // Server now reports a snooze. Next fetch should pick it up.
             buttonDs.setFetchSnoozeResult(NetworkResult.Success(snoozeEnd))
@@ -273,7 +272,7 @@ class NetworkSnoozeRepositoryTest {
             vmScope.coroutineContext.cancelChildren()
             advanceUntilIdle()
 
-            assertEquals(SnoozeState.Snoozing(snoozeEnd), repo.observeSnoozeState().first())
+            assertEquals(SnoozeState.Snoozing(snoozeEnd), repo.snoozeState.value)
 
             externalScope.cancel()
             vmScope.cancel()
@@ -302,7 +301,7 @@ class NetworkSnoozeRepositoryTest {
             advanceUntilIdle()
 
             assertTrue(submitted is AppResult.Error, "Should surface the network failure")
-            assertEquals(SnoozeState.NotSnoozing, repo.observeSnoozeState().first())
+            assertEquals(SnoozeState.NotSnoozing, repo.snoozeState.value)
 
             externalScope.cancel()
         }
@@ -324,7 +323,7 @@ class NetworkSnoozeRepositoryTest {
             // Feature-disabled path has a delay(500); advanceUntilIdle covers it.
             advanceUntilIdle()
 
-            assertEquals(SnoozeState.NotSnoozing, repo.observeSnoozeState().first())
+            assertEquals(SnoozeState.NotSnoozing, repo.snoozeState.value)
             assertEquals(0, buttonDs.fetchSnoozeCount)
 
             externalScope.cancel()

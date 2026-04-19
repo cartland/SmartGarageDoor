@@ -28,8 +28,8 @@ import com.chriscartland.garage.domain.repository.SnoozeRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -54,13 +54,14 @@ class NetworkSnoozeRepository(
     private val currentTimeSeconds: () -> Long,
     private val externalScope: CoroutineScope,
 ) : SnoozeRepository {
-    private val snoozeStateFlow = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
+    private val _snoozeState = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
+
+    /** ADR-022: the repository owns the authoritative [StateFlow]. */
+    override val snoozeState: StateFlow<SnoozeState> = _snoozeState
 
     init {
         externalScope.launch { doFetchSnoozeStatus() }
     }
-
-    override fun observeSnoozeState(): Flow<SnoozeState> = snoozeStateFlow
 
     override suspend fun fetchSnoozeStatus() {
         externalScope.launch { doFetchSnoozeStatus() }.join()
@@ -95,7 +96,9 @@ class NetworkSnoozeRepository(
             )
         ) {
             is NetworkResult.Success -> {
-                snoozeStateFlow.value = snoozeStateFromEndTime(result.data)
+                val newState = snoozeStateFromEndTime(result.data)
+                _snoozeState.value = newState
+                Logger.i { "snoozeState <- $newState (source=GET)" }
             }
             is NetworkResult.HttpError -> {
                 Logger.e { "Snooze fetch HTTP ${result.code}" }
@@ -123,7 +126,7 @@ class NetworkSnoozeRepository(
             delay(500)
             // Feature disabled: pretend it succeeded and surface the current
             // flow value so callers don't see a phantom network failure.
-            return AppResult.Success(snoozeStateFlow.value)
+            return AppResult.Success(_snoozeState.value)
         }
         return when (
             val result = networkButtonDataSource.snoozeNotifications(
@@ -137,10 +140,12 @@ class NetworkSnoozeRepository(
             is NetworkResult.Success -> {
                 // Compute the new state from the server's authoritative end
                 // time, write it to the observable flow, and return the SAME
-                // value. Callers can use the return value directly (no
-                // observer race) or subscribe via observeSnoozeState().
+                // value. Subscribers observing [snoozeState] see the update
+                // via the flow alone — no caller needs the return value for
+                // correctness (ADR-022).
                 val newState = snoozeStateFromEndTime(result.data)
-                snoozeStateFlow.value = newState
+                _snoozeState.value = newState
+                Logger.i { "snoozeState <- $newState (source=POST)" }
                 AppResult.Success(newState)
             }
             is NetworkResult.HttpError -> {
@@ -156,8 +161,9 @@ class NetworkSnoozeRepository(
 
     /** If still Loading (first fetch), fall back to NotSnoozing so the UI doesn't show "Loading..." forever. */
     private fun clearLoadingState() {
-        if (snoozeStateFlow.value is SnoozeState.Loading) {
-            snoozeStateFlow.value = SnoozeState.NotSnoozing
+        if (_snoozeState.value is SnoozeState.Loading) {
+            _snoozeState.value = SnoozeState.NotSnoozing
+            Logger.i { "snoozeState <- NotSnoozing (source=clearLoading)" }
         }
     }
 

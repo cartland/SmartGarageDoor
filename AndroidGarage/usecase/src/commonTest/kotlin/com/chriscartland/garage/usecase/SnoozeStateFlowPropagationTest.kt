@@ -24,8 +24,6 @@ import com.chriscartland.garage.testcommon.FakeSnoozeRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.take
@@ -42,18 +40,20 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Rigorous tests for the snooze state reactive chain.
+ * Reactive-chain tests for the snooze state as it travels from the repository
+ * to the ViewModel.
  *
- * Chain: NetworkSnoozeRepository.snoozeStateFlow (MutableStateFlow, widened to Flow)
- *        → ObserveSnoozeStateUseCase (forwards)
- *        → DefaultRemoteButtonViewModel._snoozeState (MutableStateFlow)
+ * Chain (ADR-022): NetworkSnoozeRepository._snoozeState (MutableStateFlow)
+ *        → SnoozeRepository.snoozeState: StateFlow (same instance)
+ *        → ObserveSnoozeStateUseCase returns repo's StateFlow by reference
+ *        → DefaultRemoteButtonViewModel.snoozeState (same instance)
  *        → ProfileContent.collectAsState
  *
  * Reported bug (android/164): snoozeState stuck at Loading forever even when
- * the network call succeeds. These tests prove each hop preserves:
+ * the network call succeeds. These tests cover:
  *  - replay-on-subscribe (StateFlow semantics)
  *  - late-subscription delivery
- *  - no dropped emissions when state changes before the collector subscribes
+ *  - reference identity through the VM (Rule 2 — no mirror)
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SnoozeStateFlowPropagationTest {
@@ -99,51 +99,26 @@ class SnoozeStateFlowPropagationTest {
     }
 
     // ----------------------------------------------------------------
-    // 1. Flow<SnoozeState> widening does not drop StateFlow semantics.
+    // 1. Reference identity: VM.snoozeState is the repo's StateFlow (ADR-022).
     // ----------------------------------------------------------------
-    // `observeSnoozeState(): Flow<SnoozeState>` hides the fact that the
-    // underlying object is a MutableStateFlow. The runtime type is
-    // unchanged — a .collect on it still replays the latest value to
-    // a late subscriber. Prove it.
+    // VM must NOT mirror the repo's flow — it must expose the same instance
+    // by reference. `assertSame` makes this guarantee load-bearing.
     @Test
-    fun widenedFlow_stillReplaysLatestValueToLateSubscriber() =
+    fun vmSnoozeStateIsSameInstanceAsRepoStateFlow() =
         runTest {
-            val source = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
-            val widened: Flow<SnoozeState> = source
-
-            // Update BEFORE anyone subscribes.
-            source.value = SnoozeState.Snoozing(untilEpochSeconds = 42L)
-
-            // A late subscriber should still receive the current value.
-            val first = widened.first()
-            assertEquals(SnoozeState.Snoozing(42L), first)
-        }
-
-    @Test
-    fun widenedFlow_emitsAllTransitionsToActiveCollector() =
-        runTest {
-            val source = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
-            val widened: Flow<SnoozeState> = source
-
-            val received = mutableListOf<SnoozeState>()
-            val job = launch {
-                widened.take(3).toList(received)
-            }
+            val fake = FakeSnoozeRepository()
+            val vm = buildVm(fake)
             testDispatcher.scheduler.runCurrent()
 
-            source.value = SnoozeState.NotSnoozing
-            testDispatcher.scheduler.runCurrent()
-            source.value = SnoozeState.Snoozing(100L)
-            testDispatcher.scheduler.runCurrent()
-
-            job.join()
-            // Conflation is acceptable for StateFlow — but initial + final must be present.
-            assertEquals(SnoozeState.Loading, received.first())
-            assertEquals(SnoozeState.Snoozing(100L), received.last())
+            kotlin.test.assertSame(
+                fake.snoozeState,
+                vm.snoozeState,
+                "VM must expose repo's StateFlow by reference (ADR-022)",
+            )
         }
 
     // ----------------------------------------------------------------
-    // 2. Two-hop MutableStateFlow chain reaches VM._snoozeState.
+    // 2. Two-hop chain: every repo update is visible on vm.snoozeState.
     // ----------------------------------------------------------------
     @Test
     fun fullChain_propagatesEveryTerminalValueToVm() =
