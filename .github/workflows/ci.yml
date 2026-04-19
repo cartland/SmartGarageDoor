@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       android: ${{ steps.filter.outputs.android }}
+      docs_only: ${{ steps.filter.outputs.docs_only }}
     steps:
       - uses: actions/checkout@v4
       - name: Check for Android changes
@@ -21,6 +22,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "android=true" >> $GITHUB_OUTPUT
+            echo "docs_only=false" >> $GITHUB_OUTPUT
             echo "workflow_dispatch: running all checks"
             exit 0
           fi
@@ -32,9 +34,25 @@ jobs:
 
           if [ "$CHANGED" = "UNKNOWN" ]; then
             echo "android=true" >> $GITHUB_OUTPUT
+            echo "docs_only=false" >> $GITHUB_OUTPUT
             echo "Could not determine changes, running all checks"
             exit 0
           fi
+
+          # Docs-only fast path: skip CI when no change affects what CI verifies.
+          # Docs = markdown anywhere, docs/ directories, .claude/ (skills/hooks/settings
+          # affect dev tooling only, not shipped artifacts), LICENSE, .gitignore,
+          # and Android release metadata (CHANGELOG.md matches *.md, whatsnew/ below).
+          NON_DOCS=$(echo "$CHANGED" | grep -vE '^(.*\.md$|docs/|.*/docs/|\.claude/|LICENSE$|\.gitignore$|AndroidGarage/distribution/whatsnew/)' || true)
+          if [ -z "$NON_DOCS" ] && [ -n "$CHANGED" ]; then
+            echo "android=false" >> $GITHUB_OUTPUT
+            echo "docs_only=true" >> $GITHUB_OUTPUT
+            echo "Docs-only change — skipping Android CI. Changed files:"
+            echo "$CHANGED"
+            exit 0
+          fi
+
+          echo "docs_only=false" >> $GITHUB_OUTPUT
 
           if echo "$CHANGED" | grep -qE '^(AndroidGarage/|scripts/|\.github/(workflows|actions)/)'; then
             echo "android=true" >> $GITHUB_OUTPUT
@@ -49,6 +67,7 @@ jobs:
   checks:
     name: Checks
     needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
     uses: ./.github/workflows/ci-checks.yml
     with:
       android: ${{ needs.changes.outputs.android }}
@@ -77,4 +96,4 @@ jobs:
             exit 1
           fi
 
-          echo "All CI checks passed (or skipped — no Android changes)"
+          echo "All CI checks passed (or skipped — no Android changes / docs-only)"
