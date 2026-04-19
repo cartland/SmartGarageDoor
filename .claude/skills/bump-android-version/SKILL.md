@@ -16,6 +16,16 @@ Increment `versionName` in `AndroidGarage/version.properties` and create a PR.
 
 If no argument is provided, default to `patch`.
 
+## Versioning rule
+
+See [`AndroidGarage/CHANGELOG.md#versioning`](../../../AndroidGarage/CHANGELOG.md) for the authoritative rule:
+
+- **Major** — App rewrite or a core-experience shift so significant the previous version feels like a different product.
+- **Minor** — A new user-facing feature or capability (something a user couldn't do before), **or** the removal of a user-facing feature.
+- **Patch** — Bug fixes, UI polish, performance, refactors. No new capability.
+
+Before bumping, classify the pending work against this rule and confirm with the user if the requested bump type doesn't match (e.g., user asks for `minor` but no new capability has landed — that's a patch).
+
 ## Steps
 
 ### 1. Read current version
