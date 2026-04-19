@@ -19,15 +19,17 @@ package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.repository.SnoozeRepository
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Observes the current snooze state as a [Flow].
+ * Exposes the repository's authoritative snooze [StateFlow] by reference.
  *
- * The ViewModel converts to StateFlow for the UI.
+ * Per ADR-022, state-y data is owned by the repository and passed through
+ * UseCases and ViewModels without wrapping. The VM exposes the SAME
+ * instance to Compose.
  */
 class ObserveSnoozeStateUseCase(
     private val snoozeRepository: SnoozeRepository,
 ) {
-    operator fun invoke(): Flow<SnoozeState> = snoozeRepository.observeSnoozeState()
+    operator fun invoke(): StateFlow<SnoozeState> = snoozeRepository.snoozeState
 }
