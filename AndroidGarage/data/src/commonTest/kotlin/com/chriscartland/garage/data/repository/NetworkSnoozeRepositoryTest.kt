@@ -11,6 +11,7 @@
 package com.chriscartland.garage.data.repository
 
 import com.chriscartland.garage.data.NetworkResult
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
@@ -28,6 +29,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /**
  * Protects against the android/164 "stuck Loading" bug.
@@ -185,7 +187,12 @@ class NetworkSnoozeRepositoryTest {
             )
             advanceUntilIdle()
 
-            assertEquals(true, submitted)
+            assertTrue(submitted is AppResult.Success, "Should succeed")
+            assertEquals(
+                SnoozeState.Snoozing(submittedSnoozeEnd),
+                (submitted as AppResult.Success).data,
+            )
+            // Return value matches the flow value — repo writes both.
             assertEquals(SnoozeState.Snoozing(submittedSnoozeEnd), repo.observeSnoozeState().first())
             // Only the init fetch runs — no follow-up GET after the POST.
             assertEquals(1, buttonDs.fetchSnoozeCount)
@@ -294,7 +301,7 @@ class NetworkSnoozeRepositoryTest {
             val submitted = repo.snoozeNotifications("1h", "t", 0L)
             advanceUntilIdle()
 
-            assertEquals(false, submitted)
+            assertTrue(submitted is AppResult.Error, "Should surface the network failure")
             assertEquals(SnoozeState.NotSnoozing, repo.observeSnoozeState().first())
 
             externalScope.cancel()

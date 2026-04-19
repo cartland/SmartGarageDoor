@@ -1,5 +1,7 @@
 package com.chriscartland.garage.testcommon
 
+import com.chriscartland.garage.domain.model.ActionError
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.repository.SnoozeRepository
 import kotlinx.coroutines.flow.Flow
@@ -12,6 +14,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
  * `snoozeCalls` (ADR-017 Rule 5 — call-list pattern), so tests can assert on
  * the exact duration / token / timestamp passed. `fetchSnoozeStatus` takes no
  * args so it stays as a plain counter accessor.
+ *
+ * Mirrors production: on a configured successful result, writes the result
+ * value to the observable flow AND returns it, so tests can assert on either
+ * the return path or the observer path.
  */
 class FakeSnoozeRepository : SnoozeRepository {
     data class SnoozeCall(
@@ -29,14 +35,15 @@ class FakeSnoozeRepository : SnoozeRepository {
     private var _fetchCount: Int = 0
     val fetchCount: Int get() = _fetchCount
 
-    /** Set this to false to make snoozeNotifications() return false (network failure). */
-    private var snoozeResult: Boolean = true
+    /** Controls what snoozeNotifications() returns. Default: success with NotSnoozing. */
+    private var snoozeResult: AppResult<SnoozeState, ActionError> =
+        AppResult.Success(SnoozeState.NotSnoozing)
 
     fun setSnoozeState(state: SnoozeState) {
         snoozeStateFlow.value = state
     }
 
-    fun setSnoozeResult(value: Boolean) {
+    fun setSnoozeResult(value: AppResult<SnoozeState, ActionError>) {
         snoozeResult = value
     }
 
@@ -50,7 +57,7 @@ class FakeSnoozeRepository : SnoozeRepository {
         snoozeDurationHours: String,
         idToken: String,
         snoozeEventTimestampSeconds: Long,
-    ): Boolean {
+    ): AppResult<SnoozeState, ActionError> {
         _snoozeCalls.add(
             SnoozeCall(
                 snoozeDurationHours = snoozeDurationHours,
@@ -58,6 +65,11 @@ class FakeSnoozeRepository : SnoozeRepository {
                 snoozeEventTimestampSeconds = snoozeEventTimestampSeconds,
             ),
         )
+        // Mirror the production repo: on success, propagate the result value
+        // to the observable flow so observers see it too.
+        if (snoozeResult is AppResult.Success) {
+            snoozeStateFlow.value = (snoozeResult as AppResult.Success<SnoozeState>).data
+        }
         return snoozeResult
     }
 }

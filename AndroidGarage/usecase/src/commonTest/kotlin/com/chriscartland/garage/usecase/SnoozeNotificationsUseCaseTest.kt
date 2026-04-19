@@ -121,7 +121,7 @@ class SnoozeNotificationsUseCaseTest {
     fun snoozeReturnsNetworkFailedWhenRepositoryReturnsFalse() =
         runTest {
             authenticateUser()
-            fakeSnooze.setSnoozeResult(false)
+            fakeSnooze.setSnoozeResult(AppResult.Error(ActionError.NetworkFailed))
 
             val result = useCase("1h", 1000L)
 

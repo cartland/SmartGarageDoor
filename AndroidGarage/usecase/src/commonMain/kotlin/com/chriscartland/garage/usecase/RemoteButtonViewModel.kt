@@ -154,16 +154,18 @@ class DefaultRemoteButtonViewModel(
                 )
             ) {
                 is AppResult.Success -> {
-                    _snoozeAction.value = if (snoozeDuration == SnoozeDurationUIOption.None) {
-                        SnoozeAction.Succeeded.Cleared
-                    } else {
-                        // Compute optimistic snooze end time from duration.
-                        val durationSeconds = snoozeDuration.duration.inWholeSeconds
-                        val optimisticEnd = System.currentTimeMillis() / 1000 + durationSeconds
-                        SnoozeAction.Succeeded.Set(optimisticEnd)
+                    // The repo returned the authoritative SnoozeState computed
+                    // from the server's response. Use it directly for both the
+                    // action overlay AND the observable _snoozeState — direct
+                    // write bypasses any fragility in the observer chain so
+                    // the UI updates immediately regardless of flow plumbing.
+                    val newState = result.data
+                    _snoozeState.value = newState
+                    _snoozeAction.value = when (newState) {
+                        is SnoozeState.Snoozing -> SnoozeAction.Succeeded.Set(newState.untilEpochSeconds)
+                        SnoozeState.NotSnoozing -> SnoozeAction.Succeeded.Cleared
+                        SnoozeState.Loading -> SnoozeAction.Succeeded.Cleared
                     }
-                    // The repo writes the authoritative snoozeState from the
-                    // POST response itself — no follow-up fetch needed.
                     scheduleActionReset()
                 }
                 is AppResult.Error -> {
