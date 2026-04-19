@@ -18,8 +18,10 @@ jobs:
           TAG_SHA="${GITHUB_SHA}"
           echo "Checking Firebase CI status for commit $TAG_SHA..."
 
+          # Match "Run Unit Tests" whether it comes from the inline job (legacy) or
+          # the reusable workflow (prefixed as "<caller-job> / Run Unit Tests").
           TESTS_CONCLUSION=$(gh api "repos/${{ github.repository }}/commits/$TAG_SHA/check-runs" \
-            --jq '[.check_runs[] | select(.name == "Run Unit Tests" and .app.slug == "github-actions")] | last | .conclusion')
+            --jq '[.check_runs[] | select((.name | endswith("Run Unit Tests")) and .app.slug == "github-actions")] | last | .conclusion')
 
           echo "Firebase Tests: $TESTS_CONCLUSION"
 
