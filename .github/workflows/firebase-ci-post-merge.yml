@@ -1,0 +1,111 @@
+name: Firebase Post-Merge CI
+
+# Post-submit Firebase checks — runs on push to main only.
+# Re-runs the shared Firebase checks to catch merge-induced breakage.
+# Failures auto-create GitHub issues; fixes auto-close them.
+
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      firebase: ${{ steps.filter.outputs.firebase }}
+      docs_only: ${{ steps.filter.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for Firebase changes
+        id: filter
+        run: |
+          BASE="${{ github.event.before }}"
+          CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null || echo "UNKNOWN")
+
+          if [ "$CHANGED" = "UNKNOWN" ]; then
+            echo "firebase=true" >> $GITHUB_OUTPUT
+            echo "docs_only=false" >> $GITHUB_OUTPUT
+            echo "Could not determine changes, running all checks"
+            exit 0
+          fi
+
+          # Docs-only fast path — see ci.yml for rationale.
+          NON_DOCS=$(echo "$CHANGED" | grep -vE '^(.*\.md$|docs/|.*/docs/|\.claude/|LICENSE$|\.gitignore$|AndroidGarage/distribution/whatsnew/)' || true)
+          if [ -z "$NON_DOCS" ] && [ -n "$CHANGED" ]; then
+            echo "firebase=false" >> $GITHUB_OUTPUT
+            echo "docs_only=true" >> $GITHUB_OUTPUT
+            echo "Docs-only change — skipping Firebase post-merge CI. Changed files:"
+            echo "$CHANGED"
+            exit 0
+          fi
+
+          echo "docs_only=false" >> $GITHUB_OUTPUT
+
+          if echo "$CHANGED" | grep -qE '^(FirebaseServer/|\.github/workflows/firebase-ci(-checks|-post-merge)?\.yml)'; then
+            echo "firebase=true" >> $GITHUB_OUTPUT
+            echo "Firebase files changed:"
+            echo "$CHANGED" | grep -E '^(FirebaseServer/|\.github/workflows/firebase-ci(-checks|-post-merge)?\.yml)'
+          else
+            echo "firebase=false" >> $GITHUB_OUTPUT
+            echo "No Firebase files changed. Changed files:"
+            echo "$CHANGED"
+          fi
+
+  # Shared checks (same as PR CI)
+  checks:
+    name: Checks
+    needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
+    uses: ./.github/workflows/firebase-ci-checks.yml
+    with:
+      firebase: ${{ needs.changes.outputs.firebase }}
+
+  # Gate job — single check-run name for visibility on main.
+  firebase-post-merge-complete:
+    name: Firebase Post-Merge Complete
+    if: always()
+    needs: [checks]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          echo "Checks: ${{ needs.checks.result }}"
+          if [[ "${{ needs.checks.result }}" == "failure" || \
+                "${{ needs.checks.result }}" == "cancelled" ]]; then
+            echo "::error::Firebase post-merge CI failed"
+            exit 1
+          fi
+          echo "Firebase post-merge CI passed (or skipped — no Firebase changes / docs-only)"
+
+  # Track post-merge failures via a single GitHub issue
+  track-failure:
+    name: Track Firebase Post-Merge Failure
+    if: always() && needs.changes.outputs.firebase == 'true' && needs.changes.outputs.docs_only != 'true'
+    needs: [changes, checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Determine overall result
+        id: result
+        run: |
+          CHECKS="${{ needs.checks.result }}"
+          echo "checks=$CHECKS" >> $GITHUB_OUTPUT
+          if [[ "$CHECKS" == "failure" ]]; then
+            echo "overall=failure" >> $GITHUB_OUTPUT
+          else
+            echo "overall=success" >> $GITHUB_OUTPUT
+          fi
+      - uses: ./.github/actions/ci-failure-tracker
+        with:
+          label: ci-failure/firebase-post-merge
+          result: ${{ steps.result.outputs.overall }}
+          workflow-name: "Firebase Post-Merge CI (checks: ${{ steps.result.outputs.checks }})"
