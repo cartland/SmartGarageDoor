@@ -18,6 +18,9 @@ android/164-168 snooze-state propagation bug (`VIEWMODEL_SCOPING_ISSUE.md`).
 
 ## Phase 1 — State-y data that exists today
 
+**Status:** ✅ Complete as of 2026-04-19 (PR #358 through PR #365, plus
+follow-up PR #366 for a refresh-semantics regression in PR #362).
+
 Scope `b` from our earlier discussion: the five state-y data types
 already owned in some form by a repository. Phase 2 (scope `c`) audits
 the remaining ViewModels and any hidden-domain state later.
@@ -293,6 +296,30 @@ If the cold-start `Loading → NotSnoozing → Snoozing` flash on process
 restoration becomes a UX issue, persist last-known-good state in
 DataStore and use it as the initial value. Today's snooze flash is
 <1s; not worth addressing until evidenced.
+
+### Phase 2e — Scale the `ViewModelStateFlowCheckTask` allowlist
+
+PR #365 enforces the rule with a hardcoded allowlist
+(`SnoozeState`, `AuthState`, `FcmRegistrationStatus`). That works but
+requires updating the task whenever a new state-y type migrates. Better
+options, in order of preference:
+
+1. **Discover the allowlist from the source of truth.** Parse
+   `domain/src/commonMain/**/*Repository.kt` for
+   `val <name>: StateFlow<X>` declarations, extract each `X`, and ban
+   `MutableStateFlow<X>` in `*ViewModel.kt`. Adding a repository-owned
+   state type updates the interface; the lint auto-extends.
+2. **`@DomainState` marker annotation** on the type. Lint flags
+   `MutableStateFlow<@DomainState T>` wherever it appears. Intent is
+   visible at the definition site.
+3. **Inverted allowlist.** Ban all `MutableStateFlow<T>` in VMs except
+   a presentation-state allowlist (`SnoozeAction`, `LoadingResult<T>`,
+   …). Presentation state is smaller and more stable, so the allowlist
+   captures "what can be local" rather than "what can't."
+
+Trigger: when a fourth state-y type (e.g. `DoorEvent?`,
+`ServerConfig?`) migrates and lint silently misses the mirror because
+the allowlist wasn't updated.
 
 ## Phase 3 — iOS (Phase 38 in MIGRATION.md)
 
