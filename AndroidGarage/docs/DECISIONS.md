@@ -94,7 +94,7 @@
 
 ## ADR-006: Clean Architecture with UseCase Layer
 
-**Status:** Proposed
+**Status:** Accepted. Adopted incrementally; all 5 production ViewModels use UseCases as of Phase 43. The "every VM operation goes through a UseCase, even pass-through ones" stance is reaffirmed as deliberate capability documentation, not redundancy — see ADR-021 and ADR-022 which depend on this layering.
 
 **Context:** Current architecture has ViewModels calling Repositories directly. This works but makes ViewModels harder to test (must mock repositories) and harder to share business logic across ViewModels.
 
@@ -337,11 +337,15 @@ object FcmPayloadParser {
 
 ## ADR-013: Flow and StateFlow Boundaries
 
-**Status:** Accepted (supersedes StateFlow guidance in ADR-010)
+**Status:** Partially superseded by ADR-022.
 
-**Context:** A critical bug was caused by using `StateFlow<PushStatus>` in a repository to signal transient events (SENDING → IDLE). StateFlow conflates intermediate values — if SENDING and IDLE are set in quick succession, collectors may only see IDLE, silently dropping the SENDING signal. This caused the button state machine to get stuck indefinitely. The root problem: StateFlow is a *state* primitive, not an *event* primitive.
+The core insight of ADR-013 — that `StateFlow` is a **state** primitive, not an **event** primitive, and that conflation silently drops transient signals (SENDING → IDLE) — remains correct. The blanket rule "StateFlow lives only in ViewModels" was too restrictive and, applied uniformly, produced the snooze-state propagation bug documented in `VIEWMODEL_SCOPING_ISSUE.md` (android/164-168). ADR-022 refines ADR-013 by distinguishing **event-y signals** (where ADR-013's ban on StateFlow still applies) from **state-y data with a current value** (where `StateFlow` belongs at the repository boundary, not only in ViewModels).
 
-**Decision:** Restrict where each Flow type may be used:
+Read ADR-022 alongside ADR-013; the rules below apply to event-y signals only.
+
+**Original context:** A critical bug was caused by using `StateFlow<PushStatus>` in a repository to signal transient events (SENDING → IDLE). StateFlow conflates intermediate values — if SENDING and IDLE are set in quick succession, collectors may only see IDLE, silently dropping the SENDING signal. This caused the button state machine to get stuck indefinitely. The root problem: StateFlow is a *state* primitive, not an *event* primitive.
+
+**Original decision:** Restrict where each Flow type may be used:
 
 ### UseCases return one of two types:
 
@@ -356,28 +360,25 @@ object FcmPayloadParser {
    - Lifecycle is controlled by the collector's scope
    - Example: observe door events, observe auth state
 
-### StateFlow lives only in ViewModels:
+### ~~StateFlow lives only in ViewModels~~ (superseded — see ADR-022)
 
-- ViewModels expose `StateFlow<T>` for Compose to collect
-- Every StateFlow has an initial value (the UI must always show something)
-- The ViewModel is the only layer that converts Flow/AppResult into StateFlow
-- No UseCase, Repository, or data layer may expose StateFlow without explicit approval
+**Superseded by ADR-022 for state-y data.** State-y data (auth, snooze, current door event, server config, FCM registration) now lives as `StateFlow<T>` at the repository boundary — owned by `@Singleton` repos, passed through by reference to VMs. Every StateFlow still has an initial value (retained). The rules below apply only to **event-y signals** (transient data where conflation loses information).
 
-### Repositories use Flow and suspend:
+### Repositories use Flow and suspend (for event-y / cold / list-y data):
 
-- Streams: `val events: Flow<T>` (cold Flow, backed by Room/DataStore)
+- Streams (list-y / cold): `fun observeRecentEvents(): Flow<List<T>>` (backed by Room/DataStore)
 - Actions: `suspend fun doThing(): Result` (returns when complete)
-- Repositories must not use StateFlow for transient signals
-- If a repository needs to expose changing state, use Flow (not StateFlow)
+- Repositories must not use StateFlow for **transient / event-y** signals (retained rule)
+- State-y data with a current value DOES belong as `StateFlow<T>` at the repo per ADR-022
 
-### Exceptions require individual approval:
+### ~~Exceptions require individual approval~~ (superseded — see ADR-022)
 
-Any use of StateFlow below the ViewModel layer must be reviewed and approved on a case-by-case basis. The justification must explain why Flow is insufficient and how StateFlow conflation won't cause missed updates.
+**Superseded for state-y data.** ADR-022 is the default shape: state-y → `StateFlow<T>` at the repo, no approval needed. Event-y signals below the ViewModel layer still need justification.
 
-**Current violations to review:**
-- `RemoteButtonRepository.pushButtonStatus: StateFlow<PushStatus>` — caused the button stuck bug. Must be replaced with suspend return or direct callback.
-- `AuthRepository.authState: StateFlow<AuthState>` — pending review.
-- `SnoozeRepository.snoozeState: StateFlow<SnoozeState>` — pending review.
+**Resolved violations:**
+- `RemoteButtonRepository.pushButtonStatus: StateFlow<PushStatus>` — caused the button stuck bug. Remains banned (event-y signal; suspend return or Channel instead). ADR-013's original concern stands.
+- `AuthRepository.authState: StateFlow<AuthState>` — **resolved by ADR-022** — state-y by design, correctly exposed as StateFlow.
+- `SnoozeRepository.snoozeState: StateFlow<SnoozeState>` — **resolved by ADR-022** — state-y by design, correctly exposed as StateFlow.
 
 **Rules:**
 - `suspend fun` return = completion signal. Don't add a parallel StateFlow for the same information.
@@ -588,27 +589,38 @@ Call-list lets tests assert on call arguments, not just count. Both fields stay 
 
 ### Rule 6: ViewModel `StateFlow` construction
 
-ViewModels expose `StateFlow` via direct `MutableStateFlow` field, populated by an `init`-block collector. **No `stateIn` in ViewModels.**
+**Scope (updated by ADR-022):** this rule applies when the ViewModel materializes a cold `Flow` or transforms upstream data into a VM-local `StateFlow`. When the upstream is a repository-owned `StateFlow<T>` for state-y data, ADR-022 supersedes this rule: expose the repository's `StateFlow` by reference (no `_xState` mirror, no `init { collect }`). See ADR-022's "ViewModel shape" section.
+
+The rule below is retained for: (a) VM-local presentation state backed by a `MutableStateFlow` (e.g., `_snoozeAction`, `_buttonState`), and (b) VM `StateFlow` derived from a cold `Flow` at the repository boundary (e.g., recent-event lists).
 
 ```kotlin
-// Required pattern
-private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
-override val authState: StateFlow<AuthState> = _authState
+// Required pattern — for VM-local presentation state OR cold-Flow materialization
+private val _snoozeAction = MutableStateFlow<SnoozeAction>(Idle)
+override val snoozeAction: StateFlow<SnoozeAction> = _snoozeAction
 
+// For cold-Flow materialization in the VM:
+private val _recentEvents = MutableStateFlow<List<DoorEvent>>(emptyList())
+override val recentEvents: StateFlow<List<DoorEvent>> = _recentEvents
 init {
     viewModelScope.launch(dispatchers.io) {
-        observeAuthState().collect { _authState.value = it }
+        observeRecentEvents().collect { _recentEvents.value = it }
     }
 }
 
-// Forbidden pattern
-override val authState: StateFlow<AuthState> = observeAuthState()
-    .stateIn(viewModelScope, SharingStarted.Eagerly, AuthState.Unknown)
+// Forbidden pattern — stateIn in a ViewModel
+override val snoozeState: StateFlow<SnoozeState> = observeSnooze()
+    .stateIn(viewModelScope, SharingStarted.Eagerly, Loading)
+
+// Also forbidden (per ADR-022) — mirroring a repo-owned StateFlow
+private val _snoozeState = MutableStateFlow<SnoozeState>(Loading)
+override val snoozeState: StateFlow<SnoozeState> = _snoozeState
+init { viewModelScope.launch { observeSnooze().collect { _snoozeState.value = it } } }
+// Instead: override val snoozeState: StateFlow<SnoozeState> = observeSnooze()
 ```
 
-**Why:** `stateIn(Eagerly)` had subtle timing issues that caused real production bugs (auth state UI not updating, see PR #295). The explicit pattern is predictable, matches `DoorViewModel.currentDoorEvent` (which never had this issue), and ensures `.value` always reflects what subscribers see.
+**Why:** `stateIn(Eagerly)` had subtle timing issues that caused real production bugs (auth state UI not updating, see PR #295). The mirror pattern caused the snooze-state propagation bug in android/164-168 (see `VIEWMODEL_SCOPING_ISSUE.md`). The explicit `MutableStateFlow` + `init.collect` pattern remains correct for VM-local presentation state and cold-Flow materialization; ADR-022 specifies passthrough for state-y data.
 
-**Enforcement:** lint check / `LayerImportCheckTask` extension that bans `.stateIn(viewModelScope, ...)` in ViewModel files.
+**Enforcement:** `ViewModelStateFlowCheckTask` bans `.stateIn(viewModelScope, ...)` in ViewModel files. ADR-022 extends this to ban `MutableStateFlow<T>` in a VM when `T` is a repo-owned domain state type (allowlist).
 
 ### Rule 7: Test data construction
 
@@ -750,6 +762,17 @@ is NetworkResult.Success -> {
 - **No optimistic local writes to domain state.** The action-overlay optimistic text (`SnoozeAction.Succeeded.Set(optimisticEnd)`) is UI feedback, not state — it's ephemeral and auto-resets. The persistent `SnoozeState` only changes in response to real server data.
 - **Don't use `.join()` from a non-caller scope as a bridge.** The pattern only works because the launched child is a *child of `externalScope`*, not a child of the caller. If you wrote `externalScope.coroutineContext.launch { ... }.join()` from a viewModelScope coroutine, the child would still be scoped to the viewModelScope's Job — defeating the purpose.
 
+### Cross-platform dispatcher policy (KMP)
+
+`externalScope` is a `CoroutineScope` built from `SupervisorJob()` + a dispatcher. Dispatcher choice:
+
+- **Android/JVM:** `Dispatchers.Default` (CPU) or `Dispatchers.IO` (network/disk). `provideApplicationScope()` in `AppComponent.kt` uses `Dispatchers.IO`.
+- **Native (iOS):** `Dispatchers.IO` falls back to `Default` on Kotlin/Native. `Dispatchers.Main` requires explicit setup. iOS DI should wire `provideApplicationScope()` over `Dispatchers.Default`.
+- **Repositories do not hard-code dispatchers inside their bodies.** The dispatcher comes from the injected `externalScope`. This keeps `data/commonMain` code portable.
+- **Tests** inject `UnconfinedTestDispatcher` or `StandardTestDispatcher` via the `externalScope` constructor parameter.
+
+See ADR-022 for the shape of `StateFlow` ownership inside repositories that run on `externalScope`.
+
 ### Consequences
 
 - The snooze Loading / stale-state class of bugs is structurally impossible: state only transitions via `externalScope`-owned writes, so no caller-scope cancellation can strand the singleton.
@@ -822,6 +845,10 @@ Tests can verify the happy path and known errors, but they cannot replicate the 
 
 Any new `@Serializable` response type under `data.ktor.*` is covered by Rule 1's package keep — no action needed. When adding a new endpoint producing state-critical data (repository writes, auth, FCM tokens), add raw-body logging at the data-source boundary per Rule 2, even if happy-path tests all pass.
 
+### Relationship to ADR-021 Rule 9
+
+Rule 2 (raw-body logging at network-data-source boundaries) is a specific instance of ADR-021 Rule 9 (observability-first). Rule 9 is the general principle — "every state-critical write is observable in production logs." ADR-020 Rule 2 is its concrete form for JSON-decoding boundaries. ADR-022 extends the same idea to every `_state.value = ...` write at the repository layer.
+
 ## ADR-021: State Ownership and ViewModel Scoping Principles
 
 **Status:** Accepted
@@ -864,7 +891,12 @@ The "no" form is the anti-pattern that caused the bug. It's acceptable ONLY when
 Home's `RemoteButtonViewModel` and Profile's `RemoteButtonViewModel` can both exist. They expose the same `snoozeState` (Rule 2 — the literal same object from the repo) and their own independent `snoozeAction` (Rule 3 — it's fine for Profile to show "Saved!" while Home shows nothing). No cross-VM communication is needed or allowed.
 
 **Rule 5 — ViewModel instantiation scope is explicit at every call site.**
-No implicit `LocalViewModelStoreOwner.current`. Either use `activityViewModel(owner) { ... }` (see `androidApp/.../di/ActivityViewModels.kt`) with an explicit owner, or rely on the default Nav3 per-entry scope and document that the VM is per-screen-instance-of-presentation-state.
+The principle is portable: every VM has exactly one owner declared at the call site, not inferred from the compositional default. Platform-specific mechanisms:
+
+- **Android:** use `activityViewModel(owner) { ... }` (see `androidApp/.../di/ActivityViewModels.kt`) with an explicit owner, or rely on the default Nav3 per-entry scope and document that the VM is per-screen-instance-of-presentation-state.
+- **iOS (future):** use `@StateObject` for per-screen ownership. Share across views via a parent view's `@StateObject` passed as `@ObservedObject` — avoid `@EnvironmentObject` for VMs holding domain pointers, since environment lookup is implicit.
+
+No implicit `LocalViewModelStoreOwner.current` on Android; no implicit `@EnvironmentObject` on iOS.
 
 **Rule 6 — Repositories are `@Singleton` in DI; ViewModels are not.**
 `@Singleton` on a ViewModel is a code smell: it implies either (a) the VM is holding domain state (→ move it to a Repository) or (b) you're trying to share presentation state across screens (→ rethink — either it's not really presentation state, or the screens should share a single owner).
@@ -874,6 +906,20 @@ Repository writes, state mutations, and background refresh happen on `externalSc
 
 **Rule 8 — Dead ViewModel references are deleted, not tolerated.**
 If `val x = viewModel { ... }` is never read, remove it. A ghost VM running observer coroutines for no subscriber is a resource leak and a debugging trap.
+
+**Rule 9 — Observability-first.**
+When preventing a class of bug is complex or expensive, prioritize the ability to identify and understand it from production logs. State-critical writes, lifecycle transitions, and error paths emit grep-able log lines.
+
+Concretely:
+- Every `_state.value = ...` write at the repository layer emits a `Logger.i/d` line identifying the flow, new value, and write source (see ADR-022 for the shape).
+- Auth-state transitions log the direction (`Unauthenticated → Authenticated(email=...)` or vice versa).
+- Error paths log the reason, not just "failed."
+- Raw HTTP response bodies are logged at the data-source boundary for state-critical decodes (ADR-020 is the specific case).
+- kermit (`co.touchlab.kermit:kermit`) is the logging library; KMP-safe.
+
+Rationale: the android/164-168 snooze bug was invisible in logs until we added raw-body logging in PR #352. Every future cross-user leak, write-ordering race, or lifecycle-edge bug should be diagnosable from `adb logcat` (or iOS equivalent) without a debug build. Observability at state boundaries is cheap and removes the worst failure mode — "user reports a problem we cannot reproduce."
+
+This does not replace prevention (Rules 1-8 still apply). When prevention is ambiguous or expensive (race conditions, rare races, device-specific timing), Rule 9 makes the bug observable so we can diagnose-then-fix rather than guess-then-guess.
 
 ### How the snooze path looks under these rules
 
@@ -922,3 +968,243 @@ After this change, three VMs don't multiply the truth. They multiply only their 
 - ADR-018 — reactive auth listener; an instance of Rule 1 applied to auth state.
 - ADR-019 — repository side-effects on `externalScope`; an instance of Rule 7.
 - `ActivityViewModels.kt:31` — `activityViewModel(...)` helper for explicit-owner scoping.
+
+## ADR-022: `StateFlow` at the Repository Boundary for State-y Data
+
+**Status:** Accepted. Partially supersedes ADR-013.
+
+### Glossary
+
+- **State-y data** (ADR-022) == **domain state** (ADR-021). Data that has a current value at any point in time; observable; owned by a `@Singleton` repository.
+- **Event-y signals** (ADR-013, ADR-022) == transient signals where every intermediate value matters. Distinct from presentation state (ADR-021).
+- **Presentation state** (ADR-021) — per-screen UI state (spinners, overlays, form input) that lives in ViewModels.
+
+### Context
+
+ADR-013 established that `StateFlow` is a state primitive (not an event primitive) and, based on the PushStatus SENDING→IDLE conflation bug, banned `StateFlow` below the ViewModel layer. Applied uniformly, that rule forced every repository exposing long-lived state to widen its interface to `Flow<T>` — even when the underlying storage was a `MutableStateFlow`. Downstream, ViewModels then held `private val _xState: MutableStateFlow<T>` fields that mirrored the repository via `init { observeX().collect { _xState.value = it } }`.
+
+That mirror pattern produced the android/164-168 snooze-state propagation bug (see `VIEWMODEL_SCOPING_ISSUE.md`). Three `DefaultRemoteButtonViewModel` instances coexisted at runtime (Activity scope, Home nav entry, Profile nav entry) because of `rememberViewModelStoreNavEntryDecorator<Screen>()` and DI providers that weren't `@Singleton`. Each VM held its own `_snoozeState` mirror. Under production conditions the Profile-entry VM's observer coroutine failed to forward an emission, while the other two mirrors updated correctly — and Compose was bound to the one that silently missed it. PR #354 shipped a workaround (direct write to `_snoozeState` from the suspend return value). ADR-021 captured the principles. This ADR refines ADR-013 with the shape change that makes the bug structurally impossible.
+
+ADR-013 was right about event-y signals. It was wrong to generalize to state-y data.
+
+**Decision:** Distinguish data by nature and pick the observable type accordingly.
+
+### The three categories
+
+1. **State-y data with a current value.** Auth state, snooze state, current door event, server config, FCM registration status. There is always an answer to "what is the current value?" These belong in a `@Singleton` repository, owned as `MutableStateFlow<T>` internally, **exposed as `StateFlow<T>`** at the repository interface. UseCases that observe this data are passthroughs: `operator fun invoke(): StateFlow<T> = repository.xState`. ViewModels that present this data to Compose expose the same reference: `val xState: StateFlow<T> = observeXUseCase()`. **ViewModels do not hold a `MutableStateFlow<T>` mirror** of state-y data owned by a repository.
+
+2. **Cold / list-y data.** Recent door events (Room query), log counts (Room query). There is no naturally-current value; new collectors trigger new upstream work. Exposed as `Flow<List<T>>` (or `Flow<T>`) at the repository interface. A screen's ViewModel may convert to `StateFlow` via `stateIn(viewModelScope, WhileSubscribed(5_000), initial)` at the UseCase boundary if it needs `.value` — this is the one legitimate place to wrap, because the cold flow genuinely has no current value.
+
+3. **Event-y / transient signals.** Button state machine transitions, action-overlay reset timers, one-shot command outcomes, snackbar triggers. ADR-013's ban on `StateFlow` still applies — conflation drops signals. Use `suspend fun` return values for command completion (ADR-011, ADR-013), `Channel` or `MutableSharedFlow(replay=0)` for cross-component events, `MutableStateFlow` only inside a ViewModel when the signal is UI-local and its conflation is acceptable (e.g., the button state machine where the UI cares only about the latest state).
+
+### StateFlow lifecycle pattern: always-on collector in repo `init`
+
+State-y repositories own their `StateFlow` via an explicit always-on collector pattern, not via the `stateIn` operator. This is the shape `NetworkSnoozeRepository` already uses after ADR-019:
+
+```kotlin
+class NetworkSnoozeRepository(
+    private val externalScope: CoroutineScope,
+    // ...
+) : SnoozeRepository {
+    private val _snoozeState = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
+    override val snoozeState: StateFlow<SnoozeState> = _snoozeState
+
+    init {
+        // Always-on collector: owns the translation from upstream (Room, listener,
+        // HTTP fetch) to the exposed StateFlow. Lifetime is process-lifetime via
+        // externalScope — no subscriber-count thrash, no WhileSubscribed traps.
+        externalScope.launch {
+            upstreamCurrentEvent.collect { _snoozeState.value = mapToState(it) }
+        }
+    }
+
+    override suspend fun snoozeNotifications(...): AppResult<SnoozeState, ActionError> = ...
+}
+```
+
+**Do not use `stateIn(externalScope, WhileSubscribed(5_000), initial)` for repo-owned state.** `WhileSubscribed` cancels the upstream collector when subscriber count drops to zero for the timeout window. Under production conditions (navigation, backgrounding, the multi-VM pattern from `VIEWMODEL_SCOPING_ISSUE.md`), subscriber count thrashes, and an emission that lands during the dead window is silently lost on upstream restart. This is the exact class of bug ADR-022 is trying to eliminate — it would just move from the ViewModel layer to the repository layer.
+
+- `stateIn(externalScope, Eagerly, initial)` is safer than `WhileSubscribed` but less explicit about ownership than the collector-in-`init` pattern.
+- The always-on collector makes the translation logic a named function (`mapToState`), makes the write points easy to audit, and is trivial to lint (see Enforcement).
+
+### Interface shapes
+
+```kotlin
+// State-y data — repository owns the StateFlow
+interface SnoozeRepository {
+    val snoozeState: StateFlow<SnoozeState>
+    suspend fun snoozeNotifications(...): AppResult<SnoozeState, ActionError>
+    suspend fun fetchSnoozeStatus()
+}
+
+interface AuthRepository {
+    val authState: StateFlow<AuthState>
+    suspend fun signInWithGoogle(...): AuthState
+    suspend fun signOut()
+}
+
+// Mixed — state-y current + cold list
+interface DoorRepository {
+    val currentDoorEvent: StateFlow<DoorEvent?>     // state-y
+    fun observeRecentEvents(): Flow<List<DoorEvent>> // list-y, cold
+    suspend fun fetchCurrentDoorEvent(): AppResult<DoorEvent, ActionError>
+}
+
+// Event-y — ADR-013's rules unchanged
+interface RemoteButtonRepository {
+    suspend fun pushButton(...): AppResult<Unit, ActionError>
+    // NOT exposed: val pushStatus: StateFlow<PushStatus>  (the ADR-013 bug)
+}
+```
+
+### ViewModel shape under this ADR
+
+```kotlin
+class DefaultRemoteButtonViewModel(
+    observeSnooze: ObserveSnoozeStateUseCase,
+    // ...
+) : ViewModel() {
+    // Domain state — passthrough reference to the repo's StateFlow.
+    // No _snoozeState mirror, no init { collect } observer.
+    val snoozeState: StateFlow<SnoozeState> = observeSnooze()
+
+    // Presentation state — stays in the VM. Event-y per ADR-013.
+    private val _snoozeAction = MutableStateFlow<SnoozeAction>(Idle)
+    val snoozeAction: StateFlow<SnoozeAction> = _snoozeAction
+
+    // ButtonStateMachine output — event-y machine, VM-local.
+    val buttonState: StateFlow<RemoteButtonState> = stateMachine.state
+}
+```
+
+### Worked example: snooze has both state-y and event-y fields
+
+A single user action (tapping "Save 1 hour") drives both kinds of data on the same feature, and they belong in different places:
+
+- `SnoozeState` is **state-y**. There's a current value — the user is either snoozing (until X) or not. Every screen that shows snooze reads the SAME value. Lives in `SnoozeRepository.snoozeState: StateFlow<SnoozeState>`. Passthrough through UseCase. Passthrough through every VM.
+- `SnoozeAction` (`Idle / Sending / Succeeded.Cleared / Succeeded.Set / Failed.*`) is **event-y presentation state**. A "Saved!" overlay fades after 10 seconds. Each screen has its own (Profile's "Saved!" doesn't apply to Home). Lives in `DefaultRemoteButtonViewModel._snoozeAction: MutableStateFlow<SnoozeAction>`. Per-VM.
+
+The separation is the reason ADR-022 permits multiple VMs (Rule 4 in ADR-021) without state divergence: they share the state-y data by reference through the repository singleton, and they legitimately hold independent event-y presentation state for their own screen.
+
+### Write-ordering guarantees (last-writer-wins)
+
+Multiple writers can target the same repository `StateFlow` concurrently: an always-on collector driven by upstream, a `suspend` command's success branch, a post-action refetch. All run on `externalScope` (per ADR-019). `externalScope`'s dispatcher is a thread pool; two coroutines can resume on different threads and call `_state.value = ...` in undefined order. `MutableStateFlow.value` writes are atomic (no torn state) but not strictly ordered.
+
+**The rule:** accept last-writer-wins semantics for repository `StateFlow` writes. Do not add a `Mutex` or `limitedParallelism(1)` dispatcher globally. If a specific repository proves to need strict write ordering (observed race in production), add a `Mutex` **inside that repository** around writes to its `_state.value = ...`.
+
+Justification: in practice, concurrent writers target the same server-side truth. Even if a stale read overwrites a fresh write for one poll cycle, the next poll converges. The real-world failure mode is a ~60-second UI flash, not a permanent wrong value. Adding mutex ceremony at every write site across every repo is architectural tax for a theoretical concern — and would have to be added in every new repo by convention. State-write logging (see Observability below) makes any real instance of the race identifiable in production via `adb logcat`, which is more actionable than preventing it at the cost of complexity.
+
+### Sign-out and user-scoped state
+
+Singleton repositories outlive user sessions. State written during user A's session is still in memory when user B signs in on the same device. The rule:
+
+**Repositories that own user-scoped state must observe `AuthRepository.authState` on `externalScope` and reset their `_state.value` to a neutral initial value on transition to `AuthState.Unauthenticated`.** User-scoped state includes per-user caches (snooze, user-specific FCM tokens), anything the user can only change while signed in. Global state (server config, device-wide door events) is not user-scoped.
+
+**Implementation timing:** this rule is documented now but its per-repo implementation is Phase 2 work. Our current exposure is narrow (home-IoT app, typically single-user per device). Adding clearing logic to every repo in Phase 1 expands scope; adding the log line that would make cross-user leakage detectable is Phase 1 (see Observability). If the log ever shows evidence of leakage, Phase 2 prioritizes the retrofit.
+
+### Observability — state-write logging
+
+Per ADR-021 Rule 9 (observability-first), every `_state.value = ...` write at the repository layer emits a log line with flow name, new value, and write source. Shape:
+
+```kotlin
+private val _snoozeState = MutableStateFlow<SnoozeState>(Loading)
+override val snoozeState: StateFlow<SnoozeState> = _snoozeState
+
+init {
+    externalScope.launch {
+        upstreamCurrentEvent.collect { event ->
+            val newState = mapToState(event)
+            _snoozeState.value = newState
+            Logger.i { "snoozeStateFlow <- $newState (source=upstream)" }
+        }
+    }
+}
+
+override suspend fun snoozeNotifications(...): AppResult<SnoozeState, ActionError> {
+    // ... HTTP POST ...
+    val newState = SnoozeState.Snoozing(serverResponse.endTime)
+    _snoozeState.value = newState
+    Logger.i { "snoozeStateFlow <- $newState (source=POST)" }
+    return AppResult.Success(newState)
+}
+```
+
+This generalizes ADR-020's raw-body logging pattern (a specific instance) to all state-critical writes. The cost is a few log lines per event; the benefit is `adb logcat | grep snoozeStateFlow` shows the entire state trajectory for diagnosis. Race conditions, stale caches, and cross-user leakage become visible from the log even when we can't prevent them.
+
+kermit (`co.touchlab.kermit:kermit`) is KMP-safe; this rule applies on Android today and iOS when it lands.
+
+### What this supersedes from ADR-013
+
+- ✗ "StateFlow lives only in ViewModels." **Superseded** for state-y data.
+- ✗ "No UseCase, Repository, or data layer may expose StateFlow without explicit approval." **Superseded** for state-y data. The default shape for state-y data IS `StateFlow`.
+- ✓ "Every StateFlow has an initial value." **Retained.**
+- ✓ "If every intermediate value matters (SENDING → IDLE), do not use StateFlow — use suspend return, Channel, or callback." **Retained and reinforced.**
+- ✓ "ADR-011 — `suspend fun` return = completion signal. Don't add a parallel StateFlow for the same information." **Retained.**
+- The "Current violations to review" list (AuthRepository.authState, SnoozeRepository.snoozeState as StateFlow) is resolved: they become StateFlow by design.
+
+### Testing story
+
+Fake repositories for state-y data follow a uniform shape:
+
+```kotlin
+class FakeSnoozeRepository : SnoozeRepository {
+    private val _snoozeState = MutableStateFlow<SnoozeState>(NotSnoozing)
+    override val snoozeState: StateFlow<SnoozeState> = _snoozeState
+    fun setSnoozeState(s: SnoozeState) { _snoozeState.value = s }
+    override suspend fun snoozeNotifications(...): AppResult<SnoozeState, ActionError> = ...
+}
+```
+
+Tests mutate `_snoozeState.value` directly; observers see every distinct value via StateFlow's per-subscriber replay. No `Dispatchers.setMain`, no coroutine scheduling tricks, no VM-scope test plumbing for pure observation paths.
+
+**Reference-identity tests** lock in Rule 2 from ADR-021:
+
+```kotlin
+@Test fun vmSnoozeStateIsSameInstanceAsRepoStateFlow() {
+    val fake = FakeSnoozeRepository()
+    val vm = buildVm(fake)
+    assertSame(fake.snoozeState, vm.snoozeState,
+        "VM must expose repo's StateFlow by reference (ADR-022)")
+}
+```
+
+Without `assertSame`, the no-mirror rule is unenforced — a test that compares `.value` passes even when a mirror has been re-introduced.
+
+Feature-level integration tests wiring the real repository + multiple subscribers (per `SharedRepositoryUseCasesTest`) catch scoping regressions.
+
+### iOS bridging: Skie
+
+The project commits to **Skie** (`co.touchlab.skie`) as the iOS bridge for `StateFlow<T>` → `@Published` / `AsyncSequence` mapping when the iOS target lands. This is the same approach battery-butler uses. Constraints this places on shared types:
+
+- `T` must be a value-type-friendly shape Skie can project: `data class`, sealed hierarchies, enum. Avoid generic interfaces in `T` that Skie can't bridge.
+- When adding a new state-y type under `domain/model`, validate Skie compatibility before using it as a `StateFlow<T>` domain property.
+
+Skie adoption is tracked as Phase 38 (see `MIGRATION.md`).
+
+### Consequences
+
+- PR #354's direct-write workaround (`_snoozeState.value = result.data` inside `snoozeOpenDoorsNotifications`) becomes unnecessary — the VM no longer has a `_snoozeState`. The line gets removed as part of the migration (see `MIGRATION_PLAN.md`).
+- Repositories commit to a tighter contract: "I always have a current value for this state." Fine for state-y data by definition.
+- `WhileSubscribed` is banned for repo-owned StateFlow. The always-on collector in `init` is the required pattern.
+- Last-writer-wins write ordering is accepted by default; per-repo `Mutex` is opt-in for observed races.
+- User-scoped state clearing on sign-out is a documented rule; per-repo implementation is Phase 2.
+- Every repository state-write emits a log line. Grep-able observability replaces exhaustive prevention for rare race/lifecycle corner cases.
+
+### Enforcement
+
+- **Convention test:** `SingletonGuardTask` (buildSrc) extends to require any class that implements a `*Repository` interface and owns a `MutableStateFlow` field be `@Singleton` in `AppComponent`.
+- **Lint extension:** `ViewModelStateFlowCheckTask` extends to ban `MutableStateFlow<T>` properties in a ViewModel when `T` appears in a curated allowlist of domain state types (starting with `SnoozeState`, `AuthState`, `DoorEvent?`, `ServerConfig?`, `FcmRegistrationStatus`). Structural match, not just regex on `stateIn`. Handles the subtle `.map { it }` / `.distinctUntilChanged()` mirror variants by failing on any `StateFlow<T>` VM property whose type matches the allowlist and whose RHS is not a direct UseCase invocation.
+- **Reference-identity test:** each state-y feature adds an `assertSame(fakeRepo.xState, vm.xState)` test. Without this test, the lint rule protects the syntax but the test protects the semantics.
+- **State-write log convention:** every `_state.value = ...` in a `data/**/repository/**` file has a `Logger.*` call on the same statement or next line. Enforced by code review initially; upgrade to lint after the migration settles.
+
+### Related
+
+- `VIEWMODEL_SCOPING_ISSUE.md` — the bug post-mortem that motivated this.
+- `MIGRATION_PLAN.md` — rollout sequence.
+- ADR-011 — suspend return values carry completion signals.
+- ADR-013 — event-y signals stay out of StateFlow (retained; see inline supersede marks).
+- ADR-017 Rule 6 — scoped (see amendments) so the cold-Flow materialization pattern no longer conflicts with passthrough for state-y data.
+- ADR-018 — reactive auth listener. This ADR makes the "AuthRepository.authState as StateFlow" choice explicit instead of a pending review.
+- ADR-019 — externalScope for repository side-effects. State writes in repos happen on externalScope.
+- ADR-020 — raw-body diagnostic logging. The state-write log convention generalizes this.
+- ADR-021 — state ownership principles. This ADR is the concrete shape; Rule 9 (observability) anchors the logging convention.
