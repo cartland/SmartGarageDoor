@@ -761,3 +761,63 @@ is NetworkResult.Success -> {
 ### When to apply
 
 Rule 1 applies to any repository that owns a singleton `MutableStateFlow` whose writes happen from suspend functions called across VM boundaries. Rule 2 applies to any `POST` endpoint that returns the updated entity — prefer the response body over a follow-up `GET`.
+
+## ADR-020: Release-Build Hardening — Explicit ProGuard Keep Rules + Raw-Body Diagnostic Logs
+
+**Status:** Accepted
+
+**Context:** A production bug (snooze card not updating after save on android/167) passed every unit test, the JVM integration test wiring the real repository + ViewModel, AND the instrumented Compose test on an emulator — but still reproduced on the Play Store release build. Investigation found `proguard-rules.pro` was **entirely empty comments** — the project was relying solely on `kotlinx.serialization`'s bundled consumer rules with no belt-and-suspenders keeps for `data.ktor.**` response classes. A diagnostic probe (flipping `debug` to `isMinifyEnabled=true`) crashed the test runner with `NoClassDefFoundError: kotlin.LazyKt`, confirming R8 was aggressive enough to strip stdlib classes when keep rules were missing.
+
+The failure mode is **silent**: a missing `@Serializable` keep leaves all `Long? = null` fields parsing as `null`, defaulting to `0L`. The app behaves as if the server returned "no snooze" — no exception, no log, no test failure. Emulator debug builds and JVM tests can't catch it because R8 runs only on release/minified builds.
+
+**Decision:** Two complementary rules.
+
+### Rule 1 — `proguard-rules.pro` keeps `kotlinx.serialization` infrastructure + all `data.ktor.**` classes
+
+```proguard
+# kotlinx.serialization infrastructure (belt-and-suspenders beyond bundled consumer rules)
+-if @kotlinx.serialization.Serializable class **
+-keepclassmembers class <1> {
+    static <1>$Companion Companion;
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-if @kotlinx.serialization.Serializable class **
+-keep class <1>$$serializer { *; }
+-if @kotlinx.serialization.Serializable class **
+-keep class <1>$Companion { *; }
+
+# Network response types — full class + members so R8 can't rename
+-keep class com.chriscartland.garage.data.ktor.** { *; }
+-keepclassmembers class com.chriscartland.garage.data.ktor.** { *; }
+
+# Annotations must survive
+-keepattributes *Annotation*, InnerClasses
+```
+
+### Rule 2 — Log raw body + parsed result at network-data-source boundaries producing state-critical data
+
+When a data-source call decodes JSON into a domain-state value (snooze end time, auth token, FCM registration, etc.), log both the verbatim body and the parsed result:
+
+```kotlin
+val rawBody: String = response.body()
+val body = json.decodeFromString(Response.serializer(), rawBody)
+val endTime = body.snoozeEndTimeSeconds ?: 0L
+Logger.i { "Snooze POST parsed endTime=$endTime rawBody=$rawBody" }
+```
+
+This costs one extra body read per response. In exchange, opaque on-device bugs become a single `adb logcat` line showing exactly what the server sent and what the client parsed — the only reliable ground-truth channel for production-only failures.
+
+### Why logging instead of more tests
+
+Tests can verify the happy path and known errors, but they cannot replicate the full production environment: real Firebase Functions runtime, Play-Store-signed APK with R8, real user account state. When a generated serializer is silently stripped, the nullable-default fallback masks it. The diagnostic log is the only tool that surfaces the failure mode from a deployed binary.
+
+### Consequences
+
+- Release-build parse failures surface as visible log lines, not silent no-ops.
+- Adding new `@Serializable` types under `data.ktor.*` is automatically covered by the package keep.
+- One extra body read on state-critical paths (trivial cost; body is already buffered).
+- The instrumented Compose test runs the debug variant and **cannot** catch R8-specific regressions. R8 regressions surface only on real release builds on real devices, so `proguard-rules.pro` must stay conservative.
+
+### When to apply
+
+Any new `@Serializable` response type under `data.ktor.*` is covered by Rule 1's package keep — no action needed. When adding a new endpoint producing state-critical data (repository writes, auth, FCM tokens), add raw-body logging at the data-source boundary per Rule 2, even if happy-path tests all pass.
