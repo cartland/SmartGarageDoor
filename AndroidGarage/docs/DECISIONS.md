@@ -337,11 +337,15 @@ object FcmPayloadParser {
 
 ## ADR-013: Flow and StateFlow Boundaries
 
-**Status:** Accepted (supersedes StateFlow guidance in ADR-010)
+**Status:** Partially superseded by ADR-022.
 
-**Context:** A critical bug was caused by using `StateFlow<PushStatus>` in a repository to signal transient events (SENDING → IDLE). StateFlow conflates intermediate values — if SENDING and IDLE are set in quick succession, collectors may only see IDLE, silently dropping the SENDING signal. This caused the button state machine to get stuck indefinitely. The root problem: StateFlow is a *state* primitive, not an *event* primitive.
+The core insight of ADR-013 — that `StateFlow` is a **state** primitive, not an **event** primitive, and that conflation silently drops transient signals (SENDING → IDLE) — remains correct. The blanket rule "StateFlow lives only in ViewModels" was too restrictive and, applied uniformly, produced the snooze-state propagation bug documented in `VIEWMODEL_SCOPING_ISSUE.md` (android/164-168). ADR-022 refines ADR-013 by distinguishing **event-y signals** (where ADR-013's ban on StateFlow still applies) from **state-y data with a current value** (where `StateFlow` belongs at the repository boundary, not only in ViewModels).
 
-**Decision:** Restrict where each Flow type may be used:
+Read ADR-022 alongside ADR-013; the rules below apply to event-y signals only.
+
+**Original context:** A critical bug was caused by using `StateFlow<PushStatus>` in a repository to signal transient events (SENDING → IDLE). StateFlow conflates intermediate values — if SENDING and IDLE are set in quick succession, collectors may only see IDLE, silently dropping the SENDING signal. This caused the button state machine to get stuck indefinitely. The root problem: StateFlow is a *state* primitive, not an *event* primitive.
+
+**Original decision:** Restrict where each Flow type may be used:
 
 ### UseCases return one of two types:
 
@@ -922,3 +926,117 @@ After this change, three VMs don't multiply the truth. They multiply only their 
 - ADR-018 — reactive auth listener; an instance of Rule 1 applied to auth state.
 - ADR-019 — repository side-effects on `externalScope`; an instance of Rule 7.
 - `ActivityViewModels.kt:31` — `activityViewModel(...)` helper for explicit-owner scoping.
+
+## ADR-022: `StateFlow` at the Repository Boundary for State-y Data
+
+**Status:** Accepted. Partially supersedes ADR-013.
+
+**Context:** ADR-013 established that `StateFlow` is a state primitive (not an event primitive) and, based on the PushStatus SENDING→IDLE conflation bug, banned `StateFlow` below the ViewModel layer. Applied uniformly, that rule forced every repository exposing long-lived state to widen its interface to `Flow<T>` — even when the underlying storage was a `MutableStateFlow`. Downstream, ViewModels then held `private val _xState: MutableStateFlow<T>` fields that mirrored the repository via `init { observeX().collect { _xState.value = it } }`.
+
+That mirror pattern produced the android/164-168 snooze-state propagation bug (see `VIEWMODEL_SCOPING_ISSUE.md`). Three `DefaultRemoteButtonViewModel` instances coexisted at runtime (Activity scope, Home nav entry, Profile nav entry) because of `rememberViewModelStoreNavEntryDecorator<Screen>()` and DI providers that weren't `@Singleton`. Each VM held its own `_snoozeState` mirror. Under production conditions the Profile-entry VM's observer coroutine failed to forward an emission, while the other two mirrors updated correctly — and Compose was bound to the one that silently missed it. PR #354 shipped a workaround (direct write to `_snoozeState` from the suspend return value). ADR-021 captured the principles. This ADR refines ADR-013 with the shape change that makes the bug structurally impossible.
+
+ADR-013 was right about event-y signals. It was wrong to generalize to state-y data.
+
+**Decision:** Distinguish data by nature and pick the observable type accordingly.
+
+### The three categories
+
+1. **State-y data with a current value.** Auth state, snooze state, current door event, server config, FCM registration status. There is always an answer to "what is the current value?" These belong in a `@Singleton` repository, owned as `MutableStateFlow<T>` internally, **exposed as `StateFlow<T>`** at the repository interface. UseCases that observe this data are passthroughs: `operator fun invoke(): StateFlow<T> = repository.xState`. ViewModels that present this data to Compose expose the same reference: `val xState: StateFlow<T> = observeXUseCase()`. **ViewModels do not hold a `MutableStateFlow<T>` mirror** of state-y data owned by a repository.
+
+2. **Cold / list-y data.** Recent door events (Room query), log counts (Room query). There is no naturally-current value; new collectors trigger new upstream work. Exposed as `Flow<List<T>>` (or `Flow<T>`) at the repository interface. A screen's ViewModel may convert to `StateFlow` via `stateIn(viewModelScope, WhileSubscribed(5_000), initial)` at the UseCase boundary if it needs `.value` — this is the one legitimate place to wrap, because the cold flow genuinely has no current value.
+
+3. **Event-y / transient signals.** Button state machine transitions, action-overlay reset timers, one-shot command outcomes, snackbar triggers. ADR-013's ban on `StateFlow` still applies — conflation drops signals. Use `suspend fun` return values for command completion (ADR-011, ADR-013), `Channel` or `MutableSharedFlow(replay=0)` for cross-component events, `MutableStateFlow` only inside a ViewModel when the signal is UI-local and its conflation is acceptable (e.g., the button state machine where the UI cares only about the latest state).
+
+### Interface shapes
+
+```kotlin
+// State-y data — repository owns the StateFlow
+interface SnoozeRepository {
+    val snoozeState: StateFlow<SnoozeState>
+    suspend fun snoozeNotifications(...): AppResult<SnoozeState, ActionError>
+    suspend fun fetchSnoozeStatus()
+}
+
+interface AuthRepository {
+    val authState: StateFlow<AuthState>
+    suspend fun signInWithGoogle(...): AuthState
+    suspend fun signOut()
+}
+
+// Cold / list-y data — stays Flow
+interface DoorRepository {
+    val currentDoorEvent: StateFlow<DoorEvent?>  // state-y, backed by stateIn over Room Flow
+    fun observeRecentEvents(): Flow<List<DoorEvent>>   // list-y, cold
+    suspend fun fetchCurrentDoorEvent(): AppResult<DoorEvent, ActionError>
+}
+
+// Event-y — ADR-013's rules unchanged
+interface RemoteButtonRepository {
+    suspend fun pushButton(...): AppResult<Unit, ActionError>
+    // NOT exposed: val pushStatus: StateFlow<PushStatus>  (the ADR-013 bug)
+}
+```
+
+### ViewModel shape under this ADR
+
+```kotlin
+class DefaultRemoteButtonViewModel(
+    observeSnooze: ObserveSnoozeStateUseCase,
+    // ...
+) : ViewModel() {
+    // Domain state — passthrough reference to the repo's StateFlow.
+    // No _snoozeState mirror, no init { collect } observer.
+    val snoozeState: StateFlow<SnoozeState> = observeSnooze()
+
+    // Presentation state — stays in the VM. Event-y per ADR-013.
+    private val _snoozeAction = MutableStateFlow<SnoozeAction>(Idle)
+    val snoozeAction: StateFlow<SnoozeAction> = _snoozeAction
+
+    // ButtonStateMachine output — event-y machine, VM-local.
+    val buttonState: StateFlow<RemoteButtonState> = stateMachine.state
+}
+```
+
+### What this supersedes from ADR-013
+
+- ✗ "StateFlow lives only in ViewModels." **Superseded.** StateFlow lives wherever the data is state-y and long-lived, including in repositories.
+- ✗ "No UseCase, Repository, or data layer may expose StateFlow without explicit approval." **Superseded** for state-y data. Explicit approval is no longer needed; the default shape for state-y data IS `StateFlow`.
+- ✓ "Every StateFlow has an initial value." **Retained.**
+- ✓ "If every intermediate value matters (SENDING → IDLE), do not use StateFlow — use suspend return, Channel, or callback." **Retained and reinforced.**
+- ✓ "ADR-011 — `suspend fun` return = completion signal. Don't add a parallel StateFlow for the same information." **Retained.**
+- The "Current violations to review" list (AuthRepository.authState, SnoozeRepository.snoozeState as StateFlow) is resolved: they become StateFlow by design, not violations.
+
+### Testing story
+
+Fake repositories for state-y data follow a uniform shape:
+
+```kotlin
+class FakeSnoozeRepository : SnoozeRepository {
+    private val _snoozeState = MutableStateFlow<SnoozeState>(NotSnoozing)
+    override val snoozeState: StateFlow<SnoozeState> = _snoozeState
+    fun setSnoozeState(s: SnoozeState) { _snoozeState.value = s }
+    override suspend fun snoozeNotifications(...): AppResult<SnoozeState, ActionError> { ... }
+}
+```
+
+Tests mutate `_snoozeState.value` directly; observers see every distinct value via StateFlow's per-subscriber replay. No `Dispatchers.setMain`, no coroutine scheduling tricks, no VM-scope test plumbing needed for pure observation paths.
+
+A feature-level integration test wiring the real repository + multiple subscribers catches any regression where the mirror pattern creeps back in. `SharedRepositoryUseCasesTest` is the reference shape.
+
+### Consequences
+
+- PR #354's direct-write workaround (`_snoozeState.value = result.data` inside `snoozeOpenDoorsNotifications`) becomes unnecessary — the VM no longer has a `_snoozeState`. The line gets removed as part of the migration.
+- Repositories commit to a tighter contract: "I always have a current value for this state." Fine for state-y data by definition; violations here would already be bugs.
+- `stateIn(externalScope, WhileSubscribed(5_000), initial)` becomes the idiomatic bridge from a cold Flow (Room) to a repo-owned `StateFlow`. Set `stopTimeoutMillis` explicitly to avoid re-subscription thrash on rotation.
+- iOS bridging: `StateFlow` at the domain boundary is fine via Skie or a manual `FlowAdapter`. Not a regression from today's shape.
+- Convention test: ensure repository providers are `@Singleton` in DI (if the repo isn't a singleton, the `StateFlow` isn't either, and the mirror-bug class re-emerges).
+- Lint rule to extend (`buildSrc/.../architecture/ViewModelStateFlowCheckTask.kt`): ban `MutableStateFlow` fields in a ViewModel when the initial value comes from observing a UseCase that returns `StateFlow<T>` — force passthrough.
+
+### Related
+
+- `VIEWMODEL_SCOPING_ISSUE.md` — the bug post-mortem that motivated this.
+- ADR-011 — suspend return values carry completion signals.
+- ADR-013 — event-y signals stay out of StateFlow (retained).
+- ADR-018 — reactive auth listener. This ADR makes the "AuthRepository.authState as StateFlow" choice explicit instead of a pending review.
+- ADR-019 — externalScope for repository side-effects. A `StateFlow` backed by `stateIn(externalScope, ...)` inherits those guarantees.
+- ADR-021 — state ownership principles. This ADR is the concrete shape that makes Rule 2 enforceable.
