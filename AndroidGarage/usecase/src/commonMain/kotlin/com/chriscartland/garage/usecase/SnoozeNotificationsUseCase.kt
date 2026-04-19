@@ -45,7 +45,7 @@ class SnoozeNotificationsUseCase(
         snoozeDurationHours: String,
         lastChangeTimeSeconds: Long?,
     ): AppResult<SnoozeState, ActionError> {
-        val authState = authRepository.getAuthState()
+        val authState = authRepository.authState.value
         if (authState !is AuthState.Authenticated) {
             return AppResult.Error(ActionError.NotAuthenticated)
         }

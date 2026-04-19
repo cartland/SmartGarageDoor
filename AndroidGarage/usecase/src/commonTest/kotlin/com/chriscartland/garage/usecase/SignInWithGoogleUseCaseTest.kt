@@ -58,6 +58,6 @@ class SignInWithGoogleUseCaseTest {
 
             useCase(GoogleIdToken("token"))
 
-            assertIs<AuthState.Authenticated>(repo.getAuthState())
+            assertIs<AuthState.Authenticated>(repo.authState.value)
         }
 }
