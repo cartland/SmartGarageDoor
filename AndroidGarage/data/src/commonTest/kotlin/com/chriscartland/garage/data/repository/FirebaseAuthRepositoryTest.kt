@@ -24,7 +24,6 @@ import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAuthBridge
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -59,7 +58,7 @@ class FirebaseAuthRepositoryTest {
             val (repo, _) = createRepository()
             advanceUntilIdle()
 
-            assertEquals(AuthState.Unauthenticated, repo.observeAuthState().first())
+            assertEquals(AuthState.Unauthenticated, repo.authState.value)
         }
 
     @Test
@@ -72,7 +71,7 @@ class FirebaseAuthRepositoryTest {
             val (repo, _) = createRepository(authBridge = bridge)
             advanceUntilIdle()
 
-            val state = repo.observeAuthState().first()
+            val state = repo.authState.value
             assertIs<AuthState.Authenticated>(state)
             assertEquals("Alice", state.user.name.asString())
             assertEquals("token-123", state.user.idToken.idToken)
@@ -88,7 +87,7 @@ class FirebaseAuthRepositoryTest {
             val (repo, _) = createRepository(authBridge = bridge)
             advanceUntilIdle()
 
-            assertEquals(AuthState.Unauthenticated, repo.observeAuthState().first())
+            assertEquals(AuthState.Unauthenticated, repo.authState.value)
         }
 
     @Test
@@ -99,7 +98,7 @@ class FirebaseAuthRepositoryTest {
             advanceUntilIdle()
 
             // Initially no user → Unauthenticated
-            assertEquals(AuthState.Unauthenticated, repo.observeAuthState().first())
+            assertEquals(AuthState.Unauthenticated, repo.authState.value)
 
             // User signs in (listener fires) — set token BEFORE user so the
             // collector sees the token when it processes the user emission.
@@ -107,7 +106,7 @@ class FirebaseAuthRepositoryTest {
             bridge.setAuthUser(AuthUserInfo(displayName = "Carol", email = "carol@test.com"))
             advanceUntilIdle()
 
-            val state = repo.observeAuthState().first()
+            val state = repo.authState.value
             assertIs<AuthState.Authenticated>(state)
             assertEquals("Carol", state.user.name.asString())
         }
@@ -121,12 +120,12 @@ class FirebaseAuthRepositoryTest {
 
             val (repo, _) = createRepository(authBridge = bridge)
             advanceUntilIdle()
-            assertIs<AuthState.Authenticated>(repo.observeAuthState().first())
+            assertIs<AuthState.Authenticated>(repo.authState.value)
 
             repo.signOut()
 
             // Eagerly set to Unauthenticated — no waiting for listener
-            assertEquals(AuthState.Unauthenticated, repo.observeAuthState().first())
+            assertEquals(AuthState.Unauthenticated, repo.authState.value)
             assertEquals(1, bridge.signOutCount)
         }
 
@@ -164,7 +163,7 @@ class FirebaseAuthRepositoryTest {
 
             assertEquals("fresh-token", refreshed?.idToken)
             // _authState should also be updated with the new token
-            val state = repo.observeAuthState().first()
+            val state = repo.authState.value
             assertIs<AuthState.Authenticated>(state)
             assertEquals("fresh-token", state.user.idToken.idToken)
         }

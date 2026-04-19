@@ -29,9 +29,8 @@ import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.AuthRepository
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -53,9 +52,8 @@ class FirebaseAuthRepository(
 ) : AuthRepository {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
 
-    override suspend fun getAuthState(): AuthState = _authState.value
-
-    override fun observeAuthState(): Flow<AuthState> = _authState.asStateFlow()
+    /** ADR-022: the repository owns the authoritative [StateFlow]. */
+    override val authState: StateFlow<AuthState> = _authState
 
     init {
         // Reactive: collect auth user changes from the platform listener.
@@ -86,6 +84,7 @@ class FirebaseAuthRepository(
                 }
                 logStateChange(newState)
                 _authState.value = newState
+                Logger.i { "authState <- $newState (source=listener)" }
             }
         }
     }
@@ -103,9 +102,11 @@ class FirebaseAuthRepository(
         // Update _authState so the UI stays in sync with the fresh token.
         val current = _authState.value
         if (current is AuthState.Authenticated) {
-            _authState.value = current.copy(
+            val newState = current.copy(
                 user = current.user.copy(idToken = token),
             )
+            _authState.value = newState
+            Logger.i { "authState <- $newState (source=refreshIdToken)" }
         }
         return token
     }
@@ -120,6 +121,7 @@ class FirebaseAuthRepository(
     override suspend fun signOut() {
         // Eagerly update UI before the bridge call — no visible delay.
         _authState.value = AuthState.Unauthenticated
+        Logger.i { "authState <- Unauthenticated (source=signOut)" }
         logStateChange(AuthState.Unauthenticated)
         authBridge.signOut()
         // The AuthStateListener will also fire and confirm Unauthenticated.

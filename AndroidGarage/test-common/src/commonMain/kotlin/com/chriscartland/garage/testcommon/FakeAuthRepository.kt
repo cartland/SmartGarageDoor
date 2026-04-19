@@ -21,8 +21,8 @@ import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.repository.AuthRepository
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Fake [AuthRepository] for unit testing.
@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
  */
 class FakeAuthRepository : AuthRepository {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
+    override val authState: StateFlow<AuthState> = _authState
 
     private val _signInCalls = mutableListOf<GoogleIdToken>()
     val signInCalls: List<GoogleIdToken> get() = _signInCalls
@@ -67,10 +68,6 @@ class FakeAuthRepository : AuthRepository {
     fun setRefreshResult(value: AuthState?) {
         legacyRefreshResult = value
     }
-
-    override suspend fun getAuthState(): AuthState = _authState.value
-
-    override fun observeAuthState(): Flow<AuthState> = _authState
 
     override suspend fun signInWithGoogle(idToken: GoogleIdToken): AuthState {
         _signInCalls.add(idToken)

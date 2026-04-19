@@ -21,6 +21,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -52,6 +53,20 @@ class DefaultAuthViewModelTest {
     @Test
     fun initialAuthStateIsUnknown() {
         assertIs<AuthState.Unknown>(viewModel.authState.value)
+    }
+
+    /**
+     * ADR-022: VM exposes the repository's StateFlow by reference — no mirror.
+     * An `assertSame` guard catches any future refactor that reintroduces a
+     * local `MutableStateFlow` in the VM.
+     */
+    @Test
+    fun authStateIsSameInstanceAsRepoStateFlow() {
+        assertSame(
+            authRepo.authState,
+            viewModel.authState,
+            "VM must expose repo's StateFlow by reference (ADR-022)",
+        )
     }
 
     @Test
