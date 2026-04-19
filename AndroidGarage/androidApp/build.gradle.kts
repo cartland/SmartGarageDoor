@@ -157,8 +157,21 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".benchmark"
             matchingFallbacks += listOf("release")
-            isDebuggable = false
+            // Default: perf-accurate (not debuggable). Toggle on with
+            // `-PdebuggableBenchmark=true` to run instrumented tests
+            // against an R8-enabled build and reproduce release-only bugs
+            // (e.g., StateFlow propagation under minification).
+            isDebuggable = providers.gradleProperty("debuggableBenchmark").orNull == "true"
         }
+    }
+
+    // When `-PtestR8=true`, route `connectedAndroidTest` (and friends) to
+    // the benchmark variant so instrumented tests execute against R8-minified
+    // bytecode. Must be combined with `-PdebuggableBenchmark=true` so the
+    // installed APK allows test instrumentation. See AndroidGarage/docs for
+    // the full investigation recipe.
+    if (providers.gradleProperty("testR8").orNull == "true") {
+        testBuildType = "benchmark"
     }
 
     testOptions {
