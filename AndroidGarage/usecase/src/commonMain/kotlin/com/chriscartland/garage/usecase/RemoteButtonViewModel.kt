@@ -69,21 +69,13 @@ class DefaultRemoteButtonViewModel(
 
     override val buttonState: StateFlow<RemoteButtonState> = stateMachine.state
 
-    // Hotfix for android/170 regression: the ADR-022 pass-through pattern
-    // (`val snoozeState = observeSnoozeStateUseCase()`) empirically did not
-    // propagate repo writes to Compose on-device, even though debug
-    // instrumented tests passed. Restore the VM-local mirror + init-collect
-    // + direct-write-from-command pattern (the PR #354 pattern that
-    // shipped in android/169):
-    //   1. VM owns `_snoozeState: MutableStateFlow<SnoozeState>`
-    //   2. init { collect repo.snoozeState → _snoozeState }
-    //   3. On successful snooze submit, direct-write _snoozeState from the
-    //      server-authoritative result.data
-    // Writing from both the repo and the VM is redundant but harmless —
-    // the VM's collect re-syncs if the two ever diverge. See ADR-022
-    // revision for why the pass-through rule was withdrawn.
-    private val _snoozeState = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
-    override val snoozeState: StateFlow<SnoozeState> = _snoozeState
+    // ADR-022: expose the repository's StateFlow by reference — no mirror.
+    // Every subscriber across the app reads from the same singleton
+    // repository instance (now actually a singleton after the Phase 2f
+    // kotlin-inject DI fix). The android/172 VM-local mirror + direct
+    // write is removed — if the card title stops updating on save again,
+    // the DI fix was not the full root cause and we revisit.
+    override val snoozeState: StateFlow<SnoozeState> = observeSnoozeStateUseCase()
 
     private val _snoozeAction = MutableStateFlow<SnoozeAction>(SnoozeAction.Idle)
     override val snoozeAction: StateFlow<SnoozeAction> = _snoozeAction
@@ -92,9 +84,6 @@ class DefaultRemoteButtonViewModel(
 
     init {
         listenToDoorEvent()
-        viewModelScope.launch(dispatchers.io) {
-            observeSnoozeStateUseCase().collect { _snoozeState.value = it }
-        }
         // First fetch is driven by SnoozeRepository.init on an app-lifetime
         // scope (see NetworkSnoozeRepository). Running it from here on
         // viewModelScope risked cancellation mid-fetch stranding the
@@ -166,15 +155,11 @@ class DefaultRemoteButtonViewModel(
                 )
             ) {
                 is AppResult.Success -> {
-                    // Direct-write the server-authoritative new state into
-                    // both _snoozeState (card title) and _snoozeAction (overlay).
-                    // Belt-and-suspenders alongside the repo's StateFlow write:
-                    // the repo is still the source of truth and the init-collect
-                    // observer re-syncs, but writing directly here guarantees
-                    // the Compose-visible value flips immediately without
-                    // depending on the pass-through chain.
+                    // Repo already wrote [result.data] into its [snoozeState]
+                    // before returning, so the card title updates via the
+                    // shared flow (ADR-022). Here we only compute the
+                    // VM-local overlay action (Rule 3 — presentation state).
                     val newState = result.data
-                    _snoozeState.value = newState
                     _snoozeAction.value = when (newState) {
                         is SnoozeState.Snoozing -> SnoozeAction.Succeeded.Set(newState.untilEpochSeconds)
                         SnoozeState.NotSnoozing -> SnoozeAction.Succeeded.Cleared
