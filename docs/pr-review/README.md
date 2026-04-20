@@ -1,7 +1,8 @@
 # PR Review
 
 **Phase 1 complete as of 2026-04-20.** All 381 PRs reviewed across 26 sessions.
-**Phase 2 complete as of 2026-04-20.** All 381 PRs classified across 13 sessions. Ready for Phase 3 design.
+**Phase 2 complete as of 2026-04-20.** All 381 PRs classified across 13 sessions.
+**Phase 3 complete as of 2026-04-20.** Compact themed summary at [`PHASE3_SUMMARY.md`](PHASE3_SUMMARY.md). Ready for Phase 4 design.
 
 Retrospective review of every PR ever merged or closed in this repo. The end goal is to extract current goals, lessons, and patterns — then apply them universally across the Android code.
 
@@ -13,7 +14,7 @@ Work proceeds in four phases. Each phase spans multiple sessions (30+ PRs per se
 
 1. **Phase 1 — List.** ✅ Complete 2026-04-20. One minimal markdown file per PR capturing goal, files, state, date.
 2. **Phase 2 — Assess.** ✅ Complete 2026-04-20. Latest opinion on each PR (great / ok / superseded / buggy / outdated-guidance / abandoned).
-3. **Phase 3 — Summarize.** Extract the still-current goals and lessons from Phase 2 into a compact doc. *Protocol designed after Phase 2 completes.*
+3. **Phase 3 — Summarize.** ✅ Complete 2026-04-20. Compact themed synthesis at [`PHASE3_SUMMARY.md`](PHASE3_SUMMARY.md) — 16 themes covering architecture, DI, ViewModels/state, networking, auth, FCM, Room, testing, CI, release, code style, observability, KMP, docs/ADRs, firmware/server, and cross-cutting rules.
 4. **Phase 4 — Apply.** Plan to apply the current lessons universally across Android code. *Protocol designed after Phase 3 completes.*
 
 Phases are designed incrementally so each one can be informed by the output of the previous one.
@@ -260,6 +261,109 @@ At that point:
 
 ---
 
+## Session protocol (Phase 3)
+
+A Phase 3 session is **one sitting** of synthesis work, not a volume exercise. Phase 3 is editorial — extract the still-current goals and lessons from the 381 Phase 2 assessments into a single compact doc.
+
+### Design choices (selected 2026-04-20)
+
+- **Output shape:** single compact doc at `docs/pr-review/PHASE3_SUMMARY.md`. One file, one source for Phase 4.
+- **Organization:** by theme/domain. Cross-cutting rules surface in a final section.
+- **Depth:** ~1 page per theme — lesson + 1-2 representative PR refs. Skimmable. Phase 4 reads this file, not the 381 individual files.
+- **Session count:** one session.
+
+### 1. Session start
+
+**Step 1 — Verify Phase 2 is complete.** Run the Phase 2 queue check:
+
+```bash
+grep -L "## Phase 2 assessment" docs/pr-review/pr-*.md
+```
+
+Must return zero files. If non-zero, do Phase 2 catchup in the same session before Phase 3.
+
+**Step 2 — Survey label distribution** (one call each):
+
+```bash
+grep -c "^\*\*Primary:\*\* great" docs/pr-review/pr-*.md | grep -v ":0" | wc -l
+# repeat for ok / superseded / buggy / outdated-guidance / abandoned
+grep -l "^\*\*Still-current lesson:\*\*" docs/pr-review/pr-*.md | wc -l
+```
+
+**Step 3 — Create the session branch.** Branch name format: `docs/pr-review-phase3-YYYY-MM-DD-HHMMSS` (UTC). Get timestamp in one Bash call; type it literally in the next.
+
+### 2. Structured extraction
+
+**Step 1 — Spawn an `Explore` agent** to pull the structured raw material:
+
+- `**Primary:**` label per file
+- `**Still-current lesson:**` text per file (deduplicate — merge lessons saying the same thing; cite all source PRs)
+- `**Superseded by:**`, `**Fixed by:**`, `**Reversed by:**` references
+- Goal/Files summary for great-labeled PRs cited as exemplars
+
+Organize by theme: Android architecture, DI, ViewModels/state, networking, auth, FCM, Room, testing, CI, release, code style, observability, KMP, docs/ADRs, firmware/server, cross-cutting.
+
+The agent reads the 381 files once; all Read-heavy work stays in the sub-agent context.
+
+**Step 2 — Draft `PHASE3_SUMMARY.md`** from the agent's extract:
+
+Frontmatter:
+
+```yaml
+---
+phase: 3
+generated: YYYY-MM-DD
+source_corpus: docs/pr-review/pr-0001.md .. pr-0NNN.md
+---
+```
+
+Per-theme section:
+
+```markdown
+## N. Theme name
+
+**Shape:** one paragraph — the current pattern in the codebase.
+
+**Exemplars:**
+- **#NNN** — one-line why it's exemplary.
+
+**Lessons:**
+- Lesson sentence from the Phase 2 corpus.
+
+**Reversed guidance:** if any — what was reversed and by what ADR/PR.
+**Bug worth remembering:** if any — shape + lesson, not diff.
+```
+
+End with a **"Cross-cutting themes"** section grouping lessons that apply to multiple themes (migration discipline, invisible bugs, state architecture, correctness primitives).
+
+Close with an **"Inputs Phase 4 should consume first"** section — prioritized hand-off list.
+
+### 3. Session stop
+
+**Step 1 — Update the README header:**
+- Add `**Phase 3 complete as of YYYY-MM-DD.**` to the top.
+- Update the Phase 3 bullet in the phase list.
+
+**Step 2 — Create the session PR:**
+
+```bash
+git push -u origin docs/pr-review-phase3-YYYY-MM-DD-HHMMSS
+gh pr create --base main --title "docs: PR review phase 3 summary — 16 themes from 381 PRs" --body "<body>"
+gh pr merge --auto --squash --delete-branch <n>
+```
+
+---
+
+## Phase 3 end condition
+
+Phase 3 is complete when `PHASE3_SUMMARY.md` is merged to main and the README reflects completion.
+
+At that point:
+1. Open a new session (clean context) to design Phase 4 via clarifying questions.
+2. Commit that design session's output as a Phase 4 section in this README.
+
+---
+
 ## Loop-breaker rule
 
 Every session generates a PR that modifies `docs/pr-review/**`. Without a rule, those PRs would themselves appear in the queue → infinite loop.
@@ -337,4 +441,6 @@ If a new PR is merged **during** Phases 2/3/4, it lacks a Phase 1 file. Phase 2+
 ## Rough budget
 
 - **Phase 1 (complete):** 381 PRs, 26 sessions, finished 2026-04-20.
-- **Phase 2:** At 30+ assessments per session, ~13 sessions to cover 381 PRs. Escalation is per-PR, not per-session, so most sessions stay on-pace.
+- **Phase 2 (complete):** 381 assessments, 13 sessions, finished 2026-04-20.
+- **Phase 3 (complete):** 16 themes synthesized into one compact doc, 1 session, finished 2026-04-20.
+- **Phase 4:** TBD — protocol designed after Phase 3 completes.
