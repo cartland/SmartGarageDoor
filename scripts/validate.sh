@@ -40,6 +40,9 @@ $GRADLE checkArchitecture && pass "architecture" || fail "architecture"
 step "Singleton guard (Database, Settings, HttpClient)"
 $GRADLE checkSingletonGuard && pass "singleton guard" || fail "singleton guard"
 
+step "Singleton caching (kotlin-inject generated _scoped.get matches @Singleton)"
+$GRADLE checkSingletonCaching && pass "singleton caching" || fail "singleton caching"
+
 step "Layer imports (ViewModel→UseCase, UseCase→domain)"
 $GRADLE checkLayerImports && pass "layer imports" || fail "layer imports"
 

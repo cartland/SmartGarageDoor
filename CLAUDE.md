@@ -189,14 +189,19 @@ during the android/170 snooze regression (see ADR-022 timeline and
 
 **When modifying `AppComponent.kt`:**
 1. Make the change.
-2. Run `./gradlew :androidApp:kspDebugKotlin` to regenerate.
-3. Read `androidApp/build/generated/ksp/debug/kotlin/com/chriscartland/garage/di/InjectAppComponent.kt`.
-   Healthy file is ~300 lines with one `override val X: T get() = _scoped.get(...)`
-   per `@Singleton` entry. If it's under 20 lines or missing `_scoped.get(...)`
-   for your new provider, scoping is broken.
+2. Run `./gradlew -p AndroidGarage checkSingletonCaching` — this regenerates
+   `InjectAppComponent.kt` via KSP and fails the build if any `@Singleton`
+   provider is not wrapped in `_scoped.get(...)` in the generated code.
+   This is the automated version of the manual inspection step and runs
+   in `validate.sh`.
+3. Read `androidApp/build/generated/ksp/debug/kotlin/com/chriscartland/garage/di/InjectAppComponent.kt`
+   if the check failed — the error message lists which providers are missing
+   caching. Healthy file is ~300 lines with one
+   `override val X: T get() = _scoped.get(...)` per `@Singleton` entry.
 4. Run the identity tests: `./gradlew :androidApp:connectedDebugAndroidTest
    -Pandroid.testInstrumentationRunnerArguments.class=com.chriscartland.garage.di.ComponentGraphTest`.
-   All `*IsSingleton` tests must pass.
+   All `*IsSingleton` tests must pass. This is the runtime counterpart to
+   `checkSingletonCaching` (which is a static check on generated code).
 5. If you add a new `@Singleton` state-owning provider, add a matching
    `abstract val` entry + an `assertSame` identity test in
    `ComponentGraphTest`.
