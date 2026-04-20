@@ -1,6 +1,7 @@
 # PR Review
 
-**Phase 1 complete as of 2026-04-20.** All 381 PRs reviewed across 26 sessions. Ready for Phase 2 design.
+**Phase 1 complete as of 2026-04-20.** All 381 PRs reviewed across 26 sessions.
+**Phase 2 complete as of 2026-04-20.** All 381 PRs classified across 13 sessions. Ready for Phase 3 design.
 
 Retrospective review of every PR ever merged or closed in this repo. The end goal is to extract current goals, lessons, and patterns — then apply them universally across the Android code.
 
@@ -11,7 +12,7 @@ This document is the durable plan. It survives across many sessions (up to ~100)
 Work proceeds in four phases. Each phase spans multiple sessions (30+ PRs per session).
 
 1. **Phase 1 — List.** ✅ Complete 2026-04-20. One minimal markdown file per PR capturing goal, files, state, date.
-2. **Phase 2 — Assess.** Latest opinion on each PR (great / ok / superseded / buggy / outdated-guidance / abandoned). **Protocol below.**
+2. **Phase 2 — Assess.** ✅ Complete 2026-04-20. Latest opinion on each PR (great / ok / superseded / buggy / outdated-guidance / abandoned).
 3. **Phase 3 — Summarize.** Extract the still-current goals and lessons from Phase 2 into a compact doc. *Protocol designed after Phase 2 completes.*
 4. **Phase 4 — Apply.** Plan to apply the current lessons universally across Android code. *Protocol designed after Phase 3 completes.*
 
