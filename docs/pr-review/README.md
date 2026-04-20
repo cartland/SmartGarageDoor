@@ -2,7 +2,8 @@
 
 **Phase 1 complete as of 2026-04-20.** All 381 PRs reviewed across 26 sessions.
 **Phase 2 complete as of 2026-04-20.** All 381 PRs classified across 13 sessions.
-**Phase 3 complete as of 2026-04-20.** Compact themed summary at [`PHASE3_SUMMARY.md`](PHASE3_SUMMARY.md). Ready for Phase 4 design.
+**Phase 3 complete as of 2026-04-20.** Compact themed summary at [`PHASE3_SUMMARY.md`](PHASE3_SUMMARY.md).
+**Phase 4 complete as of 2026-04-20.** Enforcement audit at [`PHASE4_AUDIT.md`](PHASE4_AUDIT.md) — per-theme rule ↔ artifact mapping + top-10 gaps. Ready for optional Phase 5 (enforcement work).
 
 Retrospective review of every PR ever merged or closed in this repo. The end goal is to extract current goals, lessons, and patterns — then apply them universally across the Android code.
 
@@ -15,7 +16,8 @@ Work proceeds in four phases. Each phase spans multiple sessions (30+ PRs per se
 1. **Phase 1 — List.** ✅ Complete 2026-04-20. One minimal markdown file per PR capturing goal, files, state, date.
 2. **Phase 2 — Assess.** ✅ Complete 2026-04-20. Latest opinion on each PR (great / ok / superseded / buggy / outdated-guidance / abandoned).
 3. **Phase 3 — Summarize.** ✅ Complete 2026-04-20. Compact themed synthesis at [`PHASE3_SUMMARY.md`](PHASE3_SUMMARY.md) — 16 themes covering architecture, DI, ViewModels/state, networking, auth, FCM, Room, testing, CI, release, code style, observability, KMP, docs/ADRs, firmware/server, and cross-cutting rules.
-4. **Phase 4 — Apply.** Plan to apply the current lessons universally across Android code. *Protocol designed after Phase 3 completes.*
+4. **Phase 4 — Audit.** ✅ Complete 2026-04-20. Maps every Phase 3 rule to its current enforcement artifact (lint / hook / ADR / guide / contract test / script) and lists gaps at [`PHASE4_AUDIT.md`](PHASE4_AUDIT.md). Top-10 gaps ranked for Phase 5 consumption.
+5. **Phase 5 — Apply (optional).** Close specific gaps identified in Phase 4. *Protocol designed after Phase 4 completes.*
 
 Phases are designed incrementally so each one can be informed by the output of the previous one.
 
@@ -364,6 +366,76 @@ At that point:
 
 ---
 
+## Session protocol (Phase 4)
+
+A Phase 4 session is **audit-only** — map every Phase 3 rule to its current enforcement artifact and produce a ranked gap list. No code changes, no proposed PRs. Phase 5+ will decide what to do with the gaps.
+
+### Design choices (selected 2026-04-20)
+
+- **Scope:** audit only. No code, no enforcement work.
+- **Output:** single compact doc at `docs/pr-review/PHASE4_AUDIT.md` — inventory + 16 per-theme tables + top-10 gaps.
+- **Ordering:** inventory first; cross-cutting rules surface in Theme 16 and the top-10.
+- **Session count:** one session.
+
+### 1. Session start
+
+**Step 1 — Verify Phase 3 is complete.** `PHASE3_SUMMARY.md` must exist on main.
+
+**Step 2 — Create the session branch.** `docs/pr-review-phase4-YYYY-MM-DD-HHMMSS` (UTC). Get timestamp in one Bash call; type it literally in the next.
+
+### 2. Structured audit
+
+**Step 1 — Spawn an `Explore` agent** to inventory enforcement artifacts:
+
+- Custom lint tasks under `AndroidGarage/buildSrc/src/main/kotlin/**/*.kt` (one-line each)
+- Git hooks under `.claude/hooks/` (one-line each)
+- ADRs from `AndroidGarage/docs/DECISIONS.md` (number + title, no bodies)
+- Guides under `AndroidGarage/docs/guides/` (filename + topic)
+- Safety docs: `CLAUDE.md` sections, `DI_SINGLETON_REQUIREMENTS.md`, `POSTMORTEM_ANDROID_170.md`, `R8_INSTRUMENTED_TESTS.md`, `VIEWMODEL_SCOPING_ISSUE.md`
+- Detekt config (`detekt.yml` tightened rules)
+- Contract tests (`FcmTopicTest`, `FcmPayloadParsingTest`, `RoomSchemaTest`, `ComponentGraphTest`)
+- Scripts (`validate.sh`, `release-*.sh`, `generate-*.sh`)
+
+**Step 2 — Per-theme mapping.** For every theme in `PHASE3_SUMMARY.md`, produce a table with three columns:
+
+| Rule (shortened) | Enforcement | Gap |
+|---|---|---|
+
+- **Enforcement**: cite the specific artifact(s), e.g., `lint:ArchitectureCheckTask`, `ADR-008`, `hook:git-guardrails`, `contract-test:RoomSchemaTest`, or `none`.
+- **Gap**: `ok` (fully enforced) / `partial: <what's missing>` / `missing: <concrete suggestion>`.
+
+Do not speculate. If enforcement can't be verified, write `verify: <specific check>`.
+
+**Step 3 — Top-10 gaps.** Rank by (impact × probability of regression). Each entry: theme, one-line rationale, one-line suggested form of enforcement. No PRs, no code.
+
+**Step 4 — Phase 5 hand-off.** Close with a prioritized starting list for Phase 5 — which top-10 gaps to address first and why.
+
+### 3. Session stop
+
+**Step 1 — Update the README header:**
+- Add `**Phase 4 complete as of YYYY-MM-DD.**` with a link to `PHASE4_AUDIT.md`.
+- Update the phase list with summary and next step.
+
+**Step 2 — Create the session PR:**
+
+```bash
+git push -u origin docs/pr-review-phase4-YYYY-MM-DD-HHMMSS
+gh pr create --base main --title "docs: PR review phase 4 audit — enforcement gaps" --body "<body>"
+gh pr merge --auto --squash --delete-branch <n>
+```
+
+---
+
+## Phase 4 end condition
+
+Phase 4 is complete when `PHASE4_AUDIT.md` is merged to main and the README reflects completion.
+
+At that point:
+1. (Optional) Open a new session (clean context) to design Phase 5 via clarifying questions.
+2. If deferring Phase 5, the audit sits as a reference for future work; the PR review project is complete-enough.
+
+---
+
 ## Loop-breaker rule
 
 Every session generates a PR that modifies `docs/pr-review/**`. Without a rule, those PRs would themselves appear in the queue → infinite loop.
@@ -443,4 +515,5 @@ If a new PR is merged **during** Phases 2/3/4, it lacks a Phase 1 file. Phase 2+
 - **Phase 1 (complete):** 381 PRs, 26 sessions, finished 2026-04-20.
 - **Phase 2 (complete):** 381 assessments, 13 sessions, finished 2026-04-20.
 - **Phase 3 (complete):** 16 themes synthesized into one compact doc, 1 session, finished 2026-04-20.
-- **Phase 4:** TBD — protocol designed after Phase 3 completes.
+- **Phase 4 (complete):** per-theme enforcement mapping + top-10 gaps, 1 session, finished 2026-04-20.
+- **Phase 5 (optional):** enforcement work against the top-10 gaps. Protocol designed after Phase 4 completes.
