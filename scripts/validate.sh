@@ -138,6 +138,46 @@ else
     fail "Room schema drift detected"
 fi
 
+# ------------------------------------------------------------------
+# Optional: R8 instrumented tests
+# ------------------------------------------------------------------
+# Runs connectedBenchmarkAndroidTest against an R8-minified APK so the
+# release-only failure class (kotlinx.serialization Companion keeps,
+# proto keepers, etc.) can be reproduced locally before tagging.
+#
+# Opt-in because it needs a connected device/emulator and takes several
+# minutes:
+#   $ VALIDATE_R8=1 ./scripts/validate.sh
+#
+# Without the flag this block is skipped with a short notice so the
+# default run stays fast and device-independent. The release script
+# (`scripts/release-android.sh`) is the place to make this a hard gate
+# when cutting an Android release.
+#
+# Harness background: AndroidGarage/docs/R8_INSTRUMENTED_TESTS.md
+# and ADR-020 (R8 release-build hardening).
+if [ "${VALIDATE_R8:-0}" = "1" ]; then
+    step "R8 instrumented tests (opt-in via VALIDATE_R8=1)"
+    if ! command -v adb >/dev/null 2>&1; then
+        fail "adb not found on PATH — R8 instrumented tests need it"
+    fi
+    if ! adb devices 2>/dev/null | grep -q "device$"; then
+        fail "No device/emulator connected. Plug in a device or start an emulator, then retry."
+    fi
+    $GRADLE \
+        -PtestR8=true \
+        -PdebuggableBenchmark=true \
+        -PVERSION_CODE=99999 \
+        :androidApp:connectedBenchmarkAndroidTest \
+        && pass "connectedBenchmarkAndroidTest (R8 minified)" \
+        || fail "connectedBenchmarkAndroidTest (R8 minified)"
+else
+    step "R8 instrumented tests (skipped — opt-in via VALIDATE_R8=1)"
+    echo "  To reproduce release-only R8 failures locally, run:"
+    echo "    VALIDATE_R8=1 ./scripts/validate.sh"
+    echo "  Requires a connected device/emulator. See docs/R8_INSTRUMENTED_TESTS.md"
+fi
+
 # Record successful validation so git-guardrails hook knows we validated.
 git rev-parse HEAD > "$REPO_ROOT/.claude/.validation-passed"
 
