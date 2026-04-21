@@ -43,6 +43,9 @@ $GRADLE checkSingletonGuard && pass "singleton guard" || fail "singleton guard"
 step "Singleton caching (kotlin-inject generated _scoped.get matches @Singleton)"
 $GRADLE checkSingletonCaching && pass "singleton caching" || fail "singleton caching"
 
+step "No raw Dispatchers (ADR-005 — VM/UseCase must inject DispatcherProvider)"
+$GRADLE checkNoRawDispatchers && pass "no raw dispatchers" || fail "no raw dispatchers"
+
 step "Layer imports (ViewModel→UseCase, UseCase→domain)"
 $GRADLE checkLayerImports && pass "layer imports" || fail "layer imports"
 
