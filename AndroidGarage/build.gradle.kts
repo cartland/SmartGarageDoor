@@ -166,6 +166,14 @@ tasks.register<architecture.SingletonCachingCheckTask>("checkSingletonCaching") 
     dependsOn(":androidApp:kspDebugKotlin")
 }
 
+tasks.register<architecture.NoRawDispatchersTask>("checkNoRawDispatchers") {
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+        "$rootDir/usecase/src/commonMain/kotlin",
+        "$rootDir/presentation-model/src/commonMain/kotlin",
+    )
+}
+
 allprojects {
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "io.gitlab.arturbosch.detekt")
