@@ -42,3 +42,21 @@ jobs:
           if [ "$OUTDATED" != "{}" ]; then
             echo "::warning::Some dependencies have newer versions available. Run 'npm outdated' locally to review."
           fi
+
+      # Surfaces known vulnerabilities inline on the PR as warnings so new
+      # introductions are visible on every CI run. Currently non-blocking
+      # because the repo has open alerts being worked through — once the
+      # Dependabot cleanup PRs land and `npm audit --audit-level=high` is
+      # clean, remove `continue-on-error` and tighten the audit level to
+      # make it a hard gate against regression.
+      - name: npm audit (warn on high/critical)
+        working-directory: FirebaseServer
+        continue-on-error: true
+        run: |
+          echo "::group::npm audit (production + dev)"
+          npm audit || true
+          echo "::endgroup::"
+          HIGH=$(npm audit --json 2>/dev/null | jq -r '((.metadata.vulnerabilities.high // 0) + (.metadata.vulnerabilities.critical // 0))' 2>/dev/null || echo 0)
+          if [ "${HIGH:-0}" -gt 0 ]; then
+            echo "::warning::npm audit reports $HIGH high/critical vulnerabilities. Triage with: gh api repos/$GITHUB_REPOSITORY/dependabot/alerts"
+          fi
