@@ -150,7 +150,7 @@ fun AppNavigation(
         bottomBar = {
             BottomNavigationBar(
                 currentScreen = backStack.lastOrNull(),
-                onTabSelected = { screen -> navigateToTab(backStack, screen) },
+                onTabSelected = { screen -> TabNavigation.navigateToTab(backStack, screen) },
             )
         },
     ) { innerPadding ->
@@ -236,20 +236,22 @@ fun BottomNavigationBar(
  * - Back from non-Home → reveals Home
  * - Back from Home → exits app
  */
-fun navigateToTab(
-    backStack: MutableList<Screen>,
-    screen: Screen,
-) {
-    when {
-        screen is Screen.Home -> {
-            while (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
-        }
-        backStack.lastOrNull() == screen -> {
-            // Already on this tab, no-op.
-        }
-        else -> {
-            while (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
-            backStack.add(screen)
+object TabNavigation {
+    fun navigateToTab(
+        backStack: MutableList<Screen>,
+        screen: Screen,
+    ) {
+        when {
+            screen is Screen.Home -> {
+                while (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
+            }
+            backStack.lastOrNull() == screen -> {
+                // Already on this tab, no-op.
+            }
+            else -> {
+                while (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
+                backStack.add(screen)
+            }
         }
     }
 }

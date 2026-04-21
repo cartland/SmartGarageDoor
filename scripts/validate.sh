@@ -46,6 +46,9 @@ $GRADLE checkSingletonCaching && pass "singleton caching" || fail "singleton cac
 step "No raw Dispatchers (ADR-005 — VM/UseCase must inject DispatcherProvider)"
 $GRADLE checkNoRawDispatchers && pass "no raw dispatchers" || fail "no raw dispatchers"
 
+step "No bare top-level functions (ADR-009 — group in object {})"
+$GRADLE checkNoBareTopLevelFunctions && pass "no bare top-level functions" || fail "no bare top-level functions"
+
 step "Layer imports (ViewModel→UseCase, UseCase→domain)"
 $GRADLE checkLayerImports && pass "layer imports" || fail "layer imports"
 

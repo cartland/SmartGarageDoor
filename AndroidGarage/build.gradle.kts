@@ -174,6 +174,17 @@ tasks.register<architecture.NoRawDispatchersTask>("checkNoRawDispatchers") {
     )
 }
 
+tasks.register<architecture.NoBareTopLevelFunctionsTask>("checkNoBareTopLevelFunctions") {
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+        "$rootDir/usecase/src/commonMain/kotlin",
+        "$rootDir/presentation-model/src/commonMain/kotlin",
+        "$rootDir/domain/src/commonMain/kotlin",
+        "$rootDir/data/src/commonMain/kotlin",
+        "$rootDir/data-local/src/commonMain/kotlin",
+    )
+}
+
 allprojects {
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "io.gitlab.arturbosch.detekt")

@@ -68,7 +68,7 @@ fun DoorStatusCard(
     // Select the door color based on the door state.
     val color = doorEvent.color(LocalDoorStatusColorScheme.current, isStale = isCheckInStale)
     // Blend the door color into the color of the text on background.
-    val contentColor = blendColors(color, MaterialTheme.colorScheme.onBackground, 0.5f)
+    val contentColor = GarageColors.blendColors(color, MaterialTheme.colorScheme.onBackground, 0.5f)
     CompositionLocalProvider(LocalContentColor provides contentColor) {
         Box(
             modifier = modifier,

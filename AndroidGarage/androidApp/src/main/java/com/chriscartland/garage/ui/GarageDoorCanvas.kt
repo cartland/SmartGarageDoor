@@ -77,7 +77,7 @@ fun GarageDoorCanvas(
     modifier: Modifier = Modifier,
     color: Color = Color(0xFF3C5232),
 ) {
-    val darkColor = blendColors(color, Color.Black, 0.5f)
+    val darkColor = GarageColors.blendColors(color, Color.Black, 0.5f)
     Canvas(modifier = modifier) {
         drawGarageDoor(doorOffset, color, darkColor)
     }

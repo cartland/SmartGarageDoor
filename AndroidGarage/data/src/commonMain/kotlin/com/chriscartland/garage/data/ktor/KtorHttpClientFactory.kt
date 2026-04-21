@@ -10,18 +10,21 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
 /**
- * Creates a fully configured [HttpClient] using the platform-specific engine.
+ * Factory for fully configured [HttpClient] instances.
  *
- * This is the primary way to get an HTTP client in shared code.
- * The engine (OkHttp on Android, Darwin on iOS) is provided via [createPlatformHttpEngine].
+ * The engine (OkHttp on Android, Darwin on iOS) is provided via
+ * [createPlatformHttpEngine]; shared configuration is applied via
+ * [configureSharedHttpClient].
  */
-fun createHttpClient(
-    baseUrl: String,
-    debug: Boolean,
-): HttpClient =
-    HttpClient(createPlatformHttpEngine()) {
-        configureSharedHttpClient(baseUrl, debug)
-    }
+object KtorHttpClientFactory {
+    fun create(
+        baseUrl: String,
+        debug: Boolean,
+    ): HttpClient =
+        HttpClient(createPlatformHttpEngine()) {
+            configureSharedHttpClient(baseUrl, debug)
+        }
+}
 
 /**
  * Configures an [HttpClient] with shared settings (JSON, logging, base URL).

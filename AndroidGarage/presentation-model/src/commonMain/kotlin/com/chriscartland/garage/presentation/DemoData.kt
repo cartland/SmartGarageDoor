@@ -28,42 +28,44 @@ import com.chriscartland.garage.domain.model.DoorPosition
  */
 private const val DEMO_TIMESTAMP = 1768507200L
 
-val demoDoorEvents = generateDoorEventDemoData()
-
-fun generateDoorEventDemoData(numEvents: Int = 10): List<DoorEvent> {
-    val positions = listOf(
-        DoorPosition.CLOSED,
-        DoorPosition.OPEN,
-        DoorPosition.OPENING,
-        DoorPosition.CLOSING,
-        DoorPosition.CLOSED,
-        DoorPosition.OPEN_MISALIGNED,
-        DoorPosition.OPENING_TOO_LONG,
-        DoorPosition.CLOSING_TOO_LONG,
-        DoorPosition.ERROR_SENSOR_CONFLICT,
-        DoorPosition.UNKNOWN,
-    )
-
-    return (0 until numEvents).map { index ->
-        val doorPosition = positions[index % positions.size]
-        val message =
-            when (doorPosition) {
-                DoorPosition.UNKNOWN -> "Unknown event"
-                DoorPosition.CLOSED -> "The door is closed."
-                DoorPosition.OPENING -> "The door is opening."
-                DoorPosition.OPENING_TOO_LONG -> "The door has been opening too long."
-                DoorPosition.OPEN -> "The door is open."
-                DoorPosition.OPEN_MISALIGNED -> "The door is open but misaligned."
-                DoorPosition.CLOSING -> "The door is closing."
-                DoorPosition.CLOSING_TOO_LONG -> "The door has been closing too long."
-                DoorPosition.ERROR_SENSOR_CONFLICT -> "Sensor conflict detected."
-            }
-
-        DoorEvent(
-            doorPosition = doorPosition,
-            message = message,
-            lastCheckInTimeSeconds = DEMO_TIMESTAMP - (index + 1) * 600L,
-            lastChangeTimeSeconds = DEMO_TIMESTAMP - (index + 1) * 300L,
+object DemoData {
+    fun generateDoorEvents(numEvents: Int = 10): List<DoorEvent> {
+        val positions = listOf(
+            DoorPosition.CLOSED,
+            DoorPosition.OPEN,
+            DoorPosition.OPENING,
+            DoorPosition.CLOSING,
+            DoorPosition.CLOSED,
+            DoorPosition.OPEN_MISALIGNED,
+            DoorPosition.OPENING_TOO_LONG,
+            DoorPosition.CLOSING_TOO_LONG,
+            DoorPosition.ERROR_SENSOR_CONFLICT,
+            DoorPosition.UNKNOWN,
         )
+
+        return (0 until numEvents).map { index ->
+            val doorPosition = positions[index % positions.size]
+            val message =
+                when (doorPosition) {
+                    DoorPosition.UNKNOWN -> "Unknown event"
+                    DoorPosition.CLOSED -> "The door is closed."
+                    DoorPosition.OPENING -> "The door is opening."
+                    DoorPosition.OPENING_TOO_LONG -> "The door has been opening too long."
+                    DoorPosition.OPEN -> "The door is open."
+                    DoorPosition.OPEN_MISALIGNED -> "The door is open but misaligned."
+                    DoorPosition.CLOSING -> "The door is closing."
+                    DoorPosition.CLOSING_TOO_LONG -> "The door has been closing too long."
+                    DoorPosition.ERROR_SENSOR_CONFLICT -> "Sensor conflict detected."
+                }
+
+            DoorEvent(
+                doorPosition = doorPosition,
+                message = message,
+                lastCheckInTimeSeconds = DEMO_TIMESTAMP - (index + 1) * 600L,
+                lastChangeTimeSeconds = DEMO_TIMESTAMP - (index + 1) * 300L,
+            )
+        }
     }
 }
+
+val demoDoorEvents = DemoData.generateDoorEvents()

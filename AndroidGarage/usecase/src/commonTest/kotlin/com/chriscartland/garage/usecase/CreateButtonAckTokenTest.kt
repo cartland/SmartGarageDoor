@@ -23,7 +23,7 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 /**
- * Contract tests for [createButtonAckToken].
+ * Contract tests for [ButtonAckToken.create].
  *
  * The token format is part of the ESP32 / server protocol (the server uses the
  * token to deduplicate button presses). Changes to the format here mean a server
@@ -32,7 +32,7 @@ import kotlin.test.assertTrue
 class CreateButtonAckTokenTest {
     @Test
     fun tokenFormatIsAndroidVersionTimestamp() {
-        val token = createButtonAckToken(
+        val token = ButtonAckToken.create(
             currentTimeMillis = 1234567890L,
             appVersion = "2.4.0",
         )
@@ -41,22 +41,22 @@ class CreateButtonAckTokenTest {
 
     @Test
     fun tokenIsDeterministicForSameInputs() {
-        val a = createButtonAckToken(currentTimeMillis = 1000L, appVersion = "1.0")
-        val b = createButtonAckToken(currentTimeMillis = 1000L, appVersion = "1.0")
+        val a = ButtonAckToken.create(currentTimeMillis = 1000L, appVersion = "1.0")
+        val b = ButtonAckToken.create(currentTimeMillis = 1000L, appVersion = "1.0")
         assertEquals(a, b)
     }
 
     @Test
     fun tokenChangesWhenTimestampChanges() {
-        val a = createButtonAckToken(currentTimeMillis = 1000L, appVersion = "1.0")
-        val b = createButtonAckToken(currentTimeMillis = 1001L, appVersion = "1.0")
+        val a = ButtonAckToken.create(currentTimeMillis = 1000L, appVersion = "1.0")
+        val b = ButtonAckToken.create(currentTimeMillis = 1001L, appVersion = "1.0")
         assertNotEquals(a, b)
     }
 
     @Test
     fun tokenChangesWhenVersionChanges() {
-        val a = createButtonAckToken(currentTimeMillis = 1000L, appVersion = "1.0")
-        val b = createButtonAckToken(currentTimeMillis = 1000L, appVersion = "1.1")
+        val a = ButtonAckToken.create(currentTimeMillis = 1000L, appVersion = "1.0")
+        val b = ButtonAckToken.create(currentTimeMillis = 1000L, appVersion = "1.1")
         assertNotEquals(a, b)
     }
 
@@ -64,7 +64,7 @@ class CreateButtonAckTokenTest {
     fun specialCharactersInVersionAreReplacedWithDots() {
         // The server URL-encodes tokens, so non-alphanumeric chars must be
         // replaced with `.` before sending to keep the token URL-safe.
-        val token = createButtonAckToken(
+        val token = ButtonAckToken.create(
             currentTimeMillis = 100L,
             appVersion = "2.4.0+release/special chars",
         )
@@ -77,7 +77,7 @@ class CreateButtonAckTokenTest {
 
     @Test
     fun emptyVersionStillProducesValidToken() {
-        val token = createButtonAckToken(currentTimeMillis = 99L, appVersion = "")
+        val token = ButtonAckToken.create(currentTimeMillis = 99L, appVersion = "")
         assertEquals("android--99", token)
     }
 }

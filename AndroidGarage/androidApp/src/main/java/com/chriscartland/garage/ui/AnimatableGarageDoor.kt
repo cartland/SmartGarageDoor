@@ -218,14 +218,16 @@ fun Midway(
     }
 }
 
-fun blendColors(
-    color1: Color,
-    color2: Color,
-    ratio: Float,
-): Color {
-    val color1Int = color1.toArgb()
-    val color2Int = color2.toArgb()
-    return Color(ColorUtils.blendARGB(color1Int, color2Int, ratio))
+object GarageColors {
+    fun blendColors(
+        color1: Color,
+        color2: Color,
+        ratio: Float,
+    ): Color {
+        val color1Int = color1.toArgb()
+        val color2Int = color2.toArgb()
+        return Color(ColorUtils.blendARGB(color1Int, color2Int, ratio))
+    }
 }
 
 // --- Previews ---
