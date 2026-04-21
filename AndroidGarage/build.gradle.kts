@@ -157,6 +157,15 @@ tasks.register<testcoverage.TestCoverageCheckTask>("checkTestCoverage") {
     patterns = listOf("ViewModel", "Repository")
 }
 
+tasks.register<architecture.SingletonCachingCheckTask>("checkSingletonCaching") {
+    appComponentPath = "$rootDir/androidApp/src/main/java/com/chriscartland/garage/di/AppComponent.kt"
+    generatedComponentPath =
+        "$rootDir/androidApp/build/generated/ksp/debug/kotlin/com/chriscartland/garage/di/InjectAppComponent.kt"
+    // The generated file only exists after KSP runs. Depend on the debug KSP task
+    // so `./gradlew checkSingletonCaching` works standalone.
+    dependsOn(":androidApp:kspDebugKotlin")
+}
+
 allprojects {
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "io.gitlab.arturbosch.detekt")

@@ -95,6 +95,18 @@ C1-C3 apply.
 
 ## How to detect this bug
 
+### Automated: `checkSingletonCaching`
+
+`validate.sh` runs `./gradlew checkSingletonCaching`, a build-time check
+that parses every `@Provides @Singleton fun provideX(...)` in
+`AppComponent.kt` and verifies a matching `_scoped.get(...) { provideX() }`
+call exists in the generated `InjectAppComponent.kt`. If any provider is
+marked `@Singleton` but not cached, the task fails with a list of the
+offenders and a pointer back to this doc. Runs on every local validation
+and every PR — the android/170 regression shape cannot land silently.
+
+The task source is `AndroidGarage/buildSrc/src/main/kotlin/architecture/SingletonCachingCheckTask.kt`.
+
 ### Mechanical: inspect the generated component
 
 ```bash
@@ -105,11 +117,8 @@ Read the file. Healthy generation for an app of this size produces
 **hundreds of lines** — one override per abstract entry, each calling
 `_scoped.get(...)` or computing the instance directly. If the file is
 **under 20 lines** and has no `override val <provider>` lines, scoping
-is broken.
-
-Commit the first non-trivial `InjectAppComponent.kt` line count as a
-check: `validate.sh` can grep `build/generated/ksp/*/kotlin/**/Inject*.kt`
-and fail if the count is suspiciously small.
+is broken. (Use this if `checkSingletonCaching` reported a failure and
+you want to see the exact missing overrides.)
 
 ### Static: run a reference-identity test
 
