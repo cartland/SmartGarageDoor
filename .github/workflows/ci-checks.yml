@@ -75,6 +75,41 @@ jobs:
           name: test-reports
           path: AndroidGarage/androidApp/build/reports/tests/
 
+  fcm_contract_tests:
+    # Dedicated job that names the FCM contract tests as a distinct
+    # check-run in the PR UI. FCM is the canonical silent-failure class
+    # in this repo — topic format or payload key changes produce no
+    # visible error; users' push notifications just stop working. The
+    # contract tests (FcmTopicTest, FcmPayloadParsingTest,
+    # FcmMessageHandlerTest) pin the wire format. They also run as part
+    # of the main unit_tests job; this job makes their existence and
+    # pass/fail state visible to reviewers, and is a natural candidate
+    # for branch protection "required check" status.
+    name: FCM Contract Tests
+    if: inputs.android == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-android
+        with:
+          encrypt-key: ${{ secrets.ENCRYPT_KEY }}
+      - name: FcmTopicTest (domain)
+        working-directory: AndroidGarage
+        run: ./gradlew :domain:testDebugUnitTest --tests 'com.chriscartland.garage.domain.model.FcmTopicTest'
+      - name: FcmPayloadParsingTest (data)
+        working-directory: AndroidGarage
+        run: ./gradlew :data:testDebugUnitTest --tests 'com.chriscartland.garage.data.FcmPayloadParsingTest'
+      - name: FcmMessageHandlerTest (androidApp)
+        working-directory: AndroidGarage
+        env:
+          SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+        run: ./gradlew :androidApp:testDebugUnitTest --tests 'com.chriscartland.garage.fcm.FcmMessageHandlerTest' -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
+      - name: Clean secrets
+        if: always()
+        working-directory: AndroidGarage
+        run: ./release/clean-secrets.sh
+
   build_debug:
     name: Build Debug APK
     if: inputs.android == 'true'
