@@ -25,6 +25,18 @@ import java.io.File
  * `@Singleton` provider in source is missing a corresponding
  * `_scoped.get(...) { provideX() }` call in the generated output.
  *
+ * # Library-version fragility
+ *
+ * This check depends on kotlin-inject's generated-code shape: the
+ * class name (`InjectAppComponent`), the scope-map field name
+ * (`_scoped`), and the call shape (`_scoped.get("FQN") { provideX() }`).
+ * If kotlin-inject upgrades its codegen, the regexes below will stop
+ * matching and the check will fire with the
+ * "unrecognized codegen shape" branch in the failure message, which
+ * tells the maintainer what to do: inspect the generated file,
+ * update the regexes here, or retire this static check in favor of
+ * the runtime `ComponentGraphTest` identity asserts.
+ *
  * See `AndroidGarage/docs/DI_SINGLETON_REQUIREMENTS.md` and
  * `AndroidGarage/docs/POSTMORTEM_ANDROID_170.md` for context.
  */
@@ -69,6 +81,50 @@ abstract class SingletonCachingCheckTask : DefaultTask() {
             )
         }
 
+        val providerScopeAnnotations = countProviderScopeAnnotations(sourceContent)
+        val cachedEntries = countCachedEntries(generatedContent)
+
+        // Pre-check: if the source has @Singleton providers but the generated
+        // file has zero `_scoped.get(...)` calls, the regex no longer recognizes
+        // the codegen shape. This is almost always a kotlin-inject library
+        // upgrade, not a source-code bug. Fail loudly with a distinct message
+        // so the maintainer doesn't waste time hunting for a phantom source
+        // regression.
+        if (providerScopeAnnotations > 0 && cachedEntries == 0) {
+            throw GradleException(
+                buildString {
+                    append("Singleton caching check FAILED — unrecognized codegen shape.\n\n")
+                    append("Source has $providerScopeAnnotations @Singleton provider(s) but the generated\n")
+                    append("InjectAppComponent.kt has ZERO `_scoped.get(...)` calls.\n\n")
+                    append("This has two possible causes:\n\n")
+                    append("  (A) Real bug — the android/170 regression shape.\n")
+                    append("      kotlin-inject produced an empty subclass (~15 lines). Every\n")
+                    append("      consumer gets a fresh instance. Fix by converting providers to\n")
+                    append("      `@Provides @Singleton fun provideX(...): T = ...` and ensuring\n")
+                    append("      each is reachable via an abstract entry point.\n\n")
+                    append("  (B) kotlin-inject was upgraded and changed its codegen.\n")
+                    append("      This task's regex expects the library to emit\n")
+                    append("      `_scoped.get(\"FQN\") { provideX(...) }` in\n")
+                    append("      InjectAppComponent.kt. If the library renamed `_scoped`,\n")
+                    append("      restructured the generated class, or moved caching to a\n")
+                    append("      different primitive (e.g. `_cache.getOrPut`), this check will\n")
+                    append("      no longer find any matches.\n\n")
+                    append("How to tell which case:\n")
+                    append("  1. Open $generatedComponentPath\n")
+                    append("  2. If it's short (~15 lines) with no scoping calls at all → case (A).\n")
+                    append("     Read docs/POSTMORTEM_ANDROID_170.md and fix the provider shapes.\n")
+                    append("  3. If it has scoping calls under a different name/shape → case (B).\n")
+                    append("     Update the regexes in:\n")
+                    append("     AndroidGarage/buildSrc/src/main/kotlin/architecture/SingletonCachingCheckTask.kt\n")
+                    append("     (specifically `countCachedEntries` and `isCachedInGenerated`).\n")
+                    append("     If the library no longer exposes caching textually, retire this\n")
+                    append("     static check and rely on the runtime ComponentGraphTest\n")
+                    append("     `*IsSingleton` assertions as the sole guard.\n\n")
+                    append("See docs/DI_SINGLETON_REQUIREMENTS.md for background.\n")
+                },
+            )
+        }
+
         // Check 1: each well-shaped @Singleton fun has a matching _scoped.get entry.
         val missingCaching = singletonProviders.filter { providerName ->
             !isCachedInGenerated(providerName, generatedContent)
@@ -80,9 +136,6 @@ abstract class SingletonCachingCheckTask : DefaultTask() {
         // shape that bypasses caching (e.g., `val x: T @Provides @Singleton get() = ...`)
         // — that shape isn't picked up by extractSingletonProviders above, so the name
         // check alone would miss it.
-        val providerScopeAnnotations = countProviderScopeAnnotations(sourceContent)
-        val cachedEntries = countCachedEntries(generatedContent)
-
         val errors = buildList {
             if (missingCaching.isNotEmpty()) {
                 add(
@@ -109,12 +162,16 @@ abstract class SingletonCachingCheckTask : DefaultTask() {
                     append("\n")
                     append("These @Singleton providers are not being cached by kotlin-inject.\n")
                     append("Every consumer will get a fresh instance; shared state will break.\n\n")
-                    append("Root cause is usually provider shape. Fix:\n")
+                    append("Most likely cause — provider shape in AppComponent.kt:\n")
                     append("  - Prefer: @Provides @Singleton fun provideX(...): T = ...\n")
                     append("  - Avoid:  val x: T @Provides @Singleton get() = ...\n")
                     append("    (concrete getters bypass caching)\n")
                     append("  - The abstract entry point `abstract val X: T` must be declared in\n")
                     append("    AppComponent so the generator has something to override.\n\n")
+                    append("Less likely — kotlin-inject codegen changed across a library upgrade.\n")
+                    append("If AppComponent.kt looks correct, inspect $generatedComponentPath\n")
+                    append("and compare against the patterns in this task\n")
+                    append("(SingletonCachingCheckTask.kt — `isCachedInGenerated`, `countCachedEntries`).\n\n")
                     append("See docs/DI_SINGLETON_REQUIREMENTS.md and docs/POSTMORTEM_ANDROID_170.md.\n")
                     append("This is the shape of the android/170 snooze regression.\n")
                 },
