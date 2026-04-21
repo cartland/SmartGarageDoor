@@ -185,6 +185,18 @@ tasks.register<architecture.NoBareTopLevelFunctionsTask>("checkNoBareTopLevelFun
     )
 }
 
+tasks.register<architecture.NoImplSuffixTask>("checkNoImplSuffix") {
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+        "$rootDir/usecase/src/commonMain/kotlin",
+        "$rootDir/presentation-model/src/commonMain/kotlin",
+        "$rootDir/domain/src/commonMain/kotlin",
+        "$rootDir/data/src/commonMain/kotlin",
+        "$rootDir/data-local/src/commonMain/kotlin",
+        "$rootDir/test-common/src/commonMain/kotlin",
+    )
+}
+
 allprojects {
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "io.gitlab.arturbosch.detekt")

@@ -49,6 +49,9 @@ $GRADLE checkNoRawDispatchers && pass "no raw dispatchers" || fail "no raw dispa
 step "No bare top-level functions (ADR-009 — group in object {})"
 $GRADLE checkNoBareTopLevelFunctions && pass "no bare top-level functions" || fail "no bare top-level functions"
 
+step "No *Impl suffix on class names (ADR-008 — use descriptive prefix)"
+$GRADLE checkNoImplSuffix && pass "no *Impl suffix" || fail "no *Impl suffix"
+
 step "Layer imports (ViewModel→UseCase, UseCase→domain)"
 $GRADLE checkLayerImports && pass "layer imports" || fail "layer imports"
 
