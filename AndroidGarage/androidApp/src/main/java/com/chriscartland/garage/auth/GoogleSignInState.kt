@@ -62,7 +62,7 @@ fun rememberGoogleSignIn(onTokenReceived: (GoogleIdToken) -> Unit): GoogleSignIn
                 Logger.e { "Google sign-in: result data is null" }
                 return@rememberLauncherForActivityResult
             }
-            extractGoogleIdToken(signInClient, data)?.let(onTokenReceived)
+            GoogleSignInInternals.extractGoogleIdToken(signInClient, data)?.let(onTokenReceived)
         }
     }
 
@@ -79,7 +79,7 @@ class GoogleSignInState internal constructor(
     private val launcher: ActivityResultLauncher<IntentSenderRequest>,
 ) {
     fun launchSignIn() {
-        checkSignInConfiguration()
+        GoogleSignInInternals.checkSignInConfiguration()
         val request = BeginSignInRequest
             .builder()
             .setGoogleIdTokenRequestOptions(
@@ -106,38 +106,40 @@ class GoogleSignInState internal constructor(
     }
 }
 
-/**
- * Extract the Google ID Token from the sign-in result Intent.
- */
-private fun extractGoogleIdToken(
-    client: SignInClient,
-    data: android.content.Intent,
-): GoogleIdToken? {
-    try {
-        val credential = client.getSignInCredentialFromIntent(data)
-        return credential.googleIdToken?.let { GoogleIdToken(it) }
-    } catch (e: ApiException) {
-        when (e.statusCode) {
-            CommonStatusCodes.CANCELED -> Logger.d { "One-tap dialog was closed." }
-            CommonStatusCodes.NETWORK_ERROR -> Logger.d { "One-tap encountered a network error." }
-            else -> Logger.d {
-                "Couldn't get credential from result. statusCode: ${e.statusCode} (${e.localizedMessage})"
-            }
-        }
-    }
-    return null
-}
-
 private const val INCORRECT_WEB_CLIENT_ID =
     "123456789012-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz.apps.googleusercontent.com"
 
-private fun checkSignInConfiguration() {
-    if (BuildConfig.GOOGLE_WEB_CLIENT_ID == INCORRECT_WEB_CLIENT_ID) {
-        Logger.e {
-            "The web client ID matches the INCORRECT_WEB_CLIENT_ID. " +
-                "One Tap Sign-In with Google will not work. " +
-                "Update the web client ID. " +
-                "https://console.cloud.google.com/apis/credentials"
+private object GoogleSignInInternals {
+    /**
+     * Extract the Google ID Token from the sign-in result Intent.
+     */
+    fun extractGoogleIdToken(
+        client: SignInClient,
+        data: android.content.Intent,
+    ): GoogleIdToken? {
+        try {
+            val credential = client.getSignInCredentialFromIntent(data)
+            return credential.googleIdToken?.let { GoogleIdToken(it) }
+        } catch (e: ApiException) {
+            when (e.statusCode) {
+                CommonStatusCodes.CANCELED -> Logger.d { "One-tap dialog was closed." }
+                CommonStatusCodes.NETWORK_ERROR -> Logger.d { "One-tap encountered a network error." }
+                else -> Logger.d {
+                    "Couldn't get credential from result. statusCode: ${e.statusCode} (${e.localizedMessage})"
+                }
+            }
+        }
+        return null
+    }
+
+    fun checkSignInConfiguration() {
+        if (BuildConfig.GOOGLE_WEB_CLIENT_ID == INCORRECT_WEB_CLIENT_ID) {
+            Logger.e {
+                "The web client ID matches the INCORRECT_WEB_CLIENT_ID. " +
+                    "One Tap Sign-In with Google will not work. " +
+                    "Update the web client ID. " +
+                    "https://console.cloud.google.com/apis/credentials"
+            }
         }
     }
 }

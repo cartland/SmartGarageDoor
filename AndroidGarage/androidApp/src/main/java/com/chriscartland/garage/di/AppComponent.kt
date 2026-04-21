@@ -29,10 +29,10 @@ import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkConfigDataSource
 import com.chriscartland.garage.data.NetworkDoorDataSource
 import com.chriscartland.garage.data.coroutines.DefaultDispatcherProvider
+import com.chriscartland.garage.data.ktor.KtorHttpClientFactory
 import com.chriscartland.garage.data.ktor.KtorNetworkButtonDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkConfigDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkDoorDataSource
-import com.chriscartland.garage.data.ktor.createHttpClient
 import com.chriscartland.garage.data.repository.CachedServerConfigRepository
 import com.chriscartland.garage.data.repository.FirebaseAuthRepository
 import com.chriscartland.garage.data.repository.FirebaseDoorFcmRepository
@@ -302,7 +302,8 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
-    fun provideHttpClient(appConfig: AppConfig): HttpClient = createHttpClient(baseUrl = appConfig.baseUrl, debug = BuildConfig.DEBUG)
+    fun provideHttpClient(appConfig: AppConfig): HttpClient =
+        KtorHttpClientFactory.create(baseUrl = appConfig.baseUrl, debug = BuildConfig.DEBUG)
 
     @Provides
     @Singleton

@@ -53,7 +53,7 @@ import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.domain.model.User
-import com.chriscartland.garage.permissions.notificationJustificationText
+import com.chriscartland.garage.permissions.NotificationPermissionCopy
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
 import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.usecase.AppLoggerViewModel
@@ -158,7 +158,7 @@ fun HomeContent(
         // Add a card at the top if the notification permission is not granted.
         if (!notificationPermissionState.status.isGranted) {
             ErrorCard(
-                text = notificationJustificationText(permissionRequestCount),
+                text = NotificationPermissionCopy.justificationText(permissionRequestCount),
                 buttonText = "Allow",
                 onClick = {
                     permissionRequestCount++

@@ -60,26 +60,28 @@ fun rememberPermissionAlwaysGranted(permission: String): PermissionState =
     }
 
 /**
- * Returns a string that explains why notifications are needed.
+ * Copy for the notification-permission justification prompt.
  *
- * If the button is clicked more times, show increasingly detailed messages
- * about managing permissions.
+ * Produces increasingly detailed messages as the attempt count grows, in
+ * line with Android's "system might block you" behavior.
  */
-fun notificationJustificationText(attemptCount: Int = 0): String {
-    val baseText = "Please turn on notifications to be notified when the door is left open."
-    return buildString {
-        append(baseText)
-        if (attemptCount > 2) {
-            append("\nYou can manage permissions in the Android system settings.")
-        }
-        if (attemptCount > 3) {
-            append(
-                "\nAndroid might be blocking requests because " +
-                    "the permission was denied multiple times.",
-            )
-        }
-        if (attemptCount > 4) {
-            append("\nYou have clicked the button $attemptCount times.")
+object NotificationPermissionCopy {
+    fun justificationText(attemptCount: Int = 0): String {
+        val baseText = "Please turn on notifications to be notified when the door is left open."
+        return buildString {
+            append(baseText)
+            if (attemptCount > 2) {
+                append("\nYou can manage permissions in the Android system settings.")
+            }
+            if (attemptCount > 3) {
+                append(
+                    "\nAndroid might be blocking requests because " +
+                        "the permission was denied multiple times.",
+                )
+            }
+            if (attemptCount > 4) {
+                append("\nYou have clicked the button $attemptCount times.")
+            }
         }
     }
 }
