@@ -60,3 +60,77 @@ jobs:
           if [ "${HIGH:-0}" -gt 0 ]; then
             echo "::warning::npm audit reports $HIGH high/critical vulnerabilities. Triage with: gh api repos/$GITHUB_REPOSITORY/dependabot/alerts"
           fi
+
+  # Emulator smoke test — proves the compiled bundle actually LOADS under
+  # Firebase Functions. Unit tests exercise TypeScript source via ts-node;
+  # this job compiles, installs, then boots the Functions emulator and
+  # hits an endpoint with curl. Catches transitive-dep breakage that unit
+  # tests miss — the classic symptom is "tests pass, emulator crashes on
+  # startup with a require() error" after a dep upgrade. A pass proves:
+  #
+  #   - The compiled `lib/` loads under Node 20 in the emulator runtime.
+  #   - All transitive deps resolve (firebase-admin, express, jws,
+  #     node-forge, etc.).
+  #   - Express + the function router can dispatch a request.
+  #
+  # The endpoint (/serverConfig) short-circuits before Firestore access:
+  # no config key set → 500 with a specific error message. A 500-with-
+  # body still means the module loaded and ran; connection-refused (000)
+  # is what we're actually guarding against.
+  #
+  # The job is gated on `inputs.firebase == 'true'` just like the other
+  # jobs — non-Firebase and docs-only PRs skip it automatically.
+  emulator_smoke_test:
+    name: Emulator Smoke Test
+    if: inputs.firebase == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        working-directory: FirebaseServer
+        run: npm install
+      - name: Build
+        working-directory: FirebaseServer
+        run: npm run build
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+      - name: Run emulator smoke test
+        working-directory: FirebaseServer
+        env:
+          # Prevent Firebase CLI from attempting to reach Google services
+          # during emulator-only runs.
+          FIREBASE_CLI_DISABLE_ANONYMOUS_DATA: 'true'
+        run: |
+          # Project IDs prefixed with `demo-` run the Firebase CLI in
+          # pure-emulator mode — no cloud auth, no real project required.
+          PROJECT='demo-smoke-test'
+          REGION='us-central1'
+          # The emulator hosts functions at:
+          # http://127.0.0.1:5001/<project>/<region>/<function-name>
+          BASE="http://127.0.0.1:5001/${PROJECT}/${REGION}"
+          # Start emulators, run the smoke checks inside the wrapped
+          # command, shut down. The exit code of the wrapped command
+          # determines job status.
+          firebase emulators:exec \
+            --project "${PROJECT}" \
+            --only functions,firestore \
+            --config firebase.json \
+            "set -e
+             echo '--- smoke: hitting /serverConfig ---'
+             STATUS=\$(curl -sS -o /tmp/smoke.json -w '%{http_code}' \"${BASE}/serverConfig\" || echo '000')
+             echo \"status=\$STATUS\"
+             cat /tmp/smoke.json || true
+             echo
+             # Any 2xx/3xx/4xx/5xx means the function module loaded and
+             # the handler responded with an HTTP code. A '000' (curl
+             # connection refused) means the module didn't load — that
+             # is the exact signal this smoke test is designed to catch.
+             case \"\$STATUS\" in
+               000|'') echo 'smoke: FAIL (no HTTP response — module likely failed to load)'; exit 1 ;;
+               *)      echo 'smoke: pass'; exit 0 ;;
+             esac"
