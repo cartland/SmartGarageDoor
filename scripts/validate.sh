@@ -55,6 +55,9 @@ $GRADLE checkNoImplSuffix && pass "no *Impl suffix" || fail "no *Impl suffix"
 step "No Mockito imports (ADR-003 — fakes over mocks)"
 $GRADLE checkNoMockitoImports && pass "no Mockito imports" || fail "no Mockito imports"
 
+step "Mutex withLock (no bare .lock()/.unlock())"
+$GRADLE checkMutexWithLock && pass "mutex withLock" || fail "mutex withLock"
+
 step "Layer imports (ViewModel→UseCase, UseCase→domain)"
 $GRADLE checkLayerImports && pass "layer imports" || fail "layer imports"
 

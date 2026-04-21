@@ -210,6 +210,17 @@ tasks.register<architecture.NoMockitoImportsTask>("checkNoMockitoImports") {
     )
 }
 
+tasks.register<architecture.MutexWithLockTask>("checkMutexWithLock") {
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+        "$rootDir/usecase/src/commonMain/kotlin",
+        "$rootDir/presentation-model/src/commonMain/kotlin",
+        "$rootDir/domain/src/commonMain/kotlin",
+        "$rootDir/data/src/commonMain/kotlin",
+        "$rootDir/data-local/src/commonMain/kotlin",
+    )
+}
+
 allprojects {
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "io.gitlab.arturbosch.detekt")
