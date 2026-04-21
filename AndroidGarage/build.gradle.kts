@@ -197,6 +197,19 @@ tasks.register<architecture.NoImplSuffixTask>("checkNoImplSuffix") {
     )
 }
 
+tasks.register<architecture.NoMockitoImportsTask>("checkNoMockitoImports") {
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/test/java",
+        "$rootDir/androidApp/src/androidTest/java",
+        "$rootDir/usecase/src/commonTest/kotlin",
+        "$rootDir/data/src/commonTest/kotlin",
+        "$rootDir/data-local/src/commonTest/kotlin",
+        "$rootDir/domain/src/commonTest/kotlin",
+        "$rootDir/presentation-model/src/commonTest/kotlin",
+        "$rootDir/test-common/src/commonMain/kotlin",
+    )
+}
+
 allprojects {
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "io.gitlab.arturbosch.detekt")

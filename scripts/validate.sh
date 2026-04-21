@@ -52,6 +52,9 @@ $GRADLE checkNoBareTopLevelFunctions && pass "no bare top-level functions" || fa
 step "No *Impl suffix on class names (ADR-008 — use descriptive prefix)"
 $GRADLE checkNoImplSuffix && pass "no *Impl suffix" || fail "no *Impl suffix"
 
+step "No Mockito imports (ADR-003 — fakes over mocks)"
+$GRADLE checkNoMockitoImports && pass "no Mockito imports" || fail "no Mockito imports"
+
 step "Layer imports (ViewModel→UseCase, UseCase→domain)"
 $GRADLE checkLayerImports && pass "layer imports" || fail "layer imports"
 
