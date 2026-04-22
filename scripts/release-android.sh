@@ -52,7 +52,6 @@ CONFIRM_TAG=""
 CONFIRM_HASH=""
 CONFIRM_ROLLBACK_FROM=""
 CONFIRM_UNVALIDATED_RELEASE=""
-SKIP_VALIDATION=false  # legacy; prefer --confirm-unvalidated-release
 DRY_RUN=false
 
 show_help() {
@@ -76,10 +75,6 @@ Override flags (all require a specific value from --check output):
   --confirm-unvalidated-release <sha>
                                     Release without validation marker match.
                                     SHA must equal the target commit.
-
-Deprecated:
-  --skip-validation         Legacy boolean skip; prefer --confirm-unvalidated-release.
-                            Still accepted for backward compat.
 
 Help:
   -h, --help                Show this help
@@ -112,10 +107,6 @@ while [[ $# -gt 0 ]]; do
         --confirm-unvalidated-release)
             CONFIRM_UNVALIDATED_RELEASE="$2"
             shift 2
-            ;;
-        --skip-validation)
-            SKIP_VALIDATION=true
-            shift
             ;;
         --dry-run)
             DRY_RUN=true
@@ -350,10 +341,9 @@ elif [ "$IS_ROLLBACK" = "true" ]; then
 fi
 
 # === Gate: Validation ===
-# Three acceptable paths:
+# Two acceptable paths:
 #   A. Validation marker matches target commit (normal)
 #   B. --confirm-unvalidated-release matches target commit (emergency)
-#   C. --skip-validation (legacy; deprecated)
 if [ "$VALIDATION_STATE" = "matches" ]; then
     echo -e "${GREEN}Validation passed for this commit.${RESET}"
 elif [ -n "$CONFIRM_UNVALIDATED_RELEASE" ]; then
@@ -367,11 +357,6 @@ elif [ -n "$CONFIRM_UNVALIDATED_RELEASE" ]; then
     fi
     echo -e "${YELLOW}WARNING: Releasing without validation (--confirm-unvalidated-release).${RESET}"
     echo "  This is intended for emergencies (hotfixes, rollbacks of old tags)."
-    echo ""
-elif [ "$SKIP_VALIDATION" = true ]; then
-    echo -e "${YELLOW}WARNING: --skip-validation is deprecated.${RESET}"
-    echo "  Prefer --confirm-unvalidated-release <sha>. See --help."
-    echo -e "${YELLOW}WARNING: Validation check skipped.${RESET}"
     echo ""
 else
     if [ "$MODE" = "interactive" ]; then

@@ -222,7 +222,7 @@ The script computes the next tag as `android/<highest + 1>`. The `--confirm-tag`
 
 **Design principle — overrides confirm reality.** Every override flag takes a value (SHA or tag) that must match what's actually in the repo. Wrong value = refused. This makes correct usage easy (read from `--check`) and accidental usage hard (you'd have to type the right value for the wrong situation).
 
-**Validation is required by default.** Run `./scripts/validate.sh` before releasing. If validation hasn't passed on the commit, the release script will block. For emergencies use `--confirm-unvalidated-release <sha>` (the SHA must equal the target commit). `--skip-validation` is kept as a deprecated alias; prefer the explicit form. Always ask the user before skipping validation.
+**Validation is required by default.** Run `./scripts/validate.sh` before releasing. If validation hasn't passed on the commit, the release script will block. For emergencies use `--confirm-unvalidated-release <sha>` — the SHA must equal the target commit. Always ask the user before skipping validation.
 
 **Rollback requires two steps** (intentionally hard to do accidentally):
 ```bash
