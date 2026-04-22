@@ -233,16 +233,25 @@ git checkout android/M                 # 1. move HEAD to the commit you want to 
 **Versioning rule (see [CHANGELOG.md](AndroidGarage/CHANGELOG.md#versioning)):** major = rewrite or core-experience shift; minor = added or removed user-facing feature/capability; patch = fixes, polish, refactors. `CHANGELOG.md` logs every version; `distribution/whatsnew/` gets one line per minor/major (patches roll up).
 
 ### Releasing Firebase Server
-Use `./scripts/release-firebase.sh` — same pattern as Android releases.
+Use `./scripts/release-firebase.sh` — same pattern as Android releases (same flags, same `--check` copy-paste workflow, same rollback recipe).
 
 ```bash
-./scripts/release-firebase.sh              # Interactive (terminal only)
-./scripts/release-firebase.sh --check      # Print latest + next tag
-./scripts/release-firebase.sh --confirm-tag server/N  # Non-interactive
-./scripts/release-firebase.sh --dry-run    # Preview without releasing
+./scripts/release-firebase.sh --check              # State + copy-paste-ready next command
+./scripts/release-firebase.sh --confirm-tag server/N  # Normal release
+./scripts/release-firebase.sh --dry-run            # Preview without releasing
 ```
 
+**Always start with `--check`.** It prints the exact command to run next (normal, rollback, or emergency), with SHAs and tag numbers already filled in. Copy and paste — don't retype from memory.
+
 The script computes the next tag as `server/<highest + 1>`. Deploys Cloud Functions only.
+
+**Validation is required by default.** Run `./scripts/validate-firebase.sh` before releasing (runs `npm run build` + `npm run tests`, writes marker with commit SHA). For emergencies use `--confirm-unvalidated-release <sha>` — the SHA must equal the target commit. Remote Firebase CI status is also checked but is warn-only (not all commits run full CI).
+
+**Rollback = two steps** (same as Android):
+```bash
+git checkout server/M
+./scripts/release-firebase.sh --check   # prints --confirm-hash + --confirm-rollback-from command
+```
 
 **Firebase server operations:** See [`docs/FIREBASE_DEPLOY_SETUP.md`](docs/FIREBASE_DEPLOY_SETUP.md) — long-term maintenance guide. Covers: release process, rollback, monitoring & logs, cost hygiene, Node/runtime deprecation calendar, deployer-SA re-provisioning + rotation, required GitHub secrets, required GCP APIs, and a troubleshooting table. CI deploy was fixed 2026-04-21 after a long period of silent-failure (`firebase deploy` exiting 0 despite `⚠ failed to update function` — the doc describes how to recognize it and what role was missing).
 
