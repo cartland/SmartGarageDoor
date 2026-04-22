@@ -1,5 +1,6 @@
 # Claude Code
 .claude/.validation-passed
+.claude/.firebase-validation-passed
 .claude/.dev-mode
 
 # macOS
