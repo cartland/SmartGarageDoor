@@ -28,7 +28,7 @@ jobs:
     if: inputs.android == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-android
         with:
           encrypt-key: ${{ secrets.ENCRYPT_KEY }}
@@ -54,7 +54,7 @@ jobs:
     if: inputs.android == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-android
         with:
           encrypt-key: ${{ secrets.ENCRYPT_KEY }}
@@ -89,7 +89,7 @@ jobs:
     if: inputs.android == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-android
         with:
           encrypt-key: ${{ secrets.ENCRYPT_KEY }}
@@ -115,7 +115,7 @@ jobs:
     if: inputs.android == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-android
         with:
           encrypt-key: ${{ secrets.ENCRYPT_KEY }}
@@ -141,7 +141,7 @@ jobs:
     if: inputs.android == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-android
         with:
           encrypt-key: ${{ secrets.ENCRYPT_KEY }}
