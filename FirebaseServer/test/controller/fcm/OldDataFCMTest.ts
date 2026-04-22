@@ -1,6 +1,5 @@
 
 import { expect } from 'chai';
-import { getFCMDataFromEvent } from '../../../src/controller/fcm/EventFCM';
 import { SensorEvent, SensorEventType } from '../../../src/model/SensorEvent';
 import { AndroidMessagePriority, NotificationPriority, TopicMessage } from '../../../src/model/FCM';
 import { getDoorNotClosedMessageFromEvent } from '../../../src/controller/fcm/OldDataFCM';

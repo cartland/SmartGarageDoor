@@ -28,7 +28,7 @@ const REMOTE_BUTTON_REQUEST_ERROR_DATABASE = new TimeSeriesDatabase('remoteButto
 
 export const pubsubCheckForRemoteButtonErrors = functions.pubsub
   .schedule('every 10 minutes').timeZone('America/Los_Angeles') // California after midnight every day.
-  .onRun(async (context) => {
+  .onRun(async (_context) => {
     // TODO: Use config.
     // const config = await Config.get();
     // const buildTimestamp = Config.getRemoteButtonBuildTimestamp(config);

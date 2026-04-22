@@ -19,10 +19,6 @@ import * as functions from 'firebase-functions/v1';
 import { Config } from '../../database/ServerConfigDatabase';
 
 export const httpServerConfig = functions.https.onRequest(async (request, response) => {
-  const data = {
-    queryParams: request.query,
-    body: request.body,
-  };
   const functionConfig = functions.config();
   if (!functionConfig
     || !('serverconfig' in functionConfig)

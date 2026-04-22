@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-import * as firebase from 'firebase-admin';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 
 import { getSnoozeStatus, submitSnoozeNotificationsRequest } from '../../src/controller/SnoozeNotifications';
 import { DATABASE as SnoozeNotificationsDatabase } from '../../src/database/SnoozeNotificationsDatabase';
 import { DATABASE as SensorEventDatabase } from '../../src/database/SensorEventDatabase';
-import { SnoozeRequest, SnoozeStatus } from '../../src/model/SnoozeRequest';
-import { SensorEvent } from '../../src/model/SensorEvent';
+import { SnoozeStatus } from '../../src/model/SnoozeRequest';
 
 describe('SnoozeNotifications', () => {
   afterEach(() => {

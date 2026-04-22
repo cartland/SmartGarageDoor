@@ -115,7 +115,7 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
             snoozeDuration: request.query[SNOOZE_DURATION_PARAM_KEY] as string,
             snoozeEventTimestamp: request.query[SNOOZE_EVENT_TIMESTAMP_KEY] as string,
         };
-    } catch (error) {
+    } catch {
         const result = {
             error: 'Could not parse parameters: '
                 + BUILD_TIMESTAMP_PARAM_KEY + ', ' + SNOOZE_DURATION_PARAM_KEY + ', ' + SNOOZE_EVENT_TIMESTAMP_KEY,
@@ -194,7 +194,7 @@ export const httpSnoozeNotificationsLatest = functions.https.onRequest(async (re
         params = <SnoozeLatestParams>{
             buildTimestamp: request.query[BUILD_TIMESTAMP_PARAM_KEY] as string,
         };
-    } catch (error) {
+    } catch {
         console.error('No build timestamp in request');
         const result = { error: 'Missing required parameter: ' + BUILD_TIMESTAMP_PARAM_KEY };
         response.status(400).send(result);

@@ -21,7 +21,7 @@ import { deleteOldData } from '../../controller/DatabaseCleaner';
 
 export const pubsubDataRetentionPolicy = functions.pubsub
   .schedule('0 0 * * *').timeZone('America/Los_Angeles') // California midnight every day.
-  .onRun(async (context) => {
+  .onRun(async (_context) => {
     const config = await Config.get();
     if (!Config.isDeleteOldDataEnabled(config)) {
       console.log('Deleting data is disabled');
@@ -30,6 +30,6 @@ export const pubsubDataRetentionPolicy = functions.pubsub
     const cutoffMillis = new Date().getTime() - 1000 * 60 * 60 * 24 * 14; // 2 weeks.
     const cutoffSeconds = cutoffMillis / 1000;
     const dryRunRequested = false;
-    const deleteCount = await deleteOldData(cutoffSeconds, dryRunRequested);
+    await deleteOldData(cutoffSeconds, dryRunRequested);
     return null;
   });
