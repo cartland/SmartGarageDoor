@@ -211,15 +211,24 @@ Use `./scripts/release-android.sh` — never create or push tags directly (hooks
 
 ```bash
 ./scripts/release-android.sh              # Interactive (terminal only)
-./scripts/release-android.sh --check      # Print latest + next tag
-./scripts/release-android.sh --confirm-tag android/N  # Non-interactive
-./scripts/release-android.sh --confirm-tag android/N --confirm-hash android/M  # Rollback to old tag
+./scripts/release-android.sh --check      # Print state + copy-paste-ready next command
+./scripts/release-android.sh --confirm-tag android/N  # Normal release
 ./scripts/release-android.sh --dry-run    # Preview without releasing
 ```
 
+**Always start with `--check`.** It prints the exact command to run next, with SHAs and tag numbers already filled in. Copy and paste that command — don't retype from memory. The `--check` output detects normal, rollback, and emergency states and prints the appropriate command for each.
+
 The script computes the next tag as `android/<highest + 1>`. The `--confirm-tag` flag is a safety check — it must match the computed tag, it cannot override it. Deploys to Play Store internal track only — never production.
 
-**Validation is required by default.** Run `./scripts/validate.sh` before releasing. If validation hasn't passed on the commit, the release script will block. `--skip-validation` exists for emergencies (e.g., rollbacks to old tags) but should NOT be used routinely. Always ask the user before using `--skip-validation`.
+**Design principle — overrides confirm reality.** Every override flag takes a value (SHA or tag) that must match what's actually in the repo. Wrong value = refused. This makes correct usage easy (read from `--check`) and accidental usage hard (you'd have to type the right value for the wrong situation).
+
+**Validation is required by default.** Run `./scripts/validate.sh` before releasing. If validation hasn't passed on the commit, the release script will block. For emergencies use `--confirm-unvalidated-release <sha>` (the SHA must equal the target commit). `--skip-validation` is kept as a deprecated alias; prefer the explicit form. Always ask the user before skipping validation.
+
+**Rollback requires two steps** (intentionally hard to do accidentally):
+```bash
+git checkout android/M                 # 1. move HEAD to the commit you want to re-release
+./scripts/release-android.sh --check   # 2. prints the rollback command with --confirm-hash and --confirm-rollback-from
+```
 
 **Versioning rule (see [CHANGELOG.md](AndroidGarage/CHANGELOG.md#versioning)):** major = rewrite or core-experience shift; minor = added or removed user-facing feature/capability; patch = fixes, polish, refactors. `CHANGELOG.md` logs every version; `distribution/whatsnew/` gets one line per minor/major (patches roll up).
 
