@@ -237,6 +237,8 @@ The script computes the next tag as `server/<highest + 1>`. Deploys Cloud Functi
 
 **Firebase server operations:** See [`docs/FIREBASE_DEPLOY_SETUP.md`](docs/FIREBASE_DEPLOY_SETUP.md) — long-term maintenance guide. Covers: release process, rollback, monitoring & logs, cost hygiene, Node/runtime deprecation calendar, deployer-SA re-provisioning + rotation, required GitHub secrets, required GCP APIs, and a troubleshooting table. CI deploy was fixed 2026-04-21 after a long period of silent-failure (`firebase deploy` exiting 0 despite `⚠ failed to update function` — the doc describes how to recognize it and what role was missing).
 
+**Database refactor plan:** See [`docs/FIREBASE_DATABASE_REFACTOR.md`](docs/FIREBASE_DATABASE_REFACTOR.md) — phased plan to centralize 18 `new TimeSeriesDatabase(...)` calls into typed per-collection singletons with in-memory fakes. Includes goals, backward-compatibility principles, long-term maintenance rules, and safety guards (contract tests, scope rules). Zero production data impact when followed; rollback via `git revert` at any phase boundary.
+
 ### Secret Management (Android)
 The app requires secrets in `local.properties` (decrypted from GPG at build time):
 - `SERVER_CONFIG_KEY`, `GOOGLE_WEB_CLIENT_ID` — required for all builds
