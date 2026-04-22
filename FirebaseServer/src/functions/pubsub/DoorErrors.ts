@@ -18,7 +18,7 @@ import * as functions from 'firebase-functions/v1';
 
 import { updateEvent } from '../../controller/EventUpdates';
 
-export const pubsubCheckForDoorErrors = functions.pubsub.schedule('every 1 minutes').onRun(async (context) => {
+export const pubsubCheckForDoorErrors = functions.pubsub.schedule('every 1 minutes').onRun(async (_context) => {
   const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
   const buildTimestampString = 'Sat Mar 13 14:45:00 2021'; // TODO: Use config.
   const scheduledJob = true;

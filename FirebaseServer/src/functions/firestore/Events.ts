@@ -20,7 +20,7 @@ import { updateEvent } from '../../controller/EventUpdates';
 
 export const firestoreUpdateEvents = functions.firestore
   .document('updateAll/{docId}')
-  .onWrite(async (change, context) => {
+  .onWrite(async (change, _context) => {
     const data = change.after.data();
     const scheduledJob = false;
     await updateEvent(data, scheduledJob);

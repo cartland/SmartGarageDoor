@@ -38,9 +38,6 @@ const EMAIL_PARAM_KEY = "email";
 const REMOTE_BUTTON_MIN_PERIOD_SECONDS = 10;
 const REMOTE_BUTTON_COMMAND_TIMEOUT_SECONDS = 60;
 
-const REMOTE_BUTTON_REQUEST_ERROR_SECONDS = 60 * 10;
-const REMOTE_BUTTON_REQUEST_ERROR_DATABASE = new TimeSeriesDatabase('remoteButtonRequestErrorCurrent', 'remoteButtonRequestErrorAll');
-
 /**
  * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/remoteButton?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
  */
@@ -183,7 +180,6 @@ export const httpAddRemoteButtonCommand = functions.https.onRequest(async (reque
     // If the client does not send a session ID, create a session ID.
     data[SESSION_PARAM_KEY] = uuidv4();
   }
-  const session = data[SESSION_PARAM_KEY];
   if (BUTTON_ACK_TOKEN_PARAM_KEY in request.query) {
     // Button ack token needs to be unique for each request (prefer random).
     data[BUTTON_ACK_TOKEN_PARAM_KEY] = request.query[BUTTON_ACK_TOKEN_PARAM_KEY];
