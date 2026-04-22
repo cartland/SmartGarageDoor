@@ -21,11 +21,11 @@ class ServerConfig {
   CURRENT_KEY = 'current';
 
   async set(data) {
-    await Config.DATABASE.save(Config.CURRENT_KEY, data);
+    await this.DATABASE.save(this.CURRENT_KEY, data);
   }
 
   async get(): Promise<any> {
-    return Config.DATABASE.getCurrent(Config.CURRENT_KEY);
+    return this.DATABASE.getCurrent(this.CURRENT_KEY);
   }
 
   getRemoteButtonPushKey(config): string {
