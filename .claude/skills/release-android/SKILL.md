@@ -102,5 +102,4 @@ Both SHAs must match what the script computed from the current repo state. You c
 - **Tag version = versionCode** — `android/120` → `versionCode=120`.
 - **Always start with `--check`** — it prints the right command for the current state. Don't type the flags from memory.
 - **Always validate first** — run `./scripts/validate.sh` before every release.
-- **Never skip validation without asking the user.** `--confirm-unvalidated-release` exists for emergencies (hotfixes, rollbacks of old tags). If validation hasn't passed, tell the user and ask whether to run validation or skip it.
-- **`--skip-validation` is deprecated** but still accepted. Prefer `--confirm-unvalidated-release <sha>`. It requires explicitly stating the SHA you're skipping validation on, which prevents accidentally skipping on the wrong commit.
+- **Never skip validation without asking the user.** `--confirm-unvalidated-release <sha>` exists for emergencies (hotfixes, rollbacks of old tags). The SHA must equal the target commit, which prevents skipping validation on the wrong commit. If validation hasn't passed, tell the user and ask whether to run validation or skip it.
