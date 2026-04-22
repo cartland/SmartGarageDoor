@@ -235,6 +235,8 @@ Use `./scripts/release-firebase.sh` — same pattern as Android releases.
 
 The script computes the next tag as `server/<highest + 1>`. Deploys Cloud Functions only.
 
+**CI deploy setup:** See [`docs/FIREBASE_DEPLOY_SETUP.md`](docs/FIREBASE_DEPLOY_SETUP.md) for the full runbook — GitHub secrets, GCP service account, IAM roles, APIs to enable, and commands to re-provision or rotate the deployer key. CI deploy was fixed 2026-04-21 after a long period of silent-failure; the doc also describes that failure mode and how to recognize it.
+
 ### Secret Management (Android)
 The app requires secrets in `local.properties` (decrypted from GPG at build time):
 - `SERVER_CONFIG_KEY`, `GOOGLE_WEB_CLIENT_ID` — required for all builds
