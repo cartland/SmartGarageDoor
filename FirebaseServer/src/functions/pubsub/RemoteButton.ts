@@ -17,14 +17,12 @@
 import * as firebase from 'firebase-admin';
 import * as functions from 'firebase-functions/v1';
 
-import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
-
-const REMOTE_BUTTON_REQUEST_DATABASE = new TimeSeriesDatabase('remoteButtonRequestCurrent', 'remoteButtonRequestAll');
+import { DATABASE as REMOTE_BUTTON_REQUEST_DATABASE } from '../../database/RemoteButtonRequestDatabase';
+import { DATABASE as REMOTE_BUTTON_REQUEST_ERROR_DATABASE } from '../../database/RemoteButtonRequestErrorDatabase';
 
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 
 const REMOTE_BUTTON_REQUEST_ERROR_SECONDS = 60 * 10;
-const REMOTE_BUTTON_REQUEST_ERROR_DATABASE = new TimeSeriesDatabase('remoteButtonRequestErrorCurrent', 'remoteButtonRequestErrorAll');
 
 export const pubsubCheckForRemoteButtonErrors = functions.pubsub
   .schedule('every 10 minutes').timeZone('America/Los_Angeles') // California after midnight every day.

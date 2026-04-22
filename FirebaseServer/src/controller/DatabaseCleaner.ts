@@ -17,11 +17,11 @@
 import { Config } from '../database/ServerConfigDatabase';
 
 import { TimeSeriesDatabase } from '../database/TimeSeriesDatabase';
+import { DATABASE as REMOTE_REQUEST_DATABASE } from '../database/RemoteButtonRequestDatabase';
+import { DATABASE as REMOTE_COMMAND_DATABASE } from '../database/RemoteButtonCommandDatabase';
 
 const UPDATE_DATABASE = new TimeSeriesDatabase('updateCurrent', 'updateAll');
 const EVENT_DATABASE = new TimeSeriesDatabase('eventsCurrent', 'eventsAll');
-const REMOTE_REQUEST_DATABASE = new TimeSeriesDatabase('remoteButtonRequestCurrent', 'remoteButtonRequestAll');
-const REMOTE_COMMAND_DATABASE = new TimeSeriesDatabase('remoteButtonCommandCurrent', 'remoteButtonCommandAll');
 
 export async function deleteOldData(cutoffTimestampSeconds: number, dryRunRequested: boolean): Promise<object> {
   const config = await Config.get();

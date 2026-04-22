@@ -19,15 +19,12 @@ import { v4 as uuidv4 } from 'uuid';
 import * as firebase from 'firebase-admin';
 import * as functions from 'firebase-functions/v1';
 
-import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
-
 import { Config } from '../../database/ServerConfigDatabase';
+import { DATABASE as REMOTE_BUTTON_COMMAND_DATABASE } from '../../database/RemoteButtonCommandDatabase';
+import { DATABASE as REMOTE_BUTTON_REQUEST_DATABASE } from '../../database/RemoteButtonRequestDatabase';
 import { isAuthorizedToPushRemoteButton } from '../../controller/Auth';
 
 import { RemoteButtonCommand } from '../../model/RemoteButtonCommand';
-
-const REMOTE_BUTTON_COMMAND_DATABASE = new TimeSeriesDatabase('remoteButtonCommandCurrent', 'remoteButtonCommandAll');
-const REMOTE_BUTTON_REQUEST_DATABASE = new TimeSeriesDatabase('remoteButtonRequestCurrent', 'remoteButtonRequestAll');
 
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 const SESSION_PARAM_KEY = "session";
