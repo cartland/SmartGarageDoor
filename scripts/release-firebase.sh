@@ -215,7 +215,7 @@ fi
 # worth knowing about even if the local marker is green.
 check_remote_ci() {
     gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/commits/$TARGET_COMMIT/check-runs" \
-        --jq '[.check_runs[] | select(.name == "Run Unit Tests" and .check_suite.conclusion != null)] | last | .conclusion' 2>/dev/null || echo ""
+        --jq '[.check_runs[] | select(.name == "Firebase Checks / Unit Tests" and .check_suite.conclusion != null)] | last | .conclusion' 2>/dev/null || echo ""
 }
 
 # Rollback detection.
