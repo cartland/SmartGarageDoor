@@ -27,9 +27,24 @@ git status  # Must be clean
 ./scripts/validate-firebase.sh
 ```
 
-Runs `npm run build` + `npm run tests` (80 tests including collection-name contract tests and verifyIdToken library-chain tests). Requires Node 20 — script fails fast with `nvm use 20` instruction if not. Writes marker at `.claude/.firebase-validation-passed` with the commit SHA.
+Runs `npm run build` + `npm run tests` (80 tests including collection-name contract tests and verifyIdToken library-chain tests). Auto-switches Node via nvm to the version in `FirebaseServer/.nvmrc`. Writes marker at `.claude/.firebase-validation-passed` with the commit SHA.
 
-### 3. Check release state
+### 3. Add a CHANGELOG entry
+
+Edit `FirebaseServer/CHANGELOG.md`. Add a new section keyed by the tag you're about to create:
+
+```markdown
+## server/N
+- One or more bullets on what shipped
+```
+
+Commit and push. The release script refuses to tag when the entry is missing or empty.
+
+**Supersede rule.** If this release supersedes an untested predecessor (bug-chase chain — server/11 shipped broken, server/12 still broken, server/13 finally worked), you may **delete** the predecessor's entry and write a single entry on the final tag. Git log preserves the original content; the visible changelog stays clean.
+
+Skip this step only for true emergencies — then add `--confirm-no-changelog <target-sha>` in step 5 and write the entry after the fact.
+
+### 4. Check release state
 
 ```bash
 ./scripts/release-firebase.sh --check
@@ -39,11 +54,12 @@ This prints:
 - Latest tag and its SHA, next computed tag, HEAD SHA, branch
 - Validation state (PASSED/STALE/MISSING)
 - Remote Firebase CI status (success/unknown/failed)
+- Changelog state (PRESENT/EMPTY/MISSING/NO FILE)
 - **A copy-paste-ready command for the scenario** (normal, rollback, emergency)
 
-### 4. Cut the release
+### 5. Cut the release
 
-Paste the command from step 3. For a normal release:
+Paste the command from step 4. For a normal release:
 
 ```bash
 ./scripts/release-firebase.sh --confirm-tag server/N
@@ -55,6 +71,14 @@ For emergency release (validation not passing), `--check` prints:
 ./scripts/release-firebase.sh \
     --confirm-tag server/N \
     --confirm-unvalidated-release <40-char-sha>
+```
+
+For no-changelog release (emergency only), `--check` prints:
+
+```bash
+./scripts/release-firebase.sh \
+    --confirm-tag server/N \
+    --confirm-no-changelog <40-char-sha>
 ```
 
 For rollback (detached HEAD on older tag), `--check` prints:
@@ -70,11 +94,12 @@ The script will:
 - Verify clean git state (unless `--confirm-hash` is used)
 - Verify on main branch (unless `--confirm-hash` is used)
 - Verify validation marker matches target commit (unless `--confirm-unvalidated-release` is used)
+- Verify `FirebaseServer/CHANGELOG.md` has a non-empty `## server/N` entry (unless `--confirm-no-changelog` is used)
 - Verify remote Firebase CI passed (warn-only)
 - Create and push the tag; on push failure, remove the local tag
 - The tag triggers `.github/workflows/firebase-deploy.yml`
 
-### 5. Verify deployment
+### 6. Verify deployment
 
 ```bash
 gh run list --workflow=firebase-deploy.yml --limit 1
@@ -105,5 +130,7 @@ Both SHAs must match what the script computed on the checked-out commit. You can
 - **Tag pattern:** `server/N` (e.g., server/1, server/2)
 - **Always start with `--check`** — it prints the right command for the current state.
 - **Always validate first** — run `./scripts/validate-firebase.sh`.
+- **Always write a CHANGELOG entry** — `FirebaseServer/CHANGELOG.md` must have `## server/N` with a non-empty body. Supersede-previous pattern is allowed for bug-chase chains.
 - **Don't skip validation without asking.** `--confirm-unvalidated-release <sha>` is for emergencies.
-- **Node 20 is required** — FirebaseServer/.nvmrc pins it. Node 24 breaks mocha.
+- **Don't skip changelog without asking.** `--confirm-no-changelog <sha>` is for emergencies — add the entry retroactively.
+- **Node version is pinned** — `FirebaseServer/.nvmrc` sets it. The `validate-firebase.sh` auto-switches via nvm.
