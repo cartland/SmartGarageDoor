@@ -10,7 +10,7 @@ on:
 
 jobs:
   changes:
-    name: Detect Changes
+    name: Android Detect Changes
     runs-on: ubuntu-latest
     outputs:
       android: ${{ steps.filter.outputs.android }}
@@ -65,7 +65,7 @@ jobs:
           fi
 
   checks:
-    name: Checks
+    name: Android Checks
     needs: changes
     if: needs.changes.outputs.docs_only != 'true'
     uses: ./.github/workflows/ci-checks.yml

@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   changes:
-    name: Detect Changes
+    name: Android Detect Changes
     runs-on: ubuntu-latest
     outputs:
       android: ${{ steps.filter.outputs.android }}
@@ -63,7 +63,7 @@ jobs:
 
   # Shared checks (same as PR CI)
   checks:
-    name: Checks
+    name: Android Checks
     needs: changes
     if: needs.changes.outputs.docs_only != 'true'
     uses: ./.github/workflows/ci-checks.yml
@@ -78,7 +78,7 @@ jobs:
 
   # Instrumented tests — post-merge only
   instrumented-tests:
-    name: Instrumented Tests
+    name: Android Instrumented Tests
     needs: changes
     if: needs.changes.outputs.android == 'true'
     runs-on: ubuntu-latest
