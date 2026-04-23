@@ -28,19 +28,20 @@ pass() { echo -e "${GREEN}PASS${RESET} $1"; }
 fail() { echo -e "${RED}FAIL${RESET} $1"; exit 1; }
 step() { echo -e "\n${BOLD}--- $1 ---${RESET}"; }
 
-# Node version check — mocha requires Node 20 here, not 22/24.
+# Node version check — must match FirebaseServer/.nvmrc.
+# Node 24 breaks mocha via native type-stripping of namespace imports.
 step "Node version"
 if ! command -v node >/dev/null 2>&1; then
     fail "Node is not installed or not on PATH."
 fi
 NODE_VERSION=$(node --version)
 NODE_MAJOR=$(echo "$NODE_VERSION" | sed -E 's/^v([0-9]+).*/\1/')
-if [ "$NODE_MAJOR" != "20" ]; then
-    echo -e "${YELLOW}Warning: Node $NODE_VERSION detected, but FirebaseServer/.nvmrc pins Node 20.${RESET}"
+if [ "$NODE_MAJOR" != "22" ]; then
+    echo -e "${YELLOW}Warning: Node $NODE_VERSION detected, but FirebaseServer/.nvmrc pins Node 22.${RESET}"
     echo "  Node 24 breaks mocha via native type-stripping of namespace imports."
-    echo "  Run: nvm use 20   (or: nvm alias default 20)"
+    echo "  Run: nvm use 22   (or: nvm alias default 22)"
     echo ""
-    fail "Node major version mismatch (got $NODE_MAJOR, expected 20)"
+    fail "Node major version mismatch (got $NODE_MAJOR, expected 22)"
 fi
 pass "Node $NODE_VERSION"
 
