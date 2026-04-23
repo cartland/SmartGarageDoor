@@ -17,7 +17,8 @@
 import * as firebase from 'firebase-admin';
 import * as functions from 'firebase-functions/v1';
 
-import { Config } from '../../database/ServerConfigDatabase';
+import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
+import { isSnoozeNotificationsEnabled, getRemoteButtonPushKey, getRemoteButtonAuthorizedEmails } from '../../controller/config/ConfigAccessors';
 import { isAuthorizedToPushRemoteButton } from '../../controller/Auth';
 import { getSnoozeStatus, SnoozeLatestParams, SnoozeLatestResponse, SubmitSnoozeParams, submitSnoozeNotificationsRequest, SubmitSnoozeResponse } from '../../controller/SnoozeNotifications';
 
@@ -48,8 +49,8 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
     //     * SnoozeRequest | error: string
 
     // Handle the HTTP request.
-    const config = await Config.get();
-    if (!Config.isSnoozeNotificationsEnabled(config)) {
+    const config = await ServerConfigDatabase.get();
+    if (!isSnoozeNotificationsEnabled(config)) {
         response.status(400).send({ error: 'Disabled' });
         return;
     }
@@ -70,7 +71,7 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
         response.status(401).send(result);
         return;
     }
-    if (Config.getRemoteButtonPushKey(config) !== buttonPushKeyHeader) {
+    if (getRemoteButtonPushKey(config) !== buttonPushKeyHeader) {
         const result = { error: 'Forbidden (key).' };
         console.error(result);
         response.status(403).send(result);
@@ -99,7 +100,7 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
     }
     console.log('email:', email);
     // User is authenticated. Check if they are authorized.
-    const authorizedEmails = Config.getRemoteButtonAuthorizedEmails(config);
+    const authorizedEmails = getRemoteButtonAuthorizedEmails(config);
     if (!isAuthorizedToPushRemoteButton(email, authorizedEmails)) {
         const result = { error: 'Forbidden (user).' };
         console.error(result);
@@ -180,8 +181,8 @@ export const httpSnoozeNotificationsLatest = functions.https.onRequest(async (re
     //     * error: string
 
     // Handle the HTTP request.
-    const config = await Config.get();
-    if (!Config.isSnoozeNotificationsEnabled(config)) {
+    const config = await ServerConfigDatabase.get();
+    if (!isSnoozeNotificationsEnabled(config)) {
         response.status(400).send({ error: 'Disabled' });
         return;
     }
