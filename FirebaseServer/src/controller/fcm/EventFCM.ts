@@ -20,31 +20,52 @@ import { SensorEvent, SensorEventAsStringMap } from '../../model/SensorEvent';
 import { AndroidMessagePriority, TopicMessage, AndroidConfig } from '../../model/FCM';
 import { buildTimestampToFcmTopic } from '../../model/FcmTopic';
 
-
 /**
- * Send an FCM message when the sensor data changes.
+ * Side-effecting FCM dispatch for sensor events.
  *
- * This pushes the sensor data to the user's device.
- * This does not post a user-visible notification.
- * The user's device can then update the UI.
+ * Shape matches src/database/*Database.ts (interface + default impl + swappable
+ * singleton + setImpl/resetImpl). Tests use FakeEventFCMService to capture
+ * calls without touching Firebase messaging.
  */
-export async function sendFCMForSensorEvent(buildTimestamp: string, sensorEvent: SensorEvent): Promise<TopicMessage> {
-  const message = getFCMDataFromEvent(buildTimestamp, sensorEvent);
-  if (!message) {
-    return null;
-  }
-  console.log('Sending notification', JSON.stringify(message));
-  await firebase.messaging().send(message)
-    .then((response) => {
-      // Response is a message ID string.
-      console.log('Successfully sent message:', JSON.stringify(response));
-    })
-    .catch((error) => {
-      console.log('Error sending message:', JSON.stringify(error));
-    });
-  return message;
+export interface EventFCMService {
+  sendFCMForSensorEvent(buildTimestamp: string, sensorEvent: SensorEvent): Promise<TopicMessage>;
 }
 
+class DefaultEventFCMService implements EventFCMService {
+  async sendFCMForSensorEvent(buildTimestamp: string, sensorEvent: SensorEvent): Promise<TopicMessage> {
+    const message = getFCMDataFromEvent(buildTimestamp, sensorEvent);
+    if (!message) {
+      return null;
+    }
+    console.log('Sending notification', JSON.stringify(message));
+    await firebase.messaging().send(message)
+      .then((response) => {
+        // Response is a message ID string.
+        console.log('Successfully sent message:', JSON.stringify(response));
+      })
+      .catch((error) => {
+        console.log('Error sending message:', JSON.stringify(error));
+      });
+    return message;
+  }
+}
+
+let _instance: EventFCMService = new DefaultEventFCMService();
+
+export const SERVICE: EventFCMService = {
+  sendFCMForSensorEvent: (t, e) => _instance.sendFCMForSensorEvent(t, e),
+};
+
+/** TEST-ONLY: swap in a fake implementation. */
+export function setImpl(impl: EventFCMService): void { _instance = impl; }
+
+/** TEST-ONLY: restore the default (Firebase-dispatching) implementation. */
+export function resetImpl(): void { _instance = new DefaultEventFCMService(); }
+
+/**
+ * Pure helper — builds the FCM payload for a sensor event. No side effects.
+ * Covered by EventFCMTest.ts and reused by DefaultEventFCMService.
+ */
 export function getFCMDataFromEvent(buildTimestamp: string, currentEvent: SensorEvent): TopicMessage {
   const message = <TopicMessage>{};
   message.topic = buildTimestampToFcmTopic(buildTimestamp);

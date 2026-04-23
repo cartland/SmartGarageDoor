@@ -22,7 +22,7 @@ import { SensorSnapshot } from '../model/SensorSnapshot';
 
 import { getNewEventOrNull } from './EventInterpreter';
 import { SensorEvent } from '../model/SensorEvent';
-import { sendFCMForSensorEvent } from '../controller/fcm/EventFCM';
+import { SERVICE as EventFCMService } from '../controller/fcm/EventFCM';
 
 const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
@@ -78,7 +78,7 @@ async function updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds
     data[PREVIOUS_EVENT_KEY] = oldEvent;
     data[CURRENT_EVENT_KEY] = newEvent;
     await SensorEventDatabase.save(buildTimestamp, data);
-    await sendFCMForSensorEvent(buildTimestamp, newEvent);
+    await EventFCMService.sendFCMForSensorEvent(buildTimestamp, newEvent);
   } else {
     if (scheduledJob) {
       // Do nothing. Do not update database during scheduled check unless it results in a new event.
@@ -88,7 +88,7 @@ async function updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds
       // Saving the old data again will update FIRESTORE_databaseTimestamp and FIRESTORE_databaseTimestampSeconds.
       await SensorEventDatabase.updateCurrentWithMatchingCurrentEventTimestamp(buildTimestamp, oldData);
       // Send old event with updated check-in timestamp.
-      await sendFCMForSensorEvent(buildTimestamp, oldEvent);
+      await EventFCMService.sendFCMForSensorEvent(buildTimestamp, oldEvent);
     }
   }
 }
