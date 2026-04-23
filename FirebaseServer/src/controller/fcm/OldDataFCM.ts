@@ -16,15 +16,13 @@
 
 import * as firebase from 'firebase-admin';
 
-import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
+import { DATABASE as NotificationsDatabase } from '../../database/NotificationsDatabase';
 
 import { SensorEvent, SensorEventType } from '../../model/SensorEvent';
 import { AndroidMessagePriority, TopicMessage, Notification, NotificationPriority, AndroidConfig, AndroidNotification } from '../../model/FCM';
 import { buildTimestampToFcmTopic } from '../../model/FcmTopic';
 import { getSnoozeStatus, SnoozeLatestParams } from '../SnoozeNotifications';
 import { SnoozeStatus } from '../../model/SnoozeRequest';
-
-const NOTIFICATIONS_DATABASE = new TimeSeriesDatabase('notificationsCurrent', 'notificationsAll');
 
 const CURRENT_EVENT_KEY = 'currentEvent';
 const NOTIFICATION_CURRENT_EVENT_KEY = 'notificationCurrentEvent';
@@ -62,7 +60,7 @@ export async function sendFCMForOldData(buildTimestamp: string, eventData): Prom
     console.error('Could not generate message to send');
     return null;
   }
-  const oldNotificationData = await NOTIFICATIONS_DATABASE.getCurrent(buildTimestamp);
+  const oldNotificationData = await NotificationsDatabase.getCurrent(buildTimestamp);
   if (NOTIFICATION_CURRENT_EVENT_KEY in oldNotificationData
     && TIMESTAMP_SECONDS_KEY in oldNotificationData[NOTIFICATION_CURRENT_EVENT_KEY]) {
     const oldTimestampSeconds = oldNotificationData[NOTIFICATION_CURRENT_EVENT_KEY][TIMESTAMP_SECONDS_KEY];
@@ -76,7 +74,7 @@ export async function sendFCMForOldData(buildTimestamp: string, eventData): Prom
   const data = {};
   data[NOTIFICATION_CURRENT_EVENT_KEY] = currentEvent;
   data[NOTIFICATION_MESSAGE_KEY] = message;
-  await NOTIFICATIONS_DATABASE.save(buildTimestamp, data);
+  await NotificationsDatabase.save(buildTimestamp, data);
   console.log('Sending notification', JSON.stringify(message));
   await firebase.messaging().send(message)
     .then((response) => {
