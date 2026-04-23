@@ -24,6 +24,11 @@ Example:
 
 ---
 
+## server/13
+- Release with no behavior changes. `EventFCM` refactored to the same interface + service + `setImpl` pattern used by the database modules. The `DefaultEventFCMService` produces byte-identical `firebase.messaging().send(...)` calls as the previous bare function.
+- Also shipped: CI job naming standardization (gate jobs renamed with `Android` / `Firebase` prefixes; branch protection swapped via `gh api`). Internal tooling only.
+- Test architecture: fakes gained single-shot `failNextX(error)` helpers; old sinon-based `EventUpdatesTest.ts` retired in favor of stricter `EventUpdatesFakeTest.ts` with 5 new failure-mode tests.
+
 ## server/12
 - Release with no behavior changes. Internal refactor only — no Firestore collection or document-shape change.
 - Database refactor Phase 3: centralized the `updateCurrent` / `updateAll` collection onto `UpdateDatabase` (interface + in-memory fake + contract-pinned collection names). Two inline `new TimeSeriesDatabase('updateCurrent', ...)` call sites removed (`DatabaseCleaner`, `Echo`). Dead `Database.ts` / `DatabaseTest.ts` removed.
