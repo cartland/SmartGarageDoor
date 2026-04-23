@@ -1,4 +1,4 @@
-name: Post-Merge CI
+name: Android Post-Merge CI
 
 # Post-submit checks — runs on push to main only.
 # Re-runs all shared checks (catches merge-induced breakage)
@@ -106,7 +106,7 @@ jobs:
 
   # Gate job — single check-run name for release script to verify.
   post-merge-complete:
-    name: Post-Merge Complete
+    name: Android Post-Merge Complete
     if: always()
     needs: [checks, instrumented-tests]
     runs-on: ubuntu-latest
@@ -128,7 +128,7 @@ jobs:
 
   # Track post-merge failures via a single GitHub issue
   track-failure:
-    name: Track Post-Merge Failure
+    name: Track Android Post-Merge Failure
     if: always() && needs.changes.outputs.android == 'true'
     needs: [changes, checks, instrumented-tests]
     runs-on: ubuntu-latest
@@ -150,4 +150,4 @@ jobs:
         with:
           label: ci-failure/post-merge
           result: ${{ steps.result.outputs.overall }}
-          workflow-name: "Post-Merge CI (checks: ${{ steps.result.outputs.checks }}, instrumented: ${{ steps.result.outputs.instrumented }})"
+          workflow-name: "Android Post-Merge CI (checks: ${{ steps.result.outputs.checks }}, instrumented: ${{ steps.result.outputs.instrumented }})"
