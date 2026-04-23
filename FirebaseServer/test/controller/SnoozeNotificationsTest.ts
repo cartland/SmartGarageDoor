@@ -29,7 +29,7 @@ describe('SnoozeNotifications', () => {
 
   describe('getSnoozeStatus', () => {
     it('should return NONE when there is no current event', async () => {
-      sinon.stub(SensorEventDatabase, 'get').resolves(null);
+      sinon.stub(SensorEventDatabase, 'getCurrent').resolves(null);
       const params = { buildTimestamp: 'test' };
       const result = await getSnoozeStatus(params);
       expect(result.status).to.equal(SnoozeStatus.NONE);
@@ -37,7 +37,7 @@ describe('SnoozeNotifications', () => {
 
     it('should return NONE when there is no snooze request', async () => {
       const currentEvent = { currentEvent: { timestampSeconds: '12345' } };
-      sinon.stub(SensorEventDatabase, 'get').resolves(currentEvent);
+      sinon.stub(SensorEventDatabase, 'getCurrent').resolves(currentEvent);
       sinon.stub(SnoozeNotificationsDatabase, 'get').resolves(null);
       const params = { buildTimestamp: 'test' };
       const result = await getSnoozeStatus(params);
@@ -50,7 +50,7 @@ describe('SnoozeNotifications', () => {
         snoozeEndTimeSeconds: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
         currentEventTimestampSeconds: 12345,
       };
-      sinon.stub(SensorEventDatabase, 'get').resolves(currentEvent);
+      sinon.stub(SensorEventDatabase, 'getCurrent').resolves(currentEvent);
       sinon.stub(SnoozeNotificationsDatabase, 'get').resolves(snoozeRequest);
       const params = { buildTimestamp: 'test' };
       const result = await getSnoozeStatus(params);
@@ -63,7 +63,7 @@ describe('SnoozeNotifications', () => {
         snoozeEndTimeSeconds: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         currentEventTimestampSeconds: 12345,
       };
-      sinon.stub(SensorEventDatabase, 'get').resolves(currentEvent);
+      sinon.stub(SensorEventDatabase, 'getCurrent').resolves(currentEvent);
       sinon.stub(SnoozeNotificationsDatabase, 'get').resolves(snoozeRequest);
       const params = { buildTimestamp: 'test' };
       const result = await getSnoozeStatus(params);
@@ -74,7 +74,7 @@ describe('SnoozeNotifications', () => {
   describe('submitSnoozeNotificationsRequest', () => {
     it('should return an error when the snooze event timestamp does not match the current event timestamp', async () => {
       const currentEvent = { currentEvent: { timestampSeconds: '12345' } };
-      sinon.stub(SensorEventDatabase, 'get').resolves(currentEvent);
+      sinon.stub(SensorEventDatabase, 'getCurrent').resolves(currentEvent);
       const params = {
         buildTimestamp: 'test',
         snoozeDuration: '1h',
@@ -87,7 +87,7 @@ describe('SnoozeNotifications', () => {
 
     it('should return an error for an invalid snooze duration', async () => {
       const currentEvent = { currentEvent: { timestampSeconds: '12345' } };
-      sinon.stub(SensorEventDatabase, 'get').resolves(currentEvent);
+      sinon.stub(SensorEventDatabase, 'getCurrent').resolves(currentEvent);
       const params = {
         buildTimestamp: 'test',
         snoozeDuration: 'invalid',
@@ -104,7 +104,7 @@ describe('SnoozeNotifications', () => {
         snoozeEndTimeSeconds: Math.floor(Date.now() / 1000) + 3600,
         currentEventTimestampSeconds: 12345,
       };
-      sinon.stub(SensorEventDatabase, 'get').resolves(currentEvent);
+      sinon.stub(SensorEventDatabase, 'getCurrent').resolves(currentEvent);
       sinon.stub(SnoozeNotificationsDatabase, 'set').resolves();
       sinon.stub(SnoozeNotificationsDatabase, 'get').resolves(snoozeRequest);
       const params = {
