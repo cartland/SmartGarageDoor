@@ -16,7 +16,7 @@
 
 import * as firebase from 'firebase-admin';
 
-import { TimeSeriesDatabase } from '../database/TimeSeriesDatabase';
+import { DATABASE as SensorEventDatabase } from '../database/SensorEventDatabase';
 
 import { SensorSnapshot } from '../model/SensorSnapshot';
 
@@ -31,8 +31,6 @@ const SENSOR_A_KEY = 'sensorA';
 const SENSOR_B_KEY = 'sensorB';
 const CURRENT_EVENT_KEY = 'currentEvent';
 const PREVIOUS_EVENT_KEY = 'previousEvent';
-
-const EVENT_DATABASE = new TimeSeriesDatabase('eventsCurrent', 'eventsAll');
 
 export async function updateEvent(data, scheduledJob: boolean) {
   if (!data || !(BUILD_TIMESTAMP_PARAM_KEY in data)) {
@@ -68,7 +66,7 @@ export async function updateEvent(data, scheduledJob: boolean) {
 }
 
 async function updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds, scheduledJob: boolean) {
-  const oldData = await EVENT_DATABASE.getCurrent(buildTimestamp);
+  const oldData = await SensorEventDatabase.getCurrent(buildTimestamp);
   let oldEvent: SensorEvent = null;
   if (CURRENT_EVENT_KEY in oldData) {
     oldEvent = oldData[CURRENT_EVENT_KEY];
@@ -79,7 +77,7 @@ async function updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds
     data[BUILD_TIMESTAMP_PARAM_KEY] = buildTimestamp;
     data[PREVIOUS_EVENT_KEY] = oldEvent;
     data[CURRENT_EVENT_KEY] = newEvent;
-    await EVENT_DATABASE.save(buildTimestamp, data);
+    await SensorEventDatabase.save(buildTimestamp, data);
     await sendFCMForSensorEvent(buildTimestamp, newEvent);
   } else {
     if (scheduledJob) {
@@ -88,7 +86,7 @@ async function updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds
       // Update the old data with the current timestamp "check in" time.
       oldEvent.checkInTimestampSeconds = timestampSeconds;
       // Saving the old data again will update FIRESTORE_databaseTimestamp and FIRESTORE_databaseTimestampSeconds.
-      await EVENT_DATABASE.updateCurrentWithMatchingCurrentEventTimestamp(buildTimestamp, oldData);
+      await SensorEventDatabase.updateCurrentWithMatchingCurrentEventTimestamp(buildTimestamp, oldData);
       // Send old event with updated check-in timestamp.
       await sendFCMForSensorEvent(buildTimestamp, oldEvent);
     }

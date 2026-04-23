@@ -17,13 +17,11 @@
 import * as functions from 'firebase-functions/v1';
 
 import { sendFCMForOldData } from '../../controller/fcm/OldDataFCM';
-import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
-
-const EVENT_DATABASE = new TimeSeriesDatabase('eventsCurrent', 'eventsAll');
+import { DATABASE as SensorEventDatabase } from '../../database/SensorEventDatabase';
 
 export const httpCheckForOpenDoors = functions.https.onRequest(async (request, response) => {
   const buildTimestamp = 'Sat Mar 13 14:45:00 2021'; // TODO: Use config.
-  const eventData = await EVENT_DATABASE.getCurrent(buildTimestamp);
+  const eventData = await SensorEventDatabase.getCurrent(buildTimestamp);
   const result = await sendFCMForOldData(buildTimestamp, eventData);
   response.status(200).send(result);
 });
