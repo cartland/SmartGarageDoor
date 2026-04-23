@@ -24,6 +24,13 @@ Example (placeholder tag numbers — the gate looks for exact `server/<real numb
 
 ---
 
+## server/14
+- Release with no behavior changes. Refactor + test follow-up closing out the database refactor plan.
+- `ServerConfigDatabase` and `SnoozeNotificationsDatabase` converted to the canonical interface + FirestoreImpl + swappable singleton pattern (PRs #485, #484). All 9 DB modules now follow the same shape; all 9 have collection-string contract tests and in-memory fakes. `ConfigAccessors.ts` extracted the pure config-payload getters (`getRemoteButtonPushKey`, `isSnoozeNotificationsEnabled`, etc.) out of the DB module.
+- `OldDataFCMFakeTest.ts` adds fake-based orchestration tests for `sendFCMForOldData` (11 tests covering short-circuits, snooze integration, duplicate suppression, and save/FCM failure modes).
+- **Test discovery fix:** the mocha glob in `FirebaseServer/package.json` was unquoted, so `sh` expanded it one level deep and silently skipped every test under `test/controller/fcm/*.ts`. Quoting the glob surfaced 84 existing tests that hadn't been running in CI (PR #486). All surfaced tests pass.
+- Cleanup: 3 duplicate top-level test files removed (older copies of canonical versions deeper in the tree); stale `// TODO: Add Snooze option` comment removed from `pubsub/OpenDoor.ts`; bare `// TODO.` in `httpRemoteButton`'s no-ack-token branch replaced with comments documenting the actual existing behavior.
+
 ## server/13
 - Release with no behavior changes. `EventFCM` refactored to the same interface + service + `setImpl` pattern used by the database modules. The `DefaultEventFCMService` produces byte-identical `firebase.messaging().send(...)` calls as the previous bare function.
 - Also shipped: CI job naming standardization (gate jobs renamed with `Android` / `Firebase` prefixes; branch protection swapped via `gh api`). Internal tooling only.
