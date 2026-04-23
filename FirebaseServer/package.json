@@ -40,7 +40,8 @@
       "jws": "^3.2.3"
     },
     "qs": "^6.14.2",
-    "path-to-regexp": "0.1.13"
+    "path-to-regexp": "0.1.13",
+    "fast-xml-parser": "^5.7.0"
   },
   "engines": {
     "node": "22"
