@@ -13,16 +13,28 @@ import { SensorEvent } from '../../src/model/SensorEvent';
 import { TopicMessage } from '../../src/model/FCM';
 
 export class FakeEventFCMService implements EventFCMService {
-  /** Audit log of every sendFCMForSensorEvent call. */
+  /** Audit log of every sendFCMForSensorEvent call (succeeded OR threw). */
   readonly sends: Array<{ buildTimestamp: string, event: SensorEvent }> = [];
+
+  // Failure-injection slot. Single-shot; cleared on use.
+  private _nextSendError: Error | null = null;
 
   async sendFCMForSensorEvent(buildTimestamp: string, sensorEvent: SensorEvent): Promise<TopicMessage> {
     this.sends.push({ buildTimestamp, event: sensorEvent });
+    if (this._nextSendError) {
+      const e = this._nextSendError;
+      this._nextSendError = null;
+      throw e;
+    }
     return null;
   }
 
-  /** Test-only helper: wipe audit log. */
+  /** Test-only helper: wipe audit log and any armed failure. */
   clear(): void {
     this.sends.length = 0;
+    this._nextSendError = null;
   }
+
+  /** Test-only helper: arm the NEXT sendFCMForSensorEvent() call to reject with `error`. */
+  failNextSend(error: Error): void { this._nextSendError = error; }
 }

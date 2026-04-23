@@ -13,21 +13,39 @@ import { SensorEventDatabase } from '../../src/database/SensorEventDatabase';
 export class FakeSensorEventDatabase implements SensorEventDatabase {
   private readonly store = new Map<string, any>();
 
-  /** Audit log of all save() calls. */
+  /** Audit log of all save() calls, even ones that throw. */
   readonly saved: Array<[string, any]> = [];
 
-  /** Audit log of all updateCurrentWithMatchingCurrentEventTimestamp() calls. */
+  /** Audit log of all updateCurrentWithMatchingCurrentEventTimestamp() calls, even ones that throw. */
   readonly updates: Array<[string, any]> = [];
 
   /** Audit log of all deleteAllBefore() calls. */
   readonly deleteCalls: Array<{ cutoff: number, dryRun: boolean }> = [];
 
+  // Failure-injection slots. Each `failNextX(error)` arms the NEXT call to X
+  // to reject with `error`. Single-shot; cleared on use. Tests that need
+  // multi-call failure patterns should call failNextX again in the handler.
+  private _nextSaveError: Error | null = null;
+  private _nextGetCurrentError: Error | null = null;
+  private _nextUpdateError: Error | null = null;
+  private _nextDeleteError: Error | null = null;
+
   async save(buildTimestamp: string, data: any): Promise<void> {
-    this.store.set(buildTimestamp, data);
     this.saved.push([buildTimestamp, data]);
+    if (this._nextSaveError) {
+      const e = this._nextSaveError;
+      this._nextSaveError = null;
+      throw e;
+    }
+    this.store.set(buildTimestamp, data);
   }
 
   async getCurrent(buildTimestamp: string): Promise<any> {
+    if (this._nextGetCurrentError) {
+      const e = this._nextGetCurrentError;
+      this._nextGetCurrentError = null;
+      throw e;
+    }
     // Match TimeSeriesDatabase.getCurrent, which routes through
     // convertFromFirestore() and always returns {} for missing documents.
     // Returning null here would diverge from production and break callers
@@ -37,12 +55,22 @@ export class FakeSensorEventDatabase implements SensorEventDatabase {
 
   async updateCurrentWithMatchingCurrentEventTimestamp(buildTimestamp: string, matchingCurrent: any): Promise<any> {
     this.updates.push([buildTimestamp, matchingCurrent]);
+    if (this._nextUpdateError) {
+      const e = this._nextUpdateError;
+      this._nextUpdateError = null;
+      throw e;
+    }
     this.store.set(buildTimestamp, matchingCurrent);
     return null;
   }
 
   async deleteAllBefore(cutoffTimestampSeconds: number, dryRun: boolean): Promise<number> {
     this.deleteCalls.push({ cutoff: cutoffTimestampSeconds, dryRun });
+    if (this._nextDeleteError) {
+      const e = this._nextDeleteError;
+      this._nextDeleteError = null;
+      throw e;
+    }
     return 0;
   }
 
@@ -66,5 +94,21 @@ export class FakeSensorEventDatabase implements SensorEventDatabase {
     this.saved.length = 0;
     this.updates.length = 0;
     this.deleteCalls.length = 0;
+    this._nextSaveError = null;
+    this._nextGetCurrentError = null;
+    this._nextUpdateError = null;
+    this._nextDeleteError = null;
   }
+
+  /** Test-only helper: arm the NEXT save() call to reject with `error`. */
+  failNextSave(error: Error): void { this._nextSaveError = error; }
+
+  /** Test-only helper: arm the NEXT getCurrent() call to reject with `error`. */
+  failNextGetCurrent(error: Error): void { this._nextGetCurrentError = error; }
+
+  /** Test-only helper: arm the NEXT updateCurrent...() call to reject with `error`. */
+  failNextUpdate(error: Error): void { this._nextUpdateError = error; }
+
+  /** Test-only helper: arm the NEXT deleteAllBefore() call to reject with `error`. */
+  failNextDelete(error: Error): void { this._nextDeleteError = error; }
 }
