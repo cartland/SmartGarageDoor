@@ -78,10 +78,37 @@ jobs:
       GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }}
       GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }}
 
-  # Gate job — the ONLY required status check in branch protection.
-  # Succeeds when all CI jobs pass OR when they're skipped (no Android changes).
+  # Gate jobs — branch-protection rename in progress.
+  #
+  # BOTH jobs run with identical logic. Branch protection currently requires
+  # `CI Complete` (the historical name). A follow-up step swaps the required
+  # context from `CI Complete` to `Android CI Complete` via `gh api`, then a
+  # final PR deletes the old `ci-complete` job. The dual-gate phase exists so
+  # the branch-protection swap has a safety net: if the new check-name fails
+  # to appear on PRs for any reason, we can revert without stranding PRs.
+  #
+  # Ordering rule: NEVER delete the old gate job before removing it from
+  # branch protection's required contexts. Reverse order blocks every PR.
   ci-complete:
     name: CI Complete
+    if: always()
+    needs: [checks]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          echo "Checks: ${{ needs.checks.result }}"
+
+          if [[ "${{ needs.checks.result }}" == "failure" || \
+                "${{ needs.checks.result }}" == "cancelled" ]]; then
+            echo "::error::CI checks failed"
+            exit 1
+          fi
+
+          echo "All CI checks passed (or skipped — no Android changes / docs-only)"
+
+  android-ci-complete:
+    name: Android CI Complete
     if: always()
     needs: [checks]
     runs-on: ubuntu-latest
