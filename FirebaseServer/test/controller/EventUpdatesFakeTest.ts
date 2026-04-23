@@ -135,4 +135,95 @@ describe('EventUpdates (via fakes)', () => {
     expect(fakeFCM.sends).to.have.length(1);
     expect(fakeFCM.sends[0]).to.deep.equal({ buildTimestamp: 'test', event: newEvent });
   });
+
+  // --- Failure-mode tests: updateEvent has no try/catch, so any step that
+  //     throws propagates immediately. These tests document and pin that
+  //     contract: errors are NOT silently swallowed, and later steps are
+  //     skipped when an earlier one fails.
+
+  describe('failure modes', () => {
+    // Local helper — assert that `fn()` rejects and return the error.
+    async function assertRejects(fn: () => Promise<any>): Promise<Error> {
+      try {
+        await fn();
+      } catch (e) {
+        return e as Error;
+      }
+      throw new Error('expected promise to reject, but it resolved');
+    }
+
+    it('propagates getCurrent failure; save and FCM are skipped', async () => {
+      fakeDB.failNextGetCurrent(new Error('Firestore down: getCurrent'));
+
+      const err = await assertRejects(() => updateEvent({ buildTimestamp: 'test' }, false));
+      expect(err.message).to.equal('Firestore down: getCurrent');
+
+      expect(fakeDB.saved).to.be.empty;
+      expect(fakeDB.updates).to.be.empty;
+      expect(fakeFCM.sends).to.be.empty;
+    });
+
+    it('propagates save failure (new-event path); FCM is NOT called', async () => {
+      const newEvent: SensorEvent = {
+        type: SensorEventType.Closed, timestampSeconds: 12345, message: '', checkInTimestampSeconds: 0,
+      };
+      sinon.stub(EventInterpreter, 'getNewEventOrNull').returns(newEvent);
+      fakeDB.failNextSave(new Error('Firestore down: save'));
+
+      const err = await assertRejects(() => updateEvent({ buildTimestamp: 'test' }, false));
+      expect(err.message).to.equal('Firestore down: save');
+
+      // save() was attempted (audit log captures even failed attempts).
+      expect(fakeDB.saved).to.have.length(1);
+      // FCM must NOT have been called — proves the error short-circuits.
+      expect(fakeFCM.sends).to.be.empty;
+    });
+
+    it('propagates updateCurrent... failure (unchanged-event path); FCM is NOT called', async () => {
+      const oldEvent: SensorEvent = {
+        type: SensorEventType.Closed, timestampSeconds: 12345, message: '', checkInTimestampSeconds: 0,
+      };
+      fakeDB.seed('test', { currentEvent: oldEvent });
+      sinon.stub(EventInterpreter, 'getNewEventOrNull').returns(null);
+      fakeDB.failNextUpdate(new Error('Firestore down: update'));
+
+      const err = await assertRejects(() => updateEvent({ buildTimestamp: 'test' }, false));
+      expect(err.message).to.equal('Firestore down: update');
+
+      expect(fakeDB.updates).to.have.length(1);
+      expect(fakeFCM.sends).to.be.empty;
+    });
+
+    it('propagates FCM failure after save succeeded (new-event path)', async () => {
+      const newEvent: SensorEvent = {
+        type: SensorEventType.Closed, timestampSeconds: 12345, message: '', checkInTimestampSeconds: 0,
+      };
+      sinon.stub(EventInterpreter, 'getNewEventOrNull').returns(newEvent);
+      fakeFCM.failNextSend(new Error('FCM unavailable'));
+
+      const err = await assertRejects(() => updateEvent({ buildTimestamp: 'test' }, false));
+      expect(err.message).to.equal('FCM unavailable');
+
+      // save() succeeded before FCM failed — the DB write is committed.
+      expect(fakeDB.saved).to.have.length(1);
+      expect(fakeDB.saved[0][1].currentEvent).to.equal(newEvent);
+      // FCM was attempted (audit log captures even failed attempts).
+      expect(fakeFCM.sends).to.have.length(1);
+    });
+
+    it('propagates FCM failure after updateCurrent... succeeded (unchanged-event path)', async () => {
+      const oldEvent: SensorEvent = {
+        type: SensorEventType.Closed, timestampSeconds: 12345, message: '', checkInTimestampSeconds: 0,
+      };
+      fakeDB.seed('test', { currentEvent: oldEvent });
+      sinon.stub(EventInterpreter, 'getNewEventOrNull').returns(null);
+      fakeFCM.failNextSend(new Error('FCM unavailable'));
+
+      const err = await assertRejects(() => updateEvent({ buildTimestamp: 'test' }, false));
+      expect(err.message).to.equal('FCM unavailable');
+
+      expect(fakeDB.updates).to.have.length(1);
+      expect(fakeFCM.sends).to.have.length(1);
+    });
+  });
 });
