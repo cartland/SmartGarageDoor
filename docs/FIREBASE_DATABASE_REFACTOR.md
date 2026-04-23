@@ -4,7 +4,7 @@ Centralize `TimeSeriesDatabase` usage in `FirebaseServer/` behind typed
 per-collection interfaces with in-memory fakes for tests. Zero production
 data impact.
 
-**Status:** Plan — not yet executed. Phase 0 starts when approved.
+**Status:** Phases 0–4 shipped through `server/13` (PRs #463, #476, #478, #479, #481, #482). Follow-up Phases 5–10 planned at the end of this doc — cover the two DB modules that never adopted the interface pattern and the handler tests the original plan promised but never landed. Zero Firestore impact, same safety guards.
 
 ## Purpose
 
@@ -400,3 +400,145 @@ whole phase and re-apply as a smaller one.
 - `AndroidGarage/docs/DECISIONS.md` — Android-side ADRs; some principles
   here (fakes over mocks, typed interfaces) mirror ADRs there (ADR-003
   no-Mockito, ADR-008 no-`*Impl`-suffix).
+
+---
+
+# Follow-up Phases (post server/13)
+
+Phases 0–4 shipped. Two DB modules never adopted the interface pattern
+and most of the handler tests the plan promised never landed. Phases
+5–10 close those gaps.
+
+**All principles from the original plan still apply:** zero Firestore
+impact, collection strings byte-identical, `TimeSeriesDatabase.ts`
+untouched, wide return types, concurrent-deploy safe, Phase 4 lint
+rule green.
+
+## Remaining gaps
+
+| Area | Current state |
+|---|---|
+| `src/database/ServerConfigDatabase.ts` | Concrete class (`class ServerConfig { DATABASE = new TimeSeriesDatabase(...) }`). No interface, `setImpl`, fake, or contract test. Getters (`getRemoteButtonPushKey`, `isRemoteButtonEnabled`, etc.) live on the same class but are pure functions over a config payload. |
+| `src/database/SnoozeNotificationsDatabase.ts` | Same — concrete class. No interface/fake/contract test. |
+| Phase 1 handler tests | `HttpRemoteButtonTest.ts`, `PubsubRemoteButtonTest.ts` — missing. |
+| Phase 2 handler tests | `HttpOpenDoorTest.ts`, `PubsubOpenDoorsJobTest.ts` — missing. |
+| Phase 3 handler tests | `HttpEchoTest.ts` — missing. `OldDataFCMTest.ts` exists but tests direct functions, not the `setImpl(fake)` pattern. |
+| Stale comment | `pubsub/OpenDoor.ts:22` — `// TODO: Add Snooze option to delay notifications.` Snooze is already wired through `getSnoozeStatus()` in `OldDataFCM.ts`. |
+
+## Phase 5 — ServerConfigDatabase to the canonical pattern
+
+**Scope:**
+- Split the module. `src/database/ServerConfigDatabase.ts` becomes: `COLLECTION_CURRENT = 'configCurrent'`, `COLLECTION_ALL = 'configAll'`, `CURRENT_KEY = 'current'` (pinned), `interface ServerConfigDatabase { get(): Promise<any>; set(data: any): Promise<void>; }`, `FirestoreServerConfigDatabase`, singleton `DATABASE`, `setImpl` / `resetImpl`.
+- Move the pure config-payload getters (`getRemoteButtonPushKey`, `getRemoteButtonAuthorizedEmails`, `isRemoteButtonEnabled`, `getRemoteButtonBuildTimestamp`, `isDeleteOldDataEnabled`, `isDeleteOldDataEnabledDryRun`, `isSnoozeNotificationsEnabled`) to free exported functions in `src/controller/config/ConfigAccessors.ts` — they're stateless reads over a config payload, not DB operations.
+- Migrate 6 callers (`DatabaseCleaner.ts`, `functions/http/RemoteButton.ts`, `functions/http/Snooze.ts`, `functions/http/ServerConfig.ts`, `functions/http/DeleteData.ts`, `functions/pubsub/DataRetentionPolicy.ts`):
+  - `Config.get()` → `DATABASE.get()`
+  - `Config.set(d)` → `DATABASE.set(d)`
+  - `Config.getRemoteButtonPushKey(cfg)` → `getRemoteButtonPushKey(cfg)`
+
+**New tests:**
+- `test/database/ServerConfigDatabaseTest.ts` — contract test pinning `'configCurrent'`, `'configAll'`, `CURRENT_KEY = 'current'`.
+- `test/fakes/FakeServerConfigDatabase.ts` — Map-backed fake with audit array + `failNextSet` / `failNextGet`.
+
+**Validation:**
+- `./scripts/validate-firebase.sh` green.
+- `grep -rE "'[a-z][a-zA-Z]+(Current|All)'" FirebaseServer/src | sort -u` — string set unchanged before/after.
+- Phase 4 lint green (only `ServerConfigDatabase.ts` gains a `new TimeSeriesDatabase(...)`, which is in the allowlist).
+- `TimeSeriesDatabase.ts` not modified.
+
+**Rollback:** Single PR, `git revert`. Zero Firestore impact.
+
+## Phase 6 — SnoozeNotificationsDatabase to the canonical pattern
+
+**Scope:**
+- `src/database/SnoozeNotificationsDatabase.ts` gains: `export const COLLECTION_CURRENT = 'snoozeNotificationsCurrent';` (ditto ALL), `interface SnoozeNotificationsDatabase { set(buildTimestamp, data), get(buildTimestamp), getRecentN(n) }`, `FirestoreImpl`, singleton, `setImpl` / `resetImpl`.
+- Caller (`src/controller/SnoozeNotifications.ts`) already uses `DATABASE.set/get/getRecentN` — zero caller churn. The class becomes an interface + its FirestoreImpl, exported as the same `DATABASE` singleton.
+
+**New tests:**
+- `test/database/SnoozeNotificationsDatabaseTest.ts` — contract test.
+- `test/fakes/FakeSnoozeNotificationsDatabase.ts` — Map-backed, audit array, `failNextSet` / `failNextGet` / `failNextGetRecentN`.
+
+**Validation:** same as Phase 5.
+
+**Rollback:** Single PR, `git revert`.
+
+## Phase 7 — RemoteButton handler tests
+
+**Scope:**
+- `test/functions/http/HttpRemoteButtonTest.ts` — covers: (a) happy path (authed request with valid push key + session ID writes to `FakeRemoteButtonRequestDatabase`), (b) ack-token continuity (same session ID across requests), (c) session-ID regeneration when client omits it, (d) disabled config rejects, (e) wrong push key rejects, (f) unauthorized email rejects.
+- `test/functions/pubsub/PubsubRemoteButtonTest.ts` — covers: (a) stale request writes entry to `FakeRemoteButtonRequestErrorDatabase`, (b) fresh request does not, (c) missing request writes the correct error shape.
+- Uses `setImpl` on each of `RemoteButtonRequestDatabase`, `RemoteButtonCommandDatabase`, `RemoteButtonRequestErrorDatabase`, `ServerConfigDatabase` (Phase 5).
+
+**Prerequisites:** Phase 5 (for `FakeServerConfigDatabase`).
+
+**Validation:** new tests pass; existing tests unaffected.
+
+**Rollback:** Test-only PR — zero production risk. `git revert` if flaky.
+
+## Phase 8 — OpenDoor handler tests
+
+**Scope:**
+- `test/functions/http/HttpOpenDoorTest.ts` — event-report endpoint: valid payload saves to `FakeSensorEventDatabase` with byte-identical shape, malformed payload rejects, missing required fields reject.
+- `test/functions/pubsub/PubsubOpenDoorsJobTest.ts` — stale event calls `sendFCMForOldData` (verified through `FakeNotificationsDatabase.saved[]` + `FakeEventFCMService.sends[]` or similar seam).
+
+**Prerequisites:** None (fakes for `SensorEventDatabase`, `NotificationsDatabase`, `EventFCMService` already exist).
+
+**Validation:** same as Phase 7.
+
+## Phase 9 — Echo + OldDataFCM fake-based tests
+
+**Scope:**
+- `test/functions/http/HttpEchoTest.ts` — Echo endpoint writes request body to `FakeUpdateDatabase`.
+- `test/controller/fcm/OldDataFCMFakeTest.ts` — mirrors `EventUpdatesFakeTest.ts`. Covers: (a) no current event → no send, (b) duplicate-notification suppression, (c) snooze-active → no send, (d) snooze-expired → send if door-open-too-long, (e) door-closed → no send, (f) save failure does not swallow (use `FakeNotificationsDatabase.failNextSave`). Retires the existing direct-function `OldDataFCMTest.ts` if and only if coverage is equal or better.
+
+**Prerequisites:** Phase 6 (for `FakeSnoozeNotificationsDatabase`).
+
+**Validation:** same as Phase 7.
+
+## Phase 10 — Doc + stale-TODO cleanup
+
+**Scope:**
+- Update this doc's "Status:" line (line 7) to reflect Phases 5–10 completion.
+- Update the `## Outcome Summary` table with final numbers.
+- Remove `// TODO: Add Snooze option to delay notifications.` in `src/functions/pubsub/OpenDoor.ts:22` — snooze is already wired through `getSnoozeStatus()` inside `sendFCMForOldData`.
+
+**Explicitly NOT in scope** (deferred — these are behavior changes, not refactors):
+- Hardcoded `'Sat Mar 13 14:45:00 2021'` buildTimestamp in `pubsub/OpenDoor.ts:23`, `pubsub/DoorErrors.ts:23`, `pubsub/RemoteButton.ts:30`. Replacement requires a config-plumbing decision (which buildTimestamp does the pubsub job care about?) — file a separate plan.
+- Bare `// TODO.` in `http/RemoteButton.ts:65`. Underlying design question about how to handle a missing ack-token from the client. Leave until the design question is settled.
+- Dependabot alerts (`uuid` buffer-bounds, `fast-xml-parser` XMLBuilder injection) — tracked outside this refactor.
+
+## Priority and ordering
+
+| Phase | Depends on | Effort | Risk | Notes |
+|---|---|---|---|---|
+| 5 | — | Medium (6 callers) | Low | Production code + tests |
+| 6 | — | Small | Low | Production code + tests, near-zero caller churn |
+| 7 | 5, 6 | Medium | Low | Test-only |
+| 8 | — | Medium | Low | Test-only |
+| 9 | 6 | Small-Medium | Low | Test-only (may retire an old test) |
+| 10 | 5–9 | Trivial | None | Doc + one-line code cleanup |
+
+**Parallelism:** Phases 5, 6, 8 can land in parallel (no shared files). Phase 7 is gated by 5 + 6. Phase 9 is gated by 6. Phase 10 lands last, after all others.
+
+## Safety guards (apply to every PR)
+
+1. `./scripts/validate-firebase.sh` passes — build + lint + all tests.
+2. PR description includes the `grep` diff of collection-name string literals. Set must be unchanged.
+3. `TimeSeriesDatabase.ts` is not modified.
+4. Phase 4 lint (`no-restricted-syntax` on `new TimeSeriesDatabase(`) remains green.
+5. Contract tests for every DB module touched in the PR must pin the collection strings.
+6. For Phases 5 and 6 (production code): verify `firebase-deploy.yml` succeeds on the post-merge commit before shipping `server/14` etc. No Firestore document shape changes — concurrent-deploy safe.
+
+## Rollback
+
+Each phase is a single PR. Phases 5–6 touch production code; revert via `git revert` + new `server/N` tag. Phases 7–10 are test/doc-only; reverting is zero-risk (tests never deploy). Partial rollback within a phase is not safe (same rule as original phases) — revert the whole PR.
+
+## Outcome Summary (projected after Phase 10)
+
+| Metric | Current (post-Phase 4) | Projected (post-Phase 10) |
+|---|---|---|
+| DB modules using interface + setImpl pattern | 7 of 9 | 9 of 9 |
+| DB modules with contract tests | 6 of 9 | 9 of 9 |
+| Handler test files | 2 (SnoozeNotificationsTest, EventUpdatesFakeTest) | 7 (+ 5 new per Phases 7–9) |
+| DB modules with fakes in `test/fakes/` | 6 of 9 | 9 of 9 |
+| Stale-marker comments in handlers | ≥ 1 (`pubsub/OpenDoor.ts:22`) | 0 |
+| Production data impact | None | None (verified per-PR) |
