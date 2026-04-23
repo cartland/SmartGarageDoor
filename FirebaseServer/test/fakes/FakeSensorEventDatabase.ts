@@ -28,7 +28,11 @@ export class FakeSensorEventDatabase implements SensorEventDatabase {
   }
 
   async getCurrent(buildTimestamp: string): Promise<any> {
-    return this.store.get(buildTimestamp) ?? null;
+    // Match TimeSeriesDatabase.getCurrent, which routes through
+    // convertFromFirestore() and always returns {} for missing documents.
+    // Returning null here would diverge from production and break callers
+    // that use `KEY in oldData` guards without null-checks.
+    return this.store.get(buildTimestamp) ?? {};
   }
 
   async updateCurrentWithMatchingCurrentEventTimestamp(buildTimestamp: string, matchingCurrent: any): Promise<any> {
