@@ -85,6 +85,32 @@ module.exports = [
         "argsIgnorePattern": "^_",
         "varsIgnorePattern": "^_",
       }],
+
+      // Phase 4 of the database refactor (see
+      // docs/FIREBASE_DATABASE_REFACTOR.md). Every Firestore collection
+      // is wrapped by a typed singleton in src/database/; instantiating
+      // TimeSeriesDatabase anywhere else reintroduces the duplication
+      // pattern the refactor removed. Allowlisted paths below.
+      "no-restricted-syntax": ["error", {
+        "selector": "NewExpression[callee.name='TimeSeriesDatabase']",
+        "message": "Do not instantiate TimeSeriesDatabase outside src/database/. Import the singleton for your collection (e.g., `import { DATABASE as FooDatabase } from '../database/FooDatabase'`). See docs/FIREBASE_DATABASE_REFACTOR.md.",
+      }],
+    },
+  },
+  {
+    // The canonical home for TimeSeriesDatabase wrappers — one module
+    // per collection. Direct instantiation here is the whole point.
+    files: ["src/database/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": "off",
+    },
+  },
+  {
+    // Contract test for TimeSeriesDatabase itself needs to instantiate
+    // it directly. Other database tests use fakes, not the wrapper.
+    files: ["test/database/TimeSeriesDatabaseTest.ts"],
+    rules: {
+      "no-restricted-syntax": "off",
     },
   },
   {
