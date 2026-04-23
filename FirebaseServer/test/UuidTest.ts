@@ -14,16 +14,12 @@
  * change what we store in Firestore as session IDs without a test
  * failure.
  *
- * Also doubles as the CVE-guard: the "is ≥ 14.0.0" test fails if
- * `uuid` is ever downgraded below the patched version for Dependabot
- * alert #67 (GHSA — missing buffer bounds check in v3/v5/v6 when buf
- * is provided). See docs/FIREBASE_HARDENING_PLAN.md → Part B.
+ * The CVE-guard (uuid ≥ 14.0.0) lives in CveGuardTest.ts alongside
+ * other dependency guards.
  */
 
 import { expect } from 'chai';
 import { v4 as uuidv4 } from 'uuid';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const uuidPkg = require('uuid/package.json');
 
 describe('uuid v4 contract', () => {
   it('returns 36-character canonical-form v4 strings', () => {
@@ -37,15 +33,5 @@ describe('uuid v4 contract', () => {
     const a = uuidv4();
     const b = uuidv4();
     expect(a).to.not.equal(b);
-  });
-});
-
-describe('CVE guards — fail if a flagged version is re-introduced', () => {
-  // Dependabot alert #67: uuid < 14.0.0 (GHSA: v3/v5/v6 buffer bounds).
-  // Our usage (v4() with no buf) is not in the vector, but keeping
-  // uuid ≥ 14.0.0 clears the alert and future-proofs the test anchor.
-  it('uuid resolved version is ≥ 14.0.0', () => {
-    const [major] = String(uuidPkg.version).split('.').map(Number);
-    expect(major, `uuid ${uuidPkg.version} < 14.0.0`).to.be.gte(14);
   });
 });
