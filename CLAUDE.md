@@ -33,11 +33,11 @@ release/clean-secrets.sh
 
 ### Firebase Server (FirebaseServer/)
 ```bash
-# Development cycle
-npm install
-npm run build          # Cross-platform TypeScript compilation
-npm run tests          # Mocha test runner
-npm run lint           # TSLint
+# Development cycle (uses the Node version in FirebaseServer/.nvmrc = 22)
+./scripts/firebase-npm.sh install
+./scripts/firebase-npm.sh run build   # lint + tsc
+./scripts/firebase-npm.sh run tests   # mocha (sets NODE_OPTIONS to disable native strip-types)
+./scripts/firebase-npm.sh run lint
 
 # Local development
 firebase serve --only functions
@@ -46,6 +46,10 @@ firebase emulators:start
 # Deployment
 firebase deploy --only functions
 ```
+
+`scripts/firebase-npm.sh` auto-sources nvm and switches to the Node version in `FirebaseServer/.nvmrc`, then forwards args to `npm --prefix FirebaseServer`. `scripts/validate-firebase.sh` does the same auto-switch before running the full validation. Manual `nvm use` is not needed.
+
+**Node version pitfall:** Node 22.18+ and Node 24 enable native TypeScript type-stripping by default (`process.features.typescript === 'strip'`). That path breaks `import * as admin from 'firebase-admin'` when mocha loads `.ts` files via `ts-node/register` — `admin.initializeApp` becomes undefined. The `tests` npm script pins `NODE_OPTIONS='--no-experimental-strip-types'` so ts-node's loader owns compilation. If you ever see `TypeError: admin.initializeApp is not a function` in unit tests, check that this env var is still set.
 
 ### ESP32 Firmware (GarageFirmware_ESP32/)
 ```bash
