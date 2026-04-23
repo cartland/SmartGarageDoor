@@ -16,14 +16,10 @@
 
 import { Config } from '../database/ServerConfigDatabase';
 
-import { TimeSeriesDatabase } from '../database/TimeSeriesDatabase';
+import { DATABASE as UpdateDatabase } from '../database/UpdateDatabase';
 import { DATABASE as SensorEventDatabase } from '../database/SensorEventDatabase';
 import { DATABASE as REMOTE_REQUEST_DATABASE } from '../database/RemoteButtonRequestDatabase';
 import { DATABASE as REMOTE_COMMAND_DATABASE } from '../database/RemoteButtonCommandDatabase';
-
-// Phase 3 will centralize the 'updateCurrent'/'updateAll' collection into its
-// own database module. For now this remains an inline TimeSeriesDatabase.
-const UPDATE_DATABASE = new TimeSeriesDatabase('updateCurrent', 'updateAll');
 
 export async function deleteOldData(cutoffTimestampSeconds: number, dryRunRequested: boolean): Promise<object> {
   const config = await Config.get();
@@ -44,7 +40,7 @@ export async function deleteOldData(cutoffTimestampSeconds: number, dryRunReques
   } else {
     console.log('deleteOldData: Deleting data!');
   }
-  const updateCount = await UPDATE_DATABASE.deleteAllBefore(cutoffTimestampSeconds, dryRun);
+  const updateCount = await UpdateDatabase.deleteAllBefore(cutoffTimestampSeconds, dryRun);
   const eventCount = await SensorEventDatabase.deleteAllBefore(cutoffTimestampSeconds, dryRun);
   const requestCount = await REMOTE_REQUEST_DATABASE.deleteAllBefore(cutoffTimestampSeconds, dryRun);
   const commandCount = await REMOTE_COMMAND_DATABASE.deleteAllBefore(cutoffTimestampSeconds, dryRun);

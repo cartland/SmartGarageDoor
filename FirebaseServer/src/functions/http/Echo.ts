@@ -18,9 +18,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import * as functions from 'firebase-functions/v1';
 
-import { TimeSeriesDatabase } from '../../database/TimeSeriesDatabase';
-
-const UPDATE_DATABASE = new TimeSeriesDatabase('updateCurrent', 'updateAll');
+import { DATABASE as UpdateDatabase } from '../../database/UpdateDatabase';
 
 const SESSION_PARAM_KEY = "session";
 const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
@@ -52,8 +50,8 @@ export const httpEcho = functions.https.onRequest(async (request, response) => {
   }
 
   try {
-    await UPDATE_DATABASE.save(session, data);
-    const retrievedData = await UPDATE_DATABASE.getCurrent(session);
+    await UpdateDatabase.save(session, data);
+    const retrievedData = await UpdateDatabase.getCurrent(session);
     response.status(200).send(retrievedData);
   }
   catch (error) {
