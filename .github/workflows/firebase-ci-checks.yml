@@ -21,7 +21,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Install dependencies
         working-directory: FirebaseServer
         run: npm install
@@ -68,7 +68,7 @@ jobs:
   # tests miss — the classic symptom is "tests pass, emulator crashes on
   # startup with a require() error" after a dep upgrade. A pass proves:
   #
-  #   - The compiled `lib/` loads under Node 20 in the emulator runtime.
+  #   - The compiled `lib/` loads under Node 22 in the emulator runtime.
   #   - All transitive deps resolve (firebase-admin, express, jws,
   #     node-forge, etc.).
   #   - Express + the function router can dispatch a request.
@@ -90,7 +90,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
       # firebase-tools requires Java 21+ for the Firestore / Functions
       # emulators as of firebase-tools 14.x. Without this step the job
       # fails at `firebase emulators:exec` with:
