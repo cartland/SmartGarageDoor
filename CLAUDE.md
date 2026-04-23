@@ -148,7 +148,7 @@ Run `./scripts/run-instrumented-tests.sh` when changing Room entities/DAOs, DI w
 **Firebase** (mirrors Android):
 - **Pre-submit** (`firebase-ci.yml` → `firebase-ci-checks.yml`): Runs on PRs. Gate job `Firebase CI Complete` is the required status check.
 - **Post-merge** (`firebase-ci-post-merge.yml` → `firebase-ci-checks.yml`): Runs on push to main. Auto-creates GitHub issue on failure (`ci-failure/firebase-post-merge`), auto-closes on fix.
-- The `firebase-deploy.yml` `verify-ci` step matches the `Run Unit Tests` check-run via `endswith(...)`, so it works whether the check comes from the inline name or the reusable-workflow-prefixed name.
+- The `firebase-deploy.yml` `verify-ci` step matches the check-run named `Firebase Checks / Unit Tests` exactly. That's the name produced by the reusable workflow when called via the `Firebase Checks` caller job (see `firebase-ci.yml`).
 
 **Docs-only fast path (Android + Firebase):**
 - When every changed file matches `**/*.md`, `docs/**`, `.claude/**`, `LICENSE`, `.gitignore`, or `AndroidGarage/distribution/whatsnew/**`, the `checks` reusable workflow is skipped and the gate jobs post success in ~20–30s.
