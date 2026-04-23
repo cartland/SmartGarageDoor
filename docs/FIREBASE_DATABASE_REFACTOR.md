@@ -4,7 +4,21 @@ Centralize `TimeSeriesDatabase` usage in `FirebaseServer/` behind typed
 per-collection interfaces with in-memory fakes for tests. Zero production
 data impact.
 
-**Status:** Phases 0–4 shipped through `server/13` (PRs #463, #476, #478, #479, #481, #482). Follow-up Phases 5–10 planned at the end of this doc — cover the two DB modules that never adopted the interface pattern and the handler tests the original plan promised but never landed. Zero Firestore impact, same safety guards.
+**Status:** Phases 0–6, 9 (partial), 10 shipped. Phases 7, 8, and the `HttpEchoTest` half of Phase 9 are deferred — testing Firebase Functions HTTP wrappers requires either `firebase-functions-test` package setup or extracting handler bodies into pure functions (production code change). See the *Deferred work* section at the end of this doc. Every Firestore collection now goes through a typed singleton with a contract test, and regression is guarded by the Phase 4 lint rule. Zero Firestore data impact throughout.
+
+### Phase shipping history
+
+| Phase | Scope | PR | Tag |
+|---|---|---|---|
+| 0 | Prerequisites + `test/fakes/` infra | (multiple) | server/12 |
+| 1 | RemoteButton trio (interface + fake + contract) | (multiple) | server/11–12 |
+| 2 | `SensorEventDatabase` interface + fake; `EventUpdatesFakeTest` | #476 | server/13 |
+| 3 | `UpdateDatabase` rename from `Database.ts`; `NotificationsDatabase` migration | #478, #481 | server/13 |
+| 4 | ESLint ban on `new TimeSeriesDatabase(` outside `src/database/` | #482 | server/13 |
+| 5 | `ServerConfigDatabase` to canonical pattern + `ConfigAccessors` split | #485 | (unreleased) |
+| 6 | `SnoozeNotificationsDatabase` to canonical pattern | #484 | (unreleased) |
+| 9 (partial) | `OldDataFCMFakeTest` + mocha glob fix (surfaced 84 hidden tests) | #486 | (unreleased) |
+| 10 | Stale TODO removal + doc refresh | #487 | (unreleased) |
 
 ## Purpose
 
@@ -532,13 +546,50 @@ rule green.
 
 Each phase is a single PR. Phases 5–6 touch production code; revert via `git revert` + new `server/N` tag. Phases 7–10 are test/doc-only; reverting is zero-risk (tests never deploy). Partial rollback within a phase is not safe (same rule as original phases) — revert the whole PR.
 
-## Outcome Summary (projected after Phase 10)
+## Outcome Summary (actual, post-Phase 10)
 
-| Metric | Current (post-Phase 4) | Projected (post-Phase 10) |
-|---|---|---|
-| DB modules using interface + setImpl pattern | 7 of 9 | 9 of 9 |
-| DB modules with contract tests | 6 of 9 | 9 of 9 |
-| Handler test files | 2 (SnoozeNotificationsTest, EventUpdatesFakeTest) | 7 (+ 5 new per Phases 7–9) |
-| DB modules with fakes in `test/fakes/` | 6 of 9 | 9 of 9 |
-| Stale-marker comments in handlers | ≥ 1 (`pubsub/OpenDoor.ts:22`) | 0 |
-| Production data impact | None | None (verified per-PR) |
+| Metric | Pre-refactor | Post-Phase 4 | Post-Phase 10 (actual) |
+|---|---|---|---|
+| DB modules using interface + setImpl pattern | 0 of 9 | 7 of 9 | **9 of 9** |
+| DB modules with contract tests | 0 of 9 | 6 of 9 | **9 of 9** |
+| DB modules with fakes in `test/fakes/` | 0 of 9 | 6 of 9 | **9 of 9** |
+| Orchestration test files using fakes | 0 | 1 (`EventUpdatesFakeTest`) | 2 (+ `OldDataFCMFakeTest`) |
+| Handler (HTTP/pubsub) tests | 0 | 0 | 0 (deferred — see below) |
+| Stale-marker comments in handlers | ≥ 1 | ≥ 1 | **0** |
+| Mocha-discovered test files | (all) | (all) | (all) — **+84 surfaced via glob fix** |
+| Production data impact | — | None | None (verified per-PR) |
+
+## Deferred work
+
+The following items from the original plan are **not shipped**. Each has a concrete reason that rules out a pure-refactor approach.
+
+### Phase 7 — RemoteButton handler tests (deferred)
+
+**Blocker:** `httpRemoteButton` and `httpAddRemoteButtonCommand` are wrapped by `functions.https.onRequest(handler)`. Invoking the inner handler requires either:
+1. Adopting the `firebase-functions-test` package (new test-only dependency + SDK setup).
+2. Extracting the handler body into a pure function (e.g. `handleRemoteButtonRequest(config, req, now)`) and leaving the thin wrapper untested. This is a production-code refactor, out of scope for the DB refactor.
+
+**Non-blocker evidence:** The DB interactions the handler drives are already pinned by contract tests (`RemoteButtonRequestDatabaseTest`, `RemoteButtonCommandDatabaseTest`, `RemoteButtonRequestErrorDatabaseTest`) and the lint rule prevents regression to inline `TimeSeriesDatabase` construction.
+
+### Phase 8 — OpenDoor handler tests (deferred)
+
+**Blocker:** Same as Phase 7. Additionally, the `http/OpenDoor.ts` and `pubsub/OpenDoor.ts` handlers are ~5 lines each — they only call `SensorEventDatabase.getCurrent` and `sendFCMForOldData`. The interesting logic is inside `sendFCMForOldData`, already covered by `OldDataFCMFakeTest.ts` (Phase 9).
+
+### Phase 9 — `HttpEchoTest.ts` (deferred half of Phase 9)
+
+**Blocker:** Same firebase-functions-test-or-extract choice. Echo's logic is "save then retrieve"; both operations are pinned by `UpdateDatabase`'s contract tests and exercised by `EventUpdatesFakeTest.ts` indirectly.
+
+### Common path forward
+
+If these tests are needed in the future, the cleanest approach is either:
+
+- **Option A — Extract handler bodies.** Refactor each handler into `handleX(config, params, services, now): Promise<Result>` + a thin wrapper. Test the pure function directly with fakes. One-time production-code change per handler; all future handler tests fall out easily.
+- **Option B — Add `firebase-functions-test`.** Write tests that invoke the full wrapper via the library's helpers. No production-code change, but adds a test-only dependency and a new testing idiom.
+
+Either option is a planned follow-up, not blocking the refactor's completion.
+
+### Excluded (behavior changes — not refactors)
+
+- Hardcoded `'Sat Mar 13 14:45:00 2021'` buildTimestamp in `pubsub/OpenDoor.ts:24`, `pubsub/DoorErrors.ts:23`, `pubsub/RemoteButton.ts:30`. Replacement requires config-plumbing decisions (which buildTimestamp does the pubsub job care about?) — file a separate plan.
+- Bare `// TODO.` in `http/RemoteButton.ts:65`. Underlying design question about missing-ack-token handling — leave until the design question is settled.
+- Dependabot alerts (`uuid` buffer-bounds, `fast-xml-parser` XMLBuilder injection) — tracked outside this refactor.
