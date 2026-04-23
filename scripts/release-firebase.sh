@@ -191,19 +191,37 @@ fi
 #   empty   : heading exists but body is whitespace-only
 #   missing : no heading for this tag
 #   no_file : FirebaseServer/CHANGELOG.md does not exist
+#
+# Matching rules:
+# - Lines inside fenced code blocks (```...```) are ignored — they're example
+#   content in the docs intro, not real release entries. Without this, an
+#   example heading like "## server/13" in the docs block would match before
+#   the real entry below it.
+# - Fence toggling: lines starting with ``` flip the in_fence state.
 CHANGELOG_FILE="$REPO_ROOT/FirebaseServer/CHANGELOG.md"
 CHANGELOG_STATE="no_file"
 CHANGELOG_BODY=""
 if [ -f "$CHANGELOG_FILE" ]; then
-    # Extract body: lines between "## $NEW_TAG" and the next "## " heading.
+    # Extract body: lines between "## $NEW_TAG" and the next "## " heading,
+    # ignoring anything inside ``` fences.
     CHANGELOG_BODY=$(awk -v tag="$NEW_TAG" '
-        $0 ~ ("^## "tag"([ ]|$)") { found=1; next }
+        BEGIN { in_fence = 0; found = 0 }
+        /^```/ { in_fence = !in_fence; next }
+        in_fence { next }
+        $0 ~ ("^## "tag"([ ]|$)") { found = 1; next }
         found && /^## / { exit }
         found { print }
     ' "$CHANGELOG_FILE")
+    # Heading existence also respects fences.
+    HEADING_FOUND=$(awk -v tag="$NEW_TAG" '
+        BEGIN { in_fence = 0 }
+        /^```/ { in_fence = !in_fence; next }
+        in_fence { next }
+        $0 ~ ("^## "tag"([ ]|$)") { print "yes"; exit }
+    ' "$CHANGELOG_FILE")
     if [ -n "$(echo "$CHANGELOG_BODY" | tr -d '[:space:]')" ]; then
         CHANGELOG_STATE="present"
-    elif grep -qE "^## $NEW_TAG([ ]|$)" "$CHANGELOG_FILE"; then
+    elif [ "$HEADING_FOUND" = "yes" ]; then
         CHANGELOG_STATE="empty"
     else
         CHANGELOG_STATE="missing"
