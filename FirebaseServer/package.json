@@ -43,7 +43,7 @@
     "path-to-regexp": "0.1.13"
   },
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "private": true
 }
