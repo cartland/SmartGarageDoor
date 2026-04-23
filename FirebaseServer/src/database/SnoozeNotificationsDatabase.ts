@@ -14,25 +14,38 @@
  * limitations under the License.
  */
 
-const COLLECTION_CURRENT = 'snoozeNotificationsCurrent';
-const COLLECTION_ALL = 'snoozeNotificationsAll';
-
 import { TimeSeriesDatabase } from './TimeSeriesDatabase';
 
-class SnoozeNotificationsDatabase {
-  DB = new TimeSeriesDatabase(COLLECTION_CURRENT, COLLECTION_ALL);
+// Canonical collection strings for this database. Pinned by
+// test/database/SnoozeNotificationsDatabaseTest.ts. Changing them
+// requires a Firestore data migration in production — see
+// docs/FIREBASE_DATABASE_REFACTOR.md.
+export const COLLECTION_CURRENT = 'snoozeNotificationsCurrent';
+export const COLLECTION_ALL = 'snoozeNotificationsAll';
 
-  async set(buildTimestamp: string, data: any) {
-    await this.DB.save(buildTimestamp, data);
-  }
+export interface SnoozeNotificationsDatabase {
+  set(buildTimestamp: string, data: any): Promise<void>;
+  get(buildTimestamp: string): Promise<any>;
+  getRecentN(n: number): Promise<any>;
+}
 
-  async get(buildTimestamp: string): Promise<any> {
-    return this.DB.getCurrent(buildTimestamp);
-  }
+class FirestoreSnoozeNotificationsDatabase implements SnoozeNotificationsDatabase {
+  private readonly db = new TimeSeriesDatabase(COLLECTION_CURRENT, COLLECTION_ALL);
+  set(b: string, d: any) { return this.db.save(b, d); }
+  get(b: string) { return this.db.getCurrent(b); }
+  getRecentN(n: number) { return this.db.getLatestN(n); }
+}
 
-  async getRecentN(n: number): Promise<any> {
-    return this.DB.getLatestN(n);
-  }
+let _instance: SnoozeNotificationsDatabase = new FirestoreSnoozeNotificationsDatabase();
+
+export const DATABASE: SnoozeNotificationsDatabase = {
+  set: (b, d) => _instance.set(b, d),
+  get: (b) => _instance.get(b),
+  getRecentN: (n) => _instance.getRecentN(n),
 };
 
-export const DATABASE = new SnoozeNotificationsDatabase();
+/** TEST-ONLY: swap in a fake implementation. */
+export function setImpl(impl: SnoozeNotificationsDatabase): void { _instance = impl; }
+
+/** TEST-ONLY: restore the Firestore implementation. */
+export function resetImpl(): void { _instance = new FirestoreSnoozeNotificationsDatabase(); }
