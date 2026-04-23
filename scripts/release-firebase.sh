@@ -48,6 +48,7 @@ CONFIRM_TAG=""
 CONFIRM_HASH=""
 CONFIRM_ROLLBACK_FROM=""
 CONFIRM_UNVALIDATED_RELEASE=""
+CONFIRM_NO_CHANGELOG=""
 DRY_RUN=false
 
 show_help() {
@@ -71,6 +72,8 @@ Override flags (all require a specific value from --check output):
   --confirm-unvalidated-release <sha>
                                     Release without validation marker match.
                                     SHA must equal the target commit.
+  --confirm-no-changelog <sha>      Release without a CHANGELOG entry for the
+                                    new tag. SHA must equal the target commit.
 
 Help:
   -h, --help                Show this help
@@ -102,6 +105,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --confirm-unvalidated-release)
             CONFIRM_UNVALIDATED_RELEASE="$2"
+            shift 2
+            ;;
+        --confirm-no-changelog)
+            CONFIRM_NO_CHANGELOG="$2"
             shift 2
             ;;
         --dry-run)
@@ -179,6 +186,30 @@ if [ -f "$VALIDATION_FILE" ]; then
     fi
 fi
 
+# CHANGELOG state for the tag we're about to create.
+#   present : `## server/N` heading exists and has non-empty body
+#   empty   : heading exists but body is whitespace-only
+#   missing : no heading for this tag
+#   no_file : FirebaseServer/CHANGELOG.md does not exist
+CHANGELOG_FILE="$REPO_ROOT/FirebaseServer/CHANGELOG.md"
+CHANGELOG_STATE="no_file"
+CHANGELOG_BODY=""
+if [ -f "$CHANGELOG_FILE" ]; then
+    # Extract body: lines between "## $NEW_TAG" and the next "## " heading.
+    CHANGELOG_BODY=$(awk -v tag="$NEW_TAG" '
+        $0 ~ ("^## "tag"([ ]|$)") { found=1; next }
+        found && /^## / { exit }
+        found { print }
+    ' "$CHANGELOG_FILE")
+    if [ -n "$(echo "$CHANGELOG_BODY" | tr -d '[:space:]')" ]; then
+        CHANGELOG_STATE="present"
+    elif grep -qE "^## $NEW_TAG([ ]|$)" "$CHANGELOG_FILE"; then
+        CHANGELOG_STATE="empty"
+    else
+        CHANGELOG_STATE="missing"
+    fi
+fi
+
 # Remote CI status (warn-only; does not gate release).
 # Firebase CI runs unit tests + emulator smoke; a failure here is still
 # worth knowing about even if the local marker is green.
@@ -224,6 +255,13 @@ if [ "$MODE" = "check" ]; then
         *)       echo -e "${RED}$REMOTE_CI${RESET}" ;;
     esac
 
+    case "$CHANGELOG_STATE" in
+        present) echo -e "Changelog:    ${GREEN}PRESENT${RESET} (entry for $NEW_TAG in FirebaseServer/CHANGELOG.md)" ;;
+        empty)   echo -e "Changelog:    ${YELLOW}EMPTY${RESET} (heading for $NEW_TAG has no body)" ;;
+        missing) echo -e "Changelog:    ${YELLOW}MISSING${RESET} (no heading for $NEW_TAG in FirebaseServer/CHANGELOG.md)" ;;
+        no_file) echo -e "Changelog:    ${YELLOW}NO FILE${RESET} (FirebaseServer/CHANGELOG.md does not exist)" ;;
+    esac
+
     if [ -n "$EXISTING_TAGS_ON_TARGET" ]; then
         echo "Target tags:  $(echo "$EXISTING_TAGS_ON_TARGET" | tr '\n' ' ')"
     fi
@@ -240,17 +278,23 @@ if [ "$MODE" = "check" ]; then
         echo "      --confirm-hash $TARGET_COMMIT \\"
         echo "      --confirm-rollback-from $LATEST_TAG_SHA"
         echo ""
+        EXTRAS=()
         if [ "$VALIDATION_STATE" != "matches" ]; then
-            echo "If you also need to skip validation (expected for old rollback targets), append:"
-            echo "      --confirm-unvalidated-release $TARGET_COMMIT"
+            EXTRAS+=("--confirm-unvalidated-release $TARGET_COMMIT")
+        fi
+        if [ "$CHANGELOG_STATE" != "present" ]; then
+            EXTRAS+=("--confirm-no-changelog $TARGET_COMMIT")
+        fi
+        if [ ${#EXTRAS[@]} -gt 0 ]; then
+            echo "Append the following for the conditions flagged above (validation stale, no changelog entry):"
+            for extra in "${EXTRAS[@]}"; do
+                echo "      $extra"
+            done
+            echo ""
+            echo "Recommended instead: add a CHANGELOG entry describing the rollback (e.g. \"rollback to $NEWEST_TAG_ON_TARGET because X\")."
             echo ""
         fi
-    elif [ "$VALIDATION_STATE" = "matches" ]; then
-        echo "Copy and run this command to release:"
-        echo ""
-        echo "  ./scripts/release-firebase.sh --confirm-tag $NEW_TAG"
-        echo ""
-    else
+    elif [ "$VALIDATION_STATE" != "matches" ]; then
         echo "Validation is not passing for HEAD. Two options:"
         echo ""
         echo "(1) Run validation, then re-run --check (recommended):"
@@ -261,6 +305,33 @@ if [ "$MODE" = "check" ]; then
         echo "    ./scripts/release-firebase.sh \\"
         echo "        --confirm-tag $NEW_TAG \\"
         echo "        --confirm-unvalidated-release $TARGET_COMMIT"
+        echo ""
+    elif [ "$CHANGELOG_STATE" != "present" ]; then
+        echo "No CHANGELOG entry for $NEW_TAG. Two options:"
+        echo ""
+        echo "(1) Add an entry, commit, push, re-run --check (recommended):"
+        echo ""
+        echo "    Edit FirebaseServer/CHANGELOG.md and add:"
+        echo ""
+        echo "      ## $NEW_TAG"
+        echo "      - <one or more bullets on what shipped>"
+        echo ""
+        echo "    If this release supersedes a previous untested release (bug-chase"
+        echo "    chain), you may REPLACE the predecessor's entry with this one."
+        echo "    Git log of the file preserves the original."
+        echo ""
+        echo "    Then: git commit + push, ./scripts/validate-firebase.sh, ./scripts/release-firebase.sh --check"
+        echo ""
+        echo "(2) Release WITHOUT a changelog entry (emergency only):"
+        echo ""
+        echo "    ./scripts/release-firebase.sh \\"
+        echo "        --confirm-tag $NEW_TAG \\"
+        echo "        --confirm-no-changelog $TARGET_COMMIT"
+        echo ""
+    else
+        echo "Copy and run this command to release:"
+        echo ""
+        echo "  ./scripts/release-firebase.sh --confirm-tag $NEW_TAG"
         echo ""
     fi
 
@@ -381,6 +452,38 @@ else
         echo "  ./scripts/release-firebase.sh --check"
         exit 1
     fi
+fi
+
+# === Gate: CHANGELOG entry ===
+if [ "$CHANGELOG_STATE" = "present" ]; then
+    FIRST_LINE=$(echo "$CHANGELOG_BODY" | grep -m1 -E '[^[:space:]]' || echo "")
+    echo -e "${GREEN}Changelog entry found for $NEW_TAG.${RESET}"
+    if [ -n "$FIRST_LINE" ]; then
+        echo "  First line: $(echo "$FIRST_LINE" | head -c 120)"
+    fi
+elif [ -n "$CONFIRM_NO_CHANGELOG" ]; then
+    if [ "$CONFIRM_NO_CHANGELOG" != "$TARGET_COMMIT" ]; then
+        echo -e "${RED}Error: --confirm-no-changelog SHA does not match target commit.${RESET}"
+        echo "  Expected (target commit): $TARGET_COMMIT"
+        echo "  Got:                      $CONFIRM_NO_CHANGELOG"
+        echo ""
+        echo "Run --check to see the correct value."
+        exit 1
+    fi
+    echo -e "${YELLOW}WARNING: Releasing without CHANGELOG entry (--confirm-no-changelog).${RESET}"
+    echo "  Add an entry after the fact if this release has user-visible effect."
+    echo ""
+else
+    case "$CHANGELOG_STATE" in
+        missing) REASON="no heading for $NEW_TAG in FirebaseServer/CHANGELOG.md" ;;
+        empty)   REASON="heading for $NEW_TAG exists but body is empty" ;;
+        no_file) REASON="FirebaseServer/CHANGELOG.md does not exist" ;;
+        *)       REASON="unknown" ;;
+    esac
+    echo -e "${RED}Error: CHANGELOG gate failed ($REASON).${RESET}"
+    echo ""
+    echo "Run --check to see how to fix (write the entry, or emergency override)."
+    exit 1
 fi
 
 # === Remote CI status (warn-only) ===

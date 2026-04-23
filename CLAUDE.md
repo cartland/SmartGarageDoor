@@ -251,6 +251,8 @@ The script computes the next tag as `server/<highest + 1>`. Deploys Cloud Functi
 
 **Validation is required by default.** Run `./scripts/validate-firebase.sh` before releasing (runs `npm run build` + `npm run tests`, writes marker with commit SHA). For emergencies use `--confirm-unvalidated-release <sha>` — the SHA must equal the target commit. Remote Firebase CI status is also checked but is warn-only (not all commits run full CI).
 
+**Changelog entry is required by default.** `FirebaseServer/CHANGELOG.md` must have a `## server/N` heading with a non-empty body before the tag can be pushed. See the file's header for the supersede rule (bug-chase chains may replace the predecessor's entry instead of appending). Draft with `/update-firebase-changelog`. For emergencies use `--confirm-no-changelog <sha>` — the SHA must equal the target commit. Add the entry retroactively after a no-changelog release.
+
 **Rollback = two steps** (same as Android):
 ```bash
 git checkout server/M
