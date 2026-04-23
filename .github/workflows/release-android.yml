@@ -1,4 +1,4 @@
-name: Release Android to Play Store (Internal)
+name: Android Release
 
 # Triggered by android/N tags pushed by scripts/release-android.sh
 # Deploys to internal track only — never production.
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   release:
-    name: Build and Deploy to Internal
+    name: Android Release Build and Deploy to Internal
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

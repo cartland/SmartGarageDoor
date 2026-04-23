@@ -1,4 +1,4 @@
-name: Deploy Firebase Server
+name: Firebase Deploy
 
 # Triggered by server/N tags only — never on push to main.
 # To deploy: push a tag like server/1, server/2, etc.
@@ -9,7 +9,7 @@ on:
 
 jobs:
   verify-ci:
-    name: Verify Firebase CI Passed
+    name: Firebase Deploy Verify CI
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -36,7 +36,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
   deploy:
-    name: Deploy to Firebase
+    name: Firebase Deploy Run
     needs: verify-ci
     runs-on: ubuntu-latest
     timeout-minutes: 10
