@@ -56,7 +56,7 @@ export async function getSnoozeStatus(params: SnoozeLatestParams): Promise<Snooz
     // Get the current event timestamp from the database.
     let eventsCurrent = null;
     try {
-        eventsCurrent = await SensorEventDatabase.get(buildTimestamp);
+        eventsCurrent = await SensorEventDatabase.getCurrent(buildTimestamp);
     } catch (error) {
         console.error(error);
         return <SnoozeLatestResponse> {
@@ -134,7 +134,7 @@ export async function submitSnoozeNotificationsRequest(params: SubmitSnoozeParam
     // Get the current event timestamp from the database.
     let eventsCurrent = null;
     try {
-        eventsCurrent = await SensorEventDatabase.get(buildTimestamp);
+        eventsCurrent = await SensorEventDatabase.getCurrent(buildTimestamp);
     } catch (error) {
         console.error(error);
         return <SubmitSnoozeResponse>{ error: 'Error getting current event', code: 500 };

@@ -72,7 +72,7 @@ export const httpCurrentEventData = functions.https.onRequest(async (request, re
   }
 
   try {
-    const currentData = await SensorEventDatabase.get(buildTimestamp);
+    const currentData = await SensorEventDatabase.getCurrent(buildTimestamp);
     data[CURRENT_EVENT_DATA_KEY] = currentData;
     response.status(200).send(data);
   }
@@ -178,10 +178,10 @@ export const httpNextEvent = functions.https.onRequest(async (request, response)
     timestampSeconds = parseInt(String(request.query[TIMESTAMP_SECONDS_PARAM_KEY]));
   }
   try {
-    const oldEvent = await SensorEventDatabase.get(buildTimestamp);
+    const oldEvent = await SensorEventDatabase.getCurrent(buildTimestamp);
     const newEvent = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
     if (newEvent !== null) {
-      await SensorEventDatabase.set(buildTimestamp, newEvent);
+      await SensorEventDatabase.save(buildTimestamp, newEvent);
     }
     data[OLD_EVENT_KEY] = oldEvent;
     data[NEW_EVENT_KEY] = newEvent;
