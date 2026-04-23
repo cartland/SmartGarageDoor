@@ -16,7 +16,7 @@
 
 import * as functions from 'firebase-functions/v1';
 
-import { Config } from '../../database/ServerConfigDatabase';
+import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
 
 export const httpServerConfig = functions.https.onRequest(async (request, response) => {
   const functionConfig = functions.config();
@@ -48,7 +48,7 @@ export const httpServerConfig = functions.https.onRequest(async (request, respon
     return;
   }
   // Fully authorized.
-  const config = await Config.get();
+  const config = await ServerConfigDatabase.get();
   response.status(200).send(config);
   return;
 });
@@ -88,8 +88,8 @@ export const httpServerConfigUpdate = functions.https.onRequest(async (request, 
     return;
   }
   try {
-    await Config.set(data);
-    const config = await Config.get();
+    await ServerConfigDatabase.set(data);
+    const config = await ServerConfigDatabase.get();
     response.status(200).send(config);
     return;
   }

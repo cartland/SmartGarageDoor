@@ -16,12 +16,13 @@
 
 import * as functions from 'firebase-functions/v1';
 
-import { Config } from '../../database/ServerConfigDatabase';
+import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
+import { isDeleteOldDataEnabled } from '../../controller/config/ConfigAccessors';
 import { deleteOldData } from '../../controller/DatabaseCleaner';
 
 export const httpDeleteOldData = functions.https.onRequest(async (request, response) => {
-  const config = await Config.get();
-  if (!Config.isDeleteOldDataEnabled(config)) {
+  const config = await ServerConfigDatabase.get();
+  if (!isDeleteOldDataEnabled(config)) {
     console.log('Deleting data is disabled');
     response.status(400).send({ error: 'Disabled' });
     return;

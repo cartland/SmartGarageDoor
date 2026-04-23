@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { Config } from '../database/ServerConfigDatabase';
+import { DATABASE as ServerConfigDatabase } from '../database/ServerConfigDatabase';
+import { isDeleteOldDataEnabled, isDeleteOldDataEnabledDryRun } from './config/ConfigAccessors';
 
 import { DATABASE as UpdateDatabase } from '../database/UpdateDatabase';
 import { DATABASE as SensorEventDatabase } from '../database/SensorEventDatabase';
@@ -22,15 +23,15 @@ import { DATABASE as REMOTE_REQUEST_DATABASE } from '../database/RemoteButtonReq
 import { DATABASE as REMOTE_COMMAND_DATABASE } from '../database/RemoteButtonCommandDatabase';
 
 export async function deleteOldData(cutoffTimestampSeconds: number, dryRunRequested: boolean): Promise<object> {
-  const config = await Config.get();
-  if (!Config.isDeleteOldDataEnabled(config)) {
+  const config = await ServerConfigDatabase.get();
+  if (!isDeleteOldDataEnabled(config)) {
     console.log('deleteOldData: Deleting data is disabled');
     return {};
   }
   if (dryRunRequested) {
     console.log('deleteOldData: Dry run requested');
   }
-  const dryRunConfig = Config.isDeleteOldDataEnabledDryRun(config);
+  const dryRunConfig = isDeleteOldDataEnabledDryRun(config);
   if (dryRunConfig) {
     console.log('deleteOldData: Dry run is configured');
   }

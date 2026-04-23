@@ -16,14 +16,15 @@
 
 import * as functions from 'firebase-functions/v1';
 
-import { Config } from '../../database/ServerConfigDatabase';
+import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
+import { isDeleteOldDataEnabled } from '../../controller/config/ConfigAccessors';
 import { deleteOldData } from '../../controller/DatabaseCleaner';
 
 export const pubsubDataRetentionPolicy = functions.pubsub
   .schedule('0 0 * * *').timeZone('America/Los_Angeles') // California midnight every day.
   .onRun(async (_context) => {
-    const config = await Config.get();
-    if (!Config.isDeleteOldDataEnabled(config)) {
+    const config = await ServerConfigDatabase.get();
+    if (!isDeleteOldDataEnabled(config)) {
       console.log('Deleting data is disabled');
       return null;
     }

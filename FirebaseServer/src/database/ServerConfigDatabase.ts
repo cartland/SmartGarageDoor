@@ -16,66 +16,34 @@
 
 import { TimeSeriesDatabase } from './TimeSeriesDatabase';
 
-class ServerConfig {
-  DATABASE = new TimeSeriesDatabase('configCurrent', 'configAll');
-  CURRENT_KEY = 'current';
+// Canonical collection strings + document key for this database.
+// Pinned by test/database/ServerConfigDatabaseTest.ts. Changing them
+// requires a Firestore data migration in production — see
+// docs/FIREBASE_DATABASE_REFACTOR.md.
+export const COLLECTION_CURRENT = 'configCurrent';
+export const COLLECTION_ALL = 'configAll';
+export const CURRENT_KEY = 'current';
 
-  async set(data) {
-    await this.DATABASE.save(this.CURRENT_KEY, data);
-  }
+export interface ServerConfigDatabase {
+  get(): Promise<any>;
+  set(data: any): Promise<void>;
+}
 
-  async get(): Promise<any> {
-    return this.DATABASE.getCurrent(this.CURRENT_KEY);
-  }
+class FirestoreServerConfigDatabase implements ServerConfigDatabase {
+  private readonly db = new TimeSeriesDatabase(COLLECTION_CURRENT, COLLECTION_ALL);
+  get() { return this.db.getCurrent(CURRENT_KEY); }
+  set(d: any) { return this.db.save(CURRENT_KEY, d); }
+}
 
-  getRemoteButtonPushKey(config): string {
-    if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('remoteButtonPushKey')) {
-      return config.body.remoteButtonPushKey;
-    }
-    return null;
-  }
+let _instance: ServerConfigDatabase = new FirestoreServerConfigDatabase();
 
-  getRemoteButtonAuthorizedEmails(config): string[] {
-    if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('remoteButtonAuthorizedEmails')) {
-      return config.body.remoteButtonAuthorizedEmails;
-    }
-    return null;
-  }
-
-  isRemoteButtonEnabled(config): boolean {
-    if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('remoteButtonEnabled')) {
-      return config.body.remoteButtonEnabled;
-    }
-    return false;
-  }
-
-  getRemoteButtonBuildTimestamp(config): string {
-    if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('remoteButtonBuildTimestamp')) {
-      return config.body.remoteButtonBuildTimestamp;
-    }
-    return null;
-  }
-
-  isDeleteOldDataEnabled(config): boolean {
-    if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('deleteOldDataEnabled')) {
-      return config.body.deleteOldDataEnabled;
-    }
-    return false;
-  }
-
-  isDeleteOldDataEnabledDryRun(config): boolean {
-    if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('deleteOldDataEnabledDryRun')) {
-      return config.body.deleteOldDataEnabledDryRun;
-    }
-    return false;
-  }
-  
-  isSnoozeNotificationsEnabled(config): boolean {
-    if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('snoozeNotificationsEnabled')) {
-      return config.body.snoozeNotificationsEnabled;
-    }
-    return false;
-  }
+export const DATABASE: ServerConfigDatabase = {
+  get: () => _instance.get(),
+  set: (d) => _instance.set(d),
 };
 
-export const Config = new ServerConfig();
+/** TEST-ONLY: swap in a fake implementation. */
+export function setImpl(impl: ServerConfigDatabase): void { _instance = impl; }
+
+/** TEST-ONLY: restore the Firestore implementation. */
+export function resetImpl(): void { _instance = new FirestoreServerConfigDatabase(); }

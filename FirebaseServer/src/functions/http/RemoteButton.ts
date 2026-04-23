@@ -19,7 +19,8 @@ import { v4 as uuidv4 } from 'uuid';
 import * as firebase from 'firebase-admin';
 import * as functions from 'firebase-functions/v1';
 
-import { Config } from '../../database/ServerConfigDatabase';
+import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
+import { isRemoteButtonEnabled, getRemoteButtonPushKey, getRemoteButtonAuthorizedEmails } from '../../controller/config/ConfigAccessors';
 import { DATABASE as REMOTE_BUTTON_COMMAND_DATABASE } from '../../database/RemoteButtonCommandDatabase';
 import { DATABASE as REMOTE_BUTTON_REQUEST_DATABASE } from '../../database/RemoteButtonRequestDatabase';
 import { isAuthorizedToPushRemoteButton } from '../../controller/Auth';
@@ -39,8 +40,8 @@ const REMOTE_BUTTON_COMMAND_TIMEOUT_SECONDS = 60;
  * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/remoteButton?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
  */
 export const httpRemoteButton = functions.https.onRequest(async (request, response) => {
-  const config = await Config.get();
-  if (!Config.isRemoteButtonEnabled(config)) {
+  const config = await ServerConfigDatabase.get();
+  if (!isRemoteButtonEnabled(config)) {
     response.status(400).send({ error: 'Disabled' });
     return;
   }
@@ -127,8 +128,8 @@ export const httpRemoteButton = functions.https.onRequest(async (request, respon
  * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/addRemoteButtonCommand?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
  */
 export const httpAddRemoteButtonCommand = functions.https.onRequest(async (request, response) => {
-  const config = await Config.get();
-  if (!Config.isRemoteButtonEnabled(config)) {
+  const config = await ServerConfigDatabase.get();
+  if (!isRemoteButtonEnabled(config)) {
     response.status(400).send({ error: 'Disabled' });
     return;
   }
@@ -139,7 +140,7 @@ export const httpAddRemoteButtonCommand = functions.https.onRequest(async (reque
     response.status(401).send(result);
     return;
   }
-  if (Config.getRemoteButtonPushKey(config) !== buttonPushKeyHeader) {
+  if (getRemoteButtonPushKey(config) !== buttonPushKeyHeader) {
     const result = { error: 'Forbidden (key).' };
     console.error(result);
     response.status(403).send(result);
@@ -156,7 +157,7 @@ export const httpAddRemoteButtonCommand = functions.https.onRequest(async (reque
   const decodedToken = await firebase.auth().verifyIdToken(googleIdToken);
   const email = decodedToken.email;
   console.log('email:', email);
-  const authorizedEmails = Config.getRemoteButtonAuthorizedEmails(config);
+  const authorizedEmails = getRemoteButtonAuthorizedEmails(config);
   if (!isAuthorizedToPushRemoteButton(email, authorizedEmails)) {
     const result = { error: 'Forbidden (user).' };
     console.error(result);
