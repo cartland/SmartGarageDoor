@@ -10,15 +10,15 @@ Server releases use a monotonic integer (`server/N`). No semver — each release
 
 Every release that reaches `main` gets an entry here. `scripts/release-firebase.sh` blocks the tag push if `## server/N` has no body. Emergency override: `--confirm-no-changelog <target-sha>`.
 
-**Supersede pattern.** Releases that supersede an untested predecessor (bug-chase chain — server/11 shipped, broken, server/12 attempted fix, still broken, server/13 finally worked) may **replace** the predecessor's entry with a single entry on the final release. Git log of this file preserves the original content, so archaeology is possible without cluttering the human-readable history.
+**Supersede pattern.** Releases that supersede an untested predecessor (bug-chase chain — a release ships broken, an attempted fix is still broken, the next attempt finally works) may **replace** the predecessor's entry with a single entry on the final release. Git log of this file preserves the original content, so archaeology is possible without cluttering the human-readable history.
 
-Example:
+Example (placeholder tag numbers — the gate looks for exact `server/<real number>` headings and the release script additionally ignores matches inside fenced code blocks):
 
 ```markdown
-## server/13
-- Fixed snooze TTL bug. (First attempts in server/11 and server/12 had off-by-one errors that only surfaced in production.)
+## server/<final>
+- Fixed snooze TTL bug. (First attempts in server/<final-2> and server/<final-1> had off-by-one errors that only surfaced in production.)
 
-## server/10
+## server/<prior>
 - Bump Firebase Functions runtime to Node 22.
 ```
 
