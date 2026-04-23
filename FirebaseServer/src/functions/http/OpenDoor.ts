@@ -18,9 +18,18 @@ import * as functions from 'firebase-functions/v1';
 
 import { sendFCMForOldData } from '../../controller/fcm/OldDataFCM';
 import { DATABASE as SensorEventDatabase } from '../../database/SensorEventDatabase';
+import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
+import { getDoorSensorBuildTimestamp } from '../../controller/config/ConfigAccessors';
 
-export const httpCheckForOpenDoors = functions.https.onRequest(async (request, response) => {
-  const buildTimestamp = 'Sat Mar 13 14:45:00 2021'; // TODO: Use config.
+// Preserves the historical hardcoded device ID when the config field
+// `doorSensorBuildTimestamp` is missing or empty. Once production
+// config is populated and verified, this constant can be removed —
+// see docs/FIREBASE_HARDENING_PLAN.md Part A.
+const DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK = 'Sat Mar 13 14:45:00 2021';
+
+export const httpCheckForOpenDoors = functions.https.onRequest(async (_request, response) => {
+  const config = await ServerConfigDatabase.get();
+  const buildTimestamp = getDoorSensorBuildTimestamp(config) ?? DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK;
   const eventData = await SensorEventDatabase.getCurrent(buildTimestamp);
   const result = await sendFCMForOldData(buildTimestamp, eventData);
   response.status(200).send(result);

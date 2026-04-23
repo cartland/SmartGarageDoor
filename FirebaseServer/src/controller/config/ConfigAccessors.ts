@@ -49,6 +49,19 @@ export function getRemoteButtonBuildTimestamp(config: any): string | null {
   return null;
 }
 
+/**
+ * buildTimestamp of the door-sensor ESP32. Used by the pubsub jobs
+ * that check for stale events and by the HTTP trigger that forces a
+ * check. Call sites pair this with a fallback literal so runtime
+ * behavior is preserved even when the field is missing from config.
+ */
+export function getDoorSensorBuildTimestamp(config: any): string | null {
+  if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('doorSensorBuildTimestamp')) {
+    return config.body.doorSensorBuildTimestamp;
+  }
+  return null;
+}
+
 export function isDeleteOldDataEnabled(config: any): boolean {
   if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('deleteOldDataEnabled')) {
     return config.body.deleteOldDataEnabled;
