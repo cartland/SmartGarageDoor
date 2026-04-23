@@ -142,7 +142,7 @@ Run `./scripts/run-instrumented-tests.sh` when changing Room entities/DAOs, DI w
 ### CI Architecture
 
 **Android:**
-- **Pre-submit** (`ci.yml` → `ci-checks.yml`): Runs on PRs. Gate job `CI Complete` is the required status check.
+- **Pre-submit** (`ci.yml` → `ci-checks.yml`): Runs on PRs. Gate job `Android CI Complete` is the required status check.
 - **Post-merge** (`ci-post-merge.yml` → `ci-checks.yml` + instrumented tests): Runs on push to main. Auto-creates GitHub issue on failure (`ci-failure/post-merge`), auto-closes on fix with flakiness detection.
 
 **Firebase** (mirrors Android):
@@ -154,6 +154,12 @@ Run `./scripts/run-instrumented-tests.sh` when changing Room entities/DAOs, DI w
 - When every changed file matches `**/*.md`, `docs/**`, `.claude/**`, `LICENSE`, `.gitignore`, or `AndroidGarage/distribution/whatsnew/**`, the `checks` reusable workflow is skipped and the gate jobs post success in ~20–30s.
 - Mixed PRs (docs + code) take the full pipeline. Anything under `.github/**` or `scripts/**` is NOT docs — workflow and script edits still trigger full CI.
 - Rule: skip CI only when the change cannot affect what CI verifies.
+
+**Renaming a branch-protection-required gate job (ordering rule):**
+- `Android CI Complete` (Android pre-submit) and `Firebase CI Complete` (Firebase pre-submit) are listed in branch protection's required status checks. Their names cannot be changed in a single PR without stalling every subsequent PR.
+- Correct order: (1) PR adds a new gate job alongside the old one (both run); (2) wait for the new check-run to appear on a completed PR; (3) `gh api repos/:owner/:repo/branches/main/protection/required_status_checks/contexts --method PUT --input <(echo '["<new name>","<other required>"]')` — swaps the required contexts; (4) follow-up PR deletes the old gate job.
+- **NEVER delete the old gate job before removing it from required contexts.** Reverse order leaves branch protection expecting a check-run no workflow produces, which blocks every PR. Recovery is re-adding the old context via the same `gh api` call.
+- This was used to rename `CI Complete` → `Android CI Complete` in PRs #474 + #475.
 
 **Screenshot generation**: Use `./scripts/generate-android-screenshots.sh` (never run screenshot Gradle tasks directly — hooks block this).
 

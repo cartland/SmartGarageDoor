@@ -18,7 +18,7 @@
 - **14 shared fakes** in `test-common` module — one copy each, no duplicates across modules
 - **Zero Mockito** — all tests use fake implementations
 - **CI architecture:** pre-submit (`ci.yml` → `ci-checks.yml`) + post-merge (`ci-post-merge.yml` → `ci-checks.yml` + instrumented tests)
-- **CI gate jobs:** `CI Complete` (PRs — branch-protection-required name, rename pending), `Android Post-Merge Complete` (main) — single check-run names for branch protection and release script
+- **CI gate jobs:** `Android CI Complete` (PRs, branch-protection-required), `Android Post-Merge Complete` (main) — single check-run names for branch protection and release script
 - **CI checks:** unit tests (3 build variants), Spotless formatting (all modules), Detekt, Android Lint, screenshot test compilation, debug APK build, release AAB build
 - **CI path filtering:** Android CI skips for Firebase-only/docs-only changes, and vice versa
 - **CI failure tracking:** post-merge failures auto-create GitHub issues (`ci-failure/post-merge`), auto-close on fix, flakiness detection
