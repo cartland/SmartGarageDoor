@@ -9,7 +9,7 @@
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
     "copy": "copyfiles -u 1 src/**/*.json lib/",
-    "tests": "NODE_OPTIONS='--no-experimental-strip-types' mocha --require ts-node/register test/**/*.ts",
+    "tests": "NODE_OPTIONS='--no-experimental-strip-types' mocha --require ts-node/register 'test/**/*.ts'",
     "outdated": "npm outdated || true"
   },
   "main": "lib/src/index.js",
