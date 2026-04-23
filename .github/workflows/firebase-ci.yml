@@ -10,7 +10,7 @@ on:
 
 jobs:
   changes:
-    name: Detect Changes
+    name: Firebase Detect Changes
     runs-on: ubuntu-latest
     outputs:
       firebase: ${{ steps.filter.outputs.firebase }}
@@ -62,7 +62,7 @@ jobs:
           fi
 
   checks:
-    name: Checks
+    name: Firebase Checks
     needs: changes
     if: needs.changes.outputs.docs_only != 'true'
     uses: ./.github/workflows/firebase-ci-checks.yml
