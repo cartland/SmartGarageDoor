@@ -24,6 +24,11 @@ Example:
 
 ---
 
+## server/12
+- Release with no behavior changes. Internal refactor only — no Firestore collection or document-shape change.
+- Database refactor Phase 3: centralized the `updateCurrent` / `updateAll` collection onto `UpdateDatabase` (interface + in-memory fake + contract-pinned collection names). Two inline `new TimeSeriesDatabase('updateCurrent', ...)` call sites removed (`DatabaseCleaner`, `Echo`). Dead `Database.ts` / `DatabaseTest.ts` removed.
+- Added parallel `EventUpdatesFakeTest.ts` running alongside the existing sinon-based `EventUpdatesTest.ts` (test-only change, both run).
+
 ## server/11
 - Release with no behavior changes. Internal refactor only — no Firestore collection or document-shape change.
 - Database refactor Phase 2: centralized the `eventsCurrent` / `eventsAll` callers onto `SensorEventDatabase` (interface + in-memory fake + contract-pinned collection names). Four inline `new TimeSeriesDatabase('eventsCurrent', ...)` call sites removed.
