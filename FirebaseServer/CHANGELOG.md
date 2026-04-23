@@ -24,6 +24,12 @@ Example:
 
 ---
 
+## server/11
+- Release with no behavior changes. Internal refactor only — no Firestore collection or document-shape change.
+- Database refactor Phase 2: centralized the `eventsCurrent` / `eventsAll` callers onto `SensorEventDatabase` (interface + in-memory fake + contract-pinned collection names). Four inline `new TimeSeriesDatabase('eventsCurrent', ...)` call sites removed.
+- First release to exercise the new CHANGELOG gate in `release-firebase.sh` and the exact-match `Firebase Checks / Unit Tests` verifier in `firebase-deploy.yml`.
+- CI job naming standardized: `Android Checks` / `Firebase Checks` caller prefixes, plus `Run Unit Tests` renamed to `Unit Tests` on the Firebase side.
+
 ## server/10
 - Bump Firebase Functions runtime to Node 22 (production). Local dev + CI also moved to Node 22.
 
