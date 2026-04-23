@@ -60,10 +60,18 @@ export const httpRemoteButton = functions.https.onRequest(async (request, respon
   }
   const session = data[SESSION_PARAM_KEY];
   if (BUTTON_ACK_TOKEN_PARAM_KEY in request.query) {
-    // If the client sends a session ID, respond with the session ID.
+    // Client is echoing back a previously-issued ack token. The downstream
+    // `buttonAcknowledged` check uses this to decide whether to clear the
+    // pending command.
     data[BUTTON_ACK_TOKEN_PARAM_KEY] = request.query[BUTTON_ACK_TOKEN_PARAM_KEY];
   } else {
-    // TODO.
+    // Client sent no ack token. Leave data[BUTTON_ACK_TOKEN_PARAM_KEY]
+    // undefined — `buttonAckToken` below is then undefined and
+    // `buttonAcknowledged` stays false. This matches how a fresh device
+    // behaves on first poll (no previous command to acknowledge). The
+    // counterpart in httpAddRemoteButtonCommand has a similar un-enforced
+    // path and documents the historical reason to keep it that way; the
+    // same reasoning applies here.
   }
   const buttonAckToken = data[BUTTON_ACK_TOKEN_PARAM_KEY];
   // The build timestamp is unique to each device.
