@@ -54,7 +54,8 @@ Four collections are already centralized in `src/database/`:
 - `SensorEventDatabase.ts` — `'eventsCurrent'`/`'eventsAll'`
 - `SnoozeNotificationsDatabase.ts` — snooze collections
 - `ServerConfigDatabase.ts` — config collections
-- `Database.ts` — `'updateCurrent'`/`'updateAll'` *(misnamed file)*
+- `UpdateDatabase.ts` — `'updateCurrent'`/`'updateAll'`
+- `NotificationsDatabase.ts` — `'notificationsCurrent'`/`'notificationsAll'`
 
 ### Pattern B — duplicated inline (bad)
 
@@ -68,7 +69,7 @@ controllers. The same collection is instantiated multiple times:
 | `'remoteButtonRequestCurrent'` | no | 3 inline instances |
 | `'remoteButtonCommandCurrent'` | no | 2 inline instances |
 | `'remoteButtonRequestErrorCurrent'` | no | 2 inline instances |
-| `'notificationsCurrent'` | no | 1 inline instance |
+| `'notificationsCurrent'` | yes (`NotificationsDatabase`) | 0 inline instances (migrated) |
 
 Duplicates currently pass tests because `TimeSeriesDatabase` is
 stateless. The issue is maintenance: renaming a collection requires
@@ -254,15 +255,18 @@ CI passes. No phase depends on a subsequent phase.
 - `HttpEchoTest.ts` — reporting endpoint.
 - Extend `OldDataFCMTest.ts` with fake-based coverage.
 
-### Phase 4 — Regression guard (optional)
+### Phase 4 — Regression guard (complete)
 
-**Scope:**
-- Add a CI grep check (or ESLint rule) banning `new TimeSeriesDatabase(`
-  outside `src/database/`.
-- Prevents accidental reintroduction of Pattern B.
-
-Skip this phase if low-priority — the convention is self-documenting
-once Phases 1–3 land.
+**Shipped:**
+- ESLint `no-restricted-syntax` rule in `FirebaseServer/eslint.config.js`
+  bans `new TimeSeriesDatabase(...)` project-wide, with narrow allowlist
+  overrides for `src/database/**/*.ts` (the canonical home) and
+  `test/database/TimeSeriesDatabaseTest.ts` (the wrapper's own contract
+  test).
+- Error message points the reader at the singleton pattern and this
+  doc, so a future contributor gets the right fix on first read.
+- Verified by adding a temporary `new TimeSeriesDatabase(...)` in a
+  non-allowed file — lint fails with the rule's message.
 
 ## Safety Guards
 
