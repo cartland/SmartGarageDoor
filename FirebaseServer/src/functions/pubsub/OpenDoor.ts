@@ -19,7 +19,6 @@ import * as functions from 'firebase-functions/v1';
 import { sendFCMForOldData } from '../../controller/fcm/OldDataFCM';
 import { DATABASE as SensorEventDatabase } from '../../database/SensorEventDatabase';
 
-// TODO: Add Snooze option to delay notifications.
 export const pubsubCheckForOpenDoorsJob = functions.pubsub.schedule('every 5 minutes').onRun(async (_context) => {
   const buildTimestamp = 'Sat Mar 13 14:45:00 2021'; // TODO: Use config.
   const eventData = await SensorEventDatabase.getCurrent(buildTimestamp);
