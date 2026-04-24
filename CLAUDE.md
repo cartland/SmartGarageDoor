@@ -51,6 +51,8 @@ firebase deploy --only functions
 
 **Node version pitfall:** Node 22.18+ and Node 24 enable native TypeScript type-stripping by default (`process.features.typescript === 'strip'`). That path breaks `import * as admin from 'firebase-admin'` when mocha loads `.ts` files via `ts-node/register` — `admin.initializeApp` becomes undefined. The `tests` npm script pins `NODE_OPTIONS='--no-experimental-strip-types'` so ts-node's loader owns compilation. If you ever see `TypeError: admin.initializeApp is not a function` in unit tests, check that this env var is still set.
 
+**Mocha glob pitfall:** The `tests` script uses **single-quoted** `'test/**/*.ts'`. npm invokes scripts via `sh`, where `**` degrades to `*` without globstar — so if the glob is unquoted, it matches only one directory deep and silently skips tests nested deeper (e.g. anything in `test/controller/fcm/`). PR #486 surfaced 84 tests that had been silently skipped for months by quoting the glob so mocha (which supports globstar natively) does the expansion. **Never unquote this glob.** If you add a new test directory and your tests aren't running, that's probably why.
+
 ### ESP32 Firmware (GarageFirmware_ESP32/)
 ```bash
 # Setup and configuration
@@ -269,6 +271,12 @@ git checkout server/M
 
 **Database refactor plan:** See [`docs/FIREBASE_DATABASE_REFACTOR.md`](docs/FIREBASE_DATABASE_REFACTOR.md) — phased plan to centralize 18 `new TimeSeriesDatabase(...)` calls into typed per-collection singletons with in-memory fakes. Includes goals, backward-compatibility principles, long-term maintenance rules, and safety guards (contract tests, scope rules). Zero production data impact when followed; rollback via `git revert` at any phase boundary.
 
+**Hardening plan:** See [`docs/FIREBASE_HARDENING_PLAN.md`](docs/FIREBASE_HARDENING_PLAN.md) — buildTimestamp config-read migration (Part A) + Dependabot remediation (Part B). Shipped through `server/17`. **Key rule: config is authoritative for device buildTimestamps** — the four pubsub/HTTP handlers read from `body.buildTimestamp` / `body.remoteButtonBuildTimestamp`, throw if missing (ERROR-level log), and have no hardcoded fallbacks post-A3. If you see a `buildTimestamp missing from config` error in Cloud Logs, check production config first — restore via `httpServerConfigUpdate` — before considering a code revert. The A3 section has before/after snippets and exact revert commands.
+
+**Handler testing plan:** See [`docs/FIREBASE_HANDLER_TESTING_PLAN.md`](docs/FIREBASE_HANDLER_TESTING_PLAN.md) — six-phase plan to extract HTTP/pubsub handler bodies into pure `handle<Action>(input)` functions so they can be unit-tested with the existing fakes. Not yet executed. New handlers should follow the target pattern (pure function + thin wrapper) from the start.
+
+**Dormant config readers need encoding audits.** The `remoteButtonBuildTimestamp` config value has been stored **URL-encoded** since April 2021, but its reader was commented out for ~5 years. PR #492 (A1 v1) uncommented it without handling the encoding and would have passed URL-encoded strings to Firestore queries if deployed; caught pre-release and reverted in PR #494. **Before enabling any long-dormant config reader, verify the stored value shape matches what downstream code expects.** `decodeURIComponent()` is idempotent for plain ASCII, so defensive decoding is a safe pattern when shape is ambiguous.
+
 ### Secret Management (Android)
 The app requires secrets in `local.properties` (decrypted from GPG at build time):
 - `SERVER_CONFIG_KEY`, `GOOGLE_WEB_CLIENT_ID` — required for all builds
@@ -339,6 +347,10 @@ gh pr merge --auto --squash --delete-branch <number>
 A guardrail hook blocks `git push` when auto-merge is active on the target PR. If the push is blocked, disable auto-merge first (via GraphQL per above), push, then re-enable. Never push to a PR with auto-merge enabled — the merge may execute before the push arrives, silently losing commits.
 
 **Branch naming:** The `git-guardrails.sh` hook matches the pattern `\b(main|master)\b` on `git push` command lines to block pushes to the default branch. This also triggers false-positives on branch names containing `main` as a substring (e.g., `refactor-main-kt`). Avoid those substrings in branch names, or rename before pushing.
+
+**Branch name collision with existing refs:** a long-lived `release` branch exists on `origin`. Pushing a new branch with a path like `release/server-14-changelog` fails with `! [remote rejected] ... (directory file conflict)` because git refuses to create a ref nested under an existing branch name. Use `changelog/*`, `docs/*`, `hardening/*`, or similar prefix instead of `release/*` for ordinary work.
+
+**Auto-merge stuck on stale base:** if a PR has auto-merge enabled, all CI checks green, and `mergeStateStatus: CLEAN`, but it still hasn't merged, the likely cause is a stale base commit. GitHub doesn't always auto-update PRs when `main` moves forward. Fix: `gh pr update-branch <number>` — pulls main into the PR branch, CI re-runs, auto-merge then fires. Check for this if a PR sits open much longer than the normal CI cycle (~5–10 minutes).
 
 ### Dev Mode
 Toggle: `touch .claude/.dev-mode` (enable) / `rm .claude/.dev-mode` (disable).
