@@ -87,34 +87,40 @@ export function getRemoteButtonBuildTimestamp(config: any): string | null {
 }
 
 /**
- * Resolve a nullable config-read value to a non-null string, falling
- * back to a hardcoded literal and emitting a Cloud Logging warning if
- * the fallback is used. Callers get a guaranteed string; operators
- * get visibility when config drift happens (missing field, empty
- * value, etc.).
+ * Require a non-null buildTimestamp from config. Throws if the value
+ * is missing/empty. This replaces the fallback pattern used in
+ * server/16 — production config is now the authoritative source of
+ * the device ID. See docs/FIREBASE_HARDENING_PLAN.md → Part A / A3
+ * for the history and revert path.
+ *
+ * Why a throw rather than a silent fallback: after A2 verified
+ * production config has both `body.buildTimestamp` and
+ * `body.remoteButtonBuildTimestamp` populated and the warn-level
+ * fallback logs from server/16 confirmed the fallback never fired
+ * in 24+ hours, the fallback's only effect was to mask a future
+ * config-deletion bug. Throwing surfaces that bug in Cloud Logging
+ * as an ERROR, which pages or alerts — fast feedback beats silent
+ * continuation with a stale hardcoded value.
+ *
+ * Callers: use try/catch (HTTP handlers that return 500) or let the
+ * throw propagate (pubsub jobs — Firebase marks the run failed, the
+ * next scheduled tick retries).
  *
  * Usage:
- *   const buildTimestamp = resolveBuildTimestamp(
+ *   const config = await ServerConfigDatabase.get();
+ *   const buildTimestamp = requireBuildTimestamp(
  *     getBuildTimestamp(config),
- *     DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK,
  *     'pubsubCheckForOpenDoorsJob',
  *   );
- *
- * The `context` string identifies the call site in logs so filters
- * like `logName:"cloudfunctions" severity:"WARNING" textPayload:"buildTimestamp"`
- * can distinguish fallback hits across functions.
  */
-export function resolveBuildTimestamp(
+export function requireBuildTimestamp(
   configValue: string | null,
-  fallback: string,
   context: string,
 ): string {
   if (configValue === null) {
-    console.warn(
-      `[${context}] buildTimestamp not in config; using hardcoded fallback.`,
-      { fallback },
-    );
-    return fallback;
+    const msg = `[${context}] buildTimestamp missing from config — cannot proceed. See docs/FIREBASE_HARDENING_PLAN.md Part A / A3.`;
+    console.error(msg);
+    throw new Error(msg);
   }
   return configValue;
 }
