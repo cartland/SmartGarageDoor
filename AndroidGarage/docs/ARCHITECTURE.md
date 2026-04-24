@@ -20,64 +20,114 @@ ESP32 Firmware          Firebase Server          Android App
 ## Android Layer Model
 
 ```
-Compose UI (screens, components)
+Compose UI (androidApp/ui)
     ↓ collectAsState()
-ViewModel (StateFlow, business coordination)
-    ↓ suspend calls
-Repository (data abstraction, caching)
-    ↓              ↓
-Ktor HTTP        Room
-(network)      (local DB)
-    ↓
-Firebase Server
+ViewModel (usecase module, shared)
+    ↓ UseCase invocation
+UseCase (usecase module, shared)
+    ↓ suspend / Flow
+Repository interface (domain module)
+    ↓ concrete impl (data module)
+Data source interface (data module)
+    ↓ Ktor HTTP             ↓ Room / DataStore
+NetworkDataSource        LocalDataSource
+(data/ktor)             (data-local)
+    ↓                       ↓
+Firebase Server          On-device storage
 ```
 
-## Package Structure
+All business logic lives in KMP-compatible modules. `androidApp/` is the Compose UI + Firebase bridge implementations + DI wiring only.
 
-### Domain Module (`domain/`)
+## Module Structure
 
-Pure Kotlin module (no Android dependencies). Single source of truth for shared types:
+Gradle modules (declared in `settings.gradle.kts`):
+
+| Module | Source set | Platform | Contents |
+|--------|-----------|----------|----------|
+| `domain/` | `commonMain` | KMP | Model types + repository interfaces; no Android or framework deps |
+| `data/` | `commonMain` | KMP | Data source interfaces, Ktor HTTP implementations, platform bridges, repository implementations |
+| `data-local/` | `commonMain` | KMP | Room database + DAOs + entity mapping, DataStore settings |
+| `usecase/` | `commonMain` | KMP | UseCases, ViewModels (via KMP `androidx.lifecycle.viewmodel`), app-scoped Managers, `ButtonStateMachine` |
+| `presentation-model/` | `commonMain` | KMP | Screen-state data classes (`HomeScreenState`, `DoorHistoryScreenState`, etc.) + demo data |
+| `androidApp/` | `main/java` | Android | Compose UI, Firebase bridge implementations, DI wiring, Activity/Application/Service |
+| `test-common/` | `commonMain` | KMP | Shared fakes (14+ fakes across repositories, data sources, bridges) |
+| `android-screenshot-tests/` | `screenshotTest` | Android | Preview-based screenshot tests |
+| `macrobenchmark/` | `main` | Android | Baseline profile generator, startup benchmark |
+
+### Domain module (`domain/`)
 
 | Package | Contents |
 |---------|----------|
-| `domain/model/` | `DoorEvent`, `DoorPosition`, `LoadingResult<T>`, `AuthState` (sealed), `User`, `FirebaseIdToken`, `GoogleIdToken`, `DoorFcmState` (sealed), `DoorFcmTopic`, `FcmRegistrationStatus`, `RemoteButtonState` (sealed), `PushStatus`, `SnoozeState` (sealed), `SnoozeAction` (sealed), `ServerConfig` |
-| `domain/repository/` | `DoorRepository`, `AuthRepository`, `PushRepository`, `ServerConfigRepository` (interfaces — signatures pending alignment with androidApp) |
+| `domain/model/` | `DoorEvent`, `DoorPosition`, `LoadingResult<T>`, `AppResult<D, E>`, `AuthState` (sealed), `User`, `FirebaseIdToken`, `GoogleIdToken`, `DoorFcmState` (sealed), `DoorFcmTopic`, `FcmRegistrationStatus`, `PushStatus`, `SnoozeState` (sealed), `SnoozeAction` (sealed), `SnoozeDurationUIOption`, `SnoozeDurationServerOption`, `ServerConfig`, `AppConfig`, `AppLoggerKeys` |
+| `domain/repository/` | `AppLoggerRepository`, `AppSettingsRepository`, `AuthRepository`, `DoorFcmRepository`, `DoorRepository`, `RemoteButtonRepository`, `ServerConfigRepository`, `SnoozeRepository` (interfaces only) |
+| `domain/coroutines/` | `DispatcherProvider` |
 
-### Android App (`androidApp/`)
+`PushRepository` was split into `RemoteButtonRepository` + `SnoozeRepository` (#203). The old unified interface is gone.
 
-All packages under `androidApp/src/main/java/com/chriscartland/garage/`:
+### Data module (`data/`)
 
-| Package | Purpose | Key Classes |
-|---------|---------|-------------|
-| `applogger/` | Event logging to Room DB, CSV export | `AppLoggerRepository`, `AppLoggerViewModel` |
-| `auth/` | Google Sign-In, Firebase Auth | `FirebaseAuthRepository`, `DefaultAuthViewModel` |
-| `config/` | App configuration, server config caching | `APP_CONFIG`, `ServerConfigRepositoryImpl` |
-| `coroutines/` | Testable dispatcher injection | `DispatcherProvider`, `DefaultDispatcherProvider` |
-| `db/` | Room database, DAOs, entity mapping | `AppDatabase` (v11), `DoorEventEntity` ↔ domain `DoorEvent`, `DoorEventDao` |
-| `door/` | Door repository and ViewModel | `DoorRepositoryImpl`, `DefaultDoorViewModel` |
-| `fcm/` | FCM registration, push handling | `FCMService`, `FcmPayloadParser`, `FirebaseDoorFcmRepository` |
-| `internet/` | Ktor HTTP client, data source implementations | `KtorNetworkDoorDataSource`, `KtorNetworkConfigDataSource`, `KtorNetworkButtonDataSource` |
-| `permissions/` | Notification permission (API 33+) | Accompanist-based permission request |
-| `remotebutton/` | Remote button with state machine | `DefaultRemoteButtonViewModel`, `PushRepositoryImpl` |
-| `settings/` | SharedPreferences wrapper | `AppSettings`, type-safe `Setting` classes |
-| `snoozenotifications/` | Snooze duration options | `SnoozeDurationUIOption`, server conversion |
-| `ui/` | Compose screens and components | Screens, DoorStatusCard, AnimatableGarageDoor, theme |
-| `usecase/` | Extracted business logic | `EnsureFreshIdTokenUseCase` |
-| `version/` | App version info | `AppVersion` |
+| Package / File | Contents |
+|---|---|
+| `data/` root | `LocalDoorDataSource`, `NetworkDoorDataSource`, `NetworkButtonDataSource`, `NetworkConfigDataSource` (data source interfaces), `AuthBridge`, `MessagingBridge` (platform SDK abstractions), `NetworkResult<T>`, `FcmPayloadParser` |
+| `data/ktor/` | Ktor HTTP implementations + `KtorHttpClientProvider` (engine selected via KMP `expect/actual`) |
+| `data/repository/` | `NetworkDoorRepository`, `NetworkRemoteButtonRepository`, `NetworkSnoozeRepository`, `CachedServerConfigRepository`, `FirebaseAuthRepository`, `FirebaseDoorFcmRepository` |
+| `data/coroutines/` | `DefaultDispatcherProvider` |
 
-Root files: `GarageApplication.kt` (@HiltAndroidApp), `MainActivity.kt` (Compose entry point).
+### Data-local module (`data-local/`)
+
+Room database (`@Database(version = 11)` with `@ConstructedBy` for KMP) + `BundledSQLiteDriver`:
+- Entities: `DoorEventEntity`, `AppEvent`
+- DAOs: `DoorEventDao`, `AppLoggerDao`
+- Data sources: `DatabaseLocalDoorDataSource` (wraps `DoorEventDao`)
+- Logger: `RoomAppLoggerRepository`
+- Settings: `DataStoreAppSettings` (reactive `Setting<T>` Flow-based; replaced SharedPreferences in #199)
+
+### UseCase module (`usecase/`)
+
+ViewModels (all five):
+`DefaultDoorViewModel`, `DefaultRemoteButtonViewModel`, `DefaultAuthViewModel`, `DefaultAppLoggerViewModel`, `DefaultAppSettingsViewModel`
+
+UseCases (actions + observations):
+`PushRemoteButtonUseCase`, `SnoozeNotificationsUseCase`, `FetchCurrentDoorEventUseCase`, `FetchRecentDoorEventsUseCase`, `FetchFcmStatusUseCase`, `RegisterFcmUseCase`, `DeregisterFcmUseCase`, `EnsureFreshIdTokenUseCase`, `SignInWithGoogleUseCase`, `SignOutUseCase`, `LogAppEventUseCase`, `FetchSnoozeStatusUseCase`, `AppSettingsUseCase`, `ObserveDoorEventsUseCase`, `ObserveAuthStateUseCase`, `ObserveSnoozeStateUseCase`, `ObserveAppLogCountUseCase`
+
+App-scoped managers & helpers:
+`ButtonStateMachine`, `CheckInStalenessManager`, `FcmRegistrationManager`, `AppClock`
+
+Phase 43 (#240-#252) enforces ViewModel → UseCase only — a lint rule blocks `domain.repository.*` imports from any `*ViewModel.kt`.
+
+### Presentation-model module (`presentation-model/`)
+
+`HomeScreenState`, `DoorHistoryScreenState`, `ProfileScreenState`, demo data.
+
+### Android app module (`androidApp/`)
+
+Packages under `androidApp/src/main/java/com/chriscartland/garage/`:
+
+| Package | Purpose | Key files |
+|---------|---------|-----------|
+| (root) | Application + entry points | `GarageApplication.kt`, `MainActivity.kt`, `AppStartup.kt` |
+| `applogger/` | CSV export (UI-side) | `ExportAppLogCsv.kt` |
+| `auth/` | Firebase bridge + Google One-Tap | `FirebaseAuthBridge.kt`, `GoogleSignInState.kt` |
+| `config/` | Reads `BuildConfig` into `AppConfig` | `AppConfigFactory.kt` |
+| `di/` | kotlin-inject wiring | `AppComponent.kt`, `ActivityViewModels.kt`, `ComponentProvider.kt`, `Singleton.kt` |
+| `fcm/` | Firebase Messaging bridge + Android service | `FCMService.kt`, `FcmMessageHandler.kt`, `FirebaseMessagingBridge.kt` |
+| `permissions/` | Notification permission (API 33+) | Accompanist request flow |
+| `ui/` | Compose screens, cards, theme, navigation | `Main.kt` (Nav3 NavDisplay + entryProvider), `HomeContent.kt`, `DoorHistoryContent.kt`, `ProfileContent.kt`, `RemoteButtonContent.kt`, `SnoozeNotificationCard.kt`, `DoorStatusCard.kt`, `AnimatableGarageDoor.kt`, `GarageDoorCanvas.kt`, `theme/` |
+| `version/` | Android `AppVersion` via `PackageManager` | — |
+
+`GarageApplication.kt` uses kotlin-inject (`AppComponent`). Hilt was fully removed (#133 era, see `docs/DI-MIGRATION.md`). No `@HiltAndroidApp` in the tree.
 
 ## Data Flows
 
 ### Door Status: Cold Start
 
-1. `MainActivity.onCreate()` → `DoorViewModel` init
-2. ViewModel starts collecting `doorRepository.currentDoorEvent` Flow
-3. ViewModel calls `fetchCurrentDoorEvent()` (if `FetchOnViewModelInit.Yes`)
-4. `DoorRepository` → `GarageNetworkService.getCurrentEventData(buildTimestamp)`
-5. Response parsed → `localDoorDataSource.insertDoorEvent()`
-6. Room insert triggers `DoorEventDao.currentDoorEvent()` Flow
-7. Flow emits → ViewModel wraps in `LoadingResult.Complete` → UI renders
+1. `MainActivity.onCreate()` → `DefaultDoorViewModel` init (via kotlin-inject)
+2. ViewModel's `init` starts collecting `observeDoorEvents.current()` from `ObserveDoorEventsUseCase`
+3. If constructed with `fetchOnInit = true`, ViewModel calls `fetchCurrentDoorEvent()`
+4. `FetchCurrentDoorEventUseCase` → `doorRepository.fetchCurrentDoorEvent(buildTimestamp)`
+5. `NetworkDoorRepository` → `NetworkDoorDataSource` (Ktor) → server; response → `LocalDoorDataSource.insert()`
+6. Room insert triggers `DoorEventDao.currentDoorEvent()` Flow → `ObserveDoorEventsUseCase` passthrough
+7. ViewModel **also** sets `_currentDoorEvent.value = LoadingResult.Complete(result.data)` explicitly in the Success branch (ADR-023) — `MutableStateFlow` dedups by equality, so relying on the Flow observer alone latches Loading when the fetched value equals the cached value
 
 ### Door Status: FCM Push
 
@@ -106,23 +156,24 @@ Root files: `GarageApplication.kt` (@HiltAndroidApp), `MainActivity.kt` (Compose
 
 ## Dependency Injection (kotlin-inject)
 
-All dependencies wired in `AppComponent` (see `docs/DI-MIGRATION.md`):
+All dependencies wired in `AppComponent` (see `docs/DI-MIGRATION.md` for the Hilt→kotlin-inject migration history and `docs/DI_SINGLETON_REQUIREMENTS.md` for `@Singleton` correctness rules).
 
-| Provider | Provides | Scope |
-|----------|----------|-------|
-| `provideHttpClient()` | `HttpClient` (Ktor) | Singleton |
-| `provideNetworkDoorDataSource()` | `NetworkDoorDataSource` | Singleton |
-| `provideNetworkConfigDataSource()` | `NetworkConfigDataSource` | Singleton |
-| `provideNetworkButtonDataSource()` | `NetworkButtonDataSource` | Singleton |
-| `provideAppDatabase()` | `AppDatabase` | Singleton |
-| `provideLocalDoorDataSource()` | `LocalDoorDataSource` | Singleton |
-| `provideDoorRepository()` | `DoorRepository` | Singleton |
-| `providePushRepository()` | `PushRepository` | Singleton |
-| `provideAuthRepository()` | `AuthRepository` | Singleton |
-| `provideServerConfigRepository()` | `ServerConfigRepository` | Singleton |
-| `provideDispatcherProvider()` | `DispatcherProvider` | Singleton |
+Entry points exposed by `AppComponent` (abstract vals — required for `@Singleton` caching, see CLAUDE.md):
 
-ViewModels are created via `activityViewModel()` helper for Activity-scoped sharing.
+| Category | Bindings |
+|----------|----------|
+| ViewModels | `authViewModel`, `appLoggerViewModel`, `appSettingsViewModel`, `doorViewModel`, `remoteButtonViewModel` |
+| Repositories (`@Singleton`) | `authRepository`, `doorRepository`, `serverConfigRepository`, `snoozeRepository`, `remoteButtonRepository`, `doorFcmRepository`, `appLoggerRepository`, `appSettings` |
+| Data sources | `networkDoorDataSource`, `networkConfigDataSource`, `networkButtonDataSource`, `localDoorDataSource` |
+| Bridges | `authBridge`, `messagingBridge` |
+| Infrastructure | `httpClient`, `appDatabase`, `dispatcherProvider`, `applicationScope`, `appClock`, `appConfig`, `appStartup` |
+| App-scoped managers | `fcmRegistrationManager`, `checkInStalenessManager` |
+
+ViewModels are created via the `activityViewModel()` helper in `di/ActivityViewModels.kt` for Activity-scoped sharing.
+
+Safety rails enforced by `validate.sh`:
+- `checkSingletonGuard` — any `@Singleton` provider for `Database` / `Settings` / `HttpClient` / a state-owning repository must be declared via `abstract val` (ADR-022).
+- `checkSingletonCaching` — parses the KSP-generated `InjectAppComponent.kt` and fails if any `@Singleton` binding is instantiated without `_scoped.get(...)` caching.
 
 ## State Management
 
@@ -135,15 +186,17 @@ ViewModels are created via `activityViewModel()` helper for Activity-scoped shar
 
 ## Database
 
-Room database v11 with exported schemas in `schemas/`.
+Room database (`@Database(version = 11)`) in `data-local/` with exported schemas in `data-local/schemas/`. Uses `BundledSQLiteDriver` for KMP compatibility; Android provides the factory via `expect/actual`.
 
 **Entities:**
-- `DoorEvent`: doorPosition, message, timestamps. PK = `"$lastChangeTimeSeconds:$doorPosition"`.
+- `DoorEventEntity`: doorPosition, message, timestamps. PK = `"$lastChangeTimeSeconds:$doorPosition"`. Round-trip mapping to domain `DoorEvent`.
 - `AppEvent`: eventKey, timestamp, appVersion. Auto-generated PK.
 
 **DAOs:**
 - `DoorEventDao`: `currentDoorEvent()` Flow, `recentDoorEvents()` Flow, `insert()`, `replaceAll()` (atomic transaction)
 - `AppLoggerDao`: `insert()`, `getAll()` Flow, `countKey()` Flow
+
+Schema changes are guarded by `validate.sh`'s schema-drift check and `RoomSchemaTest` contract tests. See the "Room Database Safety" section of CLAUDE.md for the change recipe.
 
 ## Configuration
 
