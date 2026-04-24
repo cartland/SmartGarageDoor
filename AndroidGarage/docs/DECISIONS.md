@@ -1308,3 +1308,69 @@ PR #518 / android 2.4.4 / server/18–20 timeline:
 - PR #518 — the fix.
 - ADR-021 — presentation state vs domain state.
 - ADR-022 — `StateFlow` at the repository boundary (observation by reference).
+
+## ADR-024: Accept Play Console "Missing Native Debug Symbols" Warning
+
+### Status
+
+Accepted — 2026-04-24.
+
+### Context
+
+Google Play Console shows a warning on every AAB upload:
+
+> This App Bundle contains native code, and you've not uploaded debug symbols. We recommend you upload a symbol file to make your crashes and ANRs easier to analyze and debug.
+
+The app ships no native code of its own: no `externalNativeBuild`, no CMakeLists, no `src/main/jniLibs/`. The native `.so` files inside the AAB come from transitive AAR dependencies:
+
+- `libandroidx.graphics.path.so` (Compose graphics)
+- `libdatastore_shared_counter.so` (DataStore)
+- `libsqliteJni.so` (Room)
+
+The standard "one-line fix" is `android { defaultConfig { ndk { debugSymbolLevel = "SYMBOL_TABLE" } } }`. This triggers AGP's `extractReleaseNativeSymbolTables` task, which extracts symbols from **unstripped** `.so` files and ships them in `BUNDLE-METADATA/com.android.tools.build.debugsymbols/`.
+
+### Decision
+
+Do not enable `debugSymbolLevel`. Accept the Play warning as-is.
+
+### Rationale — empirical, not theoretical
+
+Added the config locally, ran `./AndroidGarage/gradlew -p AndroidGarage :androidApp:bundleRelease`, and inspected the AAB:
+
+- `extractReleaseNativeSymbolTables` task ran successfully.
+- Output directory `build/intermediates/native_symbol_tables/release/.../out/` was **empty**.
+- AAB file size: unchanged (9.1 MB).
+- No `BUNDLE-METADATA/com.android.tools.build.debugsymbols/` entry in the AAB.
+
+The config is a no-op for this app because the bundled `.so` files from the three AARs above are **pre-stripped** at the AAR packaging step — AGP has nothing to extract. This is standard practice for Google's own AARs (size optimization).
+
+The warning is therefore cosmetic. Native ANRs/crashes in these third-party libs would still show as raw addresses in Play Console — but those are rare, and paying the config cost for no benefit is worse than accepting the warning.
+
+### Detection — why local inspection, not CI
+
+`scripts/validate.sh` builds only `assembleDebug`. The release workflow (`.github/workflows/release-android.yml`) is the first place `bundleRelease` runs. A broken release-bundle config only surfaces on a user-initiated `android/N` tag push, which is too late. Any future re-evaluation must run `bundleRelease` locally and inspect the AAB before shipping.
+
+### When this decision might change
+
+Revisit if **any** of the following becomes true. Each trigger has its own verification step — do not re-enable the config without re-running the empirical check.
+
+1. **We add our own native code.** New `externalNativeBuild` block, new CMakeLists, or unstripped `.so` files placed in `src/main/jniLibs/`. In this case `debugSymbolLevel` is the correct fix and the warning's advice applies directly to our code.
+2. **We adopt Firebase Crashlytics with NDK support.** The Crashlytics NDK plugin uses a separate symbol-upload path (`uploadCrashlyticsSymbolFileRelease`), not `debugSymbolLevel`. Wiring that up is a real feature addition, not a one-line fix, and only worth it if we're using Crashlytics overall.
+3. **A direct dep starts shipping unstripped `.so` files.** Unlikely — size-conscious libs strip — but possible after an AAR version bump. Signal: AAB size grows unexpectedly after a dep upgrade. Verification: add `debugSymbolLevel = "SYMBOL_TABLE"` temporarily, run `bundleRelease`, check `unzip -l <aab> | grep debugsymbols`. If the entry appears, keep the config; if not, drop it again.
+4. **Play changes the warning to blocking.** Would force our hand regardless of the above.
+
+### How to re-verify before re-enabling
+
+```bash
+./AndroidGarage/gradlew -p AndroidGarage :androidApp:bundleRelease -PVERSION_CODE=99999
+AAB=AndroidGarage/androidApp/build/outputs/bundle/release/*.aab
+unzip -l $AAB | grep -i debugsymbols   # Expected output if config works: non-empty
+```
+
+If that grep returns nothing, the config is not doing work on this codebase and should not be merged.
+
+### References
+
+- PR (dropped) — `chore/upload-native-debug-symbols` branch, tested locally and discarded after inspection showed empty symbol output.
+- [AGP docs: Include native symbol files](https://developer.android.com/studio/build/native-debug-symbols) — describes `debugSymbolLevel` and which `.so` files it can process.
+- [Firebase Crashlytics NDK](https://firebase.google.com/docs/crashlytics/ndk-reports) — separate mechanism, only relevant if Crashlytics is adopted.
