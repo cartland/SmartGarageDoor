@@ -21,10 +21,68 @@ import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDat
 import { isSnoozeNotificationsEnabled, getRemoteButtonPushKey, getRemoteButtonAuthorizedEmails } from '../../controller/config/ConfigAccessors';
 import { isAuthorizedToPushRemoteButton } from '../../controller/Auth';
 import { getSnoozeStatus, SnoozeLatestParams, SnoozeLatestResponse, SubmitSnoozeParams, submitSnoozeNotificationsRequest, SubmitSnoozeResponse } from '../../controller/SnoozeNotifications';
+import { HandlerResult, ok, err } from '../HandlerResult';
 
 const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
 const SNOOZE_DURATION_PARAM_KEY = 'snoozeDuration';
 const SNOOZE_EVENT_TIMESTAMP_KEY = 'snoozeEventTimestamp';
+
+/**
+ * Pure core for the snooze-latest read endpoint. H4 of the handler
+ * testing plan.
+ *
+ * Behavior is byte-identical to the pre-extraction inline code:
+ *  - Config disabled  → 400 { error: 'Disabled' }
+ *  - Method !== GET   → 405 { error: 'Method Not Allowed.' }
+ *  - Missing buildTimestamp → 400 { error: 'Missing required parameter: buildTimestamp' }
+ *  - Controller error → 500 {snoozeResponse}
+ *  - Success          → 200 {snoozeResponse}
+ */
+export async function handleSnoozeNotificationsLatest(input: {
+  method: string;
+  query: any;
+}): Promise<HandlerResult<SnoozeLatestResponse>> {
+  const config = await ServerConfigDatabase.get();
+  if (!isSnoozeNotificationsEnabled(config)) {
+    return err(400, { error: 'Disabled' });
+  }
+  if (input.method !== 'GET') {
+    return err(405, { error: 'Method Not Allowed.' });
+  }
+  const params: SnoozeLatestParams = <SnoozeLatestParams>{
+    buildTimestamp: input.query?.[BUILD_TIMESTAMP_PARAM_KEY] as string,
+  };
+  if (!params.buildTimestamp) {
+    console.error('No build timestamp in request');
+    return err(400, { error: 'Missing required parameter: ' + BUILD_TIMESTAMP_PARAM_KEY });
+  }
+  const snoozeResponse: SnoozeLatestResponse = await getSnoozeStatus(params);
+  if (snoozeResponse.error) {
+    console.error('Returning HTTP 500 error');
+    return err(500, snoozeResponse);
+  }
+  console.info('Returning HTTP 200 success:', snoozeResponse);
+  return ok(snoozeResponse);
+}
+
+/**
+ * Get latest Snooze request.
+ *
+ * curl -X GET \
+ *    -H "Content-Type: application/json" \
+ *    -d '{}' \ "http://localhost:5000/PROJECT-ID/us-central1/snoozeNotificationsLatest?buildTimestamp=Sat%20Mar%2013%2014%3A45%3A00%202021"
+ */
+export const httpSnoozeNotificationsLatest = functions.https.onRequest(async (request, response) => {
+  const result = await handleSnoozeNotificationsLatest({
+    method: request.method,
+    query: request.query,
+  });
+  if (result.kind === 'error') {
+    response.status(result.status).send(result.body);
+  } else {
+    response.status(200).send(result.data);
+  }
+});
 
 /**
  * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/snoozeNotificationsLatest?buildTimestamp=buildTimestamp
@@ -155,68 +213,4 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
     const snooze = snoozeResponse.snooze
     console.info('Returning HTTP 200 success:', snooze);
     response.status(200).send(snooze);
-});
-
-/**
- * Get latest Snooze request.
- *
- * curl -X GET \
- *    -H "Content-Type: application/json" \
- *    -d '{}' \ "http://localhost:5000/PROJECT-ID/us-central1/snoozeNotificationsLatest?buildTimestamp=Sat%20Mar%2013%2014%3A45%3A00%202021"
- */
-export const httpSnoozeNotificationsLatest = functions.https.onRequest(async (request, response) => {
-    // Handle HTTP request.
-    // * Check if snooze notifications are enabled.
-    // * Check that the request is a GET request.
-    // * Get the parameters from the request.
-    //     * buildTimestamp
-    // Then implement the logic to get the latest snooze request.
-    // * Get the current event timestamp from the database.
-    // * Get the latest snooze request from the database.
-    // * Check if the snooze request is active, expired, or none.
-    //     * Result: ACTIVE, EXPIRED, NONE
-    // * Return the JSON response:
-    //     * status: string = ACTIVE, EXPIRED, NONE
-    //     * snooze: SnoozeRequest
-    //     * error: string
-
-    // Handle the HTTP request.
-    const config = await ServerConfigDatabase.get();
-    if (!isSnoozeNotificationsEnabled(config)) {
-        response.status(400).send({ error: 'Disabled' });
-        return;
-    }
-    if (request.method !== 'GET') {
-        response.status(405).send({ error: 'Method Not Allowed.' });
-        return;
-    }
-    let params: SnoozeLatestParams = null;
-    try {
-        params = <SnoozeLatestParams>{
-            buildTimestamp: request.query[BUILD_TIMESTAMP_PARAM_KEY] as string,
-        };
-    } catch {
-        console.error('No build timestamp in request');
-        const result = { error: 'Missing required parameter: ' + BUILD_TIMESTAMP_PARAM_KEY };
-        response.status(400).send(result);
-        return;
-    }
-    if (!params.buildTimestamp) {
-        console.error('No build timestamp in request');
-        const result = { error: 'Missing required parameter: ' + BUILD_TIMESTAMP_PARAM_KEY };
-        response.status(400).send(result);
-        return;
-    }
-
-    // Implement the core logic.
-    const snoozeResponse: SnoozeLatestResponse = await getSnoozeStatus(params);
-
-    // Return the HTTP response.
-    if (snoozeResponse.error) {
-        console.error('Returning HTTP 500 error');
-        response.status(500).send(snoozeResponse);
-        return;
-    }
-    console.info('Returning HTTP 200 success:', snoozeResponse);
-    response.status(200).send(snoozeResponse);
 });
