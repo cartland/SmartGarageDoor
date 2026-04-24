@@ -24,6 +24,13 @@ Example (placeholder tag numbers — the gate looks for exact `server/<real numb
 
 ---
 
+## server/17
+- A3 of the hardening plan: `_FALLBACK` constants removed from the 4 buildTimestamp call sites; production config is now authoritative. `resolveBuildTimestamp` (silent fallback + warn) replaced by `requireBuildTimestamp` (throws on null + error log). Cleared by `server/16`'s 24h observation window where the fallback logs stayed empty across every pubsub cycle, confirming the fallback was masking no active bugs.
+- Zero runtime behavior change on deploy — production config has `body.buildTimestamp` and `body.remoteButtonBuildTimestamp` populated (verified). `requireBuildTimestamp` never throws in the current state.
+- Failure mode after A3: if the config field is deleted or emptied, the affected pubsub/HTTP function errors loudly (ERROR-level Cloud Log) instead of silently continuing with a stale hardcode. Trade-off is explicit and documented.
+- Docs: three-layer history of the removal — inline comment blocks at each modified file pointing at the plan doc; new "A3 — Fallback removal (history + revert)" section in `docs/FIREBASE_HARDENING_PLAN.md` with before/after code, verification checklist, and exact revert commands; the thrown error message itself includes the doc-section pointer so operators land on the right page.
+- Also shipped: `FIREBASE_HANDLER_TESTING_PLAN.md` (new doc — six-phase plan for handler-body extraction to close out the deferred handler tests from the database refactor's Phase 1/2/3) and a status refresh of `FIREBASE_HARDENING_PLAN.md` mapping each phase to its shipped PR.
+
 ## server/16
 - First release to actually read `buildTimestamp` values from server config — the pubsub door-sensor and remote-button jobs have been using hardcoded literals since June 2021 even though the config contained the values. After this release, changing a device ID is a config update via `httpServerConfigUpdate` rather than a code deploy.
 - Zero runtime behavior change on deploy: production config has `body.buildTimestamp = "Sat Mar 13 14:45:00 2021"` (plain) and `body.remoteButtonBuildTimestamp = "Sat%20Apr%2010%2023:57:32%202021"` (URL-encoded since April 2021). The new `getRemoteButtonBuildTimestamp` accessor applies `decodeURIComponent()` so callers see the pre-refactor plain form. Both resolved strings are byte-identical to the hardcoded literals.
