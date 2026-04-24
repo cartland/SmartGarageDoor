@@ -6,27 +6,25 @@ function" pattern (Option B in `FIREBASE_DATABASE_REFACTOR.md` →
 *Deferred work*) so the handlers can be tested with the fakes already
 built during Phases 1–6.
 
-**Status:** In progress. H1, H2, and most of H3–H5 have shipped. The
-remaining auth-heavy HTTP handlers (H3 httpRemoteButton +
-httpAddRemoteButtonCommand, H4 httpSnoozeNotificationsRequest) are
-next. Each phase is a separate PR, independently mergeable.
+**Status:** COMPLETE. All phases shipped — every HTTP and pubsub handler has a pure `handle<Action>(input)` core with unit tests against fakes.
 
 | Phase | Scope | Status |
 |---|---|---|
 | H1 | `httpEcho` (pilot) | ✅ shipped (#504) |
 | H2 | door-sensor trio: `httpCheckForOpenDoors`, `pubsubCheckForOpenDoorsJob`, `pubsubCheckForDoorErrors` | ✅ shipped (#505) |
 | H3 — pubsub | `pubsubCheckForRemoteButtonErrors` | ✅ shipped (#506) |
-| H3 — HTTP | `httpRemoteButton`, `httpAddRemoteButtonCommand` | **pending** |
+| H3 — HTTP | `httpRemoteButton`, `httpAddRemoteButtonCommand` | ✅ shipped (#515, #516) |
 | H4 — read | `httpSnoozeNotificationsLatest` + introduction of `HandlerResult<T>` | ✅ shipped (#507) |
-| H4 — write | `httpSnoozeNotificationsRequest` | **pending** |
+| H4 — write | `httpSnoozeNotificationsRequest` | ✅ shipped (#516) |
 | H5 — retention | `pubsubDataRetentionPolicy` | ✅ shipped (#508) |
 | H5 — delete-data | `httpDeleteOldData` | ✅ shipped (#509) |
 | H5 — server-config | `httpServerConfig`, `httpServerConfigUpdate`, `readServerConfigSecret` helper | ✅ shipped (#510) |
 | H5 — events | `httpCurrentEventData`, `httpEventHistory`, `httpNextEvent` | ✅ shipped (#511) |
-| H6 | Doc cleanup | in progress (this PR) |
+| H6 | Doc cleanup | ✅ shipped (#512) |
 
-Handlers with unit-test coverage: 12 / 14. Remaining: the two
-auth-heavy HTTP endpoints noted above.
+Prerequisite: `AuthService` bridge + fake + helper shipped in #514 so H3/H4 could wrap `verifyIdToken` in tests.
+
+Handler coverage: 14 / 14. The pattern below stays authoritative for new handlers.
 
 ## Purpose
 
