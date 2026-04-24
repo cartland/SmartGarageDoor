@@ -24,6 +24,13 @@ Example (placeholder tag numbers — the gate looks for exact `server/<real numb
 
 ---
 
+## server/15
+- Release with no behavior changes. Dependency hygiene — closes Dependabot alerts #66 (`fast-xml-parser` XMLBuilder injection) and #67 (`uuid` < 14.0.0 buffer bounds).
+- `uuid` direct dep bumped 8.3.2 → 14.0.0 (PR #491). Our only use is `uuidv4()` with no `buf` argument — not in the CVE vector at any version — but the bump clears the alert and the new `UuidTest.ts` pins the v4 output shape for future bumps.
+- `fast-xml-parser` transitive override pinned to ≥ 5.7.0 via `package.json` overrides (PR #493). No direct usage in our code; pulled by `firebase-admin → @google-cloud/storage`. Emulator smoke test green with the override.
+- `CveGuardTest.ts` adds a unit-test pattern for dependency CVE guards — one `it()` per advisory, fails if a flagged version is re-introduced. Mirrors the existing `jws` guard in `VerifyIdTokenTest.ts`.
+- Also included: the revert of PR #492 (the initial A1 `buildTimestamp`-from-config attempt read the wrong config key for the door sensor and returned the URL-encoded value verbatim for the remote button; net zero runtime behavior change since the bug was caught before release). A corrected A1 will ship separately.
+
 ## server/14
 - Release with no behavior changes. Refactor + test follow-up closing out the database refactor plan.
 - `ServerConfigDatabase` and `SnoozeNotificationsDatabase` converted to the canonical interface + FirestoreImpl + swappable singleton pattern (PRs #485, #484). All 9 DB modules now follow the same shape; all 9 have collection-string contract tests and in-memory fakes. `ConfigAccessors.ts` extracted the pure config-payload getters (`getRemoteButtonPushKey`, `isSnoozeNotificationsEnabled`, etc.) out of the DB module.
