@@ -115,7 +115,13 @@ class DefaultDoorViewModel(
             _currentDoorEvent.value = LoadingResult.Loading(_currentDoorEvent.value.data)
             when (val result = fetchCurrentDoorEventUseCase()) {
                 is AppResult.Success -> {
-                    // Data flows through repository → local cache → Flow observation
+                    // Set explicitly. Relying on the Room → repo StateFlow → observer
+                    // pipeline to fire is unsafe: MutableStateFlow dedups by value
+                    // equality, so a refresh that fetches the SAME door event as
+                    // before (common when the door hasn't changed) leaves the UI
+                    // stuck on Loading. FCM works because pushes carry a NEW event
+                    // (state change), so StateFlow sees a different value and emits.
+                    _currentDoorEvent.value = LoadingResult.Complete(result.data)
                 }
                 is AppResult.Error -> {
                     // Restore previous data so UI exits Loading state
@@ -135,7 +141,11 @@ class DefaultDoorViewModel(
             _recentDoorEvents.value = LoadingResult.Loading(_recentDoorEvents.value.data)
             when (val result = fetchRecentDoorEventsUseCase()) {
                 is AppResult.Success -> {
-                    // Data flows through repository → local cache → Flow observation
+                    // Same StateFlow-dedup concern as fetchCurrentDoorEvent — set
+                    // explicitly instead of relying on observation. The list rarely
+                    // equals the previous one so this is less likely to bite, but
+                    // the fix belongs here for consistency + correctness.
+                    _recentDoorEvents.value = LoadingResult.Complete(result.data)
                 }
                 is AppResult.Error -> {
                     // Restore previous data so UI exits Loading state
