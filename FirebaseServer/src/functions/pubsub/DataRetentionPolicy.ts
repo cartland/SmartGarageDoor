@@ -20,17 +20,38 @@ import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDat
 import { isDeleteOldDataEnabled } from '../../controller/config/ConfigAccessors';
 import { deleteOldData } from '../../controller/DatabaseCleaner';
 
+const TWO_WEEKS_SECONDS = 60 * 60 * 24 * 14;
+
+/**
+ * Pure core — testable via a fake ServerConfigDatabase + sinon stub
+ * on deleteOldData. H5 of the handler testing plan.
+ *
+ * The 2-week window is computed from `nowMillis` (defaulting to
+ * `Date.now()`) so tests can pin it without stubbing the global.
+ *
+ * Behavior is byte-identical to the pre-extraction inline code:
+ *  - disabled → logs the existing message, does not call deleteOldData.
+ *  - enabled  → calls deleteOldData(cutoffSeconds, dryRun=false) where
+ *    cutoffSeconds = (nowMillis - 2w) / 1000 — same arithmetic as
+ *    before, just with `nowMillis` injected for testability.
+ */
+export async function handleDataRetentionPolicy(
+  nowMillis: number = Date.now(),
+): Promise<void> {
+  const config = await ServerConfigDatabase.get();
+  if (!isDeleteOldDataEnabled(config)) {
+    console.log('Deleting data is disabled');
+    return;
+  }
+  const cutoffMillis = nowMillis - 1000 * TWO_WEEKS_SECONDS;
+  const cutoffSeconds = cutoffMillis / 1000;
+  const dryRunRequested = false;
+  await deleteOldData(cutoffSeconds, dryRunRequested);
+}
+
 export const pubsubDataRetentionPolicy = functions.pubsub
   .schedule('0 0 * * *').timeZone('America/Los_Angeles') // California midnight every day.
   .onRun(async (_context) => {
-    const config = await ServerConfigDatabase.get();
-    if (!isDeleteOldDataEnabled(config)) {
-      console.log('Deleting data is disabled');
-      return null;
-    }
-    const cutoffMillis = new Date().getTime() - 1000 * 60 * 60 * 24 * 14; // 2 weeks.
-    const cutoffSeconds = cutoffMillis / 1000;
-    const dryRunRequested = false;
-    await deleteOldData(cutoffSeconds, dryRunRequested);
+    await handleDataRetentionPolicy();
     return null;
   });
