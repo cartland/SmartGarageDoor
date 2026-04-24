@@ -218,6 +218,33 @@ during the android/170 snooze regression (see ADR-022 timeline and
    `abstract val` entry + an `assertSame` identity test in
    `ComponentGraphTest`.
 
+### ViewModel fetch methods: set `Complete` explicitly on Success (ADR-023)
+
+Every ViewModel method that drives a `LoadingResult<T>` state MUST set
+`Complete(result.data)` in the `AppResult.Success` branch. Do not rely
+on a Flow observer to clear Loading:
+
+```kotlin
+// CORRECT
+is AppResult.Success -> {
+    _xState.value = LoadingResult.Complete(result.data)
+}
+```
+
+**Why this matters:** `MutableStateFlow` dedups emissions by `==`
+equality. When a fetch returns the same value that's already cached
+(common — the door spends most of its time in one state), the
+repository's `_state.value = sameValue` assignment is a no-op. The
+ViewModel's `observeX().collect { Complete(it) }` coroutine never
+fires, and Loading latches forever. FCM pushes mask the bug because
+they deliver a state *change* — a distinct value that does trigger
+emission.
+
+Motivating bug: android/174 → 2.4.4 Home tab "perpetually loading"
+(PR #518). See `AndroidGarage/docs/DECISIONS.md#adr-023-viewmodel-fetch-methods-must-set-complete-explicitly-on-success`
+for the full rule and why it's compatible with ADR-022's by-reference
+observation pattern.
+
 ### Releasing Android
 Use `./scripts/release-android.sh` — never create or push tags directly (hooks block `git tag`).
 

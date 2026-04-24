@@ -1245,3 +1245,66 @@ Skie adoption is tracked as Phase 38 (see `MIGRATION.md`).
 - ADR-019 — externalScope for repository side-effects. State writes in repos happen on externalScope.
 - ADR-020 — raw-body diagnostic logging. The state-write log convention generalizes this.
 - ADR-021 — state ownership principles. This ADR is the concrete shape; Rule 9 (observability) anchors the logging convention.
+
+---
+
+## ADR-023: ViewModel Fetch Methods Must Set `Complete` Explicitly on Success
+
+**Status:** **Accepted (2026-04-24).** Motivated by the android/174 → 2.4.4 Home-tab regression (PR #518).
+
+### Rule
+
+Any ViewModel method that performs a fetch and drives a `LoadingResult<T>` state must set `Complete(result.data)` **explicitly** in the `AppResult.Success` branch. Do not rely solely on a Flow observer (Room-backed or otherwise) to clear Loading.
+
+```kotlin
+// REQUIRED shape
+fun fetchX() {
+    viewModelScope.launch(dispatchers.io) {
+        _xState.value = LoadingResult.Loading(_xState.value.data)
+        when (val result = fetchXUseCase()) {
+            is AppResult.Success -> {
+                _xState.value = LoadingResult.Complete(result.data)  // explicit
+            }
+            is AppResult.Error -> {
+                _xState.value = LoadingResult.Complete(_xState.value.data)  // restore
+            }
+        }
+    }
+}
+```
+
+### Why
+
+The repository's `MutableStateFlow<T>` dedups emissions by `==` equality. When the fetch writes the same value that's already cached (common — the door spends most of its time in one state, a snooze is usually unchanged between polls, etc.), `_repoState.value = sameValue` is a no-op: no emission, no observer fire.
+
+The ViewModel's `observeX().collect { _xState.value = Complete(it) }` init-block coroutine is subscribed and waiting for emissions. When none come, Loading latches forever. **FCM pushes mask the bug** because they deliver a state *change* — a distinct value — so StateFlow does emit.
+
+This is compatible with ADR-022's "expose by reference" rule. By-reference handles the *observation* path correctly. The fetch-triggered transition is a *presentation-state* concern (ADR-021) that the ViewModel must drive explicitly.
+
+### Symmetry with the Error branch
+
+The `AppResult.Error` branch has always set `Complete(_xState.value.data)` to restore prior state and exit Loading. Success should be symmetric — the Loading→Complete transition is ViewModel responsibility in both branches, not something to delegate to the observation side channel.
+
+### When this doesn't apply
+
+Pure observation flows that never enter a Loading state (e.g. `authState: StateFlow<AuthState>` exposed by reference per ADR-022) are unaffected. This rule applies only to `LoadingResult<T>`-wrapped presentation state that toggles through an explicit Loading phase.
+
+### Enforcement
+
+No static check yet. If this regresses twice, add a detekt or custom Gradle check that flags `is AppResult.Success -> {}` (empty body) or `is AppResult.Success -> {` without a `_xState.value =` line within the branch.
+
+### Motivating bug
+
+PR #518 / android 2.4.4 / server/18–20 timeline:
+
+1. Home-tab UI stuck on "Loading" after app launch or tap-to-refresh.
+2. FCM pushes cleared the Loading — narrowed the bug to the fetch path, not observation.
+3. Rolled back server/18 → server/19 (= server/17 code) to rule out server regression.
+4. 4-agent parallel diagnostic; 2 independently converged on the missing `Complete(result.data)` in `DefaultDoorViewModel.fetchCurrentDoorEvent` and `fetchRecentDoorEvents`.
+5. Fix: add the explicit setter to both Success branches. Ship 2.4.4 and re-release server as server/20 (same tree as server/18).
+
+### References
+
+- PR #518 — the fix.
+- ADR-021 — presentation state vs domain state.
+- ADR-022 — `StateFlow` at the repository boundary (observation by reference).
