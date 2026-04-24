@@ -24,6 +24,17 @@ Example (placeholder tag numbers — the gate looks for exact `server/<real numb
 
 ---
 
+## server/20
+- Re-deploy of `server/18` after the `server/19` rollback-investigation window. Same commit tree as `server/18` — see that entry below for the full handler-testing-plan scope. Re-deploys H1-H6 extractions (14 HTTP/pubsub handlers now pure-core-tested) plus the AuthService bridge introduced in PR #514.
+- Why the rollback happened: an Android user reported the Home tab stuck on "Loading" after `server/18` deployed. Root-caused as an Android-side regression unrelated to the server changes — see Android 2.4.4 CHANGELOG. A 4-agent parallel review confirmed no server regression; two agents independently identified `DoorViewModel.fetchCurrentDoorEvent`'s missing `Complete(result.data)` setter on the Success branch (PR #518). FCM pushes bypassed the bug because a state change produces a distinct StateFlow value.
+- Zero runtime behavior change from `server/19`. Behavior matches what `server/18` delivered on deploy 2026-04-24T14:27 UTC.
+
+## server/19
+- **Rollback of server/18** to re-run investigation when an Android user reported a Home tab regression. Zero code change — same commit tree as `server/17`.
+- Root cause later identified as Android-side (see `server/20` entry). The rollback was a cautious-first-then-investigate move, not a response to a confirmed server-side bug.
+- No new runtime behavior. Firestore data untouched. Full deploy success (`✔ Deploy complete!`) at 2026-04-24T15:27 UTC.
+- Retroactive entry — the release itself used `--confirm-no-changelog` because rollback speed was prioritized during the investigation window.
+
 ## server/18
 - Executed `FIREBASE_HANDLER_TESTING_PLAN.md` from H1 through H6 — all 14 HTTP/pubsub handlers now have a pure `handle<Action>(input)` core + thin wrapper, unit-tested against the existing fakes. Closes the deferred handler-test work from the database refactor plan (Phase 1/2/3). Net test count +72 (167 → 239); zero new test dependencies; existing fakes sufficient.
 - Zero runtime behavior change on deploy. Extraction is code-shape only — every status code, error body string, Firestore call pattern, and session/UUID generation path is byte-identical. Three quirks (behavior reviewer flagged) are deliberately preserved and pinned by tests: (a) `httpAddRemoteButtonCommand`'s missing-buildTimestamp branch still writes `save(undefined, data)` because the pre-extraction `response.status(400).send(...)` had no `return`, (b) `httpAddRemoteButtonCommand`'s `verifyIdToken` throw propagates to 500 while `httpSnoozeNotificationsRequest` catches and returns 401 — asymmetry retained, (c) `httpRemoteButton`'s asymmetric "return fresh-read on clear, return pre-save on else" split retained.
