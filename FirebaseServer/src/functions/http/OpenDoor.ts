@@ -28,15 +28,28 @@ import { getBuildTimestamp, requireBuildTimestamp } from '../../controller/confi
 // empty for 24+ hours. See docs/FIREBASE_HARDENING_PLAN.md → Part A / A3
 // for the full rationale + revert path.
 
+/**
+ * Pure core — testable via fakes on ServerConfigDatabase and
+ * SensorEventDatabase. Extracted in H2 of the handler testing plan.
+ *
+ * Reads buildTimestamp from config (throws if missing), fetches the
+ * current sensor event for that device, and delegates to
+ * sendFCMForOldData. Returns whatever sendFCMForOldData returns —
+ * which the HTTP wrapper passes straight through as the 200 body.
+ */
+export async function handleCheckForOpenDoorsRequest(): Promise<unknown> {
+  const config = await ServerConfigDatabase.get();
+  const buildTimestamp = requireBuildTimestamp(
+    getBuildTimestamp(config),
+    'httpCheckForOpenDoors',
+  );
+  const eventData = await SensorEventDatabase.getCurrent(buildTimestamp);
+  return sendFCMForOldData(buildTimestamp, eventData);
+}
+
 export const httpCheckForOpenDoors = functions.https.onRequest(async (_request, response) => {
   try {
-    const config = await ServerConfigDatabase.get();
-    const buildTimestamp = requireBuildTimestamp(
-      getBuildTimestamp(config),
-      'httpCheckForOpenDoors',
-    );
-    const eventData = await SensorEventDatabase.getCurrent(buildTimestamp);
-    const result = await sendFCMForOldData(buildTimestamp, eventData);
+    const result = await handleCheckForOpenDoorsRequest();
     response.status(200).send(result);
   } catch (error) {
     console.error('httpCheckForOpenDoors failed', error);

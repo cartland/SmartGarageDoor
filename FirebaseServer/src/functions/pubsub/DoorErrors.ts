@@ -20,19 +20,29 @@ import { updateEvent } from '../../controller/EventUpdates';
 import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
 import { getBuildTimestamp, requireBuildTimestamp } from '../../controller/config/ConfigAccessors';
 
+const BUILD_TIMESTAMP_PARAM_KEY = 'buildTimestamp';
+
 // History: see http/OpenDoor.ts for the fallback removal rationale.
 // Same door-sensor device; same A3 story.
 
-export const pubsubCheckForDoorErrors = functions.pubsub.schedule('every 1 minutes').onRun(async (_context) => {
-  const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
+/**
+ * Pure core — testable via fakes. Extracted in H2. Reads buildTimestamp
+ * from config (throws on missing), then invokes updateEvent with
+ * scheduledJob=true. The data payload shape passed to updateEvent is
+ * byte-identical to the pre-extraction inline code.
+ */
+export async function handleCheckForDoorErrors(): Promise<void> {
   const config = await ServerConfigDatabase.get();
-  const buildTimestampString = requireBuildTimestamp(
+  const buildTimestamp = requireBuildTimestamp(
     getBuildTimestamp(config),
     'pubsubCheckForDoorErrors',
   );
-  const scheduledJob = true;
   const data = {};
-  data[BUILD_TIMESTAMP_PARAM_KEY] = buildTimestampString;
-  await updateEvent(data, scheduledJob);
+  data[BUILD_TIMESTAMP_PARAM_KEY] = buildTimestamp;
+  await updateEvent(data, true);
+}
+
+export const pubsubCheckForDoorErrors = functions.pubsub.schedule('every 1 minutes').onRun(async (_context) => {
+  await handleCheckForDoorErrors();
   return null;
 });
