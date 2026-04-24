@@ -34,46 +34,64 @@ const REMOTE_BUTTON_REQUEST_ERROR_SECONDS = 60 * 10;
 // See docs/FIREBASE_HARDENING_PLAN.md → Part A / A3 for full history
 // + revert path.
 
+/**
+ * Pure core — testable via fakes on the three databases. H3 of the
+ * handler testing plan (docs/FIREBASE_HANDLER_TESTING_PLAN.md).
+ *
+ * Checks whether the remote-button device has checked in recently:
+ *  - missing request entry  → writes error entry (device never polled)
+ *  - NaN seconds-since      → writes error entry (corrupt data)
+ *  - stale (>10 min)        → writes error entry with request attached
+ *  - fresh                  → no error write, info log only
+ *
+ * Config-missing is surfaced via requireBuildTimestamp's throw — the
+ * previous branch that wrote a Firestore noise-entry for that case
+ * was removed in A3 (ERROR-level Cloud Log is sufficient).
+ *
+ * Behavior is byte-identical to the pre-extraction inline code,
+ * including the exact error strings, the `Object.assign(result,
+ * remoteButtonRequest)` merge in the stale path, and the info-log
+ * message on the healthy path.
+ */
+export async function handleCheckForRemoteButtonErrors(): Promise<void> {
+  const config = await ServerConfigDatabase.get();
+  const buildTimestamp = requireBuildTimestamp(
+    getRemoteButtonBuildTimestamp(config),
+    'pubsubCheckForRemoteButtonErrors',
+  );
+  const remoteButtonRequest = await REMOTE_BUTTON_REQUEST_DATABASE.getCurrent(buildTimestamp);
+  if (!remoteButtonRequest) {
+    const result = { error: 'No remote button requests found for build timestamp: ' + buildTimestamp };
+    console.error(result.error);
+    await REMOTE_BUTTON_REQUEST_ERROR_DATABASE.save(buildTimestamp, result);
+    return;
+  }
+  const secondsSinceDatabaseUpdate =
+    firebase.firestore.Timestamp.now().seconds - remoteButtonRequest[DATABASE_TIMESTAMP_SECONDS_KEY];
+  if (isNaN(secondsSinceDatabaseUpdate)) {
+    const result = {
+      error: 'Could not compute seconds since last database update',
+    };
+    console.error(result.error);
+    await REMOTE_BUTTON_REQUEST_ERROR_DATABASE.save(buildTimestamp, result);
+    return;
+  }
+  if (secondsSinceDatabaseUpdate > REMOTE_BUTTON_REQUEST_ERROR_SECONDS) {
+    const result = {
+      error: 'Seconds since remote button status was checked is greater than expected: ' +
+        secondsSinceDatabaseUpdate + ' > ' + REMOTE_BUTTON_REQUEST_ERROR_SECONDS,
+    };
+    console.error(result.error);
+    Object.assign(result, remoteButtonRequest);
+    await REMOTE_BUTTON_REQUEST_ERROR_DATABASE.save(buildTimestamp, result);
+    return;
+  }
+  console.log('checkForRemoteButtonErrors did not find any errors');
+}
+
 export const pubsubCheckForRemoteButtonErrors = functions.pubsub
   .schedule('every 10 minutes').timeZone('America/Los_Angeles') // California after midnight every day.
   .onRun(async (_context) => {
-    const config = await ServerConfigDatabase.get();
-    const buildTimestamp = requireBuildTimestamp(
-      getRemoteButtonBuildTimestamp(config),
-      'pubsubCheckForRemoteButtonErrors',
-    );
-    // NOTE: the previous `if (!buildTimestamp)` branch that wrote an
-    // error entry to `remoteButtonRequestErrorAll` was removed with
-    // the A3 fallback cleanup — `requireBuildTimestamp` throws on
-    // missing config, which surfaces the same condition as an ERROR
-    // in Cloud Logging without writing a noise entry to Firestore.
-    const remoteButtonRequest = await REMOTE_BUTTON_REQUEST_DATABASE.getCurrent(buildTimestamp);
-    if (!remoteButtonRequest) {
-      const result = { error: 'No remote button requests found for build timestamp: ' + buildTimestamp };
-      console.error(result.error);
-      await REMOTE_BUTTON_REQUEST_ERROR_DATABASE.save(buildTimestamp, result);
-      return null;
-    }
-    const secondsSinceDatabaseUpdate =
-      firebase.firestore.Timestamp.now().seconds - remoteButtonRequest[DATABASE_TIMESTAMP_SECONDS_KEY];
-    if (isNaN(secondsSinceDatabaseUpdate)) {
-      const result = {
-        error: 'Could not compute seconds since last database update',
-      };
-      console.error(result.error);
-      await REMOTE_BUTTON_REQUEST_ERROR_DATABASE.save(buildTimestamp, result);
-      return null;
-    }
-    if (secondsSinceDatabaseUpdate > REMOTE_BUTTON_REQUEST_ERROR_SECONDS) {
-      const result = {
-        error: 'Seconds since remote button status was checked is greater than expected: ' +
-          secondsSinceDatabaseUpdate + ' > ' + REMOTE_BUTTON_REQUEST_ERROR_SECONDS,
-      };
-      console.error(result.error);
-      Object.assign(result, remoteButtonRequest);
-      await REMOTE_BUTTON_REQUEST_ERROR_DATABASE.save(buildTimestamp, result);
-      return null;
-    }
-    console.log('checkForRemoteButtonErrors did not find any errors');
+    await handleCheckForRemoteButtonErrors();
     return null;
   });
