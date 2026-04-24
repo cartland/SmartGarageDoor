@@ -24,7 +24,14 @@ import { getBuildTimestamp, requireBuildTimestamp } from '../../controller/confi
 // History: see http/OpenDoor.ts for the fallback removal rationale.
 // Same door-sensor device; same A3 story.
 
-export const pubsubCheckForOpenDoorsJob = functions.pubsub.schedule('every 5 minutes').onRun(async (_context) => {
+/**
+ * Pure core — testable via fakes. Extracted in H2. Same body as
+ * handleCheckForOpenDoorsRequest but resolves to void (the pubsub
+ * tick does not propagate the FCM result back to a caller) and uses
+ * its own context string for ERROR-log attribution when config is
+ * missing.
+ */
+export async function handleCheckForOpenDoorsJob(): Promise<void> {
   const config = await ServerConfigDatabase.get();
   const buildTimestamp = requireBuildTimestamp(
     getBuildTimestamp(config),
@@ -32,5 +39,9 @@ export const pubsubCheckForOpenDoorsJob = functions.pubsub.schedule('every 5 min
   );
   const eventData = await SensorEventDatabase.getCurrent(buildTimestamp);
   await sendFCMForOldData(buildTimestamp, eventData);
+}
+
+export const pubsubCheckForOpenDoorsJob = functions.pubsub.schedule('every 5 minutes').onRun(async (_context) => {
+  await handleCheckForOpenDoorsJob();
   return null;
 });
