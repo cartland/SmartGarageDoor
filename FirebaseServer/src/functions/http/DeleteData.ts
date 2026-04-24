@@ -19,27 +19,52 @@ import * as functions from 'firebase-functions/v1';
 import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
 import { isDeleteOldDataEnabled } from '../../controller/config/ConfigAccessors';
 import { deleteOldData } from '../../controller/DatabaseCleaner';
+import { HandlerResult, ok, err } from '../HandlerResult';
 
-export const httpDeleteOldData = functions.https.onRequest(async (request, response) => {
+export interface DeleteOldDataResult {
+  dryRun: boolean;
+  summary: object;
+}
+
+/**
+ * Pure core — testable via FakeServerConfigDatabase + sinon stub on
+ * deleteOldData. H5 of the handler testing plan.
+ *
+ * Behavior is byte-identical to the pre-extraction inline code:
+ *  - disabled config → 400 { error: 'Disabled' } + existing info log
+ *  - otherwise       → parseInt the cutoff param (NaN if absent), pass
+ *    dryRun flag (boolean presence in query), call deleteOldData,
+ *    return { dryRun, summary: deleteCount }
+ */
+export async function handleDeleteOldData(input: {
+  query: any;
+}): Promise<HandlerResult<DeleteOldDataResult>> {
   const config = await ServerConfigDatabase.get();
   if (!isDeleteOldDataEnabled(config)) {
     console.log('Deleting data is disabled');
-    response.status(400).send({ error: 'Disabled' });
-    return;
+    return err(400, { error: 'Disabled' });
   }
   let cutoffTimestampSeconds: number = null;
   let dryRun = false;
-  if ('dryRun' in request.query) {
+  if (input.query && 'dryRun' in input.query) {
     dryRun = true;
   }
-  if ('cutoffTimestampSeconds' in request.query) {
-    const s: string = request.query['cutoffTimestampSeconds'].toString();
+  if (input.query && 'cutoffTimestampSeconds' in input.query) {
+    const s: string = input.query['cutoffTimestampSeconds'].toString();
     cutoffTimestampSeconds = parseInt(s);
   }
   const deleteCount = await deleteOldData(cutoffTimestampSeconds, dryRun);
-  const result = {
+  return ok({
     dryRun: dryRun,
     summary: deleteCount,
-  };
-  await response.status(200).send(result);
+  });
+}
+
+export const httpDeleteOldData = functions.https.onRequest(async (request, response) => {
+  const result = await handleDeleteOldData({ query: request.query });
+  if (result.kind === 'error') {
+    response.status(result.status).send(result.body);
+  } else {
+    await response.status(200).send(result.data);
+  }
 });
