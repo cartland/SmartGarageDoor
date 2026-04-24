@@ -26,6 +26,7 @@ import { DATABASE as REMOTE_BUTTON_REQUEST_DATABASE } from '../../database/Remot
 import { isAuthorizedToPushRemoteButton } from '../../controller/Auth';
 
 import { RemoteButtonCommand } from '../../model/RemoteButtonCommand';
+import { HandlerResult, ok, err } from '../HandlerResult';
 
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 const SESSION_PARAM_KEY = "session";
@@ -37,98 +38,122 @@ const REMOTE_BUTTON_MIN_PERIOD_SECONDS = 10;
 const REMOTE_BUTTON_COMMAND_TIMEOUT_SECONDS = 60;
 
 /**
- * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/remoteButton?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
+ * Pure core for the device-polling endpoint. H3 (pubsub→HTTP
+ * continuation) of the handler testing plan.
+ *
+ * Behavior is byte-identical to the pre-extraction inline code:
+ *  - Config not enabled                            → 400 Disabled.
+ *  - `buildTimestamp` missing from query           → passed through
+ *    as `undefined` (the empty `// Skip.` else branch is preserved so
+ *    downstream `getCurrent(undefined)` calls produce the same logs
+ *    as before).
+ *  - Request is ALWAYS saved for logging, regardless of what branch
+ *    the command state machine takes.
+ *  - Ack-token state machine: saves a noop-command + returns the
+ *    freshly re-read version (Firestore timestamps populated) when
+ *    `shouldStopSendingRemoteButtonCommand && oldAckToken !== ''`;
+ *    otherwise returns `oldCommand` directly (no save, no re-read).
+ *    This asymmetry — return fresh on save-path, return pre-save
+ *    on else-path — is intentional. Tests pin it.
+ *  - Any throw during the save/read sequence                → 500.
+ *
+ * No auth: the ESP32 polls this endpoint and has no credentials.
  */
-export const httpRemoteButton = functions.https.onRequest(async (request, response) => {
+export async function handleRemoteButtonPoll(input: {
+  query: any;
+  body: any;
+}): Promise<HandlerResult<any>> {
   const config = await ServerConfigDatabase.get();
   if (!isRemoteButtonEnabled(config)) {
-    response.status(400).send({ error: 'Disabled' });
-    return;
+    return err(400, { error: 'Disabled' });
   }
-  const data = {
-    queryParams: request.query,
-    body: request.body,
+  const data: any = {
+    queryParams: input.query,
+    body: input.body,
   };
-  // The session ID allows a client to tell the server that multiple requests
-  // come from the same session.
-  if (SESSION_PARAM_KEY in request.query) {
-    // If the client sends a session ID, respond with the session ID.
-    data[SESSION_PARAM_KEY] = request.query[SESSION_PARAM_KEY];
+  if (input.query && SESSION_PARAM_KEY in input.query) {
+    data[SESSION_PARAM_KEY] = input.query[SESSION_PARAM_KEY];
   } else {
-    // If the client does not send a session ID, create a session ID.
     data[SESSION_PARAM_KEY] = uuidv4();
   }
   const session = data[SESSION_PARAM_KEY];
-  if (BUTTON_ACK_TOKEN_PARAM_KEY in request.query) {
-    // Client is echoing back a previously-issued ack token. The downstream
-    // `buttonAcknowledged` check uses this to decide whether to clear the
-    // pending command.
-    data[BUTTON_ACK_TOKEN_PARAM_KEY] = request.query[BUTTON_ACK_TOKEN_PARAM_KEY];
+  if (input.query && BUTTON_ACK_TOKEN_PARAM_KEY in input.query) {
+    data[BUTTON_ACK_TOKEN_PARAM_KEY] = input.query[BUTTON_ACK_TOKEN_PARAM_KEY];
   } else {
-    // Client sent no ack token. Leave data[BUTTON_ACK_TOKEN_PARAM_KEY]
-    // undefined — `buttonAckToken` below is then undefined and
-    // `buttonAcknowledged` stays false. This matches how a fresh device
-    // behaves on first poll (no previous command to acknowledge). The
-    // counterpart in httpAddRemoteButtonCommand has a similar un-enforced
-    // path and documents the historical reason to keep it that way; the
-    // same reasoning applies here.
+    // Client sent no ack token. Leave data[...] undefined — preserves the
+    // "undefined ack token means buttonAcknowledged stays false" semantics.
   }
   const buttonAckToken = data[BUTTON_ACK_TOKEN_PARAM_KEY];
-  // The build timestamp is unique to each device.
-  if (BUILD_TIMESTAMP_PARAM_KEY in request.query) {
-    data[BUILD_TIMESTAMP_PARAM_KEY] = request.query[BUILD_TIMESTAMP_PARAM_KEY];
+  if (input.query && BUILD_TIMESTAMP_PARAM_KEY in input.query) {
+    data[BUILD_TIMESTAMP_PARAM_KEY] = input.query[BUILD_TIMESTAMP_PARAM_KEY];
   } else {
-    // Skip.
+    // Skip. Preserved from pre-extraction: buildTimestamp flows through as
+    // `undefined` and downstream DB reads see that — byte-identical to the
+    // prior behavior.
   }
   const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
+  // Save the request. This is mostly for logging purposes.
+  await REMOTE_BUTTON_REQUEST_DATABASE.save(buildTimestamp, data);
+  const oldCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
+  const oldAckToken = oldCommand?.[BUTTON_ACK_TOKEN_PARAM_KEY] ?? '';
+  const timeSinceLastRemoteButtonCommandSeconds = oldCommand?.[DATABASE_TIMESTAMP_SECONDS_KEY]
+    ? firebase.firestore.Timestamp.now().seconds - oldCommand[DATABASE_TIMESTAMP_SECONDS_KEY]
+    : Number.MAX_SAFE_INTEGER;
+  // Clear the pending command when any of:
+  //   1) the stored command has no ack token (invalid state),
+  //   2) the client echoed back the matching ack token (acknowledged), or
+  //   3) the stored command is older than the timeout AND still has an
+  //      ack token (replace stale).
+  const commandDoesNotContainAckToken = !oldCommand || !(BUTTON_ACK_TOKEN_PARAM_KEY in oldCommand);
+  const buttonAcknowledged = buttonAckToken === oldAckToken;
+  const replaceOldCommand = (timeSinceLastRemoteButtonCommandSeconds > REMOTE_BUTTON_COMMAND_TIMEOUT_SECONDS)
+    && (oldAckToken !== '');
+  const shouldStopSendingRemoteButtonCommand =
+    commandDoesNotContainAckToken
+    || buttonAcknowledged
+    || replaceOldCommand;
+  if (shouldStopSendingRemoteButtonCommand &&
+    typeof oldAckToken === 'string' &&
+    oldAckToken !== ''
+  ) {
+    const noopCommand = <RemoteButtonCommand>{
+      session: session,
+      buildTimestamp: buildTimestamp,
+      buttonAckToken: '',
+      commandDidNotContainAckToken: commandDoesNotContainAckToken,
+      commandAcknowledged: buttonAcknowledged,
+      commandTimeout: replaceOldCommand,
+      oldAckToken: oldAckToken,
+    };
+    console.log('Saving noop command:', noopCommand);
+    await REMOTE_BUTTON_COMMAND_DATABASE.save(buildTimestamp, noopCommand);
+    // Intentional re-read: the fresh document carries Firestore-injected
+    // fields (FIRESTORE_databaseTimestampSeconds). The else branch below
+    // returns `oldCommand` without a second read — preserve that split.
+    const updatedCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
+    return ok(updatedCommand);
+  }
+  return ok(oldCommand);
+}
+
+/**
+ * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/remoteButton?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
+ */
+export const httpRemoteButton = functions.https.onRequest(async (request, response) => {
   try {
-    // Save the request. This is mostly for logging purposes.
-    await REMOTE_BUTTON_REQUEST_DATABASE.save(buildTimestamp, data);
-    // Get the remote button command from the database. We need to return this value.
-    const oldCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
-    const oldAckToken = oldCommand?.[BUTTON_ACK_TOKEN_PARAM_KEY] ?? '';
-    const timeSinceLastRemoteButtonCommandSeconds = oldCommand?.[DATABASE_TIMESTAMP_SECONDS_KEY]
-      ? firebase.firestore.Timestamp.now().seconds - oldCommand[DATABASE_TIMESTAMP_SECONDS_KEY]
-      : Number.MAX_SAFE_INTEGER;
-    // We reset the button command if any of the following are true:
-    // Condition 1) The command does not contain an ACK token (invaild state).
-    const commandDoesNotContainAckToken = !oldCommand || !(BUTTON_ACK_TOKEN_PARAM_KEY in oldCommand);
-    // Condition 2) The client sends a request with the ACK token (successfully acknowledge).
-    const buttonAcknowledged = buttonAckToken === oldAckToken;
-    // Condition 3) The command is too old.
-    const replaceOldCommand = (timeSinceLastRemoteButtonCommandSeconds > REMOTE_BUTTON_COMMAND_TIMEOUT_SECONDS)
-      && (oldAckToken !== '');
-    const shouldStopSendingRemoteButtonCommand =
-      commandDoesNotContainAckToken // Condition 1.
-      || buttonAcknowledged // Condition 2.
-      || replaceOldCommand; // Condition 3.
-    if (shouldStopSendingRemoteButtonCommand &&
-      typeof oldAckToken === 'string' &&
-      oldAckToken !== ''
-    ) {
-      const noopCommand = <RemoteButtonCommand>{
-        session: session,
-        buildTimestamp: buildTimestamp,
-        buttonAckToken: '',
-        commandDidNotContainAckToken: commandDoesNotContainAckToken,
-        commandAcknowledged: buttonAcknowledged,
-        commandTimeout: replaceOldCommand,
-        oldAckToken: oldAckToken,
-      };
-      console.log('Saving noop command:', noopCommand);
-      await REMOTE_BUTTON_COMMAND_DATABASE.save(buildTimestamp, noopCommand);
-      const updatedCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
-      response.status(200).send(updatedCommand);
-      return;
+    const result = await handleRemoteButtonPoll({
+      query: request.query,
+      body: request.body,
+    });
+    if (result.kind === 'error') {
+      response.status(result.status).send(result.body);
     } else {
-      response.status(200).send(oldCommand);
-      return;
+      response.status(200).send(result.data);
     }
   }
   catch (error) {
-    console.error(error)
-    response.status(500).send(error)
-    return;
+    console.error(error);
+    response.status(500).send(error);
   }
 });
 
