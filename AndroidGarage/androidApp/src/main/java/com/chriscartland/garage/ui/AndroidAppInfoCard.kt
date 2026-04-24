@@ -39,6 +39,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.di.rememberAppComponent
+import com.chriscartland.garage.domain.model.AppVersion
 import com.chriscartland.garage.usecase.AppSettingsViewModel
 import com.chriscartland.garage.version.AppVersion
 
