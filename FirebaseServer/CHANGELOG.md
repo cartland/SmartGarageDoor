@@ -24,6 +24,13 @@ Example (placeholder tag numbers — the gate looks for exact `server/<real numb
 
 ---
 
+## server/16
+- First release to actually read `buildTimestamp` values from server config — the pubsub door-sensor and remote-button jobs have been using hardcoded literals since June 2021 even though the config contained the values. After this release, changing a device ID is a config update via `httpServerConfigUpdate` rather than a code deploy.
+- Zero runtime behavior change on deploy: production config has `body.buildTimestamp = "Sat Mar 13 14:45:00 2021"` (plain) and `body.remoteButtonBuildTimestamp = "Sat%20Apr%2010%2023:57:32%202021"` (URL-encoded since April 2021). The new `getRemoteButtonBuildTimestamp` accessor applies `decodeURIComponent()` so callers see the pre-refactor plain form. Both resolved strings are byte-identical to the hardcoded literals.
+- Named file-local `_FALLBACK` constants in each call site preserve the old behavior if the config field ever goes missing or empty — and a warn-level Cloud Log entry is now emitted when the fallback fires, tagged with the call-site context (`httpCheckForOpenDoors`, `pubsubCheckForOpenDoorsJob`, `pubsubCheckForDoorErrors`, `pubsubCheckForRemoteButtonErrors`). `getRemoteButtonBuildTimestamp` also logs if URL-decoding throws on malformed input (returns the raw value; never crashes the job).
+- `ConfigAccessorsTest.ts` (13 tests + 3 log-behavior tests) pins the production config shape byte-for-byte.
+- Replaces the reverted attempt in server/15 (PR #492 read the wrong config key for the door sensor and returned the URL-encoded value verbatim for the remote button; caught before release and reverted in PR #494).
+
 ## server/15
 - Release with no behavior changes. Dependency hygiene — closes Dependabot alerts #66 (`fast-xml-parser` XMLBuilder injection) and #67 (`uuid` < 14.0.0 buffer bounds).
 - `uuid` direct dep bumped 8.3.2 → 14.0.0 (PR #491). Our only use is `uuidv4()` with no `buf` argument — not in the CVE vector at any version — but the bump clears the alert and the new `UuidTest.ts` pins the v4 output shape for future bumps.
