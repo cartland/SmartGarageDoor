@@ -16,20 +16,25 @@ Android app for monitoring and controlling the garage door remotely. Built with 
 
 ## Technical Stack
 - UI: Jetpack Compose with Material 3
-- Navigation: Scaffold, NavHost, TopAppBar, BottomNavigationBar
-- Network: Retrofit, Moshi
-- Database: Room
-- Authentication: Firebase Auth, Google Sign-In
+- Navigation: Navigation 3 (`NavDisplay` + `entryProvider`, `@Serializable` route objects)
+- Network: Ktor HTTP client + kotlinx.serialization (engine selected via KMP `expect/actual`)
+- Database: Room (KMP) + DataStore for settings
+- Authentication: Firebase Auth, Google Sign-In (Credential Manager)
 - Push Notifications: Firebase Cloud Messaging (FCM)
-- Dependency Injection: Hilt
+- Dependency Injection: kotlin-inject
+- Logging: Kermit (KMP)
 - Permissions: Accompanist PermissionState
 
 ## Architecture
-- **ViewModels**: Handle UI state and business logic
-- **Repositories**: Manage data operations and network calls
-- **Room Database**: Store door events and state
-- **FCM Service**: Handle push notifications and data updates
-- **Authentication**: Two-step process with Google and Firebase tokens
+
+Shared business logic lives in KMP modules; `androidApp/` is Compose UI + Firebase bridges + DI wiring only. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full module graph and data flows.
+
+- **`domain/`** — pure Kotlin model types + repository interfaces
+- **`data/`** — data source interfaces, Ktor implementations, platform bridges (`AuthBridge`, `MessagingBridge`), repository implementations
+- **`data-local/`** — Room database + DataStore
+- **`usecase/`** — UseCases + all 5 ViewModels + app-scoped managers
+- **`presentation-model/`** — screen-state data classes
+- **`androidApp/`** — Compose UI + Firebase bridge impls + DI wiring + Activity/Application/Service entry points
 
 ## Build Configuration
 The Android build uses Kotlin build files with version catalogs (TOML).

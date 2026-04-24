@@ -37,9 +37,11 @@ The server is built using:
 
 ### Prerequisites
 
-- Node.js 20
+- Node.js 22 (pinned via `.nvmrc`; `engines.node` in `package.json` enforces at install)
 - Firebase CLI
 - TypeScript
+
+Use `scripts/firebase-npm.sh` (or `scripts/validate-firebase.sh`) from the repo root — both auto-switch Node via nvm so you don't need to `nvm use` by hand. See CLAUDE.md for why `NODE_OPTIONS='--no-experimental-strip-types'` is pinned in the `tests` npm script (Node 22.18+ default strip-types breaks `import * as admin from 'firebase-admin'` under mocha).
 
 ### Setup
 
@@ -87,13 +89,18 @@ curl -H "Content-Type: application/json" -H "X-ServerConfigKey: $SERVER_CONFIG_U
 
 ### Database Structure
 
-Collections:
-- `eventsCurrent`: Current door state
-- `eventsAll`: Historical door states
-- `updateCurrent`: Latest sensor updates
-- `updateAll`: Historical sensor data
-- `configCurrent`: Server configuration
-- `notificationsCurrent`: Active notifications
+Every Firestore collection is wrapped by a typed module in `src/database/` with a contract test pinning the collection string (see `docs/FIREBASE_DATABASE_REFACTOR.md`).
+
+| Collection pair | Module | Purpose |
+|-----------------|--------|---------|
+| `eventsCurrent` / `eventsAll` | `SensorEventDatabase` | Interpreted door events (derived from sensor updates) |
+| `updateCurrent` / `updateAll` | `UpdateDatabase` | Raw sensor updates from the ESP32 |
+| `configCurrent` / `configAll` | `ServerConfigDatabase` | Server configuration (buildTimestamps, keys, feature flags) |
+| `notificationsCurrent` / `notificationsAll` | `NotificationsDatabase` | FCM notification history (open-door warnings) |
+| `snoozeNotificationsCurrent` / `snoozeNotificationsAll` | `SnoozeNotificationsDatabase` | User-initiated snooze windows |
+| `remoteButtonCommandCurrent` / `remoteButtonCommandAll` | `RemoteButtonCommandDatabase` | Server-issued button-push commands (polled by ESP32) |
+| `remoteButtonRequestCurrent` / `remoteButtonRequestAll` | `RemoteButtonRequestDatabase` | Client-initiated button-push requests |
+| `remoteButtonRequestErrorCurrent` / `remoteButtonRequestErrorAll` | `RemoteButtonRequestErrorDatabase` | Error entries for stale/missing button requests |
 
 ```
 
