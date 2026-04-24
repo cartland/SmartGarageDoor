@@ -5,7 +5,7 @@ Covers two non-refactor tranches: (A) replacing hardcoded
 two open Dependabot alerts. Both are bounded scope with concrete safety
 guards.
 
-**Status:** Shipped through `server/16`. Part A (buildTimestamp config-read) landed via a revert + rewrite after the first attempt shipped to `main` with bugs (wrong config key name + URL-encoding not handled). Part B (Dependabot) closed one of two alerts; the remaining one is a transitive under `firebase-admin` and will clear when `firebase-admin` itself bumps (see *Deferred / next* below).
+**Status:** COMPLETE. Shipped through `server/17` (A3 landed there after `server/16`'s 24h observation window cleared). Part A (buildTimestamp config-read) landed via a revert + rewrite after the first attempt shipped to `main` with bugs (wrong config key name + URL-encoding not handled); A3 then removed the fallback safety net now that config is authoritative. Part B (Dependabot) closed one of two alerts; the remaining one is a transitive under `firebase-admin` and will clear when `firebase-admin` itself bumps (see *Deferred / next* below).
 
 ### Shipping history
 
@@ -16,6 +16,7 @@ guards.
 | buildTimestamp config-read — first attempt | A1 | [#492](https://github.com/cartland/SmartGarageDoor/pull/492) | **reverted** in [#494](https://github.com/cartland/SmartGarageDoor/pull/494) before release — read the wrong config key (`doorSensorBuildTimestamp` didn't exist) and returned the URL-encoded `remoteButtonBuildTimestamp` raw |
 | buildTimestamp config-read — corrected | A1 (rewrite) | [#496](https://github.com/cartland/SmartGarageDoor/pull/496) | `server/16` |
 | Fallback logging helper (`resolveBuildTimestamp`) | (added during A1 rewrite at user request) | [#496](https://github.com/cartland/SmartGarageDoor/pull/496) | `server/16` |
+| Fallback removal — `requireBuildTimestamp` replaces `resolveBuildTimestamp` | A3 | (see *A3 — Fallback removal* below) | `server/17` |
 
 **Invariants held (verified):**
 - Zero Firestore data impact — collection strings, document shapes, write patterns unchanged throughout.
