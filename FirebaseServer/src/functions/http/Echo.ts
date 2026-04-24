@@ -24,35 +24,55 @@ const SESSION_PARAM_KEY = "session";
 const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
 
 /**
- * HTTP endpoint captures request parameters, stores them in the database, and returns the data.
+ * Pure core — testable with plain object args. Handler-body extraction
+ * per docs/FIREBASE_HANDLER_TESTING_PLAN.md (Phase H1 pilot).
+ *
+ * Behavior is byte-identical to the pre-extraction inline code:
+ * - Builds the echo `data` payload from query + body.
+ * - Uses the provided `session` query param, or generates a v4 UUID.
+ * - Passes `buildTimestamp` through if present in the query.
+ * - Saves to UpdateDatabase keyed by session, then returns the stored
+ *   document read back from `getCurrent(session)`.
  */
-export const httpEcho = functions.https.onRequest(async (request, response) => {
-  // Echo query parameters and body.
-  const data = {
-    queryParams: request.query,
-    body: request.body,
+export async function handleEchoRequest(input: {
+  query: any;
+  body: any;
+}): Promise<any> {
+  const data: any = {
+    queryParams: input.query,
+    body: input.body,
   };
   // The session ID allows a client to tell the server that multiple requests
   // come from the same session.
-  if (SESSION_PARAM_KEY in request.query) {
+  if (input.query && SESSION_PARAM_KEY in input.query) {
     // If the client sends a session ID, respond with the session ID.
-    data[SESSION_PARAM_KEY] = request.query[SESSION_PARAM_KEY];
+    data[SESSION_PARAM_KEY] = input.query[SESSION_PARAM_KEY];
   } else {
     // If the client does not send a session ID, create a session ID.
     data[SESSION_PARAM_KEY] = uuidv4();
   }
   const session = data[SESSION_PARAM_KEY];
   // The build timestamp is unique to each device.
-  if (BUILD_TIMESTAMP_PARAM_KEY in request.query) {
-    data[BUILD_TIMESTAMP_PARAM_KEY] = request.query[BUILD_TIMESTAMP_PARAM_KEY];
+  if (input.query && BUILD_TIMESTAMP_PARAM_KEY in input.query) {
+    data[BUILD_TIMESTAMP_PARAM_KEY] = input.query[BUILD_TIMESTAMP_PARAM_KEY];
   } else {
     // Skip.
   }
 
+  await UpdateDatabase.save(session, data);
+  return UpdateDatabase.getCurrent(session);
+}
+
+/**
+ * HTTP endpoint captures request parameters, stores them in the database, and returns the data.
+ */
+export const httpEcho = functions.https.onRequest(async (request, response) => {
   try {
-    await UpdateDatabase.save(session, data);
-    const retrievedData = await UpdateDatabase.getCurrent(session);
-    response.status(200).send(retrievedData);
+    const result = await handleEchoRequest({
+      query: request.query,
+      body: request.body,
+    });
+    response.status(200).send(result);
   }
   catch (error) {
     console.error(error)
