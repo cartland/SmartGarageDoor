@@ -27,7 +27,7 @@ guards.
 ### Deferred / next
 
 - **uuid alert #67 (transitive versions 9.0.1, 11.1.0 under `firebase-admin`).** Remaining Dependabot alert. Not in our exploit path (we call `v4()` with no `buf`; transitives are used by `@google-cloud/*` for request IDs). Decision: **wait for `firebase-admin` itself to bump** rather than force a transitive override. The direct dep is at 14.0.0; the CVE-guard test in `CveGuardTest.ts` pins that.
-- **Remove `_FALLBACK` constants (A3 in the original plan).** `server/16` logs confirm the fallback never fires — production config has the fields populated. A follow-up PR removes the constants and replaces them with an early-return-on-missing-config pattern. Documented separately.
+- **~~Remove `_FALLBACK` constants (A3 in the original plan).~~** **Shipped** — see *A3 — Fallback removal* section below.
 
 **Invariants (both parts, as written pre-execution):**
 - Zero Firestore data impact. Collection strings, document shapes,
@@ -36,6 +36,142 @@ guards.
 - Phase 4 lint guard stays green — no new inline `new
   TimeSeriesDatabase(...)`.
 - `./scripts/validate-firebase.sh` passes on every PR.
+
+---
+
+## A3 — Fallback removal (history + revert)
+
+Shipped after `server/16` verified that production config has both
+`body.buildTimestamp` and `body.remoteButtonBuildTimestamp` populated
+and the warn-level fallback logs added during A1 stayed empty for
+24+ hours across every pubsub cycle.
+
+### What changed
+
+Before (server/16):
+
+```typescript
+// src/functions/http/OpenDoor.ts  (and three sibling files)
+const DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK = 'Sat Mar 13 14:45:00 2021';
+
+export const httpCheckForOpenDoors = functions.https.onRequest(async (_request, response) => {
+  const config = await ServerConfigDatabase.get();
+  const buildTimestamp = resolveBuildTimestamp(
+    getBuildTimestamp(config),
+    DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK,     // ← silent fallback + warn-log
+    'httpCheckForOpenDoors',
+  );
+  // ...
+});
+```
+
+After (A3):
+
+```typescript
+// src/functions/http/OpenDoor.ts  (and three sibling files)
+
+// History: DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK = 'Sat Mar 13 14:45:00 2021'
+// lived here through server/16; removed in A3.
+
+export const httpCheckForOpenDoors = functions.https.onRequest(async (_request, response) => {
+  try {
+    const config = await ServerConfigDatabase.get();
+    const buildTimestamp = requireBuildTimestamp(      // ← throws on null
+      getBuildTimestamp(config),
+      'httpCheckForOpenDoors',
+    );
+    // ...
+  } catch (error) {
+    response.status(500).send({ error: ... });
+  }
+});
+```
+
+The `resolveBuildTimestamp` helper was replaced with
+`requireBuildTimestamp`, which throws on null instead of returning a
+fallback. The error message includes the context string and a
+pointer back to this doc section.
+
+### Why the trade-off
+
+| Aspect | Fallback (server/16) | Strict (A3) |
+|---|---|---|
+| Config missing → runtime effect | Silent success with stale hardcode | Throw + ERROR log |
+| Detectability | Warn-level log (easy to miss) | Error-level log (pages/alerts) |
+| Blast radius of config deletion | None | The affected function fails its next run |
+| Blast radius of fallback drift (hardcode and prod config diverging) | Silent divergence, possibly for months | Impossible — no hardcode |
+| Time-to-detect a real config problem | Hours/days | Minutes |
+
+The A3 trade-off is explicit: we're trading a safety net that masked
+bugs for a louder error surface. The safety net was verified dormant
+before removal, so we're not losing any working state — just the
+illusion that the hardcode was a viable plan B.
+
+### Verification before shipping
+
+Before merging A3:
+
+1. `server/16` deployed and stable for 24+ hours. ✅
+2. `gcloud logging read '... "buildTimestamp not in config" ...'` in
+   the 24-hour window: **0 hits**. ✅
+3. `gcloud logging read '... "failed to URL-decode" ...'`: **0 hits**.
+   ✅
+4. All 4 functions executed successfully (pubsub + HTTP): **confirmed
+   via Cloud Logs**. ✅
+5. Production config `body.buildTimestamp` + `body.remoteButtonBuildTimestamp`
+   verified manually via `httpServerConfig`. ✅
+
+### Revert path (if A3 causes problems in prod)
+
+If an `ERROR [<context>] buildTimestamp missing from config` log
+fires post-deploy, the cause is almost certainly one of:
+
+1. Production config field got deleted (via `httpServerConfigUpdate`
+   or manual Firestore edit).
+2. Production config field's value went empty.
+3. `ServerConfigDatabase.get()` returned unexpectedly (Firestore
+   outage — unrelated to A3).
+
+**Fastest recovery:** restore the config field via
+`httpServerConfigUpdate` with the correct value. No code change
+needed.
+
+**Full revert (emergency only — reintroduces the fallback):**
+
+```bash
+# 1. Revert the A3 commit on main.
+git revert <A3-PR-squash-SHA>
+
+# 2. Validate + release.
+./scripts/validate-firebase.sh
+./scripts/release-firebase.sh --check          # prints `server/N` command
+./scripts/release-firebase.sh --confirm-tag server/N
+
+# 3. Monitor: the warn-level fallback log returns as the signal that
+#    config is still broken, while the function keeps working on the
+#    hardcoded fallback.
+```
+
+The revert restores:
+- `DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK = 'Sat Mar 13 14:45:00 2021'`
+  in 3 door-sensor call sites.
+- `REMOTE_BUTTON_BUILD_TIMESTAMP_FALLBACK = 'Sat Apr 10 23:57:32 2021'`
+  in the remote-button call site.
+- `resolveBuildTimestamp` in `ConfigAccessors.ts` (with its
+  warn-level log on fallback use).
+
+### Long-term rule
+
+**Config is authoritative.** If you change a device ID, update
+production config via `httpServerConfigUpdate` — never edit the
+hardcoded literals (there are none to edit any more). A future
+contributor hitting the throw path in Cloud Logs should investigate
+the config, not re-add a hardcode.
+
+If the rule ever changes (e.g. we need to support per-environment
+hardcode-as-default because staging's config differs from prod), the
+right move is a new accessor parameter or a second config field —
+not restoring the silent fallback.
 
 ---
 

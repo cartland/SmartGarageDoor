@@ -23,7 +23,7 @@ import * as sinon from 'sinon';
 import {
   getBuildTimestamp,
   getRemoteButtonBuildTimestamp,
-  resolveBuildTimestamp,
+  requireBuildTimestamp,
 } from '../../../src/controller/config/ConfigAccessors';
 
 describe('getBuildTimestamp (door sensor, production key: "buildTimestamp")', () => {
@@ -53,9 +53,10 @@ describe('getBuildTimestamp (door sensor, production key: "buildTimestamp")', ()
   });
 
   it('returns null for an empty string value (treat as missing)', () => {
-    // Why null and not the empty string: callers use `?? fallback`,
-    // which only triggers on null/undefined. An empty string here
-    // would bypass the fallback and pass "" into Firestore queries.
+    // Why null and not the empty string: callers pair this with
+    // requireBuildTimestamp, which throws on null. An empty string
+    // slipping through would be passed into Firestore queries — the
+    // null return forces the caller path to fail loudly.
     expect(getBuildTimestamp({ body: { buildTimestamp: '' } })).to.be.null;
   });
 });
@@ -82,10 +83,11 @@ describe('getRemoteButtonBuildTimestamp (remote button, production URL-encoded)'
   });
 
   it('returns the raw value if URL-decoding throws (malformed percent-encoding)', () => {
-    // Defensive: never crash the pubsub job because the config was
-    // authored wrong. The caller's fallback will kick in only if the
-    // raw value is also useless (empty, null). This returns
-    // something, leaving the fallback path to a separate null-check.
+    // Defensive: never crash the accessor itself. The raw value flows
+    // to requireBuildTimestamp, which would accept a truthy string and
+    // downstream Firestore queries would target "Sat%ZZInvalid" — a
+    // surfaced problem but no crash. This keeps decode failures from
+    // masquerading as config-missing errors.
     const config = { body: { remoteButtonBuildTimestamp: 'Sat%ZZInvalid' } };
     expect(getRemoteButtonBuildTimestamp(config)).to.equal('Sat%ZZInvalid');
   });
@@ -118,24 +120,33 @@ describe('getRemoteButtonBuildTimestamp (remote button, production URL-encoded)'
   });
 });
 
-describe('resolveBuildTimestamp (fallback-with-log helper)', () => {
+describe('requireBuildTimestamp (strict — throws on null)', () => {
   afterEach(() => {
     sinon.restore();
   });
 
   it('returns the config value unchanged when present', () => {
-    const warnSpy = sinon.spy(console, 'warn');
-    const result = resolveBuildTimestamp('from-config', 'fallback-literal', 'test-context');
+    const errorSpy = sinon.spy(console, 'error');
+    const result = requireBuildTimestamp('from-config', 'test-context');
     expect(result).to.equal('from-config');
-    expect(warnSpy.called, 'expected no warning on normal path').to.be.false;
+    expect(errorSpy.called, 'expected no error on normal path').to.be.false;
   });
 
-  it('returns the fallback and emits a warning when config value is null', () => {
-    const warnSpy = sinon.spy(console, 'warn');
-    const result = resolveBuildTimestamp(null, 'fallback-literal', 'test-context');
-    expect(result).to.equal('fallback-literal');
-    expect(warnSpy.calledOnce, 'expected exactly one warning').to.be.true;
-    expect(warnSpy.firstCall.args[0]).to.include('test-context');
-    expect(warnSpy.firstCall.args[0]).to.match(/fallback/i);
+  it('throws and logs an error when config value is null', () => {
+    const errorSpy = sinon.spy(console, 'error');
+    expect(() => requireBuildTimestamp(null, 'test-context')).to.throw(
+      /test-context.*buildTimestamp missing from config/,
+    );
+    expect(errorSpy.calledOnce, 'expected exactly one error log').to.be.true;
+    expect(errorSpy.firstCall.args[0]).to.include('test-context');
+  });
+
+  it('error message includes the doc pointer for revert context', () => {
+    // If a future operator sees this error in Cloud Logs, the message
+    // should point them directly to the docs that explain the history
+    // and how to restore the fallback if needed.
+    expect(() => requireBuildTimestamp(null, 'ctx')).to.throw(
+      /FIREBASE_HARDENING_PLAN\.md.*A3/,
+    );
   });
 });

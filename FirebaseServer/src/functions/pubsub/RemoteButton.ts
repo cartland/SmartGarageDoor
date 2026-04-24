@@ -20,34 +20,33 @@ import * as functions from 'firebase-functions/v1';
 import { DATABASE as REMOTE_BUTTON_REQUEST_DATABASE } from '../../database/RemoteButtonRequestDatabase';
 import { DATABASE as REMOTE_BUTTON_REQUEST_ERROR_DATABASE } from '../../database/RemoteButtonRequestErrorDatabase';
 import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
-import { getRemoteButtonBuildTimestamp, resolveBuildTimestamp } from '../../controller/config/ConfigAccessors';
+import { getRemoteButtonBuildTimestamp, requireBuildTimestamp } from '../../controller/config/ConfigAccessors';
 
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 
 const REMOTE_BUTTON_REQUEST_ERROR_SECONDS = 60 * 10;
 
-// Fallback to the historical hardcoded remote-button device ID if the
-// config field is missing or empty. Production has the field populated
-// (URL-encoded since April 2021); the accessor decodes it, so this
-// fallback is a safety net, not the expected path. Different device
-// from the door sensor — see http/OpenDoor.ts for that one.
-const REMOTE_BUTTON_BUILD_TIMESTAMP_FALLBACK = 'Sat Apr 10 23:57:32 2021';
+// History: a REMOTE_BUTTON_BUILD_TIMESTAMP_FALLBACK = 'Sat Apr 10 23:57:32 2021'
+// constant lived here through server/16. Different device from the
+// door sensor, so a different fallback value. Removed in A3 after
+// production was verified to have body.remoteButtonBuildTimestamp
+// populated (URL-encoded; the accessor decodes it to the same string).
+// See docs/FIREBASE_HARDENING_PLAN.md → Part A / A3 for full history
+// + revert path.
 
 export const pubsubCheckForRemoteButtonErrors = functions.pubsub
   .schedule('every 10 minutes').timeZone('America/Los_Angeles') // California after midnight every day.
   .onRun(async (_context) => {
     const config = await ServerConfigDatabase.get();
-    const buildTimestamp = resolveBuildTimestamp(
+    const buildTimestamp = requireBuildTimestamp(
       getRemoteButtonBuildTimestamp(config),
-      REMOTE_BUTTON_BUILD_TIMESTAMP_FALLBACK,
       'pubsubCheckForRemoteButtonErrors',
     );
-    if (!buildTimestamp) {
-      const result = { error: 'No remote button build timestamp in config: ' + buildTimestamp };
-      console.error(result.error);
-      await REMOTE_BUTTON_REQUEST_ERROR_DATABASE.save(buildTimestamp, result);
-      return null;
-    }
+    // NOTE: the previous `if (!buildTimestamp)` branch that wrote an
+    // error entry to `remoteButtonRequestErrorAll` was removed with
+    // the A3 fallback cleanup — `requireBuildTimestamp` throws on
+    // missing config, which surfaces the same condition as an ERROR
+    // in Cloud Logging without writing a noise entry to Firestore.
     const remoteButtonRequest = await REMOTE_BUTTON_REQUEST_DATABASE.getCurrent(buildTimestamp);
     if (!remoteButtonRequest) {
       const result = { error: 'No remote button requests found for build timestamp: ' + buildTimestamp };

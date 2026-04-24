@@ -19,22 +19,27 @@ import * as functions from 'firebase-functions/v1';
 import { sendFCMForOldData } from '../../controller/fcm/OldDataFCM';
 import { DATABASE as SensorEventDatabase } from '../../database/SensorEventDatabase';
 import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
-import { getBuildTimestamp, resolveBuildTimestamp } from '../../controller/config/ConfigAccessors';
+import { getBuildTimestamp, requireBuildTimestamp } from '../../controller/config/ConfigAccessors';
 
-// Fallback to the historical hardcoded door-sensor device ID if the
-// config field is missing or empty. Production has the field populated
-// (since April 2021), so the fallback is a safety net, not the
-// expected path. Fallback use emits a warn-level Cloud Log entry.
-const DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK = 'Sat Mar 13 14:45:00 2021';
+// History: a DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK = 'Sat Mar 13 14:45:00 2021'
+// constant lived here through server/16. Removed in A3 after
+// production was verified to have body.buildTimestamp populated with
+// that exact value, and server/16's warn-level fallback logs stayed
+// empty for 24+ hours. See docs/FIREBASE_HARDENING_PLAN.md → Part A / A3
+// for the full rationale + revert path.
 
 export const httpCheckForOpenDoors = functions.https.onRequest(async (_request, response) => {
-  const config = await ServerConfigDatabase.get();
-  const buildTimestamp = resolveBuildTimestamp(
-    getBuildTimestamp(config),
-    DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK,
-    'httpCheckForOpenDoors',
-  );
-  const eventData = await SensorEventDatabase.getCurrent(buildTimestamp);
-  const result = await sendFCMForOldData(buildTimestamp, eventData);
-  response.status(200).send(result);
+  try {
+    const config = await ServerConfigDatabase.get();
+    const buildTimestamp = requireBuildTimestamp(
+      getBuildTimestamp(config),
+      'httpCheckForOpenDoors',
+    );
+    const eventData = await SensorEventDatabase.getCurrent(buildTimestamp);
+    const result = await sendFCMForOldData(buildTimestamp, eventData);
+    response.status(200).send(result);
+  } catch (error) {
+    console.error('httpCheckForOpenDoors failed', error);
+    response.status(500).send({ error: error instanceof Error ? error.message : String(error) });
+  }
 });
