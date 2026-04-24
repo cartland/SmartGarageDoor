@@ -10,6 +10,9 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.4.4
+- Fixed Home tab stuck on "Loading" when the door state hadn't changed since the last fetch (e.g. tap-to-refresh, app launch). FCM pushes already worked because a state change produces a distinct value; the refresh path was silently latched by StateFlow value-equality dedup.
+
 ## 2.4.3
 - Snooze card updates to "snoozed until X" immediately after saving (no app restart needed)
 
