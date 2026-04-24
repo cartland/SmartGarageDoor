@@ -4,7 +4,7 @@ Centralize `TimeSeriesDatabase` usage in `FirebaseServer/` behind typed
 per-collection interfaces with in-memory fakes for tests. Zero production
 data impact.
 
-**Status:** Phases 0–6, 9 (partial), 10 shipped. Phases 7, 8, and the `HttpEchoTest` half of Phase 9 are deferred — testing Firebase Functions HTTP wrappers requires either `firebase-functions-test` package setup or extracting handler bodies into pure functions (production code change). See the *Deferred work* section at the end of this doc. Every Firestore collection now goes through a typed singleton with a contract test, and regression is guarded by the Phase 4 lint rule. Zero Firestore data impact throughout.
+**Status:** COMPLETE. Phases 0–10 shipped. The handler-test work originally deferred from Phases 7, 8, and 9 shipped through the companion [`FIREBASE_HANDLER_TESTING_PLAN.md`](FIREBASE_HANDLER_TESTING_PLAN.md) — all 14 HTTP/pubsub handlers now have pure-core unit tests. Every Firestore collection goes through a typed singleton with a contract test; regression is guarded by the Phase 4 lint rule. Zero Firestore data impact throughout.
 
 ### Phase shipping history
 
@@ -15,10 +15,11 @@ data impact.
 | 2 | `SensorEventDatabase` interface + fake; `EventUpdatesFakeTest` | #476 | server/13 |
 | 3 | `UpdateDatabase` rename from `Database.ts`; `NotificationsDatabase` migration | #478, #481 | server/13 |
 | 4 | ESLint ban on `new TimeSeriesDatabase(` outside `src/database/` | #482 | server/13 |
-| 5 | `ServerConfigDatabase` to canonical pattern + `ConfigAccessors` split | #485 | (unreleased) |
-| 6 | `SnoozeNotificationsDatabase` to canonical pattern | #484 | (unreleased) |
-| 9 (partial) | `OldDataFCMFakeTest` + mocha glob fix (surfaced 84 hidden tests) | #486 | (unreleased) |
-| 10 | Stale TODO removal + doc refresh | #487 | (unreleased) |
+| 5 | `ServerConfigDatabase` to canonical pattern + `ConfigAccessors` split | #485 | server/14 |
+| 6 | `SnoozeNotificationsDatabase` to canonical pattern | #484 | server/14 |
+| 9 (partial) | `OldDataFCMFakeTest` + mocha glob fix (surfaced 84 hidden tests) | #486 | server/14 |
+| 10 | Stale TODO removal + doc refresh | #487 | server/14 |
+| 7, 8, 9 (handler tests) | All 14 HTTP/pubsub handlers extracted + tested (H1–H6) | #504–#516 | server/18 |
 
 ## Purpose
 
@@ -554,30 +555,29 @@ Each phase is a single PR. Phases 5–6 touch production code; revert via `git r
 | DB modules with contract tests | 0 of 9 | 6 of 9 | **9 of 9** |
 | DB modules with fakes in `test/fakes/` | 0 of 9 | 6 of 9 | **9 of 9** |
 | Orchestration test files using fakes | 0 | 1 (`EventUpdatesFakeTest`) | 2 (+ `OldDataFCMFakeTest`) |
-| Handler (HTTP/pubsub) tests | 0 | 0 | 0 (deferred — see below) |
+| Handler (HTTP/pubsub) tests | 0 | 0 | 14 (shipped via handler testing plan, server/18) |
 | Stale-marker comments in handlers | ≥ 1 | ≥ 1 | **0** |
 | Mocha-discovered test files | (all) | (all) | (all) — **+84 surfaced via glob fix** |
 | Production data impact | — | None | None (verified per-PR) |
 
-## Deferred work
+## Deferred work (all addressed)
 
 The handler-test items below were deferred from this plan and picked up in a separate
 follow-up: [`FIREBASE_HANDLER_TESTING_PLAN.md`](FIREBASE_HANDLER_TESTING_PLAN.md).
 That plan adopted **Option A** (extract handler bodies into pure `handle<Action>(input)`
-functions, test with the existing fakes) and has shipped H1, H2, most of H3,
-H4 (read), and all of H5. Remaining: the two auth-heavy HTTP handlers
-(`httpRemoteButton` + `httpAddRemoteButtonCommand`) and `httpSnoozeNotificationsRequest`.
+functions, test with the existing fakes) and shipped H1–H6 in full — all 14 HTTP/pubsub
+handlers now have pure-core unit tests. Released in `server/18`.
 
-### Phase 7 — RemoteButton handler tests (addressed, partially shipped)
+### Phase 7 — RemoteButton handler tests (shipped)
 
 - **H3 (pubsub):** `pubsubCheckForRemoteButtonErrors` shipped as `handleCheckForRemoteButtonErrors()` with 5 tests (#506).
-- **H3 (HTTP):** `httpRemoteButton` + `httpAddRemoteButtonCommand` are pending — auth logic (push key + Google ID token + authorized email + ack-token state machine) warrants a dedicated PR.
+- **H3 (HTTP):** `handleRemoteButtonPoll` shipped (#515); `handleAddRemoteButtonCommand` + `handleSnoozeNotificationsRequest` shipped together (#516). Prerequisite `AuthService` bridge + fake shipped in #514 so `verifyIdToken` could be wrapped for tests.
 
-### Phase 8 — OpenDoor handler tests (addressed, shipped)
+### Phase 8 — OpenDoor handler tests (shipped)
 
 All three door-sensor handlers extracted and tested in H2 (#505): `handleCheckForOpenDoorsRequest` (HTTP), `handleCheckForOpenDoorsJob` (pubsub), `handleCheckForDoorErrors` (pubsub). 9 tests total.
 
-### Phase 9 — `HttpEchoTest.ts` (addressed, shipped)
+### Phase 9 — `HttpEchoTest.ts` (shipped)
 
 Extracted as `handleEchoRequest({query, body})` in the H1 pilot (#504) with 5 tests.
 
