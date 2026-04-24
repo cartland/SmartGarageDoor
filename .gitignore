@@ -2,6 +2,7 @@
 .claude/.validation-passed
 .claude/.firebase-validation-passed
 .claude/.dev-mode
+.claude/scheduled_tasks.lock
 
 # macOS
 .DS_Store

@@ -167,6 +167,37 @@ The `HandlerResult<T>` type lives in one shared file
   change only. All collection strings, document shapes, and Firestore
   call patterns stay byte-identical.
 
+### Inject external-state reads via the wrapper
+
+When a handler reads from a framework global — `functions.config()`,
+`Date.now()`, `firebase.firestore.Timestamp.now()`, `process.env`, etc.
+— have the **wrapper** read it and pass the plain value to the pure
+core as an argument. The pure function then takes a regular string /
+number / object and tests drive it without stubbing the global.
+
+Two concrete examples already shipped:
+
+- **`functions.config()` → `expectedKey: string | null`** — the
+  wrapper in `http/ServerConfig.ts` calls
+  `readServerConfigSecret(functions.config(), 'key' | 'updatekey')`
+  (a small exported helper) and passes the resulting string or
+  `null` to `handleServerConfigRead({..., expectedKey})`. Tests pass
+  `expectedKey: null` directly to reach the 500 branch and a real
+  string to reach the 401/403/200 branches.
+
+- **`Date.now()` → `nowMillis: number = Date.now()`** — the pure
+  `handleDataRetentionPolicy(nowMillis?)` takes an optional
+  millisecond override that defaults to `Date.now()`. Tests pin the
+  value; the wrapper relies on the default. Same idea applies to
+  `firebase.firestore.Timestamp.now()` when that's the seam (here the
+  existing approach is a sinon stub because the threshold logic is
+  tested against a frozen "now" — either pattern is acceptable).
+
+Rule of thumb: if the global is a **value read** (config, clock), pass
+it as an argument. If it's a **service call** (Firestore, FCM), use
+the `setImpl`/fake pattern instead — those are already designed for
+that shape.
+
 ## Phased rollout
 
 Each phase = one handler group = one PR. Handlers can land in any
