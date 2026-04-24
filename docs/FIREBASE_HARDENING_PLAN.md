@@ -5,10 +5,31 @@ Covers two non-refactor tranches: (A) replacing hardcoded
 two open Dependabot alerts. Both are bounded scope with concrete safety
 guards.
 
-**Status:** Plan — not yet executed. Each part lands as its own PR
-sequence.
+**Status:** Shipped through `server/16`. Part A (buildTimestamp config-read) landed via a revert + rewrite after the first attempt shipped to `main` with bugs (wrong config key name + URL-encoding not handled). Part B (Dependabot) closed one of two alerts; the remaining one is a transitive under `firebase-admin` and will clear when `firebase-admin` itself bumps (see *Deferred / next* below).
 
-**Invariants (both parts):**
+### Shipping history
+
+| Item | Plan phase | Shipped PR | Released in |
+|---|---|---|---|
+| uuid 8 → 14 + regression + CVE-guard | B1 + B2 + B3 (uuid half) | [#491](https://github.com/cartland/SmartGarageDoor/pull/491) | `server/15` |
+| fast-xml-parser override + CVE-guard | B4 + B3 (fast-xml half) | [#493](https://github.com/cartland/SmartGarageDoor/pull/493) | `server/15` |
+| buildTimestamp config-read — first attempt | A1 | [#492](https://github.com/cartland/SmartGarageDoor/pull/492) | **reverted** in [#494](https://github.com/cartland/SmartGarageDoor/pull/494) before release — read the wrong config key (`doorSensorBuildTimestamp` didn't exist) and returned the URL-encoded `remoteButtonBuildTimestamp` raw |
+| buildTimestamp config-read — corrected | A1 (rewrite) | [#496](https://github.com/cartland/SmartGarageDoor/pull/496) | `server/16` |
+| Fallback logging helper (`resolveBuildTimestamp`) | (added during A1 rewrite at user request) | [#496](https://github.com/cartland/SmartGarageDoor/pull/496) | `server/16` |
+
+**Invariants held (verified):**
+- Zero Firestore data impact — collection strings, document shapes, write patterns unchanged throughout.
+- Zero runtime behavior change on every deploy — production config verified to resolve to the same strings as the pre-refactor hardcodes.
+- Phase 4 lint guard stayed green across all PRs.
+- `./scripts/validate-firebase.sh` passed on every PR.
+- Production health check post-`server/16` deploy: zero fallback-fired logs, zero decode-failure logs, all 4 pubsub/HTTP functions executing with `status: 'ok'`.
+
+### Deferred / next
+
+- **uuid alert #67 (transitive versions 9.0.1, 11.1.0 under `firebase-admin`).** Remaining Dependabot alert. Not in our exploit path (we call `v4()` with no `buf`; transitives are used by `@google-cloud/*` for request IDs). Decision: **wait for `firebase-admin` itself to bump** rather than force a transitive override. The direct dep is at 14.0.0; the CVE-guard test in `CveGuardTest.ts` pins that.
+- **Remove `_FALLBACK` constants (A3 in the original plan).** `server/16` logs confirm the fallback never fires — production config has the fields populated. A follow-up PR removes the constants and replaces them with an early-return-on-missing-config pattern. Documented separately.
+
+**Invariants (both parts, as written pre-execution):**
 - Zero Firestore data impact. Collection strings, document shapes,
   write patterns unchanged.
 - Zero runtime behavior change without explicit verification.
