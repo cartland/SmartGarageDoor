@@ -18,9 +18,18 @@ import * as functions from 'firebase-functions/v1';
 
 import { sendFCMForOldData } from '../../controller/fcm/OldDataFCM';
 import { DATABASE as SensorEventDatabase } from '../../database/SensorEventDatabase';
+import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
+import { getBuildTimestamp } from '../../controller/config/ConfigAccessors';
 
-export const httpCheckForOpenDoors = functions.https.onRequest(async (request, response) => {
-  const buildTimestamp = 'Sat Mar 13 14:45:00 2021'; // TODO: Use config.
+// Fallback to the historical hardcoded door-sensor device ID if the
+// config field is missing or empty. Production has the field populated
+// (since April 2021), so the fallback is a safety net, not the
+// expected path.
+const DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK = 'Sat Mar 13 14:45:00 2021';
+
+export const httpCheckForOpenDoors = functions.https.onRequest(async (_request, response) => {
+  const config = await ServerConfigDatabase.get();
+  const buildTimestamp = getBuildTimestamp(config) ?? DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK;
   const eventData = await SensorEventDatabase.getCurrent(buildTimestamp);
   const result = await sendFCMForOldData(buildTimestamp, eventData);
   response.status(200).send(result);

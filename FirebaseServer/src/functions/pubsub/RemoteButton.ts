@@ -19,18 +19,25 @@ import * as functions from 'firebase-functions/v1';
 
 import { DATABASE as REMOTE_BUTTON_REQUEST_DATABASE } from '../../database/RemoteButtonRequestDatabase';
 import { DATABASE as REMOTE_BUTTON_REQUEST_ERROR_DATABASE } from '../../database/RemoteButtonRequestErrorDatabase';
+import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
+import { getRemoteButtonBuildTimestamp } from '../../controller/config/ConfigAccessors';
 
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 
 const REMOTE_BUTTON_REQUEST_ERROR_SECONDS = 60 * 10;
 
+// Fallback to the historical hardcoded remote-button device ID if the
+// config field is missing or empty. Production has the field populated
+// (URL-encoded since April 2021); the accessor decodes it, so this
+// fallback is a safety net, not the expected path. Different device
+// from the door sensor — see http/OpenDoor.ts for that one.
+const REMOTE_BUTTON_BUILD_TIMESTAMP_FALLBACK = 'Sat Apr 10 23:57:32 2021';
+
 export const pubsubCheckForRemoteButtonErrors = functions.pubsub
   .schedule('every 10 minutes').timeZone('America/Los_Angeles') // California after midnight every day.
   .onRun(async (_context) => {
-    // TODO: Use config.
-    // const config = await Config.get();
-    // const buildTimestamp = Config.getRemoteButtonBuildTimestamp(config);
-    const buildTimestamp = 'Sat Apr 10 23:57:32 2021';
+    const config = await ServerConfigDatabase.get();
+    const buildTimestamp = getRemoteButtonBuildTimestamp(config) ?? REMOTE_BUTTON_BUILD_TIMESTAMP_FALLBACK;
     if (!buildTimestamp) {
       const result = { error: 'No remote button build timestamp in config: ' + buildTimestamp };
       console.error(result.error);

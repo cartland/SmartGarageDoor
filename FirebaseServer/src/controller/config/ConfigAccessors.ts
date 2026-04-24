@@ -42,11 +42,44 @@ export function isRemoteButtonEnabled(config: any): boolean {
   return false;
 }
 
+/**
+ * buildTimestamp of the door-sensor ESP32. Reads the production key
+ * `body.buildTimestamp` (no prefix — the key has been there since the
+ * first serverConfig.json in April 2021). The value is stored plain/
+ * decoded, so no transform is applied. Empty strings are treated as
+ * missing (returns null) so caller `?? fallback` chains behave
+ * correctly.
+ */
+export function getBuildTimestamp(config: any): string | null {
+  if (!config || !config.body) return null;
+  const value = config.body.buildTimestamp;
+  if (typeof value !== 'string' || value.length === 0) return null;
+  return value;
+}
+
+/**
+ * buildTimestamp of the remote-button device. Reads
+ * `body.remoteButtonBuildTimestamp`, which has been stored URL-encoded
+ * in production config since April 2021. This accessor normalizes by
+ * calling `decodeURIComponent()` so callers always see the decoded
+ * form — matching the pre-refactor hardcoded literal used in
+ * `pubsub/RemoteButton.ts`.
+ *
+ * Defensive behavior:
+ *  - Empty string value → null (callers' `?? fallback` triggers).
+ *  - Already-decoded value → unchanged (decode is idempotent for
+ *    strings without `%`).
+ *  - Malformed percent-encoding → returns raw value, never crashes.
+ */
 export function getRemoteButtonBuildTimestamp(config: any): string | null {
-  if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('remoteButtonBuildTimestamp')) {
-    return config.body.remoteButtonBuildTimestamp;
+  if (!config || !config.body) return null;
+  const raw = config.body.remoteButtonBuildTimestamp;
+  if (typeof raw !== 'string' || raw.length === 0) return null;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
   }
-  return null;
 }
 
 export function isDeleteOldDataEnabled(config: any): boolean {
