@@ -19,7 +19,7 @@ import * as functions from 'firebase-functions/v1';
 import { sendFCMForOldData } from '../../controller/fcm/OldDataFCM';
 import { DATABASE as SensorEventDatabase } from '../../database/SensorEventDatabase';
 import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
-import { getBuildTimestamp } from '../../controller/config/ConfigAccessors';
+import { getBuildTimestamp, resolveBuildTimestamp } from '../../controller/config/ConfigAccessors';
 
 // See http/OpenDoor.ts for the fallback rationale. Same door-sensor
 // device.
@@ -27,7 +27,11 @@ const DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK = 'Sat Mar 13 14:45:00 2021';
 
 export const pubsubCheckForOpenDoorsJob = functions.pubsub.schedule('every 5 minutes').onRun(async (_context) => {
   const config = await ServerConfigDatabase.get();
-  const buildTimestamp = getBuildTimestamp(config) ?? DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK;
+  const buildTimestamp = resolveBuildTimestamp(
+    getBuildTimestamp(config),
+    DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK,
+    'pubsubCheckForOpenDoorsJob',
+  );
   const eventData = await SensorEventDatabase.getCurrent(buildTimestamp);
   await sendFCMForOldData(buildTimestamp, eventData);
   return null;

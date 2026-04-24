@@ -20,7 +20,7 @@ import * as functions from 'firebase-functions/v1';
 import { DATABASE as REMOTE_BUTTON_REQUEST_DATABASE } from '../../database/RemoteButtonRequestDatabase';
 import { DATABASE as REMOTE_BUTTON_REQUEST_ERROR_DATABASE } from '../../database/RemoteButtonRequestErrorDatabase';
 import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
-import { getRemoteButtonBuildTimestamp } from '../../controller/config/ConfigAccessors';
+import { getRemoteButtonBuildTimestamp, resolveBuildTimestamp } from '../../controller/config/ConfigAccessors';
 
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 
@@ -37,7 +37,11 @@ export const pubsubCheckForRemoteButtonErrors = functions.pubsub
   .schedule('every 10 minutes').timeZone('America/Los_Angeles') // California after midnight every day.
   .onRun(async (_context) => {
     const config = await ServerConfigDatabase.get();
-    const buildTimestamp = getRemoteButtonBuildTimestamp(config) ?? REMOTE_BUTTON_BUILD_TIMESTAMP_FALLBACK;
+    const buildTimestamp = resolveBuildTimestamp(
+      getRemoteButtonBuildTimestamp(config),
+      REMOTE_BUTTON_BUILD_TIMESTAMP_FALLBACK,
+      'pubsubCheckForRemoteButtonErrors',
+    );
     if (!buildTimestamp) {
       const result = { error: 'No remote button build timestamp in config: ' + buildTimestamp };
       console.error(result.error);

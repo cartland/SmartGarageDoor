@@ -18,7 +18,7 @@ import * as functions from 'firebase-functions/v1';
 
 import { updateEvent } from '../../controller/EventUpdates';
 import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
-import { getBuildTimestamp } from '../../controller/config/ConfigAccessors';
+import { getBuildTimestamp, resolveBuildTimestamp } from '../../controller/config/ConfigAccessors';
 
 // See http/OpenDoor.ts for the fallback rationale. Same door-sensor
 // device.
@@ -27,7 +27,11 @@ const DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK = 'Sat Mar 13 14:45:00 2021';
 export const pubsubCheckForDoorErrors = functions.pubsub.schedule('every 1 minutes').onRun(async (_context) => {
   const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
   const config = await ServerConfigDatabase.get();
-  const buildTimestampString = getBuildTimestamp(config) ?? DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK;
+  const buildTimestampString = resolveBuildTimestamp(
+    getBuildTimestamp(config),
+    DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK,
+    'pubsubCheckForDoorErrors',
+  );
   const scheduledJob = true;
   const data = {};
   data[BUILD_TIMESTAMP_PARAM_KEY] = buildTimestampString;

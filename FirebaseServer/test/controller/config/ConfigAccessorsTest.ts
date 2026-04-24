@@ -19,9 +19,11 @@
  */
 
 import { expect } from 'chai';
+import * as sinon from 'sinon';
 import {
   getBuildTimestamp,
   getRemoteButtonBuildTimestamp,
+  resolveBuildTimestamp,
 } from '../../../src/controller/config/ConfigAccessors';
 
 describe('getBuildTimestamp (door sensor, production key: "buildTimestamp")', () => {
@@ -102,5 +104,38 @@ describe('getRemoteButtonBuildTimestamp (remote button, production URL-encoded)'
 
   it('returns null for an empty string value (treat as missing)', () => {
     expect(getRemoteButtonBuildTimestamp({ body: { remoteButtonBuildTimestamp: '' } })).to.be.null;
+  });
+
+  it('logs a warning when URL-decoding fails', () => {
+    const warnSpy = sinon.spy(console, 'warn');
+    try {
+      getRemoteButtonBuildTimestamp({ body: { remoteButtonBuildTimestamp: 'Sat%ZZ' } });
+      expect(warnSpy.calledOnce, 'expected console.warn to be called once').to.be.true;
+      expect(warnSpy.firstCall.args[0]).to.match(/failed to URL-decode/i);
+    } finally {
+      warnSpy.restore();
+    }
+  });
+});
+
+describe('resolveBuildTimestamp (fallback-with-log helper)', () => {
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  it('returns the config value unchanged when present', () => {
+    const warnSpy = sinon.spy(console, 'warn');
+    const result = resolveBuildTimestamp('from-config', 'fallback-literal', 'test-context');
+    expect(result).to.equal('from-config');
+    expect(warnSpy.called, 'expected no warning on normal path').to.be.false;
+  });
+
+  it('returns the fallback and emits a warning when config value is null', () => {
+    const warnSpy = sinon.spy(console, 'warn');
+    const result = resolveBuildTimestamp(null, 'fallback-literal', 'test-context');
+    expect(result).to.equal('fallback-literal');
+    expect(warnSpy.calledOnce, 'expected exactly one warning').to.be.true;
+    expect(warnSpy.firstCall.args[0]).to.include('test-context');
+    expect(warnSpy.firstCall.args[0]).to.match(/fallback/i);
   });
 });

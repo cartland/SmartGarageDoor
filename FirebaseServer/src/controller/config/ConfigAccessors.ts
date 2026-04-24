@@ -77,9 +77,46 @@ export function getRemoteButtonBuildTimestamp(config: any): string | null {
   if (typeof raw !== 'string' || raw.length === 0) return null;
   try {
     return decodeURIComponent(raw);
-  } catch {
+  } catch (err) {
+    console.warn(
+      'ConfigAccessors: failed to URL-decode remoteButtonBuildTimestamp, returning raw value.',
+      { raw, err: err instanceof Error ? err.message : String(err) },
+    );
     return raw;
   }
+}
+
+/**
+ * Resolve a nullable config-read value to a non-null string, falling
+ * back to a hardcoded literal and emitting a Cloud Logging warning if
+ * the fallback is used. Callers get a guaranteed string; operators
+ * get visibility when config drift happens (missing field, empty
+ * value, etc.).
+ *
+ * Usage:
+ *   const buildTimestamp = resolveBuildTimestamp(
+ *     getBuildTimestamp(config),
+ *     DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK,
+ *     'pubsubCheckForOpenDoorsJob',
+ *   );
+ *
+ * The `context` string identifies the call site in logs so filters
+ * like `logName:"cloudfunctions" severity:"WARNING" textPayload:"buildTimestamp"`
+ * can distinguish fallback hits across functions.
+ */
+export function resolveBuildTimestamp(
+  configValue: string | null,
+  fallback: string,
+  context: string,
+): string {
+  if (configValue === null) {
+    console.warn(
+      `[${context}] buildTimestamp not in config; using hardcoded fallback.`,
+      { fallback },
+    );
+    return fallback;
+  }
+  return configValue;
 }
 
 export function isDeleteOldDataEnabled(config: any): boolean {
