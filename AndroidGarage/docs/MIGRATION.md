@@ -498,15 +498,14 @@ Moved pure math formatting to shared domain module:
 - Data tests use real repos with fake data sources (#219)
 - Deleted `AndroidAppLoggerRepository` wrapper — replaced with `exportAppLogCsvToUri()` function (#217)
 
-### Phase 40: SDK 36 + Predictive Back
+### Phase 40: SDK 36 + Predictive Back — COMPLETE (#226)
 
-**Goal:** Target Android 16 (SDK 36) and add predictive back fade transitions.
+Target Android 16 (SDK 36) with predictive back fade transitions.
 
-**Changes:**
-- Bump `targetSdk` from 35 to 36 in androidApp and macrobenchmark
-- Add `transitionSpec`, `popTransitionSpec`, `predictivePopTransitionSpec` with fade animations to NavDisplay
-- Extract `navTween()` helper for consistent animation timing (300ms, FastOutSlowIn)
-- App exit (back-to-home) uses default system predictive back animation
+- `targetSdk = 36` in `androidApp/build.gradle.kts` and `macrobenchmark/build.gradle.kts`
+- `navTween()` helper at `androidApp/ui/Main.kt` (300ms, FastOutSlowInEasing)
+- `transitionSpec`, `popTransitionSpec`, `predictivePopTransitionSpec` wired on NavDisplay with fade-in/fade-out pairs
+- App exit (back-to-home) uses the default system predictive back animation
 
 ### Phase 41: Adaptive Layout (Level 3)
 
@@ -551,57 +550,49 @@ Use `material3-adaptive-navigation-suite` (`NavigationSuiteScaffold`) to handle 
 - Screenshot tests for each size class
 - Manual testing on tablet emulator (Pixel Tablet, 10.1")
 
-### Phase 42: Snooze UX — SnoozeState + SnoozeAction
+### Phase 42: Snooze UX — SnoozeState + SnoozeAction — COMPLETE (#229)
 
-**Goal:** Show loading, success, and specific error states in the snooze card. Never lose the last-known-good snooze status during a request.
+Loading, success, and specific error states in the snooze card. Last-known-good snooze status is never lost during a request.
 
-**Problem:** Today, pressing "Save" shows "Saving..." text and "Error saving snooze settings" on failure. No loading animation. Silent failures when not authenticated or no door event. Success has no confirmation. Errors are generic and not actionable.
-
-**Design: Two independent state types**
-
-The snooze card shows two independent pieces of information that must not overwrite each other:
+**Domain types** (`domain/src/commonMain/.../domain/model/SnoozeNotificationsModel.kt`):
 
 ```kotlin
-// What's currently active on the server (always visible).
-// Only Loading on first fetch — subsequent poll failures keep showing
-// the last known state rather than flashing FetchFailed every 60s.
+// Current server state — always visible. Loading only on first fetch.
 sealed interface SnoozeState {
-    data object Loading : SnoozeState               // First fetch only (app launch)
-    data object NotSnoozing : SnoozeState            // No active snooze
-    data class Snoozing(val until: Instant) : SnoozeState  // Active snooze
+    data object Loading : SnoozeState
+    data object NotSnoozing : SnoozeState
+    data class Snoozing(val untilEpochSeconds: Long) : SnoozeState
 }
 
-// Result of the last user-initiated save (overlay on top of SnoozeState).
-// Succeeded carries the new snooze time so the UI can show it immediately
-// without waiting for the server poll to confirm.
+// Last user-initiated action — overlays on top of SnoozeState.
 sealed interface SnoozeAction {
-    data object Idle : SnoozeAction                  // No pending action
-    data object Sending : SnoozeAction               // Request in flight (spinner)
-    data class Succeeded(val until: Instant) : SnoozeAction  // Shows new time, auto-resets to Idle after 10s
-    sealed interface Failed : SnoozeAction {          // Shown until dismissed or retry
-        data object NotAuthenticated : Failed        // "Sign in to snooze"
-        data object MissingData : Failed             // "No door event available"
-        data object NetworkError : Failed            // "Couldn't reach server. Retry?"
+    data object Idle : SnoozeAction
+    data object Sending : SnoozeAction
+    sealed interface Succeeded : SnoozeAction {
+        data object Cleared : Succeeded
+        data class Set(val untilEpochSeconds: Long) : Succeeded
+    }
+    sealed interface Failed : SnoozeAction {
+        data object NotAuthenticated : Failed
+        data object MissingData : Failed
+        data object NetworkError : Failed
     }
 }
 ```
 
-**UX behavior:**
-- SnoozeState is always visible — a failed save never erases "Snoozing until 2:30 PM"
-- SnoozeAction overlays on SnoozeState — spinner shown alongside current status
-- Succeeded shows the new snooze time immediately (optimistic), auto-resets to Idle after 10s
-- Failed states are specific and actionable (not generic "Error")
-- Loading shown only on first fetch — subsequent poll failures silently keep the last known state
-- No FetchFailed state — poll failures are invisible to the user (stale data is better than error noise on a 60s poll)
+**Delivered:**
+- `SnoozeRequestStatus` enum replaced by the two sealed interfaces above
+- `FetchSnoozeStatusUseCase` and `ObserveSnoozeStateUseCase` added
+- ViewModel exposes `StateFlow<SnoozeState>` + `StateFlow<SnoozeAction>`
+- `SnoozeAction.Succeeded` auto-resets to `Idle` after a timeout (optimistic UI)
+- UI at `androidApp/ui/SnoozeNotificationCard.kt` uses exhaustive `when` on both types across all seven action branches (Idle, Sending, Succeeded.Cleared, Succeeded.Set, Failed.NotAuthenticated, Failed.MissingData, Failed.NetworkError)
 
-**Changes:**
-- Add `SnoozeState` and `SnoozeAction` sealed interfaces to domain model (replace `SnoozeRequestStatus` enum)
-- Add `FetchSnoozeStatusUseCase` — the read path currently bypasses the UseCase layer
-- Add `ObserveSnoozeStateUseCase` — expose `Flow<SnoozeState>` from repository
-- ViewModel exposes `StateFlow<SnoozeState>` + `StateFlow<SnoozeAction>` (not repository directly)
-- SnoozeAction.Succeeded auto-resets via `delay(10_000)` + `_snoozeAction.value = Idle`
-- UI uses exhaustive `when` on both sealed types — compiler guarantees all states handled
-- Add small loading animation (CircularProgressIndicator or similar) for Sending state
+**Polish follow-ups** (still within Phase 42 scope):
+- #230 — screenshot previews for Loading/Sending/Succeeded/Error states
+- #231 — snooze-card text contrast in light mode
+- #236 — fix: Loading stuck on early returns + "Do not snooze" showed wrong time
+- #268 — fix: "Snooze notifications" instead of "Loading snooze status..."
+- #335 — show door notification status (enabled/snoozed) on the card
 
 ### Phase 43: Enforce ViewModel → UseCase only — COMPLETE
 
