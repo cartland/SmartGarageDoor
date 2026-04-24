@@ -17,17 +17,10 @@
 import * as functions from 'firebase-functions/v1';
 
 import { updateEvent } from '../../controller/EventUpdates';
-import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
-import { getDoorSensorBuildTimestamp } from '../../controller/config/ConfigAccessors';
-
-// See http/OpenDoor.ts for the fallback rationale. Shared literal —
-// same device.
-const DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK = 'Sat Mar 13 14:45:00 2021';
 
 export const pubsubCheckForDoorErrors = functions.pubsub.schedule('every 1 minutes').onRun(async (_context) => {
   const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
-  const config = await ServerConfigDatabase.get();
-  const buildTimestampString = getDoorSensorBuildTimestamp(config) ?? DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK;
+  const buildTimestampString = 'Sat Mar 13 14:45:00 2021'; // TODO: Use config.
   const scheduledJob = true;
   const data = {};
   data[BUILD_TIMESTAMP_PARAM_KEY] = buildTimestampString;
