@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import * as firebase from 'firebase-admin';
 import * as functions from 'firebase-functions/v1';
 
 import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
 import { isSnoozeNotificationsEnabled, getRemoteButtonPushKey, getRemoteButtonAuthorizedEmails } from '../../controller/config/ConfigAccessors';
 import { isAuthorizedToPushRemoteButton } from '../../controller/Auth';
+import { SERVICE as AuthService } from '../../controller/AuthService';
 import { getSnoozeStatus, SnoozeLatestParams, SnoozeLatestResponse, SubmitSnoozeParams, submitSnoozeNotificationsRequest, SubmitSnoozeResponse } from '../../controller/SnoozeNotifications';
 import { HandlerResult, ok, err } from '../HandlerResult';
 
@@ -85,94 +85,83 @@ export const httpSnoozeNotificationsLatest = functions.https.onRequest(async (re
 });
 
 /**
- * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/snoozeNotificationsLatest?buildTimestamp=buildTimestamp
+ * Pure core for the snooze-submit endpoint. H4 (write) of
+ * docs/FIREBASE_HANDLER_TESTING_PLAN.md.
+ *
+ * **Preserved quirks (from 5-reviewer audit):**
+ *
+ * 1. `let email = null;` declared OUTSIDE the try/catch block. The
+ *    catch returns 401 so a null-email path only reaches the
+ *    `isAuthorizedToPushRemoteButton(email, ...)` call when the token
+ *    was successfully verified. Relocating the declaration inside
+ *    the try would subtly change scoping — preserved as-is.
+ *
+ * 2. The params-parse try/catch at `const params = <SubmitSnoozeParams>{...}`
+ *    is structurally unreachable (a type cast cannot throw). Preserved
+ *    as dead code because it documents the original author's intent
+ *    that param shape is "defensively" captured.
+ *
+ * 3. `verifyIdToken` IS wrapped in try/catch → returns 401 on throw.
+ *    This differs from `handleAddRemoteButtonCommand` which does NOT
+ *    wrap → 500. Tests must pin both paths.
  */
-export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (request, response) => {
-    // Handle HTTP request.
-    // * Check if snooze notifications are enabled.
-    // * Check that the request is a POST request.
-    // * Get the headers from the request.
-    //   * X-RemoteButtonPushKey
-    //     * Check if the key is authorized to push the remote button.
-    //   * X-AuthTokenGoogle
-    //     * Check if the user is authorized to push the remote button.
-    // * Get the parameters from the request.
-    //     * buildTimestamp
-    //     * snoozeDuration
-    //     * snoozeEventTimestamp
-    // Then implement the logic to snooze notifications.
-    // * Check if the snoozeDuration is valid.
-    // * Check if the snoozeEventTimestamp matches the current event.
-    // * Return the JSON response:
-    //     * SnoozeRequest | error: string
-
-    // Handle the HTTP request.
+export async function handleSnoozeNotificationsRequest(input: {
+    method: string;
+    query: any;
+    pushKeyHeader: string | undefined;
+    googleIdTokenHeader: string | undefined;
+}): Promise<HandlerResult<any>> {
     const config = await ServerConfigDatabase.get();
     if (!isSnoozeNotificationsEnabled(config)) {
-        response.status(400).send({ error: 'Disabled' });
-        return;
+        return err(400, { error: 'Disabled' });
     }
-    if (request.method !== 'POST') {
-        response.status(405).send({ error: 'Method Not Allowed.' });
-        return;
+    if (input.method !== 'POST') {
+        return err(405, { error: 'Method Not Allowed.' });
     }
-
-    // * Get the headers from the request.
-
-    // Check if the key is authorized to push the remote button.
-    // Borrow the same logic to verify if the user is allowed to push the button.
-    // Use this logic to verify if a user can snooze notifications for everyone.
-    const buttonPushKeyHeader = request.get('X-RemoteButtonPushKey');
-    if (!buttonPushKeyHeader || buttonPushKeyHeader.length <= 0) {
+    if (!input.pushKeyHeader || input.pushKeyHeader.length <= 0) {
         const result = { error: 'Unauthorized (key).' };
         console.error(result);
-        response.status(401).send(result);
-        return;
+        return err(401, result);
     }
-    if (getRemoteButtonPushKey(config) !== buttonPushKeyHeader) {
+    if (getRemoteButtonPushKey(config) !== input.pushKeyHeader) {
         const result = { error: 'Forbidden (key).' };
         console.error(result);
-        response.status(403).send(result);
-        return;
+        return err(403, result);
     }
-
-    // Check if the user is authorized to push the remote button.
-    // Use Firebase Auth ID Token to authenticate the user.
-    const googleIdToken = request.get('X-AuthTokenGoogle');
-    console.log('googleIdToken:', googleIdToken);
-    if (!googleIdToken || googleIdToken.length <= 0) {
+    console.log('googleIdToken:', input.googleIdTokenHeader);
+    if (!input.googleIdTokenHeader || input.googleIdTokenHeader.length <= 0) {
         const result = { error: 'Unauthorized (token).' };
         console.error(result);
-        response.status(401).send(result);
-        return;
+        return err(401, result);
     }
+    // Preserved quirk: `email` declared outside the try; the catch
+    // returns, so `email` only survives to the authorization step
+    // when the token successfully verifies.
     let email = null;
     try {
-        const decodedToken = await firebase.auth().verifyIdToken(googleIdToken);
+        const decodedToken = await AuthService.verifyIdToken(input.googleIdTokenHeader);
         email = decodedToken.email;
     } catch (error: any) {
         console.error(error);
         const result = { error: 'Unauthorized (token).' };
-        response.status(401).send(result);
-        return;
+        return err(401, result);
     }
     console.log('email:', email);
-    // User is authenticated. Check if they are authorized.
     const authorizedEmails = getRemoteButtonAuthorizedEmails(config);
     if (!isAuthorizedToPushRemoteButton(email, authorizedEmails)) {
         const result = { error: 'Forbidden (user).' };
         console.error(result);
-        response.status(403).send(result);
-        return;
+        return err(403, result);
     }
 
-    // * Get the parameters from the request.
+    // Preserved quirk: structurally unreachable catch. The type cast
+    // cannot throw. Kept as-is to match pre-extraction code.
     let params: SubmitSnoozeParams = null;
     try {
         params = <SubmitSnoozeParams>{
-            buildTimestamp: request.query[BUILD_TIMESTAMP_PARAM_KEY] as string,
-            snoozeDuration: request.query[SNOOZE_DURATION_PARAM_KEY] as string,
-            snoozeEventTimestamp: request.query[SNOOZE_EVENT_TIMESTAMP_KEY] as string,
+            buildTimestamp: input.query?.[BUILD_TIMESTAMP_PARAM_KEY] as string,
+            snoozeDuration: input.query?.[SNOOZE_DURATION_PARAM_KEY] as string,
+            snoozeEventTimestamp: input.query?.[SNOOZE_EVENT_TIMESTAMP_KEY] as string,
         };
     } catch {
         const result = {
@@ -180,37 +169,45 @@ export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (r
                 + BUILD_TIMESTAMP_PARAM_KEY + ', ' + SNOOZE_DURATION_PARAM_KEY + ', ' + SNOOZE_EVENT_TIMESTAMP_KEY,
         };
         console.error(result.error);
-        response.status(400).send(result);
-        return;
+        return err(400, result);
     }
     if (!params.buildTimestamp) {
         console.error('No build timestamp in request');
-        const result = { error: 'Missing required parameter: ' + BUILD_TIMESTAMP_PARAM_KEY };
-        response.status(400).send(result);
-        return;
+        return err(400, { error: 'Missing required parameter: ' + BUILD_TIMESTAMP_PARAM_KEY });
     }
     if (!params.snoozeDuration) {
         console.error('No snooze duration in request');
-        const result = { error: 'Missing required parameter: ' + SNOOZE_DURATION_PARAM_KEY };
-        response.status(400).send(result);
-        return;
+        return err(400, { error: 'Missing required parameter: ' + SNOOZE_DURATION_PARAM_KEY });
     }
     if (!params.snoozeEventTimestamp) {
         console.error('No snooze event timestamp in request');
-        const result = { error: 'Missing required parameter: ' + SNOOZE_EVENT_TIMESTAMP_KEY };
-        response.status(400).send(result);
-        return;
+        return err(400, { error: 'Missing required parameter: ' + SNOOZE_EVENT_TIMESTAMP_KEY });
     }
 
     const snoozeResponse: SubmitSnoozeResponse = await submitSnoozeNotificationsRequest(params);
 
-    // Return the HTTP response.
     if (snoozeResponse.error) {
         console.error('Returning HTTP 500 error');
-        response.status(snoozeResponse.code ?? 500).send(snoozeResponse);
-        return;
+        return err(snoozeResponse.code ?? 500, snoozeResponse);
     }
-    const snooze = snoozeResponse.snooze
+    const snooze = snoozeResponse.snooze;
     console.info('Returning HTTP 200 success:', snooze);
-    response.status(200).send(snooze);
+    return ok(snooze);
+}
+
+/**
+ * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/snoozeNotificationsLatest?buildTimestamp=buildTimestamp
+ */
+export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (request, response) => {
+    const result = await handleSnoozeNotificationsRequest({
+        method: request.method,
+        query: request.query,
+        pushKeyHeader: request.get('X-RemoteButtonPushKey'),
+        googleIdTokenHeader: request.get('X-AuthTokenGoogle'),
+    });
+    if (result.kind === 'error') {
+        response.status(result.status).send(result.body);
+    } else {
+        response.status(200).send(result.data);
+    }
 });
