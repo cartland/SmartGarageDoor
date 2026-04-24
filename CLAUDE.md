@@ -78,9 +78,9 @@ idf.py menuconfig      # Enable fake implementations for testing
 ### Android Clean Architecture
 - **Domain module** (`domain/`): Pure Kotlin types and repository interfaces — no Android deps
 - **Data module** (`data/`): Pure Kotlin data source interfaces (`LocalDoorDataSource`, `NetworkDoorDataSource`, etc.) — abstracts Room/Ktor
-- **UseCase module** (`usecase/`): Shared business logic in `commonMain` — `RemoteButtonStateMachine`, fetch/push/snooze use cases
-- **ViewModels**: `DoorViewModel`, `AuthViewModel`, `RemoteButtonViewModel` — delegate to UseCases
-- **Repositories**: `DoorRepository`, `AuthRepository`, `PushRepository` — implement domain interfaces, depend on data interfaces
+- **UseCase module** (`usecase/`): Shared business logic in `commonMain` — `ButtonStateMachine`, fetch/push/snooze use cases. Also hosts all 5 ViewModels post-Phase 27–30.
+- **ViewModels** (in `usecase/`): `DoorViewModel`, `AuthViewModel`, `RemoteButtonViewModel`, `AppLoggerViewModel`, `AppSettingsViewModel` — delegate to UseCases
+- **Repositories** (impls in `data/`, interfaces in `domain/`): `DoorRepository`, `AuthRepository`, `RemoteButtonRepository`, `SnoozeRepository`, `DoorFcmRepository`, `ServerConfigRepository`, `AppLoggerRepository`, `AppSettingsRepository` — `PushRepository` was split into `RemoteButtonRepository` + `SnoozeRepository` in #203
 - **Typed errors**: `AppResult<D, E>` and `NetworkResult<T>` with sealed error types — exhaustive `when`, no `else`. See ADR-010, ADR-011
 - **Platform bridges**: `AuthBridge`, `MessagingBridge` decouple Firebase SDK — enables unit testing and future iOS
 - **DI**: kotlin-inject (`AppComponent`) — Hilt fully removed. See `docs/DI-MIGRATION.md`
