@@ -24,6 +24,7 @@ import { isRemoteButtonEnabled, getRemoteButtonPushKey, getRemoteButtonAuthorize
 import { DATABASE as REMOTE_BUTTON_COMMAND_DATABASE } from '../../database/RemoteButtonCommandDatabase';
 import { DATABASE as REMOTE_BUTTON_REQUEST_DATABASE } from '../../database/RemoteButtonRequestDatabase';
 import { isAuthorizedToPushRemoteButton } from '../../controller/Auth';
+import { SERVICE as AuthService } from '../../controller/AuthService';
 
 import { RemoteButtonCommand } from '../../model/RemoteButtonCommand';
 import { HandlerResult, ok, err } from '../HandlerResult';
@@ -158,102 +159,151 @@ export const httpRemoteButton = functions.https.onRequest(async (request, respon
 });
 
 /**
- * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/addRemoteButtonCommand?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
+ * Pure core for the push-button (add-command) endpoint. H3 (HTTP
+ * add-command portion) of docs/FIREBASE_HANDLER_TESTING_PLAN.md.
+ *
+ * **Preserved quirks — these look like bugs; do NOT "fix" them here:**
+ *
+ * 1. Missing-buildTimestamp path DOES NOT early-return. The 400
+ *    response is generated, but execution continues through the DB
+ *    section, resulting in `save(undefined, data)` to
+ *    RemoteButtonCommandDatabase. Express treats the first send as
+ *    the client-facing response; subsequent sends throw internally
+ *    and are swallowed. Pinned in tests via the `saved[0][0] ===
+ *    undefined` assertion.
+ *
+ * 2. `verifyIdToken` is NOT wrapped in try/catch — throws propagate
+ *    to the wrapper's outer catch and become 500 Internal Server
+ *    Error. This differs from `handleSnoozeNotificationsRequest`
+ *    which wraps and returns 401. The asymmetry is real;
+ *    `FakeAuthService.failNextVerify()` exercises both paths.
+ *
+ * 3. `console.error(result)` logs the whole error object (not just
+ *    `.error`). Extraction preserves both styles — some auth failures
+ *    log the object, some log the error string.
+ *
+ * Auth order (pinned byte-for-byte against Snooze):
+ *   config-enabled → push-key-header → push-key-match → id-token-header
+ *   → verifyIdToken → email-authorized
  */
-export const httpAddRemoteButtonCommand = functions.https.onRequest(async (request, response) => {
+export async function handleAddRemoteButtonCommand(input: {
+  query: any;
+  body: any;
+  pushKeyHeader: string | undefined;
+  googleIdTokenHeader: string | undefined;
+}): Promise<HandlerResult<any>> {
   const config = await ServerConfigDatabase.get();
   if (!isRemoteButtonEnabled(config)) {
-    response.status(400).send({ error: 'Disabled' });
-    return;
+    return err(400, { error: 'Disabled' });
   }
-  const buttonPushKeyHeader = request.get('X-RemoteButtonPushKey');
-  if (!buttonPushKeyHeader || buttonPushKeyHeader.length <= 0) {
+  if (!input.pushKeyHeader || input.pushKeyHeader.length <= 0) {
     const result = { error: 'Unauthorized (key).' };
     console.error(result);
-    response.status(401).send(result);
-    return;
+    return err(401, result);
   }
-  if (getRemoteButtonPushKey(config) !== buttonPushKeyHeader) {
+  if (getRemoteButtonPushKey(config) !== input.pushKeyHeader) {
     const result = { error: 'Forbidden (key).' };
     console.error(result);
-    response.status(403).send(result);
-    return;
+    return err(403, result);
   }
-  const googleIdToken = request.get('X-AuthTokenGoogle');
-  console.log('googleIdToken:', googleIdToken);
-  if (!googleIdToken || googleIdToken.length <= 0) {
+  console.log('googleIdToken:', input.googleIdTokenHeader);
+  if (!input.googleIdTokenHeader || input.googleIdTokenHeader.length <= 0) {
     const result = { error: 'Unauthorized (token).' };
     console.error(result);
-    response.status(401).send(result);
-    return;
+    return err(401, result);
   }
-  const decodedToken = await firebase.auth().verifyIdToken(googleIdToken);
+  // NOTE the deliberate absence of try/catch — preserves the
+  // pre-extraction behavior where a malformed token propagates out of
+  // the handler to the wrapper's outer catch, yielding 500 (not 401).
+  // Snooze's handler wraps this call in try/catch and returns 401 instead.
+  const decodedToken = await AuthService.verifyIdToken(input.googleIdTokenHeader);
   const email = decodedToken.email;
   console.log('email:', email);
   const authorizedEmails = getRemoteButtonAuthorizedEmails(config);
   if (!isAuthorizedToPushRemoteButton(email, authorizedEmails)) {
     const result = { error: 'Forbidden (user).' };
     console.error(result);
-    response.status(403).send(result);
-    return;
+    return err(403, result);
   }
-  // Echo query parameters and body.
-  const data = {
-    queryParams: request.query,
-    body: request.body,
+
+  const data: any = {
+    queryParams: input.query,
+    body: input.body,
   };
-  // The session ID allows a client to tell the server that multiple requests
-  // come from the same session.
-  if (SESSION_PARAM_KEY in request.query) {
-    // If the client sends a session ID, respond with the session ID.
-    data[SESSION_PARAM_KEY] = request.query[SESSION_PARAM_KEY];
+  if (input.query && SESSION_PARAM_KEY in input.query) {
+    data[SESSION_PARAM_KEY] = input.query[SESSION_PARAM_KEY];
   } else {
-    // If the client does not send a session ID, create a session ID.
     data[SESSION_PARAM_KEY] = uuidv4();
   }
-  if (BUTTON_ACK_TOKEN_PARAM_KEY in request.query) {
-    // Button ack token needs to be unique for each request (prefer random).
-    data[BUTTON_ACK_TOKEN_PARAM_KEY] = request.query[BUTTON_ACK_TOKEN_PARAM_KEY];
+  if (input.query && BUTTON_ACK_TOKEN_PARAM_KEY in input.query) {
+    data[BUTTON_ACK_TOKEN_PARAM_KEY] = input.query[BUTTON_ACK_TOKEN_PARAM_KEY];
   } else {
-    // TODO: Determine if we should abort the request at this point.
-    // My memory suggests that we should require a button ack token,
-    // but this code allows us to submit a request with a non-existent token.
-    // However, since this code has been running for 3.5 years,
-    // I do not want to change the behavior without better testing.
+    // TODO (historical): requiring an ack token was considered but
+    // intentionally never enforced — 3.5 years of production traffic
+    // before this extraction relied on the warn-only path. Preserved.
     console.warn('No button ack token in request');
   }
-  // The build timestamp is unique to each device.
-  if (BUILD_TIMESTAMP_PARAM_KEY in request.query) {
-    data[BUILD_TIMESTAMP_PARAM_KEY] = request.query[BUILD_TIMESTAMP_PARAM_KEY];
+
+  // Preserved quirk (1): the missing-buildTimestamp path generates a
+  // 400 response but does NOT short-circuit. Execution continues and
+  // the eventual `save(undefined, data)` fires (unless rate-limited).
+  // `pendingErrorResponse` captures the 400 so that the eventual
+  // return value mirrors what Express delivered to the client first.
+  let pendingErrorResponse: HandlerResult<any> | null = null;
+  if (input.query && BUILD_TIMESTAMP_PARAM_KEY in input.query) {
+    data[BUILD_TIMESTAMP_PARAM_KEY] = input.query[BUILD_TIMESTAMP_PARAM_KEY];
   } else {
-    // TODO: Determine if we should abort the request at this point.
-    // I think a build timestamp should be required.
     console.error('No build timestamp in request');
-    const result = { error: 'Missing required parameter: ' + BUILD_TIMESTAMP_PARAM_KEY };
-    response.status(400).send(result);
+    pendingErrorResponse = err(400, {
+      error: 'Missing required parameter: ' + BUILD_TIMESTAMP_PARAM_KEY,
+    });
   }
   data[EMAIL_PARAM_KEY] = email;
   const buildTimestamp = data[BUILD_TIMESTAMP_PARAM_KEY];
+  const oldCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
+  const timeSinceLastRemoteButtonCommandSeconds = oldCommand?.[DATABASE_TIMESTAMP_SECONDS_KEY]
+    ? firebase.firestore.Timestamp.now().seconds - oldCommand[DATABASE_TIMESTAMP_SECONDS_KEY]
+    : Number.MAX_SAFE_INTEGER;
+  if (timeSinceLastRemoteButtonCommandSeconds < REMOTE_BUTTON_MIN_PERIOD_SECONDS) {
+    console.log('Time since remote button press is less than minimum',
+      timeSinceLastRemoteButtonCommandSeconds, '<', REMOTE_BUTTON_MIN_PERIOD_SECONDS);
+    const result = { error: 'Conflict (too many recent requests).' };
+    console.error(result);
+    // If a pending 400 was queued (missing buildTimestamp), Express's
+    // "first send wins" rule means the client saw 400, not 409.
+    // Preserve: the pending error takes priority.
+    return pendingErrorResponse ?? err(409, result);
+  }
+  // Fires even when pendingErrorResponse is set — preserves the
+  // pre-extraction `save(undefined, data)` side effect.
+  await REMOTE_BUTTON_COMMAND_DATABASE.save(buildTimestamp, data);
+  const updatedCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
+  return pendingErrorResponse ?? ok(updatedCommand);
+}
+
+/**
+ * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/addRemoteButtonCommand?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
+ */
+export const httpAddRemoteButtonCommand = functions.https.onRequest(async (request, response) => {
   try {
-    const oldCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
-    const timeSinceLastRemoteButtonCommandSeconds = oldCommand?.[DATABASE_TIMESTAMP_SECONDS_KEY]
-      ? firebase.firestore.Timestamp.now().seconds - oldCommand[DATABASE_TIMESTAMP_SECONDS_KEY]
-      : Number.MAX_SAFE_INTEGER;
-    if (timeSinceLastRemoteButtonCommandSeconds < REMOTE_BUTTON_MIN_PERIOD_SECONDS) {
-      console.log('Time since remote button press is less than minimum',
-        timeSinceLastRemoteButtonCommandSeconds, '<', REMOTE_BUTTON_MIN_PERIOD_SECONDS);
-      const result = { error: 'Conflict (too many recent requests).' };
-      console.error(result);
-      response.status(409).send(result);
-      return;
+    const result = await handleAddRemoteButtonCommand({
+      query: request.query,
+      body: request.body,
+      pushKeyHeader: request.get('X-RemoteButtonPushKey'),
+      googleIdTokenHeader: request.get('X-AuthTokenGoogle'),
+    });
+    if (result.kind === 'error') {
+      response.status(result.status).send(result.body);
+    } else {
+      response.status(200).send(result.data);
     }
-    // Submit new remote button command.
-    await REMOTE_BUTTON_COMMAND_DATABASE.save(buildTimestamp, data);
-    const updatedCommand = await REMOTE_BUTTON_COMMAND_DATABASE.getCurrent(buildTimestamp);
-    response.status(200).send(updatedCommand);
   }
   catch (error) {
-    console.error(error)
-    response.status(500).send(error)
+    // Catches a propagated AuthService.verifyIdToken throw — yields 500,
+    // matching the pre-extraction behavior where the uncaught exception
+    // escaped the function and Firebase runtime's own error handler
+    // sent 500.
+    console.error(error);
+    response.status(500).send(error);
   }
 });
