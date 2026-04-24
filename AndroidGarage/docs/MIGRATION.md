@@ -17,7 +17,7 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 - Custom `buildSrc` Gradle task (`checkTestCoverage`) scans for `*ViewModel` and `*Repository` classes
 - Fails build if no matching `*Test.kt` file exists
 - Supports `// @NoTestRequired` inline exemptions and `test-coverage-exemptions.txt`
-- 6 classes currently exempt (pending Firebase wrapper refactor)
+- 1 class currently exempt (`RoomAppLoggerRepository`, pending Firebase mocking) — see `AndroidGarage/test-coverage-exemptions.txt`
 
 ### 1.3 Migrate from Mocks to Fakes — `e12d965` (#30)
 - Created `FakeDoorRepository`, `FakePushRepository`, `FakeAuthRepository` in `testcommon/`
@@ -29,11 +29,9 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 - Added to `./scripts/validate.sh`
 - Passes clean with no existing issues
 
-## Phase 2: Clean Architecture
+## Phase 2: Clean Architecture — COMPLETE
 
-**Status:** In progress.
-
-**Goal:** Separate business logic into testable layers.
+**Goal:** Separate business logic into testable layers. All three sub-phases below shipped.
 
 ### 2.1 Extract Domain Module — COMPLETE
 - Created `domain/` module (pure Kotlin, no Android dependencies) — `5453e27` (#43)
@@ -218,9 +216,9 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 - Firebase repos (`AuthRepository`, `DoorFcmRepository`) stay in `androidApp`
 - Room code (`DatabaseLocalDoorDataSource`, DAOs) stays in `androidApp`
 
-## Phase 10: Shared ViewModel/Presentation Logic — IN PROGRESS
+## Phase 10: Shared ViewModel/Presentation Logic — COMPLETE
 
-**Goal:** Share ViewModel business logic across platforms.
+**Goal:** Share ViewModel business logic across platforms. All five ViewModels now live in `usecase/src/commonMain/` (`AppLoggerViewModel`, `AppSettingsViewModel`, `AuthViewModel`, `DoorViewModel`, `RemoteButtonViewModel`).
 
 ### 10.1 Extract RemoteButtonStateMachine — COMPLETE
 - Extracted pure state machine from `DefaultRemoteButtonViewModel` into `RemoteButtonStateMachine` in `usecase/src/commonMain/`
@@ -230,13 +228,14 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 - Moved `DispatcherProvider` interface to `domain/src/commonMain/`
 - Replaced `java.time.Duration` with `kotlinx.coroutines.delay(millis)` for KMP compatibility
 
-### 10.2 DoorStatusPresenter — DEFERRED
-- DoorViewModel logic is mostly flow collection + FCM (Android-specific)
-- Not enough pure logic to justify extraction yet
+### 10.2 & 10.3 Shared ViewModel Module — COMPLETE via Android Purity Phases
+The original DEFERRED sub-sections landed through the Android Purity wave:
+- `RemoteButtonViewModel` + `DoorViewModel` moved to `usecase/commonMain` — #175, #177 (Phase 27)
+- `AppSettingsViewModel` moved — #178 (Phase 28)
+- `AppLoggerViewModel` moved — #179 (Phase 29)
+- `AuthViewModel` moved — #182 (Phase 30)
 
-### 10.3 Shared ViewModel Module — DEFERRED
-- ViewModels still depend on `androidx.lifecycle.ViewModel` and `viewModelScope`
-- Full extraction to KMP module deferred until iOS target is added
+`androidx.lifecycle.ViewModel` became KMP-compatible via `androidx.lifecycle:lifecycle-viewmodel` 2.8+, unblocking the extraction. See the "Android Purity" table in the Phase Summary for full PR list.
 
 ## Phase 11: Platform Abstractions — COMPLETE
 
@@ -259,21 +258,17 @@ Several UseCases pass repositories as `invoke()` arguments instead of constructo
 - Local storage: `LocalDoorDataSource` (Room behind interface)
 - `expect/actual` declarations deferred until iOS target is added
 
-## Phase 12: Type-Safe Navigation — IN PROGRESS
+## Phase 12: Type-Safe Navigation — COMPLETE
 
 **Goal:** Modern type-safe navigation.
 
 ### 12.1 Type-Safe Routes — COMPLETE
 - Migrated from string routes to `@Serializable` route objects (`Route.Home`, `Route.History`, `Route.Profile`)
-- Uses Navigation Compose 2.9 `composable<Route>` pattern
 - `Tab` enum links routes to UI metadata (label, icon)
-- `NavDestination.hasRoute()` for type-safe tab selection
 
-### 12.2 Nav3 Migration — DEFERRED
-- Nav3 was still alpha/experimental as of May 2025
-- Current Navigation Compose 2.9 with type-safe routes is sufficient
-- Type-safe routes are a stepping stone — Nav3 uses typed keys similarly
-- Revisit when Nav3 reaches beta/stable
+### 12.2 Nav3 Migration — COMPLETE (#192)
+- Migrated from Navigation Compose 2.x to Navigation 3 (`androidx.navigation3`) — `NavDisplay` + `entryProvider` at `androidApp/ui/Main.kt`
+- Nav2 import enforcement via `NoNav2ImportsTask` prevents regression
 
 ## Phase 13: iOS Target (Future)
 
@@ -607,60 +602,6 @@ New UseCases created for the migration:
 - `ObserveDoorEventsUseCase` (current, recent, position)
 - `ObservePushButtonStatusUseCase`
 - `FetchSnoozeStatusUseCase`, `ObserveSnoozeStateUseCase` (from Phase 42)
-
-### Phase 43: Enforce ViewModel → UseCase only (no direct Repository access)
-
-**Goal:** ViewModels must depend only on UseCases and domain model types, never on Repository interfaces. This keeps ViewModels thin (orchestrate UI state) and UseCases testable (own business logic). Even thin wrappers are worth it — they enforce the layer boundary, keep the dependency graph consistent, and prevent logic from gradually leaking into ViewModels.
-
-**Problem:** Today, every ViewModel imports repository interfaces directly:
-- `RemoteButtonViewModel` → `DoorRepository`, `RemoteButtonRepository`, `SnoozeRepository`
-- `DoorViewModel` → `DoorRepository`, `AppLoggerRepository`
-- `AuthViewModel` → `AuthRepository`, `AppLoggerRepository`
-- `AppLoggerViewModel` → `AppLoggerRepository`
-- `AppSettingsViewModel` → `AppSettingsRepository`
-
-This means business logic leaks into ViewModels (e.g., `snoozeRepository.fetchSnoozeEndTimeSeconds()` called directly) and the UseCase layer is incomplete.
-
-**Approach (matches battery-butler):**
-
-1. **Add missing UseCases** for every Repository method currently called from a ViewModel:
-
-   **Actions (suspend):**
-   - `FetchSnoozeStatusUseCase` — fetch snooze end time from server
-   - `LogAppEventUseCase` — write log entry to DB (called from 3 ViewModels)
-   - `SignInWithGoogleUseCase` — wrap `authRepository.signInWithGoogle(idToken)`
-   - `SignOutUseCase` — wrap `authRepository.signOut()`
-   - `FetchCurrentDoorEventUseCase` — already exists, wire into DoorViewModel
-   - `FetchRecentDoorEventsUseCase` — already exists, wire into DoorViewModel
-
-   **Observations (Flow):**
-   - `ObserveDoorEventsUseCase` — expose `Flow<DoorEvent>` + `Flow<List<DoorEvent>>`
-   - `ObserveAuthStateUseCase` — expose `Flow<AuthState>`
-   - `ObserveSnoozeStateUseCase` — expose `Flow<SnoozeState>`
-   - `ObservePushButtonStatusUseCase` — expose `Flow<PushButtonStatus>` + `Flow<DoorPosition>`
-   - `ObserveAppLogCountsUseCase` — expose log count Flows for each key
-   - `ObserveAppSettingsUseCase` / `UpdateAppSettingUseCase` — expose Setting<T> Flows + save
-
-2. **Add LayerImportCheck rule** blocking `domain.repository.` imports in ViewModel files:
-   ```
-   // In build.gradle.kts checkLayerImports rules:
-   listOf(
-       ".*ViewModel\\.kt",
-       "com.chriscartland.garage.domain.repository.",
-       "ViewModels must depend on UseCases, not repository interfaces.",
-   )
-   ```
-
-3. **Refactor each ViewModel** to inject UseCases instead of Repositories
-
-4. **Verify** with `./scripts/validate.sh` — the import check runs automatically
-
-**Migration order:**
-- Phase 42 first (adds `FetchSnoozeStatusUseCase` + `ObserveSnoozeStateUseCase`, establishes the pattern)
-- Then systematically replace repository deps in each ViewModel (one ViewModel per PR)
-- Add the lint rule last (once all ViewModels are clean)
-
-**Future (battery-butler pattern):** When ViewModels move to a separate `:viewmodel` module (Phase 27), the module dependency graph (`ArchitectureCheckTask`) will enforce this at the Gradle level too. The import check is a bridge until then.
 
 ### Phase 38: iOS target (SwiftUI)
 
