@@ -561,32 +561,29 @@ Each phase is a single PR. Phases 5–6 touch production code; revert via `git r
 
 ## Deferred work
 
-The following items from the original plan are **not shipped**. Each has a concrete reason that rules out a pure-refactor approach.
+The handler-test items below were deferred from this plan and picked up in a separate
+follow-up: [`FIREBASE_HANDLER_TESTING_PLAN.md`](FIREBASE_HANDLER_TESTING_PLAN.md).
+That plan adopted **Option A** (extract handler bodies into pure `handle<Action>(input)`
+functions, test with the existing fakes) and has shipped H1, H2, most of H3,
+H4 (read), and all of H5. Remaining: the two auth-heavy HTTP handlers
+(`httpRemoteButton` + `httpAddRemoteButtonCommand`) and `httpSnoozeNotificationsRequest`.
 
-### Phase 7 — RemoteButton handler tests (deferred)
+### Phase 7 — RemoteButton handler tests (addressed, partially shipped)
 
-**Blocker:** `httpRemoteButton` and `httpAddRemoteButtonCommand` are wrapped by `functions.https.onRequest(handler)`. Invoking the inner handler requires either:
-1. Adopting the `firebase-functions-test` package (new test-only dependency + SDK setup).
-2. Extracting the handler body into a pure function (e.g. `handleRemoteButtonRequest(config, req, now)`) and leaving the thin wrapper untested. This is a production-code refactor, out of scope for the DB refactor.
+- **H3 (pubsub):** `pubsubCheckForRemoteButtonErrors` shipped as `handleCheckForRemoteButtonErrors()` with 5 tests (#506).
+- **H3 (HTTP):** `httpRemoteButton` + `httpAddRemoteButtonCommand` are pending — auth logic (push key + Google ID token + authorized email + ack-token state machine) warrants a dedicated PR.
 
-**Non-blocker evidence:** The DB interactions the handler drives are already pinned by contract tests (`RemoteButtonRequestDatabaseTest`, `RemoteButtonCommandDatabaseTest`, `RemoteButtonRequestErrorDatabaseTest`) and the lint rule prevents regression to inline `TimeSeriesDatabase` construction.
+### Phase 8 — OpenDoor handler tests (addressed, shipped)
 
-### Phase 8 — OpenDoor handler tests (deferred)
+All three door-sensor handlers extracted and tested in H2 (#505): `handleCheckForOpenDoorsRequest` (HTTP), `handleCheckForOpenDoorsJob` (pubsub), `handleCheckForDoorErrors` (pubsub). 9 tests total.
 
-**Blocker:** Same as Phase 7. Additionally, the `http/OpenDoor.ts` and `pubsub/OpenDoor.ts` handlers are ~5 lines each — they only call `SensorEventDatabase.getCurrent` and `sendFCMForOldData`. The interesting logic is inside `sendFCMForOldData`, already covered by `OldDataFCMFakeTest.ts` (Phase 9).
+### Phase 9 — `HttpEchoTest.ts` (addressed, shipped)
 
-### Phase 9 — `HttpEchoTest.ts` (deferred half of Phase 9)
+Extracted as `handleEchoRequest({query, body})` in the H1 pilot (#504) with 5 tests.
 
-**Blocker:** Same firebase-functions-test-or-extract choice. Echo's logic is "save then retrieve"; both operations are pinned by `UpdateDatabase`'s contract tests and exercised by `EventUpdatesFakeTest.ts` indirectly.
+### Path forward (historical note)
 
-### Common path forward
-
-If these tests are needed in the future, the cleanest approach is either:
-
-- **Option A — Extract handler bodies.** Refactor each handler into `handleX(config, params, services, now): Promise<Result>` + a thin wrapper. Test the pure function directly with fakes. One-time production-code change per handler; all future handler tests fall out easily.
-- **Option B — Add `firebase-functions-test`.** Write tests that invoke the full wrapper via the library's helpers. No production-code change, but adds a test-only dependency and a new testing idiom.
-
-Either option is a planned follow-up, not blocking the refactor's completion.
+The "Option A vs Option B" choice documented above was decided in favor of **Option A** — the plan and its progress live in [`FIREBASE_HANDLER_TESTING_PLAN.md`](FIREBASE_HANDLER_TESTING_PLAN.md). Option A extended the existing `controller/` (pure) vs `functions/` (wrapper) split; Option B (`firebase-functions-test`) would have added a new dependency + testing idiom for coverage that's mostly already pinned by the controller-level fakes introduced in this refactor.
 
 ### Excluded (behavior changes — not refactors)
 
