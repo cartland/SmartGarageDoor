@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Agents new to this repo:** see [`docs/AGENTS.md`](docs/AGENTS.md) for the documentation contract (categories, front-matter, source-of-truth map). This repo is designed for collaboration with multiple AI agents over time; docs are load-bearing.
+
 ## Project Overview
 
 Smart Garage Door is an IoT system with three main components:
@@ -53,6 +55,8 @@ firebase deploy --only functions
 
 **Mocha glob pitfall:** The `tests` script uses **single-quoted** `'test/**/*.ts'`. npm invokes scripts via `sh`, where `**` degrades to `*` without globstar — so if the glob is unquoted, it matches only one directory deep and silently skips tests nested deeper (e.g. anything in `test/controller/fcm/`). PR #486 surfaced 84 tests that had been silently skipped for months by quoting the glob so mocha (which supports globstar natively) does the expansion. **Never unquote this glob.** If you add a new test directory and your tests aren't running, that's probably why.
 
+<!-- not-actively-maintained: ESP32 firmware build/deploy docs are out of primary documentation scope (focus is Android + Firebase server). See GarageFirmware_ESP32/README.md for active firmware guidance. -->
+
 ### ESP32 Firmware (GarageFirmware_ESP32/)
 ```bash
 # Setup and configuration
@@ -86,6 +90,8 @@ idf.py menuconfig      # Enable fake implementations for testing
 - **DI**: kotlin-inject (`AppComponent`) — Hilt fully removed. See `docs/DI-MIGRATION.md`
 - **Local storage**: Room database with offline-first caching
 - **Network**: Ktor HTTP client + kotlinx.serialization, `NetworkResult<T>` at data source boundary
+
+<!-- not-actively-maintained: ESP32 component architecture is reference-only. See GarageFirmware_ESP32/README.md for current firmware structure. -->
 
 ### ESP32 Component Architecture
 ```
