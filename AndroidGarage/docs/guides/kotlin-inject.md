@@ -5,6 +5,15 @@
 regardless of codebase. Covers the single class of bug that will break
 `@Singleton` in production while passing every test you write by hand.
 
+> **Status note for this repo:** the failure mode below was hit in
+> production as the android/170 snooze regression. Fixed permanently
+> in android/173–android/174 (2026-04-19) by converting all
+> `@Singleton` providers to abstract entry points. The
+> `checkSingletonCaching` Gradle task in `validate.sh` blocks
+> regressions. Treat the symptoms below as a *historical case study*
+> — current `AppComponent` is correct. See
+> `archive/POSTMORTEM_ANDROID_170.md` for the timeline.
+
 ## TL;DR
 
 kotlin-inject only generates **scoped caching** (what `@Singleton`

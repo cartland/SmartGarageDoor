@@ -1,6 +1,8 @@
 # ViewModel Scoping Issue — Multi-Instance Propagation Hazard
 
-**Status:** Documented, not yet fixed. Workaround shipped in PR #354.
+**Status:** Resolved. The root cause was the kotlin-inject `@Singleton` caching gap; fixed permanently via the `abstract val` provider pattern in android/173–android/174 (2026-04-19). The PR #354 workaround was removed once the structural fix landed. See `POSTMORTEM_ANDROID_170.md` for the full timeline and ADR-022 for the resulting architectural rule.
+
+> *This document is kept as a historical record of how the bug was discovered and reasoned about, prior to the fix. For current-state guidance, see ADR-022 (`StateFlow` at the repository boundary) and `DI_SINGLETON_REQUIREMENTS.md`.*
 
 This document captures a structural issue in how the app instantiates
 ViewModels, and why it caused a subtle production-only propagation bug

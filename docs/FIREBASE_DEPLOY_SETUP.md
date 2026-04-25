@@ -24,7 +24,7 @@ Single-environment: there is **no staging**. Every change goes direct to product
 - **Project:** `escape-echo`
 - **Project number:** `587667443259`
 - **Region:** `us-central1`
-- **Runtime:** Node.js 20 (will need migration to 22+ before 2026-10-30 — see Deprecation calendar)
+- **Runtime:** Node.js 22 (pinned in `FirebaseServer/.nvmrc` and `FirebaseServer/package.json` `engines.node`). Migrated from Node 20 in `server/10`.
 - **Function generation:** Cloud Functions **1st Gen** (18 functions, mix of HTTPS + Pub/Sub + Firestore triggers)
 
 If a staging environment is ever added, it'd need its own project ID, its own deployer SA key, and its own `FIREBASE_PROJECT_ID` secret scoped via environment.
@@ -180,7 +180,8 @@ Track these to avoid unplanned breakage:
 
 | Item | Deprecation | Action |
 |---|---|---|
-| Node.js 20 runtime | **2026-04-30 soft / 2026-10-30 hard** | Bump `"engines": { "node": "20" }` → `"22"` in `FirebaseServer/package.json`, verify deploy, tag a release. |
+| Node.js 20 runtime | ~~**2026-04-30 soft / 2026-10-30 hard**~~ | **Done in `server/10`.** `engines.node` and `.nvmrc` now pin Node 22. |
+| Node.js 22 runtime | not yet announced | Watch [Cloud Functions runtime support](https://cloud.google.com/functions/docs/runtime-support) for next deprecation; same recipe applies. |
 | `firebase-functions` 6.x | Newer major available | Upgrade when a needed API is in 7.x; no urgency otherwise. |
 | Cloud Functions 1st Gen | Google is migrating users to 2nd Gen; no firm EOL announced | Migration is a larger change — schedule a dedicated sprint when forced. |
 
@@ -353,7 +354,7 @@ gh run rerun <run-id>
 | `Error: Cannot run login in non-interactive mode` | Trying to `firebase login` from a non-TTY shell | Must be run from a real terminal. Alternative: generate a long-lived token with `firebase login:ci` (still needs a browser for the initial auth). |
 | `Error: firebase-tools no longer supports Java version before 21` | Firebase CLI 14.x requires JDK 21+ for the emulators | Install JDK 21. In CI, add `actions/setup-java@v4` with `java-version: '21'` (already done in `firebase-ci-checks.yml`). |
 | Deploy succeeds but `Error: Functions successfully deployed but could not set up cleanup policy` | Artifact Registry needs a cleanup policy | `firebase functions:artifacts:setpolicy --project escape-echo --force`. One-time. |
-| Node 24 local: `TypeError: Cannot read properties of undefined (reading 'length')` with `admin.apps` | Node 24 native TypeScript type-stripping breaks `import * as admin from 'firebase-admin'` namespace imports | Run locally with Node 20: `PATH=~/.nvm/versions/node/v20.x/bin:$PATH npm ...`. CI uses Node 20 and is unaffected. |
+| Node 22.18+ / Node 24 local: `TypeError: admin.initializeApp is not a function` (or `Cannot read properties of undefined ...` on `admin.apps`) | Node 22.18+ enables native TS strip-types by default, which breaks `import * as admin from 'firebase-admin'` under mocha's `ts-node/register`. | The `tests` npm script pins `NODE_OPTIONS='--no-experimental-strip-types'` so ts-node owns compilation. CI uses `scripts/firebase-npm.sh` which auto-applies this. If you bypass that wrapper, set the env var by hand. |
 
 ---
 
@@ -363,7 +364,7 @@ gh run rerun <run-id>
 - `.github/workflows/firebase-ci.yml` + `firebase-ci-checks.yml` — the CI gate that must pass before a tag deploys (build, lint, tests, npm audit warning, emulator smoke, FCM contract tests)
 - `scripts/release-firebase.sh` — cuts `server/N` tags
 - `FirebaseServer/firebase.json` — functions config consumed by `firebase deploy`
-- `FirebaseServer/package.json` — runtime pinned to Node 20; `overrides` block applies transitive dep fixes (e.g., `jws` security override)
+- `FirebaseServer/package.json` — runtime pinned to Node 22; `overrides` block applies transitive dep fixes (e.g., `jws` security override)
 - `FirebaseServer/test/controller/VerifyIdTokenTest.ts` — library-chain regression guard for the JWT verification path
 
 ---

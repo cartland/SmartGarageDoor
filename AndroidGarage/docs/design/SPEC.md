@@ -127,6 +127,8 @@ Two dimensions: **state** (closed/open/unknown) × **freshness** (fresh/stale).
 
 The button is the highest-stakes interaction: it physically moves a garage door. The tap-to-confirm pattern prevents accidental presses.
 
+> **State names below are pre-ADR-012.** ADR-012 (Button UX Redesign, shipped via PR #282) renamed these states: `Arming → Preparing`, `Armed → AwaitingConfirmation`, `NotConfirmed → Cancelled`, `Sending → SendingToServer`, `Sent → SendingToDoor`, `Received → Succeeded`, `SendingTimeout → ServerFailed`, `SentTimeout → DoorFailed`. The shape (label, color, tappable, progress) is preserved; only names changed. See `DECISIONS.md#adr-012-garage-door-button-ux-redesign` for the canonical state list and rationale. This table is kept for archive context; do not use it as the source of truth for new code.
+
 | State | Button Label | Button Color | Tappable | Progress Bar | Progress Text |
 |-------|-------------|--------------|----------|--------------|---------------|
 | Ready | "Garage\nButton" | surfaceDim | Yes | Empty (0/5) | "Ready" |

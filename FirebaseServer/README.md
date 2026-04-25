@@ -71,14 +71,16 @@ Update the server configuration in `serverConfig.json`, then push it to the serv
 curl -H "Content-Type: application/json" -H "X-ServerConfigKey: $SERVER_CONFIG_UPDATE_KEY" https://us-central1-escape-echo.cloudfunctions.net/serverConfigUpdate -d @serverConfig.json
 ```
 
+Example config payload (illustrative — the live values are managed in production via `httpServerConfigUpdate`; see `docs/FIREBASE_HARDENING_PLAN.md` for the buildTimestamp config-authority rule shipped in `server/16` / `server/17`):
+
 ```json
 {
-  "buildTimestamp": "Sat Mar 6 14:45:00 2021",
+  "buildTimestamp": "<plain build identifier>",
   "deleteOldDataEnabled": true,
   "deleteOldDataEnabledDryRun": false,
   "remoteButtonEnabled": true,
-  "remoteButtonBuildTimestamp": "Sat%20Mar%2020%2015:20:34%202021",
-  "remoteButtonPushKey": "requiredKey",
+  "remoteButtonBuildTimestamp": "<URL-encoded build identifier>",
+  "remoteButtonPushKey": "<requiredKey>",
   "host": "https://example.com",
   "path": "addRemoteButtonCommand",
   "remoteButtonAuthorizedEmails": [
@@ -86,6 +88,8 @@ curl -H "Content-Type: application/json" -H "X-ServerConfigKey: $SERVER_CONFIG_U
   ]
 }
 ```
+
+**Reading current config:** `GET /httpServerConfig` returns the active payload. The four pubsub/HTTP handlers (`httpCheckForOpenDoors`, `pubsubCheckForOpenDoorsJob`, `pubsubCheckForDoorErrors`, `pubsubCheckForRemoteButtonErrors`) read `buildTimestamp` / `remoteButtonBuildTimestamp` from this config — they no longer carry hardcoded fallbacks (A3 of the hardening plan).
 
 ### Database Structure
 
