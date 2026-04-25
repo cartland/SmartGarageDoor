@@ -17,15 +17,8 @@
 
 package com.chriscartland.garage.ui
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,7 +33,6 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -49,6 +41,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.ColorUtils
+import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import java.time.Duration
 
@@ -64,49 +57,119 @@ const val MIDWAY_POSITION = -0.35f
 const val OPENING_STATIC_POSITION = -0.65f
 const val OPEN_POSITION = -0.75f
 
-@Composable
-private fun GarageDoorWithOverlay(
-    doorOffset: Float,
-    modifier: Modifier = Modifier,
-    color: Color = Color(0xFF3C5232),
-    animate: Boolean = false,
-    animationTarget: Float = doorOffset,
-    duration: Duration = DEFAULT_GARAGE_DOOR_ANIMATION_DURATION,
-    overlay: @Composable (BoxScope.() -> Unit)? = null,
-) {
-    val currentOffset = if (animate) {
-        val transition = rememberInfiniteTransition(label = "garageDoor")
-        val animatedValue by transition.animateFloat(
-            initialValue = doorOffset,
-            targetValue = animationTarget,
-            animationSpec = infiniteRepeatable(
-                animation = tween(duration.toMillis().toInt(), easing = LinearEasing),
-                repeatMode = RepeatMode.Restart,
-            ),
-            label = "doorOffset",
-        )
-        animatedValue
-    } else {
-        doorOffset
-    }
+internal enum class OverlayKind { NONE, ARROW_UP, ARROW_DOWN, WARNING }
 
-    Box(
-        modifier = modifier.aspectRatio(GARAGE_DOOR_ASPECT_RATIO),
-        contentAlignment = Alignment.Center,
-    ) {
-        GarageDoorCanvas(
-            doorOffset = currentOffset,
-            modifier = Modifier.fillMaxSize(),
-            color = color,
-        )
-        if (overlay != null) {
-            overlay()
+/**
+ * Pure mappings from [DoorPosition] to the visual primitives used by
+ * [GarageIcon]. Same state always produces the same outputs — animation
+ * trajectories depend on current value, but the *targets* don't. See
+ * `AndroidGarage/docs/DOOR_ANIMATION.md` for the contract.
+ *
+ * Each `when` is exhaustive (no `else`) so adding a [DoorPosition] value
+ * forces a decision at compile time.
+ */
+object DoorAnimation {
+    /** Target offset to animate toward for the given state. */
+    fun targetPositionFor(doorPosition: DoorPosition): Float =
+        when (doorPosition) {
+            DoorPosition.UNKNOWN -> MIDWAY_POSITION
+            DoorPosition.CLOSED -> CLOSED_POSITION
+            DoorPosition.OPENING -> OPEN_POSITION
+            DoorPosition.OPENING_TOO_LONG -> MIDWAY_POSITION
+            DoorPosition.OPEN -> OPEN_POSITION
+            DoorPosition.OPEN_MISALIGNED -> OPEN_POSITION
+            DoorPosition.CLOSING -> CLOSED_POSITION
+            DoorPosition.CLOSING_TOO_LONG -> MIDWAY_POSITION
+            DoorPosition.ERROR_SENSOR_CONFLICT -> MIDWAY_POSITION
         }
-    }
+
+    /**
+     * Initial Animatable seed for a given state.
+     *
+     * For motion states (OPENING/CLOSING) the seed is the "from" end so the
+     * tween animates the full motion when the icon first composes (e.g., app
+     * open, screen return mid-motion). For all other states, seed = target so
+     * the icon renders at rest with no animation on first frame.
+     *
+     * Trade-off: when the app opens with a door in motion, the icon ignores
+     * the server's lastChangeTimeSeconds and animates from the "from" end.
+     * Computing elapsed time would require a clock-drift correction we don't
+     * have. See `AndroidGarage/docs/DOOR_ANIMATION.md` § Trade-offs.
+     */
+    fun initialPositionFor(doorPosition: DoorPosition): Float =
+        when (doorPosition) {
+            DoorPosition.OPENING -> CLOSED_POSITION
+            DoorPosition.CLOSING -> OPEN_POSITION
+            DoorPosition.UNKNOWN,
+            DoorPosition.CLOSED,
+            DoorPosition.OPENING_TOO_LONG,
+            DoorPosition.OPEN,
+            DoorPosition.OPEN_MISALIGNED,
+            DoorPosition.CLOSING_TOO_LONG,
+            DoorPosition.ERROR_SENSOR_CONFLICT,
+            -> targetPositionFor(doorPosition)
+        }
+
+    /**
+     * Which animation spec family applies.
+     *
+     * - `false` → tween (linear) for OPENING/CLOSING — matches a real garage
+     *   door's roughly constant-speed motion.
+     * - `true` → spring (slow, no overshoot) for terminal/error/unknown —
+     *   states "settle" to their target.
+     */
+    fun useSpringFor(doorPosition: DoorPosition): Boolean =
+        when (doorPosition) {
+            DoorPosition.OPENING, DoorPosition.CLOSING -> false
+            DoorPosition.UNKNOWN,
+            DoorPosition.CLOSED,
+            DoorPosition.OPENING_TOO_LONG,
+            DoorPosition.OPEN,
+            DoorPosition.OPEN_MISALIGNED,
+            DoorPosition.CLOSING_TOO_LONG,
+            DoorPosition.ERROR_SENSOR_CONFLICT,
+            -> true
+        }
+
+    /**
+     * Snapshot offset for a non-animated render — used when
+     * `GarageIcon(static = true)`. For motion states the snapshot is a
+     * mid-cycle position so the door visibly looks "in motion" without
+     * actually animating.
+     */
+    fun staticPositionFor(doorPosition: DoorPosition): Float =
+        when (doorPosition) {
+            DoorPosition.OPENING -> OPENING_STATIC_POSITION
+            DoorPosition.CLOSING -> CLOSING_STATIC_POSITION
+            DoorPosition.UNKNOWN,
+            DoorPosition.CLOSED,
+            DoorPosition.OPENING_TOO_LONG,
+            DoorPosition.OPEN,
+            DoorPosition.OPEN_MISALIGNED,
+            DoorPosition.CLOSING_TOO_LONG,
+            DoorPosition.ERROR_SENSOR_CONFLICT,
+            -> targetPositionFor(doorPosition)
+        }
+
+    /** Which overlay icon to draw on top of the door, if any. */
+    internal fun overlayFor(doorPosition: DoorPosition): OverlayKind =
+        when (doorPosition) {
+            DoorPosition.OPENING -> OverlayKind.ARROW_UP
+            DoorPosition.CLOSING -> OverlayKind.ARROW_DOWN
+            DoorPosition.UNKNOWN,
+            DoorPosition.OPENING_TOO_LONG,
+            DoorPosition.CLOSING_TOO_LONG,
+            DoorPosition.ERROR_SENSOR_CONFLICT,
+            -> OverlayKind.WARNING
+            DoorPosition.CLOSED,
+            DoorPosition.OPEN,
+            DoorPosition.OPEN_MISALIGNED,
+            -> OverlayKind.NONE
+        }
 }
 
 @Composable
-private fun DirectionOverlay(
+internal fun DirectionOverlay(
     rotationDegrees: Float,
     contentDescription: String,
 ) {
@@ -129,7 +192,7 @@ private fun DirectionOverlay(
 }
 
 @Composable
-private fun WarningOverlay() {
+internal fun WarningOverlay() {
     Box(
         modifier = Modifier
             .fillMaxWidth(0.3f)
@@ -143,78 +206,6 @@ private fun WarningOverlay() {
             contentDescription = "Warning Symbol",
             modifier = Modifier.fillMaxSize(0.6f),
         )
-    }
-}
-
-@Composable
-fun Opening(
-    modifier: Modifier = Modifier,
-    color: Color = LocalDoorStatusColorScheme.current.openFresh,
-    static: Boolean = false,
-) {
-    GarageDoorWithOverlay(
-        doorOffset = if (static) OPENING_STATIC_POSITION else CLOSED_POSITION,
-        modifier = modifier,
-        color = color,
-        animate = !static,
-        animationTarget = OPEN_POSITION,
-    ) {
-        DirectionOverlay(-90f, "Up Arrow")
-    }
-}
-
-@Composable
-fun Closing(
-    modifier: Modifier = Modifier,
-    color: Color = LocalDoorStatusColorScheme.current.openFresh,
-    static: Boolean = false,
-) {
-    GarageDoorWithOverlay(
-        doorOffset = if (static) CLOSING_STATIC_POSITION else OPEN_POSITION,
-        modifier = modifier,
-        color = color,
-        animate = !static,
-        animationTarget = CLOSED_POSITION,
-    ) {
-        DirectionOverlay(90f, "Down Arrow")
-    }
-}
-
-@Composable
-fun Closed(
-    modifier: Modifier = Modifier,
-    color: Color = LocalDoorStatusColorScheme.current.closedFresh,
-) {
-    GarageDoorWithOverlay(
-        doorOffset = CLOSED_POSITION,
-        modifier = modifier,
-        color = color,
-    )
-}
-
-@Composable
-fun Open(
-    modifier: Modifier = Modifier,
-    color: Color = LocalDoorStatusColorScheme.current.openFresh,
-) {
-    GarageDoorWithOverlay(
-        doorOffset = OPEN_POSITION,
-        modifier = modifier,
-        color = color,
-    )
-}
-
-@Composable
-fun Midway(
-    modifier: Modifier = Modifier,
-    color: Color = LocalDoorStatusColorScheme.current.openFresh,
-) {
-    GarageDoorWithOverlay(
-        doorOffset = MIDWAY_POSITION,
-        modifier = modifier,
-        color = color,
-    ) {
-        WarningOverlay()
     }
 }
 
@@ -232,50 +223,46 @@ object GarageColors {
 
 // --- Previews ---
 
+private const val PREVIEW_BOX_DP = 400
+private const val PREVIEW_ICON_HEIGHT_DP = 200
+private const val PREVIEW_ICON_WIDTH_DP = 300
+
+@Composable
+private fun PreviewBox(content: @Composable (Modifier) -> Unit) {
+    Box(
+        modifier = Modifier.size(PREVIEW_BOX_DP.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        content(
+            Modifier
+                .wrapContentSize()
+                .heightIn(max = PREVIEW_ICON_HEIGHT_DP.dp)
+                .widthIn(max = PREVIEW_ICON_WIDTH_DP.dp),
+        )
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun OpeningPreview() {
-    Box(
-        modifier = Modifier.size(400.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Opening(
-            modifier = Modifier
-                .wrapContentSize()
-                .heightIn(max = 200.dp)
-                .widthIn(max = 300.dp),
-        )
-    }
+    PreviewBox { mod -> GarageIcon(DoorPosition.OPENING, modifier = mod, static = true) }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun ClosingPreview() {
-    Box(
-        modifier = Modifier.size(400.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Closing(
-            modifier = Modifier
-                .wrapContentSize()
-                .heightIn(max = 200.dp)
-                .widthIn(max = 300.dp),
-        )
-    }
+    PreviewBox { mod -> GarageIcon(DoorPosition.CLOSING, modifier = mod, static = true) }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun ClosedPreview() {
-    Box(
-        modifier = Modifier.size(400.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Closed(
-            modifier = Modifier
-                .wrapContentSize()
-                .heightIn(max = 200.dp)
-                .widthIn(max = 300.dp),
+    PreviewBox { mod ->
+        GarageIcon(
+            doorPosition = DoorPosition.CLOSED,
+            modifier = mod,
+            static = true,
+            color = LocalDoorStatusColorScheme.current.closedFresh,
         )
     }
 }
@@ -283,31 +270,35 @@ fun ClosedPreview() {
 @Preview(showBackground = true)
 @Composable
 fun OpenPreview() {
-    Box(
-        modifier = Modifier.size(400.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Open(
-            modifier = Modifier
-                .wrapContentSize()
-                .heightIn(max = 200.dp)
-                .widthIn(max = 300.dp),
-        )
-    }
+    PreviewBox { mod -> GarageIcon(DoorPosition.OPEN, modifier = mod, static = true) }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun MidwayPreview() {
-    Box(
-        modifier = Modifier.size(400.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Midway(
-            modifier = Modifier
-                .wrapContentSize()
-                .heightIn(max = 200.dp)
-                .widthIn(max = 300.dp),
-        )
-    }
+    PreviewBox { mod -> GarageIcon(DoorPosition.UNKNOWN, modifier = mod, static = true) }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun OpeningTooLongPreview() {
+    PreviewBox { mod -> GarageIcon(DoorPosition.OPENING_TOO_LONG, modifier = mod, static = true) }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ClosingTooLongPreview() {
+    PreviewBox { mod -> GarageIcon(DoorPosition.CLOSING_TOO_LONG, modifier = mod, static = true) }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun OpenMisalignedPreview() {
+    PreviewBox { mod -> GarageIcon(DoorPosition.OPEN_MISALIGNED, modifier = mod, static = true) }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ErrorSensorConflictPreview() {
+    PreviewBox { mod -> GarageIcon(DoorPosition.ERROR_SENSOR_CONFLICT, modifier = mod, static = true) }
 }
