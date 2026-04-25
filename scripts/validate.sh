@@ -120,6 +120,10 @@ step "Documentation front-matter (AGENTS.md contract)"
 "$REPO_ROOT/scripts/check-doc-frontmatter.sh" \
     && pass "doc front-matter" || fail "doc front-matter"
 
+step "Play Store whatsnew length (Google Play 500-char limit)"
+"$REPO_ROOT/scripts/check-whatsnew-length.sh" \
+    && pass "whatsnew length" || fail "whatsnew length"
+
 step "Room schema drift check"
 # After compilation, Room KSP generates schema JSON files.
 # If they differ from what's committed, the schema changed without being tracked.

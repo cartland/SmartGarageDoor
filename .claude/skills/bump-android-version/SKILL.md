@@ -47,35 +47,39 @@ Apply the increment type to the current version:
 
 Write the new version to the file.
 
-### 4. (minor/major only) Draft the Play Store whatsnew entry
+### 4. (minor/major only) Replace the Play Store whatsnew
 
-For **minor** and **major** bumps, the Play Store gets a release note. For **patch** bumps, skip this step — patches roll up into the previous minor/major entry.
+For **minor** and **major** bumps, the Play Store gets a release note. For **patch** bumps, skip this step — patches roll up into the next minor/major's entry.
 
-The whatsnew file `AndroidGarage/distribution/whatsnew/whatsnew-en-US` is a flat list, newest first, one line per minor/major:
+`AndroidGarage/distribution/whatsnew/whatsnew-en-US` is **rolling, current-version-only**. Replace its entire content with a single entry for the new version. CHANGELOG.md is the permanent history (every version, including patches) — older whatsnew lines are already preserved there.
+
+Format:
 
 ```
-X.Y: Short user-facing description (1–2 sentences).
-2.4: Redesigned garage door button with confirmation flow and network status diagram. Improved color contrast for accessibility.
-2.3: Improved architecture and performance.
+X.Y: Short user-facing description.
 ```
 
-To draft the entry:
+- Single line preferred (matches the rest of the Play Store ecosystem).
+- Multiline allowed for minors when one line can't capture the change. Major releases can use multiple lines.
+- Whole file must stay under **500 bytes** (`scripts/check-whatsnew-length.sh` enforces; `validate.sh` calls it). Google Play rejects the upload otherwise — see release-failure tombstone `android/177` for the original incident.
 
-1. Read the current whatsnew file to see the established style.
-2. Find the commits since the last whatsnew entry (`git log --oneline <last-tag>..HEAD`) — focus on user-visible changes only.
-3. Draft a 1–2 sentence description in the same style. Match the tone of recent entries: direct, plain language, no jargon, no "we"/"I."
-4. **Present the draft to the user and wait for confirmation or edits before writing it.** Offer 2–3 phrasings if the right wording isn't obvious.
-5. After the user confirms, prepend the line to `whatsnew-en-US` (newest at top — note the line uses `X.Y`, not `X.Y.Z`).
+To draft:
+
+1. Find user-visible commits since the last whatsnew/release: `git log --oneline <last-tag>..HEAD`.
+2. Draft in the same style as recent CHANGELOG entries: direct, plain language, no jargon, no "we"/"I."
+3. **Present the draft to the user and wait for confirmation or edits before writing.** Offer 2–3 phrasings if the right wording isn't obvious. Confirm length stays under 500 bytes.
+4. After the user confirms, **overwrite** `whatsnew-en-US` with just the new entry. Do not prepend; do not preserve older lines. (CHANGELOG.md owns history.)
 
 ### 5. Create PR
 
 - Branch: `chore/bump-version-X.Y.Z`
-- Commit: `chore: Bump versionName to X.Y.Z` — for minor/major, the same commit also includes the whatsnew prepend
+- Commit: `chore: Bump versionName to X.Y.Z` — for minor/major, the same commit also includes the whatsnew replacement
 - Create PR with `--base main` and enable auto-merge
 
 ## Rules
 
 - Modify only `AndroidGarage/version.properties` (always) and `AndroidGarage/distribution/whatsnew/whatsnew-en-US` (minor/major only) — nothing else
-- Do not update the changelog (use `/update-android-changelog` for that)
-- Patches must not touch whatsnew — they roll up
+- Whatsnew is rolling — **replace**, never accumulate. CHANGELOG.md is the permanent history.
+- Do not update the changelog here (use `/update-android-changelog` for that)
+- Patches must not touch whatsnew — they roll up into the next minor/major
 - Confirm both the version bump *and* the whatsnew description with the user before creating the PR
