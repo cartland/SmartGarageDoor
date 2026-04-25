@@ -7,6 +7,10 @@ on:
     tags:
       - 'server/[0-9]*'
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   verify-ci:
     name: Firebase Deploy Verify CI
@@ -61,3 +65,32 @@ jobs:
       - name: Deploy to Firebase
         run: firebase deploy --only functions --project "${{ secrets.FIREBASE_PROJECT_ID }}"
         working-directory: FirebaseServer
+
+  # Track release failures via a single GitHub issue (auto-create on failure,
+  # auto-close on the next successful release). Mirrors the post-merge CI pattern.
+  track-failure:
+    name: Track Firebase Release Failure
+    if: always()
+    needs: [verify-ci, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Determine overall result
+        id: result
+        run: |
+          VERIFY="${{ needs.verify-ci.result }}"
+          DEPLOY="${{ needs.deploy.result }}"
+          if [[ "$VERIFY" == "failure" || "$DEPLOY" == "failure" ]]; then
+            echo "overall=failure" >> $GITHUB_OUTPUT
+          elif [[ "$VERIFY" == "success" && "$DEPLOY" == "success" ]]; then
+            echo "overall=success" >> $GITHUB_OUTPUT
+          else
+            # Cancelled or skipped — neither create nor close an issue.
+            echo "overall=skipped" >> $GITHUB_OUTPUT
+          fi
+      - if: steps.result.outputs.overall != 'skipped'
+        uses: ./.github/actions/ci-failure-tracker
+        with:
+          label: release-failure/firebase
+          result: ${{ steps.result.outputs.overall }}
+          workflow-name: "Firebase Deploy (tag: ${{ github.ref_name }})"
