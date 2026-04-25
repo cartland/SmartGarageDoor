@@ -1,3 +1,8 @@
+---
+category: archive
+status: superseded
+superseded_by: AndroidGarage/docs/archive/POSTMORTEM_ANDROID_170.md
+---
 # ViewModel Scoping Issue — Multi-Instance Propagation Hazard
 
 **Status:** Resolved. The root cause was the kotlin-inject `@Singleton` caching gap; fixed permanently via the `abstract val` provider pattern in android/173–android/174 (2026-04-19). The PR #354 workaround was removed once the structural fix landed. See `POSTMORTEM_ANDROID_170.md` for the full timeline and ADR-022 for the resulting architectural rule.

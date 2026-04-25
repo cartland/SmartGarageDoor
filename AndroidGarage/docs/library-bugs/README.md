@@ -1,3 +1,8 @@
+---
+category: reference
+status: active
+last_verified: 2026-04-24
+---
 # Library Bugs & Issues
 
 Known bugs or design issues in third-party libraries that affect this project. One file per issue.

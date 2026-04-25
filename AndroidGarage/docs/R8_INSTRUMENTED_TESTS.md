@@ -1,3 +1,8 @@
+---
+category: reference
+status: active
+last_verified: 2026-04-24
+---
 # Running Instrumented Tests Under R8
 
 Normal `connectedDebugAndroidTest` runs against an unminified debug build.

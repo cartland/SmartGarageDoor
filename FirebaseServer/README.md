@@ -1,3 +1,8 @@
+---
+category: reference
+status: active
+last_verified: 2026-04-24
+---
 # Garage Server
 
 A Firebase Cloud Functions server that manages garage door sensor data and notifications.

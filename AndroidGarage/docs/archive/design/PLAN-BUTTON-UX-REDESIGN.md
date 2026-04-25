@@ -1,3 +1,7 @@
+---
+category: archive
+status: shipped
+---
 # Button UX Redesign — Implementation Plan
 
 Reference: ADR-012 in `docs/DECISIONS.md`

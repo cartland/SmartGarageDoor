@@ -1,3 +1,8 @@
+---
+category: reference
+status: active
+last_verified: 2026-04-24
+---
 # FirebaseServer Database Refactor Plan
 
 Centralize `TimeSeriesDatabase` usage in `FirebaseServer/` behind typed

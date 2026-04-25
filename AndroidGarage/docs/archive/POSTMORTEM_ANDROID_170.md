@@ -1,3 +1,7 @@
+---
+category: archive
+status: shipped
+---
 # Postmortem — android/170 snooze propagation regression
 
 **Final status:** Resolved on android/174 (2026-04-19).

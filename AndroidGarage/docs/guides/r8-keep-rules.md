@@ -1,3 +1,8 @@
+---
+category: reference
+status: active
+last_verified: 2026-04-24
+---
 # R8 keep rules — what gets stripped, how to detect, how to prevent
 
 **Who this is for:** Android developers shipping release builds with

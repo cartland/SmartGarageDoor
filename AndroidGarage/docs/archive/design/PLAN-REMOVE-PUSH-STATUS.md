@@ -1,3 +1,7 @@
+---
+category: archive
+status: shipped
+---
 # Plan: Remove PushStatus StateFlow (ADR-013 Violation Fix)
 
 ## Problem

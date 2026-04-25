@@ -1,3 +1,8 @@
+---
+category: reference
+status: active
+last_verified: 2026-04-24
+---
 # kotlin-inject scoping — gotchas and verification
 
 **Who this is for:** anyone using

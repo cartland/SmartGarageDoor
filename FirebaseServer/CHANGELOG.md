@@ -1,3 +1,8 @@
+---
+category: reference
+status: active
+last_verified: 2026-04-24
+---
 # Firebase Server Changelog
 
 Internal release history for Cloud Functions deployments. The Android app and ESP32 firmware do not read a version from the server; this log is for the maintainer and for rollback decisions.

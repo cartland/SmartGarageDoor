@@ -1,3 +1,8 @@
+---
+category: reference
+status: active
+last_verified: 2026-04-24
+---
 # Android Testing & CI Stability Plan
 
 ## Goal

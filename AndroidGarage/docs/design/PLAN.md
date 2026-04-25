@@ -1,3 +1,7 @@
+---
+category: plan
+status: active
+---
 # Iteration Plan
 
 Each iteration is executed by a sub-agent. The orchestrator reads the current state, dispatches the agent, writes results, commits, and increments.

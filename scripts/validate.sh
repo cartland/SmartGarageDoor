@@ -116,6 +116,10 @@ step "Screenshot tests (compile)"
 $GRADLE :android-screenshot-tests:compileDebugScreenshotTestKotlin \
     && pass "screenshot test compilation" || fail "screenshot test compilation"
 
+step "Documentation front-matter (AGENTS.md contract)"
+"$REPO_ROOT/scripts/check-doc-frontmatter.sh" \
+    && pass "doc front-matter" || fail "doc front-matter"
+
 step "Room schema drift check"
 # After compilation, Room KSP generates schema JSON files.
 # If they differ from what's committed, the schema changed without being tracked.

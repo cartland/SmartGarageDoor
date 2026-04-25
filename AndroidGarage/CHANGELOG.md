@@ -1,3 +1,8 @@
+---
+category: reference
+status: active
+last_verified: 2026-04-24
+---
 # Android Changelog
 
 Internal release history. For Play Store "What's New" text, see `distribution/whatsnew/`.

@@ -1,3 +1,7 @@
+---
+category: archive
+status: shipped
+---
 # Design Implementation Plan — High Value, Low Effort
 
 These three changes improve the most-used screens with minimal code.

@@ -1,3 +1,7 @@
+---
+category: archive
+status: shipped
+---
 # Firebase Handler Testing Plan
 
 Complete the handler-test coverage that the database refactor plan

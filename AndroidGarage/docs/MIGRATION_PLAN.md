@@ -1,3 +1,7 @@
+---
+category: plan
+status: active
+---
 # Migration Plan — ADR-021 + ADR-022
 
 Rollout plan for the state-ownership principles (ADR-021) and the

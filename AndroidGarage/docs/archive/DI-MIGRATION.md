@@ -1,3 +1,7 @@
+---
+category: archive
+status: shipped
+---
 # Hilt → kotlin-inject Migration Guide
 
 This document records the step-by-step migration from Hilt to kotlin-inject. It serves as a permanent reference for this project and a template for migrating other repositories.
