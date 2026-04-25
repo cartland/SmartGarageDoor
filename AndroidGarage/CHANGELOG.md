@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-04-24
+last_verified: 2026-04-25
 ---
 # Android Changelog
 
@@ -14,6 +14,9 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 - **Patch (X.Y.Z)** — Bug fixes, UI polish, performance, refactors. No new capability.
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
+
+## 2.5.0
+- Smoother garage door animation. Linear motion while the door is opening or closing, soft settle when it reaches its final state. Warning states (open-too-long, sensor conflict) now indicate with a midway resting position instead of snapping.
 
 ## 2.4.4
 - Fixed Home tab stuck on "Loading" when the door state hadn't changed since the last fetch (e.g. tap-to-refresh, app launch). FCM pushes already worked because a state change produces a distinct value; the refresh path was silently latched by StateFlow value-equality dedup.
