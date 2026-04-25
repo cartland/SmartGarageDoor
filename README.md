@@ -15,6 +15,8 @@ My original firmware implementation was based on Arduino (2021). I've since migr
 
 <img src="AndroidGarage/screenshots/home_closed.png" width="200" alt="Garage app home screen with the door closed and the button ready to press"> <img src="AndroidGarage/screenshots/history.png" width="200" alt="Garage history screen with recent door events">
 
+<!-- not-actively-maintained: Firmware section (2024 FreeRTOS + 2021 Arduino) is reference-only. Active doc maintenance focuses on Android + Firebase server. See GarageFirmware_ESP32/README.md and Arduino_ESP32/README.md for firmware-specific guidance. -->
+
 ## Firmware
 
 ### 2024 Implementation (ESP32 FreeRTOS)
