@@ -217,6 +217,10 @@ The script computes the next tag as `android/<highest + 1>`. The `--confirm-tag`
 
 **Validation is required by default.** Run `./scripts/validate.sh` before releasing. If validation hasn't passed on the commit, the release script will block. For emergencies use `--confirm-unvalidated-release <sha>` — the SHA must equal the target commit. Always ask the user before skipping validation.
 
+**Changelog entry is required by default.** `AndroidGarage/CHANGELOG.md` must have a `## X.Y.Z` heading (matching `versionName` in `version.properties`) with a non-empty body before the tag can be pushed. The release script parses `versionName` and looks for the heading; missing or empty bodies block the release. Draft with `/update-android-changelog`. For emergencies use `--confirm-no-changelog <sha>` — the SHA must equal the target commit. Add the entry retroactively after a no-changelog release.
+
+The changelog and the Play Store whatsnew are different files: `CHANGELOG.md` is the permanent internal history (every version, patches included); `distribution/whatsnew/` is rolling and only covers the current minor/major. Missing changelog entries silently went unnoticed through 2.5.0 (added in #548) — the gate closes that gap.
+
 **Rollback requires two steps** (intentionally hard to do accidentally):
 ```bash
 git checkout android/M                 # 1. move HEAD to the commit you want to re-release

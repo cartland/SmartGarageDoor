@@ -83,3 +83,9 @@ To draft:
 - Do not update the changelog here (use `/update-android-changelog` for that)
 - Patches must not touch whatsnew — they roll up into the next minor/major
 - Confirm both the version bump *and* the whatsnew description with the user before creating the PR
+
+## Companion: update CHANGELOG.md before releasing
+
+`AndroidGarage/CHANGELOG.md` is a separate file from this bump and is **required by the release script** — `./scripts/release-android.sh` blocks the tag push if `## X.Y.Z` (the new versionName) is missing or has an empty body. The whatsnew you set here covers the Play Store; the changelog is the permanent internal history.
+
+After this bump merges, run `/update-android-changelog` to draft the matching entry, OR include the changelog edit in the same PR if the user-facing description is already settled. The release-android skill will tell you the gate has failed if it's missed, but catching it earlier saves a round trip.

@@ -52,6 +52,7 @@ CONFIRM_TAG=""
 CONFIRM_HASH=""
 CONFIRM_ROLLBACK_FROM=""
 CONFIRM_UNVALIDATED_RELEASE=""
+CONFIRM_NO_CHANGELOG=""
 DRY_RUN=false
 
 show_help() {
@@ -75,6 +76,9 @@ Override flags (all require a specific value from --check output):
   --confirm-unvalidated-release <sha>
                                     Release without validation marker match.
                                     SHA must equal the target commit.
+  --confirm-no-changelog <sha>      Release without a CHANGELOG entry for the
+                                    current versionName. SHA must equal the
+                                    target commit. Add the entry retroactively.
 
 Help:
   -h, --help                Show this help
@@ -106,6 +110,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --confirm-unvalidated-release)
             CONFIRM_UNVALIDATED_RELEASE="$2"
+            shift 2
+            ;;
+        --confirm-no-changelog)
+            CONFIRM_NO_CHANGELOG="$2"
             shift 2
             ;;
         --dry-run)
@@ -183,6 +191,56 @@ if [ -f "$VALIDATION_FILE" ]; then
     fi
 fi
 
+# versionName from version.properties on the target commit. CHANGELOG.md
+# uses the human-readable X.Y.Z heading (not the android/N tag), so this
+# is the key we look up.
+VERSION_PROPERTIES="$REPO_ROOT/AndroidGarage/version.properties"
+VERSION_NAME=""
+if [ -f "$VERSION_PROPERTIES" ]; then
+    VERSION_NAME=$(grep -E '^versionName=' "$VERSION_PROPERTIES" 2>/dev/null | head -1 | cut -d= -f2 | tr -d '[:space:]')
+fi
+
+# CHANGELOG state for the versionName we're about to release.
+#   present  : `## X.Y.Z` heading exists and has non-empty body
+#   empty    : heading exists but body is whitespace-only
+#   missing  : no heading for this versionName
+#   no_file  : AndroidGarage/CHANGELOG.md does not exist
+#   no_ver   : versionName could not be parsed from version.properties
+#
+# Matching rules:
+# - Lines inside fenced code blocks (```...```) are ignored, in case the
+#   docs intro ever embeds an example release heading.
+# - Heading must be `^## X.Y.Z` followed by end-of-line or whitespace, so
+#   `## 2.5` does not falsely match `2.5.1`.
+CHANGELOG_FILE="$REPO_ROOT/AndroidGarage/CHANGELOG.md"
+CHANGELOG_STATE="no_file"
+CHANGELOG_BODY=""
+if [ -z "$VERSION_NAME" ]; then
+    CHANGELOG_STATE="no_ver"
+elif [ -f "$CHANGELOG_FILE" ]; then
+    CHANGELOG_BODY=$(awk -v ver="$VERSION_NAME" '
+        BEGIN { in_fence = 0; found = 0 }
+        /^```/ { in_fence = !in_fence; next }
+        in_fence { next }
+        $0 ~ ("^## "ver"([ ]|$)") { found = 1; next }
+        found && /^## / { exit }
+        found { print }
+    ' "$CHANGELOG_FILE")
+    HEADING_FOUND=$(awk -v ver="$VERSION_NAME" '
+        BEGIN { in_fence = 0 }
+        /^```/ { in_fence = !in_fence; next }
+        in_fence { next }
+        $0 ~ ("^## "ver"([ ]|$)") { print "yes"; exit }
+    ' "$CHANGELOG_FILE")
+    if [ -n "$(echo "$CHANGELOG_BODY" | tr -d '[:space:]')" ]; then
+        CHANGELOG_STATE="present"
+    elif [ "$HEADING_FOUND" = "yes" ]; then
+        CHANGELOG_STATE="empty"
+    else
+        CHANGELOG_STATE="missing"
+    fi
+fi
+
 # Rollback detection: target commit is already tagged (not the latest),
 # usually because the user ran `git checkout android/M` on an older tag.
 EXISTING_TAGS_ON_TARGET=$(git tag -l 'android/[0-9]*' --points-at "$TARGET_COMMIT" 2>/dev/null | sort -t/ -k2 -n || true)
@@ -213,6 +271,20 @@ if [ "$MODE" = "check" ]; then
             ;;
     esac
 
+    if [ -n "$VERSION_NAME" ]; then
+        echo "versionName:  $VERSION_NAME"
+    else
+        echo -e "versionName:  ${YELLOW}NOT FOUND${RESET} (could not parse AndroidGarage/version.properties)"
+    fi
+
+    case "$CHANGELOG_STATE" in
+        present) echo -e "Changelog:    ${GREEN}PRESENT${RESET} (entry for $VERSION_NAME in AndroidGarage/CHANGELOG.md)" ;;
+        empty)   echo -e "Changelog:    ${YELLOW}EMPTY${RESET} (heading for $VERSION_NAME has no body)" ;;
+        missing) echo -e "Changelog:    ${YELLOW}MISSING${RESET} (no heading for $VERSION_NAME in AndroidGarage/CHANGELOG.md)" ;;
+        no_file) echo -e "Changelog:    ${YELLOW}NO FILE${RESET} (AndroidGarage/CHANGELOG.md does not exist)" ;;
+        no_ver)  echo -e "Changelog:    ${YELLOW}SKIPPED${RESET} (versionName not found in version.properties)" ;;
+    esac
+
     if [ -n "$EXISTING_TAGS_ON_TARGET" ]; then
         echo "Target tags:  $(echo "$EXISTING_TAGS_ON_TARGET" | tr '\n' ' ')"
     fi
@@ -229,17 +301,21 @@ if [ "$MODE" = "check" ]; then
         echo "      --confirm-hash $TARGET_COMMIT \\"
         echo "      --confirm-rollback-from $LATEST_TAG_SHA"
         echo ""
+        EXTRAS=()
         if [ "$VALIDATION_STATE" != "matches" ]; then
-            echo "If you also need to skip validation (expected for old rollback targets), append:"
-            echo "      --confirm-unvalidated-release $TARGET_COMMIT"
+            EXTRAS+=("--confirm-unvalidated-release $TARGET_COMMIT")
+        fi
+        if [ "$CHANGELOG_STATE" != "present" ] && [ "$CHANGELOG_STATE" != "no_ver" ]; then
+            EXTRAS+=("--confirm-no-changelog $TARGET_COMMIT")
+        fi
+        if [ ${#EXTRAS[@]} -gt 0 ]; then
+            echo "Append the following for the conditions flagged above:"
+            for extra in "${EXTRAS[@]}"; do
+                echo "      $extra"
+            done
             echo ""
         fi
-    elif [ "$VALIDATION_STATE" = "matches" ]; then
-        echo "Copy and run this command to release:"
-        echo ""
-        echo "  ./scripts/release-android.sh --confirm-tag $NEW_TAG"
-        echo ""
-    else
+    elif [ "$VALIDATION_STATE" != "matches" ]; then
         echo "Validation is not passing for HEAD. Two options:"
         echo ""
         echo "(1) Run validation, then re-run --check (recommended):"
@@ -250,6 +326,30 @@ if [ "$MODE" = "check" ]; then
         echo "    ./scripts/release-android.sh \\"
         echo "        --confirm-tag $NEW_TAG \\"
         echo "        --confirm-unvalidated-release $TARGET_COMMIT"
+        echo ""
+    elif [ "$CHANGELOG_STATE" != "present" ] && [ "$CHANGELOG_STATE" != "no_ver" ]; then
+        echo "No CHANGELOG entry for $VERSION_NAME. Two options:"
+        echo ""
+        echo "(1) Add an entry, commit, push, re-run --check (recommended):"
+        echo ""
+        echo "    Use /update-android-changelog or edit AndroidGarage/CHANGELOG.md"
+        echo "    and add at the top (above the previous version):"
+        echo ""
+        echo "      ## $VERSION_NAME"
+        echo "      - <one or more bullets describing user-facing changes>"
+        echo ""
+        echo "    Then: git commit + push, ./scripts/validate.sh, ./scripts/release-android.sh --check"
+        echo ""
+        echo "(2) Release WITHOUT a changelog entry (emergency only):"
+        echo ""
+        echo "    ./scripts/release-android.sh \\"
+        echo "        --confirm-tag $NEW_TAG \\"
+        echo "        --confirm-no-changelog $TARGET_COMMIT"
+        echo ""
+    else
+        echo "Copy and run this command to release:"
+        echo ""
+        echo "  ./scripts/release-android.sh --confirm-tag $NEW_TAG"
         echo ""
     fi
 
@@ -377,6 +477,47 @@ else
         echo "  ./scripts/release-android.sh --check"
         exit 1
     fi
+fi
+
+# === Gate: CHANGELOG entry ===
+# AndroidGarage/CHANGELOG.md must have a `## X.Y.Z` heading with a non-empty
+# body for the current versionName. The Play Store whatsnew is rolling and
+# only covers minor/major bumps — the changelog is the permanent history,
+# every version (patch included). Mirrors the Firebase changelog gate.
+#
+# If versionName cannot be parsed (no_ver), skip the gate entirely — the
+# validation step would already have failed for any real release.
+if [ "$CHANGELOG_STATE" = "present" ]; then
+    FIRST_LINE=$(echo "$CHANGELOG_BODY" | grep -m1 -E '[^[:space:]]' || echo "")
+    echo -e "${GREEN}Changelog entry found for $VERSION_NAME.${RESET}"
+    if [ -n "$FIRST_LINE" ]; then
+        echo "  First line: $(echo "$FIRST_LINE" | head -c 120)"
+    fi
+elif [ "$CHANGELOG_STATE" = "no_ver" ]; then
+    echo -e "${YELLOW}Skipping changelog gate: versionName not found in version.properties.${RESET}"
+elif [ -n "$CONFIRM_NO_CHANGELOG" ]; then
+    if [ "$CONFIRM_NO_CHANGELOG" != "$TARGET_COMMIT" ]; then
+        echo -e "${RED}Error: --confirm-no-changelog SHA does not match target commit.${RESET}"
+        echo "  Expected (target commit): $TARGET_COMMIT"
+        echo "  Got:                      $CONFIRM_NO_CHANGELOG"
+        echo ""
+        echo "Run --check to see the correct value."
+        exit 1
+    fi
+    echo -e "${YELLOW}WARNING: Releasing without CHANGELOG entry (--confirm-no-changelog).${RESET}"
+    echo "  Add an entry to AndroidGarage/CHANGELOG.md after the fact."
+    echo ""
+else
+    case "$CHANGELOG_STATE" in
+        missing) REASON="no heading for $VERSION_NAME in AndroidGarage/CHANGELOG.md" ;;
+        empty)   REASON="heading for $VERSION_NAME exists but body is empty" ;;
+        no_file) REASON="AndroidGarage/CHANGELOG.md does not exist" ;;
+        *)       REASON="unknown" ;;
+    esac
+    echo -e "${RED}Error: CHANGELOG gate failed ($REASON).${RESET}"
+    echo ""
+    echo "Run --check to see how to fix (write the entry, or emergency override)."
+    exit 1
 fi
 
 # Existing tags on this commit (informational).
