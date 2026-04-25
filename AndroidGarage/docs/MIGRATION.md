@@ -1,3 +1,7 @@
+---
+category: plan
+status: active
+---
 # Migration Roadmap
 
 Target: Align with [battery-butler](https://github.com/cartland/battery-butler) technology stack over several independent refactoring projects. Each phase is a separate PR or series of PRs. No phase depends on a later phase.

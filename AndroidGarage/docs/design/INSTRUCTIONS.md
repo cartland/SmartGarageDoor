@@ -1,3 +1,7 @@
+---
+category: plan
+status: active
+---
 # Design Iteration Instructions
 
 This directory contains an iterative UX and design specification for the SmartGarageDoor Android app. Each iteration reviews what exists, brainstorms improvements, picks one area, and improves it.

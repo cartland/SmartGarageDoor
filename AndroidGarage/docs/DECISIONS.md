@@ -1,3 +1,8 @@
+---
+category: reference
+status: active
+last_verified: 2026-04-24
+---
 # Architectural Decision Records
 
 ## ADR-001: Server-Centric Design

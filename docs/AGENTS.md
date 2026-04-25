@@ -77,8 +77,9 @@ Docs older than 90 days surface as **warnings** in `validate.sh` output. Warning
 **Excluded** (no front-matter required, ignored by checks):
 - `.claude/skills/` — has native Claude Code frontmatter
 - `GarageFirmware_ESP32/`, `Arduino_ESP32/` — out of primary doc scope
-- `node_modules/`, `**/build/`, `.claude/worktrees/`
+- `node_modules/`, `**/build/`, `.claude/worktrees/`, `.claude/projects/`
 - Generated content: screenshot galleries, `detekt.md`
+- `docs/archive/pr-review/` — has its own historical frontmatter convention (`pr`, `state`, `date`); self-contained archive
 
 ## 5. Trust but verify
 

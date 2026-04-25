@@ -1,3 +1,8 @@
+---
+category: reference
+status: active
+last_verified: 2026-04-24
+---
 # Design History
 
 Decision log for each iteration. Read top-to-bottom to understand how the spec evolved.

@@ -1,3 +1,8 @@
+---
+category: reference
+status: active
+last_verified: 2026-04-24
+---
 # Reactive auth listener pattern
 
 **Who this is for:** anyone modeling authentication state in a

@@ -1,3 +1,8 @@
+---
+category: reference
+status: active
+last_verified: 2026-04-24
+---
 # Technology Guides
 
 Portable, technology-specific lessons — intended to be useful **outside

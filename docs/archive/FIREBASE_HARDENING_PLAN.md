@@ -1,3 +1,7 @@
+---
+category: archive
+status: shipped
+---
 # Firebase Server Hardening Plan
 
 Covers two non-refactor tranches: (A) replacing hardcoded

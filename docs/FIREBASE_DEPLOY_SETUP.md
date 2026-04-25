@@ -1,3 +1,8 @@
+---
+category: reference
+status: active
+last_verified: 2026-04-24
+---
 # Firebase Server Operations
 
 Long-term maintenance guide for the Firebase Cloud Functions that back the Smart Garage Door app. Covers deploy, rollback, monitoring, cost hygiene, and recovery of the CI pipeline.
