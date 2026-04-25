@@ -16,7 +16,7 @@
 
 /**
  * Unit tests for the extracted pubsubCheckForDoorErrors handler core.
- * H2 of docs/FIREBASE_HANDLER_TESTING_PLAN.md.
+ * H2 of docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md.
  *
  * updateEvent is sinon-stubbed — its branching (old-event comparison,
  * FCM sending, Firestore persistence) is exercised by

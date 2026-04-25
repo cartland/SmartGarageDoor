@@ -25,7 +25,7 @@ import { getBuildTimestamp, requireBuildTimestamp } from '../../controller/confi
 // constant lived here through server/16. Removed in A3 after
 // production was verified to have body.buildTimestamp populated with
 // that exact value, and server/16's warn-level fallback logs stayed
-// empty for 24+ hours. See docs/FIREBASE_HARDENING_PLAN.md → Part A / A3
+// empty for 24+ hours. See docs/archive/FIREBASE_HARDENING_PLAN.md → Part A / A3
 // for the full rationale + revert path.
 
 /**

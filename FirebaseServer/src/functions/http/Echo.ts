@@ -25,7 +25,7 @@ const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
 
 /**
  * Pure core — testable with plain object args. Handler-body extraction
- * per docs/FIREBASE_HANDLER_TESTING_PLAN.md (Phase H1 pilot).
+ * per docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md (Phase H1 pilot).
  *
  * Behavior is byte-identical to the pre-extraction inline code:
  * - Builds the echo `data` payload from query + body.

@@ -359,7 +359,7 @@ object FcmPayloadParser {
 
 **Status:** Partially superseded by ADR-022.
 
-The core insight of ADR-013 — that `StateFlow` is a **state** primitive, not an **event** primitive, and that conflation silently drops transient signals (SENDING → IDLE) — remains correct. The blanket rule "StateFlow lives only in ViewModels" was too restrictive and, applied uniformly, produced the snooze-state propagation bug documented in `VIEWMODEL_SCOPING_ISSUE.md` (android/164-168). ADR-022 refines ADR-013 by distinguishing **event-y signals** (where ADR-013's ban on StateFlow still applies) from **state-y data with a current value** (where `StateFlow` belongs at the repository boundary, not only in ViewModels).
+The core insight of ADR-013 — that `StateFlow` is a **state** primitive, not an **event** primitive, and that conflation silently drops transient signals (SENDING → IDLE) — remains correct. The blanket rule "StateFlow lives only in ViewModels" was too restrictive and, applied uniformly, produced the snooze-state propagation bug documented in `archive/VIEWMODEL_SCOPING_ISSUE.md` (android/164-168). ADR-022 refines ADR-013 by distinguishing **event-y signals** (where ADR-013's ban on StateFlow still applies) from **state-y data with a current value** (where `StateFlow` belongs at the repository boundary, not only in ViewModels).
 
 Read ADR-022 alongside ADR-013; the rules below apply to event-y signals only.
 
@@ -638,7 +638,7 @@ init { viewModelScope.launch { observeSnooze().collect { _snoozeState.value = it
 // Instead: override val snoozeState: StateFlow<SnoozeState> = observeSnooze()
 ```
 
-**Why:** `stateIn(Eagerly)` had subtle timing issues that caused real production bugs (auth state UI not updating, see PR #295). The mirror pattern caused the snooze-state propagation bug in android/164-168 (see `VIEWMODEL_SCOPING_ISSUE.md`). The explicit `MutableStateFlow` + `init.collect` pattern remains correct for VM-local presentation state and cold-Flow materialization; ADR-022 specifies passthrough for state-y data.
+**Why:** `stateIn(Eagerly)` had subtle timing issues that caused real production bugs (auth state UI not updating, see PR #295). The mirror pattern caused the snooze-state propagation bug in android/164-168 (see `archive/VIEWMODEL_SCOPING_ISSUE.md`). The explicit `MutableStateFlow` + `init.collect` pattern remains correct for VM-local presentation state and cold-Flow materialization; ADR-022 specifies passthrough for state-y data.
 
 **Enforcement:** `ViewModelStateFlowCheckTask` bans `.stateIn(viewModelScope, ...)` in ViewModel files. ADR-022 extends this to ban `MutableStateFlow<T>` in a VM when `T` is a repo-owned domain state type (allowlist).
 
@@ -873,7 +873,7 @@ Rule 2 (raw-body logging at network-data-source boundaries) is a specific instan
 
 **Status:** Accepted and enforced.
 
-**Context:** The android/164-168 snooze-state propagation bug (see `VIEWMODEL_SCOPING_ISSUE.md`) exposed an unstated assumption in the architecture: that "there is one `RemoteButtonViewModel`." In fact there were three — Activity-scope (dead code), Home nav entry, Profile nav entry — each with its own `_snoozeState: MutableStateFlow<SnoozeState>` mirroring the singleton repository. Compose read from one; the others emitted independently. Under production conditions the read-side VM could silently miss an emission while the other two saw it.
+**Context:** The android/164-168 snooze-state propagation bug (see `archive/VIEWMODEL_SCOPING_ISSUE.md`) exposed an unstated assumption in the architecture: that "there is one `RemoteButtonViewModel`." In fact there were three — Activity-scope (dead code), Home nav entry, Profile nav entry — each with its own `_snoozeState: MutableStateFlow<SnoozeState>` mirroring the singleton repository. Compose read from one; the others emitted independently. Under production conditions the read-side VM could silently miss an emission while the other two saw it.
 
 The root issue is that *the same domain state existed as multiple copies*. Every VM held its own `MutableStateFlow` fed by an observer coroutine that mirrored the singleton. Three copies, three observers, three chances for something to go wrong. PR #354 worked around the symptom by writing directly to one of those copies from the suspend call's return value. The real fix is to stop copying.
 
@@ -984,7 +984,7 @@ After this change, three VMs don't multiply the truth. They multiply only their 
 
 ### Related
 
-- `VIEWMODEL_SCOPING_ISSUE.md` — the background analysis that motivated this ADR.
+- `archive/VIEWMODEL_SCOPING_ISSUE.md` — the background analysis that motivated this ADR.
 - ADR-018 — reactive auth listener; an instance of Rule 1 applied to auth state.
 - ADR-019 — repository side-effects on `externalScope`; an instance of Rule 7.
 - `ActivityViewModels.kt:31` — `activityViewModel(...)` helper for explicit-owner scoping.
@@ -1040,7 +1040,7 @@ is now the load-bearing regression guard; without it, a future
 
 ADR-013 established that `StateFlow` is a state primitive (not an event primitive) and, based on the PushStatus SENDING→IDLE conflation bug, banned `StateFlow` below the ViewModel layer. Applied uniformly, that rule forced every repository exposing long-lived state to widen its interface to `Flow<T>` — even when the underlying storage was a `MutableStateFlow`. Downstream, ViewModels then held `private val _xState: MutableStateFlow<T>` fields that mirrored the repository via `init { observeX().collect { _xState.value = it } }`.
 
-That mirror pattern produced the android/164-168 snooze-state propagation bug (see `VIEWMODEL_SCOPING_ISSUE.md`). Three `DefaultRemoteButtonViewModel` instances coexisted at runtime (Activity scope, Home nav entry, Profile nav entry) because of `rememberViewModelStoreNavEntryDecorator<Screen>()` and DI providers that weren't `@Singleton`. Each VM held its own `_snoozeState` mirror. Under production conditions the Profile-entry VM's observer coroutine failed to forward an emission, while the other two mirrors updated correctly — and Compose was bound to the one that silently missed it. PR #354 shipped a workaround (direct write to `_snoozeState` from the suspend return value). ADR-021 captured the principles. This ADR refines ADR-013 with the shape change that makes the bug structurally impossible.
+That mirror pattern produced the android/164-168 snooze-state propagation bug (see `archive/VIEWMODEL_SCOPING_ISSUE.md`). Three `DefaultRemoteButtonViewModel` instances coexisted at runtime (Activity scope, Home nav entry, Profile nav entry) because of `rememberViewModelStoreNavEntryDecorator<Screen>()` and DI providers that weren't `@Singleton`. Each VM held its own `_snoozeState` mirror. Under production conditions the Profile-entry VM's observer coroutine failed to forward an emission, while the other two mirrors updated correctly — and Compose was bound to the one that silently missed it. PR #354 shipped a workaround (direct write to `_snoozeState` from the suspend return value). ADR-021 captured the principles. This ADR refines ADR-013 with the shape change that makes the bug structurally impossible.
 
 ADR-013 was right about event-y signals. It was wrong to generalize to state-y data.
 
@@ -1079,7 +1079,7 @@ class NetworkSnoozeRepository(
 }
 ```
 
-**Do not use `stateIn(externalScope, WhileSubscribed(5_000), initial)` for repo-owned state.** `WhileSubscribed` cancels the upstream collector when subscriber count drops to zero for the timeout window. Under production conditions (navigation, backgrounding, the multi-VM pattern from `VIEWMODEL_SCOPING_ISSUE.md`), subscriber count thrashes, and an emission that lands during the dead window is silently lost on upstream restart. This is the exact class of bug ADR-022 is trying to eliminate — it would just move from the ViewModel layer to the repository layer.
+**Do not use `stateIn(externalScope, WhileSubscribed(5_000), initial)` for repo-owned state.** `WhileSubscribed` cancels the upstream collector when subscriber count drops to zero for the timeout window. Under production conditions (navigation, backgrounding, the multi-VM pattern from `archive/VIEWMODEL_SCOPING_ISSUE.md`), subscriber count thrashes, and an emission that lands during the dead window is silently lost on upstream restart. This is the exact class of bug ADR-022 is trying to eliminate — it would just move from the ViewModel layer to the repository layer.
 
 - `stateIn(externalScope, Eagerly, initial)` is safer than `WhileSubscribed` but less explicit about ownership than the collector-in-`init` pattern.
 - The always-on collector makes the translation logic a named function (`mapToState`), makes the write points easy to audit, and is trivial to lint (see Enforcement).
@@ -1256,7 +1256,7 @@ Skie adoption is tracked as Phase 38 (see `MIGRATION.md`).
 
 ### Related
 
-- `VIEWMODEL_SCOPING_ISSUE.md` — the bug post-mortem that motivated this.
+- `archive/VIEWMODEL_SCOPING_ISSUE.md` — the bug post-mortem that motivated this.
 - `MIGRATION_PLAN.md` — rollout sequence.
 - ADR-011 — suspend return values carry completion signals.
 - ADR-013 — event-y signals stay out of StateFlow (retained; see inline supersede marks).

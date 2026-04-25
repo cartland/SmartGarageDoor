@@ -31,12 +31,12 @@ const REMOTE_BUTTON_REQUEST_ERROR_SECONDS = 60 * 10;
 // door sensor, so a different fallback value. Removed in A3 after
 // production was verified to have body.remoteButtonBuildTimestamp
 // populated (URL-encoded; the accessor decodes it to the same string).
-// See docs/FIREBASE_HARDENING_PLAN.md → Part A / A3 for full history
+// See docs/archive/FIREBASE_HARDENING_PLAN.md → Part A / A3 for full history
 // + revert path.
 
 /**
  * Pure core — testable via fakes on the three databases. H3 of the
- * handler testing plan (docs/FIREBASE_HANDLER_TESTING_PLAN.md).
+ * handler testing plan (docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md).
  *
  * Checks whether the remote-button device has checked in recently:
  *  - missing request entry  → writes error entry (device never polled)

@@ -285,7 +285,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     // kotlinx.serialization (Ktor HTTP client is in :data module)
     implementation(libs.kotlinx.serialization.json)
-    // kotlin-inject (replaced Hilt — see docs/DI-MIGRATION.md)
+    // kotlin-inject (replaced Hilt — see docs/archive/DI-MIGRATION.md)
     implementation(libs.kotlin.inject.runtime)
     ksp(libs.kotlin.inject.compiler)
     // Firebase

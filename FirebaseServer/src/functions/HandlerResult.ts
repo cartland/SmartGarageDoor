@@ -16,7 +16,7 @@
 
 /**
  * Shared return type for extracted HTTP-handler cores that produce
- * multiple status codes — see docs/FIREBASE_HANDLER_TESTING_PLAN.md.
+ * multiple status codes — see docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md.
  *
  * The pure `handle<Action>(input)` function returns a HandlerResult
  * instead of touching the express Response object directly. The thin

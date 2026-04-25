@@ -90,7 +90,7 @@ export function getRemoteButtonBuildTimestamp(config: any): string | null {
  * Require a non-null buildTimestamp from config. Throws if the value
  * is missing/empty. This replaces the fallback pattern used in
  * server/16 — production config is now the authoritative source of
- * the device ID. See docs/FIREBASE_HARDENING_PLAN.md → Part A / A3
+ * the device ID. See docs/archive/FIREBASE_HARDENING_PLAN.md → Part A / A3
  * for the history and revert path.
  *
  * Why a throw rather than a silent fallback: after A2 verified
@@ -118,7 +118,7 @@ export function requireBuildTimestamp(
   context: string,
 ): string {
   if (configValue === null) {
-    const msg = `[${context}] buildTimestamp missing from config — cannot proceed. See docs/FIREBASE_HARDENING_PLAN.md Part A / A3.`;
+    const msg = `[${context}] buildTimestamp missing from config — cannot proceed. See docs/archive/FIREBASE_HARDENING_PLAN.md Part A / A3.`;
     console.error(msg);
     throw new Error(msg);
   }

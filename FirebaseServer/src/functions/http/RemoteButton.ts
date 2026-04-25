@@ -160,7 +160,7 @@ export const httpRemoteButton = functions.https.onRequest(async (request, respon
 
 /**
  * Pure core for the push-button (add-command) endpoint. H3 (HTTP
- * add-command portion) of docs/FIREBASE_HANDLER_TESTING_PLAN.md.
+ * add-command portion) of docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md.
  *
  * **Preserved quirks — these look like bugs; do NOT "fix" them here:**
  *

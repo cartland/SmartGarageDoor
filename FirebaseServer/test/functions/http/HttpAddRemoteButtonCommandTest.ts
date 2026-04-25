@@ -17,7 +17,7 @@
 /**
  * Unit tests for the extracted httpAddRemoteButtonCommand handler
  * core. H3 (HTTP add-command portion) of
- * docs/FIREBASE_HANDLER_TESTING_PLAN.md.
+ * docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md.
  *
  * Tests pin three audit findings:
  *  - L232 missing-return quirk: 400 is returned to the client but

@@ -16,7 +16,7 @@
 
 /**
  * Unit tests for the extracted pubsubCheckForOpenDoorsJob handler core.
- * H2 of docs/FIREBASE_HANDLER_TESTING_PLAN.md.
+ * H2 of docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md.
  *
  * Same inputs as the HTTP variant; different context label (used in
  * the thrown-error message + ERROR log when config is missing).

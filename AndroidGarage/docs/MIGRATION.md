@@ -77,7 +77,7 @@ Target: Align with [battery-butler](https://github.com/cartland/battery-butler) 
 
 **Goal:** KMP-compatible dependency injection.
 
-See `docs/DI-MIGRATION.md` for the full migration guide with before/after code examples.
+See `docs/archive/DI-MIGRATION.md` for the full migration guide with before/after code examples.
 
 ### 3.1 Add kotlin-inject — `65f89c8` (#86)
 - Added `me.tatarka.inject:kotlin-inject-runtime` 0.9.0 + KSP compiler

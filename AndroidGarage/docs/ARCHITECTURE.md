@@ -115,7 +115,7 @@ Packages under `androidApp/src/main/java/com/chriscartland/garage/`:
 | `ui/` | Compose screens, cards, theme, navigation | `Main.kt` (Nav3 NavDisplay + entryProvider), `HomeContent.kt`, `DoorHistoryContent.kt`, `ProfileContent.kt`, `RemoteButtonContent.kt`, `SnoozeNotificationCard.kt`, `DoorStatusCard.kt`, `AnimatableGarageDoor.kt`, `GarageDoorCanvas.kt`, `theme/` |
 | `version/` | Android `AppVersion` via `PackageManager` | — |
 
-`GarageApplication.kt` uses kotlin-inject (`AppComponent`). Hilt was fully removed (#133 era, see `docs/DI-MIGRATION.md`). No `@HiltAndroidApp` in the tree.
+`GarageApplication.kt` uses kotlin-inject (`AppComponent`). Hilt was fully removed (#133 era, see `docs/archive/DI-MIGRATION.md`). No `@HiltAndroidApp` in the tree.
 
 ## Data Flows
 
@@ -156,7 +156,7 @@ Packages under `androidApp/src/main/java/com/chriscartland/garage/`:
 
 ## Dependency Injection (kotlin-inject)
 
-All dependencies wired in `AppComponent` (see `docs/DI-MIGRATION.md` for the Hilt→kotlin-inject migration history and `docs/DI_SINGLETON_REQUIREMENTS.md` for `@Singleton` correctness rules).
+All dependencies wired in `AppComponent` (see `docs/archive/DI-MIGRATION.md` for the Hilt→kotlin-inject migration history and `docs/DI_SINGLETON_REQUIREMENTS.md` for `@Singleton` correctness rules).
 
 Entry points exposed by `AppComponent` (abstract vals — required for `@Singleton` caching, see CLAUDE.md):
 

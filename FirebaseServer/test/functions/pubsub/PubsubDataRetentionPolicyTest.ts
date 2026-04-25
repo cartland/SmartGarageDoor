@@ -17,7 +17,7 @@
 /**
  * Unit tests for the extracted pubsubDataRetentionPolicy handler core.
  * H5 of the handler testing plan —
- * docs/FIREBASE_HANDLER_TESTING_PLAN.md.
+ * docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md.
  *
  * deleteOldData is sinon-stubbed — the handler's job is the config
  * gate and the 2-week cutoff arithmetic; the cleanup logic has its

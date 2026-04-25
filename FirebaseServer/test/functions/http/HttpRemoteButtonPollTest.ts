@@ -16,7 +16,7 @@
 
 /**
  * Unit tests for the extracted httpRemoteButton device-poll handler
- * core. H3 (HTTP poll) of docs/FIREBASE_HANDLER_TESTING_PLAN.md.
+ * core. H3 (HTTP poll) of docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md.
  *
  * The poll endpoint has no auth (ESP32 polls it without credentials).
  * Tests cover the ack-token state machine's three "clear the pending

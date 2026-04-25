@@ -284,7 +284,7 @@ This guide was written after a ~5-month regression cycle where
 `@Singleton` silently didn't cache, producing a user-visible state
 propagation bug that masqueraded as a Compose/Flow issue and survived
 multiple targeted fix attempts. The repository-specific postmortem is
-in `docs/POSTMORTEM_ANDROID_170.md`; this guide contains only the
+in `../archive/POSTMORTEM_ANDROID_170.md`; this guide contains only the
 portable lessons.
 
 If you're adopting kotlin-inject in a new project, the four-item

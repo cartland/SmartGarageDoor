@@ -18,7 +18,7 @@
  * Contract tests for the AuthService bridge.
  *
  * The bridge is introduced ahead of the H3/H4 HTTP handler extractions
- * (see docs/FIREBASE_HANDLER_TESTING_PLAN.md). There are no callers yet;
+ * (see docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md). There are no callers yet;
  * these tests pin the swap-in pattern so the follow-up handler tests
  * can rely on it.
  */
