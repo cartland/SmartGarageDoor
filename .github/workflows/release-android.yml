@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   release:
@@ -89,3 +90,18 @@ jobs:
           VERSION_CODE="${{ steps.validate.outputs.version_code }}"
           TAG="android/$VERSION_CODE"
           echo "::notice title=Android Release::Released $TAG to Play Store internal track (versionCode=$VERSION_CODE, package=com.chriscartland.garage)"
+
+  # Track release failures via a single GitHub issue (auto-create on failure,
+  # auto-close on the next successful release). Mirrors the post-merge CI pattern.
+  track-failure:
+    name: Track Android Release Failure
+    if: always()
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/ci-failure-tracker
+        with:
+          label: release-failure/android
+          result: ${{ needs.release.result == 'success' && 'success' || 'failure' }}
+          workflow-name: "Android Release (tag: ${{ github.ref_name }})"
