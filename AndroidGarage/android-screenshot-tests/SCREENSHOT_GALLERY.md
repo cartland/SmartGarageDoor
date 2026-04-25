@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Fri Apr 24 12:11:50 PDT 2026
+Generated on Sat Apr 25 07:02:32 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -248,6 +248,18 @@ Generated on Fri Apr 24 12:11:50 PDT 2026
 ### GarageDoorClosingPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorClosingPreviewTest_Light_fc5b723e_0.png" width="300" />
 
+### GarageDoorClosingTooLongPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorClosingTooLongPreviewTest_Dark_77106447_0.png" width="300" />
+
+### GarageDoorClosingTooLongPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorClosingTooLongPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### GarageDoorErrorSensorConflictPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorErrorSensorConflictPreviewTest_Dark_77106447_0.png" width="300" />
+
+### GarageDoorErrorSensorConflictPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorErrorSensorConflictPreviewTest_Light_fc5b723e_0.png" width="300" />
+
 ### GarageDoorMidwayPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorMidwayPreviewTest_Dark_77106447_0.png" width="300" />
 
@@ -259,6 +271,18 @@ Generated on Fri Apr 24 12:11:50 PDT 2026
 
 ### GarageDoorOpeningPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpeningPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### GarageDoorOpeningTooLongPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpeningTooLongPreviewTest_Dark_77106447_0.png" width="300" />
+
+### GarageDoorOpeningTooLongPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpeningTooLongPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### GarageDoorOpenMisalignedPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpenMisalignedPreviewTest_Dark_77106447_0.png" width="300" />
+
+### GarageDoorOpenMisalignedPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpenMisalignedPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### GarageDoorOpenPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpenPreviewTest_Dark_77106447_0.png" width="300" />
