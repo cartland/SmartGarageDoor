@@ -8,6 +8,8 @@ user-invocable: true
 
 Add an entry to `AndroidGarage/CHANGELOG.md` for the current version based on recent changes.
 
+`CHANGELOG.md` is the **permanent history** — every version (patch, minor, major) gets an entry. The Play Store `whatsnew/whatsnew-en-US` is the rolling, current-version-only counterpart maintained by `/bump-android-version`. When a minor/major ships, the whatsnew text gets distilled here too (or the changelog entry covers the same ground), so older whatsnew lines are never lost when whatsnew is overwritten.
+
 ## Steps
 
 ### 1. Read current version and changelog
