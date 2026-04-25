@@ -29,6 +29,12 @@ Example (placeholder tag numbers — the gate looks for exact `server/<real numb
 
 ---
 
+## server/21
+- Documentation cleanup release. The only runtime change is in `controller/config/ConfigAccessors.ts`: the `requireBuildTimestamp` throw message now points at `docs/archive/FIREBASE_HARDENING_PLAN.md` (the doc moved during the 2026-04-24 archive reorganization, PR #533). The throw never fires in current production — config has both buildTimestamp fields populated since `server/16` — so the path-update only matters if config is ever broken in the future.
+- Five other source files (`Echo.ts`, `OpenDoor.ts`, `RemoteButton.ts` HTTP + pubsub, `Snooze.ts`, `HandlerResult.ts`) had identical archive-path updates inside JSDoc/inline comments only — no runtime effect on those.
+- Zero runtime behavior change versus `server/20` for any path that currently executes. The 239-test suite passes; `ConfigAccessorsTest.ts` pins the new error message via the unchanged `/FIREBASE_HARDENING_PLAN\.md.*A3/` regex (matches the new `docs/archive/...` path because the regex isn't anchored).
+- Context: same 6-PR documentation maintenance plan that produced `docs/AGENTS.md`, the YAML front-matter validator, and the markdown link checker. See PRs #531-#536 for the doc-side scope.
+
 ## server/20
 - Re-deploy of `server/18` after the `server/19` rollback-investigation window. Same commit tree as `server/18` — see that entry below for the full handler-testing-plan scope. Re-deploys H1-H6 extractions (14 HTTP/pubsub handlers now pure-core-tested) plus the AuthService bridge introduced in PR #514.
 - Why the rollback happened: an Android user reported the Home tab stuck on "Loading" after `server/18` deployed. Root-caused as an Android-side regression unrelated to the server changes — see Android 2.4.4 CHANGELOG. A 4-agent parallel review confirmed no server regression; two agents independently identified `DoorViewModel.fetchCurrentDoorEvent`'s missing `Complete(result.data)` setter on the Success branch (PR #518). FCM pushes bypassed the bug because a state change produces a distinct StateFlow value.
