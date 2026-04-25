@@ -72,6 +72,7 @@ Screenshots render differently across platforms (macOS vs Linux CI). To avoid th
 - `updateDebugScreenshotTest` and `validateDebugScreenshotTest` can't run in the same Gradle invocation
 - To force single-invocation: `./gradlew :android-screenshot-tests:updateDebugScreenshotTest -PforceAllScreenshots`
 - Preview composables must be deterministic — use fixed `Instant.parse(...)` for timestamps, never `Clock.System.now()` or `Random`
+- Animated composables (`rememberInfiniteTransition`, `Animatable`, `animateFloatAsState`) render at an arbitrary frame in screenshot tests. Wrap previews of animated UI in a static-mode rendering path — e.g. `GarageIcon(static = true)` — so the screenshot is deterministic. Caught when `OpeningPreview` was rendering at the start frame (offset 0.0) and looked identical to `Closed`; PR #543 fixed it by routing previews through `static = true` so they share the recent events list's `staticPositionFor` mapping.
 - Reference PNGs are committed to git but are NOT validated in CI
 - The gallery markdown is auto-generated — do not edit it manually
 - Previews that depend on `rememberAppComponent()` render blank in screenshot tests — use stateless overloads instead
