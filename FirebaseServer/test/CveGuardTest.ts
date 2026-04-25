@@ -23,7 +23,7 @@
  * scope. `jws` stays where it is because its test double-duties as a
  * signature-verification sanity check.
  *
- * See docs/FIREBASE_HARDENING_PLAN.md → Part B for rationale + when
+ * See docs/archive/FIREBASE_HARDENING_PLAN.md → Part B for rationale + when
  * to add new guards.
  */
 

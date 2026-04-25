@@ -16,7 +16,7 @@
 
 /**
  * Unit tests for the extracted httpCheckForOpenDoors handler core.
- * H2 of docs/FIREBASE_HANDLER_TESTING_PLAN.md.
+ * H2 of docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md.
  *
  * The fakes cover config + sensor-event reads. sendFCMForOldData is
  * sinon-stubbed because its orchestration (snooze lookup, dedupe,

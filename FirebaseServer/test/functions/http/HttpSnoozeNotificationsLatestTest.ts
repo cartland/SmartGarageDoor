@@ -17,7 +17,7 @@
 /**
  * Unit tests for the extracted httpSnoozeNotificationsLatest handler
  * core. H4 of the handler testing plan — see
- * docs/FIREBASE_HANDLER_TESTING_PLAN.md.
+ * docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md.
  *
  * First handler to use HandlerResult<T>. Verifies that the kind +
  * status + body tuple matches the pre-extraction wrapper's

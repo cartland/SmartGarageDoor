@@ -2,7 +2,7 @@
 
 Rollout plan for the state-ownership principles (ADR-021) and the
 repository-owns-`StateFlow` shape (ADR-022). Motivated by the
-android/164-168 snooze-state propagation bug (`VIEWMODEL_SCOPING_ISSUE.md`).
+android/164-168 snooze-state propagation bug (`archive/VIEWMODEL_SCOPING_ISSUE.md`).
 
 ## Goals
 
@@ -374,7 +374,7 @@ When iOS lands: wire Skie for `StateFlow<T>` → `@Published` /
 
 - `AndroidGarage/docs/DECISIONS.md` — ADR-006, 013, 017, 018, 019, 020,
   021, 022.
-- `AndroidGarage/docs/VIEWMODEL_SCOPING_ISSUE.md` — the bug that
+- `AndroidGarage/docs/archive/VIEWMODEL_SCOPING_ISSUE.md` — the bug that
   motivated this.
 - `AndroidGarage/docs/MIGRATION.md` — broader migration roadmap
   (Phase 38 for iOS).

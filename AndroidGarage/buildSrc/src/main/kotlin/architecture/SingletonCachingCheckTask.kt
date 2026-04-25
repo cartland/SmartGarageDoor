@@ -38,7 +38,7 @@ import java.io.File
  * the runtime `ComponentGraphTest` identity asserts.
  *
  * See `AndroidGarage/docs/DI_SINGLETON_REQUIREMENTS.md` and
- * `AndroidGarage/docs/POSTMORTEM_ANDROID_170.md` for context.
+ * `AndroidGarage/docs/archive/POSTMORTEM_ANDROID_170.md` for context.
  */
 abstract class SingletonCachingCheckTask : DefaultTask() {
     @get:Input
@@ -112,7 +112,7 @@ abstract class SingletonCachingCheckTask : DefaultTask() {
                     append("How to tell which case:\n")
                     append("  1. Open $generatedComponentPath\n")
                     append("  2. If it's short (~15 lines) with no scoping calls at all → case (A).\n")
-                    append("     Read docs/POSTMORTEM_ANDROID_170.md and fix the provider shapes.\n")
+                    append("     Read docs/archive/POSTMORTEM_ANDROID_170.md and fix the provider shapes.\n")
                     append("  3. If it has scoping calls under a different name/shape → case (B).\n")
                     append("     Update the regexes in:\n")
                     append("     AndroidGarage/buildSrc/src/main/kotlin/architecture/SingletonCachingCheckTask.kt\n")
@@ -172,7 +172,7 @@ abstract class SingletonCachingCheckTask : DefaultTask() {
                     append("If AppComponent.kt looks correct, inspect $generatedComponentPath\n")
                     append("and compare against the patterns in this task\n")
                     append("(SingletonCachingCheckTask.kt — `isCachedInGenerated`, `countCachedEntries`).\n\n")
-                    append("See docs/DI_SINGLETON_REQUIREMENTS.md and docs/POSTMORTEM_ANDROID_170.md.\n")
+                    append("See docs/DI_SINGLETON_REQUIREMENTS.md and docs/archive/POSTMORTEM_ANDROID_170.md.\n")
                     append("This is the shape of the android/170 snooze regression.\n")
                 },
             )

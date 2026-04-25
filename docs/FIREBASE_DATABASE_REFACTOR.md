@@ -4,7 +4,7 @@ Centralize `TimeSeriesDatabase` usage in `FirebaseServer/` behind typed
 per-collection interfaces with in-memory fakes for tests. Zero production
 data impact.
 
-**Status:** COMPLETE. Phases 0–10 shipped. The handler-test work originally deferred from Phases 7, 8, and 9 shipped through the companion [`FIREBASE_HANDLER_TESTING_PLAN.md`](FIREBASE_HANDLER_TESTING_PLAN.md) — all 14 HTTP/pubsub handlers now have pure-core unit tests. Every Firestore collection goes through a typed singleton with a contract test; regression is guarded by the Phase 4 lint rule. Zero Firestore data impact throughout.
+**Status:** COMPLETE. Phases 0–10 shipped. The handler-test work originally deferred from Phases 7, 8, and 9 shipped through the companion [`FIREBASE_HANDLER_TESTING_PLAN.md`](archive/FIREBASE_HANDLER_TESTING_PLAN.md) — all 14 HTTP/pubsub handlers now have pure-core unit tests. Every Firestore collection goes through a typed singleton with a contract test; regression is guarded by the Phase 4 lint rule. Zero Firestore data impact throughout.
 
 ### Phase shipping history
 
@@ -563,7 +563,7 @@ Each phase is a single PR. Phases 5–6 touch production code; revert via `git r
 ## Deferred work (all addressed)
 
 The handler-test items below were deferred from this plan and picked up in a separate
-follow-up: [`FIREBASE_HANDLER_TESTING_PLAN.md`](FIREBASE_HANDLER_TESTING_PLAN.md).
+follow-up: [`FIREBASE_HANDLER_TESTING_PLAN.md`](archive/FIREBASE_HANDLER_TESTING_PLAN.md).
 That plan adopted **Option A** (extract handler bodies into pure `handle<Action>(input)`
 functions, test with the existing fakes) and shipped H1–H6 in full — all 14 HTTP/pubsub
 handlers now have pure-core unit tests. Released in `server/18`.
@@ -583,7 +583,7 @@ Extracted as `handleEchoRequest({query, body})` in the H1 pilot (#504) with 5 te
 
 ### Path forward (historical note)
 
-The "Option A vs Option B" choice documented above was decided in favor of **Option A** — the plan and its progress live in [`FIREBASE_HANDLER_TESTING_PLAN.md`](FIREBASE_HANDLER_TESTING_PLAN.md). Option A extended the existing `controller/` (pure) vs `functions/` (wrapper) split; Option B (`firebase-functions-test`) would have added a new dependency + testing idiom for coverage that's mostly already pinned by the controller-level fakes introduced in this refactor.
+The "Option A vs Option B" choice documented above was decided in favor of **Option A** — the plan and its progress live in [`FIREBASE_HANDLER_TESTING_PLAN.md`](archive/FIREBASE_HANDLER_TESTING_PLAN.md). Option A extended the existing `controller/` (pure) vs `functions/` (wrapper) split; Option B (`firebase-functions-test`) would have added a new dependency + testing idiom for coverage that's mostly already pinned by the controller-level fakes introduced in this refactor.
 
 ### Excluded (behavior changes — not refactors)
 

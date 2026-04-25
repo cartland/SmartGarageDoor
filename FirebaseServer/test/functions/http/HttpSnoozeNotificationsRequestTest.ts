@@ -17,7 +17,7 @@
 /**
  * Unit tests for the extracted httpSnoozeNotificationsRequest
  * handler core. H4 (write) of
- * docs/FIREBASE_HANDLER_TESTING_PLAN.md.
+ * docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md.
  *
  * Key contrast with handleAddRemoteButtonCommand: the verifyIdToken
  * call here IS wrapped in try/catch → returns 401 on throw (not 500

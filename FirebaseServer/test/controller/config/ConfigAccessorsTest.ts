@@ -14,7 +14,7 @@
  * since April 2021. Changing the production config shape requires
  * updating these tests in lockstep with the config update.
  *
- * See docs/FIREBASE_HARDENING_PLAN.md → Part A, and the revert
+ * See docs/archive/FIREBASE_HARDENING_PLAN.md → Part A, and the revert
  * rationale in PR #494 commit message for the history.
  */
 

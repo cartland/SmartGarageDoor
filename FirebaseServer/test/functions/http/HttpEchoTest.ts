@@ -16,7 +16,7 @@
 
 /**
  * Unit tests for the extracted Echo handler core. Pilot for the
- * handler-body extraction plan — see docs/FIREBASE_HANDLER_TESTING_PLAN.md
+ * handler-body extraction plan — see docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md
  * (Phase H1). The pure function is tested via FakeUpdateDatabase.
  *
  * The HTTP wrapper (`httpEcho`) is trivial map-over-try/catch and is

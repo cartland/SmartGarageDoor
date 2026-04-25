@@ -17,7 +17,7 @@
 /**
  * Unit tests for the extracted pubsubCheckForRemoteButtonErrors
  * handler core. H3 (pubsub portion) of the handler testing plan —
- * see docs/FIREBASE_HANDLER_TESTING_PLAN.md.
+ * see docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md.
  *
  * The handler has four observable outcomes: missing request,
  * corrupt timestamp, stale request, and fresh request. Each gets a

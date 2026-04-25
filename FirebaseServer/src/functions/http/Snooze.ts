@@ -86,7 +86,7 @@ export const httpSnoozeNotificationsLatest = functions.https.onRequest(async (re
 
 /**
  * Pure core for the snooze-submit endpoint. H4 (write) of
- * docs/FIREBASE_HANDLER_TESTING_PLAN.md.
+ * docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md.
  *
  * **Preserved quirks (from 5-reviewer audit):**
  *
