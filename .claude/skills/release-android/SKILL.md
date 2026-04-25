@@ -4,102 +4,54 @@ description: Release the Android app to Play Store internal track via tag-based 
 
 # Release Android
 
-Cut an Android release by creating a tag via `scripts/release-android.sh`. The tag triggers CI to build and deploy to Play Store internal track (never production).
+Canonical procedure: `CLAUDE.md` § Releasing Android. This file is the agent-facing operational shortcut — it tells you the exact commands to run in order. The `--check` output is the source of truth for which command to paste.
 
-## Design principle
-
-**The script's `--check` mode prints the exact command to run next, with SHAs and tag numbers already filled in. Copy and paste that command. Don't retype from memory.** Overrides take a specific value (a SHA from reality) that must match; wrong value = refused. Correctness is easy (read from `--check`); accidental correctness is hard.
-
-## Steps
-
-### 1. Pre-flight checks
+## The five steps
 
 ```bash
-git checkout main && git pull
-git status  # Must be clean
-```
+# 1. Clean state
+git checkout main && git pull && git status   # working tree must be clean
 
-### 2. Run validation
+# 2. Validate
+./scripts/validate.sh                          # required; the release script blocks on STALE/MISSING
 
-**Always run validation before releasing.** Do not skip this step.
-
-```bash
-./scripts/validate.sh
-```
-
-If validation fails, fix the issue before releasing. Do NOT skip validation unless the user explicitly confirms they want to release without it (e.g., emergency hotfix).
-
-### 3. Check release state
-
-```bash
+# 3. Read the next-step command from --check
 ./scripts/release-android.sh --check
-```
+# This prints validation state (PASSED/STALE/MISSING) AND a copy-paste-ready command
+# for the right scenario (normal, rollback, emergency, unvalidated).
 
-This prints:
-- Latest tag and its SHA, next computed tag, HEAD SHA, branch
-- Validation state: `PASSED`, `STALE`, or `MISSING`
-- **A copy-paste-ready command for the appropriate scenario** (normal, rollback, emergency)
+# 4. Paste the command --check printed.
+# Normal:    ./scripts/release-android.sh --confirm-tag android/N
+# Rollback:  --confirm-tag, --confirm-hash, --confirm-rollback-from (with full SHAs)
+# Emergency: --confirm-tag, --confirm-unvalidated-release (with target SHA)
 
-### 4. Cut the release
-
-Paste the command from step 3. For a normal release:
-
-```bash
-./scripts/release-android.sh --confirm-tag android/N
-```
-
-For an emergency release (validation not passing), `--check` will print:
-
-```bash
-./scripts/release-android.sh \
-    --confirm-tag android/N \
-    --confirm-unvalidated-release <40-char-sha>
-```
-
-For a rollback (detached HEAD on an older tag), `--check` will print:
-
-```bash
-./scripts/release-android.sh \
-    --confirm-tag android/N \
-    --confirm-hash <40-char-sha-of-target> \
-    --confirm-rollback-from <40-char-sha-of-previous-latest>
-```
-
-The script will:
-- Verify clean git state (unless `--confirm-hash` is used)
-- Verify on main branch (unless `--confirm-hash` is used)
-- Verify validation marker matches the target commit (unless `--confirm-unvalidated-release` is used)
-- Create and push the tag
-- The tag triggers `.github/workflows/release-android.yml`
-
-### 5. Verify deployment
-
-```bash
+# 5. Watch the deploy
 gh run list --workflow=release-android.yml --limit 1
 gh run watch <run-id>
 ```
 
-## Rollback recipe (two steps — intentionally hard to do accidentally)
+## What you should NOT do
+
+- **Don't retype flags from memory.** `--check` prints the right command with the right SHAs filled in. Copy-paste prevents wrong-SHA accidents.
+- **Don't `git tag` directly.** Hooks block it.
+- **Don't deploy to production.** This script only deploys to the Play Store internal track.
+- **Don't skip validation without asking the user.** If `--check` shows validation is `STALE` or `MISSING`, the right move is almost always to run `./scripts/validate.sh`. Ask before reaching for `--confirm-unvalidated-release`.
+
+## Versioning
+
+`android/N` tag ↔ `versionCode = N`. The script enforces this. `versionName` is bumped via `/bump-android-version` separately.
+
+## Rollback (two steps, by design)
 
 ```bash
-# 1. Move HEAD to the commit you want to re-release.
-git checkout android/M
-
-# 2. Print the rollback command and paste it.
-./scripts/release-android.sh --check
-./scripts/release-android.sh \
-    --confirm-tag android/N \
-    --confirm-hash <full-sha-from-check> \
-    --confirm-rollback-from <full-sha-from-check>
+git checkout android/M           # move HEAD to the commit you want to re-release
+./scripts/release-android.sh --check   # prints the rollback command with the right SHAs
 ```
 
-Both SHAs must match what the script computed from the current repo state. You can only produce them by actually running `--check` on the checked-out commit, which forces you to move HEAD deliberately.
+Both SHAs in the rollback command must match what `--check` computed on the checked-out commit. You can only produce them by running `--check` on the rollback target, which forces deliberate HEAD movement.
 
-## Rules
+## See also
 
-- **Never push tags directly** — hooks block `git tag` (except `git tag -l`). Only the release script can create tags.
-- **Never deploy to production** — internal track only.
-- **Tag version = versionCode** — `android/120` → `versionCode=120`.
-- **Always start with `--check`** — it prints the right command for the current state. Don't type the flags from memory.
-- **Always validate first** — run `./scripts/validate.sh` before every release.
-- **Never skip validation without asking the user.** `--confirm-unvalidated-release <sha>` exists for emergencies (hotfixes, rollbacks of old tags). The SHA must equal the target commit, which prevents skipping validation on the wrong commit. If validation hasn't passed, tell the user and ask whether to run validation or skip it.
+- `CLAUDE.md` § Releasing Android — full design principle, why each guard exists
+- `scripts/release-android.sh` itself — the truth of which flags do what
+- `.github/workflows/release-android.yml` — the CI that the tag triggers
