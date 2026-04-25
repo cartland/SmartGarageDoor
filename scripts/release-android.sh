@@ -194,10 +194,29 @@ fi
 # versionName from version.properties on the target commit. CHANGELOG.md
 # uses the human-readable X.Y.Z heading (not the android/N tag), so this
 # is the key we look up.
+#
+# Parser tolerates `versionName=2.5.0` and `versionName = 2.5.0` (.properties
+# files allow whitespace around `=`). The trailing tr removes surrounding
+# whitespace, including CR from CRLF line endings.
 VERSION_PROPERTIES="$REPO_ROOT/AndroidGarage/version.properties"
 VERSION_NAME=""
 if [ -f "$VERSION_PROPERTIES" ]; then
-    VERSION_NAME=$(grep -E '^versionName=' "$VERSION_PROPERTIES" 2>/dev/null | head -1 | cut -d= -f2 | tr -d '[:space:]')
+    VERSION_NAME=$(awk -F= '/^[[:space:]]*versionName[[:space:]]*=/ {
+        sub(/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*/, "")
+        gsub(/[[:space:]]/, "")
+        print
+        exit
+    }' "$VERSION_PROPERTIES")
+fi
+
+# Escape regex special chars in versionName so values like `2.5.0` or
+# `2.5.0-rc.1` are matched literally in awk's extended-regex pattern.
+# Only `.`, `+`, `*`, `?`, `(`, `)`, `[`, `]`, `{`, `}`, `^`, `$`, `\`, `|`
+# need to be escaped in a `## X` heading match. We use a single sed pass.
+VERSION_NAME_RE=""
+if [ -n "$VERSION_NAME" ]; then
+    # shellcheck disable=SC2001
+    VERSION_NAME_RE=$(echo "$VERSION_NAME" | sed 's/[][\\.+*?(){}^$|]/\\&/g')
 fi
 
 # CHANGELOG state for the versionName we're about to release.
@@ -206,19 +225,22 @@ fi
 #   missing  : no heading for this versionName
 #   no_file  : AndroidGarage/CHANGELOG.md does not exist
 #   no_ver   : versionName could not be parsed from version.properties
+#              — treated as a hard failure in the gate (can't ship a
+#              release whose version we can't read)
 #
 # Matching rules:
 # - Lines inside fenced code blocks (```...```) are ignored, in case the
 #   docs intro ever embeds an example release heading.
 # - Heading must be `^## X.Y.Z` followed by end-of-line or whitespace, so
-#   `## 2.5` does not falsely match `2.5.1`.
+#   `## 2.5` does not falsely match `2.5.1`. Dots are escaped in the
+#   pattern so the match is literal.
 CHANGELOG_FILE="$REPO_ROOT/AndroidGarage/CHANGELOG.md"
 CHANGELOG_STATE="no_file"
 CHANGELOG_BODY=""
 if [ -z "$VERSION_NAME" ]; then
     CHANGELOG_STATE="no_ver"
 elif [ -f "$CHANGELOG_FILE" ]; then
-    CHANGELOG_BODY=$(awk -v ver="$VERSION_NAME" '
+    CHANGELOG_BODY=$(awk -v ver="$VERSION_NAME_RE" '
         BEGIN { in_fence = 0; found = 0 }
         /^```/ { in_fence = !in_fence; next }
         in_fence { next }
@@ -226,7 +248,7 @@ elif [ -f "$CHANGELOG_FILE" ]; then
         found && /^## / { exit }
         found { print }
     ' "$CHANGELOG_FILE")
-    HEADING_FOUND=$(awk -v ver="$VERSION_NAME" '
+    HEADING_FOUND=$(awk -v ver="$VERSION_NAME_RE" '
         BEGIN { in_fence = 0 }
         /^```/ { in_fence = !in_fence; next }
         in_fence { next }
@@ -315,6 +337,14 @@ if [ "$MODE" = "check" ]; then
             done
             echo ""
         fi
+    elif [ "$CHANGELOG_STATE" = "no_ver" ]; then
+        echo -e "${RED}Cannot release: versionName not found in AndroidGarage/version.properties.${RESET}"
+        echo ""
+        echo "Fix version.properties — expected a line like:"
+        echo "    versionName=X.Y.Z"
+        echo ""
+        echo "Then re-run: ./scripts/release-android.sh --check"
+        echo ""
     elif [ "$VALIDATION_STATE" != "matches" ]; then
         echo "Validation is not passing for HEAD. Two options:"
         echo ""
@@ -327,7 +357,7 @@ if [ "$MODE" = "check" ]; then
         echo "        --confirm-tag $NEW_TAG \\"
         echo "        --confirm-unvalidated-release $TARGET_COMMIT"
         echo ""
-    elif [ "$CHANGELOG_STATE" != "present" ] && [ "$CHANGELOG_STATE" != "no_ver" ]; then
+    elif [ "$CHANGELOG_STATE" != "present" ]; then
         echo "No CHANGELOG entry for $VERSION_NAME. Two options:"
         echo ""
         echo "(1) Add an entry, commit, push, re-run --check (recommended):"
@@ -494,7 +524,10 @@ if [ "$CHANGELOG_STATE" = "present" ]; then
         echo "  First line: $(echo "$FIRST_LINE" | head -c 120)"
     fi
 elif [ "$CHANGELOG_STATE" = "no_ver" ]; then
-    echo -e "${YELLOW}Skipping changelog gate: versionName not found in version.properties.${RESET}"
+    echo -e "${RED}Error: versionName could not be parsed from AndroidGarage/version.properties.${RESET}"
+    echo "  Expected a line like: versionName=X.Y.Z"
+    echo "  Fix version.properties before releasing — do not use --confirm-no-changelog for this."
+    exit 1
 elif [ -n "$CONFIRM_NO_CHANGELOG" ]; then
     if [ "$CONFIRM_NO_CHANGELOG" != "$TARGET_COMMIT" ]; then
         echo -e "${RED}Error: --confirm-no-changelog SHA does not match target commit.${RESET}"
