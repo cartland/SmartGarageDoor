@@ -200,6 +200,8 @@ Full rule, code example, and ADR-022 compatibility argument: see `AndroidGarage/
 ### Releasing Android
 Use `./scripts/release-android.sh` — never create or push tags directly (hooks block `git tag`).
 
+**Tag-membership checks:** the hook also blocks `git tag --contains <sha>` (any `git tag` invocation except `git tag -l`). To ask "is commit X in tag Y?", use `git merge-base --is-ancestor <sha> <tag>` instead — same answer, hook-friendly.
+
 ```bash
 ./scripts/release-android.sh              # Interactive (terminal only)
 ./scripts/release-android.sh --check      # Print state + copy-paste-ready next command
