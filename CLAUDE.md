@@ -177,84 +177,25 @@ Run `./scripts/run-instrumented-tests.sh` when changing Room entities/DAOs, DI w
 **Screenshot generation**: Use `./scripts/generate-android-screenshots.sh` (never run screenshot Gradle tasks directly — hooks block this).
 
 ### Room Database Safety
-Room schema changes break at runtime (not compile time). The following safeguards are in place:
 
-1. **Schema drift check** in `validate.sh` — detects if compilation changed the exported schema JSON without it being committed
-2. **Guardrails hook** — warns when committing Room entity, DAO, or database files
-3. **Schema contract tests** (`RoomSchemaTest`) — verify column structure and enum values match expectations
-4. **Schema export** — `androidApp/schemas/` contains versioned JSON files tracked in git
-
-**When modifying Room entities or DAOs:**
-1. Make the change
-2. Increment `version` in `@Database` annotation (`AppDatabase.kt`)
-3. Run `./gradlew :androidApp:assembleDebug` to regenerate schema
-4. Commit the new schema JSON file alongside your code change
-5. `fallbackToDestructiveMigration` handles upgrades (users lose cached data, which is re-fetched from server)
+When modifying Room entities or DAOs: (1) increment the `version` in `@Database` (`AppDatabase.kt`); (2) run `./gradlew :androidApp:assembleDebug` to regenerate the schema; (3) commit the new schema JSON alongside the code change. `fallbackToDestructiveMigration` handles upgrades. Full safeguard list (schema drift check in `validate.sh`, guardrails hook, `RoomSchemaTest` contract tests, exported schema files): see `AndroidGarage/docs/ARCHITECTURE.md` § Database.
 
 ### AppComponent / kotlin-inject Safety
 
-kotlin-inject's `@Singleton` annotation is silent when misused. The
-generated `InjectAppComponent.kt` is the authoritative source for what
-the framework actually cached — "tests pass" + "annotation present" is
-not enough to prove singletons are singletons. This bit the app hard
-during the android/170 snooze regression (see ADR-022 timeline and
-`docs/DI_SINGLETON_REQUIREMENTS.md` for the full postmortem).
+`@Singleton` is silent when misused. Two mechanical rules:
 
-**Rules for `AppComponent.kt`:**
-1. Every `@Singleton` provider must be reachable via an abstract entry
-   point (`abstract val x: T`). Concrete `val x: T @Provides get() = ...`
-   gives kotlin-inject nothing to override — `@Singleton` is ignored.
-2. Every `@Provides fun` body takes its deps as parameters. **Never**
-   call a sibling `provideX()` inside a body — that call is regular
-   Kotlin and bypasses the `_scoped` cache.
-3. The in-file KDoc at the top of `AppComponent.kt` restates both rules.
-   Respect it; don't "simplify" back to concrete providers.
+1. Every `@Singleton` provider must be reachable via an `abstract val x: T` entry point. Concrete `val x: T @Provides get() = ...` gives kotlin-inject nothing to override — `@Singleton` is ignored.
+2. Every `@Provides fun` body takes its deps as parameters. Never call a sibling `provideX()` inside a body — that call is regular Kotlin and bypasses the `_scoped` cache.
 
-**When modifying `AppComponent.kt`:**
-1. Make the change.
-2. Run `./gradlew -p AndroidGarage checkSingletonCaching` — this regenerates
-   `InjectAppComponent.kt` via KSP and fails the build if any `@Singleton`
-   provider is not wrapped in `_scoped.get(...)` in the generated code.
-   This is the automated version of the manual inspection step and runs
-   in `validate.sh`.
-3. Read `androidApp/build/generated/ksp/debug/kotlin/com/chriscartland/garage/di/InjectAppComponent.kt`
-   if the check failed — the error message lists which providers are missing
-   caching. Healthy file is ~300 lines with one
-   `override val X: T get() = _scoped.get(...)` per `@Singleton` entry.
-4. Run the identity tests: `./gradlew :androidApp:connectedDebugAndroidTest
-   -Pandroid.testInstrumentationRunnerArguments.class=com.chriscartland.garage.di.ComponentGraphTest`.
-   All `*IsSingleton` tests must pass. This is the runtime counterpart to
-   `checkSingletonCaching` (which is a static check on generated code).
-5. If you add a new `@Singleton` state-owning provider, add a matching
-   `abstract val` entry + an `assertSame` identity test in
-   `ComponentGraphTest`.
+When modifying `AppComponent.kt`: run `./gradlew -p AndroidGarage checkSingletonCaching` (in `validate.sh`); inspect `androidApp/build/generated/ksp/debug/.../InjectAppComponent.kt` if it fails. New `@Singleton` state-owning providers need a matching `abstract val` + an `assertSame` identity test in `ComponentGraphTest`.
+
+Full validation procedure, the android/170 postmortem that motivated these rules, and the failure-mode catalog: see `AndroidGarage/docs/DI_SINGLETON_REQUIREMENTS.md` and the kotlin-inject pattern guide at `AndroidGarage/docs/guides/kotlin-inject.md`.
 
 ### ViewModel fetch methods: set `Complete` explicitly on Success (ADR-023)
 
-Every ViewModel method that drives a `LoadingResult<T>` state MUST set
-`Complete(result.data)` in the `AppResult.Success` branch. Do not rely
-on a Flow observer to clear Loading:
+Every ViewModel method driving a `LoadingResult<T>` MUST set `LoadingResult.Complete(result.data)` in the `AppResult.Success` branch. `MutableStateFlow` dedups by equality; when a fetch returns the same value as cached, no observer fires and Loading latches forever (motivating bug: 2.4.4 Home-tab regression, PR #518).
 
-```kotlin
-// CORRECT
-is AppResult.Success -> {
-    _xState.value = LoadingResult.Complete(result.data)
-}
-```
-
-**Why this matters:** `MutableStateFlow` dedups emissions by `==`
-equality. When a fetch returns the same value that's already cached
-(common — the door spends most of its time in one state), the
-repository's `_state.value = sameValue` assignment is a no-op. The
-ViewModel's `observeX().collect { Complete(it) }` coroutine never
-fires, and Loading latches forever. FCM pushes mask the bug because
-they deliver a state *change* — a distinct value that does trigger
-emission.
-
-Motivating bug: android/174 → 2.4.4 Home tab "perpetually loading"
-(PR #518). See `AndroidGarage/docs/DECISIONS.md#adr-023-viewmodel-fetch-methods-must-set-complete-explicitly-on-success`
-for the full rule and why it's compatible with ADR-022's by-reference
-observation pattern.
+Full rule, code example, and ADR-022 compatibility argument: see `AndroidGarage/docs/DECISIONS.md` ADR-023.
 
 ### Releasing Android
 Use `./scripts/release-android.sh` — never create or push tags directly (hooks block `git tag`).
@@ -309,9 +250,9 @@ git checkout server/M
 
 **Database refactor plan:** See [`docs/FIREBASE_DATABASE_REFACTOR.md`](docs/FIREBASE_DATABASE_REFACTOR.md) — phased plan to centralize 18 `new TimeSeriesDatabase(...)` calls into typed per-collection singletons with in-memory fakes. Includes goals, backward-compatibility principles, long-term maintenance rules, and safety guards (contract tests, scope rules). Zero production data impact when followed; rollback via `git revert` at any phase boundary.
 
-**Hardening plan:** Archived at [`docs/archive/FIREBASE_HARDENING_PLAN.md`](docs/archive/FIREBASE_HARDENING_PLAN.md) — buildTimestamp config-read migration (Part A) + Dependabot remediation (Part B). Shipped through `server/17`. **Key rule (still active):** config is authoritative for device buildTimestamps — the four pubsub/HTTP handlers read from `body.buildTimestamp` / `body.remoteButtonBuildTimestamp`, throw if missing (ERROR-level log), and have no hardcoded fallbacks post-A3. If you see a `buildTimestamp missing from config` error in Cloud Logs, check production config first — restore via `httpServerConfigUpdate` — before considering a code revert.
+**Config authority rule** (active): production server config is the single source of truth for device build timestamps. The four pubsub/HTTP handlers read `body.buildTimestamp` / `body.remoteButtonBuildTimestamp` from config and throw on null (ERROR-level log) — no hardcoded fallbacks. If you see `buildTimestamp missing from config` in Cloud Logs, restore production config via `httpServerConfigUpdate` before considering a code revert. Full rule + operator runbook: [`docs/FIREBASE_CONFIG_AUTHORITY.md`](docs/FIREBASE_CONFIG_AUTHORITY.md). Historical rollout: [`docs/archive/FIREBASE_HARDENING_PLAN.md`](docs/archive/FIREBASE_HARDENING_PLAN.md) (Parts A and B, shipped through `server/17`).
 
-**Handler testing plan:** Archived at [`docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md`](docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md) — six-phase plan that extracted all 14 HTTP/pubsub handler bodies into pure `handle<Action>(input)` functions. Shipped through `server/18` (H1–H6 across PRs #504–#516). New handlers should follow the same pattern (pure function + thin wrapper) from the start.
+**Handler pattern** (active): every HTTP/pubsub handler in `FirebaseServer/src/functions/` follows a pure `handle<Action>(input)` core + thin wrapper split. New handlers should follow the same pattern from the start. Full pattern + service-bridge convention + preserved-quirk callouts: [`docs/FIREBASE_HANDLER_PATTERN.md`](docs/FIREBASE_HANDLER_PATTERN.md). Historical rollout: [`docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md`](docs/archive/FIREBASE_HANDLER_TESTING_PLAN.md) (H1–H6 across PRs #504–#516, shipped through `server/18`).
 
 **Dormant config readers need encoding audits.** The `remoteButtonBuildTimestamp` config value has been stored **URL-encoded** since April 2021, but its reader was commented out for ~5 years. PR #492 (A1 v1) uncommented it without handling the encoding and would have passed URL-encoded strings to Firestore queries if deployed; caught pre-release and reverted in PR #494. **Before enabling any long-dormant config reader, verify the stored value shape matches what downstream code expects.** `decodeURIComponent()` is idempotent for plain ASCII, so defensive decoding is a safe pattern when shape is ambiguous.
 
