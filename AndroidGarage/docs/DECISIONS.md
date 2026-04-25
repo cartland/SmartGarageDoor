@@ -1399,3 +1399,68 @@ If that grep returns nothing, the config is not doing work on this codebase and 
 - PR (dropped) — `chore/upload-native-debug-symbols` branch, tested locally and discarded after inspection showed empty symbol output.
 - [AGP docs: Include native symbol files](https://developer.android.com/studio/build/native-debug-symbols) — describes `debugSymbolLevel` and which `.so` files it can process.
 - [Firebase Crashlytics NDK](https://firebase.google.com/docs/crashlytics/ndk-reports) — separate mechanism, only relevant if Crashlytics is adopted.
+
+## ADR-025: Door Animation — Tween During Motion, Spring at Rest
+
+### Status
+
+Accepted — 2026-04-25.
+
+### Context
+
+The garage door icon (`GarageIcon`) translates the server-reported `DoorPosition` into a vertical door offset. Before this decision, motion states animated via `rememberInfiniteTransition` with a 12-second linear `tween` looped indefinitely (`infiniteRepeatable`), and the composable tree swapped to a static frame on terminal state. This produced two visible bugs:
+
+1. While a door was opening or closing, the icon cycled through opening → closed → opening forever, never settling at the predicted target.
+2. When the sensor confirmed the terminal state, the composable swap snapped the icon from "wherever it happened to be in the loop" to the terminal position — a discontinuous jump.
+
+### Decision
+
+Replace the looping animation with a single hoisted `Animatable<Float>` driven by `LaunchedEffect(doorPosition)` that calls `animateTo(target, spec)` on every state change. Two animation specs:
+
+- **Tween** (linear, 12s) for `OPENING` and `CLOSING` — matches the roughly constant-speed motion of a real garage door.
+- **Spring** (`StiffnessVeryLow`, `DampingRatioNoBouncy`, `initialVelocity = 0f`) for terminal/error/unknown — settles to target with no overshoot.
+
+The target offset is a **pure function of state alone** (`targetPositionFor(state)`), never of the current animation value. Same state always produces the same target. Mappings are exhaustive `when` over `DoorPosition` with no `else`, so adding an enum value fails to compile until every mapping is updated.
+
+The contract — full state table, position constants, trade-offs, verification map — lives in [`DOOR_ANIMATION.md`](DOOR_ANIMATION.md).
+
+### Rationale
+
+**Why hoist the `Animatable` above the state-routing `when`.** The pre-refactor `GarageIcon` dispatched to per-state composables (`Opening`, `Closing`, `Open`, `Closed`, `Midway`), each owning its own animation state. State changes destroyed and re-created the animation, defeating the premise of "one continuous animation across state changes." The hoisted `Animatable` keeps a single position state across the lifetime of the icon.
+
+**Why pure target.** Animation behavior must be deterministic and unit-testable. If the target depended on the current animation value (e.g., "spring to mid-position only if we're not already past it"), the same state could produce different visual outcomes depending on timing. That's untestable and surprising. With a pure target, the *trajectory* (how the spring or tween gets there) is owned by the framework — that physics is correct by construction and doesn't need test coverage.
+
+**Why ignore `lastChangeTimeSeconds` for initial position.** When the app opens with the door already in motion, we could compute elapsed time (`now() - lastChangeTimeSeconds`) and seed the icon at the predicted current position. But clock drift between the device and the server is large enough that this would silently put the icon in a wrong position — a worse failure mode than starting from the "from" end and animating the full motion. Computing drift correctly would require a server-side time-sync endpoint and persistent measurement. Out of scope.
+
+**Why no `|current - target| < ε` skip.** A skip rule would make behavior depend on current animation value, defeating the "target is pure" principle. If `current ≈ target`, the spring is a near-noop with no perceived movement — there is no cost to letting it run.
+
+### Consequences
+
+- The animation never gets "stuck" looping; every state change converges to its target.
+- Mid-motion transitions (e.g., `OPENING → CLOSING`) reverse smoothly via `Animatable.animateTo` cancelling the in-flight tween and starting a new one from the current value.
+- `TOO_LONG` and error states spring to `MIDWAY_POSITION`. From `0.95` this means the icon visibly moves backward to `0.5` — that visible movement *is* the state-change signal, paired with existing color/glyph overlays already in the UI.
+- Opening the app mid-motion shows the icon "starting over" from the from-end rather than at the door's literal current position. Accepted trade-off.
+- Per-state composables (`Opening`, `Closing`, `Open`, `Closed`, `Midway`) are removed. The single `GarageIcon` is the public composable; previews call it with `static = true` for the recent events list use case.
+
+### Verification
+
+| Layer | What it verifies |
+|-------|------------------|
+| Unit (`GarageDoorAnimationMappingTest`) | All five pure mappings return the documented value for every `DoorPosition` |
+| Compile-time | Exhaustive `when` over `DoorPosition` — adding a value breaks the build |
+| Screenshot (`GarageDoorScreenshotTest`) | Each `DoorPosition` renders as expected in light + dark themes (static = true so no `mainClock` flakiness) |
+
+Intermediate-frame screenshot tests (e.g., 25/50/75% of motion) were considered and rejected: the AGP `screenshot` plugin does not expose `mainClock`, so deterministic mid-animation captures would require switching to Paparazzi/Roborazzi. Out of scope for the value gained.
+
+### When this decision might change
+
+- A future feature requires the icon to mirror the door's literal current position mid-motion (e.g., a "door %" indicator). Would need a clock-drift correction strategy first.
+- We adopt Compose Multiplatform for the iOS port. The mapping functions are pure Kotlin and would move to a shared module; the `Animatable` use is already idiomatic and portable.
+- A new `DoorPosition` value is added with motion semantics that don't fit "tween linearly to terminal." Would need a third spec branch.
+
+### References
+
+- [`DOOR_ANIMATION.md`](DOOR_ANIMATION.md) — the full contract, state table, and update procedure
+- [`AnimatableGarageDoor.kt`](../androidApp/src/main/java/com/chriscartland/garage/ui/AnimatableGarageDoor.kt) — mapping functions and overlays
+- [`GarageIcon.kt`](../androidApp/src/main/java/com/chriscartland/garage/ui/GarageIcon.kt) — `Animatable` host
+- [`GarageDoorAnimationMappingTest`](../androidApp/src/test/java/com/chriscartland/garage/ui/GarageDoorAnimationMappingTest.kt) — pinned mapping tests
