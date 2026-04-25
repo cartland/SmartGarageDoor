@@ -52,9 +52,13 @@ val DEFAULT_GARAGE_DOOR_ANIMATION_DURATION: Duration = Duration.ofSeconds(12)
 // Clip inset at y=22 (frame + gap). At -0.75 (shift 225px):
 //   Panel 4 bottom = 284 - 225 = 59, visible = 59 - 22 = 37px (≈60% of panel).
 const val CLOSED_POSITION = 0.0f
-const val CLOSING_STATIC_POSITION = -0.20f
+
+// CLOSING_STATIC_POSITION: door 25% open (75% closed) = 0.25 × OPEN_POSITION.
+const val CLOSING_STATIC_POSITION = -0.1875f
 const val MIDWAY_POSITION = -0.35f
-const val OPENING_STATIC_POSITION = -0.65f
+
+// OPENING_STATIC_POSITION: door 75% open = 0.75 × OPEN_POSITION.
+const val OPENING_STATIC_POSITION = -0.5625f
 const val OPEN_POSITION = -0.75f
 
 internal enum class OverlayKind { NONE, ARROW_UP, ARROW_DOWN, WARNING }

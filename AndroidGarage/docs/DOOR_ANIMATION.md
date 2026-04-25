@@ -47,8 +47,8 @@ Position constants in `AnimatableGarageDoor.kt`:
 | `CLOSED_POSITION` | `0.0f` | Door fully closed, panels at rest in frame |
 | `MIDWAY_POSITION` | `-0.35f` | Mid-cycle position used for warning / unknown states |
 | `OPEN_POSITION` | `-0.75f` | Door fully open |
-| `OPENING_STATIC_POSITION` | `-0.65f` | Mid-cycle snapshot for `static = true` opening |
-| `CLOSING_STATIC_POSITION` | `-0.20f` | Mid-cycle snapshot for `static = true` closing |
+| `OPENING_STATIC_POSITION` | `-0.5625f` | Door 75% open — snapshot for `static = true` opening |
+| `CLOSING_STATIC_POSITION` | `-0.1875f` | Door 25% open (75% closed) — snapshot for `static = true` closing |
 
 Negative offsets correspond to the door sliding upward (opening). The `GarageDoorCanvas` translates panels by `doorOffset * containerHeight`.
 
