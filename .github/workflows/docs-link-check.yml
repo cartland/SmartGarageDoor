@@ -1,0 +1,68 @@
+name: Docs — Markdown link check
+
+# Validates internal cross-references and anchors in every markdown
+# file in the repo. External URLs are intentionally skipped (see
+# .markdown-link-check.json — they're too flaky to gate on).
+#
+# This sits outside the Android/Firebase CI gates because it's
+# repo-wide and runs in <30s. Required check on PRs that touch
+# any .md file.
+
+on:
+  pull_request:
+    paths:
+      - '**/*.md'
+      - '.markdown-link-check.json'
+      - '.github/workflows/docs-link-check.yml'
+  push:
+    branches: [main]
+    paths:
+      - '**/*.md'
+      - '.markdown-link-check.json'
+      - '.github/workflows/docs-link-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  link-check:
+    name: Markdown links
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install markdown-link-check
+        run: npm install -g markdown-link-check@3.13.7
+
+      - name: Check internal links
+        run: |
+          # Find every markdown file in scope. Excludes mirror what
+          # docs/AGENTS.md §4.4 says is in scope (Android, Firebase,
+          # docs/, root README + CLAUDE.md), and what's excluded
+          # (skills, ESP32, build dirs, worktrees, generated content,
+          # pr-review which has its own historical frontmatter).
+          set -euo pipefail
+          mapfile -t FILES < <(find . \
+            -name '*.md' -type f \
+            ! -path './node_modules/*' \
+            ! -path '*/build/*' \
+            ! -path '*/.gradle/*' \
+            ! -path './.claude/skills/*' \
+            ! -path './.claude/worktrees/*' \
+            ! -path './.claude/projects/*' \
+            ! -path './GarageFirmware_ESP32/*' \
+            ! -path './Arduino_ESP32/*' \
+            ! -path '*/android-screenshot-tests/SCREENSHOT_GALLERY.md' \
+            ! -path '*/android-screenshot-tests/collections/*' \
+            ! -path '*/detekt.md' \
+            ! -path './docs/archive/pr-review/*' \
+            -print)
+          echo "Checking ${#FILES[@]} markdown files..."
+          STATUS=0
+          for f in "${FILES[@]}"; do
+            echo ""
+            echo "--- $f ---"
+            markdown-link-check --quiet --config .markdown-link-check.json "$f" || STATUS=1
+          done
+          exit $STATUS

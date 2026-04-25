@@ -1,0 +1,9 @@
+{
+  "_comment": "External URLs are skipped entirely — they're flaky (rate limits, intermittent 5xx, expired blog posts). Internal cross-references and anchors are what matters for this repo's docs-as-code contract; broken inbound links are how docs decay invisibly.",
+  "ignorePatterns": [
+    { "pattern": "^https?://" }
+  ],
+  "timeout": "10s",
+  "retryOn429": true,
+  "retryCount": 2
+}
