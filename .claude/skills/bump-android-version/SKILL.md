@@ -47,14 +47,35 @@ Apply the increment type to the current version:
 
 Write the new version to the file.
 
-### 4. Create PR
+### 4. (minor/major only) Draft the Play Store whatsnew entry
+
+For **minor** and **major** bumps, the Play Store gets a release note. For **patch** bumps, skip this step — patches roll up into the previous minor/major entry.
+
+The whatsnew file `AndroidGarage/distribution/whatsnew/whatsnew-en-US` is a flat list, newest first, one line per minor/major:
+
+```
+X.Y: Short user-facing description (1–2 sentences).
+2.4: Redesigned garage door button with confirmation flow and network status diagram. Improved color contrast for accessibility.
+2.3: Improved architecture and performance.
+```
+
+To draft the entry:
+
+1. Read the current whatsnew file to see the established style.
+2. Find the commits since the last whatsnew entry (`git log --oneline <last-tag>..HEAD`) — focus on user-visible changes only.
+3. Draft a 1–2 sentence description in the same style. Match the tone of recent entries: direct, plain language, no jargon, no "we"/"I."
+4. **Present the draft to the user and wait for confirmation or edits before writing it.** Offer 2–3 phrasings if the right wording isn't obvious.
+5. After the user confirms, prepend the line to `whatsnew-en-US` (newest at top — note the line uses `X.Y`, not `X.Y.Z`).
+
+### 5. Create PR
 
 - Branch: `chore/bump-version-X.Y.Z`
-- Commit: `chore: Bump versionName to X.Y.Z`
+- Commit: `chore: Bump versionName to X.Y.Z` — for minor/major, the same commit also includes the whatsnew prepend
 - Create PR with `--base main` and enable auto-merge
 
 ## Rules
 
-- Only modify `AndroidGarage/version.properties` — nothing else
+- Modify only `AndroidGarage/version.properties` (always) and `AndroidGarage/distribution/whatsnew/whatsnew-en-US` (minor/major only) — nothing else
 - Do not update the changelog (use `/update-android-changelog` for that)
-- Confirm the version bump with the user before creating the PR
+- Patches must not touch whatsnew — they roll up
+- Confirm both the version bump *and* the whatsnew description with the user before creating the PR
