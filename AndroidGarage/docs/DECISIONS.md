@@ -190,6 +190,26 @@ fun createButtonAckToken(now: Date): String { ... }
 private fun <K, V> Map<K, V>.asDoorEvent(): DoorEvent? { ... }
 ```
 
+**Example — prefer:**
+```kotlin
+// Grouped in a named object — discoverable and namespaced
+object ButtonAckToken {
+    fun create(currentTimeMillis: Long, appVersion: String): String = ...
+}
+
+// Explicit parameter type — no generic-receiver coupling
+object FcmPayloadParser {
+    fun parseDoorEvent(data: Map<String, String>): DoorEvent? = ...
+}
+```
+
+**Consequences:**
+- Easier discovery — `object`-scoped functions show up as a single import target.
+- Composables are exempt; the `@Composable` annotation makes top-level placement idiomatic.
+- A small refactoring cost when this rule was first introduced (existing top-level utilities moved into named objects).
+
+**Enforcement:** `checkNoBareTopLevelFunctions` and `checkNoFullyQualifiedNames` Gradle tasks in `validate.sh`.
+
 ## ADR-010: Typed API Patterns — Observation and One-Time Requests
 
 **Status:** Accepted
@@ -266,8 +286,8 @@ when (val result = fetchUseCase(token)) {
 
 **Example — preferred:**
 ```kotlin
-object ButtonAckTokens {
-    fun create(now: Date): String { ... }
+object ButtonAckToken {
+    fun create(currentTimeMillis: Long, appVersion: String): String { ... }
 }
 
 object FcmPayloadParser {
