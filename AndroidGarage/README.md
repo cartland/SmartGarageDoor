@@ -8,7 +8,7 @@ last_verified: 2026-04-25
 ## Overview
 Android app for monitoring and controlling the garage door remotely. Built with modern Android architecture components and Jetpack Compose.
 
-<img src="screenshots/home_closed.png" width="200" alt="Garage app home screen with the door closed and the button ready to press"> <img src="screenshots/history.png" width="200" alt="Garage history screen with recent door events">
+<img src="screenshots/framed/home_tab_light.png" width="200" alt="Garage app home tab showing the door closed and the action button"> <img src="screenshots/framed/history_tab_light.png" width="200" alt="Garage history tab listing recent door events">
 
 ## Features
 - Monitor garage door status (open/closed)
