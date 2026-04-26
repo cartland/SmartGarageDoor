@@ -26,45 +26,14 @@ import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.User
-import com.chriscartland.garage.usecase.AppSettingsViewModel
-
-@Composable
-fun UserInfoCard(
-    user: User?,
-    modifier: Modifier = Modifier,
-    signIn: () -> Unit = {},
-    signOut: () -> Unit = {},
-    colors: CardColors = CardDefaults.cardColors(),
-) {
-    val component = rememberAppComponent()
-    val settingsViewModel: AppSettingsViewModel = viewModel { component.appSettingsViewModel }
-    val startUserCardExpanded by settingsViewModel.profileUserCardExpanded.collectAsState()
-    // Don't render until DataStore loads the persisted value.
-    val expanded = startUserCardExpanded ?: return
-    UserInfoCard(
-        user = user,
-        modifier = modifier,
-        signIn = signIn,
-        signOut = signOut,
-        startExpanded = expanded,
-        onExpandedChange = {
-            settingsViewModel.setProfileUserCardExpanded(it)
-        },
-        colors = colors,
-    )
-}
 
 @Composable
 fun UserInfoCard(

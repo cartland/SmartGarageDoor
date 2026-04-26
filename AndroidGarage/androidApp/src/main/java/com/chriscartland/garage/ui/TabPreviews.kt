@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.domain.model.AppVersion
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
@@ -125,6 +126,12 @@ fun SettingsTabPreview() {
             onSnooze = {},
             showSnooze = true,
             showLogSummary = false,
+            appVersion = AppVersion(
+                packageName = "com.chriscartland.garage",
+                versionCode = 1L,
+                versionName = "preview",
+                buildTimestamp = "preview",
+            ),
             notificationPermissionState = object : PermissionState {
                 override val permission = "android.permission.POST_NOTIFICATIONS"
                 override val status = PermissionStatus.Granted

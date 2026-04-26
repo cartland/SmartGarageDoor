@@ -33,11 +33,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.di.rememberAppComponent
+import com.chriscartland.garage.domain.model.AppVersion
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
@@ -47,8 +49,10 @@ import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
+import com.chriscartland.garage.usecase.AppSettingsViewModel
 import com.chriscartland.garage.usecase.AuthViewModel
 import com.chriscartland.garage.usecase.RemoteButtonViewModel
+import com.chriscartland.garage.version.AppVersion
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.PermissionStatus
@@ -65,12 +69,16 @@ fun ProfileContent(
     val component = rememberAppComponent()
     val resolvedAuthViewModel = authViewModel ?: viewModel { component.authViewModel }
     val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
+    val settingsViewModel: AppSettingsViewModel = viewModel { component.appSettingsViewModel }
     val googleSignIn = rememberGoogleSignIn(
         onTokenReceived = { token -> resolvedAuthViewModel.signInWithGoogle(token) },
     )
     val authState by resolvedAuthViewModel.authState.collectAsState()
     val snoozeState by buttonViewModel.snoozeState.collectAsState()
     val snoozeAction by buttonViewModel.snoozeAction.collectAsState()
+    val userCardExpanded by settingsViewModel.profileUserCardExpanded.collectAsState()
+    val appCardExpanded by settingsViewModel.profileAppCardExpanded.collectAsState()
+    val appVersion = LocalContext.current.AppVersion()
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -95,6 +103,11 @@ fun ProfileContent(
         },
         showSnooze = appConfig.snoozeNotificationsOption,
         showLogSummary = appConfig.logSummary,
+        userCardExpanded = userCardExpanded,
+        onUserCardExpandedChange = { settingsViewModel.setProfileUserCardExpanded(it) },
+        appVersion = appVersion,
+        appCardExpanded = appCardExpanded,
+        onAppCardExpandedChange = { settingsViewModel.setProfileAppCardExpanded(it) },
     )
 }
 
@@ -111,6 +124,11 @@ fun ProfileContent(
     showSnooze: Boolean = true,
     showLogSummary: Boolean = true,
     notificationPermissionState: PermissionState = rememberNotificationPermissionState(),
+    userCardExpanded: Boolean? = true,
+    onUserCardExpandedChange: (Boolean) -> Unit = {},
+    appVersion: AppVersion? = null,
+    appCardExpanded: Boolean? = true,
+    onAppCardExpandedChange: (Boolean) -> Unit = {},
 ) {
     val cardColors = CardDefaults.cardColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -133,20 +151,29 @@ fun ProfileContent(
                 )
             }
         }
-        item {
-            UserInfoCard(
-                user,
-                modifier = Modifier
-                    .fillMaxWidth(),
-                signIn = signIn,
-                signOut = signOut,
-                colors = cardColors,
-            )
+        if (userCardExpanded != null) {
+            item {
+                UserInfoCard(
+                    user = user,
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    signIn = signIn,
+                    signOut = signOut,
+                    startExpanded = userCardExpanded,
+                    onExpandedChange = onUserCardExpandedChange,
+                    colors = cardColors,
+                )
+            }
         }
-        item {
-            AndroidAppInfoCard(
-                colors = cardColors,
-            )
+        if (appVersion != null && appCardExpanded != null) {
+            item {
+                AndroidAppInfoCard(
+                    appVersion = appVersion,
+                    startExpanded = appCardExpanded,
+                    onExpandedChange = onAppCardExpandedChange,
+                    colors = cardColors,
+                )
+            }
         }
         if (showLogSummary) {
             item {
@@ -180,6 +207,12 @@ fun ProfileContentPreview() {
             onSnooze = {},
             showSnooze = true,
             showLogSummary = false,
+            appVersion = AppVersion(
+                packageName = "com.chriscartland.garage",
+                versionCode = 1L,
+                versionName = "preview",
+                buildTimestamp = "preview",
+            ),
             notificationPermissionState = object : PermissionState {
                 override val permission = "android.permission.POST_NOTIFICATIONS"
                 override val status = PermissionStatus.Granted
