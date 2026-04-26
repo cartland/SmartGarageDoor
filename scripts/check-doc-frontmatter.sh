@@ -94,9 +94,15 @@ validate_file() {
     local file="$1"
     local rel="${file#$REPO_ROOT/}"
 
+    # Read the file once with CR stripped so CRLF-terminated files validate
+    # the same as LF (hit during a doc edit on 2026-04-25 — AndroidGarage/README.md
+    # was the lone CRLF file in the repo and tripped the "---" comparison silently).
+    # Use here-strings (<<<) downstream to avoid SIGPIPE under `set -o pipefail`.
+    local content
+    content=$(tr -d '\r' < "$file" 2>/dev/null || true)
+
     # First line must be the front-matter open delimiter.
-    local first_line
-    first_line=$(head -1 "$file" 2>/dev/null || true)
+    local first_line="${content%%$'\n'*}"
     if [ "$first_line" != "---" ]; then
         err "$rel:1: missing YAML front-matter (first line must be '---')"
         return
@@ -104,7 +110,7 @@ validate_file() {
 
     # Find the closing delimiter line number (look in the first 30 lines).
     local close_line
-    close_line=$(awk 'NR>1 && /^---$/ { print NR; exit }' "$file")
+    close_line=$(awk 'NR>1 && /^---$/ { print NR; exit }' <<<"$content")
     if [ -z "$close_line" ]; then
         err "$rel:1: front-matter block has no closing '---'"
         return
@@ -112,13 +118,13 @@ validate_file() {
 
     # Extract the YAML lines (between line 2 and close_line-1).
     local yaml
-    yaml=$(sed -n "2,$((close_line - 1))p" "$file")
+    yaml=$(sed -n "2,$((close_line - 1))p" <<<"$content")
 
     local category status last_verified superseded_by
-    category=$(printf '%s\n' "$yaml" | awk -F': *' '$1=="category"{print $2; exit}')
-    status=$(printf '%s\n'   "$yaml" | awk -F': *' '$1=="status"{print $2; exit}')
-    last_verified=$(printf '%s\n' "$yaml" | awk -F': *' '$1=="last_verified"{print $2; exit}')
-    superseded_by=$(printf '%s\n' "$yaml" | awk -F': *' '$1=="superseded_by"{print $2; exit}')
+    category=$(awk -F': *' '$1=="category"{print $2; exit}' <<<"$yaml")
+    status=$(awk -F': *' '$1=="status"{print $2; exit}' <<<"$yaml")
+    last_verified=$(awk -F': *' '$1=="last_verified"{print $2; exit}' <<<"$yaml")
+    superseded_by=$(awk -F': *' '$1=="superseded_by"{print $2; exit}' <<<"$yaml")
 
     # category required, enum.
     case "$category" in
