@@ -93,13 +93,16 @@ def _draw_status_bar(canvas: Image.Image, x: int, y: int, w: int, h: int, dark_u
     )
 
 
-def _detect_dark_ui(screen: Image.Image) -> bool:
-    """Sample the top-center of the screenshot to guess if the UI is dark."""
+def _sample_top_color(screen: Image.Image) -> tuple:
+    """Sample the top-center of the screenshot to get a fill color (RGBA)."""
     sw, sh = screen.size
     sample = screen.crop((sw // 3, 0, 2 * sw // 3, max(2, sh // 80)))
-    px = sample.convert("RGB").resize((1, 1)).getpixel((0, 0))
-    luminance = 0.299 * px[0] + 0.587 * px[1] + 0.114 * px[2]
-    return luminance < 128
+    r, g, b = sample.convert("RGB").resize((1, 1)).getpixel((0, 0))
+    return (r, g, b, 255)
+
+
+def _is_dark_color(rgba: tuple) -> bool:
+    return 0.299 * rgba[0] + 0.587 * rgba[1] + 0.114 * rgba[2] < 128
 
 
 def frame(src_path: str, dst_path: str) -> None:
@@ -116,6 +119,15 @@ def frame(src_path: str, dst_path: str) -> None:
     button_color = (40, 40, 40, 255)
     shadow_padding = int(sw * 0.06)
     status_bar_h = int(sh * 0.04)
+
+    # Reserve space for the fake status bar by prepending a strip in the same
+    # color as the screenshot's top edge. The original screenshot is not
+    # resized or distorted; the effective screen inside the bezel is taller.
+    top_color = _sample_top_color(screen)
+    padded = Image.new("RGBA", (sw, sh + status_bar_h), top_color)
+    padded.paste(screen, (0, status_bar_h))
+    screen = padded
+    sh = sh + status_bar_h
 
     body_w = sw + 2 * side_bezel
     body_h = sh + top_bezel + bottom_bezel
@@ -173,8 +185,7 @@ def frame(src_path: str, dst_path: str) -> None:
     canvas.alpha_composite(rounded_screen, (screen_x, screen_y))
 
     # Status bar overlay (drawn on top so it sits above app chrome).
-    dark_ui = _detect_dark_ui(screen)
-    _draw_status_bar(canvas, screen_x, screen_y, sw, status_bar_h, dark_ui)
+    _draw_status_bar(canvas, screen_x, screen_y, sw, status_bar_h, _is_dark_color(top_color))
 
     canvas.save(dst_path, "PNG")
     print(f"  wrote {os.path.relpath(dst_path)}  ({canvas_w}x{canvas_h})")
