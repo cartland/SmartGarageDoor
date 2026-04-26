@@ -15,6 +15,11 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.5.1
+- Faster re-tap after a cancelled remote-button confirmation. The "Cancelled" state now clears in 2 seconds (was 10), and the confirmation tap window is extended to 8 seconds (was 5). Re-tapping to retry happens immediately instead of waiting for the long banner.
+- Updated clock and calendar icons in the door status card to standard Material designs (stopwatch + calendar grid). Functionally equivalent; visually slightly heavier.
+- Fixed swapped TalkBack labels in the door status card: the duration icon now reads "Time since last change" and the timestamp icon reads "Last change timestamp" (previously these were reversed).
+
 ## 2.5.0
 - Smoother garage door animation. Linear motion while the door is opening or closing, soft settle when it reaches its final state. Warning states (open-too-long, sensor conflict) now indicate with a midway resting position instead of snapping.
 
