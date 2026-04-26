@@ -1,6 +1,6 @@
 ---
 category: plan
-status: stable
+status: shipped
 ---
 
 # Screenshot Framing Plan
