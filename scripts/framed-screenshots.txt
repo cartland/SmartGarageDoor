@@ -8,6 +8,11 @@
 # Only screenshots intended for README / docs use should be listed here.
 # Raw reference screenshots remain untouched in the AGP reference dir.
 
+# Only true full-screen tab views (top app bar + content + bottom nav)
+# belong here. Sub-screens like DoorHistoryScreen are intentionally NOT
+# framed because the Pixel bezel signals "phone view of the app" and
+# sub-screens aren't a full-app view.
+#
 # Goal state and known limitations are tracked in
 # AndroidGarage/docs/SCREENSHOT_FRAMING_PLAN.md.
 
@@ -17,5 +22,3 @@ HistoryTabPreviewTest_Light_*.png         history_tab_light.png
 HistoryTabPreviewTest_Dark_*.png          history_tab_dark.png
 SettingsTabPreviewTest_Light_*.png        settings_tab_light.png
 SettingsTabPreviewTest_Dark_*.png         settings_tab_dark.png
-DoorHistoryScreenPreviewTest_Light_*.png  door_history_light.png
-DoorHistoryScreenPreviewTest_Dark_*.png   door_history_dark.png

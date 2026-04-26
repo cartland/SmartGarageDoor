@@ -7,7 +7,7 @@ status: shipped
 
 ## TL;DR
 
-`scripts/frame-screenshot.py` wraps Compose `@Preview` screenshots in a programmatic Pixel-style bezel for README / docs use. Eight framed shots ship today (Home / History / Settings / DoorHistory × Light / Dark) — full primary-tab coverage. Both READMEs reference the framed set, and `AndroidGarage/screenshots/framed/COLLECTION.md` is auto-generated as an index. **All goals met as of 2026-04-26.** Future maintenance: adding a new framed shot is a one-line append to `scripts/framed-screenshots.txt`.
+`scripts/frame-screenshot.py` wraps Compose `@Preview` screenshots in a programmatic Pixel-style bezel for README / docs use. Six framed shots ship today (Home / History / Settings × Light / Dark) — full primary-tab coverage. Sub-screen previews are intentionally NOT framed; the Pixel bezel signals "phone view of the app" and only true full-screen tab views (top app bar + content + bottom nav) qualify. Both READMEs reference the framed set, and `AndroidGarage/android-screenshot-tests/collections/framed.md` is auto-generated as an index from `framed.yaml` via the same generator that produces `app-overview.md` and `button-flow.md`. **All goals met as of 2026-04-26.** Future maintenance: adding a new framed shot is a one-line append to `scripts/framed-screenshots.txt` plus a matching entry in `framed.yaml`.
 
 ## Background
 
@@ -19,7 +19,7 @@ For implementation detail (how the framing step fits into the pipeline, how to a
 
 ## Current state
 
-Allowlist: `scripts/framed-screenshots.txt`. Eight entries:
+Allowlist: `scripts/framed-screenshots.txt`. Six entries:
 
 | Output | Source preview |
 |---|---|
@@ -29,10 +29,8 @@ Allowlist: `scripts/framed-screenshots.txt`. Eight entries:
 | `history_tab_dark.png` | `HistoryTabPreviewTest_Dark` |
 | `settings_tab_light.png` | `SettingsTabPreviewTest_Light` |
 | `settings_tab_dark.png` | `SettingsTabPreviewTest_Dark` |
-| `door_history_light.png` | `DoorHistoryScreenPreviewTest_Light` |
-| `door_history_dark.png` | `DoorHistoryScreenPreviewTest_Dark` |
 
-Both READMEs reference framed shots from this set; `home_tab_light.png` + `history_tab_light.png` is the published pair (root README + AndroidGarage/README.md). The auto-generated `AndroidGarage/screenshots/framed/COLLECTION.md` indexes all eight framed shots, light + dark side by side.
+Both READMEs reference framed shots from this set; `home_tab_light.png` + `history_tab_light.png` is the published pair (root README + AndroidGarage/README.md). `AndroidGarage/android-screenshot-tests/collections/framed.md` is auto-generated from `framed.yaml` and indexes all six framed shots.
 
 ## Goal state
 

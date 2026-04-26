@@ -18,7 +18,3 @@ screenshots:
     description: "Settings tab — Light"
   - image: settings_tab_dark.png
     description: "Settings tab — Dark"
-  - image: door_history_light.png
-    description: "Door history detail — Light"
-  - image: door_history_dark.png
-    description: "Door history detail — Dark"
