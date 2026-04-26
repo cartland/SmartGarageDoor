@@ -17,7 +17,9 @@
 
 package com.chriscartland.garage.ui
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -92,13 +95,13 @@ fun DoorStatusCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.clock_icon),
+                    PreviewSafeIcon(
+                        id = R.drawable.clock_icon,
                         contentDescription = "Date icon",
+                        tint = contentColor,
                         modifier = Modifier
                             .size(32.dp)
                             .padding(start = 8.dp, end = 8.dp),
-                        colorFilter = ColorFilter.tint(contentColor),
                     )
                     Text(
                         text = lastChangeDuration.toFriendlyDuration(),
@@ -117,13 +120,13 @@ fun DoorStatusCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.calendar_icon),
+                    PreviewSafeIcon(
+                        id = R.drawable.calendar_icon,
                         contentDescription = "Time icon",
+                        tint = contentColor,
                         modifier = Modifier
                             .size(32.dp)
                             .padding(start = 8.dp, end = 8.dp),
-                        colorFilter = ColorFilter.tint(contentColor),
                     )
                     Text(
                         text = "$date, $time",
@@ -288,4 +291,30 @@ fun DoorStatusCardPreview() {
 @Composable
 fun RecentDoorEventListItemPreview() {
     RecentDoorEventListItem(demoDoorEvents[1])
+}
+
+/**
+ * Tinted icon that gracefully degrades to a tinted square in screenshot tests.
+ * The clock_icon and calendar_icon vector drawables fail to load under
+ * Layoutlib (`Only VectorDrawables and rasterized asset types are supported`),
+ * which collapses the entire DoorStatusCard render to 1×1. Production code
+ * is unaffected — `LocalInspectionMode` is only true during preview rendering.
+ */
+@Composable
+private fun PreviewSafeIcon(
+    @DrawableRes id: Int,
+    contentDescription: String?,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    if (LocalInspectionMode.current) {
+        Box(modifier = modifier.background(tint.copy(alpha = 0.3f)))
+    } else {
+        Image(
+            painter = painterResource(id = id),
+            contentDescription = contentDescription,
+            modifier = modifier,
+            colorFilter = ColorFilter.tint(tint),
+        )
+    }
 }
