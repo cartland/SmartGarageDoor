@@ -92,7 +92,7 @@ idf.py menuconfig      # Enable fake implementations for testing
 - **Repositories** (impls in `data/`, interfaces in `domain/`): `DoorRepository`, `AuthRepository`, `RemoteButtonRepository`, `SnoozeRepository`, `DoorFcmRepository`, `ServerConfigRepository`, `AppLoggerRepository`, `AppSettingsRepository` — `PushRepository` was split into `RemoteButtonRepository` + `SnoozeRepository` in #203
 - **Typed errors**: `AppResult<D, E>` and `NetworkResult<T>` with sealed error types — exhaustive `when`, no `else`. See ADR-010, ADR-011
 - **Platform bridges**: `AuthBridge`, `MessagingBridge` decouple Firebase SDK — enables unit testing and future iOS
-- **DI**: kotlin-inject (`AppComponent`) — Hilt fully removed. See `docs/archive/DI-MIGRATION.md`
+- **DI**: kotlin-inject (`AppComponent`) — Hilt fully removed. See `AndroidGarage/docs/archive/DI-MIGRATION.md`
 - **Local storage**: Room database with offline-first caching
 - **Network**: Ktor HTTP client + kotlinx.serialization, `NetworkResult<T>` at data source boundary
 
@@ -269,6 +269,8 @@ The app requires secrets in `local.properties` (decrypted from GPG at build time
 - Scripts: `release/decrypt-secrets.sh`, `release/clean-secrets.sh`
 
 ### PR Workflow
+- **After modifying files, ask the user what to do with them.** Never end a session with a dirty tree without surfacing the question. Don't open a PR, commit, or revert autonomously — ask first. The user usually wants fast PR creation, but wants to confirm scope and timing each time files change.
+- **Auto-merge — first-PR ask.** On the first PR of a session, ask whether to enable auto-merge. Offer three answers: one-time (this PR only), session default (apply to every later PR you open in this session), or no. Once a session default is given, don't re-ask about auto-merge — but still ask before opening each subsequent PR.
 - Always create feature branches — never push to main
 - Always `--squash --delete-branch` when merging PRs
 - Never use `--admin` to bypass CI — enforce_admins is enabled
