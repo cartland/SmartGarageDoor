@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-04-24
+last_verified: 2026-04-25
 ---
 # Smart Garage Door
 **Author:** Christopher Cartland
@@ -13,12 +13,37 @@ My original firmware implementation was based on Arduino (2021). I've since migr
 * 2021: Arduino on Adafruit HUZZAH32 - ESP32 Feather
 * 2024: FreeRTOS on ESP32-DevKitC ESP32-WROOM-32U Development Board
 
+<img src="AndroidGarage/screenshots/home_closed.png" width="200" alt="Garage app home screen with the door closed and the button ready to press"> <img src="AndroidGarage/screenshots/history.png" width="200" alt="Garage history screen with recent door events">
+
+## Getting Started
+
+Pick the path that matches what you came here for:
+
+| I want to… | Start here |
+|---|---|
+| **Contribute to the Android app** | [`AndroidGarage/README.md`](AndroidGarage/README.md) → [`AndroidGarage/docs/ARCHITECTURE.md`](AndroidGarage/docs/ARCHITECTURE.md) |
+| **Deploy or operate the Firebase server** | [`FirebaseServer/README.md`](FirebaseServer/README.md) → [`docs/FIREBASE_DEPLOY_SETUP.md`](docs/FIREBASE_DEPLOY_SETUP.md) |
+| **Understand the system as a whole** | This page → [`docs/AGENTS.md`](docs/AGENTS.md) → [`AndroidGarage/docs/ARCHITECTURE.md`](AndroidGarage/docs/ARCHITECTURE.md) |
+| **Build the ESP32 firmware** | [`GarageFirmware_ESP32/README.md`](GarageFirmware_ESP32/README.md) (FreeRTOS, current) or [`Arduino_ESP32/README.md`](Arduino_ESP32/README.md) (legacy 2021) |
+| **Work as an AI agent in this repo** | [`CLAUDE.md`](CLAUDE.md) → [`docs/AGENTS.md`](docs/AGENTS.md) |
+
+## Repository Layout
+
+```
+SmartGarageDoor/
+├── AndroidGarage/         Android app (Kotlin, Compose, KMP-bound) — see AndroidGarage/README.md
+├── FirebaseServer/        Cloud Functions backend (TypeScript) — see FirebaseServer/README.md
+├── GarageFirmware_ESP32/  Current ESP32 firmware (FreeRTOS + ESP-IDF)
+├── Arduino_ESP32/         Legacy 2021 Arduino firmware (kept as reference)
+├── docs/                  Cross-cutting docs (AGENTS contract, Firebase ops, architecture)
+└── scripts/               Validation, release, and helper scripts
+```
+
 ## Table of Contents
 * [Firmware](#firmware): ESP32 Firmware (FreeRTOS and Legacy Arduino)
 * [Android](#android): Android app
 * [Server](#server): Firebase Functions
-
-<img src="AndroidGarage/screenshots/home_closed.png" width="200" alt="Garage app home screen with the door closed and the button ready to press"> <img src="AndroidGarage/screenshots/history.png" width="200" alt="Garage history screen with recent door events">
+* [Limitations](#limitations)
 
 <!-- not-actively-maintained: Firmware section (2024 FreeRTOS + 2021 Arduino) is reference-only. Active doc maintenance focuses on Android + Firebase server. See GarageFirmware_ESP32/README.md and Arduino_ESP32/README.md for firmware-specific guidance. -->
 
@@ -61,52 +86,40 @@ Contains:
 * [Adafruit Non-Latching Mini Relay FeatherWing](https://www.adafruit.com/product/2895)
 
 ## Android
-* **Platform**: Android
 
-**Door State**: The Android app displays the current status of the door, as interpreted by the server.
-https://github.com/cartland/SmartGarageDoor/blob/027b1e2a5d79b8fe250d5ad6d3db659ceca11d0a/AndroidGarage/app/src/main/java/com/chriscartland/garage/door/DoorModel.kt#L37-L47
+**Platform**: Android (Kotlin + Jetpack Compose, kotlin-inject DI, Ktor + Room, KMP-bound)
 
-**Pushing the garage button**: The user can "press the garage door button" in the app.
-After a second confirmation, the app will send a command to the server.
-https://github.com/cartland/SmartGarageDoor/blob/027b1e2a5d79b8fe250d5ad6d3db659ceca11d0a/AndroidGarage/app/src/main/java/com/chriscartland/garage/remotebutton/RemoteButtonViewModel.kt#L230-L245
+The app is a thin client over the server. Key behaviors:
 
-**Authentication**: Pushing the button requires Google Sign-In. The server maintains an allow-list.
-https://github.com/cartland/SmartGarageDoor/blob/027b1e2a5d79b8fe250d5ad6d3db659ceca11d0a/AndroidGarage/app/src/main/java/com/chriscartland/garage/auth/AuthViewModel.kt#L71-L80
+* **Door state** — displays the door status as interpreted by the server. The app does not interpret raw sensor data.
+* **Push the garage button** — tap-to-confirm interaction; on second tap, sends a command to the server.
+* **Authentication** — Google Sign-In via Credential Manager, then Firebase Auth ID token. The server keeps an allow-list of authorized accounts.
+* **Two ID tokens** — Google ID token (for Sign-In) and Firebase ID token (sent to the server as `X-AuthTokenGoogle`). Only the Firebase token is accepted by the server.
 
-**Google Sign-In with Firebase Auth**: The app manages 2 distinct ID tokens. The server requires the Firebase version.
-https://github.com/cartland/SmartGarageDoor/blob/027b1e2a5d79b8fe250d5ad6d3db659ceca11d0a/AndroidGarage/app/src/main/java/com/chriscartland/garage/auth/AuthRepository.kt#L69-L73
+For the full architecture, module graph, and ADRs, see [`AndroidGarage/docs/ARCHITECTURE.md`](AndroidGarage/docs/ARCHITECTURE.md) and [`AndroidGarage/docs/DECISIONS.md`](AndroidGarage/docs/DECISIONS.md).
 
 ## Server
-* **Platform**: Firebase Functions
 
-**All critical logic is handled by the server**. To minimize client updates,
-the clients have very little business logic encoded in them.
+**Platform**: Firebase Cloud Functions (TypeScript on Node 22)
 
-Non-server responsibilities:
-* **Sensors**: Simply report sensor values to the server when the value change
-* **Button**: Simply push the button based on a server command
-* **Android**: View the current door state based on the server,
-  and send a command to push the button based on user request.
+**All critical logic lives on the server.** Clients (firmware and app) are kept simple so that features can ship without client updates.
 
-As long as the primitive requirements are supported by the clients, the server can add new features.
-* **Server**
-  * **Stores all requests** sent by clients.
-  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L65
-  * Interprets sensor data and converts signal input to **door events**.
-  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L77
-  * Responds to client requests for the **current event**.
-  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L97
-  * Implements the Button Ack Token Protocol to **push the garage remote button**.
-  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L149
-  * Listens to **Android app requests to push the button**.
-  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L160
-  * **Checks for garage door errors** every minute (example: door halfway closed).
-  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L117
-  * **Checks for open garage door** every 5 minutes, and **sends a mobile notification** if the door is **open more than 15 minutes**.
-  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L128
-  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L137
-  * Implements a **data retention policy** to delete old data.
-  https://github.com/cartland/SmartGarageDoor/blob/b5799199b19d8aabdc6f329a40eeae4fd10e3e3d/FirebaseServer/src/index.ts#L182
+Client responsibilities are deliberately minimal:
+* **Sensors** — report raw sensor values to the server on change. No interpretation.
+* **Button** — push the relay when the server sends a command. No authorization decisions.
+* **Android** — display server-computed state. Send button-press requests; do not interpret sensor data.
+
+Server responsibilities (entry points exported from [`FirebaseServer/src/index.ts`](FirebaseServer/src/index.ts)):
+* **Store all client requests** — every sensor update is persisted.
+* **Interpret sensor data** — convert raw signal input into door events (open / closed / error).
+* **Serve the current event** — clients query for the latest interpreted state.
+* **Push the remote button** — implements the Button Ack Token Protocol so a device crash can't replay a press.
+* **Authorize Android button presses** — Firebase ID token + email allow-list.
+* **Check for door errors every minute** — e.g., door stuck halfway.
+* **Check for open doors every 5 minutes** — send an FCM notification if a door has been open more than 15 minutes.
+* **Enforce data retention** — scheduled cleanup of old event data.
+
+For the full operational guide (deploy, rollback, monitoring, GCP setup), see [`docs/FIREBASE_DEPLOY_SETUP.md`](docs/FIREBASE_DEPLOY_SETUP.md).
 
 ## Limitations
 * **Root CA Expiration**: The server uses a hard-coded root CA that expires in 2036.
