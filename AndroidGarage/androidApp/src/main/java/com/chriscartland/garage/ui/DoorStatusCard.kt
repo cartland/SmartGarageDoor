@@ -17,8 +17,6 @@
 
 package com.chriscartland.garage.ui
 
-import androidx.annotation.DrawableRes
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,8 +28,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -45,14 +43,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.presentation.demoDoorEvents
@@ -99,10 +92,9 @@ fun DoorStatusCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {
-                    PreviewSafeIcon(
-                        id = R.drawable.clock_icon,
-                        previewIcon = Icons.Filled.AccessTime,
-                        contentDescription = "Date icon",
+                    Icon(
+                        imageVector = Icons.Filled.Timer,
+                        contentDescription = "Time since last change",
                         tint = contentColor,
                         modifier = Modifier
                             .size(32.dp)
@@ -125,10 +117,9 @@ fun DoorStatusCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {
-                    PreviewSafeIcon(
-                        id = R.drawable.calendar_icon,
-                        previewIcon = Icons.Filled.DateRange,
-                        contentDescription = "Time icon",
+                    Icon(
+                        imageVector = Icons.Filled.CalendarMonth,
+                        contentDescription = "Last change timestamp",
                         tint = contentColor,
                         modifier = Modifier
                             .size(32.dp)
@@ -297,38 +288,4 @@ fun DoorStatusCardPreview() {
 @Composable
 fun RecentDoorEventListItemPreview() {
     RecentDoorEventListItem(demoDoorEvents[1])
-}
-
-/**
- * Tinted icon that swaps to a Material `ImageVector` in screenshot tests.
- * The clock_icon and calendar_icon vector drawables fail to load under
- * Layoutlib (`Only VectorDrawables and rasterized asset types are supported`),
- * which collapses the entire DoorStatusCard render to 1×1. Material Icons
- * are pure Compose `ImageVector` definitions and bypass resource loading.
- * Production code is unaffected — `LocalInspectionMode` is only true during
- * preview rendering.
- */
-@Composable
-private fun PreviewSafeIcon(
-    @DrawableRes id: Int,
-    previewIcon: ImageVector,
-    contentDescription: String?,
-    tint: Color,
-    modifier: Modifier = Modifier,
-) {
-    if (LocalInspectionMode.current) {
-        Icon(
-            imageVector = previewIcon,
-            contentDescription = contentDescription,
-            modifier = modifier,
-            tint = tint,
-        )
-    } else {
-        Image(
-            painter = painterResource(id = id),
-            contentDescription = contentDescription,
-            modifier = modifier,
-            colorFilter = ColorFilter.tint(tint),
-        )
-    }
 }
