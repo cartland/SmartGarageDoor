@@ -32,6 +32,7 @@ private const val PREPARING_DELAY = 500L
 private const val CONFIRMATION_TIMEOUT = 5_000L
 private const val NETWORK_TIMEOUT = 10_000L
 private const val DISPLAY = 10_000L
+private const val CANCELLED_DISPLAY = 2_000L
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ButtonStateMachineTest {
@@ -51,6 +52,7 @@ class ButtonStateMachineTest {
             confirmationTimeoutMillis = CONFIRMATION_TIMEOUT,
             networkTimeoutMillis = NETWORK_TIMEOUT,
             displayMillis = DISPLAY,
+            cancelledDisplayMillis = CANCELLED_DISPLAY,
         )
         testScheduler.runCurrent()
         return sm
@@ -144,7 +146,7 @@ class ButtonStateMachineTest {
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.Cancelled, sm.state.value)
 
-            advanceTimeBy(DISPLAY + 1)
+            advanceTimeBy(CANCELLED_DISPLAY + 1)
             testScheduler.runCurrent()
             assertEquals(RemoteButtonState.Ready, sm.state.value)
         }
