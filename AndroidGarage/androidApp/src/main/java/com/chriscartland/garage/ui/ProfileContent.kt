@@ -20,11 +20,13 @@ package com.chriscartland.garage.ui
 import androidx.activity.compose.ReportDrawn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -165,25 +167,27 @@ fun ProfileContent(
 @Preview(showBackground = true)
 @Composable
 fun ProfileContentPreview() {
-    ProfileContent(
-        user = User(
-            name = DisplayName("Chris Cartland"),
-            email = Email("chris@example.com"),
-            idToken = FirebaseIdToken(idToken = "preview", exp = 0),
-        ),
-        signIn = {},
-        signOut = {},
-        snoozeState = SnoozeState.NotSnoozing,
-        onSnooze = {},
-        showSnooze = true,
-        showLogSummary = false,
-        notificationPermissionState = object : PermissionState {
-            override val permission = "android.permission.POST_NOTIFICATIONS"
-            override val status = PermissionStatus.Granted
+    Surface(modifier = Modifier.fillMaxSize()) {
+        ProfileContent(
+            user = User(
+                name = DisplayName("Chris Cartland"),
+                email = Email("chris@example.com"),
+                idToken = FirebaseIdToken(idToken = "preview", exp = 0),
+            ),
+            signIn = {},
+            signOut = {},
+            snoozeState = SnoozeState.NotSnoozing,
+            onSnooze = {},
+            showSnooze = true,
+            showLogSummary = false,
+            notificationPermissionState = object : PermissionState {
+                override val permission = "android.permission.POST_NOTIFICATIONS"
+                override val status = PermissionStatus.Granted
 
-            override fun launchPermissionRequest() {
-                // No-op for preview.
-            }
-        },
-    )
+                override fun launchPermissionRequest() {
+                    // No-op for preview.
+                }
+            },
+        )
+    }
 }

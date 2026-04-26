@@ -32,6 +32,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -275,10 +276,12 @@ private fun DoorPosition.toFriendlyName(): String =
 @Preview(showBackground = true)
 @Composable
 fun DoorStatusCardPreview() {
-    DoorStatusCard(
-        demoDoorEvents.firstOrNull(),
-        modifier = Modifier.height(300.dp),
-    )
+    Surface(modifier = Modifier.fillMaxWidth().height(300.dp)) {
+        DoorStatusCard(
+            demoDoorEvents.firstOrNull(),
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
 }
 
 @Preview(showBackground = true)
