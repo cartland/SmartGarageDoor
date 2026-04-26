@@ -13,7 +13,7 @@ My original firmware implementation was based on Arduino (2021). I've since migr
 * 2021: Arduino on Adafruit HUZZAH32 - ESP32 Feather
 * 2024: FreeRTOS on ESP32-DevKitC ESP32-WROOM-32U Development Board
 
-<img src="AndroidGarage/screenshots/home_closed.png" width="200" alt="Garage app home screen with the door closed and the button ready to press"> <img src="AndroidGarage/screenshots/history.png" width="200" alt="Garage history screen with recent door events">
+<img src="AndroidGarage/screenshots/framed/home_tab_light.png" width="200" alt="Garage app home tab showing the door closed and the action button"> <img src="AndroidGarage/screenshots/framed/history_tab_light.png" width="200" alt="Garage history tab listing recent door events">
 
 ## Getting Started
 
