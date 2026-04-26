@@ -50,9 +50,9 @@ The 8.dp `Arrangement.spacedBy` gaps in the LazyColumn revealed the white `@Prev
 
 Same root cause as the `DoorStatusCardPreviewTest` 1×1 (Issue 3). `HomeContent` embeds `DoorStatusCard`; when DoorStatusCard's render crashed, the entire HomeTab body collapsed. Fixed by the icon workaround in #560.
 
-### Issue 3 — Five 1×1 broken previews ✅ #559 + #560
+### Issue 3 — Five 1×1 broken previews ✅ #559 + #560 + #562
 
-Two of five (Profile + Settings light) were fixed by adding Surface wrapping in #559. The remaining three (DoorStatusCard×2 + HomeScreen×2) all collapsed because of a `painterResource` failure on `clock_icon` and `calendar_icon` — see "Known limitation" below. Fixed by `PreviewSafeIcon` helper in #560 that substitutes a tinted placeholder Box under `LocalInspectionMode`.
+Two of five (Profile + Settings light) were fixed by adding Surface wrapping in #559. The remaining three (DoorStatusCard×2 + HomeScreen×2) all collapsed because of a `painterResource` failure on `clock_icon` and `calendar_icon`. Initially worked around by `PreviewSafeIcon` in #560 (tinted placeholder Box) and #562 (Material `ImageVector` fallback). Fully resolved by switching production to Material Icons (`Icons.Filled.Timer` + `Icons.Filled.CalendarMonth`) so previews and production share the same render path — `painterResource` is no longer used in `DoorStatusCard`. The custom `clock_icon.xml` / `calendar_icon.xml` drawables were deleted with this change.
 
 ## Open
 
@@ -66,7 +66,7 @@ Now unblocked. Switch:
 
 After the swap, optionally delete the now-superseded manual mockups (`home_closed.png`, `history.png`, `user.png`) — they no longer match the live app and `git log` preserves history.
 
-## Known limitation
+## Known limitation (no longer affects this app)
 
 **The `com.android.compose.screenshot:0.0.1-alpha12` plugin's renderer (Layoutlib in screenshot-test mode) cannot load XML vector drawables via `painterResource(R.drawable.X)`.** It throws `IllegalArgumentException: Only VectorDrawables and rasterized asset types are supported ex. PNG, JPG, WEBP` even when the resource IS a valid VectorDrawable.
 
@@ -79,9 +79,7 @@ Investigation summary (2026-04-26):
 
 Conclusion: the bug is in the screenshot-test plugin, not in our resources. The XMLs render correctly in production, in IDE Preview, and on a real device.
 
-**Workaround in `DoorStatusCard.kt`:** the `PreviewSafeIcon` helper checks `LocalInspectionMode.current` and substitutes a tinted Box of the same size in preview/test rendering. Production code path is unchanged. The framed screenshot shows two small grey rectangles where the clock and calendar icons would be — visually unobtrusive at the bezel zoom level.
-
-**Future work.** When the screenshot-test plugin reaches stable and supports XML vector drawables, remove the `LocalInspectionMode` branch in `PreviewSafeIcon`. Track the plugin's release notes for `painterResource` fixes.
+**Resolution (PR #pending).** `DoorStatusCard` now uses Material `Icons.Filled.Timer` and `Icons.Filled.CalendarMonth` — pure Compose `ImageVector` definitions that bypass resource loading. Production and screenshot tests render identically; the `PreviewSafeIcon` helper and the custom `clock_icon.xml` / `calendar_icon.xml` drawables were deleted. If a future preview test or screen needs to render an XML vector drawable, the plugin bug will resurface — track the screenshot-test plugin's release notes for `painterResource` fixes before reintroducing that pattern.
 
 ## Reviewing framed shots with an LLM
 
