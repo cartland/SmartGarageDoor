@@ -1,0 +1,16 @@
+# Allowlist for frame-screenshot.py --batch
+#
+# Each non-comment line: <source-glob> <output-name>
+# - source-glob is matched recursively under the reference directory
+# - first match wins
+# - output goes to AndroidGarage/screenshots/framed/<output-name>
+#
+# Only screenshots intended for README / docs use should be listed here.
+# Raw reference screenshots remain untouched in the AGP reference dir.
+
+HomeTabPreviewTest_Light_*.png         home_tab_light.png
+HomeTabPreviewTest_Dark_*.png          home_tab_dark.png
+HistoryTabPreviewTest_Light_*.png      history_tab_light.png
+HistoryTabPreviewTest_Dark_*.png       history_tab_dark.png
+DoorHistoryScreenPreviewTest_Light_*.png  door_history_light.png
+DoorHistoryScreenPreviewTest_Dark_*.png   door_history_dark.png

@@ -29,6 +29,18 @@ echo "Generating screenshot collections..."
 ./scripts/generate-screenshot-collections.sh
 
 echo ""
+echo "Framing curated screenshots for README..."
+if python3 -c "import PIL" 2>/dev/null; then
+    python3 ./scripts/frame-screenshot.py \
+        --batch ./scripts/framed-screenshots.txt \
+        "$REFERENCE_DIR" \
+        AndroidGarage/screenshots/framed \
+        || echo "WARN: framing step had non-fatal failures"
+else
+    echo "WARN: Pillow not installed (pip install Pillow); skipping framing step"
+fi
+
+echo ""
 echo "Running screenshot health check..."
 ./scripts/check-screenshot-health.sh
 
