@@ -7,7 +7,7 @@ status: active
 
 ## TL;DR
 
-`scripts/frame-screenshot.py` wraps Compose `@Preview` screenshots in a programmatic Pixel-style bezel for README / docs use. Six framed shots ship today (Home / History / DoorHistory × Light / Dark). README swap (Issue 4) is the only remaining work item.
+`scripts/frame-screenshot.py` wraps Compose `@Preview` screenshots in a programmatic Pixel-style bezel for README / docs use. Eight framed shots ship today (Home / History / Settings / DoorHistory × Light / Dark) — full primary-tab coverage. README swap (Issue 4) is the only remaining work item.
 
 ## Background
 
@@ -19,7 +19,7 @@ For implementation detail (how the framing step fits into the pipeline, how to a
 
 ## Current state
 
-Allowlist: `scripts/framed-screenshots.txt`. Six entries:
+Allowlist: `scripts/framed-screenshots.txt`. Eight entries:
 
 | Output | Source preview |
 |---|---|
@@ -27,6 +27,8 @@ Allowlist: `scripts/framed-screenshots.txt`. Six entries:
 | `home_tab_dark.png` | `HomeTabPreviewTest_Dark` |
 | `history_tab_light.png` | `HistoryTabPreviewTest_Light` |
 | `history_tab_dark.png` | `HistoryTabPreviewTest_Dark` |
+| `settings_tab_light.png` | `SettingsTabPreviewTest_Light` |
+| `settings_tab_dark.png` | `SettingsTabPreviewTest_Dark` |
 | `door_history_light.png` | `DoorHistoryScreenPreviewTest_Light` |
 | `door_history_dark.png` | `DoorHistoryScreenPreviewTest_Dark` |
 
@@ -34,7 +36,7 @@ READMEs still point at the legacy manual mockups. Issue 4 (README swap) is now u
 
 ## Goal state
 
-1. ✅ **Cover every primary tab** with a framed preview that has visible content. Done: Home + History.
+1. ✅ **Cover every primary tab** with a framed preview that has visible content. Done: Home + History + Settings.
 2. ✅ **Both light and dark variants** for every framed tab.
 3. ⏳ **READMEs reference the framed set.** Pending — Issue 4.
 4. ✅ **Bezel + status bar overlay are good-enough fidelity.**
@@ -53,6 +55,10 @@ Same root cause as the `DoorStatusCardPreviewTest` 1×1 (Issue 3). `HomeContent`
 ### Issue 3 — Five 1×1 broken previews ✅ #559 + #560 + #562
 
 Two of five (Profile + Settings light) were fixed by adding Surface wrapping in #559. The remaining three (DoorStatusCard×2 + HomeScreen×2) all collapsed because of a `painterResource` failure on `clock_icon` and `calendar_icon`. Initially worked around by `PreviewSafeIcon` in #560 (tinted placeholder Box) and #562 (Material `ImageVector` fallback). Fully resolved by switching production to Material Icons (`Icons.Filled.Timer` + `Icons.Filled.CalendarMonth`) so previews and production share the same render path — `painterResource` is no longer used in `DoorStatusCard`. The custom `clock_icon.xml` / `calendar_icon.xml` drawables were deleted with this change.
+
+### Issue 5 — `SettingsTabPreviewTest` collapsed via `rememberAppComponent` ✅ #pending
+
+`SettingsTab` rendered as 1×1 in screenshot tests because `UserInfoCard` and `AndroidAppInfoCard` each called `rememberAppComponent()` to fetch `AppSettingsViewModel` (for persisted card-expanded state) and Layoutlib's `ApplicationContext` could not be cast to `GarageApplication`. Fix: hoisted the DI lookups (and `LocalContext.current.AppVersion()`) up into the stateful `ProfileContent` overload, which already resolved other ViewModels — both card composables now have a single stateless implementation that takes its state as parameters. Stateful overloads of `UserInfoCard` and `AndroidAppInfoCard` were dead after the refactor and were deleted. Added Settings light + dark to the framing allowlist so the README pair will have full primary-tab coverage when Issue 4 lands.
 
 ## Open
 

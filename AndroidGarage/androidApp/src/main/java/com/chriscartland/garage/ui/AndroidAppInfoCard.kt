@@ -29,42 +29,15 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AppVersion
-import com.chriscartland.garage.usecase.AppSettingsViewModel
-import com.chriscartland.garage.version.AppVersion
 
 const val PRIVACY_POLICY_URL: String = "https://chriscart.land/garage-privacy-policy"
-
-@Composable
-fun AndroidAppInfoCard(
-    modifier: Modifier = Modifier,
-    colors: CardColors = CardDefaults.cardColors(),
-) {
-    val component = rememberAppComponent()
-    val settingsViewModel: AppSettingsViewModel = viewModel { component.appSettingsViewModel }
-    val startAndroidAppInfoCardExpanded by settingsViewModel.profileAppCardExpanded.collectAsState()
-    // Don't render until DataStore loads the persisted value.
-    val expanded = startAndroidAppInfoCardExpanded ?: return
-    AndroidAppInfoCard(
-        appVersion = LocalContext.current.AppVersion(),
-        modifier = modifier,
-        startExpanded = expanded,
-        onExpandedChange = {
-            settingsViewModel.setProfileAppCardExpanded(it)
-        },
-        colors = colors,
-    )
-}
 
 @Composable
 fun AndroidAppInfoCard(

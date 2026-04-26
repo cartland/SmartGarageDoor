@@ -15,5 +15,7 @@ HomeTabPreviewTest_Light_*.png            home_tab_light.png
 HomeTabPreviewTest_Dark_*.png             home_tab_dark.png
 HistoryTabPreviewTest_Light_*.png         history_tab_light.png
 HistoryTabPreviewTest_Dark_*.png          history_tab_dark.png
+SettingsTabPreviewTest_Light_*.png        settings_tab_light.png
+SettingsTabPreviewTest_Dark_*.png         settings_tab_dark.png
 DoorHistoryScreenPreviewTest_Light_*.png  door_history_light.png
 DoorHistoryScreenPreviewTest_Dark_*.png   door_history_dark.png
