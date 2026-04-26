@@ -64,7 +64,6 @@ should_skip() {
         */.claude/projects/*) return 0 ;;
         */android-screenshot-tests/*SCREENSHOT_GALLERY.md) return 0 ;;
         */android-screenshot-tests/collections/*) return 0 ;;
-        */screenshots/framed/COLLECTION.md) return 0 ;;
         */detekt.md) return 0 ;;
         */GarageFirmware_ESP32/*) return 0 ;;
         */Arduino_ESP32/*) return 0 ;;
