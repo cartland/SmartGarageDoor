@@ -22,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalInspectionMode
 import com.chriscartland.garage.domain.model.FriendlyDuration
 import kotlinx.coroutines.delay
 import java.time.Duration
@@ -72,6 +73,13 @@ fun Duration.toFriendlyDuration(): String = FriendlyDuration.format(this.toKotli
  */
 @Composable
 fun rememberDurationSince(time: Instant?): State<Duration> {
+    if (LocalInspectionMode.current) {
+        // Screenshot tests / IDE previews don't run LaunchedEffect long enough
+        // to update the duration past Duration.ZERO, which makes preview UIs
+        // show "0s". Substitute a fixed non-zero duration so previews look
+        // realistic without affecting production.
+        return remember { mutableStateOf(Duration.ofMinutes(5).plusSeconds(23)) }
+    }
     val duration = remember { mutableStateOf(Duration.ZERO) }
     LaunchedEffect(time) {
         while (true) {
