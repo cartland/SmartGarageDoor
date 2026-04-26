@@ -1,0 +1,24 @@
+title: "Framed Screenshots"
+# Pixel-bezel-wrapped screenshots used in README / docs. Source images are
+# auto-generated from `scripts/framed-screenshots.txt` by frame-screenshot.py.
+# `source: framed` tells the collection generator to resolve `image:` against
+# `AndroidGarage/screenshots/framed/<basename>.png` instead of the raw
+# screenshot-test reference directory.
+source: framed
+screenshots:
+  - image: home_tab_light.png
+    description: "Home tab — Light"
+  - image: home_tab_dark.png
+    description: "Home tab — Dark"
+  - image: history_tab_light.png
+    description: "History tab — Light"
+  - image: history_tab_dark.png
+    description: "History tab — Dark"
+  - image: settings_tab_light.png
+    description: "Settings tab — Light"
+  - image: settings_tab_dark.png
+    description: "Settings tab — Dark"
+  - image: door_history_light.png
+    description: "Door history detail — Light"
+  - image: door_history_dark.png
+    description: "Door history detail — Dark"

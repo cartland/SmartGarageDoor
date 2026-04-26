@@ -4,15 +4,26 @@
 #
 # For each .yaml file in android-screenshot-tests/collections/, this script:
 # 1. Deletes all .md files in the directory (clean slate)
-# 2. Reads each YAML to extract title and screenshot entries
-# 3. Finds matching reference PNGs (by stable test name prefix)
+# 2. Reads each YAML to extract title, source, and screenshot entries
+# 3. Resolves each entry to a PNG path:
+#    - Default (`source: reference` or unset): match `<test>_*_0.png` under
+#      the screenshot-test reference dir, indexed by `test_class:`.
+#    - `source: framed`: read `image:` (a flat basename) from the entry and
+#      resolve to `AndroidGarage/screenshots/framed/<basename>`.
 # 4. Generates a Markdown file with metadata, descriptions, and inline images
 #
-# YAML format:
+# YAML format (default reference source):
 #   title: "Collection Title"
 #   screenshots:
 #     - test_class: ComponentsScreenshotTestKt
 #       test: TestFunctionName_Light
+#       description: "What this shows"
+#
+# YAML format (framed source):
+#   title: "Collection Title"
+#   source: framed
+#   screenshots:
+#     - image: home_tab_light.png
 #       description: "What this shows"
 #
 # Usage: ./scripts/generate-screenshot-collections.sh
@@ -22,6 +33,7 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 COLLECTIONS_DIR="$REPO_ROOT/AndroidGarage/android-screenshot-tests/collections"
 REFERENCE_DIR="$REPO_ROOT/AndroidGarage/android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests"
+FRAMED_DIR="$REPO_ROOT/AndroidGarage/screenshots/framed"
 
 if [ ! -d "$COLLECTIONS_DIR" ]; then
     echo "No collections directory found at $COLLECTIONS_DIR"
@@ -51,9 +63,22 @@ for yaml_file in "$COLLECTIONS_DIR"/*.yaml; do
         continue
     fi
 
-    # Extract screenshot entries (test_class, test, description)
+    # Parse source (optional; defaults to "reference")
+    source_kind="$(awk -F': *' '$1=="source"{print $2; exit}' "$yaml_file")"
+    source_kind="${source_kind:-reference}"
+
+    if [ "$source_kind" != "reference" ] && [ "$source_kind" != "framed" ]; then
+        echo "ERROR: $yaml_file invalid source '$source_kind' (allowed: reference, framed)"
+        error_count=$((error_count + 1))
+        continue
+    fi
+
+    # Extract screenshot entries. Two shapes:
+    #   reference: -- test_class: X / test: Y / description: Z
+    #   framed:    -- image: name.png / description: Z
     test_classes=()
     tests=()
+    images=()
     descriptions=()
     current_class=""
     while IFS= read -r line; do
@@ -62,6 +87,8 @@ for yaml_file in "$COLLECTIONS_DIR"/*.yaml; do
         elif [[ "$line" =~ ^[[:space:]]*-?[[:space:]]*test:[[:space:]]*(.*) ]]; then
             tests+=("${BASH_REMATCH[1]}")
             test_classes+=("$current_class")
+        elif [[ "$line" =~ ^[[:space:]]*-?[[:space:]]*image:[[:space:]]*(.*) ]]; then
+            images+=("${BASH_REMATCH[1]}")
         elif [[ "$line" =~ ^[[:space:]]*description:[[:space:]]*\"(.*)\" ]]; then
             descriptions+=("${BASH_REMATCH[1]}")
         elif [[ "$line" =~ ^[[:space:]]*description:[[:space:]]*(.*) ]]; then
@@ -69,36 +96,56 @@ for yaml_file in "$COLLECTIONS_DIR"/*.yaml; do
         fi
     done < "$yaml_file"
 
-    if [ "${#tests[@]}" -ne "${#descriptions[@]}" ]; then
-        echo "ERROR: $yaml_file has ${#tests[@]} tests but ${#descriptions[@]} descriptions"
+    # Choose the active entry list based on source_kind.
+    if [ "$source_kind" = "framed" ]; then
+        entry_count=${#images[@]}
+    else
+        entry_count=${#tests[@]}
+    fi
+
+    if [ "$entry_count" -ne "${#descriptions[@]}" ]; then
+        echo "ERROR: $yaml_file has $entry_count entries but ${#descriptions[@]} descriptions"
         error_count=$((error_count + 1))
         continue
     fi
 
-    # Find matching PNG for each test name
+    # Resolve each entry to a PNG path
     image_paths=()
     missing=0
-    for i in "${!tests[@]}"; do
-        test_name="${tests[$i]}"
-        class="${test_classes[$i]}"
-        class_dir="$REFERENCE_DIR/$class"
-
-        if [ ! -d "$class_dir" ]; then
-            echo "WARNING: Reference directory not found: $class_dir"
-            image_paths+=("")
-            missing=$((missing + 1))
-            continue
-        fi
-
-        # Glob for {test_name}_*_0.png (the hash varies across generations)
-        matches=("$class_dir"/${test_name}_*_0.png)
-        if [ -f "${matches[0]}" ]; then
-            rel_path="$(python3 -c "import os.path; print(os.path.relpath('${matches[0]}', '$COLLECTIONS_DIR'))")"
-            image_paths+=("$rel_path")
+    for ((i = 0; i < entry_count; i++)); do
+        if [ "$source_kind" = "framed" ]; then
+            basename="${images[$i]}"
+            png="$FRAMED_DIR/$basename"
+            if [ -f "$png" ]; then
+                rel_path="$(python3 -c "import os.path; print(os.path.relpath('$png', '$COLLECTIONS_DIR'))")"
+                image_paths+=("$rel_path")
+            else
+                echo "WARNING: No framed image found at $png"
+                image_paths+=("")
+                missing=$((missing + 1))
+            fi
         else
-            echo "WARNING: No image found for $test_name in $class_dir"
-            image_paths+=("")
-            missing=$((missing + 1))
+            test_name="${tests[$i]}"
+            class="${test_classes[$i]}"
+            class_dir="$REFERENCE_DIR/$class"
+
+            if [ ! -d "$class_dir" ]; then
+                echo "WARNING: Reference directory not found: $class_dir"
+                image_paths+=("")
+                missing=$((missing + 1))
+                continue
+            fi
+
+            # Glob for {test_name}_*_0.png (the hash varies across generations)
+            matches=("$class_dir"/${test_name}_*_0.png)
+            if [ -f "${matches[0]}" ]; then
+                rel_path="$(python3 -c "import os.path; print(os.path.relpath('${matches[0]}', '$COLLECTIONS_DIR'))")"
+                image_paths+=("$rel_path")
+            else
+                echo "WARNING: No image found for $test_name in $class_dir"
+                image_paths+=("")
+                missing=$((missing + 1))
+            fi
         fi
     done
 
@@ -129,7 +176,7 @@ for yaml_file in "$COLLECTIONS_DIR"/*.yaml; do
         echo ""
     } > "$md_file"
 
-    echo "Generated $md_file (${#tests[@]} images, $missing missing)"
+    echo "Generated $md_file ($entry_count images, $missing missing)"
 done
 
 if [ "$error_count" -gt 0 ]; then
