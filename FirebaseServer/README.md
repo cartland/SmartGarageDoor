@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-04-24
+last_verified: 2026-04-25
 ---
 # Garage Server
 
@@ -76,7 +76,7 @@ Update the server configuration in `serverConfig.json`, then push it to the serv
 curl -H "Content-Type: application/json" -H "X-ServerConfigKey: $SERVER_CONFIG_UPDATE_KEY" https://us-central1-escape-echo.cloudfunctions.net/serverConfigUpdate -d @serverConfig.json
 ```
 
-Example config payload (illustrative — the live values are managed in production via `httpServerConfigUpdate`; see `docs/FIREBASE_HARDENING_PLAN.md` for the buildTimestamp config-authority rule shipped in `server/16` / `server/17`):
+Example config payload (illustrative — the live values are managed in production via `httpServerConfigUpdate`; see [`docs/FIREBASE_CONFIG_AUTHORITY.md`](../docs/FIREBASE_CONFIG_AUTHORITY.md) for the buildTimestamp config-authority rule shipped in `server/16` / `server/17`):
 
 ```json
 {
@@ -121,11 +121,16 @@ firebase init
 ```
 
 ### Deployment
-Deploy to Firebase:
+
+**Production deploys are tag-driven.** Use [`scripts/release-firebase.sh`](../scripts/release-firebase.sh) — it validates locally, requires a `## server/N` entry in [`CHANGELOG.md`](CHANGELOG.md), pushes the tag, and the GitHub Actions workflow deploys. Always start with `--check`:
 
 ```bash
-firebase deploy
+./scripts/release-firebase.sh --check    # Prints the next command, with SHA + tag pre-filled
 ```
+
+Full deploy procedure, rollback, monitoring, GCP setup, and troubleshooting: [`docs/FIREBASE_DEPLOY_SETUP.md`](../docs/FIREBASE_DEPLOY_SETUP.md). Release rules and the changelog gate: [`CLAUDE.md` § Releasing Firebase Server](../CLAUDE.md#releasing-firebase-server).
+
+A direct `firebase deploy` from a developer machine is **not the supported path** for production — it skips CI validation and the changelog gate.
 
 ## License
 

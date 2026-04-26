@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-04-24
+last_verified: 2026-04-25
 ---
 # Architecture
 
@@ -145,7 +145,7 @@ Packages under `androidApp/src/main/java/com/chriscartland/garage/`:
 1. UI → `RemoteButtonViewModel.onButtonTap()` → `ButtonStateMachine.onTap()`
 2. State machine: Ready → Preparing (500ms) → AwaitingConfirmation (5s timeout) → tap → SendingToServer
 3. On confirm: `onSubmit` callback → `PushRemoteButtonUseCase` checks auth, refreshes token if expired
-4. `PushRepository.push(idToken, buttonAckToken)` → POST `/addRemoteButtonCommand`
+4. `RemoteButtonRepository.push(idToken, buttonAckToken)` → POST `/addRemoteButtonCommand` (PushRepository was split into `RemoteButtonRepository` + `SnoozeRepository` in PR #203)
 5. State machine observes `pushButtonStatus`: SendingToServer → SendingToDoor (server ack) → Succeeded (door moves)
 6. Failure paths: ServerFailed / DoorFailed → Ready after display delay
 7. All transitions atomic via single Channel consumer; testable with virtual time
@@ -161,7 +161,7 @@ Packages under `androidApp/src/main/java/com/chriscartland/garage/`:
 
 ## Dependency Injection (kotlin-inject)
 
-All dependencies wired in `AppComponent` (see `docs/archive/DI-MIGRATION.md` for the Hilt→kotlin-inject migration history and `docs/DI_SINGLETON_REQUIREMENTS.md` for `@Singleton` correctness rules).
+All dependencies wired in `AppComponent` (see `archive/DI-MIGRATION.md` for the Hilt→kotlin-inject migration history and `DI_SINGLETON_REQUIREMENTS.md` for `@Singleton` correctness rules).
 
 Entry points exposed by `AppComponent` (abstract vals — required for `@Singleton` caching, see CLAUDE.md):
 
@@ -183,7 +183,7 @@ Safety rails enforced by `validate.sh`:
 ## State Management
 
 - **`LoadingResult<T>`** (sealed class): `Loading(data?)`, `Complete(data?)`, `Error(exception)`. Used by DoorViewModel to represent fetch state.
-- **`RemoteButtonState`** (sealed): Ready, Arming, Armed, NotConfirmed, Sending, Sent, Received, SendingTimeout, SentTimeout. Unified state for the remote garage button — combines tap-to-confirm interaction and network/door request lifecycle. Owned by `ButtonStateMachine` in `usecase/`.
+- **`RemoteButtonState`** (sealed): `Ready`, `Preparing`, `AwaitingConfirmation`, `Cancelled`, `SendingToServer`, `SendingToDoor`, `Succeeded`, `ServerFailed`, `DoorFailed`. Unified state for the remote garage button — combines tap-to-confirm interaction with network/door request tracking. Owned by `ButtonStateMachine` in `usecase/`. See [`RemoteButtonState.kt`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/model/RemoteButtonState.kt) for the full state diagram in KDoc.
 - **`SnoozeState`** (sealed): Loading, NotSnoozing, Snoozing(until). Always-visible current snooze status from server.
 - **`SnoozeAction`** (sealed): Idle, Sending, Succeeded.{Cleared, Set}, Failed.{NotAuthenticated, MissingData, NetworkError}. Overlay on top of SnoozeState; auto-resets to Idle after 10s.
 - **`AuthState`** (sealed): Unknown, Unauthenticated, Authenticated(user). Drives sign-in UI.
