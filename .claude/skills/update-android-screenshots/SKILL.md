@@ -41,6 +41,8 @@ The framed screenshots in `AndroidGarage/screenshots/framed/` are auto-generated
 
 Framing requires Pillow (`pip install Pillow`). If Pillow is missing, the framing step prints a warning and is skipped — the rest of the pipeline still runs.
 
+**Before adding a preview to the allowlist, check `AndroidGarage/docs/SCREENSHOT_FRAMING_PLAN.md`** — it tracks known preview-side issues (empty Home tab, dark-mode divider bug, 1×1 broken previews) and the goal state for the framed set.
+
 ## Adding New Screenshots
 
 1. Create or find a `@Preview` composable in the app code
