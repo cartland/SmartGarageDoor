@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -233,23 +234,25 @@ fun HomeContent(
 @Preview(showBackground = true)
 @Composable
 fun HomeContentPreview() {
-    HomeContent(
-        currentDoorEvent = LoadingResult.Complete(demoDoorEvents.firstOrNull()),
-        modifier = Modifier.height(600.dp),
-        authState = AuthState.Authenticated(
-            User(
-                name = DisplayName("Chris"),
-                email = Email("chris@example.com"),
-                idToken = FirebaseIdToken(idToken = "preview", exp = 0),
+    Surface(modifier = Modifier.fillMaxWidth().height(600.dp)) {
+        HomeContent(
+            currentDoorEvent = LoadingResult.Complete(demoDoorEvents.firstOrNull()),
+            modifier = Modifier.fillMaxSize(),
+            authState = AuthState.Authenticated(
+                User(
+                    name = DisplayName("Chris"),
+                    email = Email("chris@example.com"),
+                    idToken = FirebaseIdToken(idToken = "preview", exp = 0),
+                ),
             ),
-        ),
-        notificationPermissionState = object : PermissionState {
-            override val permission = "android.permission.POST_NOTIFICATIONS"
-            override val status = PermissionStatus.Granted
+            notificationPermissionState = object : PermissionState {
+                override val permission = "android.permission.POST_NOTIFICATIONS"
+                override val status = PermissionStatus.Granted
 
-            override fun launchPermissionRequest() {
-                // No-op for preview.
-            }
-        },
-    )
+                override fun launchPermissionRequest() {
+                    // No-op for preview.
+                }
+            },
+        )
+    }
 }
