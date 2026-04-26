@@ -1,13 +1,13 @@
 ---
 category: plan
-status: active
+status: stable
 ---
 
 # Screenshot Framing Plan
 
 ## TL;DR
 
-`scripts/frame-screenshot.py` wraps Compose `@Preview` screenshots in a programmatic Pixel-style bezel for README / docs use. Eight framed shots ship today (Home / History / Settings / DoorHistory × Light / Dark) — full primary-tab coverage. README swap (Issue 4) is the only remaining work item.
+`scripts/frame-screenshot.py` wraps Compose `@Preview` screenshots in a programmatic Pixel-style bezel for README / docs use. Eight framed shots ship today (Home / History / Settings / DoorHistory × Light / Dark) — full primary-tab coverage. Both READMEs reference the framed set, and `AndroidGarage/screenshots/framed/COLLECTION.md` is auto-generated as an index. **All goals met as of 2026-04-26.** Future maintenance: adding a new framed shot is a one-line append to `scripts/framed-screenshots.txt`.
 
 ## Background
 
@@ -32,13 +32,13 @@ Allowlist: `scripts/framed-screenshots.txt`. Eight entries:
 | `door_history_light.png` | `DoorHistoryScreenPreviewTest_Light` |
 | `door_history_dark.png` | `DoorHistoryScreenPreviewTest_Dark` |
 
-READMEs still point at the legacy manual mockups. Issue 4 (README swap) is now unblocked.
+Both READMEs reference framed shots from this set; `home_tab_light.png` + `history_tab_light.png` is the published pair (root README + AndroidGarage/README.md). The auto-generated `AndroidGarage/screenshots/framed/COLLECTION.md` indexes all eight framed shots, light + dark side by side.
 
 ## Goal state
 
 1. ✅ **Cover every primary tab** with a framed preview that has visible content. Done: Home + History + Settings.
 2. ✅ **Both light and dark variants** for every framed tab.
-3. ⏳ **READMEs reference the framed set.** Pending — Issue 4.
+3. ✅ **READMEs reference the framed set.** Done in #565.
 4. ✅ **Bezel + status bar overlay are good-enough fidelity.**
 5. ✅ **Pipeline is one command.** `./scripts/generate-android-screenshots.sh`
 
@@ -56,21 +56,17 @@ Same root cause as the `DoorStatusCardPreviewTest` 1×1 (Issue 3). `HomeContent`
 
 Two of five (Profile + Settings light) were fixed by adding Surface wrapping in #559. The remaining three (DoorStatusCard×2 + HomeScreen×2) all collapsed because of a `painterResource` failure on `clock_icon` and `calendar_icon`. Initially worked around by `PreviewSafeIcon` in #560 (tinted placeholder Box) and #562 (Material `ImageVector` fallback). Fully resolved by switching production to Material Icons (`Icons.Filled.Timer` + `Icons.Filled.CalendarMonth`) so previews and production share the same render path — `painterResource` is no longer used in `DoorStatusCard`. The custom `clock_icon.xml` / `calendar_icon.xml` drawables were deleted with this change.
 
-### Issue 5 — `SettingsTabPreviewTest` collapsed via `rememberAppComponent` ✅ #pending
+### Issue 5 — `SettingsTabPreviewTest` collapsed via `rememberAppComponent` ✅ #564
 
-`SettingsTab` rendered as 1×1 in screenshot tests because `UserInfoCard` and `AndroidAppInfoCard` each called `rememberAppComponent()` to fetch `AppSettingsViewModel` (for persisted card-expanded state) and Layoutlib's `ApplicationContext` could not be cast to `GarageApplication`. Fix: hoisted the DI lookups (and `LocalContext.current.AppVersion()`) up into the stateful `ProfileContent` overload, which already resolved other ViewModels — both card composables now have a single stateless implementation that takes its state as parameters. Stateful overloads of `UserInfoCard` and `AndroidAppInfoCard` were dead after the refactor and were deleted. Added Settings light + dark to the framing allowlist so the README pair will have full primary-tab coverage when Issue 4 lands.
+`SettingsTab` rendered as 1×1 in screenshot tests because `UserInfoCard` and `AndroidAppInfoCard` each called `rememberAppComponent()` to fetch `AppSettingsViewModel` (for persisted card-expanded state) and Layoutlib's `ApplicationContext` could not be cast to `GarageApplication`. Fix: hoisted the DI lookups (and `LocalContext.current.AppVersion()`) up into the stateful `ProfileContent` overload, which already resolved other ViewModels — both card composables now have a single stateless implementation that takes its state as parameters. Stateful overloads of `UserInfoCard` and `AndroidAppInfoCard` were dead after the refactor and were deleted. Added Settings light + dark to the framing allowlist, completing primary-tab coverage.
 
-## Open
+### Issue 4 — Switch READMEs to the framed set ✅ #565
 
-### Issue 4 — Switch READMEs to the framed set
+Both READMEs (`README.md` line 16 + `AndroidGarage/README.md` line 11) now point at `screenshots/framed/home_tab_light.png` + `screenshots/framed/history_tab_light.png` — full-screen tab views with bottom nav, consistent style. Legacy mockups (`home_closed.png`, `history.png`, `user.png`) deleted in the same PR; `git log` preserves them.
 
-Now unblocked. Switch:
-- `README.md` line 16
-- `AndroidGarage/README.md` line 11
+### Issue 6 — Auto-generated `COLLECTION.md` ✅ #566
 
-…from `screenshots/home_closed.png` + `screenshots/history.png` to a coherent pair from `screenshots/framed/`. Suggested: `home_tab_light.png` + `door_history_light.png`.
-
-After the swap, optionally delete the now-superseded manual mockups (`home_closed.png`, `history.png`, `user.png`) — they no longer match the live app and `git log` preserves history.
+`scripts/frame-screenshot.py --batch` now also emits `AndroidGarage/screenshots/framed/COLLECTION.md` — an index grouping all framed shots by view with light + dark side by side. Sections derive their titles from the output filename (`home_tab_light.png` → "Home Tab" / "Light"); no extra metadata in the allowlist. Re-emitted on every `./scripts/generate-android-screenshots.sh` run.
 
 ## Known limitation (no longer affects this app)
 
