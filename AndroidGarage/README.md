@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-04-24
+last_verified: 2026-04-25
 ---
 # Smart Garage Door - Android App
 
@@ -84,6 +84,20 @@ release/encrypt-secrets.sh
 ```sh
 release/clean-secrets.sh
 ```
+
+## Documentation
+
+| Topic | Doc |
+|---|---|
+| Architecture (modules, data flows, DI, state) | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
+| Architectural decisions (ADRs) | [`docs/DECISIONS.md`](docs/DECISIONS.md) |
+| Testing strategy and CI stability | [`docs/TESTING.md`](docs/TESTING.md) |
+| KMP migration roadmap | [`docs/MIGRATION.md`](docs/MIGRATION.md) |
+| Pattern guides (DI, navigation, R8, auth, repo APIs) | [`docs/guides/`](docs/guides/) |
+| `@Singleton` + kotlin-inject correctness rules | [`docs/DI_SINGLETON_REQUIREMENTS.md`](docs/DI_SINGLETON_REQUIREMENTS.md) |
+| Library bug workarounds | [`docs/library-bugs/`](docs/library-bugs/) |
+| Build, validation, and release procedures | [`../CLAUDE.md`](../CLAUDE.md) |
+| Version history | [`CHANGELOG.md`](CHANGELOG.md) |
 
 ## Known Issues
 - **Notification Management**: Not automatically dismissed on door close
