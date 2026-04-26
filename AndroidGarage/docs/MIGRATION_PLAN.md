@@ -1,8 +1,11 @@
 ---
 category: plan
 status: active
+last_verified: 2026-04-25
 ---
 # Migration Plan — ADR-021 + ADR-022
+
+> **Status (2026-04-25):** Phase 1 shipped 2026-04-19 (PRs #358–#366). Phase 2 is **deferred** — re-open only if a new state-y bug surfaces. Phase 3 (iOS) defers to [`MIGRATION.md`](MIGRATION.md) Phase 38.
 
 Rollout plan for the state-ownership principles (ADR-021) and the
 repository-owns-`StateFlow` shape (ADR-022). Motivated by the

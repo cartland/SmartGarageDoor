@@ -1,9 +1,11 @@
 ---
 category: reference
 status: active
-last_verified: 2026-04-24
+last_verified: 2026-04-25
 ---
 # DI Singleton Requirements and Verification
+
+> **TL;DR for adding a new `@Singleton` provider:** every `@Singleton` provider must be (1) reachable via an `abstract val x: T` entry point on `AppComponent` (otherwise kotlin-inject silently skips caching) and (2) declared as a `@Provides fun` whose body takes its dependencies as parameters — never call a sibling `provideX()` from inside the body. Validate with `./gradlew -p AndroidGarage checkSingletonCaching`. The kotlin-inject background — what the rule means and why it works — is in [`guides/kotlin-inject.md`](guides/kotlin-inject.md); this doc is the Smart Garage Door-specific contract and the android/170 recovery.
 
 Reference for the kotlin-inject `@Singleton` scoping bug discovered during
 the android/170 snooze-state investigation (2026-04-19). Captures what
