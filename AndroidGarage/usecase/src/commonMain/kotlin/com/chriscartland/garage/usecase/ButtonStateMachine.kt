@@ -59,7 +59,7 @@ import kotlinx.coroutines.launch
  *
  * Failure paths:
  *   AwaitingConfirmation --(confirmationTimeoutMillis)--> Cancelled
- *     --(displayMillis)--> Ready
+ *     --(cancelledDisplayMillis)--> Ready
  *   SendingToServer --(networkTimeoutMillis)--> ServerFailed
  *     --(displayMillis)--> Ready
  *   SendingToDoor --(networkTimeoutMillis)--> DoorFailed
@@ -74,6 +74,7 @@ class ButtonStateMachine(
     private val confirmationTimeoutMillis: Long = DEFAULT_CONFIRMATION_TIMEOUT,
     private val networkTimeoutMillis: Long = DEFAULT_NETWORK_TIMEOUT,
     private val displayMillis: Long = DEFAULT_DISPLAY,
+    private val cancelledDisplayMillis: Long = DEFAULT_CANCELLED_DISPLAY,
 ) {
     private val _state = MutableStateFlow<RemoteButtonState>(RemoteButtonState.Ready)
     val state: StateFlow<RemoteButtonState> = _state
@@ -163,7 +164,7 @@ class ButtonStateMachine(
             Event.ConfirmationTimedOut -> {
                 if (current == RemoteButtonState.AwaitingConfirmation) {
                     transitionTo(RemoteButtonState.Cancelled)
-                    scheduleTimer(displayMillis, Event.DisplayTimedOut)
+                    scheduleTimer(cancelledDisplayMillis, Event.DisplayTimedOut)
                 }
             }
             Event.NetworkTimedOut -> when (current) {
@@ -274,8 +275,9 @@ class ButtonStateMachine(
 
     companion object {
         const val DEFAULT_PREPARING_DELAY = 500L
-        const val DEFAULT_CONFIRMATION_TIMEOUT = 5_000L
+        const val DEFAULT_CONFIRMATION_TIMEOUT = 8_000L
         const val DEFAULT_NETWORK_TIMEOUT = 10_000L
         const val DEFAULT_DISPLAY = 10_000L
+        const val DEFAULT_CANCELLED_DISPLAY = 2_000L
     }
 }
