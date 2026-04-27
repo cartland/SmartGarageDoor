@@ -1,0 +1,100 @@
+/*
+ * Copyright 2024 Chris Cartland. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+package com.chriscartland.garage.ui
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Button
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.chriscartland.garage.auth.rememberGoogleSignIn
+import com.chriscartland.garage.di.rememberAppComponent
+import com.chriscartland.garage.usecase.FunctionListViewModel
+
+@Composable
+fun FunctionListContent(
+    modifier: Modifier = Modifier,
+    viewModel: FunctionListViewModel? = null,
+) {
+    val component = rememberAppComponent()
+    val resolved = viewModel ?: viewModel { component.functionListViewModel }
+    val googleSignIn = rememberGoogleSignIn(
+        onTokenReceived = { token -> resolved.signInWithGoogle(token) },
+    )
+
+    FunctionListContent(
+        modifier = modifier,
+        onOpenOrCloseDoor = resolved::openOrCloseDoor,
+        onRefreshDoorStatus = resolved::refreshDoorStatus,
+        onRefreshDoorHistory = resolved::refreshDoorHistory,
+        onSnoozeOneHour = resolved::snoozeNotificationsForOneHour,
+        onSignIn = { googleSignIn.launchSignIn() },
+        onSignOut = resolved::signOut,
+    )
+}
+
+@Composable
+fun FunctionListContent(
+    modifier: Modifier = Modifier,
+    onOpenOrCloseDoor: () -> Unit = {},
+    onRefreshDoorStatus: () -> Unit = {},
+    onRefreshDoorHistory: () -> Unit = {},
+    onSnoozeOneHour: () -> Unit = {},
+    onSignIn: () -> Unit = {},
+    onSignOut: () -> Unit = {},
+) {
+    LazyColumn(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item { FunctionButton("Open or close garage door", onOpenOrCloseDoor) }
+        item { FunctionButton("Refresh door status", onRefreshDoorStatus) }
+        item { FunctionButton("Refresh door history", onRefreshDoorHistory) }
+        item { FunctionButton("Snooze notifications for 1 hour", onSnoozeOneHour) }
+        item { FunctionButton("Sign in with Google", onSignIn) }
+        item { FunctionButton("Sign out", onSignOut) }
+    }
+}
+
+@Composable
+private fun FunctionButton(
+    label: String,
+    onClick: () -> Unit,
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(text = label)
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun FunctionListContentPreview() {
+    Surface(modifier = Modifier.fillMaxSize()) {
+        FunctionListContent(modifier = Modifier.fillMaxSize())
+    }
+}

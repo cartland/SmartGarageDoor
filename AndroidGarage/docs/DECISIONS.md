@@ -1464,3 +1464,50 @@ Intermediate-frame screenshot tests (e.g., 25/50/75% of motion) were considered 
 - [`AnimatableGarageDoor.kt`](../androidApp/src/main/java/com/chriscartland/garage/ui/AnimatableGarageDoor.kt) — mapping functions and overlays
 - [`GarageIcon.kt`](../androidApp/src/main/java/com/chriscartland/garage/ui/GarageIcon.kt) — `Animatable` host
 - [`GarageDoorAnimationMappingTest`](../androidApp/src/test/java/com/chriscartland/garage/ui/GarageDoorAnimationMappingTest.kt) — pinned mapping tests
+
+## ADR-026: One ViewModel Per Screen
+
+### Status
+
+Accepted — 2026-04-26.
+
+### Context
+
+Several legacy screens reach into multiple ViewModels (`HomeContent` reaches 4: `DoorViewModel`, `AuthViewModel`, `RemoteButtonViewModel`, `AppLoggerViewModel`; `ProfileContent` reaches 3; `DoorHistoryContent` reaches 2). Each `viewModel { component.X }` call creates a separately-stored VM instance keyed to the NavEntry's ViewModelStore, so a single screen ends up owning N independent VMs that each subscribe to flows and run their own `init` blocks. The Composable layer becomes responsible for stitching VMs together, which puts orchestration logic above the ViewModel layer rather than inside it.
+
+When introducing the Function List screen we considered the legacy "reach into 3 VMs" pattern but rejected it. The screen needs six actions sourced from many UseCases — but the natural place to *aggregate* UseCases is a ViewModel, not a Composable.
+
+### Decision
+
+Each screen Composable file (matching `*Content.kt` under `androidApp/.../ui/`) imports at most one ViewModel. New screens get a dedicated VM that injects whatever UseCases that screen needs. Sub-component Composables (e.g. `RemoteButtonContent`) import zero VMs and accept state via parameters from their parent screen.
+
+A Gradle task `checkScreenViewModelCardinality` enforces this rule. Existing legacy multi-VM screens are listed in `screen-viewmodel-exemptions.txt`; the file is intended to shrink, not grow. The check also fails when an exempt screen has been refactored to comply (≤1 VM) but still appears in the exemptions file — so stale entries do not accumulate.
+
+`FunctionListViewModel` is the canonical example: one VM, six actions, six UseCases injected, no other VM dependencies.
+
+### Rationale
+
+**Why aggregate inside the VM, not in the Composable.** ViewModels exist precisely to keep orchestration off the Composable layer. A Composable that calls `viewModel { authViewModel }` and `viewModel { doorViewModel }` and `viewModel { remoteButtonViewModel }` is acting as an ad-hoc orchestrator — adding a feature usually means adding another `viewModel {}` line, growing the screen's coupling surface. Aggregating inside one VM means adding a feature is "inject another UseCase" instead of "wire another VM," which is a smaller, more reviewable change.
+
+**Why not 100% strict.** Refactoring `HomeContent`, `ProfileContent`, and `DoorHistoryContent` to single-VM aggregators is a meaningful change with non-trivial test impact. Blocking the rule on those refactors would either delay shipping unrelated work or push the fix to expedient one-line "exempt me" entries with no real intent to follow up. The exemptions file is explicit about which screens carry technical debt and forces visibility every time the file is opened.
+
+**Why count distinct VM logical names (stripping `Default` prefix).** A future screen might import both the interface (`AuthViewModel`) and the impl (`DefaultAuthViewModel`) — that's still one VM conceptually. The check normalizes them so it doesn't punish a stylistic import choice.
+
+**Why the file-level pattern (`*Content.kt`) instead of an annotation.** Adding an annotation to mark "this file is a screen" is more truthful but requires touching every existing screen and complicates Compose Preview tooling. The `*Content.kt` suffix is the existing convention; the file pattern is good enough until it isn't.
+
+### Consequences
+
+- New screens require a screen-specific ViewModel from day one, so the screen's VM file lives next to its UseCases in the `usecase/` module.
+- The exemptions file is a tracked artifact; entries without a "why" comment will read as noise during review.
+- Renaming a sub-component to end in `Content.kt` retroactively subjects it to the rule. Prefer suffixes like `Card`, `Section`, or `Bar` for sub-components.
+
+### When this decision might change
+
+- A larger UI refactor lands and naturally collapses the legacy multi-VM screens. At that point we delete the exemptions file and lift the "≤1 VM" rule to "exactly 1 VM."
+- Compose adopts a first-class "screen" annotation (or KMP/iOS port introduces a different convention). The check moves from file-pattern to annotation-pattern.
+
+### References
+
+- [`ScreenViewModelCheckTask.kt`](../buildSrc/src/main/kotlin/architecture/ScreenViewModelCheckTask.kt) — the check
+- [`screen-viewmodel-exemptions.txt`](../screen-viewmodel-exemptions.txt) — the exemptions list
+- [`FunctionListViewModel.kt`](../usecase/src/commonMain/kotlin/com/chriscartland/garage/usecase/FunctionListViewModel.kt) — canonical 1:1 example

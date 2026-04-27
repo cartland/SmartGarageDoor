@@ -100,6 +100,8 @@ App-scoped managers & helpers:
 
 Phase 43 (#240-#252) enforces ViewModel → UseCase only — a lint rule blocks `domain.repository.*` imports from any `*ViewModel.kt`.
 
+**Screen ↔ ViewModel cardinality (ADR-026).** New screens are 1:1 with their ViewModel — each `*Content.kt` file imports at most one ViewModel and aggregates the UseCases that screen needs inside that single VM (`FunctionListViewModel` is the canonical example). Legacy multi-VM screens (`HomeContent`, `ProfileContent`, `DoorHistoryContent`) are explicitly tracked in `screen-viewmodel-exemptions.txt`. Enforced by `checkScreenViewModelCardinality` (in `validate.sh`); the exemption file fails the check when an entry becomes stale, so the list is forced to shrink, not grow.
+
 ### Presentation-model module (`presentation-model/`)
 
 `HomeScreenState`, `DoorHistoryScreenState`, `ProfileScreenState`, demo data.

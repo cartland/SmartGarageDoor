@@ -197,6 +197,14 @@ Every ViewModel method driving a `LoadingResult<T>` MUST set `LoadingResult.Comp
 
 Full rule, code example, and ADR-022 compatibility argument: see `AndroidGarage/docs/DECISIONS.md` ADR-023.
 
+### One ViewModel per screen (ADR-026)
+
+Each `*Content.kt` screen Composable imports at most one ViewModel. New screens get a dedicated VM that aggregates whatever UseCases that screen needs — `FunctionListViewModel` is the canonical example. Sub-component Composables (e.g. `RemoteButtonContent`) import zero VMs and take state via parameters from their parent screen.
+
+Enforced by `./gradlew -p AndroidGarage checkScreenViewModelCardinality`, hooked into `validate.sh`. Legacy multi-VM screens (`HomeContent`, `ProfileContent`, `DoorHistoryContent`) are listed in `AndroidGarage/screen-viewmodel-exemptions.txt`; the list is intended to shrink, not grow. The check also fails when an exempt screen has been refactored to comply but still appears in the exemptions file — so stale entries do not accumulate.
+
+When adding a new screen: write the ViewModel first (in `usecase/.../<X>ViewModel.kt`), wire it into `AppComponent.kt` as a non-`@Singleton` `@Provides`, then resolve it from the screen via `viewModel { component.<x>ViewModel }`. Full rationale in `AndroidGarage/docs/DECISIONS.md` ADR-026.
+
 ### Releasing Android
 Use `./scripts/release-android.sh` — never create or push tags directly (hooks block `git tag`).
 

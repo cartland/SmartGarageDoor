@@ -1,0 +1,23 @@
+# Screens (matching `*Content.kt` under androidApp/.../ui/) that import more
+# than one ViewModel and are exempt from the 1:1 screen↔ViewModel rule
+# enforced by `checkScreenViewModelCardinality`.
+#
+# How to read this file:
+# - One relative path per line, rooted at androidApp/.../ui/.
+# - Lines starting with `#` are comments.
+# - The check fails if a non-exempt screen imports >1 ViewModel, AND if an
+#   exempt screen now imports ≤1 ViewModel (so we don't accumulate stale
+#   entries — the entry must be removed when the screen actually complies).
+#
+# Goal: this list shrinks over time. New screens MUST follow the 1:1 rule —
+# build a screen-specific ViewModel that aggregates the UseCases that screen
+# needs (see `FunctionListViewModel` for the canonical example).
+
+# Aggregates DoorViewModel + AuthViewModel + AppLoggerViewModel + RemoteButtonViewModel.
+HomeContent.kt
+
+# Aggregates DoorViewModel + AppLoggerViewModel.
+DoorHistoryContent.kt
+
+# Aggregates AuthViewModel + RemoteButtonViewModel + AppSettingsViewModel.
+ProfileContent.kt

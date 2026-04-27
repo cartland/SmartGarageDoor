@@ -62,6 +62,7 @@ import com.chriscartland.garage.usecase.DefaultAppLoggerViewModel
 import com.chriscartland.garage.usecase.DefaultAppSettingsViewModel
 import com.chriscartland.garage.usecase.DefaultAuthViewModel
 import com.chriscartland.garage.usecase.DefaultDoorViewModel
+import com.chriscartland.garage.usecase.DefaultFunctionListViewModel
 import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
@@ -123,6 +124,7 @@ abstract class AppComponent(
     abstract val appSettingsViewModel: DefaultAppSettingsViewModel
     abstract val doorViewModel: DefaultDoorViewModel
     abstract val remoteButtonViewModel: DefaultRemoteButtonViewModel
+    abstract val functionListViewModel: DefaultFunctionListViewModel
 
     // --- Entry points: @Singleton providers (testable via assertSame) ---
     abstract val appConfig: AppConfig
@@ -210,6 +212,30 @@ abstract class AppComponent(
             fetchSnoozeStatus,
             observeSnoozeState,
             appVersion,
+        )
+
+    @Provides
+    fun provideFunctionListViewModel(
+        pushRemoteButton: PushRemoteButtonUseCase,
+        fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
+        fetchRecentDoorEvents: FetchRecentDoorEventsUseCase,
+        snoozeNotifications: SnoozeNotificationsUseCase,
+        signInWithGoogle: SignInWithGoogleUseCase,
+        signOut: SignOutUseCase,
+        observeDoorEvents: ObserveDoorEventsUseCase,
+        dispatchers: DispatcherProvider,
+        appVersion: String,
+    ): DefaultFunctionListViewModel =
+        DefaultFunctionListViewModel(
+            pushRemoteButtonUseCase = pushRemoteButton,
+            fetchCurrentDoorEventUseCase = fetchCurrentDoorEvent,
+            fetchRecentDoorEventsUseCase = fetchRecentDoorEvents,
+            snoozeNotificationsUseCase = snoozeNotifications,
+            signInWithGoogleUseCase = signInWithGoogle,
+            signOutUseCase = signOut,
+            observeDoorEventsUseCase = observeDoorEvents,
+            dispatchers = dispatchers,
+            appVersion = appVersion,
         )
 
     // --- UseCases (constructors are single-dep or small, kept concise) ---

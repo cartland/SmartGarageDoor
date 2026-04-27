@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
 import com.chriscartland.garage.ui.DoorHistoryContentPreview
+import com.chriscartland.garage.ui.FunctionListContentPreview
+import com.chriscartland.garage.ui.FunctionListScreenPreview
 import com.chriscartland.garage.ui.HistoryTabPreview
 import com.chriscartland.garage.ui.HomeContentPreview
 import com.chriscartland.garage.ui.HomeTabPreview
@@ -92,5 +94,33 @@ fun HistoryTabPreviewTest() {
 fun SettingsTabPreviewTest() {
     AppTheme {
         SettingsTabPreview()
+    }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun FunctionListScreenPreviewTest() {
+    AppTheme {
+        FunctionListScreenPreview()
+    }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun FunctionListContentPreviewTest() {
+    AppTheme {
+        FunctionListContentPreview()
     }
 }
