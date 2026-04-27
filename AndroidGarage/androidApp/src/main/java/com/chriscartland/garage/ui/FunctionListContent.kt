@@ -94,7 +94,18 @@ private fun FunctionButton(
 @Preview(showBackground = true)
 @Composable
 fun FunctionListContentPreview() {
+    // Pass explicit lambdas so Kotlin picks the stateless inner overload —
+    // the DI wrapper above this calls rememberAppComponent(), which crashes
+    // Layoutlib in screenshot tests.
     Surface(modifier = Modifier.fillMaxSize()) {
-        FunctionListContent(modifier = Modifier.fillMaxSize())
+        FunctionListContent(
+            modifier = Modifier.fillMaxSize(),
+            onOpenOrCloseDoor = {},
+            onRefreshDoorStatus = {},
+            onRefreshDoorHistory = {},
+            onSnoozeOneHour = {},
+            onSignIn = {},
+            onSignOut = {},
+        )
     }
 }

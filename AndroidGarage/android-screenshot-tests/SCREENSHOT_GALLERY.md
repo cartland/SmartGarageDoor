@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Sun Apr 26 10:31:59 PDT 2026
+Generated on Sun Apr 26 18:59:03 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -303,6 +303,18 @@ Generated on Sun Apr 26 10:31:59 PDT 2026
 
 ### DoorHistoryScreenPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/DoorHistoryScreenPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### FunctionListContentPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentPreviewTest_Dark_77106447_0.png" width="300" />
+
+### FunctionListContentPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### FunctionListScreenPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListScreenPreviewTest_Dark_77106447_0.png" width="300" />
+
+### FunctionListScreenPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListScreenPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### HistoryTabPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HistoryTabPreviewTest_Dark_77106447_0.png" width="300" />

@@ -156,8 +156,19 @@ fun HistoryTabPreview() {
 @Preview(showBackground = true)
 @Composable
 fun FunctionListScreenPreview() {
+    // Pass explicit lambdas so Kotlin picks the stateless inner overload —
+    // the DI wrapper above this calls rememberAppComponent(), which crashes
+    // Layoutlib in screenshot tests.
     DetailScreenPreviewScaffold(title = "Function list") { modifier ->
-        FunctionListContent(modifier = modifier)
+        FunctionListContent(
+            modifier = modifier,
+            onOpenOrCloseDoor = {},
+            onRefreshDoorStatus = {},
+            onRefreshDoorHistory = {},
+            onSnoozeOneHour = {},
+            onSignIn = {},
+            onSignOut = {},
+        )
     }
 }
 
