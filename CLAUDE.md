@@ -197,6 +197,10 @@ Every ViewModel method driving a `LoadingResult<T>` MUST set `LoadingResult.Comp
 
 Full rule, code example, and ADR-022 compatibility argument: see `AndroidGarage/docs/DECISIONS.md` ADR-023.
 
+### Wire-contract fixtures (`wire-contracts/`)
+
+Shared JSON fixtures pin the over-the-wire shape of HTTP endpoints between the Firebase server and the Android client. Each endpoint gets a directory under `wire-contracts/<endpointName>/` with one `response_<scenario>.json` per documented response. **Both** the server's Mocha tests AND the Android Ktor data-source tests load the same files, so a unilateral rename or shape change fails the test on at least one side. Production decoding stays `ignoreUnknownKeys = true` for forward-compat; tests deserialize the same fixtures in strict mode (`ignoreUnknownKeys = false`) so renamed/missing keys throw `SerializationException` instead of silently coercing to defaults. Setup + the rationale (vs. OpenAPI / protobuf) live in [`wire-contracts/README.md`](wire-contracts/README.md). When adding a new HTTP endpoint, drop a fixture file alongside its tests on day one.
+
 ### One ViewModel per screen (ADR-026)
 
 Each `*Content.kt` screen Composable imports at most one ViewModel. New screens get a dedicated VM that aggregates whatever UseCases that screen needs — `FunctionListViewModel` is the canonical example. Sub-component Composables (e.g. `RemoteButtonContent`) import zero VMs and take state via parameters from their parent screen.
