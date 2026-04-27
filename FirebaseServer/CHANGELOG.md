@@ -29,6 +29,14 @@ Example (placeholder tag numbers — the gate looks for exact `server/<real numb
 
 ---
 
+## server/22
+- New authenticated endpoint `httpFunctionListAccess` (`GET /functionListAccess`, `X-AuthTokenGoogle` → `{enabled: boolean}`). Verifies the Firebase ID token, extracts the email, checks membership against `body.featureFunctionListAllowedEmails: string[]` on `configCurrent/current`. UI hint only — `pushButton` and `snoozeNotifications` retain their independent allowlist checks (still the security boundary). PR #573.
+- Per-feature email allowlist field `featureFunctionListAllowedEmails` added to the `configCurrent/current` Firestore doc, edited directly in the Firebase console (no redeploy). Missing-field default is deny-all. New accessor `getFunctionListAuthorizedEmails(config)` in `controller/config/ConfigAccessors.ts`.
+- Renamed `Auth.ts:isAuthorizedToPushRemoteButton` → `isEmailInAllowlist(email, list: string[] | null)` and made it null-tolerant. Reused from all three auth-gated handlers (`pushButton`, `snoozeNotifications`, `functionListAccess`). Closes a latent crash-on-null-allowlist that the existing handlers had inherited from before the accessor pattern; behavior change is "deny instead of throw" on a missing field. New unit tests pin the null + empty cases.
+- Wire-contract fixtures introduced at `wire-contracts/functionListAccess/` (`response_enabled_true.json`, `response_enabled_false.json`). Both server tests (Mocha deep-equal) and Android Ktor `MockEngine` tests load the same files — a unilateral rename on either side fails the test on at least one side. See `wire-contracts/README.md`.
+- Test count: 240 → 250 (new `HttpFunctionListAccessTest.ts` covers all 9 paths + the wire-contract deep-equal; `AuthTest.ts` extended for null/empty allowlist).
+- Operational: nothing in production changes until an email is added to the new allowlist field. Default state is "endpoint live, returns `{enabled:false}` for everyone." Deploy and Firestore edit are independent.
+
 ## server/21
 - Documentation cleanup release. The only runtime change is in `controller/config/ConfigAccessors.ts`: the `requireBuildTimestamp` throw message now points at `docs/archive/FIREBASE_HARDENING_PLAN.md` (the doc moved during the 2026-04-24 archive reorganization, PR #533). The throw never fires in current production — config has both buildTimestamp fields populated since `server/16` — so the path-update only matters if config is ever broken in the future.
 - Five other source files (`Echo.ts`, `OpenDoor.ts`, `RemoteButton.ts` HTTP + pubsub, `Snooze.ts`, `HandlerResult.ts`) had identical archive-path updates inside JSDoc/inline comments only — no runtime effect on those.
