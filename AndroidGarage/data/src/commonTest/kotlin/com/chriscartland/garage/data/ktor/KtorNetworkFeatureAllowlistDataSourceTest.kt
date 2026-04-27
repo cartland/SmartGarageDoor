@@ -32,12 +32,10 @@ import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.utils.io.ByteReadChannel
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 
 /**
@@ -49,14 +47,19 @@ import kotlin.test.assertIs
  * `HttpFunctionListAccessTest.ts`); this test feeds those exact same
  * bytes into a Ktor [MockEngine] and asserts the decoded model.
  *
- * **Why strict-mode JSON in tests when production uses
- * `ignoreUnknownKeys = true`:** production must be forward-compatible
- * with new keys the server adds (so a v2 server doesn't break v1
- * clients). But the tests should fail loudly when the server's *known*
- * keys disappear or get renamed. Strict-mode decoding here catches
- * exactly that case — a unilateral rename of `enabled` → `allowed`
- * would deserialize as `enabled = false` in production (silent deny)
- * but throws here.
+ * Drift detection: the happy-path tests decode the canonical fixtures
+ * through the production data source. A unilateral server rename of
+ * `enabled` would change the fixture (so the server's deep-equal test
+ * fails), or fail to update the fixture (so the Android decoder reads
+ * a default `false` and the `decodesEnabledTrueFixture` assertion
+ * fails). Either way, one of the two trees breaks.
+ *
+ * Portability: this test uses `java.io.File` to load fixtures from the
+ * repo root (`../../wire-contracts/...`), which depends on the JVM
+ * test runtime. Today the data module only declares `androidTarget()`,
+ * so this is fine. If a non-JVM KMP target (iOS / JS / Desktop) is
+ * added later, move this test to a JVM-only source set or copy
+ * fixtures into module resources at Gradle config time.
  */
 class KtorNetworkFeatureAllowlistDataSourceTest {
     // Test cwd is the data module's projectDir (`AndroidGarage/data/`); fixtures
@@ -90,7 +93,10 @@ class KtorNetworkFeatureAllowlistDataSourceTest {
         ) {
             install(ContentNegotiation) {
                 // Mirror production wire shape: tolerate unknown keys for
-                // forward-compat. The strict-mode test below covers drift.
+                // forward-compat. Drift detection is the deep-equal of the
+                // canonical fixture in `decodesEnabledTrueFixture` — a
+                // server-side rename of `enabled` flips the decoded model
+                // value to the default and the assertion fails.
                 json(
                     Json {
                         ignoreUnknownKeys = true
@@ -135,31 +141,6 @@ class KtorNetworkFeatureAllowlistDataSourceTest {
             assertEquals(FeatureAllowlist(functionList = false), success.data)
         }
 
-    /**
-     * Wire-contract drift detector: strict-mode decoding fails if the
-     * fixture's `enabled` key is renamed. Catches a unilateral server
-     * rename that would otherwise silently deserialize as `false`.
-     */
-    @Test
-    fun strictDecodeRejectsRenamedField() {
-        val fixture = readFixture("response_enabled_true.json")
-        val strict = Json { ignoreUnknownKeys = false }
-
-        // First, sanity: the canonical fixture decodes under strict mode.
-        // (If this assertion ever fails, the fixture itself drifted.)
-        @Suppress("UNUSED_VARIABLE")
-        val canonical = strict.decodeFromString(KtorFunctionListAccessResponseForTest.serializer(), fixture)
-
-        // Now: an imagined renamed-field response fails strict-mode decode.
-        // Both "missing field" and "unknown key" surface as
-        // SerializationException subclasses — tests pin the parent so the
-        // assertion survives kotlinx.serialization version churn.
-        val drifted = """{"allowed":true}"""
-        assertFailsWith<SerializationException> {
-            strict.decodeFromString(KtorFunctionListAccessResponseForTest.serializer(), drifted)
-        }
-    }
-
     @Test
     fun sendsAuthTokenHeaderAndUsesGet() =
         runTest {
@@ -191,15 +172,3 @@ class KtorNetworkFeatureAllowlistDataSourceTest {
             assertEquals(401, httpError.code)
         }
 }
-
-/**
- * Mirror of [KtorNetworkFeatureAllowlistDataSource]'s private response
- * type — duplicated here only so the strict-mode drift test can use the
- * @Serializable shape without changing visibility on the production
- * type. If the production response shape changes, update this mirror
- * to match.
- */
-@kotlinx.serialization.Serializable
-private data class KtorFunctionListAccessResponseForTest(
-    val enabled: Boolean,
-)

@@ -23,7 +23,6 @@ import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FeatureAllowlist
 import com.chriscartland.garage.domain.model.FirebaseIdToken
-import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
@@ -43,7 +42,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -106,23 +104,15 @@ class DefaultFunctionListViewModelTest {
             ),
         )
 
-    @Test
-    fun refreshDoorStatusInvokesRepository() =
-        runTest(testDispatcher) {
-            val viewModel = createViewModel()
-            viewModel.refreshDoorStatus()
-            advanceUntilIdle()
-            assertEquals(1, doorRepository.fetchCurrentDoorEventCount)
-        }
-
-    @Test
-    fun refreshDoorHistoryInvokesRepository() =
-        runTest(testDispatcher) {
-            val viewModel = createViewModel()
-            viewModel.refreshDoorHistory()
-            advanceUntilIdle()
-            assertEquals(1, doorRepository.fetchRecentDoorEventsCount)
-        }
+    // The handful of trivial passthrough tests that previously lived here
+    // (refreshDoorStatus → repo.fetchCount, signOut → AuthState change,
+    // etc.) have been cut as smoke-test ceremony — they verified
+    // `viewModelScope.launch { useCase() }` calls the use case, which is
+    // a Kotlin-language guarantee, not a behavior worth pinning. The
+    // remaining tests pin the only behavior that is genuinely *new* on
+    // this VM and not already covered by repo / use-case tests:
+    // openOrCloseDoor's auth gate, snooze's door-event-timestamp wiring,
+    // and the `accessGranted` allowlist flow.
 
     @Test
     fun openOrCloseDoorPushesButtonWhenAuthenticated() =
@@ -156,25 +146,6 @@ class DefaultFunctionListViewModelTest {
 
             assertEquals(1, snoozeRepository.snoozeCount)
             assertEquals(12345L, snoozeRepository.snoozeCalls.last().snoozeEventTimestampSeconds)
-        }
-
-    @Test
-    fun signInWithGoogleUpdatesAuthState() =
-        runTest(testDispatcher) {
-            val viewModel = createViewModel()
-            authRepository.setSignInResult(authenticated())
-            viewModel.signInWithGoogle(GoogleIdToken("test-token"))
-            advanceUntilIdle()
-            assertIs<AuthState.Authenticated>(authRepository.authState.value)
-        }
-
-    @Test
-    fun signOutUpdatesAuthState() =
-        runTest(testDispatcher) {
-            val viewModel = createViewModel(authState = authenticated())
-            viewModel.signOut()
-            advanceUntilIdle()
-            assertIs<AuthState.Unauthenticated>(authRepository.authState.value)
         }
 
     @Test

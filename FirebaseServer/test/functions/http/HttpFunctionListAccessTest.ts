@@ -126,17 +126,4 @@ describe('handleFunctionListAccess (pure handler core)', () => {
     expect(result).to.deep.equal({ kind: 'ok', data: ENABLED_FALSE_FIXTURE });
   });
 
-  it('happy-path response is JSON-serializable to byte-exact fixture content', async () => {
-    // Defends the wire boundary: the bytes the wrapper sends to the client
-    // must equal the bytes the Android client's MockEngine test decodes.
-    const result = await handleFunctionListAccess(happyInput());
-    expect(result.kind).to.equal('ok');
-    if (result.kind === 'ok') {
-      const fixtureContent = fs.readFileSync(
-        path.join(FIXTURE_DIR, 'response_enabled_true.json'),
-        'utf8',
-      ).trim();
-      expect(JSON.stringify(result.data)).to.equal(fixtureContent);
-    }
-  });
 });

@@ -14,6 +14,15 @@
  * limitations under the License.
  */
 
-export function isAuthorizedToPushRemoteButton(email: string, authorizedEmails: string[]) {
-  return authorizedEmails.includes(email);
+/**
+ * Generic email-allowlist check. Used by every auth-gated handler that
+ * resolves a Firebase ID token to an email and checks it against a
+ * config-managed list. Null-tolerant so callers can pass the result of
+ * a missing-field accessor (`getXAuthorizedEmails(config)`) without a
+ * pre-check — `null` reads as deny-all, matching the deny-by-default
+ * security stance for missing config.
+ */
+export function isEmailInAllowlist(email: string, allowedEmails: string[] | null): boolean {
+  if (!allowedEmails) return false;
+  return allowedEmails.includes(email);
 }

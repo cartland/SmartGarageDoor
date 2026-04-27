@@ -19,6 +19,7 @@ import * as functions from 'firebase-functions/v1';
 import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
 import { getFunctionListAuthorizedEmails } from '../../controller/config/ConfigAccessors';
 import { SERVICE as AuthService } from '../../controller/AuthService';
+import { isEmailInAllowlist } from '../../controller/Auth';
 import { HandlerResult, ok, err } from '../HandlerResult';
 
 export interface FunctionListAccessResponse {
@@ -54,6 +55,10 @@ export async function handleFunctionListAccess(input: {
   if (!input.googleIdTokenHeader || input.googleIdTokenHeader.length <= 0) {
     return err(401, { error: 'Unauthorized (token).' });
   }
+  // `email` declared outside the try so a verify-throw can return 401
+  // without `email` being in scope for the membership check below — same
+  // pattern Snooze.ts uses (`Snooze.ts:140`, marked there as a preserved
+  // quirk; here it's the convention being followed).
   let email: string | null = null;
   try {
     const decodedToken = await AuthService.verifyIdToken(input.googleIdTokenHeader);
@@ -68,10 +73,9 @@ export async function handleFunctionListAccess(input: {
   }
   const config = await ServerConfigDatabase.get();
   const allowed = getFunctionListAuthorizedEmails(config);
-  // Null (no allowlist configured) is deny-all so a fresh deploy starts
-  // closed. An empty array is also deny-all but explicitly so.
-  const enabled = Array.isArray(allowed) && allowed.includes(email);
-  return ok({ enabled });
+  // `isEmailInAllowlist` is null-tolerant — a missing config field is
+  // deny-all so a fresh deploy starts closed.
+  return ok({ enabled: isEmailInAllowlist(email, allowed) });
 }
 
 /**

@@ -17,21 +17,21 @@
 // npm run tests
 
 import { expect } from 'chai';
-import { isAuthorizedToPushRemoteButton } from '../../src/controller/Auth';
+import { isEmailInAllowlist } from '../../src/controller/Auth';
 
-describe('isAuthorizedToPushRemoteButton', () => {
+describe('isEmailInAllowlist', () => {
   it('allows authorized email', () => {
-    const input = 'authorized@gmail.com';
-    const allowedList = ['authorized@gmail.com'];
-    const expected = true;
-    const actual = isAuthorizedToPushRemoteButton(input, allowedList);
-    expect(actual).to.equal(expected);
+    expect(isEmailInAllowlist('authorized@gmail.com', ['authorized@gmail.com'])).to.equal(true);
   });
   it('blocks unauthorized email', () => {
-    const input = 'unauthorized@gmail.com';
-    const allowedList = ['authorized@gmail.com', 'alsoauthorized@gmail.com'];
-    const expected = false;
-    const actual = isAuthorizedToPushRemoteButton(input, allowedList);
-    expect(actual).to.equal(expected);
+    expect(
+      isEmailInAllowlist('unauthorized@gmail.com', ['authorized@gmail.com', 'alsoauthorized@gmail.com']),
+    ).to.equal(false);
+  });
+  it('returns false (deny-all) when allowlist is null', () => {
+    expect(isEmailInAllowlist('anyone@gmail.com', null)).to.equal(false);
+  });
+  it('returns false (deny-all) when allowlist is empty', () => {
+    expect(isEmailInAllowlist('anyone@gmail.com', [])).to.equal(false);
   });
 });

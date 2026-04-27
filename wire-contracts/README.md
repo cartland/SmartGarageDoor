@@ -79,6 +79,18 @@ revisit and consider promoting this directory to a real schema with codegen.
   capturing the request shape via `MockEngine`.
 - **Status codes** — covered by the per-side tests, not by the fixture.
 - **Server side-effects** — covered by the per-side tests.
+- **Endpoint deprecation** — when a slug stops being served (e.g. it's been
+  superseded by a bulk endpoint), delete the slug's directory in the same PR
+  that removes the route. Keep both during the deprecation window so old
+  clients still have a fixture to test against.
+
+## Error responses
+
+The naming convention for error fixtures is `response_<error>.json` (e.g.
+`response_unauthorized.json`, `response_forbidden.json`). The fixture should
+contain only the **body** bytes — the HTTP status code is asserted in the
+per-side test, not in the fixture file. This keeps fixtures readable and
+keeps "is this 401 or 403?" out of the byte-shape contract.
 
 ## File format
 
