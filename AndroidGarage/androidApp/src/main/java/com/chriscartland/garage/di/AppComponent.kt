@@ -177,7 +177,11 @@ abstract class AppComponent(
     ): DefaultAppLoggerViewModel = DefaultAppLoggerViewModel(logAppEvent, observeAppLogCount, dispatchers)
 
     @Provides
-    fun provideAppSettingsViewModel(appSettings: AppSettingsUseCase): DefaultAppSettingsViewModel = DefaultAppSettingsViewModel(appSettings)
+    fun provideAppSettingsViewModel(
+        appSettings: AppSettingsUseCase,
+        observeFeatureAccess: ObserveFeatureAccessUseCase,
+        dispatchers: DispatcherProvider,
+    ): DefaultAppSettingsViewModel = DefaultAppSettingsViewModel(appSettings, observeFeatureAccess, dispatchers)
 
     @Provides
     fun provideDoorViewModel(
