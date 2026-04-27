@@ -18,7 +18,7 @@ import * as functions from 'firebase-functions/v1';
 
 import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
 import { isSnoozeNotificationsEnabled, getRemoteButtonPushKey, getRemoteButtonAuthorizedEmails } from '../../controller/config/ConfigAccessors';
-import { isAuthorizedToPushRemoteButton } from '../../controller/Auth';
+import { isEmailInAllowlist } from '../../controller/Auth';
 import { SERVICE as AuthService } from '../../controller/AuthService';
 import { getSnoozeStatus, SnoozeLatestParams, SnoozeLatestResponse, SubmitSnoozeParams, submitSnoozeNotificationsRequest, SubmitSnoozeResponse } from '../../controller/SnoozeNotifications';
 import { HandlerResult, ok, err } from '../HandlerResult';
@@ -92,7 +92,7 @@ export const httpSnoozeNotificationsLatest = functions.https.onRequest(async (re
  *
  * 1. `let email = null;` declared OUTSIDE the try/catch block. The
  *    catch returns 401 so a null-email path only reaches the
- *    `isAuthorizedToPushRemoteButton(email, ...)` call when the token
+ *    `isEmailInAllowlist(email, ...)` call when the token
  *    was successfully verified. Relocating the declaration inside
  *    the try would subtly change scoping — preserved as-is.
  *
@@ -148,7 +148,7 @@ export async function handleSnoozeNotificationsRequest(input: {
     }
     console.log('email:', email);
     const authorizedEmails = getRemoteButtonAuthorizedEmails(config);
-    if (!isAuthorizedToPushRemoteButton(email, authorizedEmails)) {
+    if (!isEmailInAllowlist(email, authorizedEmails)) {
         const result = { error: 'Forbidden (user).' };
         console.error(result);
         return err(403, result);

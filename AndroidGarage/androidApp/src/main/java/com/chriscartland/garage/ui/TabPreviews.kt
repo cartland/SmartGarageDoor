@@ -19,7 +19,11 @@ package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -70,6 +74,47 @@ private fun TabPreviewScaffold(
     }
 }
 
+/**
+ * Full-screen scaffold for detail (non-tab) screens reached by pushing onto the
+ * back stack. Mirrors the runtime [TopAppBar] from `Main.kt` — title customized
+ * per screen, back arrow as the navigation icon, bottom nav still visible.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DetailScreenPreviewScaffold(
+    title: String,
+    content: @Composable (Modifier) -> Unit,
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = {
+                    IconButton(onClick = {}) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                        )
+                    }
+                },
+            )
+        },
+        bottomBar = {
+            BottomNavigationBar(
+                currentScreen = null,
+                onTabSelected = {},
+            )
+        },
+    ) { innerPadding ->
+        content(
+            Modifier
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp)
+                .fillMaxSize(),
+        )
+    }
+}
+
 @OptIn(ExperimentalPermissionsApi::class)
 @Preview(showBackground = true)
 @Composable
@@ -104,6 +149,43 @@ fun HistoryTabPreview() {
         DoorHistoryContent(
             recentDoorEvents = LoadingResult.Complete(demoDoorEvents),
             modifier = modifier,
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun FunctionListScreenPreview() {
+    // Pass explicit lambdas so Kotlin picks the stateless inner overload —
+    // the DI wrapper above this calls rememberAppComponent(), which crashes
+    // Layoutlib in screenshot tests.
+    DetailScreenPreviewScaffold(title = "Function list") { modifier ->
+        FunctionListContent(
+            modifier = modifier,
+            accessGranted = true,
+            onOpenOrCloseDoor = {},
+            onRefreshDoorStatus = {},
+            onRefreshDoorHistory = {},
+            onSnoozeOneHour = {},
+            onSignIn = {},
+            onSignOut = {},
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun FunctionListScreenDeniedPreview() {
+    DetailScreenPreviewScaffold(title = "Function list") { modifier ->
+        FunctionListContent(
+            modifier = modifier,
+            accessGranted = false,
+            onOpenOrCloseDoor = {},
+            onRefreshDoorStatus = {},
+            onRefreshDoorHistory = {},
+            onSnoozeOneHour = {},
+            onSignIn = {},
+            onSignOut = {},
         )
     }
 }

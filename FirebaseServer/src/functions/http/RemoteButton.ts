@@ -23,7 +23,7 @@ import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDat
 import { isRemoteButtonEnabled, getRemoteButtonPushKey, getRemoteButtonAuthorizedEmails } from '../../controller/config/ConfigAccessors';
 import { DATABASE as REMOTE_BUTTON_COMMAND_DATABASE } from '../../database/RemoteButtonCommandDatabase';
 import { DATABASE as REMOTE_BUTTON_REQUEST_DATABASE } from '../../database/RemoteButtonRequestDatabase';
-import { isAuthorizedToPushRemoteButton } from '../../controller/Auth';
+import { isEmailInAllowlist } from '../../controller/Auth';
 import { SERVICE as AuthService } from '../../controller/AuthService';
 
 import { RemoteButtonCommand } from '../../model/RemoteButtonCommand';
@@ -220,7 +220,7 @@ export async function handleAddRemoteButtonCommand(input: {
   const email = decodedToken.email;
   console.log('email:', email);
   const authorizedEmails = getRemoteButtonAuthorizedEmails(config);
-  if (!isAuthorizedToPushRemoteButton(email, authorizedEmails)) {
+  if (!isEmailInAllowlist(email, authorizedEmails)) {
     const result = { error: 'Forbidden (user).' };
     console.error(result);
     return err(403, result);

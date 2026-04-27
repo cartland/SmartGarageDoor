@@ -27,11 +27,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -93,6 +95,9 @@ sealed interface Screen {
 
     @Serializable
     data object Profile : Screen
+
+    @Serializable
+    data object FunctionList : Screen
 }
 
 /**
@@ -129,9 +134,22 @@ fun AppNavigation(
 
     Scaffold(
         topBar = {
+            val currentScreen = backStack.lastOrNull()
             TopAppBar(
                 title = {
-                    Text(text = "Garage")
+                    Text(text = if (currentScreen is Screen.FunctionList) "Function list" else "Garage")
+                },
+                navigationIcon = {
+                    if (currentScreen is Screen.FunctionList) {
+                        IconButton(onClick = {
+                            if (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
+                        }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                            )
+                        }
+                    }
                 },
                 actions = {
                     CheckInRow(
@@ -188,6 +206,14 @@ fun AppNavigation(
                 entry<Screen.Profile> {
                     ProfileContent(
                         authViewModel = authViewModel,
+                        onNavigateToFunctionList = { backStack.add(Screen.FunctionList) },
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .fillMaxWidth(),
+                    )
+                }
+                entry<Screen.FunctionList> {
+                    FunctionListContent(
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
                             .fillMaxWidth(),

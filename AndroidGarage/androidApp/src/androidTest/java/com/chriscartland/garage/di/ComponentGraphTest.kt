@@ -124,6 +124,16 @@ class ComponentGraphTest {
     }
 
     @Test
+    fun featureAllowlistRepositoryIsSingleton() {
+        val c = component
+        assertSame(
+            "FeatureAllowlistRepository must be singleton",
+            c.featureAllowlistRepository,
+            c.featureAllowlistRepository,
+        )
+    }
+
+    @Test
     fun fcmRegistrationManagerIsSingleton() {
         val c = component
         assertSame("FcmRegistrationManager must be singleton", c.fcmRegistrationManager, c.fcmRegistrationManager)

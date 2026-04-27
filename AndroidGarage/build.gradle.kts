@@ -144,6 +144,12 @@ tasks.register<architecture.ViewModelStateFlowCheckTask>("checkViewModelStateFlo
     )
 }
 
+tasks.register<architecture.ScreenViewModelCheckTask>("checkScreenViewModelCardinality") {
+    sourceRoot = "$rootDir/androidApp/src/main/java/com/chriscartland/garage/ui"
+    fileNamePattern = ".*Content\\.kt"
+    exemptionsFile = "$rootDir/screen-viewmodel-exemptions.txt"
+}
+
 tasks.register<architecture.FakePublicVarCheckTask>("checkFakePublicVar") {
     sourceDirs = listOf(
         "$rootDir/test-common/src/commonMain/kotlin",

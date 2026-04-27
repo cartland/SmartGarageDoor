@@ -67,6 +67,9 @@ $GRADLE checkHardcodedColors && pass "hardcoded colors" || fail "hardcoded color
 step "ViewModel StateFlow (no stateIn(viewModelScope, ...))"
 $GRADLE checkViewModelStateFlow && pass "viewmodel stateflow" || fail "viewmodel stateflow"
 
+step "Screen ↔ ViewModel cardinality (1 VM per screen, exemptions tracked)"
+$GRADLE checkScreenViewModelCardinality && pass "screen↔viewmodel cardinality" || fail "screen↔viewmodel cardinality"
+
 step "Fake public var (no unguarded public var on Fake* classes)"
 $GRADLE checkFakePublicVar && pass "fake public var" || fail "fake public var"
 

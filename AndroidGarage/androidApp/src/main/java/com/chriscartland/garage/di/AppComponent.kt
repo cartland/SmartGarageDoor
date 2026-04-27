@@ -28,11 +28,14 @@ import com.chriscartland.garage.data.MessagingBridge
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkConfigDataSource
 import com.chriscartland.garage.data.NetworkDoorDataSource
+import com.chriscartland.garage.data.NetworkFeatureAllowlistDataSource
 import com.chriscartland.garage.data.coroutines.DefaultDispatcherProvider
 import com.chriscartland.garage.data.ktor.KtorHttpClientFactory
 import com.chriscartland.garage.data.ktor.KtorNetworkButtonDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkConfigDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkDoorDataSource
+import com.chriscartland.garage.data.ktor.KtorNetworkFeatureAllowlistDataSource
+import com.chriscartland.garage.data.repository.CachedFeatureAllowlistRepository
 import com.chriscartland.garage.data.repository.CachedServerConfigRepository
 import com.chriscartland.garage.data.repository.FirebaseAuthRepository
 import com.chriscartland.garage.data.repository.FirebaseDoorFcmRepository
@@ -52,6 +55,7 @@ import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.DoorFcmRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
+import com.chriscartland.garage.domain.repository.FeatureAllowlistRepository
 import com.chriscartland.garage.domain.repository.RemoteButtonRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.domain.repository.SnoozeRepository
@@ -62,6 +66,7 @@ import com.chriscartland.garage.usecase.DefaultAppLoggerViewModel
 import com.chriscartland.garage.usecase.DefaultAppSettingsViewModel
 import com.chriscartland.garage.usecase.DefaultAuthViewModel
 import com.chriscartland.garage.usecase.DefaultDoorViewModel
+import com.chriscartland.garage.usecase.DefaultFunctionListViewModel
 import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
@@ -74,6 +79,7 @@ import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveAppLogCountUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
+import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
 import com.chriscartland.garage.usecase.ObserveSnoozeStateUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
@@ -123,6 +129,7 @@ abstract class AppComponent(
     abstract val appSettingsViewModel: DefaultAppSettingsViewModel
     abstract val doorViewModel: DefaultDoorViewModel
     abstract val remoteButtonViewModel: DefaultRemoteButtonViewModel
+    abstract val functionListViewModel: DefaultFunctionListViewModel
 
     // --- Entry points: @Singleton providers (testable via assertSame) ---
     abstract val appConfig: AppConfig
@@ -140,6 +147,7 @@ abstract class AppComponent(
     abstract val snoozeRepository: SnoozeRepository
     abstract val remoteButtonRepository: RemoteButtonRepository
     abstract val doorFcmRepository: DoorFcmRepository
+    abstract val featureAllowlistRepository: FeatureAllowlistRepository
     abstract val fcmRegistrationManager: FcmRegistrationManager
     abstract val checkInStalenessManager: CheckInStalenessManager
     abstract val appClock: AppClock
@@ -147,6 +155,7 @@ abstract class AppComponent(
     abstract val networkButtonDataSource: NetworkButtonDataSource
     abstract val networkConfigDataSource: NetworkConfigDataSource
     abstract val networkDoorDataSource: NetworkDoorDataSource
+    abstract val networkFeatureAllowlistDataSource: NetworkFeatureAllowlistDataSource
     abstract val localDoorDataSource: LocalDoorDataSource
 
     // --- ViewModels ---
@@ -210,6 +219,32 @@ abstract class AppComponent(
             fetchSnoozeStatus,
             observeSnoozeState,
             appVersion,
+        )
+
+    @Provides
+    fun provideFunctionListViewModel(
+        pushRemoteButton: PushRemoteButtonUseCase,
+        fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
+        fetchRecentDoorEvents: FetchRecentDoorEventsUseCase,
+        snoozeNotifications: SnoozeNotificationsUseCase,
+        signInWithGoogle: SignInWithGoogleUseCase,
+        signOut: SignOutUseCase,
+        observeDoorEvents: ObserveDoorEventsUseCase,
+        observeFeatureAccess: ObserveFeatureAccessUseCase,
+        dispatchers: DispatcherProvider,
+        appVersion: String,
+    ): DefaultFunctionListViewModel =
+        DefaultFunctionListViewModel(
+            pushRemoteButtonUseCase = pushRemoteButton,
+            fetchCurrentDoorEventUseCase = fetchCurrentDoorEvent,
+            fetchRecentDoorEventsUseCase = fetchRecentDoorEvents,
+            snoozeNotificationsUseCase = snoozeNotifications,
+            signInWithGoogleUseCase = signInWithGoogle,
+            signOutUseCase = signOut,
+            observeDoorEventsUseCase = observeDoorEvents,
+            observeFeatureAccessUseCase = observeFeatureAccess,
+            dispatchers = dispatchers,
+            appVersion = appVersion,
         )
 
     // --- UseCases (constructors are single-dep or small, kept concise) ---
@@ -282,6 +317,10 @@ abstract class AppComponent(
     fun provideObserveSnoozeStateUseCase(snoozeRepository: SnoozeRepository): ObserveSnoozeStateUseCase =
         ObserveSnoozeStateUseCase(snoozeRepository)
 
+    @Provides
+    fun provideObserveFeatureAccessUseCase(featureAllowlistRepository: FeatureAllowlistRepository): ObserveFeatureAccessUseCase =
+        ObserveFeatureAccessUseCase(featureAllowlistRepository)
+
     // --- @Singleton providers (bodies take parameters so caching is honored) ---
 
     @Provides
@@ -316,6 +355,11 @@ abstract class AppComponent(
     @Provides
     @Singleton
     fun provideNetworkButtonDataSource(httpClient: HttpClient): NetworkButtonDataSource = KtorNetworkButtonDataSource(httpClient)
+
+    @Provides
+    @Singleton
+    fun provideNetworkFeatureAllowlistDataSource(httpClient: HttpClient): NetworkFeatureAllowlistDataSource =
+        KtorNetworkFeatureAllowlistDataSource(httpClient)
 
     @Provides
     @Singleton
@@ -361,6 +405,19 @@ abstract class AppComponent(
         appConfig: AppConfig,
         applicationScope: CoroutineScope,
     ): ServerConfigRepository = CachedServerConfigRepository(networkConfigDataSource, appConfig.serverConfigKey, applicationScope)
+
+    @Provides
+    @Singleton
+    fun provideFeatureAllowlistRepository(
+        networkFeatureAllowlistDataSource: NetworkFeatureAllowlistDataSource,
+        authRepository: AuthRepository,
+        applicationScope: CoroutineScope,
+    ): FeatureAllowlistRepository =
+        CachedFeatureAllowlistRepository(
+            networkDataSource = networkFeatureAllowlistDataSource,
+            authRepository = authRepository,
+            externalScope = applicationScope,
+        )
 
     @Provides
     @Singleton
