@@ -26,6 +26,7 @@ import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.toServer
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -34,6 +35,15 @@ import kotlinx.coroutines.launch
  * no repositories, no other ViewModels).
  */
 interface FunctionListViewModel {
+    /**
+     * Per-user access decision for the Function List feature.
+     *
+     * - `null` — not yet fetched, fetch failed, or signed out (gate closed).
+     * - `false` — server says this user is NOT on the allowlist (gate closed).
+     * - `true` — server says this user IS on the allowlist (gate open).
+     */
+    val accessGranted: StateFlow<Boolean?>
+
     fun openOrCloseDoor()
 
     fun refreshDoorStatus()
@@ -55,6 +65,7 @@ class DefaultFunctionListViewModel(
     private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
     private val signOutUseCase: SignOutUseCase,
     private val observeDoorEventsUseCase: ObserveDoorEventsUseCase,
+    private val observeFeatureAccessUseCase: ObserveFeatureAccessUseCase,
     private val dispatchers: DispatcherProvider,
     private val appVersion: String,
 ) : ViewModel(),
@@ -63,9 +74,15 @@ class DefaultFunctionListViewModel(
     // without the UI having to thread it through.
     private val currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
 
+    private val _accessGranted = MutableStateFlow<Boolean?>(null)
+    override val accessGranted: StateFlow<Boolean?> = _accessGranted
+
     init {
         viewModelScope.launch(dispatchers.io) {
             observeDoorEventsUseCase.current().collect { currentDoorEvent.value = it }
+        }
+        viewModelScope.launch(dispatchers.io) {
+            observeFeatureAccessUseCase.functionList().collect { _accessGranted.value = it }
         }
     }
 

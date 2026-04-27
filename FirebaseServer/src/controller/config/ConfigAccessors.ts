@@ -35,6 +35,21 @@ export function getRemoteButtonAuthorizedEmails(config: any): string[] | null {
   return null;
 }
 
+/**
+ * Per-feature email allowlist for the Function List screen on Android.
+ * Stored as `body.featureFunctionListAllowedEmails: string[]` on the
+ * `configCurrent/current` Firestore doc — edited directly in the Firebase
+ * console's Firestore Data tab (no redeploy). Returns null when the field
+ * is missing so callers can distinguish "no list configured" (treat as
+ * deny-all) from "empty list" (deny-all but explicitly).
+ */
+export function getFunctionListAuthorizedEmails(config: any): string[] | null {
+  if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('featureFunctionListAllowedEmails')) {
+    return config.body.featureFunctionListAllowedEmails;
+  }
+  return null;
+}
+
 export function isRemoteButtonEnabled(config: any): boolean {
   if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('remoteButtonEnabled')) {
     return config.body.remoteButtonEnabled;

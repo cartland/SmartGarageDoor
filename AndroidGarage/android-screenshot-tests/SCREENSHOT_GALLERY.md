@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Sun Apr 26 18:59:03 PDT 2026
+Generated on Sun Apr 26 21:49:17 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -304,11 +304,23 @@ Generated on Sun Apr 26 18:59:03 PDT 2026
 ### DoorHistoryScreenPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/DoorHistoryScreenPreviewTest_Light_fc5b723e_0.png" width="300" />
 
+### FunctionListContentDeniedPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentDeniedPreviewTest_Dark_77106447_0.png" width="300" />
+
+### FunctionListContentDeniedPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentDeniedPreviewTest_Light_fc5b723e_0.png" width="300" />
+
 ### FunctionListContentPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentPreviewTest_Dark_77106447_0.png" width="300" />
 
 ### FunctionListContentPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### FunctionListScreenDeniedPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListScreenDeniedPreviewTest_Dark_77106447_0.png" width="300" />
+
+### FunctionListScreenDeniedPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListScreenDeniedPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### FunctionListScreenPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListScreenPreviewTest_Dark_77106447_0.png" width="300" />

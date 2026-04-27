@@ -21,11 +21,13 @@ import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.Email
+import com.chriscartland.garage.domain.model.FeatureAllowlist
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
+import com.chriscartland.garage.testcommon.FakeFeatureAllowlistRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import com.chriscartland.garage.testcommon.FakeSnoozeRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
@@ -40,7 +42,10 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DefaultFunctionListViewModelTest {
@@ -50,6 +55,7 @@ class DefaultFunctionListViewModelTest {
     private lateinit var remoteButtonRepository: FakeRemoteButtonRepository
     private lateinit var authRepository: FakeAuthRepository
     private lateinit var snoozeRepository: FakeSnoozeRepository
+    private lateinit var featureAllowlistRepository: FakeFeatureAllowlistRepository
 
     @BeforeTest
     fun setup() {
@@ -58,6 +64,7 @@ class DefaultFunctionListViewModelTest {
         remoteButtonRepository = FakeRemoteButtonRepository()
         authRepository = FakeAuthRepository()
         snoozeRepository = FakeSnoozeRepository()
+        featureAllowlistRepository = FakeFeatureAllowlistRepository()
     }
 
     @AfterTest
@@ -84,6 +91,7 @@ class DefaultFunctionListViewModelTest {
             signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),
             signOutUseCase = SignOutUseCase(authRepository),
             observeDoorEventsUseCase = ObserveDoorEventsUseCase(doorRepository),
+            observeFeatureAccessUseCase = ObserveFeatureAccessUseCase(featureAllowlistRepository),
             dispatchers = TestDispatcherProvider(testDispatcher),
             appVersion = "test",
         )
@@ -167,5 +175,45 @@ class DefaultFunctionListViewModelTest {
             viewModel.signOut()
             advanceUntilIdle()
             assertIs<AuthState.Unauthenticated>(authRepository.authState.value)
+        }
+
+    @Test
+    fun accessGrantedIsNullBeforeAllowlistResolves() =
+        runTest(testDispatcher) {
+            val viewModel = createViewModel(authState = authenticated())
+            advanceUntilIdle()
+            assertNull(viewModel.accessGranted.value)
+        }
+
+    @Test
+    fun accessGrantedReflectsAllowlistTrue() =
+        runTest(testDispatcher) {
+            val viewModel = createViewModel(authState = authenticated())
+            featureAllowlistRepository.setAllowlist(FeatureAllowlist(functionList = true))
+            advanceUntilIdle()
+            assertTrue(viewModel.accessGranted.value == true)
+        }
+
+    @Test
+    fun accessGrantedReflectsAllowlistFalse() =
+        runTest(testDispatcher) {
+            val viewModel = createViewModel(authState = authenticated())
+            featureAllowlistRepository.setAllowlist(FeatureAllowlist(functionList = false))
+            advanceUntilIdle()
+            assertFalse(viewModel.accessGranted.value == true)
+            // Distinguish "false" from "null"
+            assertEquals(false, viewModel.accessGranted.value)
+        }
+
+    @Test
+    fun accessGrantedClearsToNullWhenAllowlistClears() =
+        runTest(testDispatcher) {
+            val viewModel = createViewModel(authState = authenticated())
+            featureAllowlistRepository.setAllowlist(FeatureAllowlist(functionList = true))
+            advanceUntilIdle()
+            assertEquals(true, viewModel.accessGranted.value)
+            featureAllowlistRepository.setAllowlist(null)
+            advanceUntilIdle()
+            assertNull(viewModel.accessGranted.value)
         }
 }

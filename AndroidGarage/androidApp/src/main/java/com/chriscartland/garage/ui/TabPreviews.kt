@@ -162,6 +162,24 @@ fun FunctionListScreenPreview() {
     DetailScreenPreviewScaffold(title = "Function list") { modifier ->
         FunctionListContent(
             modifier = modifier,
+            accessGranted = true,
+            onOpenOrCloseDoor = {},
+            onRefreshDoorStatus = {},
+            onRefreshDoorHistory = {},
+            onSnoozeOneHour = {},
+            onSignIn = {},
+            onSignOut = {},
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun FunctionListScreenDeniedPreview() {
+    DetailScreenPreviewScaffold(title = "Function list") { modifier ->
+        FunctionListContent(
+            modifier = modifier,
+            accessGranted = false,
             onOpenOrCloseDoor = {},
             onRefreshDoorStatus = {},
             onRefreshDoorHistory = {},
