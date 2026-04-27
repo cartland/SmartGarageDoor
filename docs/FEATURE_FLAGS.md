@@ -1,3 +1,8 @@
+---
+category: reference
+status: active
+last_verified: 2026-04-27
+---
 # Feature Flags — Per-User Server-Maintained Allowlist
 
 How to add a new per-user feature flag, gated by an email allowlist edited
