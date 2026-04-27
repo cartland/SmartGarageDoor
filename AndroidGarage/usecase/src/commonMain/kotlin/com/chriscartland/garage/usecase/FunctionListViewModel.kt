@@ -41,6 +41,13 @@ interface FunctionListViewModel {
      * - `null` — not yet fetched, fetch failed, or signed out (gate closed).
      * - `false` — server says this user is NOT on the allowlist (gate closed).
      * - `true` — server says this user IS on the allowlist (gate open).
+     *
+     * **Tri-state is load-bearing.** Both `null` and `false` deny, but the
+     * distinction must be preserved by any future migration. A naïve
+     * conversion to `LoadingResult<Boolean>` collapses `null` into
+     * `Loading(null)` and a "show buttons during loading" rendering would
+     * silently open the gate at startup. Gate UI on `== true` only;
+     * never on `!= false`. Full convention in `docs/FEATURE_FLAGS.md`.
      */
     val accessGranted: StateFlow<Boolean?>
 

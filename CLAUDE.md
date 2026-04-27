@@ -197,6 +197,10 @@ Every ViewModel method driving a `LoadingResult<T>` MUST set `LoadingResult.Comp
 
 Full rule, code example, and ADR-022 compatibility argument: see `AndroidGarage/docs/DECISIONS.md` ADR-023.
 
+### Adding per-user feature flags
+
+The repo gates UI features per-user via a server-maintained email allowlist edited in the Firebase console. The canonical example is the **Function List** screen (PR #573). The full pattern — file checklist, naming conventions (`featureXAllowedEmails` config key, `XAccess` route, `featureX: Boolean` domain field), `Boolean?` tri-state semantics, what NOT to do — lives in [`docs/FEATURE_FLAGS.md`](docs/FEATURE_FLAGS.md). When adding a new flag, read that doc first; it answers "do I create a new endpoint or extend the existing one?" (per-feature today, bulk deferred to ~feature #3) and "what files do I touch?" (8 on the server, 6 on Android, 1 wire-contract fixture).
+
 ### Wire-contract fixtures (`wire-contracts/`)
 
 Shared JSON fixtures pin the over-the-wire shape of HTTP endpoints between the Firebase server and the Android client. Each endpoint gets a directory under `wire-contracts/<endpointName>/` with one `response_<scenario>.json` per documented response. **Both** the server's Mocha tests AND the Android Ktor data-source tests load the same files, so a unilateral rename or shape change fails the test on at least one side. Production decoding stays `ignoreUnknownKeys = true` for forward-compat; tests deserialize the same fixtures in strict mode (`ignoreUnknownKeys = false`) so renamed/missing keys throw `SerializationException` instead of silently coercing to defaults. Setup + the rationale (vs. OpenAPI / protobuf) live in [`wire-contracts/README.md`](wire-contracts/README.md). When adding a new HTTP endpoint, drop a fixture file alongside its tests on day one.

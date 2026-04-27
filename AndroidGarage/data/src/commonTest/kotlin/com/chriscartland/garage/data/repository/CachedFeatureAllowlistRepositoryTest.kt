@@ -164,6 +164,53 @@ class CachedFeatureAllowlistRepositoryTest {
         }
 
     @Test
+    fun userSwitchDuringFetchDiscardsStaleResult() =
+        runTest {
+            // Race scenario: user A is authenticated, fetchAllowlist starts
+            // with A's token; mid-fetch, the auth state flips to user B.
+            // The in-flight network call resolves with A's answer — the
+            // post-fetch email guard must discard it rather than writing
+            // A's answer under B's session.
+            val ds = object : com.chriscartland.garage.data.NetworkFeatureAllowlistDataSource {
+                var swapAuthDuringFetch: (() -> Unit)? = null
+                var resultToReturn: FeatureAllowlist = FeatureAllowlist(functionList = true)
+
+                override suspend fun fetchAllowlist(idToken: String): NetworkResult<FeatureAllowlist> {
+                    swapAuthDuringFetch?.invoke()
+                    return NetworkResult.Success(resultToReturn)
+                }
+            }
+            val authRepo = FakeAuthRepository().apply {
+                setAuthState(authenticatedState(idToken = "alice-token"))
+            }
+            val bobState = AuthState.Authenticated(
+                user = User(
+                    name = DisplayName("Bob"),
+                    email = Email("bob@example.com"),
+                    idToken = FirebaseIdToken(idToken = "bob-token", exp = Long.MAX_VALUE),
+                ),
+            )
+            ds.swapAuthDuringFetch = { authRepo.setAuthState(bobState) }
+
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val repo = CachedFeatureAllowlistRepository(ds, authRepo, externalScope)
+            advanceUntilIdle()
+
+            // After init: A's fetch fired, mid-fetch swapped to Bob. Result
+            // for A was discarded (post-fetch email check). Bob's
+            // emission also fires fetchAllowlist — by that point swap is
+            // null and Bob's fetch writes correctly. The key invariant:
+            // cache reflects Bob's session, not A's discarded answer.
+            ds.swapAuthDuringFetch = null
+            ds.resultToReturn = FeatureAllowlist(functionList = false)
+            repo.fetchAllowlist()
+            advanceUntilIdle()
+            assertEquals(FeatureAllowlist(functionList = false), repo.allowlist.value)
+
+            externalScope.cancel()
+        }
+
+    @Test
     fun userSwitchRefreshesCache() =
         runTest {
             val ds = FakeNetworkFeatureAllowlistDataSource().apply {

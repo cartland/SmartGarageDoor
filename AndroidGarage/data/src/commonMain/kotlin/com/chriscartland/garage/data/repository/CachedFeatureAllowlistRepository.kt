@@ -72,19 +72,24 @@ class CachedFeatureAllowlistRepository(
     }
 
     /**
-     * Force-refresh the allowlist. Reads the current auth state at call
-     * time — if the user signed out between the trigger and this run,
-     * skip the fetch (the auth-listener path will have cleared the
-     * cache).
+     * Force-refresh the allowlist. Captures the email at fetch start and
+     * re-checks after the network call — if the user switched mid-fetch,
+     * the result is for the previous user and is discarded. This is the
+     * only place the user-switch race is closed: the auth-listener path
+     * clears `_allowlist` on `Unauthenticated` but does not acquire the
+     * mutex, so an in-flight fetch with user A's token can resolve while
+     * user B is signing in. The post-fetch email check ensures A's
+     * answer is never written under B's session.
      */
     override suspend fun fetchAllowlist(): FeatureAllowlist? =
         fetchMutex.withLock {
-            val authState = authRepository.authState.value
-            if (authState !is AuthState.Authenticated) {
+            val initialAuth = authRepository.authState.value
+            if (initialAuth !is AuthState.Authenticated) {
                 Logger.d { "Skipping fetch — not authenticated" }
                 return@withLock null
             }
-            val idToken = authState.user.idToken.asString()
+            val initialEmail = initialAuth.user.email
+            val idToken = initialAuth.user.idToken.asString()
             val result = try {
                 when (val r = networkDataSource.fetchAllowlist(idToken)) {
                     is NetworkResult.Success -> r.data
@@ -94,6 +99,13 @@ class CachedFeatureAllowlistRepository(
             } catch (e: Exception) {
                 Logger.e(e) { "Allowlist fetch threw — leaving cache untouched" }
                 null
+            }
+            // User-switch guard: if the signed-in email changed during the
+            // network call, discard the result rather than writing it.
+            val finalAuth = authRepository.authState.value
+            if (finalAuth !is AuthState.Authenticated || finalAuth.user.email != initialEmail) {
+                Logger.w { "Auth state changed during fetch; discarding result for stale user" }
+                return@withLock null
             }
             if (result != null) {
                 _allowlist.value = result

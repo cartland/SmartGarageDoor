@@ -55,21 +55,18 @@ export async function handleFunctionListAccess(input: {
   if (!input.googleIdTokenHeader || input.googleIdTokenHeader.length <= 0) {
     return err(401, { error: 'Unauthorized (token).' });
   }
-  // `email` declared outside the try so a verify-throw can return 401
-  // without `email` being in scope for the membership check below — same
-  // pattern Snooze.ts uses (`Snooze.ts:140`, marked there as a preserved
-  // quirk; here it's the convention being followed).
-  let email: string | null = null;
+  let email: string;
   try {
     const decodedToken = await AuthService.verifyIdToken(input.googleIdTokenHeader);
-    email = decodedToken.email ?? null;
+    if (!decodedToken.email) {
+      // Token verified but carried no email claim — treat as deny. Returned
+      // here (inside the try) so `email` does not need to escape the block.
+      return ok({ enabled: false });
+    }
+    email = decodedToken.email;
   } catch (error: any) {
     console.error(error);
     return err(401, { error: 'Unauthorized (token).' });
-  }
-  if (!email) {
-    // Token verified but had no email claim — treat as deny.
-    return ok({ enabled: false });
   }
   const config = await ServerConfigDatabase.get();
   const allowed = getFunctionListAuthorizedEmails(config);
