@@ -15,6 +15,9 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.6.1
+- The "Function list" entry button on the Settings tab is now hidden for users not on the server-maintained allowlist. Allowlisted users see no change. Previously the button appeared for everyone and only the destination screen denied access; the button now disappears at the source for cleaner UX.
+
 ## 2.6.0
 - New **Function List** screen on the Settings tab. Tapping "Function list" opens a screen with quick-access buttons for the actions you'd otherwise reach across multiple tabs: open or close the garage door, refresh the door status or history, snooze notifications for an hour, sign in or sign out. Reachable via an up-arrow back to Settings.
 - Function List is gated by a server-maintained email allowlist. Out of the box the screen shows "Access not enabled for your account" — only users explicitly added to the allowlist (in the Firebase console) see the buttons.
