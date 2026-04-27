@@ -19,6 +19,7 @@ package com.chriscartland.garage.usecase
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -35,6 +36,22 @@ interface AppSettingsViewModel {
     /** Null until DataStore loads — callers should skip rendering until non-null. */
     val profileAppCardExpanded: StateFlow<Boolean?>
 
+    /**
+     * Per-user access decision for the Function List feature, used to gate the
+     * Settings-screen entry button.
+     *
+     * - `null` — not yet fetched, fetch failed, or signed out (gate closed).
+     * - `false` — server says this user is NOT on the allowlist (gate closed).
+     * - `true` — server says this user IS on the allowlist (gate open).
+     *
+     * **Tri-state is load-bearing.** Both `null` and `false` deny. Gate UI on
+     * `== true` only; never on `!= false`. Full convention in
+     * `docs/FEATURE_FLAGS.md`. The Function List screen has its own
+     * independent gate via `FunctionListViewModel.accessGranted`; this flag
+     * is a UI hint to hide the entry point and is not a security boundary.
+     */
+    val functionListAccess: StateFlow<Boolean?>
+
     fun setFcmDoorTopic(topic: String)
 
     fun setProfileUserCardExpanded(expanded: Boolean)
@@ -46,6 +63,8 @@ interface AppSettingsViewModel {
 
 class DefaultAppSettingsViewModel(
     private val settings: AppSettingsUseCase,
+    private val observeFeatureAccessUseCase: ObserveFeatureAccessUseCase,
+    private val dispatchers: DispatcherProvider,
 ) : ViewModel(),
     AppSettingsViewModel {
     // ADR-017 Rule 6: explicit MutableStateFlow + collect, no stateIn in ViewModels.
@@ -61,6 +80,9 @@ class DefaultAppSettingsViewModel(
     private val _profileAppCardExpanded = MutableStateFlow<Boolean?>(null)
     override val profileAppCardExpanded: StateFlow<Boolean?> = _profileAppCardExpanded
 
+    private val _functionListAccess = MutableStateFlow<Boolean?>(null)
+    override val functionListAccess: StateFlow<Boolean?> = _functionListAccess
+
     init {
         viewModelScope.launch {
             settings.observeFcmDoorTopic().collect { _fcmDoorTopic.value = it }
@@ -73,6 +95,9 @@ class DefaultAppSettingsViewModel(
         }
         viewModelScope.launch {
             settings.observeProfileAppCardExpanded().collect { _profileAppCardExpanded.value = it }
+        }
+        viewModelScope.launch(dispatchers.io) {
+            observeFeatureAccessUseCase.functionList().collect { _functionListAccess.value = it }
         }
     }
 

@@ -81,6 +81,7 @@ fun ProfileContent(
     val snoozeAction by buttonViewModel.snoozeAction.collectAsState()
     val userCardExpanded by settingsViewModel.profileUserCardExpanded.collectAsState()
     val appCardExpanded by settingsViewModel.profileAppCardExpanded.collectAsState()
+    val functionListAccess by settingsViewModel.functionListAccess.collectAsState()
     val appVersion = LocalContext.current.AppVersion()
 
     LaunchedEffect(Unit) {
@@ -112,6 +113,7 @@ fun ProfileContent(
         appCardExpanded = appCardExpanded,
         onAppCardExpandedChange = { settingsViewModel.setProfileAppCardExpanded(it) },
         onNavigateToFunctionList = onNavigateToFunctionList,
+        functionListAccess = functionListAccess,
     )
 }
 
@@ -134,6 +136,7 @@ fun ProfileContent(
     appCardExpanded: Boolean? = true,
     onAppCardExpandedChange: (Boolean) -> Unit = {},
     onNavigateToFunctionList: () -> Unit = {},
+    functionListAccess: Boolean? = null,
 ) {
     val cardColors = CardDefaults.cardColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -188,12 +191,16 @@ fun ProfileContent(
                 )
             }
         }
-        item {
-            Button(
-                onClick = onNavigateToFunctionList,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(text = "Function list")
+        // Gate on `== true` only — `null` (loading/signed-out/error) and
+        // `false` (server denies) both deny. See docs/FEATURE_FLAGS.md.
+        if (functionListAccess == true) {
+            item {
+                Button(
+                    onClick = onNavigateToFunctionList,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(text = "Function list")
+                }
             }
         }
         item {
@@ -234,6 +241,7 @@ fun ProfileContentPreview() {
                     // No-op for preview.
                 }
             },
+            functionListAccess = true,
         )
     }
 }
