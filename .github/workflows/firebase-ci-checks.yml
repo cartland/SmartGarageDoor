@@ -96,7 +96,7 @@ jobs:
       # fails at `firebase emulators:exec` with:
       #   "firebase-tools no longer supports Java version before 21"
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
