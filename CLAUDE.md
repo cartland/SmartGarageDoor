@@ -405,6 +405,10 @@ Detailed project documentation lives in `AndroidGarage/docs/`:
 - [Testing](AndroidGarage/docs/TESTING.md) — CI stability plan, testing phases, priority order
 - [Library Bugs](AndroidGarage/docs/library-bugs/) — Known third-party library bugs with mitigations
 
+Cross-component runbooks in `docs/`:
+
+- [Dependency Upgrades](docs/DEPENDENCY_UPGRADES.md) — Sequencing playbook for multi-PR upgrades: 4-bucket framework (docs / pre-submit / runtime / deploy), per-class risk register, operational gotchas, and the "stay on Node 22" decision with tripwire to revisit. Read this before starting any dependency-upgrade sweep.
+
 ## Safety Rules
 
 ### FCM Push Notifications
