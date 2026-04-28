@@ -70,7 +70,7 @@ jobs:
         run: ./release/clean-secrets.sh
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-reports
           path: AndroidGarage/androidApp/build/reports/tests/
@@ -131,7 +131,7 @@ jobs:
         run: ./release/clean-secrets.sh
       - name: Upload debug APK
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: debug-apk
           path: AndroidGarage/androidApp/build/outputs/apk/debug/
@@ -158,7 +158,7 @@ jobs:
         working-directory: AndroidGarage
         run: ./release/clean-secrets.sh
       - name: Upload release AAB
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: release-aab
           path: AndroidGarage/androidApp/build/outputs/bundle/release/
