@@ -11,8 +11,6 @@ import com.chriscartland.garage.ui.FunctionListScreenPreview
 import com.chriscartland.garage.ui.HistoryTabPreview
 import com.chriscartland.garage.ui.HomeContentPreview
 import com.chriscartland.garage.ui.HomeTabPreview
-import com.chriscartland.garage.ui.ProfileContentPreview
-import com.chriscartland.garage.ui.SettingsTabPreview
 import com.chriscartland.garage.ui.theme.AppTheme
 
 @PreviewTest
@@ -51,20 +49,6 @@ fun DoorHistoryScreenPreviewTest() {
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
-fun ProfileScreenPreviewTest() {
-    AppTheme {
-        ProfileContentPreview()
-    }
-}
-
-@PreviewTest
-@Preview(showBackground = true, name = "Light")
-@Preview(
-    showBackground = true,
-    name = "Dark",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-)
-@Composable
 fun HomeTabPreviewTest() {
     AppTheme {
         HomeTabPreview()
@@ -82,20 +66,6 @@ fun HomeTabPreviewTest() {
 fun HistoryTabPreviewTest() {
     AppTheme {
         HistoryTabPreview()
-    }
-}
-
-@PreviewTest
-@Preview(showBackground = true, name = "Light")
-@Preview(
-    showBackground = true,
-    name = "Dark",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-)
-@Composable
-fun SettingsTabPreviewTest() {
-    AppTheme {
-        SettingsTabPreview()
     }
 }
 

@@ -14,7 +14,6 @@ import com.chriscartland.garage.ui.GarageDoorButtonSendingToDoorPreview
 import com.chriscartland.garage.ui.GarageDoorButtonSendingToServerPreview
 import com.chriscartland.garage.ui.GarageDoorButtonServerFailedPreview
 import com.chriscartland.garage.ui.GarageDoorButtonSucceededPreview
-import com.chriscartland.garage.ui.LogSummaryCardPreview
 import com.chriscartland.garage.ui.NetworkDiagramDoorFailedPreview
 import com.chriscartland.garage.ui.NetworkDiagramIdlePreview
 import com.chriscartland.garage.ui.NetworkDiagramSendingToDoorPreview
@@ -31,15 +30,6 @@ import com.chriscartland.garage.ui.RemoteButtonContentSendingToDoorPreview
 import com.chriscartland.garage.ui.RemoteButtonContentSendingToServerPreview
 import com.chriscartland.garage.ui.RemoteButtonContentServerFailedPreview
 import com.chriscartland.garage.ui.RemoteButtonContentSucceededPreview
-import com.chriscartland.garage.ui.SnoozeNotificationCardClearedPreview
-import com.chriscartland.garage.ui.SnoozeNotificationCardErrorPreview
-import com.chriscartland.garage.ui.SnoozeNotificationCardLoadingPreview
-import com.chriscartland.garage.ui.SnoozeNotificationCardNotSnoozingPreview
-import com.chriscartland.garage.ui.SnoozeNotificationCardPreview
-import com.chriscartland.garage.ui.SnoozeNotificationCardSendingPreview
-import com.chriscartland.garage.ui.SnoozeNotificationCardSucceededPreview
-import com.chriscartland.garage.ui.UserInfoCardPreview
-import com.chriscartland.garage.ui.UserInfoNoUserPreview
 import com.chriscartland.garage.ui.theme.AppTheme
 
 @PreviewTest
@@ -191,146 +181,6 @@ fun RemoteButtonContentDoorFailedPreviewTest() {
 fun ErrorCardPreviewTest() {
     AppTheme {
         ErrorCardPreview()
-    }
-}
-
-@PreviewTest
-@Preview(showBackground = true, name = "Light")
-@Preview(
-    showBackground = true,
-    name = "Dark",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-)
-@Composable
-fun UserInfoCardPreviewTest() {
-    AppTheme {
-        UserInfoCardPreview()
-    }
-}
-
-@PreviewTest
-@Preview(showBackground = true, name = "Light")
-@Preview(
-    showBackground = true,
-    name = "Dark",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-)
-@Composable
-fun UserInfoNoUserPreviewTest() {
-    AppTheme {
-        UserInfoNoUserPreview()
-    }
-}
-
-@PreviewTest
-@Preview(showBackground = true, name = "Light")
-@Preview(
-    showBackground = true,
-    name = "Dark",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-)
-@Composable
-fun LogSummaryCardPreviewTest() {
-    AppTheme {
-        LogSummaryCardPreview()
-    }
-}
-
-@PreviewTest
-@Preview(showBackground = true, name = "Light")
-@Preview(
-    showBackground = true,
-    name = "Dark",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-)
-@Composable
-fun SnoozeNotificationCardPreviewTest() {
-    AppTheme {
-        SnoozeNotificationCardPreview()
-    }
-}
-
-@PreviewTest
-@Preview(showBackground = true, name = "Light")
-@Preview(
-    showBackground = true,
-    name = "Dark",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-)
-@Composable
-fun SnoozeNotificationCardLoadingPreviewTest() {
-    AppTheme {
-        SnoozeNotificationCardLoadingPreview()
-    }
-}
-
-@PreviewTest
-@Preview(showBackground = true, name = "Light")
-@Preview(
-    showBackground = true,
-    name = "Dark",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-)
-@Composable
-fun SnoozeNotificationCardNotSnoozingPreviewTest() {
-    AppTheme {
-        SnoozeNotificationCardNotSnoozingPreview()
-    }
-}
-
-@PreviewTest
-@Preview(showBackground = true, name = "Light")
-@Preview(
-    showBackground = true,
-    name = "Dark",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-)
-@Composable
-fun SnoozeNotificationCardSendingPreviewTest() {
-    AppTheme {
-        SnoozeNotificationCardSendingPreview()
-    }
-}
-
-@PreviewTest
-@Preview(showBackground = true, name = "Light")
-@Preview(
-    showBackground = true,
-    name = "Dark",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-)
-@Composable
-fun SnoozeNotificationCardSucceededPreviewTest() {
-    AppTheme {
-        SnoozeNotificationCardSucceededPreview()
-    }
-}
-
-@PreviewTest
-@Preview(showBackground = true, name = "Light")
-@Preview(
-    showBackground = true,
-    name = "Dark",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-)
-@Composable
-fun SnoozeNotificationCardClearedPreviewTest() {
-    AppTheme {
-        SnoozeNotificationCardClearedPreview()
-    }
-}
-
-@PreviewTest
-@Preview(showBackground = true, name = "Light")
-@Preview(
-    showBackground = true,
-    name = "Dark",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-)
-@Composable
-fun SnoozeNotificationCardErrorPreviewTest() {
-    AppTheme {
-        SnoozeNotificationCardErrorPreview()
     }
 }
 

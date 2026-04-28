@@ -51,6 +51,7 @@ import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDe
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import com.chriscartland.garage.ui.settings.DiagnosticsScreen
 import com.chriscartland.garage.ui.theme.AppTheme
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.usecase.AppLoggerViewModel
@@ -98,6 +99,9 @@ sealed interface Screen {
 
     @Serializable
     data object FunctionList : Screen
+
+    @Serializable
+    data object Diagnostics : Screen
 }
 
 /**
@@ -135,12 +139,20 @@ fun AppNavigation(
     Scaffold(
         topBar = {
             val currentScreen = backStack.lastOrNull()
+            val isSubScreen = currentScreen is Screen.FunctionList ||
+                currentScreen is Screen.Diagnostics
             TopAppBar(
                 title = {
-                    Text(text = if (currentScreen is Screen.FunctionList) "Function list" else "Garage")
+                    Text(
+                        text = when (currentScreen) {
+                            is Screen.FunctionList -> "Function list"
+                            is Screen.Diagnostics -> "Diagnostics"
+                            else -> "Garage"
+                        },
+                    )
                 },
                 navigationIcon = {
-                    if (currentScreen is Screen.FunctionList) {
+                    if (isSubScreen) {
                         IconButton(onClick = {
                             if (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
                         }) {
@@ -207,6 +219,7 @@ fun AppNavigation(
                     ProfileContent(
                         authViewModel = authViewModel,
                         onNavigateToFunctionList = { backStack.add(Screen.FunctionList) },
+                        onNavigateToDiagnostics = { backStack.add(Screen.Diagnostics) },
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
                             .fillMaxWidth(),
@@ -217,6 +230,14 @@ fun AppNavigation(
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
                             .fillMaxWidth(),
+                    )
+                }
+                entry<Screen.Diagnostics> {
+                    DiagnosticsScreen(
+                        onBack = {
+                            if (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             },

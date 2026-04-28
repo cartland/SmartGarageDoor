@@ -31,13 +31,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.chriscartland.garage.domain.model.AppVersion
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.LoadingResult
-import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.presentation.demoDoorEvents
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -190,38 +188,8 @@ fun FunctionListScreenDeniedPreview() {
     }
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
-@Preview(showBackground = true)
-@Composable
-fun SettingsTabPreview() {
-    TabPreviewScaffold(selectedScreen = Screen.Profile) { modifier ->
-        ProfileContent(
-            user = User(
-                name = DisplayName("Chris Cartland"),
-                email = Email("chris@example.com"),
-                idToken = FirebaseIdToken(idToken = "preview", exp = 0),
-            ),
-            modifier = modifier,
-            signIn = {},
-            signOut = {},
-            snoozeState = SnoozeState.NotSnoozing,
-            onSnooze = {},
-            showSnooze = true,
-            showLogSummary = false,
-            appVersion = AppVersion(
-                packageName = "com.chriscartland.garage",
-                versionCode = 1L,
-                versionName = "preview",
-                buildTimestamp = "preview",
-            ),
-            notificationPermissionState = object : PermissionState {
-                override val permission = "android.permission.POST_NOTIFICATIONS"
-                override val status = PermissionStatus.Granted
-
-                override fun launchPermissionRequest() {
-                    // No-op for preview.
-                }
-            },
-        )
-    }
-}
+// SettingsTabPreview removed in the Settings redesign — the new
+// SettingsContent has its own dedicated screenshot tests in
+// SettingsRedesignScreenshotTest.kt covering signed-out, signed-in,
+// and signed-in-allowlisted variants. A tab-scaffold-wrapped variant
+// would just re-test the same surfaces.
