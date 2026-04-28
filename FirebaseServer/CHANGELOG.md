@@ -29,6 +29,12 @@ Example (placeholder tag numbers — the gate looks for exact `server/<real numb
 
 ---
 
+## server/23
+- **Dependency-security release.** Bumps `firebase-admin` 13.5.0 → 13.8.0 (PR #583) and adds a top-level `uuid: "^14.0.0"` override (PR #585) so every transitive uuid in firebase-admin's `@google-cloud/storage` / `google-gax` / `gaxios` / `teeny-request` subtree resolves to 14.0.0. Together these close all 5 open Dependabot alerts (3× node-forge high, 1× uuid medium, 1× js-yaml medium — js-yaml fixed via devDep override, PR #584).
+- Zero functional change. firebase-admin 13.6/13.7/13.8 release notes ship additive features only — no breaking API surface for the call patterns this server uses (`auth().verifyIdToken`, Firestore reads/writes, FCM sends). uuid v14's `v4()` API is API-compatible with the v8/v9/v11 transitive callers; the CVE was specifically about the optional `buf` parameter, not used by any google-cloud-storage internal call site.
+- Test count: 250 → 250 (no new tests; the dep bumps are runtime/transitive only and existing handler/contract tests cover the surfaces).
+- Operational: this is the production proof for the dependency-upgrade plan's Bucket C entries. Watch the deploy log for `✔ Deploy complete!` (silent-failure signature from `docs/FIREBASE_DEPLOY_SETUP.md`) and confirm at least one FCM door-event reaches a device within 24h.
+
 ## server/22
 - New authenticated endpoint `httpFunctionListAccess` (`GET /functionListAccess`, `X-AuthTokenGoogle` → `{enabled: boolean}`). Verifies the Firebase ID token, extracts the email, checks membership against `body.featureFunctionListAllowedEmails: string[]` on `configCurrent/current`. UI hint only — `pushButton` and `snoozeNotifications` retain their independent allowlist checks (still the security boundary). PR #573.
 - Per-feature email allowlist field `featureFunctionListAllowedEmails` added to the `configCurrent/current` Firestore doc, edited directly in the Firebase console (no redeploy). Missing-field default is deny-all. New accessor `getFunctionListAuthorizedEmails(config)` in `controller/config/ConfigAccessors.ts`.
