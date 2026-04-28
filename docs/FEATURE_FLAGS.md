@@ -124,6 +124,36 @@ loading (`if (loading) showButtons()` is the trap to avoid).
     `CachedFeatureAllowlistRepositoryTest` patterns. The wire-fixture
     deep-equal test is the cross-stack drift detector — preserve it.
 
+## Adding a second client consumer of an existing flag
+
+When a flag already ships and you want a *second* place in the UI to
+read the same allowlist (canonical example: PR #578 hid the Settings
+entry button for the Function List screen, reusing the
+`featureFunctionList` flag PR #573 introduced), the work is much
+smaller than adding a new flag. **Skip the entire Server and Wire
+contract sections above.** Touch only:
+
+- The consuming **ViewModel** — inject `ObserveFeatureAccessUseCase`,
+  expose a `xAccess: StateFlow<Boolean?>` mirroring the existing
+  consumer's tri-state semantics. If the VM constructor gains a
+  `DispatcherProvider`, update its DI provider in `AppComponent.kt`.
+- The consuming **screen Composable** — collect the state flow, gate
+  the relevant element on `== true` only (never `!= false`).
+- The VM's **unit tests** — add the same three tri-state tests
+  (`null` pre-resolve, `true` opens, `false` explicit deny) using
+  `FakeFeatureAllowlistRepository`.
+
+No server endpoint, no Firestore field, no wire-contract fixture, no
+new data source, no `CachedFeatureAllowlistRepository` change. The
+allowlist already feeds `FeatureAllowlistRepository.allowlist`; new
+consumers just subscribe.
+
+The destination screen's self-gate stays as the security-relevant
+fallback — second-consumer hiding is **UX polish**, not a security
+boundary, so a deep-link or refactor that bypasses the entry point
+still hits a denial on the destination. This makes such changes
+patch-bump-eligible (no new capability).
+
 ## What to **NOT** do
 
 - **Do not** consolidate to a bulk `/featureAccess` endpoint until you
