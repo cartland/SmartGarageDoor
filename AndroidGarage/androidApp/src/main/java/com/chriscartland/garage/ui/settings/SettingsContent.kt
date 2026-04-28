@@ -29,14 +29,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.Analytics
-import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Login
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsPaused
 import androidx.compose.material.icons.outlined.Storefront
@@ -60,6 +59,7 @@ import androidx.compose.ui.unit.dp
  */
 sealed interface AccountRowState {
     data object SignedOut : AccountRowState
+
     data class SignedIn(
         val displayName: String,
         val email: String,
@@ -71,8 +71,12 @@ sealed interface AccountRowState {
  */
 sealed interface SnoozeRowState {
     data object Loading : SnoozeRowState
+
     data object Off : SnoozeRowState
-    data class SnoozingUntil(val displayTime: String) : SnoozeRowState
+
+    data class SnoozingUntil(
+        val displayTime: String,
+    ) : SnoozeRowState
 }
 
 /**
@@ -110,7 +114,7 @@ fun SettingsContent(
             SettingsSection(label = "Account") {
                 when (accountState) {
                     AccountRowState.SignedOut -> SettingsRow(
-                        icon = Icons.Outlined.Login,
+                        icon = Icons.AutoMirrored.Outlined.Login,
                         title = "Sign in with Google",
                         subtitle = null,
                         showChevron = false,

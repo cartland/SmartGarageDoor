@@ -18,230 +18,172 @@
 package com.chriscartland.garage.ui
 
 import androidx.activity.compose.ReportDrawn
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Button
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.di.rememberAppComponent
-import com.chriscartland.garage.domain.model.AppVersion
 import com.chriscartland.garage.domain.model.AuthState
-import com.chriscartland.garage.domain.model.DisplayName
-import com.chriscartland.garage.domain.model.Email
-import com.chriscartland.garage.domain.model.FirebaseIdToken
-import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
-import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
+import com.chriscartland.garage.ui.settings.AccountBottomSheet
+import com.chriscartland.garage.ui.settings.AccountRowState
+import com.chriscartland.garage.ui.settings.SettingsContent
+import com.chriscartland.garage.ui.settings.SnoozeBottomSheet
+import com.chriscartland.garage.ui.settings.SnoozeRowState
+import com.chriscartland.garage.ui.settings.VersionDialog
 import com.chriscartland.garage.usecase.AppSettingsViewModel
 import com.chriscartland.garage.usecase.AuthViewModel
 import com.chriscartland.garage.usecase.RemoteButtonViewModel
 import com.chriscartland.garage.version.AppVersion
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.PermissionState
-import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.isGranted
 import kotlinx.coroutines.delay
 import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
+/**
+ * Settings screen — bottom-nav destination. Sectioned-list redesign
+ * shipped in PR after the legacy expandable-cards layout. Aggregates
+ * AuthViewModel + RemoteButtonViewModel + AppSettingsViewModel
+ * (legacy multi-VM exemption per ADR-026; the screen-level VM split
+ * is deferred — see screen-viewmodel-exemptions.txt).
+ *
+ * The function name is preserved (`ProfileContent`) to avoid touching
+ * `Screen.Profile` and the bottom-nav definition; the user-facing tab
+ * label is "Settings".
+ */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ProfileContent(
     modifier: Modifier = Modifier,
     authViewModel: AuthViewModel? = null,
+    onNavigateToDiagnostics: () -> Unit = {},
     onNavigateToFunctionList: () -> Unit = {},
 ) {
     val component = rememberAppComponent()
     val resolvedAuthViewModel = authViewModel ?: viewModel { component.authViewModel }
     val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
     val settingsViewModel: AppSettingsViewModel = viewModel { component.appSettingsViewModel }
+    val notificationPermissionState = rememberNotificationPermissionState()
     val googleSignIn = rememberGoogleSignIn(
         onTokenReceived = { token -> resolvedAuthViewModel.signInWithGoogle(token) },
     )
+
     val authState by resolvedAuthViewModel.authState.collectAsState()
     val snoozeState by buttonViewModel.snoozeState.collectAsState()
-    val snoozeAction by buttonViewModel.snoozeAction.collectAsState()
-    val userCardExpanded by settingsViewModel.profileUserCardExpanded.collectAsState()
-    val appCardExpanded by settingsViewModel.profileAppCardExpanded.collectAsState()
     val functionListAccess by settingsViewModel.functionListAccess.collectAsState()
+    val appConfig = component.appConfig
     val appVersion = LocalContext.current.AppVersion()
 
+    // Surface-level state: which sheet/dialog is currently open. Local to
+    // the screen — not persisted across process death (recreating the
+    // sheet/dialog after a crash would surprise the user).
+    var snoozeSheetOpen by remember { mutableStateOf(false) }
+    var accountSheetOpen by remember { mutableStateOf(false) }
+    var versionDialogOpen by remember { mutableStateOf(false) }
+
+    // Refresh snooze status every minute while this screen is mounted.
+    // Mirrors the legacy ProfileContent behavior; the polling cadence
+    // covers both the row-secondary-text and the sheet's pre-selection.
     LaunchedEffect(Unit) {
         while (true) {
             buttonViewModel.fetchSnoozeStatus()
             delay(Duration.ofMinutes(1).toMillis())
         }
     }
-    val appConfig = component.appConfig
-    ProfileContent(
-        user = when (val it = authState) {
-            is AuthState.Authenticated -> it.user
-            AuthState.Unauthenticated -> null
-            AuthState.Unknown -> null
-        },
-        modifier = modifier,
-        signIn = { googleSignIn.launchSignIn() },
-        signOut = { resolvedAuthViewModel.signOut() },
-        snoozeState = snoozeState,
-        snoozeAction = snoozeAction,
-        onSnooze = {
-            buttonViewModel.snoozeOpenDoorsNotifications(it)
-        },
-        showSnooze = appConfig.snoozeNotificationsOption,
-        showLogSummary = appConfig.logSummary,
-        userCardExpanded = userCardExpanded,
-        onUserCardExpandedChange = { settingsViewModel.setProfileUserCardExpanded(it) },
-        appVersion = appVersion,
-        appCardExpanded = appCardExpanded,
-        onAppCardExpandedChange = { settingsViewModel.setProfileAppCardExpanded(it) },
-        onNavigateToFunctionList = onNavigateToFunctionList,
-        functionListAccess = functionListAccess,
-    )
-}
 
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
-fun ProfileContent(
-    user: User?,
-    modifier: Modifier = Modifier,
-    signIn: () -> Unit,
-    signOut: () -> Unit,
-    snoozeState: SnoozeState = SnoozeState.Loading,
-    snoozeAction: SnoozeAction = SnoozeAction.Idle,
-    onSnooze: (snooze: SnoozeDurationUIOption) -> Unit = {},
-    showSnooze: Boolean = true,
-    showLogSummary: Boolean = true,
-    notificationPermissionState: PermissionState = rememberNotificationPermissionState(),
-    userCardExpanded: Boolean? = true,
-    onUserCardExpandedChange: (Boolean) -> Unit = {},
-    appVersion: AppVersion? = null,
-    appCardExpanded: Boolean? = true,
-    onAppCardExpandedChange: (Boolean) -> Unit = {},
-    onNavigateToFunctionList: () -> Unit = {},
-    functionListAccess: Boolean? = null,
-) {
-    val cardColors = CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        disabledContentColor = MaterialTheme.colorScheme.onSurface,
-    )
-    LazyColumn(
+    val accountState = when (val s = authState) {
+        is AuthState.Authenticated -> AccountRowState.SignedIn(
+            displayName = s.user.name
+                .asString()
+                .ifBlank { "(unknown)" },
+            email = s.user.email.asString(),
+        )
+        AuthState.Unauthenticated, AuthState.Unknown -> AccountRowState.SignedOut
+    }
+    val snoozeRowState = ProfileContentHelpers.snoozeRowStateOf(snoozeState)
+
+    SettingsContent(
+        accountState = accountState,
+        snoozeState = snoozeRowState,
+        showSnoozeRow = appConfig.snoozeNotificationsOption &&
+            notificationPermissionState.status.isGranted,
+        showToolsSection = functionListAccess == true,
+        showDiagnosticsRow = appConfig.logSummary,
+        versionName = appVersion.versionName,
+        versionCode = appVersion.versionCode.toString(),
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        if (showSnooze && notificationPermissionState.status.isGranted) {
-            item {
-                SnoozeNotificationCard(
-                    snoozeState = snoozeState,
-                    snoozeAction = snoozeAction,
-                    onSnooze = onSnooze,
-                    colors = cardColors,
-                )
-            }
-        }
-        if (userCardExpanded != null) {
-            item {
-                UserInfoCard(
-                    user = user,
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    signIn = signIn,
-                    signOut = signOut,
-                    startExpanded = userCardExpanded,
-                    onExpandedChange = onUserCardExpandedChange,
-                    colors = cardColors,
-                )
-            }
-        }
-        if (appVersion != null && appCardExpanded != null) {
-            item {
-                AndroidAppInfoCard(
-                    appVersion = appVersion,
-                    startExpanded = appCardExpanded,
-                    onExpandedChange = onAppCardExpandedChange,
-                    colors = cardColors,
-                )
-            }
-        }
-        if (showLogSummary) {
-            item {
-                LogSummaryCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = cardColors,
-                )
-            }
-        }
-        // Gate on `== true` only — `null` (loading/signed-out/error) and
-        // `false` (server denies) both deny. See docs/FEATURE_FLAGS.md.
-        if (functionListAccess == true) {
-            item {
-                Button(
-                    onClick = onNavigateToFunctionList,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(text = "Function list")
-                }
-            }
-        }
-        item {
-            Spacer(modifier = Modifier.height(8.dp))
+        onAccountTap = { accountSheetOpen = true },
+        onSignInTap = { googleSignIn.launchSignIn() },
+        onSnoozeTap = { snoozeSheetOpen = true },
+        onFunctionListTap = onNavigateToFunctionList,
+        onVersionTap = { versionDialogOpen = true },
+        onPlayStoreTap = { /* TODO Phase 3 wiring: launch Play Store intent */ },
+        onPrivacyPolicyTap = { /* TODO Phase 3 wiring: launch privacy policy intent */ },
+        onDiagnosticsTap = onNavigateToDiagnostics,
+    )
+
+    if (snoozeSheetOpen) {
+        SnoozeBottomSheet(
+            initialSelection = (snoozeState as? SnoozeState.Snoozing)?.let {
+                SnoozeDurationUIOption.None
+            } ?: SnoozeDurationUIOption.OneHour,
+            onSave = { duration ->
+                buttonViewModel.snoozeOpenDoorsNotifications(duration)
+            },
+            onDismiss = { snoozeSheetOpen = false },
+        )
+    }
+
+    if (accountSheetOpen) {
+        val signedIn = accountState as? AccountRowState.SignedIn
+        if (signedIn != null) {
+            AccountBottomSheet(
+                displayName = signedIn.displayName,
+                email = signedIn.email,
+                onSignOut = { resolvedAuthViewModel.signOut() },
+                onDismiss = { accountSheetOpen = false },
+            )
         }
     }
+
+    if (versionDialogOpen) {
+        VersionDialog(
+            versionName = appVersion.versionName,
+            versionCode = appVersion.versionCode.toString(),
+            buildTimestamp = appVersion.buildTimestamp,
+            packageName = appVersion.packageName,
+            onDismiss = { versionDialogOpen = false },
+        )
+    }
+
     ReportDrawn()
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
-@Preview(showBackground = true)
-@Composable
-fun ProfileContentPreview() {
-    Surface(modifier = Modifier.fillMaxSize()) {
-        ProfileContent(
-            user = User(
-                name = DisplayName("Chris Cartland"),
-                email = Email("chris@example.com"),
-                idToken = FirebaseIdToken(idToken = "preview", exp = 0),
-            ),
-            signIn = {},
-            signOut = {},
-            snoozeState = SnoozeState.NotSnoozing,
-            onSnooze = {},
-            showSnooze = true,
-            showLogSummary = false,
-            appVersion = AppVersion(
-                packageName = "com.chriscartland.garage",
-                versionCode = 1L,
-                versionName = "preview",
-                buildTimestamp = "preview",
-            ),
-            notificationPermissionState = object : PermissionState {
-                override val permission = "android.permission.POST_NOTIFICATIONS"
-                override val status = PermissionStatus.Granted
+private object ProfileContentHelpers {
+    private val snoozeTimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
-                override fun launchPermissionRequest() {
-                    // No-op for preview.
-                }
-            },
-            functionListAccess = true,
-        )
-    }
+    fun snoozeRowStateOf(state: SnoozeState): SnoozeRowState =
+        when (state) {
+            SnoozeState.Loading -> SnoozeRowState.Loading
+            SnoozeState.NotSnoozing -> SnoozeRowState.Off
+            is SnoozeState.Snoozing -> SnoozeRowState.SnoozingUntil(formatSnoozeTime(state.untilEpochSeconds))
+        }
+
+    fun formatSnoozeTime(epochSeconds: Long): String =
+        Instant
+            .ofEpochSecond(epochSeconds)
+            .atZone(ZoneId.systemDefault())
+            .format(snoozeTimeFormatter)
 }

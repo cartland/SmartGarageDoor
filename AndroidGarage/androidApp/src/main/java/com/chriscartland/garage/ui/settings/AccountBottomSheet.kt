@@ -26,16 +26,51 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+
+/**
+ * Production wrapper. Shows the sheet content inside a [ModalBottomSheet].
+ *
+ * The `*Content` Composable below is the previewable surface — see the
+ * matching note on `SnoozeBottomSheet`.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AccountBottomSheet(
+    displayName: String,
+    email: String,
+    onSignOut: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        modifier = modifier,
+    ) {
+        AccountSheetContent(
+            displayName = displayName,
+            email = email,
+            onSignOut = {
+                onSignOut()
+                onDismiss()
+            },
+        )
+    }
+}
 
 /**
  * Sheet content for the signed-in Account row. Shows identity + a single

@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Tue Apr 28 05:28:24 PDT 2026
+Generated on Tue Apr 28 08:50:17 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -78,12 +78,6 @@ Generated on Tue Apr 28 05:28:24 PDT 2026
 
 ### GarageDoorButtonSucceededPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSucceededPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### LogSummaryCardPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/LogSummaryCardPreviewTest_Dark_77106447_0.png" width="300" />
-
-### LogSummaryCardPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/LogSummaryCardPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### NetworkDiagramDoorFailedPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramDoorFailedPreviewTest_Dark_77106447_0.png" width="300" />
@@ -180,60 +174,6 @@ Generated on Tue Apr 28 05:28:24 PDT 2026
 
 ### RemoteButtonContentSucceededPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSucceededPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### SnoozeNotificationCardClearedPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardClearedPreviewTest_Dark_77106447_0.png" width="300" />
-
-### SnoozeNotificationCardClearedPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardClearedPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### SnoozeNotificationCardErrorPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardErrorPreviewTest_Dark_77106447_0.png" width="300" />
-
-### SnoozeNotificationCardErrorPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardErrorPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### SnoozeNotificationCardLoadingPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardLoadingPreviewTest_Dark_77106447_0.png" width="300" />
-
-### SnoozeNotificationCardLoadingPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardLoadingPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### SnoozeNotificationCardNotSnoozingPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardNotSnoozingPreviewTest_Dark_77106447_0.png" width="300" />
-
-### SnoozeNotificationCardNotSnoozingPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardNotSnoozingPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### SnoozeNotificationCardPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardPreviewTest_Dark_77106447_0.png" width="300" />
-
-### SnoozeNotificationCardPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### SnoozeNotificationCardSendingPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardSendingPreviewTest_Dark_77106447_0.png" width="300" />
-
-### SnoozeNotificationCardSendingPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardSendingPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### SnoozeNotificationCardSucceededPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardSucceededPreviewTest_Dark_77106447_0.png" width="300" />
-
-### SnoozeNotificationCardSucceededPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/SnoozeNotificationCardSucceededPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### UserInfoCardPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/UserInfoCardPreviewTest_Dark_77106447_0.png" width="300" />
-
-### UserInfoCardPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/UserInfoCardPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### UserInfoNoUserPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/UserInfoNoUserPreviewTest_Dark_77106447_0.png" width="300" />
-
-### UserInfoNoUserPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/UserInfoNoUserPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ## GarageDoorScreenshotTestKt
 
@@ -346,18 +286,6 @@ Generated on Tue Apr 28 05:28:24 PDT 2026
 
 ### HomeTabPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeTabPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### ProfileScreenPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ProfileScreenPreviewTest_Dark_77106447_0.png" width="300" />
-
-### ProfileScreenPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ProfileScreenPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### SettingsTabPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/SettingsTabPreviewTest_Dark_77106447_0.png" width="300" />
-
-### SettingsTabPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/SettingsTabPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ## SettingsRedesignScreenshotTestKt
 

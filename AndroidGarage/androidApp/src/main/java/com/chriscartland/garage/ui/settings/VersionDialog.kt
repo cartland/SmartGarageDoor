@@ -72,7 +72,10 @@ fun VersionDialog(
 }
 
 @Composable
-private fun LabeledLine(label: String, value: String) {
+private fun LabeledLine(
+    label: String,
+    value: String,
+) {
     Column {
         Text(
             text = label,

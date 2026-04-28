@@ -26,13 +26,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -40,11 +47,43 @@ import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 
 /**
+ * Production wrapper. Shows the sheet content inside a [ModalBottomSheet].
+ * Tracks the user's pending selection locally; only commits via [onSave].
+ *
+ * The `*Content` Composable below is the previewable surface (the
+ * sheet's show animation runs in a `LaunchedEffect` that doesn't fire
+ * under `@Preview` / screenshot tests, so the content is split out).
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SnoozeBottomSheet(
+    initialSelection: SnoozeDurationUIOption,
+    onSave: (SnoozeDurationUIOption) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var selected by remember { mutableStateOf(initialSelection) }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        modifier = modifier,
+    ) {
+        SnoozeSheetContent(
+            selectedOption = selected,
+            onOptionSelected = { selected = it },
+            onCancel = onDismiss,
+            onSave = {
+                onSave(selected)
+                onDismiss()
+            },
+        )
+    }
+}
+
+/**
  * Sheet content extracted as a separate Composable so previews and
- * screenshot tests can render it directly. Production wraps this in a
- * `ModalBottomSheet` (see [SnoozeBottomSheet]) — `ModalBottomSheet`'s
- * show animation runs in a `LaunchedEffect` that doesn't fire under
- * `@Preview`, so the content needs to be previewable on its own.
+ * screenshot tests can render it directly.
  */
 @Composable
 fun SnoozeSheetContent(
