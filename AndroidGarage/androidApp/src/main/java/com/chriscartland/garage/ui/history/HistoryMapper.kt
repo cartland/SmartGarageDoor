@@ -97,6 +97,7 @@ object HistoryMapper {
         data class Opened(
             override val timeSeconds: Long,
             val transitDurationSeconds: Long?,
+            val misaligned: Boolean = false,
         ) : MergedRecord
 
         data class Closed(
@@ -158,7 +159,12 @@ object HistoryMapper {
                     }
                 }
                 DoorPosition.OPEN -> {
-                    val transitDuration = (pending as? PendingTransition.Opening)
+                    val carried = handleDirectionChange(
+                        pending = pending,
+                        result = result,
+                        newDirectionIsOpening = true,
+                    )
+                    val transitDuration = (carried as? PendingTransition.Opening)
                         ?.takeIf { it.tooLong }
                         ?.let { time - it.startTimeSeconds }
                     result += MergedRecord.Opened(time, transitDuration)
@@ -184,15 +190,51 @@ object HistoryMapper {
                     }
                 }
                 DoorPosition.CLOSED -> {
-                    val transitDuration = (pending as? PendingTransition.Closing)
+                    val carried = handleDirectionChange(
+                        pending = pending,
+                        result = result,
+                        newDirectionIsOpening = false,
+                    )
+                    val transitDuration = (carried as? PendingTransition.Closing)
                         ?.takeIf { it.tooLong }
                         ?.let { time - it.startTimeSeconds }
                     result += MergedRecord.Closed(time, transitDuration)
                     pending = null
                 }
                 DoorPosition.OPEN_MISALIGNED -> {
-                    result += MergedRecord.Anomaly(time, pos, "Open (misaligned)")
-                    pending = null
+                    // Misalignment is a property of an open state, not a
+                    // separate event. Three cases (in priority order):
+                    //   1. An Opening is pending → terminate as Opened with
+                    //      misaligned = true (the door reached its open
+                    //      destination but in a misaligned state).
+                    //   2. The most recent open-state context in `result` is
+                    //      an Opened (no Closed between) → set misaligned =
+                    //      true on it. Don't emit a new record.
+                    //   3. Otherwise (no recent open) → fall back to a
+                    //      standalone Anomaly so the data isn't lost.
+                    val pendingOpening = pending as? PendingTransition.Opening
+                    when {
+                        pendingOpening != null -> {
+                            val transitDuration = pendingOpening
+                                .takeIf { it.tooLong }
+                                ?.let { time - it.startTimeSeconds }
+                            result += MergedRecord.Opened(
+                                timeSeconds = time,
+                                transitDurationSeconds = transitDuration,
+                                misaligned = true,
+                            )
+                            pending = null
+                        }
+                        else -> {
+                            val mergeIndex = findOpenedToMergeMisalignment(result)
+                            if (mergeIndex != null) {
+                                val existing = result[mergeIndex] as MergedRecord.Opened
+                                result[mergeIndex] = existing.copy(misaligned = true)
+                            } else {
+                                result += MergedRecord.Anomaly(time, pos, "Open (misaligned)")
+                            }
+                        }
+                    }
                 }
                 DoorPosition.ERROR_SENSOR_CONFLICT -> {
                     result += MergedRecord.Anomaly(time, pos, "Sensor conflict")
@@ -217,6 +259,24 @@ object HistoryMapper {
         }
 
         return result
+    }
+
+    /**
+     * Find the index of the most recent [MergedRecord.Opened] in [result] that
+     * still represents the current open-state context — i.e. there is no
+     * intervening [MergedRecord.Closed]. Anomalies are skipped (they don't
+     * break the open-state context). Returns null when the most recent
+     * terminal is a Closed or there is no Opened at all.
+     */
+    private fun findOpenedToMergeMisalignment(result: List<MergedRecord>): Int? {
+        for (i in result.indices.reversed()) {
+            when (result[i]) {
+                is MergedRecord.Opened -> return i
+                is MergedRecord.Closed -> return null
+                is MergedRecord.Anomaly -> continue
+            }
+        }
+        return null
     }
 
     /**
@@ -269,6 +329,12 @@ object HistoryMapper {
     /**
      * For each terminal record, compute "how long this state lasted." Walks
      * in reverse so we can reach the next opposite-state event in O(n).
+     *
+     * An `Opened`'s span ends at the earlier of the next `Closed` or next
+     * `Opened` — adjacent same-state records (e.g. when an `OPEN_MISALIGNED`
+     * splits an open run into two `Opened` rows) carve out non-overlapping
+     * spans rather than each spanning to the same future `Closed`. Symmetric
+     * for `Closed`.
      */
     internal fun computeDurations(
         merged: List<MergedRecord>,
@@ -281,7 +347,7 @@ object HistoryMapper {
         for (record in merged.asReversed()) {
             when (record) {
                 is MergedRecord.Opened -> {
-                    val end = nextClosedTime
+                    val end = listOfNotNull(nextClosedTime, nextOpenedTime).minOrNull()
                     val duration = (end ?: now.epochSecond) - record.timeSeconds
                     reversed.add(
                         WithDuration(
@@ -293,7 +359,7 @@ object HistoryMapper {
                     nextOpenedTime = record.timeSeconds
                 }
                 is MergedRecord.Closed -> {
-                    val end = nextOpenedTime
+                    val end = listOfNotNull(nextOpenedTime, nextClosedTime).minOrNull()
                     val duration = (end ?: now.epochSecond) - record.timeSeconds
                     reversed.add(
                         WithDuration(
@@ -326,6 +392,7 @@ object HistoryMapper {
                 transitWarning = r.transitDurationSeconds?.let {
                     "Took ${formatTransitDuration(it)} to open — longer than expected"
                 },
+                misaligned = r.misaligned,
             )
             is MergedRecord.Closed -> HistoryEntry.Closed(
                 timeDisplay = formatTime(r.timeSeconds, zone),

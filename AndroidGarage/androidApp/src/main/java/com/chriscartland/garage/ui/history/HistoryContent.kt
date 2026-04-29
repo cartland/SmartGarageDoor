@@ -83,6 +83,7 @@ sealed interface HistoryEntry {
         val durationDisplay: String,
         val isCurrent: Boolean = false,
         val transitWarning: String? = null,
+        val misaligned: Boolean = false,
     ) : HistoryEntry
 
     /** The door was closed. Mirrors [Opened]. */
@@ -179,14 +180,27 @@ private fun HistoryDaySection(day: HistoryDay) {
 private fun HistoryEntryRow(entry: HistoryEntry) {
     when (entry) {
         is HistoryEntry.Opened -> HistoryStateRow(
-            doorPosition = DoorPosition.OPEN,
-            headline = if (entry.isCurrent) "Open" else "Opened at ${entry.timeDisplay}",
+            // When misaligned, render the OPEN_MISALIGNED door art so the
+            // misalignment is visible even on a row that's just an "Opened"
+            // event with the misalignment property set.
+            doorPosition = if (entry.misaligned) DoorPosition.OPEN_MISALIGNED else DoorPosition.OPEN,
+            headline = when {
+                entry.isCurrent && entry.misaligned -> "Open (misaligned)"
+                entry.isCurrent -> "Open"
+                else -> "Opened at ${entry.timeDisplay}"
+            },
             supporting = if (entry.isCurrent) {
                 "Since ${entry.timeDisplay} · ${entry.durationDisplay}"
             } else {
                 entry.durationDisplay
             },
-            transitWarning = entry.transitWarning,
+            warnings = listOfNotNull(
+                entry.transitWarning,
+                // For past Opened rows, surface misalignment as a tag below
+                // the duration. When isCurrent, the headline already says
+                // "Open (misaligned)" — no need for a duplicate tag.
+                if (entry.misaligned && !entry.isCurrent) "Door was misaligned" else null,
+            ),
         )
         is HistoryEntry.Closed -> HistoryStateRow(
             doorPosition = DoorPosition.CLOSED,
@@ -196,13 +210,13 @@ private fun HistoryEntryRow(entry: HistoryEntry) {
             } else {
                 entry.durationDisplay
             },
-            transitWarning = entry.transitWarning,
+            warnings = listOfNotNull(entry.transitWarning),
         )
         is HistoryEntry.Anomaly -> HistoryStateRow(
             doorPosition = entry.doorPosition,
             headline = entry.title,
             supporting = entry.timeDisplay,
-            transitWarning = null,
+            warnings = emptyList(),
         )
     }
 }
@@ -212,7 +226,7 @@ private fun HistoryStateRow(
     doorPosition: DoorPosition,
     headline: String,
     supporting: String,
-    transitWarning: String?,
+    warnings: List<String>,
 ) {
     val colorSet = LocalDoorStatusColorScheme.current.doorColorSet(isStale = false)
     val doorColor = when (DoorEvent(doorPosition = doorPosition).doorColorState()) {
@@ -233,7 +247,7 @@ private fun HistoryStateRow(
         supportingContent = {
             Column {
                 Text(supporting)
-                if (transitWarning != null) {
+                warnings.forEach { warning ->
                     Spacer(Modifier.height(2.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -244,7 +258,7 @@ private fun HistoryStateRow(
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            text = transitWarning,
+                            text = warning,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.tertiary,
                         )

@@ -221,15 +221,125 @@ class HistoryMapperTest {
     }
 
     @Test
-    fun merge_openMisaligned_emitsAnomalyAndClearsPending() {
+    fun merge_openMisalignedAfterPendingOpening_terminatesAsOpenedWithMisaligned() {
+        // OPEN_MISALIGNED with a pending Opening is treated as a terminal —
+        // the door reached its open destination but in a misaligned state.
         val out = HistoryMapper.mergeEvents(
             listOf(
                 event(DoorPosition.OPENING, 80),
                 event(DoorPosition.OPEN_MISALIGNED, 100),
             ),
         )
-        // Misalignment is itself an open-ish state — clears the OPENING pending
-        // and emits an anomaly. The OPENING is dropped (silent transit).
+        assertEquals(
+            listOf(
+                MergedRecord.Opened(timeSeconds = 100, transitDurationSeconds = null, misaligned = true),
+            ),
+            out,
+        )
+    }
+
+    @Test
+    fun merge_openMisalignedAfterPendingOpeningTooLong_carriesTransitWarning() {
+        // Same as the previous case but the opening was tooLong — preserve
+        // the transit duration so the row gets a "longer than expected" tag.
+        val out = HistoryMapper.mergeEvents(
+            listOf(
+                event(DoorPosition.OPENING_TOO_LONG, 80),
+                event(DoorPosition.OPEN_MISALIGNED, 100),
+            ),
+        )
+        assertEquals(
+            listOf(
+                MergedRecord.Opened(timeSeconds = 100, transitDurationSeconds = 20, misaligned = true),
+            ),
+            out,
+        )
+    }
+
+    @Test
+    fun merge_openMisalignedAfterOpened_mergesIntoPreviousOpened() {
+        // The user's rule: misalignment usually happens immediately after
+        // open and merges with the previous open.
+        val out = HistoryMapper.mergeEvents(
+            listOf(
+                event(DoorPosition.OPEN, 100),
+                event(DoorPosition.OPEN_MISALIGNED, 110),
+            ),
+        )
+        assertEquals(
+            listOf(
+                MergedRecord.Opened(timeSeconds = 100, transitDurationSeconds = null, misaligned = true),
+            ),
+            out,
+        )
+    }
+
+    @Test
+    fun merge_openMisalignedRepeatedAfterOpened_idempotent() {
+        // Multiple OPEN_MISALIGNED heartbeats after an Opened don't
+        // duplicate; the misaligned flag stays true.
+        val out = HistoryMapper.mergeEvents(
+            listOf(
+                event(DoorPosition.OPEN, 100),
+                event(DoorPosition.OPEN_MISALIGNED, 110),
+                event(DoorPosition.OPEN_MISALIGNED, 120),
+                event(DoorPosition.OPEN_MISALIGNED, 130),
+            ),
+        )
+        assertEquals(
+            listOf(
+                MergedRecord.Opened(timeSeconds = 100, transitDurationSeconds = null, misaligned = true),
+            ),
+            out,
+        )
+    }
+
+    @Test
+    fun merge_openMisalignedAcrossAnomaly_stillMergesIntoOpened() {
+        // Anomalies between an Opened and an OPEN_MISALIGNED don't break
+        // the merge — the misalignment still applies to the open state.
+        val out = HistoryMapper.mergeEvents(
+            listOf(
+                event(DoorPosition.OPEN, 100),
+                event(DoorPosition.ERROR_SENSOR_CONFLICT, 110),
+                event(DoorPosition.OPEN_MISALIGNED, 120),
+            ),
+        )
+        assertEquals(
+            listOf(
+                MergedRecord.Opened(timeSeconds = 100, transitDurationSeconds = null, misaligned = true),
+                MergedRecord.Anomaly(timeSeconds = 110, position = DoorPosition.ERROR_SENSOR_CONFLICT, title = "Sensor conflict"),
+            ),
+            out,
+        )
+    }
+
+    @Test
+    fun merge_openMisalignedAfterClosed_fallsBackToAnomaly() {
+        // Once the door has been Closed, an OPEN_MISALIGNED doesn't merge
+        // (no current open context) — emit a standalone Anomaly.
+        val out = HistoryMapper.mergeEvents(
+            listOf(
+                event(DoorPosition.OPEN, 100),
+                event(DoorPosition.CLOSED, 200),
+                event(DoorPosition.OPEN_MISALIGNED, 300),
+            ),
+        )
+        assertEquals(
+            listOf(
+                MergedRecord.Opened(timeSeconds = 100, transitDurationSeconds = null, misaligned = false),
+                MergedRecord.Closed(timeSeconds = 200, transitDurationSeconds = null),
+                MergedRecord.Anomaly(timeSeconds = 300, position = DoorPosition.OPEN_MISALIGNED, title = "Open (misaligned)"),
+            ),
+            out,
+        )
+    }
+
+    @Test
+    fun merge_openMisalignedFirstEvent_fallsBackToAnomaly() {
+        // No previous Opened, no pending Opening — fall back to Anomaly so
+        // the data isn't silently dropped.
+        val out = HistoryMapper.mergeEvents(listOf(event(DoorPosition.OPEN_MISALIGNED, 100)))
         assertEquals(
             listOf(
                 MergedRecord.Anomaly(timeSeconds = 100, position = DoorPosition.OPEN_MISALIGNED, title = "Open (misaligned)"),
@@ -261,7 +371,10 @@ class HistoryMapperTest {
     }
 
     @Test
-    fun merge_openMisalignedBetweenOpenAndOpen_threeRecords() {
+    fun merge_openMisalignedBetweenOpenAndOpen_misalignmentMergesIntoFirstOpened() {
+        // The first OPEN absorbs the OPEN_MISALIGNED via the merge rule. The
+        // second OPEN is a separate event (a new "open" reading after the
+        // misalignment cleared, semantically).
         val out = HistoryMapper.mergeEvents(
             listOf(
                 event(DoorPosition.OPEN, 100),
@@ -271,9 +384,8 @@ class HistoryMapperTest {
         )
         assertEquals(
             listOf(
-                MergedRecord.Opened(timeSeconds = 100, transitDurationSeconds = null),
-                MergedRecord.Anomaly(timeSeconds = 200, position = DoorPosition.OPEN_MISALIGNED, title = "Open (misaligned)"),
-                MergedRecord.Opened(timeSeconds = 300, transitDurationSeconds = null),
+                MergedRecord.Opened(timeSeconds = 100, transitDurationSeconds = null, misaligned = true),
+                MergedRecord.Opened(timeSeconds = 300, transitDurationSeconds = null, misaligned = false),
             ),
             out,
         )
@@ -294,6 +406,46 @@ class HistoryMapperTest {
             listOf(
                 MergedRecord.Anomaly(timeSeconds = 90, position = DoorPosition.ERROR_SENSOR_CONFLICT, title = "Sensor conflict"),
                 MergedRecord.Opened(timeSeconds = 100, transitDurationSeconds = 20),
+            ),
+            out,
+        )
+    }
+
+    @Test
+    fun merge_openingTooLongFollowedByOppositeClosed_flushesStuckOpening() {
+        // Symmetric to the OPENING_TOO_LONG → CLOSING → CLOSED case but
+        // with the OPEN arriving while a CLOSING_TOO_LONG is pending.
+        // The pending stuck-closing must flush as an anomaly when OPEN
+        // arrives (which is opposite direction).
+        val out = HistoryMapper.mergeEvents(
+            listOf(
+                event(DoorPosition.CLOSING_TOO_LONG, 80),
+                event(DoorPosition.OPEN, 100),
+            ),
+        )
+        assertEquals(
+            listOf(
+                MergedRecord.Anomaly(timeSeconds = 80, position = DoorPosition.CLOSING_TOO_LONG, title = "Stuck closing"),
+                MergedRecord.Opened(timeSeconds = 100, transitDurationSeconds = null),
+            ),
+            out,
+        )
+    }
+
+    @Test
+    fun merge_closingTooLongFollowedByOppositeOpened_flushesStuckClosing() {
+        // Equivalent to the previous test but flushed via CLOSED arriving
+        // with a pending OPENING_TOO_LONG.
+        val out = HistoryMapper.mergeEvents(
+            listOf(
+                event(DoorPosition.OPENING_TOO_LONG, 80),
+                event(DoorPosition.CLOSED, 100),
+            ),
+        )
+        assertEquals(
+            listOf(
+                MergedRecord.Anomaly(timeSeconds = 80, position = DoorPosition.OPENING_TOO_LONG, title = "Stuck opening"),
+                MergedRecord.Closed(timeSeconds = 100, transitDurationSeconds = null),
             ),
             out,
         )
@@ -385,6 +537,34 @@ class HistoryMapperTest {
         assertEquals(1, out.size)
         assertEquals(null, out[0].durationSeconds)
         assertEquals(false, out[0].isCurrent)
+    }
+
+    @Test
+    fun durations_consecutiveOpenedsBoundByEachOther() {
+        // Two adjacent Openeds (an OPEN_MISALIGNED merged into the first,
+        // then another OPEN) must not overlap durations.
+        val o1 = MergedRecord.Opened(timeSeconds = now.epochSecond - 3000, transitDurationSeconds = null, misaligned = true)
+        val o2 = MergedRecord.Opened(timeSeconds = now.epochSecond - 1800, transitDurationSeconds = null)
+        val c = MergedRecord.Closed(timeSeconds = now.epochSecond - 600, transitDurationSeconds = null)
+        val out = HistoryMapper.computeDurations(listOf(o1, o2, c), now)
+        // o1 ends at o2 → 1200s
+        assertEquals(1200L, out[0].durationSeconds)
+        // o2 ends at c → 1200s
+        assertEquals(1200L, out[1].durationSeconds)
+        // c is current → 600s and counting
+        assertTrue(out[2].isCurrent)
+    }
+
+    @Test
+    fun durations_consecutiveClosedsBoundByEachOther() {
+        // Symmetric for two adjacent Closeds.
+        val c1 = MergedRecord.Closed(timeSeconds = now.epochSecond - 3000, transitDurationSeconds = null)
+        val c2 = MergedRecord.Closed(timeSeconds = now.epochSecond - 1800, transitDurationSeconds = null)
+        val o = MergedRecord.Opened(timeSeconds = now.epochSecond - 600, transitDurationSeconds = null)
+        val out = HistoryMapper.computeDurations(listOf(c1, c2, o), now)
+        assertEquals(1200L, out[0].durationSeconds)
+        assertEquals(1200L, out[1].durationSeconds)
+        assertTrue(out[2].isCurrent)
     }
 
     @Test
@@ -603,7 +783,7 @@ class HistoryMapperTest {
     }
 
     @Test
-    fun e2e_misalignedAnomalyAppearsAsDistinctRow() {
+    fun e2e_misalignedMergesIntoPreviousOpenedRow() {
         val events = listOf(
             event(DoorPosition.OPEN, now.epochSecond - 3000),
             event(DoorPosition.OPEN_MISALIGNED, now.epochSecond - 2400),
@@ -611,11 +791,68 @@ class HistoryMapperTest {
             event(DoorPosition.CLOSED, now.epochSecond - 600),
         )
         val days = HistoryMapper.toHistoryDays(events, now, zone)
-        // Newest-first within day: closed, opened, anomaly, opened
-        assertEquals(4, days[0].entries.size)
-        val anomaly = days[0].entries[2] as HistoryEntry.Anomaly
+        // 3 entries (newest-first within day): Closed, Opened (no misaligned),
+        // Opened (misaligned merged from OPEN_MISALIGNED). The misalignment is
+        // a property of the older Opened — not a separate row.
+        assertEquals(3, days[0].entries.size)
+        val closed = days[0].entries[0] as HistoryEntry.Closed
+        val openedNew = days[0].entries[1] as HistoryEntry.Opened
+        val openedMisaligned = days[0].entries[2] as HistoryEntry.Opened
+        assertTrue(closed.isCurrent)
+        assertEquals(false, openedNew.misaligned)
+        assertTrue(openedMisaligned.misaligned)
+    }
+
+    @Test
+    fun e2e_misalignedAfterClosedFallsBackToAnomalyRow() {
+        // After a Closed, OPEN_MISALIGNED has no open context to merge with —
+        // it surfaces as a standalone Anomaly so the data is preserved.
+        val events = listOf(
+            event(DoorPosition.OPEN, now.epochSecond - 3000),
+            event(DoorPosition.CLOSED, now.epochSecond - 1800),
+            event(DoorPosition.OPEN_MISALIGNED, now.epochSecond - 600),
+        )
+        val days = HistoryMapper.toHistoryDays(events, now, zone)
+        // Newest-first: Anomaly, Closed, Opened.
+        val anomaly = days[0].entries[0] as HistoryEntry.Anomaly
         assertEquals("Open (misaligned)", anomaly.title)
         assertEquals(DoorPosition.OPEN_MISALIGNED, anomaly.doorPosition)
+    }
+
+    @Test
+    fun e2e_consecutiveOpenedsDoNotOverlapDurations() {
+        // Two Opened rows separated by an OPEN_MISALIGNED (which merges into
+        // the first) and a fresh OPEN. The first Opened's duration must end
+        // at the second Opened's time, not extend through it to the eventual
+        // Closed (otherwise the durations overlap).
+        val t1 = now.epochSecond - 3000
+        val t2 = now.epochSecond - 1800
+        val tClosed = now.epochSecond - 600
+        val events = listOf(
+            event(DoorPosition.OPEN, t1),
+            event(DoorPosition.OPEN_MISALIGNED, now.epochSecond - 2400),
+            event(DoorPosition.OPEN, t2),
+            event(DoorPosition.CLOSED, tClosed),
+        )
+        val days = HistoryMapper.toHistoryDays(events, now, zone)
+        val openedNew = days[0].entries[1] as HistoryEntry.Opened
+        val openedMisaligned = days[0].entries[2] as HistoryEntry.Opened
+        // openedMisaligned (older, t1): bounded by next Opened at t2 → 1200s = 20 min.
+        assertEquals("Open for 20 min", openedMisaligned.durationDisplay)
+        // openedNew (t2): bounded by Closed at tClosed → 1200s = 20 min.
+        assertEquals("Open for 20 min", openedNew.durationDisplay)
+    }
+
+    @Test
+    fun e2e_currentlyOpenAndMisaligned_headlineSaysOpenMisaligned() {
+        val events = listOf(
+            event(DoorPosition.OPEN, now.epochSecond - 600),
+            event(DoorPosition.OPEN_MISALIGNED, now.epochSecond - 300),
+        )
+        val days = HistoryMapper.toHistoryDays(events, now, zone)
+        val opened = days[0].entries.single() as HistoryEntry.Opened
+        assertTrue(opened.isCurrent)
+        assertTrue(opened.misaligned)
     }
 
     @Test
@@ -702,6 +939,9 @@ class HistoryMapperTest {
     fun e2e_currentlyClosedAfterMisaligned_misalignedAppearsAfterClosed() {
         // Yesterday: door opened (6:30 PM) and misaligned (10:30 PM).
         // Today: door closed (11:30 AM) — current.
+        // Post-merge expectation: misalignment merges INTO the previous Opened
+        // row, so yesterday has a single Opened row with `misaligned = true`,
+        // not a separate anomaly row.
         val yOpen = Instant.parse("2026-04-28T18:30:00Z").epochSecond
         val yMisaligned = Instant.parse("2026-04-28T22:30:00Z").epochSecond
         val tClosed = Instant.parse("2026-04-29T16:00:00Z").epochSecond
@@ -716,9 +956,7 @@ class HistoryMapperTest {
         val yesterday = days[1]
         val closed = today.entries.single() as HistoryEntry.Closed
         assertTrue(closed.isCurrent)
-        // Yesterday: misaligned (newer) then opened (older)
-        assertEquals(2, yesterday.entries.size)
-        assertTrue(yesterday.entries[0] is HistoryEntry.Anomaly)
-        assertTrue(yesterday.entries[1] is HistoryEntry.Opened)
+        val opened = yesterday.entries.single() as HistoryEntry.Opened
+        assertTrue(opened.misaligned)
     }
 }
