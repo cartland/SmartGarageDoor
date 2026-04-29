@@ -118,6 +118,8 @@ fun DoorHistoryContent(
         }
         HistoryContent(
             days = days,
+            isRefreshing = recentDoorEvents is LoadingResult.Loading,
+            onRefresh = onFetchRecentDoorEvents,
             modifier = Modifier.fillMaxWidth(),
         )
     }

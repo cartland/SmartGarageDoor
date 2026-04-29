@@ -32,6 +32,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -39,6 +40,7 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -124,27 +126,41 @@ data class HistoryDay(
  * Stateless: callers pass already-grouped, already-formatted [HistoryDay]
  * instances. The pairing/grouping pipeline (DoorEvent → HistoryDay) is
  * Phase 3 production work.
+ *
+ * @param isRefreshing drives the M3 pull-to-refresh spinner. Production
+ *   callers tie this to the `LoadingResult.Loading` flag of the underlying
+ *   events flow.
+ * @param onRefresh fires when the user completes a downward pull gesture.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryContent(
     days: List<HistoryDay>,
     modifier: Modifier = Modifier,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
 ) {
-    LazyColumn(
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (days.isEmpty()) {
-            item { HistoryEmptyState() }
-        } else {
-            days.forEach { day ->
-                item(key = day.label) {
-                    HistoryDaySection(day = day)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (days.isEmpty()) {
+                item { HistoryEmptyState() }
+            } else {
+                days.forEach { day ->
+                    item(key = day.label) {
+                        HistoryDaySection(day = day)
+                    }
                 }
             }
+            item { Spacer(modifier = Modifier.height(8.dp)) }
         }
-        item { Spacer(modifier = Modifier.height(8.dp)) }
     }
 }
 
