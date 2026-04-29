@@ -31,7 +31,10 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             api(libs.androidx.room.runtime)
             implementation(libs.sqlite.bundled)
-            implementation(libs.androidx.datastore.preferences.core)
+            // `api` (not `implementation`) because DataStoreFactory's public
+            // return type is `DataStore<Preferences>`. Consumers (the DI
+            // graph in androidApp) need access to this type.
+            api(libs.androidx.datastore.preferences.core)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

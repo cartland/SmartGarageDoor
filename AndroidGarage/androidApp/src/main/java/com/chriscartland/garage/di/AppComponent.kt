@@ -18,6 +18,8 @@
 package com.chriscartland.garage.di
 
 import android.app.Application
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import com.chriscartland.garage.AppStartup
 import com.chriscartland.garage.BuildConfig
 import com.chriscartland.garage.auth.FirebaseAuthBridge
@@ -43,7 +45,8 @@ import com.chriscartland.garage.data.repository.NetworkDoorRepository
 import com.chriscartland.garage.data.repository.NetworkRemoteButtonRepository
 import com.chriscartland.garage.data.repository.NetworkSnoozeRepository
 import com.chriscartland.garage.datalocal.AppDatabase
-import com.chriscartland.garage.datalocal.DataStoreSettingsFactory
+import com.chriscartland.garage.datalocal.DataStoreAppSettings
+import com.chriscartland.garage.datalocal.DataStoreFactory
 import com.chriscartland.garage.datalocal.DatabaseFactory
 import com.chriscartland.garage.datalocal.DatabaseLocalDoorDataSource
 import com.chriscartland.garage.datalocal.RoomAppLoggerRepository
@@ -337,7 +340,15 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
-    fun provideAppSettings(): AppSettingsRepository = DataStoreSettingsFactory.create(application)
+    fun provideDataStoreFactory(): DataStoreFactory = DataStoreFactory(application)
+
+    @Provides
+    @Singleton
+    fun providePreferencesDataStore(factory: DataStoreFactory): DataStore<Preferences> = factory.createPreferencesDataStore()
+
+    @Provides
+    @Singleton
+    fun provideAppSettings(dataStore: DataStore<Preferences>): AppSettingsRepository = DataStoreAppSettings(dataStore)
 
     @Provides
     @Singleton
