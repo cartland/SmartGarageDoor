@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
 import com.chriscartland.garage.ui.history.HistoryContentEmptyPreview
+import com.chriscartland.garage.ui.history.HistoryContentMultiDayClosedPreview
 import com.chriscartland.garage.ui.history.HistoryContentMultiDayPreview
 import com.chriscartland.garage.ui.theme.AppTheme
 
@@ -34,6 +35,18 @@ import com.chriscartland.garage.ui.theme.AppTheme
 @Composable
 fun HistoryContentMultiDayPreviewTest() {
     AppTheme { HistoryContentMultiDayPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HistoryContentMultiDayClosedPreviewTest() {
+    AppTheme { HistoryContentMultiDayClosedPreview() }
 }
 
 @PreviewTest

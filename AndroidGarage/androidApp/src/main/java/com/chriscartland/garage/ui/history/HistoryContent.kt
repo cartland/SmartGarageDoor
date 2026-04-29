@@ -287,78 +287,103 @@ private fun HistoryEmptyState() {
 }
 
 // ---------- Preview helpers ----------
+//
+// Both flagship previews build raw DoorEvents and pipe them through
+// HistoryMapper, so the screenshot reflects real mapper output (and the
+// design implicitly tests the merge / format / grouping logic end-to-end
+// via the eye). HistoryMapperTest covers the same paths for correctness.
 
+private object HistoryPreviewData {
+    val zone: java.time.ZoneId = java.time.ZoneOffset.UTC
+
+    fun event(
+        position: DoorPosition,
+        isoTime: String,
+    ): DoorEvent =
+        DoorEvent(
+            doorPosition = position,
+            lastChangeTimeSeconds = java.time.Instant
+                .parse(isoTime)
+                .epochSecond,
+        )
+}
+
+/**
+ * Flagship #1 — covers: currently-open, past Opened/Closed pairs,
+ * `_TOO_LONG` warning tag on an Opened row, sensor-conflict anomaly,
+ * `_TOO_LONG` no-resolution stuck-opening anomaly, multi-day grouping.
+ */
 @Preview
 @Composable
 fun HistoryContentMultiDayPreview() {
-    HistoryContent(
-        days = listOf(
-            HistoryDay(
-                label = "Today",
-                entries = listOf(
-                    HistoryEntry.Opened(
-                        timeDisplay = "10:15 AM",
-                        durationDisplay = "12 min and counting",
-                        isCurrent = true,
-                    ),
-                    HistoryEntry.Closed(
-                        timeDisplay = "9:53 AM",
-                        durationDisplay = "Closed for 22 min",
-                    ),
-                    HistoryEntry.Opened(
-                        timeDisplay = "9:47 AM",
-                        durationDisplay = "Open for 6 min",
-                        transitWarning = "Took 4 min to open — longer than expected",
-                    ),
-                ),
-            ),
-            HistoryDay(
-                label = "Yesterday",
-                entries = listOf(
-                    HistoryEntry.Anomaly(
-                        doorPosition = DoorPosition.ERROR_SENSOR_CONFLICT,
-                        title = "Sensor conflict",
-                        timeDisplay = "11:42 PM",
-                    ),
-                    HistoryEntry.Closed(
-                        timeDisplay = "8:30 PM",
-                        durationDisplay = "Closed for 13 hr 17 min",
-                    ),
-                    HistoryEntry.Opened(
-                        timeDisplay = "6:30 PM",
-                        durationDisplay = "Open for 2 hr",
-                    ),
-                    HistoryEntry.Closed(
-                        timeDisplay = "8:05 AM",
-                        durationDisplay = "Closed for 10 hr 25 min",
-                    ),
-                    HistoryEntry.Opened(
-                        timeDisplay = "8:00 AM",
-                        durationDisplay = "Open for 5 min",
-                    ),
-                ),
-            ),
-            HistoryDay(
-                label = "Mon, Apr 27",
-                entries = listOf(
-                    HistoryEntry.Anomaly(
-                        doorPosition = DoorPosition.OPENING_TOO_LONG,
-                        title = "Stuck opening",
-                        timeDisplay = "5:30 PM",
-                    ),
-                    HistoryEntry.Closed(
-                        timeDisplay = "7:18 AM",
-                        durationDisplay = "Closed for 10 hr 12 min",
-                        transitWarning = "Took 3 min to close — longer than expected",
-                    ),
-                    HistoryEntry.Opened(
-                        timeDisplay = "7:15 AM",
-                        durationDisplay = "Open for 3 min",
-                    ),
-                ),
-            ),
-        ),
+    val events = listOf(
+        // Today — currently open since 10:15 (mapper computes "12 min and counting" against 10:27).
+        HistoryPreviewData.event(DoorPosition.OPENING_TOO_LONG, "2026-04-29T09:43:00Z"),
+        HistoryPreviewData.event(DoorPosition.OPEN, "2026-04-29T09:47:00Z"),
+        HistoryPreviewData.event(DoorPosition.CLOSING, "2026-04-29T09:53:00Z"),
+        HistoryPreviewData.event(DoorPosition.CLOSED, "2026-04-29T09:53:06Z"),
+        HistoryPreviewData.event(DoorPosition.OPENING, "2026-04-29T10:15:00Z"),
+        HistoryPreviewData.event(DoorPosition.OPEN, "2026-04-29T10:15:08Z"),
+        // Yesterday — sensor conflict anomaly + open/close pairs.
+        HistoryPreviewData.event(DoorPosition.OPENING, "2026-04-28T08:00:00Z"),
+        HistoryPreviewData.event(DoorPosition.OPEN, "2026-04-28T08:00:08Z"),
+        HistoryPreviewData.event(DoorPosition.CLOSING, "2026-04-28T08:05:00Z"),
+        HistoryPreviewData.event(DoorPosition.CLOSED, "2026-04-28T08:05:06Z"),
+        HistoryPreviewData.event(DoorPosition.OPENING, "2026-04-28T18:30:00Z"),
+        HistoryPreviewData.event(DoorPosition.OPEN, "2026-04-28T18:30:08Z"),
+        HistoryPreviewData.event(DoorPosition.CLOSING, "2026-04-28T20:30:00Z"),
+        HistoryPreviewData.event(DoorPosition.CLOSED, "2026-04-28T20:30:06Z"),
+        HistoryPreviewData.event(DoorPosition.ERROR_SENSOR_CONFLICT, "2026-04-28T23:42:00Z"),
+        // Mon Apr 27 — stuck-opening that the user gave up on (closed manually).
+        // The CLOSING + CLOSED that follow are what flush the OPENING_TOO_LONG
+        // as a "Stuck opening" anomaly via opposite-direction interruption.
+        HistoryPreviewData.event(DoorPosition.OPENING, "2026-04-27T07:15:00Z"),
+        HistoryPreviewData.event(DoorPosition.OPEN, "2026-04-27T07:15:08Z"),
+        HistoryPreviewData.event(DoorPosition.CLOSING, "2026-04-27T07:18:00Z"),
+        HistoryPreviewData.event(DoorPosition.CLOSED, "2026-04-27T07:18:06Z"),
+        HistoryPreviewData.event(DoorPosition.OPENING_TOO_LONG, "2026-04-27T17:30:00Z"),
+        HistoryPreviewData.event(DoorPosition.CLOSING, "2026-04-27T17:35:00Z"),
+        HistoryPreviewData.event(DoorPosition.CLOSED, "2026-04-27T17:35:06Z"),
     )
+    val days = HistoryMapper.toHistoryDays(
+        events = events,
+        now = java.time.Instant.parse("2026-04-29T10:27:00Z"),
+        zone = HistoryPreviewData.zone,
+    )
+    HistoryContent(days = days)
+}
+
+/**
+ * Flagship #2 — covers the unique UI not in flagship #1: currently-closed,
+ * misaligned anomaly, unknown-state anomaly, stuck-closing anomaly,
+ * `_TOO_LONG` warning tag on a Closed row.
+ */
+@Preview
+@Composable
+fun HistoryContentMultiDayClosedPreview() {
+    val events = listOf(
+        // Today — currently closed at 11:30 (mapper computes "47 min and counting" against 12:17).
+        HistoryPreviewData.event(DoorPosition.OPENING, "2026-04-29T11:20:00Z"),
+        HistoryPreviewData.event(DoorPosition.OPEN, "2026-04-29T11:20:08Z"),
+        HistoryPreviewData.event(DoorPosition.CLOSING_TOO_LONG, "2026-04-29T11:27:00Z"),
+        HistoryPreviewData.event(DoorPosition.CLOSED, "2026-04-29T11:30:00Z"),
+        // Yesterday — open then misaligned anomaly while open, eventually closed.
+        HistoryPreviewData.event(DoorPosition.OPENING, "2026-04-28T18:30:00Z"),
+        HistoryPreviewData.event(DoorPosition.OPEN, "2026-04-28T18:30:08Z"),
+        HistoryPreviewData.event(DoorPosition.OPEN_MISALIGNED, "2026-04-28T22:30:00Z"),
+        HistoryPreviewData.event(DoorPosition.OPEN, "2026-04-28T22:35:00Z"),
+        HistoryPreviewData.event(DoorPosition.CLOSING, "2026-04-28T23:00:00Z"),
+        HistoryPreviewData.event(DoorPosition.CLOSED, "2026-04-28T23:00:06Z"),
+        // Mon Apr 27 — unknown-state anomaly + stuck-closing.
+        HistoryPreviewData.event(DoorPosition.UNKNOWN, "2026-04-27T11:00:00Z"),
+        HistoryPreviewData.event(DoorPosition.CLOSING_TOO_LONG, "2026-04-27T16:00:00Z"),
+    )
+    val days = HistoryMapper.toHistoryDays(
+        events = events,
+        now = java.time.Instant.parse("2026-04-29T12:17:00Z"),
+        zone = HistoryPreviewData.zone,
+    )
+    HistoryContent(days = days)
 }
 
 @Preview
