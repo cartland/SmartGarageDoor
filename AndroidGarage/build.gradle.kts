@@ -172,6 +172,18 @@ tasks.register<architecture.SingletonCachingCheckTask>("checkSingletonCaching") 
     dependsOn(":androidApp:kspDebugKotlin")
 }
 
+tasks.register<architecture.DataStoreSingletonCheckTask>("checkDataStoreSingleton") {
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+    )
+    // Names match the providers in androidApp/.../di/AppComponent.kt that
+    // hold the only DataStore<Preferences> and Room AppDatabase instances.
+    guardedMethods = listOf(
+        "provideAppSettings",
+        "provideAppDatabase",
+    )
+}
+
 tasks.register<architecture.NoRawDispatchersTask>("checkNoRawDispatchers") {
     sourceDirs = listOf(
         "$rootDir/androidApp/src/main/java",
