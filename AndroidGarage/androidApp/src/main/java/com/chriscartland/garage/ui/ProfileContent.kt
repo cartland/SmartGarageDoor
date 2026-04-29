@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.ui
 
+import android.content.Intent
 import androidx.activity.compose.ReportDrawn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.di.rememberAppComponent
@@ -84,7 +86,8 @@ fun ProfileContent(
     val snoozeState by buttonViewModel.snoozeState.collectAsState()
     val functionListAccess by settingsViewModel.functionListAccess.collectAsState()
     val appConfig = component.appConfig
-    val appVersion = LocalContext.current.AppVersion()
+    val context = LocalContext.current
+    val appVersion = context.AppVersion()
 
     // Surface-level state: which sheet/dialog is currently open. Local to
     // the screen — not persisted across process death (recreating the
@@ -129,8 +132,13 @@ fun ProfileContent(
         onSnoozeTap = { snoozeSheetOpen = true },
         onFunctionListTap = onNavigateToFunctionList,
         onVersionTap = { versionDialogOpen = true },
-        onPlayStoreTap = { /* TODO Phase 3 wiring: launch Play Store intent */ },
-        onPrivacyPolicyTap = { /* TODO Phase 3 wiring: launch privacy policy intent */ },
+        onPlayStoreTap = {
+            val url = "https://play.google.com/store/apps/details?id=${appVersion.packageName}"
+            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+        },
+        onPrivacyPolicyTap = {
+            context.startActivity(Intent(Intent.ACTION_VIEW, PRIVACY_POLICY_URL.toUri()))
+        },
         onDiagnosticsTap = onNavigateToDiagnostics,
     )
 
@@ -170,6 +178,8 @@ fun ProfileContent(
 
     ReportDrawn()
 }
+
+private const val PRIVACY_POLICY_URL = "https://chriscart.land/garage-privacy-policy"
 
 private object ProfileContentHelpers {
     private val snoozeTimeFormatter = DateTimeFormatter.ofPattern("h:mm a")

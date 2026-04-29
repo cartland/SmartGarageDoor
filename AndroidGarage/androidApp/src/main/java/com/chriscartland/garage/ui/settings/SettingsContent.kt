@@ -214,7 +214,13 @@ private fun SettingsSection(
     label: String,
     content: @Composable () -> Unit,
 ) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+    // No horizontal padding here — the parent screen already provides
+    // 16dp via Main.kt's nav-entry wrapper, which is the Material 3 phone
+    // default and matches the TopAppBar title's left edge. The section
+    // label inset (start = 16dp below) keeps it visually aligned with
+    // the ListItem content text inside the Surface — Material settings
+    // convention.
+    Column {
         Text(
             text = label.uppercase(),
             style = MaterialTheme.typography.labelMedium,
