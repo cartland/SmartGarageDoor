@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Wed Apr 29 06:34:50 PDT 2026
+Generated on Wed Apr 29 07:00:41 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -240,12 +240,6 @@ Generated on Wed Apr 29 06:34:50 PDT 2026
 
 ## HistoryRedesignScreenshotTestKt
 
-### HistoryAnomalyRowPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryAnomalyRowPreviewTest_Dark_77106447_0.png" width="300" />
-
-### HistoryAnomalyRowPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryAnomalyRowPreviewTest_Light_fc5b723e_0.png" width="300" />
-
 ### HistoryContentEmptyPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentEmptyPreviewTest_Dark_77106447_0.png" width="300" />
 
@@ -257,18 +251,6 @@ Generated on Wed Apr 29 06:34:50 PDT 2026
 
 ### HistoryContentMultiDayPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### HistorySessionRowPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistorySessionRowPreviewTest_Dark_77106447_0.png" width="300" />
-
-### HistorySessionRowPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistorySessionRowPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### HistoryStillOpenRowPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryStillOpenRowPreviewTest_Dark_77106447_0.png" width="300" />
-
-### HistoryStillOpenRowPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryStillOpenRowPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ## ScreensScreenshotTestKt
 
