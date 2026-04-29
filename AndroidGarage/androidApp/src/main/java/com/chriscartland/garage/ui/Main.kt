@@ -195,6 +195,12 @@ fun AppNavigation(
                 rememberViewModelStoreNavEntryDecorator<Screen>(),
             ),
             modifier = Modifier.padding(innerPadding),
+            // Screen-padding convention: every nav entry gets
+            // `padding(horizontal = 16.dp)` applied here. This is the
+            // SINGLE source of horizontal screen padding — child
+            // Composables must NOT re-apply it. PR #589 doubled the
+            // Settings card to 32dp by adding a second 16dp wrapper
+            // inside the screen's content; #593 was the fix.
             entryProvider = entryProvider {
                 entry<Screen.Home> {
                     HomeContent(
