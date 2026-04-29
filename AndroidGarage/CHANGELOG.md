@@ -15,6 +15,14 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.8.0
+- **History tab redesigned** to a Material 3 sectioned list grouped by day. Each row uses the GarageIcon door art for its leading visual and shows the duration of *that* state ("Open for 6 min" / "Closed for 22 min" / "Since 10:15 AM · 12 min and counting" for the most recent). Anomalies (sensor conflict, stuck opening/closing, unknown state) are surfaced inline with their own door-art variant.
+- **Misalignments merge into the previous Open** instead of cluttering the list as a separate row — `OPEN_MISALIGNED` sets a flag on the Opened it follows and shows a "Door was misaligned" tag below the duration.
+- **`_TOO_LONG` transitions** that resolve into a terminal carry an inline warning chip ("Took 4 min to open — longer than expected"). Transitions that never resolve still surface as "Stuck opening" / "Stuck closing" anomalies.
+- **Pull-to-refresh** on the History tab via Material 3 `PullToRefreshBox`. Replaces the previous tap-on-a-card-to-refresh affordance, which was hidden on individual rows; the M3 spinner shows progress while the fetch is in flight.
+- Direction B + C from the 3-phase rewrite plan; PRs #598 (Phase 2 + 3 — sectioned list, mapper, screenshots, production wiring) and #599 (pull-to-refresh).
+- **`HistoryMapper`** added: pure-function pipeline (raw `DoorEvent`s → `HistoryDay` display data) with 93 unit tests covering merge rules, dedup, duration computation, and formatting in isolation. The Composable takes pre-formatted strings — no logic.
+
 ## 2.7.1
 - Fixed two regressions from the 2.7.0 Settings redesign: the Play Store and Privacy Policy rows in the About section are functional again (they were placeholder no-ops in 2.7.0), and the Settings card now sits at the standard 16dp from the screen edge (was inadvertently doubled to 32dp by overlapping padding wrappers, making the card visibly narrower than the rest of the app's chrome).
 
