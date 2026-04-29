@@ -15,6 +15,9 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.7.1
+- Fixed two regressions from the 2.7.0 Settings redesign: the Play Store and Privacy Policy rows in the About section are functional again (they were placeholder no-ops in 2.7.0), and the Settings card now sits at the standard 16dp from the screen edge (was inadvertently doubled to 32dp by overlapping padding wrappers, making the card visibly narrower than the rest of the app's chrome).
+
 ## 2.7.0
 - **Settings tab redesigned** to a Material 3 sectioned list. Same capabilities as 2.6.x, reorganized into four sections (Account / Notifications / Tools / About) of one-tap rows in place of the previous stacked expandable cards. Direction A from the 3-phase rewrite plan; PRs #588 (screenshots) + #589 (production wiring).
 - **Snooze** now opens in a half-sheet picker (radio list + Cancel/Save) instead of an inline expandable card.
