@@ -38,6 +38,9 @@ import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.presentation.demoDoorEvents
+import com.chriscartland.garage.ui.settings.AccountRowState
+import com.chriscartland.garage.ui.settings.SettingsContent
+import com.chriscartland.garage.ui.settings.SnoozeRowState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.PermissionStatus
@@ -188,8 +191,22 @@ fun FunctionListScreenDeniedPreview() {
     }
 }
 
-// SettingsTabPreview removed in the Settings redesign — the new
-// SettingsContent has its own dedicated screenshot tests in
-// SettingsRedesignScreenshotTest.kt covering signed-out, signed-in,
-// and signed-in-allowlisted variants. A tab-scaffold-wrapped variant
-// would just re-test the same surfaces.
+@Preview(showBackground = true)
+@Composable
+fun SettingsTabPreview() {
+    TabPreviewScaffold(selectedScreen = Screen.Profile) { modifier ->
+        SettingsContent(
+            modifier = modifier,
+            accountState = AccountRowState.SignedIn(
+                displayName = "Chris Cartland",
+                email = "chris@example.com",
+            ),
+            snoozeState = SnoozeRowState.SnoozingUntil("5:30 PM"),
+            showSnoozeRow = true,
+            showToolsSection = true,
+            showDiagnosticsRow = true,
+            versionName = "2.7.1",
+            versionCode = "184",
+        )
+    }
+}

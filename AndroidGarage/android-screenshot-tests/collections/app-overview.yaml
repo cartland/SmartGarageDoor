@@ -11,7 +11,7 @@ screenshots:
     description: "History tab — recent events"
   - test_class: ScreensScreenshotTestKt
     test: SettingsTabPreviewTest_Light
-    description: "Settings tab — user profile + snooze"
+    description: "Settings tab — sectioned list (account, snooze, tools, about)"
   # Button states
   - test_class: ComponentsScreenshotTestKt
     test: RemoteButtonContentPreviewTest_Light
@@ -33,12 +33,12 @@ screenshots:
     test: DoorStatusCardPreviewTest_Light
     description: "Door status card"
   # Settings components
-  - test_class: ComponentsScreenshotTestKt
-    test: UserInfoCardPreviewTest_Light
-    description: "User info card"
-  - test_class: ComponentsScreenshotTestKt
-    test: SnoozeNotificationCardPreviewTest_Light
-    description: "Snooze notifications"
+  - test_class: SettingsRedesignScreenshotTestKt
+    test: AccountSheetContentSignedInPreviewTest_Light
+    description: "Account half-sheet — signed in"
+  - test_class: SettingsRedesignScreenshotTestKt
+    test: SnoozeSheetContentActivePreviewTest_Light
+    description: "Snooze half-sheet — active"
   # Door icons
   - test_class: GarageDoorScreenshotTestKt
     test: GarageDoorClosedPreviewTest_Light
