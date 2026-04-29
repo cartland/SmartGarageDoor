@@ -15,6 +15,15 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.7.0
+- **Settings tab redesigned** to a Material 3 sectioned list. Same capabilities as 2.6.x, reorganized into four sections (Account / Notifications / Tools / About) of one-tap rows in place of the previous stacked expandable cards. Direction A from the 3-phase rewrite plan; PRs #588 (screenshots) + #589 (production wiring).
+- **Snooze** now opens in a half-sheet picker (radio list + Cancel/Save) instead of an inline expandable card.
+- **Account row** taps open a half-sheet with avatar, name, email, and Sign Out (signed-in) or fires Google Sign-In directly (signed-out).
+- **Diagnostics** moved from an expandable card on Settings to a dedicated sub-screen with back navigation, the 8 telemetry counters, and a CSV export button.
+- **Version row** taps a Material `AlertDialog` showing version / build / package / built timestamp.
+- **Function List** entry button is now a row in the new "Tools" section, gated by the same allowlist as before.
+- Retired the legacy expandable-card components (`SnoozeNotificationCard`, `UserInfoCard`, `AndroidAppInfoCard`, `LogSummaryCard`, `ExpandableColumnCard`) along with their unit + instrumented tests.
+
 ## 2.6.1
 - The "Function list" entry button on the Settings tab is now hidden for users not on the server-maintained allowlist. Allowlisted users see no change. Previously the button appeared for everyone and only the destination screen denied access; the button now disappears at the source for cleaner UX.
 
