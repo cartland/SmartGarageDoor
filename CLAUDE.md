@@ -337,6 +337,8 @@ When PRs must merge in order (e.g., PR B depends on PR A's code):
 
 4. **PR diff shows parent commits temporarily** — after the parent squash-merges, GitHub auto-updates the stacked PR to show only its own changes.
 
+5. **Run `spotlessApply` (and any other formatter / linter auto-fix) on BOTH branches before pushing.** When iterating on the child PR — e.g., during a compile-fix cycle — formatting fixes naturally land only on the child's branch. If the child squash-merges first, its diff carries the corrected formatting into main, but the parent PR is left with stale, pre-fix code that fails CI's spotlessCheck. The parent's `mergeStateStatus` flips to `DIRTY` and it's dead-ended. Recovery is to close the parent as obsolete (its content already shipped via the child), but the cleaner pattern is to run `./gradlew :androidApp:spotlessApply` on the parent branch before opening the stack — same for any other check that auto-fixes (`./scripts/firebase-npm.sh run lint --fix` if the stack touches Firebase). PR #588 hit this on 2026-04-28; #589 (the child) merged with the spotless-fixed code, leaving #588 orphaned.
+
 **Watch for PR starvation:** When many PRs queue up, the last one keeps getting pushed back as others merge ahead of it. Each merge makes it stale, requiring another CI run. If a PR has been open for a long time, prioritize merging it before creating new ones.
 
 **Auto-merge rule:** Before modifying a PR in any way (pushing commits, amending, force-pushing), you MUST first check if auto-merge is enabled and disable it:
