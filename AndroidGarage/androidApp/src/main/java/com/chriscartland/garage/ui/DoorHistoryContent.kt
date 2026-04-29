@@ -18,21 +18,18 @@
 package com.chriscartland.garage.ui
 
 import androidx.activity.compose.ReportDrawnWhen
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -42,8 +39,13 @@ import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.presentation.demoDoorEvents
+import com.chriscartland.garage.ui.history.HistoryContent
+import com.chriscartland.garage.ui.history.HistoryMapper
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.DoorViewModel
+import kotlinx.coroutines.delay
+import java.time.Instant
+import java.time.ZoneId
 
 @Composable
 fun DoorHistoryContent(
@@ -59,6 +61,8 @@ fun DoorHistoryContent(
     DoorHistoryContent(
         recentDoorEvents = recentDoorEvents,
         isCheckInStale = isCheckInStale,
+        now = rememberLiveNow(),
+        zone = ZoneId.systemDefault(),
         modifier = modifier,
         onFetchRecentDoorEvents = {
             resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_FETCH_RECENT_DOOR)
@@ -72,60 +76,72 @@ fun DoorHistoryContent(
 
 @Composable
 fun DoorHistoryContent(
-    modifier: Modifier = Modifier,
     recentDoorEvents: LoadingResult<List<DoorEvent>?>,
+    now: Instant,
+    zone: ZoneId,
+    modifier: Modifier = Modifier,
     isCheckInStale: Boolean = false,
     onFetchRecentDoorEvents: () -> Unit = {},
     onResetFcm: () -> Unit = {},
 ) {
-    LazyColumn(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+    val days = remember(recentDoorEvents.data, now, zone) {
+        HistoryMapper.toHistoryDays(
+            events = recentDoorEvents.data ?: emptyList(),
+            now = now,
+            zone = zone,
+        )
+    }
+
+    Column(modifier = modifier.fillMaxSize()) {
         if (isCheckInStale) {
-            item {
-                OldLastCheckInBanner(
-                    modifier = Modifier.fillMaxWidth(),
-                    action = {
-                        Logger.e { "Trying to fix outdated info. Resetting FCM, and fetching data." }
-                        onResetFcm()
-                        onFetchRecentDoorEvents()
-                    },
-                )
-            }
-        }
-        // If the recent events are loading, show a loading indicator.
-        if (recentDoorEvents is LoadingResult.Loading) {
-            item {
-                Text(text = "Loading...")
-            }
-        }
-        // If the recent events had an error, show an error card.
-        if (recentDoorEvents is LoadingResult.Error) {
-            item {
-                ErrorCard(
-                    text = "Error fetching recent door events:" +
-                        recentDoorEvents.exception.toString().take(500),
-                    buttonText = "Retry",
-                    onClick = { onFetchRecentDoorEvents() },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-        // Show the recent door events.
-        items(recentDoorEvents.data ?: emptyList()) { item ->
-            RecentDoorEventListItem(
-                doorEvent = item,
+            OldLastCheckInBanner(
                 modifier = Modifier
-                    .clickable { onFetchRecentDoorEvents() }, // Fetch on click.
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                action = {
+                    Logger.e { "Trying to fix outdated info. Resetting FCM, and fetching data." }
+                    onResetFcm()
+                    onFetchRecentDoorEvents()
+                },
             )
         }
-        item {
-            Spacer(modifier = Modifier.height(8.dp))
+        if (recentDoorEvents is LoadingResult.Error) {
+            ErrorCard(
+                text = "Error fetching recent door events:" +
+                    recentDoorEvents.exception.toString().take(500),
+                buttonText = "Retry",
+                onClick = { onFetchRecentDoorEvents() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+            )
         }
+        HistoryContent(
+            days = days,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
     ReportDrawnWhen { recentDoorEvents is LoadingResult.Complete }
+}
+
+/**
+ * Returns an [Instant] that updates every 30 seconds (so the most-recent
+ * row's "X and counting" duration stays live without spamming
+ * recomposition). Returns a fixed timestamp under [LocalInspectionMode] so
+ * screenshot tests and IDE previews stay deterministic.
+ */
+@Composable
+private fun rememberLiveNow(): Instant {
+    if (LocalInspectionMode.current) {
+        return remember { Instant.parse("2026-04-29T10:27:00Z") }
+    }
+    val state = produceState(initialValue = Instant.now()) {
+        while (true) {
+            delay(30_000L)
+            value = Instant.now()
+        }
+    }
+    return state.value
 }
 
 @PreviewScreenSizes
@@ -134,6 +150,8 @@ fun DoorHistoryContentPreview() {
     Surface(modifier = Modifier.fillMaxSize()) {
         DoorHistoryContent(
             recentDoorEvents = LoadingResult.Complete(demoDoorEvents),
+            now = Instant.parse("2026-04-29T10:27:00Z"),
+            zone = ZoneId.of("UTC"),
         )
     }
 }

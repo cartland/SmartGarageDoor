@@ -131,134 +131,132 @@ object HistoryMapper {
      * Walk events oldest → newest, applying merge rules. See class doc.
      */
     internal fun mergeEvents(chronological: List<DoorEvent>): List<MergedRecord> {
+        val state = MergeState()
+        chronological
+            .filter { it.doorPosition != null && it.lastChangeTimeSeconds != null }
+            .forEach { state.processEvent(it.doorPosition!!, it.lastChangeTimeSeconds!!) }
+        state.flushPending()
+        return state.result
+    }
+
+    /**
+     * Mutable state holder that the per-position handlers operate on. Pulling
+     * the loop body out of [mergeEvents] keeps each handler shallow and lets
+     * detekt see them as standalone functions instead of branches deep inside
+     * a `for` over a giant `when`.
+     */
+    private class MergeState {
         val result = mutableListOf<MergedRecord>()
         var pending: PendingTransition? = null
 
-        for (event in chronological) {
-            val time = event.lastChangeTimeSeconds ?: continue
-            val pos = event.doorPosition ?: continue
-
+        fun processEvent(
+            pos: DoorPosition,
+            time: Long,
+        ) {
             when (pos) {
-                DoorPosition.OPENING -> {
-                    pending = handleDirectionChange(
-                        pending = pending,
-                        result = result,
-                        newDirectionIsOpening = true,
-                    ) ?: PendingTransition.Opening(time, tooLong = false)
-                }
-                DoorPosition.OPENING_TOO_LONG -> {
-                    val carried = handleDirectionChange(
-                        pending = pending,
-                        result = result,
-                        newDirectionIsOpening = true,
-                    )
-                    pending = when (carried) {
-                        is PendingTransition.Opening -> carried.copy(tooLong = true)
-                        is PendingTransition.Closing -> PendingTransition.Opening(time, tooLong = true)
-                        null -> PendingTransition.Opening(time, tooLong = true)
-                    }
-                }
-                DoorPosition.OPEN -> {
-                    val carried = handleDirectionChange(
-                        pending = pending,
-                        result = result,
-                        newDirectionIsOpening = true,
-                    )
-                    val transitDuration = (carried as? PendingTransition.Opening)
-                        ?.takeIf { it.tooLong }
-                        ?.let { time - it.startTimeSeconds }
-                    result += MergedRecord.Opened(time, transitDuration)
-                    pending = null
-                }
-                DoorPosition.CLOSING -> {
-                    pending = handleDirectionChange(
-                        pending = pending,
-                        result = result,
-                        newDirectionIsOpening = false,
-                    ) ?: PendingTransition.Closing(time, tooLong = false)
-                }
-                DoorPosition.CLOSING_TOO_LONG -> {
-                    val carried = handleDirectionChange(
-                        pending = pending,
-                        result = result,
-                        newDirectionIsOpening = false,
-                    )
-                    pending = when (carried) {
-                        is PendingTransition.Closing -> carried.copy(tooLong = true)
-                        is PendingTransition.Opening -> PendingTransition.Closing(time, tooLong = true)
-                        null -> PendingTransition.Closing(time, tooLong = true)
-                    }
-                }
-                DoorPosition.CLOSED -> {
-                    val carried = handleDirectionChange(
-                        pending = pending,
-                        result = result,
-                        newDirectionIsOpening = false,
-                    )
-                    val transitDuration = (carried as? PendingTransition.Closing)
-                        ?.takeIf { it.tooLong }
-                        ?.let { time - it.startTimeSeconds }
-                    result += MergedRecord.Closed(time, transitDuration)
-                    pending = null
-                }
-                DoorPosition.OPEN_MISALIGNED -> {
-                    // Misalignment is a property of an open state, not a
-                    // separate event. Three cases (in priority order):
-                    //   1. An Opening is pending → terminate as Opened with
-                    //      misaligned = true (the door reached its open
-                    //      destination but in a misaligned state).
-                    //   2. The most recent open-state context in `result` is
-                    //      an Opened (no Closed between) → set misaligned =
-                    //      true on it. Don't emit a new record.
-                    //   3. Otherwise (no recent open) → fall back to a
-                    //      standalone Anomaly so the data isn't lost.
-                    val pendingOpening = pending as? PendingTransition.Opening
-                    when {
-                        pendingOpening != null -> {
-                            val transitDuration = pendingOpening
-                                .takeIf { it.tooLong }
-                                ?.let { time - it.startTimeSeconds }
-                            result += MergedRecord.Opened(
-                                timeSeconds = time,
-                                transitDurationSeconds = transitDuration,
-                                misaligned = true,
-                            )
-                            pending = null
-                        }
-                        else -> {
-                            val mergeIndex = findOpenedToMergeMisalignment(result)
-                            if (mergeIndex != null) {
-                                val existing = result[mergeIndex] as MergedRecord.Opened
-                                result[mergeIndex] = existing.copy(misaligned = true)
-                            } else {
-                                result += MergedRecord.Anomaly(time, pos, "Open (misaligned)")
-                            }
-                        }
-                    }
-                }
-                DoorPosition.ERROR_SENSOR_CONFLICT -> {
+                DoorPosition.OPENING -> handleOpening(time)
+                DoorPosition.OPENING_TOO_LONG -> handleOpeningTooLong(time)
+                DoorPosition.OPEN -> handleOpen(time)
+                DoorPosition.CLOSING -> handleClosing(time)
+                DoorPosition.CLOSING_TOO_LONG -> handleClosingTooLong(time)
+                DoorPosition.CLOSED -> handleClosed(time)
+                DoorPosition.OPEN_MISALIGNED -> handleOpenMisaligned(time)
+                DoorPosition.ERROR_SENSOR_CONFLICT ->
                     result += MergedRecord.Anomaly(time, pos, "Sensor conflict")
-                }
-                DoorPosition.UNKNOWN -> {
+                DoorPosition.UNKNOWN ->
                     result += MergedRecord.Anomaly(time, pos, "Unknown state")
-                }
             }
         }
 
-        // End-of-stream: flush any unresolved tooLong pending as an anomaly.
-        when (val p = pending) {
-            is PendingTransition.Opening ->
-                if (p.tooLong) {
-                    result += MergedRecord.Anomaly(p.startTimeSeconds, DoorPosition.OPENING_TOO_LONG, "Stuck opening")
-                }
-            is PendingTransition.Closing ->
-                if (p.tooLong) {
-                    result += MergedRecord.Anomaly(p.startTimeSeconds, DoorPosition.CLOSING_TOO_LONG, "Stuck closing")
-                }
-            null -> Unit
+        private fun handleOpening(time: Long) {
+            pending = handleDirectionChange(pending, result, newDirectionIsOpening = true)
+                ?: PendingTransition.Opening(time, tooLong = false)
         }
 
-        return result
+        private fun handleOpeningTooLong(time: Long) {
+            val carried = handleDirectionChange(pending, result, newDirectionIsOpening = true)
+            pending = when (carried) {
+                is PendingTransition.Opening -> carried.copy(tooLong = true)
+                is PendingTransition.Closing -> PendingTransition.Opening(time, tooLong = true)
+                null -> PendingTransition.Opening(time, tooLong = true)
+            }
+        }
+
+        private fun handleOpen(time: Long) {
+            val carried = handleDirectionChange(pending, result, newDirectionIsOpening = true)
+            val transit = (carried as? PendingTransition.Opening)
+                ?.takeIf { it.tooLong }
+                ?.let { time - it.startTimeSeconds }
+            result += MergedRecord.Opened(time, transit)
+            pending = null
+        }
+
+        private fun handleClosing(time: Long) {
+            pending = handleDirectionChange(pending, result, newDirectionIsOpening = false)
+                ?: PendingTransition.Closing(time, tooLong = false)
+        }
+
+        private fun handleClosingTooLong(time: Long) {
+            val carried = handleDirectionChange(pending, result, newDirectionIsOpening = false)
+            pending = when (carried) {
+                is PendingTransition.Closing -> carried.copy(tooLong = true)
+                is PendingTransition.Opening -> PendingTransition.Closing(time, tooLong = true)
+                null -> PendingTransition.Closing(time, tooLong = true)
+            }
+        }
+
+        private fun handleClosed(time: Long) {
+            val carried = handleDirectionChange(pending, result, newDirectionIsOpening = false)
+            val transit = (carried as? PendingTransition.Closing)
+                ?.takeIf { it.tooLong }
+                ?.let { time - it.startTimeSeconds }
+            result += MergedRecord.Closed(time, transit)
+            pending = null
+        }
+
+        /**
+         * Misalignment is a property of an open state, not a separate event.
+         * Three cases in priority order:
+         *   1. An Opening is pending → terminate as Opened(misaligned = true)
+         *      with the transit warning if the opening was tooLong.
+         *   2. The most recent open-state context in `result` is an Opened
+         *      (no Closed between) → set its misaligned flag. Don't emit.
+         *   3. Otherwise → standalone Anomaly so data isn't dropped.
+         */
+        private fun handleOpenMisaligned(time: Long) {
+            val pendingOpening = pending as? PendingTransition.Opening
+            if (pendingOpening != null) {
+                val transit = pendingOpening
+                    .takeIf { it.tooLong }
+                    ?.let { time - it.startTimeSeconds }
+                result += MergedRecord.Opened(time, transit, misaligned = true)
+                pending = null
+                return
+            }
+            val mergeIndex = findOpenedToMergeMisalignment(result)
+            if (mergeIndex != null) {
+                val existing = result[mergeIndex] as MergedRecord.Opened
+                result[mergeIndex] = existing.copy(misaligned = true)
+            } else {
+                result += MergedRecord.Anomaly(time, DoorPosition.OPEN_MISALIGNED, "Open (misaligned)")
+            }
+        }
+
+        /** End-of-stream: flush any unresolved tooLong pending as an anomaly. */
+        fun flushPending() {
+            when (val p = pending) {
+                is PendingTransition.Opening ->
+                    if (p.tooLong) {
+                        result += MergedRecord.Anomaly(p.startTimeSeconds, DoorPosition.OPENING_TOO_LONG, "Stuck opening")
+                    }
+                is PendingTransition.Closing ->
+                    if (p.tooLong) {
+                        result += MergedRecord.Anomaly(p.startTimeSeconds, DoorPosition.CLOSING_TOO_LONG, "Stuck closing")
+                    }
+                null -> Unit
+            }
+            pending = null
+        }
     }
 
     /**

@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Wed Apr 29 08:29:02 PDT 2026
+Generated on Wed Apr 29 08:47:51 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -115,12 +115,6 @@ Generated on Wed Apr 29 08:29:02 PDT 2026
 
 ### NetworkDiagramSucceededPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSucceededPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### RecentDoorEventListItemPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RecentDoorEventListItemPreviewTest_Dark_77106447_0.png" width="300" />
-
-### RecentDoorEventListItemPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RecentDoorEventListItemPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### RemoteButtonContentAwaitingConfirmationPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentAwaitingConfirmationPreviewTest_Dark_77106447_0.png" width="300" />

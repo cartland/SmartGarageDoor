@@ -33,6 +33,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
+import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.LoadingResult
@@ -44,6 +46,8 @@ import com.chriscartland.garage.ui.settings.SnoozeRowState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.PermissionStatus
+import java.time.Instant
+import java.time.ZoneOffset
 
 /**
  * Full-screen tab previews with Scaffold, TopAppBar, and BottomNavigationBar.
@@ -146,9 +150,83 @@ fun HomeTabPreview() {
 @Preview(showBackground = true)
 @Composable
 fun HistoryTabPreview() {
+    // Curated events that produce a presentable multi-day framed shot —
+    // a current Open, a recent paired Closed/Open with a `_TOO_LONG`
+    // warning tag, and a sensor-conflict anomaly. The mapper handles
+    // formatting; preview uses fixed `now` + UTC for determinism.
+    val events = listOf(
+        DoorEvent(
+            doorPosition = DoorPosition.OPENING_TOO_LONG,
+            lastChangeTimeSeconds = Instant
+                .parse("2026-04-29T09:43:00Z")
+                .epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.OPEN,
+            lastChangeTimeSeconds = Instant
+                .parse("2026-04-29T09:47:00Z")
+                .epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.CLOSING,
+            lastChangeTimeSeconds = Instant
+                .parse("2026-04-29T09:53:00Z")
+                .epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.CLOSED,
+            lastChangeTimeSeconds = Instant
+                .parse("2026-04-29T09:53:06Z")
+                .epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.OPENING,
+            lastChangeTimeSeconds = Instant
+                .parse("2026-04-29T10:15:00Z")
+                .epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.OPEN,
+            lastChangeTimeSeconds = Instant
+                .parse("2026-04-29T10:15:08Z")
+                .epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.OPENING,
+            lastChangeTimeSeconds = Instant
+                .parse("2026-04-28T18:30:00Z")
+                .epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.OPEN,
+            lastChangeTimeSeconds = Instant
+                .parse("2026-04-28T18:30:08Z")
+                .epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.CLOSING,
+            lastChangeTimeSeconds = Instant
+                .parse("2026-04-28T20:30:00Z")
+                .epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.CLOSED,
+            lastChangeTimeSeconds = Instant
+                .parse("2026-04-28T20:30:06Z")
+                .epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.ERROR_SENSOR_CONFLICT,
+            lastChangeTimeSeconds = Instant
+                .parse("2026-04-28T23:42:00Z")
+                .epochSecond,
+        ),
+    )
     TabPreviewScaffold(selectedScreen = Screen.History) { modifier ->
         DoorHistoryContent(
-            recentDoorEvents = LoadingResult.Complete(demoDoorEvents),
+            recentDoorEvents = LoadingResult.Complete(events),
+            now = Instant.parse("2026-04-29T10:27:00Z"),
+            zone = ZoneOffset.UTC,
             modifier = modifier,
         )
     }
