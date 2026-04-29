@@ -26,12 +26,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -181,85 +178,6 @@ fun DoorEvent?.onColor(
     }
 }
 
-@Composable
-fun RecentDoorEventListItem(
-    doorEvent: DoorEvent,
-    modifier: Modifier = Modifier,
-) {
-    val doorPosition = doorEvent.doorPosition ?: DoorPosition.UNKNOWN
-    val colorSet = LocalDoorStatusColorScheme.current.doorColorSet(isStale = false)
-    val doorColor = when (doorEvent.doorColorState()) {
-        DoorColorState.OPEN -> colorSet.open
-        DoorColorState.CLOSED -> colorSet.closed
-        DoorColorState.UNKNOWN -> colorSet.unknown
-    }
-    val cardColors = CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        disabledContentColor = MaterialTheme.colorScheme.onSurface,
-    )
-    Card(
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        shape = RoundedCornerShape(10.dp),
-        modifier = modifier,
-        colors = cardColors,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = doorPosition.toFriendlyName(),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                )
-                GarageIcon(
-                    doorPosition = doorPosition,
-                    modifier = Modifier.size(84.dp),
-                    static = true,
-                    color = doorColor,
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                val eventTimeSeconds = doorEvent.lastChangeTimeSeconds
-                val date = eventTimeSeconds?.toFriendlyDate()
-                val time = eventTimeSeconds?.toFriendlyTime()
-                Text(
-                    text = "$time",
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                Text(
-                    text = "$date",
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelSmall,
-                )
-                val eventDuration by rememberDurationSince(
-                    eventTimeSeconds?.let { Instant.ofEpochSecond(it) },
-                )
-                Text(
-                    text = "${eventDuration.toFriendlyDuration()} ago",
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelSmall,
-                )
-            }
-        }
-    }
-}
-
 private fun DoorPosition.toFriendlyName(): String =
     when (this) {
         DoorPosition.OPEN -> "Open"
@@ -282,10 +200,4 @@ fun DoorStatusCardPreview() {
             modifier = Modifier.fillMaxSize(),
         )
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun RecentDoorEventListItemPreview() {
-    RecentDoorEventListItem(demoDoorEvents[1])
 }

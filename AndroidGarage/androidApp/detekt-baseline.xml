@@ -2,6 +2,7 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
+    <ID>LargeClass:HistoryMapperTest.kt$HistoryMapperTest</ID>
     <ID>TooGenericExceptionCaught:AppLoggerRepository.kt$RoomAppLoggerRepository$e: Exception</ID>
     <ID>TooGenericExceptionCaught:FirebaseAuthBridge.kt$FirebaseAuthBridge$e: Exception</ID>
   </CurrentIssues>

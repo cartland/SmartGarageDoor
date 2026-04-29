@@ -2,11 +2,12 @@
 
 # Screenshot Gallery
 
-Generated on Wed Apr 29 04:22:13 PDT 2026
+Generated on Wed Apr 29 08:47:51 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
 - [GarageDoorScreenshotTestKt](#garagedoorscreenshottestkt)
+- [HistoryRedesignScreenshotTestKt](#historyredesignscreenshottestkt)
 - [ScreensScreenshotTestKt](#screensscreenshottestkt)
 - [SettingsRedesignScreenshotTestKt](#settingsredesignscreenshottestkt)
 
@@ -114,12 +115,6 @@ Generated on Wed Apr 29 04:22:13 PDT 2026
 
 ### NetworkDiagramSucceededPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSucceededPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### RecentDoorEventListItemPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RecentDoorEventListItemPreviewTest_Dark_77106447_0.png" width="300" />
-
-### RecentDoorEventListItemPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RecentDoorEventListItemPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### RemoteButtonContentAwaitingConfirmationPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentAwaitingConfirmationPreviewTest_Dark_77106447_0.png" width="300" />
@@ -236,6 +231,26 @@ Generated on Wed Apr 29 04:22:13 PDT 2026
 
 ### GarageIconPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageIconPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+## HistoryRedesignScreenshotTestKt
+
+### HistoryContentEmptyPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentEmptyPreviewTest_Dark_77106447_0.png" width="300" />
+
+### HistoryContentEmptyPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentEmptyPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### HistoryContentMultiDayClosedPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayClosedPreviewTest_Dark_77106447_0.png" width="300" />
+
+### HistoryContentMultiDayClosedPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayClosedPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### HistoryContentMultiDayPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayPreviewTest_Dark_77106447_0.png" width="300" />
+
+### HistoryContentMultiDayPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ## ScreensScreenshotTestKt
 

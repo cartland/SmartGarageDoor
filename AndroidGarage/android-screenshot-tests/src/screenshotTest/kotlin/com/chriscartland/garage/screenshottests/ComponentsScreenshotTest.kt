@@ -20,7 +20,6 @@ import com.chriscartland.garage.ui.NetworkDiagramSendingToDoorPreview
 import com.chriscartland.garage.ui.NetworkDiagramSendingToServerPreview
 import com.chriscartland.garage.ui.NetworkDiagramServerFailedPreview
 import com.chriscartland.garage.ui.NetworkDiagramSucceededPreview
-import com.chriscartland.garage.ui.RecentDoorEventListItemPreview
 import com.chriscartland.garage.ui.RemoteButtonContentAwaitingConfirmationPreview
 import com.chriscartland.garage.ui.RemoteButtonContentCancelledPreview
 import com.chriscartland.garage.ui.RemoteButtonContentDoorFailedPreview
@@ -43,20 +42,6 @@ import com.chriscartland.garage.ui.theme.AppTheme
 fun DoorStatusCardPreviewTest() {
     AppTheme {
         DoorStatusCardPreview()
-    }
-}
-
-@PreviewTest
-@Preview(showBackground = true, name = "Light")
-@Preview(
-    showBackground = true,
-    name = "Dark",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-)
-@Composable
-fun RecentDoorEventListItemPreviewTest() {
-    AppTheme {
-        RecentDoorEventListItemPreview()
     }
 }
 
