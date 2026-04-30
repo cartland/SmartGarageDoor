@@ -22,10 +22,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
@@ -40,7 +38,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
@@ -53,12 +50,10 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.chriscartland.garage.ui.settings.DiagnosticsScreen
 import com.chriscartland.garage.ui.theme.AppTheme
-import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.AuthViewModel
 import com.chriscartland.garage.usecase.DoorViewModel
 import kotlinx.serialization.Serializable
-import java.time.Instant
 
 @Composable
 fun GarageApp(
@@ -124,13 +119,6 @@ fun AppNavigation(
     doorViewModel: DoorViewModel,
     appLoggerViewModel: AppLoggerViewModel,
 ) {
-    val currentDoorEvent by doorViewModel.currentDoorEvent.collectAsState()
-    val lastCheckInTime = currentDoorEvent.data?.lastCheckInTimeSeconds?.let {
-        Instant.ofEpochSecond(it)
-    }
-    val isCheckInStale by doorViewModel.isCheckInStale.collectAsState()
-    val doorColor = currentDoorEvent.data.color(LocalDoorStatusColorScheme.current, isStale = isCheckInStale)
-    val onDoorColor = currentDoorEvent.data.onColor(LocalDoorStatusColorScheme.current, isStale = isCheckInStale)
     // Nav3: back stack is a simple mutable list of Screen objects.
     // Using remember (not rememberSaveable) because Screen objects aren't Bundle-saveable.
     // For tab navigation this is fine — process death just restarts on Home tab.
@@ -163,18 +151,11 @@ fun AppNavigation(
                         }
                     }
                 },
-                actions = {
-                    CheckInRow(
-                        lastCheckIn = lastCheckInTime,
-                        isCheckInStale = isCheckInStale,
-                        pillColors = PillColors(
-                            // Match the door color
-                            backgroundColor = doorColor,
-                            contentColor = onDoorColor,
-                        ),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                },
+                // Device-heartbeat indicator was retired from the TopAppBar in
+                // PR C of the FCM/clock/heartbeat series; the same data is now
+                // surfaced as a "Device" section row inside Home and History
+                // (see `DeviceCheckInSection`), in the new M3 sectioned-list
+                // visual language. The TopAppBar carries title + nav only.
             )
         },
         bottomBar = {

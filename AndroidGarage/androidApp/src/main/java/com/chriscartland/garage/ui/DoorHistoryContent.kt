@@ -39,6 +39,8 @@ import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.history.HistoryContent
 import com.chriscartland.garage.ui.history.HistoryMapper
+import com.chriscartland.garage.ui.home.DeviceCheckIn
+import com.chriscartland.garage.ui.home.DeviceCheckInDisplay
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.DoorViewModel
 import java.time.Instant
@@ -54,17 +56,23 @@ fun DoorHistoryContent(
     val resolvedDoorViewModel = doorViewModel ?: viewModel { component.doorViewModel }
     val resolvedAppLoggerViewModel = appLoggerViewModel ?: viewModel { component.appLoggerViewModel }
     val recentDoorEvents by resolvedDoorViewModel.recentDoorEvents.collectAsState()
+    val currentDoorEvent by resolvedDoorViewModel.currentDoorEvent.collectAsState()
     val isCheckInStale by resolvedDoorViewModel.isCheckInStale.collectAsState()
     // `now` is driven by the VM's LiveClock-backed StateFlow (10s tick) —
     // `rememberLiveNow()` no longer exists; the ticker is owned by the
     // UseCase layer and lives across the app, not per-Composable.
     val nowEpochSeconds by resolvedDoorViewModel.nowEpochSeconds.collectAsState()
     val now = remember(nowEpochSeconds) { Instant.ofEpochSecond(nowEpochSeconds) }
+    val deviceCheckIn = DeviceCheckIn.format(
+        lastCheckInSeconds = currentDoorEvent.data?.lastCheckInTimeSeconds,
+        nowSeconds = nowEpochSeconds,
+    )
     DoorHistoryContent(
         recentDoorEvents = recentDoorEvents,
         isCheckInStale = isCheckInStale,
         now = now,
         zone = ZoneId.systemDefault(),
+        deviceCheckIn = deviceCheckIn,
         modifier = modifier,
         onFetchRecentDoorEvents = {
             resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_FETCH_RECENT_DOOR)
@@ -83,6 +91,7 @@ fun DoorHistoryContent(
     zone: ZoneId,
     modifier: Modifier = Modifier,
     isCheckInStale: Boolean = false,
+    deviceCheckIn: DeviceCheckInDisplay? = null,
     onFetchRecentDoorEvents: () -> Unit = {},
     onResetFcm: () -> Unit = {},
 ) {
@@ -120,6 +129,7 @@ fun DoorHistoryContent(
         }
         HistoryContent(
             days = days,
+            deviceCheckIn = deviceCheckIn,
             isRefreshing = recentDoorEvents is LoadingResult.Loading,
             onRefresh = onFetchRecentDoorEvents,
             modifier = Modifier.fillMaxWidth(),
