@@ -70,6 +70,7 @@ import com.chriscartland.garage.usecase.DefaultAppSettingsViewModel
 import com.chriscartland.garage.usecase.DefaultAuthViewModel
 import com.chriscartland.garage.usecase.DefaultDoorViewModel
 import com.chriscartland.garage.usecase.DefaultFunctionListViewModel
+import com.chriscartland.garage.usecase.DefaultReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
@@ -85,6 +86,7 @@ import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
 import com.chriscartland.garage.usecase.ObserveSnoozeStateUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
+import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
@@ -153,6 +155,7 @@ abstract class AppComponent(
     abstract val featureAllowlistRepository: FeatureAllowlistRepository
     abstract val fcmRegistrationManager: FcmRegistrationManager
     abstract val checkInStalenessManager: CheckInStalenessManager
+    abstract val receiveFcmDoorEventUseCase: ReceiveFcmDoorEventUseCase
     abstract val appClock: AppClock
     abstract val dispatcherProvider: DispatcherProvider
     abstract val networkButtonDataSource: NetworkButtonDataSource
@@ -294,6 +297,18 @@ abstract class AppComponent(
         doorRepository: DoorRepository,
         doorFcmRepository: DoorFcmRepository,
     ): RegisterFcmUseCase = RegisterFcmUseCase(doorRepository, doorFcmRepository)
+
+    @Provides
+    fun provideReceiveFcmDoorEventUseCase(
+        doorRepository: DoorRepository,
+        appLoggerRepository: AppLoggerRepository,
+        applicationScope: CoroutineScope,
+    ): ReceiveFcmDoorEventUseCase =
+        DefaultReceiveFcmDoorEventUseCase(
+            doorRepository = doorRepository,
+            appLoggerRepository = appLoggerRepository,
+            externalScope = applicationScope,
+        )
 
     @Provides
     fun provideDeregisterFcmUseCase(doorFcmRepository: DoorFcmRepository): DeregisterFcmUseCase = DeregisterFcmUseCase(doorFcmRepository)

@@ -19,22 +19,21 @@ package com.chriscartland.garage.fcm
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.FcmPayloadParser
-import com.chriscartland.garage.domain.model.AppLoggerKeys
-import com.chriscartland.garage.domain.repository.AppLoggerRepository
-import com.chriscartland.garage.domain.repository.DoorRepository
+import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 
 /**
  * Handles FCM door event messages. Extracted from FCMService for testability.
  *
- * Parses the FCM data payload and inserts the resulting DoorEvent into the repository.
- * Returns true if the event was successfully parsed and inserted.
+ * Parses the FCM data payload and routes the resulting DoorEvent to a UseCase
+ * that owns persistence + logging — this thin handler is just the parser.
+ * Returns true if the event was successfully parsed and handed off.
  */
 class FcmMessageHandler(
-    private val doorRepository: DoorRepository,
-    private val appLoggerRepository: AppLoggerRepository,
+    private val receiveFcmDoorEvent: ReceiveFcmDoorEventUseCase,
 ) {
     /**
-     * Process an FCM data message. Returns true if a DoorEvent was parsed and inserted.
+     * Process an FCM data message. Returns true if a DoorEvent was parsed and
+     * forwarded to [ReceiveFcmDoorEventUseCase].
      */
     suspend fun handleDoorMessage(data: Map<String, String>): Boolean {
         if (data.isEmpty()) {
@@ -46,8 +45,7 @@ class FcmMessageHandler(
             return false
         }
         Logger.d { "DoorData: $doorEvent" }
-        doorRepository.insertDoorEvent(doorEvent)
-        appLoggerRepository.log(AppLoggerKeys.FCM_DOOR_RECEIVED)
+        receiveFcmDoorEvent(doorEvent)
         return true
     }
 }

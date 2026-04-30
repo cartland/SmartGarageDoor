@@ -30,8 +30,7 @@ class FCMService : FirebaseMessagingService() {
     private val handler: FcmMessageHandler by lazy {
         val component = (application as GarageApplication).component
         FcmMessageHandler(
-            doorRepository = component.doorRepository,
-            appLoggerRepository = component.appLoggerRepository,
+            receiveFcmDoorEvent = component.receiveFcmDoorEventUseCase,
         )
     }
 

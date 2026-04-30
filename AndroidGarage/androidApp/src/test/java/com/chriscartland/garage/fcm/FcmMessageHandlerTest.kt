@@ -17,11 +17,9 @@
 
 package com.chriscartland.garage.fcm
 
-import com.chriscartland.garage.domain.model.AppLoggerKeys
+import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
-import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
-import com.chriscartland.garage.testcommon.FakeDoorRepository
-import kotlinx.coroutines.flow.first
+import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -30,9 +28,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FcmMessageHandlerTest {
-    private val doorRepository = FakeDoorRepository()
-    private val appLoggerRepository = FakeAppLoggerRepository()
-    private val handler = FcmMessageHandler(doorRepository, appLoggerRepository)
+    private val receiveFcmDoorEvent = RecordingReceiveFcmDoorEventUseCase()
+    private val handler = FcmMessageHandler(receiveFcmDoorEvent)
 
     private fun makePayload(
         type: String? = "CLOSED",
@@ -53,9 +50,7 @@ class FcmMessageHandlerTest {
             val result = handler.handleDoorMessage(emptyMap())
 
             assertFalse(result)
-            // No event should have been inserted — currentDoorEvent should still be default.
-            val event = doorRepository.currentDoorEvent.first()
-            assertNull(event?.doorPosition)
+            assertNull(receiveFcmDoorEvent.lastEvent)
         }
 
     @Test
@@ -65,17 +60,16 @@ class FcmMessageHandlerTest {
             val result = handler.handleDoorMessage(mapOf("message" to "hello"))
 
             assertFalse(result)
-            val event = doorRepository.currentDoorEvent.first()
-            assertNull(event?.doorPosition)
+            assertNull(receiveFcmDoorEvent.lastEvent)
         }
 
     @Test
-    fun handleDoorMessage_validPayload_insertsAndReturnsTrue() =
+    fun handleDoorMessage_validPayload_forwardsParsedEvent() =
         runTest {
             val result = handler.handleDoorMessage(makePayload())
 
             assertTrue(result)
-            val event = doorRepository.currentDoorEvent.first()
+            val event = receiveFcmDoorEvent.lastEvent
             assertEquals(DoorPosition.CLOSED, event?.doorPosition)
             assertEquals("The door is closed.", event?.message)
             assertEquals(1000L, event?.lastChangeTimeSeconds)
@@ -83,13 +77,22 @@ class FcmMessageHandlerTest {
         }
 
     @Test
-    fun handleDoorMessage_validPayload_logsEvent() =
+    fun handleDoorMessage_validPayload_invokesUseCaseExactlyOnce() =
         runTest {
             handler.handleDoorMessage(makePayload())
 
-            assertTrue(
-                "Expected FCM_DOOR_RECEIVED to be logged",
-                appLoggerRepository.loggedKeys.contains(AppLoggerKeys.FCM_DOOR_RECEIVED),
-            )
+            assertEquals(1, receiveFcmDoorEvent.invocationCount)
         }
+}
+
+private class RecordingReceiveFcmDoorEventUseCase : ReceiveFcmDoorEventUseCase {
+    var invocationCount: Int = 0
+        private set
+    var lastEvent: DoorEvent? = null
+        private set
+
+    override fun invoke(event: DoorEvent) {
+        invocationCount += 1
+        lastEvent = event
+    }
 }
