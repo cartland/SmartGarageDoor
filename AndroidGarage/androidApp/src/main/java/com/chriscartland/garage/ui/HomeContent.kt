@@ -18,54 +18,44 @@
 package com.chriscartland.garage.ui
 
 import androidx.activity.compose.ReportDrawnWhen
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AuthState
-import com.chriscartland.garage.domain.model.DisplayName
-import com.chriscartland.garage.domain.model.DoorEvent
-import com.chriscartland.garage.domain.model.Email
-import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.LoadingResult
-import com.chriscartland.garage.domain.model.RemoteButtonState
-import com.chriscartland.garage.domain.model.User
-import com.chriscartland.garage.permissions.NotificationPermissionCopy
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
-import com.chriscartland.garage.presentation.demoDoorEvents
+import com.chriscartland.garage.ui.home.HomeAlert
+import com.chriscartland.garage.ui.home.HomeMapper
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.AuthViewModel
 import com.chriscartland.garage.usecase.DoorViewModel
 import com.chriscartland.garage.usecase.RemoteButtonViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.PermissionState
-import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.isGranted
+import kotlinx.coroutines.delay
+import java.time.Instant
+import java.time.ZoneId
+import com.chriscartland.garage.ui.home.HomeContent as HomeContentInternal
 
+/**
+ * Stateful Home tab — thin bridge between Main.kt and the stateless
+ * [HomeContentInternal] in [com.chriscartland.garage.ui.home].
+ *
+ * Resolves ViewModels, collects flows, runs [HomeMapper], renders. All
+ * mapping logic is in [HomeMapper] (unit-tested); all layout is in
+ * [HomeContentInternal] (screenshot-tested).
+ */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun HomeContent(
@@ -79,6 +69,7 @@ fun HomeContent(
     val resolvedDoorViewModel = doorViewModel ?: viewModel { component.doorViewModel }
     val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
     val resolvedAppLoggerViewModel = appLoggerViewModel ?: viewModel { component.appLoggerViewModel }
+
     val googleSignIn = rememberGoogleSignIn(
         onTokenReceived = { token -> resolvedAuthViewModel.signInWithGoogle(token) },
     )
@@ -86,14 +77,49 @@ fun HomeContent(
     val buttonState by buttonViewModel.buttonState.collectAsState()
     val authState by resolvedAuthViewModel.authState.collectAsState()
     val isCheckInStale by resolvedDoorViewModel.isCheckInStale.collectAsState()
-    HomeContent(
+
+    val notificationPermissionState = rememberNotificationPermissionState()
+    var permissionRequestCount by remember { mutableIntStateOf(0) }
+
+    val now = rememberLiveNow()
+    val zone = remember { ZoneId.systemDefault() }
+
+    val status = HomeMapper.toHomeStatusDisplay(currentDoorEvent, now, zone)
+    val alerts = HomeMapper.toHomeAlerts(
         currentDoorEvent = currentDoorEvent,
-        remoteButtonState = buttonState,
         isCheckInStale = isCheckInStale,
+        notificationPermissionGranted = notificationPermissionState.status.isGranted,
+        notificationRequestCount = permissionRequestCount,
+    )
+    val homeAuthState = HomeMapper.toHomeAuthState(authState)
+
+    HomeContentInternal(
+        status = status,
+        authState = homeAuthState,
         modifier = modifier,
-        onFetchCurrentDoorEvent = {
+        remoteButtonState = buttonState,
+        alerts = alerts,
+        isRefreshing = currentDoorEvent is LoadingResult.Loading,
+        onRefresh = {
             resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_FETCH_CURRENT_DOOR)
             resolvedDoorViewModel.fetchCurrentDoorEvent()
+        },
+        onAlertAction = { alert ->
+            when (alert) {
+                is HomeAlert.Stale -> {
+                    Logger.e { "Trying to fix outdated info. Resetting FCM, and fetching data." }
+                    resolvedDoorViewModel.deregisterFcm()
+                    resolvedDoorViewModel.fetchCurrentDoorEvent()
+                }
+                is HomeAlert.PermissionMissing -> {
+                    permissionRequestCount++
+                    notificationPermissionState.launchPermissionRequest()
+                    resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_REQUESTED_NOTIFICATION_PERMISSION)
+                }
+                is HomeAlert.FetchError -> {
+                    resolvedDoorViewModel.fetchCurrentDoorEvent()
+                }
+            }
         },
         onRemoteButtonTap = {
             when (authState) {
@@ -101,158 +127,35 @@ fun HomeContent(
                     Logger.d { "Remote button tapped. AuthViewModel authState $authState" }
                     buttonViewModel.onButtonTap()
                 }
-
-                AuthState.Unauthenticated -> {
-                    googleSignIn.launchSignIn()
-                }
-
-                AuthState.Unknown -> {
+                AuthState.Unauthenticated, AuthState.Unknown -> {
                     googleSignIn.launchSignIn()
                 }
             }
         },
-        authState = authState,
         onSignIn = { googleSignIn.launchSignIn() },
-        onResetFcm = {
-            resolvedDoorViewModel.deregisterFcm()
-        },
-        onLogNotificationPermissionRequested = {
-            resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_REQUESTED_NOTIFICATION_PERMISSION)
-        },
     )
-}
-
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
-fun HomeContent(
-    currentDoorEvent: LoadingResult<DoorEvent?>,
-    modifier: Modifier = Modifier,
-    remoteButtonState: RemoteButtonState = RemoteButtonState.Ready,
-    isCheckInStale: Boolean = false,
-    onFetchCurrentDoorEvent: () -> Unit = {},
-    onRemoteButtonTap: () -> Unit = {},
-    authState: AuthState = AuthState.Unauthenticated,
-    onSignIn: () -> Unit = {},
-    notificationPermissionState: PermissionState = rememberNotificationPermissionState(),
-    onResetFcm: () -> Unit = {},
-    onLogNotificationPermissionRequested: () -> Unit = {},
-) {
-    var permissionRequestCount by remember { mutableIntStateOf(0) }
-    // Show the current door event.
-    val doorEvent = currentDoorEvent.data
-
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        if (isCheckInStale) {
-            OldLastCheckInBanner(
-                action = {
-                    Logger.e { "Trying to fix outdated info. Resetting FCM, and fetching data." }
-                    onResetFcm()
-                    onFetchCurrentDoorEvent()
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        // Add a card at the top if the notification permission is not granted.
-        if (!notificationPermissionState.status.isGranted) {
-            ErrorCard(
-                text = NotificationPermissionCopy.justificationText(permissionRequestCount),
-                buttonText = "Allow",
-                onClick = {
-                    permissionRequestCount++
-                    notificationPermissionState.launchPermissionRequest()
-                    onLogNotificationPermissionRequested()
-                },
-            )
-        }
-
-        // If the current event had an error, show an error card.
-        if (currentDoorEvent is LoadingResult.Error) {
-            ErrorCard(
-                text = "Error fetching current door event: " +
-                    currentDoorEvent.exception.toString().take(500),
-                buttonText = "Retry",
-                onClick = { onFetchCurrentDoorEvent() },
-            )
-        }
-
-        Box(
-            modifier = Modifier.weight(1f),
-        ) {
-            DoorStatusCard(
-                doorEvent = doorEvent,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable { onFetchCurrentDoorEvent() },
-                isCheckInStale = isCheckInStale,
-            )
-            // If the current event is loading, show a loading indicator.
-            if (currentDoorEvent is LoadingResult.Loading) {
-                Text(
-                    text = "Loading...",
-                    modifier = Modifier.padding(8.dp),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Box(
-            modifier = Modifier.weight(1f),
-            contentAlignment = Alignment.Center,
-        ) {
-            when (authState) {
-                AuthState.Unknown -> {
-                    Text(text = "Checking authentication...")
-                }
-
-                AuthState.Unauthenticated -> {
-                    Button(onClick = { onSignIn() }) {
-                        Text("Sign to access garage remote button")
-                    }
-                }
-
-                is AuthState.Authenticated -> {
-                    RemoteButtonContent(
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        state = remoteButtonState,
-                        onTap = onRemoteButtonTap,
-                    )
-                }
-            }
-        }
-    }
     ReportDrawnWhen { currentDoorEvent is LoadingResult.Complete }
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
-@Preview(showBackground = true)
+/**
+ * Returns an [Instant] that updates every 30s so the "Since X · Y" duration
+ * text refreshes without a per-second recomposition. Returns a fixed
+ * timestamp under [LocalInspectionMode] so previews stay deterministic.
+ *
+ * Sibling of `DoorHistoryContent.rememberLiveNow` — kept private to each
+ * call site rather than shared, since the previews use the same fixed
+ * reference instant for visual consistency across tabs.
+ */
 @Composable
-fun HomeContentPreview() {
-    Surface(modifier = Modifier.fillMaxWidth().height(600.dp)) {
-        HomeContent(
-            currentDoorEvent = LoadingResult.Complete(demoDoorEvents.firstOrNull()),
-            modifier = Modifier.fillMaxSize(),
-            authState = AuthState.Authenticated(
-                User(
-                    name = DisplayName("Chris"),
-                    email = Email("chris@example.com"),
-                    idToken = FirebaseIdToken(idToken = "preview", exp = 0),
-                ),
-            ),
-            notificationPermissionState = object : PermissionState {
-                override val permission = "android.permission.POST_NOTIFICATIONS"
-                override val status = PermissionStatus.Granted
-
-                override fun launchPermissionRequest() {
-                    // No-op for preview.
-                }
-            },
-        )
+private fun rememberLiveNow(): Instant {
+    if (LocalInspectionMode.current) {
+        return remember { Instant.parse("2026-04-29T12:00:00Z") }
     }
+    val state = produceState(initialValue = Instant.now()) {
+        while (true) {
+            delay(30_000L)
+            value = Instant.now()
+        }
+    }
+    return state.value
 }

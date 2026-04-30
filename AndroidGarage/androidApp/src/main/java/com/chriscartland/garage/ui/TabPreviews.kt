@@ -31,23 +31,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.chriscartland.garage.domain.model.AuthState
-import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
-import com.chriscartland.garage.domain.model.Email
-import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.LoadingResult
-import com.chriscartland.garage.domain.model.User
+import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.presentation.demoDoorEvents
+import com.chriscartland.garage.ui.home.HomeAuthState
+import com.chriscartland.garage.ui.home.HomeMapper
 import com.chriscartland.garage.ui.settings.AccountRowState
 import com.chriscartland.garage.ui.settings.SettingsContent
 import com.chriscartland.garage.ui.settings.SnoozeRowState
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.PermissionState
-import com.google.accompanist.permissions.PermissionStatus
 import java.time.Instant
 import java.time.ZoneOffset
+import com.chriscartland.garage.ui.home.HomeContent as HomeStatelessContent
 
 /**
  * Full-screen tab previews with Scaffold, TopAppBar, and BottomNavigationBar.
@@ -120,29 +116,21 @@ private fun DetailScreenPreviewScaffold(
     }
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Preview(showBackground = true)
 @Composable
 fun HomeTabPreview() {
+    // Stateless full-screen Home preview using the new mapper-driven UI.
+    // Fixed `now` (matches the in-Composable `LocalInspectionMode` value)
+    // and UTC zone keep the screenshot deterministic.
+    val event = demoDoorEvents.firstOrNull()
+    val now = Instant.parse("2026-04-29T12:00:00Z")
+    val status = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event), now, ZoneOffset.UTC)
     TabPreviewScaffold(selectedScreen = Screen.Home) { modifier ->
-        HomeContent(
-            currentDoorEvent = LoadingResult.Complete(demoDoorEvents.firstOrNull()),
+        HomeStatelessContent(
+            status = status,
+            authState = HomeAuthState.SignedIn,
             modifier = modifier,
-            authState = AuthState.Authenticated(
-                User(
-                    name = DisplayName("Chris"),
-                    email = Email("chris@example.com"),
-                    idToken = FirebaseIdToken(idToken = "preview", exp = 0),
-                ),
-            ),
-            notificationPermissionState = object : PermissionState {
-                override val permission = "android.permission.POST_NOTIFICATIONS"
-                override val status = PermissionStatus.Granted
-
-                override fun launchPermissionRequest() {
-                    // No-op for preview.
-                }
-            },
+            remoteButtonState = RemoteButtonState.Ready,
         )
     }
 }
