@@ -26,10 +26,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -43,7 +41,6 @@ import com.chriscartland.garage.ui.history.HistoryContent
 import com.chriscartland.garage.ui.history.HistoryMapper
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.DoorViewModel
-import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneId
 
@@ -58,10 +55,15 @@ fun DoorHistoryContent(
     val resolvedAppLoggerViewModel = appLoggerViewModel ?: viewModel { component.appLoggerViewModel }
     val recentDoorEvents by resolvedDoorViewModel.recentDoorEvents.collectAsState()
     val isCheckInStale by resolvedDoorViewModel.isCheckInStale.collectAsState()
+    // `now` is driven by the VM's LiveClock-backed StateFlow (10s tick) —
+    // `rememberLiveNow()` no longer exists; the ticker is owned by the
+    // UseCase layer and lives across the app, not per-Composable.
+    val nowEpochSeconds by resolvedDoorViewModel.nowEpochSeconds.collectAsState()
+    val now = remember(nowEpochSeconds) { Instant.ofEpochSecond(nowEpochSeconds) }
     DoorHistoryContent(
         recentDoorEvents = recentDoorEvents,
         isCheckInStale = isCheckInStale,
-        now = rememberLiveNow(),
+        now = now,
         zone = ZoneId.systemDefault(),
         modifier = modifier,
         onFetchRecentDoorEvents = {
@@ -124,26 +126,6 @@ fun DoorHistoryContent(
         )
     }
     ReportDrawnWhen { recentDoorEvents is LoadingResult.Complete }
-}
-
-/**
- * Returns an [Instant] that updates every 30 seconds (so the most-recent
- * row's "X and counting" duration stays live without spamming
- * recomposition). Returns a fixed timestamp under [LocalInspectionMode] so
- * screenshot tests and IDE previews stay deterministic.
- */
-@Composable
-private fun rememberLiveNow(): Instant {
-    if (LocalInspectionMode.current) {
-        return remember { Instant.parse("2026-04-29T10:27:00Z") }
-    }
-    val state = produceState(initialValue = Instant.now()) {
-        while (true) {
-            delay(30_000L)
-            value = Instant.now()
-        }
-    }
-    return state.value
 }
 
 @PreviewScreenSizes

@@ -22,6 +22,7 @@ import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.FcmRegistrationManager
+import com.chriscartland.garage.usecase.LiveClock
 
 /**
  * App startup actions. Extracted from MainActivity for testability.
@@ -32,11 +33,13 @@ import com.chriscartland.garage.usecase.FcmRegistrationManager
 class AppStartup(
     private val fcmRegistrationManager: FcmRegistrationManager,
     private val checkInStalenessManager: CheckInStalenessManager,
+    private val liveClock: LiveClock,
     private val appLoggerViewModel: AppLoggerViewModel,
 ) {
     /**
-     * Performs startup actions: FCM registration, staleness tracking, and logging.
-     * Returns the list of actions taken (for testing/logging).
+     * Performs startup actions: FCM registration, staleness tracking,
+     * live-clock ticker, and logging. Returns the list of actions taken
+     * (for testing/logging).
      */
     fun run(): List<String> {
         val actions = mutableListOf<String>()
@@ -48,6 +51,10 @@ class AppStartup(
         Logger.d { "AppStartup: Starting check-in staleness manager" }
         checkInStalenessManager.start()
         actions.add("startCheckInStaleness")
+
+        Logger.d { "AppStartup: Starting live clock" }
+        liveClock.start()
+        actions.add("startLiveClock")
 
         appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
         actions.add("logFcmSubscribe")

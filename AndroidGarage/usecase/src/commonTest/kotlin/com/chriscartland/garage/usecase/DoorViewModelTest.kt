@@ -91,6 +91,11 @@ class DoorViewModelTest {
             dispatcher = testDispatcher,
             clock = AppClock { 0L },
         )
+        val liveClock = DefaultLiveClock(
+            clock = AppClock { 0L },
+            scope = scope,
+            dispatcher = testDispatcher,
+        )
         val vm = DefaultDoorViewModel(
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
             logAppEvent = LogAppEventUseCase(appLoggerRepository),
@@ -100,6 +105,7 @@ class DoorViewModelTest {
             deregisterFcmUseCase = DeregisterFcmUseCase(doorFcmRepository),
             fcmRegistrationManager = fcmManager,
             checkInStalenessManager = stalenessManager,
+            liveClock = liveClock,
             fetchOnInit = fetchOnInit,
         )
         testDispatcher.scheduler.runCurrent()

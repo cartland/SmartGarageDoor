@@ -70,6 +70,7 @@ import com.chriscartland.garage.usecase.DefaultAppSettingsViewModel
 import com.chriscartland.garage.usecase.DefaultAuthViewModel
 import com.chriscartland.garage.usecase.DefaultDoorViewModel
 import com.chriscartland.garage.usecase.DefaultFunctionListViewModel
+import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.DefaultReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
@@ -79,6 +80,7 @@ import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.FetchFcmStatusUseCase
 import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
+import com.chriscartland.garage.usecase.LiveClock
 import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveAppLogCountUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
@@ -155,6 +157,7 @@ abstract class AppComponent(
     abstract val featureAllowlistRepository: FeatureAllowlistRepository
     abstract val fcmRegistrationManager: FcmRegistrationManager
     abstract val checkInStalenessManager: CheckInStalenessManager
+    abstract val liveClock: LiveClock
     abstract val receiveFcmDoorEventUseCase: ReceiveFcmDoorEventUseCase
     abstract val appClock: AppClock
     abstract val dispatcherProvider: DispatcherProvider
@@ -199,6 +202,7 @@ abstract class AppComponent(
         deregisterFcm: DeregisterFcmUseCase,
         fcmRegistrationManager: FcmRegistrationManager,
         checkInStalenessManager: CheckInStalenessManager,
+        liveClock: LiveClock,
     ): DefaultDoorViewModel =
         DefaultDoorViewModel(
             observeDoorEvents,
@@ -209,6 +213,7 @@ abstract class AppComponent(
             deregisterFcm,
             fcmRegistrationManager,
             checkInStalenessManager,
+            liveClock,
         )
 
     @Provides
@@ -525,9 +530,29 @@ abstract class AppComponent(
         )
 
     @Provides
+    @Singleton
+    fun provideLiveClock(
+        appClock: AppClock,
+        applicationScope: CoroutineScope,
+        dispatchers: DispatcherProvider,
+    ): LiveClock =
+        DefaultLiveClock(
+            clock = appClock,
+            scope = applicationScope,
+            dispatcher = dispatchers.io,
+        )
+
+    @Provides
     fun provideAppStartup(
         fcmRegistrationManager: FcmRegistrationManager,
         checkInStalenessManager: CheckInStalenessManager,
+        liveClock: LiveClock,
         appLoggerViewModel: DefaultAppLoggerViewModel,
-    ): AppStartup = AppStartup(fcmRegistrationManager, checkInStalenessManager, appLoggerViewModel)
+    ): AppStartup =
+        AppStartup(
+            fcmRegistrationManager,
+            checkInStalenessManager,
+            liveClock,
+            appLoggerViewModel,
+        )
 }
