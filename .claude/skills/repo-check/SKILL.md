@@ -22,16 +22,22 @@ Report: count, any with conflicts (DIRTY), any without auto-merge.
 ### 2. CI Health
 
 ```bash
-# Latest post-merge run on main
-gh run list --branch main --workflow "Post-Merge CI" --limit 1 \
+# Latest Android post-merge run on main
+gh run list --branch main --workflow "Android Post-Merge CI" --limit 1 \
   --json conclusion,headSha,createdAt \
   --jq '.[0] | {conclusion, sha: .headSha[:7], date: .createdAt[:10]}'
 
-# Any open CI failure issues
+# Latest Firebase post-merge run on main
+gh run list --branch main --workflow "Firebase Post-Merge CI" --limit 1 \
+  --json conclusion,headSha,createdAt \
+  --jq '.[0] | {conclusion, sha: .headSha[:7], date: .createdAt[:10]}'
+
+# Any open CI failure issues (both labels)
 gh issue list --label "ci-failure/post-merge" --state open --json number,title --jq '.[]'
+gh issue list --label "ci-failure/firebase-post-merge" --state open --json number,title --jq '.[]'
 ```
 
-Report: last post-merge result, any open failure issues.
+Report: last post-merge result for each, any open failure issues. The exact workflow names matter — `gh run list --workflow "Post-Merge CI"` (without the platform prefix) returns nothing.
 
 ### 3. Recent Releases
 
