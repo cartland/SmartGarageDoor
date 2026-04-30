@@ -9,9 +9,9 @@ import com.chriscartland.garage.ui.FunctionListContentPreview
 import com.chriscartland.garage.ui.FunctionListScreenDeniedPreview
 import com.chriscartland.garage.ui.FunctionListScreenPreview
 import com.chriscartland.garage.ui.HistoryTabPreview
-import com.chriscartland.garage.ui.HomeContentPreview
 import com.chriscartland.garage.ui.HomeTabPreview
 import com.chriscartland.garage.ui.SettingsTabPreview
+import com.chriscartland.garage.ui.home.HomeContentOpenSignedInPreview
 import com.chriscartland.garage.ui.theme.AppTheme
 
 @PreviewTest
@@ -24,7 +24,7 @@ import com.chriscartland.garage.ui.theme.AppTheme
 @Composable
 fun HomeScreenPreviewTest() {
     AppTheme {
-        HomeContentPreview()
+        HomeContentOpenSignedInPreview()
     }
 }
 
