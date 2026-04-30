@@ -15,6 +15,9 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.9.0
+- No code changes from 2.8.0. Re-tags the same APK behavior under a fresh `versionName` so the Play Store "What's New" surface mentions the **Home tab redesign** (which shipped to internal track in `android/187` as part of 2.8.0 — see the 2.8.0 entry below for full feature list). Patch 2.8.1 is bypassed; it contained only CI-script and skill changes that don't affect the APK.
+
 ## 2.8.0
 - **History tab redesigned** to a Material 3 sectioned list grouped by day. Each row uses the GarageIcon door art for its leading visual and shows the duration of *that* state ("Open for 6 min" / "Closed for 22 min" / "Since 10:15 AM · 12 min and counting" for the most recent). Anomalies (sensor conflict, stuck opening/closing, unknown state) are surfaced inline with their own door-art variant.
 - **Misalignments merge into the previous Open** instead of cluttering the list as a separate row — `OPEN_MISALIGNED` sets a flag on the Opened it follows and shows a "Door was misaligned" tag below the duration.
