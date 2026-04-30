@@ -74,6 +74,7 @@ tasks.register<architecture.SingletonGuardTask>("checkSingletonGuard") {
         // Framework singletons — multiple instances crash or corrupt.
         "provideAppDatabase",
         "provideAppSettings",
+        "providePreferencesDataStore",
         "provideHttpClient",
         // ADR-022 state-owning repositories — if not @Singleton, the owned
         // StateFlow is instantiated per-caller and every subscriber sees its
@@ -181,6 +182,10 @@ tasks.register<architecture.DataStoreSingletonCheckTask>("checkDataStoreSingleto
     guardedMethods = listOf(
         "provideAppSettings",
         "provideAppDatabase",
+        // The DataStore<Preferences> itself — second instance for the same
+        // file throws IllegalStateException at runtime (see KDoc on
+        // DataStoreFactory in data-local/commonMain).
+        "providePreferencesDataStore",
     )
 }
 
