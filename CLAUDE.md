@@ -147,7 +147,9 @@ Firestore Functions: Event-driven processing on data changes
 ## Development Workflow
 
 ### Local Validation
-Run `./scripts/validate.sh` before pushing. It mirrors CI: spotless (all modules), lint, unit tests (3 variants), domain tests, debug build, screenshot test compilation, and Room schema drift check. Writes a validation marker so the git-guardrails hook can warn on stale pushes.
+Run `./scripts/validate.sh` before pushing. It mirrors CI: spotless (all modules), lint, unit tests (3 variants), domain tests, debug build, screenshot test compilation, instrumented test compilation, and Room schema drift check. Writes a validation marker so the git-guardrails hook can warn on stale pushes.
+
+The `compileDebugAndroidTestKotlin` step (added after #604) catches signature-breaking changes to public Composables that `androidTest/` sources call — these used to slip past pre-submit because validate.sh didn't compile that source set, then surface only in the post-merge instrumented-tests job. Running the test rules still requires a device; the compile step does not.
 
 ### Instrumented Tests
 Run `./scripts/run-instrumented-tests.sh` when changing Room entities/DAOs, DI wiring (AppComponent), navigation, or Activity lifecycle code. Requires a connected device or emulator. Not part of `validate.sh` (too slow for every run). A git hook warns on push when these files are changed.

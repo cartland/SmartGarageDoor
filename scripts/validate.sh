@@ -122,6 +122,15 @@ step "Screenshot tests (compile)"
 $GRADLE :android-screenshot-tests:compileDebugScreenshotTestKotlin \
     && pass "screenshot test compilation" || fail "screenshot test compilation"
 
+# androidTest sources compile here (no device / runtime needed). Catches
+# signature-breaking changes to public Composables that test sources call.
+# Closes the gap that produced #604: PR #603 changed HomeContent's signature,
+# AuthStateUIPropagationTest still called the old shape, and the failure only
+# surfaced in post-merge CI's instrumented-tests job. Compile is fast (~2s).
+step "Instrumented tests (compile)"
+$GRADLE :androidApp:compileDebugAndroidTestKotlin \
+    && pass "instrumented test compilation" || fail "instrumented test compilation"
+
 step "Documentation front-matter (AGENTS.md contract)"
 "$REPO_ROOT/scripts/check-doc-frontmatter.sh" \
     && pass "doc front-matter" || fail "doc front-matter"
