@@ -431,93 +431,113 @@ private object HomePreviewData {
     )
 }
 
-@Preview(showBackground = true, heightDp = 900)
 @Composable
-fun HomeContentOpenSignedInPreview() {
-    HomeContent(
-        status = HomePreviewData.openStatus,
-        authState = HomeAuthState.SignedIn,
-        remoteButtonState = RemoteButtonState.Ready,
-        modifier = Modifier.padding(horizontal = 16.dp),
-    )
+private fun HomePreviewFrame(content: @Composable () -> Unit) {
+    // `@Preview(showBackground = true)` hardcodes a white background that
+    // ignores the active color scheme — making dark-mode previews look like
+    // dark cards floating on a light page. Wrap the preview body in a
+    // background-colored Surface so the page background follows the theme.
+    Surface(
+        color = MaterialTheme.colorScheme.background,
+        modifier = Modifier.fillMaxSize(),
+    ) { content() }
 }
 
-@Preview(showBackground = true, heightDp = 900)
+@Preview(heightDp = 900)
 @Composable
-fun HomeContentClosedSignedInPreview() {
-    HomeContent(
-        status = HomePreviewData.closedStatus,
-        authState = HomeAuthState.SignedIn,
-        remoteButtonState = RemoteButtonState.Ready,
-        modifier = Modifier.padding(horizontal = 16.dp),
-    )
-}
+fun HomeContentOpenSignedInPreview() =
+    HomePreviewFrame {
+        HomeContent(
+            status = HomePreviewData.openStatus,
+            authState = HomeAuthState.SignedIn,
+            remoteButtonState = RemoteButtonState.Ready,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+    }
 
-@Preview(showBackground = true, heightDp = 900)
+@Preview(heightDp = 900)
 @Composable
-fun HomeContentAwaitingConfirmationPreview() {
-    HomeContent(
-        status = HomePreviewData.closedStatus,
-        authState = HomeAuthState.SignedIn,
-        remoteButtonState = RemoteButtonState.AwaitingConfirmation,
-        modifier = Modifier.padding(horizontal = 16.dp),
-    )
-}
+fun HomeContentClosedSignedInPreview() =
+    HomePreviewFrame {
+        HomeContent(
+            status = HomePreviewData.closedStatus,
+            authState = HomeAuthState.SignedIn,
+            remoteButtonState = RemoteButtonState.Ready,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+    }
 
-@Preview(showBackground = true, heightDp = 900)
+@Preview(heightDp = 900)
 @Composable
-fun HomeContentSendingToDoorPreview() {
-    HomeContent(
-        status = HomePreviewData.closedStatus,
-        authState = HomeAuthState.SignedIn,
-        remoteButtonState = RemoteButtonState.SendingToDoor,
-        modifier = Modifier.padding(horizontal = 16.dp),
-    )
-}
+fun HomeContentAwaitingConfirmationPreview() =
+    HomePreviewFrame {
+        HomeContent(
+            status = HomePreviewData.closedStatus,
+            authState = HomeAuthState.SignedIn,
+            remoteButtonState = RemoteButtonState.AwaitingConfirmation,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+    }
 
-@Preview(showBackground = true, heightDp = 900)
+@Preview(heightDp = 900)
 @Composable
-fun HomeContentOpeningTooLongPreview() {
-    HomeContent(
-        status = HomePreviewData.openingTooLongStatus,
-        authState = HomeAuthState.SignedIn,
-        remoteButtonState = RemoteButtonState.Ready,
-        modifier = Modifier.padding(horizontal = 16.dp),
-    )
-}
+fun HomeContentSendingToDoorPreview() =
+    HomePreviewFrame {
+        HomeContent(
+            status = HomePreviewData.closedStatus,
+            authState = HomeAuthState.SignedIn,
+            remoteButtonState = RemoteButtonState.SendingToDoor,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+    }
 
-@Preview(showBackground = true, heightDp = 900)
+@Preview(heightDp = 900)
 @Composable
-fun HomeContentStaleBannerPreview() {
-    HomeContent(
-        status = HomePreviewData.openStatus,
-        authState = HomeAuthState.SignedIn,
-        remoteButtonState = RemoteButtonState.Ready,
-        alerts = listOf(HomePreviewData.staleAlert),
-        modifier = Modifier.padding(horizontal = 16.dp),
-    )
-}
+fun HomeContentOpeningTooLongPreview() =
+    HomePreviewFrame {
+        HomeContent(
+            status = HomePreviewData.openingTooLongStatus,
+            authState = HomeAuthState.SignedIn,
+            remoteButtonState = RemoteButtonState.Ready,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+    }
 
-@Preview(showBackground = true, heightDp = 900)
+@Preview(heightDp = 900)
 @Composable
-fun HomeContentPermissionMissingPreview() {
-    HomeContent(
-        status = HomePreviewData.openStatus,
-        authState = HomeAuthState.SignedIn,
-        remoteButtonState = RemoteButtonState.Ready,
-        alerts = listOf(HomePreviewData.permissionAlert),
-        modifier = Modifier.padding(horizontal = 16.dp),
-    )
-}
+fun HomeContentStaleBannerPreview() =
+    HomePreviewFrame {
+        HomeContent(
+            status = HomePreviewData.openStatus,
+            authState = HomeAuthState.SignedIn,
+            remoteButtonState = RemoteButtonState.Ready,
+            alerts = listOf(HomePreviewData.staleAlert),
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+    }
 
-@Preview(showBackground = true, heightDp = 900)
+@Preview(heightDp = 900)
 @Composable
-fun HomeContentSignedOutPreview() {
-    HomeContent(
-        status = HomePreviewData.openStatus,
-        authState = HomeAuthState.SignedOut,
-        modifier = Modifier.padding(horizontal = 16.dp),
-    )
-}
+fun HomeContentPermissionMissingPreview() =
+    HomePreviewFrame {
+        HomeContent(
+            status = HomePreviewData.openStatus,
+            authState = HomeAuthState.SignedIn,
+            remoteButtonState = RemoteButtonState.Ready,
+            alerts = listOf(HomePreviewData.permissionAlert),
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+    }
+
+@Preview(heightDp = 900)
+@Composable
+fun HomeContentSignedOutPreview() =
+    HomePreviewFrame {
+        HomeContent(
+            status = HomePreviewData.openStatus,
+            authState = HomeAuthState.SignedOut,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+    }
 
 // endregion
