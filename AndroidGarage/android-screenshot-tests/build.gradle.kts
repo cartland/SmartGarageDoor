@@ -117,7 +117,8 @@ tasks.whenTaskAdded {
             // Selective clean: only wipe ALL references on a full update.
             // Subset runs (`--tests`) and the sequential script preserve siblings.
             if (taskName == "updateDebugScreenshotTest" &&
-                !isSequentialScript && !passedTestsArg
+                !isSequentialScript &&
+                !passedTestsArg
             ) {
                 if (refDirCapture.exists()) {
                     refDirCapture.deleteRecursively()
