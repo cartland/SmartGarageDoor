@@ -86,7 +86,7 @@ fun HomeContent(
     val now = remember(nowEpochSeconds) { Instant.ofEpochSecond(nowEpochSeconds) }
     val zone = remember { ZoneId.systemDefault() }
 
-    val status = HomeMapper.toHomeStatusDisplay(currentDoorEvent, now, zone)
+    val status = HomeMapper.toHomeStatusDisplay(currentDoorEvent, now, zone, isCheckInStale)
     val alerts = HomeMapper.toHomeAlerts(
         currentDoorEvent = currentDoorEvent,
         isCheckInStale = isCheckInStale,

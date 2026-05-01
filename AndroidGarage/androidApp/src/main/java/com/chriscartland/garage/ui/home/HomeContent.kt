@@ -84,6 +84,8 @@ data class HomeStatusDisplay(
     val stateLabel: String,
     val sinceLine: String,
     val warning: String? = null,
+    /** Drives the muted "stale" door color and disables animation when true. */
+    val isStale: Boolean = false,
 )
 
 /** Auth-gated bottom card variant. */
@@ -247,7 +249,7 @@ private fun HomeSection(
 
 @Composable
 private fun HomeStatusCardBody(status: HomeStatusDisplay) {
-    val colorSet = LocalDoorStatusColorScheme.current.doorColorSet(isStale = false)
+    val colorSet = LocalDoorStatusColorScheme.current.doorColorSet(isStale = status.isStale)
     val doorColor = when (DoorEvent(doorPosition = status.doorPosition).doorColorState()) {
         DoorColorState.OPEN -> colorSet.open
         DoorColorState.CLOSED -> colorSet.closed
@@ -266,9 +268,12 @@ private fun HomeStatusCardBody(status: HomeStatusDisplay) {
                 .height(180.dp),
             contentAlignment = Alignment.Center,
         ) {
+            // Live state — animate motion (OPENING/CLOSING tween, terminal/error
+            // spring). History rows stay `static = true` because they show past
+            // snapshots, not the current motion.
             GarageIcon(
                 doorPosition = status.doorPosition,
-                static = true,
+                static = false,
                 color = doorColor,
                 modifier = Modifier.size(160.dp),
             )
