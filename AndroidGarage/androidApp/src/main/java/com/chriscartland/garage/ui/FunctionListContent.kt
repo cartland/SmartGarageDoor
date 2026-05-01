@@ -19,13 +19,11 @@ package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -38,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.di.rememberAppComponent
+import com.chriscartland.garage.ui.theme.PreviewSurface
 import com.chriscartland.garage.usecase.FunctionListViewModel
 
 @Composable
@@ -123,15 +122,14 @@ private fun FunctionButton(
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun FunctionListContentPreview() {
     // Pass explicit lambdas so Kotlin picks the stateless inner overload —
     // the DI wrapper above this calls rememberAppComponent(), which crashes
     // Layoutlib in screenshot tests.
-    Surface(modifier = Modifier.fillMaxSize()) {
+    PreviewSurface {
         FunctionListContent(
-            modifier = Modifier.fillMaxSize(),
             accessGranted = true,
             onOpenOrCloseDoor = {},
             onRefreshDoorStatus = {},
@@ -143,12 +141,11 @@ fun FunctionListContentPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun FunctionListContentDeniedPreview() {
-    Surface(modifier = Modifier.fillMaxSize()) {
+    PreviewSurface {
         FunctionListContent(
-            modifier = Modifier.fillMaxSize(),
             accessGranted = false,
             onOpenOrCloseDoor = {},
             onRefreshDoorStatus = {},

@@ -46,7 +46,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.chriscartland.garage.ui.theme.AppTheme
+import com.chriscartland.garage.ui.theme.PreviewSurface
 import com.chriscartland.garage.ui.theme.networkFailed
 import com.chriscartland.garage.ui.theme.networkNotStarted
 import com.chriscartland.garage.ui.theme.networkSucceeded
@@ -234,10 +234,10 @@ private val DIAGRAM_ICONS = listOf(
     Icons.Filled.Home,
 )
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun NetworkDiagramIdlePreview() {
-    AppTheme {
+    PreviewSurface {
         NetworkProgressDiagram(
             state = NetworkDiagramState(
                 nodes = listOf(NodeStatus.Idle, NodeStatus.Idle, NodeStatus.Idle),
@@ -248,10 +248,10 @@ fun NetworkDiagramIdlePreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun NetworkDiagramSendingToServerPreview() {
-    AppTheme {
+    PreviewSurface {
         NetworkProgressDiagram(
             state = NetworkDiagramState(
                 nodes = listOf(NodeStatus.Active, NodeStatus.Idle, NodeStatus.Idle),
@@ -262,10 +262,10 @@ fun NetworkDiagramSendingToServerPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun NetworkDiagramSendingToDoorPreview() {
-    AppTheme {
+    PreviewSurface {
         NetworkProgressDiagram(
             state = NetworkDiagramState(
                 nodes = listOf(NodeStatus.Succeeded, NodeStatus.Active, NodeStatus.Idle),
@@ -276,10 +276,10 @@ fun NetworkDiagramSendingToDoorPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun NetworkDiagramSucceededPreview() {
-    AppTheme {
+    PreviewSurface {
         NetworkProgressDiagram(
             state = NetworkDiagramState(
                 nodes = listOf(NodeStatus.Succeeded, NodeStatus.Succeeded, NodeStatus.Succeeded),
@@ -290,10 +290,10 @@ fun NetworkDiagramSucceededPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun NetworkDiagramServerFailedPreview() {
-    AppTheme {
+    PreviewSurface {
         NetworkProgressDiagram(
             state = NetworkDiagramState(
                 nodes = listOf(NodeStatus.Failed, NodeStatus.Idle, NodeStatus.Idle),
@@ -304,10 +304,10 @@ fun NetworkDiagramServerFailedPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun NetworkDiagramDoorFailedPreview() {
-    AppTheme {
+    PreviewSurface {
         NetworkProgressDiagram(
             state = NetworkDiagramState(
                 nodes = listOf(NodeStatus.Succeeded, NodeStatus.Failed, NodeStatus.Idle),

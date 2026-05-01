@@ -41,6 +41,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
+import com.chriscartland.garage.ui.theme.PreviewSurface
 import java.time.Instant
 
 data class PillColors(
@@ -116,38 +117,46 @@ fun OldLastCheckInBanner(
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun LastCheckInRowPreview() {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // This is called in a RowScope by TopAppBar.
-        CheckInRow(Instant.now().minusSeconds(123), isCheckInStale = false)
+    PreviewSurface {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // This is called in a RowScope by TopAppBar.
+            CheckInRow(Instant.now().minusSeconds(123), isCheckInStale = false)
+        }
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun LastCheckInRowOldPreview() {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // This is called in a RowScope by TopAppBar.
-        CheckInRow(Instant.now().minusSeconds(1234), isCheckInStale = true)
+    PreviewSurface {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // This is called in a RowScope by TopAppBar.
+            CheckInRow(Instant.now().minusSeconds(1234), isCheckInStale = true)
+        }
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun LastCheckInBannerPreview() {
-    OldLastCheckInBanner()
+    PreviewSurface {
+        OldLastCheckInBanner()
+    }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun LastCheckInBannerOldWithActionPreview() {
-    OldLastCheckInBanner(
-        action = {},
-    )
+    PreviewSurface {
+        OldLastCheckInBanner(
+            action = {},
+        )
+    }
 }

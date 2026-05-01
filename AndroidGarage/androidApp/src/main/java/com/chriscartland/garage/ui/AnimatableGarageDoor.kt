@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.ColorUtils
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
+import com.chriscartland.garage.ui.theme.PreviewSurface
 import java.time.Duration
 
 val DEFAULT_GARAGE_DOOR_ANIMATION_DURATION: Duration = Duration.ofSeconds(12)
@@ -229,32 +230,34 @@ private const val PREVIEW_ICON_WIDTH_DP = 300
 
 @Composable
 private fun PreviewBox(content: @Composable (Modifier) -> Unit) {
-    Box(
-        modifier = Modifier.size(PREVIEW_BOX_DP.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        content(
-            Modifier
-                .wrapContentSize()
-                .heightIn(max = PREVIEW_ICON_HEIGHT_DP.dp)
-                .widthIn(max = PREVIEW_ICON_WIDTH_DP.dp),
-        )
+    PreviewSurface {
+        Box(
+            modifier = Modifier.size(PREVIEW_BOX_DP.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            content(
+                Modifier
+                    .wrapContentSize()
+                    .heightIn(max = PREVIEW_ICON_HEIGHT_DP.dp)
+                    .widthIn(max = PREVIEW_ICON_WIDTH_DP.dp),
+            )
+        }
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun OpeningPreview() {
     PreviewBox { mod -> GarageIcon(DoorPosition.OPENING, modifier = mod, static = true) }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun ClosingPreview() {
     PreviewBox { mod -> GarageIcon(DoorPosition.CLOSING, modifier = mod, static = true) }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun ClosedPreview() {
     PreviewBox { mod ->
@@ -267,37 +270,37 @@ fun ClosedPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun OpenPreview() {
     PreviewBox { mod -> GarageIcon(DoorPosition.OPEN, modifier = mod, static = true) }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun MidwayPreview() {
     PreviewBox { mod -> GarageIcon(DoorPosition.UNKNOWN, modifier = mod, static = true) }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun OpeningTooLongPreview() {
     PreviewBox { mod -> GarageIcon(DoorPosition.OPENING_TOO_LONG, modifier = mod, static = true) }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun ClosingTooLongPreview() {
     PreviewBox { mod -> GarageIcon(DoorPosition.CLOSING_TOO_LONG, modifier = mod, static = true) }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun OpenMisalignedPreview() {
     PreviewBox { mod -> GarageIcon(DoorPosition.OPEN_MISALIGNED, modifier = mod, static = true) }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun ErrorSensorConflictPreview() {
     PreviewBox { mod -> GarageIcon(DoorPosition.ERROR_SENSOR_CONFLICT, modifier = mod, static = true) }

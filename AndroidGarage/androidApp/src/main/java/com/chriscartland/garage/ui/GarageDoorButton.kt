@@ -32,7 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.domain.model.RemoteButtonState
-import com.chriscartland.garage.ui.theme.AppTheme
+import com.chriscartland.garage.ui.theme.PreviewSurface
 import com.chriscartland.garage.ui.theme.cautionContainer
 import com.chriscartland.garage.ui.theme.onCautionContainer
 
@@ -131,74 +131,74 @@ private fun RemoteButtonState.disabledLabel(): String =
 
 // region Previews
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun GarageDoorButtonReadyPreview() {
-    AppTheme {
+    PreviewSurface {
         GarageDoorButton(state = RemoteButtonState.Ready, onTap = {})
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun GarageDoorButtonPreparingPreview() {
-    AppTheme {
+    PreviewSurface {
         GarageDoorButton(state = RemoteButtonState.Preparing, onTap = {})
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun GarageDoorButtonAwaitingConfirmationPreview() {
-    AppTheme {
+    PreviewSurface {
         GarageDoorButton(state = RemoteButtonState.AwaitingConfirmation, onTap = {})
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun GarageDoorButtonCancelledPreview() {
-    AppTheme {
+    PreviewSurface {
         GarageDoorButton(state = RemoteButtonState.Cancelled, onTap = {})
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun GarageDoorButtonSendingToServerPreview() {
-    AppTheme {
+    PreviewSurface {
         GarageDoorButton(state = RemoteButtonState.SendingToServer, onTap = {})
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun GarageDoorButtonSendingToDoorPreview() {
-    AppTheme {
+    PreviewSurface {
         GarageDoorButton(state = RemoteButtonState.SendingToDoor, onTap = {})
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun GarageDoorButtonSucceededPreview() {
-    AppTheme {
+    PreviewSurface {
         GarageDoorButton(state = RemoteButtonState.Succeeded, onTap = {})
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun GarageDoorButtonServerFailedPreview() {
-    AppTheme {
+    PreviewSurface {
         GarageDoorButton(state = RemoteButtonState.ServerFailed, onTap = {})
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun GarageDoorButtonDoorFailedPreview() {
-    AppTheme {
+    PreviewSurface {
         GarageDoorButton(state = RemoteButtonState.DoorFailed, onTap = {})
     }
 }
