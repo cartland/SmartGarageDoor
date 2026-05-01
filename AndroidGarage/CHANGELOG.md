@@ -15,6 +15,14 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.9.1
+- **Live durations now tick every second again.** The "Since X · Y" line on the Home and History tabs and the device check-in row crawled in 10-second steps in 2.9.0 because the new app-scoped `LiveClock` ticked at 10 s instead of the 1 s cadence the old per-Composable timers used. `MutableStateFlow`'s equality dedup makes per-second ticks free for unchanged formatted strings.
+- **Door icon animation restored on Home.** OPENING/CLOSING tweens and terminal/error springs no longer fired in 2.9.0 because `home/HomeContent` froze the icon at its static position. Animation is now active for the live-status icon. History rows stay static (they're past snapshots, by design).
+- **Stale-state door coloring restored on Home.** When the device check-in goes stale, the door color now mutes again. 2.9.0 hardcoded the bright variant.
+- **FCM-pushed door events update the UI immediately.** Server-pushed events route through `ReceiveFcmDoorEventUseCase` and persist via the repository on the application coroutine scope. Manual pull-to-refresh is no longer required to see the latest state after a push.
+- **New "Device" section on Home and History** showing the device heartbeat age (e.g. "30 sec ago") and an offline icon when stale. Replaces the TopAppBar pill the redesign retired.
+- **Compose preview backgrounds follow the active theme.** All previews now wrap in a shared `PreviewSurface` instead of `@Preview(showBackground = true)`, so dark-mode reference screenshots no longer have a white edge around dark UI.
+
 ## 2.9.0
 - No code changes from 2.8.0. Re-tags the same APK behavior under a fresh `versionName` so the Play Store "What's New" surface mentions the **Home tab redesign** (which shipped to internal track in `android/187` as part of 2.8.0 — see the 2.8.0 entry below for full feature list). Patch 2.8.1 is bypassed; it contained only CI-script and skill changes that don't affect the APK.
 
