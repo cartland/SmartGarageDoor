@@ -39,6 +39,14 @@ interface DoorViewModel {
     /** True when the last check-in is older than the staleness threshold (11 min). */
     val isCheckInStale: StateFlow<Boolean>
 
+    /**
+     * Wall-clock time as epoch seconds, ticking on the [LiveClock] cadence
+     * (10s by default). UI bridges collect this and convert to a platform
+     * [java.time.Instant] before passing into mappers — replaces the
+     * per-Composable `rememberLiveNow()` that previously lived in the UI.
+     */
+    val nowEpochSeconds: StateFlow<Long>
+
     fun deregisterFcm()
 
     fun fetchCurrentDoorEvent()
@@ -55,12 +63,16 @@ class DefaultDoorViewModel(
     private val deregisterFcmUseCase: DeregisterFcmUseCase,
     private val fcmRegistrationManager: FcmRegistrationManager,
     private val checkInStalenessManager: CheckInStalenessManager,
+    private val liveClock: LiveClock,
     private val fetchOnInit: Boolean = true,
 ) : ViewModel(),
     DoorViewModel {
     // ADR-022: expose the manager's StateFlow by reference — no mirror.
     override val fcmRegistrationStatus: StateFlow<FcmRegistrationStatus> =
         fcmRegistrationManager.registrationStatus
+
+    // ADR-022: pass through LiveClock's StateFlow — no mirror.
+    override val nowEpochSeconds: StateFlow<Long> = liveClock.nowEpochSeconds
 
     private val _currentDoorEvent =
         MutableStateFlow<LoadingResult<DoorEvent?>>(LoadingResult.Loading(null))

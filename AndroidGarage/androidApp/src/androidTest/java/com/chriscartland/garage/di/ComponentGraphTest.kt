@@ -140,6 +140,12 @@ class ComponentGraphTest {
     }
 
     @Test
+    fun liveClockIsSingleton() {
+        val c = component
+        assertSame("LiveClock must be singleton", c.liveClock, c.liveClock)
+    }
+
+    @Test
     fun appDatabaseIsSingleton() {
         val c = component
         assertSame("AppDatabase must be singleton", c.appDatabase, c.appDatabase)

@@ -26,6 +26,7 @@ import com.chriscartland.garage.testcommon.FakeDoorFcmRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.CheckInStalenessManager
+import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
@@ -62,6 +63,13 @@ class AppStartupTest {
             clock = AppClock { 0L },
         )
 
+    private fun createLiveClock(scope: TestScope): DefaultLiveClock =
+        DefaultLiveClock(
+            clock = AppClock { 0L },
+            scope = scope.backgroundScope,
+            dispatcher = testDispatcher,
+        )
+
     private class FakeAppLoggerViewModel : AppLoggerViewModel {
         val loggedKeys = mutableListOf<String>()
 
@@ -85,7 +93,8 @@ class AppStartupTest {
         val fcmManager = createFcmManager(scope)
         val stalenessManager = createStalenessManager(scope)
         val appLoggerViewModel = FakeAppLoggerViewModel()
-        val actions = AppStartup(fcmManager, stalenessManager, appLoggerViewModel)
+        val liveClock = createLiveClock(scope)
+        val actions = AppStartup(fcmManager, stalenessManager, liveClock, appLoggerViewModel)
 
         actions.run()
 
@@ -101,12 +110,18 @@ class AppStartupTest {
         val fcmManager = createFcmManager(scope)
         val stalenessManager = createStalenessManager(scope)
         val appLoggerViewModel = FakeAppLoggerViewModel()
-        val actions = AppStartup(fcmManager, stalenessManager, appLoggerViewModel)
+        val liveClock = createLiveClock(scope)
+        val actions = AppStartup(fcmManager, stalenessManager, liveClock, appLoggerViewModel)
 
         val result = actions.run()
 
         assertEquals(
-            listOf("startFcmRegistration", "startCheckInStaleness", "logFcmSubscribe"),
+            listOf(
+                "startFcmRegistration",
+                "startCheckInStaleness",
+                "startLiveClock",
+                "logFcmSubscribe",
+            ),
             result,
         )
     }

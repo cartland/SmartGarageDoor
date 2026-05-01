@@ -22,11 +22,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.auth.rememberGoogleSignIn
@@ -43,7 +41,6 @@ import com.chriscartland.garage.usecase.DoorViewModel
 import com.chriscartland.garage.usecase.RemoteButtonViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
-import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneId
 import com.chriscartland.garage.ui.home.HomeContent as HomeContentInternal
@@ -81,7 +78,11 @@ fun HomeContent(
     val notificationPermissionState = rememberNotificationPermissionState()
     var permissionRequestCount by remember { mutableIntStateOf(0) }
 
-    val now = rememberLiveNow()
+    // `now` is driven by the VM's LiveClock-backed StateFlow (10s tick) —
+    // `rememberLiveNow()` no longer exists; the ticker is owned by the
+    // UseCase layer and lives across the app, not per-Composable.
+    val nowEpochSeconds by resolvedDoorViewModel.nowEpochSeconds.collectAsState()
+    val now = remember(nowEpochSeconds) { Instant.ofEpochSecond(nowEpochSeconds) }
     val zone = remember { ZoneId.systemDefault() }
 
     val status = HomeMapper.toHomeStatusDisplay(currentDoorEvent, now, zone)
@@ -135,27 +136,4 @@ fun HomeContent(
         onSignIn = { googleSignIn.launchSignIn() },
     )
     ReportDrawnWhen { currentDoorEvent is LoadingResult.Complete }
-}
-
-/**
- * Returns an [Instant] that updates every 30s so the "Since X · Y" duration
- * text refreshes without a per-second recomposition. Returns a fixed
- * timestamp under [LocalInspectionMode] so previews stay deterministic.
- *
- * Sibling of `DoorHistoryContent.rememberLiveNow` — kept private to each
- * call site rather than shared, since the previews use the same fixed
- * reference instant for visual consistency across tabs.
- */
-@Composable
-private fun rememberLiveNow(): Instant {
-    if (LocalInspectionMode.current) {
-        return remember { Instant.parse("2026-04-29T12:00:00Z") }
-    }
-    val state = produceState(initialValue = Instant.now()) {
-        while (true) {
-            delay(30_000L)
-            value = Instant.now()
-        }
-    }
-    return state.value
 }
