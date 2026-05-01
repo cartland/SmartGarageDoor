@@ -74,16 +74,22 @@ tasks.register<Exec>("generateScreenshotGallery") {
 }
 
 tasks.whenTaskAdded {
-    if (name == "updateDebugScreenshotTest") {
-        if (!project.hasProperty("retainedReferenceScreenshots")) {
-            dependsOn("cleanReferenceScreenshots")
-        }
-    }
-    if (name in listOf("updateDebugScreenshotTest", "validateDebugScreenshotTest")) {
-        doFirst {
-            val isSequentialScript = project.hasProperty("retainedReferenceScreenshots")
-            val isForced = project.hasProperty("forceAllScreenshots")
-            if (!isSequentialScript && !isForced) {
+    val taskName = name
+    if (taskName in listOf("updateDebugScreenshotTest", "validateDebugScreenshotTest")) {
+        // Capture flag/property state at configuration time so the
+        // configuration cache can serialize the doFirst action. AGP's
+        // screenshot tasks aren't `Test` subclasses, so the standard
+        // filter API is unavailable — read `--tests` from the raw
+        // start-parameter task-request args instead.
+        val isSequentialScript = project.hasProperty("retainedReferenceScreenshots")
+        val isForced = project.hasProperty("forceAllScreenshots")
+        val passedTestsArg = gradle.startParameter.taskRequests
+            .flatMap { it.args }
+            .contains("--tests")
+        val refDirCapture = file("src/screenshotTestDebug/reference")
+
+        doFirst("Screenshot OOM gate") {
+            if (!isSequentialScript && !isForced && !passedTestsArg) {
                 error(
                     """
 
@@ -92,16 +98,31 @@ tasks.whenTaskAdded {
                     invocation may cause OutOfMemoryError.
                     ===========================================================
 
-                    Use the sequential script instead:
+                    Use the sequential script for the full suite:
                       ./scripts/generate-android-screenshots.sh
 
-                    To force a single-invocation run, add:
+                    Or target one class with --tests (no property needed):
+                      ./gradlew :android-screenshot-tests:$taskName \
+                        --tests com.chriscartland.garage.screenshottests.HomeRedesignScreenshotTestKt
+
+                    To force the full single-invocation run, add:
                       -PforceAllScreenshots
 
                     ===========================================================
 
                     """.trimIndent(),
                 )
+            }
+
+            // Selective clean: only wipe ALL references on a full update.
+            // Subset runs (`--tests`) and the sequential script preserve siblings.
+            if (taskName == "updateDebugScreenshotTest" &&
+                !isSequentialScript && !passedTestsArg
+            ) {
+                if (refDirCapture.exists()) {
+                    refDirCapture.deleteRecursively()
+                    println("Deleted reference screenshots: $refDirCapture")
+                }
             }
         }
     }
