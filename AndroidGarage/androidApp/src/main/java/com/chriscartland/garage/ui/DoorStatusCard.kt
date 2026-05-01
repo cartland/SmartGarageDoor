@@ -22,8 +22,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -32,7 +30,6 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -49,6 +46,7 @@ import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.theme.DoorColorState
 import com.chriscartland.garage.ui.theme.DoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
+import com.chriscartland.garage.ui.theme.PreviewSurface
 import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.doorColorState
 import java.time.Instant
@@ -191,10 +189,10 @@ private fun DoorPosition.toFriendlyName(): String =
         DoorPosition.ERROR_SENSOR_CONFLICT -> "Error: Sensor Conflict"
     }
 
-@Preview(showBackground = true)
+@Preview(heightDp = 300)
 @Composable
 fun DoorStatusCardPreview() {
-    Surface(modifier = Modifier.fillMaxWidth().height(300.dp)) {
+    PreviewSurface {
         DoorStatusCard(
             demoDoorEvents.firstOrNull(),
             modifier = Modifier.fillMaxSize(),

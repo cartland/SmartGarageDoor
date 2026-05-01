@@ -60,6 +60,7 @@ import com.chriscartland.garage.ui.GarageIcon
 import com.chriscartland.garage.ui.RemoteButtonContent
 import com.chriscartland.garage.ui.theme.DoorColorState
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
+import com.chriscartland.garage.ui.theme.PreviewSurface
 import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.doorColorState
 
@@ -431,22 +432,10 @@ private object HomePreviewData {
     )
 }
 
-@Composable
-private fun HomePreviewFrame(content: @Composable () -> Unit) {
-    // `@Preview(showBackground = true)` hardcodes a white background that
-    // ignores the active color scheme — making dark-mode previews look like
-    // dark cards floating on a light page. Wrap the preview body in a
-    // background-colored Surface so the page background follows the theme.
-    Surface(
-        color = MaterialTheme.colorScheme.background,
-        modifier = Modifier.fillMaxSize(),
-    ) { content() }
-}
-
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentOpenSignedInPreview() =
-    HomePreviewFrame {
+    PreviewSurface {
         HomeContent(
             status = HomePreviewData.openStatus,
             authState = HomeAuthState.SignedIn,
@@ -458,7 +447,7 @@ fun HomeContentOpenSignedInPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentClosedSignedInPreview() =
-    HomePreviewFrame {
+    PreviewSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
             authState = HomeAuthState.SignedIn,
@@ -470,7 +459,7 @@ fun HomeContentClosedSignedInPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentAwaitingConfirmationPreview() =
-    HomePreviewFrame {
+    PreviewSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
             authState = HomeAuthState.SignedIn,
@@ -482,7 +471,7 @@ fun HomeContentAwaitingConfirmationPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentSendingToDoorPreview() =
-    HomePreviewFrame {
+    PreviewSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
             authState = HomeAuthState.SignedIn,
@@ -494,7 +483,7 @@ fun HomeContentSendingToDoorPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentOpeningTooLongPreview() =
-    HomePreviewFrame {
+    PreviewSurface {
         HomeContent(
             status = HomePreviewData.openingTooLongStatus,
             authState = HomeAuthState.SignedIn,
@@ -506,7 +495,7 @@ fun HomeContentOpeningTooLongPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentStaleBannerPreview() =
-    HomePreviewFrame {
+    PreviewSurface {
         HomeContent(
             status = HomePreviewData.openStatus,
             authState = HomeAuthState.SignedIn,
@@ -519,7 +508,7 @@ fun HomeContentStaleBannerPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentPermissionMissingPreview() =
-    HomePreviewFrame {
+    PreviewSurface {
         HomeContent(
             status = HomePreviewData.openStatus,
             authState = HomeAuthState.SignedIn,
@@ -532,7 +521,7 @@ fun HomeContentPermissionMissingPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentSignedOutPreview() =
-    HomePreviewFrame {
+    PreviewSurface {
         HomeContent(
             status = HomePreviewData.openStatus,
             authState = HomeAuthState.SignedOut,
