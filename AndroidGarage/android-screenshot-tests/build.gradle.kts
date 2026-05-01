@@ -44,6 +44,16 @@ dependencies {
     implementation(project(":domain"))
 }
 
+// Compose preview rendering happens inside the test worker JVM (the
+// "Layoutlib Render Thread"). The default test heap is too small for the
+// preview set in this module — `ComponentsScreenshotTest` OOMed at 2 GB,
+// then again at 4 GB. Bump the test worker heap and add a Metaspace cap
+// so per-class metadata doesn't accumulate across the long suite.
+tasks.withType<Test>().configureEach {
+    maxHeapSize = "4g"
+    jvmArgs("-XX:MaxMetaspaceSize=1g")
+}
+
 tasks.register("cleanReferenceScreenshots") {
     group = "screenshot"
     description = "Cleans the reference screenshots directory."

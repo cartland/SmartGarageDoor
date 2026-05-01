@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
+import com.chriscartland.garage.ui.theme.PreviewSurface
 
 /**
  * Display state for the "Device" section row that appears on Home and
@@ -150,26 +151,32 @@ fun DeviceCheckInSection(
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun DeviceCheckInSectionFreshPreview() {
-    DeviceCheckInSection(
-        display = DeviceCheckInDisplay(durationLabel = "30 sec ago", isStale = false),
-    )
+    PreviewSurface {
+        DeviceCheckInSection(
+            display = DeviceCheckInDisplay(durationLabel = "30 sec ago", isStale = false),
+        )
+    }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun DeviceCheckInSectionAgingPreview() {
-    DeviceCheckInSection(
-        display = DeviceCheckInDisplay(durationLabel = "5 min 20 sec ago", isStale = false),
-    )
+    PreviewSurface {
+        DeviceCheckInSection(
+            display = DeviceCheckInDisplay(durationLabel = "5 min 20 sec ago", isStale = false),
+        )
+    }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun DeviceCheckInSectionStalePreview() {
-    DeviceCheckInSection(
-        display = DeviceCheckInDisplay(durationLabel = "23 min ago", isStale = true),
-    )
+    PreviewSurface {
+        DeviceCheckInSection(
+            display = DeviceCheckInDisplay(durationLabel = "23 min ago", isStale = true),
+        )
+    }
 }
