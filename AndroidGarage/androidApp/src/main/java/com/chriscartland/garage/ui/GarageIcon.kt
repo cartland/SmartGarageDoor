@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
@@ -48,6 +49,10 @@ import java.time.Duration
  *
  * @param static when `true`, render at [staticPositionFor] (no animation,
  *   no Animatable). Used by past-event snapshots in the recent events list.
+ *   Always treated as `true` under [LocalInspectionMode] (Studio previews +
+ *   screenshot tests) so reference PNGs are deterministic — Layoutlib can't
+ *   advance `LaunchedEffect`, so an animated `OPENING` would otherwise
+ *   render at the start frame and look identical to `CLOSED`.
  */
 @Composable
 fun GarageIcon(
@@ -57,7 +62,7 @@ fun GarageIcon(
     color: Color = LocalDoorStatusColorScheme.current.openFresh,
     duration: Duration = DEFAULT_GARAGE_DOOR_ANIMATION_DURATION,
 ) {
-    if (static) {
+    if (static || LocalInspectionMode.current) {
         DoorIconBox(
             doorOffset = DoorAnimation.staticPositionFor(doorPosition),
             doorPosition = doorPosition,

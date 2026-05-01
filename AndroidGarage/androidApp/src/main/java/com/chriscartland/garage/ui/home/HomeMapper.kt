@@ -41,11 +41,14 @@ object HomeMapper {
      * @param now used for "Since X · Y" duration computation.
      * @param zone used to compute the local-day boundary for whether to show
      *   "9:47 AM" vs. "Apr 28, 9:47 PM".
+     * @param isCheckInStale picks the muted door-color variant when the
+     *   device hasn't checked in recently.
      */
     fun toHomeStatusDisplay(
         currentDoorEvent: LoadingResult<DoorEvent?>,
         now: Instant,
         zone: ZoneId,
+        isCheckInStale: Boolean = false,
     ): HomeStatusDisplay {
         val event = currentDoorEvent.data
         val doorPosition = event?.doorPosition ?: DoorPosition.UNKNOWN
@@ -54,6 +57,7 @@ object HomeMapper {
             stateLabel = stateLabel(doorPosition),
             sinceLine = sinceLine(event?.lastChangeTimeSeconds, now, zone),
             warning = warning(event),
+            isStale = isCheckInStale,
         )
     }
 

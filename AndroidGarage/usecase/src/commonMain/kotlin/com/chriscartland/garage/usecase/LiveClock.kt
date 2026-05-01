@@ -43,11 +43,12 @@ import kotlinx.coroutines.launch
  * Per ADR-019, the ticker runs on `externalScope` so it survives
  * configuration changes and screen pauses.
  *
- * The default tick interval is 10s — fine-grained enough for the device
- * heartbeat indicator (PR C) and short enough that the Home/History "Since"
- * line stays visually current without burning recompositions on every frame.
- * Mappers produce stable strings, so 10s ticks that don't change the string
- * are no-ops in Compose.
+ * The default tick interval is 1s. The "Since X · Y" line and the device
+ * heartbeat row both display single-second granularity in the leading
+ * bucket ("12 sec ago", "Since 9:47 AM · 3 sec"); a 10s tick made those
+ * counters jump in 10-second steps and felt frozen. Mappers produce stable
+ * strings, so 1s ticks that don't change the string are no-ops in Compose
+ * (StateFlow's equality dedup).
  */
 interface LiveClock {
     /**
@@ -88,7 +89,7 @@ class DefaultLiveClock(
     }
 
     companion object {
-        /** 10 seconds — fast enough for sub-minute heartbeat granularity. */
-        const val DEFAULT_TICK_INTERVAL_MS = 10_000L
+        /** 1 second — matches the per-Composable tickers it replaced. */
+        const val DEFAULT_TICK_INTERVAL_MS = 1_000L
     }
 }
