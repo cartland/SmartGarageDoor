@@ -1,0 +1,89 @@
+/*
+ * Copyright 2024 Chris Cartland. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+package com.chriscartland.garage.ui.home
+
+/**
+ * Display state for the device check-in indicator. Carries pre-formatted
+ * strings so the renderer (currently [com.chriscartland.garage.ui.TitleBarCheckInPill])
+ * stays stateless and unit tests cover the formatting logic directly.
+ *
+ * @param durationLabel e.g. "Just now", "30 sec ago", "1 min 30 sec ago".
+ *   Returns "No data yet" when the heartbeat hasn't been observed.
+ * @param isStale true once the heartbeat is older than the staleness
+ *   threshold (`STALE_THRESHOLD_SECONDS`, 11 min). Drives the icon flip
+ *   and color change.
+ */
+data class DeviceCheckInDisplay(
+    val durationLabel: String,
+    val isStale: Boolean,
+)
+
+/**
+ * Pure-function formatter for the device check-in label. Driven by
+ * [com.chriscartland.garage.usecase.LiveClock]'s 1s tick — `MutableStateFlow`
+ * equality-dedup makes per-second ticks free for unchanged formatted strings.
+ *
+ * @param lastCheckInSeconds epoch-seconds of the most recent device
+ *   heartbeat (`DoorEvent.lastCheckInTimeSeconds`). Null when no event
+ *   has been received yet.
+ * @param nowSeconds epoch-seconds of the current wall-clock — typically
+ *   `LiveClock.nowEpochSeconds.value`.
+ * @param staleThresholdSeconds heartbeat age past which the indicator
+ *   flips to stale. Defaults to 11 minutes (matches
+ *   `CheckInStalenessManager.CHECK_IN_STALE_THRESHOLD_SECONDS`).
+ */
+object DeviceCheckIn {
+    fun format(
+        lastCheckInSeconds: Long?,
+        nowSeconds: Long,
+        staleThresholdSeconds: Long = STALE_THRESHOLD_SECONDS,
+    ): DeviceCheckInDisplay {
+        if (lastCheckInSeconds == null) {
+            return DeviceCheckInDisplay(durationLabel = "No data yet", isStale = false)
+        }
+        val age = (nowSeconds - lastCheckInSeconds).coerceAtLeast(0L)
+        val label = when {
+            age < SECONDS_PER_MIN -> if (age < 10) "Just now" else "$age sec ago"
+            age < SECONDS_PER_HOUR -> {
+                val minutes = age / SECONDS_PER_MIN
+                val seconds = age % SECONDS_PER_MIN
+                if (seconds == 0L) "$minutes min ago" else "$minutes min $seconds sec ago"
+            }
+            age < SECONDS_PER_DAY -> {
+                val hours = age / SECONDS_PER_HOUR
+                val minutes = (age % SECONDS_PER_HOUR) / SECONDS_PER_MIN
+                if (minutes == 0L) "$hours hr ago" else "$hours hr $minutes min ago"
+            }
+            else -> {
+                val days = age / SECONDS_PER_DAY
+                if (days == 1L) "1 day ago" else "$days days ago"
+            }
+        }
+        return DeviceCheckInDisplay(
+            durationLabel = label,
+            isStale = age > staleThresholdSeconds,
+        )
+    }
+
+    private const val SECONDS_PER_MIN = 60L
+    private const val SECONDS_PER_HOUR = 3_600L
+    private const val SECONDS_PER_DAY = 86_400L
+
+    /** Mirrors `CheckInStalenessManager.CHECK_IN_STALE_THRESHOLD_SECONDS`. */
+    const val STALE_THRESHOLD_SECONDS = 11L * 60
+}

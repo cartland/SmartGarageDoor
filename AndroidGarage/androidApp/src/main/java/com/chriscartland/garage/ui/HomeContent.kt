@@ -33,7 +33,6 @@ import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
-import com.chriscartland.garage.ui.home.DeviceCheckIn
 import com.chriscartland.garage.ui.home.HomeAlert
 import com.chriscartland.garage.ui.home.HomeMapper
 import com.chriscartland.garage.usecase.AppLoggerViewModel
@@ -94,10 +93,6 @@ fun HomeContent(
         notificationRequestCount = permissionRequestCount,
     )
     val homeAuthState = HomeMapper.toHomeAuthState(authState)
-    val deviceCheckIn = DeviceCheckIn.format(
-        lastCheckInSeconds = currentDoorEvent.data?.lastCheckInTimeSeconds,
-        nowSeconds = nowEpochSeconds,
-    )
 
     HomeContentInternal(
         status = status,
@@ -105,7 +100,6 @@ fun HomeContent(
         modifier = modifier,
         remoteButtonState = buttonState,
         alerts = alerts,
-        deviceCheckIn = deviceCheckIn,
         isRefreshing = currentDoorEvent is LoadingResult.Loading,
         onRefresh = {
             resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_FETCH_CURRENT_DOOR)

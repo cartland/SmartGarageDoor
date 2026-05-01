@@ -15,6 +15,10 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.9.2
+- **Last-contact indicator returns to the title bar** as a small rounded pill (antenna icon + duration). Replaces the full-width "Device" section that 2.9.1 placed at the top of Home and History — same data plumbing (LiveClock-driven `DeviceCheckIn.format`, app-scoped staleness check) and same 11-min stale threshold, but denser surface and visible from every main tab. Hidden on the Function list and Diagnostics sub-screens. The pill uses neutral M3 tokens (`surfaceVariant` fresh, `errorContainer` stale) instead of the door-state tint the original pill used pre-2.7/2.8.
+- The "Not receiving updates from server" alert with the **Retry** button still appears on Home and History when the device hasn't checked in — the pill is the ambient glance, the alert is the actionable banner.
+
 ## 2.9.1
 - **Live durations now tick every second again.** The "Since X · Y" line on the Home and History tabs and the device check-in row crawled in 10-second steps in 2.9.0 because the new app-scoped `LiveClock` ticked at 10 s instead of the 1 s cadence the old per-Composable timers used. `MutableStateFlow`'s equality dedup makes per-second ticks free for unchanged formatted strings.
 - **Door icon animation restored on Home.** OPENING/CLOSING tweens and terminal/error springs no longer fired in 2.9.0 because `home/HomeContent` froze the icon at its static position. Animation is now active for the live-status icon. History rows stay static (they're past snapshots, by design).
