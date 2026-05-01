@@ -149,6 +149,7 @@ fun HomeContent(
     modifier: Modifier = Modifier,
     remoteButtonState: RemoteButtonState = RemoteButtonState.Ready,
     alerts: List<HomeAlert> = emptyList(),
+    deviceCheckIn: DeviceCheckInDisplay? = null,
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
     onAlertAction: (HomeAlert) -> Unit = {},
@@ -181,6 +182,14 @@ fun HomeContent(
             item(key = "status") {
                 HomeSection(label = "Status") {
                     HomeStatusCardBody(status = status)
+                }
+            }
+
+            if (deviceCheckIn != null) {
+                item(key = "device") {
+                    HomeSection(label = "Device") {
+                        DeviceCheckInSection(display = deviceCheckIn)
+                    }
                 }
             }
 

@@ -50,6 +50,8 @@ import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.ui.GarageIcon
+import com.chriscartland.garage.ui.home.DeviceCheckInDisplay
+import com.chriscartland.garage.ui.home.DeviceCheckInSection
 import com.chriscartland.garage.ui.theme.DoorColorState
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.doorColorSet
@@ -137,6 +139,7 @@ data class HistoryDay(
 fun HistoryContent(
     days: List<HistoryDay>,
     modifier: Modifier = Modifier,
+    deviceCheckIn: DeviceCheckInDisplay? = null,
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
 ) {
@@ -150,6 +153,23 @@ fun HistoryContent(
             contentPadding = PaddingValues(vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            if (deviceCheckIn != null) {
+                item(key = "device") {
+                    Column {
+                        Text(
+                            text = "DEVICE",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
+                        )
+                        DeviceCheckInSection(
+                            display = deviceCheckIn,
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
+                    }
+                }
+            }
             if (days.isEmpty()) {
                 item { HistoryEmptyState() }
             } else {
