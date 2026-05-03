@@ -17,14 +17,17 @@
 
 package com.chriscartland.garage.ui
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.SignalWifiOff
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,8 +35,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -42,18 +43,17 @@ import com.chriscartland.garage.ui.home.DeviceCheckInDisplay
 import com.chriscartland.garage.ui.theme.PreviewSurface
 
 /**
- * Compact rounded-pill device-heartbeat indicator that lives in the
- * TopAppBar's `actions` slot. Antenna icon + duration text when fresh;
- * disconnected icon + error coloring when stale (>11 min).
+ * Compact rounded-pill device-heartbeat indicator. Antenna icon + duration
+ * text when fresh; disconnected icon + error coloring when stale (>11 min).
  *
- * Restored in 2.9.2 in place of the full-width "Device" section that the
- * 2.9.1 redesign placed on Home and History — same staleness logic
- * (`DeviceCheckIn.format`), denser surface, ambient at-a-glance from every
- * main tab.
+ * Lives in the Home tab's "Status" section header (right-aligned, in-line with
+ * the section label). The `TitleBar` prefix is historical — the pill briefly
+ * occupied the TopAppBar's `actions` slot in 2.9.2 before moving to the Status
+ * header.
  *
  * Stateless: pass a pre-formatted [DeviceCheckInDisplay]. The duration label
  * and `isStale` boolean both come from the LiveClock-driven flow in the
- * caller (typically `Main.kt`).
+ * caller (typically the Home Composable).
  *
  * Uses neutral M3 tokens: `surfaceVariant` + `onSurfaceVariant` when fresh,
  * `errorContainer` + `onErrorContainer` when stale.
@@ -89,20 +89,21 @@ fun TitleBarCheckInPill(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                 }
-                Image(
-                    modifier = Modifier.scale(0.7f),
-                    painter = if (display.isStale) {
-                        painterResource(id = R.drawable.outline_signal_disconnected_24)
-                    } else {
-                        painterResource(id = R.drawable.baseline_cell_tower_24)
-                    },
-                    colorFilter = ColorFilter.tint(LocalContentColor.current),
-                    contentDescription = if (display.isStale) {
-                        "Device offline"
-                    } else {
-                        "Device online"
-                    },
-                )
+                if (display.isStale) {
+                    Icon(
+                        modifier = Modifier.size(17.dp),
+                        imageVector = Icons.Outlined.SignalWifiOff,
+                        tint = LocalContentColor.current,
+                        contentDescription = "Device offline",
+                    )
+                } else {
+                    Icon(
+                        modifier = Modifier.size(17.dp),
+                        painter = painterResource(id = R.drawable.baseline_cell_tower_24),
+                        tint = LocalContentColor.current,
+                        contentDescription = "Device online",
+                    )
+                }
             }
         }
     }
