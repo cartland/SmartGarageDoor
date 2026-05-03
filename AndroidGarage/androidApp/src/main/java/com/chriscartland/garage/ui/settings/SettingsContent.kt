@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.ui.settings
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -151,20 +152,6 @@ fun SettingsContent(
             }
         }
 
-        if (showToolsSection) {
-            item {
-                SettingsSection(label = "Tools") {
-                    SettingsRow(
-                        icon = Icons.AutoMirrored.Outlined.List,
-                        title = "Function list",
-                        subtitle = null,
-                        showChevron = true,
-                        onClick = onFunctionListTap,
-                    )
-                }
-            }
-        }
-
         item {
             SettingsSection(label = "About") {
                 SettingsRow(
@@ -200,6 +187,20 @@ fun SettingsContent(
                         subtitle = null,
                         showChevron = true,
                         onClick = onDiagnosticsTap,
+                    )
+                }
+            }
+        }
+
+        item {
+            AnimatedVisibility(visible = showToolsSection) {
+                SettingsSection(label = "Tools") {
+                    SettingsRow(
+                        icon = Icons.AutoMirrored.Outlined.List,
+                        title = "Function list",
+                        subtitle = null,
+                        showChevron = true,
+                        onClick = onFunctionListTap,
                     )
                 }
             }
