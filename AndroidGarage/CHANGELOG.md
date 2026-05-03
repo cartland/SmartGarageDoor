@@ -15,6 +15,9 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.9.3
+- **Settings: "Tools" section moved to the bottom**, below "About" — Account / Notifications / About / Tools is the new order. The Tools section is also wrapped in an `AnimatedVisibility` so it expands and collapses smoothly when the allowlist gate flips for a signed-in user, instead of popping in or out abruptly.
+
 ## 2.9.2
 - **Last-contact indicator returns to the title bar** as a small rounded pill (antenna icon + duration). Replaces the full-width "Device" section that 2.9.1 placed at the top of Home and History — same data plumbing (LiveClock-driven `DeviceCheckIn.format`, app-scoped staleness check) and same 11-min stale threshold, but denser surface and visible from every main tab. Hidden on the Function list and Diagnostics sub-screens. The pill uses neutral M3 tokens (`surfaceVariant` fresh, `errorContainer` stale) instead of the door-state tint the original pill used pre-2.7/2.8.
 - The "Not receiving updates from server" alert with the **Retry** button still appears on Home and History when the device hasn't checked in — the pill is the ambient glance, the alert is the actionable banner.
