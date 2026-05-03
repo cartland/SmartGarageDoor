@@ -58,6 +58,7 @@ import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.ui.GarageIcon
 import com.chriscartland.garage.ui.RemoteButtonContent
+import com.chriscartland.garage.ui.TitleBarCheckInPill
 import com.chriscartland.garage.ui.theme.DoorColorState
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.PreviewSurface
@@ -151,6 +152,7 @@ fun HomeContent(
     modifier: Modifier = Modifier,
     remoteButtonState: RemoteButtonState = RemoteButtonState.Ready,
     alerts: List<HomeAlert> = emptyList(),
+    deviceCheckIn: DeviceCheckInDisplay? = null,
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
     onAlertAction: (HomeAlert) -> Unit = {},
@@ -181,7 +183,14 @@ fun HomeContent(
             }
 
             item(key = "status") {
-                HomeSection(label = "Status") {
+                HomeSection(
+                    label = "Status",
+                    trailing = {
+                        if (deviceCheckIn != null) {
+                            TitleBarCheckInPill(display = deviceCheckIn)
+                        }
+                    },
+                ) {
                     HomeStatusCardBody(status = status)
                 }
             }
@@ -217,15 +226,24 @@ fun HomeContent(
 @Composable
 private fun HomeSection(
     label: String,
+    trailing: @Composable () -> Unit = {},
     content: @Composable () -> Unit,
 ) {
     Column {
-        Text(
-            text = label.uppercase(),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = label.uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            trailing()
+        }
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainer,
             shape = MaterialTheme.shapes.large,
@@ -435,6 +453,14 @@ private object HomePreviewData {
     val permissionAlert = HomeAlert.PermissionMissing(
         message = "Notifications are off — you won't be alerted when the door opens",
     )
+    val freshCheckIn = DeviceCheckInDisplay(
+        durationLabel = "30 sec ago",
+        isStale = false,
+    )
+    val staleCheckIn = DeviceCheckInDisplay(
+        durationLabel = "23 min ago",
+        isStale = true,
+    )
 }
 
 @Preview(heightDp = 900)
@@ -445,6 +471,7 @@ fun HomeContentOpenSignedInPreview() =
             status = HomePreviewData.openStatus,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
+            deviceCheckIn = HomePreviewData.freshCheckIn,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
@@ -457,6 +484,7 @@ fun HomeContentClosedSignedInPreview() =
             status = HomePreviewData.closedStatus,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
+            deviceCheckIn = HomePreviewData.freshCheckIn,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
@@ -469,6 +497,7 @@ fun HomeContentAwaitingConfirmationPreview() =
             status = HomePreviewData.closedStatus,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.AwaitingConfirmation,
+            deviceCheckIn = HomePreviewData.freshCheckIn,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
@@ -481,6 +510,7 @@ fun HomeContentSendingToDoorPreview() =
             status = HomePreviewData.closedStatus,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.SendingToDoor,
+            deviceCheckIn = HomePreviewData.freshCheckIn,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
@@ -493,6 +523,7 @@ fun HomeContentOpeningTooLongPreview() =
             status = HomePreviewData.openingTooLongStatus,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
+            deviceCheckIn = HomePreviewData.freshCheckIn,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
@@ -506,6 +537,7 @@ fun HomeContentStaleBannerPreview() =
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             alerts = listOf(HomePreviewData.staleAlert),
+            deviceCheckIn = HomePreviewData.staleCheckIn,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
@@ -519,6 +551,7 @@ fun HomeContentPermissionMissingPreview() =
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             alerts = listOf(HomePreviewData.permissionAlert),
+            deviceCheckIn = HomePreviewData.freshCheckIn,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
@@ -530,6 +563,7 @@ fun HomeContentSignedOutPreview() =
         HomeContent(
             status = HomePreviewData.openStatus,
             authState = HomeAuthState.SignedOut,
+            deviceCheckIn = HomePreviewData.freshCheckIn,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
