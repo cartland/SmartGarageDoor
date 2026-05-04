@@ -178,6 +178,8 @@ Run `./scripts/run-instrumented-tests.sh` when changing Room entities/DAOs, DI w
 
 **Screenshot generation**: Use `./scripts/generate-android-screenshots.sh` (never run screenshot Gradle tasks directly — hooks block this).
 
+**Layoutlib gotcha — custom 960-viewport vectors inside LazyColumn item headers.** `painterResource(R.drawable.outline_signal_disconnected_24)` (Material's 960×960 viewport SVG-export) rendered via `Image` + `ColorFilter.tint` inside a LazyColumn item header silently dropped the entire item from the screenshot capture. Production rendered fine; only Layoutlib choked. Symptoms: the section just doesn't appear in the reference PNG, screenshot health-check still passes (file is non-empty), and "fixing" it by bumping `heightDp` does nothing. Workarounds, in preference order: (a) prefer Material `Icons.Outlined.*` / `Icons.Filled.*` (24-viewport vectors) for any drawable that lives inside a screenshot fixture; (b) use Material `Icon` Composable instead of `Image` + tint when you need to colorize. PR #623 hit this with the stale-pill icon; switching to `Icons.Outlined.SignalWifiOff` fixed it.
+
 ### Room Database Safety
 
 When modifying Room entities or DAOs: (1) increment the `version` in `@Database` (`AppDatabase.kt`); (2) run `./gradlew :androidApp:assembleDebug` to regenerate the schema; (3) commit the new schema JSON alongside the code change. `fallbackToDestructiveMigration` handles upgrades. Full safeguard list (schema drift check in `validate.sh`, guardrails hook, `RoomSchemaTest` contract tests, exported schema files): see `AndroidGarage/docs/ARCHITECTURE.md` § Database.
@@ -428,6 +430,7 @@ Push notifications are the hardest feature to verify in production. If topic nam
 - No extension functions on generic types (e.g., `FcmPayloadParser.parse(data)` not `Map.asDoorEvent()`)
 - No `*Impl` suffix on implementations — use descriptive prefixes (`Network*`, `Cached*`, `Firebase*`, `Default*`). See ADR-008
 - Generic naming over platform-specific terms for app-scoped classes: `AppStartup.run()` not `AppStartupActions.onActivityCreated()`. App-scoped code should be platform-agnostic (KMP target). Only call sites in Activities know about Android lifecycles
+- **Composable params for production-visible UI must be required, not nullable-with-default.** A `null` default lets fixtures (previews, instrumented tests) silently omit a piece of UI that production always renders, and the framed README screenshot then diverges from what users see. Make the type system enforce parity. Canonical example: `HomeContent.deviceCheckIn` flipped from `DeviceCheckInDisplay? = null` to required in #625, which surfaced 7 silent test gaps the same day. Apply the same rule to any new Composable param whose absence would be a UI bug
 
 ## Known Limitations
 
