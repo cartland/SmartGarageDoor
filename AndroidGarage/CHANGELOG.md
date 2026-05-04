@@ -15,6 +15,11 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.9.4
+- **Device check-in pill moves from the title bar into the Home tab's "Status" section header**, right-aligned in line with the section label. The pill still ticks live (1s cadence via the LiveClock-backed flow) and still flips to the red `errorContainer` variant past the 11-min staleness threshold; the "Not receiving updates from server" alert above the Status card remains as the actionable retry. The TopAppBar is now title-only on every tab.
+- **Stale-state pill icon updated** from the custom `outline_signal_disconnected_24` vector to Material's `Icons.Outlined.SignalWifiOff` — same icon the Stale alert banner already uses, so both stale signals on Home now share a single visual vocabulary. Same concept (no signal), small visual delta.
+- Trade-off: the device-heartbeat pill is now Home-only — gone from History, Settings, Function list, and Diagnostics. Retained on Home as the at-a-glance ambient indicator; the alert banner remains the actionable surface.
+
 ## 2.9.3
 - **Settings: "Tools" section moved to the bottom**, below "About" — Account / Notifications / About / Tools is the new order. The Tools section is also wrapped in an `AnimatedVisibility` so it expands and collapses smoothly when the allowlist gate flips for a signed-in user, instead of popping in or out abruptly.
 
