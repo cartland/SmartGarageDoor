@@ -15,6 +15,12 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.9.5
+- No user-facing changes. Re-tags the same APK behavior under a fresh `versionName` after a series of internal-only fidelity fixes:
+  - **Inner `HomeContent.deviceCheckIn` parameter is now required** (was nullable with a `null` default). The wrapper already passed it, so production behavior is identical — but the type system now stops a future fixture from silently omitting a piece of UI that production always renders. Caught 7 silent instrumented-test gaps the day it landed (#625).
+  - **Pill fixtures made realistic** to match the ~10-min ESP32 heartbeat cadence (typical pill reads "5 min ago", not the just-checked-in "30 sec ago" edge case). The framed README Home shot also separates `lastChangeTimeSeconds` and `lastCheckInTimeSeconds` so a days-old door-event timestamp doesn't accidentally feed the pill (#626).
+  - **`checkPreviewCoverage` Gradle task** added (ported from battery-butler) — fails the build if any public `*Preview` Composable isn't imported by a screenshot test. Closed 6 currently-uncovered previews (4 `TitleBarCheckInPill*`, 2 `ErrorCard*` edge cases). Coverage 64/70 → 70/70 (#629).
+
 ## 2.9.4
 - **Device check-in pill moves from the title bar into the Home tab's "Status" section header**, right-aligned in line with the section label. The pill still ticks live (1s cadence via the LiveClock-backed flow) and still flips to the red `errorContainer` variant past the 11-min staleness threshold; the "Not receiving updates from server" alert above the Status card remains as the actionable retry. The TopAppBar is now title-only on every tab.
 - **Stale-state pill icon updated** from the custom `outline_signal_disconnected_24` vector to Material's `Icons.Outlined.SignalWifiOff` — same icon the Stale alert banner already uses, so both stale signals on Home now share a single visual vocabulary. Same concept (no signal), small visual delta.
