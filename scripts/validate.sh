@@ -73,6 +73,9 @@ $GRADLE checkViewModelStateFlow && pass "viewmodel stateflow" || fail "viewmodel
 step "Screen ↔ ViewModel cardinality (1 VM per screen, exemptions tracked)"
 $GRADLE checkScreenViewModelCardinality && pass "screen↔viewmodel cardinality" || fail "screen↔viewmodel cardinality"
 
+step "Preview coverage (every public *Preview is imported by a screenshot test)"
+$GRADLE checkPreviewCoverage && pass "preview coverage" || fail "preview coverage"
+
 step "Fake public var (no unguarded public var on Fake* classes)"
 $GRADLE checkFakePublicVar && pass "fake public var" || fail "fake public var"
 

@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
 import com.chriscartland.garage.ui.DoorStatusCardPreview
+import com.chriscartland.garage.ui.ErrorCardLongButtonWordPreview
+import com.chriscartland.garage.ui.ErrorCardManyButtonWordsPreview
 import com.chriscartland.garage.ui.ErrorCardPreview
 import com.chriscartland.garage.ui.GarageDoorButtonAwaitingConfirmationPreview
 import com.chriscartland.garage.ui.GarageDoorButtonCancelledPreview
@@ -29,6 +31,10 @@ import com.chriscartland.garage.ui.RemoteButtonContentSendingToDoorPreview
 import com.chriscartland.garage.ui.RemoteButtonContentSendingToServerPreview
 import com.chriscartland.garage.ui.RemoteButtonContentServerFailedPreview
 import com.chriscartland.garage.ui.RemoteButtonContentSucceededPreview
+import com.chriscartland.garage.ui.TitleBarCheckInPillAgingPreview
+import com.chriscartland.garage.ui.TitleBarCheckInPillFreshPreview
+import com.chriscartland.garage.ui.TitleBarCheckInPillNoDataPreview
+import com.chriscartland.garage.ui.TitleBarCheckInPillStalePreview
 import com.chriscartland.garage.ui.theme.AppTheme
 
 @PreviewTest
@@ -347,4 +353,76 @@ fun GarageDoorButtonServerFailedPreviewTest() {
 @Composable
 fun GarageDoorButtonDoorFailedPreviewTest() {
     AppTheme { GarageDoorButtonDoorFailedPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun ErrorCardLongButtonWordPreviewTest() {
+    AppTheme { ErrorCardLongButtonWordPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun ErrorCardManyButtonWordsPreviewTest() {
+    AppTheme { ErrorCardManyButtonWordsPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun TitleBarCheckInPillFreshPreviewTest() {
+    AppTheme { TitleBarCheckInPillFreshPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun TitleBarCheckInPillAgingPreviewTest() {
+    AppTheme { TitleBarCheckInPillAgingPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun TitleBarCheckInPillStalePreviewTest() {
+    AppTheme { TitleBarCheckInPillStalePreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun TitleBarCheckInPillNoDataPreviewTest() {
+    AppTheme { TitleBarCheckInPillNoDataPreview() }
 }
