@@ -28,6 +28,7 @@ import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.User
+import com.chriscartland.garage.ui.home.DeviceCheckInDisplay
 import com.chriscartland.garage.ui.home.HomeMapper
 import com.chriscartland.garage.ui.home.HomeStatusDisplay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,6 +69,11 @@ class AuthStateUIPropagationTest {
         sinceLine = "Last change time unknown",
     )
 
+    private val noDataCheckIn = DeviceCheckInDisplay(
+        durationLabel = "No data yet",
+        isStale = false,
+    )
+
     // --- Layer 1: Static rendering ---
 
     @Test
@@ -76,6 +82,7 @@ class AuthStateUIPropagationTest {
             HomeStatelessContent(
                 status = unknownStatus,
                 authState = HomeMapper.toHomeAuthState(AuthState.Unknown),
+                deviceCheckIn = noDataCheckIn,
             )
         }
         composeTestRule.onNodeWithText("Checking sign-in…").assertIsDisplayed()
@@ -87,6 +94,7 @@ class AuthStateUIPropagationTest {
             HomeStatelessContent(
                 status = unknownStatus,
                 authState = HomeMapper.toHomeAuthState(AuthState.Unauthenticated),
+                deviceCheckIn = noDataCheckIn,
             )
         }
         composeTestRule.onNodeWithText("Sign in with Google").assertIsDisplayed()
@@ -98,6 +106,7 @@ class AuthStateUIPropagationTest {
             HomeStatelessContent(
                 status = unknownStatus,
                 authState = HomeMapper.toHomeAuthState(AuthState.Authenticated(testUser)),
+                deviceCheckIn = noDataCheckIn,
             )
         }
         composeTestRule.onNodeWithText("Sign in with Google").assertDoesNotExist()
@@ -114,6 +123,7 @@ class AuthStateUIPropagationTest {
             HomeStatelessContent(
                 status = unknownStatus,
                 authState = HomeMapper.toHomeAuthState(authState),
+                deviceCheckIn = noDataCheckIn,
             )
         }
 
@@ -138,6 +148,7 @@ class AuthStateUIPropagationTest {
             HomeStatelessContent(
                 status = unknownStatus,
                 authState = HomeMapper.toHomeAuthState(authState),
+                deviceCheckIn = noDataCheckIn,
             )
         }
 
@@ -161,6 +172,7 @@ class AuthStateUIPropagationTest {
             HomeStatelessContent(
                 status = unknownStatus,
                 authState = HomeMapper.toHomeAuthState(authState),
+                deviceCheckIn = noDataCheckIn,
             )
         }
 
@@ -181,6 +193,7 @@ class AuthStateUIPropagationTest {
             HomeStatelessContent(
                 status = unknownStatus,
                 authState = HomeMapper.toHomeAuthState(authState),
+                deviceCheckIn = noDataCheckIn,
             )
         }
 
