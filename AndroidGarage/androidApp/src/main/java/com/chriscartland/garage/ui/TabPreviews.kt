@@ -36,6 +36,7 @@ import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.presentation.demoDoorEvents
+import com.chriscartland.garage.ui.home.DeviceCheckIn
 import com.chriscartland.garage.ui.home.HomeAuthState
 import com.chriscartland.garage.ui.home.HomeMapper
 import com.chriscartland.garage.ui.settings.AccountRowState
@@ -125,12 +126,17 @@ fun HomeTabPreview() {
     val event = demoDoorEvents.firstOrNull()
     val now = Instant.parse("2026-04-29T12:00:00Z")
     val status = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event), now, ZoneOffset.UTC)
+    val deviceCheckIn = DeviceCheckIn.format(
+        lastCheckInSeconds = event?.lastCheckInTimeSeconds,
+        nowSeconds = now.epochSecond,
+    )
     TabPreviewScaffold(selectedScreen = Screen.Home) { modifier ->
         HomeStatelessContent(
             status = status,
             authState = HomeAuthState.SignedIn,
             modifier = modifier,
             remoteButtonState = RemoteButtonState.Ready,
+            deviceCheckIn = deviceCheckIn,
         )
     }
 }

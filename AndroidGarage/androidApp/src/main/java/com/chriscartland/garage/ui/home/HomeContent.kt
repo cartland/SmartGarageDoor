@@ -149,10 +149,10 @@ sealed interface HomeAlert {
 fun HomeContent(
     status: HomeStatusDisplay,
     authState: HomeAuthState,
+    deviceCheckIn: DeviceCheckInDisplay,
     modifier: Modifier = Modifier,
     remoteButtonState: RemoteButtonState = RemoteButtonState.Ready,
     alerts: List<HomeAlert> = emptyList(),
-    deviceCheckIn: DeviceCheckInDisplay? = null,
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
     onAlertAction: (HomeAlert) -> Unit = {},
@@ -185,11 +185,7 @@ fun HomeContent(
             item(key = "status") {
                 HomeSection(
                     label = "Status",
-                    trailing = {
-                        if (deviceCheckIn != null) {
-                            TitleBarCheckInPill(display = deviceCheckIn)
-                        }
-                    },
+                    trailing = { TitleBarCheckInPill(display = deviceCheckIn) },
                 ) {
                     HomeStatusCardBody(status = status)
                 }
