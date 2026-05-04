@@ -10,6 +10,7 @@ import com.chriscartland.garage.ui.FunctionListScreenDeniedPreview
 import com.chriscartland.garage.ui.FunctionListScreenPreview
 import com.chriscartland.garage.ui.HistoryTabPreview
 import com.chriscartland.garage.ui.HomeTabPreview
+import com.chriscartland.garage.ui.HomeTabStalePillPreview
 import com.chriscartland.garage.ui.SettingsTabPreview
 import com.chriscartland.garage.ui.home.HomeContentOpenSignedInPreview
 import com.chriscartland.garage.ui.theme.AppTheme
@@ -53,6 +54,20 @@ fun DoorHistoryScreenPreviewTest() {
 fun HomeTabPreviewTest() {
     AppTheme {
         HomeTabPreview()
+    }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeTabStalePillPreviewTest() {
+    AppTheme {
+        HomeTabStalePillPreview()
     }
 }
 

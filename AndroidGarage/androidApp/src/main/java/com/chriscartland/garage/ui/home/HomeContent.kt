@@ -449,8 +449,11 @@ private object HomePreviewData {
     val permissionAlert = HomeAlert.PermissionMissing(
         message = "Notifications are off — you won't be alerted when the door opens",
     )
+
+    // Heartbeat cadence is ~10 min, so a representative typical pill reads
+    // ~5 min — comfortably under the 11-min staleness threshold.
     val freshCheckIn = DeviceCheckInDisplay(
-        durationLabel = "30 sec ago",
+        durationLabel = "5 min ago",
         isStale = false,
     )
     val staleCheckIn = DeviceCheckInDisplay(

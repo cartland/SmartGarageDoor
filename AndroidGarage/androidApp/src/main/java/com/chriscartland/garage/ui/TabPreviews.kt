@@ -123,11 +123,47 @@ fun HomeTabPreview() {
     // Stateless full-screen Home preview using the new mapper-driven UI.
     // Fixed `now` (matches the in-Composable `LocalInspectionMode` value)
     // and UTC zone keep the screenshot deterministic.
+    //
+    // The two timestamps are independent at runtime and so are here:
+    //   - `lastChangeTimeSeconds` (from the demo event) is days old when
+    //     the door hasn't moved — drives the "Since X · Y" line.
+    //   - `lastCheckInTimeSeconds` is a healthy device heartbeat. The ESP32
+    //     checks in every ~10 min, so on average the pill reads ~5 min ago.
+    //     Pick 5 min for the README-framed shot — representative typical
+    //     case, comfortably under the 11-min staleness threshold.
     val event = demoDoorEvents.firstOrNull()
     val now = Instant.parse("2026-04-29T12:00:00Z")
     val status = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event), now, ZoneOffset.UTC)
     val deviceCheckIn = DeviceCheckIn.format(
-        lastCheckInSeconds = event?.lastCheckInTimeSeconds,
+        lastCheckInSeconds = now.epochSecond - (5 * 60),
+        nowSeconds = now.epochSecond,
+    )
+    TabPreviewScaffold(selectedScreen = Screen.Home) { modifier ->
+        HomeStatelessContent(
+            status = status,
+            authState = HomeAuthState.SignedIn,
+            modifier = modifier,
+            remoteButtonState = RemoteButtonState.Ready,
+            deviceCheckIn = deviceCheckIn,
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun HomeTabStalePillPreview() {
+    // Same as `HomeTabPreview` but with the device heartbeat set to 23 minutes
+    // ago — past the 11-min staleness threshold — so the pill flips to the
+    // red `errorContainer` variant. The door's `lastChangeTimeSeconds` stays
+    // unchanged: a healthy door can have a stale device heartbeat (e.g. wifi
+    // dropped). This documents the pill's error state in the framed-tab
+    // context. Not used by the README; the README-framed Home shot stays on
+    // `HomeTabPreview` (typical case).
+    val event = demoDoorEvents.firstOrNull()
+    val now = Instant.parse("2026-04-29T12:00:00Z")
+    val status = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event), now, ZoneOffset.UTC)
+    val deviceCheckIn = DeviceCheckIn.format(
+        lastCheckInSeconds = now.epochSecond - (23 * 60),
         nowSeconds = now.epochSecond,
     )
     TabPreviewScaffold(selectedScreen = Screen.Home) { modifier ->
