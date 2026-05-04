@@ -56,9 +56,7 @@ firebase deploy --only functions
 
 `scripts/firebase-npm.sh` auto-sources nvm and switches to the Node version in `FirebaseServer/.nvmrc`, then forwards args to `npm --prefix FirebaseServer`. `scripts/validate-firebase.sh` does the same auto-switch before running the full validation. Manual `nvm use` is not needed.
 
-**Node version pitfall:** Node 22.18+ and Node 24 enable native TypeScript type-stripping by default (`process.features.typescript === 'strip'`). That path breaks `import * as admin from 'firebase-admin'` when mocha loads `.ts` files via `ts-node/register` — `admin.initializeApp` becomes undefined. The `tests` npm script pins `NODE_OPTIONS='--no-experimental-strip-types'` so ts-node's loader owns compilation. If you ever see `TypeError: admin.initializeApp is not a function` in unit tests, check that this env var is still set.
-
-**Mocha glob pitfall:** The `tests` script uses **single-quoted** `'test/**/*.ts'`. npm invokes scripts via `sh`, where `**` degrades to `*` without globstar — so if the glob is unquoted, it matches only one directory deep and silently skips tests nested deeper (e.g. anything in `test/controller/fcm/`). PR #486 surfaced 84 tests that had been silently skipped for months by quoting the glob so mocha (which supports globstar natively) does the expansion. **Never unquote this glob.** If you add a new test directory and your tests aren't running, that's probably why.
+**Mocha glob + Node strip-types pitfalls — both now enforced.** `validate-firebase.sh` asserts that the `tests` script in `FirebaseServer/package.json` (a) single-quotes the glob `'test/**/*.ts'` (PR #486 — unquoted glob silently skipped 84 tests for months because sh's `**` degrades to `*` without globstar) and (b) pins `NODE_OPTIONS='--no-experimental-strip-types'` (Node 22.18+/24 native strip-types breaks `import * as admin from 'firebase-admin'` under mocha+ts-node). If either assertion fails, the message explains the why; don't unquote the glob and don't drop the env var.
 
 <!-- not-actively-maintained: ESP32 firmware build/deploy docs are out of primary documentation scope (focus is Android + Firebase server). See GarageFirmware_ESP32/README.md for active firmware guidance. -->
 
@@ -426,9 +424,9 @@ Push notifications are the hardest feature to verify in production. If topic nam
 - FCM-related code: `FCMService`, `DoorFcmRepository`, `FcmPayloadParser`, topic subscription flow
 
 ### Code Patterns
-- No bare top-level functions — group in a named `object {}` for discoverability (Composables exempt). See ADR-009
+- No bare top-level functions — group in a named `object {}` for discoverability (Composables exempt). Enforced by `checkNoBareTopLevelFunctions` (in `validate.sh`). See ADR-009
 - No extension functions on generic types (e.g., `FcmPayloadParser.parse(data)` not `Map.asDoorEvent()`)
-- No `*Impl` suffix on implementations — use descriptive prefixes (`Network*`, `Cached*`, `Firebase*`, `Default*`). See ADR-008
+- No `*Impl` suffix on implementations — use descriptive prefixes (`Network*`, `Cached*`, `Firebase*`, `Default*`). Enforced by `checkNoImplSuffix` (in `validate.sh`). See ADR-008
 - Generic naming over platform-specific terms for app-scoped classes: `AppStartup.run()` not `AppStartupActions.onActivityCreated()`. App-scoped code should be platform-agnostic (KMP target). Only call sites in Activities know about Android lifecycles
 - **Composable params for production-visible UI must be required, not nullable-with-default.** A `null` default lets fixtures (previews, instrumented tests) silently omit a piece of UI that production always renders, and the framed README screenshot then diverges from what users see. Make the type system enforce parity. Canonical example: `HomeContent.deviceCheckIn` flipped from `DeviceCheckInDisplay? = null` to required in #625, which surfaced 7 silent test gaps the same day. Apply the same rule to any new Composable param whose absence would be a UI bug
 

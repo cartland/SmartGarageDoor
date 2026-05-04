@@ -59,6 +59,26 @@ npm --prefix "$REPO_ROOT/FirebaseServer" run build \
     && pass "npm run build" \
     || fail "npm run build"
 
+# Mocha pre-conditions (single-quoted glob + strip-types pin).
+# Both pitfalls are silent: a wrong glob silently skips nested test
+# directories (PR #486 — 84 tests went unnoticed for months); a missing
+# NODE_OPTIONS pin silently breaks `import * as admin from 'firebase-admin'`
+# under Node 22.18+/24's default native strip-types path.
+# CLAUDE.md cites both — these assertions make the cite enforceable.
+step "Mocha glob is single-quoted"
+if grep -qF "'test/**/*.ts'" "$REPO_ROOT/FirebaseServer/package.json"; then
+    pass "tests script uses single-quoted glob"
+else
+    fail "FirebaseServer/package.json 'tests' script must use SINGLE-quoted glob 'test/**/*.ts'. Unquoted globs let sh expand them with no globstar, silently skipping nested directories."
+fi
+
+step "NODE_OPTIONS pins --no-experimental-strip-types"
+if grep -qF -- "--no-experimental-strip-types" "$REPO_ROOT/FirebaseServer/package.json"; then
+    pass "NODE_OPTIONS pinned"
+else
+    fail "FirebaseServer/package.json 'tests' script must pin NODE_OPTIONS='--no-experimental-strip-types'. Without it, Node 22.18+/24 native strip-types breaks 'import * as admin from firebase-admin' under mocha+ts-node."
+fi
+
 # Tests (mocha) — includes collection-name contract tests and
 # verifyIdToken library-chain tests
 step "Tests (mocha)"
