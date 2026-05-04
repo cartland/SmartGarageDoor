@@ -47,6 +47,12 @@ if echo "$STRIPPED" | grep -qE '\bgit\s+push\b'; then
     if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
       deny "BLOCKED: You are on '$CURRENT_BRANCH'. Switch to a feature branch before pushing."
     fi
+    # Block release/* — long-lived 'release' branch on origin causes
+    # "directory file conflict" rejections for any release/<sub> ref.
+    # CLAUDE.md documents the workaround (use changelog/*, docs/*, etc.).
+    if [[ "$CURRENT_BRANCH" =~ ^release/ ]]; then
+      deny "BLOCKED: Cannot push to release/* branches. Origin has a long-lived 'release' branch that blocks release/<sub> refs (directory file conflict). Rename to changelog/*, docs/*, hardening/*, or another prefix."
+    fi
   fi
 
   # Block --force, allow --force-with-lease on feature branches
