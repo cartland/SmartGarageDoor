@@ -63,6 +63,7 @@ should_skip() {
         */.claude/worktrees/*) return 0 ;;
         */.claude/projects/*) return 0 ;;
         */android-screenshot-tests/*SCREENSHOT_GALLERY.md) return 0 ;;
+        */android-screenshot-tests/*PREVIEW_COVERAGE.md) return 0 ;;
         */android-screenshot-tests/collections/*) return 0 ;;
         */detekt.md) return 0 ;;
         */GarageFirmware_ESP32/*) return 0 ;;
