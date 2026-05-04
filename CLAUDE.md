@@ -399,7 +399,7 @@ Do not just tell the user to run it — the next Stop hook fires before they can
 - Tests must add value — no coverage for coverage's sake
 - Prefer fakes over Mockito mocks (aligns with KMP migration target)
 - CI is the deployment gate — if CI passes, the app is safe to ship
-- Reference: [battery-butler](https://github.com/cartland/battery-butler) for testing patterns
+- Reference: [battery-butler](https://github.com/cartland/battery-butler) for testing patterns AND build/check infrastructure (it has a richer `buildSrc/` plugin set — `PreviewCoverageCheckTask` was ported from there in #629; `PreviewTimeCheckTask`, more sophisticated `ImportBoundaryCheckTask`, etc. are unported reference patterns)
 
 ## Documentation
 
