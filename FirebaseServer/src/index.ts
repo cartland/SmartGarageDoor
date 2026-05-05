@@ -36,6 +36,7 @@ import { pubsubDataRetentionPolicy } from './functions/pubsub/DataRetentionPolic
 
 // Firestore Functions.
 import { firestoreUpdateEvents } from './functions/firestore/Events'
+import { firestoreCheckButtonHealth } from './functions/firestore/ButtonHealth'
 
 /*
  * This file is the main entrace for Cloud Functions for Firebase.
@@ -76,6 +77,22 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'echo') {
  */
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'updateEvents') {
   exports.updateEvents = firestoreUpdateEvents;
+}
+
+/**
+ * Detect remote-button device online/offline state.
+ *
+ * Trigger Type: Firestore (onWrite on remoteButtonRequestAll/{docId})
+ *
+ * Fires after every device poll. Computes the new health state from
+ * the latest poll timestamp and persists + sends a data-only FCM only
+ * on transitions. Provably cannot affect the device path — runs
+ * asynchronously after the device's HTTP response is on the wire.
+ *
+ * See docs/BUTTON_HEALTH_ARCHITECTURE.md.
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'firestoreCheckButtonHealth') {
+  exports.firestoreCheckButtonHealth = firestoreCheckButtonHealth;
 }
 
 /**
