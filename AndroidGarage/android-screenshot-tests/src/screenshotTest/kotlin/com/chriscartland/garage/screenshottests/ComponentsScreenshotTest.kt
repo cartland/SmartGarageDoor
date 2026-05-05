@@ -31,6 +31,10 @@ import com.chriscartland.garage.ui.RemoteButtonContentSendingToDoorPreview
 import com.chriscartland.garage.ui.RemoteButtonContentSendingToServerPreview
 import com.chriscartland.garage.ui.RemoteButtonContentServerFailedPreview
 import com.chriscartland.garage.ui.RemoteButtonContentSucceededPreview
+import com.chriscartland.garage.ui.RemoteOfflinePillAgingPreview
+import com.chriscartland.garage.ui.RemoteOfflinePillFreshPreview
+import com.chriscartland.garage.ui.RemoteOfflinePillStalePreview
+import com.chriscartland.garage.ui.RemoteOfflinePillVeryStalePreview
 import com.chriscartland.garage.ui.TitleBarCheckInPillAgingPreview
 import com.chriscartland.garage.ui.TitleBarCheckInPillFreshPreview
 import com.chriscartland.garage.ui.TitleBarCheckInPillNoDataPreview
@@ -425,4 +429,52 @@ fun TitleBarCheckInPillStalePreviewTest() {
 @Composable
 fun TitleBarCheckInPillNoDataPreviewTest() {
     AppTheme { TitleBarCheckInPillNoDataPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteOfflinePillFreshPreviewTest() {
+    AppTheme { RemoteOfflinePillFreshPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteOfflinePillAgingPreviewTest() {
+    AppTheme { RemoteOfflinePillAgingPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteOfflinePillStalePreviewTest() {
+    AppTheme { RemoteOfflinePillStalePreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteOfflinePillVeryStalePreviewTest() {
+    AppTheme { RemoteOfflinePillVeryStalePreview() }
 }
