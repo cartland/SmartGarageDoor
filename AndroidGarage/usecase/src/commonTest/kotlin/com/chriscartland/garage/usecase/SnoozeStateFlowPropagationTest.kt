@@ -94,6 +94,7 @@ class SnoozeStateFlowPropagationTest {
             snoozeNotificationsUseCase = SnoozeNotificationsUseCase(ensureFreshIdToken, authRepository, snoozeRepository),
             fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
             observeSnoozeStateUseCase = ObserveSnoozeStateUseCase(snoozeRepository),
+            buttonHealthDisplay = kotlinx.coroutines.flow.emptyFlow(),
             appVersion = "test",
         )
     }

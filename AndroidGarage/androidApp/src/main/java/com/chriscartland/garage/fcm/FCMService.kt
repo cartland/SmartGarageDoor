@@ -31,6 +31,7 @@ class FCMService : FirebaseMessagingService() {
         val component = (application as GarageApplication).component
         FcmMessageHandler(
             receiveFcmDoorEvent = component.receiveFcmDoorEventUseCase,
+            applyButtonHealthFcm = component.applyButtonHealthFcmUseCase,
         )
     }
 
@@ -45,11 +46,16 @@ class FCMService : FirebaseMessagingService() {
         Logger.d { "onMessageReceived, from: ${remoteMessage.from}" }
         Logger.d { "Message data payload: ${remoteMessage.data}" }
 
+        // remoteMessage.from is `/topics/<topic-name>` for topic-targeted
+        // messages. Strip the prefix; treat null as empty so the dispatch
+        // falls through to the default (door) branch.
+        val topic = remoteMessage.from?.removePrefix("/topics/").orEmpty()
+
         serviceScope.launch(Dispatchers.IO) {
             try {
-                handler.handleDoorMessage(remoteMessage.data)
+                handler.handleMessage(topic, remoteMessage.data)
             } catch (e: IllegalStateException) {
-                Logger.e { "Failed to handle door message: $e" }
+                Logger.e { "Failed to handle FCM message: $e" }
             }
         }
 

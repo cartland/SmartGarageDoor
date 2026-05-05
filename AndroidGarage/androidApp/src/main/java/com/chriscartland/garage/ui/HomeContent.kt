@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.auth.rememberGoogleSignIn
@@ -38,6 +39,7 @@ import com.chriscartland.garage.ui.home.HomeAlert
 import com.chriscartland.garage.ui.home.HomeMapper
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.AuthViewModel
+import com.chriscartland.garage.usecase.ButtonHealthDisplay
 import com.chriscartland.garage.usecase.DoorViewModel
 import com.chriscartland.garage.usecase.RemoteButtonViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -75,6 +77,8 @@ fun HomeContent(
     val buttonState by buttonViewModel.buttonState.collectAsState()
     val authState by resolvedAuthViewModel.authState.collectAsState()
     val isCheckInStale by resolvedDoorViewModel.isCheckInStale.collectAsState()
+    val buttonHealthDisplay: ButtonHealthDisplay by buttonViewModel.buttonHealthDisplay
+        .collectAsStateWithLifecycle(initialValue = ButtonHealthDisplay.Loading)
 
     val notificationPermissionState = rememberNotificationPermissionState()
     var permissionRequestCount by remember { mutableIntStateOf(0) }
@@ -106,6 +110,7 @@ fun HomeContent(
         remoteButtonState = buttonState,
         alerts = alerts,
         deviceCheckIn = deviceCheckIn,
+        buttonHealthDisplay = buttonHealthDisplay,
         isRefreshing = currentDoorEvent is LoadingResult.Loading,
         onRefresh = {
             resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_FETCH_CURRENT_DOOR)

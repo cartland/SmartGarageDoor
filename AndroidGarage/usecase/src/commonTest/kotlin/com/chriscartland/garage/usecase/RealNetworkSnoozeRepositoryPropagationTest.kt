@@ -188,6 +188,7 @@ class RealNetworkSnoozeRepositoryPropagationTest {
                 ),
                 fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
                 observeSnoozeStateUseCase = ObserveSnoozeStateUseCase(snoozeRepository),
+                buttonHealthDisplay = kotlinx.coroutines.flow.emptyFlow(),
                 appVersion = "test",
             )
             advanceUntilIdle()
@@ -281,6 +282,7 @@ class RealNetworkSnoozeRepositoryPropagationTest {
                 ),
                 fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
                 observeSnoozeStateUseCase = ObserveSnoozeStateUseCase(snoozeRepository),
+                buttonHealthDisplay = kotlinx.coroutines.flow.emptyFlow(),
                 appVersion = "test",
             )
             advanceUntilIdle()

@@ -28,19 +28,23 @@ import com.chriscartland.garage.data.AuthBridge
 import com.chriscartland.garage.data.LocalDoorDataSource
 import com.chriscartland.garage.data.MessagingBridge
 import com.chriscartland.garage.data.NetworkButtonDataSource
+import com.chriscartland.garage.data.NetworkButtonHealthDataSource
 import com.chriscartland.garage.data.NetworkConfigDataSource
 import com.chriscartland.garage.data.NetworkDoorDataSource
 import com.chriscartland.garage.data.NetworkFeatureAllowlistDataSource
 import com.chriscartland.garage.data.coroutines.DefaultDispatcherProvider
 import com.chriscartland.garage.data.ktor.KtorHttpClientFactory
 import com.chriscartland.garage.data.ktor.KtorNetworkButtonDataSource
+import com.chriscartland.garage.data.ktor.KtorNetworkButtonHealthDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkConfigDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkDoorDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkFeatureAllowlistDataSource
 import com.chriscartland.garage.data.repository.CachedFeatureAllowlistRepository
 import com.chriscartland.garage.data.repository.CachedServerConfigRepository
 import com.chriscartland.garage.data.repository.FirebaseAuthRepository
+import com.chriscartland.garage.data.repository.FirebaseButtonHealthFcmRepository
 import com.chriscartland.garage.data.repository.FirebaseDoorFcmRepository
+import com.chriscartland.garage.data.repository.NetworkButtonHealthRepository
 import com.chriscartland.garage.data.repository.NetworkDoorRepository
 import com.chriscartland.garage.data.repository.NetworkRemoteButtonRepository
 import com.chriscartland.garage.data.repository.NetworkSnoozeRepository
@@ -56,6 +60,8 @@ import com.chriscartland.garage.domain.model.AppConfig
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import com.chriscartland.garage.domain.repository.AuthRepository
+import com.chriscartland.garage.domain.repository.ButtonHealthFcmRepository
+import com.chriscartland.garage.domain.repository.ButtonHealthRepository
 import com.chriscartland.garage.domain.repository.DoorFcmRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.FeatureAllowlistRepository
@@ -64,7 +70,10 @@ import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.domain.repository.SnoozeRepository
 import com.chriscartland.garage.fcm.FirebaseMessagingBridge
 import com.chriscartland.garage.usecase.AppSettingsUseCase
+import com.chriscartland.garage.usecase.ApplyButtonHealthFcmUseCase
+import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
+import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
 import com.chriscartland.garage.usecase.DefaultAppLoggerViewModel
 import com.chriscartland.garage.usecase.DefaultAppSettingsViewModel
 import com.chriscartland.garage.usecase.DefaultAuthViewModel
@@ -76,6 +85,7 @@ import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
 import com.chriscartland.garage.usecase.FcmRegistrationManager
+import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.FetchFcmStatusUseCase
 import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
@@ -162,10 +172,15 @@ abstract class AppComponent(
     abstract val appClock: AppClock
     abstract val dispatcherProvider: DispatcherProvider
     abstract val networkButtonDataSource: NetworkButtonDataSource
+    abstract val networkButtonHealthDataSource: NetworkButtonHealthDataSource
     abstract val networkConfigDataSource: NetworkConfigDataSource
     abstract val networkDoorDataSource: NetworkDoorDataSource
     abstract val networkFeatureAllowlistDataSource: NetworkFeatureAllowlistDataSource
     abstract val localDoorDataSource: LocalDoorDataSource
+    abstract val buttonHealthRepository: ButtonHealthRepository
+    abstract val buttonHealthFcmRepository: ButtonHealthFcmRepository
+    abstract val buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager
+    abstract val applyButtonHealthFcmUseCase: ApplyButtonHealthFcmUseCase
 
     // --- ViewModels ---
 
@@ -224,6 +239,7 @@ abstract class AppComponent(
         snoozeNotifications: SnoozeNotificationsUseCase,
         fetchSnoozeStatus: FetchSnoozeStatusUseCase,
         observeSnoozeState: ObserveSnoozeStateUseCase,
+        computeButtonHealthDisplay: ComputeButtonHealthDisplayUseCase,
         appVersion: String,
     ): DefaultRemoteButtonViewModel =
         DefaultRemoteButtonViewModel(
@@ -233,6 +249,7 @@ abstract class AppComponent(
             snoozeNotifications,
             fetchSnoozeStatus,
             observeSnoozeState,
+            computeButtonHealthDisplay(),
             appVersion,
         )
 
@@ -348,6 +365,21 @@ abstract class AppComponent(
     fun provideObserveFeatureAccessUseCase(featureAllowlistRepository: FeatureAllowlistRepository): ObserveFeatureAccessUseCase =
         ObserveFeatureAccessUseCase(featureAllowlistRepository)
 
+    @Provides
+    fun provideFetchButtonHealthUseCase(buttonHealthRepository: ButtonHealthRepository): FetchButtonHealthUseCase =
+        FetchButtonHealthUseCase(buttonHealthRepository)
+
+    @Provides
+    fun provideApplyButtonHealthFcmUseCase(buttonHealthRepository: ButtonHealthRepository): ApplyButtonHealthFcmUseCase =
+        ApplyButtonHealthFcmUseCase(buttonHealthRepository)
+
+    @Provides
+    fun provideComputeButtonHealthDisplayUseCase(
+        authRepository: AuthRepository,
+        buttonHealthRepository: ButtonHealthRepository,
+        liveClock: LiveClock,
+    ): ComputeButtonHealthDisplayUseCase = ComputeButtonHealthDisplayUseCase(authRepository, buttonHealthRepository, liveClock)
+
     // --- @Singleton providers (bodies take parameters so caching is honored) ---
 
     @Provides
@@ -390,6 +422,11 @@ abstract class AppComponent(
     @Provides
     @Singleton
     fun provideNetworkButtonDataSource(httpClient: HttpClient): NetworkButtonDataSource = KtorNetworkButtonDataSource(httpClient)
+
+    @Provides
+    @Singleton
+    fun provideNetworkButtonHealthDataSource(httpClient: HttpClient): NetworkButtonHealthDataSource =
+        KtorNetworkButtonHealthDataSource(httpClient)
 
     @Provides
     @Singleton
@@ -506,6 +543,43 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
+    fun provideButtonHealthRepository(
+        networkButtonHealthDataSource: NetworkButtonHealthDataSource,
+        serverConfigRepository: ServerConfigRepository,
+        applicationScope: CoroutineScope,
+    ): ButtonHealthRepository =
+        NetworkButtonHealthRepository(
+            networkButtonHealthDataSource = networkButtonHealthDataSource,
+            serverConfigRepository = serverConfigRepository,
+            externalScope = applicationScope,
+        )
+
+    @Provides
+    @Singleton
+    fun provideButtonHealthFcmRepository(messagingBridge: MessagingBridge): ButtonHealthFcmRepository =
+        FirebaseButtonHealthFcmRepository(messagingBridge)
+
+    @Provides
+    @Singleton
+    fun provideButtonHealthFcmSubscriptionManager(
+        authRepository: AuthRepository,
+        serverConfigRepository: ServerConfigRepository,
+        buttonHealthFcmRepository: ButtonHealthFcmRepository,
+        fetchButtonHealthUseCase: FetchButtonHealthUseCase,
+        applicationScope: CoroutineScope,
+        dispatchers: DispatcherProvider,
+    ): ButtonHealthFcmSubscriptionManager =
+        ButtonHealthFcmSubscriptionManager(
+            authRepository = authRepository,
+            serverConfigRepository = serverConfigRepository,
+            fcmRepository = buttonHealthFcmRepository,
+            fetchButtonHealthUseCase = fetchButtonHealthUseCase,
+            scope = applicationScope,
+            dispatcher = dispatchers.io,
+        )
+
+    @Provides
+    @Singleton
     fun provideFcmRegistrationManager(
         registerFcm: RegisterFcmUseCase,
         applicationScope: CoroutineScope,
@@ -548,11 +622,13 @@ abstract class AppComponent(
         checkInStalenessManager: CheckInStalenessManager,
         liveClock: LiveClock,
         appLoggerViewModel: DefaultAppLoggerViewModel,
+        buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager,
     ): AppStartup =
         AppStartup(
             fcmRegistrationManager,
             checkInStalenessManager,
             liveClock,
             appLoggerViewModel,
+            buttonHealthFcmSubscriptionManager,
         )
 }

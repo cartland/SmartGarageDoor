@@ -21,17 +21,29 @@ import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AppResult
+import com.chriscartland.garage.domain.model.ButtonHealth
+import com.chriscartland.garage.domain.model.ButtonHealthError
+import com.chriscartland.garage.domain.model.ButtonHealthState
+import com.chriscartland.garage.domain.model.LoadingResult
+import com.chriscartland.garage.domain.model.ServerConfig
+import com.chriscartland.garage.domain.repository.ButtonHealthFcmRepository
+import com.chriscartland.garage.domain.repository.ButtonHealthRepository
+import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
+import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDoorFcmRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.usecase.AppLoggerViewModel
+import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.FcmRegistrationManager
+import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import org.junit.Assert.assertEquals
@@ -70,6 +82,45 @@ class AppStartupTest {
             dispatcher = testDispatcher,
         )
 
+    private fun createButtonHealthFcmSubscriptionManager(scope: TestScope): ButtonHealthFcmSubscriptionManager {
+        val authRepo = FakeAuthRepository()
+        val configRepo = object : ServerConfigRepository {
+            override val serverConfig: StateFlow<ServerConfig?> = MutableStateFlow(null)
+
+            override suspend fun fetchServerConfig(): ServerConfig? = null
+        }
+        val fcmRepo = object : ButtonHealthFcmRepository {
+            @Suppress("EmptyFunctionBlock")
+            override suspend fun subscribe(buildTimestamp: String) {
+                // no-op fake
+            }
+
+            @Suppress("EmptyFunctionBlock")
+            override suspend fun unsubscribeAll() {
+                // no-op fake
+            }
+        }
+        val healthRepo = object : ButtonHealthRepository {
+            override val buttonHealth: StateFlow<LoadingResult<ButtonHealth>> =
+                MutableStateFlow(LoadingResult.Complete(ButtonHealth(ButtonHealthState.UNKNOWN, null)))
+
+            override suspend fun fetchButtonHealth(idToken: String) = AppResult.Error(ButtonHealthError.Network())
+
+            @Suppress("EmptyFunctionBlock")
+            override fun applyFcmUpdate(update: ButtonHealth) {
+                // no-op fake
+            }
+        }
+        return ButtonHealthFcmSubscriptionManager(
+            authRepository = authRepo,
+            serverConfigRepository = configRepo,
+            fcmRepository = fcmRepo,
+            fetchButtonHealthUseCase = FetchButtonHealthUseCase(healthRepo),
+            scope = scope.backgroundScope,
+            dispatcher = testDispatcher,
+        )
+    }
+
     private class FakeAppLoggerViewModel : AppLoggerViewModel {
         val loggedKeys = mutableListOf<String>()
 
@@ -94,7 +145,8 @@ class AppStartupTest {
         val stalenessManager = createStalenessManager(scope)
         val appLoggerViewModel = FakeAppLoggerViewModel()
         val liveClock = createLiveClock(scope)
-        val actions = AppStartup(fcmManager, stalenessManager, liveClock, appLoggerViewModel)
+        val buttonHealthMgr = createButtonHealthFcmSubscriptionManager(scope)
+        val actions = AppStartup(fcmManager, stalenessManager, liveClock, appLoggerViewModel, buttonHealthMgr)
 
         actions.run()
 
@@ -111,7 +163,8 @@ class AppStartupTest {
         val stalenessManager = createStalenessManager(scope)
         val appLoggerViewModel = FakeAppLoggerViewModel()
         val liveClock = createLiveClock(scope)
-        val actions = AppStartup(fcmManager, stalenessManager, liveClock, appLoggerViewModel)
+        val buttonHealthMgr = createButtonHealthFcmSubscriptionManager(scope)
+        val actions = AppStartup(fcmManager, stalenessManager, liveClock, appLoggerViewModel, buttonHealthMgr)
 
         val result = actions.run()
 
@@ -120,6 +173,7 @@ class AppStartupTest {
                 "startFcmRegistration",
                 "startCheckInStaleness",
                 "startLiveClock",
+                "startButtonHealthFcmSubscription",
                 "logFcmSubscribe",
             ),
             result,

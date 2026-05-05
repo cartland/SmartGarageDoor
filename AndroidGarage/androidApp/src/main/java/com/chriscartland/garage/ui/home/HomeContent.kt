@@ -58,12 +58,14 @@ import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.ui.GarageIcon
 import com.chriscartland.garage.ui.RemoteButtonContent
+import com.chriscartland.garage.ui.RemoteOfflinePill
 import com.chriscartland.garage.ui.TitleBarCheckInPill
 import com.chriscartland.garage.ui.theme.DoorColorState
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.PreviewSurface
 import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.doorColorState
+import com.chriscartland.garage.usecase.ButtonHealthDisplay
 
 /**
  * Display data for the Home tab's status card.
@@ -150,6 +152,7 @@ fun HomeContent(
     status: HomeStatusDisplay,
     authState: HomeAuthState,
     deviceCheckIn: DeviceCheckInDisplay,
+    buttonHealthDisplay: ButtonHealthDisplay,
     modifier: Modifier = Modifier,
     remoteButtonState: RemoteButtonState = RemoteButtonState.Ready,
     alerts: List<HomeAlert> = emptyList(),
@@ -204,7 +207,19 @@ fun HomeContent(
                         }
                     }
                     HomeAuthState.SignedIn -> {
-                        HomeSection(label = "Remote control") {
+                        HomeSection(
+                            label = "Remote control",
+                            trailing = {
+                                when (val d = buttonHealthDisplay) {
+                                    is ButtonHealthDisplay.Offline -> RemoteOfflinePill(display = d)
+                                    ButtonHealthDisplay.Unauthorized,
+                                    ButtonHealthDisplay.Loading,
+                                    ButtonHealthDisplay.Unknown,
+                                    ButtonHealthDisplay.Online,
+                                    -> Unit
+                                }
+                            },
+                        ) {
                             HomeRemoteButtonBody(
                                 state = remoteButtonState,
                                 onTap = onRemoteButtonTap,
@@ -471,6 +486,7 @@ fun HomeContentOpenSignedInPreview() =
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Loading,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
@@ -484,6 +500,7 @@ fun HomeContentClosedSignedInPreview() =
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Loading,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
@@ -497,6 +514,7 @@ fun HomeContentAwaitingConfirmationPreview() =
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.AwaitingConfirmation,
             deviceCheckIn = HomePreviewData.freshCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Loading,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
@@ -510,6 +528,7 @@ fun HomeContentSendingToDoorPreview() =
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.SendingToDoor,
             deviceCheckIn = HomePreviewData.freshCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Loading,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
@@ -523,6 +542,7 @@ fun HomeContentOpeningTooLongPreview() =
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Loading,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
@@ -537,6 +557,7 @@ fun HomeContentStaleBannerPreview() =
             remoteButtonState = RemoteButtonState.Ready,
             alerts = listOf(HomePreviewData.staleAlert),
             deviceCheckIn = HomePreviewData.staleCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Loading,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
@@ -551,6 +572,7 @@ fun HomeContentPermissionMissingPreview() =
             remoteButtonState = RemoteButtonState.Ready,
             alerts = listOf(HomePreviewData.permissionAlert),
             deviceCheckIn = HomePreviewData.freshCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Loading,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
@@ -563,6 +585,7 @@ fun HomeContentSignedOutPreview() =
             status = HomePreviewData.openStatus,
             authState = HomeAuthState.SignedOut,
             deviceCheckIn = HomePreviewData.freshCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Loading,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }

@@ -31,6 +31,7 @@ import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.ui.home.DeviceCheckInDisplay
 import com.chriscartland.garage.ui.home.HomeMapper
 import com.chriscartland.garage.ui.home.HomeStatusDisplay
+import com.chriscartland.garage.usecase.ButtonHealthDisplay
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
 import org.junit.Test
@@ -83,6 +84,7 @@ class AuthStateUIPropagationTest {
                 status = unknownStatus,
                 authState = HomeMapper.toHomeAuthState(AuthState.Unknown),
                 deviceCheckIn = noDataCheckIn,
+                buttonHealthDisplay = ButtonHealthDisplay.Loading,
             )
         }
         composeTestRule.onNodeWithText("Checking sign-in…").assertIsDisplayed()
@@ -95,6 +97,7 @@ class AuthStateUIPropagationTest {
                 status = unknownStatus,
                 authState = HomeMapper.toHomeAuthState(AuthState.Unauthenticated),
                 deviceCheckIn = noDataCheckIn,
+                buttonHealthDisplay = ButtonHealthDisplay.Loading,
             )
         }
         composeTestRule.onNodeWithText("Sign in with Google").assertIsDisplayed()
@@ -107,6 +110,7 @@ class AuthStateUIPropagationTest {
                 status = unknownStatus,
                 authState = HomeMapper.toHomeAuthState(AuthState.Authenticated(testUser)),
                 deviceCheckIn = noDataCheckIn,
+                buttonHealthDisplay = ButtonHealthDisplay.Loading,
             )
         }
         composeTestRule.onNodeWithText("Sign in with Google").assertDoesNotExist()
@@ -124,6 +128,7 @@ class AuthStateUIPropagationTest {
                 status = unknownStatus,
                 authState = HomeMapper.toHomeAuthState(authState),
                 deviceCheckIn = noDataCheckIn,
+                buttonHealthDisplay = ButtonHealthDisplay.Loading,
             )
         }
 
@@ -149,6 +154,7 @@ class AuthStateUIPropagationTest {
                 status = unknownStatus,
                 authState = HomeMapper.toHomeAuthState(authState),
                 deviceCheckIn = noDataCheckIn,
+                buttonHealthDisplay = ButtonHealthDisplay.Loading,
             )
         }
 
@@ -173,6 +179,7 @@ class AuthStateUIPropagationTest {
                 status = unknownStatus,
                 authState = HomeMapper.toHomeAuthState(authState),
                 deviceCheckIn = noDataCheckIn,
+                buttonHealthDisplay = ButtonHealthDisplay.Loading,
             )
         }
 
@@ -194,6 +201,7 @@ class AuthStateUIPropagationTest {
                 status = unknownStatus,
                 authState = HomeMapper.toHomeAuthState(authState),
                 deviceCheckIn = noDataCheckIn,
+                buttonHealthDisplay = ButtonHealthDisplay.Loading,
             )
         }
 
