@@ -32,6 +32,7 @@ import { httpFunctionListAccess } from './functions/http/FunctionListAccess'
 import { pubsubCheckForDoorErrors } from './functions/pubsub/DoorErrors'
 import { pubsubCheckForOpenDoorsJob } from './functions/pubsub/OpenDoor'
 import { pubsubCheckForRemoteButtonErrors } from './functions/pubsub/RemoteButton'
+import { pubsubCheckButtonHealth } from './functions/pubsub/ButtonHealth'
 import { pubsubDataRetentionPolicy } from './functions/pubsub/DataRetentionPolicy'
 
 // Firestore Functions.
@@ -93,6 +94,23 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'updateEvents') 
  */
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'firestoreCheckButtonHealth') {
   exports.firestoreCheckButtonHealth = firestoreCheckButtonHealth;
+}
+
+/**
+ * Detect remote-button device OFFLINE state on a 10-min schedule.
+ *
+ * Trigger Type: PubSub Job
+ *
+ * Drives the OFFLINE side of the state machine — the trigger handles
+ * sub-second ONLINE recovery on every poll. Worst-case OFFLINE
+ * detection latency is ~10 min (acknowledged tradeoff). Sends data-
+ * only FCM only on transitions; preserves stateChangedAtSeconds on
+ * no-op writes.
+ *
+ * See docs/BUTTON_HEALTH_ARCHITECTURE.md.
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'pubsubCheckButtonHealth') {
+  exports.pubsubCheckButtonHealth = pubsubCheckButtonHealth;
 }
 
 /**
