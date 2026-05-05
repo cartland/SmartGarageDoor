@@ -17,9 +17,18 @@
 
 package com.chriscartland.garage.fcm
 
+import com.chriscartland.garage.domain.model.AppResult
+import com.chriscartland.garage.domain.model.ButtonHealth
+import com.chriscartland.garage.domain.model.ButtonHealthError
+import com.chriscartland.garage.domain.model.ButtonHealthState
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.domain.model.LoadingResult
+import com.chriscartland.garage.domain.repository.ButtonHealthRepository
+import com.chriscartland.garage.usecase.ApplyButtonHealthFcmUseCase
 import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -29,9 +38,11 @@ import org.junit.Test
 
 class FcmMessageHandlerTest {
     private val receiveFcmDoorEvent = RecordingReceiveFcmDoorEventUseCase()
-    private val handler = FcmMessageHandler(receiveFcmDoorEvent)
+    private val buttonHealthRepo = RecordingButtonHealthRepository()
+    private val applyButtonHealthFcm = ApplyButtonHealthFcmUseCase(buttonHealthRepo)
+    private val handler = FcmMessageHandler(receiveFcmDoorEvent, applyButtonHealthFcm)
 
-    private fun makePayload(
+    private fun doorPayload(
         type: String? = "CLOSED",
         message: String? = "The door is closed.",
         timestampSeconds: String? = "1000",
@@ -44,29 +55,42 @@ class FcmMessageHandlerTest {
             checkInTimestampSeconds?.let { put("checkInTimestampSeconds", it) }
         }
 
+    private fun buttonHealthPayload(
+        buttonState: String = "OFFLINE",
+        stateChangedAtSeconds: String = "1730000000",
+        buildTimestamp: String = "Sat Apr 10 23:57:32 2021",
+    ): Map<String, String> =
+        mapOf(
+            "buttonState" to buttonState,
+            "stateChangedAtSeconds" to stateChangedAtSeconds,
+            "buildTimestamp" to buildTimestamp,
+        )
+
     @Test
-    fun handleDoorMessage_emptyData_returnsFalse() =
+    fun emptyData_returnsFalse_noUseCaseCalls() =
         runTest {
-            val result = handler.handleDoorMessage(emptyMap())
+            val result = handler.handleMessage(topic = "anything", data = emptyMap())
+
+            assertFalse(result)
+            assertNull(receiveFcmDoorEvent.lastEvent)
+            assertNull(buttonHealthRepo.lastApplied)
+        }
+
+    // --- Door branch (default else, preserves the existing path) ---
+
+    @Test
+    fun doorTopic_invalidPayload_returnsFalse() =
+        runTest {
+            val result = handler.handleMessage(topic = "door-X", data = mapOf("message" to "hi"))
 
             assertFalse(result)
             assertNull(receiveFcmDoorEvent.lastEvent)
         }
 
     @Test
-    fun handleDoorMessage_invalidPayload_returnsFalse() =
+    fun doorTopic_validPayload_forwardsParsedEvent() =
         runTest {
-            // Missing required "type" field.
-            val result = handler.handleDoorMessage(mapOf("message" to "hello"))
-
-            assertFalse(result)
-            assertNull(receiveFcmDoorEvent.lastEvent)
-        }
-
-    @Test
-    fun handleDoorMessage_validPayload_forwardsParsedEvent() =
-        runTest {
-            val result = handler.handleDoorMessage(makePayload())
+            val result = handler.handleMessage(topic = "door_open-X", data = doorPayload())
 
             assertTrue(result)
             val event = receiveFcmDoorEvent.lastEvent
@@ -77,11 +101,56 @@ class FcmMessageHandlerTest {
         }
 
     @Test
-    fun handleDoorMessage_validPayload_invokesUseCaseExactlyOnce() =
+    fun emptyTopic_routesToDoorBranch() =
         runTest {
-            handler.handleDoorMessage(makePayload())
+            // Defensive: a missing topic falls through to the default door branch
+            // (preserves existing behavior).
+            val result = handler.handleMessage(topic = "", data = doorPayload())
 
+            assertTrue(result)
             assertEquals(1, receiveFcmDoorEvent.invocationCount)
+        }
+
+    // --- Button-health branch (new) ---
+
+    @Test
+    fun buttonHealthTopic_validOfflinePayload_appliesUpdate() =
+        runTest {
+            val result = handler.handleMessage(
+                topic = "buttonHealth-Sat.Apr.10.23.57.32.2021",
+                data = buttonHealthPayload(),
+            )
+
+            assertTrue(result)
+            val update = buttonHealthRepo.lastApplied
+            assertEquals(ButtonHealthState.OFFLINE, update?.state)
+            assertEquals(1730000000L, update?.stateChangedAtSeconds)
+            assertNull(receiveFcmDoorEvent.lastEvent) // Door branch NOT invoked.
+        }
+
+    @Test
+    fun buttonHealthTopic_validOnlinePayload_appliesUpdate() =
+        runTest {
+            val result = handler.handleMessage(
+                topic = "buttonHealth-X",
+                data = buttonHealthPayload(buttonState = "ONLINE"),
+            )
+
+            assertTrue(result)
+            assertEquals(ButtonHealthState.ONLINE, buttonHealthRepo.lastApplied?.state)
+        }
+
+    @Test
+    fun buttonHealthTopic_invalidPayload_returnsFalse_noApply() =
+        runTest {
+            // Missing required field — parser returns null; handler returns false.
+            val result = handler.handleMessage(
+                topic = "buttonHealth-X",
+                data = mapOf("buttonState" to "OFFLINE"), // missing stateChangedAtSeconds
+            )
+
+            assertFalse(result)
+            assertNull(buttonHealthRepo.lastApplied)
         }
 }
 
@@ -94,5 +163,18 @@ private class RecordingReceiveFcmDoorEventUseCase : ReceiveFcmDoorEventUseCase {
     override fun invoke(event: DoorEvent) {
         invocationCount += 1
         lastEvent = event
+    }
+}
+
+private class RecordingButtonHealthRepository : ButtonHealthRepository {
+    var lastApplied: ButtonHealth? = null
+        private set
+    override val buttonHealth: StateFlow<LoadingResult<ButtonHealth>> =
+        MutableStateFlow(LoadingResult.Loading(null))
+
+    override suspend fun fetchButtonHealth(idToken: String) = AppResult.Error(ButtonHealthError.Network())
+
+    override fun applyFcmUpdate(update: ButtonHealth) {
+        lastApplied = update
     }
 }

@@ -42,6 +42,7 @@ import com.chriscartland.garage.ui.home.HomeMapper
 import com.chriscartland.garage.ui.settings.AccountRowState
 import com.chriscartland.garage.ui.settings.SettingsContent
 import com.chriscartland.garage.ui.settings.SnoozeRowState
+import com.chriscartland.garage.usecase.ButtonHealthDisplay
 import java.time.Instant
 import java.time.ZoneOffset
 import com.chriscartland.garage.ui.home.HomeContent as HomeStatelessContent
@@ -145,6 +146,7 @@ fun HomeTabPreview() {
             modifier = modifier,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = deviceCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Loading,
         )
     }
 }
@@ -173,6 +175,7 @@ fun HomeTabStalePillPreview() {
             modifier = modifier,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = deviceCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Loading,
         )
     }
 }

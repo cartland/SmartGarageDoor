@@ -20,6 +20,7 @@ package com.chriscartland.garage
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.usecase.AppLoggerViewModel
+import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.LiveClock
@@ -35,11 +36,12 @@ class AppStartup(
     private val checkInStalenessManager: CheckInStalenessManager,
     private val liveClock: LiveClock,
     private val appLoggerViewModel: AppLoggerViewModel,
+    private val buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager,
 ) {
     /**
      * Performs startup actions: FCM registration, staleness tracking,
-     * live-clock ticker, and logging. Returns the list of actions taken
-     * (for testing/logging).
+     * live-clock ticker, button-health subscription, and logging.
+     * Returns the list of actions taken (for testing/logging).
      */
     fun run(): List<String> {
         val actions = mutableListOf<String>()
@@ -55,6 +57,10 @@ class AppStartup(
         Logger.d { "AppStartup: Starting live clock" }
         liveClock.start()
         actions.add("startLiveClock")
+
+        Logger.d { "AppStartup: Starting button health FCM subscription manager" }
+        buttonHealthFcmSubscriptionManager.start()
+        actions.add("startButtonHealthFcmSubscription")
 
         appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
         actions.add("logFcmSubscribe")

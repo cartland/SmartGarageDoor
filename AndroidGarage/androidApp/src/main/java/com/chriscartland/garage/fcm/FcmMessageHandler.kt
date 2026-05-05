@@ -18,34 +18,68 @@
 package com.chriscartland.garage.fcm
 
 import co.touchlab.kermit.Logger
+import com.chriscartland.garage.data.ButtonHealthFcmPayloadParser
 import com.chriscartland.garage.data.FcmPayloadParser
+import com.chriscartland.garage.usecase.ApplyButtonHealthFcmUseCase
 import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 
 /**
- * Handles FCM door event messages. Extracted from FCMService for testability.
+ * Handles FCM data messages. Extracted from FCMService for testability.
  *
- * Parses the FCM data payload and routes the resulting DoorEvent to a UseCase
- * that owns persistence + logging — this thin handler is just the parser.
- * Returns true if the event was successfully parsed and handed off.
+ * Dispatches by topic prefix:
+ *  - `buttonHealth-*` → [ApplyButtonHealthFcmUseCase]
+ *  - everything else → door-event parser (default-preserving — the
+ *    existing door FCM path stays exactly as it was)
+ *
+ * Each branch parses the data payload and routes the result to the
+ * relevant UseCase. The handler itself owns no state.
  */
 class FcmMessageHandler(
     private val receiveFcmDoorEvent: ReceiveFcmDoorEventUseCase,
+    private val applyButtonHealthFcm: ApplyButtonHealthFcmUseCase,
 ) {
     /**
-     * Process an FCM data message. Returns true if a DoorEvent was parsed and
-     * forwarded to [ReceiveFcmDoorEventUseCase].
+     * Process an FCM data message. Topic prefix determines which
+     * payload parser + UseCase handles the message.
+     *
+     * @param topic the FCM topic the message was published to (without
+     *   the `/topics/` prefix). Used to route between door and button-
+     *   health channels.
+     * @param data the FCM data payload (string key/value pairs).
+     * @return true if the message was successfully parsed and handed off.
      */
-    suspend fun handleDoorMessage(data: Map<String, String>): Boolean {
+    suspend fun handleMessage(
+        topic: String,
+        data: Map<String, String>,
+    ): Boolean {
         if (data.isEmpty()) {
             Logger.d { "Message data payload is empty" }
             return false
         }
+        return if (topic.startsWith("buttonHealth-")) {
+            handleButtonHealthMessage(data)
+        } else {
+            handleDoorMessage(data)
+        }
+    }
+
+    private suspend fun handleDoorMessage(data: Map<String, String>): Boolean {
         val doorEvent = FcmPayloadParser.parseDoorEvent(data) ?: run {
-            Logger.e { "Failed to parse FCM payload: ${data.entries.joinToString()}" }
+            Logger.e { "Failed to parse FCM door payload: ${data.entries.joinToString()}" }
             return false
         }
         Logger.d { "DoorData: $doorEvent" }
         receiveFcmDoorEvent(doorEvent)
+        return true
+    }
+
+    private fun handleButtonHealthMessage(data: Map<String, String>): Boolean {
+        val update = ButtonHealthFcmPayloadParser.parse(data) ?: run {
+            Logger.e { "Failed to parse FCM button-health payload: ${data.entries.joinToString()}" }
+            return false
+        }
+        Logger.d { "ButtonHealth FCM: $update" }
+        applyButtonHealthFcm(update)
         return true
     }
 }

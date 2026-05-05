@@ -30,6 +30,7 @@ import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.toServer
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -40,6 +41,14 @@ interface RemoteButtonViewModel {
     val buttonState: StateFlow<RemoteButtonState>
     val snoozeState: StateFlow<SnoozeState>
     val snoozeAction: StateFlow<SnoozeAction>
+
+    /**
+     * Display state for the remote-button device's online/offline pill.
+     * Per ADR-022, this is a derived [Flow] (not a StateFlow); the
+     * Composable consumer collects via [androidx.compose.runtime.collectAsState]
+     * with an initial value.
+     */
+    val buttonHealthDisplay: Flow<ButtonHealthDisplay>
 
     fun onButtonTap()
 
@@ -57,6 +66,7 @@ class DefaultRemoteButtonViewModel(
     private val snoozeNotificationsUseCase: SnoozeNotificationsUseCase,
     private val fetchSnoozeStatusUseCase: FetchSnoozeStatusUseCase,
     private val observeSnoozeStateUseCase: ObserveSnoozeStateUseCase,
+    override val buttonHealthDisplay: Flow<ButtonHealthDisplay>,
     private val appVersion: String,
 ) : ViewModel(),
     RemoteButtonViewModel {
