@@ -27,6 +27,7 @@ import { httpDeleteOldData } from './functions/http/DeleteData'
 import { httpServerConfig, httpServerConfigUpdate } from './functions/http/ServerConfig'
 import { httpSnoozeNotificationsRequest, httpSnoozeNotificationsLatest} from './functions/http/Snooze'
 import { httpFunctionListAccess } from './functions/http/FunctionListAccess'
+import { httpButtonHealth } from './functions/http/ButtonHealth'
 
 // Pubsub Functions.
 import { pubsubCheckForDoorErrors } from './functions/pubsub/DoorErrors'
@@ -274,4 +275,19 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'snoozeNotificat
  */
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'functionListAccess') {
   exports.functionListAccess = httpFunctionListAccess;
+}
+
+/**
+ * Mobile cold-start fetch for the remote-button device's online/offline state.
+ *
+ * Trigger Type: HTTP (allowlist-gated)
+ *
+ * Auth chain mirrors addRemoteButtonCommand: push key + Google ID token +
+ * email allowlist. Returns the current buttonHealthCurrent doc, or
+ * UNKNOWN/null when no doc exists yet.
+ *
+ * See docs/BUTTON_HEALTH_ARCHITECTURE.md.
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'buttonHealth') {
+  exports.buttonHealth = httpButtonHealth;
 }
