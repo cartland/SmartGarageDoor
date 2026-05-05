@@ -479,6 +479,75 @@ Following the PR-shape review:
 
 PRs 1, 2, 6 can land in parallel (no shared files). PRs 3/4/5 must serialize on `index.ts`. PRs 7/8 can land in parallel. PR 9 is the user-visible flip and the only one that can affect existing FCM behavior.
 
+## Test plan
+
+Every new module ships with tests in the same PR. Each test layer has a precedent file in the codebase — implementer should mirror the existing pattern.
+
+### Server tests (Mocha + Chai, fakes via `setImpl`/`resetImpl`)
+
+| Test file | What it covers | Convention |
+|---|---|---|
+| `test/controller/ButtonHealthInterpreterTest.ts` | Pure functions: `computeHealthFromLastPoll` (4 cases: null poll, fresh ≤60s, boundary at 60s, stale >60s) + `detectTransition` (2 priors × 2 computed = 4 cases; verify `stateChangedAtSeconds` not bumped on no-op) | Pattern: `EventInterpreterTest.ts` |
+| `test/controller/ButtonHealthUpdatesTest.ts` | `handleButtonHealthFromPollWrite` with fakes for `ButtonHealthDatabase`, `RemoteButtonRequestDatabase`, `ButtonHealthFCMService`. Verifies trigger re-reads `getCurrent()` (test the stale-event-payload case explicitly: pass an old payload, expect logic to use the fresh re-read) | Pattern: `EventUpdatesFakeTest.ts` |
+| `test/controller/fcm/ButtonHealthFCMTest.ts` | `sendForTransition` payload shape: data-only, correct topic via builder, `collapse_key`, no `notification` block | Pattern: `EventFCMTest.ts` |
+| `test/model/ButtonHealthFcmTopicTest.ts` | Topic format pinning. Cases: empty input throws; `"100%25"` re-decode throws → fallback to raw; known-good buildTimestamp produces known-good topic; sanitization replaces forbidden chars with `.` | Pattern: `FcmTopicTest.ts` |
+| `test/database/ButtonHealthDatabaseTest.ts` | CRUD round-trip via fake. Verifies `getCurrent` returns null when no doc, `save` then `getCurrent` round-trips. | Pattern: `RemoteButtonRequestDatabaseTest.ts` |
+| `test/functions/firestore/ButtonHealthTest.ts` | Trigger handler integration: fakes wired end-to-end. Asserts on `database.writeCount` and `fcm.sendCount` per scenario. | Pattern: `EventsTriggerTest.ts` (door equivalent) |
+| `test/functions/pubsub/ButtonHealthTest.ts` | **MUST enumerate the state-machine table rows 1:1 by name.** Three tests, named `"row 1: pubsub fresh poll → ONLINE no-op"`, `"row 2: pubsub fresh poll, prior OFFLINE → ONLINE + FCM"`, `"row 3: pubsub stale poll OR no record → OFFLINE + FCM (only on transition)"`. Reading test file alongside doc table verifies completeness. | New convention; doc is the spec |
+| `test/functions/http/ButtonHealthTest.ts` | Auth chain mirrors `handleAddRemoteButtonCommand`: missing push key → 401; wrong push key → 403; missing token → 401; bad token → 500; non-allowlisted email → 403; missing buildTimestamp → 400. Plus: success cases deep-equal against `wire-contracts/buttonHealth/response_*.json` fixtures (loaded in strict mode). | Pattern: existing handler tests |
+
+### Android tests (Kotlin, JUnit, fakes only — no Mockito per ADR-003)
+
+| Test file | What it covers | Convention |
+|---|---|---|
+| `domain/src/commonTest/.../buttonhealth/ButtonHealthDisplayLogicTest.kt` | Pure `compute()`. Truth table: 5 display states × all relevant input combos. ~12 cases minimum: not-SignedIn → Unauthorized (3 sub-cases); allowlist null → Unauthorized; allowlist false → Unauthorized; Loading → Loading; Error → Loading; Complete×ONLINE → Online; Complete×OFFLINE → Offline(label); Complete×UNKNOWN → Unknown | Pure-function tests, no fakes |
+| `domain/src/commonTest/.../buttonhealth/ButtonHealthDurationFormatterTest.kt` | Format strings: just-now, minutes, hours, days, negative (clock skew). Pin exact strings. | Pure |
+| `data/src/commonTest/.../buttonhealth/KtorButtonHealthDataSourceTest.kt` | Loads `wire-contracts/buttonHealth/*.json` in strict mode (`ignoreUnknownKeys = false`). Each variant decodes to the expected `ButtonHealth`. Unknown `buttonState` string maps to `ButtonHealthState.UNKNOWN` (not a throw). 401 + 403 surface as `Forbidden`/`Network` errors. | Pattern: existing wire-contract test |
+| `data/src/commonTest/.../buttonhealth/ButtonHealthFcmPayloadParserTest.kt` | Parses data-only FCM payloads. Tests: known-good payload → `ButtonHealth`; missing field → null (or `Unknown` mapping per design); unknown `buttonState` string → `ButtonHealthState.UNKNOWN`. | Pattern: `FcmPayloadParsingTest.kt` |
+| `data/src/commonTest/.../buttonhealth/ButtonHealthFcmTopicTest.kt` | **MUST pin format identically to server `ButtonHealthFcmTopicTest.ts`** — same input/output pairs. Catches drift between server topic builder and Android topic-string assumption. | Pattern: `FcmTopicTest.kt` |
+| `data/src/commonTest/.../buttonhealth/NetworkButtonHealthRepositoryTest.kt` | Fake `NetworkButtonHealthDataSource` returns canned `NetworkResult`. Asserts `repository.buttonHealth.value` after `fetchButtonHealth()` and `applyFcmUpdate()`. Uses `runTest` with `backgroundScope` as `externalScope` (matches `NetworkSnoozeRepositoryTest`). | Pattern: `NetworkSnoozeRepositoryTest.kt` |
+| `data/src/commonTest/.../fcm/FcmTopicDispatcherTest.kt` | Pure dispatcher: `isButtonHealth("buttonHealth-X") == true`, `isButtonHealth("door-X") == false`, `isButtonHealth("") == false`, `isButtonHealth("buttonHealth") == false` (no trailing `-`). | Pure |
+| `usecase/src/commonTest/.../buttonhealth/ComputeButtonHealthDisplayUseCaseTest.kt` | Wires fake `AuthRepository`, `FeatureAccessRepository`, `ButtonHealthRepository`, `LiveClock`. Emits on `MutableStateFlow`s, asserts on collected display values. Verifies `combine` re-emits on every input change. | Pattern: `ObserveAuthStateUseCaseTest.kt` |
+| `usecase/src/commonTest/.../buttonhealth/ButtonHealthFcmSubscriptionManagerTest.kt` | Fake `ButtonHealthFcmRepository` (records `subscribe`/`unsubscribe`/`unsubscribeAll` calls + counts) + fake `FetchButtonHealthUseCase` (records invocation count). Scenarios: signed-out → only `unsubscribeAll`; signed-in + allowed + bt → `unsubscribeAll` then `subscribe(bt)` then `fetch`; buildTimestamp rotates → `unsubscribeAll` then `subscribe(new)` (the always-unsubscribe-first pattern); allowlist flip → unsubscribe. Uses `runTest` + `backgroundScope`. | Pattern: `FcmRegistrationManagerTest.kt` |
+| `androidApp/src/screenshotTest/.../buttonhealth/RemoteOfflinePillPreviewTest.kt` | Imports `RemoteOfflinePillFreshPreview`, `RemoteOfflinePillAgingPreview` (light + dark variants). Required by `checkPreviewCoverage` (build fails otherwise). | Pattern: `TitleBarCheckInPillPreviewTest.kt` |
+| `androidApp/src/test/.../ComponentGraphTest.kt` | Add identity-`assertSame` checks for `buttonHealthRepository`, `buttonHealthFcmRepository`, `buttonHealthFcmSubscriptionManager` — verifies `@Singleton` providers are properly cached per `DI_SINGLETON_REQUIREMENTS.md`. | Existing test file, just append |
+| `androidApp/src/androidTest/.../AppStartupInstrumentedTest.kt` | If touched: verify Manager starts after FCM token registration. Per CLAUDE.md, instrumented tests required when AppComponent/AppStartup change. | Pattern: existing instrumented tests |
+
+### What CANNOT be tested without running the app
+
+- **Real FCM delivery** to a device. Mitigation: cold-start fetch on next launch.
+- **FCM topic subscription persistence** across app restarts. Mitigation: Manager re-subscribes on every state-change cycle (idempotent).
+- **Layoutlib pill rendering** in screenshot tests can fail silently with custom 960-viewport vectors (CLAUDE.md gotcha). Mitigation: use Material `Icons.Outlined.SignalWifiOff` (24-viewport, known-good).
+- **Real Firestore trigger firing** under production load. Mitigation: pattern matches `firestoreUpdateEvents` which already runs in production.
+
+### Manual verification (per release)
+
+**Internal-track (`android/N+1`) smoke test before promoting to production:**
+
+1. **Allowlisted user, device online**: open app → no pill. Verify in Cloud Logs that cold-start `httpButtonHealth` returned `ONLINE` and FCM topic subscription succeeded.
+2. **Force OFFLINE**: unplug ESP32 button device. Wait ~10 min for pubsub to fire. Verify pill appears with realistic duration label.
+3. **Recovery**: plug ESP32 back in. Within 1 sec of next poll, the trigger should fire → FCM → pill disappears.
+4. **Sign out**: pill clears immediately (Manager unsubscribes; display flips to `Unauthorized`).
+5. **Sign back in**: cold-start fetch → display returns to correct state within seconds.
+6. **Non-allowlisted user**: sign in with non-allowlisted account. Verify no pill ever; verify FCM topic NOT subscribed (Cloud Logs); verify `httpButtonHealth` returns 403.
+7. **Door FCM regression check** (highest-risk PR #9 only): trigger a door state change and verify the door UI still updates via FCM. Confirms the dispatcher's `else` branch is intact.
+
+**Pre-deploy gates:**
+- `./scripts/validate.sh` — full pre-submit (includes `checkPreviewCoverage`, `checkSingletonCaching`, `checkNoBareTopLevelFunctions`, `checkNoImplSuffix`, `checkScreenViewModelCardinality`).
+- `./scripts/validate-firebase.sh` — Firebase tests + lint.
+- `./scripts/run-instrumented-tests.sh` — required when AppComponent / AppStartup / Activity lifecycle code changes (PR #9 triggers this).
+
+**Post-deploy verification (production server):**
+- Cloud Logs: `firestoreCheckButtonHealth` fires on every poll (cadence ~5 sec).
+- Cloud Logs: `pubsubCheckButtonHealth` fires every 10 min.
+- Firestore Console: `buttonHealthCurrent/{buildTimestamp}` doc exists with current state.
+- No ERROR-level logs from new functions in the first 24 hours.
+
+**Coverage targets:**
+- Pure functions (`computeHealthFromLastPoll`, `detectTransition`, `compute`, `formatAgo`, topic builder, dispatcher): 100% line + branch.
+- Repositories + Manager: 100% public surface; covers all sealed-class arms.
+- Wire-contract tests cover all 5 fixture variants.
+
 ## ADR / convention compliance
 
 - **FCM safety**: adds new topic + payload keys; existing `FcmTopicTest` and `FcmPayloadParsingTest` stay green; new `ButtonHealthFcmTopicTest` + `ButtonHealthFcmPayloadParsingTest` ship in the same PR as the topic builder + parser.
