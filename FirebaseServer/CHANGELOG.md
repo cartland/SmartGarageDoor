@@ -29,6 +29,18 @@ Example (placeholder tag numbers — the gate looks for exact `server/<real numb
 
 ---
 
+## server/24
+- **Button health detection.** Adds server-side ONLINE/OFFLINE detection for the remote-button ESP32 device. Drives the new "Remote offline" indicator pill on the Android Home tab. See `docs/BUTTON_HEALTH_ARCHITECTURE.md` for the full design.
+- New collection `buttonHealthCurrent/{buildTimestamp}` (single doc per device) holding `{ state: ONLINE|OFFLINE, stateChangedAtSeconds }`. State machine has just three rows; only one constant (`ONLINE_THRESHOLD_SEC = 60`).
+- New `firestoreCheckButtonHealth` Firestore trigger on `remoteButtonRequestAll/{docId}`. Fires after every device poll (~17K/day), re-reads `RemoteButtonRequestDatabase.getCurrent()` (defends against retry with stale event payload), persists state change + sends data-only FCM only on transitions. Default no-retry (`runWith` omitted) — mirrors `firestoreUpdateEvents`.
+- New `pubsubCheckButtonHealth` schedule (every 10 min) drives OFFLINE detection. The trigger handles ONLINE recovery sub-second on every actual poll; pubsub only flips to OFFLINE when no fresh poll within `ONLINE_THRESHOLD_SEC`. Worst-case OFFLINE-detection latency: ~10 min (acknowledged).
+- New `httpButtonHealth` cold-start endpoint for the Android client. Auth chain mirrors `httpAddRemoteButtonCommand` byte-for-byte (push key + Google ID token + email allowlist via existing `remoteButtonAuthorizedEmails`). Returns `UNKNOWN` when no `buttonHealthCurrent` doc exists yet.
+- New FCM topic family `buttonHealth-<sanitized-buildTimestamp>` (data-only payloads, never visible system notification). Distinct topic builder handles the URL-encoded button buildTimestamp (since April 2021) with try/catch around `decodeURIComponent`. Replacement char `.` matches the door builder.
+- **Device contract preserved byte-for-byte.** `httpRemoteButton` is unmodified — the trigger fires asynchronously after the device's HTTP response is on the wire. Trigger / pubsub / FCM failures cannot affect the device path.
+- **Kill switch reuses existing `isRemoteButtonEnabled` config flag.** Setting it to `false` short-circuits all four new functions instantly without a redeploy. No new config keys.
+- Test count: 250 → 291 (+41 new). Wire-contract fixtures at `wire-contracts/buttonHealth/` consumed in strict mode by both server (Mocha) and Android (commonTest); a unilateral rename fails on at least one side.
+- Operational: zero impact for old Android clients (they don't subscribe to the new topic and don't call the new endpoint). New collection grows ~1 doc per device. Cost: trigger fires at button polling cadence (~17K/day) → within Cloud Functions free tier.
+
 ## server/23
 - **Dependency-security release.** Bumps `firebase-admin` 13.5.0 → 13.8.0 (PR #583) and adds a top-level `uuid: "^14.0.0"` override (PR #585) so every transitive uuid in firebase-admin's `@google-cloud/storage` / `google-gax` / `gaxios` / `teeny-request` subtree resolves to 14.0.0. Together these close all 5 open Dependabot alerts (3× node-forge high, 1× uuid medium, 1× js-yaml medium — js-yaml fixed via devDep override, PR #584).
 - Zero functional change. firebase-admin 13.6/13.7/13.8 release notes ship additive features only — no breaking API surface for the call patterns this server uses (`auth().verifyIdToken`, Firestore reads/writes, FCM sends). uuid v14's `v4()` API is API-compatible with the v8/v9/v11 transitive callers; the CVE was specifically about the optional `buf` parameter, not used by any google-cloud-storage internal call site.
