@@ -3,7 +3,7 @@
 
 # Preview Screenshot Coverage
 
-**70 / 70 (100%)**
+**74 / 74 (100%)**
 
 ## Covered
 
@@ -66,6 +66,10 @@
 - `RemoteButtonContentSendingToServerPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonContent.kt`
 - `RemoteButtonContentServerFailedPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonContent.kt`
 - `RemoteButtonContentSucceededPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonContent.kt`
+- `RemoteOfflinePillAgingPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteOfflinePill.kt`
+- `RemoteOfflinePillFreshPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteOfflinePill.kt`
+- `RemoteOfflinePillStalePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteOfflinePill.kt`
+- `RemoteOfflinePillVeryStalePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteOfflinePill.kt`
 - `SettingsContentSignedInAllowlistedPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/SettingsContent.kt`
 - `SettingsContentSignedInBasicPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/SettingsContent.kt`
 - `SettingsContentSignedOutPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/SettingsContent.kt`
