@@ -15,6 +15,13 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.10.0
+- **New "Remote offline" indicator on the Home tab.** A small rounded pill (wifi-off icon + duration label like "11 min ago") appears next to the Remote-control section title when the wall-button ESP32 device has stopped checking in with the server. Only allowlisted users (the same allowlist that gates the existing remote-button push) ever see it. Healthy/unknown/loading states render no pill — UI is identical to 2.9.5 for everyone else.
+- **Server detects the OFFLINE state**, mobile just consumes it. Server flips OFFLINE if the device hasn't polled within 60 sec, and back to ONLINE on the next successful poll. Worst-case detection latency: ~10 min (acknowledged). Server side shipped in `server/24`.
+- **Updates flow via data-only FCM** (never a system-tray notification). Subscription is gated by signed-in + allowlist + the device buildTimestamp from server config; the subscription manager unsubscribes-and-re-subscribes correctly when the device buildTimestamp rotates (firmware reflash).
+- **Existing door FCM path is unchanged.** `FCMService` dispatches by topic prefix (`buttonHealth-` → new path; everything else → existing door path). The else branch is bit-for-bit identical to 2.9.5.
+- 95 new tests across the rollout (server + Android); 4 new screenshot tests for the pill (light + dark, four duration buckets). Full architecture: `docs/BUTTON_HEALTH_ARCHITECTURE.md`.
+
 ## 2.9.5
 - No user-facing changes. Re-tags the same APK behavior under a fresh `versionName` after a series of internal-only fidelity fixes:
   - **Inner `HomeContent.deviceCheckIn` parameter is now required** (was nullable with a `null` default). The wrapper already passed it, so production behavior is identical — but the type system now stops a future fixture from silently omitting a piece of UI that production always renders. Caught 7 silent instrumented-test gaps the day it landed (#625).
