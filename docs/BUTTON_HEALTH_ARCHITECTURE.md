@@ -416,6 +416,69 @@ The device cannot observe whether this feature is deployed. A failure in any new
 - New server config keys.
 - History / uptime metrics.
 
+## Release plan
+
+### Order of operations
+1. **Server first** (`server/N+1`). Deploy trigger + pubsub + HTTP endpoint + FCM service in one Firebase release. Verify in production via Cloud Logs that pubsub fires and computes the expected state for the live `buttonBuildTimestamp`. **No mobile users see anything change** — old clients don't subscribe to the new FCM topic and don't call the new HTTP endpoint.
+2. **Android second** (`android/N+1`, minor bump per CHANGELOG semver — adds a user-visible capability). Ships through Play Store internal track first per `scripts/release-android.sh`, then production.
+
+Server-first is mandatory because Android cold-start expects the HTTP endpoint to exist. The reverse order causes new Android installs to sit in `Loading` indefinitely (the cold-start fetch returns 404), but with no UI regression — the pill never renders. So even if order is flipped accidentally, no user sees anything wrong.
+
+### Kill switch (no new config key)
+
+Every new server function (`firestoreCheckButtonHealth`, `pubsubCheckButtonHealth`, `httpButtonHealth`) MUST short-circuit when `isRemoteButtonEnabled(config) == false`. This reuses the existing button-feature kill switch — one toggle disables everything button-related. Mobile clients see the same state as "server before deploy": no FCMs, HTTP returns 400 `Disabled`, display stays `Loading`/`Unknown` (no pill).
+
+### Forward compat (new Android, server not yet deployed OR rolled back)
+
+- HTTP cold-start endpoint returns 404 (or 400 `Disabled`) → repository surfaces `Network`/`Forbidden` error → display stays `Loading` → no pill.
+- FCM topic has no publisher → no updates arrive → display unchanged.
+- **UI identical to today.** No spinner, no error message, no broken affordance.
+
+### Backward compat (old Android, server fully deployed)
+
+- Old Android doesn't subscribe to `buttonHealth-*` topic → receives no FCMs.
+- Old Android doesn't call `httpButtonHealth` → no 404s.
+- Old Android doesn't import `ButtonHealthFcmPayloadParser` → topic-prefix dispatch (when shipped later) is the new-side concern only.
+- **No regression.**
+
+### Schema evolution forward compat (future-proofing)
+
+- **`buttonState` is `String` on the wire**, mapped to Android `ButtonHealthState` enum at the data layer. Unrecognized strings default to `UNKNOWN`. Future server-added states (e.g., `MAINTENANCE`) won't crash old Android — they'll just see `Unknown`.
+- **`ignoreUnknownKeys = true`** in production decode → server can add new fields to the response without breaking old clients.
+- **Strict-mode tests** (`ignoreUnknownKeys = false`) consume `wire-contracts/buttonHealth/` fixtures → catch breaking renames or removals at PR time, not in production.
+- **Topic format MUST NOT change post-launch** (CLAUDE.md FCM safety rule). `ButtonHealthFcmTopicTest` pins it on both sides. If a future change is genuinely needed, follow the door-topic dance: add the new topic alongside, migrate, then retire the old.
+- **`stateChangedAtSeconds` is nullable** on the wire (null only when wire `state == UNKNOWN`). Future Android versions can rely on it being non-null when state is ONLINE/OFFLINE.
+
+### Rollback
+
+**Server rollback is two-tier:**
+1. **Soft kill** (instant, no deploy): set `isRemoteButtonEnabled = false` in `httpServerConfigUpdate`. All button + button-health functions short-circuit. Mobile sees the "no pill ever" state.
+2. **Hard rollback** (full deploy): `./scripts/release-firebase.sh --check` prints the rollback command (per existing convention). Reverts to `server/N` (pre-feature). The `buttonHealthCurrent` collection persists harmlessly; can be deleted manually if desired (no other code references it after rollback).
+
+**Android rollback** is standard Play Store: roll back to `android/N`. The previous version doesn't subscribe to the new topic or call the new endpoint, so there's no stale-subscription cleanup needed (Firebase tolerates orphan topic subscriptions indefinitely).
+
+### Risks during rollout
+
+- **First production pubsub run after deploy** writes `OFFLINE` if no doc exists and no fresh poll is recorded. Cloud Logs should show `OFFLINE` then `ONLINE` within ~10 sec as the next device poll arrives. If it stays `OFFLINE`, the device is genuinely offline OR the trigger isn't firing — investigate via the existing `firestoreUpdateEvents` runbook.
+- **Cost**: trigger fires ~17K/day. Within Cloud Functions free tier. Verify the org-level Firestore-read budget hasn't drifted since last estimate.
+- **FCMService dispatcher modification** is the highest-risk Android change — a bug here could break the existing door FCM path for all users. Mitigation: door dispatch stays as the `else` branch (default-preserving); `FcmTopicDispatcherTest` pins both branches; manual smoke-test on internal track with a real door event before promoting to production.
+
+### Per-PR rollout split (recommended order)
+
+Following the PR-shape review:
+
+1. `wire(contracts): button health response fixtures` — JSON only, ~30 lines, no consumers yet. Unblocks server + Android tests.
+2. `feat(firebase): button health database + interpreter + FCM topic + FCM service` — pure modules + tests. No `index.ts` change. Dead code, harmless.
+3. `feat(firebase): firestoreCheckButtonHealth trigger` — adds `index.ts` export. Live trigger; passive OFFLINE detection only (no FCM yet because no subscribers).
+4. `feat(firebase): pubsubCheckButtonHealth (10-min sweep)` — adds `index.ts` export. Sequence after PR 3 (same file).
+5. `feat(firebase): httpButtonHealth cold-start endpoint` — adds `index.ts` export. Sequence after PR 4. **End of server-side; ship `server/N+1` after this lands.**
+6. `feat(android-domain+data): button health types + repo + datasource + parser + topic test` — dead code on Android side until DI wiring lands.
+7. `feat(android-usecase): button health UseCases + FCM subscription manager` — still dead code.
+8. `ui(android): RemoteOfflinePill + previews + screenshot test` — UI-only, satisfies preview-coverage check, can't regress production.
+9. `feat(android): wire button health into AppComponent + AppStartup + HomeContent + FCMService` — **highest-risk PR**. Manual smoke-test on internal track; do not auto-merge to production.
+
+PRs 1, 2, 6 can land in parallel (no shared files). PRs 3/4/5 must serialize on `index.ts`. PRs 7/8 can land in parallel. PR 9 is the user-visible flip and the only one that can affect existing FCM behavior.
+
 ## ADR / convention compliance
 
 - **FCM safety**: adds new topic + payload keys; existing `FcmTopicTest` and `FcmPayloadParsingTest` stay green; new `ButtonHealthFcmTopicTest` + `ButtonHealthFcmPayloadParsingTest` ship in the same PR as the topic builder + parser.
