@@ -120,9 +120,9 @@ private object RemoteButtonHealthPillContents {
     fun from(display: ButtonHealthDisplay): PillContents =
         when (display) {
             is ButtonHealthDisplay.Unauthorized -> PillContents(
-                label = "Remote: locked",
+                label = "Remote: unauthorized",
                 icon = Icons.Outlined.Lock,
-                iconDescription = "Remote button locked (signed out)",
+                iconDescription = "Remote button unauthorized (signed out or not on allowlist)",
             )
             is ButtonHealthDisplay.Loading -> PillContents(
                 label = "Remote: checking…",

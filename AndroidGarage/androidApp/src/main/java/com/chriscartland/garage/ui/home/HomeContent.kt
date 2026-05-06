@@ -58,7 +58,7 @@ import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.ui.GarageIcon
 import com.chriscartland.garage.ui.RemoteButtonContent
-import com.chriscartland.garage.ui.RemoteOfflinePill
+import com.chriscartland.garage.ui.RemoteButtonHealthPill
 import com.chriscartland.garage.ui.TitleBarCheckInPill
 import com.chriscartland.garage.ui.theme.DoorColorState
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
@@ -210,14 +210,10 @@ fun HomeContent(
                         HomeSection(
                             label = "Remote control",
                             trailing = {
-                                when (val d = buttonHealthDisplay) {
-                                    is ButtonHealthDisplay.Offline -> RemoteOfflinePill(display = d)
-                                    ButtonHealthDisplay.Unauthorized,
-                                    ButtonHealthDisplay.Loading,
-                                    ButtonHealthDisplay.Unknown,
-                                    ButtonHealthDisplay.Online,
-                                    -> Unit
-                                }
+                                // TEMPORARY (debug): always-on pill for every ButtonHealthDisplay arm.
+                                // To revert to production-only "Remote offline" behavior, swap back
+                                // to `RemoteOfflinePill` (Offline-only) and delete RemoteButtonHealthPill.
+                                RemoteButtonHealthPill(display = buttonHealthDisplay)
                             },
                         ) {
                             HomeRemoteButtonBody(
@@ -586,6 +582,81 @@ fun HomeContentSignedOutPreview() =
             authState = HomeAuthState.SignedOut,
             deviceCheckIn = HomePreviewData.freshCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Loading,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+    }
+
+// Full-screen previews showing the always-on RemoteButtonHealthPill for
+// each ButtonHealthDisplay arm in its real position (Remote control
+// HomeSection trailing slot). One per arm so you can review pill-in-context
+// at a glance.
+
+@Preview(heightDp = 900)
+@Composable
+fun HomeContentRemotePillUnauthorizedPreview() =
+    PreviewSurface {
+        HomeContent(
+            status = HomePreviewData.closedStatus,
+            authState = HomeAuthState.SignedIn,
+            remoteButtonState = RemoteButtonState.Ready,
+            deviceCheckIn = HomePreviewData.freshCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Unauthorized,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+    }
+
+@Preview(heightDp = 900)
+@Composable
+fun HomeContentRemotePillLoadingPreview() =
+    PreviewSurface {
+        HomeContent(
+            status = HomePreviewData.closedStatus,
+            authState = HomeAuthState.SignedIn,
+            remoteButtonState = RemoteButtonState.Ready,
+            deviceCheckIn = HomePreviewData.freshCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Loading,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+    }
+
+@Preview(heightDp = 900)
+@Composable
+fun HomeContentRemotePillUnknownPreview() =
+    PreviewSurface {
+        HomeContent(
+            status = HomePreviewData.closedStatus,
+            authState = HomeAuthState.SignedIn,
+            remoteButtonState = RemoteButtonState.Ready,
+            deviceCheckIn = HomePreviewData.freshCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Unknown,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+    }
+
+@Preview(heightDp = 900)
+@Composable
+fun HomeContentRemotePillOnlinePreview() =
+    PreviewSurface {
+        HomeContent(
+            status = HomePreviewData.closedStatus,
+            authState = HomeAuthState.SignedIn,
+            remoteButtonState = RemoteButtonState.Ready,
+            deviceCheckIn = HomePreviewData.freshCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Online,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+    }
+
+@Preview(heightDp = 900)
+@Composable
+fun HomeContentRemotePillOfflinePreview() =
+    PreviewSurface {
+        HomeContent(
+            status = HomePreviewData.closedStatus,
+            authState = HomeAuthState.SignedIn,
+            remoteButtonState = RemoteButtonState.Ready,
+            deviceCheckIn = HomePreviewData.freshCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Offline(durationLabel = "11 min ago"),
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }

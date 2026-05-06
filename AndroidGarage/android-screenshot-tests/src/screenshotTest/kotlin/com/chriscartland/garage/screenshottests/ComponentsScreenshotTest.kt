@@ -485,9 +485,11 @@ fun RemoteOfflinePillVeryStalePreviewTest() {
 }
 
 @PreviewTest
-@Preview(showBackground = true, name = "Light")
+@Preview(showBackground = true, widthDp = 320, heightDp = 64, name = "Light")
 @Preview(
     showBackground = true,
+    widthDp = 320,
+    heightDp = 64,
     name = "Dark",
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
@@ -497,9 +499,11 @@ fun RemoteButtonHealthPillUnauthorizedPreviewTest() {
 }
 
 @PreviewTest
-@Preview(showBackground = true, name = "Light")
+@Preview(showBackground = true, widthDp = 320, heightDp = 64, name = "Light")
 @Preview(
     showBackground = true,
+    widthDp = 320,
+    heightDp = 64,
     name = "Dark",
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
@@ -509,9 +513,11 @@ fun RemoteButtonHealthPillLoadingPreviewTest() {
 }
 
 @PreviewTest
-@Preview(showBackground = true, name = "Light")
+@Preview(showBackground = true, widthDp = 320, heightDp = 64, name = "Light")
 @Preview(
     showBackground = true,
+    widthDp = 320,
+    heightDp = 64,
     name = "Dark",
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
@@ -521,9 +527,11 @@ fun RemoteButtonHealthPillUnknownPreviewTest() {
 }
 
 @PreviewTest
-@Preview(showBackground = true, name = "Light")
+@Preview(showBackground = true, widthDp = 320, heightDp = 64, name = "Light")
 @Preview(
     showBackground = true,
+    widthDp = 320,
+    heightDp = 64,
     name = "Dark",
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
@@ -533,9 +541,11 @@ fun RemoteButtonHealthPillOnlinePreviewTest() {
 }
 
 @PreviewTest
-@Preview(showBackground = true, name = "Light")
+@Preview(showBackground = true, widthDp = 320, heightDp = 64, name = "Light")
 @Preview(
     showBackground = true,
+    widthDp = 320,
+    heightDp = 64,
     name = "Dark",
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )

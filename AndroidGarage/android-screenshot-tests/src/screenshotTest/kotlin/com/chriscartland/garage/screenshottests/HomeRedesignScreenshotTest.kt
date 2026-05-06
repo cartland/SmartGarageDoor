@@ -25,6 +25,11 @@ import com.chriscartland.garage.ui.home.HomeContentClosedSignedInPreview
 import com.chriscartland.garage.ui.home.HomeContentOpenSignedInPreview
 import com.chriscartland.garage.ui.home.HomeContentOpeningTooLongPreview
 import com.chriscartland.garage.ui.home.HomeContentPermissionMissingPreview
+import com.chriscartland.garage.ui.home.HomeContentRemotePillLoadingPreview
+import com.chriscartland.garage.ui.home.HomeContentRemotePillOfflinePreview
+import com.chriscartland.garage.ui.home.HomeContentRemotePillOnlinePreview
+import com.chriscartland.garage.ui.home.HomeContentRemotePillUnauthorizedPreview
+import com.chriscartland.garage.ui.home.HomeContentRemotePillUnknownPreview
 import com.chriscartland.garage.ui.home.HomeContentSendingToDoorPreview
 import com.chriscartland.garage.ui.home.HomeContentSignedOutPreview
 import com.chriscartland.garage.ui.home.HomeContentStaleBannerPreview
@@ -124,4 +129,64 @@ fun HomeContentPermissionMissingPreviewTest() {
 @Composable
 fun HomeContentSignedOutPreviewTest() {
     AppTheme { HomeContentSignedOutPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeContentRemotePillUnauthorizedPreviewTest() {
+    AppTheme { HomeContentRemotePillUnauthorizedPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeContentRemotePillLoadingPreviewTest() {
+    AppTheme { HomeContentRemotePillLoadingPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeContentRemotePillUnknownPreviewTest() {
+    AppTheme { HomeContentRemotePillUnknownPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeContentRemotePillOnlinePreviewTest() {
+    AppTheme { HomeContentRemotePillOnlinePreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeContentRemotePillOfflinePreviewTest() {
+    AppTheme { HomeContentRemotePillOfflinePreview() }
 }
