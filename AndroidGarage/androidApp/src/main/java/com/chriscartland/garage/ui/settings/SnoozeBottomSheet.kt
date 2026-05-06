@@ -100,7 +100,7 @@ fun SnoozeSheetContent(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = "Snooze notifications",
+            text = "Door left open notifications",
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(bottom = 8.dp),
         )
