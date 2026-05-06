@@ -21,6 +21,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -34,6 +35,44 @@ interface AppLoggerDao {
     @Query("SELECT count(*) from appEvent WHERE eventKey = :key")
     fun countKey(key: String): Flow<Long>
 
-    @Query("DELETE FROM doorEvent")
-    fun deleteAll()
+    @Query("SELECT DISTINCT eventKey FROM appEvent")
+    fun distinctKeys(): List<String>
+
+    @Query(
+        "DELETE FROM appEvent WHERE eventKey = :key " +
+            "AND id NOT IN (SELECT id FROM appEvent WHERE eventKey = :key " +
+            "ORDER BY timestamp DESC, id DESC LIMIT :limit)",
+    )
+    fun pruneKey(
+        key: String,
+        limit: Int,
+    )
+
+    @Transaction
+    fun insertAndPruneKey(
+        appEvent: AppEvent,
+        limit: Int,
+    ) {
+        require(limit > 0) { "limit must be > 0; got $limit" }
+        insert(appEvent)
+        pruneKey(appEvent.eventKey, limit)
+    }
+
+    /**
+     * Trim every existing `eventKey` to at most [limit] rows. Each key
+     * is pruned in its own transaction (no `@Transaction` on this
+     * wrapper) so concurrent `insertAndPruneKey` calls do not block on
+     * the entire loop — important on first-launch upgrade where the
+     * legacy table may have ~50K rows across many keys, and FCM /
+     * staleness / auth code paths may be firing log() simultaneously.
+     */
+    fun pruneAllKeys(limit: Int) {
+        require(limit > 0) { "limit must be > 0; got $limit" }
+        for (key in distinctKeys()) {
+            pruneKey(key, limit)
+        }
+    }
+
+    @Query("DELETE FROM appEvent")
+    fun deleteAllAppEvents()
 }

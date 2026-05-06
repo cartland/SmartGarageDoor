@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.datalocal
 
+import androidx.room.AutoMigration
 import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
@@ -27,8 +28,19 @@ import androidx.room.RoomDatabaseConstructor
         DoorEventEntity::class,
         AppEvent::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
+    // v11 → v12: adds @Index(value = ["eventKey"]) on AppEvent.
+    // Index-only change; Room's auto-migration generates the
+    // CREATE INDEX without dropping any rows. Without this annotation
+    // the configured fallbackToDestructiveMigration would wipe both
+    // appEvent (50K rows) AND doorEvent (door history). Auto-migration
+    // preserves both; the existing 50K appEvent rows are then trimmed
+    // on first launch by AppLoggerDao.pruneAllKeys() called from
+    // AppStartup.run().
+    autoMigrations = [
+        AutoMigration(from = 11, to = 12),
+    ],
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {

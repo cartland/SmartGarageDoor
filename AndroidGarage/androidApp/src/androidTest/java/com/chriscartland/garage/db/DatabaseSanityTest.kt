@@ -23,6 +23,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.chriscartland.garage.datalocal.AppDatabase
 import com.chriscartland.garage.datalocal.AppEvent
 import com.chriscartland.garage.datalocal.DoorEventEntity
+import com.chriscartland.garage.datalocal.RoomAppLoggerRepository
 import com.chriscartland.garage.domain.model.DoorPosition
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -100,6 +101,100 @@ class DatabaseSanityTest {
         val result = runBlocking { db.appLoggerDao().getAll().first() }
         assertEquals("Should have 1 app event", 1, result.size)
         assertEquals("test_key", result[0].eventKey)
+    }
+
+    @Test
+    fun insertAndPruneKey_keepsMostRecentRowsUpToLimit() {
+        // Insert 5 rows; cap to 3. Oldest 2 should be evicted; newest 3 retained.
+        for (i in 1..5) {
+            db.appLoggerDao().insertAndPruneKey(
+                appEvent = AppEvent(eventKey = "k", timestamp = i.toLong()),
+                limit = 3,
+            )
+        }
+
+        val rows = runBlocking { db.appLoggerDao().getAll().first() }
+        assertEquals("Should keep at most 3 rows for the key", 3, rows.size)
+        assertEquals(
+            "Most recent timestamps retained",
+            listOf(3L, 4L, 5L),
+            rows.map { it.timestamp }.sorted(),
+        )
+    }
+
+    @Test
+    fun insertAndPruneKey_doesNotAffectOtherKeys() {
+        // High-volume key + a single low-volume key. Cap each to 2.
+        for (i in 1..5) {
+            db.appLoggerDao().insertAndPruneKey(
+                appEvent = AppEvent(eventKey = "noisy", timestamp = i.toLong()),
+                limit = 2,
+            )
+        }
+        db.appLoggerDao().insertAndPruneKey(
+            appEvent = AppEvent(eventKey = "quiet", timestamp = 100L),
+            limit = 2,
+        )
+
+        val all = runBlocking { db.appLoggerDao().getAll().first() }
+        val noisy = all.filter { it.eventKey == "noisy" }
+        val quiet = all.filter { it.eventKey == "quiet" }
+        assertEquals("Noisy key capped at 2", 2, noisy.size)
+        assertEquals("Quiet key untouched", 1, quiet.size)
+    }
+
+    @Test
+    fun pruneAllKeys_trimsLegacyRowsForEveryKey() {
+        // Simulate the migration case: many existing rows pre-cap.
+        for (i in 1..10) {
+            db.appLoggerDao().insert(AppEvent(eventKey = "a", timestamp = i.toLong()))
+        }
+        for (i in 1..7) {
+            db.appLoggerDao().insert(AppEvent(eventKey = "b", timestamp = i.toLong()))
+        }
+
+        db.appLoggerDao().pruneAllKeys(limit = 4)
+
+        val all = runBlocking { db.appLoggerDao().getAll().first() }
+        assertEquals("Both keys trimmed to limit", 8, all.size)
+        assertEquals(4, all.count { it.eventKey == "a" })
+        assertEquals(4, all.count { it.eventKey == "b" })
+    }
+
+    @Test
+    fun deleteAllAppEvents_clearsTheTable() {
+        db.appLoggerDao().insert(AppEvent(eventKey = "k", timestamp = 1L))
+        db.appLoggerDao().insert(AppEvent(eventKey = "k", timestamp = 2L))
+
+        db.appLoggerDao().deleteAllAppEvents()
+
+        val rows = runBlocking { db.appLoggerDao().getAll().first() }
+        assertEquals("Table should be empty", 0, rows.size)
+    }
+
+    /**
+     * Wires through the actual [RoomAppLoggerRepository.log] (not the DAO
+     * directly) to prove `log()` honors the per-write cap. Without this
+     * test, a future regression that swapped `insertAndPruneKey` back to
+     * `insert` inside the repository would pass every other test.
+     */
+    @Test
+    fun roomAppLoggerRepositoryLog_capsAtPerKeyLimit() {
+        val repo = RoomAppLoggerRepository(
+            appDatabase = db,
+            appVersion = "test",
+            perKeyLimit = 3,
+        )
+
+        runBlocking {
+            // Log 5 events for the same key.
+            for (i in 1..5) {
+                repo.log("repo_key")
+            }
+        }
+
+        val rows = runBlocking { db.appLoggerDao().getAll().first() }
+        assertEquals("Repo log() should cap at perKeyLimit", 3, rows.size)
     }
 
     @Test

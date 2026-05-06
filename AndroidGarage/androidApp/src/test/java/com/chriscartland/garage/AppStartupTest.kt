@@ -20,6 +20,7 @@ package com.chriscartland.garage
 import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppLoggerKeys
+import com.chriscartland.garage.domain.model.AppLoggerLimits
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.ButtonHealth
 import com.chriscartland.garage.domain.model.ButtonHealthError
@@ -123,9 +124,14 @@ class AppStartupTest {
 
     private class FakeAppLoggerViewModel : AppLoggerViewModel {
         val loggedKeys = mutableListOf<String>()
+        val pruneCalls = mutableListOf<Int>()
 
         override fun log(key: String) {
             loggedKeys.add(key)
+        }
+
+        override fun pruneOldEntries(perKeyLimit: Int) {
+            pruneCalls.add(perKeyLimit)
         }
 
         override val initCurrentDoorCount = MutableStateFlow(0L)
@@ -175,8 +181,27 @@ class AppStartupTest {
                 "startLiveClock",
                 "startButtonHealthFcmSubscription",
                 "logFcmSubscribe",
+                "pruneAppLogger",
             ),
             result,
+        )
+    }
+
+    @Test
+    fun onActivityCreated_prunesAppLoggerWithDefaultLimit() {
+        val scope = TestScope(testDispatcher)
+        val fcmManager = createFcmManager(scope)
+        val stalenessManager = createStalenessManager(scope)
+        val appLoggerViewModel = FakeAppLoggerViewModel()
+        val liveClock = createLiveClock(scope)
+        val buttonHealthMgr = createButtonHealthFcmSubscriptionManager(scope)
+        val actions = AppStartup(fcmManager, stalenessManager, liveClock, appLoggerViewModel, buttonHealthMgr)
+
+        actions.run()
+
+        assertEquals(
+            listOf(AppLoggerLimits.DEFAULT_PER_KEY_LIMIT),
+            appLoggerViewModel.pruneCalls,
         )
     }
 }

@@ -21,12 +21,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppLoggerKeys
+import com.chriscartland.garage.domain.model.AppLoggerLimits
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 interface AppLoggerViewModel {
     fun log(key: String)
+
+    /**
+     * Trim the per-key row count for any [AppLoggerKeys] that exceed
+     * the cap. Fire once at app startup; ongoing writes are capped
+     * inline and don't need this.
+     */
+    fun pruneOldEntries(perKeyLimit: Int = AppLoggerLimits.DEFAULT_PER_KEY_LIMIT)
 
     val initCurrentDoorCount: StateFlow<Long>
     val initRecentDoorCount: StateFlow<Long>
@@ -41,6 +49,7 @@ interface AppLoggerViewModel {
 class DefaultAppLoggerViewModel(
     private val logAppEvent: LogAppEventUseCase,
     private val observeAppLogCount: ObserveAppLogCountUseCase,
+    private val pruneAppLog: PruneAppLogUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel(),
     AppLoggerViewModel {
@@ -91,6 +100,12 @@ class DefaultAppLoggerViewModel(
     override fun log(key: String) {
         viewModelScope.launch(dispatchers.io) {
             logAppEvent(key)
+        }
+    }
+
+    override fun pruneOldEntries(perKeyLimit: Int) {
+        viewModelScope.launch(dispatchers.io) {
+            pruneAppLog(perKeyLimit)
         }
     }
 }

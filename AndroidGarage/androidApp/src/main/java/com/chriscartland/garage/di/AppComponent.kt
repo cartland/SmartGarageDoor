@@ -97,6 +97,7 @@ import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
 import com.chriscartland.garage.usecase.ObserveSnoozeStateUseCase
+import com.chriscartland.garage.usecase.PruneAppLogUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
@@ -197,8 +198,12 @@ abstract class AppComponent(
     fun provideAppLoggerViewModel(
         logAppEvent: LogAppEventUseCase,
         observeAppLogCount: ObserveAppLogCountUseCase,
+        pruneAppLog: PruneAppLogUseCase,
         dispatchers: DispatcherProvider,
-    ): DefaultAppLoggerViewModel = DefaultAppLoggerViewModel(logAppEvent, observeAppLogCount, dispatchers)
+    ): DefaultAppLoggerViewModel = DefaultAppLoggerViewModel(logAppEvent, observeAppLogCount, pruneAppLog, dispatchers)
+
+    @Provides
+    fun providePruneAppLogUseCase(appLoggerRepository: AppLoggerRepository): PruneAppLogUseCase = PruneAppLogUseCase(appLoggerRepository)
 
     @Provides
     fun provideAppSettingsViewModel(
