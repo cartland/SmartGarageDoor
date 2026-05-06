@@ -34,6 +34,5 @@ object AppConfigFactory {
             serverConfigKey = BuildConfig.SERVER_CONFIG_KEY,
             snoozeNotificationsOption = true,
             remoteButtonPushEnabled = true,
-            logSummary = true,
         )
 }

@@ -92,8 +92,7 @@ fun SettingsContent(
     accountState: AccountRowState,
     snoozeState: SnoozeRowState,
     showSnoozeRow: Boolean,
-    showToolsSection: Boolean,
-    showDiagnosticsRow: Boolean,
+    showDeveloperSection: Boolean,
     versionName: String,
     versionCode: String,
     modifier: Modifier = Modifier,
@@ -179,8 +178,12 @@ fun SettingsContent(
                     showChevron = false,
                     onClick = onPrivacyPolicyTap,
                 )
-                if (showDiagnosticsRow) {
-                    HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
+            }
+        }
+
+        item {
+            AnimatedVisibility(visible = showDeveloperSection) {
+                SettingsSection(label = "Developer") {
                     SettingsRow(
                         icon = Icons.Outlined.Analytics,
                         title = "Diagnostics",
@@ -188,13 +191,7 @@ fun SettingsContent(
                         showChevron = true,
                         onClick = onDiagnosticsTap,
                     )
-                }
-            }
-        }
-
-        item {
-            AnimatedVisibility(visible = showToolsSection) {
-                SettingsSection(label = "Tools") {
+                    HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
                     SettingsRow(
                         icon = Icons.AutoMirrored.Outlined.List,
                         title = "Function list",
@@ -292,8 +289,7 @@ fun SettingsContentSignedOutPreview() {
         accountState = AccountRowState.SignedOut,
         snoozeState = SnoozeRowState.Off,
         showSnoozeRow = true,
-        showToolsSection = false,
-        showDiagnosticsRow = true,
+        showDeveloperSection = false,
         versionName = "2.6.1",
         versionCode = "182",
     )
@@ -309,8 +305,7 @@ fun SettingsContentSignedInBasicPreview() {
         ),
         snoozeState = SnoozeRowState.Off,
         showSnoozeRow = true,
-        showToolsSection = false,
-        showDiagnosticsRow = true,
+        showDeveloperSection = false,
         versionName = "2.6.1",
         versionCode = "182",
     )
@@ -326,8 +321,7 @@ fun SettingsContentSignedInAllowlistedPreview() {
         ),
         snoozeState = SnoozeRowState.SnoozingUntil("5:30 PM"),
         showSnoozeRow = true,
-        showToolsSection = true,
-        showDiagnosticsRow = true,
+        showDeveloperSection = true,
         versionName = "2.6.1",
         versionCode = "182",
     )
