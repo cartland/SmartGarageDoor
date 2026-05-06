@@ -20,6 +20,7 @@ package com.chriscartland.garage
 import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppLoggerKeys
+import com.chriscartland.garage.domain.model.AppLoggerLimits
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.ButtonHealth
 import com.chriscartland.garage.domain.model.ButtonHealthError
@@ -199,7 +200,7 @@ class AppStartupTest {
         actions.run()
 
         assertEquals(
-            listOf(AppLoggerViewModel.DEFAULT_PER_KEY_LIMIT),
+            listOf(AppLoggerLimits.DEFAULT_PER_KEY_LIMIT),
             appLoggerViewModel.pruneCalls,
         )
     }

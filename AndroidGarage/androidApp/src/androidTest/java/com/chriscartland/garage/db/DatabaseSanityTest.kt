@@ -23,6 +23,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.chriscartland.garage.datalocal.AppDatabase
 import com.chriscartland.garage.datalocal.AppEvent
 import com.chriscartland.garage.datalocal.DoorEventEntity
+import com.chriscartland.garage.datalocal.RoomAppLoggerRepository
 import com.chriscartland.garage.domain.model.DoorPosition
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -169,6 +170,31 @@ class DatabaseSanityTest {
 
         val rows = runBlocking { db.appLoggerDao().getAll().first() }
         assertEquals("Table should be empty", 0, rows.size)
+    }
+
+    /**
+     * Wires through the actual [RoomAppLoggerRepository.log] (not the DAO
+     * directly) to prove `log()` honors the per-write cap. Without this
+     * test, a future regression that swapped `insertAndPruneKey` back to
+     * `insert` inside the repository would pass every other test.
+     */
+    @Test
+    fun roomAppLoggerRepositoryLog_capsAtPerKeyLimit() {
+        val repo = RoomAppLoggerRepository(
+            appDatabase = db,
+            appVersion = "test",
+            perKeyLimit = 3,
+        )
+
+        runBlocking {
+            // Log 5 events for the same key.
+            for (i in 1..5) {
+                repo.log("repo_key")
+            }
+        }
+
+        val rows = runBlocking { db.appLoggerDao().getAll().first() }
+        assertEquals("Repo log() should cap at perKeyLimit", 3, rows.size)
     }
 
     @Test

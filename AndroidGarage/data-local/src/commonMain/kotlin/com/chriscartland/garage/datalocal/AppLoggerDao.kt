@@ -53,12 +53,21 @@ interface AppLoggerDao {
         appEvent: AppEvent,
         limit: Int,
     ) {
+        require(limit > 0) { "limit must be > 0; got $limit" }
         insert(appEvent)
         pruneKey(appEvent.eventKey, limit)
     }
 
-    @Transaction
+    /**
+     * Trim every existing `eventKey` to at most [limit] rows. Each key
+     * is pruned in its own transaction (no `@Transaction` on this
+     * wrapper) so concurrent `insertAndPruneKey` calls do not block on
+     * the entire loop — important on first-launch upgrade where the
+     * legacy table may have ~50K rows across many keys, and FCM /
+     * staleness / auth code paths may be firing log() simultaneously.
+     */
     fun pruneAllKeys(limit: Int) {
+        require(limit > 0) { "limit must be > 0; got $limit" }
         for (key in distinctKeys()) {
             pruneKey(key, limit)
         }

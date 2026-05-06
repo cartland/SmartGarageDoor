@@ -2,6 +2,7 @@ package com.chriscartland.garage.datalocal
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.domain.model.AppLogEvent
+import com.chriscartland.garage.domain.model.AppLoggerLimits
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -21,7 +22,7 @@ import kotlinx.coroutines.flow.map
 class RoomAppLoggerRepository(
     private val appDatabase: AppDatabase,
     private val appVersion: String,
-    private val perKeyLimit: Int = DEFAULT_PER_KEY_LIMIT,
+    private val perKeyLimit: Int = AppLoggerLimits.DEFAULT_PER_KEY_LIMIT,
 ) : AppLoggerRepository {
     override suspend fun log(key: String) {
         Logger.d { "Logging key: $key" }
@@ -42,11 +43,8 @@ class RoomAppLoggerRepository(
         }
 
     override suspend fun pruneToLimit(perKeyLimit: Int) {
+        require(perKeyLimit > 0) { "perKeyLimit must be > 0; got $perKeyLimit" }
         appDatabase.appLoggerDao().pruneAllKeys(perKeyLimit)
-    }
-
-    companion object {
-        const val DEFAULT_PER_KEY_LIMIT: Int = 1000
     }
 }
 

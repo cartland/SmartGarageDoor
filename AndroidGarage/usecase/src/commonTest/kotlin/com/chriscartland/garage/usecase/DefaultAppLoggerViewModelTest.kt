@@ -1,6 +1,7 @@
 package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.model.AppLoggerKeys
+import com.chriscartland.garage.domain.model.AppLoggerLimits
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import kotlinx.coroutines.Dispatchers
@@ -89,7 +90,7 @@ class DefaultAppLoggerViewModelTest {
             advanceUntilIdle()
 
             assertEquals(
-                listOf(AppLoggerViewModel.DEFAULT_PER_KEY_LIMIT),
+                listOf(AppLoggerLimits.DEFAULT_PER_KEY_LIMIT),
                 logger.pruneCalls,
             )
         }
