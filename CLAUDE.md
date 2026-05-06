@@ -438,6 +438,10 @@ Push notifications are the hardest feature to verify in production. If topic nam
 - No `*Impl` suffix on implementations — use descriptive prefixes (`Network*`, `Cached*`, `Firebase*`, `Default*`). Enforced by `checkNoImplSuffix` (in `validate.sh`). See ADR-008
 - Generic naming over platform-specific terms for app-scoped classes: `AppStartup.run()` not `AppStartupActions.onActivityCreated()`. App-scoped code should be platform-agnostic (KMP target). Only call sites in Activities know about Android lifecycles
 - **Composable params for production-visible UI must be required, not nullable-with-default.** A `null` default lets fixtures (previews, instrumented tests) silently omit a piece of UI that production always renders, and the framed README screenshot then diverges from what users see. Make the type system enforce parity. Canonical example: `HomeContent.deviceCheckIn` flipped from `DeviceCheckInDisplay? = null` to required in #625, which surfaced 7 silent test gaps the same day. Apply the same rule to any new Composable param whose absence would be a UI bug
+- **Compose preview wrapper — pick by component vs screen** (in `androidApp/.../theme/PreviewSurface.kt`):
+  - `PreviewScreenSurface` (`fillMaxSize`) — for screen-level Composables that fill the device viewport in production (e.g. `HomeContent`, `FunctionListContent`, `Settings`). Dark-mode previews paint the dark page across the entire canvas, matching production.
+  - `PreviewComponentSurface` (`wrapContentSize`) — for tiny components that don't fill the device (pills, icons, buttons). Theme background paints only behind the component; reference PNGs become 1–6 KB intrinsic-sized captures instead of ~20 KB phone-canvas captures with mostly-empty themed background.
+  - **AGP screenshot tests have no "render at intrinsic" mode.** Captured PNG dimensions = canvas dimensions, always. Without `widthDp`/`heightDp` on `@Preview`, the canvas is the default phone viewport (~1080×2400). The Surface modifier inside the wrapper controls how much of that canvas gets themed; it cannot shrink the canvas itself. Split shipped in `android/195` (#645).
 
 ## Known Limitations
 
