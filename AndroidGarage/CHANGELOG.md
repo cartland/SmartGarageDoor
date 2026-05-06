@@ -15,6 +15,11 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.10.1
+- **Remote-control pill is now always visible** (debug rollout). The Home tab's Remote-control section now shows a pill for every state — `Remote: unauthorized` / `Remote: checking…` / `Remote: unknown` / `Remote: online` (neutral palette) and `Remote offline · {duration}` (error palette, unchanged from 2.10.0). Previously the pill was Offline-only. Intended as a temporary diagnostic surface to make remote-button connectivity legible at a glance; reverting to Offline-only is a one-line call-site swap back to `RemoteOfflinePill` plus deleting the new `RemoteButtonHealthPill`.
+- **Internal: `PreviewSurface` split into `PreviewScreenSurface` (fillMaxSize) and `PreviewComponentSurface` (wrapContentSize).** Component-level reference PNGs (pills, icons, buttons) shrunk from ~20 KB phone-canvas captures to 1–6 KB intrinsic-sized captures. No production impact. Screen-level previews (HomeContent, FunctionListContent) still use `PreviewScreenSurface` so their dark-mode page background fills the canvas.
+- **Internal: removed unnecessary `Row` wrapper from the 5 new pill previews** — the pill is the component, not a row of pills.
+
 ## 2.10.0
 - **New "Remote offline" indicator on the Home tab.** A small rounded pill (wifi-off icon + duration label like "11 min ago") appears next to the Remote-control section title when the wall-button ESP32 device has stopped checking in with the server. Only allowlisted users (the same allowlist that gates the existing remote-button push) ever see it. Healthy/unknown/loading states render no pill — UI is identical to 2.9.5 for everyone else.
 - **Server detects the OFFLINE state**, mobile just consumes it. Server flips OFFLINE if the device hasn't polled within 60 sec, and back to ONLINE on the next successful poll. Worst-case detection latency: ~10 min (acknowledged). Server side shipped in `server/24`.
