@@ -115,20 +115,30 @@ fun ProfileContent(
         )
         AuthState.Unauthenticated, AuthState.Unknown -> AccountRowState.SignedOut
     }
-    val snoozeRowState = ProfileContentHelpers.snoozeRowStateOf(snoozeState)
+    val notificationsGranted = notificationPermissionState.status.isGranted
+    val snoozeRowState = if (notificationsGranted) {
+        ProfileContentHelpers.snoozeRowStateOf(snoozeState)
+    } else {
+        SnoozeRowState.PermissionDenied
+    }
 
     SettingsContent(
         accountState = accountState,
         snoozeState = snoozeRowState,
-        showSnoozeRow = appConfig.snoozeNotificationsOption &&
-            notificationPermissionState.status.isGranted,
+        showSnoozeRow = appConfig.snoozeNotificationsOption,
         showDeveloperSection = functionListAccess == true,
         versionName = appVersion.versionName,
         versionCode = appVersion.versionCode.toString(),
         modifier = modifier,
         onAccountTap = { accountSheetOpen = true },
         onSignInTap = { googleSignIn.launchSignIn() },
-        onSnoozeTap = { snoozeSheetOpen = true },
+        onSnoozeTap = {
+            if (notificationsGranted) {
+                snoozeSheetOpen = true
+            } else {
+                notificationPermissionState.launchPermissionRequest()
+            }
+        },
         onFunctionListTap = onNavigateToFunctionList,
         onVersionTap = { versionDialogOpen = true },
         onPlayStoreTap = {

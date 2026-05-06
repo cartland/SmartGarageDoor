@@ -38,6 +38,7 @@ import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.NotificationsPaused
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.HorizontalDivider
@@ -72,6 +73,9 @@ sealed interface AccountRowState {
  */
 sealed interface SnoozeRowState {
     data object Loading : SnoozeRowState
+
+    /** Notifications permission has not been granted — row prompts to enable. */
+    data object PermissionDenied : SnoozeRowState
 
     data object Off : SnoozeRowState
 
@@ -136,6 +140,8 @@ fun SettingsContent(
                 SettingsSection(label = "Notifications") {
                     val (icon, subtitle) = when (snoozeState) {
                         SnoozeRowState.Loading -> Icons.Outlined.Notifications to "—"
+                        SnoozeRowState.PermissionDenied ->
+                            Icons.Outlined.NotificationsOff to "Notifications disabled — tap to enable"
                         SnoozeRowState.Off -> Icons.Outlined.Notifications to "Notifications enabled"
                         is SnoozeRowState.SnoozingUntil ->
                             Icons.Outlined.NotificationsPaused to "Snoozing until ${snoozeState.displayTime}"
@@ -322,6 +328,22 @@ fun SettingsContentSignedInAllowlistedPreview() {
         snoozeState = SnoozeRowState.SnoozingUntil("5:30 PM"),
         showSnoozeRow = true,
         showDeveloperSection = true,
+        versionName = "2.6.1",
+        versionCode = "182",
+    )
+}
+
+@Preview
+@Composable
+fun SettingsContentPermissionDeniedPreview() {
+    SettingsContent(
+        accountState = AccountRowState.SignedIn(
+            displayName = "Chris Cartland",
+            email = "chris@example.com",
+        ),
+        snoozeState = SnoozeRowState.PermissionDenied,
+        showSnoozeRow = true,
+        showDeveloperSection = false,
         versionName = "2.6.1",
         versionCode = "182",
     )
