@@ -42,7 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.chriscartland.garage.ui.theme.PreviewSurface
+import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
 
 /**
@@ -150,51 +150,41 @@ private object RemoteButtonHealthPillContents {
 @Preview
 @Composable
 fun RemoteButtonHealthPillUnauthorizedPreview() {
-    PreviewSurface {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            RemoteButtonHealthPill(display = ButtonHealthDisplay.Unauthorized)
-        }
+    PreviewComponentSurface {
+        RemoteButtonHealthPill(display = ButtonHealthDisplay.Unauthorized)
     }
 }
 
 @Preview
 @Composable
 fun RemoteButtonHealthPillLoadingPreview() {
-    PreviewSurface {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            RemoteButtonHealthPill(display = ButtonHealthDisplay.Loading)
-        }
+    PreviewComponentSurface {
+        RemoteButtonHealthPill(display = ButtonHealthDisplay.Loading)
     }
 }
 
 @Preview
 @Composable
 fun RemoteButtonHealthPillUnknownPreview() {
-    PreviewSurface {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            RemoteButtonHealthPill(display = ButtonHealthDisplay.Unknown)
-        }
+    PreviewComponentSurface {
+        RemoteButtonHealthPill(display = ButtonHealthDisplay.Unknown)
     }
 }
 
 @Preview
 @Composable
 fun RemoteButtonHealthPillOnlinePreview() {
-    PreviewSurface {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            RemoteButtonHealthPill(display = ButtonHealthDisplay.Online)
-        }
+    PreviewComponentSurface {
+        RemoteButtonHealthPill(display = ButtonHealthDisplay.Online)
     }
 }
 
 @Preview
 @Composable
 fun RemoteButtonHealthPillOfflinePreview() {
-    PreviewSurface {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            RemoteButtonHealthPill(
-                display = ButtonHealthDisplay.Offline(durationLabel = "11 min ago"),
-            )
-        }
+    PreviewComponentSurface {
+        RemoteButtonHealthPill(
+            display = ButtonHealthDisplay.Offline(durationLabel = "11 min ago"),
+        )
     }
 }

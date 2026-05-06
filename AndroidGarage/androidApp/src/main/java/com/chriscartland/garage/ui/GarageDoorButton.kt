@@ -32,7 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.domain.model.RemoteButtonState
-import com.chriscartland.garage.ui.theme.PreviewSurface
+import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.ui.theme.cautionContainer
 import com.chriscartland.garage.ui.theme.onCautionContainer
 
@@ -134,7 +134,7 @@ private fun RemoteButtonState.disabledLabel(): String =
 @Preview
 @Composable
 fun GarageDoorButtonReadyPreview() {
-    PreviewSurface {
+    PreviewScreenSurface {
         GarageDoorButton(state = RemoteButtonState.Ready, onTap = {})
     }
 }
@@ -142,7 +142,7 @@ fun GarageDoorButtonReadyPreview() {
 @Preview
 @Composable
 fun GarageDoorButtonPreparingPreview() {
-    PreviewSurface {
+    PreviewScreenSurface {
         GarageDoorButton(state = RemoteButtonState.Preparing, onTap = {})
     }
 }
@@ -150,7 +150,7 @@ fun GarageDoorButtonPreparingPreview() {
 @Preview
 @Composable
 fun GarageDoorButtonAwaitingConfirmationPreview() {
-    PreviewSurface {
+    PreviewScreenSurface {
         GarageDoorButton(state = RemoteButtonState.AwaitingConfirmation, onTap = {})
     }
 }
@@ -158,7 +158,7 @@ fun GarageDoorButtonAwaitingConfirmationPreview() {
 @Preview
 @Composable
 fun GarageDoorButtonCancelledPreview() {
-    PreviewSurface {
+    PreviewScreenSurface {
         GarageDoorButton(state = RemoteButtonState.Cancelled, onTap = {})
     }
 }
@@ -166,7 +166,7 @@ fun GarageDoorButtonCancelledPreview() {
 @Preview
 @Composable
 fun GarageDoorButtonSendingToServerPreview() {
-    PreviewSurface {
+    PreviewScreenSurface {
         GarageDoorButton(state = RemoteButtonState.SendingToServer, onTap = {})
     }
 }
@@ -174,7 +174,7 @@ fun GarageDoorButtonSendingToServerPreview() {
 @Preview
 @Composable
 fun GarageDoorButtonSendingToDoorPreview() {
-    PreviewSurface {
+    PreviewScreenSurface {
         GarageDoorButton(state = RemoteButtonState.SendingToDoor, onTap = {})
     }
 }
@@ -182,7 +182,7 @@ fun GarageDoorButtonSendingToDoorPreview() {
 @Preview
 @Composable
 fun GarageDoorButtonSucceededPreview() {
-    PreviewSurface {
+    PreviewScreenSurface {
         GarageDoorButton(state = RemoteButtonState.Succeeded, onTap = {})
     }
 }
@@ -190,7 +190,7 @@ fun GarageDoorButtonSucceededPreview() {
 @Preview
 @Composable
 fun GarageDoorButtonServerFailedPreview() {
-    PreviewSurface {
+    PreviewScreenSurface {
         GarageDoorButton(state = RemoteButtonState.ServerFailed, onTap = {})
     }
 }
@@ -198,7 +198,7 @@ fun GarageDoorButtonServerFailedPreview() {
 @Preview
 @Composable
 fun GarageDoorButtonDoorFailedPreview() {
-    PreviewSurface {
+    PreviewScreenSurface {
         GarageDoorButton(state = RemoteButtonState.DoorFailed, onTap = {})
     }
 }

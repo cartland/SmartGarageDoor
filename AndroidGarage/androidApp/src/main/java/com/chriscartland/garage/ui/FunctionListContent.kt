@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.di.rememberAppComponent
-import com.chriscartland.garage.ui.theme.PreviewSurface
+import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.usecase.FunctionListViewModel
 
 @Composable
@@ -128,7 +128,7 @@ fun FunctionListContentPreview() {
     // Pass explicit lambdas so Kotlin picks the stateless inner overload —
     // the DI wrapper above this calls rememberAppComponent(), which crashes
     // Layoutlib in screenshot tests.
-    PreviewSurface {
+    PreviewScreenSurface {
         FunctionListContent(
             accessGranted = true,
             onOpenOrCloseDoor = {},
@@ -144,7 +144,7 @@ fun FunctionListContentPreview() {
 @Preview
 @Composable
 fun FunctionListContentDeniedPreview() {
-    PreviewSurface {
+    PreviewScreenSurface {
         FunctionListContent(
             accessGranted = false,
             onOpenOrCloseDoor = {},

@@ -62,7 +62,7 @@ import com.chriscartland.garage.ui.RemoteButtonHealthPill
 import com.chriscartland.garage.ui.TitleBarCheckInPill
 import com.chriscartland.garage.ui.theme.DoorColorState
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
-import com.chriscartland.garage.ui.theme.PreviewSurface
+import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.doorColorState
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
@@ -476,7 +476,7 @@ private object HomePreviewData {
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentOpenSignedInPreview() =
-    PreviewSurface {
+    PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.openStatus,
             authState = HomeAuthState.SignedIn,
@@ -490,7 +490,7 @@ fun HomeContentOpenSignedInPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentClosedSignedInPreview() =
-    PreviewSurface {
+    PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
             authState = HomeAuthState.SignedIn,
@@ -504,7 +504,7 @@ fun HomeContentClosedSignedInPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentAwaitingConfirmationPreview() =
-    PreviewSurface {
+    PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
             authState = HomeAuthState.SignedIn,
@@ -518,7 +518,7 @@ fun HomeContentAwaitingConfirmationPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentSendingToDoorPreview() =
-    PreviewSurface {
+    PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
             authState = HomeAuthState.SignedIn,
@@ -532,7 +532,7 @@ fun HomeContentSendingToDoorPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentOpeningTooLongPreview() =
-    PreviewSurface {
+    PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.openingTooLongStatus,
             authState = HomeAuthState.SignedIn,
@@ -546,7 +546,7 @@ fun HomeContentOpeningTooLongPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentStaleBannerPreview() =
-    PreviewSurface {
+    PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.openStatus,
             authState = HomeAuthState.SignedIn,
@@ -561,7 +561,7 @@ fun HomeContentStaleBannerPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentPermissionMissingPreview() =
-    PreviewSurface {
+    PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.openStatus,
             authState = HomeAuthState.SignedIn,
@@ -576,7 +576,7 @@ fun HomeContentPermissionMissingPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentSignedOutPreview() =
-    PreviewSurface {
+    PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.openStatus,
             authState = HomeAuthState.SignedOut,
@@ -594,7 +594,7 @@ fun HomeContentSignedOutPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentRemotePillUnauthorizedPreview() =
-    PreviewSurface {
+    PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
             authState = HomeAuthState.SignedIn,
@@ -608,7 +608,7 @@ fun HomeContentRemotePillUnauthorizedPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentRemotePillLoadingPreview() =
-    PreviewSurface {
+    PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
             authState = HomeAuthState.SignedIn,
@@ -622,7 +622,7 @@ fun HomeContentRemotePillLoadingPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentRemotePillUnknownPreview() =
-    PreviewSurface {
+    PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
             authState = HomeAuthState.SignedIn,
@@ -636,7 +636,7 @@ fun HomeContentRemotePillUnknownPreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentRemotePillOnlinePreview() =
-    PreviewSurface {
+    PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
             authState = HomeAuthState.SignedIn,
@@ -650,7 +650,7 @@ fun HomeContentRemotePillOnlinePreview() =
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentRemotePillOfflinePreview() =
-    PreviewSurface {
+    PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
             authState = HomeAuthState.SignedIn,

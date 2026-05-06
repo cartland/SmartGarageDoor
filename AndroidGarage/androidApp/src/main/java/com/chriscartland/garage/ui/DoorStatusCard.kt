@@ -46,7 +46,7 @@ import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.theme.DoorColorState
 import com.chriscartland.garage.ui.theme.DoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
-import com.chriscartland.garage.ui.theme.PreviewSurface
+import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.doorColorState
 import java.time.Instant
@@ -192,7 +192,7 @@ private fun DoorPosition.toFriendlyName(): String =
 @Preview(heightDp = 300)
 @Composable
 fun DoorStatusCardPreview() {
-    PreviewSurface {
+    PreviewScreenSurface {
         DoorStatusCard(
             demoDoorEvents.firstOrNull(),
             modifier = Modifier.fillMaxSize(),
