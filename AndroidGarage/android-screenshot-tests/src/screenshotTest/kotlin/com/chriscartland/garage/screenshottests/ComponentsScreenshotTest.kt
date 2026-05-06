@@ -484,17 +484,10 @@ fun RemoteOfflinePillVeryStalePreviewTest() {
     AppTheme { RemoteOfflinePillVeryStalePreview() }
 }
 
-// widthDp is hand-tuned per state to wrap each pill's intrinsic width.
-// heightDp = 28 is the pill's intrinsic height (label + 4dp top/bottom
-// padding). If you change a label, re-run generate-android-screenshots.sh
-// and visually re-tune the widthDp.
-
 @PreviewTest
-@Preview(showBackground = true, widthDp = 175, heightDp = 28, name = "Light")
+@Preview(showBackground = true, name = "Light")
 @Preview(
     showBackground = true,
-    widthDp = 175,
-    heightDp = 28,
     name = "Dark",
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
@@ -504,11 +497,9 @@ fun RemoteButtonHealthPillUnauthorizedPreviewTest() {
 }
 
 @PreviewTest
-@Preview(showBackground = true, widthDp = 150, heightDp = 28, name = "Light")
+@Preview(showBackground = true, name = "Light")
 @Preview(
     showBackground = true,
-    widthDp = 150,
-    heightDp = 28,
     name = "Dark",
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
@@ -518,11 +509,9 @@ fun RemoteButtonHealthPillLoadingPreviewTest() {
 }
 
 @PreviewTest
-@Preview(showBackground = true, widthDp = 140, heightDp = 28, name = "Light")
+@Preview(showBackground = true, name = "Light")
 @Preview(
     showBackground = true,
-    widthDp = 140,
-    heightDp = 28,
     name = "Dark",
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
@@ -532,11 +521,9 @@ fun RemoteButtonHealthPillUnknownPreviewTest() {
 }
 
 @PreviewTest
-@Preview(showBackground = true, widthDp = 125, heightDp = 28, name = "Light")
+@Preview(showBackground = true, name = "Light")
 @Preview(
     showBackground = true,
-    widthDp = 125,
-    heightDp = 28,
     name = "Dark",
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
@@ -546,11 +533,9 @@ fun RemoteButtonHealthPillOnlinePreviewTest() {
 }
 
 @PreviewTest
-@Preview(showBackground = true, widthDp = 215, heightDp = 28, name = "Light")
+@Preview(showBackground = true, name = "Light")
 @Preview(
     showBackground = true,
-    widthDp = 215,
-    heightDp = 28,
     name = "Dark",
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
