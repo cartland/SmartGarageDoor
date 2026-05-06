@@ -12,5 +12,4 @@ data class AppConfig(
     val serverConfigKey: String,
     val snoozeNotificationsOption: Boolean,
     val remoteButtonPushEnabled: Boolean,
-    val logSummary: Boolean,
 )

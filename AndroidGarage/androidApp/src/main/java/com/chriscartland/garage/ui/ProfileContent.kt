@@ -122,8 +122,7 @@ fun ProfileContent(
         snoozeState = snoozeRowState,
         showSnoozeRow = appConfig.snoozeNotificationsOption &&
             notificationPermissionState.status.isGranted,
-        showToolsSection = functionListAccess == true,
-        showDiagnosticsRow = appConfig.logSummary,
+        showDeveloperSection = functionListAccess == true,
         versionName = appVersion.versionName,
         versionCode = appVersion.versionCode.toString(),
         modifier = modifier,
