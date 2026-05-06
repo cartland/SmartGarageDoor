@@ -148,7 +148,7 @@ fun SettingsContent(
                     }
                     SettingsRow(
                         icon = icon,
-                        title = "Door left open",
+                        title = "Door open notifications",
                         subtitle = subtitle,
                         showChevron = true,
                         onClick = onSnoozeTap,
