@@ -241,6 +241,13 @@ The script computes the next tag as `android/<highest + 1>`. The `--confirm-tag`
 
 The changelog and the Play Store whatsnew are different files: `CHANGELOG.md` is the permanent internal history (every version, patches included); `distribution/whatsnew/` is rolling and only covers the current minor/major. Missing changelog entries silently went unnoticed through 2.5.0 (added in #548) — the gate closes that gap.
 
+**Stat-cache stale after `validate.sh`** (recurring — observed in `android/193`, `android/194`, and `server/24` releases). When the release script reports `Working tree has uncommitted changes` but `git status --short` is empty, it's git's stat-cache holding stale `lstat` info from files validate.sh touched (Gradle build outputs, marker file write). The release script's quick check uses timestamps; when they look new but content is identical, it falsely flags dirty. Fix:
+```bash
+git update-index --refresh > /dev/null 2>&1   # forces git to re-stat everything
+./scripts/release-android.sh --confirm-tag android/N    # then retry
+```
+Same pattern works for `release-firebase.sh`. The stat-cache refresh is harmless either way; safe to run before every release-script retry. (Both Android and Firebase release scripts share the same `git diff-index --quiet HEAD --` check pattern.)
+
 **Rollback requires two steps** (intentionally hard to do accidentally):
 ```bash
 git checkout android/M                 # 1. move HEAD to the commit you want to re-release
