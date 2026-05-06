@@ -143,11 +143,7 @@ fun ProfileContent(
 
     if (snoozeSheetOpen) {
         SnoozeBottomSheet(
-            initialSelection = if (snoozeState is SnoozeState.Snoozing) {
-                SnoozeDurationUIOption.OneHour
-            } else {
-                SnoozeDurationUIOption.None
-            },
+            initialSelection = SnoozeDurationUIOption.None,
             onSave = { duration ->
                 buttonViewModel.snoozeOpenDoorsNotifications(duration)
             },
