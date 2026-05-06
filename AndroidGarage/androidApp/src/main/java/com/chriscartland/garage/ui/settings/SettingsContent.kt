@@ -136,13 +136,13 @@ fun SettingsContent(
                 SettingsSection(label = "Notifications") {
                     val (icon, subtitle) = when (snoozeState) {
                         SnoozeRowState.Loading -> Icons.Outlined.Notifications to "—"
-                        SnoozeRowState.Off -> Icons.Outlined.Notifications to "Off"
+                        SnoozeRowState.Off -> Icons.Outlined.Notifications to "Notifications enabled"
                         is SnoozeRowState.SnoozingUntil ->
                             Icons.Outlined.NotificationsPaused to "Snoozing until ${snoozeState.displayTime}"
                     }
                     SettingsRow(
                         icon = icon,
-                        title = "Snooze",
+                        title = "Door left open",
                         subtitle = subtitle,
                         showChevron = true,
                         onClick = onSnoozeTap,
