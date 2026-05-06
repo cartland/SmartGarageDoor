@@ -37,7 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.chriscartland.garage.ui.theme.PreviewScreenSurface
+import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
 
 /**
@@ -93,7 +93,7 @@ fun RemoteOfflinePill(
 @Preview
 @Composable
 fun RemoteOfflinePillFreshPreview() {
-    PreviewScreenSurface {
+    PreviewComponentSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
             RemoteOfflinePill(display = ButtonHealthDisplay.Offline(durationLabel = "1 min ago"))
         }
@@ -103,7 +103,7 @@ fun RemoteOfflinePillFreshPreview() {
 @Preview
 @Composable
 fun RemoteOfflinePillAgingPreview() {
-    PreviewScreenSurface {
+    PreviewComponentSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
             RemoteOfflinePill(display = ButtonHealthDisplay.Offline(durationLabel = "11 min ago"))
         }
@@ -113,7 +113,7 @@ fun RemoteOfflinePillAgingPreview() {
 @Preview
 @Composable
 fun RemoteOfflinePillStalePreview() {
-    PreviewScreenSurface {
+    PreviewComponentSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
             RemoteOfflinePill(display = ButtonHealthDisplay.Offline(durationLabel = "2 hr ago"))
         }
@@ -123,7 +123,7 @@ fun RemoteOfflinePillStalePreview() {
 @Preview
 @Composable
 fun RemoteOfflinePillVeryStalePreview() {
-    PreviewScreenSurface {
+    PreviewComponentSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
             RemoteOfflinePill(display = ButtonHealthDisplay.Offline(durationLabel = "3 days ago"))
         }

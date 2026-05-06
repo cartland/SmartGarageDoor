@@ -35,7 +35,7 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
-import com.chriscartland.garage.ui.theme.PreviewScreenSurface
+import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 import java.time.Duration
 
 /**
@@ -148,7 +148,7 @@ private fun DoorIconBox(
 @Preview
 @Composable
 fun GarageIconPreview() {
-    PreviewScreenSurface {
+    PreviewComponentSurface {
         GarageIcon(
             doorPosition = DoorPosition.OPENING,
             static = true,

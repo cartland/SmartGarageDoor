@@ -30,7 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.domain.model.RemoteButtonState
-import com.chriscartland.garage.ui.theme.PreviewScreenSurface
+import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 
 private val GARAGE_DIAGRAM_ICONS = listOf(
     Icons.Filled.PhoneAndroid,
@@ -76,55 +76,55 @@ fun RemoteButtonContent(
 @Preview
 @Composable
 fun RemoteButtonContentPreview() {
-    PreviewScreenSurface { RemoteButtonContent(state = RemoteButtonState.Ready, onTap = {}) }
+    PreviewComponentSurface { RemoteButtonContent(state = RemoteButtonState.Ready, onTap = {}) }
 }
 
 @Preview
 @Composable
 fun RemoteButtonContentPreparingPreview() {
-    PreviewScreenSurface { RemoteButtonContent(state = RemoteButtonState.Preparing, onTap = {}) }
+    PreviewComponentSurface { RemoteButtonContent(state = RemoteButtonState.Preparing, onTap = {}) }
 }
 
 @Preview
 @Composable
 fun RemoteButtonContentAwaitingConfirmationPreview() {
-    PreviewScreenSurface { RemoteButtonContent(state = RemoteButtonState.AwaitingConfirmation, onTap = {}) }
+    PreviewComponentSurface { RemoteButtonContent(state = RemoteButtonState.AwaitingConfirmation, onTap = {}) }
 }
 
 @Preview
 @Composable
 fun RemoteButtonContentCancelledPreview() {
-    PreviewScreenSurface { RemoteButtonContent(state = RemoteButtonState.Cancelled, onTap = {}) }
+    PreviewComponentSurface { RemoteButtonContent(state = RemoteButtonState.Cancelled, onTap = {}) }
 }
 
 @Preview
 @Composable
 fun RemoteButtonContentSendingToServerPreview() {
-    PreviewScreenSurface { RemoteButtonContent(state = RemoteButtonState.SendingToServer, onTap = {}) }
+    PreviewComponentSurface { RemoteButtonContent(state = RemoteButtonState.SendingToServer, onTap = {}) }
 }
 
 @Preview
 @Composable
 fun RemoteButtonContentSendingToDoorPreview() {
-    PreviewScreenSurface { RemoteButtonContent(state = RemoteButtonState.SendingToDoor, onTap = {}) }
+    PreviewComponentSurface { RemoteButtonContent(state = RemoteButtonState.SendingToDoor, onTap = {}) }
 }
 
 @Preview
 @Composable
 fun RemoteButtonContentSucceededPreview() {
-    PreviewScreenSurface { RemoteButtonContent(state = RemoteButtonState.Succeeded, onTap = {}) }
+    PreviewComponentSurface { RemoteButtonContent(state = RemoteButtonState.Succeeded, onTap = {}) }
 }
 
 @Preview
 @Composable
 fun RemoteButtonContentServerFailedPreview() {
-    PreviewScreenSurface { RemoteButtonContent(state = RemoteButtonState.ServerFailed, onTap = {}) }
+    PreviewComponentSurface { RemoteButtonContent(state = RemoteButtonState.ServerFailed, onTap = {}) }
 }
 
 @Preview
 @Composable
 fun RemoteButtonContentDoorFailedPreview() {
-    PreviewScreenSurface { RemoteButtonContent(state = RemoteButtonState.DoorFailed, onTap = {}) }
+    PreviewComponentSurface { RemoteButtonContent(state = RemoteButtonState.DoorFailed, onTap = {}) }
 }
 
 // endregion

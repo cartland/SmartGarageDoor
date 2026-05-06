@@ -40,7 +40,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
 import com.chriscartland.garage.ui.home.DeviceCheckInDisplay
-import com.chriscartland.garage.ui.theme.PreviewScreenSurface
+import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 
 /**
  * Compact rounded-pill device-heartbeat indicator. Antenna icon + duration
@@ -112,7 +112,7 @@ fun TitleBarCheckInPill(
 @Preview
 @Composable
 fun TitleBarCheckInPillFreshPreview() {
-    PreviewScreenSurface {
+    PreviewComponentSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TitleBarCheckInPill(
                 display = DeviceCheckInDisplay(
@@ -127,7 +127,7 @@ fun TitleBarCheckInPillFreshPreview() {
 @Preview
 @Composable
 fun TitleBarCheckInPillAgingPreview() {
-    PreviewScreenSurface {
+    PreviewComponentSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TitleBarCheckInPill(
                 display = DeviceCheckInDisplay(
@@ -142,7 +142,7 @@ fun TitleBarCheckInPillAgingPreview() {
 @Preview
 @Composable
 fun TitleBarCheckInPillStalePreview() {
-    PreviewScreenSurface {
+    PreviewComponentSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TitleBarCheckInPill(
                 display = DeviceCheckInDisplay(
@@ -157,7 +157,7 @@ fun TitleBarCheckInPillStalePreview() {
 @Preview
 @Composable
 fun TitleBarCheckInPillNoDataPreview() {
-    PreviewScreenSurface {
+    PreviewComponentSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TitleBarCheckInPill(
                 display = DeviceCheckInDisplay(
