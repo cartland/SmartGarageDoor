@@ -403,6 +403,8 @@ Do not just tell the user to run it — the next Stop hook fires before they can
 - **check-pr-backlog.sh** — Warns at 5+ open PRs, blocks at 10+
 - **dev-mode.sh** — Keeps Claude working when `.claude/.dev-mode` exists
 - **warn-shell-loops.sh** — Warns on `for`/`while` loops (prefer separate Bash calls)
+- **warn-command-substitution.sh** — Warns on `$(...)` command substitution (harder to review)
+- **block-large-image-read.sh** — Blocks Read on images whose long edge exceeds 2000px (many-image conversations reject these with InputValidationError). Only Read; Write/Edit/Bash unaffected so scripts can still generate and commit oversized PNGs (e.g. 1294×2744 framed screenshots). Resize and Read the smaller copy: `sips -Z 2000 path/to/image.png --out /tmp/preview.png`. Added in PR #649.
 
 ### Testing Philosophy
 - Tests must add value — no coverage for coverage's sake
