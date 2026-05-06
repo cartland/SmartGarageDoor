@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.RemoteButtonState
+import com.chriscartland.garage.permissions.NotificationPermissionCopy
 import com.chriscartland.garage.ui.GarageIcon
 import com.chriscartland.garage.ui.RemoteButtonContent
 import com.chriscartland.garage.ui.RemoteButtonHealthPill
@@ -458,7 +459,7 @@ private object HomePreviewData {
     )
     val staleAlert = HomeAlert.Stale()
     val permissionAlert = HomeAlert.PermissionMissing(
-        message = "Notifications are off — you won't be alerted when the door opens",
+        message = NotificationPermissionCopy.justificationText(0),
     )
 
     // Heartbeat cadence is ~10 min, so a representative typical pill reads
