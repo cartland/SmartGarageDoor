@@ -27,7 +27,7 @@ import androidx.room.RoomDatabaseConstructor
         DoorEventEntity::class,
         AppEvent::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
 )
 @ConstructedBy(AppDatabaseConstructor::class)

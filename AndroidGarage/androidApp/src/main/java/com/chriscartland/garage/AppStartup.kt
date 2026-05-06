@@ -65,6 +65,14 @@ class AppStartup(
         appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
         actions.add("logFcmSubscribe")
 
+        // One-shot trim of any keys that grew past the per-key cap before
+        // the cap was added (existing installs may have ~50K rows). The
+        // per-write cap inside log() keeps it bounded going forward, so
+        // this only matters for the migration case.
+        Logger.d { "AppStartup: Pruning old AppLogger entries" }
+        appLoggerViewModel.pruneOldEntries()
+        actions.add("pruneAppLogger")
+
         return actions
     }
 }

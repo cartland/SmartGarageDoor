@@ -28,6 +28,13 @@ import kotlinx.coroutines.launch
 interface AppLoggerViewModel {
     fun log(key: String)
 
+    /**
+     * Trim the per-key row count for any [AppLoggerKeys] that exceed
+     * the cap. Fire once at app startup; ongoing writes are capped
+     * inline and don't need this.
+     */
+    fun pruneOldEntries(perKeyLimit: Int = DEFAULT_PER_KEY_LIMIT)
+
     val initCurrentDoorCount: StateFlow<Long>
     val initRecentDoorCount: StateFlow<Long>
     val userFetchCurrentDoorCount: StateFlow<Long>
@@ -36,11 +43,16 @@ interface AppLoggerViewModel {
     val fcmSubscribeTopicCount: StateFlow<Long>
     val exceededExpectedTimeWithoutFcmCount: StateFlow<Long>
     val timeWithoutFcmInExpectedRangeCount: StateFlow<Long>
+
+    companion object {
+        const val DEFAULT_PER_KEY_LIMIT: Int = 1000
+    }
 }
 
 class DefaultAppLoggerViewModel(
     private val logAppEvent: LogAppEventUseCase,
     private val observeAppLogCount: ObserveAppLogCountUseCase,
+    private val pruneAppLog: PruneAppLogUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel(),
     AppLoggerViewModel {
@@ -91,6 +103,12 @@ class DefaultAppLoggerViewModel(
     override fun log(key: String) {
         viewModelScope.launch(dispatchers.io) {
             logAppEvent(key)
+        }
+    }
+
+    override fun pruneOldEntries(perKeyLimit: Int) {
+        viewModelScope.launch(dispatchers.io) {
+            pruneAppLog(perKeyLimit)
         }
     }
 }

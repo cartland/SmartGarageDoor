@@ -13,6 +13,7 @@ import kotlinx.coroutines.test.setMain
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -28,6 +29,7 @@ class DefaultAppLoggerViewModelTest {
         viewModel = DefaultAppLoggerViewModel(
             logAppEvent = LogAppEventUseCase(logger),
             observeAppLogCount = ObserveAppLogCountUseCase(logger),
+            pruneAppLog = PruneAppLogUseCase(logger),
             dispatchers = dispatchers,
         )
     }
@@ -69,5 +71,26 @@ class DefaultAppLoggerViewModelTest {
 
             // The init block collects countKey flows, so the StateFlow should update
             assertTrue(viewModel.userFetchCurrentDoorCount.value >= 1L)
+        }
+
+    @Test
+    fun pruneOldEntriesDelegatesToRepository() =
+        runTest(testDispatcher) {
+            viewModel.pruneOldEntries(perKeyLimit = 500)
+            advanceUntilIdle()
+
+            assertEquals(listOf(500), logger.pruneCalls)
+        }
+
+    @Test
+    fun pruneOldEntriesUsesDefaultLimit() =
+        runTest(testDispatcher) {
+            viewModel.pruneOldEntries()
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf(AppLoggerViewModel.DEFAULT_PER_KEY_LIMIT),
+                logger.pruneCalls,
+            )
         }
 }

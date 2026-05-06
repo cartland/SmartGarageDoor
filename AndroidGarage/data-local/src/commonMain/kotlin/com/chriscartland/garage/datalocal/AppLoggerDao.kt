@@ -21,6 +21,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -34,6 +35,35 @@ interface AppLoggerDao {
     @Query("SELECT count(*) from appEvent WHERE eventKey = :key")
     fun countKey(key: String): Flow<Long>
 
-    @Query("DELETE FROM doorEvent")
-    fun deleteAll()
+    @Query("SELECT DISTINCT eventKey FROM appEvent")
+    fun distinctKeys(): List<String>
+
+    @Query(
+        "DELETE FROM appEvent WHERE eventKey = :key " +
+            "AND id NOT IN (SELECT id FROM appEvent WHERE eventKey = :key " +
+            "ORDER BY timestamp DESC, id DESC LIMIT :limit)",
+    )
+    fun pruneKey(
+        key: String,
+        limit: Int,
+    )
+
+    @Transaction
+    fun insertAndPruneKey(
+        appEvent: AppEvent,
+        limit: Int,
+    ) {
+        insert(appEvent)
+        pruneKey(appEvent.eventKey, limit)
+    }
+
+    @Transaction
+    fun pruneAllKeys(limit: Int) {
+        for (key in distinctKeys()) {
+            pruneKey(key, limit)
+        }
+    }
+
+    @Query("DELETE FROM appEvent")
+    fun deleteAllAppEvents()
 }

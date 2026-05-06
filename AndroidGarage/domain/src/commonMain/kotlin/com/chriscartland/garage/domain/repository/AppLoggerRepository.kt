@@ -15,4 +15,13 @@ interface AppLoggerRepository {
 
     /** All logged events, ordered by timestamp ascending. Used for CSV export. */
     fun getAll(): Flow<List<AppLogEvent>>
+
+    /**
+     * Trim the log so that no individual `eventKey` retains more than
+     * [perKeyLimit] rows. Keeps the most recent rows per key. Intended
+     * for one-shot startup cleanup of databases that grew past the cap
+     * before the per-write cap was added; the per-write cap (inside
+     * [log]) keeps steady-state size bounded going forward.
+     */
+    suspend fun pruneToLimit(perKeyLimit: Int)
 }

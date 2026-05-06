@@ -123,9 +123,14 @@ class AppStartupTest {
 
     private class FakeAppLoggerViewModel : AppLoggerViewModel {
         val loggedKeys = mutableListOf<String>()
+        val pruneCalls = mutableListOf<Int>()
 
         override fun log(key: String) {
             loggedKeys.add(key)
+        }
+
+        override fun pruneOldEntries(perKeyLimit: Int) {
+            pruneCalls.add(perKeyLimit)
         }
 
         override val initCurrentDoorCount = MutableStateFlow(0L)
@@ -175,8 +180,27 @@ class AppStartupTest {
                 "startLiveClock",
                 "startButtonHealthFcmSubscription",
                 "logFcmSubscribe",
+                "pruneAppLogger",
             ),
             result,
+        )
+    }
+
+    @Test
+    fun onActivityCreated_prunesAppLoggerWithDefaultLimit() {
+        val scope = TestScope(testDispatcher)
+        val fcmManager = createFcmManager(scope)
+        val stalenessManager = createStalenessManager(scope)
+        val appLoggerViewModel = FakeAppLoggerViewModel()
+        val liveClock = createLiveClock(scope)
+        val buttonHealthMgr = createButtonHealthFcmSubscriptionManager(scope)
+        val actions = AppStartup(fcmManager, stalenessManager, liveClock, appLoggerViewModel, buttonHealthMgr)
+
+        actions.run()
+
+        assertEquals(
+            listOf(AppLoggerViewModel.DEFAULT_PER_KEY_LIMIT),
+            appLoggerViewModel.pruneCalls,
         )
     }
 }
