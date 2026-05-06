@@ -106,7 +106,7 @@ fun SnoozeSheetContent(
         )
 
         SnoozeOptionRow(
-            label = "Resume notifications",
+            label = "Don't snooze",
             selected = selectedOption == SnoozeDurationUIOption.None,
             onClick = { onOptionSelected(SnoozeDurationUIOption.None) },
         )
