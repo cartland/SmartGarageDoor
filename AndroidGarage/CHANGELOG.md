@@ -15,6 +15,9 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.10.3
+- **Door-left-open Settings row renamed to "Door open notifications".** "Door left open" read like a current state (suggesting the door was open right now); the new title is unambiguously a notification-category. The bottom-sheet header reverts to "Snooze notifications" so it describes the action you're taking instead of echoing the row title.
+
 ## 2.10.2
 - **Settings: "Tools" section renamed to "Developer", and Diagnostics moved into it** (top of the section, above Function list). Diagnostics + Function list now share a single allowlist gate (the Functions allowlist). Previously Diagnostics was visible to everyone via a hardcoded `logSummary` flag, which was a debug leak. A dedicated "Developer" allowlist will follow in a later release so Functions and Developer access can diverge.
 - **Snooze row reframed as "Door left open"** with clearer subtitle copy. The Notifications row now says "Door left open / Notifications enabled" in the default state instead of "Snooze / Off" (which was ambiguous — was the door off? the snooze off?). When snoozed, it still shows "Snoozing until X". The bottom-sheet header is now "Door left open notifications" to match.
