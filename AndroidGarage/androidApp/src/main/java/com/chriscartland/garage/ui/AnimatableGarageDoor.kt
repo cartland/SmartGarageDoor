@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.ColorUtils
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
-import com.chriscartland.garage.ui.theme.PreviewSurface
+import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 import java.time.Duration
 
 val DEFAULT_GARAGE_DOOR_ANIMATION_DURATION: Duration = Duration.ofSeconds(12)
@@ -230,7 +230,7 @@ private const val PREVIEW_ICON_WIDTH_DP = 300
 
 @Composable
 private fun PreviewBox(content: @Composable (Modifier) -> Unit) {
-    PreviewSurface {
+    PreviewComponentSurface {
         Box(
             modifier = Modifier.size(PREVIEW_BOX_DP.dp),
             contentAlignment = Alignment.Center,

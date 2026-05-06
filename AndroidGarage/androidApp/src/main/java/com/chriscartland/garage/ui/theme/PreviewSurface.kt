@@ -18,29 +18,52 @@
 package com.chriscartland.garage.ui.theme
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 /**
- * Standard preview wrapper that applies [AppTheme] and a theme-aware page background.
+ * Page-shaped preview wrapper for SCREEN-level Composables (HomeContent,
+ * Settings, etc.) that fill the device viewport in production. Applies
+ * [AppTheme] and paints the entire canvas with [MaterialTheme.colorScheme.background]
+ * so dark-mode previews show the dark page filling the device, matching reality.
  *
  * Use instead of `@Preview(showBackground = true)` — that flag hardcodes a white
- * background that ignores the active color scheme, so dark-mode screenshot tests
- * render dark UI on a light page. This wrapper paints the page in
- * [MaterialTheme.colorScheme.background], so light/dark previews look like the
- * real app.
+ * background that ignores the active color scheme.
  *
  * Idempotent if a caller already wraps in [AppTheme] (e.g. screenshot tests):
  * the inner [AppTheme] reads `isSystemInDarkTheme()` from the same configuration.
+ *
+ * For tiny components (pills, icons, buttons), prefer [PreviewComponentSurface] —
+ * it themes only the area behind the component instead of the whole canvas.
  */
 @Composable
-fun PreviewSurface(content: @Composable () -> Unit) {
+fun PreviewScreenSurface(content: @Composable () -> Unit) {
     AppTheme {
         Surface(
             color = MaterialTheme.colorScheme.background,
             modifier = Modifier.fillMaxSize(),
+        ) { content() }
+    }
+}
+
+/**
+ * Component-shaped preview wrapper for tiny Composables (pills, icons,
+ * buttons) that don't fill the device in production. Applies [AppTheme] and
+ * paints the theme background only behind the component (`wrapContentSize`)
+ * so the surrounding canvas stays at `@Preview(showBackground)`'s default
+ * white — accurate to the component's actual scope.
+ *
+ * For full-screen Composables, prefer [PreviewScreenSurface].
+ */
+@Composable
+fun PreviewComponentSurface(content: @Composable () -> Unit) {
+    AppTheme {
+        Surface(
+            color = MaterialTheme.colorScheme.background,
+            modifier = Modifier.wrapContentSize(),
         ) { content() }
     }
 }
