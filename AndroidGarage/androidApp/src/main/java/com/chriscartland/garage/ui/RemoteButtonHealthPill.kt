@@ -120,27 +120,27 @@ private object RemoteButtonHealthPillContents {
     fun from(display: ButtonHealthDisplay): PillContents =
         when (display) {
             is ButtonHealthDisplay.Unauthorized -> PillContents(
-                label = "Remote: unauthorized",
+                label = "Unauthorized",
                 icon = Icons.Outlined.Lock,
                 iconDescription = "Remote button unauthorized (signed out or not on allowlist)",
             )
             is ButtonHealthDisplay.Loading -> PillContents(
-                label = "Remote: checking…",
+                label = "Checking…",
                 icon = Icons.Outlined.Sync,
                 iconDescription = "Checking remote button status",
             )
             is ButtonHealthDisplay.Unknown -> PillContents(
-                label = "Remote: unknown",
+                label = "Unknown",
                 icon = Icons.Outlined.HelpOutline,
                 iconDescription = "Remote button status unknown",
             )
             is ButtonHealthDisplay.Online -> PillContents(
-                label = "Remote: online",
+                label = "Online",
                 icon = Icons.Outlined.SignalWifi4Bar,
                 iconDescription = "Remote button online",
             )
             is ButtonHealthDisplay.Offline -> PillContents(
-                label = "Remote offline · ${display.durationLabel}",
+                label = "Offline · ${display.durationLabel}",
                 icon = Icons.Outlined.SignalWifiOff,
                 iconDescription = "Remote button offline, last seen ${display.durationLabel}",
             )
