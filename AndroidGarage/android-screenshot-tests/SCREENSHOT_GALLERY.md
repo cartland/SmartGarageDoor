@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Mon May  4 01:40:49 PDT 2026
+Generated on Tue May  5 18:36:40 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -182,6 +182,60 @@ Generated on Mon May  4 01:40:49 PDT 2026
 
 ### RemoteButtonContentSucceededPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSucceededPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### RemoteButtonHealthPillLoadingPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillLoadingPreviewTest_Dark_77106447_0.png" width="300" />
+
+### RemoteButtonHealthPillLoadingPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillLoadingPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### RemoteButtonHealthPillOfflinePreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillOfflinePreviewTest_Dark_77106447_0.png" width="300" />
+
+### RemoteButtonHealthPillOfflinePreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillOfflinePreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### RemoteButtonHealthPillOnlinePreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillOnlinePreviewTest_Dark_77106447_0.png" width="300" />
+
+### RemoteButtonHealthPillOnlinePreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillOnlinePreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### RemoteButtonHealthPillUnauthorizedPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnauthorizedPreviewTest_Dark_77106447_0.png" width="300" />
+
+### RemoteButtonHealthPillUnauthorizedPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnauthorizedPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### RemoteButtonHealthPillUnknownPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnknownPreviewTest_Dark_77106447_0.png" width="300" />
+
+### RemoteButtonHealthPillUnknownPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnknownPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### RemoteOfflinePillAgingPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillAgingPreviewTest_Dark_77106447_0.png" width="300" />
+
+### RemoteOfflinePillAgingPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillAgingPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### RemoteOfflinePillFreshPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillFreshPreviewTest_Dark_77106447_0.png" width="300" />
+
+### RemoteOfflinePillFreshPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillFreshPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### RemoteOfflinePillStalePreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillStalePreviewTest_Dark_77106447_0.png" width="300" />
+
+### RemoteOfflinePillStalePreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillStalePreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### RemoteOfflinePillVeryStalePreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillVeryStalePreviewTest_Dark_77106447_0.png" width="300" />
+
+### RemoteOfflinePillVeryStalePreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillVeryStalePreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### TitleBarCheckInPillAgingPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/TitleBarCheckInPillAgingPreviewTest_Dark_77106447_0.png" width="300" />

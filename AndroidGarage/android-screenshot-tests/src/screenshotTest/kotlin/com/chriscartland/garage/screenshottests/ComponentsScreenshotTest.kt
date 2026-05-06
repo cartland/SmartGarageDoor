@@ -31,6 +31,11 @@ import com.chriscartland.garage.ui.RemoteButtonContentSendingToDoorPreview
 import com.chriscartland.garage.ui.RemoteButtonContentSendingToServerPreview
 import com.chriscartland.garage.ui.RemoteButtonContentServerFailedPreview
 import com.chriscartland.garage.ui.RemoteButtonContentSucceededPreview
+import com.chriscartland.garage.ui.RemoteButtonHealthPillLoadingPreview
+import com.chriscartland.garage.ui.RemoteButtonHealthPillOfflinePreview
+import com.chriscartland.garage.ui.RemoteButtonHealthPillOnlinePreview
+import com.chriscartland.garage.ui.RemoteButtonHealthPillUnauthorizedPreview
+import com.chriscartland.garage.ui.RemoteButtonHealthPillUnknownPreview
 import com.chriscartland.garage.ui.RemoteOfflinePillAgingPreview
 import com.chriscartland.garage.ui.RemoteOfflinePillFreshPreview
 import com.chriscartland.garage.ui.RemoteOfflinePillStalePreview
@@ -477,4 +482,64 @@ fun RemoteOfflinePillStalePreviewTest() {
 @Composable
 fun RemoteOfflinePillVeryStalePreviewTest() {
     AppTheme { RemoteOfflinePillVeryStalePreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteButtonHealthPillUnauthorizedPreviewTest() {
+    AppTheme { RemoteButtonHealthPillUnauthorizedPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteButtonHealthPillLoadingPreviewTest() {
+    AppTheme { RemoteButtonHealthPillLoadingPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteButtonHealthPillUnknownPreviewTest() {
+    AppTheme { RemoteButtonHealthPillUnknownPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteButtonHealthPillOnlinePreviewTest() {
+    AppTheme { RemoteButtonHealthPillOnlinePreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteButtonHealthPillOfflinePreviewTest() {
+    AppTheme { RemoteButtonHealthPillOfflinePreview() }
 }

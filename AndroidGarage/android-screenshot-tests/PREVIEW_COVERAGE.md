@@ -3,7 +3,7 @@
 
 # Preview Screenshot Coverage
 
-**74 / 74 (100%)**
+**79 / 79 (100%)**
 
 ## Covered
 
@@ -66,6 +66,11 @@
 - `RemoteButtonContentSendingToServerPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonContent.kt`
 - `RemoteButtonContentServerFailedPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonContent.kt`
 - `RemoteButtonContentSucceededPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonContent.kt`
+- `RemoteButtonHealthPillLoadingPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonHealthPill.kt`
+- `RemoteButtonHealthPillOfflinePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonHealthPill.kt`
+- `RemoteButtonHealthPillOnlinePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonHealthPill.kt`
+- `RemoteButtonHealthPillUnauthorizedPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonHealthPill.kt`
+- `RemoteButtonHealthPillUnknownPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonHealthPill.kt`
 - `RemoteOfflinePillAgingPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteOfflinePill.kt`
 - `RemoteOfflinePillFreshPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteOfflinePill.kt`
 - `RemoteOfflinePillStalePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteOfflinePill.kt`
