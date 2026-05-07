@@ -104,6 +104,7 @@ import com.chriscartland.garage.usecase.PruneAppLogUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
+import com.chriscartland.garage.usecase.SeedDiagnosticsCountersFromRoomUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
@@ -204,6 +205,7 @@ abstract class AppComponent(
         observeAppLogCount: ObserveDiagnosticsCountUseCase,
         pruneAppLog: PruneAppLogUseCase,
         clearDiagnostics: ClearDiagnosticsUseCase,
+        seedDiagnosticsCountersFromRoom: SeedDiagnosticsCountersFromRoomUseCase,
         dispatchers: DispatcherProvider,
     ): DefaultAppLoggerViewModel =
         DefaultAppLoggerViewModel(
@@ -211,6 +213,7 @@ abstract class AppComponent(
             observeAppLogCount,
             pruneAppLog,
             clearDiagnostics,
+            seedDiagnosticsCountersFromRoom,
             dispatchers,
         )
 
@@ -222,6 +225,12 @@ abstract class AppComponent(
         appLoggerRepository: AppLoggerRepository,
         diagnosticsCounters: DiagnosticsCountersRepository,
     ): ClearDiagnosticsUseCase = ClearDiagnosticsUseCase(appLoggerRepository, diagnosticsCounters)
+
+    @Provides
+    fun provideSeedDiagnosticsCountersFromRoomUseCase(
+        appLoggerRepository: AppLoggerRepository,
+        diagnosticsCounters: DiagnosticsCountersRepository,
+    ): SeedDiagnosticsCountersFromRoomUseCase = SeedDiagnosticsCountersFromRoomUseCase(appLoggerRepository, diagnosticsCounters)
 
     @Provides
     fun provideAppSettingsViewModel(

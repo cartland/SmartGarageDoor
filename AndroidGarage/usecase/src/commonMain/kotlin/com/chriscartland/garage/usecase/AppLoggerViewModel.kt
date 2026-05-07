@@ -43,6 +43,27 @@ interface AppLoggerViewModel {
      */
     fun clearDiagnostics()
 
+    /**
+     * One-shot recovery on first launch after upgrading from a
+     * version where Diagnostics counts came from the Room aggregate
+     * query (anything before 2.11.0). Idempotent — safe to fire on
+     * every app start.
+     */
+    fun seedDiagnosticsFromRoom()
+
+    /**
+     * Runs the per-launch Diagnostics maintenance pass: first seed
+     * the lifetime counters from Room (one-shot recovery), then prune
+     * Room rows past [perKeyLimit]. **Bundled into a single coroutine
+     * launch so the operations are guaranteed sequential** — without
+     * this, [seedDiagnosticsFromRoom] and [pruneOldEntries] launched
+     * separately would race on the IO dispatcher and prune could
+     * delete rows the seed wanted to count, permanently locking in a
+     * lower lifetime counter for users upgrading from a pre-cap
+     * (pre-2.10.4) version.
+     */
+    fun runStartupDiagnosticsMaintenance(perKeyLimit: Int = AppLoggerLimits.DEFAULT_PER_KEY_LIMIT)
+
     val initCurrentDoorCount: StateFlow<Long>
     val initRecentDoorCount: StateFlow<Long>
     val userFetchCurrentDoorCount: StateFlow<Long>
@@ -58,6 +79,7 @@ class DefaultAppLoggerViewModel(
     private val observeAppLogCount: ObserveDiagnosticsCountUseCase,
     private val pruneAppLog: PruneAppLogUseCase,
     private val clearDiagnosticsUseCase: ClearDiagnosticsUseCase,
+    private val seedDiagnosticsCountersFromRoom: SeedDiagnosticsCountersFromRoomUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel(),
     AppLoggerViewModel {
@@ -120,6 +142,21 @@ class DefaultAppLoggerViewModel(
     override fun clearDiagnostics() {
         viewModelScope.launch(dispatchers.io) {
             clearDiagnosticsUseCase()
+        }
+    }
+
+    override fun seedDiagnosticsFromRoom() {
+        viewModelScope.launch(dispatchers.io) {
+            seedDiagnosticsCountersFromRoom()
+        }
+    }
+
+    override fun runStartupDiagnosticsMaintenance(perKeyLimit: Int) {
+        viewModelScope.launch(dispatchers.io) {
+            // Sequential, in one launch: seed must read un-pruned
+            // Room counts. See KDoc on the interface.
+            seedDiagnosticsCountersFromRoom()
+            pruneAppLog(perKeyLimit)
         }
     }
 }

@@ -126,7 +126,10 @@ class AppStartupTest {
     private class FakeAppLoggerViewModel : AppLoggerViewModel {
         val loggedKeys = mutableListOf<String>()
         val pruneCalls = mutableListOf<Int>()
+        val maintenanceCalls = mutableListOf<Int>()
         var resetCallCount: Int = 0
+            private set
+        var seedCallCount: Int = 0
             private set
 
         override fun log(key: String) {
@@ -139,6 +142,14 @@ class AppStartupTest {
 
         override fun clearDiagnostics() {
             resetCallCount += 1
+        }
+
+        override fun seedDiagnosticsFromRoom() {
+            seedCallCount += 1
+        }
+
+        override fun runStartupDiagnosticsMaintenance(perKeyLimit: Int) {
+            maintenanceCalls.add(perKeyLimit)
         }
 
         override val initCurrentDoorCount = MutableStateFlow(0L)
@@ -188,14 +199,16 @@ class AppStartupTest {
                 "startLiveClock",
                 "startButtonHealthFcmSubscription",
                 "logFcmSubscribe",
-                "pruneAppLogger",
+                "runDiagnosticsMaintenance",
             ),
             result,
         )
     }
 
     @Test
-    fun onActivityCreated_prunesAppLoggerWithDefaultLimit() {
+    fun onActivityCreated_invokesDiagnosticsMaintenance() {
+        // Bundled call — guarantees seed-then-prune are sequential on the
+        // IO dispatcher. Separate fire-and-forget launches would race.
         val scope = TestScope(testDispatcher)
         val fcmManager = createFcmManager(scope)
         val stalenessManager = createStalenessManager(scope)
@@ -208,7 +221,11 @@ class AppStartupTest {
 
         assertEquals(
             listOf(AppLoggerLimits.DEFAULT_PER_KEY_LIMIT),
-            appLoggerViewModel.pruneCalls,
+            appLoggerViewModel.maintenanceCalls,
         )
     }
+
+    // (The granular `pruneOldEntries` is now invoked inside the bundled
+    // runStartupDiagnosticsMaintenance call. Direct delegation is
+    // verified by DefaultAppLoggerViewModelTest.pruneOldEntriesUsesDefaultLimit.)
 }

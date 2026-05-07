@@ -19,11 +19,13 @@ package com.chriscartland.garage.datalocal
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import com.chriscartland.garage.domain.repository.DiagnosticsCountersRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlin.math.max
 
 /**
  * KMP-compatible [DiagnosticsCountersRepository] backed by a dedicated
@@ -34,6 +36,14 @@ import kotlinx.coroutines.flow.map
  * Counters are stored as `Long` keyed by the `AppLoggerKeys` string —
  * no extra layer of indirection so a new key in `AppLoggerKeys` "just
  * works" without a schema change here.
+ *
+ * The seeded-from-Room flag ([SEEDED_FROM_ROOM_KEY]) is a private
+ * Boolean preference under a name that cannot collide with any
+ * `AppLoggerKeys` value (those are snake_case lowercase; this is
+ * double-underscore-prefixed). [resetAll] wipes it along with the
+ * counters, which is correct: after a user-initiated Clear, the next
+ * seeding pass should run again — but it'll be a no-op because Room
+ * is also empty post-Clear.
  */
 class DataStoreDiagnosticsCounters(
     private val dataStore: DataStore<Preferences>,
@@ -52,5 +62,24 @@ class DataStoreDiagnosticsCounters(
 
     override suspend fun resetAll() {
         dataStore.edit { prefs -> prefs.clear() }
+    }
+
+    override suspend fun seedFromCountsOnce(counts: Map<String, Long>): Boolean {
+        var seededThisCall = false
+        dataStore.edit { prefs ->
+            if (prefs[SEEDED_FROM_ROOM_KEY] == true) return@edit
+            for ((key, count) in counts) {
+                val prefKey = longPreferencesKey(key)
+                val existing = prefs[prefKey] ?: 0L
+                prefs[prefKey] = max(existing, count)
+            }
+            prefs[SEEDED_FROM_ROOM_KEY] = true
+            seededThisCall = true
+        }
+        return seededThisCall
+    }
+
+    private companion object {
+        val SEEDED_FROM_ROOM_KEY = booleanPreferencesKey("__seeded_from_room")
     }
 }
