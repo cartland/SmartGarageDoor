@@ -84,6 +84,7 @@ import com.chriscartland.garage.usecase.DefaultDoorViewModel
 import com.chriscartland.garage.usecase.DefaultFunctionListViewModel
 import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.DefaultReceiveFcmDoorEventUseCase
+import com.chriscartland.garage.usecase.DefaultRegisterFcmUseCase
 import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
@@ -100,7 +101,7 @@ import com.chriscartland.garage.usecase.ObserveDiagnosticsCountUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
 import com.chriscartland.garage.usecase.ObserveSnoozeStateUseCase
-import com.chriscartland.garage.usecase.PruneAppLogUseCase
+import com.chriscartland.garage.usecase.PruneDiagnosticsLogUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
@@ -203,7 +204,7 @@ abstract class AppComponent(
     fun provideAppLoggerViewModel(
         logAppEvent: LogAppEventUseCase,
         observeAppLogCount: ObserveDiagnosticsCountUseCase,
-        pruneAppLog: PruneAppLogUseCase,
+        pruneDiagnosticsLog: PruneDiagnosticsLogUseCase,
         clearDiagnostics: ClearDiagnosticsUseCase,
         seedDiagnosticsCountersFromRoom: SeedDiagnosticsCountersFromRoomUseCase,
         dispatchers: DispatcherProvider,
@@ -211,14 +212,15 @@ abstract class AppComponent(
         DefaultAppLoggerViewModel(
             logAppEvent,
             observeAppLogCount,
-            pruneAppLog,
+            pruneDiagnosticsLog,
             clearDiagnostics,
             seedDiagnosticsCountersFromRoom,
             dispatchers,
         )
 
     @Provides
-    fun providePruneAppLogUseCase(appLoggerRepository: AppLoggerRepository): PruneAppLogUseCase = PruneAppLogUseCase(appLoggerRepository)
+    fun providePruneDiagnosticsLogUseCase(appLoggerRepository: AppLoggerRepository): PruneDiagnosticsLogUseCase =
+        PruneDiagnosticsLogUseCase(appLoggerRepository)
 
     @Provides
     fun provideClearDiagnosticsUseCase(
@@ -298,7 +300,7 @@ abstract class AppComponent(
         observeDoorEvents: ObserveDoorEventsUseCase,
         observeFeatureAccess: ObserveFeatureAccessUseCase,
         clearDiagnostics: ClearDiagnosticsUseCase,
-        pruneAppLog: PruneAppLogUseCase,
+        pruneDiagnosticsLog: PruneDiagnosticsLogUseCase,
         registerFcm: RegisterFcmUseCase,
         deregisterFcm: DeregisterFcmUseCase,
         dispatchers: DispatcherProvider,
@@ -316,7 +318,7 @@ abstract class AppComponent(
             observeDoorEventsUseCase = observeDoorEvents,
             observeFeatureAccessUseCase = observeFeatureAccess,
             clearDiagnosticsUseCase = clearDiagnostics,
-            pruneAppLogUseCase = pruneAppLog,
+            pruneDiagnosticsLogUseCase = pruneDiagnosticsLog,
             registerFcmUseCase = registerFcm,
             deregisterFcmUseCase = deregisterFcm,
             dispatchers = dispatchers,
@@ -365,7 +367,7 @@ abstract class AppComponent(
     fun provideRegisterFcmUseCase(
         doorRepository: DoorRepository,
         doorFcmRepository: DoorFcmRepository,
-    ): RegisterFcmUseCase = RegisterFcmUseCase(doorRepository, doorFcmRepository)
+    ): RegisterFcmUseCase = DefaultRegisterFcmUseCase(doorRepository, doorFcmRepository)
 
     @Provides
     fun provideReceiveFcmDoorEventUseCase(

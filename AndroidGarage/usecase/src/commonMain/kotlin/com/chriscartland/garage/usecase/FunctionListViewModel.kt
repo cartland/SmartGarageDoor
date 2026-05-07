@@ -70,7 +70,7 @@ interface FunctionListViewModel {
 
     fun clearDiagnostics()
 
-    fun pruneAppLog()
+    fun pruneDiagnosticsLog()
 
     fun registerFcm()
 
@@ -89,7 +89,7 @@ class DefaultFunctionListViewModel(
     private val observeDoorEventsUseCase: ObserveDoorEventsUseCase,
     private val observeFeatureAccessUseCase: ObserveFeatureAccessUseCase,
     private val clearDiagnosticsUseCase: ClearDiagnosticsUseCase,
-    private val pruneAppLogUseCase: PruneAppLogUseCase,
+    private val pruneDiagnosticsLogUseCase: PruneDiagnosticsLogUseCase,
     private val registerFcmUseCase: RegisterFcmUseCase,
     private val deregisterFcmUseCase: DeregisterFcmUseCase,
     private val dispatchers: DispatcherProvider,
@@ -175,10 +175,10 @@ class DefaultFunctionListViewModel(
         }
     }
 
-    override fun pruneAppLog() {
-        Logger.d { "pruneAppLog" }
+    override fun pruneDiagnosticsLog() {
+        Logger.d { "pruneDiagnosticsLog" }
         viewModelScope.launch(dispatchers.io) {
-            pruneAppLogUseCase(AppLoggerLimits.DEFAULT_PER_KEY_LIMIT)
+            pruneDiagnosticsLogUseCase(AppLoggerLimits.DEFAULT_PER_KEY_LIMIT)
         }
     }
 

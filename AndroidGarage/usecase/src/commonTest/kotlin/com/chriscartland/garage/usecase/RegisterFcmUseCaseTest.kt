@@ -60,7 +60,7 @@ class RegisterFcmUseCaseTest {
     fun setup() {
         fakeDoor = FakeDoorRepository()
         fakeFcm = FakeDoorFcmRepository()
-        useCase = RegisterFcmUseCase(fakeDoor, fakeFcm)
+        useCase = DefaultRegisterFcmUseCase(fakeDoor, fakeFcm)
     }
 
     @Test

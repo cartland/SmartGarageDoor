@@ -47,14 +47,22 @@ class FetchFcmStatusUseCase(
 /**
  * Registers for FCM door notifications. Single attempt — returns result.
  *
- * Fetches the build timestamp from server config, converts it to an FCM topic,
- * and subscribes. Caller owns retry policy (see ADR-015).
+ * Fetches the build timestamp from server config, converts it to an FCM
+ * topic, and subscribes. Caller owns retry policy (see ADR-015).
+ *
+ * Interface (with [DefaultRegisterFcmUseCase] as the production impl) so
+ * tests substitute a fake without subclassing — the codebase convention is
+ * "no `open class` for testability".
  */
-open class RegisterFcmUseCase(
+interface RegisterFcmUseCase {
+    suspend operator fun invoke(): AppResult<Unit, ActionError>
+}
+
+class DefaultRegisterFcmUseCase(
     private val doorRepository: DoorRepository,
     private val doorFcmRepository: DoorFcmRepository,
-) {
-    open suspend operator fun invoke(): AppResult<Unit, ActionError> {
+) : RegisterFcmUseCase {
+    override suspend fun invoke(): AppResult<Unit, ActionError> {
         val buildTimestamp = doorRepository.fetchBuildTimestampCached()
             ?: return AppResult.Error(ActionError.MissingData)
         val result = doorFcmRepository.registerDoor(buildTimestamp.toFcmTopic())
@@ -67,10 +75,24 @@ open class RegisterFcmUseCase(
 }
 
 /**
- * Deregisters from FCM door notifications.
+ * Deregisters from FCM door notifications. Returns [AppResult] for
+ * symmetry with [RegisterFcmUseCase].
+ *
+ * Success: server confirmed the topic was unsubscribed.
+ * Error: network or unknown server response — caller may retry, but the
+ * Manager treats deregistration as best-effort fire-and-forget.
  */
 class DeregisterFcmUseCase(
     private val doorFcmRepository: DoorFcmRepository,
 ) {
-    suspend operator fun invoke(): FcmRegistrationStatus = doorFcmRepository.deregisterDoor().toRegistrationStatus()
+    suspend operator fun invoke(): AppResult<Unit, ActionError> {
+        val result = doorFcmRepository.deregisterDoor()
+        return when (result) {
+            DoorFcmState.NotRegistered -> AppResult.Success(Unit)
+            // Still-Registered means the deregister request didn't take —
+            // treat the same as Unknown.
+            is DoorFcmState.Registered -> AppResult.Error(ActionError.NetworkFailed)
+            DoorFcmState.Unknown -> AppResult.Error(ActionError.NetworkFailed)
+        }
+    }
 }

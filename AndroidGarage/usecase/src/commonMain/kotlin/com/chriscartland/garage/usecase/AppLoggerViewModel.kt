@@ -77,7 +77,7 @@ interface AppLoggerViewModel {
 class DefaultAppLoggerViewModel(
     private val logAppEvent: LogAppEventUseCase,
     private val observeAppLogCount: ObserveDiagnosticsCountUseCase,
-    private val pruneAppLog: PruneAppLogUseCase,
+    private val pruneDiagnosticsLog: PruneDiagnosticsLogUseCase,
     private val clearDiagnosticsUseCase: ClearDiagnosticsUseCase,
     private val seedDiagnosticsCountersFromRoom: SeedDiagnosticsCountersFromRoomUseCase,
     private val dispatchers: DispatcherProvider,
@@ -135,7 +135,7 @@ class DefaultAppLoggerViewModel(
 
     override fun pruneOldEntries(perKeyLimit: Int) {
         viewModelScope.launch(dispatchers.io) {
-            pruneAppLog(perKeyLimit)
+            pruneDiagnosticsLog(perKeyLimit)
         }
     }
 
@@ -156,7 +156,7 @@ class DefaultAppLoggerViewModel(
             // Sequential, in one launch: seed must read un-pruned
             // Room counts. See KDoc on the interface.
             seedDiagnosticsCountersFromRoom()
-            pruneAppLog(perKeyLimit)
+            pruneDiagnosticsLog(perKeyLimit)
         }
     }
 }

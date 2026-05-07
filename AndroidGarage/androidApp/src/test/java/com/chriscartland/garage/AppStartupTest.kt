@@ -33,7 +33,6 @@ import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
-import com.chriscartland.garage.testcommon.FakeDoorFcmRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
@@ -56,11 +55,8 @@ class AppStartupTest {
     private val testDispatcher = StandardTestDispatcher()
 
     private fun createFcmManager(scope: TestScope): FcmRegistrationManager {
-        val useCase = object : RegisterFcmUseCase(
-            FakeDoorRepository(),
-            FakeDoorFcmRepository(),
-        ) {
-            override suspend operator fun invoke(): AppResult<Unit, ActionError> = AppResult.Success(Unit)
+        val useCase = object : RegisterFcmUseCase {
+            override suspend fun invoke(): AppResult<Unit, ActionError> = AppResult.Success(Unit)
         }
         return FcmRegistrationManager(
             registerFcmUseCase = useCase,

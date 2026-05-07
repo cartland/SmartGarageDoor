@@ -63,7 +63,7 @@ fun FunctionListContent(
         onSignIn = { googleSignIn.launchSignIn() },
         onSignOut = resolved::signOut,
         onClearDiagnostics = resolved::clearDiagnostics,
-        onPruneAppLog = resolved::pruneAppLog,
+        onPruneDiagnosticsLog = resolved::pruneDiagnosticsLog,
         onRegisterFcm = resolved::registerFcm,
         onDeregisterFcm = resolved::deregisterFcm,
     )
@@ -82,7 +82,7 @@ fun FunctionListContent(
     onSignIn: () -> Unit = {},
     onSignOut: () -> Unit = {},
     onClearDiagnostics: () -> Unit = {},
-    onPruneAppLog: () -> Unit = {},
+    onPruneDiagnosticsLog: () -> Unit = {},
     onRegisterFcm: () -> Unit = {},
     onDeregisterFcm: () -> Unit = {},
 ) {
@@ -101,7 +101,7 @@ fun FunctionListContent(
             item { FunctionButton("Sign in with Google", onSignIn) }
             item { FunctionButton("Sign out", onSignOut) }
             item { FunctionButton("Clear all diagnostics", onClearDiagnostics) }
-            item { FunctionButton("Prune diagnostics log", onPruneAppLog) }
+            item { FunctionButton("Prune diagnostics log", onPruneDiagnosticsLog) }
             item { FunctionButton("Re-register FCM", onRegisterFcm) }
             item { FunctionButton("Deregister FCM", onDeregisterFcm) }
         }
@@ -173,7 +173,7 @@ fun FunctionListContentPreview() {
             onSignIn = {},
             onSignOut = {},
             onClearDiagnostics = {},
-            onPruneAppLog = {},
+            onPruneDiagnosticsLog = {},
             onRegisterFcm = {},
             onDeregisterFcm = {},
         )
@@ -195,7 +195,7 @@ fun FunctionListContentDeniedPreview() {
             onSignIn = {},
             onSignOut = {},
             onClearDiagnostics = {},
-            onPruneAppLog = {},
+            onPruneDiagnosticsLog = {},
             onRegisterFcm = {},
             onDeregisterFcm = {},
         )
