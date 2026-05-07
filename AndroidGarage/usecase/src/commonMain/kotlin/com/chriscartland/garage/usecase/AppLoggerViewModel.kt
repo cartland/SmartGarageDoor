@@ -43,6 +43,14 @@ interface AppLoggerViewModel {
      */
     fun clearDiagnostics()
 
+    /**
+     * One-shot recovery on first launch after upgrading from a
+     * version where Diagnostics counts came from the Room aggregate
+     * query (anything before 2.11.0). Idempotent — safe to fire on
+     * every app start.
+     */
+    fun seedDiagnosticsFromRoom()
+
     val initCurrentDoorCount: StateFlow<Long>
     val initRecentDoorCount: StateFlow<Long>
     val userFetchCurrentDoorCount: StateFlow<Long>
@@ -58,6 +66,7 @@ class DefaultAppLoggerViewModel(
     private val observeAppLogCount: ObserveDiagnosticsCountUseCase,
     private val pruneAppLog: PruneAppLogUseCase,
     private val clearDiagnosticsUseCase: ClearDiagnosticsUseCase,
+    private val seedDiagnosticsCountersFromRoom: SeedDiagnosticsCountersFromRoomUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel(),
     AppLoggerViewModel {
@@ -120,6 +129,12 @@ class DefaultAppLoggerViewModel(
     override fun clearDiagnostics() {
         viewModelScope.launch(dispatchers.io) {
             clearDiagnosticsUseCase()
+        }
+    }
+
+    override fun seedDiagnosticsFromRoom() {
+        viewModelScope.launch(dispatchers.io) {
+            seedDiagnosticsCountersFromRoom()
         }
     }
 }

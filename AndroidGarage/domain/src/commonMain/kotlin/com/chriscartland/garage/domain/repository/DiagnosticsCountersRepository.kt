@@ -25,4 +25,21 @@ interface DiagnosticsCountersRepository {
 
     /** Zero every counter in this store. Does not touch other stores. */
     suspend fun resetAll()
+
+    /**
+     * One-shot recovery for users upgrading from a version where
+     * Diagnostics counts came from the Room app-event aggregate query
+     * (anything before 2.11.0). On first call, for each `(key, count)`
+     * pair: set `counter[key] = max(counter[key], count)`. On every
+     * subsequent call: no-op. Returns `true` on the seeding call,
+     * `false` thereafter.
+     *
+     * The `max()` semantics mean the call is also safe to fire on a
+     * fresh install (counters already 0, Room rows 0 → no-op) or after
+     * a Clear (counters at 0, Room rows back at 0 by design — same
+     * no-op). The persistence of the "already seeded" flag prevents
+     * the seed from undoing a future Clear if the user upgrades, logs
+     * some events, then clears.
+     */
+    suspend fun seedFromCountsOnce(counts: Map<String, Long>): Boolean
 }

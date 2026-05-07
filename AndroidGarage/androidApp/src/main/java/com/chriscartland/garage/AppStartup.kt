@@ -65,6 +65,19 @@ class AppStartup(
         appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
         actions.add("logFcmSubscribe")
 
+        // One-shot recovery for users upgrading from a version where
+        // the Diagnostics screen counts came from the Room aggregate
+        // query (anything before 2.11.0). Seeds the lifetime DataStore
+        // counters from existing Room rows so accumulated counts don't
+        // appear to vanish on the upgrade. Idempotent (gated inside
+        // the repository), so safe to fire on every launch. Runs
+        // BEFORE pruneOldEntries so it sees the un-trimmed Room state
+        // — though for users already on 2.10.4+ Room is already
+        // capped, so order is moot in practice.
+        Logger.d { "AppStartup: Seeding Diagnostics counters from Room" }
+        appLoggerViewModel.seedDiagnosticsFromRoom()
+        actions.add("seedDiagnosticsCounters")
+
         // One-shot trim of any keys that grew past the per-key cap before
         // the cap was added (existing installs may have ~50K rows). The
         // per-write cap inside log() keeps it bounded going forward, so

@@ -9,7 +9,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
  * Fake [AppLoggerRepository] for unit testing.
  *
  * Tracks calls via read-only `loggedKeys` list so tests cannot reset or reorder
- * them mid-test (ADR-017 Rule 5 — call-list pattern).
+ * them mid-test (ADR-017 Rule 5 — call-list pattern). [getAll] reflects the
+ * accumulated logged events so tests that exercise the seed-from-Room path
+ * see the rows they wrote.
  */
 class FakeAppLoggerRepository : AppLoggerRepository {
     private val _loggedKeys = mutableListOf<String>()
@@ -20,14 +22,21 @@ class FakeAppLoggerRepository : AppLoggerRepository {
 
     private val counts = mutableMapOf<String, MutableStateFlow<Long>>()
 
+    private val allEvents = MutableStateFlow<List<AppLogEvent>>(emptyList())
+
     override suspend fun log(key: String) {
         _loggedKeys.add(key)
         counts.getOrPut(key) { MutableStateFlow(0L) }.let { it.value++ }
+        allEvents.value = allEvents.value + AppLogEvent(
+            eventKey = key,
+            timestampMillis = allEvents.value.size.toLong(),
+            appVersion = "test",
+        )
     }
 
     override fun countKey(key: String): Flow<Long> = counts.getOrPut(key) { MutableStateFlow(0L) }
 
-    override fun getAll(): Flow<List<AppLogEvent>> = MutableStateFlow(emptyList())
+    override fun getAll(): Flow<List<AppLogEvent>> = allEvents
 
     override suspend fun pruneToLimit(perKeyLimit: Int) {
         _pruneCalls.add(perKeyLimit)
@@ -39,6 +48,7 @@ class FakeAppLoggerRepository : AppLoggerRepository {
     override suspend fun deleteAll() {
         _loggedKeys.clear()
         counts.values.forEach { it.value = 0L }
+        allEvents.value = emptyList()
         _deleteAllCallCount += 1
     }
 }

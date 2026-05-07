@@ -128,6 +128,8 @@ class AppStartupTest {
         val pruneCalls = mutableListOf<Int>()
         var resetCallCount: Int = 0
             private set
+        var seedCallCount: Int = 0
+            private set
 
         override fun log(key: String) {
             loggedKeys.add(key)
@@ -139,6 +141,10 @@ class AppStartupTest {
 
         override fun clearDiagnostics() {
             resetCallCount += 1
+        }
+
+        override fun seedDiagnosticsFromRoom() {
+            seedCallCount += 1
         }
 
         override val initCurrentDoorCount = MutableStateFlow(0L)
@@ -188,10 +194,32 @@ class AppStartupTest {
                 "startLiveClock",
                 "startButtonHealthFcmSubscription",
                 "logFcmSubscribe",
+                "seedDiagnosticsCounters",
                 "pruneAppLogger",
             ),
             result,
         )
+    }
+
+    @Test
+    fun onActivityCreated_seedsDiagnosticsBeforePruning() {
+        val scope = TestScope(testDispatcher)
+        val fcmManager = createFcmManager(scope)
+        val stalenessManager = createStalenessManager(scope)
+        val appLoggerViewModel = FakeAppLoggerViewModel()
+        val liveClock = createLiveClock(scope)
+        val buttonHealthMgr = createButtonHealthFcmSubscriptionManager(scope)
+        val actions = AppStartup(fcmManager, stalenessManager, liveClock, appLoggerViewModel, buttonHealthMgr)
+
+        val result = actions.run()
+
+        assertEquals(1, appLoggerViewModel.seedCallCount)
+        // Seed must come before prune in the action ordering — seed reads
+        // pre-prune Room counts so it captures the maximum recoverable value.
+        val seedIndex = result.indexOf("seedDiagnosticsCounters")
+        val pruneIndex = result.indexOf("pruneAppLogger")
+        check(seedIndex >= 0 && pruneIndex >= 0)
+        check(seedIndex < pruneIndex) { "seed must run before prune" }
     }
 
     @Test

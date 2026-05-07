@@ -34,6 +34,7 @@ class DefaultAppLoggerViewModelTest {
             observeAppLogCount = ObserveDiagnosticsCountUseCase(counters),
             pruneAppLog = PruneAppLogUseCase(logger),
             clearDiagnosticsUseCase = ClearDiagnosticsUseCase(logger, counters),
+            seedDiagnosticsCountersFromRoom = SeedDiagnosticsCountersFromRoomUseCase(logger, counters),
             dispatchers = dispatchers,
         )
     }
@@ -117,5 +118,25 @@ class DefaultAppLoggerViewModelTest {
             // where AppLoggerViewModel caches counts independently of the
             // counter source would pass the call-count checks above.
             assertEquals(0L, viewModel.fcmReceivedDoorCount.value)
+        }
+
+    @Test
+    fun seedDiagnosticsFromRoomDelegatesToUseCase() =
+        runTest(testDispatcher) {
+            // Pre-seed Room with rows the user accumulated before upgrading
+            // to the lifetime-counter version.
+            repeat(5) { logger.log(AppLoggerKeys.FCM_DOOR_RECEIVED) }
+            advanceUntilIdle()
+            // Counter is at 5 from the log() calls (which increment both
+            // stores), but for the test we want to prove the seed runs and
+            // wouldn't *lose* data even if the counter were behind. Reset the
+            // counter to simulate the post-upgrade-blank-DataStore case.
+            counters.resetAll()
+
+            viewModel.seedDiagnosticsFromRoom()
+            advanceUntilIdle()
+
+            assertTrue(counters.seededFromRoom)
+            assertEquals(5L, viewModel.fcmReceivedDoorCount.value)
         }
 }
