@@ -20,13 +20,13 @@ package com.chriscartland.garage.usecase
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 
 /**
- * Trims the app-log table so that no individual `eventKey` retains
- * more than [perKeyLimit] rows. One-shot startup cleanup for databases
- * that grew past the cap before the per-write cap was introduced. The
- * per-write cap (in [LogAppEventUseCase]) keeps steady-state size
- * bounded going forward.
+ * Trims the diagnostics log table so that no individual `eventKey`
+ * retains more than [perKeyLimit] rows. One-shot startup cleanup for
+ * databases that grew past the cap before the per-write cap was
+ * introduced. The per-write cap (in [LogAppEventUseCase]) keeps
+ * steady-state size bounded going forward.
  */
-class PruneAppLogUseCase(
+class PruneDiagnosticsLogUseCase(
     private val appLoggerRepository: AppLoggerRepository,
 ) {
     suspend operator fun invoke(perKeyLimit: Int) {

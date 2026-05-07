@@ -17,31 +17,53 @@
 
 package com.chriscartland.garage.usecase
 
+import com.chriscartland.garage.domain.model.ActionError
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorFcmState
-import com.chriscartland.garage.domain.model.FcmRegistrationStatus
+import com.chriscartland.garage.domain.model.DoorFcmTopic
 import com.chriscartland.garage.testcommon.FakeDoorFcmRepository
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 
 class DeregisterFcmUseCaseTest {
     @Test
-    fun deregisterReturnsNotRegisteredOnSuccess() =
+    fun deregisterReturnsSuccessWhenRepositoryReportsNotRegistered() =
         runTest {
             val repo = FakeDoorFcmRepository()
             repo.setDeregisterResult(DoorFcmState.NotRegistered)
             val useCase = DeregisterFcmUseCase(repo)
 
-            assertEquals(FcmRegistrationStatus.NOT_REGISTERED, useCase())
+            val result = useCase()
+
+            assertIs<AppResult.Success<Unit>>(result)
         }
 
     @Test
-    fun deregisterReturnsUnknownOnFailure() =
+    fun deregisterReturnsNetworkFailedWhenRepositoryReportsUnknown() =
         runTest {
             val repo = FakeDoorFcmRepository()
             repo.setDeregisterResult(DoorFcmState.Unknown)
             val useCase = DeregisterFcmUseCase(repo)
 
-            assertEquals(FcmRegistrationStatus.UNKNOWN, useCase())
+            val result = useCase()
+
+            assertIs<AppResult.Error<ActionError>>(result)
+            assertEquals(ActionError.NetworkFailed, (result as AppResult.Error).error)
+        }
+
+    @Test
+    fun deregisterReturnsNetworkFailedWhenRepositoryStillRegistered() =
+        runTest {
+            // Edge case: deregister request did not take effect.
+            val repo = FakeDoorFcmRepository()
+            repo.setDeregisterResult(DoorFcmState.Registered(DoorFcmTopic("topic")))
+            val useCase = DeregisterFcmUseCase(repo)
+
+            val result = useCase()
+
+            assertIs<AppResult.Error<ActionError>>(result)
+            assertEquals(ActionError.NetworkFailed, (result as AppResult.Error).error)
         }
 }

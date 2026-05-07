@@ -32,7 +32,7 @@ class DefaultAppLoggerViewModelTest {
         viewModel = DefaultAppLoggerViewModel(
             logAppEvent = LogAppEventUseCase(logger, counters),
             observeAppLogCount = ObserveDiagnosticsCountUseCase(counters),
-            pruneAppLog = PruneAppLogUseCase(logger),
+            pruneDiagnosticsLog = PruneDiagnosticsLogUseCase(logger),
             clearDiagnosticsUseCase = ClearDiagnosticsUseCase(logger, counters),
             seedDiagnosticsCountersFromRoom = SeedDiagnosticsCountersFromRoomUseCase(logger, counters),
             dispatchers = dispatchers,

@@ -81,7 +81,7 @@ class DoorViewModelTest {
         fetchOnInit: Boolean = true,
     ): DefaultDoorViewModel {
         val fcmManager = FcmRegistrationManager(
-            registerFcmUseCase = RegisterFcmUseCase(doorRepository, doorFcmRepository),
+            registerFcmUseCase = DefaultRegisterFcmUseCase(doorRepository, doorFcmRepository),
             scope = scope,
             dispatcher = testDispatcher,
         )
