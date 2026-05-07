@@ -21,6 +21,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
+import com.chriscartland.garage.domain.model.AppLoggerLimits
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
@@ -57,22 +58,37 @@ interface FunctionListViewModel {
 
     fun refreshDoorHistory()
 
+    fun refreshSnoozeStatus()
+
     fun snoozeNotificationsForOneHour()
 
     fun signInWithGoogle(idToken: GoogleIdToken)
 
     fun signOut()
+
+    fun clearDiagnostics()
+
+    fun pruneAppLog()
+
+    fun registerFcm()
+
+    fun deregisterFcm()
 }
 
 class DefaultFunctionListViewModel(
     private val pushRemoteButtonUseCase: PushRemoteButtonUseCase,
     private val fetchCurrentDoorEventUseCase: FetchCurrentDoorEventUseCase,
     private val fetchRecentDoorEventsUseCase: FetchRecentDoorEventsUseCase,
+    private val fetchSnoozeStatusUseCase: FetchSnoozeStatusUseCase,
     private val snoozeNotificationsUseCase: SnoozeNotificationsUseCase,
     private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
     private val signOutUseCase: SignOutUseCase,
     private val observeDoorEventsUseCase: ObserveDoorEventsUseCase,
     private val observeFeatureAccessUseCase: ObserveFeatureAccessUseCase,
+    private val clearDiagnosticsUseCase: ClearDiagnosticsUseCase,
+    private val pruneAppLogUseCase: PruneAppLogUseCase,
+    private val registerFcmUseCase: RegisterFcmUseCase,
+    private val deregisterFcmUseCase: DeregisterFcmUseCase,
     private val dispatchers: DispatcherProvider,
     private val appVersion: String,
 ) : ViewModel(),
@@ -115,6 +131,11 @@ class DefaultFunctionListViewModel(
         viewModelScope.launch(dispatchers.io) { fetchRecentDoorEventsUseCase() }
     }
 
+    override fun refreshSnoozeStatus() {
+        Logger.d { "refreshSnoozeStatus" }
+        viewModelScope.launch(dispatchers.io) { fetchSnoozeStatusUseCase() }
+    }
+
     override fun snoozeNotificationsForOneHour() {
         Logger.d { "snoozeNotificationsForOneHour" }
         viewModelScope.launch(dispatchers.io) {
@@ -136,6 +157,34 @@ class DefaultFunctionListViewModel(
         Logger.d { "signOut" }
         viewModelScope.launch(dispatchers.io) {
             signOutUseCase()
+        }
+    }
+
+    override fun clearDiagnostics() {
+        Logger.d { "clearDiagnostics" }
+        viewModelScope.launch(dispatchers.io) {
+            clearDiagnosticsUseCase()
+        }
+    }
+
+    override fun pruneAppLog() {
+        Logger.d { "pruneAppLog" }
+        viewModelScope.launch(dispatchers.io) {
+            pruneAppLogUseCase(AppLoggerLimits.DEFAULT_PER_KEY_LIMIT)
+        }
+    }
+
+    override fun registerFcm() {
+        Logger.d { "registerFcm" }
+        viewModelScope.launch(dispatchers.io) {
+            registerFcmUseCase()
+        }
+    }
+
+    override fun deregisterFcm() {
+        Logger.d { "deregisterFcm" }
+        viewModelScope.launch(dispatchers.io) {
+            deregisterFcmUseCase()
         }
     }
 }

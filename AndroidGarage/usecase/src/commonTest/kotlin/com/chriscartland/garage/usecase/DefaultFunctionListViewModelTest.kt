@@ -24,7 +24,10 @@ import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FeatureAllowlist
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.User
+import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
+import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
+import com.chriscartland.garage.testcommon.FakeDoorFcmRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.FakeFeatureAllowlistRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
@@ -54,6 +57,9 @@ class DefaultFunctionListViewModelTest {
     private lateinit var authRepository: FakeAuthRepository
     private lateinit var snoozeRepository: FakeSnoozeRepository
     private lateinit var featureAllowlistRepository: FakeFeatureAllowlistRepository
+    private lateinit var appLoggerRepository: FakeAppLoggerRepository
+    private lateinit var diagnosticsCountersRepository: FakeDiagnosticsCountersRepository
+    private lateinit var doorFcmRepository: FakeDoorFcmRepository
 
     @BeforeTest
     fun setup() {
@@ -63,6 +69,9 @@ class DefaultFunctionListViewModelTest {
         authRepository = FakeAuthRepository()
         snoozeRepository = FakeSnoozeRepository()
         featureAllowlistRepository = FakeFeatureAllowlistRepository()
+        appLoggerRepository = FakeAppLoggerRepository()
+        diagnosticsCountersRepository = FakeDiagnosticsCountersRepository()
+        doorFcmRepository = FakeDoorFcmRepository()
     }
 
     @AfterTest
@@ -81,6 +90,7 @@ class DefaultFunctionListViewModelTest {
             ),
             fetchCurrentDoorEventUseCase = FetchCurrentDoorEventUseCase(doorRepository),
             fetchRecentDoorEventsUseCase = FetchRecentDoorEventsUseCase(doorRepository),
+            fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
             snoozeNotificationsUseCase = SnoozeNotificationsUseCase(
                 ensureFreshIdToken,
                 authRepository,
@@ -90,6 +100,13 @@ class DefaultFunctionListViewModelTest {
             signOutUseCase = SignOutUseCase(authRepository),
             observeDoorEventsUseCase = ObserveDoorEventsUseCase(doorRepository),
             observeFeatureAccessUseCase = ObserveFeatureAccessUseCase(featureAllowlistRepository),
+            clearDiagnosticsUseCase = ClearDiagnosticsUseCase(
+                appLoggerRepository,
+                diagnosticsCountersRepository,
+            ),
+            pruneAppLogUseCase = PruneAppLogUseCase(appLoggerRepository),
+            registerFcmUseCase = RegisterFcmUseCase(doorRepository, doorFcmRepository),
+            deregisterFcmUseCase = DeregisterFcmUseCase(doorFcmRepository),
             dispatchers = TestDispatcherProvider(testDispatcher),
             appVersion = "test",
         )
