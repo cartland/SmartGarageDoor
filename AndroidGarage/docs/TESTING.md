@@ -233,8 +233,12 @@ Verify the database can be created and basic DAO operations work. Catches R8 str
 - Insert and read a `DoorEvent`
 - Insert and read an `AppEvent`
 - Verify all DAOs are accessible from `AppDatabase`
+- AppLogger per-key cap behavior (`insertAndPruneKey`, `pruneAllKeys`, `deleteAllAppEvents`)
+- `RoomAppLoggerRepository.log()` end-to-end with cap
 
 **Files:** `src/androidTest/.../db/DatabaseSanityTest.kt`
+
+**Gap:** these tests use `inMemoryDatabaseBuilder`, which always opens at the latest schema version. **They do not exercise migration code paths.** A regression in an `@AutoMigration` or `Migration` class would pass every test in this suite and only surface on a real device with pre-existing user data — i.e., on the Play Store internal track at the earliest. Until we wire up Room's `MigrationTestHelper` (which can replay an exported schema and run the migration against real SQLite), schema changes should be smoke-tested by installing the upgrade build over the previous one on a test device before promoting from the internal track to production. PR #660 (AppLogger v11→v12) shipped under this gap; the migration was reviewed by inspecting the KSP-generated `AppDatabase_AutoMigration_11_12_Impl.kt`.
 
 ### 7.3 kotlin-inject Component Test
 
