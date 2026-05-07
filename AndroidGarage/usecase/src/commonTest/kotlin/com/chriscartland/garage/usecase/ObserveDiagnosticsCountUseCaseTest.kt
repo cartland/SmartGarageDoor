@@ -23,12 +23,12 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class ObserveAppLogCountUseCaseTest {
+class ObserveDiagnosticsCountUseCaseTest {
     @Test
     fun invokeReturnsLifetimeCountForKey() =
         runTest {
             val counters = FakeDiagnosticsCountersRepository()
-            val useCase = ObserveAppLogCountUseCase(counters)
+            val useCase = ObserveDiagnosticsCountUseCase(counters)
 
             counters.increment("a")
             counters.increment("a")

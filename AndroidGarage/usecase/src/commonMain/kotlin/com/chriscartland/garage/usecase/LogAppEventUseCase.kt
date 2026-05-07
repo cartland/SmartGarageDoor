@@ -19,6 +19,8 @@ package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.DiagnosticsCountersRepository
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 
 /**
  * Logs an app event by key. Two side effects:
@@ -31,13 +33,21 @@ import com.chriscartland.garage.domain.repository.DiagnosticsCountersRepository
  * The two stores are intentionally independent. The Room buffer is
  * trimmed by the per-write cap (and by user "Clear all diagnostics");
  * the lifetime counter only resets when the user explicitly clears.
+ *
+ * Both writes run inside a [NonCancellable] block so an Activity
+ * tear-down (e.g. rotation) between the two suspends cannot leave the
+ * Room row committed but the lifetime counter un-incremented.
+ * Process-kill drift is still possible (no fix without WAL) but
+ * cancel-mid-write drift — the much more common case — is eliminated.
  */
 class LogAppEventUseCase(
     private val appLoggerRepository: AppLoggerRepository,
     private val diagnosticsCounters: DiagnosticsCountersRepository,
 ) {
     suspend operator fun invoke(key: String) {
-        appLoggerRepository.log(key)
-        diagnosticsCounters.increment(key)
+        withContext(NonCancellable) {
+            appLoggerRepository.log(key)
+            diagnosticsCounters.increment(key)
+        }
     }
 }

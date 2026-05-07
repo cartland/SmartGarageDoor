@@ -30,7 +30,7 @@ import kotlinx.coroutines.flow.Flow
  * 47,231" instead of a number that plateaus at 1000 once the Room
  * buffer fills.
  */
-class ObserveAppLogCountUseCase(
+class ObserveDiagnosticsCountUseCase(
     private val diagnosticsCounters: DiagnosticsCountersRepository,
 ) {
     operator fun invoke(key: String): Flow<Long> = diagnosticsCounters.observeCount(key)

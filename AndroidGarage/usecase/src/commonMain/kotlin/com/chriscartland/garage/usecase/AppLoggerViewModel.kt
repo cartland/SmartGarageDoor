@@ -55,7 +55,7 @@ interface AppLoggerViewModel {
 
 class DefaultAppLoggerViewModel(
     private val logAppEvent: LogAppEventUseCase,
-    private val observeAppLogCount: ObserveAppLogCountUseCase,
+    private val observeAppLogCount: ObserveDiagnosticsCountUseCase,
     private val pruneAppLog: PruneAppLogUseCase,
     private val resetDiagnosticsUseCase: ResetDiagnosticsUseCase,
     private val dispatchers: DispatcherProvider,

@@ -31,7 +31,7 @@ class DefaultAppLoggerViewModelTest {
         Dispatchers.setMain(testDispatcher)
         viewModel = DefaultAppLoggerViewModel(
             logAppEvent = LogAppEventUseCase(logger, counters),
-            observeAppLogCount = ObserveAppLogCountUseCase(counters),
+            observeAppLogCount = ObserveDiagnosticsCountUseCase(counters),
             pruneAppLog = PruneAppLogUseCase(logger),
             resetDiagnosticsUseCase = ResetDiagnosticsUseCase(logger, counters),
             dispatchers = dispatchers,
@@ -105,11 +105,17 @@ class DefaultAppLoggerViewModelTest {
             viewModel.log(AppLoggerKeys.FCM_DOOR_RECEIVED)
             advanceUntilIdle()
             check(counters.incrementCalls.isNotEmpty())
+            check(viewModel.fcmReceivedDoorCount.value > 0L)
 
             viewModel.resetDiagnostics()
             advanceUntilIdle()
 
             assertEquals(1, logger.deleteAllCallCount)
             assertEquals(1, counters.resetCallCount)
+            // The screen-facing StateFlow must observe the reset, not just
+            // the underlying repos. Without this assertion a future bug
+            // where AppLoggerViewModel caches counts independently of the
+            // counter source would pass the call-count checks above.
+            assertEquals(0L, viewModel.fcmReceivedDoorCount.value)
         }
 }

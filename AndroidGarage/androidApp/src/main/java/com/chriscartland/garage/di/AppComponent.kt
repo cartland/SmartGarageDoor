@@ -94,8 +94,8 @@ import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.LiveClock
 import com.chriscartland.garage.usecase.LogAppEventUseCase
-import com.chriscartland.garage.usecase.ObserveAppLogCountUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
+import com.chriscartland.garage.usecase.ObserveDiagnosticsCountUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
 import com.chriscartland.garage.usecase.ObserveSnoozeStateUseCase
@@ -201,7 +201,7 @@ abstract class AppComponent(
     @Provides
     fun provideAppLoggerViewModel(
         logAppEvent: LogAppEventUseCase,
-        observeAppLogCount: ObserveAppLogCountUseCase,
+        observeAppLogCount: ObserveDiagnosticsCountUseCase,
         pruneAppLog: PruneAppLogUseCase,
         resetDiagnostics: ResetDiagnosticsUseCase,
         dispatchers: DispatcherProvider,
@@ -320,8 +320,8 @@ abstract class AppComponent(
     ): LogAppEventUseCase = LogAppEventUseCase(appLoggerRepository, diagnosticsCounters)
 
     @Provides
-    fun provideObserveAppLogCountUseCase(diagnosticsCounters: DiagnosticsCountersRepository): ObserveAppLogCountUseCase =
-        ObserveAppLogCountUseCase(diagnosticsCounters)
+    fun provideObserveDiagnosticsCountUseCase(diagnosticsCounters: DiagnosticsCountersRepository): ObserveDiagnosticsCountUseCase =
+        ObserveDiagnosticsCountUseCase(diagnosticsCounters)
 
     @Provides
     fun provideObserveDoorEventsUseCase(doorRepository: DoorRepository): ObserveDoorEventsUseCase = ObserveDoorEventsUseCase(doorRepository)
