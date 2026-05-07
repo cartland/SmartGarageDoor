@@ -71,25 +71,34 @@ class ButtonHealthFcmSubscriptionManager(
             return
         }
         job = scope.launch(dispatcher) {
+            // Project authState to a coarse "is signed in" boolean so token
+            // refreshes do NOT re-trigger combine emissions. Without this,
+            // `FetchButtonHealthUseCase` (auth-wrapped since PR #668)
+            // refreshes the token mid-fetch, FirebaseAuthRepository writes a
+            // new `Authenticated` instance, combine re-emits, the manager
+            // fetches again — feedback loop visible as Checking/Online
+            // flicker. The manager only needs lifecycle: signed in or not.
             combine(
-                authRepository.authState,
+                authRepository.authState
+                    .map { it is AuthState.Authenticated }
+                    .distinctUntilChanged(),
                 serverConfigRepository.serverConfig.map { it?.remoteButtonBuildTimestamp },
-            ) { auth, buildTimestamp -> auth to buildTimestamp }
+            ) { isSignedIn, buildTimestamp -> isSignedIn to buildTimestamp }
                 .distinctUntilChanged()
-                .collect { (auth, buildTimestamp) ->
-                    handleStateChange(auth, buildTimestamp)
+                .collect { (isSignedIn, buildTimestamp) ->
+                    handleStateChange(isSignedIn, buildTimestamp)
                 }
         }
     }
 
     private suspend fun handleStateChange(
-        auth: AuthState,
+        isSignedIn: Boolean,
         buildTimestamp: String?,
     ) {
         // Always unsubscribe first — idempotent. Cleans up prior topic if
         // buildTimestamp rotated, or any prior subscription if signing out.
         fcmRepository.unsubscribeAll()
-        if (auth !is AuthState.Authenticated) {
+        if (!isSignedIn) {
             Logger.d { "ButtonHealthFcm: not signed in; staying unsubscribed" }
             return
         }

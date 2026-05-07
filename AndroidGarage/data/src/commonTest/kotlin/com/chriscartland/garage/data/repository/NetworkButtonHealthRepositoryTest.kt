@@ -29,6 +29,7 @@ import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -238,6 +239,103 @@ class NetworkButtonHealthRepositoryTest {
             ),
         )
     }
+
+    // Stale-while-revalidate tests — pin the no-flicker contract.
+
+    @Test
+    fun fetchButtonHealth_doesNotFlashLoadingWhenCurrentIsComplete() =
+        runTest {
+            val ds = FakeNetworkButtonHealthDataSource().apply {
+                setResult(NetworkResult.Success(ButtonHealth(ButtonHealthState.ONLINE, 1000L)))
+            }
+            val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val repo = makeRepo(ds, scope)
+
+            // First fetch lands as Complete.
+            repo.fetchButtonHealth(idToken = "token")
+            advanceUntilIdle()
+            assertIs<LoadingResult.Complete<ButtonHealth>>(repo.buttonHealth.value)
+
+            // Capture observed states across a SECOND fetch — must NOT
+            // include a Loading transition.
+            val observed = mutableListOf<LoadingResult<ButtonHealth>>()
+            val observeJob = scope.launch {
+                repo.buttonHealth.collect { observed.add(it) }
+            }
+            advanceUntilIdle()
+            ds.setResult(NetworkResult.Success(ButtonHealth(ButtonHealthState.OFFLINE, 2000L)))
+
+            repo.fetchButtonHealth(idToken = "token")
+            advanceUntilIdle()
+
+            observeJob.cancel()
+            // Every observed state must be Complete — no Loading flash.
+            assertTrue(observed.all { it is LoadingResult.Complete }, "saw non-Complete: $observed")
+            scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        }
+
+    @Test
+    fun fetchButtonHealth_keepsCompleteValueOnHttpError() =
+        runTest {
+            val ds = FakeNetworkButtonHealthDataSource().apply {
+                setResult(NetworkResult.Success(ButtonHealth(ButtonHealthState.ONLINE, 1000L)))
+            }
+            val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val repo = makeRepo(ds, scope)
+
+            // Establish a known-good Complete value.
+            repo.fetchButtonHealth(idToken = "token")
+            advanceUntilIdle()
+            val good = assertIs<LoadingResult.Complete<ButtonHealth>>(repo.buttonHealth.value)
+
+            // Subsequent fetch fails — UI must keep showing the prior good value.
+            ds.setResult(NetworkResult.HttpError(500))
+            repo.fetchButtonHealth(idToken = "token")
+            advanceUntilIdle()
+
+            val stillGood = assertIs<LoadingResult.Complete<ButtonHealth>>(repo.buttonHealth.value)
+            assertEquals(good.data, stillGood.data)
+            scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        }
+
+    @Test
+    fun fetchButtonHealth_keepsCompleteValueOnConnectionFailed() =
+        runTest {
+            val ds = FakeNetworkButtonHealthDataSource().apply {
+                setResult(NetworkResult.Success(ButtonHealth(ButtonHealthState.ONLINE, 1000L)))
+            }
+            val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val repo = makeRepo(ds, scope)
+
+            repo.fetchButtonHealth(idToken = "token")
+            advanceUntilIdle()
+            val good = assertIs<LoadingResult.Complete<ButtonHealth>>(repo.buttonHealth.value)
+
+            ds.setResult(NetworkResult.ConnectionFailed)
+            repo.fetchButtonHealth(idToken = "token")
+            advanceUntilIdle()
+
+            val stillGood = assertIs<LoadingResult.Complete<ButtonHealth>>(repo.buttonHealth.value)
+            assertEquals(good.data, stillGood.data)
+            scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        }
+
+    @Test
+    fun fetchButtonHealth_writesErrorOnFailureWhenNoPriorComplete() =
+        runTest {
+            // First fetch fails — no prior Complete to preserve, so Error is correct.
+            val ds = FakeNetworkButtonHealthDataSource().apply {
+                setResult(NetworkResult.ConnectionFailed)
+            }
+            val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val repo = makeRepo(ds, scope)
+
+            repo.fetchButtonHealth(idToken = "token")
+            advanceUntilIdle()
+
+            assertIs<LoadingResult.Error>(repo.buttonHealth.value)
+            scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        }
 
     private fun makeRepoForRuleTest(): NetworkButtonHealthRepository =
         NetworkButtonHealthRepository(

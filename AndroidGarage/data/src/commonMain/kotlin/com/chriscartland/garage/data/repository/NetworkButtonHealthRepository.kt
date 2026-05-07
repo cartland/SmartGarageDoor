@@ -69,12 +69,20 @@ class NetworkButtonHealthRepository(
     }
 
     private suspend fun doFetchButtonHealth(idToken: String): AppResult<ButtonHealth, ButtonHealthError> {
-        _buttonHealth.value = LoadingResult.Loading(_buttonHealth.value.data)
+        // Stale-while-revalidate: if we already have a Complete value, keep
+        // it visible during the refresh. Only flip to Loading when there's
+        // no prior data (initial fetch or after a hard error). Without this,
+        // every fetch flashed the UI back to "Checking" — and combined with
+        // the SubscriptionManager's pre-fix auth-state churn, produced
+        // visible Checking/Online flicker on repeated fetches.
+        if (_buttonHealth.value !is LoadingResult.Complete) {
+            _buttonHealth.value = LoadingResult.Loading(_buttonHealth.value.data)
+        }
         val serverConfig = serverConfigRepository.serverConfig.value
             ?: serverConfigRepository.fetchServerConfig()
         if (serverConfig == null) {
             Logger.e { "Server config is null" }
-            _buttonHealth.value = LoadingResult.Error(IllegalStateException("Server config is null"))
+            writeErrorPreservingComplete(IllegalStateException("Server config is null"))
             return AppResult.Error(ButtonHealthError.Network())
         }
         return when (
@@ -90,8 +98,7 @@ class NetworkButtonHealthRepository(
             }
             is NetworkResult.HttpError -> {
                 Logger.e { "Button health HTTP ${result.code}" }
-                _buttonHealth.value =
-                    LoadingResult.Error(IllegalStateException("HTTP ${result.code}"))
+                writeErrorPreservingComplete(IllegalStateException("HTTP ${result.code}"))
                 if (result.code == 401 || result.code == 403) {
                     AppResult.Error(ButtonHealthError.Forbidden())
                 } else {
@@ -100,10 +107,26 @@ class NetworkButtonHealthRepository(
             }
             NetworkResult.ConnectionFailed -> {
                 Logger.e { "Button health connection failed" }
-                _buttonHealth.value =
-                    LoadingResult.Error(IllegalStateException("Connection failed"))
+                writeErrorPreservingComplete(IllegalStateException("Connection failed"))
                 AppResult.Error(ButtonHealthError.Network())
             }
+        }
+    }
+
+    /**
+     * Stale-while-revalidate for the error path: if we already have a
+     * `Complete` value, keep it visible (the previous result is still the
+     * best information we have). Only transition to `Error` if the current
+     * state isn't already a known-good value.
+     *
+     * Without this, a single failed fetch (transient network blip, server
+     * 5xx) discarded the previous good value — display logic mapped
+     * `Error` to "Checking" — and the user saw the pill stuck on Checking
+     * until something else fixed it (FCM update, manual retry).
+     */
+    private fun writeErrorPreservingComplete(exception: Throwable) {
+        if (_buttonHealth.value !is LoadingResult.Complete) {
+            _buttonHealth.value = LoadingResult.Error(exception)
         }
     }
 

@@ -235,6 +235,58 @@ class ButtonHealthFcmSubscriptionManagerTest {
             assertEquals(1, fcm.subscribeCount)
             assertEquals(1, repo.fetchCount)
         }
+
+    @Test
+    fun tokenRefreshDoesNotResubscribeOrRefetch() =
+        runTest {
+            // Regression test: pre-fix, the manager combined on full
+            // `AuthState`, so a token refresh produced a new
+            // `Authenticated` instance (different idToken value), which
+            // re-emitted through combine and triggered a re-subscribe +
+            // re-fetch. Combined with FetchButtonHealthUseCase auto-
+            // refreshing the token (PR #668), this created a feedback loop
+            // visible as Checking/Online flicker.
+            val auth = FakeAuthRepository(_authState = MutableStateFlow(signedInUser))
+            val config = FakeServerConfigRepository(MutableStateFlow(configWithButton))
+            val fcm = FakeButtonHealthFcmRepository()
+            val repo = FakeButtonHealthRepository().apply {
+                setFetchResult(AppResult.Success(ButtonHealth(ButtonHealthState.ONLINE, 100L)))
+            }
+            val manager = ButtonHealthFcmSubscriptionManager(
+                authRepository = auth,
+                serverConfigRepository = config,
+                fcmRepository = fcm,
+                fetchButtonHealthUseCase = FetchButtonHealthUseCase(
+                    EnsureFreshIdTokenUseCase(auth),
+                    auth,
+                    repo,
+                ),
+                scope = backgroundScope,
+                dispatcher = StandardTestDispatcher(testScheduler),
+            )
+
+            manager.start()
+            testScheduler.runCurrent()
+            testScheduler.advanceUntilIdle()
+            assertEquals(1, fcm.subscribeCount)
+            assertEquals(1, repo.fetchCount)
+
+            // Simulate a token refresh: same is-authed boolean, different
+            // idToken value. Pre-fix this would re-subscribe and re-fetch.
+            auth.setAuthState(
+                signedInUser.copy(
+                    user = signedInUser.user.copy(
+                        idToken = FirebaseIdToken(idToken = "REFRESHED-TOKEN", exp = Long.MAX_VALUE),
+                    ),
+                ),
+            )
+            testScheduler.runCurrent()
+            testScheduler.advanceUntilIdle()
+
+            // Manager should NOT have reacted — still 1 subscribe + 1 fetch.
+            assertEquals(1, fcm.subscribeCount)
+            assertEquals(1, repo.fetchCount)
+        }
 }
 
 // ---- Inline fakes (only this test uses them; promote to test-common when re-used) ----
