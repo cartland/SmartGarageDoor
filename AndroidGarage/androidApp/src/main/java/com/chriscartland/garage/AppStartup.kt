@@ -65,26 +65,17 @@ class AppStartup(
         appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
         actions.add("logFcmSubscribe")
 
-        // One-shot recovery for users upgrading from a version where
-        // the Diagnostics screen counts came from the Room aggregate
-        // query (anything before 2.11.0). Seeds the lifetime DataStore
-        // counters from existing Room rows so accumulated counts don't
-        // appear to vanish on the upgrade. Idempotent (gated inside
-        // the repository), so safe to fire on every launch. Runs
-        // BEFORE pruneOldEntries so it sees the un-trimmed Room state
-        // — though for users already on 2.10.4+ Room is already
-        // capped, so order is moot in practice.
-        Logger.d { "AppStartup: Seeding Diagnostics counters from Room" }
-        appLoggerViewModel.seedDiagnosticsFromRoom()
-        actions.add("seedDiagnosticsCounters")
-
-        // One-shot trim of any keys that grew past the per-key cap before
-        // the cap was added (existing installs may have ~50K rows). The
-        // per-write cap inside log() keeps it bounded going forward, so
-        // this only matters for the migration case.
-        Logger.d { "AppStartup: Pruning old AppLogger entries" }
-        appLoggerViewModel.pruneOldEntries()
-        actions.add("pruneAppLogger")
+        // Seed lifetime counters from Room (one-shot recovery for
+        // pre-2.11.0 installs) THEN prune Room rows past the cap.
+        // Bundled into a single VM call so the two operations are
+        // guaranteed sequential — separate fire-and-forget launches
+        // would race on the IO dispatcher and prune could delete rows
+        // the seed wanted to count, locking in a lower counter
+        // permanently for users upgrading from pre-2.10.4. See
+        // AppLoggerViewModel.runStartupDiagnosticsMaintenance KDoc.
+        Logger.d { "AppStartup: Running Diagnostics maintenance (seed + prune)" }
+        appLoggerViewModel.runStartupDiagnosticsMaintenance()
+        actions.add("runDiagnosticsMaintenance")
 
         return actions
     }

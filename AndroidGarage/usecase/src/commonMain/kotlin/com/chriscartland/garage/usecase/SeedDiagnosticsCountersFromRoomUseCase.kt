@@ -17,8 +17,10 @@
 
 package com.chriscartland.garage.usecase
 
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.DiagnosticsCountersRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 
 /**
@@ -44,13 +46,28 @@ class SeedDiagnosticsCountersFromRoomUseCase(
     private val appLoggerRepository: AppLoggerRepository,
     private val diagnosticsCounters: DiagnosticsCountersRepository,
 ) {
-    suspend operator fun invoke(): Boolean {
-        val countsByKey: Map<String, Long> = appLoggerRepository
-            .getAll()
-            .first()
-            .groupingBy { it.eventKey }
-            .eachCount()
-            .mapValues { it.value.toLong() }
-        return diagnosticsCounters.seedFromCountsOnce(countsByKey)
-    }
+    suspend operator fun invoke(): Boolean =
+        try {
+            val countsByKey: Map<String, Long> = appLoggerRepository
+                .getAll()
+                .first()
+                .groupingBy { it.eventKey }
+                .eachCount()
+                .mapValues { it.value.toLong() }
+            diagnosticsCounters.seedFromCountsOnce(countsByKey)
+        } catch (cancel: CancellationException) {
+            // Cooperative cancellation — propagate so the launching scope
+            // tears down cleanly. Not an error worth logging.
+            throw cancel
+        } catch (t: Throwable) {
+            // Storage corruption / IO failure on either Room or DataStore.
+            // Without this catch, viewModelScope's default handler would
+            // silently swallow the throw — counters stay at 0, the user
+            // sees nothing, and the seed flag stays unset so this fires
+            // again every launch, throwing each time. Logging surfaces the
+            // failure to anyone reading device logs while preserving the
+            // automatic-retry behavior (next launch will try again).
+            Logger.e(t) { "Diagnostics counters seed-from-Room failed; will retry on next launch" }
+            false
+        }
 }

@@ -25,6 +25,8 @@ import com.chriscartland.garage.datalocal.AppEvent
 import com.chriscartland.garage.datalocal.DoorEventEntity
 import com.chriscartland.garage.datalocal.RoomAppLoggerRepository
 import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
+import com.chriscartland.garage.usecase.SeedDiagnosticsCountersFromRoomUseCase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -215,5 +217,37 @@ class DatabaseSanityTest {
 
         val result = runBlocking { db.doorEventDao().recentDoorEvents().first() }
         assertEquals("Should have 2 door events", 2, result.size)
+    }
+
+    /**
+     * Wires the real [RoomAppLoggerRepository] through
+     * [SeedDiagnosticsCountersFromRoomUseCase] to prove the seed
+     * correctly groups Room rows by `eventKey` on a real Room DB
+     * (catches regressions in the SQL `getAll()` query, the
+     * domain-model conversion, and the `groupingBy` orchestration).
+     * The DataStore side stays a fake — that layer is well-covered
+     * by the use case's unit tests.
+     */
+    @Test
+    fun seedDiagnosticsFromRoom_groupsRealRoomRowsByEventKey() {
+        val repo = RoomAppLoggerRepository(
+            appDatabase = db,
+            appVersion = "test",
+            perKeyLimit = 1000,
+        )
+        val counters = FakeDiagnosticsCountersRepository()
+
+        runBlocking {
+            repeat(7) { repo.log("alpha") }
+            repeat(3) { repo.log("beta") }
+            repo.log("gamma")
+
+            val seeded = SeedDiagnosticsCountersFromRoomUseCase(repo, counters)()
+
+            assertEquals("first call seeds", true, seeded)
+            assertEquals(7L, counters.observeCount("alpha").first())
+            assertEquals(3L, counters.observeCount("beta").first())
+            assertEquals(1L, counters.observeCount("gamma").first())
+        }
     }
 }

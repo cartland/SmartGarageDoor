@@ -126,6 +126,7 @@ class AppStartupTest {
     private class FakeAppLoggerViewModel : AppLoggerViewModel {
         val loggedKeys = mutableListOf<String>()
         val pruneCalls = mutableListOf<Int>()
+        val maintenanceCalls = mutableListOf<Int>()
         var resetCallCount: Int = 0
             private set
         var seedCallCount: Int = 0
@@ -145,6 +146,10 @@ class AppStartupTest {
 
         override fun seedDiagnosticsFromRoom() {
             seedCallCount += 1
+        }
+
+        override fun runStartupDiagnosticsMaintenance(perKeyLimit: Int) {
+            maintenanceCalls.add(perKeyLimit)
         }
 
         override val initCurrentDoorCount = MutableStateFlow(0L)
@@ -194,36 +199,16 @@ class AppStartupTest {
                 "startLiveClock",
                 "startButtonHealthFcmSubscription",
                 "logFcmSubscribe",
-                "seedDiagnosticsCounters",
-                "pruneAppLogger",
+                "runDiagnosticsMaintenance",
             ),
             result,
         )
     }
 
     @Test
-    fun onActivityCreated_seedsDiagnosticsBeforePruning() {
-        val scope = TestScope(testDispatcher)
-        val fcmManager = createFcmManager(scope)
-        val stalenessManager = createStalenessManager(scope)
-        val appLoggerViewModel = FakeAppLoggerViewModel()
-        val liveClock = createLiveClock(scope)
-        val buttonHealthMgr = createButtonHealthFcmSubscriptionManager(scope)
-        val actions = AppStartup(fcmManager, stalenessManager, liveClock, appLoggerViewModel, buttonHealthMgr)
-
-        val result = actions.run()
-
-        assertEquals(1, appLoggerViewModel.seedCallCount)
-        // Seed must come before prune in the action ordering — seed reads
-        // pre-prune Room counts so it captures the maximum recoverable value.
-        val seedIndex = result.indexOf("seedDiagnosticsCounters")
-        val pruneIndex = result.indexOf("pruneAppLogger")
-        check(seedIndex >= 0 && pruneIndex >= 0)
-        check(seedIndex < pruneIndex) { "seed must run before prune" }
-    }
-
-    @Test
-    fun onActivityCreated_prunesAppLoggerWithDefaultLimit() {
+    fun onActivityCreated_invokesDiagnosticsMaintenance() {
+        // Bundled call — guarantees seed-then-prune are sequential on the
+        // IO dispatcher. Separate fire-and-forget launches would race.
         val scope = TestScope(testDispatcher)
         val fcmManager = createFcmManager(scope)
         val stalenessManager = createStalenessManager(scope)
@@ -236,7 +221,11 @@ class AppStartupTest {
 
         assertEquals(
             listOf(AppLoggerLimits.DEFAULT_PER_KEY_LIMIT),
-            appLoggerViewModel.pruneCalls,
+            appLoggerViewModel.maintenanceCalls,
         )
     }
+
+    // (The granular `pruneOldEntries` is now invoked inside the bundled
+    // runStartupDiagnosticsMaintenance call. Direct delegation is
+    // verified by DefaultAppLoggerViewModelTest.pruneOldEntriesUsesDefaultLimit.)
 }

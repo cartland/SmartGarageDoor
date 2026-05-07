@@ -139,4 +139,25 @@ class DefaultAppLoggerViewModelTest {
             assertTrue(counters.seededFromRoom)
             assertEquals(5L, viewModel.fcmReceivedDoorCount.value)
         }
+
+    @Test
+    fun runStartupDiagnosticsMaintenance_seedsThenPrunes() =
+        runTest(testDispatcher) {
+            // Pre-2.10.4 install: Room has many rows for one key.
+            repeat(10) { logger.log(AppLoggerKeys.FCM_DOOR_RECEIVED) }
+            advanceUntilIdle()
+            counters.resetAll() // simulate post-upgrade blank DataStore
+
+            viewModel.runStartupDiagnosticsMaintenance(perKeyLimit = 3)
+            advanceUntilIdle()
+
+            // Seed must complete BEFORE prune — otherwise prune drops rows
+            // 4..10 first and the seed reads only 3, locking the counter at
+            // 3 instead of 10. The single-coroutine ordering inside the VM
+            // method guarantees this; the test would fail if a future
+            // refactor split them back into separate launches.
+            assertTrue(counters.seededFromRoom)
+            assertEquals(10L, viewModel.fcmReceivedDoorCount.value)
+            assertEquals(listOf(3), logger.pruneCalls)
+        }
 }
