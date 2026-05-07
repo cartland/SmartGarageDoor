@@ -101,8 +101,8 @@ class ButtonHealthFcmSubscriptionManager(
         fcmRepository.subscribe(buildTimestamp)
         // Cold-start fetch. If the server returns Forbidden (user not
         // allowlisted), unsubscribe — we shouldn't keep receiving updates.
-        val idToken = auth.user.idToken.idToken
-        when (val result = fetchButtonHealthUseCase(idToken)) {
+        // FetchButtonHealthUseCase self-wraps auth (no token arg).
+        when (val result = fetchButtonHealthUseCase()) {
             is AppResult.Success -> {
                 Logger.i { "ButtonHealthFcm: cold-start fetch succeeded" }
             }
@@ -113,6 +113,13 @@ class ButtonHealthFcmSubscriptionManager(
                 }
                 is ButtonHealthError.Network -> {
                     Logger.w { "ButtonHealthFcm: cold-start fetch failed (network); keeping subscription" }
+                }
+                is ButtonHealthError.NotAuthenticated -> {
+                    // Race: handleStateChange was invoked with an authenticated
+                    // state, but auth flipped before the UseCase read it.
+                    // Treat like sign-out: unsubscribe.
+                    Logger.w { "ButtonHealthFcm: cold-start fetch not authenticated (race); unsubscribing" }
+                    fcmRepository.unsubscribeAll()
                 }
             }
         }

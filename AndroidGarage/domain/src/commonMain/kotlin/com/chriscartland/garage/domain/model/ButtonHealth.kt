@@ -52,4 +52,9 @@ sealed interface ButtonHealthError : AppError {
     data class Forbidden(
         override val message: String = "Forbidden",
     ) : ButtonHealthError
+
+    /** Local auth state is not [com.chriscartland.garage.domain.model.AuthState.Authenticated] — no fetch attempted. */
+    data class NotAuthenticated(
+        override val message: String = "Not authenticated",
+    ) : ButtonHealthError
 }

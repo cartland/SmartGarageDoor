@@ -17,13 +17,19 @@
 
 package com.chriscartland.garage.usecase
 
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
+import com.chriscartland.garage.domain.model.ButtonHealth
+import com.chriscartland.garage.domain.model.ButtonHealthError
+import com.chriscartland.garage.domain.model.ButtonHealthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FeatureAllowlist
 import com.chriscartland.garage.domain.model.FirebaseIdToken
+import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.User
+import com.chriscartland.garage.domain.repository.ButtonHealthRepository
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
@@ -35,6 +41,8 @@ import com.chriscartland.garage.testcommon.FakeSnoozeRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -91,6 +99,11 @@ class DefaultFunctionListViewModelTest {
             fetchCurrentDoorEventUseCase = FetchCurrentDoorEventUseCase(doorRepository),
             fetchRecentDoorEventsUseCase = FetchRecentDoorEventsUseCase(doorRepository),
             fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
+            fetchButtonHealthUseCase = FetchButtonHealthUseCase(
+                ensureFreshIdToken,
+                authRepository,
+                NoopButtonHealthRepository(),
+            ),
             snoozeNotificationsUseCase = SnoozeNotificationsUseCase(
                 ensureFreshIdToken,
                 authRepository,
@@ -204,4 +217,16 @@ class DefaultFunctionListViewModelTest {
             advanceUntilIdle()
             assertNull(viewModel.accessGranted.value)
         }
+}
+
+private class NoopButtonHealthRepository : ButtonHealthRepository {
+    override val buttonHealth: StateFlow<LoadingResult<ButtonHealth>> =
+        MutableStateFlow(LoadingResult.Loading(null))
+
+    override suspend fun fetchButtonHealth(idToken: String): AppResult<ButtonHealth, ButtonHealthError> =
+        AppResult.Success(ButtonHealth(ButtonHealthState.UNKNOWN, null))
+
+    override fun applyFcmUpdate(update: ButtonHealth) {
+        // no-op
+    }
 }

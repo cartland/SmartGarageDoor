@@ -39,6 +39,7 @@ import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultLiveClock
+import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
 import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.LogAppEventUseCase
@@ -117,7 +118,11 @@ class AppStartupTest {
             authRepository = authRepo,
             serverConfigRepository = configRepo,
             fcmRepository = fcmRepo,
-            fetchButtonHealthUseCase = FetchButtonHealthUseCase(healthRepo),
+            fetchButtonHealthUseCase = FetchButtonHealthUseCase(
+                EnsureFreshIdTokenUseCase(authRepo),
+                authRepo,
+                healthRepo,
+            ),
             scope = scope.backgroundScope,
             dispatcher = testDispatcher,
         )

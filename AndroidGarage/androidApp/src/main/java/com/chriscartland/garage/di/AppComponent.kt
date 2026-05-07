@@ -291,6 +291,7 @@ abstract class AppComponent(
         fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
         fetchRecentDoorEvents: FetchRecentDoorEventsUseCase,
         fetchSnoozeStatus: FetchSnoozeStatusUseCase,
+        fetchButtonHealth: FetchButtonHealthUseCase,
         snoozeNotifications: SnoozeNotificationsUseCase,
         signInWithGoogle: SignInWithGoogleUseCase,
         signOut: SignOutUseCase,
@@ -308,6 +309,7 @@ abstract class AppComponent(
             fetchCurrentDoorEventUseCase = fetchCurrentDoorEvent,
             fetchRecentDoorEventsUseCase = fetchRecentDoorEvents,
             fetchSnoozeStatusUseCase = fetchSnoozeStatus,
+            fetchButtonHealthUseCase = fetchButtonHealth,
             snoozeNotificationsUseCase = snoozeNotifications,
             signInWithGoogleUseCase = signInWithGoogle,
             signOutUseCase = signOut,
@@ -411,8 +413,11 @@ abstract class AppComponent(
         ObserveFeatureAccessUseCase(featureAllowlistRepository)
 
     @Provides
-    fun provideFetchButtonHealthUseCase(buttonHealthRepository: ButtonHealthRepository): FetchButtonHealthUseCase =
-        FetchButtonHealthUseCase(buttonHealthRepository)
+    fun provideFetchButtonHealthUseCase(
+        ensureFreshIdToken: EnsureFreshIdTokenUseCase,
+        authRepository: AuthRepository,
+        buttonHealthRepository: ButtonHealthRepository,
+    ): FetchButtonHealthUseCase = FetchButtonHealthUseCase(ensureFreshIdToken, authRepository, buttonHealthRepository)
 
     @Provides
     fun provideApplyButtonHealthFcmUseCase(buttonHealthRepository: ButtonHealthRepository): ApplyButtonHealthFcmUseCase =
