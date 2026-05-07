@@ -182,7 +182,11 @@ Run `./scripts/run-instrumented-tests.sh` when changing Room entities/DAOs, DI w
 
 ### Room Database Safety
 
-When modifying Room entities or DAOs: (1) increment the `version` in `@Database` (`AppDatabase.kt`); (2) run `./gradlew :androidApp:assembleDebug` to regenerate the schema; (3) commit the new schema JSON alongside the code change. `fallbackToDestructiveMigration` handles upgrades. Full safeguard list (schema drift check in `validate.sh`, guardrails hook, `RoomSchemaTest` contract tests, exported schema files): see `AndroidGarage/docs/ARCHITECTURE.md` § Database.
+When modifying Room entities or DAOs: (1) increment the `version` in `@Database` (`AppDatabase.kt`); (2) run `./gradlew :androidApp:assembleDebug` to regenerate the schema; (3) commit the new schema JSON alongside the code change; (4) **declare a `Migration` or `@AutoMigration(from = N, to = N+1)` to preserve data.** Full safeguard list (schema drift check in `validate.sh`, guardrails hook, `RoomSchemaTest` contract tests, exported schema files): see `AndroidGarage/docs/ARCHITECTURE.md` § Database.
+
+**Step 4 is load-bearing — do not skip.** The codebase uses `fallbackToDestructiveMigration(false)` (in `DatabaseFactory.android.kt`) which **drops every Room-managed table** on any version mismatch with no declared migration — not just the changed one. So a single-column index addition on `appEvent` would also wipe the user's `doorEvent` history. For data-preserving changes (adding columns with defaults, adding/removing indexes, adding tables), Room's auto-migration handles them with no spec class — declare `autoMigrations = [AutoMigration(from = 11, to = 12)]` in the `@Database` annotation, build, and inspect the generated `AppDatabase_AutoMigration_*_Impl.kt` to confirm it preserves your data. For non-trivial changes (column renames, type changes), write an explicit `Migration` class and register it on the database builder. This trap was hit in PR #660 — caught pre-release on review.
+
+**Migration transitions are NOT empirically tested by the existing instrumented suite.** `DatabaseSanityTest` uses `inMemoryDatabaseBuilder`, which always starts at the latest version and so never runs migration code. To test a v(N)→v(N+1) transition with real data, use Room's `MigrationTestHelper` against an exported schema, or smoke-test the upgrade on the internal Play Store track (which is what we do today; the production-promotion gate is the actual test).
 
 ### AppComponent / kotlin-inject Safety
 
