@@ -2,6 +2,7 @@ package com.chriscartland.garage.testcommon
 
 import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
+import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.repository.SnoozeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +41,9 @@ class FakeSnoozeRepository : SnoozeRepository {
     private var snoozeResult: AppResult<SnoozeState, ActionError> =
         AppResult.Success(SnoozeState.NotSnoozing)
 
+    /** Controls what fetchSnoozeStatus() returns. Default: success with current state. */
+    private var fetchResult: AppResult<SnoozeState, FetchError>? = null
+
     fun setSnoozeState(state: SnoozeState) {
         _snoozeState.value = state
     }
@@ -48,8 +52,15 @@ class FakeSnoozeRepository : SnoozeRepository {
         snoozeResult = value
     }
 
-    override suspend fun fetchSnoozeStatus() {
+    fun setFetchResult(value: AppResult<SnoozeState, FetchError>) {
+        fetchResult = value
+    }
+
+    override suspend fun fetchSnoozeStatus(): AppResult<SnoozeState, FetchError> {
         _fetchCount++
+        // Default behavior: mirror the production repo — propagate to flow
+        // and return Success with the current state.
+        return fetchResult ?: AppResult.Success(_snoozeState.value)
     }
 
     override suspend fun snoozeNotifications(
