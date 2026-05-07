@@ -15,6 +15,9 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.10.4
+- **AppLogger Room table now bounded.** The Diagnostics-screen log was growing unbounded — one row per logged event with no eviction, allowing 50K+ rows over months of use (CSV export reads the whole table; on-disk size unbounded). Each `eventKey` is now capped at 1000 rows. Two enforcement points: per-write cap at every `log()` call (single transaction), and a one-shot startup prune for installs that already have legacy rows above the cap. Per-key (not global) so a chatty key can't squeeze out a rare one. Adds an index on `eventKey` for cheap counts and prunes; declares an AutoMigration v11→v12 so existing AppEvent and DoorEvent rows are preserved (without it, `fallbackToDestructiveMigration` would have wiped the door history). Diagnostics screen counts will plateau at 1000 per key going forward; a future patch will introduce monotonic lifetime counters in DataStore so the totals can keep climbing.
+
 ## 2.10.3
 - **Door-left-open Settings row renamed to "Door open notifications".** "Door left open" read like a current state (suggesting the door was open right now); the new title is unambiguously a notification-category. The bottom-sheet header reverts to "Snooze notifications" so it describes the action you're taking instead of echoing the row title.
 
