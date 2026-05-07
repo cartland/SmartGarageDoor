@@ -54,6 +54,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 
 /**
  * Account section row state. Determines whether the row shows a sign-in
@@ -291,60 +292,68 @@ private fun SettingsRow(
 @Preview
 @Composable
 fun SettingsContentSignedOutPreview() {
-    SettingsContent(
-        accountState = AccountRowState.SignedOut,
-        snoozeState = SnoozeRowState.Off,
-        showSnoozeRow = true,
-        showDeveloperSection = false,
-        versionName = "2.6.1",
-        versionCode = "182",
-    )
+    PreviewScreenSurface {
+        SettingsContent(
+            accountState = AccountRowState.SignedOut,
+            snoozeState = SnoozeRowState.Off,
+            showSnoozeRow = true,
+            showDeveloperSection = false,
+            versionName = "2.6.1",
+            versionCode = "182",
+        )
+    }
 }
 
 @Preview
 @Composable
 fun SettingsContentSignedInBasicPreview() {
-    SettingsContent(
-        accountState = AccountRowState.SignedIn(
-            displayName = "Chris Cartland",
-            email = "chris@example.com",
-        ),
-        snoozeState = SnoozeRowState.Off,
-        showSnoozeRow = true,
-        showDeveloperSection = false,
-        versionName = "2.6.1",
-        versionCode = "182",
-    )
+    PreviewScreenSurface {
+        SettingsContent(
+            accountState = AccountRowState.SignedIn(
+                displayName = "Chris Cartland",
+                email = "chris@example.com",
+            ),
+            snoozeState = SnoozeRowState.Off,
+            showSnoozeRow = true,
+            showDeveloperSection = false,
+            versionName = "2.6.1",
+            versionCode = "182",
+        )
+    }
 }
 
 @Preview
 @Composable
 fun SettingsContentSignedInAllowlistedPreview() {
-    SettingsContent(
-        accountState = AccountRowState.SignedIn(
-            displayName = "Chris Cartland",
-            email = "chris@example.com",
-        ),
-        snoozeState = SnoozeRowState.SnoozingUntil("5:30 PM"),
-        showSnoozeRow = true,
-        showDeveloperSection = true,
-        versionName = "2.6.1",
-        versionCode = "182",
-    )
+    PreviewScreenSurface {
+        SettingsContent(
+            accountState = AccountRowState.SignedIn(
+                displayName = "Chris Cartland",
+                email = "chris@example.com",
+            ),
+            snoozeState = SnoozeRowState.SnoozingUntil("5:30 PM"),
+            showSnoozeRow = true,
+            showDeveloperSection = true,
+            versionName = "2.6.1",
+            versionCode = "182",
+        )
+    }
 }
 
 @Preview
 @Composable
 fun SettingsContentPermissionDeniedPreview() {
-    SettingsContent(
-        accountState = AccountRowState.SignedIn(
-            displayName = "Chris Cartland",
-            email = "chris@example.com",
-        ),
-        snoozeState = SnoozeRowState.PermissionDenied,
-        showSnoozeRow = true,
-        showDeveloperSection = false,
-        versionName = "2.6.1",
-        versionCode = "182",
-    )
+    PreviewScreenSurface {
+        SettingsContent(
+            accountState = AccountRowState.SignedIn(
+                displayName = "Chris Cartland",
+                email = "chris@example.com",
+            ),
+            snoozeState = SnoozeRowState.PermissionDenied,
+            showSnoozeRow = true,
+            showDeveloperSection = false,
+            versionName = "2.6.1",
+            versionCode = "182",
+        )
+    }
 }

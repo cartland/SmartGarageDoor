@@ -56,6 +56,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.GarageApplication
 import com.chriscartland.garage.applogger.exportAppLogCsvToUri
 import com.chriscartland.garage.di.rememberAppComponent
+import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -289,20 +290,22 @@ private fun CounterRow(
 @Preview
 @Composable
 fun DiagnosticsContentPreview() {
-    DiagnosticsContent(
-        counters = listOf(
-            DiagnosticsCounter("App init (current door)", 42),
-            DiagnosticsCounter("App init (recent doors)", 17),
-            DiagnosticsCounter("Door fetch (current)", 836),
-            DiagnosticsCounter("Door fetch (recent)", 412),
-            DiagnosticsCounter("FCM subscribe", 8),
-            DiagnosticsCounter("FCM received", 1247),
-            DiagnosticsCounter("FCM exceeded expected timeout", 3),
-            DiagnosticsCounter("FCM in expected range", 1244),
-        ),
-        onExportCsv = {},
-        onClearAll = {},
-    )
+    PreviewScreenSurface {
+        DiagnosticsContent(
+            counters = listOf(
+                DiagnosticsCounter("App init (current door)", 42),
+                DiagnosticsCounter("App init (recent doors)", 17),
+                DiagnosticsCounter("Door fetch (current)", 836),
+                DiagnosticsCounter("Door fetch (recent)", 412),
+                DiagnosticsCounter("FCM subscribe", 8),
+                DiagnosticsCounter("FCM received", 1247),
+                DiagnosticsCounter("FCM exceeded expected timeout", 3),
+                DiagnosticsCounter("FCM in expected range", 1244),
+            ),
+            onExportCsv = {},
+            onClearAll = {},
+        )
+    }
 }
 
 @Preview
