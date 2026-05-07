@@ -8,6 +8,7 @@ import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
+import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -40,7 +41,7 @@ class DefaultAuthViewModelTest {
             observeAuthState = ObserveAuthStateUseCase(authRepo),
             signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepo),
             signOutUseCase = SignOutUseCase(authRepo),
-            logAppEvent = LogAppEventUseCase(logger),
+            logAppEvent = LogAppEventUseCase(logger, FakeDiagnosticsCountersRepository()),
             dispatchers = TestDispatcherProvider(testDispatcher),
         )
     }

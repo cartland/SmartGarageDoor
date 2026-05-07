@@ -36,6 +36,13 @@ interface AppLoggerViewModel {
      */
     fun pruneOldEntries(perKeyLimit: Int = AppLoggerLimits.DEFAULT_PER_KEY_LIMIT)
 
+    /**
+     * User-initiated "Clear all diagnostics" action. Wipes both the
+     * Room app-event log and the lifetime DataStore counters.
+     * Confirmation dialog is the caller's responsibility.
+     */
+    fun resetDiagnostics()
+
     val initCurrentDoorCount: StateFlow<Long>
     val initRecentDoorCount: StateFlow<Long>
     val userFetchCurrentDoorCount: StateFlow<Long>
@@ -50,6 +57,7 @@ class DefaultAppLoggerViewModel(
     private val logAppEvent: LogAppEventUseCase,
     private val observeAppLogCount: ObserveAppLogCountUseCase,
     private val pruneAppLog: PruneAppLogUseCase,
+    private val resetDiagnosticsUseCase: ResetDiagnosticsUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel(),
     AppLoggerViewModel {
@@ -106,6 +114,12 @@ class DefaultAppLoggerViewModel(
     override fun pruneOldEntries(perKeyLimit: Int) {
         viewModelScope.launch(dispatchers.io) {
             pruneAppLog(perKeyLimit)
+        }
+    }
+
+    override fun resetDiagnostics() {
+        viewModelScope.launch(dispatchers.io) {
+            resetDiagnosticsUseCase()
         }
     }
 }

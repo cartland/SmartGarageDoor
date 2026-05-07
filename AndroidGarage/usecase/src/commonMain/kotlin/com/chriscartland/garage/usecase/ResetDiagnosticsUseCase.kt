@@ -21,23 +21,23 @@ import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.DiagnosticsCountersRepository
 
 /**
- * Logs an app event by key. Two side effects:
+ * Wipes user-visible diagnostics state. Triggered by the "Clear all
+ * diagnostics" action behind a confirmation dialog.
  *
- *  - Append a row to the Room app-event log (capped at 1000 per key —
- *    this is the rolling buffer for CSV export).
- *  - Increment the lifetime counter in the Diagnostics DataStore
- *    (monotonic — the value the user sees on the Diagnostics screen).
+ *  - Deletes every row from the Room app-event log (CSV export will
+ *    be empty until new events are logged).
+ *  - Zeros every counter in the Diagnostics DataStore (lifetime totals
+ *    on the Diagnostics screen go to 0).
  *
- * The two stores are intentionally independent. The Room buffer is
- * trimmed by the per-write cap (and by user "Clear all diagnostics");
- * the lifetime counter only resets when the user explicitly clears.
+ * Other Room tables (door history) and other DataStore preferences
+ * (snooze, FCM topic, etc.) are untouched.
  */
-class LogAppEventUseCase(
+class ResetDiagnosticsUseCase(
     private val appLoggerRepository: AppLoggerRepository,
     private val diagnosticsCounters: DiagnosticsCountersRepository,
 ) {
-    suspend operator fun invoke(key: String) {
-        appLoggerRepository.log(key)
-        diagnosticsCounters.increment(key)
+    suspend operator fun invoke() {
+        appLoggerRepository.deleteAll()
+        diagnosticsCounters.resetAll()
     }
 }

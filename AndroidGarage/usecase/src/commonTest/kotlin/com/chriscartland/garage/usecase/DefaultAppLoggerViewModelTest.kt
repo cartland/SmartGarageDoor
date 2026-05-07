@@ -3,6 +3,7 @@ package com.chriscartland.garage.usecase
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AppLoggerLimits
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
+import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -21,6 +22,7 @@ import kotlin.test.assertTrue
 class DefaultAppLoggerViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val logger = FakeAppLoggerRepository()
+    private val counters = FakeDiagnosticsCountersRepository()
     private val dispatchers = TestDispatcherProvider(testDispatcher)
     private lateinit var viewModel: DefaultAppLoggerViewModel
 
@@ -28,9 +30,10 @@ class DefaultAppLoggerViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         viewModel = DefaultAppLoggerViewModel(
-            logAppEvent = LogAppEventUseCase(logger),
-            observeAppLogCount = ObserveAppLogCountUseCase(logger),
+            logAppEvent = LogAppEventUseCase(logger, counters),
+            observeAppLogCount = ObserveAppLogCountUseCase(counters),
             pruneAppLog = PruneAppLogUseCase(logger),
+            resetDiagnosticsUseCase = ResetDiagnosticsUseCase(logger, counters),
             dispatchers = dispatchers,
         )
     }
@@ -70,7 +73,8 @@ class DefaultAppLoggerViewModelTest {
             viewModel.log(AppLoggerKeys.USER_FETCH_CURRENT_DOOR)
             advanceUntilIdle()
 
-            // The init block collects countKey flows, so the StateFlow should update
+            // The init block collects countKey flows from the diagnostics
+            // counters; logging increments those, so the StateFlow updates.
             assertTrue(viewModel.userFetchCurrentDoorCount.value >= 1L)
         }
 
@@ -93,5 +97,19 @@ class DefaultAppLoggerViewModelTest {
                 listOf(AppLoggerLimits.DEFAULT_PER_KEY_LIMIT),
                 logger.pruneCalls,
             )
+        }
+
+    @Test
+    fun resetDiagnosticsClearsBothStores() =
+        runTest(testDispatcher) {
+            viewModel.log(AppLoggerKeys.FCM_DOOR_RECEIVED)
+            advanceUntilIdle()
+            check(counters.incrementCalls.isNotEmpty())
+
+            viewModel.resetDiagnostics()
+            advanceUntilIdle()
+
+            assertEquals(1, logger.deleteAllCallCount)
+            assertEquals(1, counters.resetCallCount)
         }
 }

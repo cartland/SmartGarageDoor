@@ -22,46 +22,36 @@ import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
-class LogAppEventUseCaseTest {
+class ResetDiagnosticsUseCaseTest {
     @Test
-    fun invokeDelegatesToRepository() =
+    fun invokeClearsBothStores() =
         runTest {
-            val repo = FakeAppLoggerRepository()
+            val appLogger = FakeAppLoggerRepository()
             val counters = FakeDiagnosticsCountersRepository()
-            val useCase = LogAppEventUseCase(repo, counters)
+            val useCase = ResetDiagnosticsUseCase(appLogger, counters)
 
-            useCase("test_key")
+            // Seed both stores so we can prove the reset wiped them.
+            appLogger.log("k")
+            counters.increment("k")
 
-            assertTrue(repo.loggedKeys.contains("test_key"))
+            useCase()
+
+            assertEquals(1, appLogger.deleteAllCallCount)
+            assertEquals(1, counters.resetCallCount)
         }
 
     @Test
-    fun multipleCallsAccumulate() =
+    fun invokeIsIdempotent() =
         runTest {
-            val repo = FakeAppLoggerRepository()
+            val appLogger = FakeAppLoggerRepository()
             val counters = FakeDiagnosticsCountersRepository()
-            val useCase = LogAppEventUseCase(repo, counters)
+            val useCase = ResetDiagnosticsUseCase(appLogger, counters)
 
-            useCase("a")
-            useCase("b")
-            useCase("c")
+            useCase()
+            useCase()
 
-            assertEquals(listOf("a", "b", "c"), repo.loggedKeys)
-        }
-
-    @Test
-    fun invokeAlsoIncrementsLifetimeCounter() =
-        runTest {
-            val repo = FakeAppLoggerRepository()
-            val counters = FakeDiagnosticsCountersRepository()
-            val useCase = LogAppEventUseCase(repo, counters)
-
-            useCase("a")
-            useCase("a")
-            useCase("b")
-
-            assertEquals(listOf("a", "a", "b"), counters.incrementCalls)
+            assertEquals(2, appLogger.deleteAllCallCount)
+            assertEquals(2, counters.resetCallCount)
         }
 }

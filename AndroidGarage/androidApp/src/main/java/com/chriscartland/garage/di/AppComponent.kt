@@ -50,6 +50,7 @@ import com.chriscartland.garage.data.repository.NetworkRemoteButtonRepository
 import com.chriscartland.garage.data.repository.NetworkSnoozeRepository
 import com.chriscartland.garage.datalocal.AppDatabase
 import com.chriscartland.garage.datalocal.DataStoreAppSettings
+import com.chriscartland.garage.datalocal.DataStoreDiagnosticsCounters
 import com.chriscartland.garage.datalocal.DataStoreFactory
 import com.chriscartland.garage.datalocal.DatabaseFactory
 import com.chriscartland.garage.datalocal.DatabaseLocalDoorDataSource
@@ -62,6 +63,7 @@ import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.ButtonHealthFcmRepository
 import com.chriscartland.garage.domain.repository.ButtonHealthRepository
+import com.chriscartland.garage.domain.repository.DiagnosticsCountersRepository
 import com.chriscartland.garage.domain.repository.DoorFcmRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.FeatureAllowlistRepository
@@ -101,6 +103,7 @@ import com.chriscartland.garage.usecase.PruneAppLogUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
+import com.chriscartland.garage.usecase.ResetDiagnosticsUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
@@ -157,6 +160,7 @@ abstract class AppComponent(
     abstract val appDatabase: AppDatabase
     abstract val appSettings: AppSettingsRepository
     abstract val appLoggerRepository: AppLoggerRepository
+    abstract val diagnosticsCountersRepository: DiagnosticsCountersRepository
     abstract val authBridge: AuthBridge
     abstract val messagingBridge: MessagingBridge
     abstract val authRepository: AuthRepository
@@ -199,11 +203,25 @@ abstract class AppComponent(
         logAppEvent: LogAppEventUseCase,
         observeAppLogCount: ObserveAppLogCountUseCase,
         pruneAppLog: PruneAppLogUseCase,
+        resetDiagnostics: ResetDiagnosticsUseCase,
         dispatchers: DispatcherProvider,
-    ): DefaultAppLoggerViewModel = DefaultAppLoggerViewModel(logAppEvent, observeAppLogCount, pruneAppLog, dispatchers)
+    ): DefaultAppLoggerViewModel =
+        DefaultAppLoggerViewModel(
+            logAppEvent,
+            observeAppLogCount,
+            pruneAppLog,
+            resetDiagnostics,
+            dispatchers,
+        )
 
     @Provides
     fun providePruneAppLogUseCase(appLoggerRepository: AppLoggerRepository): PruneAppLogUseCase = PruneAppLogUseCase(appLoggerRepository)
+
+    @Provides
+    fun provideResetDiagnosticsUseCase(
+        appLoggerRepository: AppLoggerRepository,
+        diagnosticsCounters: DiagnosticsCountersRepository,
+    ): ResetDiagnosticsUseCase = ResetDiagnosticsUseCase(appLoggerRepository, diagnosticsCounters)
 
     @Provides
     fun provideAppSettingsViewModel(
@@ -296,11 +314,14 @@ abstract class AppComponent(
     fun provideSignOutUseCase(authRepository: AuthRepository): SignOutUseCase = SignOutUseCase(authRepository)
 
     @Provides
-    fun provideLogAppEventUseCase(appLoggerRepository: AppLoggerRepository): LogAppEventUseCase = LogAppEventUseCase(appLoggerRepository)
+    fun provideLogAppEventUseCase(
+        appLoggerRepository: AppLoggerRepository,
+        diagnosticsCounters: DiagnosticsCountersRepository,
+    ): LogAppEventUseCase = LogAppEventUseCase(appLoggerRepository, diagnosticsCounters)
 
     @Provides
-    fun provideObserveAppLogCountUseCase(appLoggerRepository: AppLoggerRepository): ObserveAppLogCountUseCase =
-        ObserveAppLogCountUseCase(appLoggerRepository)
+    fun provideObserveAppLogCountUseCase(diagnosticsCounters: DiagnosticsCountersRepository): ObserveAppLogCountUseCase =
+        ObserveAppLogCountUseCase(diagnosticsCounters)
 
     @Provides
     fun provideObserveDoorEventsUseCase(doorRepository: DoorRepository): ObserveDoorEventsUseCase = ObserveDoorEventsUseCase(doorRepository)
@@ -406,6 +427,11 @@ abstract class AppComponent(
     @Provides
     @Singleton
     fun provideAppSettings(dataStore: DataStore<Preferences>): AppSettingsRepository = DataStoreAppSettings(dataStore)
+
+    @Provides
+    @Singleton
+    fun provideDiagnosticsCountersRepository(factory: DataStoreFactory): DiagnosticsCountersRepository =
+        DataStoreDiagnosticsCounters(factory.createDiagnosticsCountersDataStore())
 
     @Provides
     @Singleton

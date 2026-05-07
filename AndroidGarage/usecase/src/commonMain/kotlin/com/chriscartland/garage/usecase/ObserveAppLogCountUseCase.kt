@@ -17,17 +17,21 @@
 
 package com.chriscartland.garage.usecase
 
-import com.chriscartland.garage.domain.repository.AppLoggerRepository
+import com.chriscartland.garage.domain.repository.DiagnosticsCountersRepository
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Observes the count of logged events for a given key.
+ * Observes the lifetime count of logged events for a given key.
  *
- * Wraps [AppLoggerRepository.countKey] so ViewModels can depend on this UseCase
- * instead of the repository directly.
+ * Backed by the Diagnostics DataStore (see
+ * [DiagnosticsCountersRepository]) — a monotonic counter independent
+ * of the Room app-event log's per-key row cap. The Diagnostics screen
+ * reads from this so users see lifetime totals like "FCM received:
+ * 47,231" instead of a number that plateaus at 1000 once the Room
+ * buffer fills.
  */
 class ObserveAppLogCountUseCase(
-    private val appLoggerRepository: AppLoggerRepository,
+    private val diagnosticsCounters: DiagnosticsCountersRepository,
 ) {
-    operator fun invoke(key: String): Flow<Long> = appLoggerRepository.countKey(key)
+    operator fun invoke(key: String): Flow<Long> = diagnosticsCounters.observeCount(key)
 }

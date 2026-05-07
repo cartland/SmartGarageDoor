@@ -32,6 +32,7 @@ import com.chriscartland.garage.domain.repository.ButtonHealthRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
+import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import com.chriscartland.garage.testcommon.FakeDoorFcmRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.usecase.AppLoggerViewModel
@@ -70,7 +71,7 @@ class AppStartupTest {
     private fun createStalenessManager(scope: TestScope): CheckInStalenessManager =
         CheckInStalenessManager(
             observeDoorEvents = ObserveDoorEventsUseCase(FakeDoorRepository()),
-            logAppEvent = LogAppEventUseCase(FakeAppLoggerRepository()),
+            logAppEvent = LogAppEventUseCase(FakeAppLoggerRepository(), FakeDiagnosticsCountersRepository()),
             scope = scope.backgroundScope,
             dispatcher = testDispatcher,
             clock = AppClock { 0L },
@@ -125,6 +126,8 @@ class AppStartupTest {
     private class FakeAppLoggerViewModel : AppLoggerViewModel {
         val loggedKeys = mutableListOf<String>()
         val pruneCalls = mutableListOf<Int>()
+        var resetCallCount: Int = 0
+            private set
 
         override fun log(key: String) {
             loggedKeys.add(key)
@@ -132,6 +135,10 @@ class AppStartupTest {
 
         override fun pruneOldEntries(perKeyLimit: Int) {
             pruneCalls.add(perKeyLimit)
+        }
+
+        override fun resetDiagnostics() {
+            resetCallCount += 1
         }
 
         override val initCurrentDoorCount = MutableStateFlow(0L)

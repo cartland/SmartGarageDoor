@@ -46,6 +46,10 @@ class RoomAppLoggerRepository(
         require(perKeyLimit > 0) { "perKeyLimit must be > 0; got $perKeyLimit" }
         appDatabase.appLoggerDao().pruneAllKeys(perKeyLimit)
     }
+
+    override suspend fun deleteAll() {
+        appDatabase.appLoggerDao().deleteAllAppEvents()
+    }
 }
 
 private fun AppEvent.toAppLogEvent() =

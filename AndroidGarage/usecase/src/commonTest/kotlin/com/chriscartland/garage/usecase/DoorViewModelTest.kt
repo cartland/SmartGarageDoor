@@ -23,6 +23,7 @@ import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
+import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import com.chriscartland.garage.testcommon.FakeDoorFcmRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
@@ -86,7 +87,7 @@ class DoorViewModelTest {
         )
         val stalenessManager = CheckInStalenessManager(
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
-            logAppEvent = LogAppEventUseCase(appLoggerRepository),
+            logAppEvent = LogAppEventUseCase(appLoggerRepository, FakeDiagnosticsCountersRepository()),
             scope = scope,
             dispatcher = testDispatcher,
             clock = AppClock { 0L },
@@ -98,7 +99,7 @@ class DoorViewModelTest {
         )
         val vm = DefaultDoorViewModel(
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
-            logAppEvent = LogAppEventUseCase(appLoggerRepository),
+            logAppEvent = LogAppEventUseCase(appLoggerRepository, FakeDiagnosticsCountersRepository()),
             dispatchers = TestDispatcherProvider(testDispatcher),
             fetchCurrentDoorEventUseCase = FetchCurrentDoorEventUseCase(doorRepository),
             fetchRecentDoorEventsUseCase = FetchRecentDoorEventsUseCase(doorRepository),

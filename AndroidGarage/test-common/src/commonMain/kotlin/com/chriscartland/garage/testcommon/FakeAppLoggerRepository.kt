@@ -32,4 +32,13 @@ class FakeAppLoggerRepository : AppLoggerRepository {
     override suspend fun pruneToLimit(perKeyLimit: Int) {
         _pruneCalls.add(perKeyLimit)
     }
+
+    private var _deleteAllCallCount: Int = 0
+    val deleteAllCallCount: Int get() = _deleteAllCallCount
+
+    override suspend fun deleteAll() {
+        _loggedKeys.clear()
+        counts.values.forEach { it.value = 0L }
+        _deleteAllCallCount += 1
+    }
 }
