@@ -22,6 +22,7 @@ import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
+import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.domain.repository.SnoozeRepository
@@ -60,12 +61,12 @@ class NetworkSnoozeRepository(
     override val snoozeState: StateFlow<SnoozeState> = _snoozeState
 
     init {
+        // Fire-and-forget initial fetch — its return value isn't observable
+        // from here. Subscribers see the result via [snoozeState].
         externalScope.launch { doFetchSnoozeStatus() }
     }
 
-    override suspend fun fetchSnoozeStatus() {
-        externalScope.launch { doFetchSnoozeStatus() }.join()
-    }
+    override suspend fun fetchSnoozeStatus(): AppResult<SnoozeState, FetchError> = externalScope.async { doFetchSnoozeStatus() }.await()
 
     override suspend fun snoozeNotifications(
         snoozeDurationHours: String,
@@ -77,21 +78,24 @@ class NetworkSnoozeRepository(
                 doSnoozeNotifications(snoozeDurationHours, idToken, snoozeEventTimestampSeconds)
             }.await()
 
-    private suspend fun doFetchSnoozeStatus() {
+    private suspend fun doFetchSnoozeStatus(): AppResult<SnoozeState, FetchError> {
         val serverConfig = serverConfigRepository.serverConfig.value
             ?: serverConfigRepository.fetchServerConfig()
         if (serverConfig == null) {
             Logger.e { "Server config is null" }
             clearLoadingState()
-            return
+            return AppResult.Error(FetchError.NotReady)
         }
         if (!snoozeNotificationsOption) {
+            // Feature disabled: idempotent fall-through. No network call,
+            // surface the current flow value as success so callers don't see
+            // a phantom failure.
             Logger.w { "Snooze notifications disabled" }
             delay(500)
             clearLoadingState()
-            return
+            return AppResult.Success(_snoozeState.value)
         }
-        when (
+        return when (
             val result = networkButtonDataSource.fetchSnoozeEndTimeSeconds(
                 buildTimestamp = serverConfig.buildTimestamp,
             )
@@ -100,14 +104,17 @@ class NetworkSnoozeRepository(
                 val newState = snoozeStateFromEndTime(result.data)
                 _snoozeState.value = newState
                 Logger.i { "snoozeState <- $newState (source=GET)" }
+                AppResult.Success(newState)
             }
             is NetworkResult.HttpError -> {
                 Logger.e { "Snooze fetch HTTP ${result.code}" }
                 clearLoadingState()
+                AppResult.Error(FetchError.NetworkFailed)
             }
             NetworkResult.ConnectionFailed -> {
                 Logger.e { "Snooze fetch connection failed" }
                 clearLoadingState()
+                AppResult.Error(FetchError.NetworkFailed)
             }
         }
     }

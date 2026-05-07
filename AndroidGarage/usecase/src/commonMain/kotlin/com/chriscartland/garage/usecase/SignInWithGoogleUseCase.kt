@@ -17,19 +17,26 @@
 
 package com.chriscartland.garage.usecase
 
+import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.repository.AuthRepository
 
 /**
- * Signs the user in with a Google ID token.
+ * Signs the user in with a Google ID token. Returns the post-sign-in
+ * [AuthState] so callers can react to success or failure without observing
+ * a separate flow:
  *
- * Wraps [AuthRepository.signInWithGoogle] so ViewModels can depend on this
- * UseCase instead of the repository directly.
+ * - [AuthState.Authenticated] — sign-in succeeded.
+ * - [AuthState.Unauthenticated] — sign-in failed; the user remains signed
+ *   out.
+ * - [AuthState.Unknown] — an in-flight refresh is still pending; the
+ *   eventual outcome resolves via [AuthRepository.authState].
+ *
+ * `AuthState` is a sealed type, so callers `when (state)` exhaustively —
+ * the same typed-result discipline as `AppResult<T, E>`.
  */
 class SignInWithGoogleUseCase(
     private val authRepository: AuthRepository,
 ) {
-    suspend operator fun invoke(idToken: GoogleIdToken) {
-        authRepository.signInWithGoogle(idToken)
-    }
+    suspend operator fun invoke(idToken: GoogleIdToken): AuthState = authRepository.signInWithGoogle(idToken)
 }

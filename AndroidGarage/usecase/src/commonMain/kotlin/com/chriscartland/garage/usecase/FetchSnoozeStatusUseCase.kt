@@ -17,17 +17,20 @@
 
 package com.chriscartland.garage.usecase
 
+import com.chriscartland.garage.domain.model.AppResult
+import com.chriscartland.garage.domain.model.FetchError
+import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.repository.SnoozeRepository
 
 /**
  * Fetches the current snooze status from the server.
  *
- * Updates the snooze state observable via [SnoozeRepository.snoozeState].
+ * The success value is also written to [SnoozeRepository.snoozeState] so
+ * subscribers see the update via the flow. Returns [AppResult] so callers
+ * can react to the typed failure path without observing an unrelated flow.
  */
 class FetchSnoozeStatusUseCase(
     private val snoozeRepository: SnoozeRepository,
 ) {
-    suspend operator fun invoke() {
-        snoozeRepository.fetchSnoozeStatus()
-    }
+    suspend operator fun invoke(): AppResult<SnoozeState, FetchError> = snoozeRepository.fetchSnoozeStatus()
 }

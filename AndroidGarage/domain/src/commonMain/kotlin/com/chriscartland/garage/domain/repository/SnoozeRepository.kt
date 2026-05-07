@@ -2,6 +2,7 @@ package com.chriscartland.garage.domain.repository
 
 import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
+import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.SnoozeState
 import kotlinx.coroutines.flow.StateFlow
 
@@ -20,7 +21,20 @@ interface SnoozeRepository {
     /** Observation: the authoritative snooze state as an owned [StateFlow]. */
     val snoozeState: StateFlow<SnoozeState>
 
-    suspend fun fetchSnoozeStatus()
+    /**
+     * Fetch the latest snooze state from the server. On success, the new
+     * value is also written to [snoozeState] (subscribers observe via the
+     * flow). The return value is provided so callers can react to the
+     * specific success/error case directly.
+     *
+     * - [AppResult.Success] — server returned a value; [snoozeState] now
+     *   reflects it.
+     * - [AppResult.Error] of [FetchError.NotReady] — server config not
+     *   loaded; nothing fetched.
+     * - [AppResult.Error] of [FetchError.NetworkFailed] — network or
+     *   HTTP-non-success.
+     */
+    suspend fun fetchSnoozeStatus(): AppResult<SnoozeState, FetchError>
 
     /**
      * Send a snooze request. On success returns the new [SnoozeState]
