@@ -17,22 +17,22 @@
 
 package com.chriscartland.garage.usecase
 
-import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
+import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class ObserveAppLogCountUseCaseTest {
+class ObserveDiagnosticsCountUseCaseTest {
     @Test
-    fun invokeReturnsCountForKey() =
+    fun invokeReturnsLifetimeCountForKey() =
         runTest {
-            val repo = FakeAppLoggerRepository()
-            val useCase = ObserveAppLogCountUseCase(repo)
+            val counters = FakeDiagnosticsCountersRepository()
+            val useCase = ObserveDiagnosticsCountUseCase(counters)
 
-            repo.log("a")
-            repo.log("a")
-            repo.log("b")
+            counters.increment("a")
+            counters.increment("a")
+            counters.increment("b")
 
             assertEquals(2L, useCase("a").first())
             assertEquals(1L, useCase("b").first())

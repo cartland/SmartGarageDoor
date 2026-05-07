@@ -18,16 +18,26 @@
 package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
-import kotlinx.coroutines.flow.Flow
+import com.chriscartland.garage.domain.repository.DiagnosticsCountersRepository
 
 /**
- * Observes the count of logged events for a given key.
+ * Wipes user-visible diagnostics state. Triggered by the "Clear all
+ * diagnostics" action behind a confirmation dialog.
  *
- * Wraps [AppLoggerRepository.countKey] so ViewModels can depend on this UseCase
- * instead of the repository directly.
+ *  - Deletes every row from the Room app-event log (CSV export will
+ *    be empty until new events are logged).
+ *  - Zeros every counter in the Diagnostics DataStore (lifetime totals
+ *    on the Diagnostics screen go to 0).
+ *
+ * Other Room tables (door history) and other DataStore preferences
+ * (snooze, FCM topic, etc.) are untouched.
  */
-class ObserveAppLogCountUseCase(
+class ClearDiagnosticsUseCase(
     private val appLoggerRepository: AppLoggerRepository,
+    private val diagnosticsCounters: DiagnosticsCountersRepository,
 ) {
-    operator fun invoke(key: String): Flow<Long> = appLoggerRepository.countKey(key)
+    suspend operator fun invoke() {
+        appLoggerRepository.deleteAll()
+        diagnosticsCounters.resetAll()
+    }
 }

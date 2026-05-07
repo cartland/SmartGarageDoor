@@ -158,6 +158,19 @@ class ComponentGraphTest {
     }
 
     @Test
+    fun diagnosticsCountersIsSingleton() {
+        // Lives on its own DataStore file; second instance for the same
+        // path throws IllegalStateException at runtime. See KDoc on
+        // DataStoreFactory.
+        val c = component
+        assertSame(
+            "DiagnosticsCountersRepository must be singleton",
+            c.diagnosticsCountersRepository,
+            c.diagnosticsCountersRepository,
+        )
+    }
+
+    @Test
     fun httpClientIsSingleton() {
         val c = component
         assertSame("HttpClient must be singleton", c.httpClient, c.httpClient)

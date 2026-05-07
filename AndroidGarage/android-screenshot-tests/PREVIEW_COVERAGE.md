@@ -3,11 +3,12 @@
 
 # Preview Screenshot Coverage
 
-**85 / 85 (100%)**
+**86 / 86 (100%)**
 
 ## Covered
 
 - `AccountSheetContentSignedInPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/AccountBottomSheet.kt`
+- `ClearDiagnosticsDialogPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/DiagnosticsContent.kt`
 - `ClosedPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/AnimatableGarageDoor.kt`
 - `ClosingPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/AnimatableGarageDoor.kt`
 - `ClosingTooLongPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/AnimatableGarageDoor.kt`

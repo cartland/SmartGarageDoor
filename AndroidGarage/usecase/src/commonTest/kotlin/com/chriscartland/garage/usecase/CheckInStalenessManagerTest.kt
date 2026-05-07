@@ -22,6 +22,7 @@ import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeClock
+import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -57,7 +58,7 @@ class CheckInStalenessManagerTest {
     private fun TestScope.createManager(clock: FakeClock): CheckInStalenessManager =
         CheckInStalenessManager(
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
-            logAppEvent = LogAppEventUseCase(logger),
+            logAppEvent = LogAppEventUseCase(logger, FakeDiagnosticsCountersRepository()),
             scope = backgroundScope,
             dispatcher = StandardTestDispatcher(testScheduler),
             clock = clock,

@@ -186,6 +186,10 @@ tasks.register<architecture.DataStoreSingletonCheckTask>("checkDataStoreSingleto
         // file throws IllegalStateException at runtime (see KDoc on
         // DataStoreFactory in data-local/commonMain).
         "providePreferencesDataStore",
+        // The Diagnostics counters DataStore-backed repository — same
+        // crash-on-double-construct rule applies (own file, own lazy
+        // slot in DataStoreFactory).
+        "provideDiagnosticsCountersRepository",
     )
 }
 

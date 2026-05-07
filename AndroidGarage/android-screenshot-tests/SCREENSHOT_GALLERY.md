@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Wed May  6 08:21:09 PDT 2026
+Generated on Wed May  6 20:15:53 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -492,6 +492,12 @@ Generated on Wed May  6 08:21:09 PDT 2026
 
 ### AccountSheetContentSignedInPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/AccountSheetContentSignedInPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### ClearDiagnosticsDialogPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/ClearDiagnosticsDialogPreviewTest_Dark_77106447_0.png" width="300" />
+
+### ClearDiagnosticsDialogPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/ClearDiagnosticsDialogPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### DiagnosticsContentPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/DiagnosticsContentPreviewTest_Dark_77106447_0.png" width="300" />

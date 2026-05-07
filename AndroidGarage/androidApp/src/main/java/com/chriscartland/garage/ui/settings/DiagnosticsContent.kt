@@ -30,15 +30,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.outlined.DeleteForever
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -48,6 +56,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.GarageApplication
 import com.chriscartland.garage.applogger.exportAppLogCsvToUri
 import com.chriscartland.garage.di.rememberAppComponent
+import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -119,6 +128,7 @@ fun DiagnosticsScreen(
             }
             csvLauncher.launch(intent)
         },
+        onClearAll = { appLoggerViewModel.clearDiagnostics() },
         modifier = modifier,
     )
     // onBack is supplied by the parent's TopAppBar back-arrow click handler;
@@ -128,15 +138,19 @@ fun DiagnosticsScreen(
 }
 
 /**
- * Stateless body — counters + Export CSV button. No Scaffold/TopAppBar
- * (the parent provides the chrome). Previewable on its own.
+ * Stateless body — counters + Export CSV + Clear all (with confirmation
+ * dialog). No Scaffold/TopAppBar (the parent provides the chrome).
+ * Previewable on its own.
  */
 @Composable
 fun DiagnosticsContent(
     counters: List<DiagnosticsCounter>,
     onExportCsv: () -> Unit,
+    onClearAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var confirmClearOpen by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier.fillMaxSize(),
     ) {
@@ -166,7 +180,7 @@ fun DiagnosticsContent(
             onClick = onExportCsv,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp),
         ) {
             Icon(
                 imageVector = Icons.Filled.Download,
@@ -177,7 +191,76 @@ fun DiagnosticsContent(
                 modifier = Modifier.padding(start = 8.dp),
             )
         }
+        OutlinedButton(
+            onClick = { confirmClearOpen = true },
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.error,
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.DeleteForever,
+                contentDescription = null,
+            )
+            Text(
+                text = "Clear all diagnostics",
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        }
     }
+
+    if (confirmClearOpen) {
+        ClearDiagnosticsDialog(
+            onConfirm = {
+                confirmClearOpen = false
+                onClearAll()
+            },
+            onDismiss = { confirmClearOpen = false },
+        )
+    }
+}
+
+/**
+ * Confirmation for the destructive "Clear all diagnostics" action.
+ * Confirm button is error-colored so users notice it's destructive
+ * before the second tap. Dismiss / outside-tap = cancel.
+ */
+@Composable
+fun ClearDiagnosticsDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Outlined.DeleteForever,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+            )
+        },
+        title = { Text("Clear all diagnostics?") },
+        text = {
+            Text(
+                "Resets every counter on this screen to 0 and deletes the " +
+                    "exportable event log. Door history and other app " +
+                    "settings are not affected. This cannot be undone.",
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                ),
+            ) { Text("Clear") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
 
 @Composable
@@ -207,17 +290,29 @@ private fun CounterRow(
 @Preview
 @Composable
 fun DiagnosticsContentPreview() {
-    DiagnosticsContent(
-        counters = listOf(
-            DiagnosticsCounter("App init (current door)", 42),
-            DiagnosticsCounter("App init (recent doors)", 17),
-            DiagnosticsCounter("Door fetch (current)", 836),
-            DiagnosticsCounter("Door fetch (recent)", 412),
-            DiagnosticsCounter("FCM subscribe", 8),
-            DiagnosticsCounter("FCM received", 1247),
-            DiagnosticsCounter("FCM exceeded expected timeout", 3),
-            DiagnosticsCounter("FCM in expected range", 1244),
-        ),
-        onExportCsv = {},
+    PreviewScreenSurface {
+        DiagnosticsContent(
+            counters = listOf(
+                DiagnosticsCounter("App init (current door)", 42),
+                DiagnosticsCounter("App init (recent doors)", 17),
+                DiagnosticsCounter("Door fetch (current)", 836),
+                DiagnosticsCounter("Door fetch (recent)", 412),
+                DiagnosticsCounter("FCM subscribe", 8),
+                DiagnosticsCounter("FCM received", 1247),
+                DiagnosticsCounter("FCM exceeded expected timeout", 3),
+                DiagnosticsCounter("FCM in expected range", 1244),
+            ),
+            onExportCsv = {},
+            onClearAll = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+fun ClearDiagnosticsDialogPreview() {
+    ClearDiagnosticsDialog(
+        onConfirm = {},
+        onDismiss = {},
     )
 }

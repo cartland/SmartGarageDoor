@@ -32,8 +32,14 @@ val tertiaryLight = Color(0xFFA5C9E9)
 val onTertiaryLight = Color(0xFF00275E)
 val tertiaryContainerLight = Color(0xFFD7E3FF)
 val onTertiaryContainerLight = Color(0xFF001D4A)
-val errorLight = Color(0xFFF9DEDC)
-val onErrorLight = Color(0xFF410E0B)
+
+// `error` was previously set to the same light-pink as `errorContainer`,
+// which made `MaterialTheme.colorScheme.error` essentially invisible
+// against light backgrounds (washed-out pink on near-white). Restored to
+// the Material 3 reference values. Existing callers all use
+// `errorContainer`/`onErrorContainer` and are unaffected by this change.
+val errorLight = Color(0xFFBA1A1A)
+val onErrorLight = Color(0xFFFFFFFF)
 val errorContainerLight = Color(0xFFF2B8B5)
 val onErrorContainerLight = Color(0xFF601410)
 val backgroundLight = Color(0xFFFFFBFE)
@@ -68,8 +74,13 @@ val tertiaryDark = Color(0xFF749FD9)
 val onTertiaryDark = Color(0xFF0A2F72)
 val tertiaryContainerDark = Color(0xFF10428D)
 val onTertiaryContainerDark = Color(0xFFD7E3FF)
-val errorDark = Color(0xFFF9DEDC)
-val onErrorDark = Color(0xFF410E0B)
+
+// See note on errorLight above. The previous value left dark-mode
+// `error` text barely distinguishable from the light pink that was
+// also used for `onErrorContainer`. M3 reference values are a stronger
+// pink that contrasts cleanly with dark surfaces.
+val errorDark = Color(0xFFFFB4AB)
+val onErrorDark = Color(0xFF690005)
 val errorContainerDark = Color(0xFF8C1D18)
 val onErrorContainerDark = Color(0xFFF9DEDC)
 val backgroundDark = Color(0xFF1A1C19)

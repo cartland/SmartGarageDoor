@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
 import com.chriscartland.garage.ui.settings.AccountSheetContentSignedInPreview
+import com.chriscartland.garage.ui.settings.ClearDiagnosticsDialogPreview
 import com.chriscartland.garage.ui.settings.DiagnosticsContentPreview
 import com.chriscartland.garage.ui.settings.SettingsContentPermissionDeniedPreview
 import com.chriscartland.garage.ui.settings.SettingsContentSignedInAllowlistedPreview
@@ -137,4 +138,16 @@ fun VersionDialogPreviewTest() {
 @Composable
 fun DiagnosticsContentPreviewTest() {
     AppTheme { DiagnosticsContentPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun ClearDiagnosticsDialogPreviewTest() {
+    AppTheme { ClearDiagnosticsDialogPreview() }
 }

@@ -21,7 +21,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 
 /**
- * Platform-specific factory for the app's `DataStore<Preferences>`.
+ * Platform-specific factory for the app's `DataStore<Preferences>`
+ * instances.
  *
  * The `actual` class for each platform is responsible for resolving the
  * file path appropriate to that platform (Android: `context.filesDir`,
@@ -30,14 +31,19 @@ import androidx.datastore.preferences.core.Preferences
  * call — live inside each `actual`, since the path API differs per
  * platform but the construction is one line.
  *
+ * **One factory, multiple stores by file.** The factory exposes one
+ * method per canonical store ([createPreferencesDataStore],
+ * [createDiagnosticsCountersDataStore], etc.), each backed by a
+ * dedicated file. Each method returns a cached instance — repeated
+ * calls return the same `DataStore`. New stores get a new method here.
+ *
  * **Singleton requirement.** `DataStore<Preferences>` throws
  * `IllegalStateException: There are multiple DataStores active for the
  * same file` when constructed twice for the same path. The `actual`
- * implementations cache the instance via `lazy` so repeated calls to
- * [createPreferencesDataStore] on the **same** factory return the same
- * `DataStore`. Callers must also ensure the **factory itself** is a
- * singleton (a fresh factory has a fresh `lazy`, which would crash on
- * second-DataStore construction). The DI providers are `@Singleton` and
+ * implementations cache each store via `lazy`. Callers must also
+ * ensure the **factory itself** is a singleton (a fresh factory has
+ * fresh `lazy` slots, which would crash on second-DataStore
+ * construction). The DI providers are `@Singleton` and
  * `:checkDataStoreSingleton` enforces the annotation.
  *
  * Shape adopted from
@@ -47,6 +53,15 @@ import androidx.datastore.preferences.core.Preferences
  */
 expect class DataStoreFactory {
     fun createPreferencesDataStore(): DataStore<Preferences>
+
+    /**
+     * DataStore for the Diagnostics screen's lifetime counters. Lives
+     * on a dedicated file so the user-initiated "Clear all
+     * diagnostics" action can wipe these counters without touching
+     * unrelated app preferences (snooze, FCM topic, etc.).
+     */
+    fun createDiagnosticsCountersDataStore(): DataStore<Preferences>
 }
 
 internal const val PREFERENCES_FILE_NAME = "app_settings.preferences_pb"
+internal const val DIAGNOSTICS_COUNTERS_FILE_NAME = "diagnostics_counters.preferences_pb"

@@ -29,4 +29,11 @@ interface AppLoggerRepository {
      * for that.
      */
     suspend fun pruneToLimit(perKeyLimit: Int)
+
+    /**
+     * Wipe every row from the app-event log. Used by the user-initiated
+     * "Clear all diagnostics" action. Other tables in the database are
+     * untouched.
+     */
+    suspend fun deleteAll()
 }

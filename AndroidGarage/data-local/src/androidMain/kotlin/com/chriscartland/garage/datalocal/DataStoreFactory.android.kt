@@ -24,26 +24,35 @@ import androidx.datastore.preferences.core.Preferences
 import okio.Path.Companion.toPath
 
 /**
- * Android `actual` for [DataStoreFactory]. Resolves the file path via
- * `context.filesDir`. The DataStore is cached in [instance] via `lazy`
- * so repeated calls to [createPreferencesDataStore] on the same
- * factory return the same instance. The DI provider must scope this
- * factory as `@Singleton` — a fresh factory has a fresh `lazy`, which
- * would create a second DataStore for the same file (crash).
+ * Android `actual` for [DataStoreFactory]. Resolves file paths via
+ * `context.filesDir`. Each canonical store is cached via `lazy`, so
+ * repeated calls to the same `create*` method return the same
+ * instance. The DI provider must scope this factory as `@Singleton` —
+ * a fresh factory has fresh `lazy` slots, which would create a second
+ * DataStore for the same file (crash).
  */
 actual class DataStoreFactory(
     private val context: Context,
 ) {
-    private val instance: DataStore<Preferences> by lazy {
+    private val appSettingsInstance: DataStore<Preferences> by lazy {
+        createPreferences(PREFERENCES_FILE_NAME)
+    }
+
+    private val diagnosticsCountersInstance: DataStore<Preferences> by lazy {
+        createPreferences(DIAGNOSTICS_COUNTERS_FILE_NAME)
+    }
+
+    actual fun createPreferencesDataStore(): DataStore<Preferences> = appSettingsInstance
+
+    actual fun createDiagnosticsCountersDataStore(): DataStore<Preferences> = diagnosticsCountersInstance
+
+    private fun createPreferences(fileName: String): DataStore<Preferences> =
         PreferenceDataStoreFactory.createWithPath(
             produceFile = {
                 context.filesDir
-                    .resolve(PREFERENCES_FILE_NAME)
+                    .resolve(fileName)
                     .absolutePath
                     .toPath()
             },
         )
-    }
-
-    actual fun createPreferencesDataStore(): DataStore<Preferences> = instance
 }
