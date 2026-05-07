@@ -23,13 +23,13 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class ResetDiagnosticsUseCaseTest {
+class ClearDiagnosticsUseCaseTest {
     @Test
     fun invokeClearsBothStores() =
         runTest {
             val appLogger = FakeAppLoggerRepository()
             val counters = FakeDiagnosticsCountersRepository()
-            val useCase = ResetDiagnosticsUseCase(appLogger, counters)
+            val useCase = ClearDiagnosticsUseCase(appLogger, counters)
 
             // Seed both stores so we can prove the reset wiped them.
             appLogger.log("k")
@@ -46,7 +46,7 @@ class ResetDiagnosticsUseCaseTest {
         runTest {
             val appLogger = FakeAppLoggerRepository()
             val counters = FakeDiagnosticsCountersRepository()
-            val useCase = ResetDiagnosticsUseCase(appLogger, counters)
+            val useCase = ClearDiagnosticsUseCase(appLogger, counters)
 
             useCase()
             useCase()

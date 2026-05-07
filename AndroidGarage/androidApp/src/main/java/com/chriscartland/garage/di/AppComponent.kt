@@ -75,6 +75,7 @@ import com.chriscartland.garage.usecase.AppSettingsUseCase
 import com.chriscartland.garage.usecase.ApplyButtonHealthFcmUseCase
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
+import com.chriscartland.garage.usecase.ClearDiagnosticsUseCase
 import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
 import com.chriscartland.garage.usecase.DefaultAppLoggerViewModel
 import com.chriscartland.garage.usecase.DefaultAppSettingsViewModel
@@ -103,7 +104,6 @@ import com.chriscartland.garage.usecase.PruneAppLogUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
-import com.chriscartland.garage.usecase.ResetDiagnosticsUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
@@ -203,14 +203,14 @@ abstract class AppComponent(
         logAppEvent: LogAppEventUseCase,
         observeAppLogCount: ObserveDiagnosticsCountUseCase,
         pruneAppLog: PruneAppLogUseCase,
-        resetDiagnostics: ResetDiagnosticsUseCase,
+        clearDiagnostics: ClearDiagnosticsUseCase,
         dispatchers: DispatcherProvider,
     ): DefaultAppLoggerViewModel =
         DefaultAppLoggerViewModel(
             logAppEvent,
             observeAppLogCount,
             pruneAppLog,
-            resetDiagnostics,
+            clearDiagnostics,
             dispatchers,
         )
 
@@ -218,10 +218,10 @@ abstract class AppComponent(
     fun providePruneAppLogUseCase(appLoggerRepository: AppLoggerRepository): PruneAppLogUseCase = PruneAppLogUseCase(appLoggerRepository)
 
     @Provides
-    fun provideResetDiagnosticsUseCase(
+    fun provideClearDiagnosticsUseCase(
         appLoggerRepository: AppLoggerRepository,
         diagnosticsCounters: DiagnosticsCountersRepository,
-    ): ResetDiagnosticsUseCase = ResetDiagnosticsUseCase(appLoggerRepository, diagnosticsCounters)
+    ): ClearDiagnosticsUseCase = ClearDiagnosticsUseCase(appLoggerRepository, diagnosticsCounters)
 
     @Provides
     fun provideAppSettingsViewModel(

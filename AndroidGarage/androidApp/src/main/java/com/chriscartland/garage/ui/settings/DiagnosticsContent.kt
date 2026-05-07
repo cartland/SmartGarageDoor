@@ -128,7 +128,7 @@ fun DiagnosticsScreen(
             }
             csvLauncher.launch(intent)
         },
-        onClearAll = { appLoggerViewModel.resetDiagnostics() },
+        onClearAll = { appLoggerViewModel.clearDiagnostics() },
         modifier = modifier,
     )
     // onBack is supplied by the parent's TopAppBar back-arrow click handler;

@@ -41,7 +41,7 @@ interface AppLoggerViewModel {
      * Room app-event log and the lifetime DataStore counters.
      * Confirmation dialog is the caller's responsibility.
      */
-    fun resetDiagnostics()
+    fun clearDiagnostics()
 
     val initCurrentDoorCount: StateFlow<Long>
     val initRecentDoorCount: StateFlow<Long>
@@ -57,7 +57,7 @@ class DefaultAppLoggerViewModel(
     private val logAppEvent: LogAppEventUseCase,
     private val observeAppLogCount: ObserveDiagnosticsCountUseCase,
     private val pruneAppLog: PruneAppLogUseCase,
-    private val resetDiagnosticsUseCase: ResetDiagnosticsUseCase,
+    private val clearDiagnosticsUseCase: ClearDiagnosticsUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel(),
     AppLoggerViewModel {
@@ -117,9 +117,9 @@ class DefaultAppLoggerViewModel(
         }
     }
 
-    override fun resetDiagnostics() {
+    override fun clearDiagnostics() {
         viewModelScope.launch(dispatchers.io) {
-            resetDiagnosticsUseCase()
+            clearDiagnosticsUseCase()
         }
     }
 }

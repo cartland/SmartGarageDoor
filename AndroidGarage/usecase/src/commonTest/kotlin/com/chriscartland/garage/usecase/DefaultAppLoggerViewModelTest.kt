@@ -33,7 +33,7 @@ class DefaultAppLoggerViewModelTest {
             logAppEvent = LogAppEventUseCase(logger, counters),
             observeAppLogCount = ObserveDiagnosticsCountUseCase(counters),
             pruneAppLog = PruneAppLogUseCase(logger),
-            resetDiagnosticsUseCase = ResetDiagnosticsUseCase(logger, counters),
+            clearDiagnosticsUseCase = ClearDiagnosticsUseCase(logger, counters),
             dispatchers = dispatchers,
         )
     }
@@ -100,14 +100,14 @@ class DefaultAppLoggerViewModelTest {
         }
 
     @Test
-    fun resetDiagnosticsClearsBothStores() =
+    fun clearDiagnosticsClearsBothStores() =
         runTest(testDispatcher) {
             viewModel.log(AppLoggerKeys.FCM_DOOR_RECEIVED)
             advanceUntilIdle()
             check(counters.incrementCalls.isNotEmpty())
             check(viewModel.fcmReceivedDoorCount.value > 0L)
 
-            viewModel.resetDiagnostics()
+            viewModel.clearDiagnostics()
             advanceUntilIdle()
 
             assertEquals(1, logger.deleteAllCallCount)

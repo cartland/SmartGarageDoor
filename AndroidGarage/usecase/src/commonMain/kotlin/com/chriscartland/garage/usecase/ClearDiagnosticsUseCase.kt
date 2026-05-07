@@ -32,7 +32,7 @@ import com.chriscartland.garage.domain.repository.DiagnosticsCountersRepository
  * Other Room tables (door history) and other DataStore preferences
  * (snooze, FCM topic, etc.) are untouched.
  */
-class ResetDiagnosticsUseCase(
+class ClearDiagnosticsUseCase(
     private val appLoggerRepository: AppLoggerRepository,
     private val diagnosticsCounters: DiagnosticsCountersRepository,
 ) {

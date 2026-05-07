@@ -137,7 +137,7 @@ class AppStartupTest {
             pruneCalls.add(perKeyLimit)
         }
 
-        override fun resetDiagnostics() {
+        override fun clearDiagnostics() {
             resetCallCount += 1
         }
 
