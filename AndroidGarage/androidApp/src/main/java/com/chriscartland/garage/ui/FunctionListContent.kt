@@ -57,9 +57,14 @@ fun FunctionListContent(
         onOpenOrCloseDoor = resolved::openOrCloseDoor,
         onRefreshDoorStatus = resolved::refreshDoorStatus,
         onRefreshDoorHistory = resolved::refreshDoorHistory,
+        onRefreshSnoozeStatus = resolved::refreshSnoozeStatus,
         onSnoozeOneHour = resolved::snoozeNotificationsForOneHour,
         onSignIn = { googleSignIn.launchSignIn() },
         onSignOut = resolved::signOut,
+        onClearDiagnostics = resolved::clearDiagnostics,
+        onPruneAppLog = resolved::pruneAppLog,
+        onRegisterFcm = resolved::registerFcm,
+        onDeregisterFcm = resolved::deregisterFcm,
     )
 }
 
@@ -70,21 +75,32 @@ fun FunctionListContent(
     onOpenOrCloseDoor: () -> Unit = {},
     onRefreshDoorStatus: () -> Unit = {},
     onRefreshDoorHistory: () -> Unit = {},
+    onRefreshSnoozeStatus: () -> Unit = {},
     onSnoozeOneHour: () -> Unit = {},
     onSignIn: () -> Unit = {},
     onSignOut: () -> Unit = {},
+    onClearDiagnostics: () -> Unit = {},
+    onPruneAppLog: () -> Unit = {},
+    onRegisterFcm: () -> Unit = {},
+    onDeregisterFcm: () -> Unit = {},
 ) {
     if (accessGranted == true) {
         LazyColumn(
             modifier = modifier,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            item { FunctionListWarning() }
             item { FunctionButton("Open or close garage door", onOpenOrCloseDoor) }
             item { FunctionButton("Refresh door status", onRefreshDoorStatus) }
             item { FunctionButton("Refresh door history", onRefreshDoorHistory) }
+            item { FunctionButton("Refresh snooze status", onRefreshSnoozeStatus) }
             item { FunctionButton("Snooze notifications for 1 hour", onSnoozeOneHour) }
             item { FunctionButton("Sign in with Google", onSignIn) }
             item { FunctionButton("Sign out", onSignOut) }
+            item { FunctionButton("Clear all diagnostics", onClearDiagnostics) }
+            item { FunctionButton("Prune diagnostics log", onPruneAppLog) }
+            item { FunctionButton("Re-register FCM", onRegisterFcm) }
+            item { FunctionButton("Deregister FCM", onDeregisterFcm) }
         }
     } else {
         // null = unknown / fetch in flight; false = server denied. Both
@@ -93,6 +109,20 @@ fun FunctionListContent(
         // few hundred ms of sign-in.
         FunctionListAccessDeniedContent(modifier = modifier)
     }
+}
+
+@Composable
+private fun FunctionListWarning() {
+    Text(
+        text = "Each button below performs a real action immediately — no " +
+            "confirmation prompts. Tapping triggers calls to the server, " +
+            "modifies app state, or wipes local data. Double-check the label " +
+            "before tapping.",
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+    )
 }
 
 @Composable
@@ -134,9 +164,14 @@ fun FunctionListContentPreview() {
             onOpenOrCloseDoor = {},
             onRefreshDoorStatus = {},
             onRefreshDoorHistory = {},
+            onRefreshSnoozeStatus = {},
             onSnoozeOneHour = {},
             onSignIn = {},
             onSignOut = {},
+            onClearDiagnostics = {},
+            onPruneAppLog = {},
+            onRegisterFcm = {},
+            onDeregisterFcm = {},
         )
     }
 }
@@ -150,9 +185,14 @@ fun FunctionListContentDeniedPreview() {
             onOpenOrCloseDoor = {},
             onRefreshDoorStatus = {},
             onRefreshDoorHistory = {},
+            onRefreshSnoozeStatus = {},
             onSnoozeOneHour = {},
             onSignIn = {},
             onSignOut = {},
+            onClearDiagnostics = {},
+            onPruneAppLog = {},
+            onRegisterFcm = {},
+            onDeregisterFcm = {},
         )
     }
 }
