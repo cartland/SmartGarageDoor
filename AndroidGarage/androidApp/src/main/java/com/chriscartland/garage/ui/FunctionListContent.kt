@@ -58,6 +58,7 @@ fun FunctionListContent(
         onRefreshDoorStatus = resolved::refreshDoorStatus,
         onRefreshDoorHistory = resolved::refreshDoorHistory,
         onRefreshSnoozeStatus = resolved::refreshSnoozeStatus,
+        onRefreshButtonHealth = resolved::refreshButtonHealth,
         onSnoozeOneHour = resolved::snoozeNotificationsForOneHour,
         onSignIn = { googleSignIn.launchSignIn() },
         onSignOut = resolved::signOut,
@@ -76,6 +77,7 @@ fun FunctionListContent(
     onRefreshDoorStatus: () -> Unit = {},
     onRefreshDoorHistory: () -> Unit = {},
     onRefreshSnoozeStatus: () -> Unit = {},
+    onRefreshButtonHealth: () -> Unit = {},
     onSnoozeOneHour: () -> Unit = {},
     onSignIn: () -> Unit = {},
     onSignOut: () -> Unit = {},
@@ -94,6 +96,7 @@ fun FunctionListContent(
             item { FunctionButton("Refresh door status", onRefreshDoorStatus) }
             item { FunctionButton("Refresh door history", onRefreshDoorHistory) }
             item { FunctionButton("Refresh snooze status", onRefreshSnoozeStatus) }
+            item { FunctionButton("Refresh button health", onRefreshButtonHealth) }
             item { FunctionButton("Snooze notifications for 1 hour", onSnoozeOneHour) }
             item { FunctionButton("Sign in with Google", onSignIn) }
             item { FunctionButton("Sign out", onSignOut) }
@@ -165,6 +168,7 @@ fun FunctionListContentPreview() {
             onRefreshDoorStatus = {},
             onRefreshDoorHistory = {},
             onRefreshSnoozeStatus = {},
+            onRefreshButtonHealth = {},
             onSnoozeOneHour = {},
             onSignIn = {},
             onSignOut = {},
@@ -186,6 +190,7 @@ fun FunctionListContentDeniedPreview() {
             onRefreshDoorStatus = {},
             onRefreshDoorHistory = {},
             onRefreshSnoozeStatus = {},
+            onRefreshButtonHealth = {},
             onSnoozeOneHour = {},
             onSignIn = {},
             onSignOut = {},

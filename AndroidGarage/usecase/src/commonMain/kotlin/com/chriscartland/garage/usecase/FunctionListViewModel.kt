@@ -60,6 +60,8 @@ interface FunctionListViewModel {
 
     fun refreshSnoozeStatus()
 
+    fun refreshButtonHealth()
+
     fun snoozeNotificationsForOneHour()
 
     fun signInWithGoogle(idToken: GoogleIdToken)
@@ -80,6 +82,7 @@ class DefaultFunctionListViewModel(
     private val fetchCurrentDoorEventUseCase: FetchCurrentDoorEventUseCase,
     private val fetchRecentDoorEventsUseCase: FetchRecentDoorEventsUseCase,
     private val fetchSnoozeStatusUseCase: FetchSnoozeStatusUseCase,
+    private val fetchButtonHealthUseCase: FetchButtonHealthUseCase,
     private val snoozeNotificationsUseCase: SnoozeNotificationsUseCase,
     private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
     private val signOutUseCase: SignOutUseCase,
@@ -134,6 +137,11 @@ class DefaultFunctionListViewModel(
     override fun refreshSnoozeStatus() {
         Logger.d { "refreshSnoozeStatus" }
         viewModelScope.launch(dispatchers.io) { fetchSnoozeStatusUseCase() }
+    }
+
+    override fun refreshButtonHealth() {
+        Logger.d { "refreshButtonHealth" }
+        viewModelScope.launch(dispatchers.io) { fetchButtonHealthUseCase() }
     }
 
     override fun snoozeNotificationsForOneHour() {

@@ -70,7 +70,11 @@ class ButtonHealthFcmSubscriptionManagerTest {
                 authRepository = auth,
                 serverConfigRepository = config,
                 fcmRepository = fcm,
-                fetchButtonHealthUseCase = FetchButtonHealthUseCase(repo),
+                fetchButtonHealthUseCase = FetchButtonHealthUseCase(
+                    EnsureFreshIdTokenUseCase(auth),
+                    auth,
+                    repo,
+                ),
                 scope = backgroundScope,
                 dispatcher = StandardTestDispatcher(testScheduler),
             )
@@ -112,7 +116,11 @@ class ButtonHealthFcmSubscriptionManagerTest {
                 authRepository = auth,
                 serverConfigRepository = config,
                 fcmRepository = fcm,
-                fetchButtonHealthUseCase = FetchButtonHealthUseCase(repo),
+                fetchButtonHealthUseCase = FetchButtonHealthUseCase(
+                    EnsureFreshIdTokenUseCase(auth),
+                    auth,
+                    repo,
+                ),
                 scope = backgroundScope,
                 dispatcher = StandardTestDispatcher(testScheduler),
             )
@@ -140,7 +148,11 @@ class ButtonHealthFcmSubscriptionManagerTest {
                 authRepository = auth,
                 serverConfigRepository = config,
                 fcmRepository = fcm,
-                fetchButtonHealthUseCase = FetchButtonHealthUseCase(repo),
+                fetchButtonHealthUseCase = FetchButtonHealthUseCase(
+                    EnsureFreshIdTokenUseCase(auth),
+                    auth,
+                    repo,
+                ),
                 scope = backgroundScope,
                 dispatcher = StandardTestDispatcher(testScheduler),
             )
@@ -168,7 +180,11 @@ class ButtonHealthFcmSubscriptionManagerTest {
                 authRepository = auth,
                 serverConfigRepository = config,
                 fcmRepository = fcm,
-                fetchButtonHealthUseCase = FetchButtonHealthUseCase(repo),
+                fetchButtonHealthUseCase = FetchButtonHealthUseCase(
+                    EnsureFreshIdTokenUseCase(auth),
+                    auth,
+                    repo,
+                ),
                 scope = backgroundScope,
                 dispatcher = StandardTestDispatcher(testScheduler),
             )
@@ -201,7 +217,11 @@ class ButtonHealthFcmSubscriptionManagerTest {
                 authRepository = auth,
                 serverConfigRepository = config,
                 fcmRepository = fcm,
-                fetchButtonHealthUseCase = FetchButtonHealthUseCase(repo),
+                fetchButtonHealthUseCase = FetchButtonHealthUseCase(
+                    EnsureFreshIdTokenUseCase(auth),
+                    auth,
+                    repo,
+                ),
                 scope = backgroundScope,
                 dispatcher = StandardTestDispatcher(testScheduler),
             )
