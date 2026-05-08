@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Wed May  6 20:15:53 PDT 2026
+Generated on Thu May  7 20:40:17 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -528,6 +528,12 @@ Generated on Wed May  6 20:15:53 PDT 2026
 
 ### SettingsContentSignedOutPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedOutPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### SettingsContentSnoozeInFlightPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSnoozeInFlightPreviewTest_Dark_77106447_0.png" width="300" />
+
+### SettingsContentSnoozeInFlightPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSnoozeInFlightPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### SnoozeSheetContentActivePreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentActivePreviewTest_Dark_77106447_0.png" width="300" />

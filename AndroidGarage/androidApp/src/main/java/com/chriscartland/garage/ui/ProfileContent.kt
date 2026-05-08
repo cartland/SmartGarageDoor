@@ -33,6 +33,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AuthState
+import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
@@ -84,6 +85,7 @@ fun ProfileContent(
 
     val authState by resolvedAuthViewModel.authState.collectAsState()
     val snoozeState by buttonViewModel.snoozeState.collectAsState()
+    val snoozeAction by buttonViewModel.snoozeAction.collectAsState()
     val functionListAccess by settingsViewModel.functionListAccess.collectAsState()
     val appConfig = component.appConfig
     val context = LocalContext.current
@@ -130,6 +132,7 @@ fun ProfileContent(
         versionName = appVersion.versionName,
         versionCode = appVersion.versionCode.toString(),
         modifier = modifier,
+        snoozeInFlight = snoozeAction is SnoozeAction.Sending,
         onAccountTap = { accountSheetOpen = true },
         onSignInTap = { googleSignIn.launchSignIn() },
         onSnoozeTap = {
