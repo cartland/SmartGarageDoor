@@ -27,6 +27,7 @@ import com.chriscartland.garage.ui.settings.SettingsContentPermissionDeniedPrevi
 import com.chriscartland.garage.ui.settings.SettingsContentSignedInAllowlistedPreview
 import com.chriscartland.garage.ui.settings.SettingsContentSignedInBasicPreview
 import com.chriscartland.garage.ui.settings.SettingsContentSignedOutPreview
+import com.chriscartland.garage.ui.settings.SettingsContentSnoozeInFlightPreview
 import com.chriscartland.garage.ui.settings.SnoozeSheetContentActivePreview
 import com.chriscartland.garage.ui.settings.SnoozeSheetContentOffPreview
 import com.chriscartland.garage.ui.settings.VersionDialogPreview
@@ -78,6 +79,18 @@ fun SettingsContentSignedInAllowlistedPreviewTest() {
 @Composable
 fun SettingsContentPermissionDeniedPreviewTest() {
     AppTheme { SettingsContentPermissionDeniedPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun SettingsContentSnoozeInFlightPreviewTest() {
+    AppTheme { SettingsContentSnoozeInFlightPreview() }
 }
 
 @PreviewTest

@@ -20,6 +20,7 @@ package com.chriscartland.garage.ui.settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -27,6 +28,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
@@ -41,6 +43,7 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.NotificationsPaused
 import androidx.compose.material.icons.outlined.Storefront
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -49,6 +52,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -101,6 +105,7 @@ fun SettingsContent(
     versionName: String,
     versionCode: String,
     modifier: Modifier = Modifier,
+    snoozeInFlight: Boolean = false,
     onAccountTap: () -> Unit = {},
     onSignInTap: () -> Unit = {},
     onSnoozeTap: () -> Unit = {},
@@ -153,6 +158,7 @@ fun SettingsContent(
                         subtitle = subtitle,
                         showChevron = true,
                         onClick = onSnoozeTap,
+                        inFlight = snoozeInFlight,
                     )
                 }
             }
@@ -250,14 +256,31 @@ private fun SettingsRow(
     showChevron: Boolean,
     onClick: () -> Unit,
     trailingIcon: ImageVector? = null,
+    inFlight: Boolean = false,
 ) {
     ListItem(
         leadingContent = {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // When the row's action is in flight, ring a `CircularProgressIndicator`
+            // around the leading icon. The icon stays at full alpha so the user
+            // reads "current state, in flux" — not "loading from scratch."
+            // Box is sized to fit the indicator (ring is slightly larger than
+            // the 24dp icon so it doesn't overlap the glyph).
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(36.dp),
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (inFlight) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(36.dp),
+                    )
+                }
+            }
         },
         headlineContent = { Text(title) },
         supportingContent = subtitle?.let { { Text(it) } },
@@ -354,6 +377,28 @@ fun SettingsContentPermissionDeniedPreview() {
             showDeveloperSection = false,
             versionName = "2.6.1",
             versionCode = "182",
+        )
+    }
+}
+
+@Preview
+@Composable
+fun SettingsContentSnoozeInFlightPreview() {
+    // Shows the snooze row with a CircularProgressIndicator ringing the
+    // notifications icon while the snooze action is in flight. The icon
+    // stays at full alpha so the row reads "current state, in flux".
+    PreviewScreenSurface {
+        SettingsContent(
+            accountState = AccountRowState.SignedIn(
+                displayName = "Chris Cartland",
+                email = "chris@example.com",
+            ),
+            snoozeState = SnoozeRowState.Off,
+            showSnoozeRow = true,
+            showDeveloperSection = false,
+            versionName = "2.6.1",
+            versionCode = "182",
+            snoozeInFlight = true,
         )
     }
 }
