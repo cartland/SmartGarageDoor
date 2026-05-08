@@ -44,6 +44,15 @@ interface AppLoggerViewModel {
     fun clearDiagnostics()
 
     /**
+     * `true` while the most recent [clearDiagnostics] call is in flight,
+     * `false` otherwise. UI uses this to render the Clear button in a
+     * loading state during the (suspending, two-store) clear operation
+     * — the action takes long enough on a heavily-populated DB that
+     * silent button-tap is jarring.
+     */
+    val clearInFlight: StateFlow<Boolean>
+
+    /**
      * One-shot recovery on first launch after upgrading from a
      * version where Diagnostics counts came from the Room aggregate
      * query (anything before 2.11.0). Idempotent — safe to fire on
@@ -107,6 +116,9 @@ class DefaultAppLoggerViewModel(
     private val _timeWithoutFcmInExpectedRangeCount = MutableStateFlow<Long>(0L)
     override val timeWithoutFcmInExpectedRangeCount = _timeWithoutFcmInExpectedRangeCount
 
+    private val _clearInFlight = MutableStateFlow(false)
+    override val clearInFlight: StateFlow<Boolean> = _clearInFlight
+
     init {
         observeCount(AppLoggerKeys.INIT_CURRENT_DOOR, _initCurrentDoorCount)
         observeCount(AppLoggerKeys.INIT_RECENT_DOOR, _initRecentDoorCount)
@@ -141,7 +153,15 @@ class DefaultAppLoggerViewModel(
 
     override fun clearDiagnostics() {
         viewModelScope.launch(dispatchers.io) {
-            clearDiagnosticsUseCase()
+            _clearInFlight.value = true
+            try {
+                clearDiagnosticsUseCase()
+            } finally {
+                // try/finally so a cancellation or unexpected throw still
+                // resets the flag — the button shouldn't appear stuck in
+                // a "clearing..." state if the underlying work errors out.
+                _clearInFlight.value = false
+            }
         }
     }
 

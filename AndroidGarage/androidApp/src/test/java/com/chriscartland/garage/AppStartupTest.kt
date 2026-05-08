@@ -161,6 +161,7 @@ class AppStartupTest {
         override val fcmSubscribeTopicCount = MutableStateFlow(0L)
         override val exceededExpectedTimeWithoutFcmCount = MutableStateFlow(0L)
         override val timeWithoutFcmInExpectedRangeCount = MutableStateFlow(0L)
+        override val clearInFlight = MutableStateFlow(false)
     }
 
     @Test
