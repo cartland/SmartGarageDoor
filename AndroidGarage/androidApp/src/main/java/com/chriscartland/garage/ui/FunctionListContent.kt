@@ -90,6 +90,7 @@ fun FunctionListContent(
     if (accessGranted == true) {
         LazyColumn(
             modifier = modifier,
+            contentPadding = Spacing.ListContentPadding,
             verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems),
         ) {
             item { FunctionListWarning() }

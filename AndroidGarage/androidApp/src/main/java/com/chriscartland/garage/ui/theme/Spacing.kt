@@ -68,6 +68,25 @@ object Spacing {
     val SectionHeaderStart = 16.dp
     val SectionHeaderTop = 8.dp
     val SectionHeaderBottom = 8.dp
+
+    /**
+     * Standard `contentPadding` for screen-level `LazyColumn`s whose
+     * bottom edge sits directly above the bottom NavigationBar.
+     *
+     * Top = [ListVertical] (16dp) — breathing room before the first item.
+     * Bottom = 24dp — clearance between the last item and the tab bar.
+     * Asymmetric on purpose: the bar is opaque chrome the eye reads as a
+     * hard boundary, so a flush-to-bar last item feels cramped. The 24dp
+     * absorbs the previous "16dp contentPadding + 8dp tail-spacer item"
+     * pattern into a single token — parent owns the gap, no per-screen
+     * tail spacer needed.
+     *
+     * Apply via `LazyColumn(contentPadding = Spacing.ListContentPadding, ...)`.
+     * Use raw [ListVertical] when the LazyColumn does NOT end at the tab
+     * bar (e.g. `DiagnosticsContent` has action buttons below its
+     * LazyColumn, so the chrome clearance is owned by the wrapper Column).
+     */
+    val ListContentPadding = PaddingValues(top = ListVertical, bottom = 24.dp)
 }
 
 /**

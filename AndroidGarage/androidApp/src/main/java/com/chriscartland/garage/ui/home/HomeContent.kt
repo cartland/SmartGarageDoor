@@ -21,7 +21,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -175,7 +174,7 @@ fun HomeContent(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = Spacing.ListVertical),
+            contentPadding = Spacing.ListContentPadding,
             verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems),
         ) {
             if (alerts.isNotEmpty()) {
@@ -230,8 +229,6 @@ fun HomeContent(
                     }
                 }
             }
-
-            item(key = "tail-spacer") { Spacer(modifier = Modifier.height(8.dp)) }
         }
     }
 }
