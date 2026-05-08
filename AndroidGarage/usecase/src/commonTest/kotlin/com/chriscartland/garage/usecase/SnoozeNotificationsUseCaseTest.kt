@@ -22,7 +22,6 @@ import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
-import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeSnoozeRepository
@@ -41,19 +40,15 @@ class SnoozeNotificationsUseCaseTest {
     fun setup() {
         fakeAuth = FakeAuthRepository()
         fakeSnooze = FakeSnoozeRepository()
-        useCase = SnoozeNotificationsUseCase(EnsureFreshIdTokenUseCase(fakeAuth), fakeAuth, fakeSnooze)
+        useCase = SnoozeNotificationsUseCase(fakeAuth, fakeSnooze)
     }
 
-    private fun authenticateUser(
-        token: String = "token",
-        exp: Long = Long.MAX_VALUE,
-    ) {
+    private fun authenticateUser() {
         fakeAuth.setAuthState(
             AuthState.Authenticated(
                 user = User(
                     name = DisplayName("Test"),
                     email = Email("test@test.com"),
-                    idToken = FirebaseIdToken(idToken = token, exp = exp),
                 ),
             ),
         )
@@ -95,26 +90,6 @@ class SnoozeNotificationsUseCaseTest {
             assertTrue(result is AppResult.Error, "Should be MissingData error")
             assertEquals(ActionError.MissingData, (result as AppResult.Error).error)
             assertEquals(0, fakeSnooze.snoozeCount)
-        }
-
-    @Test
-    fun snoozeDoesNotRefreshTokenWhenTimestampNull() =
-        runTest {
-            authenticateUser(exp = 1000L)
-            useCase("1h", null)
-            // MissingData error returned before token refresh
-            assertEquals(0, fakeAuth.refreshIdTokenCount)
-        }
-
-    @Test
-    fun snoozeRefreshesExpiredToken() =
-        runTest {
-            authenticateUser(token = "old", exp = 1000L)
-            fakeAuth.setRefreshIdTokenResult(
-                FirebaseIdToken(idToken = "fresh", exp = Long.MAX_VALUE),
-            )
-            useCase("4h", 2000L)
-            assertEquals(1, fakeAuth.refreshIdTokenCount)
         }
 
     @Test

@@ -23,8 +23,10 @@ import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.ButtonHealth
 import com.chriscartland.garage.domain.model.ButtonHealthError
 import com.chriscartland.garage.domain.model.ButtonHealthState
+import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.ServerConfig
+import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -53,9 +55,13 @@ class NetworkButtonHealthRepositoryTest {
         scope: CoroutineScope,
     ): NetworkButtonHealthRepository {
         val configDs = FakeNetworkConfigDataSource().apply { setServerConfigResult(validConfig) }
+        val authRepo = FakeAuthRepository().apply {
+            setIdTokenResult(FirebaseIdToken(idToken = "token", exp = Long.MAX_VALUE))
+        }
         return NetworkButtonHealthRepository(
             networkButtonHealthDataSource = ds,
             serverConfigRepository = CachedServerConfigRepository(configDs, "key", scope),
+            authRepository = authRepo,
             externalScope = scope,
         )
     }
@@ -69,7 +75,7 @@ class NetworkButtonHealthRepositoryTest {
             val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
             val repo = makeRepo(ds, scope)
 
-            val result = repo.fetchButtonHealth(idToken = "token")
+            val result = repo.fetchButtonHealth()
             advanceUntilIdle()
 
             val success = assertIs<AppResult.Success<ButtonHealth>>(result)
@@ -88,7 +94,7 @@ class NetworkButtonHealthRepositoryTest {
             val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
             val repo = makeRepo(ds, scope)
 
-            val result = repo.fetchButtonHealth(idToken = "token")
+            val result = repo.fetchButtonHealth()
             advanceUntilIdle()
 
             val error = assertIs<AppResult.Error<ButtonHealthError>>(result)
@@ -105,7 +111,7 @@ class NetworkButtonHealthRepositoryTest {
             val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
             val repo = makeRepo(ds, scope)
 
-            val result = repo.fetchButtonHealth(idToken = "token")
+            val result = repo.fetchButtonHealth()
             advanceUntilIdle()
 
             val error = assertIs<AppResult.Error<ButtonHealthError>>(result)
@@ -122,7 +128,7 @@ class NetworkButtonHealthRepositoryTest {
             val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
             val repo = makeRepo(ds, scope)
 
-            val result = repo.fetchButtonHealth(idToken = "token")
+            val result = repo.fetchButtonHealth()
             advanceUntilIdle()
 
             val error = assertIs<AppResult.Error<ButtonHealthError>>(result)
@@ -139,7 +145,7 @@ class NetworkButtonHealthRepositoryTest {
             val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
             val repo = makeRepo(ds, scope)
 
-            val result = repo.fetchButtonHealth(idToken = "token")
+            val result = repo.fetchButtonHealth()
             advanceUntilIdle()
 
             val error = assertIs<AppResult.Error<ButtonHealthError>>(result)
@@ -173,6 +179,7 @@ class NetworkButtonHealthRepositoryTest {
                 "key",
                 CoroutineScope(SupervisorJob()),
             ),
+            authRepository = FakeAuthRepository(),
             externalScope = CoroutineScope(SupervisorJob()),
         )
         assertTrue(
@@ -252,7 +259,7 @@ class NetworkButtonHealthRepositoryTest {
             val repo = makeRepo(ds, scope)
 
             // First fetch lands as Complete.
-            repo.fetchButtonHealth(idToken = "token")
+            repo.fetchButtonHealth()
             advanceUntilIdle()
             assertIs<LoadingResult.Complete<ButtonHealth>>(repo.buttonHealth.value)
 
@@ -265,7 +272,7 @@ class NetworkButtonHealthRepositoryTest {
             advanceUntilIdle()
             ds.setResult(NetworkResult.Success(ButtonHealth(ButtonHealthState.OFFLINE, 2000L)))
 
-            repo.fetchButtonHealth(idToken = "token")
+            repo.fetchButtonHealth()
             advanceUntilIdle()
 
             observeJob.cancel()
@@ -284,13 +291,13 @@ class NetworkButtonHealthRepositoryTest {
             val repo = makeRepo(ds, scope)
 
             // Establish a known-good Complete value.
-            repo.fetchButtonHealth(idToken = "token")
+            repo.fetchButtonHealth()
             advanceUntilIdle()
             val good = assertIs<LoadingResult.Complete<ButtonHealth>>(repo.buttonHealth.value)
 
             // Subsequent fetch fails — UI must keep showing the prior good value.
             ds.setResult(NetworkResult.HttpError(500))
-            repo.fetchButtonHealth(idToken = "token")
+            repo.fetchButtonHealth()
             advanceUntilIdle()
 
             val stillGood = assertIs<LoadingResult.Complete<ButtonHealth>>(repo.buttonHealth.value)
@@ -307,12 +314,12 @@ class NetworkButtonHealthRepositoryTest {
             val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
             val repo = makeRepo(ds, scope)
 
-            repo.fetchButtonHealth(idToken = "token")
+            repo.fetchButtonHealth()
             advanceUntilIdle()
             val good = assertIs<LoadingResult.Complete<ButtonHealth>>(repo.buttonHealth.value)
 
             ds.setResult(NetworkResult.ConnectionFailed)
-            repo.fetchButtonHealth(idToken = "token")
+            repo.fetchButtonHealth()
             advanceUntilIdle()
 
             val stillGood = assertIs<LoadingResult.Complete<ButtonHealth>>(repo.buttonHealth.value)
@@ -330,7 +337,7 @@ class NetworkButtonHealthRepositoryTest {
             val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
             val repo = makeRepo(ds, scope)
 
-            repo.fetchButtonHealth(idToken = "token")
+            repo.fetchButtonHealth()
             advanceUntilIdle()
 
             assertIs<LoadingResult.Error>(repo.buttonHealth.value)
@@ -345,6 +352,7 @@ class NetworkButtonHealthRepositoryTest {
                 "key",
                 CoroutineScope(SupervisorJob()),
             ),
+            authRepository = FakeAuthRepository(),
             externalScope = CoroutineScope(SupervisorJob()),
         )
 }

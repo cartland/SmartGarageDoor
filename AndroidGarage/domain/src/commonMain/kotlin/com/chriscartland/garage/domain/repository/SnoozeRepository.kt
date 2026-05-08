@@ -55,7 +55,6 @@ interface SnoozeRepository {
      */
     suspend fun snoozeNotifications(
         snoozeDurationHours: String,
-        idToken: String,
         snoozeEventTimestampSeconds: Long,
     ): AppResult<SnoozeState, ActionError>
 }

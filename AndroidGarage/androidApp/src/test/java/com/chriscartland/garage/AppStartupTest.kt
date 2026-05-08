@@ -38,7 +38,6 @@ import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultLiveClock
-import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
 import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.LogAppEventUseCase
@@ -103,7 +102,7 @@ class AppStartupTest {
             override val buttonHealth: StateFlow<LoadingResult<ButtonHealth>> =
                 MutableStateFlow(LoadingResult.Complete(ButtonHealth(ButtonHealthState.UNKNOWN, null)))
 
-            override suspend fun fetchButtonHealth(idToken: String) = AppResult.Error(ButtonHealthError.Network())
+            override suspend fun fetchButtonHealth() = AppResult.Error(ButtonHealthError.Network())
 
             @Suppress("EmptyFunctionBlock")
             override fun applyFcmUpdate(update: ButtonHealth) {
@@ -114,11 +113,7 @@ class AppStartupTest {
             authRepository = authRepo,
             serverConfigRepository = configRepo,
             fcmRepository = fcmRepo,
-            fetchButtonHealthUseCase = FetchButtonHealthUseCase(
-                EnsureFreshIdTokenUseCase(authRepo),
-                authRepo,
-                healthRepo,
-            ),
+            fetchButtonHealthUseCase = FetchButtonHealthUseCase(authRepo, healthRepo),
             scope = scope.backgroundScope,
             dispatcher = testDispatcher,
         )

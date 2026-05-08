@@ -26,7 +26,6 @@ import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.Email
-import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.ui.home.DeviceCheckInDisplay
 import com.chriscartland.garage.ui.home.HomeMapper
@@ -61,7 +60,6 @@ class AuthStateUIPropagationTest {
     private val testUser = User(
         name = DisplayName("Test User"),
         email = Email("test@example.com"),
-        idToken = FirebaseIdToken(idToken = "test-token", exp = Long.MAX_VALUE),
     )
 
     private val unknownStatus = HomeStatusDisplay(
@@ -215,10 +213,8 @@ class AuthStateUIPropagationTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Sign in with Google").assertIsDisplayed()
 
-        // Sign in again with different token
-        val newUser = testUser.copy(
-            idToken = FirebaseIdToken(idToken = "different-token", exp = Long.MAX_VALUE),
-        )
+        // Sign in again with a different identity (ADR-027: AuthState is identity-only).
+        val newUser = testUser.copy(name = DisplayName("Different User"))
         authStateFlow.value = AuthState.Authenticated(newUser)
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Sign in with Google").assertDoesNotExist()

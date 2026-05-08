@@ -22,7 +22,6 @@ import com.chriscartland.garage.domain.model.ButtonHealth
 import com.chriscartland.garage.domain.model.ButtonHealthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
-import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.User
 import kotlin.test.Test
@@ -36,7 +35,6 @@ class ButtonHealthDisplayLogicTest {
         user = User(
             name = DisplayName("Test User"),
             email = Email("test@example.com"),
-            idToken = FirebaseIdToken(idToken = "tok", exp = 0L),
         ),
     )
 

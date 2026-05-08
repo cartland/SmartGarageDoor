@@ -10,30 +10,34 @@ import kotlinx.coroutines.flow.StateFlow
  *
  * Per ADR-022, the repository owns the authoritative `StateFlow<AuthState>`;
  * a platform listener (ADR-018) drives writes on an app-lifetime scope.
- * ViewModels and UseCases expose this same [StateFlow] by reference — no
- * mirrors. Callers can read [authState].value for synchronous one-shot
- * access; commands ([signInWithGoogle], [signOut]) are fire-and-forget and
- * the listener reflects the state change automatically.
+ *
+ * Per ADR-027, the ID token is a *private* concern of this repository
+ * (and the network repositories that legitimately need it). [authState]
+ * carries identity only (`User.name`, `User.email`) — never a token.
+ * Token refreshes do NOT cause [authState] to re-emit; only sign-in,
+ * sign-out, and account changes do.
+ *
+ * Callers that need a token call [getIdToken] explicitly. UseCases must
+ * not — token plumbing is contained at the repository layer.
  */
 interface AuthRepository {
-    /** Observation: the authoritative auth state as an owned [StateFlow]. */
+    /** Observation: identity-only auth state as an owned [StateFlow]. */
     val authState: StateFlow<AuthState>
 
-    suspend fun signInWithGoogle(idToken: GoogleIdToken): AuthState
-
     /**
-     * Force-refresh the ID token via the auth provider and return it.
+     * Fetch the current ID token. Pass `forceRefresh = true` to bypass
+     * the platform's token cache and force a network round-trip; pass
+     * `false` to use the cached token if available.
      *
-     * Also updates [authState] with the new token so the UI stays in sync
-     * (avoids split-brain where the UseCase has a fresh token but the
-     * ViewModel's StateFlow still shows the old expiry).
+     * Returns null if the user is not signed in or the token request
+     * failed (network error, sign-out race).
      *
-     * Returns null if refresh fails (e.g., user signed out, network error).
+     * Authoritative for token consumers. Network repositories call this
+     * before delegating to a data source; UseCases must not.
      */
-    suspend fun refreshIdToken(): FirebaseIdToken?
+    suspend fun getIdToken(forceRefresh: Boolean): FirebaseIdToken?
 
-    @Deprecated("Use refreshIdToken() instead", ReplaceWith("refreshIdToken()"))
-    suspend fun refreshFirebaseAuthState(): AuthState
+    suspend fun signInWithGoogle(idToken: GoogleIdToken): AuthState
 
     suspend fun signOut()
 }

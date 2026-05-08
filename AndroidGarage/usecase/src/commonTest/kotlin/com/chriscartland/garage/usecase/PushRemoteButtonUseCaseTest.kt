@@ -22,7 +22,6 @@ import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
-import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
@@ -41,19 +40,15 @@ class PushRemoteButtonUseCaseTest {
     fun setup() {
         fakeAuth = FakeAuthRepository()
         fakePush = FakeRemoteButtonRepository()
-        useCase = PushRemoteButtonUseCase(EnsureFreshIdTokenUseCase(fakeAuth), fakeAuth, fakePush)
+        useCase = PushRemoteButtonUseCase(fakeAuth, fakePush)
     }
 
-    private fun authenticateUser(
-        token: String = "token",
-        exp: Long = Long.MAX_VALUE,
-    ) {
+    private fun authenticateUser() {
         fakeAuth.setAuthState(
             AuthState.Authenticated(
                 user = User(
                     name = DisplayName("Test"),
                     email = Email("test@test.com"),
-                    idToken = FirebaseIdToken(idToken = token, exp = exp),
                 ),
             ),
         )
@@ -88,32 +83,11 @@ class PushRemoteButtonUseCaseTest {
         }
 
     @Test
-    fun pushPassesCorrectIdToken() =
-        runTest {
-            authenticateUser(token = "my-token-123")
-            useCase("ack-456")
-            assertEquals("my-token-123", fakePush.lastIdToken)
-        }
-
-    @Test
     fun pushPassesButtonAckToken() =
         runTest {
             authenticateUser()
             useCase("ack-unique-789")
             assertEquals(1, fakePush.pushCount)
-        }
-
-    @Test
-    fun pushRefreshesExpiredToken() =
-        runTest {
-            authenticateUser(token = "old-token", exp = 1000L)
-            fakeAuth.setRefreshIdTokenResult(
-                FirebaseIdToken(idToken = "new-token", exp = Long.MAX_VALUE),
-            )
-
-            useCase("ack-123")
-
-            assertEquals("new-token", fakePush.lastIdToken)
-            assertEquals(1, fakeAuth.refreshIdTokenCount)
+            assertEquals("ack-unique-789", fakePush.pushCalls.last().buttonAckToken)
         }
 }

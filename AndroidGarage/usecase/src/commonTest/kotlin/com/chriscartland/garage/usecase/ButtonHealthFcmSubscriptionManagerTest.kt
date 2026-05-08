@@ -47,7 +47,6 @@ class ButtonHealthFcmSubscriptionManagerTest {
         user = User(
             name = DisplayName("Test"),
             email = Email("test@example.com"),
-            idToken = FirebaseIdToken(idToken = "token-xyz", exp = 0L),
         ),
     )
 
@@ -70,11 +69,7 @@ class ButtonHealthFcmSubscriptionManagerTest {
                 authRepository = auth,
                 serverConfigRepository = config,
                 fcmRepository = fcm,
-                fetchButtonHealthUseCase = FetchButtonHealthUseCase(
-                    EnsureFreshIdTokenUseCase(auth),
-                    auth,
-                    repo,
-                ),
+                fetchButtonHealthUseCase = FetchButtonHealthUseCase(auth, repo),
                 scope = backgroundScope,
                 dispatcher = StandardTestDispatcher(testScheduler),
             )
@@ -93,7 +88,6 @@ class ButtonHealthFcmSubscriptionManagerTest {
             assertEquals(1, fcm.subscribeCount)
             assertEquals("Sat Apr 10 23:57:32 2021", fcm.lastSubscribeBuildTimestamp)
             assertEquals(1, repo.fetchCount)
-            assertEquals("token-xyz", repo.lastFetchIdToken)
 
             auth.setAuthState(AuthState.Unauthenticated)
             testScheduler.runCurrent()
@@ -116,11 +110,7 @@ class ButtonHealthFcmSubscriptionManagerTest {
                 authRepository = auth,
                 serverConfigRepository = config,
                 fcmRepository = fcm,
-                fetchButtonHealthUseCase = FetchButtonHealthUseCase(
-                    EnsureFreshIdTokenUseCase(auth),
-                    auth,
-                    repo,
-                ),
+                fetchButtonHealthUseCase = FetchButtonHealthUseCase(auth, repo),
                 scope = backgroundScope,
                 dispatcher = StandardTestDispatcher(testScheduler),
             )
@@ -148,11 +138,7 @@ class ButtonHealthFcmSubscriptionManagerTest {
                 authRepository = auth,
                 serverConfigRepository = config,
                 fcmRepository = fcm,
-                fetchButtonHealthUseCase = FetchButtonHealthUseCase(
-                    EnsureFreshIdTokenUseCase(auth),
-                    auth,
-                    repo,
-                ),
+                fetchButtonHealthUseCase = FetchButtonHealthUseCase(auth, repo),
                 scope = backgroundScope,
                 dispatcher = StandardTestDispatcher(testScheduler),
             )
@@ -180,11 +166,7 @@ class ButtonHealthFcmSubscriptionManagerTest {
                 authRepository = auth,
                 serverConfigRepository = config,
                 fcmRepository = fcm,
-                fetchButtonHealthUseCase = FetchButtonHealthUseCase(
-                    EnsureFreshIdTokenUseCase(auth),
-                    auth,
-                    repo,
-                ),
+                fetchButtonHealthUseCase = FetchButtonHealthUseCase(auth, repo),
                 scope = backgroundScope,
                 dispatcher = StandardTestDispatcher(testScheduler),
             )
@@ -217,11 +199,7 @@ class ButtonHealthFcmSubscriptionManagerTest {
                 authRepository = auth,
                 serverConfigRepository = config,
                 fcmRepository = fcm,
-                fetchButtonHealthUseCase = FetchButtonHealthUseCase(
-                    EnsureFreshIdTokenUseCase(auth),
-                    auth,
-                    repo,
-                ),
+                fetchButtonHealthUseCase = FetchButtonHealthUseCase(auth, repo),
                 scope = backgroundScope,
                 dispatcher = StandardTestDispatcher(testScheduler),
             )
@@ -237,15 +215,13 @@ class ButtonHealthFcmSubscriptionManagerTest {
         }
 
     @Test
-    fun tokenRefreshDoesNotResubscribeOrRefetch() =
+    fun reEmittingSameAuthStateDoesNotResubscribeOrRefetch() =
         runTest {
-            // Regression test: pre-fix, the manager combined on full
-            // `AuthState`, so a token refresh produced a new
-            // `Authenticated` instance (different idToken value), which
-            // re-emitted through combine and triggered a re-subscribe +
-            // re-fetch. Combined with FetchButtonHealthUseCase auto-
-            // refreshing the token (PR #668), this created a feedback loop
-            // visible as Checking/Online flicker.
+            // Per ADR-027, AuthState is identity-only; a token refresh no
+            // longer produces a new Authenticated instance. Re-emitting
+            // the same value (e.g. Activity recreation echoing the cached
+            // value) must not trigger another subscribe/fetch — the
+            // combine + distinctUntilChanged guard catches that.
             val auth = FakeAuthRepository(_authState = MutableStateFlow(signedInUser))
             val config = FakeServerConfigRepository(MutableStateFlow(configWithButton))
             val fcm = FakeButtonHealthFcmRepository()
@@ -256,11 +232,7 @@ class ButtonHealthFcmSubscriptionManagerTest {
                 authRepository = auth,
                 serverConfigRepository = config,
                 fcmRepository = fcm,
-                fetchButtonHealthUseCase = FetchButtonHealthUseCase(
-                    EnsureFreshIdTokenUseCase(auth),
-                    auth,
-                    repo,
-                ),
+                fetchButtonHealthUseCase = FetchButtonHealthUseCase(auth, repo),
                 scope = backgroundScope,
                 dispatcher = StandardTestDispatcher(testScheduler),
             )
@@ -271,15 +243,8 @@ class ButtonHealthFcmSubscriptionManagerTest {
             assertEquals(1, fcm.subscribeCount)
             assertEquals(1, repo.fetchCount)
 
-            // Simulate a token refresh: same is-authed boolean, different
-            // idToken value. Pre-fix this would re-subscribe and re-fetch.
-            auth.setAuthState(
-                signedInUser.copy(
-                    user = signedInUser.user.copy(
-                        idToken = FirebaseIdToken(idToken = "REFRESHED-TOKEN", exp = Long.MAX_VALUE),
-                    ),
-                ),
-            )
+            // Re-emit the same value (no identity change).
+            auth.setAuthState(signedInUser)
             testScheduler.runCurrent()
             testScheduler.advanceUntilIdle()
 
@@ -302,11 +267,7 @@ private class FakeAuthRepository(
 
     override suspend fun signInWithGoogle(idToken: com.chriscartland.garage.domain.model.GoogleIdToken): AuthState = _authState.value
 
-    override suspend fun refreshIdToken(): FirebaseIdToken? = null
-
-    @Suppress("DEPRECATION")
-    @Deprecated("legacy")
-    override suspend fun refreshFirebaseAuthState(): AuthState = _authState.value
+    override suspend fun getIdToken(forceRefresh: Boolean): FirebaseIdToken? = FirebaseIdToken(idToken = "token-xyz", exp = Long.MAX_VALUE)
 
     override suspend fun signOut() {
         _authState.value = AuthState.Unauthenticated
@@ -328,16 +289,15 @@ private class FakeButtonHealthRepository : ButtonHealthRepository {
     private var fetchResult: AppResult<ButtonHealth, ButtonHealthError> =
         AppResult.Success(ButtonHealth(ButtonHealthState.UNKNOWN, null))
 
-    private val fetchTokens = mutableListOf<String>()
-    val fetchCount: Int get() = fetchTokens.size
-    val lastFetchIdToken: String? get() = fetchTokens.lastOrNull()
+    private var _fetchCount: Int = 0
+    val fetchCount: Int get() = _fetchCount
 
     fun setFetchResult(value: AppResult<ButtonHealth, ButtonHealthError>) {
         fetchResult = value
     }
 
-    override suspend fun fetchButtonHealth(idToken: String): AppResult<ButtonHealth, ButtonHealthError> {
-        fetchTokens.add(idToken)
+    override suspend fun fetchButtonHealth(): AppResult<ButtonHealth, ButtonHealthError> {
+        _fetchCount++
         return fetchResult
     }
 

@@ -46,12 +46,13 @@ interface ButtonHealthRepository {
     /**
      * Force-refresh the cached state from the server's cold-start endpoint.
      *
-     * The caller (typically [ButtonHealthFcmSubscriptionManager]) provides
-     * the current Firebase ID token. Returns [AppResult.Success] with the
+     * Per ADR-027 the implementation fetches the current Firebase ID token
+     * itself via [com.chriscartland.garage.domain.repository.AuthRepository.getIdToken];
+     * callers do not pass a token. Returns [AppResult.Success] with the
      * freshly-fetched value (also written to [buttonHealth]) or
      * [AppResult.Error] with the typed failure mode.
      */
-    suspend fun fetchButtonHealth(idToken: String): AppResult<ButtonHealth, ButtonHealthError>
+    suspend fun fetchButtonHealth(): AppResult<ButtonHealth, ButtonHealthError>
 
     /**
      * Apply a server-pushed update from an FCM data message.

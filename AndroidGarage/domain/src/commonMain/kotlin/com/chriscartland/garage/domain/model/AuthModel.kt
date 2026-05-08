@@ -28,10 +28,16 @@ value class GoogleIdToken(
     fun asString(): String = s
 }
 
+/**
+ * User identity. Does NOT carry an ID token — the token is a private
+ * concern of [com.chriscartland.garage.domain.repository.AuthRepository]
+ * (see ADR-027). Components that need a token call
+ * `AuthRepository.getIdToken(forceRefresh)` explicitly; UseCases
+ * never touch a token.
+ */
 data class User(
     val name: DisplayName,
     val email: Email,
-    val idToken: FirebaseIdToken,
 )
 
 sealed class AuthState {

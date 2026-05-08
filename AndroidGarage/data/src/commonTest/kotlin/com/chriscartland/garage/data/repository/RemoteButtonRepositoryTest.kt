@@ -1,7 +1,9 @@
 package com.chriscartland.garage.data.repository
 
 import com.chriscartland.garage.data.NetworkResult
+import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.ServerConfig
+import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import kotlinx.coroutines.CoroutineScope
@@ -25,12 +27,17 @@ class RemoteButtonRepositoryTest {
     private lateinit var networkConfigDataSource: FakeNetworkConfigDataSource
     private lateinit var externalScope: CoroutineScope
 
-    private fun buildRepo(enabled: Boolean = true): NetworkRemoteButtonRepository =
-        NetworkRemoteButtonRepository(
+    private fun buildRepo(enabled: Boolean = true): NetworkRemoteButtonRepository {
+        val authRepo = FakeAuthRepository().apply {
+            setIdTokenResult(FirebaseIdToken(idToken = "token", exp = Long.MAX_VALUE))
+        }
+        return NetworkRemoteButtonRepository(
             networkButtonDataSource,
             CachedServerConfigRepository(networkConfigDataSource, "test-key", externalScope),
+            authRepository = authRepo,
             remoteButtonPushEnabled = enabled,
         )
+    }
 
     @BeforeTest
     fun setup() {
@@ -49,7 +56,7 @@ class RemoteButtonRepositoryTest {
         runTest {
             networkConfigDataSource.setServerConfigResult(NetworkResult.ConnectionFailed)
             val repo = buildRepo()
-            val result = repo.pushButton("token", "ack-token")
+            val result = repo.pushButton("ack-token")
             assertEquals(false, result)
             assertEquals(0, networkButtonDataSource.pushCount)
         }
@@ -63,7 +70,7 @@ class RemoteButtonRepositoryTest {
                 ),
             )
             val repo = buildRepo()
-            val result = repo.pushButton("token", "ack-token")
+            val result = repo.pushButton("ack-token")
             assertEquals(true, result)
             assertEquals(1, networkButtonDataSource.pushCount)
         }
@@ -78,7 +85,7 @@ class RemoteButtonRepositoryTest {
             )
             networkButtonDataSource.setPushResult(NetworkResult.HttpError(500))
             val repo = buildRepo()
-            val result = repo.pushButton("token", "ack-token")
+            val result = repo.pushButton("ack-token")
             assertEquals(false, result)
             assertEquals(1, networkButtonDataSource.pushCount)
         }
@@ -93,7 +100,7 @@ class RemoteButtonRepositoryTest {
             )
             networkButtonDataSource.setPushResult(NetworkResult.ConnectionFailed)
             val repo = buildRepo()
-            val result = repo.pushButton("token", "ack-token")
+            val result = repo.pushButton("ack-token")
             assertEquals(false, result)
         }
 
@@ -106,7 +113,7 @@ class RemoteButtonRepositoryTest {
                 ),
             )
             val disabledRepo = buildRepo(enabled = false)
-            val result = disabledRepo.pushButton("token", "ack-token")
+            val result = disabledRepo.pushButton("ack-token")
             assertEquals(false, result)
             assertEquals(0, networkButtonDataSource.pushCount)
         }

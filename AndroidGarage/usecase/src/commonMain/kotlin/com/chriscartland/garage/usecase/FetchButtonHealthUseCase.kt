@@ -27,27 +27,22 @@ import com.chriscartland.garage.domain.repository.ButtonHealthRepository
 /**
  * Cold-start fetch for the remote-button device's online/offline state.
  *
- * Self-wraps auth (mirrors `PushRemoteButtonUseCase` and
- * `SnoozeNotificationsUseCase`): reads the current [AuthState], gates on
- * [AuthState.Authenticated], and refreshes the id token via
- * [EnsureFreshIdTokenUseCase] before calling the repository. ViewModels
- * call `invoke()` with no token argument and handle the typed result.
+ * Per ADR-027 the UseCase doesn't see the ID token; it gates on
+ * [AuthState.Authenticated] and delegates to the repository, which
+ * fetches a fresh token internally before calling its data source.
  *
  * Updates [ButtonHealthRepository.buttonHealth] on success. Returns
  * the typed result so the caller (the Manager) can react to Forbidden
  * by unsubscribing from the FCM topic.
  */
 class FetchButtonHealthUseCase(
-    private val ensureFreshIdToken: EnsureFreshIdTokenUseCase,
     private val authRepository: AuthRepository,
     private val repository: ButtonHealthRepository,
 ) {
     suspend operator fun invoke(): AppResult<ButtonHealth, ButtonHealthError> {
-        val authState = authRepository.authState.value
-        if (authState !is AuthState.Authenticated) {
+        if (authRepository.authState.value !is AuthState.Authenticated) {
             return AppResult.Error(ButtonHealthError.NotAuthenticated())
         }
-        val idToken = ensureFreshIdToken(authState)
-        return repository.fetchButtonHealth(idToken.asString())
+        return repository.fetchButtonHealth()
     }
 }

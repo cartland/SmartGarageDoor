@@ -3,7 +3,6 @@ package com.chriscartland.garage.usecase
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
-import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
@@ -76,7 +75,6 @@ class DefaultAuthViewModelTest {
             val user = User(
                 name = DisplayName("Alice"),
                 email = Email("alice@test.com"),
-                idToken = FirebaseIdToken("token", exp = 9999999999L),
             )
             authRepo.setSignInResult(AuthState.Authenticated(user))
 
@@ -108,7 +106,6 @@ class DefaultAuthViewModelTest {
                     user = User(
                         name = DisplayName("Test"),
                         email = Email("test@test.com"),
-                        idToken = FirebaseIdToken("token", exp = 9999999999L),
                     ),
                 ),
             )
@@ -142,7 +139,6 @@ class DefaultAuthViewModelTest {
             val user = User(
                 name = DisplayName("Alice"),
                 email = Email("alice@test.com"),
-                idToken = FirebaseIdToken("token", exp = 9999999999L),
             )
             authRepo.setAuthState(AuthState.Authenticated(user))
             advanceUntilIdle()

@@ -87,7 +87,6 @@ import com.chriscartland.garage.usecase.DefaultReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.DefaultRegisterFcmUseCase
 import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
-import com.chriscartland.garage.usecase.EnsureFreshIdTokenUseCase
 import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
@@ -385,22 +384,16 @@ abstract class AppComponent(
     fun provideDeregisterFcmUseCase(doorFcmRepository: DoorFcmRepository): DeregisterFcmUseCase = DeregisterFcmUseCase(doorFcmRepository)
 
     @Provides
-    fun provideEnsureFreshIdTokenUseCase(authRepository: AuthRepository): EnsureFreshIdTokenUseCase =
-        EnsureFreshIdTokenUseCase(authRepository)
-
-    @Provides
     fun providePushRemoteButtonUseCase(
-        ensureFreshIdToken: EnsureFreshIdTokenUseCase,
         authRepository: AuthRepository,
         remoteButtonRepository: RemoteButtonRepository,
-    ): PushRemoteButtonUseCase = PushRemoteButtonUseCase(ensureFreshIdToken, authRepository, remoteButtonRepository)
+    ): PushRemoteButtonUseCase = PushRemoteButtonUseCase(authRepository, remoteButtonRepository)
 
     @Provides
     fun provideSnoozeNotificationsUseCase(
-        ensureFreshIdToken: EnsureFreshIdTokenUseCase,
         authRepository: AuthRepository,
         snoozeRepository: SnoozeRepository,
-    ): SnoozeNotificationsUseCase = SnoozeNotificationsUseCase(ensureFreshIdToken, authRepository, snoozeRepository)
+    ): SnoozeNotificationsUseCase = SnoozeNotificationsUseCase(authRepository, snoozeRepository)
 
     @Provides
     fun provideFetchSnoozeStatusUseCase(snoozeRepository: SnoozeRepository): FetchSnoozeStatusUseCase =
@@ -416,10 +409,9 @@ abstract class AppComponent(
 
     @Provides
     fun provideFetchButtonHealthUseCase(
-        ensureFreshIdToken: EnsureFreshIdTokenUseCase,
         authRepository: AuthRepository,
         buttonHealthRepository: ButtonHealthRepository,
-    ): FetchButtonHealthUseCase = FetchButtonHealthUseCase(ensureFreshIdToken, authRepository, buttonHealthRepository)
+    ): FetchButtonHealthUseCase = FetchButtonHealthUseCase(authRepository, buttonHealthRepository)
 
     @Provides
     fun provideApplyButtonHealthFcmUseCase(buttonHealthRepository: ButtonHealthRepository): ApplyButtonHealthFcmUseCase =
@@ -570,22 +562,30 @@ abstract class AppComponent(
     fun provideRemoteButtonRepository(
         networkButtonDataSource: NetworkButtonDataSource,
         serverConfigRepository: ServerConfigRepository,
+        authRepository: AuthRepository,
         appConfig: AppConfig,
     ): RemoteButtonRepository =
-        NetworkRemoteButtonRepository(networkButtonDataSource, serverConfigRepository, appConfig.remoteButtonPushEnabled)
+        NetworkRemoteButtonRepository(
+            networkButtonDataSource = networkButtonDataSource,
+            serverConfigRepository = serverConfigRepository,
+            authRepository = authRepository,
+            remoteButtonPushEnabled = appConfig.remoteButtonPushEnabled,
+        )
 
     @Provides
     @Singleton
     fun provideSnoozeRepository(
         networkButtonDataSource: NetworkButtonDataSource,
         serverConfigRepository: ServerConfigRepository,
+        authRepository: AuthRepository,
         appConfig: AppConfig,
         applicationScope: CoroutineScope,
     ): SnoozeRepository =
         NetworkSnoozeRepository(
-            networkButtonDataSource,
-            serverConfigRepository,
-            appConfig.snoozeNotificationsOption,
+            networkButtonDataSource = networkButtonDataSource,
+            serverConfigRepository = serverConfigRepository,
+            authRepository = authRepository,
+            snoozeNotificationsOption = appConfig.snoozeNotificationsOption,
             currentTimeSeconds = { System.currentTimeMillis() / 1000 },
             externalScope = applicationScope,
         )
@@ -603,11 +603,13 @@ abstract class AppComponent(
     fun provideButtonHealthRepository(
         networkButtonHealthDataSource: NetworkButtonHealthDataSource,
         serverConfigRepository: ServerConfigRepository,
+        authRepository: AuthRepository,
         applicationScope: CoroutineScope,
     ): ButtonHealthRepository =
         NetworkButtonHealthRepository(
             networkButtonHealthDataSource = networkButtonHealthDataSource,
             serverConfigRepository = serverConfigRepository,
+            authRepository = authRepository,
             externalScope = applicationScope,
         )
 

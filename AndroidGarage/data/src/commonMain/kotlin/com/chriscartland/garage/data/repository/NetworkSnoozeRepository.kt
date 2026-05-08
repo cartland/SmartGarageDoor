@@ -24,6 +24,7 @@ import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.SnoozeState
+import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.domain.repository.SnoozeRepository
 import kotlinx.coroutines.CoroutineScope
@@ -51,6 +52,7 @@ import kotlinx.coroutines.launch
 class NetworkSnoozeRepository(
     private val networkButtonDataSource: NetworkButtonDataSource,
     private val serverConfigRepository: ServerConfigRepository,
+    private val authRepository: AuthRepository,
     private val snoozeNotificationsOption: Boolean,
     private val currentTimeSeconds: () -> Long,
     private val externalScope: CoroutineScope,
@@ -70,12 +72,11 @@ class NetworkSnoozeRepository(
 
     override suspend fun snoozeNotifications(
         snoozeDurationHours: String,
-        idToken: String,
         snoozeEventTimestampSeconds: Long,
     ): AppResult<SnoozeState, ActionError> =
         externalScope
             .async {
-                doSnoozeNotifications(snoozeDurationHours, idToken, snoozeEventTimestampSeconds)
+                doSnoozeNotifications(snoozeDurationHours, snoozeEventTimestampSeconds)
             }.await()
 
     private suspend fun doFetchSnoozeStatus(): AppResult<SnoozeState, FetchError> {
@@ -121,7 +122,6 @@ class NetworkSnoozeRepository(
 
     private suspend fun doSnoozeNotifications(
         snoozeDurationHours: String,
-        idToken: String,
         snoozeEventTimestampSeconds: Long,
     ): AppResult<SnoozeState, ActionError> {
         val serverConfig = serverConfigRepository.serverConfig.value
@@ -137,11 +137,17 @@ class NetworkSnoozeRepository(
             // flow value so callers don't see a phantom network failure.
             return AppResult.Success(_snoozeState.value)
         }
+        // ADR-027: token is fetched at the repository layer.
+        val idToken = authRepository.getIdToken(forceRefresh = true)
+        if (idToken == null) {
+            Logger.e { "Snooze: getIdToken returned null" }
+            return AppResult.Error(ActionError.NotAuthenticated)
+        }
         return when (
             val result = networkButtonDataSource.snoozeNotifications(
                 buildTimestamp = serverConfig.buildTimestamp,
                 remoteButtonPushKey = serverConfig.remoteButtonPushKey,
-                idToken = idToken,
+                idToken = idToken.asString(),
                 snoozeDurationHours = snoozeDurationHours,
                 snoozeEventTimestampSeconds = snoozeEventTimestampSeconds,
             )

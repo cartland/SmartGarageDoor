@@ -77,6 +77,7 @@ class SharedRepositoryUseCasesTest {
     private fun buildSharedRepository(
         now: Long,
         fetchResult: NetworkResult<Long>,
+        authRepo: FakeAuthRepository = authenticatedAuthRepo(),
     ): Pair<FakeNetworkButtonDataSource, SnoozeRepository> {
         val buttonDs = FakeNetworkButtonDataSource().apply {
             setFetchSnoozeResult(fetchResult)
@@ -85,6 +86,7 @@ class SharedRepositoryUseCasesTest {
         val repo: SnoozeRepository = NetworkSnoozeRepository(
             networkButtonDataSource = buttonDs,
             serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
+            authRepository = authRepo,
             snoozeNotificationsOption = true,
             currentTimeSeconds = { now },
             externalScope = externalScope,
@@ -94,12 +96,12 @@ class SharedRepositoryUseCasesTest {
 
     private fun authenticatedAuthRepo(): FakeAuthRepository =
         FakeAuthRepository().apply {
+            setIdTokenResult(FirebaseIdToken(idToken = "tok", exp = Long.MAX_VALUE))
             setAuthState(
                 AuthState.Authenticated(
                     user = User(
                         name = DisplayName("Test"),
                         email = Email("t@t.test"),
-                        idToken = FirebaseIdToken(idToken = "tok", exp = Long.MAX_VALUE),
                     ),
                 ),
             )
@@ -121,8 +123,7 @@ class SharedRepositoryUseCasesTest {
             // wired to the SAME shared repository. This is the production
             // pattern: UseCases are created fresh per access (not @Singleton),
             // the Repository is the only @Singleton.
-            val ensureFreshToken = EnsureFreshIdTokenUseCase(authRepo)
-            val submitUseCase = SnoozeNotificationsUseCase(ensureFreshToken, authRepo, sharedRepo)
+            val submitUseCase = SnoozeNotificationsUseCase(authRepo, sharedRepo)
             val observeUseCase = ObserveSnoozeStateUseCase(sharedRepo)
 
             advanceUntilIdle()
@@ -173,8 +174,7 @@ class SharedRepositoryUseCasesTest {
             buttonDs.setSnoozeResult(NetworkResult.Success(now)) // clear — end time == now
             val authRepo = authenticatedAuthRepo()
 
-            val ensureFreshToken = EnsureFreshIdTokenUseCase(authRepo)
-            val submitUseCase = SnoozeNotificationsUseCase(ensureFreshToken, authRepo, sharedRepo)
+            val submitUseCase = SnoozeNotificationsUseCase(authRepo, sharedRepo)
             val observeUseCase = ObserveSnoozeStateUseCase(sharedRepo)
 
             advanceUntilIdle()

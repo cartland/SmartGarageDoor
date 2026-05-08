@@ -13,7 +13,6 @@ package com.chriscartland.garage.usecase
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
-import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.domain.repository.SnoozeRepository
@@ -74,7 +73,6 @@ class SnoozeStateFlowPropagationTest {
                 user = User(
                     name = DisplayName("Test"),
                     email = Email("test@test.com"),
-                    idToken = FirebaseIdToken(idToken = "token", exp = Long.MAX_VALUE),
                 ),
             ),
         )
@@ -85,19 +83,17 @@ class SnoozeStateFlowPropagationTest {
         Dispatchers.resetMain()
     }
 
-    private fun buildVm(snoozeRepository: SnoozeRepository): DefaultRemoteButtonViewModel {
-        val ensureFreshIdToken = EnsureFreshIdTokenUseCase(authRepository)
-        return DefaultRemoteButtonViewModel(
+    private fun buildVm(snoozeRepository: SnoozeRepository): DefaultRemoteButtonViewModel =
+        DefaultRemoteButtonViewModel(
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
             dispatchers = TestDispatcherProvider(testDispatcher),
-            pushRemoteButtonUseCase = PushRemoteButtonUseCase(ensureFreshIdToken, authRepository, remoteButtonRepository),
-            snoozeNotificationsUseCase = SnoozeNotificationsUseCase(ensureFreshIdToken, authRepository, snoozeRepository),
+            pushRemoteButtonUseCase = PushRemoteButtonUseCase(authRepository, remoteButtonRepository),
+            snoozeNotificationsUseCase = SnoozeNotificationsUseCase(authRepository, snoozeRepository),
             fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
             observeSnoozeStateUseCase = ObserveSnoozeStateUseCase(snoozeRepository),
             buttonHealthDisplay = kotlinx.coroutines.flow.emptyFlow(),
             appVersion = "test",
         )
-    }
 
     // ----------------------------------------------------------------
     // 2. Two-hop chain: every repo update is visible on vm.snoozeState.
