@@ -52,6 +52,7 @@ import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.ui.GarageIcon
 import com.chriscartland.garage.ui.theme.DoorColorState
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
+import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.doorColorState
 
@@ -171,7 +172,11 @@ private fun HistoryDaySection(day: HistoryDay) {
             text = day.label.uppercase(),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
+            modifier = Modifier.padding(
+                start = Spacing.SectionHeaderStart,
+                top = Spacing.SectionHeaderTop,
+                bottom = Spacing.SectionHeaderBottom,
+            ),
         )
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainer,
