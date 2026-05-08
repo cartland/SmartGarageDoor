@@ -189,53 +189,63 @@ fun DiagnosticsContent(
                 }
             }
         }
-        Button(
-            onClick = onExportCsv,
+        // Action buttons sit in a sub-Column whose Arrangement.spacedBy
+        // owns the gap between buttons (parent-vs-child spacing rule:
+        // children don't claim ownership of their outer gap). Horizontal
+        // and bottom screen padding move from per-button modifiers to the
+        // Column wrapper so the rule "single source of horizontal layout"
+        // holds inside this section too.
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp),
+                .padding(horizontal = Spacing.Screen)
+                .padding(vertical = Spacing.ListVertical),
+            verticalArrangement = Arrangement.spacedBy(ButtonSpacing.Stacked),
         ) {
-            Icon(
-                imageVector = Icons.Filled.Download,
-                contentDescription = null,
-            )
-            Text(
-                text = "Export CSV",
-                modifier = Modifier.padding(start = ButtonSpacing.IconText),
-            )
-        }
-        OutlinedButton(
-            onClick = { confirmClearOpen = true },
-            enabled = !clearInFlight,
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = MaterialTheme.colorScheme.error,
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-        ) {
-            // While the clear is in flight, swap the trash icon for a small
-            // spinner and the label for "Clearing…". Button is disabled so
-            // a second tap can't queue another clear during the wait.
-            if (clearInFlight) {
-                CircularProgressIndicator(
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(20.dp),
-                )
-                Text(
-                    text = "Clearing…",
-                    modifier = Modifier.padding(start = ButtonSpacing.IconText),
-                )
-            } else {
+            Button(
+                onClick = onExportCsv,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Icon(
-                    imageVector = Icons.Outlined.DeleteForever,
+                    imageVector = Icons.Filled.Download,
                     contentDescription = null,
                 )
                 Text(
-                    text = "Clear all diagnostics",
+                    text = "Export CSV",
                     modifier = Modifier.padding(start = ButtonSpacing.IconText),
                 )
+            }
+            OutlinedButton(
+                onClick = { confirmClearOpen = true },
+                enabled = !clearInFlight,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                // While the clear is in flight, swap the trash icon for a small
+                // spinner and the label for "Clearing…". Button is disabled so
+                // a second tap can't queue another clear during the wait.
+                if (clearInFlight) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Text(
+                        text = "Clearing…",
+                        modifier = Modifier.padding(start = ButtonSpacing.IconText),
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Outlined.DeleteForever,
+                        contentDescription = null,
+                    )
+                    Text(
+                        text = "Clear all diagnostics",
+                        modifier = Modifier.padding(start = ButtonSpacing.IconText),
+                    )
+                }
             }
         }
     }
