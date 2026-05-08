@@ -61,8 +61,11 @@ import com.chriscartland.garage.ui.GarageIcon
 import com.chriscartland.garage.ui.RemoteButtonContent
 import com.chriscartland.garage.ui.RemoteButtonHealthPill
 import com.chriscartland.garage.ui.TitleBarCheckInPill
+import com.chriscartland.garage.ui.theme.ButtonSpacing
+import com.chriscartland.garage.ui.theme.CardPadding
 import com.chriscartland.garage.ui.theme.DoorColorState
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
+import com.chriscartland.garage.ui.theme.ParagraphSpacing
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.ui.theme.doorColorSet
@@ -171,12 +174,12 @@ fun HomeContent(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(vertical = Spacing.ListVertical),
+            verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems),
         ) {
             if (alerts.isNotEmpty()) {
                 item(key = "alerts") {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems)) {
                         alerts.forEach { alert ->
                             HomeAlertCard(
                                 alert = alert,
@@ -281,7 +284,7 @@ private fun HomeStatusCardBody(status: HomeStatusDisplay) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 24.dp, horizontal = 16.dp),
+            .padding(CardPadding.Tall),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -303,7 +306,7 @@ private fun HomeStatusCardBody(status: HomeStatusDisplay) {
         }
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(Spacing.Tight),
         ) {
             Text(
                 text = status.stateLabel,
@@ -317,7 +320,7 @@ private fun HomeStatusCardBody(status: HomeStatusDisplay) {
                 textAlign = TextAlign.Center,
             )
             if (status.warning != null) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(Spacing.Tight))
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer,
@@ -350,7 +353,7 @@ private fun HomeRemoteButtonBody(
     state: RemoteButtonState,
     onTap: () -> Unit,
 ) {
-    Box(modifier = Modifier.padding(16.dp)) {
+    Box(modifier = Modifier.padding(CardPadding.Standard)) {
         RemoteButtonContent(
             state = state,
             onTap = onTap,
@@ -423,7 +426,7 @@ private fun HomeAlertCard(
             .clip(MaterialTheme.shapes.large),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.padding(CardPadding.Compact),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -432,13 +435,13 @@ private fun HomeAlertCard(
                 tint = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.size(24.dp),
             )
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(ParagraphSpacing.IconToText))
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(1f),
             )
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(ButtonSpacing.Inline))
             Button(onClick = onAction) { Text(actionLabel) }
         }
     }
@@ -490,7 +493,7 @@ fun HomeContentOpenSignedInPreview() =
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Loading,
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
 
@@ -504,7 +507,7 @@ fun HomeContentClosedSignedInPreview() =
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Loading,
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
 
@@ -518,7 +521,7 @@ fun HomeContentAwaitingConfirmationPreview() =
             remoteButtonState = RemoteButtonState.AwaitingConfirmation,
             deviceCheckIn = HomePreviewData.freshCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Loading,
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
 
@@ -532,7 +535,7 @@ fun HomeContentSendingToDoorPreview() =
             remoteButtonState = RemoteButtonState.SendingToDoor,
             deviceCheckIn = HomePreviewData.freshCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Loading,
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
 
@@ -546,7 +549,7 @@ fun HomeContentOpeningTooLongPreview() =
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Loading,
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
 
@@ -561,7 +564,7 @@ fun HomeContentStaleBannerPreview() =
             alerts = listOf(HomePreviewData.staleAlert),
             deviceCheckIn = HomePreviewData.staleCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Loading,
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
 
@@ -576,7 +579,7 @@ fun HomeContentPermissionMissingPreview() =
             alerts = listOf(HomePreviewData.permissionAlert),
             deviceCheckIn = HomePreviewData.freshCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Loading,
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
 
@@ -589,7 +592,7 @@ fun HomeContentSignedOutPreview() =
             authState = HomeAuthState.SignedOut,
             deviceCheckIn = HomePreviewData.freshCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Loading,
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
 
@@ -608,7 +611,7 @@ fun HomeContentRemotePillUnauthorizedPreview() =
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Unauthorized,
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
 
@@ -622,7 +625,7 @@ fun HomeContentRemotePillLoadingPreview() =
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Loading,
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
 
@@ -636,7 +639,7 @@ fun HomeContentRemotePillUnknownPreview() =
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Unknown,
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
 
@@ -650,7 +653,7 @@ fun HomeContentRemotePillOnlinePreview() =
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Online,
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
 
@@ -664,7 +667,7 @@ fun HomeContentRemotePillOfflinePreview() =
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Offline(durationLabel = "11 min ago"),
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
 
