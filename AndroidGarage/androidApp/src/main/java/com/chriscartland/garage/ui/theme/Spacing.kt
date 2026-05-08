@@ -73,20 +73,25 @@ object Spacing {
      * Standard `contentPadding` for screen-level `LazyColumn`s whose
      * bottom edge sits directly above the bottom NavigationBar.
      *
-     * Top = [ListVertical] (16dp) — breathing room before the first item.
+     * Top = 8dp — minimal breathing room above the first item; the
+     * TopAppBar above is opaque chrome that already provides visual
+     * separation, and the first item's own top padding (section header's
+     * `SectionHeaderTop = 8dp`, warning paragraph's `vertical = 8dp`)
+     * adds another 8dp for ~16dp visible space before the first text.
+     *
      * Bottom = 24dp — clearance between the last item and the tab bar.
-     * Asymmetric on purpose: the bar is opaque chrome the eye reads as a
-     * hard boundary, so a flush-to-bar last item feels cramped. The 24dp
-     * absorbs the previous "16dp contentPadding + 8dp tail-spacer item"
-     * pattern into a single token — parent owns the gap, no per-screen
-     * tail spacer needed.
+     * Larger than top on purpose: the NavigationBar is below the content,
+     * not above it, so the last item *scrolls into* this boundary as the
+     * user pulls up. Without the list owning the gap, the last item butts
+     * against the bar and the button's interior padding is the only
+     * cushion.
      *
      * Apply via `LazyColumn(contentPadding = Spacing.ListContentPadding, ...)`.
      * Use raw [ListVertical] when the LazyColumn does NOT end at the tab
      * bar (e.g. `DiagnosticsContent` has action buttons below its
      * LazyColumn, so the chrome clearance is owned by the wrapper Column).
      */
-    val ListContentPadding = PaddingValues(top = ListVertical, bottom = 24.dp)
+    val ListContentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)
 }
 
 /**
