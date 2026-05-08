@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-04-24
+last_verified: 2026-05-08
 ---
 # Architectural Decision Records
 
@@ -1511,3 +1511,70 @@ A Gradle task `checkScreenViewModelCardinality` enforces this rule. Existing leg
 - [`ScreenViewModelCheckTask.kt`](../buildSrc/src/main/kotlin/architecture/ScreenViewModelCheckTask.kt) — the check
 - [`screen-viewmodel-exemptions.txt`](../screen-viewmodel-exemptions.txt) — the exemptions list
 - [`FunctionListViewModel.kt`](../usecase/src/commonMain/kotlin/com/chriscartland/garage/usecase/FunctionListViewModel.kt) — canonical 1:1 example
+
+## ADR-027: ID Token State Lives Inside `AuthRepository`
+
+### Status
+
+Accepted — 2026-05-08.
+
+### Context
+
+The current `AuthState.Authenticated(user: User)` couples user identity (name, email) with a refreshable Firebase ID token (`User.idToken`). Three problems compound from that coupling:
+
+1. **The reactive listener loop has a side-effecting fetch.** `FirebaseAuthRepository.init { externalScope.launch { authBridge.observeAuthUser().collect { ... } } }` calls `authBridge.getIdToken(...)` inside the observer to construct `AuthState.Authenticated`. An "observe" should not also be a "fetch". When the token fetch returns null, the observer writes `AuthState.Unauthenticated` even when the user is signed in — the 2.13.2 sign-in regression was a deterministic instance of this path firing.
+2. **Token refreshes mutate the StateFlow.** `AuthRepository.refreshIdToken()` writes a new `Authenticated` instance to `_authState.value` (same is-authed boolean, fresh idToken field), causing every `combine(authState, ...)` observer to re-emit. The 2.12.1 `ButtonHealthFcmSubscriptionManager` flicker was a feedback loop caused by this churn; we patched it by combining on `it is AuthState.Authenticated` instead of the full state.
+3. **Every authed UseCase has to plumb the token.** UseCases call `EnsureFreshIdTokenUseCase`, then read `authState.value.user.idToken`, then pass the token down to a data source. The token is now visible at three layers — UseCase, repository, data source — even though only the data source needs it for the HTTP header.
+
+The agent-team exploration on 2026-05-08 surfaced three options for resolving the architectural debt: a full Ktor `SendPipeline` interceptor (Option A), an explicit `getIdToken` UseCase-level call (Option B), or a hybrid where the repository owns the fetch (Option C).
+
+### Decision
+
+Adopt **Option C**: the ID token is a private concern of `AuthRepository` and the network repositories that need it. UseCases never touch a token.
+
+Concretely:
+
+- `User` carries `name` and `email` only — no `idToken` field.
+- `AuthState` emits identity changes only. Token refreshes do NOT cause `_authState` re-emission.
+- `AuthRepository` exposes `suspend fun getIdToken(forceRefresh: Boolean): FirebaseIdToken?` for components that *legitimately* need a token. Network repositories call it; UseCases do not.
+- Each `Network*Repository` (`NetworkButtonHealthRepository`, `NetworkRemoteButtonRepository`, `NetworkSnoozeRepository`, `CachedFeatureAllowlistRepository`) gets `AuthRepository` injected and calls `getIdToken(forceRefresh = true)` itself before delegating to its data source.
+- `EnsureFreshIdTokenUseCase` is deleted. Its responsibility moves into the repositories that own the network call.
+- The reactive listener loop in `FirebaseAuthRepository` becomes pure: it maps `AuthUserInfo?` to `AuthState` directly, with no `getIdToken` call inside the collector.
+
+The 2.13.3 defensive `forceRefresh = false ?: forceRefresh = true` fallback in the listener loop is *removed* as part of the migration — the listener no longer fetches a token at all, so the fallback has nothing to defend against.
+
+### Rationale
+
+**Why Option C and not A.** Option A (Ktor `SendPipeline` interceptor that adds the bearer header for every authed request, with UseCases token-free) is also clean but ~2,400 LOC across ~30 files and couples the data layer to Ktor specifically. Option C achieves the same UseCase-side outcome (no token visibility) at ~500 LOC across ~13 files without the HTTP-library coupling. If we ever want Option A's interceptor on top of Option C, the per-repo `getIdToken` call deletes cleanly — Option C is forward-compatible with A.
+
+**Why Option C and not B.** Option B (explicit `getIdToken` at the UseCase level) eliminates the listener-loop issue but leaves the token visible to UseCases. The user's framing question — "can the ID token be contained in the Repository and not exposed to a UseCase" — is exactly Option B's failure mode. Option C keeps the rules of Option B (listener pure, on-demand fetch) and moves the fetch *down one layer* into the repos that legitimately need it.
+
+**Why repositories make the call, not data sources.** Two reasons. First, data sources are the seam where we fake out the network in tests; making them depend on `AuthRepository` would force every fake to wire in an auth fake, which is unnecessary friction. Second, the repository is the right unit of business logic — "fetch button health" is a business concern; the token is an implementation detail of how to authenticate the call.
+
+**Why delete `EnsureFreshIdTokenUseCase`.** The UseCase exists to refresh an expired token before passing it to a UseCase that uses it. Once UseCases don't see tokens, the refresh logic moves inline into the repo's `getIdToken(forceRefresh = true)` call. Keeping `EnsureFreshIdTokenUseCase` as a thin wrapper would just be a layer of indirection without value.
+
+**Why the 2.12.1 workaround in `ButtonHealthFcmSubscriptionManager` survives this change.** Once `_authState` no longer churns on token refresh, `combine(authState, ...)` would not re-emit unnecessarily — making the workaround technically redundant. But the workaround is correct on its own merits (combine on the boolean we actually care about) and removing it would be cosmetic. Defer that cleanup; this ADR doesn't mandate it.
+
+### Consequences
+
+- Listener loop is pure observation. Sign-in race in `FirebaseAuthRepository.kt` (the deterministic state encountered on 2.13.2) cannot recur structurally.
+- `AuthState` is stable across token refreshes. Future `combine(authState, ...)` callers don't have to defend against churn.
+- Test surface for UseCases shrinks. `FetchButtonHealthUseCase`, `PushRemoteButtonUseCase`, `SnoozeNotificationsUseCase` no longer need `EnsureFreshIdTokenUseCase` injected; their tests drop the corresponding fake.
+- `Network*Repository` test surface grows by one dependency (`AuthRepository`). Fakes need to provide a sensible `getIdToken` implementation.
+- The 2.13.3 defensive fallback is deletable post-migration; the listener no longer fetches a token at all.
+- Migration is two PRs: a contract change (drop `idToken` from `User`, add `getIdToken` to interface, rewrite listener, update fakes — compilation breaks at every call site that read `user.idToken`, which is the migration guide), then a call-site fix-up.
+
+### When this decision might change
+
+- Adopting Option A's Ktor interceptor on top of Option C. The per-repo `getIdToken` calls disappear; everything else stays. Forward-compatible.
+- Adding a non-Firebase auth backend. `AuthRepository.getIdToken` is bridge-shaped — it doesn't care which IdP produced the token. The interface holds.
+- Token semantics that don't match Firebase's "ID token + refresh on demand" model (e.g., short-lived access token with separate refresh dance). At that point `AuthRepository.getIdToken` would split into multiple methods or expose a richer credential type.
+
+### References
+
+- [`FirebaseAuthRepository.kt`](../data/src/commonMain/kotlin/com/chriscartland/garage/data/repository/FirebaseAuthRepository.kt) — current listener loop with the 2.13.3 defensive fallback; rewritten to be pure under Option C
+- [`AuthRepository.kt`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/repository/AuthRepository.kt) — interface gaining `getIdToken(forceRefresh)`
+- [`AuthModel.kt`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/model/AuthModel.kt) — `User` losing `idToken`
+- ADR-018 — reactive auth listener pattern (predecessor; this ADR sharpens the rule)
+- ADR-022 — `StateFlow` at the repository boundary (this ADR refines what's *in* that StateFlow)
+- 2.13.3 CHANGELOG entry — the defensive patch this refactor supersedes
