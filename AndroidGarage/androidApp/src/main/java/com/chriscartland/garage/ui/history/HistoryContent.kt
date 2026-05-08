@@ -19,7 +19,6 @@ package com.chriscartland.garage.ui.history
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -150,7 +149,7 @@ fun HistoryContent(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = Spacing.ListVertical),
+            contentPadding = Spacing.ListContentPadding,
             verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems),
         ) {
             if (days.isEmpty()) {
@@ -162,7 +161,6 @@ fun HistoryContent(
                     }
                 }
             }
-            item { Spacer(modifier = Modifier.height(8.dp)) }
         }
     }
 }
