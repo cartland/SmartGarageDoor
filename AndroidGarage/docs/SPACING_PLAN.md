@@ -9,9 +9,13 @@ A proposal to introduce a small, named set of spacing tokens that capture the sp
 
 ## Status (2026-05-08)
 
-**Stages 1–4 and Stage 0 shipped to `main`** in PRs #677–#683. Tokens are in place across every screen. Tablet/landscape content is centered at 640dp via `RouteContent`. Diagnostics action buttons follow the parent-vs-child spacing rule via `Arrangement.spacedBy(ButtonSpacing.Stacked)`.
+**Stages 1–4 and Stage 0 shipped** in PRs #677–#683 (released as `android/203` / 2.13.0). Tokens are in place across every screen. Tablet/landscape content is centered at 640dp via `RouteContent`. Diagnostics action buttons follow the parent-vs-child spacing rule via `Arrangement.spacedBy(ButtonSpacing.Stacked)`.
 
-Not yet shipped to a release tag — the work sits between `android/202` and the next `android/N` minor bump. The large-screen cap is the user-facing capability that justifies the bump.
+**Two follow-up patches** landed during the same session:
+- **PR #686 (2.13.1)** — tokenized the list bottom-padding pattern as `Spacing.ListContentPadding` and fixed FunctionList consistency (it had no `contentPadding` and no tail-spacer).
+- **PR #688 (2.13.2 → `android/204`)** — tightened the token's top from 16dp to 8dp after observing the previous value hid the asymmetry from view (visible top = `contentPadding.top + first_item.top.padding`; with 16dp + 8dp section header = 24dp top, identical to bottom). New value: `top = 8.dp, bottom = 24.dp`.
+
+Released to internal track: `android/203` (2.13.0) and `android/204` (2.13.2). The 2.13.1 commit lives on main but its tag was skipped; its content ships inside `android/204`.
 
 Remaining open items:
 
@@ -31,7 +35,7 @@ The rule that grounds every token in this proposal:
 |---|---|---|
 | Screen-edge gutter | Parent (route wrapper at `Main.kt`) | `Spacing.Screen` |
 | Top/bottom safe-area carve-out | Parent (Scaffold) | `innerPadding` |
-| Gap above first list item / below last | Parent (LazyColumn) | `Spacing.ListVertical` |
+| Gap above first list item / below last | Parent (LazyColumn) | `Spacing.ListContentPadding` (8/24, asymmetric); `Spacing.ListVertical` for non-chrome-bordered lists like `DiagnosticsContent` |
 | Gap between sibling items | Parent (LazyColumn / Column) | `Spacing.BetweenItems`, `ButtonSpacing.Stacked` |
 | Where a section header sits | Parent (the section's own header Row) | `Spacing.SectionHeader*` |
 | Card body interior padding | Child (the card body) | `CardPadding.Standard` / `Tall` / `Compact` |
@@ -51,6 +55,26 @@ A useful litmus test: **a composable should never apply `Modifier.padding(top = 
 Stage 4 closed exactly this kind of violation — `DiagnosticsContent`'s Export and Clear buttons each had `Modifier.padding(top = 16.dp)` claiming their own outer gap. The fix wraps both buttons in a Column with `Arrangement.spacedBy(ButtonSpacing.Stacked)` and the buttons themselves drop their outer padding entirely. Visual: byte-identical (16dp via spacedBy = 16dp via per-button top padding). Structural: the parent now owns the gap, so future button additions or removals work without re-checking padding math.
 
 The rule applies to gap tokens too: `ButtonSpacing.Stacked` and `ButtonSpacing.Inline` are *gaps between buttons*, parent-owned. Consume them via `Arrangement.spacedBy(ButtonSpacing.Stacked)` on a Column, never via `Modifier.padding(top = ButtonSpacing.Stacked)` on a button.
+
+### Top vs. bottom asymmetry for chrome-bordered lists
+
+Top-of-list and bottom-of-list have different architectural jobs even though both abut opaque chrome (TopAppBar above, NavigationBar below):
+
+- **Top**: chrome above, content starts after. The TopAppBar is its own visual container — content naturally begins below it. The list barely needs its own top breathing room; the *first item's interior* (section header's `top = 8.dp`, warning paragraph's `vertical = 8.dp`) does most of the work.
+- **Bottom**: chrome below, content scrolls *into* it. The last item approaches the NavigationBar as the user pulls up. Without the list owning the gap, the last item butts against the bar — the only cushion left is the button's interior 10dp.
+
+Visible top-of-list space follows a stacking rule:
+
+```
+visible_top = contentPadding.top + first_item.top_interior_padding
+```
+
+For Home / History / Settings: `contentPadding.top = 8dp + section_header.top = 8dp = 16dp visible`.
+For FunctionList (warning paragraph): `contentPadding.top = 8dp + warning.padding(vertical=8dp) = 16dp visible`.
+
+The token (`Spacing.ListContentPadding = top = 8.dp, bottom = 24.dp`) makes the asymmetry visible. The earlier value of `top = 16.dp` produced 24dp of visible top space (16 + 8) — identical to the bottom — and the asymmetry that the rule encodes was hidden behind first-item interior contributions.
+
+When introducing a new list-style screen: compute the visible top from this stacking rule before deciding whether the first item needs its own top padding. Don't add `padding(top = ...)` to the first item just because the visible gap "looks small" — that violates the parent-vs-child rule and re-introduces the drift this token was meant to solve.
 
 ## Why this proposal exists
 
