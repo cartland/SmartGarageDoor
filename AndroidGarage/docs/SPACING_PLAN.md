@@ -7,6 +7,51 @@ status: active
 
 A proposal to introduce a small, named set of spacing tokens that capture the spacing rules already followed in practice across the Android UI — so future changes have a token to reach for instead of a raw `.dp` literal, and so the rules that exist *implicitly* today become explicit and reviewable.
 
+## Status (2026-05-08)
+
+**Stages 1–4 and Stage 0 shipped to `main`** in PRs #677–#683. Tokens are in place across every screen. Tablet/landscape content is centered at 640dp via `RouteContent`. Diagnostics action buttons follow the parent-vs-child spacing rule via `Arrangement.spacedBy(ButtonSpacing.Stacked)`.
+
+Not yet shipped to a release tag — the work sits between `android/202` and the next `android/N` minor bump. The large-screen cap is the user-facing capability that justifies the bump.
+
+Remaining open items:
+
+- **Stage 4 sub-decisions** — bottom-sheet vertical padding (`AccountBottomSheet` 24dp vs `SnoozeBottomSheet` 16dp) and paragraph-spacing rule for `FunctionListWarning` and similar standalone prose blocks. Both are subjective design calls deferred for a real review pass; both are noted in the "Open questions" sections below.
+- **Stage 5 (lint)** — deferred per plan, revisit ~90 days after Stage 4 lands.
+- **Per-screen `ContentWidth` variants** — held back per the "≥2 call sites" rule. Add only if a real screen needs it.
+
+## Parent vs. child spacing responsibility
+
+The rule that grounds every token in this proposal:
+
+> **A composable is responsible for spacing *within* its own bounds. It is NOT responsible for spacing *outside* its bounds. The parent owns the gap between its children; each child owns everything inside itself.**
+
+### Mapping
+
+| Concern | Owner | Token examples |
+|---|---|---|
+| Screen-edge gutter | Parent (route wrapper at `Main.kt`) | `Spacing.Screen` |
+| Top/bottom safe-area carve-out | Parent (Scaffold) | `innerPadding` |
+| Gap above first list item / below last | Parent (LazyColumn) | `Spacing.ListVertical` |
+| Gap between sibling items | Parent (LazyColumn / Column) | `Spacing.BetweenItems`, `ButtonSpacing.Stacked` |
+| Where a section header sits | Parent (the section's own header Row) | `Spacing.SectionHeader*` |
+| Card body interior padding | Child (the card body) | `CardPadding.Standard` / `Tall` / `Compact` |
+| Button label interior | Child (the button) | Material defaults, `ButtonSpacing.IconText` |
+| Pill internal layout | Child (the pill) | One-off |
+| Bottom sheet interior | Child (the sheet) | One-off (24dp / 16dp) |
+
+### How to decide for a new composable
+
+Two questions:
+
+1. **"If I dropped this composable into a different parent, would the spacing still make sense?"** Yes → child-owned. No → parent-owned.
+2. **"Could a future caller want a different gap above this?"** Yes → don't bake it in; let the parent decide via `Arrangement.spacedBy(...)` or a `Spacer`. No → bake it in.
+
+A useful litmus test: **a composable should never apply `Modifier.padding(top = ...)` to itself.** That's claiming ownership of the gap above it, which is the parent's job. Padding values inside a composable should describe its *interior*, not its surroundings.
+
+Stage 4 closed exactly this kind of violation — `DiagnosticsContent`'s Export and Clear buttons each had `Modifier.padding(top = 16.dp)` claiming their own outer gap. The fix wraps both buttons in a Column with `Arrangement.spacedBy(ButtonSpacing.Stacked)` and the buttons themselves drop their outer padding entirely. Visual: byte-identical (16dp via spacedBy = 16dp via per-button top padding). Structural: the parent now owns the gap, so future button additions or removals work without re-checking padding math.
+
+The rule applies to gap tokens too: `ButtonSpacing.Stacked` and `ButtonSpacing.Inline` are *gaps between buttons*, parent-owned. Consume them via `Arrangement.spacedBy(ButtonSpacing.Stacked)` on a Column, never via `Modifier.padding(top = ButtonSpacing.Stacked)` on a button.
+
 ## Why this proposal exists
 
 Today, every spacing value in `androidApp/` is a hardcoded `.dp` literal at its use site. A grep for `.padding(` returns hundreds of matches across screens. There is no `Spacing.kt` / `Dimensions.kt` / `Tokens.kt` file. The values are remarkably consistent — `16.dp`, `8.dp`, `24.dp`, and `4.dp` cover ~90% of the layout — but the *roles* those values play (screen padding vs. card interior vs. icon-text gap) are encoded only in human convention. A new screen has nothing to import; it copies a literal from a neighboring file.
