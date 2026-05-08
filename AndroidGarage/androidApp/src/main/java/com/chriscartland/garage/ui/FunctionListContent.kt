@@ -37,6 +37,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
+import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.usecase.FunctionListViewModel
 
 @Composable
@@ -89,7 +90,7 @@ fun FunctionListContent(
     if (accessGranted == true) {
         LazyColumn(
             modifier = modifier,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems),
         ) {
             item { FunctionListWarning() }
             item { FunctionButton("Open or close garage door", onOpenOrCloseDoor) }

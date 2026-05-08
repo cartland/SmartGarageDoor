@@ -50,8 +50,10 @@ import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.ui.GarageIcon
+import com.chriscartland.garage.ui.theme.DividerInset
 import com.chriscartland.garage.ui.theme.DoorColorState
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
+import com.chriscartland.garage.ui.theme.ParagraphSpacing
 import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.doorColorState
@@ -148,8 +150,8 @@ fun HistoryContent(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(vertical = Spacing.ListVertical),
+            verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems),
         ) {
             if (days.isEmpty()) {
                 item { HistoryEmptyState() }
@@ -188,7 +190,7 @@ private fun HistoryDaySection(day: HistoryDay) {
             Column {
                 day.entries.forEachIndexed { index, entry ->
                     if (index > 0) {
-                        HorizontalDivider(modifier = Modifier.padding(start = 72.dp))
+                        HorizontalDivider(modifier = Modifier.padding(start = DividerInset.LargeLeading))
                     }
                     HistoryEntryRow(entry = entry)
                 }
@@ -277,7 +279,7 @@ private fun HistoryStateRow(
                             tint = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.size(14.dp),
                         )
-                        Spacer(Modifier.width(4.dp))
+                        Spacer(Modifier.width(Spacing.Tight))
                         Text(
                             text = warning,
                             style = MaterialTheme.typography.bodySmall,
@@ -312,7 +314,7 @@ private fun HistoryEmptyState() {
             text = "No events yet",
             style = MaterialTheme.typography.titleMedium,
         )
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(ParagraphSpacing.TitleToBody))
         Text(
             text = "Open or close the garage and check back here.",
             style = MaterialTheme.typography.bodyMedium,

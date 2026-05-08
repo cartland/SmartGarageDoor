@@ -58,7 +58,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.GarageApplication
 import com.chriscartland.garage.applogger.exportAppLogCsvToUri
 import com.chriscartland.garage.di.rememberAppComponent
+import com.chriscartland.garage.ui.theme.ButtonSpacing
+import com.chriscartland.garage.ui.theme.CardPadding
+import com.chriscartland.garage.ui.theme.DividerInset
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
+import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -162,8 +166,11 @@ fun DiagnosticsContent(
     ) {
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(
+                horizontal = Spacing.Screen,
+                vertical = Spacing.ListVertical,
+            ),
+            verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems),
         ) {
             item {
                 Surface(
@@ -175,7 +182,7 @@ fun DiagnosticsContent(
                         counters.forEachIndexed { index, c ->
                             CounterRow(c.label, c.value)
                             if (index < counters.lastIndex) {
-                                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                                HorizontalDivider(modifier = Modifier.padding(horizontal = DividerInset.FullWidth))
                             }
                         }
                     }
@@ -194,7 +201,7 @@ fun DiagnosticsContent(
             )
             Text(
                 text = "Export CSV",
-                modifier = Modifier.padding(start = 8.dp),
+                modifier = Modifier.padding(start = ButtonSpacing.IconText),
             )
         }
         OutlinedButton(
@@ -218,7 +225,7 @@ fun DiagnosticsContent(
                 )
                 Text(
                     text = "Clearing…",
-                    modifier = Modifier.padding(start = 8.dp),
+                    modifier = Modifier.padding(start = ButtonSpacing.IconText),
                 )
             } else {
                 Icon(
@@ -227,7 +234,7 @@ fun DiagnosticsContent(
                 )
                 Text(
                     text = "Clear all diagnostics",
-                    modifier = Modifier.padding(start = 8.dp),
+                    modifier = Modifier.padding(start = ButtonSpacing.IconText),
                 )
             }
         }
@@ -293,7 +300,7 @@ private fun CounterRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(CardPadding.Compact),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
