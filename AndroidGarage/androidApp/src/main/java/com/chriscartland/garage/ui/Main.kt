@@ -22,7 +22,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -42,13 +41,13 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.chriscartland.garage.ui.settings.DiagnosticsScreen
 import com.chriscartland.garage.ui.theme.AppTheme
+import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.AuthViewModel
 import com.chriscartland.garage.usecase.DoorViewModel
@@ -170,56 +169,71 @@ fun AppNavigation(
                 rememberViewModelStoreNavEntryDecorator<Screen>(),
             ),
             modifier = Modifier.padding(innerPadding),
-            // Screen-padding convention: every nav entry gets
-            // `padding(horizontal = 16.dp)` applied here. This is the
-            // SINGLE source of horizontal screen padding — child
-            // Composables must NOT re-apply it. PR #589 doubled the
-            // Settings card to 32dp by adding a second 16dp wrapper
-            // inside the screen's content; #593 was the fix.
+            // Screen-layout convention (single source of truth):
+            //   Each nav entry is wrapped in `RouteContent { ... }` which
+            //   applies (a) `Modifier.widthIn(max = ContentWidth.Standard)`
+            //   to cap content width on tablets/landscape, and (b) horizontal
+            //   centering via Box(TopCenter). Each entry then attaches the
+            //   provided modifier and adds `Modifier.padding(horizontal = Spacing.Screen)`
+            //   for the 16dp gutter.
+            //
+            //   Child Composables MUST NOT re-apply the width cap, the
+            //   centering, or the screen padding. PR #589 doubled the
+            //   Settings card to 32dp by adding a second 16dp wrapper
+            //   inside the screen's content; #593 was the fix.
+            //
+            //   When the future two-pane experiment lands behind a runtime
+            //   toggle, the toggle branches at this layer: single-pane uses
+            //   `RouteContent`, two-pane uses a different wrapper. Screens
+            //   stay layout-agnostic.
             entryProvider = entryProvider {
                 entry<Screen.Home> {
-                    HomeContent(
-                        authViewModel = authViewModel,
-                        doorViewModel = doorViewModel,
-                        appLoggerViewModel = appLoggerViewModel,
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .fillMaxWidth(),
-                    )
+                    RouteContent { routeModifier ->
+                        HomeContent(
+                            authViewModel = authViewModel,
+                            doorViewModel = doorViewModel,
+                            appLoggerViewModel = appLoggerViewModel,
+                            modifier = routeModifier.padding(horizontal = Spacing.Screen),
+                        )
+                    }
                 }
                 entry<Screen.History> {
-                    DoorHistoryContent(
-                        doorViewModel = doorViewModel,
-                        appLoggerViewModel = appLoggerViewModel,
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .fillMaxWidth(),
-                    )
+                    RouteContent { routeModifier ->
+                        DoorHistoryContent(
+                            doorViewModel = doorViewModel,
+                            appLoggerViewModel = appLoggerViewModel,
+                            modifier = routeModifier.padding(horizontal = Spacing.Screen),
+                        )
+                    }
                 }
                 entry<Screen.Profile> {
-                    ProfileContent(
-                        authViewModel = authViewModel,
-                        onNavigateToFunctionList = { backStack.add(Screen.FunctionList) },
-                        onNavigateToDiagnostics = { backStack.add(Screen.Diagnostics) },
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .fillMaxWidth(),
-                    )
+                    RouteContent { routeModifier ->
+                        ProfileContent(
+                            authViewModel = authViewModel,
+                            onNavigateToFunctionList = { backStack.add(Screen.FunctionList) },
+                            onNavigateToDiagnostics = { backStack.add(Screen.Diagnostics) },
+                            modifier = routeModifier.padding(horizontal = Spacing.Screen),
+                        )
+                    }
                 }
                 entry<Screen.FunctionList> {
-                    FunctionListContent(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .fillMaxWidth(),
-                    )
+                    RouteContent { routeModifier ->
+                        FunctionListContent(
+                            modifier = routeModifier.padding(horizontal = Spacing.Screen),
+                        )
+                    }
                 }
                 entry<Screen.Diagnostics> {
-                    DiagnosticsScreen(
-                        onBack = {
-                            if (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    RouteContent { routeModifier ->
+                        // Diagnostics provides its own horizontal padding inside
+                        // its LazyColumn (Spacing.Screen) — no padding here.
+                        DiagnosticsScreen(
+                            onBack = {
+                                if (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
+                            },
+                            modifier = routeModifier,
+                        )
+                    }
                 }
             },
         )

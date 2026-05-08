@@ -22,6 +22,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
 import com.chriscartland.garage.ui.home.HomeContentAwaitingConfirmationPreview
 import com.chriscartland.garage.ui.home.HomeContentClosedSignedInPreview
+import com.chriscartland.garage.ui.home.HomeContentOnTabletPreview
 import com.chriscartland.garage.ui.home.HomeContentOpenSignedInPreview
 import com.chriscartland.garage.ui.home.HomeContentOpeningTooLongPreview
 import com.chriscartland.garage.ui.home.HomeContentPermissionMissingPreview
@@ -189,4 +190,17 @@ fun HomeContentRemotePillOnlinePreviewTest() {
 @Composable
 fun HomeContentRemotePillOfflinePreviewTest() {
     AppTheme { HomeContentRemotePillOfflinePreview() }
+}
+
+@PreviewTest
+@Preview(name = "Tablet Light", widthDp = 900, heightDp = 1100)
+@Preview(
+    name = "Tablet Dark",
+    widthDp = 900,
+    heightDp = 1100,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeContentOnTabletPreviewTest() {
+    AppTheme { HomeContentOnTabletPreview() }
 }

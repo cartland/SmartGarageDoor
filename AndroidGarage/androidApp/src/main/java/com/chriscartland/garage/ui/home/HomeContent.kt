@@ -60,6 +60,7 @@ import com.chriscartland.garage.permissions.NotificationPermissionCopy
 import com.chriscartland.garage.ui.GarageIcon
 import com.chriscartland.garage.ui.RemoteButtonContent
 import com.chriscartland.garage.ui.RemoteButtonHealthPill
+import com.chriscartland.garage.ui.RouteContent
 import com.chriscartland.garage.ui.TitleBarCheckInPill
 import com.chriscartland.garage.ui.theme.ButtonSpacing
 import com.chriscartland.garage.ui.theme.CardPadding
@@ -669,6 +670,32 @@ fun HomeContentRemotePillOfflinePreview() =
             buttonHealthDisplay = ButtonHealthDisplay.Offline(durationLabel = "11 min ago"),
             modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
+    }
+
+/**
+ * Tablet form factor — exercises the [com.chriscartland.garage.ui.RouteContent]
+ * width cap. The 900dp canvas is wider than `ContentWidth.Standard` (640dp),
+ * so the screen renders with content centered and margin on either side.
+ *
+ * Wrapping in [com.chriscartland.garage.ui.RouteContent] mirrors what
+ * `Main.kt` does in production. Direct-call previews above (which add
+ * `Modifier.padding(horizontal = Spacing.Screen)` themselves) cannot exercise
+ * the cap because the cap lives at the route wrapper, not inside the screen.
+ */
+@Preview(name = "Tablet", widthDp = 900, heightDp = 1100)
+@Composable
+fun HomeContentOnTabletPreview() =
+    PreviewScreenSurface {
+        RouteContent { routeModifier ->
+            HomeContent(
+                status = HomePreviewData.openStatus,
+                authState = HomeAuthState.SignedIn,
+                remoteButtonState = RemoteButtonState.Ready,
+                deviceCheckIn = HomePreviewData.freshCheckIn,
+                buttonHealthDisplay = ButtonHealthDisplay.Online,
+                modifier = routeModifier.padding(horizontal = Spacing.Screen),
+            )
+        }
     }
 
 // endregion
