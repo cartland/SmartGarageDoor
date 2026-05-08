@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
@@ -34,6 +35,7 @@ import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -107,6 +109,8 @@ fun DiagnosticsScreen(
         DiagnosticsCounter("FCM in expected range", timeWithoutFcmInRange),
     )
 
+    val clearInFlight by appLoggerViewModel.clearInFlight.collectAsState()
+
     val csvLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { result ->
@@ -129,6 +133,7 @@ fun DiagnosticsScreen(
             csvLauncher.launch(intent)
         },
         onClearAll = { appLoggerViewModel.clearDiagnostics() },
+        clearInFlight = clearInFlight,
         modifier = modifier,
     )
     // onBack is supplied by the parent's TopAppBar back-arrow click handler;
@@ -148,6 +153,7 @@ fun DiagnosticsContent(
     onExportCsv: () -> Unit,
     onClearAll: () -> Unit,
     modifier: Modifier = Modifier,
+    clearInFlight: Boolean = false,
 ) {
     var confirmClearOpen by remember { mutableStateOf(false) }
 
@@ -193,6 +199,7 @@ fun DiagnosticsContent(
         }
         OutlinedButton(
             onClick = { confirmClearOpen = true },
+            enabled = !clearInFlight,
             colors = ButtonDefaults.outlinedButtonColors(
                 contentColor = MaterialTheme.colorScheme.error,
             ),
@@ -200,14 +207,29 @@ fun DiagnosticsContent(
                 .fillMaxWidth()
                 .padding(16.dp),
         ) {
-            Icon(
-                imageVector = Icons.Outlined.DeleteForever,
-                contentDescription = null,
-            )
-            Text(
-                text = "Clear all diagnostics",
-                modifier = Modifier.padding(start = 8.dp),
-            )
+            // While the clear is in flight, swap the trash icon for a small
+            // spinner and the label for "Clearing…". Button is disabled so
+            // a second tap can't queue another clear during the wait.
+            if (clearInFlight) {
+                CircularProgressIndicator(
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(20.dp),
+                )
+                Text(
+                    text = "Clearing…",
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Outlined.DeleteForever,
+                    contentDescription = null,
+                )
+                Text(
+                    text = "Clear all diagnostics",
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
         }
     }
 
@@ -315,4 +337,28 @@ fun ClearDiagnosticsDialogPreview() {
         onConfirm = {},
         onDismiss = {},
     )
+}
+
+@Preview
+@Composable
+fun DiagnosticsContentClearInFlightPreview() {
+    // Shows the Clear button mid-action: trash icon swapped for a small
+    // spinner and the label flipped to "Clearing…", button disabled.
+    PreviewScreenSurface {
+        DiagnosticsContent(
+            counters = listOf(
+                DiagnosticsCounter("App init (current door)", 42),
+                DiagnosticsCounter("App init (recent doors)", 17),
+                DiagnosticsCounter("Door fetch (current)", 836),
+                DiagnosticsCounter("Door fetch (recent)", 412),
+                DiagnosticsCounter("FCM subscribe", 8),
+                DiagnosticsCounter("FCM received", 1247),
+                DiagnosticsCounter("FCM exceeded expected timeout", 3),
+                DiagnosticsCounter("FCM in expected range", 1244),
+            ),
+            onExportCsv = {},
+            onClearAll = {},
+            clearInFlight = true,
+        )
+    }
 }

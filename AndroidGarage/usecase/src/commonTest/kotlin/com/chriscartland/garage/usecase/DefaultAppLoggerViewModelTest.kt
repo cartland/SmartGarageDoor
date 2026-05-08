@@ -121,6 +121,23 @@ class DefaultAppLoggerViewModelTest {
         }
 
     @Test
+    fun clearInFlightIsFalseAfterClearCompletes() =
+        runTest(testDispatcher) {
+            // Verifies the safety property: the finally block always
+            // resets the flag, so the button can never get stuck in a
+            // "Clearing…" state. The mid-action `true` transition is
+            // implementation detail (and conflated by MutableStateFlow
+            // when fakes don't suspend) — the screenshot test pins the
+            // visual; manual smoke verifies the UX.
+            assertEquals(false, viewModel.clearInFlight.value)
+
+            viewModel.clearDiagnostics()
+            advanceUntilIdle()
+
+            assertEquals(false, viewModel.clearInFlight.value)
+        }
+
+    @Test
     fun seedDiagnosticsFromRoomDelegatesToUseCase() =
         runTest(testDispatcher) {
             // Pre-seed Room with rows the user accumulated before upgrading

@@ -12,6 +12,7 @@
 - `ClosedPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/AnimatableGarageDoor.kt`
 - `ClosingPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/AnimatableGarageDoor.kt`
 - `ClosingTooLongPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/AnimatableGarageDoor.kt`
+- `DiagnosticsContentClearInFlightPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/DiagnosticsContent.kt`
 - `DiagnosticsContentPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/DiagnosticsContent.kt`
 - `DoorHistoryContentPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/DoorHistoryContent.kt`
 - `DoorStatusCardPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/DoorStatusCard.kt`
