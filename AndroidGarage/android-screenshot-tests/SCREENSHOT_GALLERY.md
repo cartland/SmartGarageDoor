@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Thu May  7 21:09:38 PDT 2026
+Generated on Thu May  7 22:10:14 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -11,6 +11,7 @@ Generated on Thu May  7 21:09:38 PDT 2026
 - [HomeRedesignScreenshotTestKt](#homeredesignscreenshottestkt)
 - [ScreensScreenshotTestKt](#screensscreenshottestkt)
 - [SettingsRedesignScreenshotTestKt](#settingsredesignscreenshottestkt)
+- [SpacingTokensScreenshotTestKt](#spacingtokensscreenshottestkt)
 
 
 ## ComponentsScreenshotTestKt
@@ -558,3 +559,11 @@ Generated on Thu May  7 21:09:38 PDT 2026
 
 ### VersionDialogPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/VersionDialogPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+## SpacingTokensScreenshotTestKt
+
+### SpacingTokensReferencePreviewTest_Dark_e5b5d421_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SpacingTokensScreenshotTestKt/SpacingTokensReferencePreviewTest_Dark_e5b5d421_0.png" width="300" />
+
+### SpacingTokensReferencePreviewTest_Light_01a1988b_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SpacingTokensScreenshotTestKt/SpacingTokensReferencePreviewTest_Light_01a1988b_0.png" width="300" />

@@ -3,7 +3,7 @@
 
 # Preview Screenshot Coverage
 
-**87 / 87 (100%)**
+**89 / 89 (100%)**
 
 ## Covered
 
@@ -90,6 +90,7 @@
 - `SettingsTabPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/TabPreviews.kt`
 - `SnoozeSheetContentActivePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/SnoozeBottomSheet.kt`
 - `SnoozeSheetContentOffPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/SnoozeBottomSheet.kt`
+- `SpacingTokensReferencePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/theme/SpacingTokensPreview.kt`
 - `TitleBarCheckInPillAgingPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/TitleBarCheckInPill.kt`
 - `TitleBarCheckInPillFreshPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/TitleBarCheckInPill.kt`
 - `TitleBarCheckInPillNoDataPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/TitleBarCheckInPill.kt`
