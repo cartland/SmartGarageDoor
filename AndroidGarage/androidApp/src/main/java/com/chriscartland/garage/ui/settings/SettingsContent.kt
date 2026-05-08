@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
+import com.chriscartland.garage.ui.theme.Spacing
 
 /**
  * Account section row state. Determines whether the row shows a sign-in
@@ -236,7 +237,11 @@ private fun SettingsSection(
             text = label.uppercase(),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
+            modifier = Modifier.padding(
+                start = Spacing.SectionHeaderStart,
+                top = Spacing.SectionHeaderTop,
+                bottom = Spacing.SectionHeaderBottom,
+            ),
         )
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainer,

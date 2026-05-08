@@ -64,6 +64,7 @@ import com.chriscartland.garage.ui.TitleBarCheckInPill
 import com.chriscartland.garage.ui.theme.DoorColorState
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
+import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.doorColorState
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
@@ -241,7 +242,12 @@ private fun HomeSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                .padding(
+                    start = Spacing.SectionHeaderStart,
+                    end = Spacing.SectionHeaderStart,
+                    top = Spacing.SectionHeaderTop,
+                    bottom = Spacing.SectionHeaderBottom,
+                ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
