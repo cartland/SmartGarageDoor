@@ -58,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.ui.theme.DividerInset
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.ui.theme.Spacing
 
@@ -118,8 +119,8 @@ fun SettingsContent(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(vertical = Spacing.ListVertical),
+        verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems),
     ) {
         item {
             SettingsSection(label = "Account") {
@@ -174,7 +175,7 @@ fun SettingsContent(
                     showChevron = true,
                     onClick = onVersionTap,
                 )
-                HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
+                HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
                 SettingsRow(
                     icon = Icons.Outlined.Storefront,
                     title = "Play Store",
@@ -183,7 +184,7 @@ fun SettingsContent(
                     showChevron = false,
                     onClick = onPlayStoreTap,
                 )
-                HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
+                HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
                 SettingsRow(
                     icon = Icons.Outlined.Description,
                     title = "Privacy Policy",
@@ -205,7 +206,7 @@ fun SettingsContent(
                         showChevron = true,
                         onClick = onDiagnosticsTap,
                     )
-                    HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
+                    HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
                     SettingsRow(
                         icon = Icons.AutoMirrored.Outlined.List,
                         title = "Function list",
