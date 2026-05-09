@@ -80,6 +80,7 @@ import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
 import com.chriscartland.garage.usecase.DefaultAppLoggerViewModel
 import com.chriscartland.garage.usecase.DefaultAppSettingsViewModel
 import com.chriscartland.garage.usecase.DefaultAuthViewModel
+import com.chriscartland.garage.usecase.DefaultDoorHistoryViewModel
 import com.chriscartland.garage.usecase.DefaultDoorViewModel
 import com.chriscartland.garage.usecase.DefaultFunctionListViewModel
 import com.chriscartland.garage.usecase.DefaultHomeViewModel
@@ -154,6 +155,7 @@ abstract class AppComponent(
     abstract val remoteButtonViewModel: DefaultRemoteButtonViewModel
     abstract val functionListViewModel: DefaultFunctionListViewModel
     abstract val homeViewModel: DefaultHomeViewModel
+    abstract val doorHistoryViewModel: DefaultDoorHistoryViewModel
 
     // --- Entry points: @Singleton providers (testable via assertSame) ---
     abstract val appConfig: AppConfig
@@ -354,6 +356,26 @@ abstract class AppComponent(
             liveClock = liveClock,
             buttonHealthDisplay = computeButtonHealthDisplay(),
             appVersion = appVersion,
+        )
+
+    @Provides
+    fun provideDoorHistoryViewModel(
+        observeDoorEvents: ObserveDoorEventsUseCase,
+        logAppEvent: LogAppEventUseCase,
+        dispatchers: DispatcherProvider,
+        fetchRecentDoorEvents: FetchRecentDoorEventsUseCase,
+        deregisterFcm: DeregisterFcmUseCase,
+        checkInStalenessManager: CheckInStalenessManager,
+        liveClock: LiveClock,
+    ): DefaultDoorHistoryViewModel =
+        DefaultDoorHistoryViewModel(
+            observeDoorEvents = observeDoorEvents,
+            logAppEvent = logAppEvent,
+            dispatchers = dispatchers,
+            fetchRecentDoorEventsUseCase = fetchRecentDoorEvents,
+            deregisterFcmUseCase = deregisterFcm,
+            checkInStalenessManager = checkInStalenessManager,
+            liveClock = liveClock,
         )
 
     // --- UseCases (constructors are single-dep or small, kept concise) ---

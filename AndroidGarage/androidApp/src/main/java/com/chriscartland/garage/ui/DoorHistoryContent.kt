@@ -39,26 +39,23 @@ import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.history.HistoryContent
 import com.chriscartland.garage.ui.history.HistoryMapper
-import com.chriscartland.garage.usecase.AppLoggerViewModel
-import com.chriscartland.garage.usecase.DoorViewModel
+import com.chriscartland.garage.usecase.DoorHistoryViewModel
 import java.time.Instant
 import java.time.ZoneId
 
 @Composable
 fun DoorHistoryContent(
     modifier: Modifier = Modifier,
-    doorViewModel: DoorViewModel? = null,
-    appLoggerViewModel: AppLoggerViewModel? = null,
+    doorHistoryViewModel: DoorHistoryViewModel? = null,
 ) {
     val component = rememberAppComponent()
-    val resolvedDoorViewModel = doorViewModel ?: viewModel { component.doorViewModel }
-    val resolvedAppLoggerViewModel = appLoggerViewModel ?: viewModel { component.appLoggerViewModel }
-    val recentDoorEvents by resolvedDoorViewModel.recentDoorEvents.collectAsState()
-    val isCheckInStale by resolvedDoorViewModel.isCheckInStale.collectAsState()
+    val resolved = doorHistoryViewModel ?: viewModel { component.doorHistoryViewModel }
+    val recentDoorEvents by resolved.recentDoorEvents.collectAsState()
+    val isCheckInStale by resolved.isCheckInStale.collectAsState()
     // `now` is driven by the VM's LiveClock-backed StateFlow (1s tick) —
     // `rememberLiveNow()` no longer exists; the ticker is owned by the
     // UseCase layer and lives across the app, not per-Composable.
-    val nowEpochSeconds by resolvedDoorViewModel.nowEpochSeconds.collectAsState()
+    val nowEpochSeconds by resolved.nowEpochSeconds.collectAsState()
     val now = remember(nowEpochSeconds) { Instant.ofEpochSecond(nowEpochSeconds) }
     DoorHistoryContent(
         recentDoorEvents = recentDoorEvents,
@@ -67,11 +64,11 @@ fun DoorHistoryContent(
         zone = ZoneId.systemDefault(),
         modifier = modifier,
         onFetchRecentDoorEvents = {
-            resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_FETCH_RECENT_DOOR)
-            resolvedDoorViewModel.fetchRecentDoorEvents()
+            resolved.log(AppLoggerKeys.USER_FETCH_RECENT_DOOR)
+            resolved.fetchRecentDoorEvents()
         },
         onResetFcm = {
-            resolvedDoorViewModel.deregisterFcm()
+            resolved.deregisterFcm()
         },
     )
 }

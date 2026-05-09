@@ -49,17 +49,11 @@ import androidx.navigation3.ui.NavDisplay
 import com.chriscartland.garage.ui.settings.DiagnosticsScreen
 import com.chriscartland.garage.ui.theme.AppTheme
 import com.chriscartland.garage.ui.theme.Spacing
-import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.AuthViewModel
-import com.chriscartland.garage.usecase.DoorViewModel
 import kotlinx.serialization.Serializable
 
 @Composable
-fun GarageApp(
-    authViewModel: AuthViewModel,
-    doorViewModel: DoorViewModel,
-    appLoggerViewModel: AppLoggerViewModel,
-) {
+fun GarageApp(authViewModel: AuthViewModel) {
     // ProvideAppWindowSizeClass installs `LocalAppWindowSizeClass` for the
     // whole app. Adaptive layout decisions (current screen-width cap; future
     // single-pane vs. two-pane branching) read from that local — never from
@@ -70,8 +64,6 @@ fun GarageApp(
         AppTheme {
             AppNavigation(
                 authViewModel = authViewModel,
-                doorViewModel = doorViewModel,
-                appLoggerViewModel = appLoggerViewModel,
             )
         }
     }
@@ -123,11 +115,7 @@ enum class Tab(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation(
-    authViewModel: AuthViewModel,
-    doorViewModel: DoorViewModel,
-    appLoggerViewModel: AppLoggerViewModel,
-) {
+fun AppNavigation(authViewModel: AuthViewModel) {
     // Nav3: `rememberNavBackStack` is the saveable back stack. Survives
     // configuration changes (rotation, window size, dark mode, locale,
     // font scale) AND process death. The serialized form rides through
@@ -222,8 +210,6 @@ fun AppNavigation(
                         screen = screen,
                         mode = mode,
                         authViewModel = authViewModel,
-                        doorViewModel = doorViewModel,
-                        appLoggerViewModel = appLoggerViewModel,
                         onNavigateToFunctionList = { backStack.add(Screen.FunctionList) },
                         onNavigateToDiagnostics = { backStack.add(Screen.Diagnostics) },
                         onBack = { onPopBack() },
@@ -295,8 +281,6 @@ private fun RouteEntryFor(
     screen: Screen,
     mode: AppLayoutMode,
     authViewModel: AuthViewModel,
-    doorViewModel: DoorViewModel,
-    appLoggerViewModel: AppLoggerViewModel,
     onNavigateToFunctionList: () -> Unit,
     onNavigateToDiagnostics: () -> Unit,
     onBack: () -> Unit,
@@ -319,8 +303,6 @@ private fun RouteEntryFor(
                         },
                         historyPane = { paneModifier ->
                             DoorHistoryContent(
-                                doorViewModel = doorViewModel,
-                                appLoggerViewModel = appLoggerViewModel,
                                 modifier = paneModifier,
                             )
                         },
@@ -338,8 +320,6 @@ private fun RouteEntryFor(
             // Reached only on Compact (Wide.mergedRoutes redirects to Home).
             RouteContent { routeModifier ->
                 DoorHistoryContent(
-                    doorViewModel = doorViewModel,
-                    appLoggerViewModel = appLoggerViewModel,
                     modifier = routeModifier.padding(horizontal = Spacing.Screen),
                 )
             }

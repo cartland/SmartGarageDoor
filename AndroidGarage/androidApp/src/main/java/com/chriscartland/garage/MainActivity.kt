@@ -28,8 +28,6 @@ import com.chriscartland.garage.ui.GarageApp
 class MainActivity : ComponentActivity() {
     private val component by lazy { (application as GarageApplication).component }
     private val authViewModel by lazy { activityViewModel(this) { component.authViewModel } }
-    private val doorViewModel by lazy { activityViewModel(this) { component.doorViewModel } }
-    private val appLoggerViewModel by lazy { activityViewModel(this) { component.appLoggerViewModel } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,8 +36,6 @@ class MainActivity : ComponentActivity() {
             setContent {
                 GarageApp(
                     authViewModel = authViewModel,
-                    doorViewModel = doorViewModel,
-                    appLoggerViewModel = appLoggerViewModel,
                 )
             }
         }
