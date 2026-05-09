@@ -3,7 +3,7 @@
 
 # Preview Screenshot Coverage
 
-**90 / 90 (100%)**
+**91 / 91 (100%)**
 
 ## Covered
 
@@ -97,3 +97,4 @@
 - `TitleBarCheckInPillNoDataPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/TitleBarCheckInPill.kt`
 - `TitleBarCheckInPillStalePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/TitleBarCheckInPill.kt`
 - `VersionDialogPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/VersionDialog.kt`
+- `VersionSheetContentPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/VersionBottomSheet.kt`
