@@ -9,6 +9,10 @@ import com.chriscartland.garage.ui.FunctionListContentPreview
 import com.chriscartland.garage.ui.FunctionListScreenDeniedPreview
 import com.chriscartland.garage.ui.FunctionListScreenPreview
 import com.chriscartland.garage.ui.HistoryTabPreview
+import com.chriscartland.garage.ui.HomeDashboardPreview1024dp
+import com.chriscartland.garage.ui.HomeDashboardPreview1280dp
+import com.chriscartland.garage.ui.HomeDashboardPreview600dp
+import com.chriscartland.garage.ui.HomeDashboardPreview840dp
 import com.chriscartland.garage.ui.HomeTabPreview
 import com.chriscartland.garage.ui.HomeTabStalePillPreview
 import com.chriscartland.garage.ui.SettingsTabPreview
@@ -152,5 +156,75 @@ fun FunctionListContentDeniedPreviewTest() {
 fun FunctionListScreenDeniedPreviewTest() {
     AppTheme {
         FunctionListScreenDeniedPreview()
+    }
+}
+
+// Wide-screen Home dashboard previews — exploratory, screenshots-only
+// for pre-implementation review. Each fixture renders Home + History
+// side-by-side in a wide-screen Scaffold (TopAppBar "Garage" on top,
+// 2-tab NavigationBar Home + Settings on the bottom). Four widths
+// chosen to span the activation range (600dp Medium boundary →
+// 1280dp full Expanded). Light + dark per fixture for surface checks.
+@PreviewTest
+@Preview(showBackground = true, name = "Light", widthDp = 600, heightDp = 800)
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    widthDp = 600,
+    heightDp = 800,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeDashboardPreview600dpTest() {
+    AppTheme {
+        HomeDashboardPreview600dp()
+    }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light", widthDp = 840, heightDp = 800)
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    widthDp = 840,
+    heightDp = 800,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeDashboardPreview840dpTest() {
+    AppTheme {
+        HomeDashboardPreview840dp()
+    }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light", widthDp = 1024, heightDp = 800)
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    widthDp = 1024,
+    heightDp = 800,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeDashboardPreview1024dpTest() {
+    AppTheme {
+        HomeDashboardPreview1024dp()
+    }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light", widthDp = 1280, heightDp = 800)
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    widthDp = 1280,
+    heightDp = 800,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeDashboardPreview1280dpTest() {
+    AppTheme {
+        HomeDashboardPreview1280dp()
     }
 }
