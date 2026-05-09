@@ -23,6 +23,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -81,7 +82,9 @@ fun HomeContent(
         .collectAsStateWithLifecycle(initialValue = ButtonHealthDisplay.Loading)
 
     val notificationPermissionState = rememberNotificationPermissionState()
-    var permissionRequestCount by remember { mutableIntStateOf(0) }
+    // Survives rotation + process death so the alert flicker on rotation
+    // doesn't re-prompt for permission spuriously.
+    var permissionRequestCount by rememberSaveable { mutableIntStateOf(0) }
 
     // `now` is driven by the VM's LiveClock-backed StateFlow (10s tick) —
     // `rememberLiveNow()` no longer exists; the ticker is owned by the

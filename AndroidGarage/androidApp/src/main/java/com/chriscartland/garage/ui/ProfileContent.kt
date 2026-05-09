@@ -24,7 +24,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -91,12 +91,14 @@ fun ProfileContent(
     val context = LocalContext.current
     val appVersion = context.AppVersion()
 
-    // Surface-level state: which sheet/dialog is currently open. Local to
-    // the screen — not persisted across process death (recreating the
-    // sheet/dialog after a crash would surprise the user).
-    var snoozeSheetOpen by remember { mutableStateOf(false) }
-    var accountSheetOpen by remember { mutableStateOf(false) }
-    var versionDialogOpen by remember { mutableStateOf(false) }
+    // Surface-level state: which sheet/dialog is currently open. Saveable
+    // so the user's mid-selection (snooze duration, account view) survives
+    // rotation, window resize, and process death. Auto-reopening a sheet
+    // after a process restart is mild and acceptable; closing one out from
+    // under the user on rotation is not.
+    var snoozeSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var accountSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var versionDialogOpen by rememberSaveable { mutableStateOf(false) }
 
     // Refresh snooze status every minute while this screen is mounted.
     // Mirrors the legacy ProfileContent behavior; the polling cadence

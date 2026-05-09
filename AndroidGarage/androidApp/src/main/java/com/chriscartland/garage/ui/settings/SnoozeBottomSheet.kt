@@ -38,7 +38,8 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.autoSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,7 +64,9 @@ fun SnoozeBottomSheet(
     modifier: Modifier = Modifier,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var selected by remember { mutableStateOf(initialSelection) }
+    // Saveable so the user's pending duration choice survives rotation /
+    // window resize while the sheet is open. `autoSaver` handles the enum.
+    var selected by rememberSaveable(stateSaver = autoSaver()) { mutableStateOf(initialSelection) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,

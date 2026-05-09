@@ -1,5 +1,6 @@
 package com.chriscartland.garage.ui
 
+import androidx.navigation3.runtime.NavKey
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -10,7 +11,7 @@ import org.junit.Test
  * each other on top. Stack is always [Home] or [Home, <tab>]. Max depth 2.
  */
 class NavigateToTabTest {
-    private fun backStack(vararg screens: Screen): MutableList<Screen> = mutableListOf(*screens)
+    private fun backStack(vararg screens: Screen): MutableList<NavKey> = mutableListOf<NavKey>(*screens)
 
     @Test
     fun initialStateIsHome() {
