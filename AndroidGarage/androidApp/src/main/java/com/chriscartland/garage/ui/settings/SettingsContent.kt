@@ -18,6 +18,10 @@
 package com.chriscartland.garage.ui.settings
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -194,7 +198,16 @@ fun SettingsContent(
         }
 
         item {
-            AnimatedVisibility(visible = showDeveloperSection) {
+            AnimatedVisibility(
+                visible = showDeveloperSection,
+                // Compose's default `expandIn`/`shrinkOut` animate in both
+                // dimensions; for a section that fills the row width and only
+                // changes its height, we want vertical-only — `expandVertically`/
+                // `shrinkVertically` keep width constant and animate height.
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+                label = "Developer section",
+            ) {
                 SettingsSection(label = "Developer") {
                     SettingsRow(
                         icon = Icons.Outlined.Analytics,
