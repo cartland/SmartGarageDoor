@@ -72,22 +72,77 @@ sealed interface AppLayoutMode {
 
     /**
      * Wide layout: 2 tabs (History merges into Home), Home renders the
-     * Home + History dashboard. Activation: `WindowWidthSizeClass.Medium`+
-     * (≥600dp).
+     * Home + History dashboard. Activation: `WindowWidthSizeClass.Medium`
+     * (600–839dp).
      */
     data object Wide : AppLayoutMode {
         override val visibleTabs: List<Tab> = Tab.entries.filter { it != Tab.History }
         override val mergedRoutes: Map<Screen, Screen> = mapOf(Screen.History to Screen.Home)
     }
 
+    /**
+     * Expanded layout: no tabs (bottom nav hidden), Home renders the
+     * Home + History + Settings 3-pane dashboard. Settings sub-screens
+     * (`FunctionList`, `Diagnostics`) overlay the Settings pane only —
+     * Home + History stay visible. Activation:
+     * `WindowWidthSizeClass.Expanded` (≥840dp).
+     *
+     * **Threshold note (M3 standard).** ≥840dp includes phones in
+     * landscape (~916dp on a Pixel 9 Pro), where each pane is ~280dp
+     * after gaps — narrower than ideal. If landscape phones look
+     * cramped in production, the fallback is to raise activation to a
+     * custom 1200dp threshold via a one-line change in
+     * [Companion.fromWidthSizeClass]. That keeps phones in landscape
+     * on the [Wide] 2-pane layout (~458dp/pane) while tablets in
+     * landscape (~1280dp+) and ChromeOS still get 3-pane (~415dp/pane).
+     *
+     * **Why Profile + FunctionList + Diagnostics all merge to Home.**
+     * In Expanded the Settings column is always visible, and sub-screens
+     * overlay only that column. The route for `Screen.Profile` therefore
+     * doesn't need its own destination — it canonicalizes to `Home` and
+     * renders the 3-pane with Profile in the Settings slot. Same for
+     * `Screen.FunctionList` and `Screen.Diagnostics` — they canonicalize
+     * to `Home` and render the 3-pane with their content as the Settings
+     * slot's body. The dispatch in `Main.kt` reads the original (non-
+     * canonicalized) screen to decide which body to drop into the slot.
+     */
+    data object Expanded : AppLayoutMode {
+        override val visibleTabs: List<Tab> = emptyList()
+        override val mergedRoutes: Map<Screen, Screen> = mapOf(
+            Screen.History to Screen.Home,
+            Screen.Profile to Screen.Home,
+            Screen.FunctionList to Screen.Home,
+            Screen.Diagnostics to Screen.Home,
+        )
+    }
+
     companion object {
         /**
          * Pure mapping from raw `WindowWidthSizeClass` to layout mode.
-         * Threshold lives here — change [Wide]'s activation by editing
-         * this single condition.
+         * Thresholds live here — change activation by editing this
+         * single function.
+         *
+         * **Custom threshold fallback for [Expanded].** If the
+         * M3-standard ≥840dp activation results in cramped 3-pane
+         * layouts on phones in landscape (~916dp / ~280dp per pane),
+         * raise the [Expanded] threshold to a custom width:
+         * ```kotlin
+         * widthSizeClass >= WindowWidthSizeClass.Expanded -> Expanded
+         * ```
+         * becomes (with `LocalConfiguration` access — adjust for the
+         * actual reading site):
+         * ```kotlin
+         * configuration.screenWidthDp >= 1200 -> Expanded
+         * ```
+         * That keeps phones-in-landscape on [Wide] 2-pane and only
+         * promotes to 3-pane on tablets in landscape and ChromeOS.
          */
         fun fromWidthSizeClass(widthSizeClass: WindowWidthSizeClass): AppLayoutMode =
-            if (widthSizeClass >= WindowWidthSizeClass.Medium) Wide else Compact
+            when {
+                widthSizeClass >= WindowWidthSizeClass.Expanded -> Expanded
+                widthSizeClass >= WindowWidthSizeClass.Medium -> Wide
+                else -> Compact
+            }
     }
 }
 

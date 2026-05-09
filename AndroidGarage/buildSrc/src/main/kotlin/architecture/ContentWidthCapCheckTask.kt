@@ -41,8 +41,12 @@ abstract class ContentWidthCapCheckTask : DefaultTask() {
      *   neither sprawls past readable width on very wide windows. Same
      *   role as `RouteContent` for single-pane, just expressed twice.
      * - `ThreePaneDashboardContent.kt` — the Expanded-width three-pane
-     *   route wrapper. Same per-pane-cap rationale, three slots instead
-     *   of two.
+     *   dashboard wrapper. Same per-pane-cap rationale, three slots
+     *   instead of two.
+     * - `ThreePaneRouteContent.kt` — the Expanded-width route wrapper.
+     *   Caps the dashboard's total width at `3 * ContentWidth.Standard +
+     *   2 * Spacing.Screen` (`1952dp`); same role as `RouteContent` for
+     *   single-pane and `DashboardRouteContent` for two-pane.
      */
     @get:Input
     var exemptFileNames: List<String> = listOf(
@@ -51,6 +55,7 @@ abstract class ContentWidthCapCheckTask : DefaultTask() {
         "AnimatableGarageDoor.kt",
         "HomeDashboardContent.kt",
         "ThreePaneDashboardContent.kt",
+        "ThreePaneRouteContent.kt",
     )
 
     @TaskAction
