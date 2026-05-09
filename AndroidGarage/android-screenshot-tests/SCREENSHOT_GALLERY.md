@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Sat May  9 03:12:28 PDT 2026
+Generated on Sat May  9 10:18:30 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -589,6 +589,12 @@ Generated on Sat May  9 03:12:28 PDT 2026
 
 ### VersionDialogPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/VersionDialogPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### VersionSheetContentPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/VersionSheetContentPreviewTest_Dark_77106447_0.png" width="300" />
+
+### VersionSheetContentPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/VersionSheetContentPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ## SpacingTokensScreenshotTestKt
 

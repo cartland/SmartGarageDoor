@@ -32,6 +32,7 @@ import com.chriscartland.garage.ui.settings.SettingsContentSnoozeInFlightPreview
 import com.chriscartland.garage.ui.settings.SnoozeSheetContentActivePreview
 import com.chriscartland.garage.ui.settings.SnoozeSheetContentOffPreview
 import com.chriscartland.garage.ui.settings.VersionDialogPreview
+import com.chriscartland.garage.ui.settings.VersionSheetContentPreview
 import com.chriscartland.garage.ui.theme.AppTheme
 
 @PreviewTest
@@ -140,6 +141,18 @@ fun AccountSheetContentSignedInPreviewTest() {
 @Composable
 fun VersionDialogPreviewTest() {
     AppTheme { VersionDialogPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun VersionSheetContentPreviewTest() {
+    AppTheme { VersionSheetContentPreview() }
 }
 
 @PreviewTest
