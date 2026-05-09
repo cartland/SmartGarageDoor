@@ -1,1 +1,1 @@
-2.15: Wide-screen Home dashboard. On tablets, foldables in landscape, and any window 600dp+ wide, Home and History now display side-by-side. The bottom nav collapses to two tabs (Home, Settings); History becomes the right column of Home. Phones unchanged.
+2.16: Three-pane dashboard on large tablets and Chromebooks. Home, History, and Settings now appear side by side at 840dp+ window widths. The bottom navigation hides to give the dashboard the full window width.
