@@ -82,6 +82,7 @@ import com.chriscartland.garage.usecase.DefaultAppSettingsViewModel
 import com.chriscartland.garage.usecase.DefaultAuthViewModel
 import com.chriscartland.garage.usecase.DefaultDoorViewModel
 import com.chriscartland.garage.usecase.DefaultFunctionListViewModel
+import com.chriscartland.garage.usecase.DefaultHomeViewModel
 import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.DefaultReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.DefaultRegisterFcmUseCase
@@ -152,6 +153,7 @@ abstract class AppComponent(
     abstract val doorViewModel: DefaultDoorViewModel
     abstract val remoteButtonViewModel: DefaultRemoteButtonViewModel
     abstract val functionListViewModel: DefaultFunctionListViewModel
+    abstract val homeViewModel: DefaultHomeViewModel
 
     // --- Entry points: @Singleton providers (testable via assertSame) ---
     abstract val appConfig: AppConfig
@@ -321,6 +323,36 @@ abstract class AppComponent(
             registerFcmUseCase = registerFcm,
             deregisterFcmUseCase = deregisterFcm,
             dispatchers = dispatchers,
+            appVersion = appVersion,
+        )
+
+    @Provides
+    fun provideHomeViewModel(
+        observeDoorEvents: ObserveDoorEventsUseCase,
+        observeAuthState: ObserveAuthStateUseCase,
+        logAppEvent: LogAppEventUseCase,
+        dispatchers: DispatcherProvider,
+        fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
+        deregisterFcm: DeregisterFcmUseCase,
+        signInWithGoogle: SignInWithGoogleUseCase,
+        pushRemoteButton: PushRemoteButtonUseCase,
+        checkInStalenessManager: CheckInStalenessManager,
+        liveClock: LiveClock,
+        computeButtonHealthDisplay: ComputeButtonHealthDisplayUseCase,
+        appVersion: String,
+    ): DefaultHomeViewModel =
+        DefaultHomeViewModel(
+            observeDoorEvents = observeDoorEvents,
+            observeAuthState = observeAuthState,
+            logAppEvent = logAppEvent,
+            dispatchers = dispatchers,
+            fetchCurrentDoorEventUseCase = fetchCurrentDoorEvent,
+            deregisterFcmUseCase = deregisterFcm,
+            signInWithGoogleUseCase = signInWithGoogle,
+            pushRemoteButtonUseCase = pushRemoteButton,
+            checkInStalenessManager = checkInStalenessManager,
+            liveClock = liveClock,
+            buttonHealthDisplay = computeButtonHealthDisplay(),
             appVersion = appVersion,
         )
 

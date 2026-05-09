@@ -314,9 +314,6 @@ private fun RouteEntryFor(
                         modifier = routeModifier.padding(horizontal = Spacing.Screen),
                         homePane = { paneModifier ->
                             HomeContent(
-                                authViewModel = authViewModel,
-                                doorViewModel = doorViewModel,
-                                appLoggerViewModel = appLoggerViewModel,
                                 modifier = paneModifier,
                             )
                         },
@@ -332,9 +329,6 @@ private fun RouteEntryFor(
             } else {
                 RouteContent { routeModifier ->
                     HomeContent(
-                        authViewModel = authViewModel,
-                        doorViewModel = doorViewModel,
-                        appLoggerViewModel = appLoggerViewModel,
                         modifier = routeModifier.padding(horizontal = Spacing.Screen),
                     )
                 }

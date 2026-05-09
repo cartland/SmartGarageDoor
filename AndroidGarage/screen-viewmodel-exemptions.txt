@@ -13,9 +13,6 @@
 # build a screen-specific ViewModel that aggregates the UseCases that screen
 # needs (see `FunctionListViewModel` for the canonical example).
 
-# Aggregates DoorViewModel + AuthViewModel + AppLoggerViewModel + RemoteButtonViewModel.
-HomeContent.kt
-
 # Aggregates DoorViewModel + AppLoggerViewModel.
 DoorHistoryContent.kt
 
