@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.StateFlow
 class FakeSnoozeRepository : SnoozeRepository {
     data class SnoozeCall(
         val snoozeDurationHours: String,
-        val idToken: String,
         val snoozeEventTimestampSeconds: Long,
     )
 
@@ -65,13 +64,11 @@ class FakeSnoozeRepository : SnoozeRepository {
 
     override suspend fun snoozeNotifications(
         snoozeDurationHours: String,
-        idToken: String,
         snoozeEventTimestampSeconds: Long,
     ): AppResult<SnoozeState, ActionError> {
         _snoozeCalls.add(
             SnoozeCall(
                 snoozeDurationHours = snoozeDurationHours,
-                idToken = idToken,
                 snoozeEventTimestampSeconds = snoozeEventTimestampSeconds,
             ),
         )

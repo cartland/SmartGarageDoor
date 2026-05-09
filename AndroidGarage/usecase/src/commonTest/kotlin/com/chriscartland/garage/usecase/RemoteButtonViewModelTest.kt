@@ -23,7 +23,6 @@ import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.Email
-import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
@@ -76,19 +75,17 @@ class RemoteButtonViewModelTest {
                 user = User(
                     name = DisplayName("Test"),
                     email = Email("test@test.com"),
-                    idToken = FirebaseIdToken(idToken = "token", exp = Long.MAX_VALUE),
                 ),
             ),
         )
 
     private fun createViewModel(authState: AuthState = AuthState.Unauthenticated): DefaultRemoteButtonViewModel {
         authRepository.setAuthState(authState)
-        val ensureFreshIdToken = EnsureFreshIdTokenUseCase(authRepository)
         val vm = DefaultRemoteButtonViewModel(
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
             dispatchers = TestDispatcherProvider(testDispatcher),
-            pushRemoteButtonUseCase = PushRemoteButtonUseCase(ensureFreshIdToken, authRepository, remoteButtonRepository),
-            snoozeNotificationsUseCase = SnoozeNotificationsUseCase(ensureFreshIdToken, authRepository, snoozeRepository),
+            pushRemoteButtonUseCase = PushRemoteButtonUseCase(authRepository, remoteButtonRepository),
+            snoozeNotificationsUseCase = SnoozeNotificationsUseCase(authRepository, snoozeRepository),
             fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
             observeSnoozeStateUseCase = ObserveSnoozeStateUseCase(snoozeRepository),
             buttonHealthDisplay = kotlinx.coroutines.flow.emptyFlow(),

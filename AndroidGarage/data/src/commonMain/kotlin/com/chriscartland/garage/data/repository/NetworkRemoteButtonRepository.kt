@@ -20,6 +20,7 @@ package com.chriscartland.garage.data.repository
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkResult
+import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.RemoteButtonRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import kotlinx.coroutines.delay
@@ -27,12 +28,10 @@ import kotlinx.coroutines.delay
 class NetworkRemoteButtonRepository(
     private val networkButtonDataSource: NetworkButtonDataSource,
     private val serverConfigRepository: ServerConfigRepository,
+    private val authRepository: AuthRepository,
     private val remoteButtonPushEnabled: Boolean,
 ) : RemoteButtonRepository {
-    override suspend fun pushButton(
-        idToken: String,
-        buttonAckToken: String,
-    ): Boolean {
+    override suspend fun pushButton(buttonAckToken: String): Boolean {
         val serverConfig = serverConfigRepository.serverConfig.value
             ?: serverConfigRepository.fetchServerConfig()
         if (serverConfig == null) {
@@ -44,12 +43,18 @@ class NetworkRemoteButtonRepository(
             delay(500)
             return false
         }
+        // ADR-027: token is fetched at the repository layer.
+        val idToken = authRepository.getIdToken(forceRefresh = true)
+        if (idToken == null) {
+            Logger.e { "Push button: getIdToken returned null" }
+            return false
+        }
         return when (
             val result = networkButtonDataSource.pushButton(
                 remoteButtonBuildTimestamp = serverConfig.remoteButtonBuildTimestamp,
                 buttonAckToken = buttonAckToken,
                 remoteButtonPushKey = serverConfig.remoteButtonPushKey,
-                idToken = idToken,
+                idToken = idToken.asString(),
             )
         ) {
             is NetworkResult.Success -> {

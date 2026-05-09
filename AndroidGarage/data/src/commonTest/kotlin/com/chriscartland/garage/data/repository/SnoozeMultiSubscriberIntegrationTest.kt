@@ -19,8 +19,10 @@ package com.chriscartland.garage.data.repository
 
 import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.AppResult
+import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.domain.model.SnoozeState
+import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import kotlinx.coroutines.CoroutineScope
@@ -66,14 +68,19 @@ class SnoozeMultiSubscriberIntegrationTest {
         buttonDs: FakeNetworkButtonDataSource,
         configDs: FakeNetworkConfigDataSource,
         currentTime: Long,
-    ): NetworkSnoozeRepository =
-        NetworkSnoozeRepository(
+    ): NetworkSnoozeRepository {
+        val authRepo = FakeAuthRepository().apply {
+            setIdTokenResult(FirebaseIdToken(idToken = "t", exp = Long.MAX_VALUE))
+        }
+        return NetworkSnoozeRepository(
             networkButtonDataSource = buttonDs,
             serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
+            authRepository = authRepo,
             snoozeNotificationsOption = true,
             currentTimeSeconds = { currentTime },
             externalScope = externalScope,
         )
+    }
 
     /**
      * Three concurrent subscribers — one per simulated VM. A POST landing on
@@ -134,7 +141,6 @@ class SnoozeMultiSubscriberIntegrationTest {
             // Single POST — no one reads its return value.
             val result = repo.snoozeNotifications(
                 snoozeDurationHours = "1h",
-                idToken = "t",
                 snoozeEventTimestampSeconds = 0L,
             )
             advanceUntilIdle()
@@ -190,7 +196,6 @@ class SnoozeMultiSubscriberIntegrationTest {
 
             val result = repo.snoozeNotifications(
                 snoozeDurationHours = "1h",
-                idToken = "t",
                 snoozeEventTimestampSeconds = 0L,
             )
             advanceUntilIdle()
@@ -257,19 +262,19 @@ class SnoozeMultiSubscriberIntegrationTest {
             advanceUntilIdle()
 
             buttonDs.setSnoozeResult(NetworkResult.Success(end1))
-            repo.snoozeNotifications("1h", "t", 0L)
+            repo.snoozeNotifications("1h", 0L)
             advanceUntilIdle()
             assertEquals(SnoozeState.Snoozing(end1), seenA.last())
             assertEquals(SnoozeState.Snoozing(end1), seenB.last())
 
             buttonDs.setSnoozeResult(NetworkResult.Success(end2))
-            repo.snoozeNotifications("0h", "t", 0L)
+            repo.snoozeNotifications("0h", 0L)
             advanceUntilIdle()
             assertEquals(SnoozeState.NotSnoozing, seenA.last())
             assertEquals(SnoozeState.NotSnoozing, seenB.last())
 
             buttonDs.setSnoozeResult(NetworkResult.Success(end3))
-            repo.snoozeNotifications("2h", "t", 0L)
+            repo.snoozeNotifications("2h", 0L)
             advanceUntilIdle()
             assertEquals(SnoozeState.Snoozing(end3), seenA.last())
             assertEquals(SnoozeState.Snoozing(end3), seenB.last())

@@ -11,9 +11,12 @@
 package com.chriscartland.garage.data.repository
 
 import com.chriscartland.garage.data.NetworkResult
+import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
+import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.domain.model.SnoozeState
+import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import kotlinx.coroutines.CoroutineScope
@@ -50,6 +53,11 @@ class NetworkSnoozeRepositoryTest {
         ),
     )
 
+    private fun makeAuthRepo(): FakeAuthRepository =
+        FakeAuthRepository().apply {
+            setIdTokenResult(FirebaseIdToken(idToken = "t", exp = Long.MAX_VALUE))
+        }
+
     @Test
     fun initOnExternalScopeFetchesAndTransitionsOffLoading() =
         runTest {
@@ -61,6 +69,7 @@ class NetworkSnoozeRepositoryTest {
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
+                authRepository = makeAuthRepo(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,
@@ -88,6 +97,7 @@ class NetworkSnoozeRepositoryTest {
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
+                authRepository = makeAuthRepo(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,
@@ -117,6 +127,7 @@ class NetworkSnoozeRepositoryTest {
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
+                authRepository = makeAuthRepo(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,
@@ -143,6 +154,7 @@ class NetworkSnoozeRepositoryTest {
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
+                authRepository = makeAuthRepo(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,
@@ -172,6 +184,7 @@ class NetworkSnoozeRepositoryTest {
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
+                authRepository = makeAuthRepo(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,
@@ -181,7 +194,6 @@ class NetworkSnoozeRepositoryTest {
 
             val submitted = repo.snoozeNotifications(
                 snoozeDurationHours = "1h",
-                idToken = "t",
                 snoozeEventTimestampSeconds = 0L,
             )
             advanceUntilIdle()
@@ -219,6 +231,7 @@ class NetworkSnoozeRepositoryTest {
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
+                authRepository = makeAuthRepo(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,
@@ -226,7 +239,7 @@ class NetworkSnoozeRepositoryTest {
             advanceUntilIdle()
 
             vmScope.launch {
-                repo.snoozeNotifications("1h", "t", 0L)
+                repo.snoozeNotifications("1h", 0L)
             }
             advanceTimeBy(1)
             vmScope.coroutineContext.cancelChildren()
@@ -257,6 +270,7 @@ class NetworkSnoozeRepositoryTest {
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
+                authRepository = makeAuthRepo(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,
@@ -291,13 +305,14 @@ class NetworkSnoozeRepositoryTest {
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
+                authRepository = makeAuthRepo(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,
             )
             advanceUntilIdle()
 
-            val submitted = repo.snoozeNotifications("1h", "t", 0L)
+            val submitted = repo.snoozeNotifications("1h", 0L)
             advanceUntilIdle()
 
             assertTrue(submitted is AppResult.Error, "Should surface the network failure")
@@ -316,6 +331,7 @@ class NetworkSnoozeRepositoryTest {
             val repo = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
+                authRepository = makeAuthRepo(),
                 snoozeNotificationsOption = false,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,
@@ -325,6 +341,39 @@ class NetworkSnoozeRepositoryTest {
 
             assertEquals(SnoozeState.NotSnoozing, repo.snoozeState.value)
             assertEquals(0, buttonDs.fetchSnoozeCount)
+
+            externalScope.cancel()
+        }
+
+    @Test
+    fun snoozeReturnsNotAuthenticatedWhenIdTokenNull() =
+        runTest {
+            // ADR-027: the repo handles the case where AuthRepository
+            // returns no token (sign-in race or sign-out mid-call).
+            val buttonDs = FakeNetworkButtonDataSource()
+            val configDs = FakeNetworkConfigDataSource().apply { setServerConfigResult(validConfig) }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val authRepo = FakeAuthRepository() // no setIdTokenResult — getIdToken returns null
+
+            val repo = NetworkSnoozeRepository(
+                networkButtonDataSource = buttonDs,
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
+                authRepository = authRepo,
+                snoozeNotificationsOption = true,
+                currentTimeSeconds = { 0L },
+                externalScope = externalScope,
+            )
+            advanceUntilIdle()
+            buttonDs.setSnoozeResult(NetworkResult.Success(123L))
+            val priorSnoozeCount = buttonDs.snoozeCount
+
+            val result = repo.snoozeNotifications(
+                snoozeDurationHours = "1h",
+                snoozeEventTimestampSeconds = 100L,
+            )
+
+            assertEquals(AppResult.Error(ActionError.NotAuthenticated), result)
+            assertEquals(priorSnoozeCount, buttonDs.snoozeCount, "Should NOT call data source when token is null")
 
             externalScope.cancel()
         }

@@ -52,12 +52,11 @@ import kotlin.test.assertTrue
 class CachedFeatureAllowlistRepositoryTest {
     private val sampleAllowlist = FeatureAllowlist(functionList = true)
 
-    private fun authenticatedState(idToken: String = "id-token"): AuthState.Authenticated =
+    private fun authenticatedState(email: String = "test@example.com"): AuthState.Authenticated =
         AuthState.Authenticated(
             user = User(
                 name = DisplayName("Test User"),
-                email = Email("test@example.com"),
-                idToken = FirebaseIdToken(idToken = idToken, exp = Long.MAX_VALUE),
+                email = Email(email),
             ),
         )
 
@@ -67,7 +66,9 @@ class CachedFeatureAllowlistRepositoryTest {
             val ds = FakeNetworkFeatureAllowlistDataSource().apply {
                 setFetchResult(NetworkResult.Success(sampleAllowlist))
             }
-            val authRepo = FakeAuthRepository()
+            val authRepo = FakeAuthRepository().apply {
+                setIdTokenResult(FirebaseIdToken(idToken = "fresh-token", exp = Long.MAX_VALUE))
+            }
             val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
 
             val repo = CachedFeatureAllowlistRepository(ds, authRepo, externalScope)
@@ -76,7 +77,7 @@ class CachedFeatureAllowlistRepositoryTest {
             assertEquals(0, ds.fetchCount)
             assertNull(repo.allowlist.value)
 
-            authRepo.setAuthState(authenticatedState(idToken = "fresh-token"))
+            authRepo.setAuthState(authenticatedState())
             advanceUntilIdle()
 
             assertEquals(1, ds.fetchCount)
@@ -93,6 +94,7 @@ class CachedFeatureAllowlistRepositoryTest {
                 setFetchResult(NetworkResult.Success(sampleAllowlist))
             }
             val authRepo = FakeAuthRepository().apply {
+                setIdTokenResult(FirebaseIdToken(idToken = "id-token", exp = Long.MAX_VALUE))
                 setAuthState(authenticatedState())
             }
             val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
@@ -144,6 +146,7 @@ class CachedFeatureAllowlistRepositoryTest {
                 setFetchResult(NetworkResult.Success(sampleAllowlist))
             }
             val authRepo = FakeAuthRepository().apply {
+                setIdTokenResult(FirebaseIdToken(idToken = "id-token", exp = Long.MAX_VALUE))
                 setAuthState(authenticatedState())
             }
             val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
@@ -181,13 +184,13 @@ class CachedFeatureAllowlistRepositoryTest {
                 }
             }
             val authRepo = FakeAuthRepository().apply {
-                setAuthState(authenticatedState(idToken = "alice-token"))
+                setIdTokenResult(FirebaseIdToken(idToken = "alice-token", exp = Long.MAX_VALUE))
+                setAuthState(authenticatedState(email = "alice@example.com"))
             }
             val bobState = AuthState.Authenticated(
                 user = User(
                     name = DisplayName("Bob"),
                     email = Email("bob@example.com"),
-                    idToken = FirebaseIdToken(idToken = "bob-token", exp = Long.MAX_VALUE),
                 ),
             )
             ds.swapAuthDuringFetch = { authRepo.setAuthState(bobState) }
@@ -217,7 +220,8 @@ class CachedFeatureAllowlistRepositoryTest {
                 setFetchResult(NetworkResult.Success(FeatureAllowlist(functionList = true)))
             }
             val authRepo = FakeAuthRepository().apply {
-                setAuthState(authenticatedState(idToken = "alice-token"))
+                setIdTokenResult(FirebaseIdToken(idToken = "alice-token", exp = Long.MAX_VALUE))
+                setAuthState(authenticatedState(email = "alice@example.com"))
             }
             val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
 
@@ -232,7 +236,8 @@ class CachedFeatureAllowlistRepositoryTest {
             assertNull(repo.allowlist.value)
 
             ds.setFetchResult(NetworkResult.Success(FeatureAllowlist(functionList = false)))
-            authRepo.setAuthState(authenticatedState(idToken = "bob-token"))
+            authRepo.setIdTokenResult(FirebaseIdToken(idToken = "bob-token", exp = Long.MAX_VALUE))
+            authRepo.setAuthState(authenticatedState(email = "bob@example.com"))
             advanceUntilIdle()
 
             assertEquals(FeatureAllowlist(functionList = false), repo.allowlist.value)

@@ -26,24 +26,22 @@ import com.chriscartland.garage.domain.repository.RemoteButtonRepository
 /**
  * Pushes the remote garage button.
  *
+ * Per ADR-027 the UseCase doesn't see the ID token; it gates on
+ * [AuthState.Authenticated] and delegates to the repository, which
+ * fetches a fresh token internally before calling its data source.
+ *
  * Returns [AppResult] so callers can handle [ActionError.NotAuthenticated]
  * explicitly with exhaustive `when`.
  */
 class PushRemoteButtonUseCase(
-    private val ensureFreshIdToken: EnsureFreshIdTokenUseCase,
     private val authRepository: AuthRepository,
     private val remoteButtonRepository: RemoteButtonRepository,
 ) {
     suspend operator fun invoke(buttonAckToken: String): AppResult<Unit, ActionError> {
-        val authState = authRepository.authState.value
-        if (authState !is AuthState.Authenticated) {
+        if (authRepository.authState.value !is AuthState.Authenticated) {
             return AppResult.Error(ActionError.NotAuthenticated)
         }
-        val idToken = ensureFreshIdToken(authState)
-        val success = remoteButtonRepository.pushButton(
-            idToken = idToken.asString(),
-            buttonAckToken = buttonAckToken,
-        )
+        val success = remoteButtonRepository.pushButton(buttonAckToken = buttonAckToken)
         return if (success) {
             AppResult.Success(Unit)
         } else {

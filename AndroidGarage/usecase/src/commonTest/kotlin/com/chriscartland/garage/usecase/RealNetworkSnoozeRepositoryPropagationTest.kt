@@ -111,15 +111,12 @@ class RealNetworkSnoozeRepositoryPropagationTest {
         buttonDs = FakeNetworkButtonDataSource()
         configDs = FakeNetworkConfigDataSource().apply { setServerConfigResult(validConfig) }
         authRepository = FakeAuthRepository().apply {
+            setIdTokenResult(FirebaseIdToken(idToken = "tok", exp = Long.MAX_VALUE))
             setAuthState(
                 AuthState.Authenticated(
                     user = User(
                         name = DisplayName("Test"),
                         email = Email("test@test.com"),
-                        idToken = FirebaseIdToken(
-                            idToken = "tok",
-                            exp = Long.MAX_VALUE,
-                        ),
                     ),
                 ),
             )
@@ -161,6 +158,7 @@ class RealNetworkSnoozeRepositoryPropagationTest {
                     "test-key",
                     externalScope,
                 ),
+                authRepository = authRepository,
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,
@@ -172,17 +170,14 @@ class RealNetworkSnoozeRepositoryPropagationTest {
             assertEquals(SnoozeState.NotSnoozing, snoozeRepository.snoozeState.value)
 
             val testDispatcher = UnconfinedTestDispatcher(testScheduler)
-            val ensureFreshIdToken = EnsureFreshIdTokenUseCase(authRepository)
             val vm = DefaultRemoteButtonViewModel(
                 observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
                 dispatchers = TestDispatcherProvider(testDispatcher),
                 pushRemoteButtonUseCase = PushRemoteButtonUseCase(
-                    ensureFreshIdToken,
                     authRepository,
                     remoteButtonRepository,
                 ),
                 snoozeNotificationsUseCase = SnoozeNotificationsUseCase(
-                    ensureFreshIdToken,
                     authRepository,
                     snoozeRepository,
                 ),
@@ -259,6 +254,7 @@ class RealNetworkSnoozeRepositoryPropagationTest {
             val snoozeRepository = NetworkSnoozeRepository(
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "test-key", externalScope),
+                authRepository = authRepository,
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,
@@ -266,17 +262,14 @@ class RealNetworkSnoozeRepositoryPropagationTest {
             advanceUntilIdle()
 
             val testDispatcher = UnconfinedTestDispatcher(testScheduler)
-            val ensureFreshIdToken = EnsureFreshIdTokenUseCase(authRepository)
             val vm = DefaultRemoteButtonViewModel(
                 observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
                 dispatchers = TestDispatcherProvider(testDispatcher),
                 pushRemoteButtonUseCase = PushRemoteButtonUseCase(
-                    ensureFreshIdToken,
                     authRepository,
                     remoteButtonRepository,
                 ),
                 snoozeNotificationsUseCase = SnoozeNotificationsUseCase(
-                    ensureFreshIdToken,
                     authRepository,
                     snoozeRepository,
                 ),

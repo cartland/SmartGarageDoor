@@ -7,15 +7,14 @@ import kotlin.test.assertTrue
 class AuthModelTest {
     @Test
     fun authenticatedStateHoldsUser() {
+        // ADR-027: User carries identity only, no token.
         val user = User(
             name = DisplayName("Test User"),
             email = Email("test@example.com"),
-            idToken = FirebaseIdToken(idToken = "token123", exp = 9999999L),
         )
         val state = AuthState.Authenticated(user)
         assertEquals("Test User", state.user.name.asString())
         assertEquals("test@example.com", state.user.email.asString())
-        assertEquals("token123", state.user.idToken.asString())
     }
 
     @Test
@@ -26,7 +25,6 @@ class AuthModelTest {
             User(
                 name = DisplayName(""),
                 email = Email(""),
-                idToken = FirebaseIdToken("", 0L),
             ),
         )
         assertTrue(unknown is AuthState.Unknown)

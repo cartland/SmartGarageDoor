@@ -27,6 +27,10 @@ import com.chriscartland.garage.domain.repository.SnoozeRepository
 /**
  * Snoozes open-door notifications for a specified duration.
  *
+ * Per ADR-027 the UseCase doesn't see the ID token; it gates on
+ * [AuthState.Authenticated] and delegates to the repository, which
+ * fetches a fresh token internally before calling its data source.
+ *
  * On success returns the server-authoritative [SnoozeState]. Callers can
  * surface this directly in the UI (action overlay, card title) without
  * waiting for the flow observer to forward it.
@@ -37,7 +41,6 @@ import com.chriscartland.garage.domain.repository.SnoozeRepository
  * - [ActionError.NetworkFailed] — repository reported a network failure.
  */
 class SnoozeNotificationsUseCase(
-    private val ensureFreshIdToken: EnsureFreshIdTokenUseCase,
     private val authRepository: AuthRepository,
     private val snoozeRepository: SnoozeRepository,
 ) {
@@ -45,17 +48,14 @@ class SnoozeNotificationsUseCase(
         snoozeDurationHours: String,
         lastChangeTimeSeconds: Long?,
     ): AppResult<SnoozeState, ActionError> {
-        val authState = authRepository.authState.value
-        if (authState !is AuthState.Authenticated) {
+        if (authRepository.authState.value !is AuthState.Authenticated) {
             return AppResult.Error(ActionError.NotAuthenticated)
         }
         if (lastChangeTimeSeconds == null) {
             return AppResult.Error(ActionError.MissingData)
         }
-        val idToken = ensureFreshIdToken(authState)
         return snoozeRepository.snoozeNotifications(
             snoozeDurationHours = snoozeDurationHours,
-            idToken = idToken.asString(),
             snoozeEventTimestampSeconds = lastChangeTimeSeconds,
         )
     }

@@ -62,11 +62,13 @@ class FirebaseAuthRepositoryTest {
         }
 
     @Test
-    fun userWithTokenEmitsAuthenticated() =
+    fun userEmitsAuthenticated() =
         runTest(UnconfinedTestDispatcher()) {
+            // ADR-027: AuthState carries identity only, never a token.
+            // The presence of an auth user — independent of token state —
+            // is what drives Authenticated.
             val bridge = FakeAuthBridge()
             bridge.setAuthUser(AuthUserInfo(displayName = "Alice", email = "alice@test.com"))
-            bridge.setIdTokenResult(FirebaseIdToken(idToken = "token-123", exp = Long.MAX_VALUE))
 
             val (repo, _) = createRepository(authBridge = bridge)
             advanceUntilIdle()
@@ -74,20 +76,7 @@ class FirebaseAuthRepositoryTest {
             val state = repo.authState.value
             assertIs<AuthState.Authenticated>(state)
             assertEquals("Alice", state.user.name.asString())
-            assertEquals("token-123", state.user.idToken.idToken)
-        }
-
-    @Test
-    fun userWithoutTokenEmitsUnauthenticated() =
-        runTest(UnconfinedTestDispatcher()) {
-            val bridge = FakeAuthBridge()
-            bridge.setAuthUser(AuthUserInfo(displayName = "Bob", email = "bob@test.com"))
-            bridge.setIdTokenResult(null) // no token
-
-            val (repo, _) = createRepository(authBridge = bridge)
-            advanceUntilIdle()
-
-            assertEquals(AuthState.Unauthenticated, repo.authState.value)
+            assertEquals("alice@test.com", state.user.email.asString())
         }
 
     @Test
@@ -100,9 +89,7 @@ class FirebaseAuthRepositoryTest {
             // Initially no user → Unauthenticated
             assertEquals(AuthState.Unauthenticated, repo.authState.value)
 
-            // User signs in (listener fires) — set token BEFORE user so the
-            // collector sees the token when it processes the user emission.
-            bridge.setIdTokenResult(FirebaseIdToken(idToken = "carol-token", exp = Long.MAX_VALUE))
+            // User signs in (listener fires).
             bridge.setAuthUser(AuthUserInfo(displayName = "Carol", email = "carol@test.com"))
             advanceUntilIdle()
 
@@ -116,7 +103,6 @@ class FirebaseAuthRepositoryTest {
         runTest(UnconfinedTestDispatcher()) {
             val bridge = FakeAuthBridge()
             bridge.setAuthUser(AuthUserInfo(displayName = "Dave", email = "dave@test.com"))
-            bridge.setIdTokenResult(FirebaseIdToken(idToken = "token", exp = Long.MAX_VALUE))
 
             val (repo, _) = createRepository(authBridge = bridge)
             advanceUntilIdle()
@@ -136,7 +122,6 @@ class FirebaseAuthRepositoryTest {
         runTest(UnconfinedTestDispatcher()) {
             val bridge = FakeAuthBridge()
             bridge.setSignInResult(true)
-            bridge.setIdTokenResult(FirebaseIdToken(idToken = "token", exp = Long.MAX_VALUE))
 
             val (repo, _) = createRepository(authBridge = bridge)
             repo.signInWithGoogle(GoogleIdToken("google-token"))
@@ -145,31 +130,23 @@ class FirebaseAuthRepositoryTest {
             assertEquals("google-token", bridge.signInCalls.first().asString())
         }
 
-    // --- refreshIdToken ---
+    // --- getIdToken (ADR-027) ---
 
     @Test
-    fun refreshIdTokenReturnsTokenAndUpdatesState() =
+    fun getIdTokenDelegatesToBridge() =
         runTest(UnconfinedTestDispatcher()) {
             val bridge = FakeAuthBridge()
-            bridge.setAuthUser(AuthUserInfo(displayName = "Eve", email = "eve@test.com"))
-            bridge.setIdTokenResult(FirebaseIdToken(idToken = "old-token", exp = 1000L))
+            bridge.setIdTokenResult(FirebaseIdToken(idToken = "fresh-token", exp = 9000L))
 
             val (repo, _) = createRepository(authBridge = bridge)
             advanceUntilIdle()
 
-            // Now force-refresh returns a new token
-            bridge.setIdTokenResult(FirebaseIdToken(idToken = "fresh-token", exp = 9000L))
-            val refreshed = repo.refreshIdToken()
-
-            assertEquals("fresh-token", refreshed?.idToken)
-            // _authState should also be updated with the new token
-            val state = repo.authState.value
-            assertIs<AuthState.Authenticated>(state)
-            assertEquals("fresh-token", state.user.idToken.idToken)
+            val token = repo.getIdToken(forceRefresh = true)
+            assertEquals("fresh-token", token?.idToken)
         }
 
     @Test
-    fun refreshIdTokenReturnsNullWhenBridgeFails() =
+    fun getIdTokenReturnsNullWhenBridgeFails() =
         runTest(UnconfinedTestDispatcher()) {
             val bridge = FakeAuthBridge()
             bridge.setIdTokenResult(null)
@@ -177,6 +154,6 @@ class FirebaseAuthRepositoryTest {
             val (repo, _) = createRepository(authBridge = bridge)
             advanceUntilIdle()
 
-            assertNull(repo.refreshIdToken())
+            assertNull(repo.getIdToken(forceRefresh = true))
         }
 }

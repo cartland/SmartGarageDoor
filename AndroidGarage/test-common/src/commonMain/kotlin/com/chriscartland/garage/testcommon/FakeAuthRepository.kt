@@ -29,6 +29,10 @@ import kotlinx.coroutines.flow.StateFlow
  *
  * Configure responses with `setX()` methods. Tracks sign-in calls via
  * `signInCalls` (ADR-017 Rule 5 — call-list pattern).
+ *
+ * ADR-027: token state is a private concern. Tests can configure
+ * [setIdTokenResult] to control what `getIdToken(forceRefresh)` returns.
+ * `getIdTokenCount` and `getIdTokenForceRefreshCount` track call shape.
  */
 class FakeAuthRepository : AuthRepository {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
@@ -41,16 +45,16 @@ class FakeAuthRepository : AuthRepository {
     private var _signOutCount: Int = 0
     val signOutCount: Int get() = _signOutCount
 
-    private var _refreshIdTokenCount: Int = 0
-    val refreshIdTokenCount: Int get() = _refreshIdTokenCount
+    private var _getIdTokenCount: Int = 0
+    val getIdTokenCount: Int get() = _getIdTokenCount
+
+    private var _getIdTokenForceRefreshCount: Int = 0
+
+    /** Number of `getIdToken(forceRefresh = true)` calls observed. */
+    val getIdTokenForceRefreshCount: Int get() = _getIdTokenForceRefreshCount
 
     private var signInResult: AuthState? = null
-    private var refreshIdTokenResult: FirebaseIdToken? = null
-
-    // Keep deprecated field for tests that still use refreshFirebaseAuthState
-    private var legacyRefreshCount: Int = 0
-    val refreshCount: Int get() = legacyRefreshCount
-    private var legacyRefreshResult: AuthState? = null
+    private var idTokenResult: FirebaseIdToken? = null
 
     fun setAuthState(state: AuthState) {
         _authState.value = state
@@ -60,13 +64,14 @@ class FakeAuthRepository : AuthRepository {
         signInResult = value
     }
 
-    fun setRefreshIdTokenResult(value: FirebaseIdToken?) {
-        refreshIdTokenResult = value
+    fun setIdTokenResult(value: FirebaseIdToken?) {
+        idTokenResult = value
     }
 
-    @Deprecated("Use setRefreshIdTokenResult instead")
-    fun setRefreshResult(value: AuthState?) {
-        legacyRefreshResult = value
+    override suspend fun getIdToken(forceRefresh: Boolean): FirebaseIdToken? {
+        _getIdTokenCount++
+        if (forceRefresh) _getIdTokenForceRefreshCount++
+        return idTokenResult
     }
 
     override suspend fun signInWithGoogle(idToken: GoogleIdToken): AuthState {
@@ -74,17 +79,6 @@ class FakeAuthRepository : AuthRepository {
         val result = signInResult ?: _authState.value
         _authState.value = result
         return result
-    }
-
-    override suspend fun refreshIdToken(): FirebaseIdToken? {
-        _refreshIdTokenCount++
-        return refreshIdTokenResult
-    }
-
-    @Deprecated("Use refreshIdToken() instead")
-    override suspend fun refreshFirebaseAuthState(): AuthState {
-        legacyRefreshCount++
-        return legacyRefreshResult ?: _authState.value
     }
 
     override suspend fun signOut() {

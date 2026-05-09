@@ -26,7 +26,6 @@ import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.FeatureAllowlist
-import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.domain.repository.ButtonHealthRepository
@@ -89,10 +88,8 @@ class DefaultFunctionListViewModelTest {
 
     private fun createViewModel(authState: AuthState = AuthState.Unauthenticated): DefaultFunctionListViewModel {
         authRepository.setAuthState(authState)
-        val ensureFreshIdToken = EnsureFreshIdTokenUseCase(authRepository)
         return DefaultFunctionListViewModel(
             pushRemoteButtonUseCase = PushRemoteButtonUseCase(
-                ensureFreshIdToken,
                 authRepository,
                 remoteButtonRepository,
             ),
@@ -100,12 +97,10 @@ class DefaultFunctionListViewModelTest {
             fetchRecentDoorEventsUseCase = FetchRecentDoorEventsUseCase(doorRepository),
             fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
             fetchButtonHealthUseCase = FetchButtonHealthUseCase(
-                ensureFreshIdToken,
                 authRepository,
                 NoopButtonHealthRepository(),
             ),
             snoozeNotificationsUseCase = SnoozeNotificationsUseCase(
-                ensureFreshIdToken,
                 authRepository,
                 snoozeRepository,
             ),
@@ -130,7 +125,6 @@ class DefaultFunctionListViewModelTest {
             user = User(
                 name = DisplayName("Test"),
                 email = Email("test@test.com"),
-                idToken = FirebaseIdToken(idToken = "token", exp = Long.MAX_VALUE),
             ),
         )
 
@@ -223,7 +217,7 @@ private class NoopButtonHealthRepository : ButtonHealthRepository {
     override val buttonHealth: StateFlow<LoadingResult<ButtonHealth>> =
         MutableStateFlow(LoadingResult.Loading(null))
 
-    override suspend fun fetchButtonHealth(idToken: String): AppResult<ButtonHealth, ButtonHealthError> =
+    override suspend fun fetchButtonHealth(): AppResult<ButtonHealth, ButtonHealthError> =
         AppResult.Success(ButtonHealth(ButtonHealthState.UNKNOWN, null))
 
     override fun applyFcmUpdate(update: ButtonHealth) {

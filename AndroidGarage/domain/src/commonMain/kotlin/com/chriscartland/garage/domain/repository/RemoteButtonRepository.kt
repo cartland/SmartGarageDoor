@@ -5,10 +5,11 @@ package com.chriscartland.garage.domain.repository
  *
  * This is a one-shot action: call [pushButton], await the result.
  * Returns true if the server acknowledged the request, false on any failure.
+ *
+ * Per ADR-027 the implementation fetches the current Firebase ID token
+ * itself via [com.chriscartland.garage.domain.repository.AuthRepository.getIdToken];
+ * callers do not pass a token.
  */
 interface RemoteButtonRepository {
-    suspend fun pushButton(
-        idToken: String,
-        buttonAckToken: String,
-    ): Boolean
+    suspend fun pushButton(buttonAckToken: String): Boolean
 }

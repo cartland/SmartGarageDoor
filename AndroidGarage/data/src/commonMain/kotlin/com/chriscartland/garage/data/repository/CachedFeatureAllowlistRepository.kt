@@ -89,9 +89,14 @@ class CachedFeatureAllowlistRepository(
                 return@withLock null
             }
             val initialEmail = initialAuth.user.email
-            val idToken = initialAuth.user.idToken.asString()
+            // ADR-027: token is no longer in AuthState; fetch it explicitly.
+            val token = authRepository.getIdToken(forceRefresh = true)
+            if (token == null) {
+                Logger.w { "Skipping fetch — getIdToken returned null" }
+                return@withLock null
+            }
             val result = try {
-                when (val r = networkDataSource.fetchAllowlist(idToken)) {
+                when (val r = networkDataSource.fetchAllowlist(token.asString())) {
                     is NetworkResult.Success -> r.data
                     is NetworkResult.HttpError -> null
                     NetworkResult.ConnectionFailed -> null

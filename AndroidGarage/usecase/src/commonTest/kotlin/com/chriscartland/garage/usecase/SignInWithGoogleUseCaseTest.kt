@@ -20,7 +20,6 @@ package com.chriscartland.garage.usecase
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
-import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.testcommon.FakeAuthRepository
@@ -50,7 +49,6 @@ class SignInWithGoogleUseCaseTest {
                     user = User(
                         name = DisplayName("Alice"),
                         email = Email("alice@test.com"),
-                        idToken = FirebaseIdToken("token", exp = Long.MAX_VALUE),
                     ),
                 ),
             )

@@ -25,6 +25,7 @@ import com.chriscartland.garage.domain.model.ButtonHealth
 import com.chriscartland.garage.domain.model.ButtonHealthError
 import com.chriscartland.garage.domain.model.ButtonHealthState
 import com.chriscartland.garage.domain.model.LoadingResult
+import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.ButtonHealthRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import kotlinx.coroutines.CoroutineScope
@@ -49,6 +50,7 @@ import kotlinx.coroutines.launch
 class NetworkButtonHealthRepository(
     private val networkButtonHealthDataSource: NetworkButtonHealthDataSource,
     private val serverConfigRepository: ServerConfigRepository,
+    private val authRepository: AuthRepository,
     private val externalScope: CoroutineScope,
 ) : ButtonHealthRepository {
     private val _buttonHealth =
@@ -56,10 +58,10 @@ class NetworkButtonHealthRepository(
 
     override val buttonHealth: StateFlow<LoadingResult<ButtonHealth>> = _buttonHealth
 
-    override suspend fun fetchButtonHealth(idToken: String): AppResult<ButtonHealth, ButtonHealthError> =
+    override suspend fun fetchButtonHealth(): AppResult<ButtonHealth, ButtonHealthError> =
         externalScope
             .async {
-                doFetchButtonHealth(idToken)
+                doFetchButtonHealth()
             }.await()
 
     override fun applyFcmUpdate(update: ButtonHealth) {
@@ -68,7 +70,7 @@ class NetworkButtonHealthRepository(
         }
     }
 
-    private suspend fun doFetchButtonHealth(idToken: String): AppResult<ButtonHealth, ButtonHealthError> {
+    private suspend fun doFetchButtonHealth(): AppResult<ButtonHealth, ButtonHealthError> {
         // Stale-while-revalidate: if we already have a Complete value, keep
         // it visible during the refresh. Only flip to Loading when there's
         // no prior data (initial fetch or after a hard error). Without this,
@@ -85,11 +87,18 @@ class NetworkButtonHealthRepository(
             writeErrorPreservingComplete(IllegalStateException("Server config is null"))
             return AppResult.Error(ButtonHealthError.Network())
         }
+        // ADR-027: token is fetched at the repository layer, not the UseCase.
+        val idToken = authRepository.getIdToken(forceRefresh = true)
+        if (idToken == null) {
+            Logger.e { "Button health: getIdToken returned null" }
+            writeErrorPreservingComplete(IllegalStateException("ID token unavailable"))
+            return AppResult.Error(ButtonHealthError.NotAuthenticated())
+        }
         return when (
             val result = networkButtonHealthDataSource.fetchButtonHealth(
                 buildTimestamp = serverConfig.remoteButtonBuildTimestamp,
                 remoteButtonPushKey = serverConfig.remoteButtonPushKey,
-                idToken = idToken,
+                idToken = idToken.asString(),
             )
         ) {
             is NetworkResult.Success -> {

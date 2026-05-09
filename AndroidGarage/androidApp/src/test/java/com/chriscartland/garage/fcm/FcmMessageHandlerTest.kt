@@ -172,7 +172,7 @@ private class RecordingButtonHealthRepository : ButtonHealthRepository {
     override val buttonHealth: StateFlow<LoadingResult<ButtonHealth>> =
         MutableStateFlow(LoadingResult.Loading(null))
 
-    override suspend fun fetchButtonHealth(idToken: String) = AppResult.Error(ButtonHealthError.Network())
+    override suspend fun fetchButtonHealth() = AppResult.Error(ButtonHealthError.Network())
 
     override fun applyFcmUpdate(update: ButtonHealth) {
         lastApplied = update

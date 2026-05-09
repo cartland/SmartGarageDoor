@@ -44,7 +44,6 @@ class ComputeButtonHealthDisplayUseCaseTest {
         user = User(
             name = DisplayName("Test"),
             email = Email("test@example.com"),
-            idToken = FirebaseIdToken(idToken = "tok", exp = 0L),
         ),
     )
 
@@ -103,11 +102,7 @@ private class TestAuthRepository(
 
     override suspend fun signInWithGoogle(idToken: com.chriscartland.garage.domain.model.GoogleIdToken): AuthState = flow.value
 
-    override suspend fun refreshIdToken(): FirebaseIdToken? = null
-
-    @Suppress("DEPRECATION")
-    @Deprecated("legacy")
-    override suspend fun refreshFirebaseAuthState(): AuthState = flow.value
+    override suspend fun getIdToken(forceRefresh: Boolean): FirebaseIdToken? = null
 
     override suspend fun signOut() {}
 }
@@ -118,8 +113,7 @@ private class TestButtonHealthRepository(
 ) : ButtonHealthRepository {
     override val buttonHealth: StateFlow<LoadingResult<ButtonHealth>> = flow
 
-    override suspend fun fetchButtonHealth(idToken: String): AppResult<ButtonHealth, ButtonHealthError> =
-        AppResult.Error(ButtonHealthError.Network())
+    override suspend fun fetchButtonHealth(): AppResult<ButtonHealth, ButtonHealthError> = AppResult.Error(ButtonHealthError.Network())
 
     override fun applyFcmUpdate(update: ButtonHealth) {}
 }

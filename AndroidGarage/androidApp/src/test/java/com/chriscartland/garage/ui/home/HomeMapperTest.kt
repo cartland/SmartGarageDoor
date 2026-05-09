@@ -22,7 +22,6 @@ import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.Email
-import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.User
 import org.junit.Assert.assertEquals
@@ -53,7 +52,6 @@ class HomeMapperTest {
     private val authedUser = User(
         name = DisplayName("Chris"),
         email = Email("chris@example.com"),
-        idToken = FirebaseIdToken(idToken = "tok", exp = 0),
     )
 
     // region stateLabel
