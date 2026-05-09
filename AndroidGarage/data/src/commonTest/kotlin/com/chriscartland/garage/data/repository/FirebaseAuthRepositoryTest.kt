@@ -156,4 +156,39 @@ class FirebaseAuthRepositoryTest {
 
             assertNull(repo.getIdToken(forceRefresh = true))
         }
+
+    // --- ADR-027: listener-loop purity ---
+
+    @Test
+    fun listenerLoopDoesNotCallGetIdToken() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Structural guard for ADR-027. The reactive listener loop in
+            // FirebaseAuthRepository.init must NOT call authBridge.getIdToken;
+            // its responsibility is identity mapping only. Token state is a
+            // private concern of AuthRepository and the network repos that
+            // need it.
+            //
+            // This test pins the rule by setting up an auth user *before* the
+            // repo is constructed, letting the listener fire, and then
+            // asserting the bridge's getIdToken call counter is still zero.
+            // If a future change adds `getIdToken` back into the listener
+            // collect block (the regression that introduced the 2.13.2
+            // sign-in failure), this test will fail with a non-zero count.
+            val bridge = FakeAuthBridge()
+            bridge.setAuthUser(AuthUserInfo(displayName = "Eve", email = "eve@test.com"))
+
+            val (repo, _) = createRepository(authBridge = bridge)
+            advanceUntilIdle()
+
+            // Identity propagated through the listener — proves it ran.
+            assertIs<AuthState.Authenticated>(repo.authState.value)
+            // …but did NOT pull a token. That's the invariant.
+            assertEquals(
+                0,
+                bridge.getIdTokenCount,
+                "Listener loop must not call getIdToken (ADR-027). If you " +
+                    "need a token, fetch it explicitly via AuthRepository.getIdToken " +
+                    "from the network repo that needs it.",
+            )
+        }
 }

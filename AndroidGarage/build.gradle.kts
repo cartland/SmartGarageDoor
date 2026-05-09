@@ -212,6 +212,12 @@ tasks.register<architecture.NoBareTopLevelFunctionsTask>("checkNoBareTopLevelFun
     )
 }
 
+tasks.register<architecture.NoTokenInUseCaseTask>("checkNoTokenInUseCase") {
+    sourceDirs = listOf(
+        "$rootDir/usecase/src/commonMain/kotlin",
+    )
+}
+
 tasks.register<architecture.NoImplSuffixTask>("checkNoImplSuffix") {
     sourceDirs = listOf(
         "$rootDir/androidApp/src/main/java",
