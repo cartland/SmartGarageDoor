@@ -92,6 +92,7 @@ import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.FetchFcmStatusUseCase
 import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
+import com.chriscartland.garage.usecase.InitialDoorFetchManager
 import com.chriscartland.garage.usecase.LiveClock
 import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
@@ -186,6 +187,7 @@ abstract class AppComponent(
     abstract val buttonHealthFcmRepository: ButtonHealthFcmRepository
     abstract val buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager
     abstract val applyButtonHealthFcmUseCase: ApplyButtonHealthFcmUseCase
+    abstract val initialDoorFetchManager: InitialDoorFetchManager
 
     // --- ViewModels ---
 
@@ -689,6 +691,23 @@ abstract class AppComponent(
         )
 
     @Provides
+    @Singleton
+    fun provideInitialDoorFetchManager(
+        fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
+        fetchRecentDoorEvents: FetchRecentDoorEventsUseCase,
+        logAppEvent: LogAppEventUseCase,
+        applicationScope: CoroutineScope,
+        dispatchers: DispatcherProvider,
+    ): InitialDoorFetchManager =
+        InitialDoorFetchManager(
+            fetchCurrentDoorEvent = fetchCurrentDoorEvent,
+            fetchRecentDoorEvents = fetchRecentDoorEvents,
+            logAppEvent = logAppEvent,
+            scope = applicationScope,
+            dispatcher = dispatchers.io,
+        )
+
+    @Provides
     fun provideAppStartup(
         fcmRegistrationManager: FcmRegistrationManager,
         checkInStalenessManager: CheckInStalenessManager,
@@ -696,6 +715,7 @@ abstract class AppComponent(
         logAppEvent: LogAppEventUseCase,
         runStartupDiagnosticsMaintenance: RunStartupDiagnosticsMaintenanceUseCase,
         buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager,
+        initialDoorFetchManager: InitialDoorFetchManager,
         applicationScope: CoroutineScope,
         dispatchers: DispatcherProvider,
     ): AppStartup =
@@ -706,6 +726,7 @@ abstract class AppComponent(
             logAppEvent = logAppEvent,
             runStartupDiagnosticsMaintenance = runStartupDiagnosticsMaintenance,
             buttonHealthFcmSubscriptionManager = buttonHealthFcmSubscriptionManager,
+            initialDoorFetchManager = initialDoorFetchManager,
             externalScope = applicationScope,
             dispatchers = dispatchers,
         )

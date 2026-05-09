@@ -146,6 +146,17 @@ class ComponentGraphTest {
     }
 
     @Test
+    fun initialDoorFetchManagerIsSingleton() {
+        // Singleton-scoped so the cold-start fetch fires exactly once per
+        // process even when MainActivity.onCreate fires multiple times
+        // (rotation, app resume after Activity destroy). A non-singleton
+        // here would re-fetch on every config change — exactly the
+        // VM-init-fetch problem we just removed, in a different layer.
+        val c = component
+        assertSame("InitialDoorFetchManager must be singleton", c.initialDoorFetchManager, c.initialDoorFetchManager)
+    }
+
+    @Test
     fun liveClockIsSingleton() {
         val c = component
         assertSame("LiveClock must be singleton", c.liveClock, c.liveClock)
