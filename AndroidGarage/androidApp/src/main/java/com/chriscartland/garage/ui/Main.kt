@@ -36,6 +36,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -212,22 +213,39 @@ fun AppNavigation(
             //   stay layout-agnostic.
             entryProvider = entryProvider {
                 entry<Screen.Home> {
-                    RouteContent { routeModifier ->
-                        HomeContent(
-                            authViewModel = authViewModel,
-                            doorViewModel = doorViewModel,
-                            appLoggerViewModel = appLoggerViewModel,
-                            modifier = routeModifier.padding(horizontal = Spacing.Screen),
-                        )
+                    if (LocalAppWindowSizeClass.current.widthSizeClass >= WindowWidthSizeClass.Medium) {
+                        DashboardRouteContent { routeModifier ->
+                            WideHomeDashboard(routeModifier, authViewModel, doorViewModel, appLoggerViewModel)
+                        }
+                    } else {
+                        RouteContent { routeModifier ->
+                            HomeContent(
+                                authViewModel = authViewModel,
+                                doorViewModel = doorViewModel,
+                                appLoggerViewModel = appLoggerViewModel,
+                                modifier = routeModifier.padding(horizontal = Spacing.Screen),
+                            )
+                        }
                     }
                 }
+                // History on wide screens renders the same dashboard as
+                // Home — bottom nav doesn't expose a History tab on wide,
+                // but a back stack restored from a phone-shaped state may
+                // include `Screen.History`. Treat it as the dashboard
+                // rather than a narrow History column on a wide window.
                 entry<Screen.History> {
-                    RouteContent { routeModifier ->
-                        DoorHistoryContent(
-                            doorViewModel = doorViewModel,
-                            appLoggerViewModel = appLoggerViewModel,
-                            modifier = routeModifier.padding(horizontal = Spacing.Screen),
-                        )
+                    if (LocalAppWindowSizeClass.current.widthSizeClass >= WindowWidthSizeClass.Medium) {
+                        DashboardRouteContent { routeModifier ->
+                            WideHomeDashboard(routeModifier, authViewModel, doorViewModel, appLoggerViewModel)
+                        }
+                    } else {
+                        RouteContent { routeModifier ->
+                            DoorHistoryContent(
+                                doorViewModel = doorViewModel,
+                                appLoggerViewModel = appLoggerViewModel,
+                                modifier = routeModifier.padding(horizontal = Spacing.Screen),
+                            )
+                        }
                     }
                 }
                 entry<Screen.Profile> {
@@ -264,13 +282,31 @@ fun AppNavigation(
     }
 }
 
+/**
+ * Bottom navigation. Adaptive across width size classes:
+ *  - `Compact` (<600dp): three items — Home, History, Settings.
+ *  - `Medium`+ (≥600dp): two items — Home, Settings. History is no longer
+ *    its own tab; it's the right column of the wide-screen Home dashboard.
+ *
+ * The `History` tab being on the back stack at wide-screen activation time
+ * (e.g. user rotated from phone-shaped to landscape) is handled by the
+ * wide-Home `entry<>` rendering the dashboard regardless — the tab just
+ * isn't visible to tap.
+ */
 @Composable
 fun BottomNavigationBar(
     currentScreen: Screen?,
     onTabSelected: (Screen) -> Unit,
 ) {
+    val widthSizeClass = LocalAppWindowSizeClass.current.widthSizeClass
+    val visibleTabs = if (widthSizeClass >= WindowWidthSizeClass.Medium) {
+        // Wide: Home (which means dashboard) + Settings only.
+        Tab.entries.filter { it != Tab.History }
+    } else {
+        Tab.entries
+    }
     NavigationBar {
-        Tab.entries.forEach { tab ->
+        visibleTabs.forEach { tab ->
             NavigationBarItem(
                 icon = {
                     Icon(
@@ -283,11 +319,62 @@ fun BottomNavigationBar(
                         text = tab.label,
                     )
                 },
-                selected = currentScreen == tab.screen,
+                // On wide, treat the back-stack History entry as Home for
+                // selection purposes — Home tab lights up whether the back
+                // stack last is Home or History because both render the
+                // dashboard.
+                selected = when {
+                    widthSizeClass >= WindowWidthSizeClass.Medium &&
+                        tab == Tab.Home &&
+                        (currentScreen is Screen.Home || currentScreen is Screen.History) -> true
+                    else -> currentScreen == tab.screen
+                },
                 onClick = { onTabSelected(tab.screen) },
             )
         }
     }
+}
+
+/**
+ * Wide-screen Home dashboard body — Home + History side-by-side.
+ *
+ * Cross-pane pull-to-refresh: a pull on either pane fires BOTH fetches
+ * (`fetchCurrentDoorEvent` + `fetchRecentDoorEvents`) so the dashboard
+ * stays in sync as one unit. Each pane keeps its own primary refresh;
+ * the cross-pane action runs via `onRefreshExtra`.
+ *
+ * Each pane keeps its own stateful wrapper, which means independent
+ * scroll state, independent in-flight indicators, and shared VM
+ * instances (both panes resolve `viewModel { component.x }` inside the
+ * same NavEntry → same `ViewModelStore`).
+ */
+@Composable
+private fun WideHomeDashboard(
+    routeModifier: Modifier,
+    authViewModel: AuthViewModel,
+    doorViewModel: DoorViewModel,
+    appLoggerViewModel: AppLoggerViewModel,
+) {
+    HomeDashboardContent(
+        modifier = routeModifier.padding(horizontal = Spacing.Screen),
+        homePane = { paneModifier ->
+            HomeContent(
+                authViewModel = authViewModel,
+                doorViewModel = doorViewModel,
+                appLoggerViewModel = appLoggerViewModel,
+                modifier = paneModifier,
+                onRefreshExtra = { doorViewModel.fetchRecentDoorEvents() },
+            )
+        },
+        historyPane = { paneModifier ->
+            DoorHistoryContent(
+                doorViewModel = doorViewModel,
+                appLoggerViewModel = appLoggerViewModel,
+                modifier = paneModifier,
+                onRefreshExtra = { doorViewModel.fetchCurrentDoorEvent() },
+            )
+        },
+    )
 }
 
 /**

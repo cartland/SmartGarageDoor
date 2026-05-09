@@ -49,6 +49,11 @@ fun DoorHistoryContent(
     modifier: Modifier = Modifier,
     doorViewModel: DoorViewModel? = null,
     appLoggerViewModel: AppLoggerViewModel? = null,
+    // Additional refresh action invoked alongside this screen's normal
+    // pull-to-refresh fetch. Used by the wide-screen Home dashboard so a
+    // pull on either pane refreshes both. Empty default keeps the
+    // single-pane phone behavior unchanged.
+    onRefreshExtra: () -> Unit = {},
 ) {
     val component = rememberAppComponent()
     val resolvedDoorViewModel = doorViewModel ?: viewModel { component.doorViewModel }
@@ -69,6 +74,7 @@ fun DoorHistoryContent(
         onFetchRecentDoorEvents = {
             resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_FETCH_RECENT_DOOR)
             resolvedDoorViewModel.fetchRecentDoorEvents()
+            onRefreshExtra()
         },
         onResetFcm = {
             resolvedDoorViewModel.deregisterFcm()
