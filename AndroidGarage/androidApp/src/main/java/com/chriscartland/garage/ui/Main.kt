@@ -305,6 +305,10 @@ private fun RouteEntryFor(
     when (canonicalScreen) {
         Screen.Home -> {
             if (mode is AppLayoutMode.Wide) {
+                // Pull-to-refresh is per-pane: pulling Home refreshes door
+                // status only; pulling History refreshes recent events only.
+                // Each pane behaves like its own screen for refresh,
+                // matching what the user experiences on phone.
                 DashboardRouteContent { routeModifier ->
                     HomeDashboardContent(
                         modifier = routeModifier.padding(horizontal = Spacing.Screen),
@@ -314,7 +318,6 @@ private fun RouteEntryFor(
                                 doorViewModel = doorViewModel,
                                 appLoggerViewModel = appLoggerViewModel,
                                 modifier = paneModifier,
-                                onRefreshExtra = { doorViewModel.fetchRecentDoorEvents() },
                             )
                         },
                         historyPane = { paneModifier ->
@@ -322,7 +325,6 @@ private fun RouteEntryFor(
                                 doorViewModel = doorViewModel,
                                 appLoggerViewModel = appLoggerViewModel,
                                 modifier = paneModifier,
-                                onRefreshExtra = { doorViewModel.fetchCurrentDoorEvent() },
                             )
                         },
                     )
