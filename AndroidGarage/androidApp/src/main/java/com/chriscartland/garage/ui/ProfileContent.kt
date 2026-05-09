@@ -18,6 +18,8 @@
 package com.chriscartland.garage.ui
 
 import android.content.Intent
+import android.os.Build
+import android.widget.Toast
 import androidx.activity.compose.ReportDrawn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,7 +29,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.auth.rememberGoogleSignIn
@@ -42,7 +46,7 @@ import com.chriscartland.garage.ui.settings.AccountRowState
 import com.chriscartland.garage.ui.settings.SettingsContent
 import com.chriscartland.garage.ui.settings.SnoozeBottomSheet
 import com.chriscartland.garage.ui.settings.SnoozeRowState
-import com.chriscartland.garage.ui.settings.VersionDialog
+import com.chriscartland.garage.ui.settings.VersionBottomSheet
 import com.chriscartland.garage.usecase.ProfileViewModel
 import com.chriscartland.garage.version.AppVersion
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -83,6 +87,7 @@ fun ProfileContent(
     val functionListAccess by resolved.functionListAccess.collectAsState()
     val appConfig = component.appConfig
     val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
     val appVersion = context.AppVersion()
 
     // Surface-level state: which sheet/dialog is currently open. Saveable
@@ -92,7 +97,7 @@ fun ProfileContent(
     // under the user on rotation is not.
     var snoozeSheetOpen by rememberSaveable { mutableStateOf(false) }
     var accountSheetOpen by rememberSaveable { mutableStateOf(false) }
-    var versionDialogOpen by rememberSaveable { mutableStateOf(false) }
+    var versionSheetOpen by rememberSaveable { mutableStateOf(false) }
 
     // Refresh snooze status every minute while this screen is mounted.
     // Mirrors the legacy ProfileContent behavior; the polling cadence
@@ -139,7 +144,7 @@ fun ProfileContent(
             }
         },
         onFunctionListTap = onNavigateToFunctionList,
-        onVersionTap = { versionDialogOpen = true },
+        onVersionTap = { versionSheetOpen = true },
         onPlayStoreTap = {
             val url = "https://play.google.com/store/apps/details?id=${appVersion.packageName}"
             context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
@@ -172,13 +177,22 @@ fun ProfileContent(
         }
     }
 
-    if (versionDialogOpen) {
-        VersionDialog(
+    if (versionSheetOpen) {
+        VersionBottomSheet(
             versionName = appVersion.versionName,
             versionCode = appVersion.versionCode.toString(),
             buildTimestamp = appVersion.buildTimestamp,
             packageName = appVersion.packageName,
-            onDismiss = { versionDialogOpen = false },
+            onCopy = { label, value ->
+                clipboardManager.setText(AnnotatedString(value))
+                // Android 13+ (API 33) shows its own clipboard preview
+                // chip after a `setText`. Showing a Toast on top of that
+                // is duplicate noise — gate to older API levels only.
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    Toast.makeText(context, "Copied $label", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onDismiss = { versionSheetOpen = false },
         )
     }
 
