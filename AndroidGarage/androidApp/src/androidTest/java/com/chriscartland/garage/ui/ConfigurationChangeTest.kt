@@ -43,27 +43,31 @@ class ConfigurationChangeTest {
     }
 
     /**
-     * A sub-screen reached via two clicks (Settings → Diagnostics) must
-     * still be the active screen after recreation.
+     * A non-Home tab must still be the active screen after recreation.
      *
-     * "Diagnostics" is the topbar title for that sub-screen and appears
-     * nowhere else, so its presence post-recreate proves the back stack
-     * was restored to depth-2 (`[Home, Diagnostics]`).
+     * Depth-1 to a non-Home destination is the load-bearing assertion:
+     * pre-PR-A this would always reset to Home regardless of where the
+     * user was. Asserting that "Privacy Policy" (a Settings-only row)
+     * is still displayed post-recreate proves the back stack survived.
+     *
+     * Why not navigate to a sub-screen? Diagnostics and FunctionList
+     * are gated by the developer allowlist (`functionListAccess`), so
+     * they're not reachable from a fresh install in test conditions.
+     * "Privacy Policy" is in the always-visible "About" section of
+     * Settings — independent of auth state, allowlist, or feature flags.
      */
     @Test
-    fun subScreenSurvivesRecreation() {
-        // Navigate Settings tab → Diagnostics row.
+    fun nonHomeTabSurvivesRecreation() {
+        // Navigate to Settings tab.
         composeTestRule.onNodeWithText("Settings").performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Diagnostics").performClick()
-        composeTestRule.waitForIdle()
-        // "Diagnostics" topbar title is unique to this screen.
-        composeTestRule.onNodeWithText("Diagnostics").assertIsDisplayed()
+        // "Privacy Policy" row is unique to Settings and always visible.
+        composeTestRule.onNodeWithText("Privacy Policy").assertIsDisplayed()
 
         composeTestRule.activityRule.scenario.recreate()
 
-        // Back stack survived: still on Diagnostics.
-        composeTestRule.onNodeWithText("Diagnostics").assertIsDisplayed()
+        // Back stack survived: still on Settings.
+        composeTestRule.onNodeWithText("Privacy Policy").assertIsDisplayed()
     }
 
     /**
