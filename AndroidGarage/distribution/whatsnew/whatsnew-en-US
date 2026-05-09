@@ -1,1 +1,1 @@
-2.13: Tablet and landscape support — content centers in a single column with margins instead of stretching edge-to-edge. In-flight indicators on the Snooze row and the Clear-diagnostics button so you can tell when an action is in progress.
+2.14: Rotation, multi-window resize, and other configuration changes now preserve your place in the app. Open sheets, scroll positions, and pending selections survive instead of resetting to Home. Foundation for upcoming multi-pane layouts on tablets and foldables.
