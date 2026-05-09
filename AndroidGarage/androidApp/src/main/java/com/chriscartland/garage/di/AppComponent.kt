@@ -78,17 +78,13 @@ import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.ClearDiagnosticsUseCase
 import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
 import com.chriscartland.garage.usecase.DefaultAppLoggerViewModel
-import com.chriscartland.garage.usecase.DefaultAppSettingsViewModel
-import com.chriscartland.garage.usecase.DefaultAuthViewModel
 import com.chriscartland.garage.usecase.DefaultDoorHistoryViewModel
-import com.chriscartland.garage.usecase.DefaultDoorViewModel
 import com.chriscartland.garage.usecase.DefaultFunctionListViewModel
 import com.chriscartland.garage.usecase.DefaultHomeViewModel
 import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.DefaultProfileViewModel
 import com.chriscartland.garage.usecase.DefaultReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.DefaultRegisterFcmUseCase
-import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
@@ -149,11 +145,7 @@ abstract class AppComponent(
     @get:Provides val application: Application,
 ) {
     // --- Entry points: ViewModels (per-nav-entry, NOT singleton) ---
-    abstract val authViewModel: DefaultAuthViewModel
     abstract val appLoggerViewModel: DefaultAppLoggerViewModel
-    abstract val appSettingsViewModel: DefaultAppSettingsViewModel
-    abstract val doorViewModel: DefaultDoorViewModel
-    abstract val remoteButtonViewModel: DefaultRemoteButtonViewModel
     abstract val functionListViewModel: DefaultFunctionListViewModel
     abstract val homeViewModel: DefaultHomeViewModel
     abstract val doorHistoryViewModel: DefaultDoorHistoryViewModel
@@ -197,15 +189,6 @@ abstract class AppComponent(
     // --- ViewModels ---
 
     @Provides
-    fun provideAuthViewModel(
-        observeAuthState: ObserveAuthStateUseCase,
-        signInWithGoogle: SignInWithGoogleUseCase,
-        signOut: SignOutUseCase,
-        logAppEvent: LogAppEventUseCase,
-        dispatchers: DispatcherProvider,
-    ): DefaultAuthViewModel = DefaultAuthViewModel(observeAuthState, signInWithGoogle, signOut, logAppEvent, dispatchers)
-
-    @Provides
     fun provideAppLoggerViewModel(
         logAppEvent: LogAppEventUseCase,
         observeAppLogCount: ObserveDiagnosticsCountUseCase,
@@ -238,59 +221,6 @@ abstract class AppComponent(
         appLoggerRepository: AppLoggerRepository,
         diagnosticsCounters: DiagnosticsCountersRepository,
     ): SeedDiagnosticsCountersFromRoomUseCase = SeedDiagnosticsCountersFromRoomUseCase(appLoggerRepository, diagnosticsCounters)
-
-    @Provides
-    fun provideAppSettingsViewModel(
-        appSettings: AppSettingsUseCase,
-        observeFeatureAccess: ObserveFeatureAccessUseCase,
-        dispatchers: DispatcherProvider,
-    ): DefaultAppSettingsViewModel = DefaultAppSettingsViewModel(appSettings, observeFeatureAccess, dispatchers)
-
-    @Provides
-    fun provideDoorViewModel(
-        observeDoorEvents: ObserveDoorEventsUseCase,
-        logAppEvent: LogAppEventUseCase,
-        dispatchers: DispatcherProvider,
-        fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
-        fetchRecentDoorEvents: FetchRecentDoorEventsUseCase,
-        deregisterFcm: DeregisterFcmUseCase,
-        fcmRegistrationManager: FcmRegistrationManager,
-        checkInStalenessManager: CheckInStalenessManager,
-        liveClock: LiveClock,
-    ): DefaultDoorViewModel =
-        DefaultDoorViewModel(
-            observeDoorEvents,
-            logAppEvent,
-            dispatchers,
-            fetchCurrentDoorEvent,
-            fetchRecentDoorEvents,
-            deregisterFcm,
-            fcmRegistrationManager,
-            checkInStalenessManager,
-            liveClock,
-        )
-
-    @Provides
-    fun provideRemoteButtonViewModel(
-        observeDoorEvents: ObserveDoorEventsUseCase,
-        dispatchers: DispatcherProvider,
-        pushRemoteButton: PushRemoteButtonUseCase,
-        snoozeNotifications: SnoozeNotificationsUseCase,
-        fetchSnoozeStatus: FetchSnoozeStatusUseCase,
-        observeSnoozeState: ObserveSnoozeStateUseCase,
-        computeButtonHealthDisplay: ComputeButtonHealthDisplayUseCase,
-        appVersion: String,
-    ): DefaultRemoteButtonViewModel =
-        DefaultRemoteButtonViewModel(
-            observeDoorEvents,
-            dispatchers,
-            pushRemoteButton,
-            snoozeNotifications,
-            fetchSnoozeStatus,
-            observeSnoozeState,
-            computeButtonHealthDisplay(),
-            appVersion,
-        )
 
     @Provides
     fun provideFunctionListViewModel(
