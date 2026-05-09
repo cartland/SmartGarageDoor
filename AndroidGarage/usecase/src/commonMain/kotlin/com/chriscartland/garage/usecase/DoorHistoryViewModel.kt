@@ -66,7 +66,12 @@ class DefaultDoorHistoryViewModel(
     private val deregisterFcmUseCase: DeregisterFcmUseCase,
     private val checkInStalenessManager: CheckInStalenessManager,
     private val liveClock: LiveClock,
-    private val fetchOnInit: Boolean = true,
+    // Default false — cold-start fetch lives in `InitialDoorFetchManager`
+    // (singleton, idempotent, fires once per process from `AppStartup`).
+    // Per-VM init fetch fired on every fresh `NavBackStackEntry`, causing
+    // a redundant round-trip on every tab tap even though FCM already
+    // covers live updates while the app is open.
+    private val fetchOnInit: Boolean = false,
 ) : ViewModel(),
     DoorHistoryViewModel {
     // ADR-022: pass through LiveClock's StateFlow — no mirror.

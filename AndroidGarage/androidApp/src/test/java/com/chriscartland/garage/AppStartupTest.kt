@@ -39,6 +39,9 @@ import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
+import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
+import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
+import com.chriscartland.garage.usecase.InitialDoorFetchManager
 import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.PruneDiagnosticsLogUseCase
@@ -125,6 +128,21 @@ class AppStartupTest {
         )
     }
 
+    private fun createInitialDoorFetchManager(
+        scope: TestScope,
+        logger: FakeAppLoggerRepository,
+        counters: FakeDiagnosticsCountersRepository,
+    ): InitialDoorFetchManager {
+        val doorRepo = FakeDoorRepository()
+        return InitialDoorFetchManager(
+            fetchCurrentDoorEvent = FetchCurrentDoorEventUseCase(doorRepo),
+            fetchRecentDoorEvents = FetchRecentDoorEventsUseCase(doorRepo),
+            logAppEvent = LogAppEventUseCase(logger, counters),
+            scope = scope.backgroundScope,
+            dispatcher = testDispatcher,
+        )
+    }
+
     private fun createAppStartup(
         scope: TestScope,
         logger: FakeAppLoggerRepository = FakeAppLoggerRepository(),
@@ -134,6 +152,7 @@ class AppStartupTest {
         val stalenessManager = createStalenessManager(scope)
         val liveClock = createLiveClock(scope)
         val buttonHealthMgr = createButtonHealthFcmSubscriptionManager(scope)
+        val initialDoorFetchMgr = createInitialDoorFetchManager(scope, logger, counters)
         // UnconfinedTestDispatcher for the IO dispatcher so AppStartup's
         // fire-and-forget launches resolve synchronously inside the test.
         // backgroundScope by itself has subtle interactions with
@@ -150,6 +169,7 @@ class AppStartupTest {
                 prune = PruneDiagnosticsLogUseCase(logger),
             ),
             buttonHealthFcmSubscriptionManager = buttonHealthMgr,
+            initialDoorFetchManager = initialDoorFetchMgr,
             externalScope = scope.backgroundScope,
             dispatchers = TestDispatcherProvider(ioDispatcher),
         )
@@ -183,6 +203,7 @@ class AppStartupTest {
                     "startCheckInStaleness",
                     "startLiveClock",
                     "startButtonHealthFcmSubscription",
+                    "startInitialDoorFetch",
                     "logFcmSubscribe",
                     "runDiagnosticsMaintenance",
                 ),

@@ -23,6 +23,7 @@ import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.FcmRegistrationManager
+import com.chriscartland.garage.usecase.InitialDoorFetchManager
 import com.chriscartland.garage.usecase.LiveClock
 import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.RunStartupDiagnosticsMaintenanceUseCase
@@ -47,6 +48,7 @@ class AppStartup(
     private val logAppEvent: LogAppEventUseCase,
     private val runStartupDiagnosticsMaintenance: RunStartupDiagnosticsMaintenanceUseCase,
     private val buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager,
+    private val initialDoorFetchManager: InitialDoorFetchManager,
     private val externalScope: CoroutineScope,
     private val dispatchers: DispatcherProvider,
 ) {
@@ -73,6 +75,10 @@ class AppStartup(
         Logger.d { "AppStartup: Starting button health FCM subscription manager" }
         buttonHealthFcmSubscriptionManager.start()
         actions.add("startButtonHealthFcmSubscription")
+
+        Logger.d { "AppStartup: Starting initial door fetch (one-shot per process)" }
+        initialDoorFetchManager.start()
+        actions.add("startInitialDoorFetch")
 
         externalScope.launch(dispatchers.io) {
             logAppEvent(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)

@@ -93,7 +93,12 @@ class DefaultHomeViewModel(
     private val liveClock: LiveClock,
     override val buttonHealthDisplay: Flow<ButtonHealthDisplay>,
     private val appVersion: String,
-    private val fetchOnInit: Boolean = true,
+    // Default false — cold-start fetch lives in `InitialDoorFetchManager`
+    // (singleton, idempotent, fires once per process from `AppStartup`).
+    // Per-VM init fetch fired on every fresh `NavBackStackEntry`, causing
+    // a redundant round-trip on every tab tap even though FCM already
+    // covers live updates while the app is open.
+    private val fetchOnInit: Boolean = false,
 ) : ViewModel(),
     HomeViewModel {
     // ADR-022: pass through the repository's StateFlow by reference — no mirror.
