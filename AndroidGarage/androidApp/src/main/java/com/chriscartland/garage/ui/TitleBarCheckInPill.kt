@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
 import com.chriscartland.garage.ui.home.DeviceCheckInDisplay
 import com.chriscartland.garage.ui.theme.PreviewComponentSurface
+import com.chriscartland.garage.ui.theme.Spacing
 
 /**
  * Compact rounded-pill device-heartbeat indicator. Antenna icon + duration
@@ -87,7 +88,7 @@ fun TitleBarCheckInPill(
                         text = display.durationLabel,
                         style = MaterialTheme.typography.labelSmall,
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(Spacing.Tight))
                 }
                 if (display.isStale) {
                     Icon(

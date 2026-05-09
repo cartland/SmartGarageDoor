@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.ui.theme.PreviewComponentSurface
+import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
 
 /**
@@ -78,7 +79,7 @@ fun RemoteOfflinePill(
                     text = "Remote offline · ${display.durationLabel}",
                     style = MaterialTheme.typography.labelSmall,
                 )
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(Spacing.Tight))
                 Icon(
                     modifier = Modifier.size(17.dp),
                     imageVector = Icons.Outlined.SignalWifiOff,
