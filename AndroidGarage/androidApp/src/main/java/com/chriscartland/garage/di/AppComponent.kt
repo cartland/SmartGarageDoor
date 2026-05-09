@@ -85,6 +85,7 @@ import com.chriscartland.garage.usecase.DefaultDoorViewModel
 import com.chriscartland.garage.usecase.DefaultFunctionListViewModel
 import com.chriscartland.garage.usecase.DefaultHomeViewModel
 import com.chriscartland.garage.usecase.DefaultLiveClock
+import com.chriscartland.garage.usecase.DefaultProfileViewModel
 import com.chriscartland.garage.usecase.DefaultReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.DefaultRegisterFcmUseCase
 import com.chriscartland.garage.usecase.DefaultRemoteButtonViewModel
@@ -156,6 +157,7 @@ abstract class AppComponent(
     abstract val functionListViewModel: DefaultFunctionListViewModel
     abstract val homeViewModel: DefaultHomeViewModel
     abstract val doorHistoryViewModel: DefaultDoorHistoryViewModel
+    abstract val profileViewModel: DefaultProfileViewModel
 
     // --- Entry points: @Singleton providers (testable via assertSame) ---
     abstract val appConfig: AppConfig
@@ -356,6 +358,32 @@ abstract class AppComponent(
             liveClock = liveClock,
             buttonHealthDisplay = computeButtonHealthDisplay(),
             appVersion = appVersion,
+        )
+
+    @Provides
+    fun provideProfileViewModel(
+        observeAuthState: ObserveAuthStateUseCase,
+        observeSnoozeState: ObserveSnoozeStateUseCase,
+        observeDoorEvents: ObserveDoorEventsUseCase,
+        observeFeatureAccess: ObserveFeatureAccessUseCase,
+        signInWithGoogle: SignInWithGoogleUseCase,
+        signOut: SignOutUseCase,
+        fetchSnoozeStatus: FetchSnoozeStatusUseCase,
+        snoozeNotifications: SnoozeNotificationsUseCase,
+        logAppEvent: LogAppEventUseCase,
+        dispatchers: DispatcherProvider,
+    ): DefaultProfileViewModel =
+        DefaultProfileViewModel(
+            observeAuthState = observeAuthState,
+            observeSnoozeState = observeSnoozeState,
+            observeDoorEvents = observeDoorEvents,
+            observeFeatureAccessUseCase = observeFeatureAccess,
+            signInWithGoogleUseCase = signInWithGoogle,
+            signOutUseCase = signOut,
+            fetchSnoozeStatusUseCase = fetchSnoozeStatus,
+            snoozeNotificationsUseCase = snoozeNotifications,
+            logAppEvent = logAppEvent,
+            dispatchers = dispatchers,
         )
 
     @Provides

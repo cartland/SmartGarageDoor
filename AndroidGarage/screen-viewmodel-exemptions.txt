@@ -13,5 +13,5 @@
 # build a screen-specific ViewModel that aggregates the UseCases that screen
 # needs (see `FunctionListViewModel` for the canonical example).
 
-# Aggregates AuthViewModel + RemoteButtonViewModel + AppSettingsViewModel.
-ProfileContent.kt
+# (Currently no exempt screens — keep this file as the on-ramp if a future
+# refactor temporarily needs to defer 1:1 compliance.)

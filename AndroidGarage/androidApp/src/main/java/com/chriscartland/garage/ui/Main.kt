@@ -49,11 +49,10 @@ import androidx.navigation3.ui.NavDisplay
 import com.chriscartland.garage.ui.settings.DiagnosticsScreen
 import com.chriscartland.garage.ui.theme.AppTheme
 import com.chriscartland.garage.ui.theme.Spacing
-import com.chriscartland.garage.usecase.AuthViewModel
 import kotlinx.serialization.Serializable
 
 @Composable
-fun GarageApp(authViewModel: AuthViewModel) {
+fun GarageApp() {
     // ProvideAppWindowSizeClass installs `LocalAppWindowSizeClass` for the
     // whole app. Adaptive layout decisions (current screen-width cap; future
     // single-pane vs. two-pane branching) read from that local — never from
@@ -62,9 +61,7 @@ fun GarageApp(authViewModel: AuthViewModel) {
     // (`checkNoLocalConfigurationDimensionReads`).
     ProvideAppWindowSizeClass {
         AppTheme {
-            AppNavigation(
-                authViewModel = authViewModel,
-            )
+            AppNavigation()
         }
     }
 }
@@ -115,7 +112,7 @@ enum class Tab(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation(authViewModel: AuthViewModel) {
+fun AppNavigation() {
     // Nav3: `rememberNavBackStack` is the saveable back stack. Survives
     // configuration changes (rotation, window size, dark mode, locale,
     // font scale) AND process death. The serialized form rides through
@@ -209,7 +206,6 @@ fun AppNavigation(authViewModel: AuthViewModel) {
                     RouteEntryFor(
                         screen = screen,
                         mode = mode,
-                        authViewModel = authViewModel,
                         onNavigateToFunctionList = { backStack.add(Screen.FunctionList) },
                         onNavigateToDiagnostics = { backStack.add(Screen.Diagnostics) },
                         onBack = { onPopBack() },
@@ -280,7 +276,6 @@ fun BottomNavigationBar(
 private fun RouteEntryFor(
     screen: Screen,
     mode: AppLayoutMode,
-    authViewModel: AuthViewModel,
     onNavigateToFunctionList: () -> Unit,
     onNavigateToDiagnostics: () -> Unit,
     onBack: () -> Unit,
@@ -327,7 +322,6 @@ private fun RouteEntryFor(
         Screen.Profile -> {
             RouteContent { routeModifier ->
                 ProfileContent(
-                    authViewModel = authViewModel,
                     onNavigateToFunctionList = onNavigateToFunctionList,
                     onNavigateToDiagnostics = onNavigateToDiagnostics,
                     modifier = routeModifier.padding(horizontal = Spacing.Screen),

@@ -43,9 +43,7 @@ import com.chriscartland.garage.ui.settings.SettingsContent
 import com.chriscartland.garage.ui.settings.SnoozeBottomSheet
 import com.chriscartland.garage.ui.settings.SnoozeRowState
 import com.chriscartland.garage.ui.settings.VersionDialog
-import com.chriscartland.garage.usecase.AppSettingsViewModel
-import com.chriscartland.garage.usecase.AuthViewModel
-import com.chriscartland.garage.usecase.RemoteButtonViewModel
+import com.chriscartland.garage.usecase.ProfileViewModel
 import com.chriscartland.garage.version.AppVersion
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -57,10 +55,8 @@ import java.time.format.DateTimeFormatter
 
 /**
  * Settings screen — bottom-nav destination. Sectioned-list redesign
- * shipped in PR after the legacy expandable-cards layout. Aggregates
- * AuthViewModel + RemoteButtonViewModel + AppSettingsViewModel
- * (legacy multi-VM exemption per ADR-026; the screen-level VM split
- * is deferred — see screen-viewmodel-exemptions.txt).
+ * shipped in PR after the legacy expandable-cards layout. Uses a single
+ * screen-scoped [ProfileViewModel] (ADR-026 — one VM per screen).
  *
  * The function name is preserved (`ProfileContent`) to avoid touching
  * `Screen.Profile` and the bottom-nav definition; the user-facing tab
@@ -70,23 +66,21 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun ProfileContent(
     modifier: Modifier = Modifier,
-    authViewModel: AuthViewModel? = null,
+    profileViewModel: ProfileViewModel? = null,
     onNavigateToDiagnostics: () -> Unit = {},
     onNavigateToFunctionList: () -> Unit = {},
 ) {
     val component = rememberAppComponent()
-    val resolvedAuthViewModel = authViewModel ?: viewModel { component.authViewModel }
-    val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
-    val settingsViewModel: AppSettingsViewModel = viewModel { component.appSettingsViewModel }
+    val resolved = profileViewModel ?: viewModel { component.profileViewModel }
     val notificationPermissionState = rememberNotificationPermissionState()
     val googleSignIn = rememberGoogleSignIn(
-        onTokenReceived = { token -> resolvedAuthViewModel.signInWithGoogle(token) },
+        onTokenReceived = { token -> resolved.signInWithGoogle(token) },
     )
 
-    val authState by resolvedAuthViewModel.authState.collectAsState()
-    val snoozeState by buttonViewModel.snoozeState.collectAsState()
-    val snoozeAction by buttonViewModel.snoozeAction.collectAsState()
-    val functionListAccess by settingsViewModel.functionListAccess.collectAsState()
+    val authState by resolved.authState.collectAsState()
+    val snoozeState by resolved.snoozeState.collectAsState()
+    val snoozeAction by resolved.snoozeAction.collectAsState()
+    val functionListAccess by resolved.functionListAccess.collectAsState()
     val appConfig = component.appConfig
     val context = LocalContext.current
     val appVersion = context.AppVersion()
@@ -105,7 +99,7 @@ fun ProfileContent(
     // covers both the row-secondary-text and the sheet's pre-selection.
     LaunchedEffect(Unit) {
         while (true) {
-            buttonViewModel.fetchSnoozeStatus()
+            resolved.fetchSnoozeStatus()
             delay(Duration.ofMinutes(1).toMillis())
         }
     }
@@ -160,7 +154,7 @@ fun ProfileContent(
         SnoozeBottomSheet(
             initialSelection = SnoozeDurationUIOption.None,
             onSave = { duration ->
-                buttonViewModel.snoozeOpenDoorsNotifications(duration)
+                resolved.snoozeOpenDoorsNotifications(duration)
             },
             onDismiss = { snoozeSheetOpen = false },
         )
@@ -172,7 +166,7 @@ fun ProfileContent(
             AccountBottomSheet(
                 displayName = signedIn.displayName,
                 email = signedIn.email,
-                onSignOut = { resolvedAuthViewModel.signOut() },
+                onSignOut = { resolved.signOut() },
                 onDismiss = { accountSheetOpen = false },
             )
         }
