@@ -49,17 +49,27 @@ abstract class RouteContentUsageCheckTask : DefaultTask() {
 
         val lines = file.readLines()
         val entryPattern = Regex("""\bentry<Screen\.[A-Za-z]+>\s*\{""")
-        // Accept either the single-pane wrapper (`RouteContent`) or the
-        // wide-screen dashboard wrapper (`DashboardRouteContent`). Both
-        // own the route's horizontal layout for their respective form
-        // factor; an entry block that uses either one is correct.
-        val routeContentPattern = Regex("""\b(?:RouteContent|DashboardRouteContent)\s*\{""")
+        // Accept any of the route wrappers / dispatch helpers known to
+        // own a route's horizontal layout:
+        //   `RouteContent {` — single-pane wrapper.
+        //   `DashboardRouteContent {` — wide-screen wrapper.
+        //   `routeFor(` / `RouteEntryFor(` — the dispatch table that
+        //     internally selects the right wrapper based on
+        //     `AppLayoutMode`. The dispatch table itself is checked at
+        //     `AppLayoutMode` consumers via `checkAppLayoutModeBoundary`,
+        //     so trusting the helper here is safe.
+        val routeContentPattern = Regex(
+            """\b(?:RouteContent|DashboardRouteContent)\s*\{|\b(?:routeFor|RouteEntryFor)\s*\(""",
+        )
 
         val violations = mutableListOf<String>()
 
         lines.forEachIndexed { index, line ->
             if (!entryPattern.containsMatchIn(line)) return@forEachIndexed
-            // Look ahead for RouteContent { within the window.
+            // Check the entry line itself first (single-line form like
+            // `entry<Screen.X> { routeFor(Screen.X) }` puts the wrapper
+            // on the same line), then look ahead for multi-line bodies.
+            if (routeContentPattern.containsMatchIn(line)) return@forEachIndexed
             val window = lines.subList(
                 index + 1,
                 minOf(index + 1 + lookAheadLines, lines.size),
