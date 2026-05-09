@@ -124,6 +124,12 @@ class ComponentGraphTest {
     }
 
     @Test
+    fun buttonHealthRepositoryIsSingleton() {
+        val c = component
+        assertSame("ButtonHealthRepository must be singleton", c.buttonHealthRepository, c.buttonHealthRepository)
+    }
+
+    @Test
     fun featureAllowlistRepositoryIsSingleton() {
         val c = component
         assertSame(

@@ -117,4 +117,50 @@ class RemoteButtonRepositoryTest {
             assertEquals(false, result)
             assertEquals(0, networkButtonDataSource.pushCount)
         }
+
+    @Test
+    fun pushForcesIdTokenRefresh() =
+        runTest {
+            // ADR-027: the repo always force-refreshes the token before
+            // a push so the request never carries a stale credential.
+            networkConfigDataSource.setServerConfigResult(
+                NetworkResult.Success(
+                    ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+                ),
+            )
+            networkButtonDataSource.setPushResult(NetworkResult.Success(Unit))
+            val authRepo = FakeAuthRepository().apply {
+                setIdTokenResult(FirebaseIdToken(idToken = "token", exp = Long.MAX_VALUE))
+            }
+            val repo = NetworkRemoteButtonRepository(
+                networkButtonDataSource,
+                CachedServerConfigRepository(networkConfigDataSource, "test-key", externalScope),
+                authRepository = authRepo,
+                remoteButtonPushEnabled = true,
+            )
+            repo.pushButton("ack-token")
+            assertEquals(1, authRepo.getIdTokenForceRefreshCount)
+        }
+
+    @Test
+    fun pushReturnsFalseWhenIdTokenNull() =
+        runTest {
+            // ADR-027: the repo handles the case where AuthRepository
+            // returns no token (sign-in race or sign-out mid-call).
+            networkConfigDataSource.setServerConfigResult(
+                NetworkResult.Success(
+                    ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+                ),
+            )
+            val authRepo = FakeAuthRepository() // no setIdTokenResult — getIdToken returns null
+            val repo = NetworkRemoteButtonRepository(
+                networkButtonDataSource,
+                CachedServerConfigRepository(networkConfigDataSource, "test-key", externalScope),
+                authRepository = authRepo,
+                remoteButtonPushEnabled = true,
+            )
+            val result = repo.pushButton("ack-token")
+            assertEquals(false, result)
+            assertEquals(0, networkButtonDataSource.pushCount, "Should NOT call data source when token is null")
+        }
 }

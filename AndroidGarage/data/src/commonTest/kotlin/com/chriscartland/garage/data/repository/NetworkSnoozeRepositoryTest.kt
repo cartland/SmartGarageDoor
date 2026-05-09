@@ -11,6 +11,7 @@
 package com.chriscartland.garage.data.repository
 
 import com.chriscartland.garage.data.NetworkResult
+import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.ServerConfig
@@ -340,6 +341,39 @@ class NetworkSnoozeRepositoryTest {
 
             assertEquals(SnoozeState.NotSnoozing, repo.snoozeState.value)
             assertEquals(0, buttonDs.fetchSnoozeCount)
+
+            externalScope.cancel()
+        }
+
+    @Test
+    fun snoozeReturnsNotAuthenticatedWhenIdTokenNull() =
+        runTest {
+            // ADR-027: the repo handles the case where AuthRepository
+            // returns no token (sign-in race or sign-out mid-call).
+            val buttonDs = FakeNetworkButtonDataSource()
+            val configDs = FakeNetworkConfigDataSource().apply { setServerConfigResult(validConfig) }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val authRepo = FakeAuthRepository() // no setIdTokenResult — getIdToken returns null
+
+            val repo = NetworkSnoozeRepository(
+                networkButtonDataSource = buttonDs,
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
+                authRepository = authRepo,
+                snoozeNotificationsOption = true,
+                currentTimeSeconds = { 0L },
+                externalScope = externalScope,
+            )
+            advanceUntilIdle()
+            buttonDs.setSnoozeResult(NetworkResult.Success(123L))
+            val priorSnoozeCount = buttonDs.snoozeCount
+
+            val result = repo.snoozeNotifications(
+                snoozeDurationHours = "1h",
+                snoozeEventTimestampSeconds = 100L,
+            )
+
+            assertEquals(AppResult.Error(ActionError.NotAuthenticated), result)
+            assertEquals(priorSnoozeCount, buttonDs.snoozeCount, "Should NOT call data source when token is null")
 
             externalScope.cancel()
         }

@@ -86,6 +86,32 @@ class NetworkButtonHealthRepositoryTest {
         }
 
     @Test
+    fun fetchButtonHealth_returnsNotAuthenticatedWhenIdTokenNull() =
+        runTest {
+            // ADR-027: the repo handles the case where AuthRepository
+            // returns no token (sign-in race or sign-out mid-call).
+            val ds = FakeNetworkButtonHealthDataSource().apply {
+                setResult(NetworkResult.Success(ButtonHealth(ButtonHealthState.ONLINE, 1000L)))
+            }
+            val configDs = FakeNetworkConfigDataSource().apply { setServerConfigResult(validConfig) }
+            val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val authRepo = FakeAuthRepository() // no setIdTokenResult — getIdToken returns null
+            val repo = NetworkButtonHealthRepository(
+                networkButtonHealthDataSource = ds,
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key", scope),
+                authRepository = authRepo,
+                externalScope = scope,
+            )
+
+            val result = repo.fetchButtonHealth()
+            advanceUntilIdle()
+
+            val error = assertIs<AppResult.Error<ButtonHealthError>>(result)
+            assertEquals(ButtonHealthError.NotAuthenticated(), error.error)
+            scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        }
+
+    @Test
     fun fetchButtonHealth_http401_returnsForbidden() =
         runTest {
             val ds = FakeNetworkButtonHealthDataSource().apply {
