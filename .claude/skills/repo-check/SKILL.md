@@ -17,7 +17,43 @@ gh pr list --state open --json number,title,mergeStateStatus,autoMergeRequest \
   --jq '.[] | {number, title, status: .mergeStateStatus, autoMerge: (.autoMergeRequest != null)}'
 ```
 
-Report: count, any with conflicts (DIRTY), any without auto-merge.
+Then check **failing CI checks per PR** — `BLOCKED` is GitHub's catch-all
+status that covers everything from "waiting on a reviewer" to "CI red";
+the rollup is what tells you if the PR has actual failures versus is
+just queued:
+
+```bash
+# Lists only PRs that have at least one failing check, with the names.
+gh pr list --state open --json number,title,statusCheckRollup --jq '
+  .[] | {
+    number,
+    title,
+    failed: [.statusCheckRollup[]?
+      | select(.conclusion == "FAILURE"
+            or .conclusion == "CANCELLED"
+            or .conclusion == "TIMED_OUT")
+      | .name]
+  } | select(.failed | length > 0)'
+```
+
+If a PR has failing checks, **drill in and identify the cause**:
+
+```bash
+# Replace <RUN_ID> with the run ID from the failed check's URL.
+gh run view <RUN_ID> --log-failed 2>&1 | grep -E "FAILED|Error:|Exception|##\[error\]" | head -25
+```
+
+Common patterns to recognize:
+- **`HTTP 502 ... gradle-distributions`** — transient infra failure, not
+  a real test failure. Re-run with `gh run rerun <RUN_ID> --failed`.
+- **`Test FAILED` / `AssertionError`** — real test failure; investigate
+  the test name and assertion.
+- **`Kotlin compile failed` / `e: file://...`** — compile error; check
+  the file/line.
+
+Report: count, any with conflicts (DIRTY), any without auto-merge,
+**any with failing checks (name them)**, and for transient infra
+failures note "re-runnable".
 
 ### 2. CI Health
 
@@ -102,7 +138,9 @@ Report: current branch, clean/dirty, any uncommitted changes.
 Summarize as a compact status report:
 
 ```
-PRs:        N open (N conflicts, N auto-merge)
+PRs:        N open (N conflicts, N auto-merge, N failing checks)
+            [for each PR with failing checks, name them on its own line:
+             "  #705 fail: Android Checks / Unit Tests (transient HTTP 502, re-runnable)"]
 CI:         passing/failing (last run: date) [if failing, name the failed sub-job]
 Issues:     N open [if any are CI failures, name source PR per issue: "#701 ← PR #700"]
 Releases:   android/N, server/N
