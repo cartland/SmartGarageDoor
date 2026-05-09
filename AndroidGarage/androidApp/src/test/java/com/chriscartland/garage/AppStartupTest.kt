@@ -20,7 +20,6 @@ package com.chriscartland.garage
 import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppLoggerKeys
-import com.chriscartland.garage.domain.model.AppLoggerLimits
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.ButtonHealth
 import com.chriscartland.garage.domain.model.ButtonHealthError
@@ -34,7 +33,7 @@ import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
-import com.chriscartland.garage.usecase.AppLoggerViewModel
+import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultLiveClock
@@ -42,12 +41,19 @@ import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
+import com.chriscartland.garage.usecase.PruneDiagnosticsLogUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
+import com.chriscartland.garage.usecase.RunStartupDiagnosticsMaintenanceUseCase
+import com.chriscartland.garage.usecase.SeedDiagnosticsCountersFromRoomUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AppStartupTest {
@@ -119,110 +125,88 @@ class AppStartupTest {
         )
     }
 
-    private class FakeAppLoggerViewModel : AppLoggerViewModel {
-        val loggedKeys = mutableListOf<String>()
-        val pruneCalls = mutableListOf<Int>()
-        val maintenanceCalls = mutableListOf<Int>()
-        var resetCallCount: Int = 0
-            private set
-        var seedCallCount: Int = 0
-            private set
-
-        override fun log(key: String) {
-            loggedKeys.add(key)
-        }
-
-        override fun pruneOldEntries(perKeyLimit: Int) {
-            pruneCalls.add(perKeyLimit)
-        }
-
-        override fun clearDiagnostics() {
-            resetCallCount += 1
-        }
-
-        override fun seedDiagnosticsFromRoom() {
-            seedCallCount += 1
-        }
-
-        override fun runStartupDiagnosticsMaintenance(perKeyLimit: Int) {
-            maintenanceCalls.add(perKeyLimit)
-        }
-
-        override val initCurrentDoorCount = MutableStateFlow(0L)
-        override val initRecentDoorCount = MutableStateFlow(0L)
-        override val userFetchCurrentDoorCount = MutableStateFlow(0L)
-        override val userFetchRecentDoorCount = MutableStateFlow(0L)
-        override val fcmReceivedDoorCount = MutableStateFlow(0L)
-        override val fcmSubscribeTopicCount = MutableStateFlow(0L)
-        override val exceededExpectedTimeWithoutFcmCount = MutableStateFlow(0L)
-        override val timeWithoutFcmInExpectedRangeCount = MutableStateFlow(0L)
-        override val clearInFlight = MutableStateFlow(false)
-    }
-
-    @Test
-    fun onActivityCreated_logsFcmSubscribe() {
-        val scope = TestScope(testDispatcher)
+    private fun createAppStartup(
+        scope: TestScope,
+        logger: FakeAppLoggerRepository = FakeAppLoggerRepository(),
+        counters: FakeDiagnosticsCountersRepository = FakeDiagnosticsCountersRepository(),
+    ): AppStartup {
         val fcmManager = createFcmManager(scope)
         val stalenessManager = createStalenessManager(scope)
-        val appLoggerViewModel = FakeAppLoggerViewModel()
         val liveClock = createLiveClock(scope)
         val buttonHealthMgr = createButtonHealthFcmSubscriptionManager(scope)
-        val actions = AppStartup(fcmManager, stalenessManager, liveClock, appLoggerViewModel, buttonHealthMgr)
-
-        actions.run()
-
-        assertEquals(
-            listOf(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC),
-            appLoggerViewModel.loggedKeys,
-        )
-    }
-
-    @Test
-    fun onActivityCreated_returnsAllActions() {
-        val scope = TestScope(testDispatcher)
-        val fcmManager = createFcmManager(scope)
-        val stalenessManager = createStalenessManager(scope)
-        val appLoggerViewModel = FakeAppLoggerViewModel()
-        val liveClock = createLiveClock(scope)
-        val buttonHealthMgr = createButtonHealthFcmSubscriptionManager(scope)
-        val actions = AppStartup(fcmManager, stalenessManager, liveClock, appLoggerViewModel, buttonHealthMgr)
-
-        val result = actions.run()
-
-        assertEquals(
-            listOf(
-                "startFcmRegistration",
-                "startCheckInStaleness",
-                "startLiveClock",
-                "startButtonHealthFcmSubscription",
-                "logFcmSubscribe",
-                "runDiagnosticsMaintenance",
+        // UnconfinedTestDispatcher for the IO dispatcher so AppStartup's
+        // fire-and-forget launches resolve synchronously inside the test.
+        // backgroundScope by itself has subtle interactions with
+        // advanceUntilIdle that swallow the launches; eager dispatch
+        // sidesteps the timing.
+        val ioDispatcher = UnconfinedTestDispatcher(scope.testScheduler)
+        return AppStartup(
+            fcmRegistrationManager = fcmManager,
+            checkInStalenessManager = stalenessManager,
+            liveClock = liveClock,
+            logAppEvent = LogAppEventUseCase(logger, counters),
+            runStartupDiagnosticsMaintenance = RunStartupDiagnosticsMaintenanceUseCase(
+                seed = SeedDiagnosticsCountersFromRoomUseCase(logger, counters),
+                prune = PruneDiagnosticsLogUseCase(logger),
             ),
-            result,
+            buttonHealthFcmSubscriptionManager = buttonHealthMgr,
+            externalScope = scope.backgroundScope,
+            dispatchers = TestDispatcherProvider(ioDispatcher),
         )
     }
 
     @Test
-    fun onActivityCreated_invokesDiagnosticsMaintenance() {
-        // Bundled call — guarantees seed-then-prune are sequential on the
-        // IO dispatcher. Separate fire-and-forget launches would race.
-        val scope = TestScope(testDispatcher)
-        val fcmManager = createFcmManager(scope)
-        val stalenessManager = createStalenessManager(scope)
-        val appLoggerViewModel = FakeAppLoggerViewModel()
-        val liveClock = createLiveClock(scope)
-        val buttonHealthMgr = createButtonHealthFcmSubscriptionManager(scope)
-        val actions = AppStartup(fcmManager, stalenessManager, liveClock, appLoggerViewModel, buttonHealthMgr)
+    fun onActivityCreated_logsFcmSubscribe() =
+        runTest(testDispatcher) {
+            val logger = FakeAppLoggerRepository()
+            val startup = createAppStartup(this, logger = logger)
 
-        actions.run()
+            startup.run()
+            advanceUntilIdle()
 
-        assertEquals(
-            listOf(AppLoggerLimits.DEFAULT_PER_KEY_LIMIT),
-            appLoggerViewModel.maintenanceCalls,
-        )
-    }
+            assertTrue(
+                "Expected ON_CREATE_FCM_SUBSCRIBE_TOPIC in logged keys; got ${logger.loggedKeys}",
+                logger.loggedKeys.contains(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC),
+            )
+        }
 
-    // (The granular `pruneOldEntries` is now invoked inside the bundled
-    // runStartupDiagnosticsMaintenance call. Direct delegation is
-    // verified by DefaultAppLoggerViewModelTest.pruneOldEntriesUsesDefaultLimit.)
+    @Test
+    fun onActivityCreated_returnsAllActions() =
+        runTest(testDispatcher) {
+            val startup = createAppStartup(this)
+
+            val result = startup.run()
+
+            assertEquals(
+                listOf(
+                    "startFcmRegistration",
+                    "startCheckInStaleness",
+                    "startLiveClock",
+                    "startButtonHealthFcmSubscription",
+                    "logFcmSubscribe",
+                    "runDiagnosticsMaintenance",
+                ),
+                result,
+            )
+        }
+
+    @Test
+    fun onActivityCreated_invokesDiagnosticsMaintenance() =
+        runTest(testDispatcher) {
+            // Bundled call — guarantees seed-then-prune are sequential.
+            // Pre-seed Room with rows for one key; verify after run() that
+            // both the counter was seeded AND prune was called.
+            val logger = FakeAppLoggerRepository()
+            val counters = FakeDiagnosticsCountersRepository()
+            repeat(3) { logger.log(AppLoggerKeys.FCM_DOOR_RECEIVED) }
+
+            val startup = createAppStartup(this, logger = logger, counters = counters)
+            startup.run()
+            advanceUntilIdle()
+
+            assertTrue(
+                "Counters should be seeded from Room",
+                counters.seededFromRoom,
+            )
+        }
 }

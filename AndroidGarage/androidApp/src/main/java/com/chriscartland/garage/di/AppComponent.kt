@@ -77,7 +77,7 @@ import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.ClearDiagnosticsUseCase
 import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
-import com.chriscartland.garage.usecase.DefaultAppLoggerViewModel
+import com.chriscartland.garage.usecase.DefaultDiagnosticsViewModel
 import com.chriscartland.garage.usecase.DefaultDoorHistoryViewModel
 import com.chriscartland.garage.usecase.DefaultFunctionListViewModel
 import com.chriscartland.garage.usecase.DefaultHomeViewModel
@@ -103,6 +103,7 @@ import com.chriscartland.garage.usecase.PruneDiagnosticsLogUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
+import com.chriscartland.garage.usecase.RunStartupDiagnosticsMaintenanceUseCase
 import com.chriscartland.garage.usecase.SeedDiagnosticsCountersFromRoomUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
@@ -145,7 +146,7 @@ abstract class AppComponent(
     @get:Provides val application: Application,
 ) {
     // --- Entry points: ViewModels (per-nav-entry, NOT singleton) ---
-    abstract val appLoggerViewModel: DefaultAppLoggerViewModel
+    abstract val diagnosticsViewModel: DefaultDiagnosticsViewModel
     abstract val functionListViewModel: DefaultFunctionListViewModel
     abstract val homeViewModel: DefaultHomeViewModel
     abstract val doorHistoryViewModel: DefaultDoorHistoryViewModel
@@ -189,26 +190,26 @@ abstract class AppComponent(
     // --- ViewModels ---
 
     @Provides
-    fun provideAppLoggerViewModel(
-        logAppEvent: LogAppEventUseCase,
+    fun provideDiagnosticsViewModel(
         observeAppLogCount: ObserveDiagnosticsCountUseCase,
-        pruneDiagnosticsLog: PruneDiagnosticsLogUseCase,
         clearDiagnostics: ClearDiagnosticsUseCase,
-        seedDiagnosticsCountersFromRoom: SeedDiagnosticsCountersFromRoomUseCase,
         dispatchers: DispatcherProvider,
-    ): DefaultAppLoggerViewModel =
-        DefaultAppLoggerViewModel(
-            logAppEvent,
+    ): DefaultDiagnosticsViewModel =
+        DefaultDiagnosticsViewModel(
             observeAppLogCount,
-            pruneDiagnosticsLog,
             clearDiagnostics,
-            seedDiagnosticsCountersFromRoom,
             dispatchers,
         )
 
     @Provides
     fun providePruneDiagnosticsLogUseCase(appLoggerRepository: AppLoggerRepository): PruneDiagnosticsLogUseCase =
         PruneDiagnosticsLogUseCase(appLoggerRepository)
+
+    @Provides
+    fun provideRunStartupDiagnosticsMaintenanceUseCase(
+        seed: SeedDiagnosticsCountersFromRoomUseCase,
+        prune: PruneDiagnosticsLogUseCase,
+    ): RunStartupDiagnosticsMaintenanceUseCase = RunStartupDiagnosticsMaintenanceUseCase(seed, prune)
 
     @Provides
     fun provideClearDiagnosticsUseCase(
@@ -692,14 +693,20 @@ abstract class AppComponent(
         fcmRegistrationManager: FcmRegistrationManager,
         checkInStalenessManager: CheckInStalenessManager,
         liveClock: LiveClock,
-        appLoggerViewModel: DefaultAppLoggerViewModel,
+        logAppEvent: LogAppEventUseCase,
+        runStartupDiagnosticsMaintenance: RunStartupDiagnosticsMaintenanceUseCase,
         buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager,
+        applicationScope: CoroutineScope,
+        dispatchers: DispatcherProvider,
     ): AppStartup =
         AppStartup(
-            fcmRegistrationManager,
-            checkInStalenessManager,
-            liveClock,
-            appLoggerViewModel,
-            buttonHealthFcmSubscriptionManager,
+            fcmRegistrationManager = fcmRegistrationManager,
+            checkInStalenessManager = checkInStalenessManager,
+            liveClock = liveClock,
+            logAppEvent = logAppEvent,
+            runStartupDiagnosticsMaintenance = runStartupDiagnosticsMaintenance,
+            buttonHealthFcmSubscriptionManager = buttonHealthFcmSubscriptionManager,
+            externalScope = applicationScope,
+            dispatchers = dispatchers,
         )
 }

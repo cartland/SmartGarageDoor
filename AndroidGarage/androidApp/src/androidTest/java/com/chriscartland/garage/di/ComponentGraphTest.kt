@@ -69,8 +69,8 @@ class ComponentGraphTest {
     }
 
     @Test
-    fun appLoggerViewModelResolves() {
-        assertNotNull("AppLoggerViewModel should resolve", component.appLoggerViewModel)
+    fun diagnosticsViewModelResolves() {
+        assertNotNull("DiagnosticsViewModel should resolve", component.diagnosticsViewModel)
     }
 
     // --- @Singleton identity guards ---

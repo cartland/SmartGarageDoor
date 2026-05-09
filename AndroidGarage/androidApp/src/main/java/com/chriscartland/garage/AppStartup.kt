@@ -18,25 +18,37 @@
 package com.chriscartland.garage
 
 import co.touchlab.kermit.Logger
+import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppLoggerKeys
-import com.chriscartland.garage.usecase.AppLoggerViewModel
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.LiveClock
+import com.chriscartland.garage.usecase.LogAppEventUseCase
+import com.chriscartland.garage.usecase.RunStartupDiagnosticsMaintenanceUseCase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 /**
  * App startup actions. Extracted from MainActivity for testability.
  *
+ * Calls UseCases directly (no ViewModels) — startup-time concerns are
+ * not screen-scoped and don't belong on a VM. The `externalScope` (the
+ * app-wide singleton scope) owns the fire-and-forget launches so they
+ * can outlive any Activity recreation.
+ *
  * If this grows past simple orchestration into conditional logic,
- * promote to a UseCase.
+ * promote individual steps into their own UseCases.
  */
 class AppStartup(
     private val fcmRegistrationManager: FcmRegistrationManager,
     private val checkInStalenessManager: CheckInStalenessManager,
     private val liveClock: LiveClock,
-    private val appLoggerViewModel: AppLoggerViewModel,
+    private val logAppEvent: LogAppEventUseCase,
+    private val runStartupDiagnosticsMaintenance: RunStartupDiagnosticsMaintenanceUseCase,
     private val buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager,
+    private val externalScope: CoroutineScope,
+    private val dispatchers: DispatcherProvider,
 ) {
     /**
      * Performs startup actions: FCM registration, staleness tracking,
@@ -62,19 +74,21 @@ class AppStartup(
         buttonHealthFcmSubscriptionManager.start()
         actions.add("startButtonHealthFcmSubscription")
 
-        appLoggerViewModel.log(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
+        externalScope.launch(dispatchers.io) {
+            logAppEvent(AppLoggerKeys.ON_CREATE_FCM_SUBSCRIBE_TOPIC)
+        }
         actions.add("logFcmSubscribe")
 
-        // Seed lifetime counters from Room (one-shot recovery for
-        // pre-2.11.0 installs) THEN prune Room rows past the cap.
-        // Bundled into a single VM call so the two operations are
-        // guaranteed sequential — separate fire-and-forget launches
-        // would race on the IO dispatcher and prune could delete rows
-        // the seed wanted to count, locking in a lower counter
-        // permanently for users upgrading from pre-2.10.4. See
-        // AppLoggerViewModel.runStartupDiagnosticsMaintenance KDoc.
+        // Bundled into a single coroutine launch so seed and prune are
+        // guaranteed sequential. Separate fire-and-forget launches would
+        // race on the IO dispatcher and prune could delete rows the seed
+        // wanted to count, locking in a lower lifetime counter for users
+        // upgrading from a pre-cap (pre-2.10.4) version. See
+        // RunStartupDiagnosticsMaintenanceUseCase KDoc.
         Logger.d { "AppStartup: Running Diagnostics maintenance (seed + prune)" }
-        appLoggerViewModel.runStartupDiagnosticsMaintenance()
+        externalScope.launch(dispatchers.io) {
+            runStartupDiagnosticsMaintenance()
+        }
         actions.add("runDiagnosticsMaintenance")
 
         return actions

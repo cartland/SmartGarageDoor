@@ -63,7 +63,7 @@ import com.chriscartland.garage.ui.theme.CardPadding
 import com.chriscartland.garage.ui.theme.DividerInset
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.ui.theme.Spacing
-import com.chriscartland.garage.usecase.AppLoggerViewModel
+import com.chriscartland.garage.usecase.DiagnosticsViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -90,17 +90,17 @@ fun DiagnosticsScreen(
     modifier: Modifier = Modifier,
 ) {
     val component = rememberAppComponent()
-    val appLoggerViewModel: AppLoggerViewModel = viewModel { component.appLoggerViewModel }
+    val diagnosticsViewModel: DiagnosticsViewModel = viewModel { component.diagnosticsViewModel }
     val context = LocalContext.current
 
-    val initCurrent by appLoggerViewModel.initCurrentDoorCount.collectAsState()
-    val initRecent by appLoggerViewModel.initRecentDoorCount.collectAsState()
-    val fetchCurrent by appLoggerViewModel.userFetchCurrentDoorCount.collectAsState()
-    val fetchRecent by appLoggerViewModel.userFetchRecentDoorCount.collectAsState()
-    val fcmReceived by appLoggerViewModel.fcmReceivedDoorCount.collectAsState()
-    val fcmSubscribe by appLoggerViewModel.fcmSubscribeTopicCount.collectAsState()
-    val exceededFcm by appLoggerViewModel.exceededExpectedTimeWithoutFcmCount.collectAsState()
-    val timeWithoutFcmInRange by appLoggerViewModel.timeWithoutFcmInExpectedRangeCount.collectAsState()
+    val initCurrent by diagnosticsViewModel.initCurrentDoorCount.collectAsState()
+    val initRecent by diagnosticsViewModel.initRecentDoorCount.collectAsState()
+    val fetchCurrent by diagnosticsViewModel.userFetchCurrentDoorCount.collectAsState()
+    val fetchRecent by diagnosticsViewModel.userFetchRecentDoorCount.collectAsState()
+    val fcmReceived by diagnosticsViewModel.fcmReceivedDoorCount.collectAsState()
+    val fcmSubscribe by diagnosticsViewModel.fcmSubscribeTopicCount.collectAsState()
+    val exceededFcm by diagnosticsViewModel.exceededExpectedTimeWithoutFcmCount.collectAsState()
+    val timeWithoutFcmInRange by diagnosticsViewModel.timeWithoutFcmInExpectedRangeCount.collectAsState()
 
     val counters = listOf(
         DiagnosticsCounter("App init (current door)", initCurrent),
@@ -113,7 +113,7 @@ fun DiagnosticsScreen(
         DiagnosticsCounter("FCM in expected range", timeWithoutFcmInRange),
     )
 
-    val clearInFlight by appLoggerViewModel.clearInFlight.collectAsState()
+    val clearInFlight by diagnosticsViewModel.clearInFlight.collectAsState()
 
     val csvLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
@@ -136,7 +136,7 @@ fun DiagnosticsScreen(
             }
             csvLauncher.launch(intent)
         },
-        onClearAll = { appLoggerViewModel.clearDiagnostics() },
+        onClearAll = { diagnosticsViewModel.clearDiagnostics() },
         clearInFlight = clearInFlight,
         modifier = modifier,
     )
