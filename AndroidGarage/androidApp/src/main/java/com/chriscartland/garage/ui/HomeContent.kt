@@ -38,11 +38,8 @@ import com.chriscartland.garage.permissions.rememberNotificationPermissionState
 import com.chriscartland.garage.ui.home.DeviceCheckIn
 import com.chriscartland.garage.ui.home.HomeAlert
 import com.chriscartland.garage.ui.home.HomeMapper
-import com.chriscartland.garage.usecase.AppLoggerViewModel
-import com.chriscartland.garage.usecase.AuthViewModel
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
-import com.chriscartland.garage.usecase.DoorViewModel
-import com.chriscartland.garage.usecase.RemoteButtonViewModel
+import com.chriscartland.garage.usecase.HomeViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import java.time.Instant
@@ -53,32 +50,28 @@ import com.chriscartland.garage.ui.home.HomeContent as HomeContentInternal
  * Stateful Home tab — thin bridge between Main.kt and the stateless
  * [HomeContentInternal] in [com.chriscartland.garage.ui.home].
  *
- * Resolves ViewModels, collects flows, runs [HomeMapper], renders. All
- * mapping logic is in [HomeMapper] (unit-tested); all layout is in
- * [HomeContentInternal] (screenshot-tested).
+ * Resolves the screen-scoped [HomeViewModel] (ADR-026 — one VM per screen),
+ * collects flows, runs [HomeMapper], renders. All mapping logic is in
+ * [HomeMapper] (unit-tested); all layout is in [HomeContentInternal]
+ * (screenshot-tested).
  */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun HomeContent(
     modifier: Modifier = Modifier,
-    authViewModel: AuthViewModel? = null,
-    doorViewModel: DoorViewModel? = null,
-    appLoggerViewModel: AppLoggerViewModel? = null,
+    homeViewModel: HomeViewModel? = null,
 ) {
     val component = rememberAppComponent()
-    val resolvedAuthViewModel = authViewModel ?: viewModel { component.authViewModel }
-    val resolvedDoorViewModel = doorViewModel ?: viewModel { component.doorViewModel }
-    val buttonViewModel: RemoteButtonViewModel = viewModel { component.remoteButtonViewModel }
-    val resolvedAppLoggerViewModel = appLoggerViewModel ?: viewModel { component.appLoggerViewModel }
+    val resolved = homeViewModel ?: viewModel { component.homeViewModel }
 
     val googleSignIn = rememberGoogleSignIn(
-        onTokenReceived = { token -> resolvedAuthViewModel.signInWithGoogle(token) },
+        onTokenReceived = { token -> resolved.signInWithGoogle(token) },
     )
-    val currentDoorEvent by resolvedDoorViewModel.currentDoorEvent.collectAsState()
-    val buttonState by buttonViewModel.buttonState.collectAsState()
-    val authState by resolvedAuthViewModel.authState.collectAsState()
-    val isCheckInStale by resolvedDoorViewModel.isCheckInStale.collectAsState()
-    val buttonHealthDisplay: ButtonHealthDisplay by buttonViewModel.buttonHealthDisplay
+    val currentDoorEvent by resolved.currentDoorEvent.collectAsState()
+    val buttonState by resolved.buttonState.collectAsState()
+    val authState by resolved.authState.collectAsState()
+    val isCheckInStale by resolved.isCheckInStale.collectAsState()
+    val buttonHealthDisplay: ButtonHealthDisplay by resolved.buttonHealthDisplay
         .collectAsStateWithLifecycle(initialValue = ButtonHealthDisplay.Loading)
 
     val notificationPermissionState = rememberNotificationPermissionState()
@@ -89,7 +82,7 @@ fun HomeContent(
     // `now` is driven by the VM's LiveClock-backed StateFlow (10s tick) —
     // `rememberLiveNow()` no longer exists; the ticker is owned by the
     // UseCase layer and lives across the app, not per-Composable.
-    val nowEpochSeconds by resolvedDoorViewModel.nowEpochSeconds.collectAsState()
+    val nowEpochSeconds by resolved.nowEpochSeconds.collectAsState()
     val now = remember(nowEpochSeconds) { Instant.ofEpochSecond(nowEpochSeconds) }
     val zone = remember { ZoneId.systemDefault() }
 
@@ -116,23 +109,23 @@ fun HomeContent(
         buttonHealthDisplay = buttonHealthDisplay,
         isRefreshing = currentDoorEvent is LoadingResult.Loading,
         onRefresh = {
-            resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_FETCH_CURRENT_DOOR)
-            resolvedDoorViewModel.fetchCurrentDoorEvent()
+            resolved.log(AppLoggerKeys.USER_FETCH_CURRENT_DOOR)
+            resolved.fetchCurrentDoorEvent()
         },
         onAlertAction = { alert ->
             when (alert) {
                 is HomeAlert.Stale -> {
                     Logger.e { "Trying to fix outdated info. Resetting FCM, and fetching data." }
-                    resolvedDoorViewModel.deregisterFcm()
-                    resolvedDoorViewModel.fetchCurrentDoorEvent()
+                    resolved.deregisterFcm()
+                    resolved.fetchCurrentDoorEvent()
                 }
                 is HomeAlert.PermissionMissing -> {
                     permissionRequestCount++
                     notificationPermissionState.launchPermissionRequest()
-                    resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_REQUESTED_NOTIFICATION_PERMISSION)
+                    resolved.log(AppLoggerKeys.USER_REQUESTED_NOTIFICATION_PERMISSION)
                 }
                 is HomeAlert.FetchError -> {
-                    resolvedDoorViewModel.fetchCurrentDoorEvent()
+                    resolved.fetchCurrentDoorEvent()
                 }
             }
         },
@@ -140,7 +133,7 @@ fun HomeContent(
             when (authState) {
                 is AuthState.Authenticated -> {
                     Logger.d { "Remote button tapped. AuthViewModel authState $authState" }
-                    buttonViewModel.onButtonTap()
+                    resolved.onButtonTap()
                 }
                 AuthState.Unauthenticated, AuthState.Unknown -> {
                     googleSignIn.launchSignIn()
