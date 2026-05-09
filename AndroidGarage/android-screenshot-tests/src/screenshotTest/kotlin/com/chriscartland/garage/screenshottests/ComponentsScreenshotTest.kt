@@ -31,10 +31,10 @@ import com.chriscartland.garage.ui.RemoteButtonContentSendingToDoorPreview
 import com.chriscartland.garage.ui.RemoteButtonContentSendingToServerPreview
 import com.chriscartland.garage.ui.RemoteButtonContentServerFailedPreview
 import com.chriscartland.garage.ui.RemoteButtonContentSucceededPreview
+import com.chriscartland.garage.ui.RemoteButtonHealthPillAvailablePreview
 import com.chriscartland.garage.ui.RemoteButtonHealthPillLoadingPreview
-import com.chriscartland.garage.ui.RemoteButtonHealthPillOfflinePreview
-import com.chriscartland.garage.ui.RemoteButtonHealthPillOnlinePreview
 import com.chriscartland.garage.ui.RemoteButtonHealthPillUnauthorizedPreview
+import com.chriscartland.garage.ui.RemoteButtonHealthPillUnavailablePreview
 import com.chriscartland.garage.ui.RemoteButtonHealthPillUnknownPreview
 import com.chriscartland.garage.ui.RemoteOfflinePillAgingPreview
 import com.chriscartland.garage.ui.RemoteOfflinePillFreshPreview
@@ -528,8 +528,8 @@ fun RemoteButtonHealthPillUnknownPreviewTest() {
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
-fun RemoteButtonHealthPillOnlinePreviewTest() {
-    AppTheme { RemoteButtonHealthPillOnlinePreview() }
+fun RemoteButtonHealthPillAvailablePreviewTest() {
+    AppTheme { RemoteButtonHealthPillAvailablePreview() }
 }
 
 @PreviewTest
@@ -540,6 +540,6 @@ fun RemoteButtonHealthPillOnlinePreviewTest() {
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
-fun RemoteButtonHealthPillOfflinePreviewTest() {
-    AppTheme { RemoteButtonHealthPillOfflinePreview() }
+fun RemoteButtonHealthPillUnavailablePreviewTest() {
+    AppTheme { RemoteButtonHealthPillUnavailablePreview() }
 }
