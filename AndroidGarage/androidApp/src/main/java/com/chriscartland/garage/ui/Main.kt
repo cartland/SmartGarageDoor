@@ -37,12 +37,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.chriscartland.garage.ui.settings.DiagnosticsScreen
@@ -76,11 +77,13 @@ private inline fun <reified T> navTween() = tween<T>(NAV_ANIM_DURATION, easing =
 /**
  * Type-safe navigation routes.
  *
- * Each route is a @Serializable object — the compiler ensures route references
- * are valid and navigation arguments (if added later) are type-checked.
- * Used with Navigation 3's NavDisplay + entryProvider.
+ * Each route is a `@Serializable NavKey` object so it can ride through the
+ * `rememberNavBackStack()` save/restore cycle (process death, rotation,
+ * window-size class change, etc.). Both annotations are load-bearing:
+ * `@Serializable` for kotlinx-serialization, `NavKey` for Nav3 to identify it
+ * as a destination key.
  */
-sealed interface Screen {
+sealed interface Screen : NavKey {
     @Serializable
     data object Home : Screen
 
@@ -117,14 +120,27 @@ fun AppNavigation(
     doorViewModel: DoorViewModel,
     appLoggerViewModel: AppLoggerViewModel,
 ) {
-    // Nav3: back stack is a simple mutable list of Screen objects.
-    // Using remember (not rememberSaveable) because Screen objects aren't Bundle-saveable.
-    // For tab navigation this is fine — process death just restarts on Home tab.
-    val backStack = remember { mutableStateListOf<Screen>(Screen.Home) }
+    // Nav3: `rememberNavBackStack` is the saveable back stack. Survives
+    // configuration changes (rotation, window size, dark mode, locale,
+    // font scale) AND process death. The serialized form rides through
+    // `SavedStateHolder` via `NavKeySerializer`, which requires every
+    // `Screen` subtype to be both `@Serializable` and a `NavKey` (see
+    // `Screen` above).
+    //
+    // Pre-PR-A used `remember { mutableStateListOf(Screen.Home) }`, which
+    // reset to `[Home]` on every Activity recreate. The cost was deliberate:
+    // tab nav, no deep links, "starts on Home after rotation" was acceptable.
+    // Now that the multi-pane future requires a saveable back stack (panes
+    // need to query historical entries, and a Window-size-class transition
+    // triggers Activity recreation we can't lose state through), saveable
+    // is the new floor.
+    val backStack: NavBackStack<NavKey> = rememberNavBackStack(Screen.Home)
 
     Scaffold(
         topBar = {
-            val currentScreen = backStack.lastOrNull()
+            // Back stack is `List<NavKey>`; narrow to our app's `Screen` type
+            // for the title + back-icon decision.
+            val currentScreen = backStack.lastOrNull() as? Screen
             val isSubScreen = currentScreen is Screen.FunctionList ||
                 currentScreen is Screen.Diagnostics
             TopAppBar(
@@ -153,7 +169,7 @@ fun AppNavigation(
         },
         bottomBar = {
             BottomNavigationBar(
-                currentScreen = backStack.lastOrNull(),
+                currentScreen = backStack.lastOrNull() as? Screen,
                 onTabSelected = { screen -> TabNavigation.navigateToTab(backStack, screen) },
             )
         },
@@ -165,8 +181,8 @@ fun AppNavigation(
             popTransitionSpec = { fadeIn(navTween()) togetherWith fadeOut(navTween()) },
             predictivePopTransitionSpec = { fadeIn(navTween()) togetherWith fadeOut(navTween()) },
             entryDecorators = listOf(
-                rememberSaveableStateHolderNavEntryDecorator<Screen>(),
-                rememberViewModelStoreNavEntryDecorator<Screen>(),
+                rememberSaveableStateHolderNavEntryDecorator<NavKey>(),
+                rememberViewModelStoreNavEntryDecorator<NavKey>(),
             ),
             modifier = Modifier.padding(innerPadding),
             // Screen-layout convention (single source of truth):
@@ -280,7 +296,7 @@ fun BottomNavigationBar(
  */
 object TabNavigation {
     fun navigateToTab(
-        backStack: MutableList<Screen>,
+        backStack: MutableList<NavKey>,
         screen: Screen,
     ) {
         when {
