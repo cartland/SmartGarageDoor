@@ -15,6 +15,11 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.16.2
+- **Stop refetching door state on every tab tap.** `DefaultHomeViewModel` and `DefaultDoorHistoryViewModel` previously fetched the current and recent door events from their `init {}` block. With Nav3's per-`NavBackStackEntry` `ViewModelStore`, every fresh entry constructed a fresh VM and fired the init fetch — so every History tab tap (and every wide-dashboard re-creation) triggered a redundant network round-trip even though FCM had already pushed any new event into Room. Now both VMs have `fetchOnInit = false`; the cold-start fetch lives in a new singleton-scoped `InitialDoorFetchManager` with idempotent `start()` invoked from `AppStartup`. Singleton scope guarantees the fetch fires exactly once per process even when `MainActivity.onCreate` fires multiple times (rotation, app resume after Activity destroy). Pull-to-refresh, alert-driven re-fetch, and FCM-fed live updates continue unchanged.
+- **Internal: `ComponentGraphTest` covers the new manager.** A `@Singleton`-identity assertion (`assertSame(c.initialDoorFetchManager, c.initialDoorFetchManager)`) joins the existing manager-singleton suite. Without the singleton scope, every `MainActivity.onCreate` would re-fire the cold-start fetch — exactly the per-VM-init-fetch problem we just removed, in a different layer.
+- **Internal: `InitialDoorFetchManagerTest`** covers single-fetch and idempotent-`start()` semantics directly.
+
 ## 2.16.1
 - **Bottom sheets now scroll when content overflows.** `AccountBottomSheet`, `SnoozeBottomSheet`, and `VersionBottomSheet` previously used a non-scrolling `Column` as their content root, so when the sheet's natural height exceeded the available viewport (landscape phones, small windows, large font scale), the overflow was silently clipped and rows at the bottom — Sign out, Save/Cancel, the last copy row — became unreachable. Each outer Column now applies `Modifier.verticalScroll(rememberScrollState())`.
 
