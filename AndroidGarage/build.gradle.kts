@@ -218,6 +218,24 @@ tasks.register<architecture.NoTokenInUseCaseTask>("checkNoTokenInUseCase") {
     )
 }
 
+tasks.register<architecture.RepositoryInterfaceNoTokenCheckTask>("checkRepositoryInterfaceNoToken") {
+    // Scope deliberately narrow to repository interfaces — model classes
+    // (e.g., FirebaseIdToken) legitimately have an `idToken: String` field.
+    sourceDirs = listOf(
+        "$rootDir/domain/src/commonMain/kotlin/com/chriscartland/garage/domain/repository",
+    )
+}
+
+tasks.register<architecture.RouteContentUsageCheckTask>("checkRouteContentUsage") {
+    mainKtPath = "$rootDir/androidApp/src/main/java/com/chriscartland/garage/ui/Main.kt"
+}
+
+tasks.register<architecture.ContentWidthCapCheckTask>("checkContentWidthCap") {
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+    )
+}
+
 tasks.register<architecture.NoImplSuffixTask>("checkNoImplSuffix") {
     sourceDirs = listOf(
         "$rootDir/androidApp/src/main/java",
