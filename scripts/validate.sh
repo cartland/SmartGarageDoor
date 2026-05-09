@@ -55,6 +55,9 @@ $GRADLE checkNoBareTopLevelFunctions && pass "no bare top-level functions" || fa
 step "No *Impl suffix on class names (ADR-008 — use descriptive prefix)"
 $GRADLE checkNoImplSuffix && pass "no *Impl suffix" || fail "no *Impl suffix"
 
+step "No idToken parameter on UseCases (ADR-027 — token internal to repos)"
+$GRADLE checkNoTokenInUseCase && pass "no token in UseCase" || fail "no token in UseCase"
+
 step "No Mockito imports (ADR-003 — fakes over mocks)"
 $GRADLE checkNoMockitoImports && pass "no Mockito imports" || fail "no Mockito imports"
 
