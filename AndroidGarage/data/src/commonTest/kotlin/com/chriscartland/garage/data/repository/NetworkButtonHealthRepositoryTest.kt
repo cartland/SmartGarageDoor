@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.data.repository
 
-import com.chriscartland.garage.data.NetworkButtonHealthDataSource
 import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.ButtonHealth
@@ -27,6 +26,7 @@ import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.testcommon.FakeAuthRepository
+import com.chriscartland.garage.testcommon.FakeNetworkButtonHealthDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -381,24 +381,4 @@ class NetworkButtonHealthRepositoryTest {
             authRepository = FakeAuthRepository(),
             externalScope = CoroutineScope(SupervisorJob()),
         )
-}
-
-/**
- * Fake [NetworkButtonHealthDataSource] for repository unit tests.
- * Inline (not in test-common) because only this test consumes it for now —
- * promote when a second test arrives.
- */
-private class FakeNetworkButtonHealthDataSource : NetworkButtonHealthDataSource {
-    private var result: NetworkResult<ButtonHealth> =
-        NetworkResult.Success(ButtonHealth(ButtonHealthState.UNKNOWN, null))
-
-    fun setResult(value: NetworkResult<ButtonHealth>) {
-        result = value
-    }
-
-    override suspend fun fetchButtonHealth(
-        buildTimestamp: String,
-        remoteButtonPushKey: String,
-        idToken: String,
-    ): NetworkResult<ButtonHealth> = result
 }
