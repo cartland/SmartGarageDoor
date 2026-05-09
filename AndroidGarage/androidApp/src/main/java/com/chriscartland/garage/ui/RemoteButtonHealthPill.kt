@@ -28,8 +28,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.SignalWifi4Bar
-import androidx.compose.material.icons.outlined.SignalWifiOff
+import androidx.compose.material.icons.outlined.Sensors
+import androidx.compose.material.icons.outlined.SensorsOff
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -135,14 +135,14 @@ private object RemoteButtonHealthPillContents {
                 iconDescription = "Remote button status unknown",
             )
             is ButtonHealthDisplay.Online -> PillContents(
-                label = "Online",
-                icon = Icons.Outlined.SignalWifi4Bar,
-                iconDescription = "Remote button online",
+                label = "Available",
+                icon = Icons.Outlined.Sensors,
+                iconDescription = "Remote button available",
             )
             is ButtonHealthDisplay.Offline -> PillContents(
-                label = "Offline · ${display.durationLabel}",
-                icon = Icons.Outlined.SignalWifiOff,
-                iconDescription = "Remote button offline, last seen ${display.durationLabel}",
+                label = "Unavailable · ${display.durationLabel}",
+                icon = Icons.Outlined.SensorsOff,
+                iconDescription = "Remote button unavailable, last seen ${display.durationLabel}",
             )
         }
 }
@@ -173,7 +173,7 @@ fun RemoteButtonHealthPillUnknownPreview() {
 
 @Preview
 @Composable
-fun RemoteButtonHealthPillOnlinePreview() {
+fun RemoteButtonHealthPillAvailablePreview() {
     PreviewComponentSurface {
         RemoteButtonHealthPill(display = ButtonHealthDisplay.Online)
     }
@@ -181,7 +181,7 @@ fun RemoteButtonHealthPillOnlinePreview() {
 
 @Preview
 @Composable
-fun RemoteButtonHealthPillOfflinePreview() {
+fun RemoteButtonHealthPillUnavailablePreview() {
     PreviewComponentSurface {
         RemoteButtonHealthPill(
             display = ButtonHealthDisplay.Offline(durationLabel = "11 min ago"),
