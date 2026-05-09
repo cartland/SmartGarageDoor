@@ -40,6 +40,9 @@ abstract class ContentWidthCapCheckTask : DefaultTask() {
      *   its own per-pane `widthIn(max = ContentWidth.Standard)` cap so
      *   neither sprawls past readable width on very wide windows. Same
      *   role as `RouteContent` for single-pane, just expressed twice.
+     * - `ThreePaneDashboardContent.kt` — the Expanded-width three-pane
+     *   route wrapper. Same per-pane-cap rationale, three slots instead
+     *   of two.
      */
     @get:Input
     var exemptFileNames: List<String> = listOf(
@@ -47,6 +50,7 @@ abstract class ContentWidthCapCheckTask : DefaultTask() {
         "DashboardRouteContent.kt",
         "AnimatableGarageDoor.kt",
         "HomeDashboardContent.kt",
+        "ThreePaneDashboardContent.kt",
     )
 
     @TaskAction

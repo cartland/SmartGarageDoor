@@ -16,6 +16,10 @@ import com.chriscartland.garage.ui.HomeDashboardPreview840dp
 import com.chriscartland.garage.ui.HomeTabPreview
 import com.chriscartland.garage.ui.HomeTabStalePillPreview
 import com.chriscartland.garage.ui.SettingsTabPreview
+import com.chriscartland.garage.ui.ThreePaneDashboardLargeTabletPreview
+import com.chriscartland.garage.ui.ThreePaneDashboardPhoneLandscapePreview
+import com.chriscartland.garage.ui.ThreePaneDashboardTabletNarrowPreview
+import com.chriscartland.garage.ui.ThreePaneDashboardWithDiagnosticsOverlayPreview
 import com.chriscartland.garage.ui.home.HomeContentOpenSignedInPreview
 import com.chriscartland.garage.ui.theme.AppTheme
 
@@ -226,5 +230,69 @@ fun HomeDashboardPreview1024dpTest() {
 fun HomeDashboardPreview1280dpTest() {
     AppTheme {
         HomeDashboardPreview1280dp()
+    }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light", widthDp = 916, heightDp = 411)
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    widthDp = 916,
+    heightDp = 411,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun ThreePaneDashboardPhoneLandscapePreviewTest() {
+    AppTheme {
+        ThreePaneDashboardPhoneLandscapePreview()
+    }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light", widthDp = 1024, heightDp = 768)
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    widthDp = 1024,
+    heightDp = 768,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun ThreePaneDashboardTabletNarrowPreviewTest() {
+    AppTheme {
+        ThreePaneDashboardTabletNarrowPreview()
+    }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light", widthDp = 1280, heightDp = 800)
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    widthDp = 1280,
+    heightDp = 800,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun ThreePaneDashboardLargeTabletPreviewTest() {
+    AppTheme {
+        ThreePaneDashboardLargeTabletPreview()
+    }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light", widthDp = 1280, heightDp = 800)
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    widthDp = 1280,
+    heightDp = 800,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun ThreePaneDashboardWithDiagnosticsOverlayPreviewTest() {
+    AppTheme {
+        ThreePaneDashboardWithDiagnosticsOverlayPreview()
     }
 }
