@@ -1,1 +1,1 @@
-2.15: Wide-screen Home dashboard. On tablets, foldables in landscape, and any window 600dp+ wide, Home and History now display side-by-side. The bottom nav collapses to two tabs (Home, Settings); History becomes the right column of Home. Pull-to-refresh on either pane refreshes both. Phones unchanged.
+2.15: Wide-screen Home dashboard. On tablets, foldables in landscape, and any window 600dp+ wide, Home and History now display side-by-side. The bottom nav collapses to two tabs (Home, Settings); History becomes the right column of Home. Phones unchanged.

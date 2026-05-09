@@ -15,6 +15,9 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.15.1
+- **Pull-to-refresh on the wide Home dashboard is now per-pane.** Pulling on the Home column refreshes the door status only; pulling on the History column refreshes recent events only. Pre-2.15.1 either pull fired both fetches as a "single-screen" model. Per-pane scoping matches the behavior each screen has on phone — a smaller, more predictable surface (and fewer redundant network round-trips when the user only wanted to refresh one half). Independent scroll behavior is unchanged. Implementation: dropped the `onRefreshExtra` parameter wired into `HomeContent` / `DoorHistoryContent` for the dashboard route; each screen's existing refresh callback runs unmodified.
+
 ## 2.15.0
 - **Wide-screen Home dashboard.** On tablets, foldables in landscape, ChromeOS, and any window ≥600dp wide, the Home and History tabs merge into a single side-by-side dashboard with Home on the left and History on the right. The bottom navigation collapses to two items (Home, Settings); History is no longer its own tab — it's the right column of the Home destination. Phones (<600dp) keep the existing 3-tab single-pane behavior unchanged. Each pane caps at 640dp wide; on very wide windows the dashboard centers in the available space rather than stretching.
 - **Independent scroll, synced refresh.** Each pane scrolls independently — scroll History without affecting the Home column, and vice versa. Pull-to-refresh on either pane refreshes both: a pull on Home triggers `fetchCurrentDoorEvent` AND `fetchRecentDoorEvents`, and a pull on History does the same. Behaves like one screen for refresh, two screens for scroll.

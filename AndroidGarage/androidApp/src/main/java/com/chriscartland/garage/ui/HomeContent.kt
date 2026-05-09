@@ -64,11 +64,6 @@ fun HomeContent(
     authViewModel: AuthViewModel? = null,
     doorViewModel: DoorViewModel? = null,
     appLoggerViewModel: AppLoggerViewModel? = null,
-    // Additional refresh action invoked alongside this screen's normal
-    // pull-to-refresh fetch. Used by the wide-screen Home dashboard so a
-    // pull on either pane refreshes both. Empty default keeps the
-    // single-pane phone behavior unchanged.
-    onRefreshExtra: () -> Unit = {},
 ) {
     val component = rememberAppComponent()
     val resolvedAuthViewModel = authViewModel ?: viewModel { component.authViewModel }
@@ -123,7 +118,6 @@ fun HomeContent(
         onRefresh = {
             resolvedAppLoggerViewModel.log(AppLoggerKeys.USER_FETCH_CURRENT_DOOR)
             resolvedDoorViewModel.fetchCurrentDoorEvent()
-            onRefreshExtra()
         },
         onAlertAction = { alert ->
             when (alert) {
