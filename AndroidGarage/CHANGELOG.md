@@ -15,6 +15,9 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.16.1
+- **Bottom sheets now scroll when content overflows.** `AccountBottomSheet`, `SnoozeBottomSheet`, and `VersionBottomSheet` previously used a non-scrolling `Column` as their content root, so when the sheet's natural height exceeded the available viewport (landscape phones, small windows, large font scale), the overflow was silently clipped and rows at the bottom — Sign out, Save/Cancel, the last copy row — became unreachable. Each outer Column now applies `Modifier.verticalScroll(rememberScrollState())`.
+
 ## 2.16.0
 - **Three-pane Expanded-width dashboard.** On large tablets in landscape, Chromebooks, and any window ≥840dp wide (M3 `WindowWidthSizeClass.Expanded`), the Home destination renders Home + History + Settings side by side in three equal columns. The bottom navigation hides entirely (recovers ~80dp of vertical space). Each pane caps at `ContentWidth.Standard` (640dp); on very wide windows the dashboard centers in the available space rather than stretching. Phones (<600dp) keep the existing 3-tab single-pane behavior; Medium widths (600–839dp) keep the 2-pane Home + History dashboard from 2.15.x.
 - **Sub-screen overlay scoped to the Settings pane.** When Diagnostics or Function list is on the back stack in Expanded mode, only the Settings column changes content — Home and History stay live and uninterrupted. The TopAppBar still shows the sub-screen name + back arrow; pressing back pops the back stack and returns the Settings pane to its normal Settings content. Cross-fade between back-stack entries reads visually as the Settings pane swapping while Home and History stay still.
