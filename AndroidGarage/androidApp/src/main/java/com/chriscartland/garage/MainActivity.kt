@@ -22,21 +22,17 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.ui.util.trace
-import com.chriscartland.garage.di.activityViewModel
 import com.chriscartland.garage.ui.GarageApp
 
 class MainActivity : ComponentActivity() {
     private val component by lazy { (application as GarageApplication).component }
-    private val authViewModel by lazy { activityViewModel(this) { component.authViewModel } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge() // Edge-to-edge required on Android 15+ (target SDK 35).
         trace("MainActivity.setContent") {
             setContent {
-                GarageApp(
-                    authViewModel = authViewModel,
-                )
+                GarageApp()
             }
         }
         component.appStartup.run()
