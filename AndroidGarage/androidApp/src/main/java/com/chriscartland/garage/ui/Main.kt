@@ -161,10 +161,16 @@ fun AppNavigation() {
             )
         },
         bottomBar = {
-            BottomNavigationBar(
-                currentScreen = backStack.lastOrNull() as? Screen,
-                onTabSelected = { screen -> TabNavigation.navigateToTab(backStack, screen) },
-            )
+            // Hide the bottom-nav chrome entirely on layouts with no
+            // visible tabs (Expanded). Empty NavigationBar still claims
+            // ~80dp of vertical space, which we want to recover for the
+            // 3-pane dashboard.
+            if (currentAppLayoutMode().visibleTabs.isNotEmpty()) {
+                BottomNavigationBar(
+                    currentScreen = backStack.lastOrNull() as? Screen,
+                    onTabSelected = { screen -> TabNavigation.navigateToTab(backStack, screen) },
+                )
+            }
         },
     ) { innerPadding ->
         NavDisplay(
@@ -283,36 +289,73 @@ private fun RouteEntryFor(
     val canonicalScreen = mode.canonicalScreen(screen) ?: screen
     when (canonicalScreen) {
         Screen.Home -> {
-            if (mode is AppLayoutMode.Wide) {
-                // Pull-to-refresh is per-pane: pulling Home refreshes door
-                // status only; pulling History refreshes recent events only.
-                // Each pane behaves like its own screen for refresh,
-                // matching what the user experiences on phone.
-                DashboardRouteContent { routeModifier ->
-                    HomeDashboardContent(
-                        modifier = routeModifier.padding(horizontal = Spacing.Screen),
-                        homePane = { paneModifier ->
-                            HomeContent(
-                                modifier = paneModifier,
-                            )
-                        },
-                        historyPane = { paneModifier ->
-                            DoorHistoryContent(
-                                modifier = paneModifier,
-                            )
-                        },
-                    )
+            when (mode) {
+                AppLayoutMode.Expanded -> {
+                    // 3-pane dashboard. The Settings slot's body depends on
+                    // the original (non-canonicalized) `screen`: Profile/Home
+                    // → ProfileContent, FunctionList → FunctionListContent,
+                    // Diagnostics → DiagnosticsScreen. Each back-stack entry
+                    // (Home, FunctionList, Diagnostics, Profile) renders its
+                    // own copy of the 3-pane; NavDisplay shows only the top
+                    // entry, so the cross-fade between entries visually
+                    // reads as the Settings pane swapping while Home and
+                    // History stay still.
+                    ThreePaneRouteContent { routeModifier ->
+                        ThreePaneDashboardContent(
+                            modifier = routeModifier.padding(horizontal = Spacing.Screen),
+                            homePane = { paneModifier ->
+                                HomeContent(modifier = paneModifier)
+                            },
+                            historyPane = { paneModifier ->
+                                DoorHistoryContent(modifier = paneModifier)
+                            },
+                            settingsPane = { paneModifier ->
+                                when (screen) {
+                                    Screen.FunctionList -> FunctionListContent(modifier = paneModifier)
+                                    Screen.Diagnostics ->
+                                        // DiagnosticsScreen owns its own
+                                        // horizontal padding (LazyColumn
+                                        // contentPadding) — pass paneModifier
+                                        // unmodified.
+                                        DiagnosticsScreen(onBack = onBack, modifier = paneModifier)
+                                    else -> ProfileContent(
+                                        onNavigateToFunctionList = onNavigateToFunctionList,
+                                        onNavigateToDiagnostics = onNavigateToDiagnostics,
+                                        modifier = paneModifier,
+                                    )
+                                }
+                            },
+                        )
+                    }
                 }
-            } else {
-                RouteContent { routeModifier ->
-                    HomeContent(
-                        modifier = routeModifier.padding(horizontal = Spacing.Screen),
-                    )
+                AppLayoutMode.Wide -> {
+                    // Pull-to-refresh is per-pane: pulling Home refreshes door
+                    // status only; pulling History refreshes recent events only.
+                    // Each pane behaves like its own screen for refresh,
+                    // matching what the user experiences on phone.
+                    DashboardRouteContent { routeModifier ->
+                        HomeDashboardContent(
+                            modifier = routeModifier.padding(horizontal = Spacing.Screen),
+                            homePane = { paneModifier ->
+                                HomeContent(modifier = paneModifier)
+                            },
+                            historyPane = { paneModifier ->
+                                DoorHistoryContent(modifier = paneModifier)
+                            },
+                        )
+                    }
+                }
+                AppLayoutMode.Compact -> {
+                    RouteContent { routeModifier ->
+                        HomeContent(
+                            modifier = routeModifier.padding(horizontal = Spacing.Screen),
+                        )
+                    }
                 }
             }
         }
         Screen.History -> {
-            // Reached only on Compact (Wide.mergedRoutes redirects to Home).
+            // Reached only on Compact (Wide + Expanded merge History to Home).
             RouteContent { routeModifier ->
                 DoorHistoryContent(
                     modifier = routeModifier.padding(horizontal = Spacing.Screen),
@@ -320,6 +363,7 @@ private fun RouteEntryFor(
             }
         }
         Screen.Profile -> {
+            // Reached on Compact and Wide (Expanded merges Profile to Home).
             RouteContent { routeModifier ->
                 ProfileContent(
                     onNavigateToFunctionList = onNavigateToFunctionList,
@@ -329,6 +373,7 @@ private fun RouteEntryFor(
             }
         }
         Screen.FunctionList -> {
+            // Reached on Compact and Wide (Expanded merges FunctionList to Home).
             RouteContent { routeModifier ->
                 FunctionListContent(
                     modifier = routeModifier.padding(horizontal = Spacing.Screen),
@@ -336,6 +381,7 @@ private fun RouteEntryFor(
             }
         }
         Screen.Diagnostics -> {
+            // Reached on Compact and Wide (Expanded merges Diagnostics to Home).
             RouteContent { routeModifier ->
                 // Diagnostics provides its own horizontal padding inside
                 // its LazyColumn (Spacing.Screen) — no padding here.
