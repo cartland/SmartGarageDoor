@@ -31,15 +31,21 @@ abstract class ContentWidthCapCheckTask : DefaultTask() {
      * File names that are allowed to call `widthIn(max = ...)`.
      *
      * Default exempts:
-     * - `RouteContent.kt` — the canonical route-level wrapper.
+     * - `RouteContent.kt` — the canonical single-pane route wrapper.
      * - `AnimatableGarageDoor.kt` — uses `widthIn(max)` to size a preview
      *   icon, not for route-level layout. Sub-component dimension, not
      *   the rule this check enforces.
+     * - `HomeDashboardContent.kt` — the wide-screen two-pane route
+     *   wrapper. Each pane is conceptually a route-level slot and gets
+     *   its own per-pane `widthIn(max = ContentWidth.Standard)` cap so
+     *   neither sprawls past readable width on very wide windows. Same
+     *   role as `RouteContent` for single-pane, just expressed twice.
      */
     @get:Input
     var exemptFileNames: List<String> = listOf(
         "RouteContent.kt",
         "AnimatableGarageDoor.kt",
+        "HomeDashboardContent.kt",
     )
 
     @TaskAction
