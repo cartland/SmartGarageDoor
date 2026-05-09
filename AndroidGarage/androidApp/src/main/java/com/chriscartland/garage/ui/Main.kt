@@ -60,12 +60,20 @@ fun GarageApp(
     doorViewModel: DoorViewModel,
     appLoggerViewModel: AppLoggerViewModel,
 ) {
-    AppTheme {
-        AppNavigation(
-            authViewModel = authViewModel,
-            doorViewModel = doorViewModel,
-            appLoggerViewModel = appLoggerViewModel,
-        )
+    // ProvideAppWindowSizeClass installs `LocalAppWindowSizeClass` for the
+    // whole app. Adaptive layout decisions (current screen-width cap; future
+    // single-pane vs. two-pane branching) read from that local — never from
+    // `LocalConfiguration.current.screenWidthDp` directly. See
+    // `AppWindowSizeClass.kt` for the rationale + the lint that enforces it
+    // (`checkNoLocalConfigurationDimensionReads`).
+    ProvideAppWindowSizeClass {
+        AppTheme {
+            AppNavigation(
+                authViewModel = authViewModel,
+                doorViewModel = doorViewModel,
+                appLoggerViewModel = appLoggerViewModel,
+            )
+        }
     }
 }
 

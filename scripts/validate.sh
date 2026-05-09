@@ -67,6 +67,9 @@ $GRADLE checkRouteContentUsage && pass "RouteContent usage" || fail "RouteConten
 step "ContentWidth cap applied only at RouteContent (no per-screen widthIn(max))"
 $GRADLE checkContentWidthCap && pass "ContentWidth cap" || fail "ContentWidth cap"
 
+step "No LocalConfiguration dimension reads (use LocalAppWindowSizeClass)"
+$GRADLE checkNoLocalConfigurationDimensionReads && pass "no LocalConfiguration dim reads" || fail "no LocalConfiguration dim reads"
+
 step "No Mockito imports (ADR-003 — fakes over mocks)"
 $GRADLE checkNoMockitoImports && pass "no Mockito imports" || fail "no Mockito imports"
 

@@ -236,6 +236,13 @@ tasks.register<architecture.ContentWidthCapCheckTask>("checkContentWidthCap") {
     )
 }
 
+tasks.register<architecture.NoLocalConfigurationDimensionReadsTask>("checkNoLocalConfigurationDimensionReads") {
+    // Source-of-truth file `AppWindowSizeClass.kt` is exempt by name.
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+    )
+}
+
 tasks.register<architecture.NoImplSuffixTask>("checkNoImplSuffix") {
     sourceDirs = listOf(
         "$rootDir/androidApp/src/main/java",
