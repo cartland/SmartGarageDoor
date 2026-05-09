@@ -58,6 +58,15 @@ $GRADLE checkNoImplSuffix && pass "no *Impl suffix" || fail "no *Impl suffix"
 step "No idToken parameter on UseCases (ADR-027 — token internal to repos)"
 $GRADLE checkNoTokenInUseCase && pass "no token in UseCase" || fail "no token in UseCase"
 
+step "No idToken parameter on domain repository interfaces (ADR-027)"
+$GRADLE checkRepositoryInterfaceNoToken && pass "no token in repo interface" || fail "no token in repo interface"
+
+step "Every NavDisplay entry uses RouteContent (single source of horizontal layout)"
+$GRADLE checkRouteContentUsage && pass "RouteContent usage" || fail "RouteContent usage"
+
+step "ContentWidth cap applied only at RouteContent (no per-screen widthIn(max))"
+$GRADLE checkContentWidthCap && pass "ContentWidth cap" || fail "ContentWidth cap"
+
 step "No Mockito imports (ADR-003 — fakes over mocks)"
 $GRADLE checkNoMockitoImports && pass "no Mockito imports" || fail "no Mockito imports"
 
