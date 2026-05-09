@@ -26,7 +26,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.SignalWifiOff
+import androidx.compose.material.icons.outlined.Sensors
+import androidx.compose.material.icons.outlined.SensorsOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -35,32 +36,36 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.chriscartland.garage.R
 import com.chriscartland.garage.ui.home.DeviceCheckInDisplay
 import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 import com.chriscartland.garage.ui.theme.Spacing
 
 /**
- * Compact rounded-pill device-heartbeat indicator. Antenna icon + duration
- * text when fresh; disconnected icon + error coloring when stale (>11 min).
+ * Compact rounded-pill device-heartbeat indicator. Sensors icon + duration
+ * text when fresh; SensorsOff icon + error coloring when stale (>11 min).
  *
- * Lives in the Home tab's "Status" section header (right-aligned, in-line with
- * the section label). The `TitleBar` prefix is historical — the pill briefly
- * occupied the TopAppBar's `actions` slot in 2.9.2 before moving to the Status
- * header.
+ * Lives in the Home tab's "Status" section header (right-aligned, in-line
+ * with the section label). Sister to [RemoteButtonHealthPill] in the
+ * "Remote control" section header — same pill grammar (rounded-50, label
+ * + icon), same Material Sensors family icons (purpose-built for IoT
+ * device-availability indicators).
  *
- * Stateless: pass a pre-formatted [DeviceCheckInDisplay]. The duration label
- * and `isStale` boolean both come from the LiveClock-driven flow in the
- * caller (typically the Home Composable).
+ * Stateless: pass a pre-formatted [DeviceCheckInDisplay]. The duration
+ * label and `isStale` boolean both come from the LiveClock-driven flow
+ * in the caller (typically the Home Composable).
  *
- * Uses neutral M3 tokens: `surfaceVariant` + `onSurfaceVariant` when fresh,
- * `errorContainer` + `onErrorContainer` when stale.
+ * Uses neutral M3 tokens: `surfaceVariant` + `onSurfaceVariant` when
+ * fresh, `errorContainer` + `onErrorContainer` when stale.
+ *
+ * Uses Material 24-viewport `Icons.Outlined.Sensors` / `SensorsOff`.
+ * Custom 960-viewport vectors inside section header rows have been
+ * observed to silently drop the section from screenshot capture (see
+ * CLAUDE.md "Layoutlib gotcha"); Material icons avoid the issue.
  */
 @Composable
-fun TitleBarCheckInPill(
+fun DeviceCheckInPill(
     display: DeviceCheckInDisplay,
     modifier: Modifier = Modifier,
 ) {
@@ -93,14 +98,14 @@ fun TitleBarCheckInPill(
                 if (display.isStale) {
                     Icon(
                         modifier = Modifier.size(17.dp),
-                        imageVector = Icons.Outlined.SignalWifiOff,
+                        imageVector = Icons.Outlined.SensorsOff,
                         tint = LocalContentColor.current,
                         contentDescription = "Device offline",
                     )
                 } else {
                     Icon(
                         modifier = Modifier.size(17.dp),
-                        painter = painterResource(id = R.drawable.baseline_cell_tower_24),
+                        imageVector = Icons.Outlined.Sensors,
                         tint = LocalContentColor.current,
                         contentDescription = "Device online",
                     )
@@ -112,10 +117,10 @@ fun TitleBarCheckInPill(
 
 @Preview
 @Composable
-fun TitleBarCheckInPillFreshPreview() {
+fun DeviceCheckInPillFreshPreview() {
     PreviewComponentSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TitleBarCheckInPill(
+            DeviceCheckInPill(
                 display = DeviceCheckInDisplay(
                     durationLabel = "30 sec ago",
                     isStale = false,
@@ -127,10 +132,10 @@ fun TitleBarCheckInPillFreshPreview() {
 
 @Preview
 @Composable
-fun TitleBarCheckInPillAgingPreview() {
+fun DeviceCheckInPillAgingPreview() {
     PreviewComponentSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TitleBarCheckInPill(
+            DeviceCheckInPill(
                 display = DeviceCheckInDisplay(
                     durationLabel = "5 min 20 sec ago",
                     isStale = false,
@@ -142,10 +147,10 @@ fun TitleBarCheckInPillAgingPreview() {
 
 @Preview
 @Composable
-fun TitleBarCheckInPillStalePreview() {
+fun DeviceCheckInPillStalePreview() {
     PreviewComponentSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TitleBarCheckInPill(
+            DeviceCheckInPill(
                 display = DeviceCheckInDisplay(
                     durationLabel = "23 min ago",
                     isStale = true,
@@ -157,10 +162,10 @@ fun TitleBarCheckInPillStalePreview() {
 
 @Preview
 @Composable
-fun TitleBarCheckInPillNoDataPreview() {
+fun DeviceCheckInPillNoDataPreview() {
     PreviewComponentSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TitleBarCheckInPill(
+            DeviceCheckInPill(
                 display = DeviceCheckInDisplay(
                     durationLabel = "No data yet",
                     isStale = false,

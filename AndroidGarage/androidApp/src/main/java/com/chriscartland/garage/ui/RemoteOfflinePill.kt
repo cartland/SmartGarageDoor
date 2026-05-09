@@ -45,7 +45,7 @@ import com.chriscartland.garage.usecase.ButtonHealthDisplay
  * Compact rounded-pill indicator that the remote-button device is offline.
  *
  * Lives in the Home tab's "Remote control" section header (right-aligned,
- * in-line with the section label). Mirrors [TitleBarCheckInPill]'s structure
+ * in-line with the section label). Mirrors [DeviceCheckInPill]'s structure
  * so both indicators speak the same visual grammar.
  *
  * Stateless: pass a pre-formatted [ButtonHealthDisplay.Offline]. The

@@ -3,6 +3,10 @@ package com.chriscartland.garage.screenshottests
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
+import com.chriscartland.garage.ui.DeviceCheckInPillAgingPreview
+import com.chriscartland.garage.ui.DeviceCheckInPillFreshPreview
+import com.chriscartland.garage.ui.DeviceCheckInPillNoDataPreview
+import com.chriscartland.garage.ui.DeviceCheckInPillStalePreview
 import com.chriscartland.garage.ui.DoorStatusCardPreview
 import com.chriscartland.garage.ui.ErrorCardLongButtonWordPreview
 import com.chriscartland.garage.ui.ErrorCardManyButtonWordsPreview
@@ -40,10 +44,6 @@ import com.chriscartland.garage.ui.RemoteOfflinePillAgingPreview
 import com.chriscartland.garage.ui.RemoteOfflinePillFreshPreview
 import com.chriscartland.garage.ui.RemoteOfflinePillStalePreview
 import com.chriscartland.garage.ui.RemoteOfflinePillVeryStalePreview
-import com.chriscartland.garage.ui.TitleBarCheckInPillAgingPreview
-import com.chriscartland.garage.ui.TitleBarCheckInPillFreshPreview
-import com.chriscartland.garage.ui.TitleBarCheckInPillNoDataPreview
-import com.chriscartland.garage.ui.TitleBarCheckInPillStalePreview
 import com.chriscartland.garage.ui.theme.AppTheme
 
 @PreviewTest
@@ -396,8 +396,8 @@ fun ErrorCardManyButtonWordsPreviewTest() {
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
-fun TitleBarCheckInPillFreshPreviewTest() {
-    AppTheme { TitleBarCheckInPillFreshPreview() }
+fun DeviceCheckInPillFreshPreviewTest() {
+    AppTheme { DeviceCheckInPillFreshPreview() }
 }
 
 @PreviewTest
@@ -408,8 +408,8 @@ fun TitleBarCheckInPillFreshPreviewTest() {
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
-fun TitleBarCheckInPillAgingPreviewTest() {
-    AppTheme { TitleBarCheckInPillAgingPreview() }
+fun DeviceCheckInPillAgingPreviewTest() {
+    AppTheme { DeviceCheckInPillAgingPreview() }
 }
 
 @PreviewTest
@@ -420,8 +420,8 @@ fun TitleBarCheckInPillAgingPreviewTest() {
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
-fun TitleBarCheckInPillStalePreviewTest() {
-    AppTheme { TitleBarCheckInPillStalePreview() }
+fun DeviceCheckInPillStalePreviewTest() {
+    AppTheme { DeviceCheckInPillStalePreview() }
 }
 
 @PreviewTest
@@ -432,8 +432,8 @@ fun TitleBarCheckInPillStalePreviewTest() {
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
-fun TitleBarCheckInPillNoDataPreviewTest() {
-    AppTheme { TitleBarCheckInPillNoDataPreview() }
+fun DeviceCheckInPillNoDataPreviewTest() {
+    AppTheme { DeviceCheckInPillNoDataPreview() }
 }
 
 @PreviewTest

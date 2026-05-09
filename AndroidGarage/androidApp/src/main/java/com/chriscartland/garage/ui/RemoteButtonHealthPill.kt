@@ -61,7 +61,7 @@ import com.chriscartland.garage.usecase.ButtonHealthDisplay
  *
  * Visual hierarchy preserved: `Offline` keeps the error palette so it still
  * screams; the four other arms use the neutral palette so they whisper. The
- * grammar matches [TitleBarCheckInPill] (fresh = neutral, stale = error).
+ * grammar matches [DeviceCheckInPill] (fresh = neutral, stale = error).
  *
  * Stateless: pass a pre-derived [ButtonHealthDisplay] (the live flow comes
  * from `RemoteButtonViewModel.buttonHealthDisplay`).

@@ -19,7 +19,7 @@ package com.chriscartland.garage.ui.home
 
 /**
  * Display state for the device check-in indicator. Carries pre-formatted
- * strings so the renderer (currently [com.chriscartland.garage.ui.TitleBarCheckInPill])
+ * strings so the renderer (currently [com.chriscartland.garage.ui.DeviceCheckInPill])
  * stays stateless and unit tests cover the formatting logic directly.
  *
  * @param durationLabel e.g. "Just now", "30 sec ago", "1 min 30 sec ago".

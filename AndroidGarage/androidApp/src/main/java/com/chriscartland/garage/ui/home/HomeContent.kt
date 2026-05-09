@@ -56,11 +56,11 @@ import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.permissions.NotificationPermissionCopy
+import com.chriscartland.garage.ui.DeviceCheckInPill
 import com.chriscartland.garage.ui.GarageIcon
 import com.chriscartland.garage.ui.RemoteButtonContent
 import com.chriscartland.garage.ui.RemoteButtonHealthPill
 import com.chriscartland.garage.ui.RouteContent
-import com.chriscartland.garage.ui.TitleBarCheckInPill
 import com.chriscartland.garage.ui.theme.ButtonSpacing
 import com.chriscartland.garage.ui.theme.CardPadding
 import com.chriscartland.garage.ui.theme.DoorColorState
@@ -193,7 +193,7 @@ fun HomeContent(
             item(key = "status") {
                 HomeSection(
                     label = "Status",
-                    trailing = { TitleBarCheckInPill(display = deviceCheckIn) },
+                    trailing = { DeviceCheckInPill(display = deviceCheckIn) },
                 ) {
                     HomeStatusCardBody(status = status)
                 }

@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Sat May  9 16:42:04 PDT 2026
+Generated on Sat May  9 16:50:27 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -15,6 +15,30 @@ Generated on Sat May  9 16:42:04 PDT 2026
 
 
 ## ComponentsScreenshotTestKt
+
+### DeviceCheckInPillAgingPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillAgingPreviewTest_Dark_77106447_0.png" width="300" />
+
+### DeviceCheckInPillAgingPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillAgingPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### DeviceCheckInPillFreshPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillFreshPreviewTest_Dark_77106447_0.png" width="300" />
+
+### DeviceCheckInPillFreshPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillFreshPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### DeviceCheckInPillNoDataPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillNoDataPreviewTest_Dark_77106447_0.png" width="300" />
+
+### DeviceCheckInPillNoDataPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillNoDataPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### DeviceCheckInPillStalePreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillStalePreviewTest_Dark_77106447_0.png" width="300" />
+
+### DeviceCheckInPillStalePreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillStalePreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### DoorStatusCardPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DoorStatusCardPreviewTest_Dark_77106447_0.png" width="300" />
@@ -237,30 +261,6 @@ Generated on Sat May  9 16:42:04 PDT 2026
 
 ### RemoteOfflinePillVeryStalePreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillVeryStalePreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### TitleBarCheckInPillAgingPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/TitleBarCheckInPillAgingPreviewTest_Dark_77106447_0.png" width="300" />
-
-### TitleBarCheckInPillAgingPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/TitleBarCheckInPillAgingPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### TitleBarCheckInPillFreshPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/TitleBarCheckInPillFreshPreviewTest_Dark_77106447_0.png" width="300" />
-
-### TitleBarCheckInPillFreshPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/TitleBarCheckInPillFreshPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### TitleBarCheckInPillNoDataPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/TitleBarCheckInPillNoDataPreviewTest_Dark_77106447_0.png" width="300" />
-
-### TitleBarCheckInPillNoDataPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/TitleBarCheckInPillNoDataPreviewTest_Light_fc5b723e_0.png" width="300" />
-
-### TitleBarCheckInPillStalePreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/TitleBarCheckInPillStalePreviewTest_Dark_77106447_0.png" width="300" />
-
-### TitleBarCheckInPillStalePreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/TitleBarCheckInPillStalePreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ## GarageDoorScreenshotTestKt
 
