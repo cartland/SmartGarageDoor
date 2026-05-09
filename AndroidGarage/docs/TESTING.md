@@ -18,7 +18,7 @@ last_verified: 2026-04-24
 
 ## Current State
 
-- **305+ unit tests** across 52 test files (7 androidApp + 9 domain + 28 usecase + 7 data + 1 data-local), all KMP-compatible (kotlin.test). Includes `NetworkSnoozeRepositoryTest` (9 tests, guards the snooze externalScope pattern per ADR-019), `SnoozeStateFlowPropagationTest` (6 tests, documents Flow/StateFlow propagation through the repo→VM→collect chain), and `RealNetworkSnoozeRepositoryPropagationTest` (2 tests, wires the real `NetworkSnoozeRepository` + real `DefaultRemoteButtonViewModel` around fakes — catches regressions in the full production chain without needing an emulator).
+- **305+ unit tests** across 52 test files (7 androidApp + 9 domain + 28 usecase + 7 data + 1 data-local), all KMP-compatible (kotlin.test). Includes `NetworkSnoozeRepositoryTest` (9 tests, guards the snooze externalScope pattern per ADR-019) and `RealNetworkSnoozeRepositoryPropagationTest` (2 tests, wires the real `NetworkSnoozeRepository` + real `DefaultProfileViewModel` around fakes — catches regressions in the full production chain without needing an emulator).
 - **26 instrumented tests** across 6 test files (Room sanity, DI graph, navigation smoke, state restoration, configuration change, snooze-state Compose propagation). The snooze test is intentional belt-and-suspenders for the VM→flow→`collectAsState` path but **cannot catch R8-specific regressions** (runs against the debug variant) — see ADR-020.
 - **14 shared fakes** in `test-common` module — one copy each, no duplicates across modules
 - **Zero Mockito** — all tests use fake implementations
@@ -34,9 +34,26 @@ last_verified: 2026-04-24
 - **Architecture enforcement:** ArchitectureCheckTask (module deps), SingletonGuardTask (DB/Settings/HTTP scoping), SingletonCachingCheckTask (kotlin-inject generated `_scoped.get(...)` matches `@Singleton` count and names — catches the android/170 shape where caching is silently skipped; see `DI_SINGLETON_REQUIREMENTS.md` for the verification checklist), NoRawDispatchersTask (ADR-005 — VMs/UseCases must inject `DispatcherProvider`), NoBareTopLevelFunctionsTask (ADR-009 — group in `object {}`; extensions and `@Composable` exempt), NoImplSuffixTask (ADR-008 — use descriptive prefix), NoMockitoImportsTask (ADR-003 — fakes over mocks), MutexWithLockTask (correctness — bare `lock()`/`unlock()` pairs strand the lock on throw), LayerImportCheckTask (ViewModel→UseCase strict, UseCase→domain boundaries), RememberSaveableGuardTask (blocks unsafe rememberSaveable without saver), ViewModelStateFlowCheckTask (ADR-022 — repo-owned StateFlow must pass through, no VM `stateIn`/mirror). ViewModels are blocked from importing both data layer implementations AND `domain.repository.*` interfaces — must go through a UseCase
 - **ViewModel fetch contract:** every fetch method that drives a `LoadingResult<T>` MUST set `LoadingResult.Complete(result.data)` explicitly in the `AppResult.Success` branch (ADR-023). `MutableStateFlow` dedups by equality, so relying on the Flow observer alone latches Loading whenever a fetch returns the same value as cached. Motivating bug: 2.4.4 Home-tab regression.
 - **Test coverage:** No exemptions remaining (RoomAppLoggerRepository moved to data-local KMP module)
-- **Test pattern:** usecase tests fake at repository interface; data tests use real repos with fake data sources
+- **Test pattern:** see [Test layering: where to fake](#test-layering-where-to-fake) below for the convention.
 - **Completed:** Phase 1 (CI hardening), Phase 2 (network error tests), Phase 3 (auth token fix + UseCase tests + AuthBridge extraction), Phase 4 (state machine completeness), Phase 5.2-5.3 (release safety), Phase 6.1 (ESLint migration), Phase 7 (instrumented tests)
 - **Remaining:** Phase 6.2 (server contract tests) — Firebase server scope; tracked in `docs/FIREBASE_HANDLER_PATTERN.md` (handler-extraction pattern shipped via `server/18`).
+
+---
+
+## Test layering: where to fake
+
+The codebase uses two test patterns deliberately, picked by what's under test:
+
+**Default — real consumer + fake repo.** Most VM and UseCase tests fake at the repository interface. Examples: `HomeViewModelTest`, `ProfileViewModelTest`, every `*ViewModelTest` in `usecase/commonTest/`. Setup is one line per fake (`FakeAuthRepository.setAuthState(Authenticated(...))`); the test isolates the consumer's logic from network/coroutine plumbing. This is what the `test-common/` `Fake*Repository` classes exist for.
+
+**Escape hatch — real repo + fake data source.** When the bug under test lives in the repository's own wiring (loading-state lifecycle, `externalScope.async{}.await()` semantics, StateFlow propagation through `MutableStateFlow.value =` writes, stale-while-revalidate caching), the fake-repo pattern hides exactly the code that's broken. For these cases, instantiate the REAL repository (e.g. `NetworkSnoozeRepository`) and substitute fakes only at the data-source layer (`FakeNetworkButtonDataSource`, `FakeNetworkConfigDataSource`). Canonical example: `RealNetworkSnoozeRepositoryPropagationTest` — closes the gap that `RemoteButtonRepository` fakes left around the android/167 snooze-state propagation bug. The test's docstring contrasts itself with the fake-repo pattern explicitly.
+
+**When to use which:**
+- Testing VM behavior (which UseCase did the VM call? what's the resulting StateFlow?) → fake repo.
+- Testing repository wiring (does this StateFlow actually emit when I write to it under `externalScope.async{}.await()`?) → real repo + fake data source.
+- Repos with non-trivial wiring deserve at least one real-repo test even if their consumers are fake-tested. Current candidates worth covering this way: `NetworkButtonHealthRepository`'s SWR (stale-while-revalidate) pattern from 2.12.1 (ADR-022).
+
+**Not used: real repo + real data source.** That's an integration test bucket; the codebase relies on instrumented tests + the internal-track release smoke test for the device-end of integration.
 
 ---
 
