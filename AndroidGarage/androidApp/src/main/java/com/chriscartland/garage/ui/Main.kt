@@ -211,66 +211,49 @@ fun AppNavigation(
             //   `RouteContent`, two-pane uses a different wrapper. Screens
             //   stay layout-agnostic.
             entryProvider = entryProvider {
-                entry<Screen.Home> {
-                    RouteContent { routeModifier ->
-                        HomeContent(
-                            authViewModel = authViewModel,
-                            doorViewModel = doorViewModel,
-                            appLoggerViewModel = appLoggerViewModel,
-                            modifier = routeModifier.padding(horizontal = Spacing.Screen),
-                        )
-                    }
+                // All adaptive decisions (size-class branching, merged
+                // routes, per-screen wrapper choice) live in the single
+                // `RouteEntryFor` dispatch table below — these `entry<>`
+                // blocks are uniform call sites.
+                val mode = currentAppLayoutMode()
+                val onPopBack = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) }
+                val routeFor: @Composable (Screen) -> Unit = { screen ->
+                    RouteEntryFor(
+                        screen = screen,
+                        mode = mode,
+                        authViewModel = authViewModel,
+                        doorViewModel = doorViewModel,
+                        appLoggerViewModel = appLoggerViewModel,
+                        onNavigateToFunctionList = { backStack.add(Screen.FunctionList) },
+                        onNavigateToDiagnostics = { backStack.add(Screen.Diagnostics) },
+                        onBack = { onPopBack() },
+                    )
                 }
-                entry<Screen.History> {
-                    RouteContent { routeModifier ->
-                        DoorHistoryContent(
-                            doorViewModel = doorViewModel,
-                            appLoggerViewModel = appLoggerViewModel,
-                            modifier = routeModifier.padding(horizontal = Spacing.Screen),
-                        )
-                    }
-                }
-                entry<Screen.Profile> {
-                    RouteContent { routeModifier ->
-                        ProfileContent(
-                            authViewModel = authViewModel,
-                            onNavigateToFunctionList = { backStack.add(Screen.FunctionList) },
-                            onNavigateToDiagnostics = { backStack.add(Screen.Diagnostics) },
-                            modifier = routeModifier.padding(horizontal = Spacing.Screen),
-                        )
-                    }
-                }
-                entry<Screen.FunctionList> {
-                    RouteContent { routeModifier ->
-                        FunctionListContent(
-                            modifier = routeModifier.padding(horizontal = Spacing.Screen),
-                        )
-                    }
-                }
-                entry<Screen.Diagnostics> {
-                    RouteContent { routeModifier ->
-                        // Diagnostics provides its own horizontal padding inside
-                        // its LazyColumn (Spacing.Screen) — no padding here.
-                        DiagnosticsScreen(
-                            onBack = {
-                                if (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
-                            },
-                            modifier = routeModifier,
-                        )
-                    }
-                }
+                entry<Screen.Home> { routeFor(Screen.Home) }
+                entry<Screen.History> { routeFor(Screen.History) }
+                entry<Screen.Profile> { routeFor(Screen.Profile) }
+                entry<Screen.FunctionList> { routeFor(Screen.FunctionList) }
+                entry<Screen.Diagnostics> { routeFor(Screen.Diagnostics) }
             },
         )
     }
 }
 
+/**
+ * Bottom navigation. All adaptive decisions (which tabs are visible,
+ * which tab is highlighted when a "merged" route is on the back stack)
+ * are read from [AppLayoutMode] — this Composable does not branch on
+ * size class directly.
+ */
 @Composable
 fun BottomNavigationBar(
     currentScreen: Screen?,
     onTabSelected: (Screen) -> Unit,
+    mode: AppLayoutMode = currentAppLayoutMode(),
 ) {
+    val effectiveScreen = mode.canonicalScreen(currentScreen)
     NavigationBar {
-        Tab.entries.forEach { tab ->
+        mode.visibleTabs.forEach { tab ->
             NavigationBarItem(
                 icon = {
                     Icon(
@@ -283,9 +266,114 @@ fun BottomNavigationBar(
                         text = tab.label,
                     )
                 },
-                selected = currentScreen == tab.screen,
+                selected = effectiveScreen == tab.screen,
                 onClick = { onTabSelected(tab.screen) },
             )
+        }
+    }
+}
+
+/**
+ * Single dispatch table from `(Screen, AppLayoutMode)` → rendered route.
+ *
+ * **The only place in the app that maps a screen to its concrete route
+ * wrapper + body.** Both the bottom nav and the entry provider read
+ * from [AppLayoutMode] for their respective decisions (visibility,
+ * highlight, render); this function is where the render side lives.
+ *
+ * Adding a screen → add one `entry<Screen.X>` in `entryProvider` plus
+ * one `Screen.X ->` arm here. Adding a layout mode → the sealed-type
+ * `when` on `mode is AppLayoutMode.Wide` becomes exhaustive over the
+ * new mode and the compiler forces an update at every consumer.
+ *
+ * Merged routes (e.g. `Screen.History` → `Screen.Home` on Wide) are
+ * resolved at the top via [AppLayoutMode.canonicalScreen] so a single
+ * arm renders both back-stack entries.
+ */
+@Composable
+private fun RouteEntryFor(
+    screen: Screen,
+    mode: AppLayoutMode,
+    authViewModel: AuthViewModel,
+    doorViewModel: DoorViewModel,
+    appLoggerViewModel: AppLoggerViewModel,
+    onNavigateToFunctionList: () -> Unit,
+    onNavigateToDiagnostics: () -> Unit,
+    onBack: () -> Unit,
+) {
+    val canonicalScreen = mode.canonicalScreen(screen) ?: screen
+    when (canonicalScreen) {
+        Screen.Home -> {
+            if (mode is AppLayoutMode.Wide) {
+                DashboardRouteContent { routeModifier ->
+                    HomeDashboardContent(
+                        modifier = routeModifier.padding(horizontal = Spacing.Screen),
+                        homePane = { paneModifier ->
+                            HomeContent(
+                                authViewModel = authViewModel,
+                                doorViewModel = doorViewModel,
+                                appLoggerViewModel = appLoggerViewModel,
+                                modifier = paneModifier,
+                                onRefreshExtra = { doorViewModel.fetchRecentDoorEvents() },
+                            )
+                        },
+                        historyPane = { paneModifier ->
+                            DoorHistoryContent(
+                                doorViewModel = doorViewModel,
+                                appLoggerViewModel = appLoggerViewModel,
+                                modifier = paneModifier,
+                                onRefreshExtra = { doorViewModel.fetchCurrentDoorEvent() },
+                            )
+                        },
+                    )
+                }
+            } else {
+                RouteContent { routeModifier ->
+                    HomeContent(
+                        authViewModel = authViewModel,
+                        doorViewModel = doorViewModel,
+                        appLoggerViewModel = appLoggerViewModel,
+                        modifier = routeModifier.padding(horizontal = Spacing.Screen),
+                    )
+                }
+            }
+        }
+        Screen.History -> {
+            // Reached only on Compact (Wide.mergedRoutes redirects to Home).
+            RouteContent { routeModifier ->
+                DoorHistoryContent(
+                    doorViewModel = doorViewModel,
+                    appLoggerViewModel = appLoggerViewModel,
+                    modifier = routeModifier.padding(horizontal = Spacing.Screen),
+                )
+            }
+        }
+        Screen.Profile -> {
+            RouteContent { routeModifier ->
+                ProfileContent(
+                    authViewModel = authViewModel,
+                    onNavigateToFunctionList = onNavigateToFunctionList,
+                    onNavigateToDiagnostics = onNavigateToDiagnostics,
+                    modifier = routeModifier.padding(horizontal = Spacing.Screen),
+                )
+            }
+        }
+        Screen.FunctionList -> {
+            RouteContent { routeModifier ->
+                FunctionListContent(
+                    modifier = routeModifier.padding(horizontal = Spacing.Screen),
+                )
+            }
+        }
+        Screen.Diagnostics -> {
+            RouteContent { routeModifier ->
+                // Diagnostics provides its own horizontal padding inside
+                // its LazyColumn (Spacing.Screen) — no padding here.
+                DiagnosticsScreen(
+                    onBack = onBack,
+                    modifier = routeModifier,
+                )
+            }
         }
     }
 }

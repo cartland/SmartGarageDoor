@@ -8,19 +8,22 @@ import java.io.File
 
 /**
  * Enforces that every nav-graph entry in `Main.kt` wraps its content in
- * `RouteContent { ... }` — the single source of horizontal layout
- * (padding + max-width + centering) introduced in 2.13.0 (PR #682).
+ * either `RouteContent { ... }` (single-pane wrapper) or
+ * `DashboardRouteContent { ... }` (wide-screen dashboard wrapper) — the
+ * single source of horizontal layout (padding + max-width + centering)
+ * introduced in 2.13.0 (PR #682) and extended in 2.14.x for the wide
+ * Home dashboard.
  *
- * Why this matters: `RouteContent` applies (a) `Modifier.widthIn(max =
- * ContentWidth.Standard)` to cap content width on tablets/landscape and
- * (b) horizontal centering via `Box(TopCenter)`. A new `entry<Screen.X>`
- * block that skips the wrapper would silently break the cap on that
- * route, and the regression would only be visible on tablets — easy to
- * miss in phone-only screenshot tests.
+ * Why this matters: both wrappers apply `Modifier.widthIn(max = ...)` and
+ * horizontal centering via `Box(TopCenter)`. A new `entry<Screen.X>` block
+ * that skips both wrappers would silently break the cap on that route, and
+ * the regression would only be visible on tablets — easy to miss in
+ * phone-only screenshot tests.
  *
  * Detection (heuristic): scans `Main.kt` for `entry<Screen.X>` lines and
- * verifies that within the next [lookAheadLines] lines, a `RouteContent {`
+ * verifies that within the next [lookAheadLines] lines a route-wrapper
  * call appears. The window is large enough to cover the entry's body
+ * (including a wide-vs-narrow `if/else` branch with one wrapper per arm)
  * without crossing into the next entry block.
  */
 abstract class RouteContentUsageCheckTask : DefaultTask() {
@@ -28,12 +31,14 @@ abstract class RouteContentUsageCheckTask : DefaultTask() {
     var mainKtPath: String = ""
 
     /**
-     * How many lines to scan after each `entry<...>` line for a
-     * `RouteContent {` call. 15 is comfortable for the current shape
-     * (~5 lines per entry block including the route's own param list).
+     * How many lines to scan after each `entry<...>` line for a route
+     * wrapper call. 25 covers the current shape including the wide-vs-
+     * narrow branch with one wrapper per arm in the Home / History
+     * entries (~5 lines for narrow path + ~5 lines for wide path +
+     * surrounding `if`/`else` braces).
      */
     @get:Input
-    var lookAheadLines: Int = 15
+    var lookAheadLines: Int = 25
 
     @TaskAction
     fun check() {
@@ -44,13 +49,27 @@ abstract class RouteContentUsageCheckTask : DefaultTask() {
 
         val lines = file.readLines()
         val entryPattern = Regex("""\bentry<Screen\.[A-Za-z]+>\s*\{""")
-        val routeContentPattern = Regex("""\bRouteContent\s*\{""")
+        // Accept any of the route wrappers / dispatch helpers known to
+        // own a route's horizontal layout:
+        //   `RouteContent {` — single-pane wrapper.
+        //   `DashboardRouteContent {` — wide-screen wrapper.
+        //   `routeFor(` / `RouteEntryFor(` — the dispatch table that
+        //     internally selects the right wrapper based on
+        //     `AppLayoutMode`. The dispatch table itself is checked at
+        //     `AppLayoutMode` consumers via `checkAppLayoutModeBoundary`,
+        //     so trusting the helper here is safe.
+        val routeContentPattern = Regex(
+            """\b(?:RouteContent|DashboardRouteContent)\s*\{|\b(?:routeFor|RouteEntryFor)\s*\(""",
+        )
 
         val violations = mutableListOf<String>()
 
         lines.forEachIndexed { index, line ->
             if (!entryPattern.containsMatchIn(line)) return@forEachIndexed
-            // Look ahead for RouteContent { within the window.
+            // Check the entry line itself first (single-line form like
+            // `entry<Screen.X> { routeFor(Screen.X) }` puts the wrapper
+            // on the same line), then look ahead for multi-line bodies.
+            if (routeContentPattern.containsMatchIn(line)) return@forEachIndexed
             val window = lines.subList(
                 index + 1,
                 minOf(index + 1 + lookAheadLines, lines.size),

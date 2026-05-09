@@ -70,6 +70,9 @@ $GRADLE checkContentWidthCap && pass "ContentWidth cap" || fail "ContentWidth ca
 step "No LocalConfiguration dimension reads (use LocalAppWindowSizeClass)"
 $GRADLE checkNoLocalConfigurationDimensionReads && pass "no LocalConfiguration dim reads" || fail "no LocalConfiguration dim reads"
 
+step "AppLayoutMode boundary (no direct LocalAppWindowSizeClass.current reads)"
+$GRADLE checkAppLayoutModeBoundary && pass "AppLayoutMode boundary" || fail "AppLayoutMode boundary"
+
 step "No Mockito imports (ADR-003 — fakes over mocks)"
 $GRADLE checkNoMockitoImports && pass "no Mockito imports" || fail "no Mockito imports"
 

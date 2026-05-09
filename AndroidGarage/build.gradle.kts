@@ -243,6 +243,15 @@ tasks.register<architecture.NoLocalConfigurationDimensionReadsTask>("checkNoLoca
     )
 }
 
+tasks.register<architecture.AppLayoutModeBoundaryTask>("checkAppLayoutModeBoundary") {
+    // Forbids direct `LocalAppWindowSizeClass.current` reads outside the
+    // `AppLayoutMode.kt` source-of-truth file. Source-of-truth + provider
+    // files exempt by name.
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+    )
+}
+
 tasks.register<architecture.NoImplSuffixTask>("checkNoImplSuffix") {
     sourceDirs = listOf(
         "$rootDir/androidApp/src/main/java",

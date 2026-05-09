@@ -44,6 +44,7 @@ abstract class ContentWidthCapCheckTask : DefaultTask() {
     @get:Input
     var exemptFileNames: List<String> = listOf(
         "RouteContent.kt",
+        "DashboardRouteContent.kt",
         "AnimatableGarageDoor.kt",
         "HomeDashboardContent.kt",
     )
