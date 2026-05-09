@@ -30,8 +30,11 @@ import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.User
+import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
+import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
+import com.chriscartland.garage.testcommon.FakeFeatureAllowlistRepository
 import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
@@ -96,6 +99,8 @@ class RealNetworkSnoozeRepositoryPropagationTest {
     private lateinit var authRepository: FakeAuthRepository
     private lateinit var doorRepository: FakeDoorRepository
     private lateinit var remoteButtonRepository: FakeRemoteButtonRepository
+    private lateinit var featureAllowlistRepository: FakeFeatureAllowlistRepository
+    private lateinit var appLoggerRepository: FakeAppLoggerRepository
 
     private val validConfig = NetworkResult.Success(
         ServerConfig(
@@ -128,6 +133,8 @@ class RealNetworkSnoozeRepositoryPropagationTest {
             setCurrentDoorEvent(DoorEvent(lastChangeTimeSeconds = 1000L))
         }
         remoteButtonRepository = FakeRemoteButtonRepository()
+        featureAllowlistRepository = FakeFeatureAllowlistRepository()
+        appLoggerRepository = FakeAppLoggerRepository()
     }
 
     @AfterTest
@@ -170,21 +177,23 @@ class RealNetworkSnoozeRepositoryPropagationTest {
             assertEquals(SnoozeState.NotSnoozing, snoozeRepository.snoozeState.value)
 
             val testDispatcher = UnconfinedTestDispatcher(testScheduler)
-            val vm = DefaultRemoteButtonViewModel(
+            val vm = DefaultProfileViewModel(
+                observeAuthState = ObserveAuthStateUseCase(authRepository),
+                observeSnoozeState = ObserveSnoozeStateUseCase(snoozeRepository),
                 observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
-                dispatchers = TestDispatcherProvider(testDispatcher),
-                pushRemoteButtonUseCase = PushRemoteButtonUseCase(
-                    authRepository,
-                    remoteButtonRepository,
-                ),
+                observeFeatureAccessUseCase = ObserveFeatureAccessUseCase(featureAllowlistRepository),
+                signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),
+                signOutUseCase = SignOutUseCase(authRepository),
+                fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
                 snoozeNotificationsUseCase = SnoozeNotificationsUseCase(
                     authRepository,
                     snoozeRepository,
                 ),
-                fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
-                observeSnoozeStateUseCase = ObserveSnoozeStateUseCase(snoozeRepository),
-                buttonHealthDisplay = kotlinx.coroutines.flow.emptyFlow(),
-                appVersion = "test",
+                logAppEvent = LogAppEventUseCase(
+                    appLoggerRepository,
+                    FakeDiagnosticsCountersRepository(),
+                ),
+                dispatchers = TestDispatcherProvider(testDispatcher),
             )
             advanceUntilIdle()
 
@@ -262,21 +271,23 @@ class RealNetworkSnoozeRepositoryPropagationTest {
             advanceUntilIdle()
 
             val testDispatcher = UnconfinedTestDispatcher(testScheduler)
-            val vm = DefaultRemoteButtonViewModel(
+            val vm = DefaultProfileViewModel(
+                observeAuthState = ObserveAuthStateUseCase(authRepository),
+                observeSnoozeState = ObserveSnoozeStateUseCase(snoozeRepository),
                 observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
-                dispatchers = TestDispatcherProvider(testDispatcher),
-                pushRemoteButtonUseCase = PushRemoteButtonUseCase(
-                    authRepository,
-                    remoteButtonRepository,
-                ),
+                observeFeatureAccessUseCase = ObserveFeatureAccessUseCase(featureAllowlistRepository),
+                signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),
+                signOutUseCase = SignOutUseCase(authRepository),
+                fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
                 snoozeNotificationsUseCase = SnoozeNotificationsUseCase(
                     authRepository,
                     snoozeRepository,
                 ),
-                fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
-                observeSnoozeStateUseCase = ObserveSnoozeStateUseCase(snoozeRepository),
-                buttonHealthDisplay = kotlinx.coroutines.flow.emptyFlow(),
-                appVersion = "test",
+                logAppEvent = LogAppEventUseCase(
+                    appLoggerRepository,
+                    FakeDiagnosticsCountersRepository(),
+                ),
+                dispatchers = TestDispatcherProvider(testDispatcher),
             )
             advanceUntilIdle()
             assertEquals(SnoozeState.Snoozing(initialEnd), vm.snoozeState.value)

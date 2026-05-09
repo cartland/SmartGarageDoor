@@ -132,7 +132,7 @@ fun HomeContent(
         onRemoteButtonTap = {
             when (authState) {
                 is AuthState.Authenticated -> {
-                    Logger.d { "Remote button tapped. AuthViewModel authState $authState" }
+                    Logger.d { "Remote button tapped. authState $authState" }
                     resolved.onButtonTap()
                 }
                 AuthState.Unauthenticated, AuthState.Unknown -> {

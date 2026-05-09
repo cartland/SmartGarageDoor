@@ -49,23 +49,23 @@ class ComponentGraphTest {
     }
 
     @Test
-    fun doorViewModelResolves() {
-        assertNotNull("DoorViewModel should resolve", component.doorViewModel)
+    fun homeViewModelResolves() {
+        assertNotNull("HomeViewModel should resolve", component.homeViewModel)
     }
 
     @Test
-    fun authViewModelResolves() {
-        assertNotNull("AuthViewModel should resolve", component.authViewModel)
+    fun doorHistoryViewModelResolves() {
+        assertNotNull("DoorHistoryViewModel should resolve", component.doorHistoryViewModel)
     }
 
     @Test
-    fun remoteButtonViewModelResolves() {
-        assertNotNull("RemoteButtonViewModel should resolve", component.remoteButtonViewModel)
+    fun profileViewModelResolves() {
+        assertNotNull("ProfileViewModel should resolve", component.profileViewModel)
     }
 
     @Test
-    fun appSettingsViewModelResolves() {
-        assertNotNull("AppSettingsViewModel should resolve", component.appSettingsViewModel)
+    fun functionListViewModelResolves() {
+        assertNotNull("FunctionListViewModel should resolve", component.functionListViewModel)
     }
 
     @Test
@@ -195,22 +195,22 @@ class ComponentGraphTest {
     // they all receive.
 
     @Test
-    fun remoteButtonViewModelIsNotSingleton() {
+    fun homeViewModelIsNotSingleton() {
         val c = component
         assertNotSame(
-            "RemoteButtonViewModel must be per-nav-entry, not singleton",
-            c.remoteButtonViewModel,
-            c.remoteButtonViewModel,
+            "HomeViewModel must be per-nav-entry, not singleton",
+            c.homeViewModel,
+            c.homeViewModel,
         )
     }
 
     @Test
-    fun doorViewModelIsNotSingleton() {
+    fun doorHistoryViewModelIsNotSingleton() {
         val c = component
         assertNotSame(
-            "DoorViewModel must be per-nav-entry, not singleton",
-            c.doorViewModel,
-            c.doorViewModel,
+            "DoorHistoryViewModel must be per-nav-entry, not singleton",
+            c.doorHistoryViewModel,
+            c.doorHistoryViewModel,
         )
     }
 }
