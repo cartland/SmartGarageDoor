@@ -26,7 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.SignalWifiOff
+import androidx.compose.material.icons.outlined.SensorsOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -57,10 +57,12 @@ import com.chriscartland.garage.usecase.ButtonHealthDisplay
  * is OFFLINE — the four other [ButtonHealthDisplay] arms render no pill,
  * so this Composable doesn't carry a fresh/stale toggle.
  *
- * Uses Material 24-viewport `Icons.Outlined.SignalWifiOff`. Custom
- * 960-viewport vectors inside section header rows have been observed to
- * silently drop the section from screenshot capture (see CLAUDE.md
- * "Layoutlib gotcha"); Material icons avoid the issue.
+ * Uses Material 24-viewport `Icons.Outlined.SensorsOff` — purpose-built
+ * for IoT device-availability indicators, matching the always-on
+ * [RemoteButtonHealthPill]. Custom 960-viewport vectors inside section
+ * header rows have been observed to silently drop the section from
+ * screenshot capture (see CLAUDE.md "Layoutlib gotcha"); Material icons
+ * avoid the issue.
  */
 @Composable
 fun RemoteOfflinePill(
@@ -76,15 +78,15 @@ fun RemoteOfflinePill(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Remote offline · ${display.durationLabel}",
+                    text = "Unavailable · ${display.durationLabel}",
                     style = MaterialTheme.typography.labelSmall,
                 )
                 Spacer(modifier = Modifier.width(Spacing.Tight))
                 Icon(
                     modifier = Modifier.size(17.dp),
-                    imageVector = Icons.Outlined.SignalWifiOff,
+                    imageVector = Icons.Outlined.SensorsOff,
                     tint = LocalContentColor.current,
-                    contentDescription = "Remote offline, last seen ${display.durationLabel}",
+                    contentDescription = "Remote button unavailable, last seen ${display.durationLabel}",
                 )
             }
         }
