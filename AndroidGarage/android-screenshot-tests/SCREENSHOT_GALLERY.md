@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Sat May  9 14:02:49 PDT 2026
+Generated on Sat May  9 14:50:28 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -515,6 +515,30 @@ Generated on Sat May  9 14:02:49 PDT 2026
 
 ### SettingsTabPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/SettingsTabPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### ThreePaneDashboardLargeTabletPreviewTest_Dark_a134fc9d_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardLargeTabletPreviewTest_Dark_a134fc9d_0.png" width="300" />
+
+### ThreePaneDashboardLargeTabletPreviewTest_Light_6d0a28d0_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardLargeTabletPreviewTest_Light_6d0a28d0_0.png" width="300" />
+
+### ThreePaneDashboardPhoneLandscapePreviewTest_Dark_98d1e6d2_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardPhoneLandscapePreviewTest_Dark_98d1e6d2_0.png" width="300" />
+
+### ThreePaneDashboardPhoneLandscapePreviewTest_Light_9d6edbd9_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardPhoneLandscapePreviewTest_Light_9d6edbd9_0.png" width="300" />
+
+### ThreePaneDashboardTabletNarrowPreviewTest_Dark_ad262b53_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardTabletNarrowPreviewTest_Dark_ad262b53_0.png" width="300" />
+
+### ThreePaneDashboardTabletNarrowPreviewTest_Light_070fb0c3_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardTabletNarrowPreviewTest_Light_070fb0c3_0.png" width="300" />
+
+### ThreePaneDashboardWithDiagnosticsOverlayPreviewTest_Dark_a134fc9d_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardWithDiagnosticsOverlayPreviewTest_Dark_a134fc9d_0.png" width="300" />
+
+### ThreePaneDashboardWithDiagnosticsOverlayPreviewTest_Light_6d0a28d0_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardWithDiagnosticsOverlayPreviewTest_Light_6d0a28d0_0.png" width="300" />
 
 ## SettingsRedesignScreenshotTestKt
 
