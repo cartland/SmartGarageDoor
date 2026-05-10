@@ -17,12 +17,16 @@
 
 package com.chriscartland.garage.ui.theme
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 /**
  * Page-shaped preview wrapper for SCREEN-level Composables (HomeContent,
@@ -65,5 +69,47 @@ fun PreviewComponentSurface(content: @Composable () -> Unit) {
             color = MaterialTheme.colorScheme.background,
             modifier = Modifier.wrapContentSize(),
         ) { content() }
+    }
+}
+
+/**
+ * **Verification-gap canary wrapper.** Injects a fake bottom inset via
+ * [LocalContentEdgeInsets] so a preview Composable renders as it would on
+ * a real device with a non-zero gesture-nav inset. Without this wrapper,
+ * Compose previews (and AGP screenshot tests) render with zero system
+ * insets, so any inset-sensitive code path (`safeListContentPadding()`,
+ * etc.) produces the same output as on a phone with no gesture nav —
+ * regressions in inset math stay invisible at PR time.
+ *
+ * Use to build screenshot **canary fixtures** that exercise the
+ * inset-propagation contract. A diff in the resulting PNG between this
+ * wrapper and the same Composable without it confirms the helper applies
+ * the inset; a diff that disappears unexpectedly signals a regression
+ * (e.g. someone bypassed `LocalContentEdgeInsets` with a raw
+ * `WindowInsets.<x>.asPaddingValues()` read — caught also by the
+ * `checkNoRawSafeDrawingPaddingValues` lint).
+ *
+ * **Why not the negative-`consumeWindowInsets` trick.** A common
+ * "fake-inset" pattern is `Modifier.consumeWindowInsets(WindowInsets(bottom = -48.dp))`,
+ * which makes downstream modifier-aware APIs (`Modifier.windowInsetsPadding`)
+ * see the injected value. That pattern doesn't help here because this
+ * codebase's leaves read insets via [LocalContentEdgeInsets] (a managed
+ * CompositionLocal bridge), not via raw `WindowInsets.safeDrawing`. The
+ * bridge is what production uses; the canary uses the same bridge for
+ * fidelity.
+ *
+ * @param bottomInset gesture-nav-shaped clearance to inject at the bottom.
+ *   Default 48.dp matches typical 3-button-or-gesture nav on Pixel-class
+ *   phones. Pass `0.dp` to round-trip back to "no inset" for diffing.
+ */
+@Composable
+fun PreviewWithSimulatedInsets(
+    bottomInset: Dp = 48.dp,
+    content: @Composable () -> Unit,
+) {
+    CompositionLocalProvider(
+        LocalContentEdgeInsets provides WindowInsets(bottom = bottomInset),
+    ) {
+        content()
     }
 }

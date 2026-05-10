@@ -18,6 +18,7 @@ import com.chriscartland.garage.ui.HomeDashboardRailPreview916dp
 import com.chriscartland.garage.ui.HomeRailPreview700dp
 import com.chriscartland.garage.ui.HomeTabPreview
 import com.chriscartland.garage.ui.HomeTabStalePillPreview
+import com.chriscartland.garage.ui.SafeListContentPaddingCanaryPreview
 import com.chriscartland.garage.ui.SettingsTabPreview
 import com.chriscartland.garage.ui.ThreePaneDashboardLargeTabletPreview
 import com.chriscartland.garage.ui.ThreePaneDashboardPhoneLandscapePreview
@@ -243,6 +244,32 @@ fun HomeDashboardRailPreview700dpTest() {
 fun HomeDashboardRailPreview916dpTest() {
     AppTheme {
         HomeDashboardRailPreview916dp()
+    }
+}
+
+// Inset canary — synthetic side-by-side fixture that visualizes
+// `safeListContentPadding()` directly. Left half: no inset injected
+// (default LocalContentEdgeInsets = WindowInsets(0)) → bottom = 24dp.
+// Right half: PreviewWithSimulatedInsets(48.dp) → bottom = 24+48 = 72dp.
+// Both halves draw red border + green interior; the red bottom band
+// thickness IS the contentPadding.bottom value. A real-screen canary
+// won't reliably show contentPadding because static screenshots in
+// Layoutlib render LazyColumns at scroll position 0 (last item not at
+// bottom). The synthetic Box fixture is layout-state-independent and
+// produces a visible diff between the two halves at every render.
+@PreviewTest
+@Preview(showBackground = true, name = "Light", widthDp = 600, heightDp = 400)
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    widthDp = 600,
+    heightDp = 400,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun SafeListContentPaddingCanaryPreviewTest() {
+    AppTheme {
+        SafeListContentPaddingCanaryPreview()
     }
 }
 
