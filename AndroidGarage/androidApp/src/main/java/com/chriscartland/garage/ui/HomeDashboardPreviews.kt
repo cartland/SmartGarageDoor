@@ -16,6 +16,7 @@
 
 package com.chriscartland.garage.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -38,7 +39,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.LoadingResult
@@ -47,7 +50,9 @@ import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.home.DeviceCheckIn
 import com.chriscartland.garage.ui.home.HomeAuthState
 import com.chriscartland.garage.ui.home.HomeMapper
+import com.chriscartland.garage.ui.theme.PreviewWithSimulatedInsets
 import com.chriscartland.garage.ui.theme.Spacing
+import com.chriscartland.garage.ui.theme.safeListContentPadding
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
 import java.time.Instant
 import java.time.ZoneOffset
@@ -296,4 +301,71 @@ fun HomeDashboardRailPreview700dp() {
 @Composable
 fun HomeDashboardRailPreview916dp() {
     WideRailScaffold { modifier -> WideHomeBody(modifier) }
+}
+
+// Inset canary — verifies the `LocalContentEdgeInsets` bridge by
+// directly visualizing what `safeListContentPadding()` returns.
+// Two side-by-side Box columns: left has NO inset injected (default
+// LocalContentEdgeInsets = WindowInsets(0)); right is wrapped in
+// `PreviewWithSimulatedInsets(bottomInset = 48.dp)`. Each Box paints a
+// red border, then pads by `safeListContentPadding()`, then paints a
+// green interior. The thickness of the red bottom band IS the value
+// of `safeListContentPadding().bottom` — 24dp on the left (legacy
+// chrome clearance only) vs 72dp on the right (24 + 48 injected).
+// The diff between these two columns in a single PNG is the visible
+// proof the bridge is intact. If both columns render identically, the
+// `LocalContentEdgeInsets` propagation broke — caught at PR review
+// time before a real-device regression ships.
+//
+// Why a synthetic side-by-side fixture and not a real screen: a real
+// screen-level LazyColumn renders items at the top by default; the
+// bottom contentPadding only affects what's visible if content
+// overflows AND the scroll position moves the bottom into view.
+// Static screenshots in Layoutlib don't reliably reach that state, so
+// real-screen canaries silently became identical to baselines (the
+// first attempt at this canary failed for exactly this reason). A
+// synthetic colored-Box fixture makes the helper's output visible
+// regardless of layout state.
+@Preview(
+    name = "Inset canary — safeListContentPadding bottom: 24dp (no inset) vs 72dp (48dp injected)",
+    widthDp = 600,
+    heightDp = 400,
+    showBackground = true,
+)
+@Composable
+fun SafeListContentPaddingCanaryPreview() {
+    Row(modifier = Modifier.fillMaxSize()) {
+        // Left: default LocalContentEdgeInsets = WindowInsets(0).
+        // safeListContentPadding() bottom = 24dp.
+        InsetCanaryColumn(label = "no inset", modifier = Modifier.weight(1f))
+        // Right: PreviewWithSimulatedInsets injects bottom = 48dp.
+        // safeListContentPadding() bottom = 24 + 48 = 72dp.
+        PreviewWithSimulatedInsets(bottomInset = 48.dp) {
+            InsetCanaryColumn(label = "48dp injected", modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun InsetCanaryColumn(
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxHeight()
+            .background(Color.Red)
+            .padding(safeListContentPadding()),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Green),
+        ) {
+            Text(
+                text = label,
+                modifier = Modifier.padding(8.dp),
+            )
+        }
+    }
 }

@@ -252,6 +252,16 @@ tasks.register<architecture.AppLayoutModeBoundaryTask>("checkAppLayoutModeBounda
     )
 }
 
+tasks.register<architecture.NoRawSafeDrawingPaddingValuesTask>("checkNoRawSafeDrawingPaddingValues") {
+    // Forbids `WindowInsets.<x>.asPaddingValues()` direct reads in app code.
+    // The bridge file `Spacing.kt` is exempt (it owns the
+    // `LocalContentEdgeInsets` CompositionLocal + `safeListContentPadding()`
+    // helper that screens should use instead).
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+    )
+}
+
 tasks.register<architecture.NoImplSuffixTask>("checkNoImplSuffix") {
     sourceDirs = listOf(
         "$rootDir/androidApp/src/main/java",

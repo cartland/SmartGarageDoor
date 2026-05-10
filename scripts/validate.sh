@@ -73,6 +73,9 @@ $GRADLE checkNoLocalConfigurationDimensionReads && pass "no LocalConfiguration d
 step "AppLayoutMode boundary (no direct LocalAppWindowSizeClass.current reads)"
 $GRADLE checkAppLayoutModeBoundary && pass "AppLayoutMode boundary" || fail "AppLayoutMode boundary"
 
+step "No raw WindowInsets.<x>.asPaddingValues() (use LocalContentEdgeInsets / safeListContentPadding)"
+$GRADLE checkNoRawSafeDrawingPaddingValues && pass "no raw asPaddingValues" || fail "no raw asPaddingValues"
+
 step "No Mockito imports (ADR-003 — fakes over mocks)"
 $GRADLE checkNoMockitoImports && pass "no Mockito imports" || fail "no Mockito imports"
 

@@ -3,7 +3,7 @@
 
 # Preview Screenshot Coverage
 
-**96 / 96 (100%)**
+**97 / 97 (100%)**
 
 ## Covered
 
@@ -89,6 +89,7 @@
 - `RemoteOfflinePillFreshPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteOfflinePill.kt`
 - `RemoteOfflinePillStalePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteOfflinePill.kt`
 - `RemoteOfflinePillVeryStalePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteOfflinePill.kt`
+- `SafeListContentPaddingCanaryPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/HomeDashboardPreviews.kt`
 - `SettingsContentPermissionDeniedPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/SettingsContent.kt`
 - `SettingsContentSignedInAllowlistedPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/SettingsContent.kt`
 - `SettingsContentSignedInBasicPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/SettingsContent.kt`
