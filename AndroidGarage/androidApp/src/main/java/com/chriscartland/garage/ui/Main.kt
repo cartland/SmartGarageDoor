@@ -24,11 +24,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -84,25 +86,24 @@ private const val NAV_ANIM_DURATION = 300
 private inline fun <reified T> navTween() = tween<T>(NAV_ANIM_DURATION, easing = FastOutSlowInEasing)
 
 /**
- * Vertical offset applied to route content in [AppLayoutMode.NavPlacement.Rail]
- * mode so the first content row aligns visually with the top of the rail's
- * first item icon.
+ * Vertical offset applied to the [NavigationRailLeft]'s items (via the
+ * `header` slot's Spacer height) so the first item's icon top aligns
+ * visually with the top of the body content (the `STATUS` label / first
+ * dashboard pane row).
  *
- * Empirical value — accounts for `NavigationRail`'s internal top padding
- * (Material 3's `NavigationRailVerticalPadding`, currently 4.dp) plus
- * `NavigationRailItem`'s top padding around its indicator pill (~8dp). The
- * combined inset places the icon's top edge ~12dp below the rail's top, so
- * matching content needs the same offset.
+ * Direction: pushes the rail's items **down** to meet the content. The
+ * content stays at its natural body-region top.
  *
- * Centralized here so the runtime Scaffold and the two preview-only
- * scaffolds ([com.chriscartland.garage.ui.WideTabPreviewScaffold-equivalent]
- * + `WideRailScaffold`) all stay in lockstep.
+ * Empirical value — without this, the rail's first icon sits ~12dp above
+ * the content's first text row. The header slot's Spacer composes above
+ * the items and adds to whatever offset NavigationRailHeaderPadding (8dp
+ * in M3) already contributes between header and first item.
  *
  * **If M3 changes its rail's internal padding**, the alignment will visibly
- * drift; update this value and regenerate screenshots. There is no compile-
- * time link to the M3 internals.
+ * drift; update this value and regenerate screenshots. There is no
+ * compile-time link to the M3 internals.
  */
-internal val NavigationRailContentTopAlignment = 12.dp
+internal val NavigationRailHeaderTopSpacer = 12.dp
 
 /**
  * Type-safe navigation routes.
@@ -290,14 +291,12 @@ fun AppNavigation() {
                             .fillMaxHeight()
                             .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
                     ) {
-                        // Top inset matches the rail's intrinsic top padding so
-                        // the first content row aligns with the rail's first
-                        // item icon. See [NavigationRailContentTopAlignment].
-                        navDisplay(
-                            Modifier
-                                .fillMaxSize()
-                                .padding(top = NavigationRailContentTopAlignment),
-                        )
+                        // Content stays at its natural body-region top.
+                        // Vertical alignment with the rail icon is achieved
+                        // by pushing the rail's items down via its header
+                        // slot — see [NavigationRailHeaderTopSpacer] and
+                        // [NavigationRailLeft].
+                        navDisplay(Modifier.fillMaxSize())
                     }
                 }
             }
@@ -371,6 +370,9 @@ fun NavigationRailLeft(
     val effectiveScreen = mode.canonicalScreen(currentScreen)
     NavigationRail(
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Start),
+        // Pushes items down so the first icon's top sits ~at the body
+        // content's first row top. See [NavigationRailHeaderTopSpacer].
+        header = { Spacer(Modifier.height(NavigationRailHeaderTopSpacer)) },
     ) {
         mode.visibleTabs.forEach { tab ->
             NavigationRailItem(

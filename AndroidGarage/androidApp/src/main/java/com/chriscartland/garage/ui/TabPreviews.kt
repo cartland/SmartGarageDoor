@@ -380,11 +380,8 @@ private fun WideTabPreviewScaffold(
                     .fillMaxHeight()
                     .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
             ) {
-                // Mirrors the runtime alignment from `Main.kt` — see
-                // [NavigationRailContentTopAlignment].
                 content(
                     Modifier
-                        .padding(top = NavigationRailContentTopAlignment)
                         .padding(horizontal = 16.dp)
                         .fillMaxSize(),
                 )
