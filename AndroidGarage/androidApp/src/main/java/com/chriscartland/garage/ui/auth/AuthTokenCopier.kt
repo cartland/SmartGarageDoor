@@ -72,7 +72,7 @@ fun rememberAuthTokenCopier(): () -> Unit {
             scope.launch {
                 val result = withContext(Dispatchers.IO) { useCase() }
                 when (result) {
-                    is AppResult.Success -> writeSensitiveClipboard(context, result.data)
+                    is AppResult.Success -> SensitiveClipboard.write(context, result.data)
                     is AppResult.Error ->
                         Toast.makeText(context, "Sign in to copy auth token", Toast.LENGTH_SHORT).show()
                 }
@@ -82,20 +82,31 @@ fun rememberAuthTokenCopier(): () -> Unit {
 }
 
 /**
- * Write [token] to the system clipboard with the sensitive-content flag
- * so Android 13+ redacts it from the post-copy preview chip. On older
- * Android the flag is silently ignored — caller must API-gate the
- * button that invokes this writer (see [rememberAuthTokenCopier] kdoc).
+ * Wrapper for the system clipboard write with the sensitive-content
+ * flag. Grouped in a named `object` per ADR-009 (no bare top-level
+ * functions). Single call site is [rememberAuthTokenCopier]; the
+ * separation just makes the platform clipboard interaction
+ * unit-greppable / boundary-clear from the UseCase + Composable
+ * machinery above.
  */
-private fun writeSensitiveClipboard(
-    context: Context,
-    token: String,
-) {
-    val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    val clip = ClipData.newPlainText("Firebase ID token", token)
-    val extras = PersistableBundle().apply {
-        putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+private object SensitiveClipboard {
+    /**
+     * Write [token] to the system clipboard with `EXTRA_IS_SENSITIVE`
+     * set, so Android 13+ redacts the value from the post-copy preview
+     * chip. On older Android the flag is silently ignored — caller
+     * must API-gate the button that invokes this writer (see
+     * [rememberAuthTokenCopier] kdoc).
+     */
+    fun write(
+        context: Context,
+        token: String,
+    ) {
+        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("Firebase ID token", token)
+        val extras = PersistableBundle().apply {
+            putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+        }
+        clip.description.extras = extras
+        cm.setPrimaryClip(clip)
     }
-    clip.description.extras = extras
-    cm.setPrimaryClip(clip)
 }
