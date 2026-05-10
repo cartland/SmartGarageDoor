@@ -18,8 +18,13 @@
 package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,6 +39,15 @@ import com.chriscartland.garage.ui.theme.ContentWidth
  * landscape phones, content centers within the cap and excess width becomes
  * margin.
  *
+ * Also consumes the **horizontal** [WindowInsets.safeDrawing] inset (display
+ * cutout, side-mounted system bars in landscape, IME-side insets) so content
+ * never draws under a side camera cutout. `Scaffold` only consumes vertical
+ * insets via its `topBar`/`bottomBar` slots — the body content is the route
+ * wrapper's responsibility, and since the wrapper owns horizontal padding it
+ * also owns horizontal inset consumption. Vertical safe-drawing insets are
+ * already covered by Scaffold's TopAppBar + NavigationBar slots, so this
+ * wrapper deliberately scopes inset consumption to `Horizontal`.
+ *
  * Forward-compatible with the future two-pane experiment: when two-pane
  * mode lands behind a runtime toggle, it consumes the same `ContentWidth`
  * tokens — the list pane in two-pane mode reuses these widths rather than
@@ -41,18 +55,20 @@ import com.chriscartland.garage.ui.theme.ContentWidth
  * the canonical fallback.
  *
  * Use ONCE per route entry in `Main.kt`. Child screens must not re-apply
- * the width cap or the centering wrapper.
+ * the width cap, the centering wrapper, or horizontal cutout consumption.
  *
  * @param content the screen-level Composable. The provided [Modifier] is
  *   the one [content] should attach: it has the width cap and `fillMaxSize`
  *   pre-applied. Any horizontal padding the content needs (e.g.
  *   `Spacing.Screen`) is the content's responsibility — `RouteContent`
- *   does not opine on padding, only on width and centering.
+ *   does not opine on padding, only on width, centering, and inset consumption.
  */
 @Composable
 fun RouteContent(content: @Composable (Modifier) -> Unit) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
         contentAlignment = Alignment.TopCenter,
     ) {
         // Modifier order matters: widthIn(max=...) MUST come before

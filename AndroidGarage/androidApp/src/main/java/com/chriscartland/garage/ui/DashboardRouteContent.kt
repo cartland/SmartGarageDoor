@@ -17,8 +17,13 @@
 package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +34,11 @@ import com.chriscartland.garage.ui.theme.Spacing
  * Wide-screen sibling of [RouteContent]. Caps the dashboard width at
  * `2 * ContentWidth.Standard + Spacing.Screen` (`1296dp`) and centers
  * within the canvas.
+ *
+ * Also consumes the **horizontal** [WindowInsets.safeDrawing] inset (display
+ * cutout, side-mounted system bars) — same rationale as [RouteContent], and
+ * crucial here because Wide mode is exactly the orientation (landscape phone
+ * / tablet portrait) where side cutouts appear.
  *
  * Use ONLY for the wide-screen Home dashboard route. Single-pane routes
  * (Profile, Diagnostics, FunctionList, narrow-screen Home/History)
@@ -42,7 +52,9 @@ import com.chriscartland.garage.ui.theme.Spacing
 @Composable
 fun DashboardRouteContent(content: @Composable (Modifier) -> Unit) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
         contentAlignment = Alignment.TopCenter,
     ) {
         // Cap = both panes' caps + the gap between them.
