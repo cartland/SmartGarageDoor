@@ -127,6 +127,7 @@ describe('handleButtonHealthFromPollWrite', () => {
     expect(healthDB.saved[0][1].state).to.equal('ONLINE');
     expect(fcm.sends).to.have.length(1);
     expect(fcm.sends[0].record.state).to.equal('ONLINE');
+    expect(fcm.sends[0].lastPollAtSeconds).to.equal(nowSeconds);
   });
 
   it('writes ONLINE + sends FCM on OFFLINE -> ONLINE recovery', async () => {
@@ -143,6 +144,7 @@ describe('handleButtonHealthFromPollWrite', () => {
     expect(healthDB.saved[0][1].state).to.equal('ONLINE');
     expect(fcm.sends).to.have.length(1);
     expect(fcm.sends[0].record.state).to.equal('ONLINE');
+    expect(fcm.sends[0].lastPollAtSeconds).to.equal(nowSeconds);
   });
 
   it('does NOT write or send FCM on ONLINE -> ONLINE no-op', async () => {

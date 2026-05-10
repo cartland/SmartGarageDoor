@@ -68,6 +68,6 @@ export async function handleButtonHealthFromPollWrite(buildTimestamp: string): P
   const { didTransition, newRecord } = detectTransition(prior, computed, nowSeconds);
   if (didTransition) {
     await BUTTON_HEALTH_DATABASE.save(buildTimestamp, newRecord);
-    await ButtonHealthFCMService.sendForTransition(buildTimestamp, newRecord);
+    await ButtonHealthFCMService.sendForTransition(buildTimestamp, newRecord, lastPollSeconds);
   }
 }

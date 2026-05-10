@@ -21,12 +21,13 @@ describe('buildTransitionPayload', () => {
       state: 'ONLINE',
       stateChangedAtSeconds: 1_730_000_000,
     };
-    const message = buildTransitionPayload(buildTimestamp, record);
+    const message = buildTransitionPayload(buildTimestamp, record, 1_730_000_500);
     expect(message.topic).to.equal('buttonHealth-Sat.Apr.10.23.57.32.2021');
     expect(message.data).to.deep.equal({
       buttonState: 'ONLINE',
       stateChangedAtSeconds: '1730000000',
       buildTimestamp: 'Sat Apr 10 23:57:32 2021',
+      lastPollAtSeconds: '1730000500',
     });
     expect(message.android.collapse_key).to.equal('button_health_update');
     expect(message.android.priority).to.equal(AndroidMessagePriority.HIGH);
@@ -37,9 +38,10 @@ describe('buildTransitionPayload', () => {
       state: 'OFFLINE',
       stateChangedAtSeconds: 1_730_000_500,
     };
-    const message = buildTransitionPayload(buildTimestamp, record);
+    const message = buildTransitionPayload(buildTimestamp, record, 1_730_000_300);
     expect(message.data.buttonState).to.equal('OFFLINE');
     expect(message.data.stateChangedAtSeconds).to.equal('1730000500');
+    expect(message.data.lastPollAtSeconds).to.equal('1730000300');
   });
 
   it('omits the notification block (data-only by design)', () => {
@@ -47,7 +49,7 @@ describe('buildTransitionPayload', () => {
       state: 'OFFLINE',
       stateChangedAtSeconds: 1_730_000_000,
     };
-    const message = buildTransitionPayload(buildTimestamp, record);
+    const message = buildTransitionPayload(buildTimestamp, record, 1_730_000_000);
     // data-only — must NEVER carry a `notification` block.
     expect(message.notification).to.equal(undefined);
   });
@@ -59,7 +61,7 @@ describe('buildTransitionPayload', () => {
       state: 'ONLINE',
       stateChangedAtSeconds: 1_730_000_000,
     };
-    const message = buildTransitionPayload(buildTimestamp, record);
+    const message = buildTransitionPayload(buildTimestamp, record, 1_730_000_500);
     expect(message.data.buildTimestamp).to.equal(buildTimestamp);
     expect(message.data.buildTimestamp).to.not.equal(message.topic);
   });
@@ -69,8 +71,30 @@ describe('buildTransitionPayload', () => {
       state: 'ONLINE',
       stateChangedAtSeconds: 42,
     };
-    const message = buildTransitionPayload(buildTimestamp, record);
+    const message = buildTransitionPayload(buildTimestamp, record, 99);
     expect(message.data.stateChangedAtSeconds).to.be.a('string');
     expect(message.data.stateChangedAtSeconds).to.equal('42');
+  });
+
+  it('serializes lastPollAtSeconds as a string when present', () => {
+    const record: ButtonHealthRecord = {
+      state: 'ONLINE',
+      stateChangedAtSeconds: 1_730_000_000,
+    };
+    const message = buildTransitionPayload(buildTimestamp, record, 1_730_000_500);
+    expect(message.data.lastPollAtSeconds).to.be.a('string');
+    expect(message.data.lastPollAtSeconds).to.equal('1730000500');
+  });
+
+  it('omits lastPollAtSeconds entirely when null (mobile parser treats missing key as null)', () => {
+    // Bootstrap edge: pubsub flips OFFLINE on a device that has never polled.
+    // No lastPoll exists, so the key is omitted from the payload.
+    const record: ButtonHealthRecord = {
+      state: 'OFFLINE',
+      stateChangedAtSeconds: 1_730_000_000,
+    };
+    const message = buildTransitionPayload(buildTimestamp, record, null);
+    expect(message.data.lastPollAtSeconds).to.equal(undefined);
+    expect(Object.keys(message.data)).to.not.include('lastPollAtSeconds');
   });
 });
