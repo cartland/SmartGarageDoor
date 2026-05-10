@@ -50,6 +50,27 @@ export function getFunctionListAuthorizedEmails(config: any): string[] | null {
   return null;
 }
 
+/**
+ * Per-feature email allowlist for the "Developer" section on the Android
+ * Settings screen (currently houses Diagnostics; future home for any
+ * dev-only affordances). Stored as `body.featureDeveloperAllowedEmails:
+ * string[]` on the `configCurrent/current` Firestore doc — edited
+ * directly in the Firebase console's Firestore Data tab (no redeploy).
+ * Returns null when the field is missing so callers can distinguish
+ * "no list configured" (treat as deny-all) from "empty list" (deny-all
+ * but explicitly).
+ *
+ * Replaces the temporary shortcut introduced in `android/196` / 2.10.2
+ * where the Developer section was gated by `featureFunctionListAllowedEmails`.
+ * See `docs/FEATURE_FLAGS.md` for the canonical pattern.
+ */
+export function getDeveloperAuthorizedEmails(config: any): string[] | null {
+  if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('featureDeveloperAllowedEmails')) {
+    return config.body.featureDeveloperAllowedEmails;
+  }
+  return null;
+}
+
 export function isRemoteButtonEnabled(config: any): boolean {
   if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('remoteButtonEnabled')) {
     return config.body.remoteButtonEnabled;
