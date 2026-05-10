@@ -24,6 +24,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -268,6 +269,11 @@ fun AppNavigation() {
                             .fillMaxHeight()
                             .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
                     ) {
+                        // Content stays at its natural body-region top.
+                        // The rail's items are vertically centered (see
+                        // [NavigationRailLeft]), so there is no visual
+                        // icon-vs-content alignment to maintain — they
+                        // sit in different vertical zones intentionally.
                         navDisplay(Modifier.fillMaxSize())
                     }
                 }
@@ -332,6 +338,16 @@ fun BottomNavigationBar(
  * the [TopAppBar] consumes the top, and Scaffold's default
  * `contentWindowInsets` provides the bottom inset via `innerPadding`
  * (which wraps the entire Row containing rail + content).
+ *
+ * **Items are vertically centered** within the rail (M3-canonical for
+ * rails with few items — see Gmail / YouTube tablet layouts). With only
+ * 2 tabs this avoids the "is the icon aligned with the first content
+ * row?" comparison entirely — items sit in the rail's vertical center,
+ * content sits at the body region's top, and the eye doesn't compare
+ * them. Implementation: weight=1f Spacers wrap the items inside
+ * `NavigationRail`'s `ColumnScope` content slot; M3's rail Column
+ * fills the available height, so the weights distribute remaining
+ * space equally above and below the items.
  */
 @Composable
 fun NavigationRailLeft(
@@ -343,6 +359,7 @@ fun NavigationRailLeft(
     NavigationRail(
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Start),
     ) {
+        Spacer(Modifier.weight(1f))
         mode.visibleTabs.forEach { tab ->
             NavigationRailItem(
                 icon = {
@@ -360,6 +377,7 @@ fun NavigationRailLeft(
                 onClick = { onTabSelected(tab.screen) },
             )
         }
+        Spacer(Modifier.weight(1f))
     }
 }
 
