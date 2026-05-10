@@ -27,6 +27,7 @@ import { httpDeleteOldData } from './functions/http/DeleteData'
 import { httpServerConfig, httpServerConfigUpdate } from './functions/http/ServerConfig'
 import { httpSnoozeNotificationsRequest, httpSnoozeNotificationsLatest} from './functions/http/Snooze'
 import { httpFunctionListAccess } from './functions/http/FunctionListAccess'
+import { httpDeveloperAccess } from './functions/http/DeveloperAccess'
 import { httpButtonHealth } from './functions/http/ButtonHealth'
 
 // Pubsub Functions.
@@ -275,6 +276,23 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'snoozeNotificat
  */
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'functionListAccess') {
   exports.functionListAccess = httpFunctionListAccess;
+}
+
+/**
+ * Per-user feature access for the Settings → Developer section on Android.
+ * Verifies the Firebase ID token, checks the email against
+ * `featureDeveloperAllowedEmails` in Firestore config, returns
+ * `{enabled: boolean}`. Used by the Android client as a UI hint;
+ * Diagnostics is local-only today, but any future server-touching dev
+ * affordance must independently gate.
+ *
+ * Replaces the temporary shortcut introduced in `android/196` / 2.10.2
+ * where the Developer section was gated by `featureFunctionListAllowedEmails`.
+ *
+ * Trigger Type: HTTP
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'developerAccess') {
+  exports.developerAccess = httpDeveloperAccess;
 }
 
 /**
