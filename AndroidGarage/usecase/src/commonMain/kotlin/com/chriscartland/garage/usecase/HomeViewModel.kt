@@ -107,8 +107,17 @@ class DefaultHomeViewModel(
     // ADR-022: pass through LiveClock's StateFlow — no mirror.
     override val nowEpochSeconds: StateFlow<Long> = liveClock.nowEpochSeconds
 
+    // Seed from the singleton repo's StateFlow `.value` (pass-through via
+    // `observeDoorEvents.current()` per ADR-022) so we never expose
+    // `Loading(null)` on first composition. Without this seed, the
+    // Composable would briefly read `Loading(null)` → map to UNKNOWN/MIDWAY,
+    // then the collect lambda below would update to `Complete(actualEvent)` →
+    // map to OPEN/CLOSED — and `LaunchedEffect(doorPosition)` in `GarageIcon`
+    // would visibly animate MIDWAY→actual on every fresh screen entry.
     private val _currentDoorEvent =
-        MutableStateFlow<LoadingResult<DoorEvent?>>(LoadingResult.Loading(null))
+        MutableStateFlow<LoadingResult<DoorEvent?>>(
+            LoadingResult.Complete(observeDoorEvents.current().value),
+        )
     override val currentDoorEvent: StateFlow<LoadingResult<DoorEvent?>> = _currentDoorEvent
 
     private val _isCheckInStale = MutableStateFlow(false)
