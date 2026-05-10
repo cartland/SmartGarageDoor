@@ -314,6 +314,7 @@ abstract class AppComponent(
         fetchSnoozeStatus: FetchSnoozeStatusUseCase,
         snoozeNotifications: SnoozeNotificationsUseCase,
         logAppEvent: LogAppEventUseCase,
+        appSettings: AppSettingsRepository,
         dispatchers: DispatcherProvider,
     ): DefaultProfileViewModel =
         DefaultProfileViewModel(
@@ -326,6 +327,7 @@ abstract class AppComponent(
             fetchSnoozeStatusUseCase = fetchSnoozeStatus,
             snoozeNotificationsUseCase = snoozeNotifications,
             logAppEvent = logAppEvent,
+            appSettings = appSettings,
             dispatchers = dispatchers,
         )
 

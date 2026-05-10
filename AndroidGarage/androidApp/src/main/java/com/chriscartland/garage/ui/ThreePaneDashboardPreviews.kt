@@ -181,6 +181,7 @@ private fun SettingsPaneBody(modifier: Modifier) {
         showDeveloperSection = false,
         versionName = "2.15.3",
         versionCode = "213",
+        layoutDebugEnabled = false,
         modifier = modifier,
     )
 }
