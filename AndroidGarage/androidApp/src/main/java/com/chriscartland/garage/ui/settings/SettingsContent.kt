@@ -58,6 +58,7 @@ import com.chriscartland.garage.ui.theme.AppAnimatedVisibility
 import com.chriscartland.garage.ui.theme.DividerInset
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.ui.theme.Spacing
+import com.chriscartland.garage.ui.theme.safeListContentPadding
 
 /**
  * Account section row state. Determines whether the row shows a sign-in
@@ -116,7 +117,7 @@ fun SettingsContent(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = Spacing.ListContentPadding,
+        contentPadding = safeListContentPadding(),
         verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems),
     ) {
         item {

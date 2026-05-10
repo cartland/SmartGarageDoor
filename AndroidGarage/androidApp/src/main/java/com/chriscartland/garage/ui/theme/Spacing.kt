@@ -18,6 +18,13 @@
 package com.chriscartland.garage.ui.theme
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 
 /**
@@ -92,6 +99,48 @@ object Spacing {
      * LazyColumn, so the chrome clearance is owned by the wrapper Column).
      */
     val ListContentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)
+}
+
+/**
+ * Edge-to-edge `contentPadding` for screen-level scrollables.
+ *
+ * Combines the existing [Spacing.ListContentPadding] visual chrome
+ * clearance (8dp top, 24dp bottom) with [WindowInsets.safeDrawing] —
+ * the system-level safe area (gesture nav, status bar, display cutout,
+ * IME). The scrollable's content drawing area extends edge-to-edge,
+ * but the **scrollable padding** keeps the first/last items reachable
+ * in the unobstructed region (last item can scroll up past the gesture
+ * nav, first can scroll down past the topAppBar).
+ *
+ * **Inset-propagation contract** (see CLAUDE.md):
+ *  * Outer layout (Scaffold body, route wrapper) consumes whatever it
+ *    structurally handles via `Modifier.consumeWindowInsets(...)` or
+ *    `Modifier.windowInsetsPadding(...)`.
+ *  * This helper reads `WindowInsets.safeDrawing` AFTER that consumption,
+ *    so values reflect only what's still occluded by the system.
+ *  * In Compact mode (bottom bar), the body container consumes the bottom
+ *    inset — `safeDrawing.bottom` here is 0, the helper returns the same
+ *    8/24dp values as the legacy [Spacing.ListContentPadding].
+ *  * In Wide / Expanded modes (no bottom bar), nothing consumes the
+ *    bottom inset — `safeDrawing.bottom` here equals the gesture nav
+ *    height, the helper adds it to the 24dp bottom clearance, and the
+ *    last item can scroll past the gesture nav into the safe area.
+ *
+ * Composables call this instead of [Spacing.ListContentPadding] when
+ * the scrollable's bottom edge reaches the body's bottom edge (i.e.
+ * any screen-level scrollable that isn't followed by an action row or
+ * footer Composable).
+ */
+@Composable
+fun safeListContentPadding(): PaddingValues {
+    val safe = WindowInsets.safeDrawing.asPaddingValues()
+    val layoutDirection = LocalLayoutDirection.current
+    return PaddingValues(
+        start = safe.calculateStartPadding(layoutDirection),
+        end = safe.calculateEndPadding(layoutDirection),
+        top = safe.calculateTopPadding() + 8.dp,
+        bottom = safe.calculateBottomPadding() + 24.dp,
+    )
 }
 
 /**
