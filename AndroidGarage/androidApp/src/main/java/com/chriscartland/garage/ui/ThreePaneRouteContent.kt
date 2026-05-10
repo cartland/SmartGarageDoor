@@ -17,8 +17,13 @@
 package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +35,11 @@ import com.chriscartland.garage.ui.theme.Spacing
  * Caps the 3-pane dashboard width at `3 * ContentWidth.Standard +
  * 2 * Spacing.Screen` (`1952dp`) and centers within the canvas.
  *
+ * Also consumes the **horizontal** [WindowInsets.safeDrawing] inset (display
+ * cutout, side-mounted system bars) — same rationale as [RouteContent]. On
+ * a tablet in landscape with a side cutout, the 3-pane dashboard would
+ * otherwise extend its leftmost or rightmost pane behind the cutout.
+ *
  * Use ONLY for the Expanded-width Home dashboard route.
  *
  * Modifier order matters here for the same reason as [RouteContent]:
@@ -40,7 +50,9 @@ import com.chriscartland.garage.ui.theme.Spacing
 @Composable
 fun ThreePaneRouteContent(content: @Composable (Modifier) -> Unit) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
         contentAlignment = Alignment.TopCenter,
     ) {
         // Cap = three pane caps + the two gaps between them.
