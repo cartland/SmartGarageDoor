@@ -1,7 +1,7 @@
 ---
 category: plan
 status: active
-last_verified: 2026-05-10
+last_verified: 2026-05-11
 ---
 
 # Pending Smoke Tests
@@ -19,9 +19,9 @@ User-facing changes that have shipped to the **internal Play Store track** but n
 
 **Why this lives in the repo, not memory:** the smoke queue is project-specific TODO state. Agents should not write it to memory (see `feedback_dump_context_repo_first.md`); the user maintains it across sessions and across machines.
 
-## Cumulative queue (empty as of 2026-05-10 after `android/229` / 2.16.15)
+## Cumulative queue
 
-User smoke-tested through `android/229` on 2026-05-10. The 12-item backlog (items 1–10 from earlier plus the 2.16.14 lint/canary infrastructure verification and 2.16.15 Diagnostics action-row inset fix) all passed; queue cleared. Append the next item here when the next release ships.
+1. **`android/230` / 2.16.16 — Home notification-permission banner copy.** When the app starts in a state where notification permission has not been granted, the Home banner now reads *"Turn on notifications to get alerted when the door is left open."* (was *"Please turn on notifications to be notified when the door is left open."*). Verify: (a) banner is 2 lines, not 3; (b) tapping the banner still launches the system permission prompt; (c) at attempt-count 3+ the appended hint *"You can manage permissions in the Android system settings."* still reads naturally below the new lead. To trigger: deny notification permission (or freshly install on Android 13+ before granting), open the app — banner is on Home above the door card.
 
 ## Open follow-ups (release-related but not smoke-test items)
 
@@ -30,4 +30,4 @@ User smoke-tested through `android/229` on 2026-05-10. The 12-item backlog (item
   2. Doesn't mention the left-rail in Wide mode (added 2.16.10).
   3. Doesn't mention the rail items being centered (changed 2.16.11).
   Per the `bump-android-version` skill, **patches don't touch whatsnew** — patches roll up into the next minor/major. Stays out of sync until a 2.17.x bump or until the user explicitly OKs an exception.
-- **Other open follow-ups (Developer allowlist, Home permission banner copy)** are tracked in [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md).
+- **Other open follow-ups (Developer allowlist, user-visible-string migration)** are tracked in [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md).
