@@ -17,14 +17,8 @@
 
 package com.chriscartland.garage.ui.settings
 
-import android.content.ClipData
-import android.content.ClipDescription
-import android.content.ClipboardManager
-import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.os.PersistableBundle
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -65,6 +59,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.GarageApplication
 import com.chriscartland.garage.applogger.exportAppLogCsvToUri
 import com.chriscartland.garage.di.rememberAppComponent
+import com.chriscartland.garage.ui.auth.rememberAuthTokenCopier
 import com.chriscartland.garage.ui.theme.ButtonSpacing
 import com.chriscartland.garage.ui.theme.CardPadding
 import com.chriscartland.garage.ui.theme.DividerInset
@@ -75,7 +70,6 @@ import com.chriscartland.garage.usecase.DiagnosticsViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -100,8 +94,8 @@ fun DiagnosticsScreen(
 ) {
     val component = rememberAppComponent()
     val diagnosticsViewModel: DiagnosticsViewModel = viewModel { component.diagnosticsViewModel }
-    val authRepository = component.authRepository
     val context = LocalContext.current
+    val copyAuthToken = rememberAuthTokenCopier()
 
     val initCurrent by diagnosticsViewModel.initCurrentDoorCount.collectAsState()
     val initRecent by diagnosticsViewModel.initRecentDoorCount.collectAsState()
@@ -147,37 +141,7 @@ fun DiagnosticsScreen(
             csvLauncher.launch(intent)
         },
         onClearAll = { diagnosticsViewModel.clearDiagnostics() },
-        onCopyAuthToken = {
-            // Off-main IO: getIdToken hits the Firebase Auth SDK which can do
-            // a network round-trip on token refresh. Toast back on Main.
-            CoroutineScope(Dispatchers.IO).launch {
-                val token = authRepository.getIdToken(forceRefresh = false)
-                withContext(Dispatchers.Main) {
-                    if (token == null) {
-                        Toast.makeText(context, "Sign in to copy auth token", Toast.LENGTH_SHORT).show()
-                        return@withContext
-                    }
-                    val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    val clip = ClipData.newPlainText("Firebase ID token", token.asString())
-                    // EXTRA_IS_SENSITIVE tells Android 13+ to redact the
-                    // content from the clipboard preview chip. The preview
-                    // still appears (so the user knows the copy happened),
-                    // but the token itself is NOT shown on screen. Without
-                    // this flag the OS chip would briefly display the full
-                    // JWT — defeats the purpose of a "copy as secret" action.
-                    // Feature visibility is API-gated below to API 33+, so
-                    // this branch is unreachable on older Android.
-                    val extras = PersistableBundle().apply {
-                        putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
-                    }
-                    clip.description.extras = extras
-                    cm.setPrimaryClip(clip)
-                    // No Toast on success: the OS chip is the confirmation,
-                    // a Toast on top would be duplicate noise (mirrors the
-                    // ProfileContent clipboard pattern at API 33+).
-                }
-            }
-        },
+        onCopyAuthToken = copyAuthToken,
         clearInFlight = clearInFlight,
         modifier = modifier,
     )

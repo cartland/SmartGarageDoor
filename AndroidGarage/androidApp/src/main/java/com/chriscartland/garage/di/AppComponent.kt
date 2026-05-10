@@ -92,6 +92,7 @@ import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.FetchFcmStatusUseCase
 import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
+import com.chriscartland.garage.usecase.GetAuthTokenForCopyUseCase
 import com.chriscartland.garage.usecase.InitialDoorFetchManager
 import com.chriscartland.garage.usecase.LiveClock
 import com.chriscartland.garage.usecase.LogAppEventUseCase
@@ -165,6 +166,8 @@ abstract class AppComponent(
     abstract val authBridge: AuthBridge
     abstract val messagingBridge: MessagingBridge
     abstract val authRepository: AuthRepository
+
+    abstract val getAuthTokenForCopyUseCase: GetAuthTokenForCopyUseCase
     abstract val doorRepository: DoorRepository
     abstract val serverConfigRepository: ServerConfigRepository
     abstract val snoozeRepository: SnoozeRepository
@@ -213,6 +216,10 @@ abstract class AppComponent(
         seed: SeedDiagnosticsCountersFromRoomUseCase,
         prune: PruneDiagnosticsLogUseCase,
     ): RunStartupDiagnosticsMaintenanceUseCase = RunStartupDiagnosticsMaintenanceUseCase(seed, prune)
+
+    @Provides
+    fun provideGetAuthTokenForCopyUseCase(authRepository: AuthRepository): GetAuthTokenForCopyUseCase =
+        GetAuthTokenForCopyUseCase(authRepository)
 
     @Provides
     fun provideClearDiagnosticsUseCase(
