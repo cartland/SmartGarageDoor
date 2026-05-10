@@ -244,20 +244,36 @@ fun AppNavigation() {
                 },
             )
         }
+        // Edge-to-edge inset propagation contract (see CLAUDE.md):
+        //   * Outer body container consumes ONLY what it structurally
+        //     handles (top inset for the TopAppBar; in Compact mode also
+        //     the bottom inset for the bottomBar).
+        //   * The bottom inset in Rail/None modes deliberately flows
+        //     through to scrollable leaves, which read it via
+        //     `Spacing.safeListContentPadding()` and apply it as
+        //     `contentPadding` so the last item can scroll past the
+        //     gesture nav into the safe area.
+        //   * Horizontal cutout insets are owned by the route wrappers
+        //     (`RouteContent` / `DashboardRouteContent` /
+        //     `ThreePaneRouteContent`) via `windowInsetsPadding(safeDrawing.only(Horizontal))`,
+        //     which both pads visibly AND consumes for descendants.
         when (mode.navPlacement) {
             AppLayoutMode.NavPlacement.Rail -> {
-                // Rail is a sibling of NavDisplay inside a Row. The Row gets
-                // Scaffold's innerPadding (top from TopAppBar; bottom from
-                // contentWindowInsets default since there's no bottomBar).
+                // Rail is a sibling of NavDisplay inside a Row. The Row
+                // pads visibly by the top inset (TopAppBar height) AND
+                // consumes that inset so descendants reading
+                // `WindowInsets.safeDrawing` see top = 0. Bottom is
+                // intentionally NOT consumed — flows to scrollable leaves.
                 //
-                // Inset division for the start (cutout / start gesture):
-                //   * The rail's items are pushed inward via NavigationRail's
-                //     `windowInsets = safeDrawing.only(Start)`.
-                //   * The content sibling declares `consumeWindowInsets(start)`
-                //     so RouteContent's `safeDrawing.only(Horizontal)` reading
-                //     transparently shrinks to "end side only" — no double
-                //     padding on the start side.
-                Row(modifier = Modifier.padding(innerPadding)) {
+                // Start cutout inset is consumed by NavigationRail's own
+                // `windowInsets` parameter + the content sibling's
+                // `consumeWindowInsets(start)` below.
+                val topInset = innerPadding.calculateTopPadding()
+                Row(
+                    modifier = Modifier
+                        .padding(top = topInset)
+                        .consumeWindowInsets(WindowInsets(top = topInset)),
+                ) {
                     NavigationRailLeft(
                         currentScreen = backStack.lastOrNull() as? Screen,
                         onTabSelected = { screen -> TabNavigation.navigateToTab(backStack, screen) },
@@ -269,19 +285,37 @@ fun AppNavigation() {
                             .fillMaxHeight()
                             .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
                     ) {
-                        // Content stays at its natural body-region top.
-                        // The rail's items are vertically centered (see
-                        // [NavigationRailLeft]), so there is no visual
-                        // icon-vs-content alignment to maintain — they
-                        // sit in different vertical zones intentionally.
+                        // Content extends edge-to-edge to the body's
+                        // bottom (no bottom padding here). Rail items
+                        // are vertically centered (see [NavigationRailLeft]).
                         navDisplay(Modifier.fillMaxSize())
                     }
                 }
             }
-            AppLayoutMode.NavPlacement.Bottom,
-            AppLayoutMode.NavPlacement.None,
-            -> {
-                navDisplay(Modifier.padding(innerPadding))
+            AppLayoutMode.NavPlacement.None -> {
+                // No bottom chrome — same edge-to-edge treatment as Rail
+                // for the body's bottom inset.
+                val topInset = innerPadding.calculateTopPadding()
+                navDisplay(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(top = topInset)
+                        .consumeWindowInsets(WindowInsets(top = topInset)),
+                )
+            }
+            AppLayoutMode.NavPlacement.Bottom -> {
+                // Compact mode has a bottomBar that occupies the bottom
+                // safe-drawing inset. Body padding consumes the full
+                // innerPadding (top + bottom), so descendants reading
+                // `WindowInsets.safeDrawing` see both as 0 — chrome
+                // clearance lives entirely in the bottomBar / topBar,
+                // and `Spacing.safeListContentPadding()` reduces to the
+                // legacy 8/24dp values for screen-level scrollables.
+                navDisplay(
+                    Modifier
+                        .padding(innerPadding)
+                        .consumeWindowInsets(innerPadding),
+                )
             }
         }
     }

@@ -56,6 +56,7 @@ import com.chriscartland.garage.ui.theme.ParagraphSpacing
 import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.doorColorState
+import com.chriscartland.garage.ui.theme.safeListContentPadding
 
 /**
  * One entry in the history list.
@@ -149,7 +150,7 @@ fun HistoryContent(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = Spacing.ListContentPadding,
+            contentPadding = safeListContentPadding(),
             verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems),
         ) {
             if (days.isEmpty()) {

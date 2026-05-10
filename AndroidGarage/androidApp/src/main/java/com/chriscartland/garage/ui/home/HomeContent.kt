@@ -76,6 +76,7 @@ import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.doorColorState
+import com.chriscartland.garage.ui.theme.safeListContentPadding
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
 
 /**
@@ -184,7 +185,7 @@ fun HomeContent(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = Spacing.ListContentPadding,
+            contentPadding = safeListContentPadding(),
             verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems),
         ) {
             if (alerts.isNotEmpty()) {
