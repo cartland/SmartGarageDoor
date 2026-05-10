@@ -50,15 +50,14 @@ import com.chriscartland.garage.ui.theme.Spacing
  *  - Horizontal screen padding ([Spacing.Screen]) is the parent's job —
  *    same convention as single-pane and 2-pane.
  *
- * **Threshold note (M3 standard).** Activation is at the M3
- * `WindowWidthSizeClass.Expanded` boundary (≥840dp). This includes phones
- * in landscape (~916dp on a Pixel 9 Pro), which means each pane is ~280dp
- * after gaps — narrower than ideal. If landscape phones look cramped in
- * production, the fallback is to raise the activation threshold to a
- * custom 1200dp via a one-line change in
- * `AppLayoutMode.Companion.fromWidthSizeClass`. That keeps phones in
- * landscape on the 2-pane layout (~458dp/pane) while tablets in landscape
- * (~1280dp+) and ChromeOS still get 3-pane (~415dp/pane).
+ * **Threshold (custom).** Activation is at `screenWidthDp >= 1200`
+ * (`AppLayoutMode.Companion.EXPANDED_THRESHOLD_DP`), tightened from the
+ * M3-standard `WindowWidthSizeClass.Expanded` (≥840dp) in 2.16.7. The
+ * 1200dp boundary keeps phones in landscape (~916dp Pixel 9 Pro) and
+ * foldables open in landscape (~1132dp Z Fold 6) on the 2-pane
+ * [HomeDashboardContent] (~458dp/pane). Tablets in landscape (1280dp+)
+ * and ChromeOS still get 3-pane (~415dp/pane). 10.5"-class tablets
+ * (~1180dp) fall just under and stay on 2-pane — acceptable trade-off.
  *
  * **Sub-screen overlay (Diagnostics, FunctionList).** When a Settings
  * sub-screen is on the back stack in Expanded mode, the production
