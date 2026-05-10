@@ -65,6 +65,7 @@ class KtorNetworkButtonHealthDataSource(
 private data class KtorButtonHealthResponse(
     @SerialName("buttonState") val buttonState: String,
     @SerialName("stateChangedAtSeconds") val stateChangedAtSeconds: Long? = null,
+    @SerialName("lastPollAtSeconds") val lastPollAtSeconds: Long? = null,
     // buildTimestamp echoed by server but not consumed here (already known to caller).
     @SerialName("buildTimestamp") val buildTimestamp: String? = null,
 ) {
@@ -72,6 +73,7 @@ private data class KtorButtonHealthResponse(
         ButtonHealth(
             state = buttonState.toButtonHealthState(),
             stateChangedAtSeconds = stateChangedAtSeconds,
+            lastPollAtSeconds = lastPollAtSeconds,
         )
 }
 

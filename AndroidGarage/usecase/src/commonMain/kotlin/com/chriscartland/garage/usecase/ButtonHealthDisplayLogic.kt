@@ -60,13 +60,29 @@ object ButtonHealthDisplayLogic {
                     when (data.state) {
                         ButtonHealthState.UNKNOWN -> ButtonHealthDisplay.Unknown
                         ButtonHealthState.ONLINE -> ButtonHealthDisplay.Online
-                        ButtonHealthState.OFFLINE ->
-                            ButtonHealthDisplay.Offline(
-                                durationLabel = ButtonHealthDurationFormatter.formatAgo(
+                        ButtonHealthState.OFFLINE -> {
+                            // Prefer `lastPollAtSeconds` (the actual time the
+                            // device went silent) over `stateChangedAtSeconds`
+                            // (the time pubsub noticed). With pubsub at 1 min
+                            // these can differ by up to ~1 min, and "last seen"
+                            // is the user-meaningful number. Fallback to the
+                            // state-change ts handles (a) older server pre-PR
+                            // and (b) bootstrap-no-poll edge where no poll
+                            // record exists at all.
+                            val lastSeenSeconds = data.lastPollAtSeconds
+                            val durationLabel = if (lastSeenSeconds != null) {
+                                "last seen " + ButtonHealthDurationFormatter.formatAgo(
+                                    lastSeenSeconds,
+                                    nowSeconds,
+                                )
+                            } else {
+                                ButtonHealthDurationFormatter.formatAgo(
                                     data.stateChangedAtSeconds,
                                     nowSeconds,
-                                ),
-                            )
+                                )
+                            }
+                            ButtonHealthDisplay.Offline(durationLabel = durationLabel)
+                        }
                     }
                 }
             }

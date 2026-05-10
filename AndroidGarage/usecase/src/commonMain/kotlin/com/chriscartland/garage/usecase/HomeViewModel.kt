@@ -76,6 +76,14 @@ interface HomeViewModel {
 
     fun fetchCurrentDoorEvent()
 
+    /**
+     * One-shot fetch of the remote-button device's health. Called from
+     * pull-to-refresh alongside [fetchCurrentDoorEvent] so the user can
+     * recover both pills with a single gesture. Fire-and-forget; the
+     * resulting state lands in the StateFlow that backs [buttonHealthDisplay].
+     */
+    fun refreshButtonHealth()
+
     fun deregisterFcm()
 
     fun onButtonTap()
@@ -89,6 +97,7 @@ class DefaultHomeViewModel(
     private val logAppEvent: LogAppEventUseCase,
     private val dispatchers: DispatcherProvider,
     private val fetchCurrentDoorEventUseCase: FetchCurrentDoorEventUseCase,
+    private val fetchButtonHealthUseCase: FetchButtonHealthUseCase,
     private val deregisterFcmUseCase: DeregisterFcmUseCase,
     private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
     private val pushRemoteButtonUseCase: PushRemoteButtonUseCase,
@@ -183,6 +192,13 @@ class DefaultHomeViewModel(
                     }
                 }
             }
+        }
+    }
+
+    override fun refreshButtonHealth() {
+        Logger.d { "refreshButtonHealth" }
+        viewModelScope.launch(dispatchers.io) {
+            fetchButtonHealthUseCase()
         }
     }
 

@@ -109,13 +109,43 @@ class ButtonHealthDisplayLogicTest {
     }
 
     @Test
-    fun signedIn_completeOffline_isOfflineWithDurationLabel() {
+    fun signedIn_completeOffline_fallsBackToStateChangeWhenLastPollIsNull() {
+        // Older server pre-PR, or bootstrap-no-poll edge: lastPollAtSeconds is
+        // null. Display falls back to stateChangedAtSeconds with the existing
+        // bare "X ago" wording (no "last seen" qualifier when we don't have
+        // the last-seen value).
         val display = ButtonHealthDisplayLogic.compute(
             auth = signedIn,
-            health = LoadingResult.Complete(ButtonHealth(ButtonHealthState.OFFLINE, now - 11 * 60)),
+            health = LoadingResult.Complete(
+                ButtonHealth(
+                    state = ButtonHealthState.OFFLINE,
+                    stateChangedAtSeconds = now - 11 * 60,
+                    lastPollAtSeconds = null,
+                ),
+            ),
             nowSeconds = now,
         )
         val offline = assertIs<ButtonHealthDisplay.Offline>(display)
         assertEquals("11 min ago", offline.durationLabel)
+    }
+
+    @Test
+    fun signedIn_completeOffline_prefersLastPollAtSecondsWithLastSeenWording() {
+        // With pubsub at 1 min, stateChangedAtSeconds may be ~1 min after the
+        // device actually went silent. lastPollAtSeconds is the user-meaningful
+        // number ("device last polled X ago"). Display reflects that.
+        val display = ButtonHealthDisplayLogic.compute(
+            auth = signedIn,
+            health = LoadingResult.Complete(
+                ButtonHealth(
+                    state = ButtonHealthState.OFFLINE,
+                    stateChangedAtSeconds = now - 5 * 60,
+                    lastPollAtSeconds = now - 6 * 60,
+                ),
+            ),
+            nowSeconds = now,
+        )
+        val offline = assertIs<ButtonHealthDisplay.Offline>(display)
+        assertEquals("last seen 6 min ago", offline.durationLabel)
     }
 }

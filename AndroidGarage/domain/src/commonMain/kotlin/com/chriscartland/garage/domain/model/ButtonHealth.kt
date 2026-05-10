@@ -34,10 +34,22 @@ enum class ButtonHealthState { UNKNOWN, ONLINE, OFFLINE }
  * [stateChangedAtSeconds] is null only when [state] is [ButtonHealthState.UNKNOWN];
  * for ONLINE and OFFLINE the server always provides a server-set transition
  * timestamp.
+ *
+ * [lastPollAtSeconds] is the server's freshest known poll time for the device.
+ * Independent of state transitions: an ONLINE doc may report
+ * `stateChangedAtSeconds = 12 hours ago` while `lastPollAtSeconds` is a few
+ * seconds old. Null in three cases: (a) state is UNKNOWN (no doc yet),
+ * (b) bootstrap edge where the server flipped OFFLINE without ever seeing a
+ * poll, (c) FCM payloads from older servers that pre-date the field
+ * (forward-compat: old wire shape decodes to null here). Used to render the
+ * OFFLINE pill's "last seen X" label; for ONLINE we don't surface a freshness
+ * value (deliberately — pubsub flips state to OFFLINE within ~1 min, so the
+ * user can trust that "Available" means "verified within the last minute").
  */
 data class ButtonHealth(
     val state: ButtonHealthState,
     val stateChangedAtSeconds: Long?,
+    val lastPollAtSeconds: Long? = null,
 )
 
 /** Caller-relevant errors for the button-health repository. */

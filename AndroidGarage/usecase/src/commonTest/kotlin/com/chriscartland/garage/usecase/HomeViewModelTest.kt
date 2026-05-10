@@ -63,6 +63,7 @@ class HomeViewModelTest {
     private lateinit var appLoggerRepository: FakeAppLoggerRepository
     private lateinit var doorFcmRepository: FakeDoorFcmRepository
     private lateinit var remoteButtonRepository: FakeRemoteButtonRepository
+    private lateinit var buttonHealthRepository: HomeTestNoopButtonHealthRepository
 
     private val testDoorEvent =
         DoorEvent(
@@ -80,6 +81,7 @@ class HomeViewModelTest {
         appLoggerRepository = FakeAppLoggerRepository()
         doorFcmRepository = FakeDoorFcmRepository()
         remoteButtonRepository = FakeRemoteButtonRepository()
+        buttonHealthRepository = HomeTestNoopButtonHealthRepository()
         doorRepository.setCurrentDoorEvent(testDoorEvent)
     }
 
@@ -113,7 +115,7 @@ class HomeViewModelTest {
         )
         val computeButtonHealth = ComputeButtonHealthDisplayUseCase(
             authRepository = authRepository,
-            buttonHealthRepository = HomeTestNoopButtonHealthRepository(),
+            buttonHealthRepository = buttonHealthRepository,
             liveClock = liveClock,
             applicationScope = scope,
         )
@@ -126,6 +128,7 @@ class HomeViewModelTest {
             ),
             dispatchers = TestDispatcherProvider(testDispatcher),
             fetchCurrentDoorEventUseCase = FetchCurrentDoorEventUseCase(doorRepository),
+            fetchButtonHealthUseCase = FetchButtonHealthUseCase(authRepository, buttonHealthRepository),
             deregisterFcmUseCase = DeregisterFcmUseCase(doorFcmRepository),
             signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),
             pushRemoteButtonUseCase = PushRemoteButtonUseCase(
@@ -235,14 +238,41 @@ class HomeViewModelTest {
             // LiveClock backed by AppClock { 0L }: initial value is 0.
             assertEquals(0L, viewModel.nowEpochSeconds.value)
         }
+
+    @Test
+    fun refreshButtonHealthInvokesFetchWhenAuthenticated() =
+        runTest {
+            // Pull-to-refresh on Home calls this alongside fetchCurrentDoorEvent
+            // so both pills refresh from a single user gesture.
+            val authedUser = User(
+                name = DisplayName("User"),
+                email = Email("user@example.com"),
+            )
+            val viewModel = createViewModel(
+                scope = backgroundScope,
+                authState = AuthState.Authenticated(authedUser),
+                fetchOnInit = false,
+            )
+
+            assertEquals(0, buttonHealthRepository.fetchCount)
+            viewModel.refreshButtonHealth()
+            advanceUntilIdle()
+
+            assertEquals(1, buttonHealthRepository.fetchCount)
+        }
 }
 
 private class HomeTestNoopButtonHealthRepository : ButtonHealthRepository {
     override val buttonHealth: StateFlow<LoadingResult<ButtonHealth>> =
         MutableStateFlow(LoadingResult.Loading(null))
 
-    override suspend fun fetchButtonHealth(): AppResult<ButtonHealth, ButtonHealthError> =
-        AppResult.Success(ButtonHealth(ButtonHealthState.UNKNOWN, null))
+    var fetchCount = 0
+        private set
+
+    override suspend fun fetchButtonHealth(): AppResult<ButtonHealth, ButtonHealthError> {
+        fetchCount += 1
+        return AppResult.Success(ButtonHealth(ButtonHealthState.UNKNOWN, null))
+    }
 
     override fun applyFcmUpdate(update: ButtonHealth) {
         // no-op
