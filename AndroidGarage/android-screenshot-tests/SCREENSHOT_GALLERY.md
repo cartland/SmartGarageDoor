@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Sat May  9 18:08:23 PDT 2026
+Generated on Sat May  9 22:42:34 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -346,6 +346,12 @@ Generated on Sat May  9 18:08:23 PDT 2026
 
 ## HomeRedesignScreenshotTestKt
 
+### DoorStatusInfoSheetContentPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/DoorStatusInfoSheetContentPreviewTest_Dark_77106447_0.png" width="300" />
+
+### DoorStatusInfoSheetContentPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/DoorStatusInfoSheetContentPreviewTest_Light_fc5b723e_0.png" width="300" />
+
 ### HomeContentAwaitingConfirmationPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentAwaitingConfirmationPreviewTest_Dark_77106447_0.png" width="300" />
 
@@ -429,6 +435,12 @@ Generated on Sat May  9 18:08:23 PDT 2026
 
 ### HomeContentStaleBannerPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentStaleBannerPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### RemoteControlInfoSheetContentPreviewTest_Dark_77106447_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/RemoteControlInfoSheetContentPreviewTest_Dark_77106447_0.png" width="300" />
+
+### RemoteControlInfoSheetContentPreviewTest_Light_fc5b723e_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/RemoteControlInfoSheetContentPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ## ScreensScreenshotTestKt
 
