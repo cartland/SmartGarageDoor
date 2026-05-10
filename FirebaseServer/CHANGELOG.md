@@ -29,6 +29,14 @@ Example (placeholder tag numbers — the gate looks for exact `server/<real numb
 
 ---
 
+## server/25
+- **Button-health pubsub cadence: every 10 min → every 1 min.** Worst-case OFFLINE-detection latency drops from ~10 min to ~1 min. The trigger-side ONLINE recovery (sub-second on every poll) is unchanged. Cost: ~1.4K invocations/day (was ~144), well under Cloud Functions free tier. Cannot affect device path — pubsub fires asynchronously after the device's HTTP response is on the wire.
+- **`lastPollAtSeconds: number | null` added to wire response and FCM payload.** Carries the unix-seconds timestamp of the most recent device poll the server had observed when the response/FCM was assembled. For the wire response: read fresh from `RemoteButtonRequestDatabase.getCurrent()` per call, NOT denormalized into `buttonHealthCurrent` (would require ~17K writes/day per poll just to maintain a freshness counter). For the FCM payload: pulled from the same poll record the trigger/pubsub already reads for state computation (zero extra reads). Omitted from FCM data when null (bootstrap edge: pubsub flips OFFLINE on a device that has never polled); mobile parser treats missing key as null.
+- **Old Android clients are forward-compat.** Production Android decode is `ignoreUnknownKeys = true`, so the new key is silently ignored on clients that haven't been updated. The Android-side OFFLINE-pill improvement that consumes the field ships in Android 2.16.6.
+- **Wire-contract fixtures** (`wire-contracts/buttonHealth/response_*.json`) updated for all three success variants. The `lastPollAtSeconds` value is pinned to a fixed epoch in each fixture so the deep-equal assertion in `HttpButtonHealthTest.ts` is deterministic across runs.
+- Test count: 291 → 302 (+11 new). New tests pin `lastPollAtSeconds` carries through every transition (trigger + pubsub paths), the omit-when-null FCM payload rule, and the "fresh poll vs stale state-change ts" semantics on the HTTP endpoint.
+- **Why not heartbeat FCMs every minute** (the OTHER way to drive freshness): three-agent review of "every-minute heartbeat FCM" vs "transition-only FCM + tighter pubsub" converged on transition-only. Heartbeats wake the app process every minute (~1440 wake-ups/day = noticeable battery drain) for marginal UX gain on a single-device personal app. The user explicitly chose transition-only after the review.
+
 ## server/24
 - **Button health detection.** Adds server-side ONLINE/OFFLINE detection for the remote-button ESP32 device. Drives the new "Remote offline" indicator pill on the Android Home tab. See `docs/BUTTON_HEALTH_ARCHITECTURE.md` for the full design.
 - New collection `buttonHealthCurrent/{buildTimestamp}` (single doc per device) holding `{ state: ONLINE|OFFLINE, stateChangedAtSeconds }`. State machine has just three rows; only one constant (`ONLINE_THRESHOLD_SEC = 60`).
