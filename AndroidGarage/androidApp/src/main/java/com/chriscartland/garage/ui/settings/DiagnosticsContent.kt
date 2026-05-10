@@ -29,13 +29,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
@@ -70,9 +68,9 @@ import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.ui.theme.ButtonSpacing
 import com.chriscartland.garage.ui.theme.CardPadding
 import com.chriscartland.garage.ui.theme.DividerInset
-import com.chriscartland.garage.ui.theme.LocalContentEdgeInsets
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.ui.theme.Spacing
+import com.chriscartland.garage.ui.theme.safeListContentPadding
 import com.chriscartland.garage.usecase.DiagnosticsViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -205,119 +203,121 @@ fun DiagnosticsContent(
 ) {
     var confirmClearOpen by rememberSaveable { mutableStateOf(false) }
 
-    Column(
-        modifier = modifier.fillMaxSize(),
+    // Single LazyColumn — counters surface AND action buttons are both items
+    // so they scroll together. Pre-2.16.18 the action buttons sat in a fixed
+    // Column below a `weight(1f)` LazyColumn, which meant in Compact mode the
+    // buttons were always pinned to the bottom and the counters surface
+    // shrank around them; users with a tall counters list and short viewport
+    // saw the counters scroll under the (immovable) action stack. With both
+    // in one scrollable, the user can flick the buttons up and out of the way
+    // when reading counters, and `safeListContentPadding()` on the bottom
+    // ensures the last button still ends up above the gesture nav once
+    // scrolled into view.
+    //
+    // Horizontal padding lives on the LazyColumn modifier rather than in
+    // contentPadding because RouteContent / 3-pane wrappers do NOT apply
+    // horizontal for the Diagnostics route (see Main.kt — "Diagnostics owns
+    // its own horizontal padding"). Modifier.padding shrinks the LazyColumn's
+    // viewport; for a vertical-scrolling list this matches the prior visual
+    // behavior without losing edge-to-edge horizontal gestures (which
+    // weren't claimed anyway).
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = Spacing.Screen),
+        contentPadding = safeListContentPadding(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems),
     ) {
-        LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(
-                horizontal = Spacing.Screen,
-                vertical = Spacing.ListVertical,
-            ),
-            verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems),
-        ) {
-            item {
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    shape = MaterialTheme.shapes.large,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column {
-                        counters.forEachIndexed { index, c ->
-                            CounterRow(c.label, c.value)
-                            if (index < counters.lastIndex) {
-                                HorizontalDivider(modifier = Modifier.padding(horizontal = DividerInset.FullWidth))
-                            }
+        item {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = MaterialTheme.shapes.large,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column {
+                    counters.forEachIndexed { index, c ->
+                        CounterRow(c.label, c.value)
+                        if (index < counters.lastIndex) {
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = DividerInset.FullWidth))
                         }
                     }
                 }
             }
         }
-        // Action buttons sit in a sub-Column whose Arrangement.spacedBy
-        // owns the gap between buttons (parent-vs-child spacing rule:
-        // children don't claim ownership of their outer gap). Horizontal
-        // and bottom screen padding move from per-button modifiers to the
-        // Column wrapper so the rule "single source of horizontal layout"
-        // holds inside this section too.
-        //
-        // `windowInsetsPadding(LocalContentEdgeInsets.current)` adds the
-        // propagated bottom edge inset (zero in Compact since the bottomBar
-        // covers the gesture nav; gesture-nav height in Wide / None where
-        // there's no bottomBar). Without it, in Wide / Expanded modes the
-        // action buttons sit under the gesture nav. The 16dp `vertical`
-        // padding inside is the visual chrome clearance ABOVE the inset.
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsPadding(LocalContentEdgeInsets.current)
-                .padding(horizontal = Spacing.Screen)
-                .padding(vertical = Spacing.ListVertical),
-            verticalArrangement = Arrangement.spacedBy(ButtonSpacing.Stacked),
-        ) {
-            // Copy-auth-token is API-gated to Android 13+ because the
-            // EXTRA_IS_SENSITIVE clipboard flag (which redacts the token
-            // from the OS preview chip) only exists from API 33. On older
-            // Android the OS would briefly display the full JWT in the
-            // copy-confirmation chip, so the action is hidden entirely
-            // rather than being a sometimes-leaky shortcut.
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                OutlinedButton(
-                    onClick = onCopyAuthToken,
+        item {
+            // Action buttons grouped in a sub-Column so Arrangement.spacedBy
+            // owns the gap between buttons (parent-vs-child spacing rule).
+            // The LazyColumn's `Spacing.BetweenItems` gives the air between
+            // this stack and the counters surface above.
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(ButtonSpacing.Stacked),
+            ) {
+                // Copy-auth-token is API-gated to Android 13+ because the
+                // EXTRA_IS_SENSITIVE clipboard flag (which redacts the token
+                // from the OS preview chip) only exists from API 33. On older
+                // Android the OS would briefly display the full JWT in the
+                // copy-confirmation chip, so the action is hidden entirely
+                // rather than being a sometimes-leaky shortcut.
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    OutlinedButton(
+                        onClick = onCopyAuthToken,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Key,
+                            contentDescription = null,
+                        )
+                        Text(
+                            text = "Copy auth token (sensitive)",
+                            modifier = Modifier.padding(start = ButtonSpacing.IconText),
+                        )
+                    }
+                }
+                Button(
+                    onClick = onExportCsv,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Key,
+                        imageVector = Icons.Filled.Download,
                         contentDescription = null,
                     )
                     Text(
-                        text = "Copy auth token (sensitive)",
+                        text = "Export CSV",
                         modifier = Modifier.padding(start = ButtonSpacing.IconText),
                     )
                 }
-            }
-            Button(
-                onClick = onExportCsv,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Download,
-                    contentDescription = null,
-                )
-                Text(
-                    text = "Export CSV",
-                    modifier = Modifier.padding(start = ButtonSpacing.IconText),
-                )
-            }
-            OutlinedButton(
-                onClick = { confirmClearOpen = true },
-                enabled = !clearInFlight,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                // While the clear is in flight, swap the trash icon for a small
-                // spinner and the label for "Clearing…". Button is disabled so
-                // a second tap can't queue another clear during the wait.
-                if (clearInFlight) {
-                    CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Text(
-                        text = "Clearing…",
-                        modifier = Modifier.padding(start = ButtonSpacing.IconText),
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Outlined.DeleteForever,
-                        contentDescription = null,
-                    )
-                    Text(
-                        text = "Clear all diagnostics",
-                        modifier = Modifier.padding(start = ButtonSpacing.IconText),
-                    )
+                OutlinedButton(
+                    onClick = { confirmClearOpen = true },
+                    enabled = !clearInFlight,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    // While the clear is in flight, swap the trash icon for a small
+                    // spinner and the label for "Clearing…". Button is disabled so
+                    // a second tap can't queue another clear during the wait.
+                    if (clearInFlight) {
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Text(
+                            text = "Clearing…",
+                            modifier = Modifier.padding(start = ButtonSpacing.IconText),
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Outlined.DeleteForever,
+                            contentDescription = null,
+                        )
+                        Text(
+                            text = "Clear all diagnostics",
+                            modifier = Modifier.padding(start = ButtonSpacing.IconText),
+                        )
+                    }
                 }
             }
         }
