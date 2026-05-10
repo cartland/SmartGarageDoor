@@ -115,6 +115,7 @@ class HomeViewModelTest {
             authRepository = authRepository,
             buttonHealthRepository = HomeTestNoopButtonHealthRepository(),
             liveClock = liveClock,
+            applicationScope = scope,
         )
         val vm = DefaultHomeViewModel(
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),

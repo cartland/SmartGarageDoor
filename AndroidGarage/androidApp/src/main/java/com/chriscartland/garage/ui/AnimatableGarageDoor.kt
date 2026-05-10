@@ -87,29 +87,24 @@ object DoorAnimation {
     /**
      * Initial Animatable seed for a given state.
      *
-     * For motion states (OPENING/CLOSING) the seed is the "from" end so the
-     * tween animates the full motion when the icon first composes (e.g., app
-     * open, screen return mid-motion). For all other states, seed = target so
-     * the icon renders at rest with no animation on first frame.
+     * Always equal to [targetPositionFor] — a freshly composed icon
+     * renders at the target position with no animation. The motion
+     * animation (`OPENING` / `CLOSING`) only fires when [doorPosition]
+     * **changes** during the icon's lifetime (state CLOSED→OPENING
+     * triggers `LaunchedEffect` to animate from CLOSED to OPEN), not on
+     * every fresh composition.
      *
-     * Trade-off: when the app opens with a door in motion, the icon ignores
-     * the server's lastChangeTimeSeconds and animates from the "from" end.
-     * Computing elapsed time would require a clock-drift correction we don't
-     * have. See `AndroidGarage/docs/DOOR_ANIMATION.md` § Trade-offs.
+     * Pre-2.16.4 behavior was: `OPENING → CLOSED_POSITION` and
+     * `CLOSING → OPEN_POSITION` so the icon animated the full motion on
+     * first compose (including screen return mid-motion). That re-ran
+     * the open/close animation every time the user navigated back to
+     * Home while the server still reported a transient OPENING/CLOSING
+     * state — visible flicker that didn't represent reality (the
+     * animation timing didn't sync with the physical door). The
+     * [overlayFor] arrows (ARROW_UP / ARROW_DOWN) preserve the
+     * "in motion" visual cue without re-animating.
      */
-    fun initialPositionFor(doorPosition: DoorPosition): Float =
-        when (doorPosition) {
-            DoorPosition.OPENING -> CLOSED_POSITION
-            DoorPosition.CLOSING -> OPEN_POSITION
-            DoorPosition.UNKNOWN,
-            DoorPosition.CLOSED,
-            DoorPosition.OPENING_TOO_LONG,
-            DoorPosition.OPEN,
-            DoorPosition.OPEN_MISALIGNED,
-            DoorPosition.CLOSING_TOO_LONG,
-            DoorPosition.ERROR_SENSOR_CONFLICT,
-            -> targetPositionFor(doorPosition)
-        }
+    fun initialPositionFor(doorPosition: DoorPosition): Float = targetPositionFor(doorPosition)
 
     /**
      * Which animation spec family applies.

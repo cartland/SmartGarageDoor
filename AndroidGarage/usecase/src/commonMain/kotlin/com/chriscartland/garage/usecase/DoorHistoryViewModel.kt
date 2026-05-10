@@ -77,8 +77,15 @@ class DefaultDoorHistoryViewModel(
     // ADR-022: pass through LiveClock's StateFlow — no mirror.
     override val nowEpochSeconds: StateFlow<Long> = liveClock.nowEpochSeconds
 
+    // Seed from the singleton repo's StateFlow `.value` (pass-through via
+    // `observeDoorEvents.recent()` per ADR-022) so we never expose
+    // `Loading(emptyList())` on first composition. Without this seed, the
+    // history list would render empty for one frame on every fresh screen
+    // entry, then immediately fill in once the collect lambda below ran.
     private val _recentDoorEvents =
-        MutableStateFlow<LoadingResult<List<DoorEvent>>>(LoadingResult.Loading(listOf()))
+        MutableStateFlow<LoadingResult<List<DoorEvent>>>(
+            LoadingResult.Complete(observeDoorEvents.recent().value),
+        )
     override val recentDoorEvents: StateFlow<LoadingResult<List<DoorEvent>>> = _recentDoorEvents
 
     private val _isCheckInStale = MutableStateFlow(false)

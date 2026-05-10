@@ -54,7 +54,12 @@ class ComputeButtonHealthDisplayUseCaseTest {
             val repo = TestButtonHealthRepository()
             val clock = TestLiveClock(MutableStateFlow(1_700_000_000L))
 
-            val display = ComputeButtonHealthDisplayUseCase(auth, repo, clock).invoke().first()
+            val display = ComputeButtonHealthDisplayUseCase(
+                auth,
+                repo,
+                clock,
+                applicationScope = backgroundScope,
+            ).invoke().awaitComputed()
 
             assertEquals(ButtonHealthDisplay.Unauthorized, display)
         }
@@ -69,7 +74,12 @@ class ComputeButtonHealthDisplayUseCaseTest {
             )
             val clock = TestLiveClock(MutableStateFlow(now))
 
-            val display = ComputeButtonHealthDisplayUseCase(auth, repo, clock).invoke().first()
+            val display = ComputeButtonHealthDisplayUseCase(
+                auth,
+                repo,
+                clock,
+                applicationScope = backgroundScope,
+            ).invoke().awaitComputed()
 
             assertEquals(ButtonHealthDisplay.Online, display)
         }
@@ -86,11 +96,23 @@ class ComputeButtonHealthDisplayUseCaseTest {
             )
             val clock = TestLiveClock(MutableStateFlow(now))
 
-            val display = ComputeButtonHealthDisplayUseCase(auth, repo, clock).invoke().first()
+            val display = ComputeButtonHealthDisplayUseCase(
+                auth,
+                repo,
+                clock,
+                applicationScope = backgroundScope,
+            ).invoke().awaitComputed()
 
             val offline = assertIs<ButtonHealthDisplay.Offline>(display)
             assertEquals("11 min ago", offline.durationLabel)
         }
+
+    /**
+     * Skip the initial `Loading` value the use case's `stateIn(Eagerly)` seeds
+     * with, and return the first emission from the underlying combine —
+     * which is what production observers actually display.
+     */
+    private suspend fun StateFlow<ButtonHealthDisplay>.awaitComputed(): ButtonHealthDisplay = first { it !is ButtonHealthDisplay.Loading }
 }
 
 // ---- Inline fakes ----

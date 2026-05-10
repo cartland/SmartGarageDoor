@@ -128,6 +128,7 @@ class RealNetworkButtonHealthRepositoryPropagationTest {
             authRepository = authRepo,
             buttonHealthRepository = healthRepo,
             liveClock = liveClock,
+            applicationScope = externalScope,
         )
         val doorRepo = FakeDoorRepository()
         val appLogger = FakeAppLoggerRepository()

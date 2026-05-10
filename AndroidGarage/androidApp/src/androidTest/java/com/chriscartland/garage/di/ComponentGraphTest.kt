@@ -146,6 +146,21 @@ class ComponentGraphTest {
     }
 
     @Test
+    fun computeButtonHealthDisplayUseCaseIsSingleton() {
+        // Singleton-scoped because the use case maintains an Eagerly-started
+        // `stateIn` over a `combine(authState, buttonHealth, clock)` flow.
+        // A non-singleton would spin up multiple eager combine collectors
+        // (one per VM construction), each with its own initial `Loading`
+        // value — defeating the buttonHealthDisplay flicker fix.
+        val c = component
+        assertSame(
+            "ComputeButtonHealthDisplayUseCase must be singleton",
+            c.computeButtonHealthDisplayUseCase,
+            c.computeButtonHealthDisplayUseCase,
+        )
+    }
+
+    @Test
     fun initialDoorFetchManagerIsSingleton() {
         // Singleton-scoped so the cold-start fetch fires exactly once per
         // process even when MainActivity.onCreate fires multiple times

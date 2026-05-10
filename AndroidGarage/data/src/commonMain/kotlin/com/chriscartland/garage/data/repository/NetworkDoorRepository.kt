@@ -56,13 +56,24 @@ class NetworkDoorRepository(
     private val _currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
     override val currentDoorEvent: StateFlow<DoorEvent?> = _currentDoorEvent
 
-    override val recentDoorEvents: Flow<List<DoorEvent>> = localDoorDataSource.recentDoorEvents
+    // Same StateFlow + always-on collector pattern as currentDoorEvent.
+    // Exposing this as StateFlow lets `DoorHistoryViewModel` synchronously
+    // read `.value` to seed its initial loading-result with the cached
+    // events list, avoiding a one-frame `Loading(emptyList())` render on
+    // every fresh screen entry.
+    private val _recentDoorEvents = MutableStateFlow<List<DoorEvent>>(emptyList())
+    override val recentDoorEvents: StateFlow<List<DoorEvent>> = _recentDoorEvents
 
     init {
         externalScope.launch {
             localDoorDataSource.currentDoorEvent.collect { event ->
                 _currentDoorEvent.value = event
                 Logger.i { "currentDoorEvent <- $event (source=local)" }
+            }
+        }
+        externalScope.launch {
+            localDoorDataSource.recentDoorEvents.collect { events ->
+                _recentDoorEvents.value = events
             }
         }
     }

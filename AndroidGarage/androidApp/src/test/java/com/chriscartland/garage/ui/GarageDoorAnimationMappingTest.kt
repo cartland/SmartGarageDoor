@@ -81,21 +81,12 @@ class GarageDoorAnimationMappingTest {
     // --- initialPositionFor ---------------------------------------------------
 
     @Test
-    fun initialPositionFor_opening_startsAtClosed() {
-        // Motion states start at the "from" end so the tween animates the full
-        // motion when the icon first composes.
-        assertEquals(CLOSED_POSITION, DoorAnimation.initialPositionFor(DoorPosition.OPENING))
-    }
-
-    @Test
-    fun initialPositionFor_closing_startsAtOpen() {
-        assertEquals(OPEN_POSITION, DoorAnimation.initialPositionFor(DoorPosition.CLOSING))
-    }
-
-    @Test
-    fun initialPositionFor_terminalStates_startAtTarget() {
-        // No first-frame animation for terminal/error states.
-        for (state in nonMotionStates) {
+    fun initialPositionFor_alwaysEqualsTarget() {
+        // Per 2.16.4: every state's initial == target. Motion animations
+        // (OPENING/CLOSING tweens) only fire when doorPosition CHANGES during
+        // the icon's lifetime, not on every fresh composition. The arrow
+        // overlays carry the "in motion" cue without re-animating.
+        for (state in DoorPosition.entries) {
             assertEquals(
                 "Initial position for $state should equal target",
                 DoorAnimation.targetPositionFor(state),

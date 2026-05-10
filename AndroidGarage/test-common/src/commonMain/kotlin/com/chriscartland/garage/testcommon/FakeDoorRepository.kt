@@ -33,7 +33,7 @@ class FakeDoorRepository : DoorRepository {
 
     override val currentDoorPosition: Flow<DoorPosition> = _currentDoorPosition
     override val currentDoorEvent: StateFlow<DoorEvent?> = _currentDoorEvent
-    override val recentDoorEvents: Flow<List<DoorEvent>> = _recentDoorEvents
+    override val recentDoorEvents: StateFlow<List<DoorEvent>> = _recentDoorEvents
 
     var fetchCurrentDoorEventCount = 0
         private set
