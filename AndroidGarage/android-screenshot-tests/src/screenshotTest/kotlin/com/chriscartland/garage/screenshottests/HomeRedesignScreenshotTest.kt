@@ -20,6 +20,8 @@ package com.chriscartland.garage.screenshottests
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
+import com.chriscartland.garage.ui.DoorStatusInfoSheetContentPreview
+import com.chriscartland.garage.ui.RemoteControlInfoSheetContentPreview
 import com.chriscartland.garage.ui.home.HomeContentAwaitingConfirmationPreview
 import com.chriscartland.garage.ui.home.HomeContentClosedSignedInPreview
 import com.chriscartland.garage.ui.home.HomeContentOnTabletPreview
@@ -203,4 +205,28 @@ fun HomeContentRemotePillOfflinePreviewTest() {
 @Composable
 fun HomeContentOnTabletPreviewTest() {
     AppTheme { HomeContentOnTabletPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun DoorStatusInfoSheetContentPreviewTest() {
+    AppTheme { DoorStatusInfoSheetContentPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun RemoteControlInfoSheetContentPreviewTest() {
+    AppTheme { RemoteControlInfoSheetContentPreview() }
 }

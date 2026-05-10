@@ -46,6 +46,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,9 +61,11 @@ import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.permissions.NotificationPermissionCopy
 import com.chriscartland.garage.ui.DeviceCheckInPill
+import com.chriscartland.garage.ui.DoorStatusInfoBottomSheet
 import com.chriscartland.garage.ui.GarageIcon
 import com.chriscartland.garage.ui.RemoteButtonContent
 import com.chriscartland.garage.ui.RemoteButtonHealthPill
+import com.chriscartland.garage.ui.RemoteControlInfoBottomSheet
 import com.chriscartland.garage.ui.RouteContent
 import com.chriscartland.garage.ui.theme.ButtonSpacing
 import com.chriscartland.garage.ui.theme.CardPadding
@@ -167,6 +173,10 @@ fun HomeContent(
     onRemoteButtonTap: () -> Unit = {},
     onSignIn: () -> Unit = {},
 ) {
+    // Local UI state for the per-pill info bottom sheets. Tap a pill to
+    // open the matching sheet; tap outside or drag down to dismiss. Pure
+    // UI state (no VM data); local to this Composable.
+    var openInfoSheet by remember { mutableStateOf<HomeInfoSheet?>(null) }
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
@@ -193,7 +203,12 @@ fun HomeContent(
             item(key = "status") {
                 HomeSection(
                     label = "Status",
-                    trailing = { DeviceCheckInPill(display = deviceCheckIn) },
+                    trailing = {
+                        DeviceCheckInPill(
+                            display = deviceCheckIn,
+                            onTap = { openInfoSheet = HomeInfoSheet.DoorStatus },
+                        )
+                    },
                 ) {
                     HomeStatusCardBody(status = status)
                 }
@@ -218,7 +233,10 @@ fun HomeContent(
                                 // TEMPORARY (debug): always-on pill for every ButtonHealthDisplay arm.
                                 // To revert to production-only "Remote offline" behavior, swap back
                                 // to `RemoteOfflinePill` (Offline-only) and delete RemoteButtonHealthPill.
-                                RemoteButtonHealthPill(display = buttonHealthDisplay)
+                                RemoteButtonHealthPill(
+                                    display = buttonHealthDisplay,
+                                    onTap = { openInfoSheet = HomeInfoSheet.RemoteControl },
+                                )
                             },
                         ) {
                             HomeRemoteButtonBody(
@@ -231,7 +249,23 @@ fun HomeContent(
             }
         }
     }
+    when (openInfoSheet) {
+        HomeInfoSheet.DoorStatus -> DoorStatusInfoBottomSheet(
+            onDismiss = { openInfoSheet = null },
+        )
+        HomeInfoSheet.RemoteControl -> RemoteControlInfoBottomSheet(
+            onDismiss = { openInfoSheet = null },
+        )
+        null -> Unit
+    }
 }
+
+/**
+ * Discriminator for the per-pill info bottom sheets opened from the Home
+ * tab. The sheets themselves live in [com.chriscartland.garage.ui.InfoBottomSheet];
+ * this enum just identifies which one is open.
+ */
+private enum class HomeInfoSheet { DoorStatus, RemoteControl }
 
 @Composable
 private fun HomeSection(
