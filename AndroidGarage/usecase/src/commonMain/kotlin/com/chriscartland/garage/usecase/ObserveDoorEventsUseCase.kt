@@ -21,17 +21,31 @@ import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.repository.DoorRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Observes the current and recent door events from the repository.
  *
  * Wraps [DoorRepository] flows so ViewModels can depend on this UseCase
  * instead of the repository directly.
+ *
+ * Per ADR-022 "match the upstream, never wrap": [current] returns
+ * [StateFlow] because the repo's `currentDoorEvent` IS a [StateFlow]
+ * — passing it through preserves the synchronous `.value` accessor
+ * the VM needs to seed its initial loading-result with the cached
+ * door event (otherwise the VM exposes `Loading(null)` for one frame
+ * on first composition, the door icon maps that to UNKNOWN/MIDWAY,
+ * and the next frame's `Complete(actualEvent)` triggers a visible
+ * MIDWAY→actual door animation on every fresh screen entry).
+ *
+ * [recent] and [position] stay [Flow] — `recent` is a Room flow (not
+ * a StateFlow upstream) and `position` does `.map.distinctUntilChanged()`
+ * (a transformation, not a pass-through).
  */
 class ObserveDoorEventsUseCase(
     private val doorRepository: DoorRepository,
 ) {
-    fun current(): Flow<DoorEvent?> = doorRepository.currentDoorEvent
+    fun current(): StateFlow<DoorEvent?> = doorRepository.currentDoorEvent
 
     fun recent(): Flow<List<DoorEvent>> = doorRepository.recentDoorEvents
 
