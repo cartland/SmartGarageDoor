@@ -1,7 +1,7 @@
 ---
 category: plan
 status: active
-last_verified: 2026-05-10
+last_verified: 2026-05-11
 ---
 
 # Pending Follow-ups
@@ -34,22 +34,25 @@ User-flagged items that aren't tied to a specific release and aren't smoke-test 
 
 **Single relevant Android edit:** `ProfileContent.kt` — `showDeveloperSection = functionListAccess == true` → `developerAccess == true`.
 
-### 2. Home permission banner copy revision
+### 2. Migrate user-visible strings to Android string resources
 
-**Status:** open question — does production want to adopt the punchier wording the preview used to have?
+**Status:** flagged 2026-05-11 as a separate, dedicated PR (or PR series). Not started.
 
-**Background:** Production text in `NotificationPermissionCopy.justificationText(0)` (`AndroidGarage/.../permissions/NotificationPermission.kt:70`):
+**Background:** user-visible strings are currently inlined as Kotlin string literals throughout the app code (Composables, ViewModels, mappers, copy objects like `NotificationPermissionCopy`). This works but has three downsides: (a) makes future localization (`values-<lang>/strings.xml`) impossible without first extracting strings, (b) makes it hard to grep all user-facing copy in one place for style sweeps (em-dash, sentence case), (c) couples copy revisions to code review of unrelated logic.
 
-> "Please turn on notifications to be notified when the door is left open."
+**Plan:** move all user-visible strings to `androidApp/src/main/res/values/strings.xml`. Replace literals with `stringResource(R.string.X)` in Composables and `Context.getString(R.string.X)` (or an injected resource provider for KMP-compatible code) elsewhere.
 
-This wraps to three lines in the Home banner. Before PR #656 the screenshot preview hardcoded a punchier alternative — *"Notifications are off — you won't be alerted when the door opens"* — which the user *preferred*, but the screenshot was lying about what users actually see.
+**Scope decisions to make before starting:**
+- **Per PR boundary** — one PR per feature area (Home, Settings, Diagnostics, permission copy, error messages) is more reviewable than one mega-PR. ~5–8 PRs total.
+- **Plurals / formatting** — use `<plurals>` and `getQuantityString()` for count-based copy (history list "N events"), and `formatArgs` placeholders for interpolated strings.
+- **Non-Composable contexts (UseCases, ViewModels, mappers)** — these can't call `stringResource`. Options: (i) inject a `StringProvider` interface (KMP-friendly), (ii) move the string assembly into the Composable and pass typed inputs to the VM, (iii) keep them as Kotlin literals if the string is genuinely internal (logs, telemetry tags).
+- **What counts as "user-visible"** — visible UI text yes; log/telemetry strings no; test fixtures no; preview-only strings no (since they're not shipped). The `checkNoLiteralStringsInCompose` lint pattern (used by other projects) could enforce after the migration but pre-migration the audit is grep-driven.
+- **Style-rule enforcement** — once strings are in XML the existing `checkPreviewCoverage` shape can be extended with a string-resource style lint (no em dashes in `values/strings.xml`, sentence case for headings).
 
-PR #656 (shipped in `android/196`) made the preview honest by calling the production function. The user explicitly chose this over keeping the punchier preview text, with the principle: *"screenshots should use production code paths."*
+**Files to start with (highest user-visibility):** `NotificationPermissionCopy`, `HomeContent` permission/warning copy, `SettingsContent` row labels, info-sheet bodies, error UI strings.
 
-**Open question:** should production adopt the punchier wording? If yes, edit `baseText` in `NotificationPermissionCopy.justificationText` and the screenshot will follow automatically because it now reads from the same source. The Settings row's equivalent copy is *"Notifications disabled — tap to enable"* (PR #654) — a third variant. If a single canonical phrasing is desired, both surfaces should pull from the same string.
-
-**Note (2026-05-10):** when revisiting, also check the em-dash style sweep from 2.16.9 — both the punchier wording and the Settings row contain em dashes that the style rule forbids. The current production text doesn't.
+**Out of scope for the migration PR(s):** copy revisions. If a string reads poorly during the move, file a follow-up — don't conflate "extract to resource" with "rewrite".
 
 ## Done (recent)
 
-(Empty — items move from Open to Done when the closing PR merges, then get archived from this list at the next dump-context.)
+- **Home permission banner copy revision** — closed in 2.16.16 (`copy/home-permission-banner-shorter`). Production `NotificationPermissionCopy.justificationText(0)` now reads *"Turn on notifications to get alerted when the door is left open."* (2 lines on Home, was 3). Same imperative-request framing so escalation lines at attempt 3+/4+ still flow without changes. Settings row copy was already short (em-dash sweep landed in 2.16.9). Three variants are no longer in tension; if a future PR wants a single canonical string both surfaces could read from, that's a fresh follow-up.
