@@ -17,8 +17,16 @@
 
 package com.chriscartland.garage.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -336,6 +344,74 @@ fun SettingsTabPreview() {
             showDeveloperSection = true,
             versionName = "2.7.1",
             versionCode = "184",
+        )
+    }
+}
+
+/**
+ * Wide-screen scaffold mirroring `Main.kt`'s rail-mode rendering: no
+ * `bottomBar`, with the route content + a `NavigationRailLeft` arranged
+ * in a Row inside the Scaffold body. Same inset coordination — the rail
+ * owns the start safe-drawing inset via its `windowInsets` parameter,
+ * the content sibling declares `consumeWindowInsets(start)` so route
+ * wrappers' `safeDrawing.only(Horizontal)` reads transparently shrink
+ * to "end side only".
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WideTabPreviewScaffold(
+    selectedScreen: Screen,
+    content: @Composable (Modifier) -> Unit,
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text("Garage") })
+        },
+    ) { innerPadding ->
+        Row(modifier = Modifier.padding(innerPadding)) {
+            NavigationRailLeft(
+                currentScreen = selectedScreen,
+                onTabSelected = {},
+                mode = AppLayoutMode.Wide,
+            )
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
+            ) {
+                content(
+                    Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxSize(),
+                )
+            }
+        }
+    }
+}
+
+// Wide-screen Home preview with NavigationRailLeft on the left edge instead
+// of a bottom bar. Activates AppLayoutMode.Wide rendering. 700dp width
+// chosen to be unambiguously inside the Wide range (≥600dp Medium boundary,
+// <1200dp Expanded threshold).
+@Preview(showBackground = true, widthDp = 700, heightDp = 800)
+@Composable
+fun HomeRailPreview700dp() {
+    val event = demoDoorEvents.firstOrNull()
+    val now = Instant.parse("2026-04-29T12:00:00Z")
+    val status = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event), now, ZoneOffset.UTC)
+    val deviceCheckIn = DeviceCheckIn.format(
+        lastCheckInSeconds = now.epochSecond - (5 * 60),
+        nowSeconds = now.epochSecond,
+    )
+    WideTabPreviewScaffold(selectedScreen = Screen.Home) { modifier ->
+        HomeStatelessContent(
+            status = status,
+            authState = HomeAuthState.SignedIn,
+            modifier = modifier,
+            remoteButtonState = RemoteButtonState.Ready,
+            deviceCheckIn = deviceCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Online,
         )
     }
 }

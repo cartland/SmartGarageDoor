@@ -44,10 +44,29 @@ import androidx.compose.runtime.ReadOnlyComposable
  */
 sealed interface AppLayoutMode {
     /**
-     * Tabs visible in the bottom navigation for this layout mode.
-     * Order is the on-screen order; absent tabs are hidden in this mode.
+     * Where the nav chrome lives in this layout mode. Drives both visibility
+     * and inset responsibility:
+     *  - [Bottom]: `NavigationBar` in the Scaffold's `bottomBar` slot, owns
+     *    the bottom safe-drawing inset.
+     *  - [Rail]: `NavigationRail` as a sibling of the route content (Row),
+     *    owns the **start** safe-drawing inset (display cutout + gesture nav
+     *    on the start edge). Content uses `consumeWindowInsets(start)` so
+     *    `RouteContent`'s horizontal-inset reading transparently shrinks to
+     *    "end side only".
+     *  - [None]: no nav chrome rendered. Used by [Expanded] where every
+     *    pane is visible at once, so tabs are redundant.
+     */
+    enum class NavPlacement { Bottom, Rail, None }
+
+    /**
+     * Tabs visible in the navigation chrome for this layout mode (whether
+     * rendered as a bottom bar or a left rail — see [navPlacement]). Order
+     * is the on-screen order; absent tabs are hidden in this mode.
      */
     val visibleTabs: List<Tab>
+
+    /** See [NavPlacement]. */
+    val navPlacement: NavPlacement
 
     /**
      * Back-stack-entry redirects: when the current top of the back stack
@@ -67,6 +86,7 @@ sealed interface AppLayoutMode {
      */
     data object Compact : AppLayoutMode {
         override val visibleTabs: List<Tab> = Tab.entries.toList()
+        override val navPlacement: NavPlacement = NavPlacement.Bottom
         override val mergedRoutes: Map<Screen, Screen> = emptyMap()
     }
 
@@ -77,6 +97,7 @@ sealed interface AppLayoutMode {
      */
     data object Wide : AppLayoutMode {
         override val visibleTabs: List<Tab> = Tab.entries.filter { it != Tab.History }
+        override val navPlacement: NavPlacement = NavPlacement.Rail
         override val mergedRoutes: Map<Screen, Screen> = mapOf(Screen.History to Screen.Home)
     }
 
@@ -112,6 +133,7 @@ sealed interface AppLayoutMode {
      */
     data object Expanded : AppLayoutMode {
         override val visibleTabs: List<Tab> = emptyList()
+        override val navPlacement: NavPlacement = NavPlacement.None
         override val mergedRoutes: Map<Screen, Screen> = mapOf(
             Screen.History to Screen.Home,
             Screen.Profile to Screen.Home,

@@ -22,7 +22,16 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
@@ -33,6 +42,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -161,11 +172,12 @@ fun AppNavigation() {
             )
         },
         bottomBar = {
-            // Hide the bottom-nav chrome entirely on layouts with no
-            // visible tabs (Expanded). Empty NavigationBar still claims
-            // ~80dp of vertical space, which we want to recover for the
-            // 3-pane dashboard.
-            if (currentAppLayoutMode().visibleTabs.isNotEmpty()) {
+            // Render the bottom bar only when this layout mode places
+            // chrome at the bottom. Wide uses a left rail (sibling of
+            // NavDisplay below), Expanded has no nav chrome at all.
+            // An empty NavigationBar would still claim ~80dp of vertical
+            // space, which we want to recover for non-Bottom modes.
+            if (currentAppLayoutMode().navPlacement == AppLayoutMode.NavPlacement.Bottom) {
                 BottomNavigationBar(
                     currentScreen = backStack.lastOrNull() as? Screen,
                     onTabSelected = { screen -> TabNavigation.navigateToTab(backStack, screen) },
@@ -173,57 +185,99 @@ fun AppNavigation() {
             }
         },
     ) { innerPadding ->
-        NavDisplay(
-            backStack = backStack,
-            onBack = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) },
-            transitionSpec = { fadeIn(navTween()) togetherWith fadeOut(navTween()) },
-            popTransitionSpec = { fadeIn(navTween()) togetherWith fadeOut(navTween()) },
-            predictivePopTransitionSpec = { fadeIn(navTween()) togetherWith fadeOut(navTween()) },
-            entryDecorators = listOf(
-                rememberSaveableStateHolderNavEntryDecorator<NavKey>(),
-                rememberViewModelStoreNavEntryDecorator<NavKey>(),
-            ),
-            modifier = Modifier.padding(innerPadding),
-            // Screen-layout convention (single source of truth):
-            //   Each nav entry is wrapped in `RouteContent { ... }` which
-            //   applies (a) `Modifier.widthIn(max = ContentWidth.Standard)`
-            //   to cap content width on tablets/landscape, and (b) horizontal
-            //   centering via Box(TopCenter). Each entry then attaches the
-            //   provided modifier and adds `Modifier.padding(horizontal = Spacing.Screen)`
-            //   for the 16dp gutter.
-            //
-            //   Child Composables MUST NOT re-apply the width cap, the
-            //   centering, or the screen padding. PR #589 doubled the
-            //   Settings card to 32dp by adding a second 16dp wrapper
-            //   inside the screen's content; #593 was the fix.
-            //
-            //   When the future two-pane experiment lands behind a runtime
-            //   toggle, the toggle branches at this layer: single-pane uses
-            //   `RouteContent`, two-pane uses a different wrapper. Screens
-            //   stay layout-agnostic.
-            entryProvider = entryProvider {
-                // All adaptive decisions (size-class branching, merged
-                // routes, per-screen wrapper choice) live in the single
-                // `RouteEntryFor` dispatch table below — these `entry<>`
-                // blocks are uniform call sites.
-                val mode = currentAppLayoutMode()
-                val onPopBack = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) }
-                val routeFor: @Composable (Screen) -> Unit = { screen ->
-                    RouteEntryFor(
-                        screen = screen,
+        val mode = currentAppLayoutMode()
+        // Hoisted so both the rail-mode and bar/none-mode branches below
+        // can render the same NavDisplay without code duplication.
+        // `contentModifier` is what each branch passes (e.g. `Modifier.padding(innerPadding)`
+        // in non-rail modes, vs. a `weight(1f).fillMaxHeight()` chain inside the Row
+        // in rail mode where innerPadding wraps the Row instead).
+        val navDisplay: @Composable (Modifier) -> Unit = { contentModifier ->
+            NavDisplay(
+                backStack = backStack,
+                onBack = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) },
+                transitionSpec = { fadeIn(navTween()) togetherWith fadeOut(navTween()) },
+                popTransitionSpec = { fadeIn(navTween()) togetherWith fadeOut(navTween()) },
+                predictivePopTransitionSpec = { fadeIn(navTween()) togetherWith fadeOut(navTween()) },
+                entryDecorators = listOf(
+                    rememberSaveableStateHolderNavEntryDecorator<NavKey>(),
+                    rememberViewModelStoreNavEntryDecorator<NavKey>(),
+                ),
+                modifier = contentModifier,
+                // Screen-layout convention (single source of truth):
+                //   Each nav entry is wrapped in `RouteContent { ... }` which
+                //   applies (a) `Modifier.widthIn(max = ContentWidth.Standard)`
+                //   to cap content width on tablets/landscape, and (b) horizontal
+                //   centering via Box(TopCenter). Each entry then attaches the
+                //   provided modifier and adds `Modifier.padding(horizontal = Spacing.Screen)`
+                //   for the 16dp gutter.
+                //
+                //   Child Composables MUST NOT re-apply the width cap, the
+                //   centering, or the screen padding. PR #589 doubled the
+                //   Settings card to 32dp by adding a second 16dp wrapper
+                //   inside the screen's content; #593 was the fix.
+                //
+                //   The (Compact / Wide / Expanded) wrapper choice is made
+                //   at the per-route arm in `RouteEntryFor` below; chrome
+                //   placement (bottom bar / left rail / none) is handled
+                //   here at the Scaffold level.
+                entryProvider = entryProvider {
+                    // All adaptive decisions (size-class branching, merged
+                    // routes, per-screen wrapper choice) live in the single
+                    // `RouteEntryFor` dispatch table below — these `entry<>`
+                    // blocks are uniform call sites.
+                    val onPopBack = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) }
+                    val routeFor: @Composable (Screen) -> Unit = { screen ->
+                        RouteEntryFor(
+                            screen = screen,
+                            mode = mode,
+                            onNavigateToFunctionList = { backStack.add(Screen.FunctionList) },
+                            onNavigateToDiagnostics = { backStack.add(Screen.Diagnostics) },
+                            onBack = { onPopBack() },
+                        )
+                    }
+                    entry<Screen.Home> { routeFor(Screen.Home) }
+                    entry<Screen.History> { routeFor(Screen.History) }
+                    entry<Screen.Profile> { routeFor(Screen.Profile) }
+                    entry<Screen.FunctionList> { routeFor(Screen.FunctionList) }
+                    entry<Screen.Diagnostics> { routeFor(Screen.Diagnostics) }
+                },
+            )
+        }
+        when (mode.navPlacement) {
+            AppLayoutMode.NavPlacement.Rail -> {
+                // Rail is a sibling of NavDisplay inside a Row. The Row gets
+                // Scaffold's innerPadding (top from TopAppBar; bottom from
+                // contentWindowInsets default since there's no bottomBar).
+                //
+                // Inset division for the start (cutout / start gesture):
+                //   * The rail's items are pushed inward via NavigationRail's
+                //     `windowInsets = safeDrawing.only(Start)`.
+                //   * The content sibling declares `consumeWindowInsets(start)`
+                //     so RouteContent's `safeDrawing.only(Horizontal)` reading
+                //     transparently shrinks to "end side only" — no double
+                //     padding on the start side.
+                Row(modifier = Modifier.padding(innerPadding)) {
+                    NavigationRailLeft(
+                        currentScreen = backStack.lastOrNull() as? Screen,
+                        onTabSelected = { screen -> TabNavigation.navigateToTab(backStack, screen) },
                         mode = mode,
-                        onNavigateToFunctionList = { backStack.add(Screen.FunctionList) },
-                        onNavigateToDiagnostics = { backStack.add(Screen.Diagnostics) },
-                        onBack = { onPopBack() },
                     )
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
+                    ) {
+                        navDisplay(Modifier.fillMaxSize())
+                    }
                 }
-                entry<Screen.Home> { routeFor(Screen.Home) }
-                entry<Screen.History> { routeFor(Screen.History) }
-                entry<Screen.Profile> { routeFor(Screen.Profile) }
-                entry<Screen.FunctionList> { routeFor(Screen.FunctionList) }
-                entry<Screen.Diagnostics> { routeFor(Screen.Diagnostics) }
-            },
-        )
+            }
+            AppLayoutMode.NavPlacement.Bottom,
+            AppLayoutMode.NavPlacement.None,
+            -> {
+                navDisplay(Modifier.padding(innerPadding))
+            }
+        }
     }
 }
 
@@ -243,6 +297,54 @@ fun BottomNavigationBar(
     NavigationBar {
         mode.visibleTabs.forEach { tab ->
             NavigationBarItem(
+                icon = {
+                    Icon(
+                        imageVector = tab.icon,
+                        contentDescription = tab.label,
+                    )
+                },
+                label = {
+                    Text(
+                        text = tab.label,
+                    )
+                },
+                selected = effectiveScreen == tab.screen,
+                onClick = { onTabSelected(tab.screen) },
+            )
+        }
+    }
+}
+
+/**
+ * Left-rail navigation. Sibling of [BottomNavigationBar] — same
+ * `visibleTabs` source, same `canonicalScreen` highlight rule. Used
+ * by [AppLayoutMode.Wide] (600–1199dp) where horizontal real-estate is
+ * cheap and vertical is precious.
+ *
+ * **Owns the start-edge safe-drawing inset** via [NavigationRail]'s
+ * `windowInsets` parameter. The content sibling in [AppNavigation]
+ * declares `consumeWindowInsets(start)` so [RouteContent] /
+ * [DashboardRouteContent] / [ThreePaneRouteContent]'s `safeDrawing.only(Horizontal)`
+ * reading transparently shrinks to "end side only". Without that
+ * coordination the start cutout would be double-padded.
+ *
+ * Top + bottom safe-drawing insets are owned by the host Scaffold:
+ * the [TopAppBar] consumes the top, and Scaffold's default
+ * `contentWindowInsets` provides the bottom inset via `innerPadding`
+ * (which wraps the entire Row containing rail + content).
+ */
+@Composable
+fun NavigationRailLeft(
+    currentScreen: Screen?,
+    onTabSelected: (Screen) -> Unit,
+    mode: AppLayoutMode = currentAppLayoutMode(),
+) {
+    val effectiveScreen = mode.canonicalScreen(currentScreen)
+    NavigationRail(
+        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Start),
+    ) {
+        mode.visibleTabs.forEach { tab ->
+            NavigationRailItem(
                 icon = {
                     Icon(
                         imageVector = tab.icon,
