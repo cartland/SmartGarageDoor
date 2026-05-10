@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.ui
 
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.di.rememberAppComponent
+import com.chriscartland.garage.ui.auth.rememberAuthTokenCopier
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.ui.theme.safeListContentPadding
@@ -52,6 +54,7 @@ fun FunctionListContent(
     val googleSignIn = rememberGoogleSignIn(
         onTokenReceived = { token -> resolved.signInWithGoogle(token) },
     )
+    val copyAuthToken = rememberAuthTokenCopier()
 
     FunctionListContent(
         modifier = modifier,
@@ -68,6 +71,7 @@ fun FunctionListContent(
         onPruneDiagnosticsLog = resolved::pruneDiagnosticsLog,
         onRegisterFcm = resolved::registerFcm,
         onDeregisterFcm = resolved::deregisterFcm,
+        onCopyAuthToken = copyAuthToken,
     )
 }
 
@@ -87,6 +91,7 @@ fun FunctionListContent(
     onPruneDiagnosticsLog: () -> Unit = {},
     onRegisterFcm: () -> Unit = {},
     onDeregisterFcm: () -> Unit = {},
+    onCopyAuthToken: () -> Unit = {},
 ) {
     if (accessGranted == true) {
         LazyColumn(
@@ -107,6 +112,14 @@ fun FunctionListContent(
             item { FunctionButton("Prune diagnostics log", onPruneDiagnosticsLog) }
             item { FunctionButton("Re-register FCM", onRegisterFcm) }
             item { FunctionButton("Deregister FCM", onDeregisterFcm) }
+            // API-gated to Android 13+ — same redaction-flag rationale as the
+            // Diagnostics surface (see AuthTokenCopier kdoc). Both screens
+            // share rememberAuthTokenCopier() so a regression in the
+            // clipboard / token-fetch path breaks both at once, which is
+            // the verification property the user asked for.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                item { FunctionButton("Copy auth token (sensitive)", onCopyAuthToken) }
+            }
         }
     } else {
         // null = unknown / fetch in flight; false = server denied. Both
@@ -179,6 +192,7 @@ fun FunctionListContentPreview() {
             onPruneDiagnosticsLog = {},
             onRegisterFcm = {},
             onDeregisterFcm = {},
+            onCopyAuthToken = {},
         )
     }
 }
@@ -201,6 +215,7 @@ fun FunctionListContentDeniedPreview() {
             onPruneDiagnosticsLog = {},
             onRegisterFcm = {},
             onDeregisterFcm = {},
+            onCopyAuthToken = {},
         )
     }
 }
