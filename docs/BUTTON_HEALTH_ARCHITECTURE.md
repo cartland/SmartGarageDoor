@@ -115,7 +115,7 @@ response_forbidden_user.json 403
 
 `lastPollAtSeconds` is the unix-seconds timestamp of the most recent device poll the server had observed when the response was assembled. Computed fresh from `RemoteButtonRequestDatabase.getCurrent()` rather than persisted in `buttonHealthCurrent` — avoids ~17K writes/day to one doc just to keep a freshness counter, at the cost of one extra Firestore read per cold-start fetch (negligible).
 
-`UNKNOWN` only appears on the wire when the server has no doc for that `buildTimestamp` (cold-start before first poll seen). Android side: `KtorButtonHealthDataSourceTest` (in `data/src/commonTest/.../buttonhealth/`) loads these in strict mode (`ignoreUnknownKeys = false`); production decode stays `ignoreUnknownKeys = true`. Mocha-side test loads the same fixtures for `httpButtonHealth`.
+`UNKNOWN` only appears on the wire when the server has no doc for that `buildTimestamp` (cold-start before first poll seen). Android side: `KtorButtonHealthDataSourceTest` (in `data/src/commonTest/.../buttonhealth/`) loads these fixtures with `ignoreUnknownKeys = true` (matches production decode) — drift detection comes from deep-equaling decoded values, not from strict-mode field requirements. Mocha-side test loads the same fixtures for `httpButtonHealth`. Trade-off: an additive field like `lastPollAtSeconds` (added in `server/25`) lands without forcing a same-PR Android update; a renamed-or-removed field would still flip the deep-equal assertion. If you ever want strict-mode protection on the Android side too, switch the test's Ktor `Json` config to `ignoreUnknownKeys = false` and update the data class to declare every wire field.
 
 ### FCM payload (data-only)
 
