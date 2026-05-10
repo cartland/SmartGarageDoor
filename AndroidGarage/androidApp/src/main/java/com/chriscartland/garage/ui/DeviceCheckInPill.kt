@@ -18,6 +18,7 @@
 package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -68,6 +69,7 @@ import com.chriscartland.garage.ui.theme.Spacing
 fun DeviceCheckInPill(
     display: DeviceCheckInDisplay,
     modifier: Modifier = Modifier,
+    onTap: (() -> Unit)? = null,
 ) {
     val pillShape = RoundedCornerShape(50)
     val backgroundColor = if (display.isStale) {
@@ -81,10 +83,18 @@ fun DeviceCheckInPill(
         MaterialTheme.colorScheme.onSurfaceVariant
     }
     val showText = display.durationLabel != "No data yet"
+    val baseModifier = modifier
+        .background(color = backgroundColor, shape = pillShape)
+    val tapModifier = if (onTap != null) {
+        Modifier
+            .clickable(onClickLabel = "Show door status info") { onTap() }
+    } else {
+        Modifier
+    }
     CompositionLocalProvider(LocalContentColor provides contentColor) {
         Box(
-            modifier = modifier
-                .background(color = backgroundColor, shape = pillShape)
+            modifier = baseModifier
+                .then(tapModifier)
                 .padding(start = 8.dp, end = 4.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {

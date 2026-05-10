@@ -18,6 +18,7 @@
 package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -74,6 +75,7 @@ import com.chriscartland.garage.usecase.ButtonHealthDisplay
 fun RemoteButtonHealthPill(
     display: ButtonHealthDisplay,
     modifier: Modifier = Modifier,
+    onTap: (() -> Unit)? = null,
 ) {
     val pillShape = RoundedCornerShape(50)
     val isOffline = display is ButtonHealthDisplay.Offline
@@ -88,10 +90,18 @@ fun RemoteButtonHealthPill(
         MaterialTheme.colorScheme.onSurfaceVariant
     }
     val (label, icon, iconDescription) = RemoteButtonHealthPillContents.from(display)
+    val baseModifier = modifier
+        .background(color = backgroundColor, shape = pillShape)
+    val tapModifier = if (onTap != null) {
+        Modifier
+            .clickable(onClickLabel = "Show remote control info") { onTap() }
+    } else {
+        Modifier
+    }
     CompositionLocalProvider(LocalContentColor provides contentColor) {
         Box(
-            modifier = modifier
-                .background(color = backgroundColor, shape = pillShape)
+            modifier = baseModifier
+                .then(tapModifier)
                 .padding(start = 8.dp, end = 4.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
