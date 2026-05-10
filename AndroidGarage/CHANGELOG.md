@@ -15,6 +15,12 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.16.14
+- **Internal: PR-time guardrails against the inset-bridge regression class.** Two pieces of dev infrastructure (no user-visible change in this release):
+  - **Lint:** `checkNoRawSafeDrawingPaddingValues` (in `validate.sh`) forbids direct `WindowInsets.<x>.asPaddingValues()` reads in app code outside `Spacing.kt`. That's the literal anti-pattern that broke 2.16.12 (the helper was non-consumption-aware and double-padded the status bar). The `safeListContentPadding()` helper + `LocalContentEdgeInsets` bridge are the sanctioned alternatives.
+  - **Canary fixture:** `SafeListContentPaddingCanaryPreview` is a synthetic side-by-side screenshot fixture that visualizes `safeListContentPadding()` directly. Left half: no inset → 24dp red bottom band. Right half: `PreviewWithSimulatedInsets(48.dp)` → 72dp red bottom band. The visible diff between halves in a single PNG is the proof the bridge is intact; if they ever render identically the bridge broke.
+  - Both were the agent-team's recommendation B from the verification-gap review after 2.16.12 / 2.16.13. CLAUDE.md "Device-only behavior needs a pre-release verification design" already codifies the meta-rule.
+
 ## 2.16.13
 - **Fix: top padding regression on every screen-level scrollable.** 2.16.12 added ~24dp of unwanted padding above the first item on Home, History, Settings, and Function list. Cause: the new `safeListContentPadding()` helper read `WindowInsets.safeDrawing.asPaddingValues()` which is NOT consumption-aware — it returned the raw status-bar inset even though the TopAppBar already covered it visually, double-padding by the status-bar height. Fix: introduce `LocalContentEdgeInsets` CompositionLocal in `Spacing.kt`; the Scaffold body wrapper publishes per-mode what edge insets the leaves should observe (Compact: zero, since topBar/bottomBar handle both; Rail/None: bottom only, for gesture-nav clearance). Top is hardcoded 8dp at the leaf — TopAppBar always covers the status bar. Bottom edge-to-edge intent from 2.16.12 preserved.
 
