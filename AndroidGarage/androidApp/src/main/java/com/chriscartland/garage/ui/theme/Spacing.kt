@@ -20,11 +20,9 @@ package com.chriscartland.garage.ui.theme
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.dp
 
 /**
@@ -102,29 +100,50 @@ object Spacing {
 }
 
 /**
+ * Bottom-edge inset that screen-level scrollable leaves should observe,
+ * propagated from `Main.kt`'s Scaffold body wrapper. Per layout mode:
+ *  - Compact (bottom bar present): default `WindowInsets(0)` — the
+ *    bottomBar covers the gesture-nav region, so leaves don't add any
+ *    system inset themselves.
+ *  - Rail / None (no bottom bar): provided as
+ *    `WindowInsets.safeDrawing.only(Bottom)` — the gesture-nav reaches
+ *    the leaf, which then adds it as `contentPadding` so the last item
+ *    can scroll past it into the safe area.
+ *
+ * **Why this exists instead of `WindowInsets.safeDrawing.asPaddingValues()` direct**:
+ * `asPaddingValues()` reads the raw view-level safeDrawing — it is NOT
+ * consumption-aware (`Modifier.consumeWindowInsets(...)` upstream does
+ * not affect what `asPaddingValues()` returns). In Compact mode, the
+ * topBar / bottomBar visible padding handles the system inset
+ * structurally, but `asPaddingValues()` would still report the raw
+ * value, causing scrollable leaves to double-pad. This local breaks
+ * the cycle: the body wrapper explicitly declares what insets the
+ * leaves should observe, decoupling the leaf's padding math from
+ * raw window insets.
+ *
+ * **Top is never propagated to leaves.** The TopAppBar always handles
+ * the status-bar inset (in every layout mode), so [safeListContentPadding]
+ * always returns the same 8dp top — no system inset is added there.
+ * This local only carries the bottom inset for now.
+ */
+val LocalContentEdgeInsets: ProvidableCompositionLocal<WindowInsets> =
+    staticCompositionLocalOf { WindowInsets(0) }
+
+/**
  * Edge-to-edge `contentPadding` for screen-level scrollables.
  *
  * Combines the existing [Spacing.ListContentPadding] visual chrome
- * clearance (8dp top, 24dp bottom) with [WindowInsets.safeDrawing] —
- * the system-level safe area (gesture nav, status bar, display cutout,
- * IME). The scrollable's content drawing area extends edge-to-edge,
- * but the **scrollable padding** keeps the first/last items reachable
- * in the unobstructed region (last item can scroll up past the gesture
- * nav, first can scroll down past the topAppBar).
+ * clearance (8dp top, 24dp bottom) with the bottom inset published by
+ * the Scaffold body wrapper via [LocalContentEdgeInsets]. The
+ * scrollable's content drawing area extends edge-to-edge in Wide /
+ * Expanded modes; the **scrollable padding** keeps the last item
+ * reachable in the unobstructed region (it can scroll up past the
+ * gesture nav into the safe area).
  *
- * **Inset-propagation contract** (see CLAUDE.md):
- *  * Outer layout (Scaffold body, route wrapper) consumes whatever it
- *    structurally handles via `Modifier.consumeWindowInsets(...)` or
- *    `Modifier.windowInsetsPadding(...)`.
- *  * This helper reads `WindowInsets.safeDrawing` AFTER that consumption,
- *    so values reflect only what's still occluded by the system.
- *  * In Compact mode (bottom bar), the body container consumes the bottom
- *    inset — `safeDrawing.bottom` here is 0, the helper returns the same
- *    8/24dp values as the legacy [Spacing.ListContentPadding].
- *  * In Wide / Expanded modes (no bottom bar), nothing consumes the
- *    bottom inset — `safeDrawing.bottom` here equals the gesture nav
- *    height, the helper adds it to the 24dp bottom clearance, and the
- *    last item can scroll past the gesture nav into the safe area.
+ * **Top is always 8dp** — the TopAppBar covers the status-bar inset
+ * in every mode, so the leaf never needs to add it. Bottom adds the
+ * propagated edge inset (zero in Compact, gesture-nav in Rail/None) on
+ * top of the 24dp visual chrome clearance.
  *
  * Composables call this instead of [Spacing.ListContentPadding] when
  * the scrollable's bottom edge reaches the body's bottom edge (i.e.
@@ -133,13 +152,12 @@ object Spacing {
  */
 @Composable
 fun safeListContentPadding(): PaddingValues {
-    val safe = WindowInsets.safeDrawing.asPaddingValues()
-    val layoutDirection = LocalLayoutDirection.current
+    val edgeInsets = LocalContentEdgeInsets.current.asPaddingValues()
     return PaddingValues(
-        start = safe.calculateStartPadding(layoutDirection),
-        end = safe.calculateEndPadding(layoutDirection),
-        top = safe.calculateTopPadding() + 8.dp,
-        bottom = safe.calculateBottomPadding() + 24.dp,
+        // Top is always handled by the TopAppBar; never propagate
+        // the status-bar inset down to the leaf.
+        top = 8.dp,
+        bottom = edgeInsets.calculateBottomPadding() + 24.dp,
     )
 }
 
