@@ -101,6 +101,9 @@ describe('handleCheckButtonHealth (pubsub state-machine rows 1:1)', () => {
     expect(healthDB.saved[0][1].state).to.equal('OFFLINE');
     expect(fcm.sends).to.have.length(1);
     expect(fcm.sends[0].record.state).to.equal('OFFLINE');
+    // lastPollAtSeconds carries the timestamp of the last (now-stale) poll —
+    // exactly what the OFFLINE label wants ("last seen 2 min ago").
+    expect(fcm.sends[0].lastPollAtSeconds).to.equal(now - 120);
   });
 
   it('row 3: pubsub no poll record + no prior buttonHealth doc -> OFFLINE + FCM', async () => {
@@ -111,6 +114,8 @@ describe('handleCheckButtonHealth (pubsub state-machine rows 1:1)', () => {
     expect(healthDB.saved[0][1].state).to.equal('OFFLINE');
     expect(fcm.sends).to.have.length(1);
     expect(fcm.sends[0].record.state).to.equal('OFFLINE');
+    // No poll record exists — lastPollAtSeconds is null.
+    expect(fcm.sends[0].lastPollAtSeconds).to.equal(null);
   });
 
   // Additional coverage beyond the table — kill switch and bootstrap edges.
@@ -137,6 +142,7 @@ describe('handleCheckButtonHealth (pubsub state-machine rows 1:1)', () => {
     expect(healthDB.saved[0][1].state).to.equal('ONLINE');
     expect(fcm.sends).to.have.length(1);
     expect(fcm.sends[0].record.state).to.equal('ONLINE');
+    expect(fcm.sends[0].lastPollAtSeconds).to.equal(now - 10);
   });
 
   it('OFFLINE -> ONLINE recovery (the pubsub-side fallback for missed trigger)', async () => {
@@ -150,6 +156,7 @@ describe('handleCheckButtonHealth (pubsub state-machine rows 1:1)', () => {
     expect(healthDB.saved[0][1].state).to.equal('ONLINE');
     expect(fcm.sends).to.have.length(1);
     expect(fcm.sends[0].record.state).to.equal('ONLINE');
+    expect(fcm.sends[0].lastPollAtSeconds).to.equal(now - 10);
   });
 
   it('preserves stateChangedAtSeconds on no-op writes (OFFLINE -> OFFLINE)', async () => {

@@ -14,13 +14,21 @@ import { TopicMessage } from '../../src/model/FCM';
 
 export class FakeButtonHealthFCMService implements ButtonHealthFCMService {
   /** Audit log of all sendForTransition() calls. */
-  readonly sends: Array<{ buildTimestamp: string; record: ButtonHealthRecord }> = [];
+  readonly sends: Array<{
+    buildTimestamp: string;
+    record: ButtonHealthRecord;
+    lastPollAtSeconds: number | null;
+  }> = [];
 
-  async sendForTransition(buildTimestamp: string, record: ButtonHealthRecord): Promise<TopicMessage> {
-    this.sends.push({ buildTimestamp, record });
+  async sendForTransition(
+    buildTimestamp: string,
+    record: ButtonHealthRecord,
+    lastPollAtSeconds: number | null,
+  ): Promise<TopicMessage> {
+    this.sends.push({ buildTimestamp, record, lastPollAtSeconds });
     // Return the same payload the production impl would build, so callers
     // that inspect the return value see realistic data.
-    return buildTransitionPayload(buildTimestamp, record);
+    return buildTransitionPayload(buildTimestamp, record, lastPollAtSeconds);
   }
 
   /** Test-only helper: wipe audit logs. */

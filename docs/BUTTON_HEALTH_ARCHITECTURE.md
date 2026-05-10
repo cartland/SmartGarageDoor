@@ -32,10 +32,10 @@ One constant: `ONLINE_THRESHOLD_SEC = 60`.
 | Trigger source | Condition | New persisted state | FCM |
 |---|---|---|---|
 | Firestore trigger (poll arrived) | always | `ONLINE` | only on transition |
-| Pubsub (every 10 min) | last poll ≤ 60 sec ago | `ONLINE` | only on transition |
-| Pubsub (every 10 min) | last poll > 60 sec ago OR no poll record | `OFFLINE` | only on transition |
+| Pubsub (every 1 min) | last poll ≤ 60 sec ago | `ONLINE` | only on transition |
+| Pubsub (every 1 min) | last poll > 60 sec ago OR no poll record | `OFFLINE` | only on transition |
 
-No-op writes (state unchanged) MUST NOT bump `stateChangedAtSeconds` and MUST NOT send FCM. Worst-case `OFFLINE`-detection latency: ~10 min. Trigger-side recovery is sub-second.
+No-op writes (state unchanged) MUST NOT bump `stateChangedAtSeconds` and MUST NOT send FCM. Worst-case `OFFLINE`-detection latency: ~1 min (tightened from 10 min on 2026-05-10). Trigger-side recovery is sub-second.
 
 ## Why a Firestore trigger, not an HTTP-handler modification
 
@@ -106,12 +106,14 @@ export function buildTimestampToButtonHealthFcmTopic(buildTimestamp: string): st
 NEW directory `wire-contracts/buttonHealth/`:
 
 ```
-response_online.json         { buttonState: "ONLINE",  stateChangedAtSeconds: <n>,    buildTimestamp: "..." }
-response_offline.json        { buttonState: "OFFLINE", stateChangedAtSeconds: <n>,    buildTimestamp: "..." }
-response_unknown.json        { buttonState: "UNKNOWN", stateChangedAtSeconds: null,   buildTimestamp: "..." }
+response_online.json         { buttonState: "ONLINE",  stateChangedAtSeconds: <n>,    buildTimestamp: "...", lastPollAtSeconds: <n> }
+response_offline.json        { buttonState: "OFFLINE", stateChangedAtSeconds: <n>,    buildTimestamp: "...", lastPollAtSeconds: <n> }
+response_unknown.json        { buttonState: "UNKNOWN", stateChangedAtSeconds: null,   buildTimestamp: "...", lastPollAtSeconds: null }
 response_unauthorized.json   401
 response_forbidden_user.json 403
 ```
+
+`lastPollAtSeconds` is the unix-seconds timestamp of the most recent device poll the server had observed when the response was assembled. Computed fresh from `RemoteButtonRequestDatabase.getCurrent()` rather than persisted in `buttonHealthCurrent` — avoids ~17K writes/day to one doc just to keep a freshness counter, at the cost of one extra Firestore read per cold-start fetch (negligible).
 
 `UNKNOWN` only appears on the wire when the server has no doc for that `buildTimestamp` (cold-start before first poll seen). Android side: `KtorButtonHealthDataSourceTest` (in `data/src/commonTest/.../buttonhealth/`) loads these in strict mode (`ignoreUnknownKeys = false`); production decode stays `ignoreUnknownKeys = true`. Mocha-side test loads the same fixtures for `httpButtonHealth`.
 
@@ -123,13 +125,14 @@ response_forbidden_user.json 403
   "data": {
     "buttonState": "ONLINE" | "OFFLINE",
     "stateChangedAtSeconds": "<epoch-seconds>",
-    "buildTimestamp": "<original-buildTimestamp>"
+    "buildTimestamp": "<original-buildTimestamp>",
+    "lastPollAtSeconds": "<epoch-seconds>"
   },
   "android": { "priority": "HIGH", "collapse_key": "button_health_update" }
 }
 ```
 
-`UNKNOWN` is never sent over FCM.
+`UNKNOWN` is never sent over FCM. `lastPollAtSeconds` is omitted from the data payload when null (bootstrap edge: device has never polled, but pubsub flipped to OFFLINE anyway). Mobile parser treats missing key as null.
 
 ### Pubsub test convention
 

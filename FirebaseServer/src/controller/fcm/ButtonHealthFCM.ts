@@ -25,12 +25,20 @@ import { buildTimestampToButtonHealthFcmTopic } from '../../model/ButtonHealthFc
  * never sent over FCM (it's a wire/Android concern only).
  */
 export interface ButtonHealthFCMService {
-  sendForTransition(buildTimestamp: string, record: ButtonHealthRecord): Promise<TopicMessage>;
+  sendForTransition(
+    buildTimestamp: string,
+    record: ButtonHealthRecord,
+    lastPollAtSeconds: number | null,
+  ): Promise<TopicMessage>;
 }
 
 class DefaultButtonHealthFCMService implements ButtonHealthFCMService {
-  async sendForTransition(buildTimestamp: string, record: ButtonHealthRecord): Promise<TopicMessage> {
-    const message = buildTransitionPayload(buildTimestamp, record);
+  async sendForTransition(
+    buildTimestamp: string,
+    record: ButtonHealthRecord,
+    lastPollAtSeconds: number | null,
+  ): Promise<TopicMessage> {
+    const message = buildTransitionPayload(buildTimestamp, record, lastPollAtSeconds);
     console.log('Sending button health FCM', JSON.stringify(message));
     await firebase.messaging().send(message)
       .then((response) => {
@@ -46,7 +54,7 @@ class DefaultButtonHealthFCMService implements ButtonHealthFCMService {
 let _instance: ButtonHealthFCMService = new DefaultButtonHealthFCMService();
 
 export const SERVICE: ButtonHealthFCMService = {
-  sendForTransition: (t, r) => _instance.sendForTransition(t, r),
+  sendForTransition: (t, r, lp) => _instance.sendForTransition(t, r, lp),
 };
 
 /** TEST-ONLY: swap in a fake implementation. */
@@ -59,15 +67,33 @@ export function resetImpl(): void { _instance = new DefaultButtonHealthFCMServic
  * Pure helper — builds the FCM payload for a button health transition.
  * No side effects. Covered by ButtonHealthFCMTest.ts and reused by
  * DefaultButtonHealthFCMService.
+ *
+ * `lastPollAtSeconds` is the unix-seconds timestamp of the most recent
+ * device poll the server had observed at the moment of transition. For
+ * an OFFLINE transition this is "when the device was last seen alive."
+ * For an ONLINE transition this is "the poll that brought it back."
+ * Null only when no poll record exists at all (bootstrap edge).
+ *
+ * FCM data values must be strings — `lastPollAtSeconds` is serialized
+ * to a string when present, omitted entirely when null (mobile parser
+ * treats missing key as null).
  */
-export function buildTransitionPayload(buildTimestamp: string, record: ButtonHealthRecord): TopicMessage {
+export function buildTransitionPayload(
+  buildTimestamp: string,
+  record: ButtonHealthRecord,
+  lastPollAtSeconds: number | null,
+): TopicMessage {
   const message = <TopicMessage>{};
   message.topic = buildTimestampToButtonHealthFcmTopic(buildTimestamp);
-  message.data = {
+  const data: { [k: string]: string } = {
     buttonState: record.state,
     stateChangedAtSeconds: String(record.stateChangedAtSeconds),
     buildTimestamp: buildTimestamp,
   };
+  if (lastPollAtSeconds !== null) {
+    data.lastPollAtSeconds = String(lastPollAtSeconds);
+  }
+  message.data = data;
   message.android = <AndroidConfig>{};
   message.android.collapse_key = 'button_health_update';
   message.android.priority = AndroidMessagePriority.HIGH;

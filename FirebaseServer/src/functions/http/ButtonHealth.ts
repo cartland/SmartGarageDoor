@@ -12,6 +12,7 @@ import * as functions from 'firebase-functions/v1';
 
 import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
 import { DATABASE as BUTTON_HEALTH_DATABASE } from '../../database/ButtonHealthDatabase';
+import { DATABASE as REMOTE_BUTTON_REQUEST_DATABASE } from '../../database/RemoteButtonRequestDatabase';
 import {
   isRemoteButtonEnabled,
   getRemoteButtonPushKey,
@@ -22,6 +23,7 @@ import { SERVICE as AuthService } from '../../controller/AuthService';
 import { HandlerResult, ok, err } from '../HandlerResult';
 
 const BUILD_TIMESTAMP_PARAM_KEY = 'buildTimestamp';
+const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 
 /**
  * Cold-start endpoint for mobile clients. Returns the current health
@@ -79,18 +81,27 @@ export async function handleButtonHealth(input: {
   }
 
   const record = await BUTTON_HEALTH_DATABASE.getCurrent(buildTimestamp);
+  // `lastPollAtSeconds` is computed fresh from the polling history rather
+  // than persisted in `buttonHealthCurrent` — this avoids ~17K Firestore
+  // writes/day to one doc just to keep a freshness counter, at the cost of
+  // one extra Firestore read per cold-start fetch (low frequency).
+  const latestRequest = await REMOTE_BUTTON_REQUEST_DATABASE.getCurrent(buildTimestamp);
+  const lastPollAtSeconds: number | null =
+    latestRequest?.[DATABASE_TIMESTAMP_SECONDS_KEY] ?? null;
   if (!record) {
     // No doc yet — wire returns UNKNOWN per the design's bootstrap behavior.
     return ok({
       buildTimestamp,
       buttonState: 'UNKNOWN',
       stateChangedAtSeconds: null,
+      lastPollAtSeconds,
     });
   }
   return ok({
     buildTimestamp,
     buttonState: record.state,
     stateChangedAtSeconds: record.stateChangedAtSeconds,
+    lastPollAtSeconds,
   });
 }
 

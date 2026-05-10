@@ -22,11 +22,16 @@ import {
   resetImpl as resetButtonHealthDBImpl,
 } from '../../../src/database/ButtonHealthDatabase';
 import {
+  setImpl as setRemoteButtonRequestDBImpl,
+  resetImpl as resetRemoteButtonRequestDBImpl,
+} from '../../../src/database/RemoteButtonRequestDatabase';
+import {
   setImpl as setAuthServiceImpl,
   resetImpl as resetAuthServiceImpl,
 } from '../../../src/controller/AuthService';
 import { FakeServerConfigDatabase } from '../../fakes/FakeServerConfigDatabase';
 import { FakeButtonHealthDatabase } from '../../fakes/FakeButtonHealthDatabase';
+import { FakeRemoteButtonRequestDatabase } from '../../fakes/FakeRemoteButtonRequestDatabase';
 import { FakeAuthService } from '../../fakes/FakeAuthService';
 
 const ALLOWED_EMAIL = 'allowed@example.com';
@@ -53,18 +58,26 @@ const FORBIDDEN_USER_FIXTURE = JSON.parse(
   fs.readFileSync(path.join(FIXTURE_DIR, 'response_forbidden_user.json'), 'utf8'),
 );
 
+// Pinned for deterministic deep-equal against the wire-contract fixtures.
+const FIXTURE_LAST_POLL_ONLINE = 1730000500;
+const FIXTURE_LAST_POLL_OFFLINE = 1729999700;
+const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
+
 describe('handleButtonHealth (pure handler core)', () => {
   let fakeConfig: FakeServerConfigDatabase;
   let fakeAuth: FakeAuthService;
   let fakeHealthDB: FakeButtonHealthDatabase;
+  let fakeRequestDB: FakeRemoteButtonRequestDatabase;
 
   beforeEach(() => {
     fakeConfig = new FakeServerConfigDatabase();
     fakeAuth = new FakeAuthService();
     fakeHealthDB = new FakeButtonHealthDatabase();
+    fakeRequestDB = new FakeRemoteButtonRequestDatabase();
     setServerConfigDBImpl(fakeConfig);
     setAuthServiceImpl(fakeAuth);
     setButtonHealthDBImpl(fakeHealthDB);
+    setRemoteButtonRequestDBImpl(fakeRequestDB);
     fakeConfig.seed({
       body: {
         remoteButtonEnabled: true,
@@ -79,6 +92,7 @@ describe('handleButtonHealth (pure handler core)', () => {
     resetServerConfigDBImpl();
     resetAuthServiceImpl();
     resetButtonHealthDBImpl();
+    resetRemoteButtonRequestDBImpl();
   });
 
   const happyInput = (overrides: any = {}) => ({
@@ -159,6 +173,9 @@ describe('handleButtonHealth (pure handler core)', () => {
       state: 'ONLINE',
       stateChangedAtSeconds: 1730000000,
     });
+    fakeRequestDB.seed(BUILD_TIMESTAMP, {
+      [DATABASE_TIMESTAMP_SECONDS_KEY]: FIXTURE_LAST_POLL_ONLINE,
+    });
     const result = await handleButtonHealth(happyInput());
     expect(result).to.deep.equal({ kind: 'ok', data: ONLINE_FIXTURE });
   });
@@ -168,13 +185,53 @@ describe('handleButtonHealth (pure handler core)', () => {
       state: 'OFFLINE',
       stateChangedAtSeconds: 1730000000,
     });
+    fakeRequestDB.seed(BUILD_TIMESTAMP, {
+      [DATABASE_TIMESTAMP_SECONDS_KEY]: FIXTURE_LAST_POLL_OFFLINE,
+    });
     const result = await handleButtonHealth(happyInput());
     expect(result).to.deep.equal({ kind: 'ok', data: OFFLINE_FIXTURE });
   });
 
   it('returns the UNKNOWN fixture when no buttonHealthCurrent doc exists', async () => {
-    // No fakeHealthDB.seed call.
+    // No fakeHealthDB.seed and no fakeRequestDB.seed — neither doc exists.
+    // Both stateChangedAtSeconds and lastPollAtSeconds are null on the wire.
     const result = await handleButtonHealth(happyInput());
     expect(result).to.deep.equal({ kind: 'ok', data: UNKNOWN_FIXTURE });
+  });
+
+  it('reads lastPollAtSeconds from RemoteButtonRequestDatabase, not from the health doc', async () => {
+    // The health doc's stateChangedAtSeconds may be hours old (steady ONLINE);
+    // lastPollAtSeconds reflects the freshest poll the server has seen.
+    const stateChangeTs = 1700000000;
+    const freshPollTs = 1730005000;
+    fakeHealthDB.seed(BUILD_TIMESTAMP, {
+      state: 'ONLINE',
+      stateChangedAtSeconds: stateChangeTs,
+    });
+    fakeRequestDB.seed(BUILD_TIMESTAMP, {
+      [DATABASE_TIMESTAMP_SECONDS_KEY]: freshPollTs,
+    });
+    const result = await handleButtonHealth(happyInput());
+    expect(result).to.deep.equal({
+      kind: 'ok',
+      data: {
+        buildTimestamp: BUILD_TIMESTAMP,
+        buttonState: 'ONLINE',
+        stateChangedAtSeconds: stateChangeTs,
+        lastPollAtSeconds: freshPollTs,
+      },
+    });
+  });
+
+  it('returns lastPollAtSeconds: null when no poll record exists yet (edge: device has never polled)', async () => {
+    fakeHealthDB.seed(BUILD_TIMESTAMP, {
+      state: 'OFFLINE',
+      stateChangedAtSeconds: 1730000000,
+    });
+    // No requestDB.seed — RemoteButtonRequestDatabase.getCurrent returns null.
+    const result = await handleButtonHealth(happyInput());
+    expect(result.kind).to.equal('ok');
+    if (result.kind !== 'ok') return;
+    expect(result.data.lastPollAtSeconds).to.equal(null);
   });
 });

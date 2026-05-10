@@ -21,7 +21,7 @@ import { isRemoteButtonEnabled, getRemoteButtonBuildTimestamp, requireBuildTimes
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 
 /**
- * Pure handler core for the every-10-min sweep.
+ * Pure handler core for the every-minute sweep.
  *
  * Reads the latest poll record + the prior persisted health state,
  * computes the new state via the same pure function the trigger uses,
@@ -52,12 +52,16 @@ export async function handleCheckButtonHealth(): Promise<void> {
   const { didTransition, newRecord } = detectTransition(prior, computed, nowSeconds);
   if (didTransition) {
     await BUTTON_HEALTH_DATABASE.save(buildTimestamp, newRecord);
-    await ButtonHealthFCMService.sendForTransition(buildTimestamp, newRecord);
+    await ButtonHealthFCMService.sendForTransition(buildTimestamp, newRecord, lastPollSeconds);
   }
 }
 
+// Schedule cadence is the OFFLINE-detection ceiling. Tightened from
+// 10 min to 1 min on 2026-05-10 to bound worst-case OFFLINE-detection
+// latency to ~1 min. Cost: ~1.4K invocations/day (well under free
+// tier). Cannot affect device path. See BUTTON_HEALTH_ARCHITECTURE.md.
 export const pubsubCheckButtonHealth = functions.pubsub
-  .schedule('every 10 minutes').timeZone('America/Los_Angeles')
+  .schedule('every 1 minutes').timeZone('America/Los_Angeles')
   .onRun(async (_context) => {
     await handleCheckButtonHealth();
     return null;
