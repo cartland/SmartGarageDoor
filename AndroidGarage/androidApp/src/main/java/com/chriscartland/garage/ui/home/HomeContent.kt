@@ -496,7 +496,7 @@ private object HomePreviewData {
         doorPosition = DoorPosition.OPENING_TOO_LONG,
         stateLabel = "Opening",
         sinceLine = "Since 12:01 PM · 4 min",
-        warning = "Taking longer than expected — check the door for obstructions",
+        warning = "Taking longer than expected. Check the door for obstructions.",
     )
     val staleAlert = HomeAlert.Stale()
     val permissionAlert = HomeAlert.PermissionMissing(

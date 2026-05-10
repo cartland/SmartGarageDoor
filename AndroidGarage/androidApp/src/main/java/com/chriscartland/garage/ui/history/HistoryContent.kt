@@ -79,7 +79,7 @@ sealed interface HistoryEntry {
      *   is still open. Drives "Open · Since X" wording instead of past-tense
      *   "Opened at X".
      * @param transitWarning non-null when an `OPENING_TOO_LONG` was merged
-     *   into this Opened row — e.g. "Took 4 min to open — longer than
+     *   into this Opened row. Example: "Took 4 min to open, longer than
      *   expected." Rendered as a warning tag below the duration.
      */
     data class Opened(

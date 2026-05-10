@@ -119,8 +119,8 @@ fun FunctionListContent(
 @Composable
 private fun FunctionListWarning() {
     Text(
-        text = "Each button below performs a real action immediately — no " +
-            "confirmation prompts. Tapping triggers calls to the server, " +
+        text = "Each button below performs a real action immediately. " +
+            "No confirmation prompts. Tapping triggers calls to the server, " +
             "modifies app state, or wipes local data. Double-check the label " +
             "before tapping.",
         style = MaterialTheme.typography.bodyMedium,
