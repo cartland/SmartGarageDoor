@@ -15,6 +15,11 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.16.11
+- **Navigation rail items (Wide mode) now sit at the rail's vertical midpoint instead of the top.** M3-canonical pattern for rails with few items (Gmail / YouTube tablet layouts). With only Home + Settings, the icon-vs-content alignment problem goes away — rail items in one vertical zone, content at the body's top, no eye-level comparison.
+- **Internal: `Spacer(Modifier.weight(1f))` above and below the items inside `NavigationRail`'s `ColumnScope` content slot.** Replaces the earlier empirical-Spacer-in-header attempt, which depended on M3's private `NavigationRailVerticalPadding` (4dp) + `NavigationRailHeaderPadding` (8dp) constants and would drift when M3 changes them. Centering removes the alignment goal entirely.
+- **Internal: 6 screenshot reference PNGs regenerated** for the rail single-pane and rail-dashboard previews (light + dark each).
+
 ## 2.16.10
 - **Wide-mode (600–1199dp) navigation moves from the bottom bar to a left-side rail.** Phones in landscape (~916dp), foldables open in landscape (~1132dp), and tablets in portrait (~800dp) now show `NavigationRail` on the start edge with the same Home + Settings tabs the bottom bar carried in Wide mode (History merged into the Home dashboard, unchanged). Compact phones (<600dp) keep the bottom bar; Expanded tablets (≥1200dp, 3-pane dashboard) keep no chrome — both unchanged.
 - **Internal: `AppLayoutMode.NavPlacement` enum (`Bottom` / `Rail` / `None`) + per-mode `navPlacement` property.** Single source of truth for chrome placement, parallel to the existing `visibleTabs` and `mergedRoutes`. The Scaffold's `bottomBar` slot keys off `navPlacement == Bottom`; Wide wraps `NavDisplay` in a `Row` with `NavigationRailLeft` as a sibling.
