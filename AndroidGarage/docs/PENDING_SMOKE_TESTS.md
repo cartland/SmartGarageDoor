@@ -19,7 +19,7 @@ User-facing changes that have shipped to the **internal Play Store track** but n
 
 **Why this lives in the repo, not memory:** the smoke queue is project-specific TODO state. Agents should not write it to memory (see `feedback_dump_context_repo_first.md`); the user maintains it across sessions and across machines.
 
-## Cumulative queue (8 items, last updated 2026-05-10 after `android/225` / 2.16.11)
+## Cumulative queue (9 items, last updated 2026-05-10 after `android/226` / 2.16.12)
 
 Recommend testing all of these in one device session — most can be exercised in a few minutes by rotating, tapping, and watching the network log.
 
@@ -31,6 +31,7 @@ Recommend testing all of these in one device session — most can be exercised i
 6. **Info bottom sheets (2.16.8 / `android/222` + 2.16.9 / `android/223` strings)** — tap Status pill: opens "Door status" sheet (lowercase 's', 2 paragraphs, no em dash). Tap Remote control pill: opens "Remote control" sheet (2 paragraphs, no em dash). Outside-tap and drag-down both dismiss. Sheet scrolls if viewport is short (landscape phone, large font scale).
 7. **Navigation rail in Wide mode (2.16.10 / `android/224`)** — rotate Pixel 9 Pro to landscape (~916dp): bottom bar disappears, `NavigationRail` appears on the start edge with Home + Settings tabs, Home highlighted. Tap Settings: rail item highlights, content swaps. Rotate back to portrait: rail disappears, bottom bar returns. Verify on a hole-punch phone in landscape: no double-padding on the rail-side cutout (rail items shifted inward, content not padded again).
 8. **Rail items vertically centered (2.16.11 / `android/225`)** — in landscape, the Home + Settings rail items should sit at the rail's vertical midpoint, not at the top. The bottom-bar version (Compact / portrait) is unaffected and still shows tabs anchored at the bottom.
+9. **Edge-to-edge content (2.16.12 / `android/226`)** — landscape (Wide mode, no bottom bar). Open Home or History; scroll the list **all the way to the bottom**. The last item should be reachable in the unobstructed area above the gesture nav (no harsh cutoff). Mid-scroll, items should draw under the gesture nav (visible-but-unsafe area). Portrait (Compact) should be unchanged — bottom bar covers the bottom, items scroll under it as before. **This is a verification-gap item — Compose previews render with zero system insets, so the bug only appeared after release.** Going forward, screenshot fixtures with simulated insets should be added so the next change of this kind catches at PR time. See `feedback_verify_before_release.md`.
 
 ## Open follow-ups (release-related but not smoke-test items)
 
