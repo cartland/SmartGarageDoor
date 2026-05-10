@@ -122,7 +122,7 @@ class HomeMapperTest {
     @Test
     fun warning_openingTooLong_falls_back_to_default_when_message_null() {
         val w = HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.OPENING_TOO_LONG))
-        assertEquals("Opening — taking longer than expected", w)
+        assertEquals("Opening, taking longer than expected", w)
     }
 
     @Test
@@ -130,13 +130,13 @@ class HomeMapperTest {
         val w = HomeMapper.warning(
             DoorEvent(doorPosition = DoorPosition.OPENING_TOO_LONG, message = "   "),
         )
-        assertEquals("Opening — taking longer than expected", w)
+        assertEquals("Opening, taking longer than expected", w)
     }
 
     @Test
     fun warning_closingTooLong_default() {
         val w = HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.CLOSING_TOO_LONG))
-        assertEquals("Closing — taking longer than expected", w)
+        assertEquals("Closing, taking longer than expected", w)
     }
 
     @Test
@@ -148,7 +148,7 @@ class HomeMapperTest {
     @Test
     fun warning_sensorConflict_default() {
         val w = HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.ERROR_SENSOR_CONFLICT))
-        assertEquals("Sensor conflict — check the door", w)
+        assertEquals("Sensor conflict. Check the door.", w)
     }
 
     @Test

@@ -388,7 +388,7 @@ object HistoryMapper {
                 ),
                 isCurrent = isCurrent,
                 transitWarning = r.transitDurationSeconds?.let {
-                    "Took ${formatTransitDuration(it)} to open — longer than expected"
+                    "Took ${formatTransitDuration(it)} to open, longer than expected"
                 },
                 misaligned = r.misaligned,
             )
@@ -401,7 +401,7 @@ object HistoryMapper {
                 ),
                 isCurrent = isCurrent,
                 transitWarning = r.transitDurationSeconds?.let {
-                    "Took ${formatTransitDuration(it)} to close — longer than expected"
+                    "Took ${formatTransitDuration(it)} to close, longer than expected"
                 },
             )
             is MergedRecord.Anomaly -> HistoryEntry.Anomaly(

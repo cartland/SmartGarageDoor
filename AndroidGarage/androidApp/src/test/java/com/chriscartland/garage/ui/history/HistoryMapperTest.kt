@@ -766,7 +766,7 @@ class HistoryMapperTest {
         )
         val days = HistoryMapper.toHistoryDays(events, now, zone)
         val opened = days[0].entries.last() as HistoryEntry.Opened
-        assertEquals("Took 4 min to open — longer than expected", opened.transitWarning)
+        assertEquals("Took 4 min to open, longer than expected", opened.transitWarning)
     }
 
     @Test
@@ -779,7 +779,7 @@ class HistoryMapperTest {
         val days = HistoryMapper.toHistoryDays(events, now, zone)
         // Newest-first: closed, opened
         val closed = days[0].entries[0] as HistoryEntry.Closed
-        assertEquals("Took 3 min to close — longer than expected", closed.transitWarning)
+        assertEquals("Took 3 min to close, longer than expected", closed.transitWarning)
     }
 
     @Test

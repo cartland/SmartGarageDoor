@@ -144,9 +144,9 @@ fun SettingsContent(
             item {
                 SettingsSection(label = "Notifications") {
                     val (icon, subtitle) = when (snoozeState) {
-                        SnoozeRowState.Loading -> Icons.Outlined.Notifications to "—"
+                        SnoozeRowState.Loading -> Icons.Outlined.Notifications to "Loading…"
                         SnoozeRowState.PermissionDenied ->
-                            Icons.Outlined.NotificationsOff to "Notifications disabled — tap to enable"
+                            Icons.Outlined.NotificationsOff to "Notifications disabled. Tap to enable."
                         SnoozeRowState.Off -> Icons.Outlined.Notifications to "Notifications enabled"
                         is SnoozeRowState.SnoozingUntil ->
                             Icons.Outlined.NotificationsPaused to "Snoozing until ${snoozeState.displayTime}"

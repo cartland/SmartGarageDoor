@@ -126,13 +126,13 @@ object HomeMapper {
         val message = event.message?.takeIf { it.isNotBlank() }
         return when (event.doorPosition) {
             DoorPosition.OPENING_TOO_LONG ->
-                message ?: "Opening — taking longer than expected"
+                message ?: "Opening, taking longer than expected"
             DoorPosition.CLOSING_TOO_LONG ->
-                message ?: "Closing — taking longer than expected"
+                message ?: "Closing, taking longer than expected"
             DoorPosition.OPEN_MISALIGNED ->
                 message ?: "Door is open and misaligned"
             DoorPosition.ERROR_SENSOR_CONFLICT ->
-                message ?: "Sensor conflict — check the door"
+                message ?: "Sensor conflict. Check the door."
             DoorPosition.UNKNOWN -> message
             else -> null
         }
