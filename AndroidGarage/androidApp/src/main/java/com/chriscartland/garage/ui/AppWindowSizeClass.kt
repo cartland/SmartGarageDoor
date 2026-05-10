@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.DpSize
 
 /**
@@ -65,6 +66,29 @@ val LocalAppWindowSizeClass: ProvidableCompositionLocal<WindowSizeClass> =
     }
 
 /**
+ * Raw window width in dp, provided alongside [LocalAppWindowSizeClass]
+ * by [ProvideAppWindowSizeClass] so consumers don't have to read
+ * `LocalConfiguration.current.screenWidthDp` themselves (and the lint
+ * `checkNoLocalConfigurationDimensionReads` keeps it that way).
+ *
+ * Exists so [com.chriscartland.garage.ui.AppLayoutMode] can apply a
+ * custom dp threshold for 3-pane activation that's tighter than M3's
+ * standard `WindowWidthSizeClass.Expanded` (≥840dp). The size class
+ * alone can't distinguish a Pixel 9 Pro in landscape (~916dp — too
+ * cramped for 3 panes) from a tablet in landscape (~1280dp — fine).
+ *
+ * Default 0 mirrors the [LocalAppWindowSizeClass] "Compact phone"
+ * default; the provider always overrides in production.
+ */
+val LocalAppWindowWidthDp: ProvidableCompositionLocal<Int> =
+    staticCompositionLocalOf {
+        // Default 0 — provider always overrides in production. A 0 default
+        // resolves to Compact in `AppLayoutMode.fromSize`, matching the
+        // size-class default above.
+        0
+    }
+
+/**
  * Computes the current [WindowSizeClass] from the host Activity and provides
  * it via [LocalAppWindowSizeClass] to all descendants. Wrap the app's root
  * Composable content with this provider once.
@@ -81,7 +105,15 @@ fun ProvideAppWindowSizeClass(content: @Composable () -> Unit) {
             "This typically means it was called outside an Activity-hosted Compose tree.",
     )
     val windowSizeClass = calculateWindowSizeClass(activity)
-    CompositionLocalProvider(LocalAppWindowSizeClass provides windowSizeClass) {
+    // Read the raw width here (the only allowed site per
+    // checkNoLocalConfigurationDimensionReads) and re-publish via
+    // LocalAppWindowWidthDp so AppLayoutMode can apply a custom dp
+    // threshold that the coarse size class can't express.
+    val widthDp = LocalConfiguration.current.screenWidthDp
+    CompositionLocalProvider(
+        LocalAppWindowSizeClass provides windowSizeClass,
+        LocalAppWindowWidthDp provides widthDp,
+    ) {
         content()
     }
 }
