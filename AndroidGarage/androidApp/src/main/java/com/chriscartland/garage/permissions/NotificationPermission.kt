@@ -67,7 +67,7 @@ fun rememberPermissionAlwaysGranted(permission: String): PermissionState =
  */
 object NotificationPermissionCopy {
     fun justificationText(attemptCount: Int = 0): String {
-        val baseText = "Please turn on notifications to be notified when the door is left open."
+        val baseText = "Turn on notifications to get alerted when the door is left open."
         return buildString {
             append(baseText)
             if (attemptCount > 2) {
