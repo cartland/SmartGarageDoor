@@ -15,6 +15,11 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.16.12
+- **Edge-to-edge content in Wide and Expanded modes.** Where there is no bottom nav bar (landscape phones, foldables in landscape, tablets, ChromeOS), scrollable screens now extend through to the viewport bottom instead of stopping with a harsh cutoff above the gesture nav. The last item can scroll up past the gesture nav into the visible safe area; mid-scroll items draw under the gesture nav for the proper edge-to-edge look.
+- **Internal: `WindowInsets` propagation contract.** Outer layout containers consume only what they structurally handle (top inset, horizontal cutout). The bottom inset is deliberately left flowing to scrollable leaves in Rail / None modes. Compact (with bottom bar) is unchanged — descendants still see `safeDrawing.bottom = 0` because the body wrapper consumes the full `innerPadding`.
+- **Internal: new `safeListContentPadding()` helper** in `Spacing.kt` combines the existing 8/24dp chrome clearance with `WindowInsets.safeDrawing.asPaddingValues()`. Single one-liner replaces `Spacing.ListContentPadding` in every screen-level `LazyColumn` (Home, History, Settings, Function list); mode-agnostic, returns the right value in every layout. Future chrome that consumes additional insets only needs to declare its consumption upstream — leaves are unchanged.
+
 ## 2.16.11
 - **Navigation rail items (Wide mode) now sit at the rail's vertical midpoint instead of the top.** M3-canonical pattern for rails with few items (Gmail / YouTube tablet layouts). With only Home + Settings, the icon-vs-content alignment problem goes away — rail items in one vertical zone, content at the body's top, no eye-level comparison.
 - **Internal: `Spacer(Modifier.weight(1f))` above and below the items inside `NavigationRail`'s `ColumnScope` content slot.** Replaces the earlier empirical-Spacer-in-header attempt, which depended on M3's private `NavigationRailVerticalPadding` (4dp) + `NavigationRailHeaderPadding` (8dp) constants and would drift when M3 changes them. Centering removes the alignment goal entirely.
