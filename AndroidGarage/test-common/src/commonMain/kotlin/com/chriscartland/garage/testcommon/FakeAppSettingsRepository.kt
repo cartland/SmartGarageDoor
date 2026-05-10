@@ -10,6 +10,7 @@ class FakeAppSettingsRepository : AppSettingsRepository {
     override val profileAppCardExpanded: Setting<Boolean> = InMemorySetting(true)
     override val profileLogCardExpanded: Setting<Boolean> = InMemorySetting(false)
     override val profileUserCardExpanded: Setting<Boolean> = InMemorySetting(true)
+    override val layoutDebugEnabled: Setting<Boolean> = InMemorySetting(false)
 }
 
 class InMemorySetting<T>(
