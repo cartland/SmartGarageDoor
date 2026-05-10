@@ -16,8 +16,16 @@
 
 package com.chriscartland.garage.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -219,4 +227,73 @@ fun HomeDashboardPreview1024dp() {
 @Composable
 fun HomeDashboardPreview1280dp() {
     WideHomeScaffold { modifier -> WideHomeBody(modifier) }
+}
+
+/**
+ * Wide-screen Scaffold with a [NavigationRailLeft] on the start edge —
+ * mirrors the runtime shell from `Main.kt` for [AppLayoutMode.Wide].
+ *
+ * Same inset coordination as production: rail owns the start
+ * safe-drawing inset via its `windowInsets` parameter; content sibling
+ * declares `consumeWindowInsets(start)` so the route wrapper's existing
+ * `safeDrawing.only(Horizontal)` reading transparently shrinks to "end
+ * side only". No bottom bar — Wide uses the rail instead.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WideRailScaffold(content: @Composable (Modifier) -> Unit) {
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text("Garage") })
+        },
+    ) { innerPadding ->
+        Row(modifier = Modifier.padding(innerPadding)) {
+            NavigationRailLeft(
+                currentScreen = Screen.Home,
+                onTabSelected = {},
+                mode = AppLayoutMode.Wide,
+            )
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
+            ) {
+                content(
+                    Modifier
+                        .padding(horizontal = Spacing.Screen)
+                        .fillMaxSize(),
+                )
+            }
+        }
+    }
+}
+
+// Rail + 2-pane dashboard at 700dp — the lower bound of Wide where
+// horizontal real-estate is tightest. After ~80dp of rail and ~16dp
+// of side gutters, each pane has ~292dp.
+@Preview(
+    name = "Home dashboard rail — 700dp (Wide low-bound)",
+    widthDp = 700,
+    heightDp = 800,
+    showBackground = true,
+)
+@Composable
+fun HomeDashboardRailPreview700dp() {
+    WideRailScaffold { modifier -> WideHomeBody(modifier) }
+}
+
+// Rail + 2-pane dashboard at 916dp — Pixel 9 Pro in landscape, the
+// widest landscape phone we expect to hit Wide. Confirms the rail
+// looks right at the upper end of Wide before [AppLayoutMode.Expanded]
+// kicks in at 1200dp.
+@Preview(
+    name = "Home dashboard rail — 916dp (Pixel 9 Pro landscape)",
+    widthDp = 916,
+    heightDp = 411,
+    showBackground = true,
+)
+@Composable
+fun HomeDashboardRailPreview916dp() {
+    WideRailScaffold { modifier -> WideHomeBody(modifier) }
 }

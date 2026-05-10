@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Sat May  9 22:51:35 PDT 2026
+Generated on Sun May 10 03:47:26 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -503,6 +503,24 @@ Generated on Sat May  9 22:51:35 PDT 2026
 
 ### HomeDashboardPreview840dpTest_Light_a433c26f_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardPreview840dpTest_Light_a433c26f_0.png" width="300" />
+
+### HomeDashboardRailPreview700dpTest_Dark_aacdb9c5_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardRailPreview700dpTest_Dark_aacdb9c5_0.png" width="300" />
+
+### HomeDashboardRailPreview700dpTest_Light_47d9098a_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardRailPreview700dpTest_Light_47d9098a_0.png" width="300" />
+
+### HomeDashboardRailPreview916dpTest_Dark_98d1e6d2_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardRailPreview916dpTest_Dark_98d1e6d2_0.png" width="300" />
+
+### HomeDashboardRailPreview916dpTest_Light_9d6edbd9_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardRailPreview916dpTest_Light_9d6edbd9_0.png" width="300" />
+
+### HomeRailPreview700dpTest_Dark_aacdb9c5_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeRailPreview700dpTest_Dark_aacdb9c5_0.png" width="300" />
+
+### HomeRailPreview700dpTest_Light_47d9098a_0
+<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeRailPreview700dpTest_Light_47d9098a_0.png" width="300" />
 
 ### HomeScreenPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeScreenPreviewTest_Dark_77106447_0.png" width="300" />

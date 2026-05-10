@@ -13,6 +13,9 @@ import com.chriscartland.garage.ui.HomeDashboardPreview1024dp
 import com.chriscartland.garage.ui.HomeDashboardPreview1280dp
 import com.chriscartland.garage.ui.HomeDashboardPreview600dp
 import com.chriscartland.garage.ui.HomeDashboardPreview840dp
+import com.chriscartland.garage.ui.HomeDashboardRailPreview700dp
+import com.chriscartland.garage.ui.HomeDashboardRailPreview916dp
+import com.chriscartland.garage.ui.HomeRailPreview700dp
 import com.chriscartland.garage.ui.HomeTabPreview
 import com.chriscartland.garage.ui.HomeTabStalePillPreview
 import com.chriscartland.garage.ui.SettingsTabPreview
@@ -182,6 +185,64 @@ fun FunctionListScreenDeniedPreviewTest() {
 fun HomeDashboardPreview600dpTest() {
     AppTheme {
         HomeDashboardPreview600dp()
+    }
+}
+
+// Home tab rendered with the new NavigationRailLeft chrome. 700dp width
+// is unambiguously inside AppLayoutMode.Wide (≥600dp Medium, <1200dp
+// Expanded). Verifies rail visual + start-side inset coordination.
+@PreviewTest
+@Preview(showBackground = true, name = "Light", widthDp = 700, heightDp = 800)
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    widthDp = 700,
+    heightDp = 800,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeRailPreview700dpTest() {
+    AppTheme {
+        HomeRailPreview700dp()
+    }
+}
+
+// Rail + 2-pane Home dashboard at 700dp (Wide low-bound) — verifies
+// rail co-existing with the dashboard layout at the tightest Wide
+// width.
+@PreviewTest
+@Preview(showBackground = true, name = "Light", widthDp = 700, heightDp = 800)
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    widthDp = 700,
+    heightDp = 800,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeDashboardRailPreview700dpTest() {
+    AppTheme {
+        HomeDashboardRailPreview700dp()
+    }
+}
+
+// Rail + 2-pane Home dashboard at 916dp x 411dp — Pixel 9 Pro in
+// landscape. Widest landscape phone we expect to hit Wide; confirms
+// the rail looks right at the upper end of Wide before Expanded
+// (≥1200dp) kicks in.
+@PreviewTest
+@Preview(showBackground = true, name = "Light", widthDp = 916, heightDp = 411)
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    widthDp = 916,
+    heightDp = 411,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeDashboardRailPreview916dpTest() {
+    AppTheme {
+        HomeDashboardRailPreview916dp()
     }
 }
 
