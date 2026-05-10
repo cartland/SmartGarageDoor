@@ -146,7 +146,10 @@ fun HomeTabPreview() {
             modifier = modifier,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = deviceCheckIn,
-            buttonHealthDisplay = ButtonHealthDisplay.Loading,
+            // Happy state for the README — pill reads "Available" with the
+            // Sensors icon. Shows users what the Home tab looks like in the
+            // typical case (signed in, device reachable).
+            buttonHealthDisplay = ButtonHealthDisplay.Online,
         )
     }
 }
@@ -183,76 +186,92 @@ fun HomeTabStalePillPreview() {
 @Preview(showBackground = true)
 @Composable
 fun HistoryTabPreview() {
-    // Curated events that produce a presentable multi-day framed shot —
-    // a current Open, a recent paired Closed/Open with a `_TOO_LONG`
-    // warning tag, and a sensor-conflict anomaly. The mapper handles
-    // formatting; preview uses fixed `now` + UTC for determinism.
+    // Curated events spanning multiple days so the framed README shot
+    // shows enough rows to clearly extend past the visible viewport
+    // (newest at top, older days scroll into view). Mix of normal
+    // open/close pairs and a couple of warning/error tags. Preview
+    // uses fixed `now` + UTC for determinism. Order is ASCENDING by
+    // timestamp — `HistoryMapper` reverses to display newest first.
     val events = listOf(
+        // 2026-04-26 — quiet morning, single open/close round trip
         DoorEvent(
-            doorPosition = DoorPosition.OPENING_TOO_LONG,
-            lastChangeTimeSeconds = Instant
-                .parse("2026-04-29T09:43:00Z")
-                .epochSecond,
+            doorPosition = DoorPosition.OPENING,
+            lastChangeTimeSeconds = Instant.parse("2026-04-26T08:15:00Z").epochSecond,
         ),
         DoorEvent(
             doorPosition = DoorPosition.OPEN,
-            lastChangeTimeSeconds = Instant
-                .parse("2026-04-29T09:47:00Z")
-                .epochSecond,
+            lastChangeTimeSeconds = Instant.parse("2026-04-26T08:15:09Z").epochSecond,
         ),
         DoorEvent(
             doorPosition = DoorPosition.CLOSING,
-            lastChangeTimeSeconds = Instant
-                .parse("2026-04-29T09:53:00Z")
-                .epochSecond,
+            lastChangeTimeSeconds = Instant.parse("2026-04-26T08:18:00Z").epochSecond,
         ),
         DoorEvent(
             doorPosition = DoorPosition.CLOSED,
-            lastChangeTimeSeconds = Instant
-                .parse("2026-04-29T09:53:06Z")
-                .epochSecond,
+            lastChangeTimeSeconds = Instant.parse("2026-04-26T08:18:07Z").epochSecond,
         ),
+        // 2026-04-27 — another quiet day, evening trip
         DoorEvent(
             doorPosition = DoorPosition.OPENING,
-            lastChangeTimeSeconds = Instant
-                .parse("2026-04-29T10:15:00Z")
-                .epochSecond,
+            lastChangeTimeSeconds = Instant.parse("2026-04-27T17:42:00Z").epochSecond,
         ),
         DoorEvent(
             doorPosition = DoorPosition.OPEN,
-            lastChangeTimeSeconds = Instant
-                .parse("2026-04-29T10:15:08Z")
-                .epochSecond,
-        ),
-        DoorEvent(
-            doorPosition = DoorPosition.OPENING,
-            lastChangeTimeSeconds = Instant
-                .parse("2026-04-28T18:30:00Z")
-                .epochSecond,
-        ),
-        DoorEvent(
-            doorPosition = DoorPosition.OPEN,
-            lastChangeTimeSeconds = Instant
-                .parse("2026-04-28T18:30:08Z")
-                .epochSecond,
+            lastChangeTimeSeconds = Instant.parse("2026-04-27T17:42:08Z").epochSecond,
         ),
         DoorEvent(
             doorPosition = DoorPosition.CLOSING,
-            lastChangeTimeSeconds = Instant
-                .parse("2026-04-28T20:30:00Z")
-                .epochSecond,
+            lastChangeTimeSeconds = Instant.parse("2026-04-27T22:11:00Z").epochSecond,
         ),
         DoorEvent(
             doorPosition = DoorPosition.CLOSED,
-            lastChangeTimeSeconds = Instant
-                .parse("2026-04-28T20:30:06Z")
-                .epochSecond,
+            lastChangeTimeSeconds = Instant.parse("2026-04-27T22:11:06Z").epochSecond,
+        ),
+        // 2026-04-28 — active day with a warning + sensor anomaly
+        DoorEvent(
+            doorPosition = DoorPosition.OPENING,
+            lastChangeTimeSeconds = Instant.parse("2026-04-28T18:30:00Z").epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.OPEN,
+            lastChangeTimeSeconds = Instant.parse("2026-04-28T18:30:08Z").epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.CLOSING,
+            lastChangeTimeSeconds = Instant.parse("2026-04-28T20:30:00Z").epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.CLOSED,
+            lastChangeTimeSeconds = Instant.parse("2026-04-28T20:30:06Z").epochSecond,
         ),
         DoorEvent(
             doorPosition = DoorPosition.ERROR_SENSOR_CONFLICT,
-            lastChangeTimeSeconds = Instant
-                .parse("2026-04-28T23:42:00Z")
-                .epochSecond,
+            lastChangeTimeSeconds = Instant.parse("2026-04-28T23:42:00Z").epochSecond,
+        ),
+        // 2026-04-29 — current day, includes the long-open warning
+        DoorEvent(
+            doorPosition = DoorPosition.OPENING_TOO_LONG,
+            lastChangeTimeSeconds = Instant.parse("2026-04-29T09:43:00Z").epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.OPEN,
+            lastChangeTimeSeconds = Instant.parse("2026-04-29T09:47:00Z").epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.CLOSING,
+            lastChangeTimeSeconds = Instant.parse("2026-04-29T09:53:00Z").epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.CLOSED,
+            lastChangeTimeSeconds = Instant.parse("2026-04-29T09:53:06Z").epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.OPENING,
+            lastChangeTimeSeconds = Instant.parse("2026-04-29T10:15:00Z").epochSecond,
+        ),
+        DoorEvent(
+            doorPosition = DoorPosition.OPEN,
+            lastChangeTimeSeconds = Instant.parse("2026-04-29T10:15:08Z").epochSecond,
         ),
     )
     TabPreviewScaffold(selectedScreen = Screen.History) { modifier ->
