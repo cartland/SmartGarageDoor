@@ -50,6 +50,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -81,6 +82,27 @@ private const val NAV_ANIM_DURATION = 300
 
 /** Reusable tween with FastOutSlowIn easing for all nav animations. */
 private inline fun <reified T> navTween() = tween<T>(NAV_ANIM_DURATION, easing = FastOutSlowInEasing)
+
+/**
+ * Vertical offset applied to route content in [AppLayoutMode.NavPlacement.Rail]
+ * mode so the first content row aligns visually with the top of the rail's
+ * first item icon.
+ *
+ * Empirical value — accounts for `NavigationRail`'s internal top padding
+ * (Material 3's `NavigationRailVerticalPadding`, currently 4.dp) plus
+ * `NavigationRailItem`'s top padding around its indicator pill (~8dp). The
+ * combined inset places the icon's top edge ~12dp below the rail's top, so
+ * matching content needs the same offset.
+ *
+ * Centralized here so the runtime Scaffold and the two preview-only
+ * scaffolds ([com.chriscartland.garage.ui.WideTabPreviewScaffold-equivalent]
+ * + `WideRailScaffold`) all stay in lockstep.
+ *
+ * **If M3 changes its rail's internal padding**, the alignment will visibly
+ * drift; update this value and regenerate screenshots. There is no compile-
+ * time link to the M3 internals.
+ */
+internal val NavigationRailContentTopAlignment = 12.dp
 
 /**
  * Type-safe navigation routes.
@@ -268,7 +290,14 @@ fun AppNavigation() {
                             .fillMaxHeight()
                             .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
                     ) {
-                        navDisplay(Modifier.fillMaxSize())
+                        // Top inset matches the rail's intrinsic top padding so
+                        // the first content row aligns with the rail's first
+                        // item icon. See [NavigationRailContentTopAlignment].
+                        navDisplay(
+                            Modifier
+                                .fillMaxSize()
+                                .padding(top = NavigationRailContentTopAlignment),
+                        )
                     }
                 }
             }

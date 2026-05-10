@@ -259,8 +259,11 @@ private fun WideRailScaffold(content: @Composable (Modifier) -> Unit) {
                     .fillMaxHeight()
                     .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
             ) {
+                // Mirrors the runtime alignment from `Main.kt` — see
+                // [NavigationRailContentTopAlignment].
                 content(
                     Modifier
+                        .padding(top = NavigationRailContentTopAlignment)
                         .padding(horizontal = Spacing.Screen)
                         .fillMaxSize(),
                 )
