@@ -71,8 +71,12 @@ fun HomeContent(
     val buttonState by resolved.buttonState.collectAsState()
     val authState by resolved.authState.collectAsState()
     val isCheckInStale by resolved.isCheckInStale.collectAsState()
+    // No `initialValue` — `buttonHealthDisplay` is a StateFlow whose
+    // upstream is stateIn'd at app scope (Eagerly), so the cached current
+    // value is read synchronously on first composition. Avoids the
+    // brief "Checking…" flash on every fresh screen entry.
     val buttonHealthDisplay: ButtonHealthDisplay by resolved.buttonHealthDisplay
-        .collectAsStateWithLifecycle(initialValue = ButtonHealthDisplay.Loading)
+        .collectAsStateWithLifecycle()
 
     val notificationPermissionState = rememberNotificationPermissionState()
     // Survives rotation + process death so the alert flicker on rotation

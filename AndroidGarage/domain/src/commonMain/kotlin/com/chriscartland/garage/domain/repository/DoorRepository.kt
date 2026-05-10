@@ -17,8 +17,15 @@ interface DoorRepository {
      */
     val currentDoorEvent: StateFlow<DoorEvent?>
 
-    /** Observation: recent door events from local cache (list-y, cold). */
-    val recentDoorEvents: Flow<List<DoorEvent>>
+    /**
+     * Observation: recent door events owned as a [StateFlow] (ADR-022 —
+     * state-y). Backed by an always-on collector over the local Room flow,
+     * same pattern as [currentDoorEvent]. Exposed as [StateFlow] so
+     * `DoorHistoryViewModel` can synchronously seed its initial loading-
+     * result with the cached events list (avoiding a one-frame
+     * `Loading(emptyList())` render on every fresh screen entry).
+     */
+    val recentDoorEvents: StateFlow<List<DoorEvent>>
 
     suspend fun fetchBuildTimestampCached(): String?
 

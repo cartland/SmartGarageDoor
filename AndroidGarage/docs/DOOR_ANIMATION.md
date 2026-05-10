@@ -32,13 +32,15 @@ Each is an exhaustive `when` over `DoorPosition` with no `else`. Adding a new en
 |-------|----------|-----------|------|---------|
 | `UNKNOWN` | `MIDWAY_POSITION` | target | spring | warning |
 | `CLOSED` | `CLOSED_POSITION` | target | spring | none |
-| `OPENING` | `OPEN_POSITION` | `CLOSED_POSITION` | tween (linear, 12s) | arrow up |
+| `OPENING` | `OPEN_POSITION` | target | tween (linear, 12s) | arrow up |
 | `OPENING_TOO_LONG` | `MIDWAY_POSITION` | target | spring | warning |
 | `OPEN` | `OPEN_POSITION` | target | spring | none |
 | `OPEN_MISALIGNED` | `OPEN_POSITION` | target | spring | none |
-| `CLOSING` | `CLOSED_POSITION` | `OPEN_POSITION` | tween (linear, 12s) | arrow down |
+| `CLOSING` | `CLOSED_POSITION` | target | tween (linear, 12s) | arrow down |
 | `CLOSING_TOO_LONG` | `MIDWAY_POSITION` | target | spring | warning |
 | `ERROR_SENSOR_CONFLICT` | `MIDWAY_POSITION` | target | spring | warning |
+
+`initial = target` for every state. The motion animation (tween for OPENING/CLOSING) only fires when `doorPosition` *changes* during the icon's lifetime — not on every fresh composition. Pre-2.16.4 used `OPENING → CLOSED_POSITION` and `CLOSING → OPEN_POSITION` so a freshly composed motion-state icon animated the full motion. That re-ran the animation on every screen re-entry while the server still reported a transient OPENING/CLOSING — visible flicker that didn't represent reality (animation timing didn't sync with the physical door). The arrow overlays preserve the "in motion" cue without re-animating.
 
 Position constants in `AnimatableGarageDoor.kt`:
 
@@ -76,7 +78,7 @@ Linear easing matches the roughly constant-speed motion of a real garage door.
 
 ## Trade-offs
 
-**No elapsed-time-based start position.** When the app opens with the door already in motion, the icon starts at the "from" end (`initialPositionFor`) and animates the full motion from scratch. We do not compute `now() - lastChangeTimeSeconds` to seed the position mid-motion because clock drift between the device and the server is significant — relying on it would put the icon in a wrong position silently. The visible cost is that opening the app mid-motion shows the icon "starting over" rather than catching up to physical reality. The animation is now an indicator of *state*, not an attempt to mirror the door's literal current position.
+**Fresh composition seeds at the target, not the "from" end.** When the app opens (or a screen re-enters) with the server reporting an in-motion state, the icon renders immediately at the target position (OPEN for OPENING, CLOSED for CLOSING) with the arrow overlay carrying the motion cue. Pre-2.16.4 the icon animated the full motion on every fresh composition; 2.16.4 changed `initialPositionFor` to always equal `targetPositionFor` so the animation only fires when `doorPosition` actually changes during the icon's lifetime (e.g., the user is looking at the screen when the server transitions CLOSED→OPENING). Computing `now() - lastChangeTimeSeconds` to seed mid-motion is still rejected because clock drift between device and server is significant — relying on it would put the icon at a silently wrong position.
 
 **Always animate to target on state change.** No `|current - target| < ε` skip — that would make behavior depend on current animation value, defeating the "target is pure" principle. If `current ≈ target`, the spring is a near-noop with no perceived movement.
 

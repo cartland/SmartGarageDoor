@@ -188,6 +188,7 @@ abstract class AppComponent(
     abstract val buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager
     abstract val applyButtonHealthFcmUseCase: ApplyButtonHealthFcmUseCase
     abstract val initialDoorFetchManager: InitialDoorFetchManager
+    abstract val computeButtonHealthDisplayUseCase: ComputeButtonHealthDisplayUseCase
 
     // --- ViewModels ---
 
@@ -432,12 +433,25 @@ abstract class AppComponent(
     fun provideApplyButtonHealthFcmUseCase(buttonHealthRepository: ButtonHealthRepository): ApplyButtonHealthFcmUseCase =
         ApplyButtonHealthFcmUseCase(buttonHealthRepository)
 
+    // @Singleton-scoped: the underlying combine + stateIn must run exactly
+    // once per process. A non-singleton would spin up multiple eager combine
+    // collectors (one per VM construction), each maintaining its own
+    // independent StateFlow with its own initial `Loading` value — defeating
+    // the flicker fix.
     @Provides
+    @Singleton
     fun provideComputeButtonHealthDisplayUseCase(
         authRepository: AuthRepository,
         buttonHealthRepository: ButtonHealthRepository,
         liveClock: LiveClock,
-    ): ComputeButtonHealthDisplayUseCase = ComputeButtonHealthDisplayUseCase(authRepository, buttonHealthRepository, liveClock)
+        applicationScope: CoroutineScope,
+    ): ComputeButtonHealthDisplayUseCase =
+        ComputeButtonHealthDisplayUseCase(
+            authRepository = authRepository,
+            buttonHealthRepository = buttonHealthRepository,
+            liveClock = liveClock,
+            applicationScope = applicationScope,
+        )
 
     // --- @Singleton providers (bodies take parameters so caching is honored) ---
 

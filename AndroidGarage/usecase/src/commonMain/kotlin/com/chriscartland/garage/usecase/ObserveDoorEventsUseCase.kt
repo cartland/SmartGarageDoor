@@ -29,25 +29,23 @@ import kotlinx.coroutines.flow.StateFlow
  * Wraps [DoorRepository] flows so ViewModels can depend on this UseCase
  * instead of the repository directly.
  *
- * Per ADR-022 "match the upstream, never wrap": [current] returns
- * [StateFlow] because the repo's `currentDoorEvent` IS a [StateFlow]
- * — passing it through preserves the synchronous `.value` accessor
- * the VM needs to seed its initial loading-result with the cached
- * door event (otherwise the VM exposes `Loading(null)` for one frame
- * on first composition, the door icon maps that to UNKNOWN/MIDWAY,
- * and the next frame's `Complete(actualEvent)` triggers a visible
- * MIDWAY→actual door animation on every fresh screen entry).
- *
- * [recent] and [position] stay [Flow] — `recent` is a Room flow (not
- * a StateFlow upstream) and `position` does `.map.distinctUntilChanged()`
- * (a transformation, not a pass-through).
+ * Per ADR-022 "match the upstream, never wrap":
+ * - [current] and [recent] return [StateFlow] because the repo's
+ *   `currentDoorEvent` and `recentDoorEvents` ARE [StateFlow]s — passing
+ *   them through preserves the synchronous `.value` accessor the VMs
+ *   need to seed initial loading-results with the cached data. Without
+ *   this, VMs expose `Loading(...)` for one frame on first composition,
+ *   the UI renders the loading state, and the next frame triggers a
+ *   visible flicker (door icon MIDWAY→actual, history list empty→full).
+ * - [position] stays [Flow] — does `.map.distinctUntilChanged()` (a
+ *   transformation, not a pass-through).
  */
 class ObserveDoorEventsUseCase(
     private val doorRepository: DoorRepository,
 ) {
     fun current(): StateFlow<DoorEvent?> = doorRepository.currentDoorEvent
 
-    fun recent(): Flow<List<DoorEvent>> = doorRepository.recentDoorEvents
+    fun recent(): StateFlow<List<DoorEvent>> = doorRepository.recentDoorEvents
 
     /** Stream of door position changes — needed by ButtonStateMachine. */
     fun position(): Flow<DoorPosition> = doorRepository.currentDoorPosition

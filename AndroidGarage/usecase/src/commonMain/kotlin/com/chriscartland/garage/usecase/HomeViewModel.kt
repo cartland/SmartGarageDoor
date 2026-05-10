@@ -30,7 +30,6 @@ import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.RemoteButtonState
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -64,10 +63,14 @@ interface HomeViewModel {
 
     /**
      * Display state for the remote-button device's online/offline pill.
-     * Per ADR-022, derived [Flow]; the Composable consumer collects via
-     * [androidx.compose.runtime.collectAsState] with an initial value.
+     * Per ADR-022, exposed as [StateFlow] (the upstream
+     * `ComputeButtonHealthDisplayUseCase` is `stateIn`'d at app scope so
+     * the cached value is available synchronously). The Composable
+     * collects via the no-initial-value `collectAsStateWithLifecycle()`
+     * overload — eliminates the brief `Loading` flash on every fresh
+     * screen entry.
      */
-    val buttonHealthDisplay: Flow<ButtonHealthDisplay>
+    val buttonHealthDisplay: StateFlow<ButtonHealthDisplay>
 
     fun signInWithGoogle(idToken: GoogleIdToken)
 
@@ -91,7 +94,7 @@ class DefaultHomeViewModel(
     private val pushRemoteButtonUseCase: PushRemoteButtonUseCase,
     private val checkInStalenessManager: CheckInStalenessManager,
     private val liveClock: LiveClock,
-    override val buttonHealthDisplay: Flow<ButtonHealthDisplay>,
+    override val buttonHealthDisplay: StateFlow<ButtonHealthDisplay>,
     private val appVersion: String,
     // Default false — cold-start fetch lives in `InitialDoorFetchManager`
     // (singleton, idempotent, fires once per process from `AppStartup`).

@@ -19,31 +19,56 @@ package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.ButtonHealthRepository
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 
 /**
  * Combines auth state, the button-health snapshot, and the LiveClock
- * tick into a single [ButtonHealthDisplay] flow.
+ * tick into a single [ButtonHealthDisplay] [StateFlow].
  *
- * Returns [Flow] (not [kotlinx.coroutines.flow.StateFlow]) per ADR-022:
- * the consumer (Composable) collects via `collectAsStateWithLifecycle`
- * with an initial value, avoiding `stateIn(viewModelScope, ...)`.
+ * Returns [StateFlow] so the Composable can read `.value` synchronously
+ * on first composition (no `Loading` flicker on every fresh screen
+ * entry). The `combine(...)` result is naturally a cold [Flow]; we
+ * `stateIn(applicationScope, SharingStarted.Eagerly, Loading)` to
+ * convert it into a hot [StateFlow] with a cached current value.
+ *
+ * `Eagerly` (not `WhileSubscribed`) is intentional: the upstream
+ * sources are all `StateFlow`s + LiveClock ticks (cheap), so keeping
+ * the combine running for the lifetime of the process costs nothing
+ * meaningful and guarantees subsequent subscribers see the latest
+ * value immediately. `WhileSubscribed(timeout)` would re-emit the
+ * initial `Loading` value after the timeout window, reintroducing the
+ * flicker on the next subscription.
+ *
+ * The provider must be `@Singleton`-scoped so the eager combine runs
+ * exactly once per process — multiple instances would each spin up
+ * their own combine and waste cycles. See `ComponentGraphTest` for the
+ * `assertSame` identity check.
  *
  * Pure derivation lives in [ButtonHealthDisplayLogic.compute]; this
- * UseCase is the wiring + clock-tick combine.
+ * UseCase is the wiring + clock-tick combine + state caching.
  */
 class ComputeButtonHealthDisplayUseCase(
-    private val authRepository: AuthRepository,
-    private val buttonHealthRepository: ButtonHealthRepository,
-    private val liveClock: LiveClock,
+    authRepository: AuthRepository,
+    buttonHealthRepository: ButtonHealthRepository,
+    liveClock: LiveClock,
+    applicationScope: CoroutineScope,
 ) {
-    operator fun invoke(): Flow<ButtonHealthDisplay> =
+    private val state: StateFlow<ButtonHealthDisplay> =
         combine(
             authRepository.authState,
             buttonHealthRepository.buttonHealth,
             liveClock.nowEpochSeconds,
         ) { auth, health, now ->
             ButtonHealthDisplayLogic.compute(auth, health, now)
-        }
+        }.stateIn(
+            scope = applicationScope,
+            started = SharingStarted.Eagerly,
+            initialValue = ButtonHealthDisplay.Loading,
+        )
+
+    operator fun invoke(): StateFlow<ButtonHealthDisplay> = state
 }
