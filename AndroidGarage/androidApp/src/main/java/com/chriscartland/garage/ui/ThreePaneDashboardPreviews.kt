@@ -191,6 +191,7 @@ private fun DiagnosticsPaneBody(modifier: Modifier) {
         counters = ThreePaneDemoData.diagnosticsCounters,
         onExportCsv = {},
         onClearAll = {},
+        onCopyAuthToken = {},
         modifier = modifier,
     )
 }

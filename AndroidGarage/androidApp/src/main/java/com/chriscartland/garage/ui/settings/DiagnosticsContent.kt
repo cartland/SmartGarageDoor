@@ -17,7 +17,14 @@
 
 package com.chriscartland.garage.ui.settings
 
+import android.content.ClipData
+import android.content.ClipDescription
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.os.PersistableBundle
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +40,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.outlined.DeleteForever
+import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -69,6 +77,7 @@ import com.chriscartland.garage.usecase.DiagnosticsViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -93,6 +102,7 @@ fun DiagnosticsScreen(
 ) {
     val component = rememberAppComponent()
     val diagnosticsViewModel: DiagnosticsViewModel = viewModel { component.diagnosticsViewModel }
+    val authRepository = component.authRepository
     val context = LocalContext.current
 
     val initCurrent by diagnosticsViewModel.initCurrentDoorCount.collectAsState()
@@ -139,6 +149,37 @@ fun DiagnosticsScreen(
             csvLauncher.launch(intent)
         },
         onClearAll = { diagnosticsViewModel.clearDiagnostics() },
+        onCopyAuthToken = {
+            // Off-main IO: getIdToken hits the Firebase Auth SDK which can do
+            // a network round-trip on token refresh. Toast back on Main.
+            CoroutineScope(Dispatchers.IO).launch {
+                val token = authRepository.getIdToken(forceRefresh = false)
+                withContext(Dispatchers.Main) {
+                    if (token == null) {
+                        Toast.makeText(context, "Sign in to copy auth token", Toast.LENGTH_SHORT).show()
+                        return@withContext
+                    }
+                    val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = ClipData.newPlainText("Firebase ID token", token.asString())
+                    // EXTRA_IS_SENSITIVE tells Android 13+ to redact the
+                    // content from the clipboard preview chip. The preview
+                    // still appears (so the user knows the copy happened),
+                    // but the token itself is NOT shown on screen. Without
+                    // this flag the OS chip would briefly display the full
+                    // JWT — defeats the purpose of a "copy as secret" action.
+                    // Feature visibility is API-gated below to API 33+, so
+                    // this branch is unreachable on older Android.
+                    val extras = PersistableBundle().apply {
+                        putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                    }
+                    clip.description.extras = extras
+                    cm.setPrimaryClip(clip)
+                    // No Toast on success: the OS chip is the confirmation,
+                    // a Toast on top would be duplicate noise (mirrors the
+                    // ProfileContent clipboard pattern at API 33+).
+                }
+            }
+        },
         clearInFlight = clearInFlight,
         modifier = modifier,
     )
@@ -158,6 +199,7 @@ fun DiagnosticsContent(
     counters: List<DiagnosticsCounter>,
     onExportCsv: () -> Unit,
     onClearAll: () -> Unit,
+    onCopyAuthToken: () -> Unit,
     modifier: Modifier = Modifier,
     clearInFlight: Boolean = false,
 ) {
@@ -212,6 +254,27 @@ fun DiagnosticsContent(
                 .padding(vertical = Spacing.ListVertical),
             verticalArrangement = Arrangement.spacedBy(ButtonSpacing.Stacked),
         ) {
+            // Copy-auth-token is API-gated to Android 13+ because the
+            // EXTRA_IS_SENSITIVE clipboard flag (which redacts the token
+            // from the OS preview chip) only exists from API 33. On older
+            // Android the OS would briefly display the full JWT in the
+            // copy-confirmation chip, so the action is hidden entirely
+            // rather than being a sometimes-leaky shortcut.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                OutlinedButton(
+                    onClick = onCopyAuthToken,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Key,
+                        contentDescription = null,
+                    )
+                    Text(
+                        text = "Copy auth token (sensitive)",
+                        modifier = Modifier.padding(start = ButtonSpacing.IconText),
+                    )
+                }
+            }
             Button(
                 onClick = onExportCsv,
                 modifier = Modifier.fillMaxWidth(),
@@ -353,6 +416,7 @@ fun DiagnosticsContentPreview() {
             ),
             onExportCsv = {},
             onClearAll = {},
+            onCopyAuthToken = {},
         )
     }
 }
@@ -385,6 +449,7 @@ fun DiagnosticsContentClearInFlightPreview() {
             ),
             onExportCsv = {},
             onClearAll = {},
+            onCopyAuthToken = {},
             clearInFlight = true,
         )
     }
