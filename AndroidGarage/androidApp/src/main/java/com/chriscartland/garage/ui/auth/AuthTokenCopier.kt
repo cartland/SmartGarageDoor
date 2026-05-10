@@ -97,7 +97,10 @@ private object SensitiveClipboard {
      * must API-gate the button that invokes this writer (see
      * [rememberAuthTokenCopier] kdoc).
      */
-    fun write(context: Context, token: String) {
+    fun write(
+        context: Context,
+        token: String,
+    ) {
         val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText("Firebase ID token", token)
         val extras = PersistableBundle().apply {
