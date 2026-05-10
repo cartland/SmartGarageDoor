@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
@@ -61,6 +62,7 @@ import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.ui.theme.ButtonSpacing
 import com.chriscartland.garage.ui.theme.CardPadding
 import com.chriscartland.garage.ui.theme.DividerInset
+import com.chriscartland.garage.ui.theme.LocalContentEdgeInsets
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.usecase.DiagnosticsViewModel
@@ -195,9 +197,17 @@ fun DiagnosticsContent(
         // and bottom screen padding move from per-button modifiers to the
         // Column wrapper so the rule "single source of horizontal layout"
         // holds inside this section too.
+        //
+        // `windowInsetsPadding(LocalContentEdgeInsets.current)` adds the
+        // propagated bottom edge inset (zero in Compact since the bottomBar
+        // covers the gesture nav; gesture-nav height in Wide / None where
+        // there's no bottomBar). Without it, in Wide / Expanded modes the
+        // action buttons sit under the gesture nav. The 16dp `vertical`
+        // padding inside is the visual chrome clearance ABOVE the inset.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .windowInsetsPadding(LocalContentEdgeInsets.current)
                 .padding(horizontal = Spacing.Screen)
                 .padding(vertical = Spacing.ListVertical),
             verticalArrangement = Arrangement.spacedBy(ButtonSpacing.Stacked),

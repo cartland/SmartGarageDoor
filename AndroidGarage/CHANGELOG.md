@@ -15,6 +15,9 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.16.15
+- **Fix: Diagnostics action buttons (Export CSV / Clear all) now respect the bottom inset.** In Wide / Expanded modes (landscape phones, foldables in landscape, tablets) the action buttons at the bottom of the Diagnostics screen previously sat under the gesture nav because the action Column only added 16dp visual chrome clearance — no system-inset awareness. Compact mode was unaffected (bottomBar already covers the gesture-nav region). Fix: action Column now wraps with `Modifier.windowInsetsPadding(LocalContentEdgeInsets.current)`, picking up the bottom edge inset that the body wrapper publishes per layout mode (zero in Compact, gesture-nav in Wide/None). The new `checkNoRawSafeDrawingPaddingValues` lint and `SafeListContentPaddingCanaryPreview` from 2.16.14 don't catch this class (they target LazyColumn `contentPadding` reads, not action-row Modifiers); the action-row pattern is rare enough in the codebase that the manual check during this audit was cheaper than another lint.
+
 ## 2.16.14
 - **Internal: PR-time guardrails against the inset-bridge regression class.** Two pieces of dev infrastructure (no user-visible change in this release):
   - **Lint:** `checkNoRawSafeDrawingPaddingValues` (in `validate.sh`) forbids direct `WindowInsets.<x>.asPaddingValues()` reads in app code outside `Spacing.kt`. That's the literal anti-pattern that broke 2.16.12 (the helper was non-consumption-aware and double-padded the status bar). The `safeListContentPadding()` helper + `LocalContentEdgeInsets` bridge are the sanctioned alternatives.
