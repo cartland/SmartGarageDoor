@@ -15,6 +15,12 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.16.6
+- **OFFLINE pill now reads "last seen X ago" using the actual last-poll time, not the moment we noticed.** With server-side pubsub at 1 min, `stateChangedAtSeconds` and the device's actual silence-start can differ by up to a minute. The new server `lastPollAtSeconds` field (added in `server/25`) carries the latter, which is what the user actually wants: "last seen 6 min ago" instead of "5 min ago". Falls back to the existing `stateChangedAtSeconds`-based wording when the field is null (older server, or bootstrap-no-poll edge — both rare).
+- **Pull-to-refresh on Home now refreshes both door status AND remote-button health.** Single user gesture refreshes everything visible on the screen. `DefaultHomeViewModel` gains `refreshButtonHealth()` (a thin wrapper around `FetchButtonHealthUseCase`); the outer `HomeContent` `onRefresh` lambda calls both.
+- **Internal: `ButtonHealth.lastPollAtSeconds: Long? = null` added to the domain model** (default-null kept the data-class binary-compatible with all existing 2-arg callers). `KtorButtonHealthResponse` and `ButtonHealthFcmPayloadParser` both parse the new field with full forward-compat (missing or malformed keys decode to null).
+- **Internal: tests pin both the new "last seen" wording AND the fallback to bare `stateChangedAtSeconds`** (`ButtonHealthDisplayLogicTest`); FCM parser tests cover present, missing, and malformed `lastPollAtSeconds`; wire-contract test asserts the value in all three success fixtures.
+
 ## 2.16.5
 - **No more Loading-flicker on every fresh screen entry.** Three flicker sources eliminated:
   - **Recent door events list** briefly empty on every fresh entry to History — `DoorHistoryViewModel._recentDoorEvents` was initialized to `Loading(emptyList())`. `NetworkDoorRepository` now exposes `recentDoorEvents` as a `StateFlow` backed by an always-on collector over the Room flow (same pattern as `currentDoorEvent`); the VM seeds from `.value` so the cached list shows immediately.

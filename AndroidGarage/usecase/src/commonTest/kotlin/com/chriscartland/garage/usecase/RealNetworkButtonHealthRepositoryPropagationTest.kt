@@ -146,6 +146,7 @@ class RealNetworkButtonHealthRepositoryPropagationTest {
             logAppEvent = LogAppEventUseCase(appLogger, counters),
             dispatchers = TestDispatcherProvider(testDispatcher),
             fetchCurrentDoorEventUseCase = FetchCurrentDoorEventUseCase(doorRepo),
+            fetchButtonHealthUseCase = FetchButtonHealthUseCase(authRepo, healthRepo),
             deregisterFcmUseCase = DeregisterFcmUseCase(FakeDoorFcmRepository()),
             signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepo),
             pushRemoteButtonUseCase = PushRemoteButtonUseCase(authRepo, FakeRemoteButtonRepository()),

@@ -124,6 +124,7 @@ class KtorButtonHealthDataSourceTest {
             val success = assertIs<NetworkResult.Success<ButtonHealth>>(result)
             assertEquals(ButtonHealthState.ONLINE, success.data.state)
             assertEquals(1730000000L, success.data.stateChangedAtSeconds)
+            assertEquals(1730000500L, success.data.lastPollAtSeconds)
         }
 
     @Test
@@ -142,13 +143,14 @@ class KtorButtonHealthDataSourceTest {
             val success = assertIs<NetworkResult.Success<ButtonHealth>>(result)
             assertEquals(ButtonHealthState.OFFLINE, success.data.state)
             assertEquals(1730000000L, success.data.stateChangedAtSeconds)
+            assertEquals(1729999700L, success.data.lastPollAtSeconds)
         }
 
     @Test
     fun decodesUnknownFixture() =
         runTest {
             // UNKNOWN appears on the wire only when no buttonHealthCurrent doc exists yet.
-            // stateChangedAtSeconds is null in that case.
+            // stateChangedAtSeconds and lastPollAtSeconds are both null in that case.
             val fixture = readFixture("response_unknown.json")
             val client = mockClient(HttpStatusCode.OK, fixture)
             val ds = KtorNetworkButtonHealthDataSource(client)
@@ -162,6 +164,7 @@ class KtorButtonHealthDataSourceTest {
             val success = assertIs<NetworkResult.Success<ButtonHealth>>(result)
             assertEquals(ButtonHealthState.UNKNOWN, success.data.state)
             assertEquals(null, success.data.stateChangedAtSeconds)
+            assertEquals(null, success.data.lastPollAtSeconds)
         }
 
     @Test

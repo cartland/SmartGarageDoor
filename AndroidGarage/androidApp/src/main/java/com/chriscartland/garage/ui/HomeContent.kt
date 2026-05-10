@@ -115,6 +115,11 @@ fun HomeContent(
         onRefresh = {
             resolved.log(AppLoggerKeys.USER_FETCH_CURRENT_DOOR)
             resolved.fetchCurrentDoorEvent()
+            // Pull-to-refresh on Home is the user's "give me a fresh view of
+            // everything visible on this screen" gesture — refresh button
+            // health alongside the door event so the remote-button pill
+            // reflects the same point-in-time as the door status.
+            resolved.refreshButtonHealth()
         },
         onAlertAction = { alert ->
             when (alert) {

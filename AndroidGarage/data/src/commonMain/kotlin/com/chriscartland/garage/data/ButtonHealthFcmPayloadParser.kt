@@ -28,11 +28,13 @@ import com.chriscartland.garage.domain.model.ButtonHealthState
  *   buttonState: "ONLINE" | "OFFLINE"     // UNKNOWN never sent over FCM
  *   stateChangedAtSeconds: "<number>"     // FCM data values are strings
  *   buildTimestamp: "<original buildTimestamp>"
+ *   lastPollAtSeconds: "<number>"         // optional — omitted by server when null
  *
  * Forward-compat: unrecognized server-side state strings (e.g. a
  * future `MAINTENANCE`) deserialize to [ButtonHealthState.UNKNOWN]
  * rather than throwing. Old clients keep working when the server adds
- * new states.
+ * new states. Missing `lastPollAtSeconds` (older server) decodes to
+ * `ButtonHealth.lastPollAtSeconds = null`.
  */
 object ButtonHealthFcmPayloadParser {
     fun parse(data: Map<String, String>): ButtonHealth? {
@@ -40,9 +42,11 @@ object ButtonHealthFcmPayloadParser {
             val state = data["buttonState"]?.toButtonHealthState() ?: return null
             val stateChangedAtSeconds = data["stateChangedAtSeconds"]?.toLongOrNull()
                 ?: return null
+            val lastPollAtSeconds = data["lastPollAtSeconds"]?.toLongOrNull()
             return ButtonHealth(
                 state = state,
                 stateChangedAtSeconds = stateChangedAtSeconds,
+                lastPollAtSeconds = lastPollAtSeconds,
             )
         } catch (e: Exception) {
             Logger.e { "Error parsing button-health FCM payload: $e" }

@@ -84,4 +84,61 @@ class ButtonHealthFcmPayloadParserTest {
         )
         assertNull(ButtonHealthFcmPayloadParser.parse(data))
     }
+
+    @Test
+    fun parsesLastPollAtSecondsWhenPresent() {
+        val data = mapOf(
+            "buttonState" to "OFFLINE",
+            "stateChangedAtSeconds" to "1730000500",
+            "lastPollAtSeconds" to "1730000300",
+            "buildTimestamp" to "Sat Apr 10 23:57:32 2021",
+        )
+        assertEquals(
+            ButtonHealth(
+                state = ButtonHealthState.OFFLINE,
+                stateChangedAtSeconds = 1730000500L,
+                lastPollAtSeconds = 1730000300L,
+            ),
+            ButtonHealthFcmPayloadParser.parse(data),
+        )
+    }
+
+    @Test
+    fun lastPollAtSecondsDecodesToNullWhenMissing() {
+        // Forward-compat with older server payloads that omit the field.
+        val data = mapOf(
+            "buttonState" to "ONLINE",
+            "stateChangedAtSeconds" to "1730000000",
+            "buildTimestamp" to "Sat Apr 10 23:57:32 2021",
+        )
+        val parsed = ButtonHealthFcmPayloadParser.parse(data)
+        assertEquals(
+            ButtonHealth(
+                state = ButtonHealthState.ONLINE,
+                stateChangedAtSeconds = 1730000000L,
+                lastPollAtSeconds = null,
+            ),
+            parsed,
+        )
+    }
+
+    @Test
+    fun lastPollAtSecondsDecodesToNullWhenMalformed() {
+        // Defensive: garbage value shouldn't crash; treat as null.
+        val data = mapOf(
+            "buttonState" to "OFFLINE",
+            "stateChangedAtSeconds" to "1730000500",
+            "lastPollAtSeconds" to "garbage",
+            "buildTimestamp" to "Sat Apr 10 23:57:32 2021",
+        )
+        val parsed = ButtonHealthFcmPayloadParser.parse(data)
+        assertEquals(
+            ButtonHealth(
+                state = ButtonHealthState.OFFLINE,
+                stateChangedAtSeconds = 1730000500L,
+                lastPollAtSeconds = null,
+            ),
+            parsed,
+        )
+    }
 }
