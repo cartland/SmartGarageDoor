@@ -21,7 +21,7 @@ User-facing changes that have shipped to the **internal Play Store track** but n
 
 ## Cumulative queue
 
-> **Empty.** Queue cleared 2026-05-11 — items 1–7 (`android/230` 2.16.16 through `android/236` 2.16.22) all smoke-tested on real device with no regressions. Add new items as releases ship to the internal track.
+1. **`android/237` / 2.16.23 — Settings → Developer → "Nav rail items" picker.** New developer-only picker chooses where the Wide-mode (≥600dp, <1200dp) NavigationRail's tab items sit vertically. Two options: `Centered vertically` (default — current production behavior) and `Top-aligned`. Persists in DataStore. To verify on a real device: (a) the picker row + 2 RadioButton choices appear inside the Developer section only when developer-allowlisted; (b) selection is immediate AND persists across app restart (kill app → reopen → state preserved); (c) `Centered vertically` matches pre-2.16.23 behavior; (d) `Top-aligned` — toggle and visually compare: the rail items' first visible pixel should land in the same horizontal band as the body's first content row (e.g. the "ACCOUNT" section header on Settings, or the "Status" header on Home). The pixel-alignment claim is the whole point of shipping the option — this is the verification gap the screenshot fixture intentionally doesn't try to cover (Layoutlib's text rendering doesn't match a device closely enough); (e) the setting only affects Wide mode — confirm Compact (bottom bar visible, no rail) and Expanded (1200dp+, no nav chrome) are unchanged.
 
 ## Open follow-ups (release-related but not smoke-test items)
 
