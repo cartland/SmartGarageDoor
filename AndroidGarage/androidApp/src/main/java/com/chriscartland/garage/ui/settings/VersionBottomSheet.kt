@@ -40,8 +40,10 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.R
 
 /**
  * Production wrapper. Shows extended version metadata inside a
@@ -111,15 +113,31 @@ fun VersionSheetContent(
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "App version",
+            text = stringResource(R.string.settings_version_title),
             style = MaterialTheme.typography.titleLarge,
         )
         Spacer(Modifier.height(16.dp))
 
-        VersionFieldRow(label = "Version", value = versionName, onCopy = onCopy)
-        VersionFieldRow(label = "Build", value = versionCode, onCopy = onCopy)
-        VersionFieldRow(label = "Package", value = packageName, onCopy = onCopy)
-        VersionFieldRow(label = "Built", value = buildTimestamp, onCopy = onCopy)
+        VersionFieldRow(
+            label = stringResource(R.string.settings_version_field_version),
+            value = versionName,
+            onCopy = onCopy,
+        )
+        VersionFieldRow(
+            label = stringResource(R.string.settings_version_field_build),
+            value = versionCode,
+            onCopy = onCopy,
+        )
+        VersionFieldRow(
+            label = stringResource(R.string.settings_version_field_package),
+            value = packageName,
+            onCopy = onCopy,
+        )
+        VersionFieldRow(
+            label = stringResource(R.string.settings_version_field_built),
+            value = buildTimestamp,
+            onCopy = onCopy,
+        )
     }
 }
 

@@ -39,8 +39,10 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.R
 
 /**
  * Production wrapper. Shows the sheet content inside a [ModalBottomSheet].
@@ -114,7 +116,7 @@ fun AccountSheetContent(
         OutlinedButton(
             onClick = onSignOut,
             modifier = Modifier.fillMaxWidth(),
-        ) { Text("Sign out") }
+        ) { Text(stringResource(R.string.settings_account_sign_out)) }
     }
 }
 

@@ -45,8 +45,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 
 /**
@@ -106,37 +108,37 @@ fun SnoozeSheetContent(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = "Snooze notifications",
+            text = stringResource(R.string.settings_snooze_title),
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(bottom = 8.dp),
         )
 
         SnoozeOptionRow(
-            label = "Don't snooze",
+            label = stringResource(R.string.settings_snooze_option_none),
             selected = selectedOption == SnoozeDurationUIOption.None,
             onClick = { onOptionSelected(SnoozeDurationUIOption.None) },
         )
         HorizontalDivider()
         SnoozeOptionRow(
-            label = "1 hour",
+            label = stringResource(R.string.settings_snooze_option_one_hour),
             selected = selectedOption == SnoozeDurationUIOption.OneHour,
             onClick = { onOptionSelected(SnoozeDurationUIOption.OneHour) },
         )
         HorizontalDivider()
         SnoozeOptionRow(
-            label = "4 hours",
+            label = stringResource(R.string.settings_snooze_option_four_hours),
             selected = selectedOption == SnoozeDurationUIOption.FourHours,
             onClick = { onOptionSelected(SnoozeDurationUIOption.FourHours) },
         )
         HorizontalDivider()
         SnoozeOptionRow(
-            label = "8 hours",
+            label = stringResource(R.string.settings_snooze_option_eight_hours),
             selected = selectedOption == SnoozeDurationUIOption.EightHours,
             onClick = { onOptionSelected(SnoozeDurationUIOption.EightHours) },
         )
         HorizontalDivider()
         SnoozeOptionRow(
-            label = "12 hours",
+            label = stringResource(R.string.settings_snooze_option_twelve_hours),
             selected = selectedOption == SnoozeDurationUIOption.TwelveHours,
             onClick = { onOptionSelected(SnoozeDurationUIOption.TwelveHours) },
         )
@@ -146,9 +148,9 @@ fun SnoozeSheetContent(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End,
         ) {
-            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onCancel) { Text(stringResource(R.string.settings_snooze_cancel)) }
             Spacer(Modifier.padding(horizontal = 4.dp))
-            Button(onClick = onSave) { Text("Save") }
+            Button(onClick = onSave) { Text(stringResource(R.string.settings_snooze_save)) }
         }
     }
 }
