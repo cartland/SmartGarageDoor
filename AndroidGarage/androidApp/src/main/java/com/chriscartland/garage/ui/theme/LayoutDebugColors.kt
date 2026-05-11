@@ -46,9 +46,9 @@ import androidx.compose.ui.graphics.Color
  * debug colors until they explicitly toggle the row.
  */
 object LayoutDebugColors {
-    val TopBar: Color = Color(0xFFE91E63)
-    val NavChrome: Color = Color(0xFF00BCD4)
-    val Body: Color = Color(0xFFFFF59D)
+    val TopBar: Color = layoutDebugTopBar
+    val NavChrome: Color = layoutDebugNavChrome
+    val Body: Color = layoutDebugBody
 }
 
 /**
