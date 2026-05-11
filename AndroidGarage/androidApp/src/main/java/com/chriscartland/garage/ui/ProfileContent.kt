@@ -89,6 +89,7 @@ fun ProfileContent(
     val functionListAccess by resolved.functionListAccess.collectAsState()
     val developerAccess by resolved.developerAccess.collectAsState()
     val layoutDebugEnabled by resolved.layoutDebugEnabled.collectAsState()
+    val navigationRailItemPosition by resolved.navigationRailItemPosition.collectAsState()
     val appConfig = component.appConfig
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
@@ -139,6 +140,7 @@ fun ProfileContent(
         versionName = appVersion.versionName,
         versionCode = appVersion.versionCode.toString(),
         layoutDebugEnabled = layoutDebugEnabled,
+        navigationRailItemPosition = navigationRailItemPosition,
         modifier = modifier,
         snoozeInFlight = snoozeAction is SnoozeAction.Sending,
         onAccountTap = { accountSheetOpen = true },
@@ -161,6 +163,7 @@ fun ProfileContent(
         },
         onDiagnosticsTap = onNavigateToDiagnostics,
         onLayoutDebugChange = resolved::setLayoutDebugEnabled,
+        onNavigationRailItemPositionChange = resolved::setNavigationRailItemPosition,
     )
 
     if (snoozeSheetOpen) {

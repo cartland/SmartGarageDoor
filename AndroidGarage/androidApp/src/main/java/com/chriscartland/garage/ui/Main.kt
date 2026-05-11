@@ -66,6 +66,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.chriscartland.garage.di.rememberAppComponent
+import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.ui.settings.DiagnosticsScreen
 import com.chriscartland.garage.ui.theme.AppTheme
 import com.chriscartland.garage.ui.theme.LayoutDebugColors
@@ -159,15 +160,23 @@ fun AppNavigation() {
     val component = rememberAppComponent()
     val layoutDebugEnabled by component.appSettings.layoutDebugEnabled.flow
         .collectAsState(initial = false)
+    val navigationRailItemPosition by component.appSettings.navigationRailItemPosition.flow
+        .collectAsState(initial = NavigationRailItemPosition.CenteredVertically)
 
     CompositionLocalProvider(LocalLayoutDebugEnabled provides layoutDebugEnabled) {
-        AppScaffold(backStack = backStack)
+        AppScaffold(
+            backStack = backStack,
+            navigationRailItemPosition = navigationRailItemPosition,
+        )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AppScaffold(backStack: NavBackStack<NavKey>) {
+private fun AppScaffold(
+    backStack: NavBackStack<NavKey>,
+    navigationRailItemPosition: NavigationRailItemPosition,
+) {
     val debug = LocalLayoutDebugEnabled.current
     Scaffold(
         topBar = {
@@ -314,6 +323,7 @@ private fun AppScaffold(backStack: NavBackStack<NavKey>) {
                             currentScreen = backStack.lastOrNull() as? Screen,
                             onTabSelected = { screen -> TabNavigation.navigateToTab(backStack, screen) },
                             mode = mode,
+                            itemPosition = navigationRailItemPosition,
                         )
                         Box(
                             modifier = Modifier
@@ -416,21 +426,26 @@ fun BottomNavigationBar(
  * `contentWindowInsets` provides the bottom inset via `innerPadding`
  * (which wraps the entire Row containing rail + content).
  *
- * **Items are vertically centered** within the rail (M3-canonical for
- * rails with few items — see Gmail / YouTube tablet layouts). With only
- * 2 tabs this avoids the "is the icon aligned with the first content
- * row?" comparison entirely — items sit in the rail's vertical center,
- * content sits at the body region's top, and the eye doesn't compare
- * them. Implementation: weight=1f Spacers wrap the items inside
- * `NavigationRail`'s `ColumnScope` content slot; M3's rail Column
- * fills the available height, so the weights distribute remaining
- * space equally above and below the items.
+ * **Item position** is selected by [itemPosition] — defaults to
+ * [NavigationRailItemPosition.CenteredVertically] (M3-canonical for
+ * rails with few items, see Gmail / YouTube tablet layouts). With
+ * `TopAligned` the items sit at the rail's top so the first visible
+ * item lands in the same horizontal band as the body's first content
+ * row. The setting is exposed via Settings → Developer → "Nav rail
+ * items" and persists in DataStore. The previous "header-slot Spacer"
+ * and "content-side `padding(top = X)`" workarounds for top-alignment
+ * proved fragile against M3 internal padding (2.16.10 / 2.16.11
+ * iteration); the implementation here lets M3's natural item start
+ * position land where it lands and pushes items toward the top with
+ * a single `weight(1f)` Spacer below, which the user can compare
+ * against content visually on a real device.
  */
 @Composable
 fun NavigationRailLeft(
     currentScreen: Screen?,
     onTabSelected: (Screen) -> Unit,
     mode: AppLayoutMode = currentAppLayoutMode(),
+    itemPosition: NavigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
 ) {
     val effectiveScreen = mode.canonicalScreen(currentScreen)
     val debug = LocalLayoutDebugEnabled.current
@@ -438,7 +453,14 @@ fun NavigationRailLeft(
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Start),
         containerColor = if (debug) LayoutDebugColors.NavChrome else NavigationRailDefaults.ContainerColor,
     ) {
-        Spacer(Modifier.weight(1f))
+        // CenteredVertically: weight=1f spacer above pushes the items
+        // toward the rail's vertical center.
+        // TopAligned: no top spacer; items start at NavigationRail's
+        // natural top (M3 internal `NavigationRailVerticalPadding` = 4dp
+        // plus item-level top padding).
+        if (itemPosition == NavigationRailItemPosition.CenteredVertically) {
+            Spacer(Modifier.weight(1f))
+        }
         mode.visibleTabs.forEach { tab ->
             NavigationRailItem(
                 icon = {
@@ -456,6 +478,10 @@ fun NavigationRailLeft(
                 onClick = { onTabSelected(tab.screen) },
             )
         }
+        // Bottom spacer fills remaining height in both modes:
+        // CenteredVertically — completes the symmetric weight=1f pair.
+        // TopAligned — pushes items upward; weight=1f keeps the rail
+        // from collapsing to wrap-content height.
         Spacer(Modifier.weight(1f))
     }
 }

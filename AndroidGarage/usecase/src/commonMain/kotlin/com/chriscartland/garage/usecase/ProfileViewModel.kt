@@ -27,6 +27,7 @@ import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.GoogleIdToken
+import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
@@ -80,6 +81,14 @@ interface ProfileViewModel {
      */
     val layoutDebugEnabled: StateFlow<Boolean>
 
+    /**
+     * Developer-only: where Wide-mode NavigationRail items sit
+     * vertically. Persisted in DataStore. UI gate: Settings →
+     * Developer → "Nav rail items". Default
+     * [NavigationRailItemPosition.CenteredVertically].
+     */
+    val navigationRailItemPosition: StateFlow<NavigationRailItemPosition>
+
     fun signInWithGoogle(idToken: GoogleIdToken)
 
     fun signOut()
@@ -89,6 +98,8 @@ interface ProfileViewModel {
     fun snoozeOpenDoorsNotifications(snoozeDuration: SnoozeDurationUIOption)
 
     fun setLayoutDebugEnabled(enabled: Boolean)
+
+    fun setNavigationRailItemPosition(position: NavigationRailItemPosition)
 }
 
 class DefaultProfileViewModel(
@@ -121,6 +132,11 @@ class DefaultProfileViewModel(
     private val _layoutDebugEnabled = MutableStateFlow(false)
     override val layoutDebugEnabled: StateFlow<Boolean> = _layoutDebugEnabled
 
+    private val _navigationRailItemPosition =
+        MutableStateFlow(NavigationRailItemPosition.CenteredVertically)
+    override val navigationRailItemPosition: StateFlow<NavigationRailItemPosition> =
+        _navigationRailItemPosition
+
     // Cached so the snooze action can attach the latest door change time
     // without the UI having to thread it through.
     private val currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
@@ -137,6 +153,11 @@ class DefaultProfileViewModel(
         }
         viewModelScope.launch(dispatchers.io) {
             appSettings.observeLayoutDebugEnabled().collect { _layoutDebugEnabled.value = it }
+        }
+        viewModelScope.launch(dispatchers.io) {
+            appSettings.observeNavigationRailItemPosition().collect {
+                _navigationRailItemPosition.value = it
+            }
         }
     }
 
@@ -194,6 +215,12 @@ class DefaultProfileViewModel(
     override fun setLayoutDebugEnabled(enabled: Boolean) {
         viewModelScope.launch(dispatchers.io) {
             appSettings.setLayoutDebugEnabled(enabled)
+        }
+    }
+
+    override fun setNavigationRailItemPosition(position: NavigationRailItemPosition) {
+        viewModelScope.launch(dispatchers.io) {
+            appSettings.setNavigationRailItemPosition(position)
         }
     }
 

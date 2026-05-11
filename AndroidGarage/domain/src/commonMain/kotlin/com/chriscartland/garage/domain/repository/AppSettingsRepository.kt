@@ -1,5 +1,6 @@
 package com.chriscartland.garage.domain.repository
 
+import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -43,4 +44,11 @@ interface AppSettingsRepository {
      * a developer-allowlisted build, until they explicitly toggle it.
      */
     val layoutDebugEnabled: Setting<Boolean>
+
+    /**
+     * Developer-only: where Wide-mode NavigationRail items sit
+     * vertically. UI gate: Settings → Developer → "Nav rail items".
+     * Default [NavigationRailItemPosition.CenteredVertically].
+     */
+    val navigationRailItemPosition: Setting<NavigationRailItemPosition>
 }
