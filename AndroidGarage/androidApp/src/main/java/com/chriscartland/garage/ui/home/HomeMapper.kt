@@ -22,15 +22,23 @@ import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.permissions.NotificationPermissionCopy
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 /**
  * Pure-function mapper that converts the Home tab's domain inputs into the
- * stateless display data consumed by [HomeContent]. All time/duration
- * formatting, alert assembly, and friendly-name decisions live here so the
- * Composable carries no logic and the entire pipeline is unit-testable.
+ * stateless display data consumed by [HomeContent].
+ *
+ * Per the string-resource migration plan
+ * (`AndroidGarage/docs/PENDING_FOLLOWUPS.md` item #1, Phases 2A/2B/2C),
+ * this mapper does NOT produce user-visible text. It emits typed states
+ * ([HomeStatusDisplay], [DoorWarning], [HomeAlert]) and raw data (epoch
+ * seconds, exception text). The Composable layer resolves typed values to
+ * localized strings via `stringResource` / `pluralStringResource` at render
+ * time.
+ *
+ * The "Since X · Y" status line is now built by the production HomeContent
+ * wrapper (Composable scope) using [HomeStatusFormatter] + plurals, then
+ * passed into the stateless `HomeContent` Composable as a separate
+ * `sinceLine: String` parameter.
  *
  * Mirrors the `HistoryMapper` pattern from PR #598.
  */
@@ -38,23 +46,18 @@ object HomeMapper {
     /**
      * @param currentDoorEvent latest door event flow value (Loading/Complete/Error).
      *   Loading and Complete may carry a cached event; Error has no data.
-     * @param now used for "Since X · Y" duration computation.
-     * @param zone used to compute the local-day boundary for whether to show
-     *   "9:47 AM" vs. "Apr 28, 9:47 PM".
      * @param isCheckInStale picks the muted door-color variant when the
      *   device hasn't checked in recently.
      */
     fun toHomeStatusDisplay(
         currentDoorEvent: LoadingResult<DoorEvent?>,
-        now: Instant,
-        zone: ZoneId,
         isCheckInStale: Boolean = false,
     ): HomeStatusDisplay {
         val event = currentDoorEvent.data
         val doorPosition = event?.doorPosition ?: DoorPosition.UNKNOWN
         return HomeStatusDisplay(
             doorPosition = doorPosition,
-            sinceLine = sinceLine(event?.lastChangeTimeSeconds, now, zone),
+            lastChangeTimeSeconds = event?.lastChangeTimeSeconds,
             warning = warning(event),
             isStale = isCheckInStale,
         )
@@ -64,8 +67,15 @@ object HomeMapper {
      * Returns the alerts to render in the banner stack above the Status card,
      * in display order: stale first, then permission, then fetch error.
      *
-     * @param notificationRequestCount drives the [NotificationPermissionCopy]
-     *   justification text variants — same source the legacy ErrorCard used.
+     * Phase 2D — `HomeAlert.Stale` and `HomeAlert.FetchError` no longer carry
+     * default user-visible strings. The Composable resolves the alert TYPE
+     * to a localized resource. `HomeAlert.FetchError.truncatedException`
+     * carries only the raw exception text (data, not a label) for the
+     * Composable to interpolate via `formatArgs`.
+     *
+     * `HomeAlert.PermissionMissing.message` still carries a String produced
+     * by [NotificationPermissionCopy] for now; that lifecycle moves to a
+     * typed shape in Phase 2F.
      */
     fun toHomeAlerts(
         currentDoorEvent: LoadingResult<DoorEvent?>,
@@ -75,7 +85,7 @@ object HomeMapper {
     ): List<HomeAlert> =
         buildList {
             if (isCheckInStale) {
-                add(HomeAlert.Stale())
+                add(HomeAlert.Stale)
             }
             if (!notificationPermissionGranted) {
                 add(
@@ -87,8 +97,9 @@ object HomeMapper {
             if (currentDoorEvent is LoadingResult.Error) {
                 add(
                     HomeAlert.FetchError(
-                        message = "Error fetching current door event: " +
-                            currentDoorEvent.exception.toString().take(MAX_ERROR_MESSAGE_LEN),
+                        truncatedException = currentDoorEvent.exception
+                            .toString()
+                            .take(MAX_ERROR_MESSAGE_LEN),
                     ),
                 )
             }
@@ -107,10 +118,6 @@ object HomeMapper {
      * ([DoorWarning.ServerMessage]); falls back to a typed enum case per
      * [DoorPosition] so the Composable can render a localized string from
      * `strings.xml` when the server sends nothing.
-     *
-     * Per the string-resource migration plan (PENDING_FOLLOWUPS.md item #1),
-     * the mapper does not return user-visible text — it returns a type, and
-     * the Composable resolves the type to a string via `stringResource(...)`.
      */
     internal fun warning(event: DoorEvent?): DoorWarning? {
         if (event == null) return null
@@ -129,56 +136,5 @@ object HomeMapper {
         }
     }
 
-    internal fun sinceLine(
-        timeSeconds: Long?,
-        now: Instant,
-        zone: ZoneId,
-    ): String {
-        if (timeSeconds == null) return "Last change time unknown"
-        val instant = Instant.ofEpochSecond(timeSeconds)
-        val timeText = formatTimeOrDate(instant, now, zone)
-        val durationText = formatDuration(now.epochSecond - timeSeconds)
-        return "Since $timeText · $durationText"
-    }
-
-    /**
-     * Same-day → "9:47 AM"; different day → "Apr 28, 9:47 PM".
-     */
-    internal fun formatTimeOrDate(
-        instant: Instant,
-        now: Instant,
-        zone: ZoneId,
-    ): String {
-        val zonedTime = instant.atZone(zone)
-        val zonedNow = now.atZone(zone)
-        val sameDay = zonedTime.toLocalDate() == zonedNow.toLocalDate()
-        return zonedTime.format(if (sameDay) TIME_ONLY else DATE_AND_TIME)
-    }
-
-    /**
-     * Duration between the door's last change and `now`, formatted compactly
-     * for the "Since X · Y" line. Negative inputs are clamped to zero so
-     * clock skew can't produce "-3 sec".
-     */
-    internal fun formatDuration(totalSeconds: Long): String {
-        val s = totalSeconds.coerceAtLeast(0L)
-        val days = s / SECONDS_PER_DAY
-        val hours = (s % SECONDS_PER_DAY) / SECONDS_PER_HOUR
-        val minutes = (s % SECONDS_PER_HOUR) / SECONDS_PER_MIN
-        val seconds = s % SECONDS_PER_MIN
-        return when {
-            days >= 2 -> "$days days"
-            days == 1L -> "1 day"
-            hours >= 1 -> "$hours hr $minutes min"
-            minutes >= 1 -> "$minutes min"
-            else -> "$seconds sec"
-        }
-    }
-
-    private val TIME_ONLY = DateTimeFormatter.ofPattern("h:mm a")
-    private val DATE_AND_TIME = DateTimeFormatter.ofPattern("MMM d, h:mm a")
-    private const val SECONDS_PER_MIN = 60L
-    private const val SECONDS_PER_HOUR = 3_600L
-    private const val SECONDS_PER_DAY = 86_400L
     private const val MAX_ERROR_MESSAGE_LEN = 500
 }

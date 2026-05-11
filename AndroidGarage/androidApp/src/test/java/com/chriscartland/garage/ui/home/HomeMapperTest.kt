@@ -30,12 +30,12 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
-import java.time.ZoneOffset
 
 class HomeMapperTest {
-    private val zone = ZoneOffset.UTC
-
-    // 2026-04-29 12:00:00 UTC
+    // 2026-04-29 12:00:00 UTC — used to compute the relative `lastChangeTimeSeconds`
+    // for test events (see [event]). The mapper itself no longer takes
+    // now/zone — duration formatting moved to HomeStatusFormatter + the
+    // Composable layer in Phase 2C.
     private val now: Instant = Instant.parse("2026-04-29T12:00:00Z")
 
     private fun event(
@@ -133,130 +133,20 @@ class HomeMapperTest {
 
     // endregion
 
-    // region formatDuration
-
-    @Test
-    fun formatDuration_zero() = assertEquals("0 sec", HomeMapper.formatDuration(0))
-
-    @Test
-    fun formatDuration_negative_clamped() = assertEquals("0 sec", HomeMapper.formatDuration(-100))
-
-    @Test
-    fun formatDuration_seconds_under_minute() {
-        assertEquals("1 sec", HomeMapper.formatDuration(1))
-        assertEquals("38 sec", HomeMapper.formatDuration(38))
-        assertEquals("59 sec", HomeMapper.formatDuration(59))
-    }
-
-    @Test
-    fun formatDuration_minutes_under_hour() {
-        assertEquals("1 min", HomeMapper.formatDuration(60))
-        assertEquals("4 min", HomeMapper.formatDuration(60L * 4))
-        assertEquals("38 min", HomeMapper.formatDuration(60L * 38 + 30)) // partial seconds dropped
-        assertEquals("59 min", HomeMapper.formatDuration(60L * 59 + 59))
-    }
-
-    @Test
-    fun formatDuration_hours_show_minutes_too() {
-        assertEquals("1 hr 0 min", HomeMapper.formatDuration(3_600))
-        assertEquals("2 hr 14 min", HomeMapper.formatDuration(2 * 3_600L + 14 * 60))
-        assertEquals("23 hr 59 min", HomeMapper.formatDuration(23 * 3_600L + 59 * 60))
-    }
-
-    @Test
-    fun formatDuration_one_day() {
-        assertEquals("1 day", HomeMapper.formatDuration(86_400))
-        assertEquals("1 day", HomeMapper.formatDuration(86_400 + 5 * 3_600))
-    }
-
-    @Test
-    fun formatDuration_two_days_plural() {
-        assertEquals("2 days", HomeMapper.formatDuration(2 * 86_400L))
-        assertEquals("7 days", HomeMapper.formatDuration(7 * 86_400L))
-    }
-
-    // endregion
-
-    // region formatTimeOrDate
-
-    @Test
-    fun formatTimeOrDate_sameDay_shows_only_time() {
-        // 9:47 AM UTC on 2026-04-29.
-        val instant = Instant.parse("2026-04-29T09:47:00Z")
-        assertEquals("9:47 AM", HomeMapper.formatTimeOrDate(instant, now, zone))
-    }
-
-    @Test
-    fun formatTimeOrDate_sameDay_pm() {
-        val instant = Instant.parse("2026-04-29T11:22:00Z")
-        assertEquals("11:22 AM", HomeMapper.formatTimeOrDate(instant, now, zone))
-    }
-
-    @Test
-    fun formatTimeOrDate_differentDay_shows_month_day_and_time() {
-        val instant = Instant.parse("2026-04-28T21:47:00Z")
-        assertEquals("Apr 28, 9:47 PM", HomeMapper.formatTimeOrDate(instant, now, zone))
-    }
-
-    @Test
-    fun formatTimeOrDate_differentMonth() {
-        val instant = Instant.parse("2026-03-15T08:05:00Z")
-        assertEquals("Mar 15, 8:05 AM", HomeMapper.formatTimeOrDate(instant, now, zone))
-    }
-
-    // endregion
-
-    // region sinceLine
-
-    @Test
-    fun sinceLine_null_timestamp() {
-        assertEquals("Last change time unknown", HomeMapper.sinceLine(null, now, zone))
-    }
-
-    @Test
-    fun sinceLine_today_minutes_ago() {
-        val timeSeconds = Instant.parse("2026-04-29T11:22:00Z").epochSecond
-        assertEquals("Since 11:22 AM · 38 min", HomeMapper.sinceLine(timeSeconds, now, zone))
-    }
-
-    @Test
-    fun sinceLine_today_hours_ago() {
-        // 9:47 AM today, now is 12:00 PM → 2 hr 13 min
-        val timeSeconds = Instant.parse("2026-04-29T09:47:00Z").epochSecond
-        assertEquals("Since 9:47 AM · 2 hr 13 min", HomeMapper.sinceLine(timeSeconds, now, zone))
-    }
-
-    @Test
-    fun sinceLine_yesterday() {
-        // Apr 28 9:47 PM → 14 hr 13 min vs Apr 29 12:00 PM
-        val timeSeconds = Instant.parse("2026-04-28T21:47:00Z").epochSecond
-        assertEquals("Since Apr 28, 9:47 PM · 14 hr 13 min", HomeMapper.sinceLine(timeSeconds, now, zone))
-    }
-
-    @Test
-    fun sinceLine_two_days_ago() {
-        val timeSeconds = Instant.parse("2026-04-27T12:00:00Z").epochSecond
-        assertEquals("Since Apr 27, 12:00 PM · 2 days", HomeMapper.sinceLine(timeSeconds, now, zone))
-    }
-
-    @Test
-    fun sinceLine_negative_clock_skew_clamped_to_zero() {
-        // Door event timestamped IN THE FUTURE relative to now (clock skew).
-        // Should not produce "-3 sec".
-        val timeSeconds = now.epochSecond + 3
-        val result = HomeMapper.sinceLine(timeSeconds, now, zone)
-        assertTrue("Got: $result", result.endsWith("0 sec"))
-    }
-
-    // endregion
+    // (regions formatDuration, formatTimeOrDate, sinceLine were removed in
+    //  Phase 2C — those helpers moved to HomeStatusFormatter as pure
+    //  functions and are tested in HomeStatusFormatterTest. The Composable
+    //  rememberSinceLine in HomeContent.kt assembles the final localized
+    //  "Since X · Y" string at render time using stringResource +
+    //  pluralStringResource.)
 
     // region toHomeStatusDisplay
 
     @Test
     fun toHomeStatusDisplay_null_event_returns_unknown() {
-        val display = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(null), now, zone)
+        val display = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(null))
         assertEquals(DoorPosition.UNKNOWN, display.doorPosition)
-        assertEquals("Last change time unknown", display.sinceLine)
+        assertNull(display.lastChangeTimeSeconds)
         assertNull(display.warning)
     }
 
@@ -267,9 +157,9 @@ class HomeMapperTest {
         // the loading affordance, so the status card should keep showing
         // the latest known state instead of blanking to "Unknown".
         val event = event(DoorPosition.OPEN, secondsAgo = 60 * 38)
-        val display = HomeMapper.toHomeStatusDisplay(LoadingResult.Loading(event), now, zone)
+        val display = HomeMapper.toHomeStatusDisplay(LoadingResult.Loading(event))
         assertEquals(DoorPosition.OPEN, display.doorPosition)
-        assertTrue(display.sinceLine.startsWith("Since "))
+        assertEquals(event.lastChangeTimeSeconds, display.lastChangeTimeSeconds)
     }
 
     @Test
@@ -277,25 +167,24 @@ class HomeMapperTest {
         // Error has no cached data; the alert banner surfaces the error.
         val display = HomeMapper.toHomeStatusDisplay(
             LoadingResult.Error(RuntimeException("boom")),
-            now,
-            zone,
         )
         assertEquals(DoorPosition.UNKNOWN, display.doorPosition)
+        assertNull(display.lastChangeTimeSeconds)
     }
 
     @Test
     fun toHomeStatusDisplay_open_today() {
         val event = event(DoorPosition.OPEN, secondsAgo = 2 * 3_600 + 13 * 60)
-        val display = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event), now, zone)
+        val display = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event))
         assertEquals(DoorPosition.OPEN, display.doorPosition)
-        assertTrue(display.sinceLine.contains("2 hr 13 min"))
+        assertEquals(event.lastChangeTimeSeconds, display.lastChangeTimeSeconds)
         assertNull(display.warning)
     }
 
     @Test
     fun toHomeStatusDisplay_openingTooLong_surfaces_warning() {
         val event = event(DoorPosition.OPENING_TOO_LONG, secondsAgo = 4 * 60)
-        val display = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event), now, zone)
+        val display = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event))
         assertEquals(DoorPosition.OPENING_TOO_LONG, display.doorPosition)
         assertNotNull(display.warning)
     }
@@ -324,7 +213,8 @@ class HomeMapperTest {
             notificationRequestCount = 0,
         )
         assertEquals(1, alerts.size)
-        assertTrue(alerts[0] is HomeAlert.Stale)
+        // Phase 2D: HomeAlert.Stale is now a `data object`, no message field.
+        assertEquals(HomeAlert.Stale, alerts[0])
     }
 
     @Test
@@ -371,7 +261,10 @@ class HomeMapperTest {
         )
         assertEquals(1, alerts.size)
         val a = alerts[0] as HomeAlert.FetchError
-        assertTrue(a.message.contains("boom"))
+        // Phase 2D: FetchError now carries `truncatedException` (raw exception
+        // text only); the Composable interpolates it into the localized
+        // "Error fetching ..." string at render time.
+        assertTrue(a.truncatedException.contains("boom"))
     }
 
     @Test
@@ -384,8 +277,9 @@ class HomeMapperTest {
             notificationRequestCount = 0,
         )
         val a = alerts[0] as HomeAlert.FetchError
-        // Prefix + truncated tail, total bounded.
-        assertTrue("Got len=${a.message.length}", a.message.length <= 600)
+        // truncatedException is bounded to 500 chars; the localized prefix
+        // is added by the Composable, not stored in the typed alert.
+        assertTrue("Got len=${a.truncatedException.length}", a.truncatedException.length <= 500)
     }
 
     @Test

@@ -133,6 +133,20 @@
     <string name="home_warning_open_misaligned">Door is open and misaligned</string>
     <string name="home_warning_sensor_conflict">Sensor conflict. Check the door.</string>
 
+    <!-- Home → Status card "Since X · Y" line + duration formatting. -->
+    <string name="home_since_unknown">Last change time unknown</string>
+    <!-- "Since X · Y" line. %1$s is a time (e.g. "9:47 AM"); %2$s is a duration (e.g. "2 hr 14 min"). -->
+    <string name="home_since_format">Since %1$s · %2$s</string>
+    <!-- Duration when hours and minutes are both shown ("2 hr 14 min"). -->
+    <string name="home_duration_hours_minutes">%1$d hr %2$d min</string>
+
+    <!-- Home → Alert banners surfaced above the Status card. -->
+    <string name="home_alert_stale_message">Not receiving updates from server</string>
+    <string name="home_alert_action_retry">Retry</string>
+    <string name="home_alert_action_allow">Allow</string>
+    <!-- Fetch error banner. %1$s is the truncated exception message. -->
+    <string name="home_alert_fetch_error_format">Error fetching current door event: %1$s</string>
+
     <!-- Function List screen — warning paragraph + per-action button labels. -->
     <string name="function_list_warning">Each button below performs a real action immediately. No confirmation prompts. Tapping triggers calls to the server, modifies app state, or wipes local data. Double-check the label before tapping.</string>
     <string name="function_list_access_denied">Access not enabled for your account.</string>

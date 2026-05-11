@@ -38,6 +38,7 @@ import com.chriscartland.garage.permissions.rememberNotificationPermissionState
 import com.chriscartland.garage.ui.home.DeviceCheckIn
 import com.chriscartland.garage.ui.home.HomeAlert
 import com.chriscartland.garage.ui.home.HomeMapper
+import com.chriscartland.garage.ui.home.rememberSinceLine
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
 import com.chriscartland.garage.usecase.HomeViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -90,7 +91,8 @@ fun HomeContent(
     val now = remember(nowEpochSeconds) { Instant.ofEpochSecond(nowEpochSeconds) }
     val zone = remember { ZoneId.systemDefault() }
 
-    val status = HomeMapper.toHomeStatusDisplay(currentDoorEvent, now, zone, isCheckInStale)
+    val status = HomeMapper.toHomeStatusDisplay(currentDoorEvent, isCheckInStale)
+    val sinceLine = rememberSinceLine(status.lastChangeTimeSeconds, now, zone)
     val alerts = HomeMapper.toHomeAlerts(
         currentDoorEvent = currentDoorEvent,
         isCheckInStale = isCheckInStale,
@@ -105,6 +107,7 @@ fun HomeContent(
 
     HomeContentInternal(
         status = status,
+        sinceLine = sinceLine,
         authState = homeAuthState,
         modifier = modifier,
         remoteButtonState = buttonState,

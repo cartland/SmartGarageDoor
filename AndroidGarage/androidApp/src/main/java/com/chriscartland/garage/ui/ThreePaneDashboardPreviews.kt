@@ -33,6 +33,7 @@ import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.home.DeviceCheckIn
 import com.chriscartland.garage.ui.home.HomeAuthState
 import com.chriscartland.garage.ui.home.HomeMapper
+import com.chriscartland.garage.ui.home.rememberSinceLine
 import com.chriscartland.garage.ui.settings.AccountRowState
 import com.chriscartland.garage.ui.settings.DiagnosticsContent
 import com.chriscartland.garage.ui.settings.DiagnosticsCounter
@@ -142,6 +143,9 @@ private fun HomePaneBody(modifier: Modifier) {
     val event = demoDoorEvents.firstOrNull()
     val status = HomeMapper.toHomeStatusDisplay(
         currentDoorEvent = LoadingResult.Complete(event),
+    )
+    val sinceLine = rememberSinceLine(
+        lastChangeTimeSeconds = status.lastChangeTimeSeconds,
         now = ThreePaneDemoData.now,
         zone = ThreePaneDemoData.zone,
     )
@@ -151,6 +155,7 @@ private fun HomePaneBody(modifier: Modifier) {
     )
     HomeStatelessContent(
         status = status,
+        sinceLine = sinceLine,
         authState = HomeAuthState.SignedIn,
         modifier = modifier,
         remoteButtonState = RemoteButtonState.Ready,

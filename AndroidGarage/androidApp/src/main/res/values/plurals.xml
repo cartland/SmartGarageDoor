@@ -1,0 +1,41 @@
+<!--
+  ~ Copyright 2026 Chris Cartland. All rights reserved.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  ~
+  -->
+
+<!--
+  Plural-aware count strings — used via pluralStringResource(R.plurals.X, count, count).
+  Phase 2C of the string-resource migration plan
+  (AndroidGarage/docs/PENDING_FOLLOWUPS.md item #1) introduced these for the
+  Home tab's "Since X · Y" duration formatting.
+
+  English-only quantity classes used here: `one` (1) and `other` (everything
+  else). Other locales add `zero`, `two`, `few`, `many` as needed when a
+  values-<lang>/plurals.xml is added.
+-->
+<resources>
+    <plurals name="home_duration_seconds">
+        <item quantity="one">1 sec</item>
+        <item quantity="other">%d sec</item>
+    </plurals>
+    <plurals name="home_duration_minutes">
+        <item quantity="one">1 min</item>
+        <item quantity="other">%d min</item>
+    </plurals>
+    <plurals name="home_duration_days">
+        <item quantity="one">1 day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+</resources>

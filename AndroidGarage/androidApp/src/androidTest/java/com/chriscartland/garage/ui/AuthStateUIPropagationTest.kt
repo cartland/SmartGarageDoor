@@ -64,8 +64,10 @@ class AuthStateUIPropagationTest {
 
     private val unknownStatus = HomeStatusDisplay(
         doorPosition = DoorPosition.UNKNOWN,
-        sinceLine = "Last change time unknown",
+        lastChangeTimeSeconds = null,
     )
+
+    private val unknownSinceLine = "Last change time unknown"
 
     private val noDataCheckIn = DeviceCheckInDisplay(
         durationLabel = "No data yet",
@@ -79,6 +81,7 @@ class AuthStateUIPropagationTest {
         composeTestRule.setContent {
             HomeStatelessContent(
                 status = unknownStatus,
+                sinceLine = unknownSinceLine,
                 authState = HomeMapper.toHomeAuthState(AuthState.Unknown),
                 deviceCheckIn = noDataCheckIn,
                 buttonHealthDisplay = ButtonHealthDisplay.Loading,
@@ -92,6 +95,7 @@ class AuthStateUIPropagationTest {
         composeTestRule.setContent {
             HomeStatelessContent(
                 status = unknownStatus,
+                sinceLine = unknownSinceLine,
                 authState = HomeMapper.toHomeAuthState(AuthState.Unauthenticated),
                 deviceCheckIn = noDataCheckIn,
                 buttonHealthDisplay = ButtonHealthDisplay.Loading,
@@ -105,6 +109,7 @@ class AuthStateUIPropagationTest {
         composeTestRule.setContent {
             HomeStatelessContent(
                 status = unknownStatus,
+                sinceLine = unknownSinceLine,
                 authState = HomeMapper.toHomeAuthState(AuthState.Authenticated(testUser)),
                 deviceCheckIn = noDataCheckIn,
                 buttonHealthDisplay = ButtonHealthDisplay.Loading,
@@ -123,6 +128,7 @@ class AuthStateUIPropagationTest {
             val authState by authStateFlow.collectAsState()
             HomeStatelessContent(
                 status = unknownStatus,
+                sinceLine = unknownSinceLine,
                 authState = HomeMapper.toHomeAuthState(authState),
                 deviceCheckIn = noDataCheckIn,
                 buttonHealthDisplay = ButtonHealthDisplay.Loading,
@@ -149,6 +155,7 @@ class AuthStateUIPropagationTest {
             val authState by authStateFlow.collectAsState()
             HomeStatelessContent(
                 status = unknownStatus,
+                sinceLine = unknownSinceLine,
                 authState = HomeMapper.toHomeAuthState(authState),
                 deviceCheckIn = noDataCheckIn,
                 buttonHealthDisplay = ButtonHealthDisplay.Loading,
@@ -174,6 +181,7 @@ class AuthStateUIPropagationTest {
             val authState by authStateFlow.collectAsState()
             HomeStatelessContent(
                 status = unknownStatus,
+                sinceLine = unknownSinceLine,
                 authState = HomeMapper.toHomeAuthState(authState),
                 deviceCheckIn = noDataCheckIn,
                 buttonHealthDisplay = ButtonHealthDisplay.Loading,
@@ -196,6 +204,7 @@ class AuthStateUIPropagationTest {
             val authState by authStateFlow.collectAsState()
             HomeStatelessContent(
                 status = unknownStatus,
+                sinceLine = unknownSinceLine,
                 authState = HomeMapper.toHomeAuthState(authState),
                 deviceCheckIn = noDataCheckIn,
                 buttonHealthDisplay = ButtonHealthDisplay.Loading,

@@ -47,6 +47,7 @@ import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.home.DeviceCheckIn
 import com.chriscartland.garage.ui.home.HomeAuthState
 import com.chriscartland.garage.ui.home.HomeMapper
+import com.chriscartland.garage.ui.home.rememberSinceLine
 import com.chriscartland.garage.ui.settings.AccountRowState
 import com.chriscartland.garage.ui.settings.SettingsContent
 import com.chriscartland.garage.ui.settings.SnoozeRowState
@@ -142,7 +143,8 @@ fun HomeTabPreview() {
     //     case, comfortably under the 11-min staleness threshold.
     val event = demoDoorEvents.firstOrNull()
     val now = Instant.parse("2026-04-29T12:00:00Z")
-    val status = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event), now, ZoneOffset.UTC)
+    val status = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event))
+    val sinceLine = rememberSinceLine(status.lastChangeTimeSeconds, now, ZoneOffset.UTC)
     val deviceCheckIn = DeviceCheckIn.format(
         lastCheckInSeconds = now.epochSecond - (5 * 60),
         nowSeconds = now.epochSecond,
@@ -150,6 +152,7 @@ fun HomeTabPreview() {
     TabPreviewScaffold(selectedScreen = Screen.Home) { modifier ->
         HomeStatelessContent(
             status = status,
+            sinceLine = sinceLine,
             authState = HomeAuthState.SignedIn,
             modifier = modifier,
             remoteButtonState = RemoteButtonState.Ready,
@@ -174,7 +177,8 @@ fun HomeTabStalePillPreview() {
     // `HomeTabPreview` (typical case).
     val event = demoDoorEvents.firstOrNull()
     val now = Instant.parse("2026-04-29T12:00:00Z")
-    val status = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event), now, ZoneOffset.UTC)
+    val status = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event))
+    val sinceLine = rememberSinceLine(status.lastChangeTimeSeconds, now, ZoneOffset.UTC)
     val deviceCheckIn = DeviceCheckIn.format(
         lastCheckInSeconds = now.epochSecond - (23 * 60),
         nowSeconds = now.epochSecond,
@@ -182,6 +186,7 @@ fun HomeTabStalePillPreview() {
     TabPreviewScaffold(selectedScreen = Screen.Home) { modifier ->
         HomeStatelessContent(
             status = status,
+            sinceLine = sinceLine,
             authState = HomeAuthState.SignedIn,
             modifier = modifier,
             remoteButtonState = RemoteButtonState.Ready,
@@ -401,7 +406,8 @@ private fun WideTabPreviewScaffold(
 fun HomeRailPreview700dp() {
     val event = demoDoorEvents.firstOrNull()
     val now = Instant.parse("2026-04-29T12:00:00Z")
-    val status = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event), now, ZoneOffset.UTC)
+    val status = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event))
+    val sinceLine = rememberSinceLine(status.lastChangeTimeSeconds, now, ZoneOffset.UTC)
     val deviceCheckIn = DeviceCheckIn.format(
         lastCheckInSeconds = now.epochSecond - (5 * 60),
         nowSeconds = now.epochSecond,
@@ -409,6 +415,7 @@ fun HomeRailPreview700dp() {
     WideTabPreviewScaffold(selectedScreen = Screen.Home) { modifier ->
         HomeStatelessContent(
             status = status,
+            sinceLine = sinceLine,
             authState = HomeAuthState.SignedIn,
             modifier = modifier,
             remoteButtonState = RemoteButtonState.Ready,

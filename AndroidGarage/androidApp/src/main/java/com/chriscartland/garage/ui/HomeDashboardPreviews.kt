@@ -50,6 +50,7 @@ import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.home.DeviceCheckIn
 import com.chriscartland.garage.ui.home.HomeAuthState
 import com.chriscartland.garage.ui.home.HomeMapper
+import com.chriscartland.garage.ui.home.rememberSinceLine
 import com.chriscartland.garage.ui.theme.PreviewWithSimulatedInsets
 import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.ui.theme.safeListContentPadding
@@ -179,6 +180,9 @@ private fun WideHomeBody(modifier: Modifier = Modifier) {
     val event = demoDoorEvents.firstOrNull()
     val status = HomeMapper.toHomeStatusDisplay(
         currentDoorEvent = LoadingResult.Complete(event),
+    )
+    val sinceLine = rememberSinceLine(
+        lastChangeTimeSeconds = status.lastChangeTimeSeconds,
         now = DashboardDemoData.now,
         zone = DashboardDemoData.zone,
     )
@@ -192,6 +196,7 @@ private fun WideHomeBody(modifier: Modifier = Modifier) {
         homePane = { paneModifier ->
             HomeStatelessContent(
                 status = status,
+                sinceLine = sinceLine,
                 authState = HomeAuthState.SignedIn,
                 modifier = paneModifier,
                 remoteButtonState = RemoteButtonState.Ready,
