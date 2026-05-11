@@ -25,9 +25,4 @@ User-facing changes that have shipped to the **internal Play Store track** but n
 
 ## Open follow-ups (release-related but not smoke-test items)
 
-- **Whatsnew accuracy.** `AndroidGarage/distribution/whatsnew/whatsnew-en-US` is currently triple-stale as of 2.16.11+:
-  1. Says "side by side at 840dp+" but the threshold has been 1200dp since 2.16.7.
-  2. Doesn't mention the left-rail in Wide mode (added 2.16.10).
-  3. Doesn't mention the rail items being centered (changed 2.16.11).
-  Per the `bump-android-version` skill, **patches don't touch whatsnew** — patches roll up into the next minor/major. Stays out of sync until a 2.17.x bump or until the user explicitly OKs an exception.
-- **Other open follow-ups (user-visible-string migration)** are tracked in [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md). Both server (`server/26`, 2026-05-10) and Android (`android/235`, 2026-05-11) sides of the Developer-allowlist flag have shipped.
+> **None.** Feature follow-ups live in [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md). The Play Store whatsnew file is rolling and refreshed by the `bump-android-version` skill on every minor/major — staleness during a patch series is expected and self-resolves on the next minor.
