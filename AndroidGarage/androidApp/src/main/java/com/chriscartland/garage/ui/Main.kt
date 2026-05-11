@@ -163,7 +163,7 @@ fun AppNavigation() {
     val layoutDebugEnabled by component.appSettings.layoutDebugEnabled.flow
         .collectAsState(initial = false)
     val navigationRailItemPosition by component.appSettings.navigationRailItemPosition.flow
-        .collectAsState(initial = NavigationRailItemPosition.CenteredVertically)
+        .collectAsState(initial = NavigationRailItemPosition.TopAligned)
     val navigationRailTopPaddingDp by component.appSettings.navigationRailTopPaddingDp.flow
         .collectAsState(initial = 8)
 
@@ -436,9 +436,14 @@ fun BottomNavigationBar(
  * **Item position** is selected by [itemPosition] — defaults to
  * [NavigationRailItemPosition.CenteredVertically] (M3-canonical for
  * rails with few items, see Gmail / YouTube tablet layouts). With
- * `TopAligned` the items sit at the rail's top so the first visible
- * item lands in the same horizontal band as the body's first content
- * row. The setting is exposed via Settings → Developer → "Nav rail
+ * `TopAligned` the items sit at the rail's top so the **selected
+ * item's indicator pill** (the rounded blue background drawn behind
+ * the icon when selected) sits at the same y as the body's first
+ * content row. That's the alignment landmark the developer setting
+ * dials in against — not the icon glyph itself, not the label text;
+ * the indicator pill is the visible "first pixel" of the rail when
+ * an item is selected and is what the eye reads as the rail's top
+ * edge. The setting is exposed via Settings → Developer → "Nav rail
  * items" and persists in DataStore. The previous "header-slot Spacer"
  * and "content-side `padding(top = X)`" workarounds for top-alignment
  * proved fragile against M3 internal padding (2.16.10 / 2.16.11
@@ -446,6 +451,14 @@ fun BottomNavigationBar(
  * position land where it lands and pushes items toward the top with
  * a single `weight(1f)` Spacer below, which the user can compare
  * against content visually on a real device.
+ *
+ * **The companion `extraTopPaddingDp` parameter** (Settings →
+ * Developer → "Nav rail top padding", default 8 dp) closes the
+ * residual gap between M3's natural item top and the body's first
+ * content row. 8 dp is the empirical match — verified on hardware
+ * 2026-05-11 against the Settings/Home body's first content row.
+ * The reset button on the stepper restores the canonical default
+ * via [com.chriscartland.garage.domain.repository.Setting.restoreDefault].
  */
 @Composable
 fun NavigationRailLeft(
@@ -470,10 +483,12 @@ fun NavigationRailLeft(
             Spacer(Modifier.weight(1f))
         }
         // Extra developer-controlled padding above the items. Pushes
-        // every item downward in both modes — useful for fine-tuning
-        // rail-vs-content alignment on real hardware (Settings →
-        // Developer → "Nav rail top padding"). 0 by default = no
-        // contribution.
+        // every item downward in both modes — closes the residual gap
+        // between M3's natural item top and the body's first content
+        // row so that the selected-item indicator pill (the blue
+        // rounded background) aligns with the body's first content
+        // row's top. Default 8 dp (Settings → Developer → "Nav rail
+        // top padding"), set on hardware 2026-05-11.
         if (extraTopPaddingDp > 0) {
             Spacer(Modifier.height(extraTopPaddingDp.dp))
         }

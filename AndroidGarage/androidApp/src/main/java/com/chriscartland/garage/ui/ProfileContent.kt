@@ -45,6 +45,7 @@ import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
 import com.chriscartland.garage.ui.settings.AccountBottomSheet
 import com.chriscartland.garage.ui.settings.AccountRowState
+import com.chriscartland.garage.ui.settings.NavRailBottomSheet
 import com.chriscartland.garage.ui.settings.SettingsContent
 import com.chriscartland.garage.ui.settings.SnoozeBottomSheet
 import com.chriscartland.garage.ui.settings.SnoozeRowState
@@ -104,6 +105,7 @@ fun ProfileContent(
     var snoozeSheetOpen by rememberSaveable { mutableStateOf(false) }
     var accountSheetOpen by rememberSaveable { mutableStateOf(false) }
     var versionSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var navRailSheetOpen by rememberSaveable { mutableStateOf(false) }
 
     // Refresh snooze status every minute while this screen is mounted.
     // Mirrors the legacy ProfileContent behavior; the polling cadence
@@ -165,9 +167,7 @@ fun ProfileContent(
         },
         onDiagnosticsTap = onNavigateToDiagnostics,
         onLayoutDebugChange = resolved::setLayoutDebugEnabled,
-        onNavigationRailItemPositionChange = resolved::setNavigationRailItemPosition,
-        onNavigationRailTopPaddingDpChange = resolved::setNavigationRailTopPaddingDp,
-        onNavigationRailTopPaddingDpReset = resolved::resetNavigationRailTopPaddingDp,
+        onNavRailTap = { navRailSheetOpen = true },
     )
 
     if (snoozeSheetOpen) {
@@ -213,6 +213,18 @@ fun ProfileContent(
                 }
             },
             onDismiss = { versionSheetOpen = false },
+        )
+    }
+
+    if (navRailSheetOpen) {
+        NavRailBottomSheet(
+            itemPosition = navigationRailItemPosition,
+            topPaddingDp = navigationRailTopPaddingDp,
+            onItemPositionChange = resolved::setNavigationRailItemPosition,
+            onItemPositionReset = resolved::resetNavigationRailItemPosition,
+            onTopPaddingDpChange = resolved::setNavigationRailTopPaddingDp,
+            onTopPaddingDpReset = resolved::resetNavigationRailTopPaddingDp,
+            onDismiss = { navRailSheetOpen = false },
         )
     }
 

@@ -108,6 +108,8 @@ interface ProfileViewModel {
 
     fun setNavigationRailItemPosition(position: NavigationRailItemPosition)
 
+    fun resetNavigationRailItemPosition()
+
     fun setNavigationRailTopPaddingDp(value: Int)
 
     fun resetNavigationRailTopPaddingDp()
@@ -144,7 +146,7 @@ class DefaultProfileViewModel(
     override val layoutDebugEnabled: StateFlow<Boolean> = _layoutDebugEnabled
 
     private val _navigationRailItemPosition =
-        MutableStateFlow(NavigationRailItemPosition.CenteredVertically)
+        MutableStateFlow(NavigationRailItemPosition.TopAligned)
     override val navigationRailItemPosition: StateFlow<NavigationRailItemPosition> =
         _navigationRailItemPosition
 
@@ -240,6 +242,12 @@ class DefaultProfileViewModel(
     override fun setNavigationRailItemPosition(position: NavigationRailItemPosition) {
         viewModelScope.launch(dispatchers.io) {
             appSettings.setNavigationRailItemPosition(position)
+        }
+    }
+
+    override fun resetNavigationRailItemPosition() {
+        viewModelScope.launch(dispatchers.io) {
+            appSettings.restoreNavigationRailItemPositionDefault()
         }
     }
 

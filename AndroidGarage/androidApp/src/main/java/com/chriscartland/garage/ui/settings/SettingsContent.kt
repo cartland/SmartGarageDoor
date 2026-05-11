@@ -21,7 +21,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -33,7 +32,6 @@ import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Info
@@ -41,19 +39,14 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.NotificationsPaused
 import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.outlined.Remove
-import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Storefront
-import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.VerticalAlignCenter
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -132,9 +125,7 @@ fun SettingsContent(
     onPrivacyPolicyTap: () -> Unit = {},
     onDiagnosticsTap: () -> Unit = {},
     onLayoutDebugChange: (Boolean) -> Unit = {},
-    onNavigationRailItemPositionChange: (NavigationRailItemPosition) -> Unit = {},
-    onNavigationRailTopPaddingDpChange: (Int) -> Unit = {},
-    onNavigationRailTopPaddingDpReset: () -> Unit = {},
+    onNavRailTap: () -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -260,176 +251,28 @@ fun SettingsContent(
                         onCheckedChange = onLayoutDebugChange,
                     )
                     HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
-                    NavigationRailItemPositionPicker(
-                        selected = navigationRailItemPosition,
-                        onSelect = onNavigationRailItemPositionChange,
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
-                    NavigationRailTopPaddingStepperRow(
-                        valueDp = navigationRailTopPaddingDp,
-                        onChange = onNavigationRailTopPaddingDpChange,
-                        onReset = onNavigationRailTopPaddingDpReset,
+                    val railPositionLabel = when (navigationRailItemPosition) {
+                        NavigationRailItemPosition.CenteredVertically ->
+                            stringResource(R.string.settings_developer_nav_rail_items_centered)
+                        NavigationRailItemPosition.TopAligned ->
+                            stringResource(R.string.settings_developer_nav_rail_items_top_aligned)
+                    }
+                    SettingsRow(
+                        icon = Icons.Outlined.VerticalAlignCenter,
+                        title = stringResource(R.string.settings_developer_nav_rail_row_title),
+                        subtitle = stringResource(
+                            R.string.settings_developer_nav_rail_row_subtitle,
+                            railPositionLabel,
+                            navigationRailTopPaddingDp,
+                        ),
+                        showChevron = true,
+                        onClick = onNavRailTap,
                     )
                 }
             }
         }
     }
 }
-
-/**
- * Developer-only inline picker for [NavigationRailItemPosition]. Header
- * row mirrors [SettingsRow] / [SettingsSwitchRow] (icon + title +
- * subtitle); choices below render as `RadioButton` + label rows. Two
- * options today; structure scales to more if a future variant lands.
- */
-@Composable
-private fun NavigationRailItemPositionPicker(
-    selected: NavigationRailItemPosition,
-    onSelect: (NavigationRailItemPosition) -> Unit,
-) {
-    Column {
-        ListItem(
-            leadingContent = {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(36.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.VerticalAlignCenter,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
-            headlineContent = {
-                Text(stringResource(R.string.settings_developer_nav_rail_items_title))
-            },
-            supportingContent = {
-                Text(stringResource(R.string.settings_developer_nav_rail_items_subtitle))
-            },
-            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        )
-        NavigationRailItemPosition.entries.forEach { position ->
-            NavigationRailItemPositionChoiceRow(
-                position = position,
-                selected = position == selected,
-                onClick = { onSelect(position) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun NavigationRailItemPositionChoiceRow(
-    position: NavigationRailItemPosition,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    val label = when (position) {
-        NavigationRailItemPosition.CenteredVertically ->
-            stringResource(R.string.settings_developer_nav_rail_items_centered)
-        NavigationRailItemPosition.TopAligned ->
-            stringResource(R.string.settings_developer_nav_rail_items_top_aligned)
-    }
-    ListItem(
-        leadingContent = {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.size(36.dp),
-            ) {
-                RadioButton(
-                    selected = selected,
-                    onClick = null,
-                )
-            }
-        },
-        headlineContent = { Text(label) },
-        modifier = Modifier.clickable { onClick() },
-        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-    )
-}
-
-/**
- * Developer-only stepper row for the Wide-mode rail's extra top
- * padding (in dp). Header layout matches [SettingsRow] /
- * [SettingsSwitchRow] (icon + title + subtitle); trailing area shows
- * `−  Ndp  +` with `IconButton`s. Range is clamped to
- * [PADDING_MIN_DP]..[PADDING_MAX_DP]; tap is a no-op at the bounds.
- */
-@Composable
-private fun NavigationRailTopPaddingStepperRow(
-    valueDp: Int,
-    onChange: (Int) -> Unit,
-    onReset: () -> Unit,
-) {
-    val coerced = valueDp.coerceIn(PADDING_MIN_DP, PADDING_MAX_DP)
-    ListItem(
-        leadingContent = {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.size(36.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.SwapVert,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        },
-        headlineContent = {
-            Text(stringResource(R.string.settings_developer_nav_rail_top_padding_title))
-        },
-        supportingContent = {
-            Text(stringResource(R.string.settings_developer_nav_rail_top_padding_subtitle))
-        },
-        trailingContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onReset) {
-                    Icon(
-                        imageVector = Icons.Outlined.RestartAlt,
-                        contentDescription = stringResource(
-                            R.string.settings_developer_nav_rail_top_padding_reset,
-                        ),
-                    )
-                }
-                IconButton(
-                    onClick = { onChange((coerced - 1).coerceAtLeast(PADDING_MIN_DP)) },
-                    enabled = coerced > PADDING_MIN_DP,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Remove,
-                        contentDescription = stringResource(
-                            R.string.settings_developer_nav_rail_top_padding_decrease,
-                        ),
-                    )
-                }
-                Text(
-                    text = stringResource(
-                        R.string.settings_developer_nav_rail_top_padding_value,
-                        coerced,
-                    ),
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                )
-                IconButton(
-                    onClick = { onChange((coerced + 1).coerceAtMost(PADDING_MAX_DP)) },
-                    enabled = coerced < PADDING_MAX_DP,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Add,
-                        contentDescription = stringResource(
-                            R.string.settings_developer_nav_rail_top_padding_increase,
-                        ),
-                    )
-                }
-            }
-        },
-        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-    )
-}
-
-private const val PADDING_MIN_DP = 0
-private const val PADDING_MAX_DP = 64
 
 @Composable
 private fun SettingsSection(
@@ -616,32 +459,6 @@ fun SettingsContentSignedInAllowlistedPreview() {
                 email = "chris@example.com",
             ),
             snoozeState = SnoozeRowState.SnoozingUntil("5:30 PM"),
-            showSnoozeRow = true,
-            showDeveloperSection = true,
-            showFunctionListRow = true,
-            versionName = "2.6.1",
-            versionCode = "182",
-            layoutDebugEnabled = false,
-            navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
-            navigationRailTopPaddingDp = 8,
-        )
-    }
-}
-
-// `private` so `checkPreviewCoverage` exempts it. The Settings UI for
-// the nav-rail-item-position picker is fully exercised in production
-// behind the developer flag; this is an Android Studio preview
-// reference only — not a screenshot fixture.
-@Preview
-@Composable
-private fun SettingsContentSignedInAllowlistedTopAlignedPreview() {
-    PreviewScreenSurface {
-        SettingsContent(
-            accountState = AccountRowState.SignedIn(
-                displayName = "Chris Cartland",
-                email = "chris@example.com",
-            ),
-            snoozeState = SnoozeRowState.Off,
             showSnoozeRow = true,
             showDeveloperSection = true,
             showFunctionListRow = true,
