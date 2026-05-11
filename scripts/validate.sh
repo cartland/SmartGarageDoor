@@ -52,6 +52,9 @@ $GRADLE checkNoRawDispatchers && pass "no raw dispatchers" || fail "no raw dispa
 step "No bare top-level functions (ADR-009 — group in object {})"
 $GRADLE checkNoBareTopLevelFunctions && pass "no bare top-level functions" || fail "no bare top-level functions"
 
+step "No literal Text() in Composable scope (Phase 3 — string-resource migration)"
+$GRADLE checkNoLiteralStringsInCompose && pass "no literal Text() in Composable" || fail "no literal Text() in Composable"
+
 step "No *Impl suffix on class names (ADR-008 — use descriptive prefix)"
 $GRADLE checkNoImplSuffix && pass "no *Impl suffix" || fail "no *Impl suffix"
 

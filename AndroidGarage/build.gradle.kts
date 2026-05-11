@@ -201,6 +201,13 @@ tasks.register<architecture.NoRawDispatchersTask>("checkNoRawDispatchers") {
     )
 }
 
+tasks.register<architecture.LiteralStringsInComposeCheckTask>("checkNoLiteralStringsInCompose") {
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+    )
+    exemptionsFile = "$rootDir/string-literal-exemptions.txt"
+}
+
 tasks.register<architecture.NoBareTopLevelFunctionsTask>("checkNoBareTopLevelFunctions") {
     sourceDirs = listOf(
         "$rootDir/androidApp/src/main/java",
