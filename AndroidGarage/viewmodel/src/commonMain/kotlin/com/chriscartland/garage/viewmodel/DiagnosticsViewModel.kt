@@ -15,12 +15,14 @@
  *
  */
 
-package com.chriscartland.garage.usecase
+package com.chriscartland.garage.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppLoggerKeys
+import com.chriscartland.garage.usecase.ClearDiagnosticsUseCase
+import com.chriscartland.garage.usecase.ObserveDiagnosticsCountUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch

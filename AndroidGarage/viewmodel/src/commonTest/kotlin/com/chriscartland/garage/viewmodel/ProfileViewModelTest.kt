@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.usecase
+package com.chriscartland.garage.viewmodel
 
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AppResult
@@ -38,6 +38,16 @@ import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.FakeFeatureAllowlistRepository
 import com.chriscartland.garage.testcommon.FakeSnoozeRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
+import com.chriscartland.garage.usecase.AppSettingsUseCase
+import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
+import com.chriscartland.garage.usecase.LogAppEventUseCase
+import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
+import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
+import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
+import com.chriscartland.garage.usecase.ObserveSnoozeStateUseCase
+import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
+import com.chriscartland.garage.usecase.SignOutUseCase
+import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher

@@ -41,6 +41,7 @@ tasks.register<codestyle.NoFullyQualifiedNamesTask>("checkNoFullyQualifiedNames"
         "$rootDir/data/src/commonMain/kotlin",
         "$rootDir/data-local/src/commonMain/kotlin",
         "$rootDir/usecase/src/commonMain/kotlin",
+        "$rootDir/viewmodel/src/commonMain/kotlin",
         "$rootDir/presentation-model/src/commonMain/kotlin",
     )
 }
@@ -91,6 +92,7 @@ tasks.register<architecture.SingletonGuardTask>("checkSingletonGuard") {
 tasks.register<architecture.LayerImportCheckTask>("checkLayerImports") {
     sourceDirs = listOf(
         "$rootDir/usecase/src/commonMain/kotlin",
+        "$rootDir/viewmodel/src/commonMain/kotlin",
         "$rootDir/androidApp/src/main/java",
     )
     rules = listOf(
@@ -141,6 +143,7 @@ tasks.register<codestyle.RememberSaveableGuardTask>("checkRememberSaveable") {
 tasks.register<architecture.ViewModelStateFlowCheckTask>("checkViewModelStateFlow") {
     sourceDirs = listOf(
         "$rootDir/usecase/src/commonMain/kotlin",
+        "$rootDir/viewmodel/src/commonMain/kotlin",
         "$rootDir/androidApp/src/main/java",
     )
 }
@@ -197,6 +200,7 @@ tasks.register<architecture.NoRawDispatchersTask>("checkNoRawDispatchers") {
     sourceDirs = listOf(
         "$rootDir/androidApp/src/main/java",
         "$rootDir/usecase/src/commonMain/kotlin",
+        "$rootDir/viewmodel/src/commonMain/kotlin",
         "$rootDir/presentation-model/src/commonMain/kotlin",
     )
 }
@@ -212,6 +216,7 @@ tasks.register<architecture.NoBareTopLevelFunctionsTask>("checkNoBareTopLevelFun
     sourceDirs = listOf(
         "$rootDir/androidApp/src/main/java",
         "$rootDir/usecase/src/commonMain/kotlin",
+        "$rootDir/viewmodel/src/commonMain/kotlin",
         "$rootDir/presentation-model/src/commonMain/kotlin",
         "$rootDir/domain/src/commonMain/kotlin",
         "$rootDir/data/src/commonMain/kotlin",
@@ -222,6 +227,7 @@ tasks.register<architecture.NoBareTopLevelFunctionsTask>("checkNoBareTopLevelFun
 tasks.register<architecture.NoTokenInUseCaseTask>("checkNoTokenInUseCase") {
     sourceDirs = listOf(
         "$rootDir/usecase/src/commonMain/kotlin",
+        "$rootDir/viewmodel/src/commonMain/kotlin",
     )
 }
 
@@ -273,6 +279,7 @@ tasks.register<architecture.NoImplSuffixTask>("checkNoImplSuffix") {
     sourceDirs = listOf(
         "$rootDir/androidApp/src/main/java",
         "$rootDir/usecase/src/commonMain/kotlin",
+        "$rootDir/viewmodel/src/commonMain/kotlin",
         "$rootDir/presentation-model/src/commonMain/kotlin",
         "$rootDir/domain/src/commonMain/kotlin",
         "$rootDir/data/src/commonMain/kotlin",
@@ -305,6 +312,7 @@ tasks.register<architecture.MutexWithLockTask>("checkMutexWithLock") {
     sourceDirs = listOf(
         "$rootDir/androidApp/src/main/java",
         "$rootDir/usecase/src/commonMain/kotlin",
+        "$rootDir/viewmodel/src/commonMain/kotlin",
         "$rootDir/presentation-model/src/commonMain/kotlin",
         "$rootDir/domain/src/commonMain/kotlin",
         "$rootDir/data/src/commonMain/kotlin",

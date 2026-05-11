@@ -68,7 +68,7 @@ import com.chriscartland.garage.ui.theme.DividerInset
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.ui.theme.safeListContentPadding
-import com.chriscartland.garage.usecase.DiagnosticsViewModel
+import com.chriscartland.garage.viewmodel.DiagnosticsViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

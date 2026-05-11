@@ -43,7 +43,7 @@ import com.chriscartland.garage.ui.auth.rememberAuthTokenCopier
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.ui.theme.safeListContentPadding
-import com.chriscartland.garage.usecase.FunctionListViewModel
+import com.chriscartland.garage.viewmodel.FunctionListViewModel
 
 @Composable
 fun FunctionListContent(

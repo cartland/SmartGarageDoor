@@ -41,7 +41,7 @@ import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.history.HistoryContent
 import com.chriscartland.garage.ui.history.HistoryMapper
-import com.chriscartland.garage.usecase.DoorHistoryViewModel
+import com.chriscartland.garage.viewmodel.DoorHistoryViewModel
 import java.time.Instant
 import java.time.ZoneId
 

@@ -243,6 +243,7 @@ dependencies {
     implementation(project(":data"))
     implementation(project(":data-local"))
     implementation(project(":usecase"))
+    implementation(project(":viewmodel"))
     implementation(project(":presentation-model"))
     implementation(libs.kermit)
     implementation(libs.androidx.core.ktx)
@@ -280,6 +281,7 @@ dependencies {
     androidTestImplementation(project(":data"))
     androidTestImplementation(project(":domain"))
     androidTestImplementation(project(":usecase"))
+    androidTestImplementation(project(":viewmodel"))
     androidTestImplementation(libs.kotlinx.coroutines.test)
     // Debug
     debugImplementation(libs.androidx.ui.tooling)

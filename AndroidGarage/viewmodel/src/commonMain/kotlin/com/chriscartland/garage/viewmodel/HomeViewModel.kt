@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.usecase
+package com.chriscartland.garage.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -30,6 +30,19 @@ import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.RemoteButtonState
+import com.chriscartland.garage.usecase.ButtonAckToken
+import com.chriscartland.garage.usecase.ButtonHealthDisplay
+import com.chriscartland.garage.usecase.ButtonStateMachine
+import com.chriscartland.garage.usecase.CheckInStalenessManager
+import com.chriscartland.garage.usecase.DeregisterFcmUseCase
+import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
+import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
+import com.chriscartland.garage.usecase.LiveClock
+import com.chriscartland.garage.usecase.LogAppEventUseCase
+import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
+import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
+import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
+import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch

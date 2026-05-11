@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.usecase
+package com.chriscartland.garage.viewmodel
 
 import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.model.AppLoggerKeys
@@ -38,6 +38,17 @@ import com.chriscartland.garage.testcommon.FakeDoorFcmRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
+import com.chriscartland.garage.usecase.CheckInStalenessManager
+import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
+import com.chriscartland.garage.usecase.DefaultLiveClock
+import com.chriscartland.garage.usecase.DeregisterFcmUseCase
+import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
+import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
+import com.chriscartland.garage.usecase.LogAppEventUseCase
+import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
+import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
+import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
+import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

@@ -15,7 +15,7 @@
  *
  */
 
-package com.chriscartland.garage.usecase
+package com.chriscartland.garage.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -32,6 +32,16 @@ import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.toServer
+import com.chriscartland.garage.usecase.AppSettingsUseCase
+import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
+import com.chriscartland.garage.usecase.LogAppEventUseCase
+import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
+import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
+import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
+import com.chriscartland.garage.usecase.ObserveSnoozeStateUseCase
+import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
+import com.chriscartland.garage.usecase.SignOutUseCase
+import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
