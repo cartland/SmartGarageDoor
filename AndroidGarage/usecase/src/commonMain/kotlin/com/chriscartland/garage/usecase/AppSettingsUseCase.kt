@@ -55,4 +55,6 @@ class AppSettingsUseCase(
     fun observeNavigationRailTopPaddingDp(): Flow<Int> = settings.navigationRailTopPaddingDp.flow
 
     suspend fun setNavigationRailTopPaddingDp(value: Int) = settings.navigationRailTopPaddingDp.set(value)
+
+    suspend fun restoreNavigationRailTopPaddingDpDefault() = settings.navigationRailTopPaddingDp.restoreDefault()
 }

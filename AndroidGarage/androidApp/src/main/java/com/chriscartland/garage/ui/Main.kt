@@ -165,7 +165,7 @@ fun AppNavigation() {
     val navigationRailItemPosition by component.appSettings.navigationRailItemPosition.flow
         .collectAsState(initial = NavigationRailItemPosition.CenteredVertically)
     val navigationRailTopPaddingDp by component.appSettings.navigationRailTopPaddingDp.flow
-        .collectAsState(initial = 0)
+        .collectAsState(initial = 8)
 
     CompositionLocalProvider(LocalLayoutDebugEnabled provides layoutDebugEnabled) {
         AppScaffold(

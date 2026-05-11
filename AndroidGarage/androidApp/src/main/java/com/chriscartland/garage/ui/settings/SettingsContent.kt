@@ -42,6 +42,7 @@ import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.NotificationsPaused
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Remove
+import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.VerticalAlignCenter
@@ -133,6 +134,7 @@ fun SettingsContent(
     onLayoutDebugChange: (Boolean) -> Unit = {},
     onNavigationRailItemPositionChange: (NavigationRailItemPosition) -> Unit = {},
     onNavigationRailTopPaddingDpChange: (Int) -> Unit = {},
+    onNavigationRailTopPaddingDpReset: () -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -266,6 +268,7 @@ fun SettingsContent(
                     NavigationRailTopPaddingStepperRow(
                         valueDp = navigationRailTopPaddingDp,
                         onChange = onNavigationRailTopPaddingDpChange,
+                        onReset = onNavigationRailTopPaddingDpReset,
                     )
                 }
             }
@@ -357,6 +360,7 @@ private fun NavigationRailItemPositionChoiceRow(
 private fun NavigationRailTopPaddingStepperRow(
     valueDp: Int,
     onChange: (Int) -> Unit,
+    onReset: () -> Unit,
 ) {
     val coerced = valueDp.coerceIn(PADDING_MIN_DP, PADDING_MAX_DP)
     ListItem(
@@ -380,6 +384,14 @@ private fun NavigationRailTopPaddingStepperRow(
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onReset) {
+                    Icon(
+                        imageVector = Icons.Outlined.RestartAlt,
+                        contentDescription = stringResource(
+                            R.string.settings_developer_nav_rail_top_padding_reset,
+                        ),
+                    )
+                }
                 IconButton(
                     onClick = { onChange((coerced - 1).coerceAtLeast(PADDING_MIN_DP)) },
                     enabled = coerced > PADDING_MIN_DP,
@@ -567,7 +579,7 @@ fun SettingsContentSignedOutPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
-            navigationRailTopPaddingDp = 0,
+            navigationRailTopPaddingDp = 8,
         )
     }
 }
@@ -589,7 +601,7 @@ fun SettingsContentSignedInBasicPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
-            navigationRailTopPaddingDp = 0,
+            navigationRailTopPaddingDp = 8,
         )
     }
 }
@@ -611,7 +623,7 @@ fun SettingsContentSignedInAllowlistedPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
-            navigationRailTopPaddingDp = 0,
+            navigationRailTopPaddingDp = 8,
         )
     }
 }
@@ -637,7 +649,7 @@ private fun SettingsContentSignedInAllowlistedTopAlignedPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.TopAligned,
-            navigationRailTopPaddingDp = 0,
+            navigationRailTopPaddingDp = 8,
         )
     }
 }
@@ -659,7 +671,7 @@ fun SettingsContentPermissionDeniedPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
-            navigationRailTopPaddingDp = 0,
+            navigationRailTopPaddingDp = 8,
         )
     }
 }
@@ -684,7 +696,7 @@ fun SettingsContentSnoozeInFlightPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
-            navigationRailTopPaddingDp = 0,
+            navigationRailTopPaddingDp = 8,
             snoozeInFlight = true,
         )
     }
