@@ -31,7 +31,6 @@ import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.toServer
-import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -94,7 +93,7 @@ class DefaultProfileViewModel(
     private val fetchSnoozeStatusUseCase: FetchSnoozeStatusUseCase,
     private val snoozeNotificationsUseCase: SnoozeNotificationsUseCase,
     private val logAppEvent: LogAppEventUseCase,
-    private val appSettings: AppSettingsRepository,
+    private val appSettings: AppSettingsUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel(),
     ProfileViewModel {
@@ -123,7 +122,7 @@ class DefaultProfileViewModel(
             observeFeatureAccessUseCase.functionList().collect { _functionListAccess.value = it }
         }
         viewModelScope.launch(dispatchers.io) {
-            appSettings.layoutDebugEnabled.flow.collect { _layoutDebugEnabled.value = it }
+            appSettings.observeLayoutDebugEnabled().collect { _layoutDebugEnabled.value = it }
         }
     }
 
@@ -180,7 +179,7 @@ class DefaultProfileViewModel(
 
     override fun setLayoutDebugEnabled(enabled: Boolean) {
         viewModelScope.launch(dispatchers.io) {
-            appSettings.layoutDebugEnabled.set(enabled)
+            appSettings.setLayoutDebugEnabled(enabled)
         }
     }
 
