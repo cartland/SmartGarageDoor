@@ -31,10 +31,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.chriscartland.garage.R
 import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.ui.auth.rememberAuthTokenCopier
@@ -100,25 +102,25 @@ fun FunctionListContent(
             verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems),
         ) {
             item { FunctionListWarning() }
-            item { FunctionButton("Open or close garage door", onOpenOrCloseDoor) }
-            item { FunctionButton("Refresh door status", onRefreshDoorStatus) }
-            item { FunctionButton("Refresh door history", onRefreshDoorHistory) }
-            item { FunctionButton("Refresh snooze status", onRefreshSnoozeStatus) }
-            item { FunctionButton("Refresh button health", onRefreshButtonHealth) }
-            item { FunctionButton("Snooze notifications for 1 hour", onSnoozeOneHour) }
-            item { FunctionButton("Sign in with Google", onSignIn) }
-            item { FunctionButton("Sign out", onSignOut) }
-            item { FunctionButton("Clear all diagnostics", onClearDiagnostics) }
-            item { FunctionButton("Prune diagnostics log", onPruneDiagnosticsLog) }
-            item { FunctionButton("Re-register FCM", onRegisterFcm) }
-            item { FunctionButton("Deregister FCM", onDeregisterFcm) }
+            item { FunctionButton(stringResource(R.string.function_list_door_action), onOpenOrCloseDoor) }
+            item { FunctionButton(stringResource(R.string.function_list_refresh_door_status), onRefreshDoorStatus) }
+            item { FunctionButton(stringResource(R.string.function_list_refresh_door_history), onRefreshDoorHistory) }
+            item { FunctionButton(stringResource(R.string.function_list_refresh_snooze_status), onRefreshSnoozeStatus) }
+            item { FunctionButton(stringResource(R.string.function_list_refresh_button_health), onRefreshButtonHealth) }
+            item { FunctionButton(stringResource(R.string.function_list_snooze_one_hour), onSnoozeOneHour) }
+            item { FunctionButton(stringResource(R.string.function_list_sign_in_google), onSignIn) }
+            item { FunctionButton(stringResource(R.string.function_list_sign_out), onSignOut) }
+            item { FunctionButton(stringResource(R.string.function_list_clear_diagnostics), onClearDiagnostics) }
+            item { FunctionButton(stringResource(R.string.function_list_prune_diagnostics), onPruneDiagnosticsLog) }
+            item { FunctionButton(stringResource(R.string.function_list_register_fcm), onRegisterFcm) }
+            item { FunctionButton(stringResource(R.string.function_list_deregister_fcm), onDeregisterFcm) }
             // API-gated to Android 13+ — same redaction-flag rationale as the
             // Diagnostics surface (see AuthTokenCopier kdoc). Both screens
             // share rememberAuthTokenCopier() so a regression in the
             // clipboard / token-fetch path breaks both at once, which is
             // the verification property the user asked for.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                item { FunctionButton("Copy auth token (sensitive)", onCopyAuthToken) }
+                item { FunctionButton(stringResource(R.string.function_list_copy_auth_token), onCopyAuthToken) }
             }
         }
     } else {
@@ -133,10 +135,7 @@ fun FunctionListContent(
 @Composable
 private fun FunctionListWarning() {
     Text(
-        text = "Each button below performs a real action immediately. " +
-            "No confirmation prompts. Tapping triggers calls to the server, " +
-            "modifies app state, or wipes local data. Double-check the label " +
-            "before tapping.",
+        text = stringResource(R.string.function_list_warning),
         style = MaterialTheme.typography.bodyMedium,
         modifier = Modifier
             .fillMaxWidth()
@@ -151,7 +150,7 @@ private fun FunctionListAccessDeniedContent(modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = "Access not enabled for your account.",
+            text = stringResource(R.string.function_list_access_denied),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
         )

@@ -113,4 +113,21 @@
     <string name="home_info_remote_control_title">Remote control</string>
     <string name="home_info_remote_control_body_para1">The remote button checks in frequently. \"Available\" means it just told us it\'s ready to open or close the door.</string>
     <string name="home_info_remote_control_body_para2">If contact stops, this shows when we last heard from it. Tapping the button may not work until it reconnects.</string>
+
+    <!-- Function List screen — warning paragraph + per-action button labels. -->
+    <string name="function_list_warning">Each button below performs a real action immediately. No confirmation prompts. Tapping triggers calls to the server, modifies app state, or wipes local data. Double-check the label before tapping.</string>
+    <string name="function_list_access_denied">Access not enabled for your account.</string>
+    <string name="function_list_door_action">Open or close garage door</string>
+    <string name="function_list_refresh_door_status">Refresh door status</string>
+    <string name="function_list_refresh_door_history">Refresh door history</string>
+    <string name="function_list_refresh_snooze_status">Refresh snooze status</string>
+    <string name="function_list_refresh_button_health">Refresh button health</string>
+    <string name="function_list_snooze_one_hour">Snooze notifications for 1 hour</string>
+    <string name="function_list_sign_in_google">Sign in with Google</string>
+    <string name="function_list_sign_out">Sign out</string>
+    <string name="function_list_clear_diagnostics">Clear all diagnostics</string>
+    <string name="function_list_prune_diagnostics">Prune diagnostics log</string>
+    <string name="function_list_register_fcm">Re-register FCM</string>
+    <string name="function_list_deregister_fcm">Deregister FCM</string>
+    <string name="function_list_copy_auth_token">Copy auth token (sensitive)</string>
 </resources>
