@@ -165,14 +165,15 @@ fun SpacingTokensReferencePreview() {
 
 @Composable
 private fun SectionHeaderRef(label: String) {
+    // Demo-only header reference. Production sections (HomeSection,
+    // SettingsSection, HistoryDaySection) wrap this kind of Row in a
+    // Column with `verticalArrangement = spacedBy(SectionHeaderBottom)`
+    // so the gap to the body card is parent-owned. The header Row
+    // itself only owns horizontal padding.
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(
-                start = Spacing.SectionHeaderStart,
-                top = Spacing.SectionHeaderTop,
-                bottom = Spacing.SectionHeaderBottom,
-            ),
+            .padding(start = Spacing.SectionHeaderStart),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {

@@ -199,16 +199,15 @@ private fun HistoryDaySection(
     day: HistoryDay,
     zone: ZoneId,
 ) {
-    Column {
+    // Outer Column owns the gap between header text and body card via
+    // spacedBy (parent-owns-gaps rule). Header text has no vertical
+    // padding — the parent LazyColumn owns the gap above the section.
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.SectionHeaderBottom)) {
         Text(
             text = dayLabelText(day.label).uppercase(),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(
-                start = Spacing.SectionHeaderStart,
-                top = Spacing.SectionHeaderTop,
-                bottom = Spacing.SectionHeaderBottom,
-            ),
+            modifier = Modifier.padding(start = Spacing.SectionHeaderStart),
         )
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainer,

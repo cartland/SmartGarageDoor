@@ -52,8 +52,19 @@ object Spacing {
 
     /**
      * `Arrangement.spacedBy(...)` between items in a screen-level list.
+     *
+     * **Container-owned, single value (16dp).** Every screen-level
+     * `LazyColumn` in the app uses this as its `verticalArrangement`,
+     * regardless of whether the items are `Section`-wrapped (Home /
+     * Settings / History) or bare rows (Diagnostics, Function list).
+     * This — combined with [safeListContentPadding] / [ListContentPadding]
+     * supplying the same 16dp `top` — gives every page identical vertical
+     * rhythm. Children never apply their own top padding to claim the
+     * gap above themselves; the LazyColumn owns it (per the
+     * "parent owns the gap between its children" rule in
+     * `AndroidGarage/docs/SPACING_PLAN.md`).
      */
-    val BetweenItems = 8.dp
+    val BetweenItems = 16.dp
 
     /**
      * Tight grouping inside a single visual unit: icon ↔ text inside
@@ -67,22 +78,30 @@ object Spacing {
      * and `HistoryDaySection` — this is the most disciplined spacing
      * pattern in the app.
      *
-     * Total gap from header bottom to first list item is
-     * `SectionHeaderBottom + LazyColumn.spacedBy(BetweenItems)` = 16dp.
+     * **No `SectionHeaderTop`.** The gap above a section header is owned
+     * by the parent `LazyColumn` (its `contentPadding.top` for the first
+     * item; its `verticalArrangement = spacedBy(BetweenItems)` between
+     * items). Pre-2.16.29 the section claimed an 8dp top padding for
+     * itself, which violated the parent-owns-gaps rule and produced
+     * inconsistent first-item spacing depending on whether the page
+     * had a `Section`-wrapped first item or a bare item.
+     *
+     * `SectionHeaderStart` = horizontal padding inside the header row
+     * (start + end). `SectionHeaderBottom` = gap between header text and
+     * the section's body card, applied as the outer Column's
+     * `verticalArrangement = spacedBy(SectionHeaderBottom)` so even this
+     * intra-section gap follows the parent-owns rule.
      */
     val SectionHeaderStart = 16.dp
-    val SectionHeaderTop = 8.dp
     val SectionHeaderBottom = 8.dp
 
     /**
      * Standard `contentPadding` for screen-level `LazyColumn`s whose
      * bottom edge sits directly above the bottom NavigationBar.
      *
-     * Top = 8dp — minimal breathing room above the first item; the
-     * TopAppBar above is opaque chrome that already provides visual
-     * separation, and the first item's own top padding (section header's
-     * `SectionHeaderTop = 8dp`, warning paragraph's `vertical = 8dp`)
-     * adds another 8dp for ~16dp visible space before the first text.
+     * Top = 16dp — single source of breathing room above the first item.
+     * The first item never adds its own top padding (the parent-owns-
+     * gaps rule); this token is the gap.
      *
      * Bottom = 24dp — clearance between the last item and the tab bar.
      * Larger than top on purpose: the NavigationBar is below the content,
@@ -96,7 +115,7 @@ object Spacing {
      * bar (e.g. `DiagnosticsContent` has action buttons below its
      * LazyColumn, so the chrome clearance is owned by the wrapper Column).
      */
-    val ListContentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)
+    val ListContentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
 }
 
 /**
@@ -123,7 +142,7 @@ object Spacing {
  *
  * **Top is never propagated to leaves.** The TopAppBar always handles
  * the status-bar inset (in every layout mode), so [safeListContentPadding]
- * always returns the same 8dp top — no system inset is added there.
+ * always returns the same 16dp top — no system inset is added there.
  * This local only carries the bottom inset for now.
  */
 val LocalContentEdgeInsets: ProvidableCompositionLocal<WindowInsets> =
@@ -133,17 +152,19 @@ val LocalContentEdgeInsets: ProvidableCompositionLocal<WindowInsets> =
  * Edge-to-edge `contentPadding` for screen-level scrollables.
  *
  * Combines the existing [Spacing.ListContentPadding] visual chrome
- * clearance (8dp top, 24dp bottom) with the bottom inset published by
+ * clearance (16dp top, 24dp bottom) with the bottom inset published by
  * the Scaffold body wrapper via [LocalContentEdgeInsets]. The
  * scrollable's content drawing area extends edge-to-edge in Wide /
  * Expanded modes; the **scrollable padding** keeps the last item
  * reachable in the unobstructed region (it can scroll up past the
  * gesture nav into the safe area).
  *
- * **Top is always 8dp** — the TopAppBar covers the status-bar inset
- * in every mode, so the leaf never needs to add it. Bottom adds the
- * propagated edge inset (zero in Compact, gesture-nav in Rail/None) on
- * top of the 24dp visual chrome clearance.
+ * **Top is always 16dp** — the TopAppBar covers the status-bar inset
+ * in every mode, so the leaf never needs to add it. The 16dp is the
+ * single source of breathing room above the first item (the first item
+ * never claims its own top padding). Bottom adds the propagated edge
+ * inset (zero in Compact, gesture-nav in Rail/None) on top of the 24dp
+ * visual chrome clearance.
  *
  * Composables call this instead of [Spacing.ListContentPadding] when
  * the scrollable's bottom edge reaches the body's bottom edge (i.e.
@@ -156,7 +177,7 @@ fun safeListContentPadding(): PaddingValues {
     return PaddingValues(
         // Top is always handled by the TopAppBar; never propagate
         // the status-bar inset down to the leaf.
-        top = 8.dp,
+        top = 16.dp,
         bottom = edgeInsets.calculateBottomPadding() + 24.dp,
     )
 }

@@ -285,16 +285,16 @@ private fun SettingsSection(
     // label inset (start = 16dp below) keeps it visually aligned with
     // the ListItem content text inside the Surface — Material settings
     // convention.
-    Column {
+    //
+    // Outer Column owns the gap between header text and body card via
+    // spacedBy (parent-owns-gaps rule). Header text has no vertical
+    // padding — the parent LazyColumn owns the gap above the section.
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.SectionHeaderBottom)) {
         Text(
             text = label.uppercase(),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(
-                start = Spacing.SectionHeaderStart,
-                top = Spacing.SectionHeaderTop,
-                bottom = Spacing.SectionHeaderBottom,
-            ),
+            modifier = Modifier.padding(start = Spacing.SectionHeaderStart),
         )
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainer,
