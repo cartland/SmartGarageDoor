@@ -53,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -80,26 +81,32 @@ import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.doorColorState
 import com.chriscartland.garage.ui.theme.safeListContentPadding
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
+import java.time.Instant
+import java.time.ZoneId
 
 /**
  * Display data for the Home tab's status card.
  *
- * Stateless: every string is pre-formatted by the caller so screenshot tests
- * remain deterministic and the Composable carries no time math.
+ * Pure typed shape: no user-visible strings. The Composable layer resolves
+ * [doorPosition] → label and [lastChangeTimeSeconds] → "Since X · Y" via
+ * [doorStateLabel] / [rememberSinceLine] at render time.
  *
  * @param doorPosition drives the [GarageIcon] visual + door coloring AND the
- *   headline label — the Composable resolves position to a localized string
- *   via [doorStateLabel] (Phase 2B of the string-resource migration plan).
- * @param sinceLine combined status line — e.g. "Since 9:47 AM · 2 hr 14 min".
- *   Replaces the two separate icon-text rows from the legacy
- *   `DoorStatusCard`.
- * @param warning optional typed warning supporting content, surfaced for
- *   `OPENING_TOO_LONG`, `OPEN_MISALIGNED`, `CLOSING_TOO_LONG`,
- *   `ERROR_SENSOR_CONFLICT`, etc. See [DoorWarning].
+ *   headline label.
+ * @param lastChangeTimeSeconds raw epoch seconds for the "Since X · Y" line.
+ * @param warning optional typed warning, surfaced for `OPENING_TOO_LONG`,
+ *   `OPEN_MISALIGNED`, `CLOSING_TOO_LONG`, `ERROR_SENSOR_CONFLICT`, etc.
+ *   See [DoorWarning].
  */
 data class HomeStatusDisplay(
     val doorPosition: DoorPosition,
-    val sinceLine: String,
+    /**
+     * Epoch seconds of the door's last position change, or null if unknown.
+     * The Composable assembles the "Since X · Y" line from this + a clock
+     * via [rememberSinceLine] (Phase 2C of the string-resource migration —
+     * the mapper no longer formats user-visible duration text).
+     */
+    val lastChangeTimeSeconds: Long?,
     val warning: DoorWarning? = null,
     /** Drives the muted "stale" door color and disables animation when true. */
     val isStale: Boolean = false,
@@ -126,22 +133,33 @@ sealed interface HomeAuthState {
  * informational alerts.
  */
 sealed interface HomeAlert {
-    /** Door telemetry hasn't arrived recently — server may be down. */
-    data class Stale(
-        val message: String = "Not receiving updates from server",
-        val actionLabel: String = "Retry",
-    ) : HomeAlert
+    /**
+     * Door telemetry hasn't arrived recently — server may be down. The
+     * Composable resolves the message + action label to localized strings
+     * via [HomeAlertCard]. Phase 2D of the string-resource migration —
+     * the previous `message: String = "..."` and `actionLabel: String = "Retry"`
+     * defaults were dropped.
+     */
+    data object Stale : HomeAlert
 
-    /** Notification permission denied/never asked. */
+    /**
+     * Notification permission denied / never asked. [message] still carries
+     * the server-formatted justification text from
+     * [com.chriscartland.garage.permissions.NotificationPermissionCopy] —
+     * that lifecycle moves to a typed `NotificationJustification` shape in
+     * Phase 2F.
+     */
     data class PermissionMissing(
         val message: String,
-        val actionLabel: String = "Allow",
     ) : HomeAlert
 
-    /** A door-event fetch failed. */
+    /**
+     * A door-event fetch failed. [truncatedException] carries the raw,
+     * length-bounded exception text — the Composable interpolates it via
+     * `formatArgs` into the localized "Error fetching ..." string.
+     */
     data class FetchError(
-        val message: String,
-        val actionLabel: String = "Retry",
+        val truncatedException: String,
     ) : HomeAlert
 }
 
@@ -164,6 +182,7 @@ sealed interface HomeAlert {
 @Composable
 fun HomeContent(
     status: HomeStatusDisplay,
+    sinceLine: String,
     authState: HomeAuthState,
     deviceCheckIn: DeviceCheckInDisplay,
     buttonHealthDisplay: ButtonHealthDisplay,
@@ -213,7 +232,7 @@ fun HomeContent(
                         )
                     },
                 ) {
-                    HomeStatusCardBody(status = status)
+                    HomeStatusCardBody(status = status, sinceLine = sinceLine)
                 }
             }
 
@@ -309,7 +328,10 @@ private fun HomeSection(
 }
 
 @Composable
-private fun HomeStatusCardBody(status: HomeStatusDisplay) {
+private fun HomeStatusCardBody(
+    status: HomeStatusDisplay,
+    sinceLine: String,
+) {
     val colorSet = LocalDoorStatusColorScheme.current.doorColorSet(isStale = status.isStale)
     val doorColor = when (DoorEvent(doorPosition = status.doorPosition).doorColorState()) {
         DoorColorState.OPEN -> colorSet.open
@@ -349,7 +371,7 @@ private fun HomeStatusCardBody(status: HomeStatusDisplay) {
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = status.sinceLine,
+                text = sinceLine,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -433,6 +455,48 @@ private fun doorStateLabel(doorPosition: DoorPosition): String =
         DoorPosition.ERROR_SENSOR_CONFLICT -> stringResource(R.string.home_door_state_sensor_conflict)
     }
 
+/**
+ * Resolves a raw [lastChangeTimeSeconds] (epoch) + clock + timezone into the
+ * "Since X · Y" status line, fully localized.
+ *
+ * Phase 2C of the string-resource migration plan
+ * (`AndroidGarage/docs/PENDING_FOLLOWUPS.md` item #1) — this Composable
+ * replaces `HomeMapper.sinceLine()` (deleted). The pure-function bits
+ * (`formatTimeOrDate`, `durationParts`) live in [HomeStatusFormatter] and
+ * stay unit-testable; localization happens here via `stringResource` +
+ * `pluralStringResource`.
+ *
+ * Returns `R.string.home_since_unknown` ("Last change time unknown") when
+ * [lastChangeTimeSeconds] is null.
+ */
+@Composable
+fun rememberSinceLine(
+    lastChangeTimeSeconds: Long?,
+    now: Instant,
+    zone: ZoneId,
+): String {
+    if (lastChangeTimeSeconds == null) {
+        return stringResource(R.string.home_since_unknown)
+    }
+    val instant = remember(lastChangeTimeSeconds) { Instant.ofEpochSecond(lastChangeTimeSeconds) }
+    val timeText = remember(instant, now, zone) {
+        HomeStatusFormatter.formatTimeOrDate(instant, now, zone)
+    }
+    val totalSeconds = (now.epochSecond - lastChangeTimeSeconds).coerceAtLeast(0L)
+    val parts = remember(totalSeconds) { HomeStatusFormatter.durationParts(totalSeconds) }
+    val durationText = when {
+        parts.days >= 1 ->
+            pluralStringResource(R.plurals.home_duration_days, parts.days, parts.days)
+        parts.hours >= 1 ->
+            stringResource(R.string.home_duration_hours_minutes, parts.hours, parts.minutes)
+        parts.minutes >= 1 ->
+            pluralStringResource(R.plurals.home_duration_minutes, parts.minutes, parts.minutes)
+        else ->
+            pluralStringResource(R.plurals.home_duration_seconds, parts.seconds, parts.seconds)
+    }
+    return stringResource(R.string.home_since_format, timeText, durationText)
+}
+
 @Composable
 private fun HomeRemoteButtonBody(
     state: RemoteButtonState,
@@ -494,13 +558,21 @@ private fun HomeAlertCard(
     alert: HomeAlert,
     onAction: () -> Unit,
 ) {
-    val (icon, message, actionLabel) = when (alert) {
-        is HomeAlert.Stale ->
-            Triple(Icons.Outlined.SignalWifiOff, alert.message, alert.actionLabel)
-        is HomeAlert.PermissionMissing ->
-            Triple(Icons.Outlined.NotificationsActive, alert.message, alert.actionLabel)
+    val icon = when (alert) {
+        HomeAlert.Stale -> Icons.Outlined.SignalWifiOff
+        is HomeAlert.PermissionMissing -> Icons.Outlined.NotificationsActive
+        is HomeAlert.FetchError -> Icons.Outlined.WarningAmber
+    }
+    val message = when (alert) {
+        HomeAlert.Stale -> stringResource(R.string.home_alert_stale_message)
+        is HomeAlert.PermissionMissing -> alert.message
         is HomeAlert.FetchError ->
-            Triple(Icons.Outlined.WarningAmber, alert.message, alert.actionLabel)
+            stringResource(R.string.home_alert_fetch_error_format, alert.truncatedException)
+    }
+    val actionLabel = when (alert) {
+        HomeAlert.Stale -> stringResource(R.string.home_alert_action_retry)
+        is HomeAlert.PermissionMissing -> stringResource(R.string.home_alert_action_allow)
+        is HomeAlert.FetchError -> stringResource(R.string.home_alert_action_retry)
     }
     Surface(
         color = MaterialTheme.colorScheme.errorContainer,
@@ -535,22 +607,30 @@ private fun HomeAlertCard(
 // region Preview helpers
 
 private object HomePreviewData {
+    // Hardcoded preview-only sinceLine strings (passed to HomeContent as the
+    // separate `sinceLine: String` parameter). These are preview fake data,
+    // not user-visible at runtime — preview composables provide the formatted
+    // text directly rather than computing from lastChangeTimeSeconds + a clock.
+    const val OPEN_SINCE_LINE = "Since 9:47 AM · 2 hr 14 min"
+    const val CLOSED_SINCE_LINE = "Since 11:22 AM · 38 min"
+    const val OPENING_TOO_LONG_SINCE_LINE = "Since 12:01 PM · 4 min"
+
     val openStatus = HomeStatusDisplay(
         doorPosition = DoorPosition.OPEN,
-        sinceLine = "Since 9:47 AM · 2 hr 14 min",
+        lastChangeTimeSeconds = null,
     )
     val closedStatus = HomeStatusDisplay(
         doorPosition = DoorPosition.CLOSED,
-        sinceLine = "Since 11:22 AM · 38 min",
+        lastChangeTimeSeconds = null,
     )
     val openingTooLongStatus = HomeStatusDisplay(
         doorPosition = DoorPosition.OPENING_TOO_LONG,
-        sinceLine = "Since 12:01 PM · 4 min",
+        lastChangeTimeSeconds = null,
         warning = DoorWarning.ServerMessage(
             "Taking longer than expected. Check the door for obstructions.",
         ),
     )
-    val staleAlert = HomeAlert.Stale()
+    val staleAlert = HomeAlert.Stale
     val permissionAlert = HomeAlert.PermissionMissing(
         message = NotificationPermissionCopy.justificationText(0),
     )
@@ -573,6 +653,7 @@ fun HomeContentOpenSignedInPreview() =
     PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.openStatus,
+            sinceLine = HomePreviewData.OPEN_SINCE_LINE,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
@@ -587,6 +668,7 @@ fun HomeContentClosedSignedInPreview() =
     PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
+            sinceLine = HomePreviewData.CLOSED_SINCE_LINE,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
@@ -601,6 +683,7 @@ fun HomeContentAwaitingConfirmationPreview() =
     PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
+            sinceLine = HomePreviewData.CLOSED_SINCE_LINE,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.AwaitingConfirmation,
             deviceCheckIn = HomePreviewData.freshCheckIn,
@@ -615,6 +698,7 @@ fun HomeContentSendingToDoorPreview() =
     PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
+            sinceLine = HomePreviewData.CLOSED_SINCE_LINE,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.SendingToDoor,
             deviceCheckIn = HomePreviewData.freshCheckIn,
@@ -629,6 +713,7 @@ fun HomeContentOpeningTooLongPreview() =
     PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.openingTooLongStatus,
+            sinceLine = HomePreviewData.OPENING_TOO_LONG_SINCE_LINE,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
@@ -643,6 +728,7 @@ fun HomeContentStaleBannerPreview() =
     PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.openStatus,
+            sinceLine = HomePreviewData.OPEN_SINCE_LINE,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             alerts = listOf(HomePreviewData.staleAlert),
@@ -658,6 +744,7 @@ fun HomeContentPermissionMissingPreview() =
     PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.openStatus,
+            sinceLine = HomePreviewData.OPEN_SINCE_LINE,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             alerts = listOf(HomePreviewData.permissionAlert),
@@ -673,6 +760,7 @@ fun HomeContentSignedOutPreview() =
     PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.openStatus,
+            sinceLine = HomePreviewData.OPEN_SINCE_LINE,
             authState = HomeAuthState.SignedOut,
             deviceCheckIn = HomePreviewData.freshCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Loading,
@@ -691,6 +779,7 @@ fun HomeContentRemotePillUnauthorizedPreview() =
     PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
+            sinceLine = HomePreviewData.CLOSED_SINCE_LINE,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
@@ -705,6 +794,7 @@ fun HomeContentRemotePillLoadingPreview() =
     PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
+            sinceLine = HomePreviewData.CLOSED_SINCE_LINE,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
@@ -719,6 +809,7 @@ fun HomeContentRemotePillUnknownPreview() =
     PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
+            sinceLine = HomePreviewData.CLOSED_SINCE_LINE,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
@@ -733,6 +824,7 @@ fun HomeContentRemotePillOnlinePreview() =
     PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
+            sinceLine = HomePreviewData.CLOSED_SINCE_LINE,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
@@ -747,6 +839,7 @@ fun HomeContentRemotePillOfflinePreview() =
     PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
+            sinceLine = HomePreviewData.CLOSED_SINCE_LINE,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
@@ -772,6 +865,7 @@ fun HomeContentOnTabletPreview() =
         RouteContent { routeModifier ->
             HomeContent(
                 status = HomePreviewData.openStatus,
+                sinceLine = HomePreviewData.OPEN_SINCE_LINE,
                 authState = HomeAuthState.SignedIn,
                 remoteButtonState = RemoteButtonState.Ready,
                 deviceCheckIn = HomePreviewData.freshCheckIn,
