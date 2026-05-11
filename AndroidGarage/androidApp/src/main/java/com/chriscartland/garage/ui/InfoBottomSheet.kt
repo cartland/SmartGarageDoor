@@ -36,9 +36,11 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.R
 
 /**
  * Bottom sheets that explain what the Status and Remote control
@@ -94,10 +96,10 @@ fun RemoteControlInfoBottomSheet(
 @Composable
 fun DoorStatusInfoSheetContent(modifier: Modifier = Modifier) {
     InfoSheetLayout(
-        title = "Door status",
+        title = stringResource(R.string.home_info_door_status_title),
         paragraphs = listOf(
-            "The door sensor checks in every 10 minutes, or whenever the door moves.",
-            "If we don't hear from it on schedule, this shows \"no signal\" so you know the sensor may be offline.",
+            stringResource(R.string.home_info_door_status_body_para1),
+            stringResource(R.string.home_info_door_status_body_para2),
         ),
         modifier = modifier,
     )
@@ -106,10 +108,10 @@ fun DoorStatusInfoSheetContent(modifier: Modifier = Modifier) {
 @Composable
 fun RemoteControlInfoSheetContent(modifier: Modifier = Modifier) {
     InfoSheetLayout(
-        title = "Remote control",
+        title = stringResource(R.string.home_info_remote_control_title),
         paragraphs = listOf(
-            "The remote button checks in frequently. \"Available\" means it just told us it's ready to open or close the door.",
-            "If contact stops, this shows when we last heard from it. Tapping the button may not work until it reconnects.",
+            stringResource(R.string.home_info_remote_control_body_para1),
+            stringResource(R.string.home_info_remote_control_body_para2),
         ),
         modifier = modifier,
     )
