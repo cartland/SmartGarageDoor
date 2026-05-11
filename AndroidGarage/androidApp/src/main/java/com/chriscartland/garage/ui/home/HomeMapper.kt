@@ -116,24 +116,29 @@ object HomeMapper {
         }
 
     /**
-     * Returns the warning string to surface inside the Status card for stuck
-     * or anomalous states. Prefers the server-supplied message; falls back
-     * to a fixed string per [DoorPosition] so the chip always says something
-     * useful when shown.
+     * Returns the typed warning to surface inside the Status card for stuck
+     * or anomalous states. Prefers the server-supplied message
+     * ([DoorWarning.ServerMessage]); falls back to a typed enum case per
+     * [DoorPosition] so the Composable can render a localized string from
+     * `strings.xml` when the server sends nothing.
+     *
+     * Per the string-resource migration plan (PENDING_FOLLOWUPS.md item #1),
+     * the mapper does not return user-visible text — it returns a type, and
+     * the Composable resolves the type to a string via `stringResource(...)`.
      */
-    internal fun warning(event: DoorEvent?): String? {
+    internal fun warning(event: DoorEvent?): DoorWarning? {
         if (event == null) return null
         val message = event.message?.takeIf { it.isNotBlank() }
         return when (event.doorPosition) {
             DoorPosition.OPENING_TOO_LONG ->
-                message ?: "Opening, taking longer than expected"
+                message?.let(DoorWarning::ServerMessage) ?: DoorWarning.OpeningTooLong
             DoorPosition.CLOSING_TOO_LONG ->
-                message ?: "Closing, taking longer than expected"
+                message?.let(DoorWarning::ServerMessage) ?: DoorWarning.ClosingTooLong
             DoorPosition.OPEN_MISALIGNED ->
-                message ?: "Door is open and misaligned"
+                message?.let(DoorWarning::ServerMessage) ?: DoorWarning.OpenMisaligned
             DoorPosition.ERROR_SENSOR_CONFLICT ->
-                message ?: "Sensor conflict. Check the door."
-            DoorPosition.UNKNOWN -> message
+                message?.let(DoorWarning::ServerMessage) ?: DoorWarning.SensorConflict
+            DoorPosition.UNKNOWN -> message?.let(DoorWarning::ServerMessage)
             else -> null
         }
     }

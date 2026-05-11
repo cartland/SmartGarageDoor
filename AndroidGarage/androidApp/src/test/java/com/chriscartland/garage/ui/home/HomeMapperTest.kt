@@ -95,6 +95,9 @@ class HomeMapperTest {
     // endregion
 
     // region warning
+    // Phase 2A of the string-resource migration: warning() returns a typed
+    // DoorWarning?, not a String?. Tests assert on type so a copy revision
+    // doesn't break them.
 
     @Test
     fun warning_null_event_returns_null() = assertNull(HomeMapper.warning(null))
@@ -116,48 +119,48 @@ class HomeMapperTest {
         val w = HomeMapper.warning(
             DoorEvent(doorPosition = DoorPosition.OPENING_TOO_LONG, message = "Specific server text"),
         )
-        assertEquals("Specific server text", w)
+        assertEquals(DoorWarning.ServerMessage("Specific server text"), w)
     }
 
     @Test
-    fun warning_openingTooLong_falls_back_to_default_when_message_null() {
+    fun warning_openingTooLong_falls_back_to_typed_default_when_message_null() {
         val w = HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.OPENING_TOO_LONG))
-        assertEquals("Opening, taking longer than expected", w)
+        assertEquals(DoorWarning.OpeningTooLong, w)
     }
 
     @Test
-    fun warning_openingTooLong_falls_back_to_default_when_message_blank() {
+    fun warning_openingTooLong_falls_back_to_typed_default_when_message_blank() {
         val w = HomeMapper.warning(
             DoorEvent(doorPosition = DoorPosition.OPENING_TOO_LONG, message = "   "),
         )
-        assertEquals("Opening, taking longer than expected", w)
+        assertEquals(DoorWarning.OpeningTooLong, w)
     }
 
     @Test
     fun warning_closingTooLong_default() {
         val w = HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.CLOSING_TOO_LONG))
-        assertEquals("Closing, taking longer than expected", w)
+        assertEquals(DoorWarning.ClosingTooLong, w)
     }
 
     @Test
     fun warning_openMisaligned_default() {
         val w = HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.OPEN_MISALIGNED))
-        assertEquals("Door is open and misaligned", w)
+        assertEquals(DoorWarning.OpenMisaligned, w)
     }
 
     @Test
     fun warning_sensorConflict_default() {
         val w = HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.ERROR_SENSOR_CONFLICT))
-        assertEquals("Sensor conflict. Check the door.", w)
+        assertEquals(DoorWarning.SensorConflict, w)
     }
 
     @Test
-    fun warning_unknown_uses_message_only_no_default() {
+    fun warning_unknown_uses_server_message_only_no_default() {
         // Unknown is too vague for a fixed default, so only the server's
         // own message is surfaced — and only when non-blank.
         assertNull(HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.UNKNOWN)))
         assertEquals(
-            "Server says X",
+            DoorWarning.ServerMessage("Server says X"),
             HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.UNKNOWN, message = "Server says X")),
         )
     }

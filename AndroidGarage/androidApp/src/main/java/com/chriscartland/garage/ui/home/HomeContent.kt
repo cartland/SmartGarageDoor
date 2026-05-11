@@ -100,7 +100,7 @@ data class HomeStatusDisplay(
     val doorPosition: DoorPosition,
     val stateLabel: String,
     val sinceLine: String,
-    val warning: String? = null,
+    val warning: DoorWarning? = null,
     /** Drives the muted "stale" door color and disables animation when true. */
     val isStale: Boolean = false,
 )
@@ -354,7 +354,8 @@ private fun HomeStatusCardBody(status: HomeStatusDisplay) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
-            if (status.warning != null) {
+            val warning = status.warning
+            if (warning != null) {
                 Spacer(modifier = Modifier.height(Spacing.Tight))
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer,
@@ -372,7 +373,7 @@ private fun HomeStatusCardBody(status: HomeStatusDisplay) {
                             modifier = Modifier.size(18.dp),
                         )
                         Text(
-                            text = status.warning,
+                            text = doorWarningText(warning),
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Start,
                         )
@@ -382,6 +383,27 @@ private fun HomeStatusCardBody(status: HomeStatusDisplay) {
         }
     }
 }
+
+/**
+ * Resolves a typed [DoorWarning] to its display string. Server-supplied
+ * messages render verbatim; the four fallback variants resolve to
+ * `strings.xml` resources so the chip always says something useful even
+ * when the server sends nothing for an anomalous state.
+ *
+ * Phase 2A of the string-resource migration plan
+ * (`AndroidGarage/docs/PENDING_FOLLOWUPS.md` item #1) — keeps the mapper
+ * pure-function and unit-testable on type while pushing the localization
+ * boundary into the Composable layer.
+ */
+@Composable
+private fun doorWarningText(warning: DoorWarning): String =
+    when (warning) {
+        is DoorWarning.ServerMessage -> warning.text
+        DoorWarning.OpeningTooLong -> stringResource(R.string.home_warning_opening_too_long)
+        DoorWarning.ClosingTooLong -> stringResource(R.string.home_warning_closing_too_long)
+        DoorWarning.OpenMisaligned -> stringResource(R.string.home_warning_open_misaligned)
+        DoorWarning.SensorConflict -> stringResource(R.string.home_warning_sensor_conflict)
+    }
 
 @Composable
 private fun HomeRemoteButtonBody(
@@ -499,7 +521,9 @@ private object HomePreviewData {
         doorPosition = DoorPosition.OPENING_TOO_LONG,
         stateLabel = "Opening",
         sinceLine = "Since 12:01 PM · 4 min",
-        warning = "Taking longer than expected. Check the door for obstructions.",
+        warning = DoorWarning.ServerMessage(
+            "Taking longer than expected. Check the door for obstructions.",
+        ),
     )
     val staleAlert = HomeAlert.Stale()
     val permissionAlert = HomeAlert.PermissionMissing(
