@@ -52,6 +52,8 @@ class AppSettingsUseCase(
 
     suspend fun setNavigationRailItemPosition(value: NavigationRailItemPosition) = settings.navigationRailItemPosition.set(value)
 
+    suspend fun restoreNavigationRailItemPositionDefault() = settings.navigationRailItemPosition.restoreDefault()
+
     fun observeNavigationRailTopPaddingDp(): Flow<Int> = settings.navigationRailTopPaddingDp.flow
 
     suspend fun setNavigationRailTopPaddingDp(value: Int) = settings.navigationRailTopPaddingDp.set(value)

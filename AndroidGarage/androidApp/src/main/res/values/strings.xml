@@ -47,16 +47,17 @@
     <string name="settings_developer_function_list_title">Function list</string>
     <string name="settings_developer_layout_debug_title">Layout debug colors</string>
     <string name="settings_developer_layout_debug_subtitle">Tints chrome regions to visualize layout boundaries</string>
-    <string name="settings_developer_nav_rail_items_title">Nav rail items</string>
-    <string name="settings_developer_nav_rail_items_subtitle">Where rail tab items sit vertically (Wide layout only)</string>
+    <string name="settings_developer_nav_rail_row_title">Nav rail</string>
+    <string name="settings_developer_nav_rail_row_subtitle">%1$s · %2$d dp</string>
+    <string name="settings_developer_nav_rail_sheet_title">Nav rail</string>
+    <string name="settings_developer_nav_rail_section_position">Item position</string>
+    <string name="settings_developer_nav_rail_section_padding">Top padding</string>
     <string name="settings_developer_nav_rail_items_centered">Centered vertically</string>
     <string name="settings_developer_nav_rail_items_top_aligned">Top-aligned</string>
-    <string name="settings_developer_nav_rail_top_padding_title">Nav rail top padding</string>
-    <string name="settings_developer_nav_rail_top_padding_subtitle">Extra dp above the rail tab items (Wide layout only)</string>
     <string name="settings_developer_nav_rail_top_padding_value">%1$d dp</string>
     <string name="settings_developer_nav_rail_top_padding_decrease">Decrease padding</string>
     <string name="settings_developer_nav_rail_top_padding_increase">Increase padding</string>
-    <string name="settings_developer_nav_rail_top_padding_reset">Reset to default</string>
+    <string name="settings_developer_nav_rail_reset_section">Reset section to default</string>
 
     <!-- Home screen — section labels. -->
     <string name="home_section_status">Status</string>

@@ -53,7 +53,7 @@ class DataStoreAppSettings(
         DataStoreEnumSetting(
             dataStore = dataStore,
             key = "NAVIGATION_RAIL_ITEM_POSITION",
-            default = NavigationRailItemPosition.CenteredVertically,
+            default = NavigationRailItemPosition.TopAligned,
             valueOf = NavigationRailItemPosition::valueOf,
         )
     override val navigationRailTopPaddingDp: Setting<Int> =

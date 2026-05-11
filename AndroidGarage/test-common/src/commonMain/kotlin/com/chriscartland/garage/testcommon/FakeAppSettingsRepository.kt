@@ -13,7 +13,7 @@ class FakeAppSettingsRepository : AppSettingsRepository {
     override val profileUserCardExpanded: Setting<Boolean> = InMemorySetting(true)
     override val layoutDebugEnabled: Setting<Boolean> = InMemorySetting(false)
     override val navigationRailItemPosition: Setting<NavigationRailItemPosition> =
-        InMemorySetting(NavigationRailItemPosition.CenteredVertically)
+        InMemorySetting(NavigationRailItemPosition.TopAligned)
     override val navigationRailTopPaddingDp: Setting<Int> = InMemorySetting(8)
 }
 
