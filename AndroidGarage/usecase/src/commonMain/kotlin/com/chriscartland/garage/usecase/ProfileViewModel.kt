@@ -57,11 +57,19 @@ interface ProfileViewModel {
 
     /**
      * Per-user access for the Function List feature, used to gate the
-     * Settings-screen developer entry. Tri-state: `null` (loading or denied),
-     * `false` (server says denied), `true` (allowed). Full convention in
-     * `docs/FEATURE_FLAGS.md`.
+     * Settings-screen Function-list entry. Tri-state: `null` (loading or
+     * denied), `false` (server says denied), `true` (allowed). Full
+     * convention in `docs/FEATURE_FLAGS.md`.
      */
     val functionListAccess: StateFlow<Boolean?>
+
+    /**
+     * Per-user access for the Developer section, used to gate the whole
+     * Settings → Developer block. Tri-state, same convention as
+     * [functionListAccess]. Replaces the temporary `functionListAccess`-as-
+     * Developer-gate shortcut from `android/196` (2.10.2).
+     */
+    val developerAccess: StateFlow<Boolean?>
 
     /**
      * Developer-only: when `true`, the chrome (TopAppBar / NavigationBar /
@@ -107,6 +115,9 @@ class DefaultProfileViewModel(
     private val _functionListAccess = MutableStateFlow<Boolean?>(null)
     override val functionListAccess: StateFlow<Boolean?> = _functionListAccess
 
+    private val _developerAccess = MutableStateFlow<Boolean?>(null)
+    override val developerAccess: StateFlow<Boolean?> = _developerAccess
+
     private val _layoutDebugEnabled = MutableStateFlow(false)
     override val layoutDebugEnabled: StateFlow<Boolean> = _layoutDebugEnabled
 
@@ -120,6 +131,9 @@ class DefaultProfileViewModel(
         }
         viewModelScope.launch(dispatchers.io) {
             observeFeatureAccessUseCase.functionList().collect { _functionListAccess.value = it }
+        }
+        viewModelScope.launch(dispatchers.io) {
+            observeFeatureAccessUseCase.developer().collect { _developerAccess.value = it }
         }
         viewModelScope.launch(dispatchers.io) {
             appSettings.observeLayoutDebugEnabled().collect { _layoutDebugEnabled.value = it }

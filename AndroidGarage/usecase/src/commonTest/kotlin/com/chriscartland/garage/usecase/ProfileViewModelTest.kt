@@ -167,7 +167,7 @@ class ProfileViewModelTest {
     fun functionListAccessReflectsAllowlist() =
         runTest {
             featureAllowlistRepository.setAllowlist(
-                FeatureAllowlist(functionList = true),
+                FeatureAllowlist(functionList = true, developer = true),
             )
             val viewModel = createViewModel(
                 authState = AuthState.Authenticated(testUser),
@@ -187,6 +187,32 @@ class ProfileViewModelTest {
             advanceUntilIdle()
 
             assertNull(viewModel.functionListAccess.value)
+        }
+
+    @Test
+    fun developerAccessReflectsAllowlist() =
+        runTest {
+            featureAllowlistRepository.setAllowlist(
+                FeatureAllowlist(functionList = false, developer = true),
+            )
+            val viewModel = createViewModel(
+                authState = AuthState.Authenticated(testUser),
+            )
+            advanceUntilIdle()
+
+            assertEquals(true, viewModel.developerAccess.value)
+        }
+
+    @Test
+    fun developerAccessNullWhenAllowlistMissing() =
+        runTest {
+            val viewModel = createViewModel(
+                authState = AuthState.Authenticated(testUser),
+            )
+            featureAllowlistRepository.setAllowlist(null)
+            advanceUntilIdle()
+
+            assertNull(viewModel.developerAccess.value)
         }
 
     @Test

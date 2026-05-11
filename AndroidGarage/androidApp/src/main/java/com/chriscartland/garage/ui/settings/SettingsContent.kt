@@ -104,6 +104,7 @@ fun SettingsContent(
     snoozeState: SnoozeRowState,
     showSnoozeRow: Boolean,
     showDeveloperSection: Boolean,
+    showFunctionListRow: Boolean,
     versionName: String,
     versionCode: String,
     layoutDebugEnabled: Boolean,
@@ -211,14 +212,16 @@ fun SettingsContent(
                         showChevron = true,
                         onClick = onDiagnosticsTap,
                     )
-                    HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
-                    SettingsRow(
-                        icon = Icons.AutoMirrored.Outlined.List,
-                        title = "Function list",
-                        subtitle = null,
-                        showChevron = true,
-                        onClick = onFunctionListTap,
-                    )
+                    if (showFunctionListRow) {
+                        HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
+                        SettingsRow(
+                            icon = Icons.AutoMirrored.Outlined.List,
+                            title = "Function list",
+                            subtitle = null,
+                            showChevron = true,
+                            onClick = onFunctionListTap,
+                        )
+                    }
                     HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
                     SettingsSwitchRow(
                         icon = Icons.Outlined.Palette,
@@ -376,6 +379,7 @@ fun SettingsContentSignedOutPreview() {
             snoozeState = SnoozeRowState.Off,
             showSnoozeRow = true,
             showDeveloperSection = false,
+            showFunctionListRow = false,
             versionName = "2.6.1",
             versionCode = "182",
             layoutDebugEnabled = false,
@@ -395,6 +399,7 @@ fun SettingsContentSignedInBasicPreview() {
             snoozeState = SnoozeRowState.Off,
             showSnoozeRow = true,
             showDeveloperSection = false,
+            showFunctionListRow = false,
             versionName = "2.6.1",
             versionCode = "182",
             layoutDebugEnabled = false,
@@ -414,6 +419,7 @@ fun SettingsContentSignedInAllowlistedPreview() {
             snoozeState = SnoozeRowState.SnoozingUntil("5:30 PM"),
             showSnoozeRow = true,
             showDeveloperSection = true,
+            showFunctionListRow = true,
             versionName = "2.6.1",
             versionCode = "182",
             layoutDebugEnabled = false,
@@ -433,6 +439,7 @@ fun SettingsContentPermissionDeniedPreview() {
             snoozeState = SnoozeRowState.PermissionDenied,
             showSnoozeRow = true,
             showDeveloperSection = false,
+            showFunctionListRow = false,
             versionName = "2.6.1",
             versionCode = "182",
             layoutDebugEnabled = false,
@@ -455,6 +462,7 @@ fun SettingsContentSnoozeInFlightPreview() {
             snoozeState = SnoozeRowState.Off,
             showSnoozeRow = true,
             showDeveloperSection = false,
+            showFunctionListRow = false,
             versionName = "2.6.1",
             versionCode = "182",
             layoutDebugEnabled = false,

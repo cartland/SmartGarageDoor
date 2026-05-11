@@ -342,6 +342,7 @@ fun SettingsTabPreview() {
             snoozeState = SnoozeRowState.SnoozingUntil("5:30 PM"),
             showSnoozeRow = true,
             showDeveloperSection = true,
+            showFunctionListRow = true,
             versionName = "2.7.1",
             versionCode = "184",
             layoutDebugEnabled = false,

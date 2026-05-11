@@ -85,6 +85,7 @@ fun ProfileContent(
     val snoozeState by resolved.snoozeState.collectAsState()
     val snoozeAction by resolved.snoozeAction.collectAsState()
     val functionListAccess by resolved.functionListAccess.collectAsState()
+    val developerAccess by resolved.developerAccess.collectAsState()
     val layoutDebugEnabled by resolved.layoutDebugEnabled.collectAsState()
     val appConfig = component.appConfig
     val context = LocalContext.current
@@ -130,7 +131,8 @@ fun ProfileContent(
         accountState = accountState,
         snoozeState = snoozeRowState,
         showSnoozeRow = appConfig.snoozeNotificationsOption,
-        showDeveloperSection = functionListAccess == true,
+        showDeveloperSection = developerAccess == true,
+        showFunctionListRow = functionListAccess == true,
         versionName = appVersion.versionName,
         versionCode = appVersion.versionCode.toString(),
         layoutDebugEnabled = layoutDebugEnabled,

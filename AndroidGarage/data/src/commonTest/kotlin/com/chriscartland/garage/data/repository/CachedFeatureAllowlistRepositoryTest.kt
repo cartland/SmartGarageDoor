@@ -50,7 +50,7 @@ import kotlin.test.assertTrue
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CachedFeatureAllowlistRepositoryTest {
-    private val sampleAllowlist = FeatureAllowlist(functionList = true)
+    private val sampleAllowlist = FeatureAllowlist(functionList = true, developer = false)
 
     private fun authenticatedState(email: String = "test@example.com"): AuthState.Authenticated =
         AuthState.Authenticated(
@@ -176,7 +176,7 @@ class CachedFeatureAllowlistRepositoryTest {
             // A's answer under B's session.
             val ds = object : com.chriscartland.garage.data.NetworkFeatureAllowlistDataSource {
                 var swapAuthDuringFetch: (() -> Unit)? = null
-                var resultToReturn: FeatureAllowlist = FeatureAllowlist(functionList = true)
+                var resultToReturn: FeatureAllowlist = FeatureAllowlist(functionList = true, developer = false)
 
                 override suspend fun fetchAllowlist(idToken: String): NetworkResult<FeatureAllowlist> {
                     swapAuthDuringFetch?.invoke()
@@ -205,10 +205,10 @@ class CachedFeatureAllowlistRepositoryTest {
             // null and Bob's fetch writes correctly. The key invariant:
             // cache reflects Bob's session, not A's discarded answer.
             ds.swapAuthDuringFetch = null
-            ds.resultToReturn = FeatureAllowlist(functionList = false)
+            ds.resultToReturn = FeatureAllowlist(functionList = false, developer = false)
             repo.fetchAllowlist()
             advanceUntilIdle()
-            assertEquals(FeatureAllowlist(functionList = false), repo.allowlist.value)
+            assertEquals(FeatureAllowlist(functionList = false, developer = false), repo.allowlist.value)
 
             externalScope.cancel()
         }
@@ -217,7 +217,7 @@ class CachedFeatureAllowlistRepositoryTest {
     fun userSwitchRefreshesCache() =
         runTest {
             val ds = FakeNetworkFeatureAllowlistDataSource().apply {
-                setFetchResult(NetworkResult.Success(FeatureAllowlist(functionList = true)))
+                setFetchResult(NetworkResult.Success(FeatureAllowlist(functionList = true, developer = false)))
             }
             val authRepo = FakeAuthRepository().apply {
                 setIdTokenResult(FirebaseIdToken(idToken = "alice-token", exp = Long.MAX_VALUE))
@@ -227,7 +227,7 @@ class CachedFeatureAllowlistRepositoryTest {
 
             val repo = CachedFeatureAllowlistRepository(ds, authRepo, externalScope)
             advanceUntilIdle()
-            assertEquals(FeatureAllowlist(functionList = true), repo.allowlist.value)
+            assertEquals(FeatureAllowlist(functionList = true, developer = false), repo.allowlist.value)
             assertEquals(listOf("alice-token"), ds.fetchIdTokens)
 
             // Sign out clears, sign in as a different user fetches fresh.
@@ -235,12 +235,12 @@ class CachedFeatureAllowlistRepositoryTest {
             advanceUntilIdle()
             assertNull(repo.allowlist.value)
 
-            ds.setFetchResult(NetworkResult.Success(FeatureAllowlist(functionList = false)))
+            ds.setFetchResult(NetworkResult.Success(FeatureAllowlist(functionList = false, developer = false)))
             authRepo.setIdTokenResult(FirebaseIdToken(idToken = "bob-token", exp = Long.MAX_VALUE))
             authRepo.setAuthState(authenticatedState(email = "bob@example.com"))
             advanceUntilIdle()
 
-            assertEquals(FeatureAllowlist(functionList = false), repo.allowlist.value)
+            assertEquals(FeatureAllowlist(functionList = false, developer = false), repo.allowlist.value)
             assertTrue(
                 ds.fetchIdTokens.containsAll(listOf("alice-token", "bob-token")),
                 "fetch must have been called with both tokens, was: ${ds.fetchIdTokens}",

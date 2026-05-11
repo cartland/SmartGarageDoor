@@ -179,6 +179,7 @@ private fun SettingsPaneBody(modifier: Modifier) {
         snoozeState = SnoozeRowState.Off,
         showSnoozeRow = true,
         showDeveloperSection = false,
+        showFunctionListRow = false,
         versionName = "2.15.3",
         versionCode = "213",
         layoutDebugEnabled = false,

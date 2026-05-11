@@ -29,4 +29,5 @@ package com.chriscartland.garage.domain.model
  */
 data class FeatureAllowlist(
     val functionList: Boolean,
+    val developer: Boolean,
 )
