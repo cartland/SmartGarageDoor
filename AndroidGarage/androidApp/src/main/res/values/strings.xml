@@ -114,6 +114,12 @@
     <string name="home_info_remote_control_body_para1">The remote button checks in frequently. \"Available\" means it just told us it\'s ready to open or close the door.</string>
     <string name="home_info_remote_control_body_para2">If contact stops, this shows when we last heard from it. Tapping the button may not work until it reconnects.</string>
 
+    <!-- Home → Door warnings (fallback messages when server sends none). -->
+    <string name="home_warning_opening_too_long">Opening, taking longer than expected</string>
+    <string name="home_warning_closing_too_long">Closing, taking longer than expected</string>
+    <string name="home_warning_open_misaligned">Door is open and misaligned</string>
+    <string name="home_warning_sensor_conflict">Sensor conflict. Check the door.</string>
+
     <!-- Function List screen — warning paragraph + per-action button labels. -->
     <string name="function_list_warning">Each button below performs a real action immediately. No confirmation prompts. Tapping triggers calls to the server, modifies app state, or wipes local data. Double-check the label before tapping.</string>
     <string name="function_list_access_denied">Access not enabled for your account.</string>
