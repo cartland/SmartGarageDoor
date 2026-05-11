@@ -87,18 +87,18 @@ import com.chriscartland.garage.usecase.ButtonHealthDisplay
  * Stateless: every string is pre-formatted by the caller so screenshot tests
  * remain deterministic and the Composable carries no time math.
  *
- * @param doorPosition drives the [GarageIcon] visual + door coloring.
- * @param stateLabel headline text — e.g. "Open", "Closed", "Opening".
+ * @param doorPosition drives the [GarageIcon] visual + door coloring AND the
+ *   headline label — the Composable resolves position to a localized string
+ *   via [doorStateLabel] (Phase 2B of the string-resource migration plan).
  * @param sinceLine combined status line — e.g. "Since 9:47 AM · 2 hr 14 min".
  *   Replaces the two separate icon-text rows from the legacy
  *   `DoorStatusCard`.
- * @param warning optional warning supporting text, surfaced for
+ * @param warning optional typed warning supporting content, surfaced for
  *   `OPENING_TOO_LONG`, `OPEN_MISALIGNED`, `CLOSING_TOO_LONG`,
- *   `ERROR_SENSOR_CONFLICT`, etc.
+ *   `ERROR_SENSOR_CONFLICT`, etc. See [DoorWarning].
  */
 data class HomeStatusDisplay(
     val doorPosition: DoorPosition,
-    val stateLabel: String,
     val sinceLine: String,
     val warning: DoorWarning? = null,
     /** Drives the muted "stale" door color and disables animation when true. */
@@ -344,7 +344,7 @@ private fun HomeStatusCardBody(status: HomeStatusDisplay) {
             verticalArrangement = Arrangement.spacedBy(Spacing.Tight),
         ) {
             Text(
-                text = status.stateLabel,
+                text = doorStateLabel(status.doorPosition),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -403,6 +403,34 @@ private fun doorWarningText(warning: DoorWarning): String =
         DoorWarning.ClosingTooLong -> stringResource(R.string.home_warning_closing_too_long)
         DoorWarning.OpenMisaligned -> stringResource(R.string.home_warning_open_misaligned)
         DoorWarning.SensorConflict -> stringResource(R.string.home_warning_sensor_conflict)
+    }
+
+/**
+ * Resolves a [DoorPosition] to the headline label string for the Status card.
+ *
+ * Multiple positions share a label by design: `OPENING` and `OPENING_TOO_LONG`
+ * both render "Opening"; `OPEN` and `OPEN_MISALIGNED` both render "Open";
+ * `CLOSING` and `CLOSING_TOO_LONG` both render "Closing". The anomalous
+ * variants surface their distinguishing detail in the [DoorWarning] chip
+ * below, not in the headline.
+ *
+ * Phase 2B of the string-resource migration plan — replaces the previous
+ * `HomeMapper.stateLabel(DoorPosition): String` function. The mapper no
+ * longer emits user-visible text for the door state; the Composable
+ * resolves position to a localized resource at render time.
+ */
+@Composable
+private fun doorStateLabel(doorPosition: DoorPosition): String =
+    when (doorPosition) {
+        DoorPosition.OPEN -> stringResource(R.string.home_door_state_open)
+        DoorPosition.OPEN_MISALIGNED -> stringResource(R.string.home_door_state_open)
+        DoorPosition.CLOSED -> stringResource(R.string.home_door_state_closed)
+        DoorPosition.UNKNOWN -> stringResource(R.string.home_door_state_unknown)
+        DoorPosition.OPENING -> stringResource(R.string.home_door_state_opening)
+        DoorPosition.OPENING_TOO_LONG -> stringResource(R.string.home_door_state_opening)
+        DoorPosition.CLOSING -> stringResource(R.string.home_door_state_closing)
+        DoorPosition.CLOSING_TOO_LONG -> stringResource(R.string.home_door_state_closing)
+        DoorPosition.ERROR_SENSOR_CONFLICT -> stringResource(R.string.home_door_state_sensor_conflict)
     }
 
 @Composable
@@ -509,17 +537,14 @@ private fun HomeAlertCard(
 private object HomePreviewData {
     val openStatus = HomeStatusDisplay(
         doorPosition = DoorPosition.OPEN,
-        stateLabel = "Open",
         sinceLine = "Since 9:47 AM · 2 hr 14 min",
     )
     val closedStatus = HomeStatusDisplay(
         doorPosition = DoorPosition.CLOSED,
-        stateLabel = "Closed",
         sinceLine = "Since 11:22 AM · 38 min",
     )
     val openingTooLongStatus = HomeStatusDisplay(
         doorPosition = DoorPosition.OPENING_TOO_LONG,
-        stateLabel = "Opening",
         sinceLine = "Since 12:01 PM · 4 min",
         warning = DoorWarning.ServerMessage(
             "Taking longer than expected. Check the door for obstructions.",

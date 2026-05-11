@@ -54,7 +54,6 @@ object HomeMapper {
         val doorPosition = event?.doorPosition ?: DoorPosition.UNKNOWN
         return HomeStatusDisplay(
             doorPosition = doorPosition,
-            stateLabel = stateLabel(doorPosition),
             sinceLine = sinceLine(event?.lastChangeTimeSeconds, now, zone),
             warning = warning(event),
             isStale = isCheckInStale,
@@ -100,19 +99,6 @@ object HomeMapper {
             AuthState.Unknown -> HomeAuthState.Unknown
             AuthState.Unauthenticated -> HomeAuthState.SignedOut
             is AuthState.Authenticated -> HomeAuthState.SignedIn
-        }
-
-    internal fun stateLabel(doorPosition: DoorPosition): String =
-        when (doorPosition) {
-            DoorPosition.OPEN -> "Open"
-            DoorPosition.CLOSED -> "Closed"
-            DoorPosition.UNKNOWN -> "Unknown"
-            DoorPosition.OPENING -> "Opening"
-            DoorPosition.OPENING_TOO_LONG -> "Opening"
-            DoorPosition.OPEN_MISALIGNED -> "Open"
-            DoorPosition.CLOSING -> "Closing"
-            DoorPosition.CLOSING_TOO_LONG -> "Closing"
-            DoorPosition.ERROR_SENSOR_CONFLICT -> "Sensor conflict"
         }
 
     /**

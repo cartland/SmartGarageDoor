@@ -54,45 +54,11 @@ class HomeMapperTest {
         email = Email("chris@example.com"),
     )
 
-    // region stateLabel
-
-    @Test
-    fun stateLabel_open() = assertEquals("Open", HomeMapper.stateLabel(DoorPosition.OPEN))
-
-    @Test
-    fun stateLabel_closed() = assertEquals("Closed", HomeMapper.stateLabel(DoorPosition.CLOSED))
-
-    @Test
-    fun stateLabel_unknown() = assertEquals("Unknown", HomeMapper.stateLabel(DoorPosition.UNKNOWN))
-
-    @Test
-    fun stateLabel_opening() = assertEquals("Opening", HomeMapper.stateLabel(DoorPosition.OPENING))
-
-    @Test
-    fun stateLabel_openingTooLong_collapsesTo_opening() = assertEquals("Opening", HomeMapper.stateLabel(DoorPosition.OPENING_TOO_LONG))
-
-    @Test
-    fun stateLabel_openMisaligned_collapsesTo_open() = assertEquals("Open", HomeMapper.stateLabel(DoorPosition.OPEN_MISALIGNED))
-
-    @Test
-    fun stateLabel_closing() = assertEquals("Closing", HomeMapper.stateLabel(DoorPosition.CLOSING))
-
-    @Test
-    fun stateLabel_closingTooLong_collapsesTo_closing() = assertEquals("Closing", HomeMapper.stateLabel(DoorPosition.CLOSING_TOO_LONG))
-
-    @Test
-    fun stateLabel_sensorConflict() = assertEquals("Sensor conflict", HomeMapper.stateLabel(DoorPosition.ERROR_SENSOR_CONFLICT))
-
-    @Test
-    fun stateLabel_coversAllDoorPositionVariants() {
-        // Catch new DoorPosition variants that forget to update the mapper.
-        DoorPosition.entries.forEach { p ->
-            val label = HomeMapper.stateLabel(p)
-            assertTrue("Empty label for $p", label.isNotBlank())
-        }
-    }
-
-    // endregion
+    // (region stateLabel removed in Phase 2B — function deleted from
+    //  HomeMapper. The Composable doorStateLabel(doorPosition) in
+    //  HomeContent.kt does the position → string resolution at render
+    //  time. New DoorPosition variants are caught by exhaustiveness on
+    //  the `when` block in that Composable.)
 
     // region warning
     // Phase 2A of the string-resource migration: warning() returns a typed
@@ -290,7 +256,6 @@ class HomeMapperTest {
     fun toHomeStatusDisplay_null_event_returns_unknown() {
         val display = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(null), now, zone)
         assertEquals(DoorPosition.UNKNOWN, display.doorPosition)
-        assertEquals("Unknown", display.stateLabel)
         assertEquals("Last change time unknown", display.sinceLine)
         assertNull(display.warning)
     }
@@ -304,7 +269,6 @@ class HomeMapperTest {
         val event = event(DoorPosition.OPEN, secondsAgo = 60 * 38)
         val display = HomeMapper.toHomeStatusDisplay(LoadingResult.Loading(event), now, zone)
         assertEquals(DoorPosition.OPEN, display.doorPosition)
-        assertEquals("Open", display.stateLabel)
         assertTrue(display.sinceLine.startsWith("Since "))
     }
 
@@ -324,7 +288,6 @@ class HomeMapperTest {
         val event = event(DoorPosition.OPEN, secondsAgo = 2 * 3_600 + 13 * 60)
         val display = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event), now, zone)
         assertEquals(DoorPosition.OPEN, display.doorPosition)
-        assertEquals("Open", display.stateLabel)
         assertTrue(display.sinceLine.contains("2 hr 13 min"))
         assertNull(display.warning)
     }
@@ -333,7 +296,6 @@ class HomeMapperTest {
     fun toHomeStatusDisplay_openingTooLong_surfaces_warning() {
         val event = event(DoorPosition.OPENING_TOO_LONG, secondsAgo = 4 * 60)
         val display = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event), now, zone)
-        assertEquals("Opening", display.stateLabel)
         assertEquals(DoorPosition.OPENING_TOO_LONG, display.doorPosition)
         assertNotNull(display.warning)
     }
