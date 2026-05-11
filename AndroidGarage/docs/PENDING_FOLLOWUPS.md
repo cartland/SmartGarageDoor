@@ -16,9 +16,16 @@ User-flagged items that aren't tied to a specific release and aren't smoke-test 
 
 ## Open
 
-### 1. Migrate user-visible strings to Android string resources
+> **No open items.** The string-resource migration completed 2026-05-11; entry moved to Done. Add new follow-ups here as they're flagged.
 
-**Status:** Phase 1 in progress. PR #784 migrated `SettingsContent.kt` (16 strings) — pattern established. Tracking the rest of the migration here.
+<!-- Historical reference: original Phase 1/2/3 migration plan now in Done. -->
+
+<details>
+<summary>Archived: original migration plan (closed 2026-05-11)</summary>
+
+### 1. Migrate user-visible strings to Android string resources [DONE]
+
+**Status:** COMPLETE 2026-05-11 in 12 PRs (#784–#795). See the Done section below for the summary entry.
 
 **Aspiration (2026-05-11 user direction):** "I want this app to be a good example so I want this to be done well across the whole app." — the bar is exemplary, not just functional. When this plan is complete, the only `String` literals in production code paths are (a) server-returned text carried verbatim, (b) developer-only / log strings, (c) animation / Compose-tooling debug metadata. Every user-facing label is a resource ID.
 
@@ -162,7 +169,10 @@ Each is its own PR because the API change ripples across module boundaries (mapp
 - **Localization itself.** This plan unblocks localization but does not add `values-<lang>/strings.xml` files; that's a separate decision.
 - **String resources for FCM payloads, Firestore field names, log keys.** These are wire / internal — not user-visible labels.
 
+</details>
+
 ## Done (recent)
 
+- **String-resource migration COMPLETE — 12 PRs, 2026-05-10 → 2026-05-11.** Every user-visible label in the production app now lives in `androidApp/src/main/res/values/strings.xml`; mappers and ViewModels emit typed values; the Composable layer resolves to localized strings via `stringResource` + `pluralStringResource` at render time. Phase 1 (Composable-scope mechanical migrations, ~50 strings across 12 files): SettingsContent (#784), HomeContent (#786), DiagnosticsContent + SnoozeBottomSheet + AccountBottomSheet + VersionBottomSheet + ProfileContent + AuthTokenCopier (#787), DoorHistoryContent + InfoBottomSheet (#788), FunctionListContent (#789). Phase 2 (typed-hint refactors of mapper APIs): `DoorWarning` sealed type (#790), `HomeMapper.stateLabel` deletion + `doorStateLabel(DoorPosition)` Composable resolver (#791), `HomeStatusFormatter` pure-function utility + `rememberSinceLine` Composable + `home_duration_*` plurals + `HomeAlert` default-arg drops (#793), `HistoryMapper` full refactor — `AnomalyKind` / `DayLabel` / `TransitWarning` / `HistoryFormatter`, ~50 test rewrites (#794), `NotificationJustification` typed (#795). Phase 3: `checkNoLiteralStringsInCompose` lint Gradle task in `validate.sh` (#792) — guards against new `Text("literal")` regressions; exemption file empty. Plan + per-PR rationale archived in this file under "Archived". Typed-hint pattern (`AnomalyKind`, `DayLabel`, `TransitWarning`, `DoorWarning`, `NotificationJustification`, etc.) now established as the convention for any new mapper that would otherwise emit user-visible strings.
 - **Dedicated Developer allowlist flag — both sides shipped.** Server: `server/26` (2026-05-10) added `GET /developerAccess` and the Firestore `featureDeveloperAllowedEmails` field. Android: `android/235` / 2.16.21 (2026-05-11, PR #781) flipped Settings → Developer's outer gate to the new endpoint and added an independent `showFunctionListRow` gate (still keyed on `functionListAccess`) so the two allowlists can diverge. `KtorNetworkFeatureAllowlistDataSource` now issues both endpoint GETs in parallel and combines them; the data-source-level abstraction stayed unchanged so no new repository/DI wiring was needed (the original ~6-file plan turned out to be ~12 files concentrated at the data + UI layers instead). Smoke matrix in `PENDING_SMOKE_TESTS.md` item 6.
 - **Home permission banner copy revision** — closed in 2.16.16 (`copy/home-permission-banner-shorter`). Production `NotificationPermissionCopy.justificationText(0)` now reads *"Turn on notifications to get alerted when the door is left open."* (2 lines on Home, was 3). Same imperative-request framing so escalation lines at attempt 3+/4+ still flow without changes. Settings row copy was already short (em-dash sweep landed in 2.16.9). Three variants are no longer in tension; if a future PR wants a single canonical string both surfaces could read from, that's a fresh follow-up.
