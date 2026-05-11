@@ -4,6 +4,8 @@ status: active
 last_verified: 2026-05-11
 ---
 
+> **Last update 2026-05-11:** Server side of the Developer-allowlist follow-up shipped in `server/26`; Android side is the next concrete PR. `2.16.17`–`2.16.20` shipped along the way (smoke items in `PENDING_SMOKE_TESTS.md`).
+
 # Pending Follow-ups
 
 User-flagged items that aren't tied to a specific release and aren't smoke-test verifications — feature follow-ups, copy revisions, design open questions. Each item should be discrete enough that a single PR could close it.
@@ -14,25 +16,29 @@ User-flagged items that aren't tied to a specific release and aren't smoke-test 
 
 ## Open
 
-### 1. Dedicated "Developer" allowlist flag (server + Android)
+### 1. Dedicated "Developer" allowlist flag — Android side (server side DONE)
 
-**Status:** flagged twice in conversation as a temporary-shortcut to clean up. Not started.
+**Status:** Server side shipped in `server/26` (2026-05-10). **Android side not started.**
 
-**Background:** PR #648 (shipped in `android/196` / 2.10.2 on 2026-05-06) renamed Settings "Tools" → "Developer" and moved Diagnostics into it. The whole Developer section is currently gated by `functionListAccess` (the Functions allowlist) — the user has explicitly flagged this as a temporary shortcut. The CHANGELOG.md 2.10.2 entry foreshadows the fix: *"A dedicated 'Developer' allowlist will follow in a later release so Functions and Developer access can diverge."*
+**Background:** PR #648 (`android/196` / 2.10.2, 2026-05-06) renamed Settings "Tools" → "Developer" and moved Diagnostics into it. The Developer section is currently gated by `functionListAccess` (the Functions allowlist) — flagged as a temporary shortcut at the time.
 
-**Plan:** introduce a dedicated allowlist flag (its own server config key, route, domain field) and switch the gate from `functionListAccess` to it. Pattern to follow: [`../../docs/FEATURE_FLAGS.md`](../../../docs/FEATURE_FLAGS.md) (uses Function List as the canonical example).
+**Server side complete:**
+- `server/26` deployed `GET /developerAccess` (PR #772, see `docs/FEATURE_FLAGS.md`).
+- Firestore field `body.featureDeveloperAllowedEmails: string[]` was added to `configCurrent/current` by the user 2026-05-10.
+- Endpoint verified: returns `{enabled: true|false}` per email allowlist membership; deny-all default on missing field.
 
-**Suggested names:**
-- Server config: `developerAllowedEmails`
-- Route: `developerAccess`
-- Domain field: `developer: Boolean`
+**Android side remaining (~6 files):**
+- `domain/.../FeatureAllowlist.kt` — add `val developer: Boolean`
+- `data/.../NetworkDeveloperAccessDataSource.kt` + Ktor impl — copy `NetworkFeatureAllowlistDataSource` shape, calls `developerAccess` endpoint
+- `data/.../CachedFeatureAllowlistRepository.kt` — fan out to BOTH data sources (parallel `coroutineScope { async {} async {} }`), combine into `FeatureAllowlist(functionList, developer)`
+- `usecase/.../ObserveFeatureAccessUseCase.kt` — add `fun developer(): Flow<Boolean?> = featureAllowlistRepository.allowlist.map { it?.developer }`
+- `usecase/.../ProfileViewModel.kt` — add `developerAccess: StateFlow<Boolean?>` mirroring the existing `functionListAccess` shape
+- `androidApp/.../ui/ProfileContent.kt` — switch `showDeveloperSection = functionListAccess == true` → `developerAccess == true`
+- `androidApp/.../di/AppComponent.kt` — `@Singleton` provider for new data source + abstract entry point + `ComponentGraphTest` `assertSame`
+- `wire-contracts/developerAccess/response_*.json` — already present from server PR; Android Ktor test references them
+- `test-common/.../FakeNetworkDeveloperAccessDataSource.kt` — fake mirroring `FakeNetworkFeatureAllowlistDataSource`
 
-**Touch points** (mirror the Functions flag — ~15 files total):
-- 8 files server-side (handler, route, config reader, etc.)
-- 6 files Android (route, repo, viewmodel call site, ProfileContent gate)
-- 1 wire-contract fixture
-
-**Single relevant Android edit:** `ProfileContent.kt` — `showDeveloperSection = functionListAccess == true` → `developerAccess == true`.
+**Verification path** once shipped: smoke test on device — sign in as an email that's in `featureDeveloperAllowedEmails` but NOT in `featureFunctionListAllowedEmails` (or vice versa). The Developer section should appear/disappear independently of the Function List entry. The `Copy auth token (sensitive)` button in Diagnostics + Function List (2.16.17 / 2.16.19) is the easy way to grab a token to verify the endpoint with curl.
 
 ### 2. Migrate user-visible strings to Android string resources
 
