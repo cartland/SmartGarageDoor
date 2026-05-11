@@ -344,6 +344,7 @@ fun SettingsTabPreview() {
             showDeveloperSection = true,
             versionName = "2.7.1",
             versionCode = "184",
+            layoutDebugEnabled = false,
         )
     }
 }

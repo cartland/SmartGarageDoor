@@ -38,6 +38,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.NotificationsPaused
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -46,6 +47,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -104,6 +106,7 @@ fun SettingsContent(
     showDeveloperSection: Boolean,
     versionName: String,
     versionCode: String,
+    layoutDebugEnabled: Boolean,
     modifier: Modifier = Modifier,
     snoozeInFlight: Boolean = false,
     onAccountTap: () -> Unit = {},
@@ -114,6 +117,7 @@ fun SettingsContent(
     onPlayStoreTap: () -> Unit = {},
     onPrivacyPolicyTap: () -> Unit = {},
     onDiagnosticsTap: () -> Unit = {},
+    onLayoutDebugChange: (Boolean) -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -215,6 +219,14 @@ fun SettingsContent(
                         showChevron = true,
                         onClick = onFunctionListTap,
                     )
+                    HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
+                    SettingsSwitchRow(
+                        icon = Icons.Outlined.Palette,
+                        title = "Layout debug colors",
+                        subtitle = "Tints chrome regions to visualize layout boundaries",
+                        checked = layoutDebugEnabled,
+                        onCheckedChange = onLayoutDebugChange,
+                    )
                 }
             }
         }
@@ -315,6 +327,44 @@ private fun SettingsRow(
     )
 }
 
+@Composable
+private fun SettingsSwitchRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String?,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    // Same shape as SettingsRow but with a Switch trailing instead of a
+    // chevron / icon. Tap anywhere on the row toggles, matching M3
+    // settings convention. The Switch's own onCheckedChange is wired to
+    // the same handler so dragging the thumb works too.
+    ListItem(
+        leadingContent = {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(36.dp),
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        headlineContent = { Text(title) },
+        supportingContent = subtitle?.let { { Text(it) } },
+        trailingContent = {
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+            )
+        },
+        modifier = Modifier.clickable { onCheckedChange(!checked) },
+        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+    )
+}
+
 // Wrapper-Composable preview helpers used by the screenshot test file.
 
 @Preview
@@ -328,6 +378,7 @@ fun SettingsContentSignedOutPreview() {
             showDeveloperSection = false,
             versionName = "2.6.1",
             versionCode = "182",
+            layoutDebugEnabled = false,
         )
     }
 }
@@ -346,6 +397,7 @@ fun SettingsContentSignedInBasicPreview() {
             showDeveloperSection = false,
             versionName = "2.6.1",
             versionCode = "182",
+            layoutDebugEnabled = false,
         )
     }
 }
@@ -364,6 +416,7 @@ fun SettingsContentSignedInAllowlistedPreview() {
             showDeveloperSection = true,
             versionName = "2.6.1",
             versionCode = "182",
+            layoutDebugEnabled = false,
         )
     }
 }
@@ -382,6 +435,7 @@ fun SettingsContentPermissionDeniedPreview() {
             showDeveloperSection = false,
             versionName = "2.6.1",
             versionCode = "182",
+            layoutDebugEnabled = false,
         )
     }
 }
@@ -403,6 +457,7 @@ fun SettingsContentSnoozeInFlightPreview() {
             showDeveloperSection = false,
             versionName = "2.6.1",
             versionCode = "182",
+            layoutDebugEnabled = false,
             snoozeInFlight = true,
         )
     }

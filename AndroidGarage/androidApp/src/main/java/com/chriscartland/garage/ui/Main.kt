@@ -22,6 +22,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -42,14 +43,19 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailDefaults
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -59,9 +65,12 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.ui.settings.DiagnosticsScreen
 import com.chriscartland.garage.ui.theme.AppTheme
+import com.chriscartland.garage.ui.theme.LayoutDebugColors
 import com.chriscartland.garage.ui.theme.LocalContentEdgeInsets
+import com.chriscartland.garage.ui.theme.LocalLayoutDebugEnabled
 import com.chriscartland.garage.ui.theme.Spacing
 import kotlinx.serialization.Serializable
 
@@ -143,6 +152,23 @@ fun AppNavigation() {
     // is the new floor.
     val backStack: NavBackStack<NavKey> = rememberNavBackStack(Screen.Home)
 
+    // Developer-only debug-color overlay. Read directly from the
+    // AppSettings repo so the chrome can paint the override without
+    // forcing a ViewModel dependency at the App level. Default false;
+    // production users never see debug colors. See [LayoutDebugColors].
+    val component = rememberAppComponent()
+    val layoutDebugEnabled by component.appSettings.layoutDebugEnabled.flow
+        .collectAsState(initial = false)
+
+    CompositionLocalProvider(LocalLayoutDebugEnabled provides layoutDebugEnabled) {
+        AppScaffold(backStack = backStack)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AppScaffold(backStack: NavBackStack<NavKey>) {
+    val debug = LocalLayoutDebugEnabled.current
     Scaffold(
         topBar = {
             // Back stack is `List<NavKey>`; narrow to our app's `Screen` type
@@ -171,6 +197,11 @@ fun AppNavigation() {
                             )
                         }
                     }
+                },
+                colors = if (debug) {
+                    TopAppBarDefaults.topAppBarColors(containerColor = LayoutDebugColors.TopBar)
+                } else {
+                    TopAppBarDefaults.topAppBarColors()
                 },
             )
         },
@@ -259,6 +290,12 @@ fun AppNavigation() {
         //     (`RouteContent` / `DashboardRouteContent` /
         //     `ThreePaneRouteContent`) via `windowInsetsPadding(safeDrawing.only(Horizontal))`,
         //     which both pads visibly AND consumes for descendants.
+        // Developer debug-color overlay: when on, paint the body region
+        // with [LayoutDebugColors.Body] so the boundary between chrome
+        // and body is visible. Applied per branch because the body
+        // region's container differs (Box for Rail, Modifier-only for
+        // None / Bottom).
+        val bodyBackground: Modifier = if (debug) Modifier.background(LayoutDebugColors.Body) else Modifier
         when (mode.navPlacement) {
             AppLayoutMode.NavPlacement.Rail -> {
                 // Rail is a sibling of NavDisplay inside a Row. The Row
@@ -282,7 +319,8 @@ fun AppNavigation() {
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
-                                .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
+                                .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start))
+                                .then(bodyBackground),
                         ) {
                             // Content extends edge-to-edge to the body's
                             // bottom (no bottom padding here). Rail items
@@ -301,7 +339,8 @@ fun AppNavigation() {
                     navDisplay(
                         Modifier
                             .fillMaxSize()
-                            .padding(top = innerPadding.calculateTopPadding()),
+                            .padding(top = innerPadding.calculateTopPadding())
+                            .then(bodyBackground),
                     )
                 }
             }
@@ -312,7 +351,11 @@ fun AppNavigation() {
                 // is left at its default `WindowInsets(0)` so leaves
                 // don't add any system inset — bottomBar already covers
                 // the gesture-nav region; topBar covers the status bar.
-                navDisplay(Modifier.padding(innerPadding))
+                navDisplay(
+                    Modifier
+                        .padding(innerPadding)
+                        .then(bodyBackground),
+                )
             }
         }
     }
@@ -331,7 +374,10 @@ fun BottomNavigationBar(
     mode: AppLayoutMode = currentAppLayoutMode(),
 ) {
     val effectiveScreen = mode.canonicalScreen(currentScreen)
-    NavigationBar {
+    val debug = LocalLayoutDebugEnabled.current
+    NavigationBar(
+        containerColor = if (debug) LayoutDebugColors.NavChrome else NavigationBarDefaults.containerColor,
+    ) {
         mode.visibleTabs.forEach { tab ->
             NavigationBarItem(
                 icon = {
@@ -387,8 +433,10 @@ fun NavigationRailLeft(
     mode: AppLayoutMode = currentAppLayoutMode(),
 ) {
     val effectiveScreen = mode.canonicalScreen(currentScreen)
+    val debug = LocalLayoutDebugEnabled.current
     NavigationRail(
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Start),
+        containerColor = if (debug) LayoutDebugColors.NavChrome else NavigationRailDefaults.ContainerColor,
     ) {
         Spacer(Modifier.weight(1f))
         mode.visibleTabs.forEach { tab ->

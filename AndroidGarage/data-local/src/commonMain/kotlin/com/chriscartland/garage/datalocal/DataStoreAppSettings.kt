@@ -45,6 +45,8 @@ class DataStoreAppSettings(
         DataStoreBooleanSetting(dataStore, "PROFILE_LOG_CARD_EXPANDED", false)
     override val profileUserCardExpanded: Setting<Boolean> =
         DataStoreBooleanSetting(dataStore, "PROFILE_USER_CARD_EXPANDED", true)
+    override val layoutDebugEnabled: Setting<Boolean> =
+        DataStoreBooleanSetting(dataStore, "LAYOUT_DEBUG_ENABLED", false)
 }
 
 private class DataStoreStringSetting(

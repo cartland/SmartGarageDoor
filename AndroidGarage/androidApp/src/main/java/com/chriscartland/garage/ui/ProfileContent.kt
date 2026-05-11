@@ -85,6 +85,7 @@ fun ProfileContent(
     val snoozeState by resolved.snoozeState.collectAsState()
     val snoozeAction by resolved.snoozeAction.collectAsState()
     val functionListAccess by resolved.functionListAccess.collectAsState()
+    val layoutDebugEnabled by resolved.layoutDebugEnabled.collectAsState()
     val appConfig = component.appConfig
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
@@ -132,6 +133,7 @@ fun ProfileContent(
         showDeveloperSection = functionListAccess == true,
         versionName = appVersion.versionName,
         versionCode = appVersion.versionCode.toString(),
+        layoutDebugEnabled = layoutDebugEnabled,
         modifier = modifier,
         snoozeInFlight = snoozeAction is SnoozeAction.Sending,
         onAccountTap = { accountSheetOpen = true },
@@ -153,6 +155,7 @@ fun ProfileContent(
             context.startActivity(Intent(Intent.ACTION_VIEW, PRIVACY_POLICY_URL.toUri()))
         },
         onDiagnosticsTap = onNavigateToDiagnostics,
+        onLayoutDebugChange = resolved::setLayoutDebugEnabled,
     )
 
     if (snoozeSheetOpen) {

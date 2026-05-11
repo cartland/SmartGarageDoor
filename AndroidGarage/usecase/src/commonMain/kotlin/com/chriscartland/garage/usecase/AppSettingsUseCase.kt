@@ -42,4 +42,8 @@ class AppSettingsUseCase(
     fun observeProfileAppCardExpanded(): Flow<Boolean> = settings.profileAppCardExpanded.flow
 
     suspend fun setProfileAppCardExpanded(value: Boolean) = settings.profileAppCardExpanded.set(value)
+
+    fun observeLayoutDebugEnabled(): Flow<Boolean> = settings.layoutDebugEnabled.flow
+
+    suspend fun setLayoutDebugEnabled(value: Boolean) = settings.layoutDebugEnabled.set(value)
 }

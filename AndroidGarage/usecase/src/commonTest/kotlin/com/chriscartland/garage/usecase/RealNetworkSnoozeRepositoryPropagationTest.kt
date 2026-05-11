@@ -31,6 +31,7 @@ import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
+import com.chriscartland.garage.testcommon.FakeAppSettingsRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
@@ -193,6 +194,7 @@ class RealNetworkSnoozeRepositoryPropagationTest {
                     appLoggerRepository,
                     FakeDiagnosticsCountersRepository(),
                 ),
+                appSettings = AppSettingsUseCase(FakeAppSettingsRepository()),
                 dispatchers = TestDispatcherProvider(testDispatcher),
             )
             advanceUntilIdle()
@@ -287,6 +289,7 @@ class RealNetworkSnoozeRepositoryPropagationTest {
                     appLoggerRepository,
                     FakeDiagnosticsCountersRepository(),
                 ),
+                appSettings = AppSettingsUseCase(FakeAppSettingsRepository()),
                 dispatchers = TestDispatcherProvider(testDispatcher),
             )
             advanceUntilIdle()

@@ -31,4 +31,16 @@ interface AppSettingsRepository {
     val profileAppCardExpanded: Setting<Boolean>
     val profileLogCardExpanded: Setting<Boolean>
     val profileUserCardExpanded: Setting<Boolean>
+
+    /**
+     * Developer-only: when `true`, the app paints the TopAppBar, the
+     * NavigationBar / NavigationRail, and the Scaffold body with distinct
+     * debug colors so layout boundaries (especially padding / inset
+     * regions) become visible. UI gate: Settings → Developer → "Layout
+     * debug colors" toggle. Persists across launches.
+     *
+     * Default `false` — production users never see debug colors even on
+     * a developer-allowlisted build, until they explicitly toggle it.
+     */
+    val layoutDebugEnabled: Setting<Boolean>
 }

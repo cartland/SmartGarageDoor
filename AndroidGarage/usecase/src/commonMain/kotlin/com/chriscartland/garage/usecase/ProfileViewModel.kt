@@ -63,6 +63,15 @@ interface ProfileViewModel {
      */
     val functionListAccess: StateFlow<Boolean?>
 
+    /**
+     * Developer-only: when `true`, the chrome (TopAppBar / NavigationBar /
+     * NavigationRail / body) paints with debug colors so layout boundaries
+     * are visible. Persisted in DataStore so the toggle survives process
+     * death. UI gate: Settings → Developer → "Layout debug colors".
+     * Default `false`.
+     */
+    val layoutDebugEnabled: StateFlow<Boolean>
+
     fun signInWithGoogle(idToken: GoogleIdToken)
 
     fun signOut()
@@ -70,6 +79,8 @@ interface ProfileViewModel {
     fun fetchSnoozeStatus()
 
     fun snoozeOpenDoorsNotifications(snoozeDuration: SnoozeDurationUIOption)
+
+    fun setLayoutDebugEnabled(enabled: Boolean)
 }
 
 class DefaultProfileViewModel(
@@ -82,6 +93,7 @@ class DefaultProfileViewModel(
     private val fetchSnoozeStatusUseCase: FetchSnoozeStatusUseCase,
     private val snoozeNotificationsUseCase: SnoozeNotificationsUseCase,
     private val logAppEvent: LogAppEventUseCase,
+    private val appSettings: AppSettingsUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel(),
     ProfileViewModel {
@@ -95,6 +107,9 @@ class DefaultProfileViewModel(
     private val _functionListAccess = MutableStateFlow<Boolean?>(null)
     override val functionListAccess: StateFlow<Boolean?> = _functionListAccess
 
+    private val _layoutDebugEnabled = MutableStateFlow(false)
+    override val layoutDebugEnabled: StateFlow<Boolean> = _layoutDebugEnabled
+
     // Cached so the snooze action can attach the latest door change time
     // without the UI having to thread it through.
     private val currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
@@ -105,6 +120,9 @@ class DefaultProfileViewModel(
         }
         viewModelScope.launch(dispatchers.io) {
             observeFeatureAccessUseCase.functionList().collect { _functionListAccess.value = it }
+        }
+        viewModelScope.launch(dispatchers.io) {
+            appSettings.observeLayoutDebugEnabled().collect { _layoutDebugEnabled.value = it }
         }
     }
 
@@ -156,6 +174,12 @@ class DefaultProfileViewModel(
                     scheduleActionReset()
                 }
             }
+        }
+    }
+
+    override fun setLayoutDebugEnabled(enabled: Boolean) {
+        viewModelScope.launch(dispatchers.io) {
+            appSettings.setLayoutDebugEnabled(enabled)
         }
     }
 

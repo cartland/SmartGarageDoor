@@ -149,3 +149,11 @@ val networkNotStarted = Color(0xFFBDBDBD)
 // Caution Button Colors (amber confirmation)
 val cautionContainer = Color(0xFFFFC107)
 val onCautionContainer = Color(0xFF1B1B1B)
+
+// Layout Debug Colors — non-Material palette used by [LayoutDebugColors]
+// when the developer "Layout debug colors" toggle is on. Colors picked
+// outside the M3 surface palette so they cannot collide with any
+// production color and so layout boundaries are obvious to the eye.
+val layoutDebugTopBar = Color(0xFFE91E63)
+val layoutDebugNavChrome = Color(0xFF00BCD4)
+val layoutDebugBody = Color(0xFFFFF59D)
