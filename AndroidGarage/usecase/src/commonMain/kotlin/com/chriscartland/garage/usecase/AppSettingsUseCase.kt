@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.usecase
 
+import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import kotlinx.coroutines.flow.Flow
 
@@ -46,4 +47,8 @@ class AppSettingsUseCase(
     fun observeLayoutDebugEnabled(): Flow<Boolean> = settings.layoutDebugEnabled.flow
 
     suspend fun setLayoutDebugEnabled(value: Boolean) = settings.layoutDebugEnabled.set(value)
+
+    fun observeNavigationRailItemPosition(): Flow<NavigationRailItemPosition> = settings.navigationRailItemPosition.flow
+
+    suspend fun setNavigationRailItemPosition(value: NavigationRailItemPosition) = settings.navigationRailItemPosition.set(value)
 }

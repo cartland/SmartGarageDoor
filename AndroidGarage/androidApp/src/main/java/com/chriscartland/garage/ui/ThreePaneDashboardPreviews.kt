@@ -28,6 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.LoadingResult
+import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.home.DeviceCheckIn
@@ -188,6 +189,7 @@ private fun SettingsPaneBody(modifier: Modifier) {
         versionName = "2.15.3",
         versionCode = "213",
         layoutDebugEnabled = false,
+        navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
         modifier = modifier,
     )
 }

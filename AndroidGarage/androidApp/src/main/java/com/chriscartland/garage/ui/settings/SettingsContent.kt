@@ -40,12 +40,14 @@ import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.NotificationsPaused
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Storefront
+import androidx.compose.material.icons.outlined.VerticalAlignCenter
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -58,6 +60,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
+import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.ui.theme.AppAnimatedVisibility
 import com.chriscartland.garage.ui.theme.DividerInset
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
@@ -110,6 +113,7 @@ fun SettingsContent(
     versionName: String,
     versionCode: String,
     layoutDebugEnabled: Boolean,
+    navigationRailItemPosition: NavigationRailItemPosition,
     modifier: Modifier = Modifier,
     snoozeInFlight: Boolean = false,
     onAccountTap: () -> Unit = {},
@@ -121,6 +125,7 @@ fun SettingsContent(
     onPrivacyPolicyTap: () -> Unit = {},
     onDiagnosticsTap: () -> Unit = {},
     onLayoutDebugChange: (Boolean) -> Unit = {},
+    onNavigationRailItemPositionChange: (NavigationRailItemPosition) -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -245,10 +250,88 @@ fun SettingsContent(
                         checked = layoutDebugEnabled,
                         onCheckedChange = onLayoutDebugChange,
                     )
+                    HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
+                    NavigationRailItemPositionPicker(
+                        selected = navigationRailItemPosition,
+                        onSelect = onNavigationRailItemPositionChange,
+                    )
                 }
             }
         }
     }
+}
+
+/**
+ * Developer-only inline picker for [NavigationRailItemPosition]. Header
+ * row mirrors [SettingsRow] / [SettingsSwitchRow] (icon + title +
+ * subtitle); choices below render as `RadioButton` + label rows. Two
+ * options today; structure scales to more if a future variant lands.
+ */
+@Composable
+private fun NavigationRailItemPositionPicker(
+    selected: NavigationRailItemPosition,
+    onSelect: (NavigationRailItemPosition) -> Unit,
+) {
+    Column {
+        ListItem(
+            leadingContent = {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.VerticalAlignCenter,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            headlineContent = {
+                Text(stringResource(R.string.settings_developer_nav_rail_items_title))
+            },
+            supportingContent = {
+                Text(stringResource(R.string.settings_developer_nav_rail_items_subtitle))
+            },
+            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        )
+        NavigationRailItemPosition.entries.forEach { position ->
+            NavigationRailItemPositionChoiceRow(
+                position = position,
+                selected = position == selected,
+                onClick = { onSelect(position) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun NavigationRailItemPositionChoiceRow(
+    position: NavigationRailItemPosition,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val label = when (position) {
+        NavigationRailItemPosition.CenteredVertically ->
+            stringResource(R.string.settings_developer_nav_rail_items_centered)
+        NavigationRailItemPosition.TopAligned ->
+            stringResource(R.string.settings_developer_nav_rail_items_top_aligned)
+    }
+    ListItem(
+        leadingContent = {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(36.dp),
+            ) {
+                RadioButton(
+                    selected = selected,
+                    onClick = null,
+                )
+            }
+        },
+        headlineContent = { Text(label) },
+        modifier = Modifier.clickable { onClick() },
+        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+    )
 }
 
 @Composable
@@ -398,6 +481,7 @@ fun SettingsContentSignedOutPreview() {
             versionName = "2.6.1",
             versionCode = "182",
             layoutDebugEnabled = false,
+            navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
         )
     }
 }
@@ -418,6 +502,7 @@ fun SettingsContentSignedInBasicPreview() {
             versionName = "2.6.1",
             versionCode = "182",
             layoutDebugEnabled = false,
+            navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
         )
     }
 }
@@ -438,6 +523,32 @@ fun SettingsContentSignedInAllowlistedPreview() {
             versionName = "2.6.1",
             versionCode = "182",
             layoutDebugEnabled = false,
+            navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+        )
+    }
+}
+
+// `private` so `checkPreviewCoverage` exempts it. The Settings UI for
+// the nav-rail-item-position picker is fully exercised in production
+// behind the developer flag; this is an Android Studio preview
+// reference only — not a screenshot fixture.
+@Preview
+@Composable
+private fun SettingsContentSignedInAllowlistedTopAlignedPreview() {
+    PreviewScreenSurface {
+        SettingsContent(
+            accountState = AccountRowState.SignedIn(
+                displayName = "Chris Cartland",
+                email = "chris@example.com",
+            ),
+            snoozeState = SnoozeRowState.Off,
+            showSnoozeRow = true,
+            showDeveloperSection = true,
+            showFunctionListRow = true,
+            versionName = "2.6.1",
+            versionCode = "182",
+            layoutDebugEnabled = false,
+            navigationRailItemPosition = NavigationRailItemPosition.TopAligned,
         )
     }
 }
@@ -458,6 +569,7 @@ fun SettingsContentPermissionDeniedPreview() {
             versionName = "2.6.1",
             versionCode = "182",
             layoutDebugEnabled = false,
+            navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
         )
     }
 }
@@ -481,6 +593,7 @@ fun SettingsContentSnoozeInFlightPreview() {
             versionName = "2.6.1",
             versionCode = "182",
             layoutDebugEnabled = false,
+            navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
             snoozeInFlight = true,
         )
     }

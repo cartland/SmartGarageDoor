@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.LoadingResult
+import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.home.DeviceCheckIn
@@ -351,6 +352,7 @@ fun SettingsTabPreview() {
             versionName = "2.7.1",
             versionCode = "184",
             layoutDebugEnabled = false,
+            navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
         )
     }
 }
@@ -368,6 +370,7 @@ fun SettingsTabPreview() {
 @Composable
 private fun WideTabPreviewScaffold(
     selectedScreen: Screen,
+    itemPosition: NavigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
     content: @Composable (Modifier) -> Unit,
 ) {
     Scaffold(
@@ -380,6 +383,7 @@ private fun WideTabPreviewScaffold(
                 currentScreen = selectedScreen,
                 onTabSelected = {},
                 mode = AppLayoutMode.Wide,
+                itemPosition = itemPosition,
             )
             Box(
                 modifier = Modifier
@@ -413,6 +417,39 @@ fun HomeRailPreview700dp() {
         nowSeconds = now.epochSecond,
     )
     WideTabPreviewScaffold(selectedScreen = Screen.Home) { modifier ->
+        HomeStatelessContent(
+            status = status,
+            sinceLine = sinceLine,
+            authState = HomeAuthState.SignedIn,
+            modifier = modifier,
+            remoteButtonState = RemoteButtonState.Ready,
+            deviceCheckIn = deviceCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Online,
+        )
+    }
+}
+
+// Same as [HomeRailPreview700dp] but with the NavigationRail items
+// top-aligned. `private` so `checkPreviewCoverage` exempts it —
+// rail-vs-content alignment is verified on a real device via the
+// developer setting (`Settings → Developer → Nav rail items`), not
+// by a screenshot fixture (Layoutlib's text rendering doesn't always
+// match a device closely enough for pixel-alignment claims).
+@Preview(showBackground = true, widthDp = 700, heightDp = 800)
+@Composable
+private fun HomeRailTopAlignedPreview700dp() {
+    val event = demoDoorEvents.firstOrNull()
+    val now = Instant.parse("2026-04-29T12:00:00Z")
+    val status = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event))
+    val sinceLine = rememberSinceLine(status.lastChangeTimeSeconds, now, ZoneOffset.UTC)
+    val deviceCheckIn = DeviceCheckIn.format(
+        lastCheckInSeconds = now.epochSecond - (5 * 60),
+        nowSeconds = now.epochSecond,
+    )
+    WideTabPreviewScaffold(
+        selectedScreen = Screen.Home,
+        itemPosition = NavigationRailItemPosition.TopAligned,
+    ) { modifier ->
         HomeStatelessContent(
             status = status,
             sinceLine = sinceLine,

@@ -1,5 +1,6 @@
 package com.chriscartland.garage.testcommon
 
+import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import com.chriscartland.garage.domain.repository.Setting
 import kotlinx.coroutines.flow.Flow
@@ -11,6 +12,8 @@ class FakeAppSettingsRepository : AppSettingsRepository {
     override val profileLogCardExpanded: Setting<Boolean> = InMemorySetting(false)
     override val profileUserCardExpanded: Setting<Boolean> = InMemorySetting(true)
     override val layoutDebugEnabled: Setting<Boolean> = InMemorySetting(false)
+    override val navigationRailItemPosition: Setting<NavigationRailItemPosition> =
+        InMemorySetting(NavigationRailItemPosition.CenteredVertically)
 }
 
 class InMemorySetting<T>(

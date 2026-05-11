@@ -22,6 +22,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import com.chriscartland.garage.domain.repository.Setting
 import kotlinx.coroutines.flow.Flow
@@ -47,6 +48,13 @@ class DataStoreAppSettings(
         DataStoreBooleanSetting(dataStore, "PROFILE_USER_CARD_EXPANDED", true)
     override val layoutDebugEnabled: Setting<Boolean> =
         DataStoreBooleanSetting(dataStore, "LAYOUT_DEBUG_ENABLED", false)
+    override val navigationRailItemPosition: Setting<NavigationRailItemPosition> =
+        DataStoreEnumSetting(
+            dataStore = dataStore,
+            key = "NAVIGATION_RAIL_ITEM_POSITION",
+            default = NavigationRailItemPosition.CenteredVertically,
+            valueOf = NavigationRailItemPosition::valueOf,
+        )
 }
 
 private class DataStoreStringSetting(
@@ -82,6 +90,33 @@ private class DataStoreBooleanSetting(
 
     override suspend fun set(value: Boolean) {
         dataStore.edit { prefs -> prefs[prefKey] = value }
+    }
+
+    override suspend fun restoreDefault() {
+        dataStore.edit { prefs -> prefs.remove(prefKey) }
+    }
+}
+
+/**
+ * Stores an [Enum] value as its [Enum.name] string. Unknown stored
+ * names (e.g. left over after a rename or removal) fall back to
+ * [default] so a stale write never crashes a release.
+ */
+private class DataStoreEnumSetting<E : Enum<E>>(
+    private val dataStore: DataStore<Preferences>,
+    override val key: String,
+    private val default: E,
+    private val valueOf: (String) -> E,
+) : Setting<E> {
+    private val prefKey = stringPreferencesKey(key)
+
+    override val flow: Flow<E> = dataStore.data.map { prefs ->
+        val stored = prefs[prefKey] ?: return@map default
+        runCatching { valueOf(stored) }.getOrDefault(default)
+    }
+
+    override suspend fun set(value: E) {
+        dataStore.edit { prefs -> prefs[prefKey] = value.name }
     }
 
     override suspend fun restoreDefault() {
