@@ -57,7 +57,7 @@
     <string name="settings_developer_nav_rail_top_padding_value">%1$d dp</string>
     <string name="settings_developer_nav_rail_top_padding_decrease">Decrease padding</string>
     <string name="settings_developer_nav_rail_top_padding_increase">Increase padding</string>
-    <string name="settings_developer_nav_rail_reset_section">Reset section to default</string>
+    <string name="settings_developer_nav_rail_reset_button">Set default</string>
 
     <!-- Home screen — section labels. -->
     <string name="home_section_status">Status</string>

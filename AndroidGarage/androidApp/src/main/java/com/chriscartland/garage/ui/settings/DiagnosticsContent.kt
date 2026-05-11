@@ -34,7 +34,6 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -240,7 +239,11 @@ fun DiagnosticsContent(
                         )
                     }
                 }
-                Button(
+                // OutlinedButton (not filled) to match Copy auth token + Clear all.
+                // The diagnostics action stack has no "primary" — all three are
+                // utility actions for power users; the only color signal that
+                // carries meaning is the error tint on Clear all (destructive).
+                OutlinedButton(
                     onClick = onExportCsv,
                     modifier = Modifier.fillMaxWidth(),
                 ) {

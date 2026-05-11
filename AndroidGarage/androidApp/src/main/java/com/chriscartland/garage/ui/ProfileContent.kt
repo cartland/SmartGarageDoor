@@ -40,7 +40,6 @@ import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.SnoozeAction
-import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
 import com.chriscartland.garage.ui.settings.AccountBottomSheet
@@ -172,7 +171,6 @@ fun ProfileContent(
 
     if (snoozeSheetOpen) {
         SnoozeBottomSheet(
-            initialSelection = SnoozeDurationUIOption.None,
             onSave = { duration ->
                 resolved.snoozeOpenDoorsNotifications(duration)
             },
