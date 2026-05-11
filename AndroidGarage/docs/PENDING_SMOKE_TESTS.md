@@ -1,7 +1,7 @@
 ---
 category: plan
 status: active
-last_verified: 2026-05-11
+last_verified: 2026-05-12
 ---
 
 # Pending Smoke Tests
@@ -21,16 +21,7 @@ User-facing changes that have shipped to the **internal Play Store track** but n
 
 ## Cumulative queue
 
-1. **`android/240` / 2.16.26 — Settings → Developer → "Nav rail" consolidated row + bottom sheet, defaults Top-aligned + 8 dp.** Supersedes the in-progress smoke entries for 2.16.23 (item-position picker) and 2.16.25 (top-padding stepper) — those inline UX iterations rolled into a single bottom sheet here. To verify on a real device:
-   - **Fresh install (no prior overrides), Wide layout (≥600dp, <1200dp)**: rail items align with body's first content row out of the box. Specifically, the **selected item's indicator pill top edge** (the rounded blue background drawn behind the icon when an item is selected) sits at the same y as the body's first content row's top (e.g. the "ACCOUNT" section header on Settings, "Status" on Home). No user action needed — defaults are `Top-aligned` + `8 dp`.
-   - **Settings menu length**: Settings → Developer shows ONE "Nav rail" row (not 3 rows). Subtitle reads e.g. `Top-aligned · 8 dp`.
-   - **Bottom sheet**: tap the row → modal sheet opens with two sections (Item position / Top padding), each with its own `↺` reset icon in the section header.
-   - **Item position**: changing between "Centered vertically" and "Top-aligned" updates the rail immediately. Reset (`↺`) on the position section snaps to `Top-aligned`.
-   - **Top padding**: `−` and `+` step by 1 dp (range 0–64); `−` disabled at 0, `+` disabled at 64. Reset (`↺`) on the padding section snaps to `8 dp`.
-   - **Reset isolation**: each reset only affects its own section.
-   - **Persistence**: values survive kill-and-relaunch; existing users upgrading from 2.16.25 (or earlier) keep any explicitly-set values through the upgrade and DO NOT reset to the new defaults.
-   - **Other layout modes**: Compact (bottom bar, no rail) and Expanded (1200dp+, no nav chrome) unaffected by any combination of values.
-2. **`android/241` / 2.16.27 — Module-extraction refactor (`:viewmodel`).** Pure refactor — no user-visible change expected. The 5 screen-scoped ViewModels (Home / DoorHistory / Profile / FunctionList / Diagnostics) moved from `:usecase` to a new `:viewmodel` Gradle module. The risk surface is DI wiring + KSP code generation in `AppComponent` (kotlin-inject) — `ComponentGraphTest` instrumented test covers it in CI but a real-device smoke is the final gate. To verify: (a) install over 2.16.26 (or fresh) → app launches, **no crash on cold start** (a missing DI binding would manifest as `IllegalStateException` from `InjectAppComponent` during `MainActivity.onCreate`); (b) navigate to all 5 tabs / sub-screens — Home, History, Settings, Diagnostics (Settings → Developer → Nav rail still works from 2.16.26), Function list — and confirm each renders content without a blank/error state; (c) trigger one user action per screen that exercises the VM (Home: tap remote button; History: pull-to-refresh; Settings: open Snooze sheet then save; Diagnostics: tap Export CSV; Function list: tap a function row). If any screen blanks or crashes on first open, that's a missed DI binding — file an issue and revert to `android/240`.
+> **Empty.** Last cleared 2026-05-12: `android/240` (nav-rail consolidated bottom sheet) and `android/241` (`:viewmodel` module extraction) smoke-tested on device. Add new entries here as releases ship to internal track.
 
 ## Open follow-ups (release-related but not smoke-test items)
 
