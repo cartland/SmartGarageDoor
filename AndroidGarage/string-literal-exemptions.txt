@@ -1,0 +1,19 @@
+# String-literal exemptions for checkNoLiteralStringsInCompose lint.
+#
+# Phase 3 of the string-resource migration plan
+# (AndroidGarage/docs/PENDING_FOLLOWUPS.md item #1).
+#
+# Each entry: relative-to-source-dir path + line number, e.g.
+#   ui/HomeContent.kt:42
+#
+# Lines starting with `#` are comments. Blank lines ignored.
+#
+# This file is the ratchet: as Phase 1 + Phase 2 migration PRs land,
+# entries should DECREASE. Adding a new entry requires PR review;
+# the long-term goal is empty.
+#
+# Currently empty — Phases 1A/1B/1C and 2A/2B landed all production
+# Composable strings into strings.xml. The remaining literal Text() in
+# main sources are all preview-only files (filtered by file-name pattern,
+# see exemptFilePatterns in build.gradle.kts) or KDoc code examples
+# (filtered by line-prefix `*` check in the task).
