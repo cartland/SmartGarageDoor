@@ -22,8 +22,6 @@ import com.chriscartland.garage.domain.model.DoorPosition
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /**
  * Pure-function pipeline that converts raw [DoorEvent]s into the display-ready
@@ -108,7 +106,7 @@ object HistoryMapper {
         data class Anomaly(
             override val timeSeconds: Long,
             val position: DoorPosition,
-            val title: String,
+            val kind: AnomalyKind,
         ) : MergedRecord
     }
 
@@ -162,9 +160,9 @@ object HistoryMapper {
                 DoorPosition.CLOSED -> handleClosed(time)
                 DoorPosition.OPEN_MISALIGNED -> handleOpenMisaligned(time)
                 DoorPosition.ERROR_SENSOR_CONFLICT ->
-                    result += MergedRecord.Anomaly(time, pos, "Sensor conflict")
+                    result += MergedRecord.Anomaly(time, pos, AnomalyKind.SensorConflict)
                 DoorPosition.UNKNOWN ->
-                    result += MergedRecord.Anomaly(time, pos, "Unknown state")
+                    result += MergedRecord.Anomaly(time, pos, AnomalyKind.UnknownState)
             }
         }
 
@@ -238,7 +236,7 @@ object HistoryMapper {
                 val existing = result[mergeIndex] as MergedRecord.Opened
                 result[mergeIndex] = existing.copy(misaligned = true)
             } else {
-                result += MergedRecord.Anomaly(time, DoorPosition.OPEN_MISALIGNED, "Open (misaligned)")
+                result += MergedRecord.Anomaly(time, DoorPosition.OPEN_MISALIGNED, AnomalyKind.OpenMisaligned)
             }
         }
 
@@ -247,11 +245,11 @@ object HistoryMapper {
             when (val p = pending) {
                 is PendingTransition.Opening ->
                     if (p.tooLong) {
-                        result += MergedRecord.Anomaly(p.startTimeSeconds, DoorPosition.OPENING_TOO_LONG, "Stuck opening")
+                        result += MergedRecord.Anomaly(p.startTimeSeconds, DoorPosition.OPENING_TOO_LONG, AnomalyKind.StuckOpening)
                     }
                 is PendingTransition.Closing ->
                     if (p.tooLong) {
-                        result += MergedRecord.Anomaly(p.startTimeSeconds, DoorPosition.CLOSING_TOO_LONG, "Stuck closing")
+                        result += MergedRecord.Anomaly(p.startTimeSeconds, DoorPosition.CLOSING_TOO_LONG, AnomalyKind.StuckClosing)
                     }
                 null -> Unit
             }
@@ -296,7 +294,7 @@ object HistoryMapper {
                     result += MergedRecord.Anomaly(
                         timeSeconds = pending.startTimeSeconds,
                         position = DoorPosition.OPENING_TOO_LONG,
-                        title = "Stuck opening",
+                        kind = AnomalyKind.StuckOpening,
                     )
                 }
                 null
@@ -308,7 +306,7 @@ object HistoryMapper {
                     result += MergedRecord.Anomaly(
                         timeSeconds = pending.startTimeSeconds,
                         position = DoorPosition.CLOSING_TOO_LONG,
-                        title = "Stuck closing",
+                        kind = AnomalyKind.StuckClosing,
                     )
                 }
                 null
@@ -377,112 +375,43 @@ object HistoryMapper {
         return reversed.reversed()
     }
 
-    private fun WithDuration.toHistoryEntry(zone: ZoneId): HistoryEntry =
+    private fun WithDuration.toHistoryEntry(): HistoryEntry =
         when (val r = record) {
             is MergedRecord.Opened -> HistoryEntry.Opened(
-                timeDisplay = formatTime(r.timeSeconds, zone),
-                durationDisplay = formatStateDurationLabel(
-                    durationSeconds = durationSeconds ?: 0L,
-                    isCurrent = isCurrent,
-                    isOpenState = true,
-                ),
+                timeSeconds = r.timeSeconds,
+                durationSeconds = durationSeconds ?: 0L,
                 isCurrent = isCurrent,
-                transitWarning = r.transitDurationSeconds?.let {
-                    "Took ${formatTransitDuration(it)} to open, longer than expected"
-                },
+                transitWarning = r.transitDurationSeconds?.let { TransitWarning.ToOpen(it) },
                 misaligned = r.misaligned,
             )
             is MergedRecord.Closed -> HistoryEntry.Closed(
-                timeDisplay = formatTime(r.timeSeconds, zone),
-                durationDisplay = formatStateDurationLabel(
-                    durationSeconds = durationSeconds ?: 0L,
-                    isCurrent = isCurrent,
-                    isOpenState = false,
-                ),
+                timeSeconds = r.timeSeconds,
+                durationSeconds = durationSeconds ?: 0L,
                 isCurrent = isCurrent,
-                transitWarning = r.transitDurationSeconds?.let {
-                    "Took ${formatTransitDuration(it)} to close, longer than expected"
-                },
+                transitWarning = r.transitDurationSeconds?.let { TransitWarning.ToClose(it) },
             )
             is MergedRecord.Anomaly -> HistoryEntry.Anomaly(
                 doorPosition = r.position,
-                title = r.title,
-                timeDisplay = formatTime(r.timeSeconds, zone),
+                kind = r.kind,
+                timeSeconds = r.timeSeconds,
             )
         }
 
-    // ---------- Step 5: formatting ----------
-
-    private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("h:mm a", Locale.US)
-    private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.US)
-
-    internal fun formatTime(
-        timeSeconds: Long,
-        zone: ZoneId,
-    ): String = Instant.ofEpochSecond(timeSeconds).atZone(zone).format(timeFormatter)
-
-    internal fun formatStateDurationLabel(
-        durationSeconds: Long,
-        isCurrent: Boolean,
-        isOpenState: Boolean,
-    ): String {
-        val duration = formatStateDuration(durationSeconds)
-        return when {
-            isCurrent -> "$duration and counting"
-            isOpenState -> "Open for $duration"
-            else -> "Closed for $duration"
-        }
-    }
-
-    /**
-     * Format an open/closed-state duration. Bias toward casual readability —
-     * drop seconds at minute scale, drop minutes at day scale.
-     */
-    internal fun formatStateDuration(seconds: Long): String {
-        val safe = seconds.coerceAtLeast(0L)
-        if (safe < 60) return "$safe sec"
-        val totalMin = safe / 60
-        if (totalMin < 60) return "$totalMin min"
-        val hours = totalMin / 60
-        val mins = totalMin % 60
-        if (hours < 24) {
-            return if (mins == 0L) "$hours hr" else "$hours hr $mins min"
-        }
-        val days = hours / 24
-        val remHours = hours % 24
-        return if (remHours == 0L) "$days day" else "$days day $remHours hr"
-    }
-
-    /**
-     * Format a transit (OPENING / CLOSING) duration. Transits are typically
-     * seconds, occasionally minutes for `_TOO_LONG` cases. We keep the
-     * seconds suffix at minute scale (transits are short, the precision
-     * helps), but drop seconds at hour scale to stay readable on the rare
-     * inputs where the data is malformed.
-     */
-    internal fun formatTransitDuration(seconds: Long): String {
-        val safe = seconds.coerceAtLeast(0L)
-        if (safe < 60) return "$safe sec"
-        val totalMin = safe / 60
-        val secs = safe % 60
-        if (totalMin < 60) {
-            return if (secs == 0L) "$totalMin min" else "$totalMin min $secs sec"
-        }
-        val hours = totalMin / 60
-        val mins = totalMin % 60
-        return if (mins == 0L) "$hours hr" else "$hours hr $mins min"
-    }
-
     // ---------- Step 6: group by day ----------
 
-    internal fun formatDayLabel(
+    /**
+     * Decide the [DayLabel] for a calendar date relative to "today".
+     * Phase 2E — returns a typed value; the Composable resolves to a
+     * localized string at render time.
+     */
+    internal fun dayLabel(
         date: LocalDate,
         today: LocalDate,
-    ): String =
+    ): DayLabel =
         when (today.toEpochDay() - date.toEpochDay()) {
-            0L -> "Today"
-            1L -> "Yesterday"
-            else -> date.format(dateFormatter)
+            0L -> DayLabel.Today
+            1L -> DayLabel.Yesterday
+            else -> DayLabel.Date(date)
         }
 
     /**
@@ -501,10 +430,10 @@ object HistoryMapper {
         val groups = LinkedHashMap<LocalDate, MutableList<HistoryEntry>>()
         for (rec in records) {
             val date = Instant.ofEpochSecond(rec.record.timeSeconds).atZone(zone).toLocalDate()
-            groups.getOrPut(date) { mutableListOf() }.add(rec.toHistoryEntry(zone))
+            groups.getOrPut(date) { mutableListOf() }.add(rec.toHistoryEntry())
         }
         return groups.map { (date, list) ->
-            HistoryDay(label = formatDayLabel(date, today), entries = list)
+            HistoryDay(label = dayLabel(date, today), entries = list)
         }
     }
 }

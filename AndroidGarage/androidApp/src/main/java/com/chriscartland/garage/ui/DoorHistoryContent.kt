@@ -123,6 +123,7 @@ fun DoorHistoryContent(
         }
         HistoryContent(
             days = days,
+            zone = zone,
             isRefreshing = recentDoorEvents is LoadingResult.Loading,
             onRefresh = onFetchRecentDoorEvents,
             modifier = Modifier.fillMaxWidth(),
