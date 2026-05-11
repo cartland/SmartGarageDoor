@@ -51,4 +51,8 @@ class AppSettingsUseCase(
     fun observeNavigationRailItemPosition(): Flow<NavigationRailItemPosition> = settings.navigationRailItemPosition.flow
 
     suspend fun setNavigationRailItemPosition(value: NavigationRailItemPosition) = settings.navigationRailItemPosition.set(value)
+
+    fun observeNavigationRailTopPaddingDp(): Flow<Int> = settings.navigationRailTopPaddingDp.flow
+
+    suspend fun setNavigationRailTopPaddingDp(value: Int) = settings.navigationRailTopPaddingDp.set(value)
 }

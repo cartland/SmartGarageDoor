@@ -51,6 +51,11 @@
     <string name="settings_developer_nav_rail_items_subtitle">Where rail tab items sit vertically (Wide layout only)</string>
     <string name="settings_developer_nav_rail_items_centered">Centered vertically</string>
     <string name="settings_developer_nav_rail_items_top_aligned">Top-aligned</string>
+    <string name="settings_developer_nav_rail_top_padding_title">Nav rail top padding</string>
+    <string name="settings_developer_nav_rail_top_padding_subtitle">Extra dp above the rail tab items (Wide layout only)</string>
+    <string name="settings_developer_nav_rail_top_padding_value">%1$d dp</string>
+    <string name="settings_developer_nav_rail_top_padding_decrease">Decrease padding</string>
+    <string name="settings_developer_nav_rail_top_padding_increase">Increase padding</string>
 
     <!-- Home screen — section labels. -->
     <string name="home_section_status">Status</string>

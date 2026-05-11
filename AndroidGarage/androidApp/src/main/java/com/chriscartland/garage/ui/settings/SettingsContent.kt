@@ -21,6 +21,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -32,6 +33,7 @@ import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Info
@@ -39,11 +41,14 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.NotificationsPaused
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Storefront
+import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.VerticalAlignCenter
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -114,6 +119,7 @@ fun SettingsContent(
     versionCode: String,
     layoutDebugEnabled: Boolean,
     navigationRailItemPosition: NavigationRailItemPosition,
+    navigationRailTopPaddingDp: Int,
     modifier: Modifier = Modifier,
     snoozeInFlight: Boolean = false,
     onAccountTap: () -> Unit = {},
@@ -126,6 +132,7 @@ fun SettingsContent(
     onDiagnosticsTap: () -> Unit = {},
     onLayoutDebugChange: (Boolean) -> Unit = {},
     onNavigationRailItemPositionChange: (NavigationRailItemPosition) -> Unit = {},
+    onNavigationRailTopPaddingDpChange: (Int) -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -255,6 +262,11 @@ fun SettingsContent(
                         selected = navigationRailItemPosition,
                         onSelect = onNavigationRailItemPositionChange,
                     )
+                    HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
+                    NavigationRailTopPaddingStepperRow(
+                        valueDp = navigationRailTopPaddingDp,
+                        onChange = onNavigationRailTopPaddingDpChange,
+                    )
                 }
             }
         }
@@ -333,6 +345,79 @@ private fun NavigationRailItemPositionChoiceRow(
         colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
     )
 }
+
+/**
+ * Developer-only stepper row for the Wide-mode rail's extra top
+ * padding (in dp). Header layout matches [SettingsRow] /
+ * [SettingsSwitchRow] (icon + title + subtitle); trailing area shows
+ * `−  Ndp  +` with `IconButton`s. Range is clamped to
+ * [PADDING_MIN_DP]..[PADDING_MAX_DP]; tap is a no-op at the bounds.
+ */
+@Composable
+private fun NavigationRailTopPaddingStepperRow(
+    valueDp: Int,
+    onChange: (Int) -> Unit,
+) {
+    val coerced = valueDp.coerceIn(PADDING_MIN_DP, PADDING_MAX_DP)
+    ListItem(
+        leadingContent = {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(36.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.SwapVert,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        headlineContent = {
+            Text(stringResource(R.string.settings_developer_nav_rail_top_padding_title))
+        },
+        supportingContent = {
+            Text(stringResource(R.string.settings_developer_nav_rail_top_padding_subtitle))
+        },
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = { onChange((coerced - 1).coerceAtLeast(PADDING_MIN_DP)) },
+                    enabled = coerced > PADDING_MIN_DP,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Remove,
+                        contentDescription = stringResource(
+                            R.string.settings_developer_nav_rail_top_padding_decrease,
+                        ),
+                    )
+                }
+                Text(
+                    text = stringResource(
+                        R.string.settings_developer_nav_rail_top_padding_value,
+                        coerced,
+                    ),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+                IconButton(
+                    onClick = { onChange((coerced + 1).coerceAtMost(PADDING_MAX_DP)) },
+                    enabled = coerced < PADDING_MAX_DP,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Add,
+                        contentDescription = stringResource(
+                            R.string.settings_developer_nav_rail_top_padding_increase,
+                        ),
+                    )
+                }
+            }
+        },
+        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+    )
+}
+
+private const val PADDING_MIN_DP = 0
+private const val PADDING_MAX_DP = 64
 
 @Composable
 private fun SettingsSection(
@@ -482,6 +567,7 @@ fun SettingsContentSignedOutPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            navigationRailTopPaddingDp = 0,
         )
     }
 }
@@ -503,6 +589,7 @@ fun SettingsContentSignedInBasicPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            navigationRailTopPaddingDp = 0,
         )
     }
 }
@@ -524,6 +611,7 @@ fun SettingsContentSignedInAllowlistedPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            navigationRailTopPaddingDp = 0,
         )
     }
 }
@@ -549,6 +637,7 @@ private fun SettingsContentSignedInAllowlistedTopAlignedPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.TopAligned,
+            navigationRailTopPaddingDp = 0,
         )
     }
 }
@@ -570,6 +659,7 @@ fun SettingsContentPermissionDeniedPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            navigationRailTopPaddingDp = 0,
         )
     }
 }
@@ -594,6 +684,7 @@ fun SettingsContentSnoozeInFlightPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            navigationRailTopPaddingDp = 0,
             snoozeInFlight = true,
         )
     }

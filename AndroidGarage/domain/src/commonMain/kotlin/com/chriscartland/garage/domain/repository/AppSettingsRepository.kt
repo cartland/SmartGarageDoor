@@ -51,4 +51,13 @@ interface AppSettingsRepository {
      * Default [NavigationRailItemPosition.CenteredVertically].
      */
     val navigationRailItemPosition: Setting<NavigationRailItemPosition>
+
+    /**
+     * Developer-only: extra dp inserted above the Wide-mode
+     * NavigationRail's tab items. Pushes every item downward in both
+     * `CenteredVertically` and `TopAligned` modes — useful for
+     * fine-tuning rail-vs-content alignment on real hardware. UI gate:
+     * Settings → Developer → "Nav rail top padding". Default 0.
+     */
+    val navigationRailTopPaddingDp: Setting<Int>
 }

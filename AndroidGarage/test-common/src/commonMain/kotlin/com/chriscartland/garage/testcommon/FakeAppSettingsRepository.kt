@@ -14,6 +14,7 @@ class FakeAppSettingsRepository : AppSettingsRepository {
     override val layoutDebugEnabled: Setting<Boolean> = InMemorySetting(false)
     override val navigationRailItemPosition: Setting<NavigationRailItemPosition> =
         InMemorySetting(NavigationRailItemPosition.CenteredVertically)
+    override val navigationRailTopPaddingDp: Setting<Int> = InMemorySetting(0)
 }
 
 class InMemorySetting<T>(
