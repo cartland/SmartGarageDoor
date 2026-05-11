@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
+import com.chriscartland.garage.R
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AppResult
 import kotlinx.coroutines.Dispatchers
@@ -74,7 +75,12 @@ fun rememberAuthTokenCopier(): () -> Unit {
                 when (result) {
                     is AppResult.Success -> SensitiveClipboard.write(context, result.data)
                     is AppResult.Error ->
-                        Toast.makeText(context, "Sign in to copy auth token", Toast.LENGTH_SHORT).show()
+                        Toast
+                            .makeText(
+                                context,
+                                context.getString(R.string.auth_token_copier_sign_in_required),
+                                Toast.LENGTH_SHORT,
+                            ).show()
                 }
             }
         }

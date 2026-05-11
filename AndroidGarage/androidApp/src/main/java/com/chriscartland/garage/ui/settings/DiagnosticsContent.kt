@@ -53,10 +53,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.GarageApplication
+import com.chriscartland.garage.R
 import com.chriscartland.garage.applogger.exportAppLogCsvToUri
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.ui.auth.rememberAuthTokenCopier
@@ -233,7 +235,7 @@ fun DiagnosticsContent(
                             contentDescription = null,
                         )
                         Text(
-                            text = "Copy auth token (sensitive)",
+                            text = stringResource(R.string.settings_diagnostics_copy_auth_token),
                             modifier = Modifier.padding(start = ButtonSpacing.IconText),
                         )
                     }
@@ -247,7 +249,7 @@ fun DiagnosticsContent(
                         contentDescription = null,
                     )
                     Text(
-                        text = "Export CSV",
+                        text = stringResource(R.string.settings_diagnostics_export_csv),
                         modifier = Modifier.padding(start = ButtonSpacing.IconText),
                     )
                 }
@@ -269,7 +271,7 @@ fun DiagnosticsContent(
                             modifier = Modifier.size(20.dp),
                         )
                         Text(
-                            text = "Clearing…",
+                            text = stringResource(R.string.settings_diagnostics_clearing_in_flight),
                             modifier = Modifier.padding(start = ButtonSpacing.IconText),
                         )
                     } else {
@@ -278,7 +280,7 @@ fun DiagnosticsContent(
                             contentDescription = null,
                         )
                         Text(
-                            text = "Clear all diagnostics",
+                            text = stringResource(R.string.settings_diagnostics_clear_all),
                             modifier = Modifier.padding(start = ButtonSpacing.IconText),
                         )
                     }
@@ -317,13 +319,9 @@ fun ClearDiagnosticsDialog(
                 tint = MaterialTheme.colorScheme.error,
             )
         },
-        title = { Text("Clear all diagnostics?") },
+        title = { Text(stringResource(R.string.settings_diagnostics_confirm_title)) },
         text = {
-            Text(
-                "Resets every counter on this screen to 0 and deletes the " +
-                    "exportable event log. Door history and other app " +
-                    "settings are not affected. This cannot be undone.",
-            )
+            Text(stringResource(R.string.settings_diagnostics_confirm_message))
         },
         confirmButton = {
             TextButton(
@@ -331,10 +329,10 @@ fun ClearDiagnosticsDialog(
                 colors = ButtonDefaults.textButtonColors(
                     contentColor = MaterialTheme.colorScheme.error,
                 ),
-            ) { Text("Clear") }
+            ) { Text(stringResource(R.string.settings_diagnostics_confirm_button)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.settings_diagnostics_cancel_button)) }
         },
     )
 }

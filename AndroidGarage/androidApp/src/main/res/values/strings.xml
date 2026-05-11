@@ -59,4 +59,42 @@
 
     <!-- Home — auth state still resolving (between Unknown and resolved). -->
     <string name="home_auth_loading">Checking sign-in…</string>
+
+    <!-- Settings → Diagnostics — action buttons + clear-confirm dialog. -->
+    <string name="settings_diagnostics_copy_auth_token">Copy auth token (sensitive)</string>
+    <string name="settings_diagnostics_export_csv">Export CSV</string>
+    <string name="settings_diagnostics_clearing_in_flight">Clearing…</string>
+    <string name="settings_diagnostics_clear_all">Clear all diagnostics</string>
+    <string name="settings_diagnostics_confirm_title">Clear all diagnostics?</string>
+    <string name="settings_diagnostics_confirm_message">Resets every counter on this screen to 0 and deletes the exportable event log. Door history and other app settings are not affected. This cannot be undone.</string>
+    <string name="settings_diagnostics_confirm_button">Clear</string>
+    <string name="settings_diagnostics_cancel_button">Cancel</string>
+
+    <!-- Settings → Snooze bottom sheet — duration picker. -->
+    <string name="settings_snooze_title">Snooze notifications</string>
+    <string name="settings_snooze_option_none">Don\'t snooze</string>
+    <string name="settings_snooze_option_one_hour">1 hour</string>
+    <string name="settings_snooze_option_four_hours">4 hours</string>
+    <string name="settings_snooze_option_eight_hours">8 hours</string>
+    <string name="settings_snooze_option_twelve_hours">12 hours</string>
+    <string name="settings_snooze_cancel">Cancel</string>
+    <string name="settings_snooze_save">Save</string>
+
+    <!-- Settings → Account bottom sheet — sign out action. -->
+    <string name="settings_account_sign_out">Sign out</string>
+
+    <!-- Settings → Version bottom sheet — fields and labels. -->
+    <string name="settings_version_title">App version</string>
+    <string name="settings_version_field_version">Version</string>
+    <string name="settings_version_field_build">Build</string>
+    <string name="settings_version_field_package">Package</string>
+    <string name="settings_version_field_built">Built</string>
+
+    <!-- Profile — account name fallback when display name is blank. -->
+    <string name="profile_account_name_unknown">(unknown)</string>
+    <!-- Profile → Version sheet — Toast on copy (Android 12 and older). %1$s is the field label. -->
+    <string name="profile_version_toast_copied">Copied %1$s</string>
+
+    <!-- Auth — Toast when copy auth token tapped while signed out. -->
+    <string name="auth_token_copier_sign_in_required">Sign in to copy auth token</string>
 </resources>

@@ -31,9 +31,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.chriscartland.garage.R
 import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AuthState
@@ -111,11 +113,12 @@ fun ProfileContent(
         }
     }
 
+    val unknownNameFallback = stringResource(R.string.profile_account_name_unknown)
     val accountState = when (val s = authState) {
         is AuthState.Authenticated -> AccountRowState.SignedIn(
             displayName = s.user.name
                 .asString()
-                .ifBlank { "(unknown)" },
+                .ifBlank { unknownNameFallback },
             email = s.user.email.asString(),
         )
         AuthState.Unauthenticated, AuthState.Unknown -> AccountRowState.SignedOut
@@ -194,7 +197,12 @@ fun ProfileContent(
                 // chip after a `setText`. Showing a Toast on top of that
                 // is duplicate noise — gate to older API levels only.
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                    Toast.makeText(context, "Copied $label", Toast.LENGTH_SHORT).show()
+                    Toast
+                        .makeText(
+                            context,
+                            context.getString(R.string.profile_version_toast_copied, label),
+                            Toast.LENGTH_SHORT,
+                        ).show()
                 }
             },
             onDismiss = { versionSheetOpen = false },
