@@ -297,15 +297,16 @@ private fun HomeSection(
     trailing: @Composable () -> Unit = {},
     content: @Composable () -> Unit,
 ) {
-    Column {
+    // Outer Column owns the gap between header row and body card via
+    // spacedBy (parent-owns-gaps rule). Header row has no vertical
+    // padding — the parent LazyColumn owns the gap above the section.
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.SectionHeaderBottom)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
                     start = Spacing.SectionHeaderStart,
                     end = Spacing.SectionHeaderStart,
-                    top = Spacing.SectionHeaderTop,
-                    bottom = Spacing.SectionHeaderBottom,
                 ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,

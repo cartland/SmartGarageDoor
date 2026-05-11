@@ -54,8 +54,11 @@ class SpacingTest {
     fun listContentPaddingValues() {
         // Pin the current values so an accidental rename / refactor that
         // changes the dp literals also updates the doc and CHANGELOG.
+        // Top bumped 8 → 16dp in 2.16.29: SectionHeaderTop deleted; the
+        // first-item gap is now owned exclusively by ListContentPadding.top
+        // (parent-owns rule). Bottom unchanged.
         val pv = Spacing.ListContentPadding
-        assertEquals(8.dp, pv.calculateTopPadding())
+        assertEquals(16.dp, pv.calculateTopPadding())
         assertEquals(24.dp, pv.calculateBottomPadding())
     }
 }
