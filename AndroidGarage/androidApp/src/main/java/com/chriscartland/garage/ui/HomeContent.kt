@@ -40,7 +40,7 @@ import com.chriscartland.garage.ui.home.HomeAlert
 import com.chriscartland.garage.ui.home.HomeMapper
 import com.chriscartland.garage.ui.home.rememberSinceLine
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
-import com.chriscartland.garage.usecase.HomeViewModel
+import com.chriscartland.garage.viewmodel.HomeViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import java.time.Instant

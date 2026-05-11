@@ -50,8 +50,8 @@ import com.chriscartland.garage.ui.settings.SettingsContent
 import com.chriscartland.garage.ui.settings.SnoozeBottomSheet
 import com.chriscartland.garage.ui.settings.SnoozeRowState
 import com.chriscartland.garage.ui.settings.VersionBottomSheet
-import com.chriscartland.garage.usecase.ProfileViewModel
 import com.chriscartland.garage.version.AppVersion
+import com.chriscartland.garage.viewmodel.ProfileViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import kotlinx.coroutines.delay

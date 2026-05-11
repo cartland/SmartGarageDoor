@@ -77,12 +77,7 @@ import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.ClearDiagnosticsUseCase
 import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
-import com.chriscartland.garage.usecase.DefaultDiagnosticsViewModel
-import com.chriscartland.garage.usecase.DefaultDoorHistoryViewModel
-import com.chriscartland.garage.usecase.DefaultFunctionListViewModel
-import com.chriscartland.garage.usecase.DefaultHomeViewModel
 import com.chriscartland.garage.usecase.DefaultLiveClock
-import com.chriscartland.garage.usecase.DefaultProfileViewModel
 import com.chriscartland.garage.usecase.DefaultReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.DefaultRegisterFcmUseCase
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
@@ -111,6 +106,11 @@ import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
 import com.chriscartland.garage.version.AppVersion
+import com.chriscartland.garage.viewmodel.DefaultDiagnosticsViewModel
+import com.chriscartland.garage.viewmodel.DefaultDoorHistoryViewModel
+import com.chriscartland.garage.viewmodel.DefaultFunctionListViewModel
+import com.chriscartland.garage.viewmodel.DefaultHomeViewModel
+import com.chriscartland.garage.viewmodel.DefaultProfileViewModel
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

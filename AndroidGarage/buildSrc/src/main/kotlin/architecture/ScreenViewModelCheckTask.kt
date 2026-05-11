@@ -108,14 +108,14 @@ abstract class ScreenViewModelCheckTask : DefaultTask() {
 
     /**
      * Returns the distinct ViewModel "logical names" imported from the
-     * usecase package. `Default` prefix is stripped so impl/interface
+     * `:viewmodel` module. `Default` prefix is stripped so impl/interface
      * imports collapse to one.
      */
     private fun distinctViewModelImports(file: File): Set<String> =
         file
             .readLines()
             .map(String::trim)
-            .filter { it.startsWith("import com.chriscartland.garage.usecase.") }
+            .filter { it.startsWith("import com.chriscartland.garage.viewmodel.") }
             .map { it.removePrefix("import ").substringBefore(';').trim() }
             .filter { it.endsWith("ViewModel") }
             .map { it.substringAfterLast('.') }
