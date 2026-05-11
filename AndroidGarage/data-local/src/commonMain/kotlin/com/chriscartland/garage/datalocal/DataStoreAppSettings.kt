@@ -21,6 +21,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.domain.repository.AppSettingsRepository
@@ -55,6 +56,8 @@ class DataStoreAppSettings(
             default = NavigationRailItemPosition.CenteredVertically,
             valueOf = NavigationRailItemPosition::valueOf,
         )
+    override val navigationRailTopPaddingDp: Setting<Int> =
+        DataStoreIntSetting(dataStore, "NAVIGATION_RAIL_TOP_PADDING_DP", 0)
 }
 
 private class DataStoreStringSetting(
@@ -89,6 +92,26 @@ private class DataStoreBooleanSetting(
     }
 
     override suspend fun set(value: Boolean) {
+        dataStore.edit { prefs -> prefs[prefKey] = value }
+    }
+
+    override suspend fun restoreDefault() {
+        dataStore.edit { prefs -> prefs.remove(prefKey) }
+    }
+}
+
+private class DataStoreIntSetting(
+    private val dataStore: DataStore<Preferences>,
+    override val key: String,
+    private val default: Int,
+) : Setting<Int> {
+    private val prefKey = intPreferencesKey(key)
+
+    override val flow: Flow<Int> = dataStore.data.map { prefs ->
+        prefs[prefKey] ?: default
+    }
+
+    override suspend fun set(value: Int) {
         dataStore.edit { prefs -> prefs[prefKey] = value }
     }
 

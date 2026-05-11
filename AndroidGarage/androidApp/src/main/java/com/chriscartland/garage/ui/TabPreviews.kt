@@ -353,6 +353,7 @@ fun SettingsTabPreview() {
             versionCode = "184",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            navigationRailTopPaddingDp = 0,
         )
     }
 }

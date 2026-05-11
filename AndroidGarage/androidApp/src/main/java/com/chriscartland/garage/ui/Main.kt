@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -58,6 +59,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -162,11 +164,14 @@ fun AppNavigation() {
         .collectAsState(initial = false)
     val navigationRailItemPosition by component.appSettings.navigationRailItemPosition.flow
         .collectAsState(initial = NavigationRailItemPosition.CenteredVertically)
+    val navigationRailTopPaddingDp by component.appSettings.navigationRailTopPaddingDp.flow
+        .collectAsState(initial = 0)
 
     CompositionLocalProvider(LocalLayoutDebugEnabled provides layoutDebugEnabled) {
         AppScaffold(
             backStack = backStack,
             navigationRailItemPosition = navigationRailItemPosition,
+            navigationRailTopPaddingDp = navigationRailTopPaddingDp,
         )
     }
 }
@@ -176,6 +181,7 @@ fun AppNavigation() {
 private fun AppScaffold(
     backStack: NavBackStack<NavKey>,
     navigationRailItemPosition: NavigationRailItemPosition,
+    navigationRailTopPaddingDp: Int,
 ) {
     val debug = LocalLayoutDebugEnabled.current
     Scaffold(
@@ -324,6 +330,7 @@ private fun AppScaffold(
                             onTabSelected = { screen -> TabNavigation.navigateToTab(backStack, screen) },
                             mode = mode,
                             itemPosition = navigationRailItemPosition,
+                            extraTopPaddingDp = navigationRailTopPaddingDp,
                         )
                         Box(
                             modifier = Modifier
@@ -446,6 +453,7 @@ fun NavigationRailLeft(
     onTabSelected: (Screen) -> Unit,
     mode: AppLayoutMode = currentAppLayoutMode(),
     itemPosition: NavigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+    extraTopPaddingDp: Int = 0,
 ) {
     val effectiveScreen = mode.canonicalScreen(currentScreen)
     val debug = LocalLayoutDebugEnabled.current
@@ -460,6 +468,14 @@ fun NavigationRailLeft(
         // plus item-level top padding).
         if (itemPosition == NavigationRailItemPosition.CenteredVertically) {
             Spacer(Modifier.weight(1f))
+        }
+        // Extra developer-controlled padding above the items. Pushes
+        // every item downward in both modes — useful for fine-tuning
+        // rail-vs-content alignment on real hardware (Settings →
+        // Developer → "Nav rail top padding"). 0 by default = no
+        // contribution.
+        if (extraTopPaddingDp > 0) {
+            Spacer(Modifier.height(extraTopPaddingDp.dp))
         }
         mode.visibleTabs.forEach { tab ->
             NavigationRailItem(

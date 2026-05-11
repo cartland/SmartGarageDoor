@@ -89,6 +89,13 @@ interface ProfileViewModel {
      */
     val navigationRailItemPosition: StateFlow<NavigationRailItemPosition>
 
+    /**
+     * Developer-only: extra dp inserted above the Wide-mode rail's
+     * tab items. Persisted in DataStore. UI gate: Settings →
+     * Developer → "Nav rail top padding". Default 0.
+     */
+    val navigationRailTopPaddingDp: StateFlow<Int>
+
     fun signInWithGoogle(idToken: GoogleIdToken)
 
     fun signOut()
@@ -100,6 +107,8 @@ interface ProfileViewModel {
     fun setLayoutDebugEnabled(enabled: Boolean)
 
     fun setNavigationRailItemPosition(position: NavigationRailItemPosition)
+
+    fun setNavigationRailTopPaddingDp(value: Int)
 }
 
 class DefaultProfileViewModel(
@@ -137,6 +146,9 @@ class DefaultProfileViewModel(
     override val navigationRailItemPosition: StateFlow<NavigationRailItemPosition> =
         _navigationRailItemPosition
 
+    private val _navigationRailTopPaddingDp = MutableStateFlow(0)
+    override val navigationRailTopPaddingDp: StateFlow<Int> = _navigationRailTopPaddingDp
+
     // Cached so the snooze action can attach the latest door change time
     // without the UI having to thread it through.
     private val currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
@@ -157,6 +169,11 @@ class DefaultProfileViewModel(
         viewModelScope.launch(dispatchers.io) {
             appSettings.observeNavigationRailItemPosition().collect {
                 _navigationRailItemPosition.value = it
+            }
+        }
+        viewModelScope.launch(dispatchers.io) {
+            appSettings.observeNavigationRailTopPaddingDp().collect {
+                _navigationRailTopPaddingDp.value = it
             }
         }
     }
@@ -221,6 +238,12 @@ class DefaultProfileViewModel(
     override fun setNavigationRailItemPosition(position: NavigationRailItemPosition) {
         viewModelScope.launch(dispatchers.io) {
             appSettings.setNavigationRailItemPosition(position)
+        }
+    }
+
+    override fun setNavigationRailTopPaddingDp(value: Int) {
+        viewModelScope.launch(dispatchers.io) {
+            appSettings.setNavigationRailTopPaddingDp(value)
         }
     }
 
