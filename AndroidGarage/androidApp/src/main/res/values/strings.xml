@@ -114,6 +114,19 @@
     <string name="home_info_remote_control_body_para1">The remote button checks in frequently. \"Available\" means it just told us it\'s ready to open or close the door.</string>
     <string name="home_info_remote_control_body_para2">If contact stops, this shows when we last heard from it. Tapping the button may not work until it reconnects.</string>
 
+    <!-- Home → Door state labels (headline text on the Status card). -->
+    <!-- Several DoorPosition values share a label: OPENING_TOO_LONG and -->
+    <!-- OPENING both render "Opening"; OPEN_MISALIGNED and OPEN both render -->
+    <!-- "Open"; CLOSING_TOO_LONG and CLOSING both render "Closing". The -->
+    <!-- anomalous variants surface their distinguishing detail in the -->
+    <!-- warning chip below (DoorWarning sealed type, Phase 2A). -->
+    <string name="home_door_state_open">Open</string>
+    <string name="home_door_state_closed">Closed</string>
+    <string name="home_door_state_unknown">Unknown</string>
+    <string name="home_door_state_opening">Opening</string>
+    <string name="home_door_state_closing">Closing</string>
+    <string name="home_door_state_sensor_conflict">Sensor conflict</string>
+
     <!-- Home → Door warnings (fallback messages when server sends none). -->
     <string name="home_warning_opening_too_long">Opening, taking longer than expected</string>
     <string name="home_warning_closing_too_long">Closing, taking longer than expected</string>

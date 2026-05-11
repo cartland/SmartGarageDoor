@@ -64,7 +64,6 @@ class AuthStateUIPropagationTest {
 
     private val unknownStatus = HomeStatusDisplay(
         doorPosition = DoorPosition.UNKNOWN,
-        stateLabel = "Unknown",
         sinceLine = "Last change time unknown",
     )
 
