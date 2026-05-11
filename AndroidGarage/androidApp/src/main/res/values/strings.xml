@@ -206,4 +206,15 @@
     <!-- History tab — empty state. -->
     <string name="history_empty_title">No events yet</string>
     <string name="history_empty_subtitle">Open or close the garage and check back here.</string>
+
+    <!-- Notification permission justification — base + escalation lines. -->
+    <!-- Composable assembles base + conditional escalation appends in -->
+    <!-- HomeContent.kt's notificationJustificationText resolver. -->
+    <string name="notification_justification_base">Turn on notifications to get alerted when the door is left open.</string>
+    <!-- Appended at attempt count 3+. -->
+    <string name="notification_justification_attempt_3">You can manage permissions in the Android system settings.</string>
+    <!-- Appended at attempt count 4+. -->
+    <string name="notification_justification_attempt_4">Android might be blocking requests because the permission was denied multiple times.</string>
+    <!-- Appended at attempt count 5+. %1$d is the attempt count. -->
+    <string name="notification_justification_attempt_5">You have clicked the button %1$d times.</string>
 </resources>

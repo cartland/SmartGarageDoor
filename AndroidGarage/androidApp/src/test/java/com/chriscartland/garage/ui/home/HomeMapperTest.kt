@@ -226,14 +226,15 @@ class HomeMapperTest {
             notificationRequestCount = 0,
         )
         assertEquals(1, alerts.size)
-        assertTrue(alerts[0] is HomeAlert.PermissionMissing)
-        // The justification text should not be empty.
+        // Phase 2F: PermissionMissing carries a typed NotificationJustification
+        // instead of a String message. The Composable layer renders the
+        // multi-line localized message at the call site.
         val pm = alerts[0] as HomeAlert.PermissionMissing
-        assertTrue(pm.message.isNotBlank())
+        assertEquals(0, pm.justification.attemptCount)
     }
 
     @Test
-    fun toHomeAlerts_permission_message_grows_with_attempts() {
+    fun toHomeAlerts_permission_attemptCount_passes_through() {
         val firstAttempt = HomeMapper
             .toHomeAlerts(
                 currentDoorEvent = LoadingResult.Complete(event(DoorPosition.OPEN)),
@@ -248,7 +249,11 @@ class HomeMapperTest {
                 notificationPermissionGranted = false,
                 notificationRequestCount = 5,
             ).first() as HomeAlert.PermissionMissing
-        assertTrue(manyAttempts.message.length > firstAttempt.message.length)
+        // Mapper passes the count through verbatim; the Composable's
+        // notificationJustificationText resolver appends escalation lines
+        // at counts 3+, 4+, 5+.
+        assertEquals(0, firstAttempt.justification.attemptCount)
+        assertEquals(5, manyAttempts.justification.attemptCount)
     }
 
     @Test

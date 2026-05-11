@@ -62,7 +62,7 @@ import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.RemoteButtonState
-import com.chriscartland.garage.permissions.NotificationPermissionCopy
+import com.chriscartland.garage.permissions.NotificationJustification
 import com.chriscartland.garage.ui.DeviceCheckInPill
 import com.chriscartland.garage.ui.DoorStatusInfoBottomSheet
 import com.chriscartland.garage.ui.GarageIcon
@@ -143,14 +143,16 @@ sealed interface HomeAlert {
     data object Stale : HomeAlert
 
     /**
-     * Notification permission denied / never asked. [message] still carries
-     * the server-formatted justification text from
-     * [com.chriscartland.garage.permissions.NotificationPermissionCopy] —
-     * that lifecycle moves to a typed `NotificationJustification` shape in
-     * Phase 2F.
+     * Notification permission denied / never asked. [justification] carries
+     * a typed [com.chriscartland.garage.permissions.NotificationJustification]
+     * — its [com.chriscartland.garage.permissions.NotificationJustification.attemptCount]
+     * drives the escalation lines (3+, 4+, 5+). The Composable resolver in
+     * `HomeAlertCard` assembles the multi-line localized message at
+     * render time. Phase 2F of the string-resource migration plan
+     * (`AndroidGarage/docs/PENDING_FOLLOWUPS.md` item #1).
      */
     data class PermissionMissing(
-        val message: String,
+        val justification: NotificationJustification,
     ) : HomeAlert
 
     /**
@@ -428,6 +430,43 @@ private fun doorWarningText(warning: DoorWarning): String =
     }
 
 /**
+ * Resolves a typed [NotificationJustification] to the multi-line localized
+ * message rendered in the `HomeAlert.PermissionMissing` banner. The base
+ * line always shows; escalation lines append at attempt counts 3+, 4+, 5+
+ * — same shape as the legacy `NotificationPermissionCopy.justificationText`.
+ *
+ * Phase 2F of the string-resource migration plan
+ * (`AndroidGarage/docs/PENDING_FOLLOWUPS.md` item #1) — replaces the
+ * non-Composable string-builder so the mapper can emit a typed value.
+ */
+@Composable
+private fun notificationJustificationText(justification: NotificationJustification): String {
+    val base = stringResource(R.string.notification_justification_base)
+    val attempt = justification.attemptCount
+    val attempt3 = if (attempt > 2) {
+        stringResource(R.string.notification_justification_attempt_3)
+    } else {
+        null
+    }
+    val attempt4 = if (attempt > 3) {
+        stringResource(R.string.notification_justification_attempt_4)
+    } else {
+        null
+    }
+    val attempt5 = if (attempt > 4) {
+        stringResource(R.string.notification_justification_attempt_5, attempt)
+    } else {
+        null
+    }
+    return buildString {
+        append(base)
+        attempt3?.let { append("\n").append(it) }
+        attempt4?.let { append("\n").append(it) }
+        attempt5?.let { append("\n").append(it) }
+    }
+}
+
+/**
  * Resolves a [DoorPosition] to the headline label string for the Status card.
  *
  * Multiple positions share a label by design: `OPENING` and `OPENING_TOO_LONG`
@@ -565,7 +604,7 @@ private fun HomeAlertCard(
     }
     val message = when (alert) {
         HomeAlert.Stale -> stringResource(R.string.home_alert_stale_message)
-        is HomeAlert.PermissionMissing -> alert.message
+        is HomeAlert.PermissionMissing -> notificationJustificationText(alert.justification)
         is HomeAlert.FetchError ->
             stringResource(R.string.home_alert_fetch_error_format, alert.truncatedException)
     }
@@ -632,7 +671,7 @@ private object HomePreviewData {
     )
     val staleAlert = HomeAlert.Stale
     val permissionAlert = HomeAlert.PermissionMissing(
-        message = NotificationPermissionCopy.justificationText(0),
+        justification = NotificationJustification(attemptCount = 0),
     )
 
     // Heartbeat cadence is ~10 min, so a representative typical pill reads

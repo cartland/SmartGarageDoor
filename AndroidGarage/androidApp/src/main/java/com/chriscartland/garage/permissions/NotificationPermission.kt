@@ -60,28 +60,18 @@ fun rememberPermissionAlwaysGranted(permission: String): PermissionState =
     }
 
 /**
- * Copy for the notification-permission justification prompt.
+ * Typed justification for the notification-permission prompt. Replaces
+ * the previous `NotificationPermissionCopy.justificationText(int): String`
+ * builder.
  *
- * Produces increasingly detailed messages as the attempt count grows, in
- * line with Android's "system might block you" behavior.
+ * Phase 2F of the string-resource migration plan
+ * (`AndroidGarage/docs/PENDING_FOLLOWUPS.md` item #1) — the typed value
+ * carries only the [attemptCount]; the Composable layer assembles the
+ * multi-line localized message at render time using `stringResource` +
+ * conditional appends for the escalation lines (attempts 3+, 4+, 5+).
+ *
+ * Tests assert on [attemptCount] directly, decoupled from the copy text.
  */
-object NotificationPermissionCopy {
-    fun justificationText(attemptCount: Int = 0): String {
-        val baseText = "Turn on notifications to get alerted when the door is left open."
-        return buildString {
-            append(baseText)
-            if (attemptCount > 2) {
-                append("\nYou can manage permissions in the Android system settings.")
-            }
-            if (attemptCount > 3) {
-                append(
-                    "\nAndroid might be blocking requests because " +
-                        "the permission was denied multiple times.",
-                )
-            }
-            if (attemptCount > 4) {
-                append("\nYou have clicked the button $attemptCount times.")
-            }
-        }
-    }
-}
+data class NotificationJustification(
+    val attemptCount: Int = 0,
+)

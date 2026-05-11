@@ -21,7 +21,7 @@ import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.LoadingResult
-import com.chriscartland.garage.permissions.NotificationPermissionCopy
+import com.chriscartland.garage.permissions.NotificationJustification
 
 /**
  * Pure-function mapper that converts the Home tab's domain inputs into the
@@ -73,9 +73,10 @@ object HomeMapper {
      * carries only the raw exception text (data, not a label) for the
      * Composable to interpolate via `formatArgs`.
      *
-     * `HomeAlert.PermissionMissing.message` still carries a String produced
-     * by [NotificationPermissionCopy] for now; that lifecycle moves to a
-     * typed shape in Phase 2F.
+     * `HomeAlert.PermissionMissing.justification` (Phase 2F) carries the
+     * typed [NotificationJustification] shape; the Composable layer
+     * assembles the multi-line localized message from
+     * [NotificationJustification.attemptCount] at render time.
      */
     fun toHomeAlerts(
         currentDoorEvent: LoadingResult<DoorEvent?>,
@@ -90,7 +91,7 @@ object HomeMapper {
             if (!notificationPermissionGranted) {
                 add(
                     HomeAlert.PermissionMissing(
-                        message = NotificationPermissionCopy.justificationText(notificationRequestCount),
+                        justification = NotificationJustification(notificationRequestCount),
                     ),
                 )
             }
