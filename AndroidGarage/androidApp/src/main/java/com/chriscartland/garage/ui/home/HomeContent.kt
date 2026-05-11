@@ -53,9 +53,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.RemoteButtonState
@@ -203,7 +205,7 @@ fun HomeContent(
 
             item(key = "status") {
                 HomeSection(
-                    label = "Status",
+                    label = stringResource(R.string.home_section_status),
                     trailing = {
                         DeviceCheckInPill(
                             display = deviceCheckIn,
@@ -218,18 +220,18 @@ fun HomeContent(
             item(key = "action") {
                 when (authState) {
                     HomeAuthState.Unknown -> {
-                        HomeSection(label = "Remote control") {
+                        HomeSection(label = stringResource(R.string.home_section_remote_control)) {
                             HomeAuthLoadingBody()
                         }
                     }
                     HomeAuthState.SignedOut -> {
-                        HomeSection(label = "Sign in") {
+                        HomeSection(label = stringResource(R.string.home_section_sign_in)) {
                             HomeSignInBody(onSignIn = onSignIn)
                         }
                     }
                     HomeAuthState.SignedIn -> {
                         HomeSection(
-                            label = "Remote control",
+                            label = stringResource(R.string.home_section_remote_control),
                             trailing = {
                                 // TEMPORARY (debug): always-on pill for every ButtonHealthDisplay arm.
                                 // To revert to production-only "Remote offline" behavior, swap back
@@ -405,8 +407,8 @@ private fun HomeSignInBody(onSignIn: () -> Unit) {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
-        headlineContent = { Text("Sign in with Google") },
-        supportingContent = { Text("Required to use the remote button") },
+        headlineContent = { Text(stringResource(R.string.home_sign_in_title)) },
+        supportingContent = { Text(stringResource(R.string.home_sign_in_subtitle)) },
         trailingContent = {
             Icon(
                 imageVector = Icons.Filled.ChevronRight,
@@ -430,7 +432,7 @@ private fun HomeAuthLoadingBody() {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = "Checking sign-in…",
+            text = stringResource(R.string.home_auth_loading),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

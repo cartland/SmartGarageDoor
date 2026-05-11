@@ -47,4 +47,16 @@
     <string name="settings_developer_function_list_title">Function list</string>
     <string name="settings_developer_layout_debug_title">Layout debug colors</string>
     <string name="settings_developer_layout_debug_subtitle">Tints chrome regions to visualize layout boundaries</string>
+
+    <!-- Home screen — section labels. -->
+    <string name="home_section_status">Status</string>
+    <string name="home_section_remote_control">Remote control</string>
+    <string name="home_section_sign_in">Sign in</string>
+
+    <!-- Home — signed-out remote-button placeholder. -->
+    <string name="home_sign_in_title">Sign in with Google</string>
+    <string name="home_sign_in_subtitle">Required to use the remote button</string>
+
+    <!-- Home — auth state still resolving (between Unknown and resolved). -->
+    <string name="home_auth_loading">Checking sign-in…</string>
 </resources>
