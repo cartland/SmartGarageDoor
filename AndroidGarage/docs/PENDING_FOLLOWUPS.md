@@ -4,7 +4,7 @@ status: active
 last_verified: 2026-05-11
 ---
 
-> **Last update 2026-05-11:** Server side of the Developer-allowlist follow-up shipped in `server/26`; Android side is the next concrete PR. `2.16.17`–`2.16.20` shipped along the way (smoke items in `PENDING_SMOKE_TESTS.md`).
+> **Last update 2026-05-11:** Developer-allowlist flag fully shipped (server/26 + android/235). String-resource migration started — first PR (#784) covered SettingsContent; comprehensive plan added below.
 
 # Pending Follow-ups
 
@@ -18,22 +18,149 @@ User-flagged items that aren't tied to a specific release and aren't smoke-test 
 
 ### 1. Migrate user-visible strings to Android string resources
 
-**Status:** flagged 2026-05-11 as a separate, dedicated PR (or PR series). Not started.
+**Status:** Phase 1 in progress. PR #784 migrated `SettingsContent.kt` (16 strings) — pattern established. Tracking the rest of the migration here.
 
-**Background:** user-visible strings are currently inlined as Kotlin string literals throughout the app code (Composables, ViewModels, mappers, copy objects like `NotificationPermissionCopy`). This works but has three downsides: (a) makes future localization (`values-<lang>/strings.xml`) impossible without first extracting strings, (b) makes it hard to grep all user-facing copy in one place for style sweeps (em-dash, sentence case), (c) couples copy revisions to code review of unrelated logic.
+**Aspiration (2026-05-11 user direction):** "I want this app to be a good example so I want this to be done well across the whole app." — the bar is exemplary, not just functional. When this plan is complete, the only `String` literals in production code paths are (a) server-returned text carried verbatim, (b) developer-only / log strings, (c) animation / Compose-tooling debug metadata. Every user-facing label is a resource ID.
 
-**Plan:** move all user-visible strings to `androidApp/src/main/res/values/strings.xml`. Replace literals with `stringResource(R.string.X)` in Composables and `Context.getString(R.string.X)` (or an injected resource provider for KMP-compatible code) elsewhere.
+**Why migrate:** (a) unblocks future localization (`values-<lang>/strings.xml` becomes a drop-in), (b) centralizes copy for style sweeps (em-dash, sentence case), (c) decouples copy revisions from code review, (d) lets tests assert on typed state instead of fragile text content.
 
-**Scope decisions to make before starting:**
-- **Per PR boundary** — one PR per feature area (Home, Settings, Diagnostics, permission copy, error messages) is more reviewable than one mega-PR. ~5–8 PRs total.
-- **Plurals / formatting** — use `<plurals>` and `getQuantityString()` for count-based copy (history list "N events"), and `formatArgs` placeholders for interpolated strings.
-- **Non-Composable contexts (UseCases, ViewModels, mappers)** — these can't call `stringResource`. Options: (i) inject a `StringProvider` interface (KMP-friendly), (ii) move the string assembly into the Composable and pass typed inputs to the VM, (iii) keep them as Kotlin literals if the string is genuinely internal (logs, telemetry tags).
-- **What counts as "user-visible"** — visible UI text yes; log/telemetry strings no; test fixtures no; preview-only strings no (since they're not shipped). The `checkNoLiteralStringsInCompose` lint pattern (used by other projects) could enforce after the migration but pre-migration the audit is grep-driven.
-- **Style-rule enforcement** — once strings are in XML the existing `checkPreviewCoverage` shape can be extended with a string-resource style lint (no em dashes in `values/strings.xml`, sentence case for headings).
+#### Architectural decisions
 
-**Files to start with (highest user-visibility):** `NotificationPermissionCopy`, `HomeContent` permission/warning copy, `SettingsContent` row labels, info-sheet bodies, error UI strings.
+##### A. Non-Composable contexts: typed-hint refactor (NOT `StringProvider`)
 
-**Out of scope for the migration PR(s):** copy revisions. If a string reads poorly during the move, file a follow-up — don't conflate "extract to resource" with "rewrite".
+Mappers, ViewModels, and UseCases MUST NOT return user-visible strings. They emit **typed states** (sealed types, enums, primitive args). Composables convert types to localized strings at render time.
+
+This is the pattern the codebase **already uses** for `SnoozeRowState`, `HomeAlert`, `AccountRowState`, `AppLayoutMode`, etc. The migration extends the same pattern to cover the remaining string-emitting cases.
+
+**Concrete refactor examples:**
+
+| Today | After |
+|---|---|
+| `HomeMapper.stateLabel(DoorPosition): String` returns `"Open"` / `"Closed"` / etc. | DELETED. Composable maps `DoorPosition` enum → `stringResource(R.string.door_state_*)` directly via a `when` block in the UI layer. |
+| `HomeMapper.warning(event): String?` returns `"Opening, taking longer than expected"` etc. | Returns `DoorWarning?` sealed type (server-message variant carries the verbatim server string; fallback variants are enum cases). Composable resolves enum to resource. |
+| `HomeMapper.formatDuration(seconds): String` returns `"5 hr 30 min"` | DELETED. Composable does `formatDurationDisplay(seconds)` with `pluralStringResource` for count-based parts. |
+| `NotificationPermissionCopy.justificationText(int): String` builds the multi-line message | Returns `NotificationJustification(attemptCount: Int)` data class. Composable assembles via `stringResource` + `pluralStringResource`. |
+| `HomeAlert.Stale(message = "Not receiving updates from server")` (default arg) | `data object Stale : HomeAlert` (no `message` field). Composable maps `Stale` → `R.string.home_alert_stale_message`. |
+
+**Why typed-hint, not `StringProvider`:**
+
+- (a) Aligns with existing codebase pattern — `SnoozeRowState`, `HomeAlert`, `AccountRowState` are already typed-hint. Don't introduce a parallel abstraction.
+- (b) Mappers stay pure-function unit-testable without `Context` / `Resources`.
+- (c) KMP-portable — mapper modules have no Android dependency.
+- (d) `StringProvider` would add a DI dep to ~30 sites. Typed-hint adds ~5 sealed types in `domain/` or `usecase/`.
+- (e) Tests can assert on typed shape (`assertEquals(DoorWarning.OpeningTooLong, mapper.warning(event))`) rather than text — so a copy revision doesn't break the test.
+
+##### B. Naming convention
+
+`<screen>_<section>_<purpose>[_<state>]`. Snake_case (Android convention). Examples already in `strings.xml`:
+
+```
+settings_account_sign_in
+settings_notifications_subtitle_loading
+settings_notifications_subtitle_snoozing_until    (with %1$s arg)
+settings_about_version_subtitle                    (with %1$s, %2$s args)
+```
+
+For door states, alerts, warnings (Phase 2):
+```
+home_door_state_open
+home_door_state_closed
+home_warning_opening_too_long
+home_alert_stale_message
+home_alert_action_retry
+home_duration_days                (plural: one/other)
+```
+
+##### C. What gets migrated
+
+| Class | Migrate? | Notes |
+|---|---|---|
+| `Text("literal")` in Composable body | ✅ Yes | Direct `stringResource` swap |
+| Mapper / ViewModel returning user-visible string | 🔁 Refactor | Emit typed state, Composable renders |
+| Server-returned text (`event.message`) | ❌ No | Arbitrary data, not a label |
+| `Logger.*` messages | ❌ No | Internal only |
+| `AppAnimatedVisibility(label = "...")` | ❌ No | Compose-tooling debug metadata |
+| `@Preview` fake data (display names, sample times, version strings) | ❌ No | Not user-visible at runtime |
+| Test fixture strings | ❌ No | Internal to tests |
+| `.takeIf { it.isNotBlank() } ?: "(unknown)"` style fallback | ✅ Yes | User sees this when name is blank |
+
+##### D. Plurals + format args
+
+- Count-based strings → `<plurals>` + `pluralStringResource(R.plurals.X, count, count)`. Examples: history-event count, duration "N days" / "N min".
+- Interpolated strings → `formatArgs` (`%1$s`, `%2$d`). Already in use for snooze-until-time and version subtitle in `strings.xml`.
+
+##### E. Lint enforcement (ratchet)
+
+After ~80% of the migration is complete, add `checkNoLiteralStringsInCompose` to `validate.sh`:
+
+- Scans `androidApp/src/main/.../**/*.kt` for `Text("...")`, `Text(text = "...")` and other text-rendering Composables with literal first arg.
+- Allows: `Text("")`, `Text("\n")`, `Text(stringResource(...))`, `Text(arg)` where `arg` is a parameter or property.
+- Exemption file (`androidApp/string-literal-exemptions.txt`) lists violations remaining at lint-introduction time. New violations are blocked.
+- Exemption-file shape mirrors `screen-viewmodel-exemptions.txt` from ADR-026.
+
+**Don't add the lint early** — it would gate the migration PRs themselves.
+
+Optional follow-up lint: scan `strings.xml` for em dashes (`—`) and warn (CLAUDE.md style rule centralization).
+
+#### Phased file checklist
+
+##### Phase 1 — Composable surfaces (low risk, mechanical)
+
+These files have user-visible literal strings inside Composable bodies. Direct `stringResource` swap; no architectural change. One PR per file unless two are tightly coupled.
+
+| File | Approx strings | PR |
+|---|---|---|
+| `androidApp/.../ui/settings/SettingsContent.kt` | 16 | ✅ #784 |
+| `androidApp/.../ui/home/HomeContent.kt` | ~12 (section headers, alert action labels, "Allow", "Retry") | TODO |
+| `androidApp/.../ui/home/DoorHistoryContent.kt` | ~6 | TODO |
+| `androidApp/.../ui/FunctionListContent.kt` | ~8 (function-list warning + action labels) | TODO |
+| `androidApp/.../ui/settings/DiagnosticsContent.kt` | ~10 (counter labels, button labels, dialog text) | TODO |
+| `androidApp/.../ui/settings/SnoozeBottomSheet.kt` | ~6 (duration option labels) | TODO |
+| `androidApp/.../ui/settings/AccountBottomSheet.kt` | ~3 (sign out label + body) | TODO |
+| `androidApp/.../ui/settings/VersionBottomSheet.kt` | ~5 (row labels, copy labels) | TODO |
+| `androidApp/.../ui/home/DoorStatusInfoBottomSheet.kt` | ~10 (title + 5 paragraph bodies) | TODO |
+| `androidApp/.../ui/home/RemoteControlInfoBottomSheet.kt` | ~6 | TODO |
+| `androidApp/.../ui/ProfileContent.kt` | ~2 (`"(unknown)"` fallback, version-sheet copy labels) | TODO |
+| `androidApp/.../ui/auth/AuthTokenCopier.kt` | ~2 (Toast strings) | TODO |
+
+##### Phase 2 — Typed-hint refactor (mappers / non-Composable copy objects)
+
+Each is its own PR because the API change ripples across module boundaries (mapper test assertions change from text to type).
+
+| Refactor | Strings | PR |
+|---|---|---|
+| `HomeMapper`: `stateLabel` deleted (Composable does `when (DoorPosition)` → `stringResource`); `warning` → `DoorWarning` sealed type; `formatDuration` deleted (Composable side w/ plurals) | ~12 + plurals | TODO |
+| `HistoryMapper`: parallel refactor — date-grouping labels, item subtitles | ~6 | TODO |
+| `NotificationPermissionCopy` → `NotificationJustification(attemptCount: Int)` data class; `Composable.justificationMessage(j)` assembles via stringResource + plural for "$attemptCount times" | 4 strings + 1 plural | TODO |
+| `HomeAlert.Stale` / `HomeAlert.FetchError` default messages → drop default-string args, Composable resolves type → resource | 3 | TODO |
+| `DiagnosticsMapper` (if any): counter labels → typed enum | TBD | TODO |
+
+##### Phase 3 — Lint + cleanup
+
+| Work | PR |
+|---|---|
+| Add `checkNoLiteralStringsInCompose` lint to `validate.sh` + exemption file for any Phase-1/2 stragglers | TODO |
+| Optional: `checkNoEmDashInStringResources` lint scanning `strings.xml` for `—` | TODO |
+| Review entire `strings.xml` for sentence case consistency | TODO |
+
+#### Per-PR checklist
+
+- [ ] Strings extracted with `<screen>_<section>_<purpose>[_<state>]` naming (snake_case)
+- [ ] `formatArgs` (`%1$s`, `%2$d`) for interpolated strings
+- [ ] `<plurals>` + `pluralStringResource` for count-based strings
+- [ ] `@Preview` fake data NOT migrated (not production-visible labels)
+- [ ] All values byte-identical to pre-migration → no screenshot churn (assert `git status AndroidGarage/android-screenshot-tests/` is clean)
+- [ ] If screenshot churn happens, it's an intentional copy change in the same PR — note it in the PR body
+- [ ] `R` imported as `com.chriscartland.garage.R`
+- [ ] `import androidx.compose.ui.res.stringResource` (or `pluralStringResource`)
+- [ ] `validate.sh` PASS before push (per the validate-before-first-push rule in `CLAUDE.md`)
+- [ ] PR description lists strings extracted + what's deferred to other PRs
+
+#### Out of scope for migration PRs
+
+- **Copy revisions.** If a string reads poorly during the move, file a follow-up — don't conflate "extract to resource" with "rewrite". Mixing both makes the PR harder to review and the diff harder to revert.
+- **Localization itself.** This plan unblocks localization but does not add `values-<lang>/strings.xml` files; that's a separate decision.
+- **String resources for FCM payloads, Firestore field names, log keys.** These are wire / internal — not user-visible labels.
 
 ## Done (recent)
 
