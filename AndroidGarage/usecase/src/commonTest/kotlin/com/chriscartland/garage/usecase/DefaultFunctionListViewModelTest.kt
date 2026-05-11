@@ -184,7 +184,7 @@ class DefaultFunctionListViewModelTest {
     fun accessGrantedReflectsAllowlistTrue() =
         runTest(testDispatcher) {
             val viewModel = createViewModel(authState = authenticated())
-            featureAllowlistRepository.setAllowlist(FeatureAllowlist(functionList = true))
+            featureAllowlistRepository.setAllowlist(FeatureAllowlist(functionList = true, developer = false))
             advanceUntilIdle()
             assertTrue(viewModel.accessGranted.value == true)
         }
@@ -193,7 +193,7 @@ class DefaultFunctionListViewModelTest {
     fun accessGrantedReflectsAllowlistFalse() =
         runTest(testDispatcher) {
             val viewModel = createViewModel(authState = authenticated())
-            featureAllowlistRepository.setAllowlist(FeatureAllowlist(functionList = false))
+            featureAllowlistRepository.setAllowlist(FeatureAllowlist(functionList = false, developer = false))
             advanceUntilIdle()
             assertFalse(viewModel.accessGranted.value == true)
             // Distinguish "false" from "null"
@@ -204,7 +204,7 @@ class DefaultFunctionListViewModelTest {
     fun accessGrantedClearsToNullWhenAllowlistClears() =
         runTest(testDispatcher) {
             val viewModel = createViewModel(authState = authenticated())
-            featureAllowlistRepository.setAllowlist(FeatureAllowlist(functionList = true))
+            featureAllowlistRepository.setAllowlist(FeatureAllowlist(functionList = true, developer = false))
             advanceUntilIdle()
             assertEquals(true, viewModel.accessGranted.value)
             featureAllowlistRepository.setAllowlist(null)

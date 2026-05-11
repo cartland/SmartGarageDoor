@@ -25,28 +25,58 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.Serializable
 
 class KtorNetworkFeatureAllowlistDataSource(
     private val client: HttpClient,
 ) : NetworkFeatureAllowlistDataSource {
+    /**
+     * Two independent server endpoints (`functionListAccess` and
+     * `developerAccess`). Calls are issued in parallel via `coroutineScope`
+     * + `async`. One-fail-all semantics: if either returns a non-2xx status
+     * the whole fetch maps to [NetworkResult.HttpError]; if either throws
+     * we map to [NetworkResult.ConnectionFailed]. Partial success would
+     * leave the cache in a confusing half-state, so we treat the pair as
+     * one transaction.
+     */
     override suspend fun fetchAllowlist(idToken: String): NetworkResult<FeatureAllowlist> {
         return try {
-            val response = client.get("functionListAccess") {
-                header("X-AuthTokenGoogle", idToken)
+            coroutineScope {
+                val functionListAsync = async {
+                    client.get("functionListAccess") {
+                        header("X-AuthTokenGoogle", idToken)
+                    }
+                }
+                val developerAsync = async {
+                    client.get("developerAccess") {
+                        header("X-AuthTokenGoogle", idToken)
+                    }
+                }
+                val functionListResponse: HttpResponse = functionListAsync.await()
+                val developerResponse: HttpResponse = developerAsync.await()
+
+                if (!functionListResponse.status.isSuccess()) {
+                    Logger.e { "functionListAccess response code is ${functionListResponse.status.value}" }
+                    return@coroutineScope NetworkResult.HttpError(functionListResponse.status.value)
+                }
+                if (!developerResponse.status.isSuccess()) {
+                    Logger.e { "developerAccess response code is ${developerResponse.status.value}" }
+                    return@coroutineScope NetworkResult.HttpError(developerResponse.status.value)
+                }
+                val functionListBody = functionListResponse.body<KtorAccessResponse>()
+                val developerBody = developerResponse.body<KtorAccessResponse>()
+                NetworkResult.Success(
+                    FeatureAllowlist(
+                        functionList = functionListBody.enabled,
+                        developer = developerBody.enabled,
+                    ),
+                )
             }
-            if (!response.status.isSuccess()) {
-                Logger.e { "Allowlist response code is ${response.status.value}" }
-                return NetworkResult.HttpError(response.status.value)
-            }
-            val body = response.body<KtorFunctionListAccessResponse>()
-            NetworkResult.Success(
-                FeatureAllowlist(
-                    functionList = body.enabled,
-                ),
-            )
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
@@ -57,6 +87,6 @@ class KtorNetworkFeatureAllowlistDataSource(
 }
 
 @Serializable
-private data class KtorFunctionListAccessResponse(
+private data class KtorAccessResponse(
     val enabled: Boolean = false,
 )

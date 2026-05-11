@@ -34,4 +34,6 @@ class ObserveFeatureAccessUseCase(
     private val featureAllowlistRepository: FeatureAllowlistRepository,
 ) {
     fun functionList(): Flow<Boolean?> = featureAllowlistRepository.allowlist.map { it?.functionList }
+
+    fun developer(): Flow<Boolean?> = featureAllowlistRepository.allowlist.map { it?.developer }
 }
