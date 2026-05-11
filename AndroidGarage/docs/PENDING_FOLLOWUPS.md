@@ -16,31 +16,7 @@ User-flagged items that aren't tied to a specific release and aren't smoke-test 
 
 ## Open
 
-### 1. Dedicated "Developer" allowlist flag — Android side (server side DONE)
-
-**Status:** Server side shipped in `server/26` (2026-05-10). **Android side not started.**
-
-**Background:** PR #648 (`android/196` / 2.10.2, 2026-05-06) renamed Settings "Tools" → "Developer" and moved Diagnostics into it. The Developer section is currently gated by `functionListAccess` (the Functions allowlist) — flagged as a temporary shortcut at the time.
-
-**Server side complete:**
-- `server/26` deployed `GET /developerAccess` (PR #772, see `docs/FEATURE_FLAGS.md`).
-- Firestore field `body.featureDeveloperAllowedEmails: string[]` was added to `configCurrent/current` by the user 2026-05-10.
-- Endpoint verified: returns `{enabled: true|false}` per email allowlist membership; deny-all default on missing field.
-
-**Android side remaining (~6 files):**
-- `domain/.../FeatureAllowlist.kt` — add `val developer: Boolean`
-- `data/.../NetworkDeveloperAccessDataSource.kt` + Ktor impl — copy `NetworkFeatureAllowlistDataSource` shape, calls `developerAccess` endpoint
-- `data/.../CachedFeatureAllowlistRepository.kt` — fan out to BOTH data sources (parallel `coroutineScope { async {} async {} }`), combine into `FeatureAllowlist(functionList, developer)`
-- `usecase/.../ObserveFeatureAccessUseCase.kt` — add `fun developer(): Flow<Boolean?> = featureAllowlistRepository.allowlist.map { it?.developer }`
-- `usecase/.../ProfileViewModel.kt` — add `developerAccess: StateFlow<Boolean?>` mirroring the existing `functionListAccess` shape
-- `androidApp/.../ui/ProfileContent.kt` — switch `showDeveloperSection = functionListAccess == true` → `developerAccess == true`
-- `androidApp/.../di/AppComponent.kt` — `@Singleton` provider for new data source + abstract entry point + `ComponentGraphTest` `assertSame`
-- `wire-contracts/developerAccess/response_*.json` — already present from server PR; Android Ktor test references them
-- `test-common/.../FakeNetworkDeveloperAccessDataSource.kt` — fake mirroring `FakeNetworkFeatureAllowlistDataSource`
-
-**Verification path** once shipped: smoke test on device — sign in as an email that's in `featureDeveloperAllowedEmails` but NOT in `featureFunctionListAllowedEmails` (or vice versa). The Developer section should appear/disappear independently of the Function List entry. The `Copy auth token (sensitive)` button in Diagnostics + Function List (2.16.17 / 2.16.19) is the easy way to grab a token to verify the endpoint with curl.
-
-### 2. Migrate user-visible strings to Android string resources
+### 1. Migrate user-visible strings to Android string resources
 
 **Status:** flagged 2026-05-11 as a separate, dedicated PR (or PR series). Not started.
 
@@ -61,4 +37,5 @@ User-flagged items that aren't tied to a specific release and aren't smoke-test 
 
 ## Done (recent)
 
+- **Dedicated Developer allowlist flag — both sides shipped.** Server: `server/26` (2026-05-10) added `GET /developerAccess` and the Firestore `featureDeveloperAllowedEmails` field. Android: `android/235` / 2.16.21 (2026-05-11, PR #781) flipped Settings → Developer's outer gate to the new endpoint and added an independent `showFunctionListRow` gate (still keyed on `functionListAccess`) so the two allowlists can diverge. `KtorNetworkFeatureAllowlistDataSource` now issues both endpoint GETs in parallel and combines them; the data-source-level abstraction stayed unchanged so no new repository/DI wiring was needed (the original ~6-file plan turned out to be ~12 files concentrated at the data + UI layers instead). Smoke matrix in `PENDING_SMOKE_TESTS.md` item 6.
 - **Home permission banner copy revision** — closed in 2.16.16 (`copy/home-permission-banner-shorter`). Production `NotificationPermissionCopy.justificationText(0)` now reads *"Turn on notifications to get alerted when the door is left open."* (2 lines on Home, was 3). Same imperative-request framing so escalation lines at attempt 3+/4+ still flow without changes. Settings row copy was already short (em-dash sweep landed in 2.16.9). Three variants are no longer in tension; if a future PR wants a single canonical string both surfaces could read from, that's a fresh follow-up.
