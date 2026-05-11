@@ -55,6 +55,11 @@ import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
  * Production wrapper. Shows the sheet content inside a [ModalBottomSheet].
  * Tracks the user's pending selection locally; only commits via [onSave].
  *
+ * Opens with **no radio selected** — the user must actively pick a
+ * duration (or "Don't snooze") before Save enables. There is no
+ * preselected initial value because the prior preselection (always
+ * "Don't snooze") was non-actionable and led to no-op Save taps.
+ *
  * The `*Content` Composable below is the previewable surface (the
  * sheet's show animation runs in a `LaunchedEffect` that doesn't fire
  * under `@Preview` / screenshot tests, so the content is split out).
@@ -62,15 +67,16 @@ import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SnoozeBottomSheet(
-    initialSelection: SnoozeDurationUIOption,
     onSave: (SnoozeDurationUIOption) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     // Saveable so the user's pending duration choice survives rotation /
-    // window resize while the sheet is open. `autoSaver` handles the enum.
-    var selected by rememberSaveable(stateSaver = autoSaver()) { mutableStateOf(initialSelection) }
+    // window resize while the sheet is open. `autoSaver` handles the nullable enum.
+    var selected by rememberSaveable(stateSaver = autoSaver()) {
+        mutableStateOf<SnoozeDurationUIOption?>(null)
+    }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -81,7 +87,8 @@ fun SnoozeBottomSheet(
             onOptionSelected = { selected = it },
             onCancel = onDismiss,
             onSave = {
-                onSave(selected)
+                val choice = selected ?: return@SnoozeSheetContent
+                onSave(choice)
                 onDismiss()
             },
         )
@@ -90,11 +97,14 @@ fun SnoozeBottomSheet(
 
 /**
  * Sheet content extracted as a separate Composable so previews and
- * screenshot tests can render it directly.
+ * screenshot tests can render it directly. `selectedOption` is
+ * **nullable** — `null` means "no radio selected yet" (the initial
+ * state when the sheet opens). Save is disabled until a duration is
+ * picked.
  */
 @Composable
 fun SnoozeSheetContent(
-    selectedOption: SnoozeDurationUIOption,
+    selectedOption: SnoozeDurationUIOption?,
     onOptionSelected: (SnoozeDurationUIOption) -> Unit,
     onCancel: () -> Unit,
     onSave: () -> Unit,
@@ -150,7 +160,10 @@ fun SnoozeSheetContent(
         ) {
             TextButton(onClick = onCancel) { Text(stringResource(R.string.settings_snooze_cancel)) }
             Spacer(Modifier.padding(horizontal = 4.dp))
-            Button(onClick = onSave) { Text(stringResource(R.string.settings_snooze_save)) }
+            Button(
+                onClick = onSave,
+                enabled = selectedOption != null,
+            ) { Text(stringResource(R.string.settings_snooze_save)) }
         }
     }
 }
@@ -176,13 +189,15 @@ private fun SnoozeOptionRow(
 
 // Preview helpers — wrapped in a Surface for theming context. These are
 // what the screenshot test will exercise.
+// "Off" = initial sheet-open state (nothing selected, Save disabled).
+// "Active" = mid-edit (a radio picked, Save enabled).
 
 @Preview
 @Composable
 fun SnoozeSheetContentOffPreview() {
     Surface {
         SnoozeSheetContent(
-            selectedOption = SnoozeDurationUIOption.OneHour,
+            selectedOption = null,
             onOptionSelected = {},
             onCancel = {},
             onSave = {},
@@ -195,7 +210,7 @@ fun SnoozeSheetContentOffPreview() {
 fun SnoozeSheetContentActivePreview() {
     Surface {
         SnoozeSheetContent(
-            selectedOption = SnoozeDurationUIOption.None,
+            selectedOption = SnoozeDurationUIOption.OneHour,
             onOptionSelected = {},
             onCancel = {},
             onSave = {},

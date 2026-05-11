@@ -30,7 +30,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Remove
-import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -40,6 +39,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -92,9 +92,21 @@ fun NavRailBottomSheet(
 /**
  * Sheet content extracted as a separate Composable so previews and
  * screenshot tests can render it directly. Two sections, each with a
- * header (title + leading icon + trailing reset `↺` icon) and an
- * inline control. Both sections share the same shape so reset and
+ * header (title + trailing "Set default" text button) and an inline
+ * control. Both sections share the same shape so reset and
  * value-change feel consistent.
+ *
+ * Per-section reset is a text button rather than a glyph (the prior
+ * iteration used an `Icons.Outlined.RestartAlt` `↺`) — the action's
+ * meaning is "set to default" which is more legible as a label than as
+ * an icon, especially in a developer-facing sheet where there's only
+ * one reset target per section.
+ *
+ * Position rows are listed with the **default value first**
+ * (TopAligned), then the alternative (CenteredVertically). This is a
+ * display-order decision only; the underlying enum order in
+ * `NavigationRailItemPosition` is unchanged so persisted values are
+ * stable.
  */
 @Composable
 fun NavRailSheetContent(
@@ -122,7 +134,9 @@ fun NavRailSheetContent(
             title = stringResource(R.string.settings_developer_nav_rail_section_position),
             onReset = onItemPositionReset,
         )
-        NavigationRailItemPosition.entries.forEach { position ->
+        // Default first (TopAligned), then alternative. Enum order is
+        // unchanged — this is a display-only reorder.
+        POSITION_DISPLAY_ORDER.forEach { position ->
             PositionChoiceRow(
                 position = position,
                 selected = position == itemPosition,
@@ -157,13 +171,8 @@ private fun SectionHeader(
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.weight(1f),
         )
-        IconButton(onClick = onReset) {
-            Icon(
-                imageVector = Icons.Outlined.RestartAlt,
-                contentDescription = stringResource(
-                    R.string.settings_developer_nav_rail_reset_section,
-                ),
-            )
+        TextButton(onClick = onReset) {
+            Text(stringResource(R.string.settings_developer_nav_rail_reset_button))
         }
     }
 }
@@ -242,6 +251,15 @@ private fun TopPaddingStepper(
 
 internal const val NAV_RAIL_PADDING_MIN_DP = 0
 internal const val NAV_RAIL_PADDING_MAX_DP = 64
+
+// Default value first so the user sees it at the top of the list.
+// Order here is independent of the enum's `entries` order — the enum
+// stays as authored (CenteredVertically, TopAligned) so persisted
+// ordinal values are unchanged.
+private val POSITION_DISPLAY_ORDER = listOf(
+    NavigationRailItemPosition.TopAligned,
+    NavigationRailItemPosition.CenteredVertically,
+)
 
 // `private` so `checkPreviewCoverage` exempts it. The bottom sheet's
 // behavior is observable on a real device behind the developer
