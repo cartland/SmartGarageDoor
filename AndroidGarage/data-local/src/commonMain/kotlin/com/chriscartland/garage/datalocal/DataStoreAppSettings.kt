@@ -57,7 +57,7 @@ class DataStoreAppSettings(
             valueOf = NavigationRailItemPosition::valueOf,
         )
     override val navigationRailTopPaddingDp: Setting<Int> =
-        DataStoreIntSetting(dataStore, "NAVIGATION_RAIL_TOP_PADDING_DP", 0)
+        DataStoreIntSetting(dataStore, "NAVIGATION_RAIL_TOP_PADDING_DP", 8)
 }
 
 private class DataStoreStringSetting(

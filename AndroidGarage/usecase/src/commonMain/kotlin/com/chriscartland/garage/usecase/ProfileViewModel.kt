@@ -109,6 +109,8 @@ interface ProfileViewModel {
     fun setNavigationRailItemPosition(position: NavigationRailItemPosition)
 
     fun setNavigationRailTopPaddingDp(value: Int)
+
+    fun resetNavigationRailTopPaddingDp()
 }
 
 class DefaultProfileViewModel(
@@ -146,7 +148,7 @@ class DefaultProfileViewModel(
     override val navigationRailItemPosition: StateFlow<NavigationRailItemPosition> =
         _navigationRailItemPosition
 
-    private val _navigationRailTopPaddingDp = MutableStateFlow(0)
+    private val _navigationRailTopPaddingDp = MutableStateFlow(8)
     override val navigationRailTopPaddingDp: StateFlow<Int> = _navigationRailTopPaddingDp
 
     // Cached so the snooze action can attach the latest door change time
@@ -244,6 +246,12 @@ class DefaultProfileViewModel(
     override fun setNavigationRailTopPaddingDp(value: Int) {
         viewModelScope.launch(dispatchers.io) {
             appSettings.setNavigationRailTopPaddingDp(value)
+        }
+    }
+
+    override fun resetNavigationRailTopPaddingDp() {
+        viewModelScope.launch(dispatchers.io) {
+            appSettings.restoreNavigationRailTopPaddingDpDefault()
         }
     }
 

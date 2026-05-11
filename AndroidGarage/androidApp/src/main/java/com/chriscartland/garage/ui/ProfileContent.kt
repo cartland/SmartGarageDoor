@@ -167,6 +167,7 @@ fun ProfileContent(
         onLayoutDebugChange = resolved::setLayoutDebugEnabled,
         onNavigationRailItemPositionChange = resolved::setNavigationRailItemPosition,
         onNavigationRailTopPaddingDpChange = resolved::setNavigationRailTopPaddingDp,
+        onNavigationRailTopPaddingDpReset = resolved::resetNavigationRailTopPaddingDp,
     )
 
     if (snoozeSheetOpen) {

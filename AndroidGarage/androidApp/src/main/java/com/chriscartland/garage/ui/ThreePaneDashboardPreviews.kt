@@ -190,7 +190,7 @@ private fun SettingsPaneBody(modifier: Modifier) {
         versionCode = "213",
         layoutDebugEnabled = false,
         navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
-        navigationRailTopPaddingDp = 0,
+        navigationRailTopPaddingDp = 8,
         modifier = modifier,
     )
 }
