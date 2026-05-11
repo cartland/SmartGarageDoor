@@ -54,8 +54,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.R
 import com.chriscartland.garage.ui.theme.AppAnimatedVisibility
 import com.chriscartland.garage.ui.theme.DividerInset
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
@@ -126,11 +128,11 @@ fun SettingsContent(
         verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems),
     ) {
         item {
-            SettingsSection(label = "Account") {
+            SettingsSection(label = stringResource(R.string.settings_section_account)) {
                 when (accountState) {
                     AccountRowState.SignedOut -> SettingsRow(
                         icon = Icons.AutoMirrored.Outlined.Login,
-                        title = "Sign in with Google",
+                        title = stringResource(R.string.settings_account_sign_in),
                         subtitle = null,
                         showChevron = false,
                         onClick = onSignInTap,
@@ -148,18 +150,27 @@ fun SettingsContent(
 
         if (showSnoozeRow) {
             item {
-                SettingsSection(label = "Notifications") {
+                SettingsSection(label = stringResource(R.string.settings_section_notifications)) {
                     val (icon, subtitle) = when (snoozeState) {
-                        SnoozeRowState.Loading -> Icons.Outlined.Notifications to "Loading…"
+                        SnoozeRowState.Loading ->
+                            Icons.Outlined.Notifications to
+                                stringResource(R.string.settings_notifications_subtitle_loading)
                         SnoozeRowState.PermissionDenied ->
-                            Icons.Outlined.NotificationsOff to "Notifications disabled. Tap to enable."
-                        SnoozeRowState.Off -> Icons.Outlined.Notifications to "Notifications enabled"
+                            Icons.Outlined.NotificationsOff to
+                                stringResource(R.string.settings_notifications_subtitle_permission_denied)
+                        SnoozeRowState.Off ->
+                            Icons.Outlined.Notifications to
+                                stringResource(R.string.settings_notifications_subtitle_off)
                         is SnoozeRowState.SnoozingUntil ->
-                            Icons.Outlined.NotificationsPaused to "Snoozing until ${snoozeState.displayTime}"
+                            Icons.Outlined.NotificationsPaused to
+                                stringResource(
+                                    R.string.settings_notifications_subtitle_snoozing_until,
+                                    snoozeState.displayTime,
+                                )
                     }
                     SettingsRow(
                         icon = icon,
-                        title = "Door open notifications",
+                        title = stringResource(R.string.settings_notifications_row_title),
                         subtitle = subtitle,
                         showChevron = true,
                         onClick = onSnoozeTap,
@@ -170,18 +181,22 @@ fun SettingsContent(
         }
 
         item {
-            SettingsSection(label = "About") {
+            SettingsSection(label = stringResource(R.string.settings_section_about)) {
                 SettingsRow(
                     icon = Icons.Outlined.Info,
-                    title = "Version",
-                    subtitle = "$versionName (build $versionCode)",
+                    title = stringResource(R.string.settings_about_version_title),
+                    subtitle = stringResource(
+                        R.string.settings_about_version_subtitle,
+                        versionName,
+                        versionCode,
+                    ),
                     showChevron = true,
                     onClick = onVersionTap,
                 )
                 HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
                 SettingsRow(
                     icon = Icons.Outlined.Storefront,
-                    title = "Play Store",
+                    title = stringResource(R.string.settings_about_play_store_title),
                     subtitle = null,
                     trailingIcon = Icons.AutoMirrored.Outlined.OpenInNew,
                     showChevron = false,
@@ -190,7 +205,7 @@ fun SettingsContent(
                 HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
                 SettingsRow(
                     icon = Icons.Outlined.Description,
-                    title = "Privacy Policy",
+                    title = stringResource(R.string.settings_about_privacy_policy_title),
                     subtitle = null,
                     trailingIcon = Icons.AutoMirrored.Outlined.OpenInNew,
                     showChevron = false,
@@ -204,10 +219,10 @@ fun SettingsContent(
                 visible = showDeveloperSection,
                 label = "Developer section",
             ) {
-                SettingsSection(label = "Developer") {
+                SettingsSection(label = stringResource(R.string.settings_section_developer)) {
                     SettingsRow(
                         icon = Icons.Outlined.Analytics,
-                        title = "Diagnostics",
+                        title = stringResource(R.string.settings_developer_diagnostics_title),
                         subtitle = null,
                         showChevron = true,
                         onClick = onDiagnosticsTap,
@@ -216,7 +231,7 @@ fun SettingsContent(
                         HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
                         SettingsRow(
                             icon = Icons.AutoMirrored.Outlined.List,
-                            title = "Function list",
+                            title = stringResource(R.string.settings_developer_function_list_title),
                             subtitle = null,
                             showChevron = true,
                             onClick = onFunctionListTap,
@@ -225,8 +240,8 @@ fun SettingsContent(
                     HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
                     SettingsSwitchRow(
                         icon = Icons.Outlined.Palette,
-                        title = "Layout debug colors",
-                        subtitle = "Tints chrome regions to visualize layout boundaries",
+                        title = stringResource(R.string.settings_developer_layout_debug_title),
+                        subtitle = stringResource(R.string.settings_developer_layout_debug_subtitle),
                         checked = layoutDebugEnabled,
                         onCheckedChange = onLayoutDebugChange,
                     )

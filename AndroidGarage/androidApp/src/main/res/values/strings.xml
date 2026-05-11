@@ -17,4 +17,34 @@
 
 <resources>
     <string name="app_name">Garage</string>
+
+    <!-- Settings screen — section labels (uppercased at render time). -->
+    <string name="settings_section_account">Account</string>
+    <string name="settings_section_notifications">Notifications</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_section_developer">Developer</string>
+
+    <!-- Settings — Account section rows. -->
+    <string name="settings_account_sign_in">Sign in with Google</string>
+
+    <!-- Settings — Notifications section row + subtitle states. -->
+    <string name="settings_notifications_row_title">Door open notifications</string>
+    <string name="settings_notifications_subtitle_loading">Loading…</string>
+    <string name="settings_notifications_subtitle_permission_denied">Notifications disabled. Tap to enable.</string>
+    <string name="settings_notifications_subtitle_off">Notifications enabled</string>
+    <!-- Notifications row subtitle when a snooze is active. %1$s is the time the snooze ends. -->
+    <string name="settings_notifications_subtitle_snoozing_until">Snoozing until %1$s</string>
+
+    <!-- Settings — About section rows. -->
+    <string name="settings_about_version_title">Version</string>
+    <!-- Version row subtitle. %1$s is the versionName, %2$s is the versionCode. -->
+    <string name="settings_about_version_subtitle">%1$s (build %2$s)</string>
+    <string name="settings_about_play_store_title">Play Store</string>
+    <string name="settings_about_privacy_policy_title">Privacy Policy</string>
+
+    <!-- Settings — Developer section rows. -->
+    <string name="settings_developer_diagnostics_title">Diagnostics</string>
+    <string name="settings_developer_function_list_title">Function list</string>
+    <string name="settings_developer_layout_debug_title">Layout debug colors</string>
+    <string name="settings_developer_layout_debug_subtitle">Tints chrome regions to visualize layout boundaries</string>
 </resources>
