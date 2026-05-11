@@ -28,10 +28,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.touchlab.kermit.Logger
+import com.chriscartland.garage.R
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorEvent
@@ -94,8 +96,8 @@ fun DoorHistoryContent(
     Column(modifier = modifier.fillMaxSize()) {
         if (isCheckInStale) {
             ErrorCard(
-                text = "Not receiving updates from server",
-                buttonText = "Retry",
+                text = stringResource(R.string.home_history_stale_check_in_error),
+                buttonText = stringResource(R.string.home_history_retry_button),
                 onClick = {
                     Logger.e { "Trying to fix outdated info. Resetting FCM, and fetching data." }
                     onResetFcm()
@@ -108,9 +110,11 @@ fun DoorHistoryContent(
         }
         if (recentDoorEvents is LoadingResult.Error) {
             ErrorCard(
-                text = "Error fetching recent door events:" +
+                text = stringResource(
+                    R.string.home_history_fetch_error,
                     recentDoorEvents.exception.toString().take(500),
-                buttonText = "Retry",
+                ),
+                buttonText = stringResource(R.string.home_history_retry_button),
                 onClick = { onFetchRecentDoorEvents() },
                 modifier = Modifier
                     .fillMaxWidth()

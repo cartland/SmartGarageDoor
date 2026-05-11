@@ -97,4 +97,20 @@
 
     <!-- Auth — Toast when copy auth token tapped while signed out. -->
     <string name="auth_token_copier_sign_in_required">Sign in to copy auth token</string>
+
+    <!-- History tab — error / stale-data banner copy. -->
+    <string name="home_history_stale_check_in_error">Not receiving updates from server</string>
+    <string name="home_history_retry_button">Retry</string>
+    <!-- History tab — fetch-error banner. %1$s is the truncated exception message. -->
+    <string name="home_history_fetch_error">Error fetching recent door events:%1$s</string>
+
+    <!-- Home → Door status info bottom sheet. -->
+    <string name="home_info_door_status_title">Door status</string>
+    <string name="home_info_door_status_body_para1">The door sensor checks in every 10 minutes, or whenever the door moves.</string>
+    <string name="home_info_door_status_body_para2">If we don\'t hear from it on schedule, this shows \"no signal\" so you know the sensor may be offline.</string>
+
+    <!-- Home → Remote control info bottom sheet. -->
+    <string name="home_info_remote_control_title">Remote control</string>
+    <string name="home_info_remote_control_body_para1">The remote button checks in frequently. \"Available\" means it just told us it\'s ready to open or close the door.</string>
+    <string name="home_info_remote_control_body_para2">If contact stops, this shows when we last heard from it. Tapping the button may not work until it reconnects.</string>
 </resources>
