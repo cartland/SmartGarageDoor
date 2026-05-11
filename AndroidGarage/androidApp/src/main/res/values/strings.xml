@@ -163,4 +163,47 @@
     <string name="function_list_register_fcm">Re-register FCM</string>
     <string name="function_list_deregister_fcm">Deregister FCM</string>
     <string name="function_list_copy_auth_token">Copy auth token (sensitive)</string>
+
+    <!-- History tab — day section labels (uppercased at render time). -->
+    <!-- Today / Yesterday are typed; older days render via DateTimeFormatter. -->
+    <string name="history_day_today">Today</string>
+    <string name="history_day_yesterday">Yesterday</string>
+
+    <!-- History tab — anomaly headlines (Sensor conflict / Unknown / etc.). -->
+    <string name="history_anomaly_sensor_conflict">Sensor conflict</string>
+    <string name="history_anomaly_unknown_state">Unknown state</string>
+    <string name="history_anomaly_stuck_opening">Stuck opening</string>
+    <string name="history_anomaly_stuck_closing">Stuck closing</string>
+    <string name="history_anomaly_open_misaligned">Open (misaligned)</string>
+
+    <!-- History tab — Opened/Closed row headlines. %1$s is a time (e.g. "9:47 AM"). -->
+    <string name="history_headline_open">Open</string>
+    <string name="history_headline_open_misaligned">Open (misaligned)</string>
+    <string name="history_headline_opened_at">Opened at %1$s</string>
+    <string name="history_headline_closed">Closed</string>
+    <string name="history_headline_closed_at">Closed at %1$s</string>
+
+    <!-- History tab — supporting line for the current entry. %1$s is a time, %2$s is a duration. -->
+    <string name="history_supporting_since_format">Since %1$s · %2$s</string>
+
+    <!-- History tab — state-span duration labels. %1$s is a duration like "5 min" or "2 hr 14 min". -->
+    <string name="history_state_duration_open_for">Open for %1$s</string>
+    <string name="history_state_duration_closed_for">Closed for %1$s</string>
+    <string name="history_state_duration_and_counting">%1$s and counting</string>
+    <!-- "5 hr" — used when the state lasted exactly N whole hours (no minutes). -->
+    <string name="history_state_duration_hours_only">%1$d hr</string>
+    <!-- "2 day 5 hr" — for state spans of one or more days plus extra hours. -->
+    <string name="history_state_duration_days_with_hours">%1$d day %2$d hr</string>
+
+    <!-- History tab — transit warnings (the "_TOO_LONG" tag below an Opened/Closed row). %1$s is a duration. -->
+    <string name="history_warning_transit_to_open">Took %1$s to open, longer than expected</string>
+    <string name="history_warning_transit_to_close">Took %1$s to close, longer than expected</string>
+    <!-- Transit duration variant — e.g. "2 min 30 sec" — used inside transit warnings only. -->
+    <string name="history_transit_minutes_seconds">%1$d min %2$d sec</string>
+    <!-- "Door was misaligned" tag below past Opened rows where misalignment was carried in. -->
+    <string name="history_warning_misaligned">Door was misaligned</string>
+
+    <!-- History tab — empty state. -->
+    <string name="history_empty_title">No events yet</string>
+    <string name="history_empty_subtitle">Open or close the garage and check back here.</string>
 </resources>

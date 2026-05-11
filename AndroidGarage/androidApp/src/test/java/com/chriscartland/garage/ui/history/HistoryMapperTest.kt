@@ -148,7 +148,7 @@ class HistoryMapperTest {
                 MergedRecord.Anomaly(
                     timeSeconds = 90,
                     position = DoorPosition.OPENING_TOO_LONG,
-                    title = "Stuck opening",
+                    kind = AnomalyKind.StuckOpening,
                 ),
             ),
             out,
@@ -180,7 +180,7 @@ class HistoryMapperTest {
         )
         assertEquals(
             listOf(
-                MergedRecord.Anomaly(timeSeconds = 80, position = DoorPosition.OPENING_TOO_LONG, title = "Stuck opening"),
+                MergedRecord.Anomaly(timeSeconds = 80, position = DoorPosition.OPENING_TOO_LONG, kind = AnomalyKind.StuckOpening),
                 MergedRecord.Closed(timeSeconds = 100, transitDurationSeconds = null),
             ),
             out,
@@ -214,7 +214,7 @@ class HistoryMapperTest {
         val out = HistoryMapper.mergeEvents(listOf(event(DoorPosition.CLOSING_TOO_LONG, 90)))
         assertEquals(
             listOf(
-                MergedRecord.Anomaly(timeSeconds = 90, position = DoorPosition.CLOSING_TOO_LONG, title = "Stuck closing"),
+                MergedRecord.Anomaly(timeSeconds = 90, position = DoorPosition.CLOSING_TOO_LONG, kind = AnomalyKind.StuckClosing),
             ),
             out,
         )
@@ -308,7 +308,7 @@ class HistoryMapperTest {
         assertEquals(
             listOf(
                 MergedRecord.Opened(timeSeconds = 100, transitDurationSeconds = null, misaligned = true),
-                MergedRecord.Anomaly(timeSeconds = 110, position = DoorPosition.ERROR_SENSOR_CONFLICT, title = "Sensor conflict"),
+                MergedRecord.Anomaly(timeSeconds = 110, position = DoorPosition.ERROR_SENSOR_CONFLICT, kind = AnomalyKind.SensorConflict),
             ),
             out,
         )
@@ -329,7 +329,7 @@ class HistoryMapperTest {
             listOf(
                 MergedRecord.Opened(timeSeconds = 100, transitDurationSeconds = null, misaligned = false),
                 MergedRecord.Closed(timeSeconds = 200, transitDurationSeconds = null),
-                MergedRecord.Anomaly(timeSeconds = 300, position = DoorPosition.OPEN_MISALIGNED, title = "Open (misaligned)"),
+                MergedRecord.Anomaly(timeSeconds = 300, position = DoorPosition.OPEN_MISALIGNED, kind = AnomalyKind.OpenMisaligned),
             ),
             out,
         )
@@ -342,7 +342,7 @@ class HistoryMapperTest {
         val out = HistoryMapper.mergeEvents(listOf(event(DoorPosition.OPEN_MISALIGNED, 100)))
         assertEquals(
             listOf(
-                MergedRecord.Anomaly(timeSeconds = 100, position = DoorPosition.OPEN_MISALIGNED, title = "Open (misaligned)"),
+                MergedRecord.Anomaly(timeSeconds = 100, position = DoorPosition.OPEN_MISALIGNED, kind = AnomalyKind.OpenMisaligned),
             ),
             out,
         )
@@ -353,7 +353,7 @@ class HistoryMapperTest {
         val out = HistoryMapper.mergeEvents(listOf(event(DoorPosition.ERROR_SENSOR_CONFLICT, 100)))
         assertEquals(
             listOf(
-                MergedRecord.Anomaly(timeSeconds = 100, position = DoorPosition.ERROR_SENSOR_CONFLICT, title = "Sensor conflict"),
+                MergedRecord.Anomaly(timeSeconds = 100, position = DoorPosition.ERROR_SENSOR_CONFLICT, kind = AnomalyKind.SensorConflict),
             ),
             out,
         )
@@ -364,7 +364,7 @@ class HistoryMapperTest {
         val out = HistoryMapper.mergeEvents(listOf(event(DoorPosition.UNKNOWN, 100)))
         assertEquals(
             listOf(
-                MergedRecord.Anomaly(timeSeconds = 100, position = DoorPosition.UNKNOWN, title = "Unknown state"),
+                MergedRecord.Anomaly(timeSeconds = 100, position = DoorPosition.UNKNOWN, kind = AnomalyKind.UnknownState),
             ),
             out,
         )
@@ -404,7 +404,7 @@ class HistoryMapperTest {
         // resolves into the eventual OPEN with a transit warning.
         assertEquals(
             listOf(
-                MergedRecord.Anomaly(timeSeconds = 90, position = DoorPosition.ERROR_SENSOR_CONFLICT, title = "Sensor conflict"),
+                MergedRecord.Anomaly(timeSeconds = 90, position = DoorPosition.ERROR_SENSOR_CONFLICT, kind = AnomalyKind.SensorConflict),
                 MergedRecord.Opened(timeSeconds = 100, transitDurationSeconds = 20),
             ),
             out,
@@ -425,7 +425,7 @@ class HistoryMapperTest {
         )
         assertEquals(
             listOf(
-                MergedRecord.Anomaly(timeSeconds = 80, position = DoorPosition.CLOSING_TOO_LONG, title = "Stuck closing"),
+                MergedRecord.Anomaly(timeSeconds = 80, position = DoorPosition.CLOSING_TOO_LONG, kind = AnomalyKind.StuckClosing),
                 MergedRecord.Opened(timeSeconds = 100, transitDurationSeconds = null),
             ),
             out,
@@ -444,7 +444,7 @@ class HistoryMapperTest {
         )
         assertEquals(
             listOf(
-                MergedRecord.Anomaly(timeSeconds = 80, position = DoorPosition.OPENING_TOO_LONG, title = "Stuck opening"),
+                MergedRecord.Anomaly(timeSeconds = 80, position = DoorPosition.OPENING_TOO_LONG, kind = AnomalyKind.StuckOpening),
                 MergedRecord.Closed(timeSeconds = 100, transitDurationSeconds = null),
             ),
             out,
@@ -532,7 +532,11 @@ class HistoryMapperTest {
 
     @Test
     fun durations_anomaliesPassThroughWithoutDuration() {
-        val anomaly = MergedRecord.Anomaly(timeSeconds = now.epochSecond - 100, position = DoorPosition.UNKNOWN, title = "Unknown state")
+        val anomaly = MergedRecord.Anomaly(
+            timeSeconds = now.epochSecond - 100,
+            position = DoorPosition.UNKNOWN,
+            kind = AnomalyKind.UnknownState,
+        )
         val out = HistoryMapper.computeDurations(listOf(anomaly), now)
         assertEquals(1, out.size)
         assertEquals(null, out[0].durationSeconds)
@@ -570,7 +574,7 @@ class HistoryMapperTest {
     @Test
     fun durations_anomalyBetweenTerminalsDoesNotInterfere() {
         val o = MergedRecord.Opened(timeSeconds = now.epochSecond - 3000, transitDurationSeconds = null)
-        val a = MergedRecord.Anomaly(timeSeconds = now.epochSecond - 1500, position = DoorPosition.UNKNOWN, title = "Unknown state")
+        val a = MergedRecord.Anomaly(timeSeconds = now.epochSecond - 1500, position = DoorPosition.UNKNOWN, kind = AnomalyKind.UnknownState)
         val c = MergedRecord.Closed(timeSeconds = now.epochSecond - 600, transitDurationSeconds = null)
         val out = HistoryMapper.computeDurations(listOf(o, a, c), now)
         // Opened reaches forward through anomaly to closed at -600 → 2400s
@@ -582,121 +586,42 @@ class HistoryMapperTest {
         assertTrue(out[2].isCurrent)
     }
 
-    // ---------- formatStateDuration ----------
-
-    @Test fun formatState_zeroSec() = assertEquals("0 sec", HistoryMapper.formatStateDuration(0))
-
-    @Test fun formatState_30Sec() = assertEquals("30 sec", HistoryMapper.formatStateDuration(30))
-
-    @Test fun formatState_59Sec() = assertEquals("59 sec", HistoryMapper.formatStateDuration(59))
-
-    @Test fun formatState_1Min() = assertEquals("1 min", HistoryMapper.formatStateDuration(60))
-
-    @Test fun formatState_90SecRoundsToOneMin() = assertEquals("1 min", HistoryMapper.formatStateDuration(90))
-
-    @Test fun formatState_6Min() = assertEquals("6 min", HistoryMapper.formatStateDuration(6 * 60))
-
-    @Test fun formatState_59Min() = assertEquals("59 min", HistoryMapper.formatStateDuration(59 * 60))
-
-    @Test fun formatState_60Min() = assertEquals("1 hr", HistoryMapper.formatStateDuration(60 * 60))
-
-    @Test fun formatState_90Min() = assertEquals("1 hr 30 min", HistoryMapper.formatStateDuration(90 * 60))
-
-    @Test fun formatState_2Hours() = assertEquals("2 hr", HistoryMapper.formatStateDuration(2 * 60 * 60))
-
-    @Test fun formatState_13Hr17Min() = assertEquals("13 hr 17 min", HistoryMapper.formatStateDuration((13 * 60 + 17) * 60L))
-
-    @Test fun formatState_24Hours() = assertEquals("1 day", HistoryMapper.formatStateDuration(24 * 60 * 60))
-
-    @Test fun formatState_25Hours() = assertEquals("1 day 1 hr", HistoryMapper.formatStateDuration(25 * 60 * 60))
-
-    @Test fun formatState_3Days() = assertEquals("3 day", HistoryMapper.formatStateDuration(3 * 24 * 60 * 60))
-
-    @Test fun formatState_negativeCoercesToZero() = assertEquals("0 sec", HistoryMapper.formatStateDuration(-100))
-
-    // ---------- formatTransitDuration ----------
-
-    @Test fun formatTransit_30Sec() = assertEquals("30 sec", HistoryMapper.formatTransitDuration(30))
-
-    @Test fun formatTransit_60Sec() = assertEquals("1 min", HistoryMapper.formatTransitDuration(60))
-
-    @Test fun formatTransit_90SecKeepsSeconds() = assertEquals("1 min 30 sec", HistoryMapper.formatTransitDuration(90))
-
-    @Test fun formatTransit_240Sec() = assertEquals("4 min", HistoryMapper.formatTransitDuration(240))
-
-    @Test fun formatTransit_negativeCoercesToZero() = assertEquals("0 sec", HistoryMapper.formatTransitDuration(-50))
-
-    @Test fun formatTransit_60MinScalesToHours() = assertEquals("1 hr", HistoryMapper.formatTransitDuration(60 * 60))
-
-    @Test fun formatTransit_90MinScalesToHoursMin() = assertEquals("1 hr 30 min", HistoryMapper.formatTransitDuration(90 * 60))
-
-    @Test
-    fun formatTransit_14Hr30MinDropsSeconds() {
-        // Defensive: a malformed input that produces a 14h30m8s transit should
-        // round to "14 hr 30 min" rather than "870 min 8 sec".
-        assertEquals("14 hr 30 min", HistoryMapper.formatTransitDuration(14 * 3600 + 30 * 60 + 8L))
-    }
-
-    // ---------- formatTime ----------
-
-    @Test
-    fun formatTime_midnightUTC() {
-        val t = Instant.parse("2026-04-29T00:00:00Z").epochSecond
-        assertEquals("12:00 AM", HistoryMapper.formatTime(t, ZoneOffset.UTC))
-    }
-
-    @Test
-    fun formatTime_noonUTC() {
-        val t = Instant.parse("2026-04-29T12:00:00Z").epochSecond
-        assertEquals("12:00 PM", HistoryMapper.formatTime(t, ZoneOffset.UTC))
-    }
-
-    @Test
-    fun formatTime_morningUTC() {
-        val t = Instant.parse("2026-04-29T10:15:00Z").epochSecond
-        assertEquals("10:15 AM", HistoryMapper.formatTime(t, ZoneOffset.UTC))
-    }
-
-    @Test
-    fun formatTime_eveningUTC() {
-        val t = Instant.parse("2026-04-28T20:30:00Z").epochSecond
-        assertEquals("8:30 PM", HistoryMapper.formatTime(t, ZoneOffset.UTC))
-    }
-
-    @Test
-    fun formatTime_zoneOffsetShifts() {
-        // 10:15 AM in UTC = 7:15 AM in UTC-3
-        val t = Instant.parse("2026-04-29T10:15:00Z").epochSecond
-        assertEquals("7:15 AM", HistoryMapper.formatTime(t, ZoneOffset.ofHours(-3)))
-    }
-
-    // ---------- formatDayLabel ----------
+    // ---------- typed dayLabel ----------
+    //
+    // (Phase 2E — formatStateDuration / formatTransitDuration / formatTime
+    //  were removed from HistoryMapper. Their pure-function equivalents live
+    //  in HistoryStatusFormatter (`formatTime`, `stateDurationParts`,
+    //  `transitDurationParts`) and are tested in HistoryFormatterTest. The
+    //  Composable layer in HistoryContent.kt assembles the final localized
+    //  strings via `stringResource` + `pluralStringResource` at render time.
+    //  formatDayLabel is replaced by `dayLabel` returning a typed [DayLabel]
+    //  — tested below.)
 
     @Test
     fun dayLabel_today() {
         val today = LocalDate.parse("2026-04-29")
-        assertEquals("Today", HistoryMapper.formatDayLabel(today, today))
+        assertEquals(DayLabel.Today, HistoryMapper.dayLabel(today, today))
     }
 
     @Test
     fun dayLabel_yesterday() {
         val today = LocalDate.parse("2026-04-29")
         val yesterday = today.minusDays(1)
-        assertEquals("Yesterday", HistoryMapper.formatDayLabel(yesterday, today))
+        assertEquals(DayLabel.Yesterday, HistoryMapper.dayLabel(yesterday, today))
     }
 
     @Test
     fun dayLabel_twoDaysAgo() {
         val today = LocalDate.parse("2026-04-29")
         val twoAgo = today.minusDays(2)
-        assertEquals("Mon, Apr 27", HistoryMapper.formatDayLabel(twoAgo, today))
+        assertEquals(DayLabel.Date(twoAgo), HistoryMapper.dayLabel(twoAgo, today))
     }
 
     @Test
     fun dayLabel_lastWeek() {
         val today = LocalDate.parse("2026-04-29")
         val lastWeek = today.minusDays(7)
-        assertEquals("Wed, Apr 22", HistoryMapper.formatDayLabel(lastWeek, today))
+        assertEquals(DayLabel.Date(lastWeek), HistoryMapper.dayLabel(lastWeek, today))
     }
 
     // ---------- toHistoryDays end-to-end ----------
@@ -716,7 +641,7 @@ class HistoryMapperTest {
         val days = HistoryMapper.toHistoryDays(events, now, zone)
         assertEquals(1, days.size)
         assertEquals(1, days[0].entries.size)
-        assertEquals("Today", days[0].label)
+        assertEquals(DayLabel.Today, days[0].label)
     }
 
     @Test
@@ -724,10 +649,10 @@ class HistoryMapperTest {
         val events = listOf(event(DoorPosition.OPEN, now.epochSecond - 720))
         val days = HistoryMapper.toHistoryDays(events, now, zone)
         assertEquals(1, days.size)
-        assertEquals("Today", days[0].label)
+        assertEquals(DayLabel.Today, days[0].label)
         val entry = days[0].entries.single() as HistoryEntry.Opened
         assertTrue(entry.isCurrent)
-        assertEquals("12 min and counting", entry.durationDisplay)
+        assertEquals(720L, entry.durationSeconds) // 12 min
         assertEquals(null, entry.transitWarning)
     }
 
@@ -737,7 +662,7 @@ class HistoryMapperTest {
         val days = HistoryMapper.toHistoryDays(events, now, zone)
         val entry = days[0].entries.single() as HistoryEntry.Closed
         assertTrue(entry.isCurrent)
-        assertEquals("12 min and counting", entry.durationDisplay)
+        assertEquals(720L, entry.durationSeconds) // 12 min
     }
 
     @Test
@@ -754,7 +679,7 @@ class HistoryMapperTest {
         val opened = days[0].entries[1] as HistoryEntry.Opened
         assertTrue(closed.isCurrent)
         assertEquals(false, opened.isCurrent)
-        assertEquals("Open for 12 min", opened.durationDisplay)
+        assertEquals(720L, opened.durationSeconds) // 12 min
     }
 
     @Test
@@ -766,7 +691,7 @@ class HistoryMapperTest {
         )
         val days = HistoryMapper.toHistoryDays(events, now, zone)
         val opened = days[0].entries.last() as HistoryEntry.Opened
-        assertEquals("Took 4 min to open, longer than expected", opened.transitWarning)
+        assertEquals(TransitWarning.ToOpen(transitSeconds = 240L), opened.transitWarning)
     }
 
     @Test
@@ -779,7 +704,7 @@ class HistoryMapperTest {
         val days = HistoryMapper.toHistoryDays(events, now, zone)
         // Newest-first: closed, opened
         val closed = days[0].entries[0] as HistoryEntry.Closed
-        assertEquals("Took 3 min to close, longer than expected", closed.transitWarning)
+        assertEquals(TransitWarning.ToClose(transitSeconds = 180L), closed.transitWarning)
     }
 
     @Test
@@ -815,7 +740,7 @@ class HistoryMapperTest {
         val days = HistoryMapper.toHistoryDays(events, now, zone)
         // Newest-first: Anomaly, Closed, Opened.
         val anomaly = days[0].entries[0] as HistoryEntry.Anomaly
-        assertEquals("Open (misaligned)", anomaly.title)
+        assertEquals(AnomalyKind.OpenMisaligned, anomaly.kind)
         assertEquals(DoorPosition.OPEN_MISALIGNED, anomaly.doorPosition)
     }
 
@@ -838,9 +763,9 @@ class HistoryMapperTest {
         val openedNew = days[0].entries[1] as HistoryEntry.Opened
         val openedMisaligned = days[0].entries[2] as HistoryEntry.Opened
         // openedMisaligned (older, t1): bounded by next Opened at t2 → 1200s = 20 min.
-        assertEquals("Open for 20 min", openedMisaligned.durationDisplay)
+        assertEquals(1200L, openedMisaligned.durationSeconds) // 20 min
         // openedNew (t2): bounded by Closed at tClosed → 1200s = 20 min.
-        assertEquals("Open for 20 min", openedNew.durationDisplay)
+        assertEquals(1200L, openedNew.durationSeconds) // 20 min
     }
 
     @Test
@@ -860,7 +785,7 @@ class HistoryMapperTest {
         val events = listOf(event(DoorPosition.UNKNOWN, now.epochSecond - 600))
         val days = HistoryMapper.toHistoryDays(events, now, zone)
         val anomaly = days[0].entries.single() as HistoryEntry.Anomaly
-        assertEquals("Unknown state", anomaly.title)
+        assertEquals(AnomalyKind.UnknownState, anomaly.kind)
         assertEquals(DoorPosition.UNKNOWN, anomaly.doorPosition)
     }
 
@@ -869,7 +794,7 @@ class HistoryMapperTest {
         val events = listOf(event(DoorPosition.ERROR_SENSOR_CONFLICT, now.epochSecond - 600))
         val days = HistoryMapper.toHistoryDays(events, now, zone)
         val anomaly = days[0].entries.single() as HistoryEntry.Anomaly
-        assertEquals("Sensor conflict", anomaly.title)
+        assertEquals(AnomalyKind.SensorConflict, anomaly.kind)
     }
 
     @Test
@@ -877,7 +802,7 @@ class HistoryMapperTest {
         val events = listOf(event(DoorPosition.OPENING_TOO_LONG, now.epochSecond - 600))
         val days = HistoryMapper.toHistoryDays(events, now, zone)
         val anomaly = days[0].entries.single() as HistoryEntry.Anomaly
-        assertEquals("Stuck opening", anomaly.title)
+        assertEquals(AnomalyKind.StuckOpening, anomaly.kind)
         assertEquals(DoorPosition.OPENING_TOO_LONG, anomaly.doorPosition)
     }
 
@@ -886,7 +811,7 @@ class HistoryMapperTest {
         val events = listOf(event(DoorPosition.CLOSING_TOO_LONG, now.epochSecond - 600))
         val days = HistoryMapper.toHistoryDays(events, now, zone)
         val anomaly = days[0].entries.single() as HistoryEntry.Anomaly
-        assertEquals("Stuck closing", anomaly.title)
+        assertEquals(AnomalyKind.StuckClosing, anomaly.kind)
         assertEquals(DoorPosition.CLOSING_TOO_LONG, anomaly.doorPosition)
     }
 
@@ -902,9 +827,9 @@ class HistoryMapperTest {
         )
         val days = HistoryMapper.toHistoryDays(events, now, zone)
         assertEquals(3, days.size)
-        assertEquals("Today", days[0].label)
-        assertEquals("Yesterday", days[1].label)
-        assertEquals("Mon, Apr 27", days[2].label)
+        assertEquals(DayLabel.Today, days[0].label)
+        assertEquals(DayLabel.Yesterday, days[1].label)
+        assertEquals(DayLabel.Date(LocalDate.parse("2026-04-27")), days[2].label)
     }
 
     @Test
@@ -922,7 +847,7 @@ class HistoryMapperTest {
         val opened = days[0].entries[1] as HistoryEntry.Opened
         // Opened at the FIRST OPEN's timestamp, not the heartbeats — the
         // duration spans from the first OPEN to the eventual CLOSED.
-        assertEquals("Open for 20 min", opened.durationDisplay)
+        assertEquals(1200L, opened.durationSeconds) // 20 min
     }
 
     @Test

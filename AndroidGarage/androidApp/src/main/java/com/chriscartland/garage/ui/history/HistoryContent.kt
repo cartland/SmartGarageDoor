@@ -41,11 +41,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.ui.GarageIcon
@@ -57,6 +61,7 @@ import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.doorColorState
 import com.chriscartland.garage.ui.theme.safeListContentPadding
+import java.time.ZoneId
 
 /**
  * One entry in the history list.
@@ -65,38 +70,42 @@ import com.chriscartland.garage.ui.theme.safeListContentPadding
  * boundary). Each row carries the duration of *that* state (until the next
  * opposite-state event), not the duration of the prior state.
  *
- * Display strings (times, durations, transit warnings) are pre-formatted by
- * the caller so the Composable stays purely presentational and screenshot
- * tests stay deterministic — Phase 2 of the redesign carries no live time
- * math.
+ * Phase 2E of the string-resource migration plan
+ * (`AndroidGarage/docs/PENDING_FOLLOWUPS.md` item #1) — no user-visible
+ * strings live on this type. Times are raw epoch seconds, durations are
+ * raw second counts, anomaly kinds + transit warnings are typed sealed
+ * types ([AnomalyKind], [TransitWarning]). The Composable layer assembles
+ * localized display strings via `stringResource` + `pluralStringResource`
+ * at render time.
  */
 sealed interface HistoryEntry {
     /**
      * The door was opened.
      *
-     * @param timeDisplay e.g. "9:47 AM"
-     * @param durationDisplay e.g. "Open for 6 min" or "12 min and counting"
+     * @param timeSeconds epoch seconds of the open event (Composable formats).
+     * @param durationSeconds how long the door stayed open after this event
+     *   (until the next CLOSE), or "and counting" seconds when this is the
+     *   most-recent terminal and the door is still open.
      * @param isCurrent true when this is the most recent event and the door
      *   is still open. Drives "Open · Since X" wording instead of past-tense
      *   "Opened at X".
-     * @param transitWarning non-null when an `OPENING_TOO_LONG` was merged
-     *   into this Opened row. Example: "Took 4 min to open, longer than
-     *   expected." Rendered as a warning tag below the duration.
+     * @param transitWarning non-null ([TransitWarning.ToOpen]) when an
+     *   `OPENING_TOO_LONG` was merged into this row.
      */
     data class Opened(
-        val timeDisplay: String,
-        val durationDisplay: String,
+        val timeSeconds: Long,
+        val durationSeconds: Long,
         val isCurrent: Boolean = false,
-        val transitWarning: String? = null,
+        val transitWarning: TransitWarning? = null,
         val misaligned: Boolean = false,
     ) : HistoryEntry
 
     /** The door was closed. Mirrors [Opened]. */
     data class Closed(
-        val timeDisplay: String,
-        val durationDisplay: String,
+        val timeSeconds: Long,
+        val durationSeconds: Long,
         val isCurrent: Boolean = false,
-        val transitWarning: String? = null,
+        val transitWarning: TransitWarning? = null,
     ) : HistoryEntry
 
     /**
@@ -106,17 +115,20 @@ sealed interface HistoryEntry {
      *
      * @param doorPosition drives the GarageIcon leading visual (e.g. an
      *   `OPEN_MISALIGNED` anomaly shows the open door art).
+     * @param kind typed anomaly kind; the Composable resolves to a
+     *   localized title via `stringResource`. See [AnomalyKind].
+     * @param timeSeconds epoch seconds of the anomaly event.
      */
     data class Anomaly(
         val doorPosition: DoorPosition,
-        val title: String,
-        val timeDisplay: String,
+        val kind: AnomalyKind,
+        val timeSeconds: Long,
     ) : HistoryEntry
 }
 
 /** A single day's worth of entries, newest-first. */
 data class HistoryDay(
-    val label: String,
+    val label: DayLabel,
     val entries: List<HistoryEntry>,
 )
 
@@ -139,6 +151,7 @@ data class HistoryDay(
 @Composable
 fun HistoryContent(
     days: List<HistoryDay>,
+    zone: ZoneId,
     modifier: Modifier = Modifier,
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
@@ -157,8 +170,8 @@ fun HistoryContent(
                 item { HistoryEmptyState() }
             } else {
                 days.forEach { day ->
-                    item(key = day.label) {
-                        HistoryDaySection(day = day)
+                    item(key = HistoryDayKey.forLabel(day.label)) {
+                        HistoryDaySection(day = day, zone = zone)
                     }
                 }
             }
@@ -166,11 +179,29 @@ fun HistoryContent(
     }
 }
 
+/**
+ * Stable keys for [LazyColumn]'s `item(key = ...)` slot. Wrapped in a
+ * named object per ADR-009 (no bare top-level functions). `Today` /
+ * `Yesterday` are stable singletons; `Date` uses the LocalDate which
+ * is unique per day and stable across recompositions.
+ */
+private object HistoryDayKey {
+    fun forLabel(label: DayLabel): Any =
+        when (label) {
+            DayLabel.Today -> "today"
+            DayLabel.Yesterday -> "yesterday"
+            is DayLabel.Date -> label.date.toString()
+        }
+}
+
 @Composable
-private fun HistoryDaySection(day: HistoryDay) {
+private fun HistoryDaySection(
+    day: HistoryDay,
+    zone: ZoneId,
+) {
     Column {
         Text(
-            text = day.label.uppercase(),
+            text = dayLabelText(day.label).uppercase(),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(
@@ -191,7 +222,7 @@ private fun HistoryDaySection(day: HistoryDay) {
                     if (index > 0) {
                         HorizontalDivider(modifier = Modifier.padding(start = DividerInset.LargeLeading))
                     }
-                    HistoryEntryRow(entry = entry)
+                    HistoryEntryRow(entry = entry, zone = zone)
                 }
             }
         }
@@ -199,47 +230,184 @@ private fun HistoryDaySection(day: HistoryDay) {
 }
 
 @Composable
-private fun HistoryEntryRow(entry: HistoryEntry) {
+private fun HistoryEntryRow(
+    entry: HistoryEntry,
+    zone: ZoneId,
+) {
     when (entry) {
-        is HistoryEntry.Opened -> HistoryStateRow(
-            // When misaligned, render the OPEN_MISALIGNED door art so the
-            // misalignment is visible even on a row that's just an "Opened"
-            // event with the misalignment property set.
-            doorPosition = if (entry.misaligned) DoorPosition.OPEN_MISALIGNED else DoorPosition.OPEN,
-            headline = when {
-                entry.isCurrent && entry.misaligned -> "Open (misaligned)"
-                entry.isCurrent -> "Open"
-                else -> "Opened at ${entry.timeDisplay}"
-            },
-            supporting = if (entry.isCurrent) {
-                "Since ${entry.timeDisplay} · ${entry.durationDisplay}"
+        is HistoryEntry.Opened -> {
+            val timeDisplay = remember(entry.timeSeconds, zone) {
+                HistoryFormatter.formatTime(entry.timeSeconds, zone)
+            }
+            val durationDisplay = stateDurationDisplay(
+                durationSeconds = entry.durationSeconds,
+                isCurrent = entry.isCurrent,
+                isOpenState = true,
+            )
+            HistoryStateRow(
+                // When misaligned, render the OPEN_MISALIGNED door art so the
+                // misalignment is visible even on a row that's just an "Opened"
+                // event with the misalignment property set.
+                doorPosition = if (entry.misaligned) DoorPosition.OPEN_MISALIGNED else DoorPosition.OPEN,
+                headline = when {
+                    entry.isCurrent && entry.misaligned ->
+                        stringResource(R.string.history_headline_open_misaligned)
+                    entry.isCurrent ->
+                        stringResource(R.string.history_headline_open)
+                    else ->
+                        stringResource(R.string.history_headline_opened_at, timeDisplay)
+                },
+                supporting = if (entry.isCurrent) {
+                    stringResource(R.string.history_supporting_since_format, timeDisplay, durationDisplay)
+                } else {
+                    durationDisplay
+                },
+                warnings = listOfNotNull(
+                    entry.transitWarning?.let { transitWarningText(it) },
+                    // For past Opened rows, surface misalignment as a tag below
+                    // the duration. When isCurrent, the headline already says
+                    // "Open (misaligned)" — no need for a duplicate tag.
+                    if (entry.misaligned && !entry.isCurrent) {
+                        stringResource(R.string.history_warning_misaligned)
+                    } else {
+                        null
+                    },
+                ),
+            )
+        }
+        is HistoryEntry.Closed -> {
+            val timeDisplay = remember(entry.timeSeconds, zone) {
+                HistoryFormatter.formatTime(entry.timeSeconds, zone)
+            }
+            val durationDisplay = stateDurationDisplay(
+                durationSeconds = entry.durationSeconds,
+                isCurrent = entry.isCurrent,
+                isOpenState = false,
+            )
+            HistoryStateRow(
+                doorPosition = DoorPosition.CLOSED,
+                headline = if (entry.isCurrent) {
+                    stringResource(R.string.history_headline_closed)
+                } else {
+                    stringResource(R.string.history_headline_closed_at, timeDisplay)
+                },
+                supporting = if (entry.isCurrent) {
+                    stringResource(R.string.history_supporting_since_format, timeDisplay, durationDisplay)
+                } else {
+                    durationDisplay
+                },
+                warnings = listOfNotNull(entry.transitWarning?.let { transitWarningText(it) }),
+            )
+        }
+        is HistoryEntry.Anomaly -> {
+            val timeDisplay = remember(entry.timeSeconds, zone) {
+                HistoryFormatter.formatTime(entry.timeSeconds, zone)
+            }
+            HistoryStateRow(
+                doorPosition = entry.doorPosition,
+                headline = anomalyTitle(entry.kind),
+                supporting = timeDisplay,
+                warnings = emptyList(),
+            )
+        }
+    }
+}
+
+/**
+ * Resolve a [DayLabel] to a localized day-section header string.
+ * `Today` / `Yesterday` map to resources; `Date` formats via
+ * [HistoryFormatter.formatDate] (locale-aware DateTimeFormatter).
+ */
+@Composable
+private fun dayLabelText(label: DayLabel): String =
+    when (label) {
+        DayLabel.Today -> stringResource(R.string.history_day_today)
+        DayLabel.Yesterday -> stringResource(R.string.history_day_yesterday)
+        is DayLabel.Date -> HistoryFormatter.formatDate(label.date)
+    }
+
+/** Resolve an [AnomalyKind] to its localized headline string. */
+@Composable
+private fun anomalyTitle(kind: AnomalyKind): String =
+    when (kind) {
+        AnomalyKind.SensorConflict -> stringResource(R.string.history_anomaly_sensor_conflict)
+        AnomalyKind.UnknownState -> stringResource(R.string.history_anomaly_unknown_state)
+        AnomalyKind.StuckOpening -> stringResource(R.string.history_anomaly_stuck_opening)
+        AnomalyKind.StuckClosing -> stringResource(R.string.history_anomaly_stuck_closing)
+        AnomalyKind.OpenMisaligned -> stringResource(R.string.history_anomaly_open_misaligned)
+    }
+
+/**
+ * Assemble the localized "Open for X" / "Closed for X" / "X and counting"
+ * string for a state-span duration, picking plural / single-unit / multi-unit
+ * granularity based on [HistoryFormatter.stateDurationParts].
+ */
+@Composable
+private fun stateDurationDisplay(
+    durationSeconds: Long,
+    isCurrent: Boolean,
+    isOpenState: Boolean,
+): String {
+    val parts = remember(durationSeconds) { HistoryFormatter.stateDurationParts(durationSeconds) }
+    val durationText = when {
+        parts.days >= 1 -> {
+            if (parts.hours == 0) {
+                pluralStringResource(R.plurals.home_duration_days, parts.days, parts.days)
             } else {
-                entry.durationDisplay
-            },
-            warnings = listOfNotNull(
-                entry.transitWarning,
-                // For past Opened rows, surface misalignment as a tag below
-                // the duration. When isCurrent, the headline already says
-                // "Open (misaligned)" — no need for a duplicate tag.
-                if (entry.misaligned && !entry.isCurrent) "Door was misaligned" else null,
-            ),
-        )
-        is HistoryEntry.Closed -> HistoryStateRow(
-            doorPosition = DoorPosition.CLOSED,
-            headline = if (entry.isCurrent) "Closed" else "Closed at ${entry.timeDisplay}",
-            supporting = if (entry.isCurrent) {
-                "Since ${entry.timeDisplay} · ${entry.durationDisplay}"
+                stringResource(R.string.history_state_duration_days_with_hours, parts.days, parts.hours)
+            }
+        }
+        parts.hours >= 1 -> {
+            if (parts.minutes == 0) {
+                stringResource(R.string.history_state_duration_hours_only, parts.hours)
             } else {
-                entry.durationDisplay
-            },
-            warnings = listOfNotNull(entry.transitWarning),
-        )
-        is HistoryEntry.Anomaly -> HistoryStateRow(
-            doorPosition = entry.doorPosition,
-            headline = entry.title,
-            supporting = entry.timeDisplay,
-            warnings = emptyList(),
-        )
+                stringResource(R.string.home_duration_hours_minutes, parts.hours, parts.minutes)
+            }
+        }
+        parts.minutes >= 1 ->
+            pluralStringResource(R.plurals.home_duration_minutes, parts.minutes, parts.minutes)
+        else ->
+            pluralStringResource(R.plurals.home_duration_seconds, parts.seconds, parts.seconds)
+    }
+    return when {
+        isCurrent -> stringResource(R.string.history_state_duration_and_counting, durationText)
+        isOpenState -> stringResource(R.string.history_state_duration_open_for, durationText)
+        else -> stringResource(R.string.history_state_duration_closed_for, durationText)
+    }
+}
+
+/**
+ * Assemble the localized "Took X to open/close, longer than expected"
+ * tag for a [TransitWarning].
+ */
+@Composable
+private fun transitWarningText(warning: TransitWarning): String {
+    val parts = remember(warning.transitSeconds) {
+        HistoryFormatter.transitDurationParts(warning.transitSeconds)
+    }
+    val durationText = when {
+        parts.hours >= 1 -> {
+            if (parts.minutes == 0) {
+                stringResource(R.string.history_state_duration_hours_only, parts.hours)
+            } else {
+                stringResource(R.string.home_duration_hours_minutes, parts.hours, parts.minutes)
+            }
+        }
+        parts.minutes >= 1 -> {
+            if (parts.seconds == 0) {
+                pluralStringResource(R.plurals.home_duration_minutes, parts.minutes, parts.minutes)
+            } else {
+                stringResource(R.string.history_transit_minutes_seconds, parts.minutes, parts.seconds)
+            }
+        }
+        else ->
+            pluralStringResource(R.plurals.home_duration_seconds, parts.seconds, parts.seconds)
+    }
+    return when (warning) {
+        is TransitWarning.ToOpen ->
+            stringResource(R.string.history_warning_transit_to_open, durationText)
+        is TransitWarning.ToClose ->
+            stringResource(R.string.history_warning_transit_to_close, durationText)
     }
 }
 
@@ -310,12 +478,12 @@ private fun HistoryEmptyState() {
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "No events yet",
+            text = stringResource(R.string.history_empty_title),
             style = MaterialTheme.typography.titleMedium,
         )
         Spacer(Modifier.height(ParagraphSpacing.TitleToBody))
         Text(
-            text = "Open or close the garage and check back here.",
+            text = stringResource(R.string.history_empty_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -386,7 +554,7 @@ fun HistoryContentMultiDayPreview() {
         now = java.time.Instant.parse("2026-04-29T10:27:00Z"),
         zone = HistoryPreviewData.zone,
     )
-    HistoryContent(days = days)
+    HistoryContent(days = days, zone = HistoryPreviewData.zone)
 }
 
 /**
@@ -419,11 +587,11 @@ fun HistoryContentMultiDayClosedPreview() {
         now = java.time.Instant.parse("2026-04-29T12:17:00Z"),
         zone = HistoryPreviewData.zone,
     )
-    HistoryContent(days = days)
+    HistoryContent(days = days, zone = HistoryPreviewData.zone)
 }
 
 @Preview
 @Composable
 fun HistoryContentEmptyPreview() {
-    HistoryContent(days = emptyList())
+    HistoryContent(days = emptyList(), zone = HistoryPreviewData.zone)
 }
