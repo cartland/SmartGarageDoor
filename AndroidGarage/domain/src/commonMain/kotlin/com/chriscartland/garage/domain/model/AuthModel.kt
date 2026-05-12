@@ -1,5 +1,7 @@
 package com.chriscartland.garage.domain.model
 
+import kotlin.jvm.JvmInline
+
 @JvmInline
 value class Email(
     private val s: String,

@@ -1,5 +1,7 @@
 package com.chriscartland.garage.domain.model
 
+import kotlin.jvm.JvmInline
+
 sealed class DoorFcmState {
     data object Unknown : DoorFcmState()
 
