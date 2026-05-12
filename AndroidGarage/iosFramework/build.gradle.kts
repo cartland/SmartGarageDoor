@@ -54,6 +54,16 @@ kotlin {
             implementation(libs.kermit)
         }
 
+        // iosTest hosts the runtime DI graph identity tests
+        // (`NativeComponentTest`). Shared by all 3 per-target test source
+        // sets; runs locally via `:iosFramework:iosSimulatorArm64Test`.
+        val iosTest by getting {
+            dependencies {
+                implementation(libs.kotlin.test)
+                implementation(libs.kotlinx.coroutines.test)
+            }
+        }
+
         // Shared source code for all 3 iOS targets — lets `IosNativeHelper`
         // access the per-target KSP-generated `InjectNativeComponent` class
         // without duplicating the helper file.
