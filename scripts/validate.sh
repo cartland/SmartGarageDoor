@@ -64,6 +64,9 @@ $GRADLE checkNamingConvention && pass "naming convention" || fail "naming conven
 step "Previews don't transitively use Clock.System.now() / Instant.now() (deterministic screenshots)"
 $GRADLE checkPreviewTime && pass "preview time determinism" || fail "preview time determinism"
 
+step "isSystemInDarkTheme() only inside theme module (theme-detection isolation)"
+$GRADLE checkThemeDetection && pass "theme detection isolation" || fail "theme detection isolation"
+
 step "No idToken parameter on UseCases (ADR-027 — token internal to repos)"
 $GRADLE checkNoTokenInUseCase && pass "no token in UseCase" || fail "no token in UseCase"
 

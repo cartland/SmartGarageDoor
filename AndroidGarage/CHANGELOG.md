@@ -15,6 +15,15 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.16.34
+- **`checkThemeDetection` build-time check** ported from battery-butler's `ThemeLayerCheckTask`. Forbids `isSystemInDarkTheme()` calls outside `androidApp/.../ui/theme/`.
+  - **Why this matters**: Theme detection (light vs dark) is the theme module's responsibility. If a screen Composable reads `isSystemInDarkTheme()` directly, it's reimplementing what `AppTheme` already resolved and propagated via `MaterialTheme.colorScheme.*` — duplicating the decision and making future theme changes (dynamic-color opt-in, custom dark-color overrides) leak into screen code.
+  - **Allowed locations**: any file under any path containing `/ui/theme/`. Currently: `Theme.kt` (where `AppTheme` reads it as a default param) and `PreviewSurface.kt` (where the preview wrapper mirrors the inner `AppTheme`'s configuration).
+  - **Codebase clean at port time** (only the 2 theme-module files use it). Zero violations; this prevents drift.
+  - **Suppression**: add `// @ThemeDetectionExempt` on the line if a non-theme file legitimately needs it.
+  - The other 2 rules from battery-butler's `ThemeLayerCheckTask` were not ported: forbidden raw `Color(0x...)` literals are already covered by `HardcodedColorCheckTask` (with allowed-files list); forbidden `import androidx.compose.ui.graphics.Color` is too broad — canvas/drawing files like `GarageDoorCanvas.kt` and `AnimatableGarageDoor.kt` legitimately need `Color` for rendering primitives.
+  - Wired into `validate.sh`.
+
 ## 2.16.33
 - **`checkPreviewTime` build-time check** ported from battery-butler. Two-pass BFS that ensures `@Preview` Composables never transitively call a Composable whose default parameter value uses `Clock.System.now()` / `Instant.now()` / `System.currentTimeMillis()` etc. without explicitly passing the time parameter.
   - **Why this matters**: `@Preview` and screenshot tests render at preview-time. A default like `now: Instant = Instant.now()` reads wall-clock at render — screenshots flap, golden-image tests get false-positive diffs, framed README screenshot drifts on every regen.
