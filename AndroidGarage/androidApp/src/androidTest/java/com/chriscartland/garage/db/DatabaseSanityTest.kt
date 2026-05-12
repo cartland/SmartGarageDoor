@@ -75,104 +75,110 @@ class DatabaseSanityTest {
     }
 
     @Test
-    fun insertAndReadDoorEvent() = runBlocking {
-        val entity = DoorEventEntity(
-            doorPosition = DoorPosition.CLOSED,
-            message = "The door is closed.",
-            lastCheckInTimeSeconds = 1000L,
-            lastChangeTimeSeconds = 900L,
-        )
-        db.doorEventDao().insert(entity)
+    fun insertAndReadDoorEvent() =
+        runBlocking {
+            val entity = DoorEventEntity(
+                doorPosition = DoorPosition.CLOSED,
+                message = "The door is closed.",
+                lastCheckInTimeSeconds = 1000L,
+                lastChangeTimeSeconds = 900L,
+            )
+            db.doorEventDao().insert(entity)
 
-        val result = db.doorEventDao().recentDoorEvents().first()
-        assertEquals("Should have 1 door event", 1, result.size)
-        assertEquals(DoorPosition.CLOSED, result[0].doorPosition)
-        assertEquals("The door is closed.", result[0].message)
-        assertEquals(1000L, result[0].lastCheckInTimeSeconds)
-        assertEquals(900L, result[0].lastChangeTimeSeconds)
-    }
-
-    @Test
-    fun insertAndReadAppEvent() = runBlocking {
-        val event = AppEvent(
-            eventKey = "test_key",
-            timestamp = 12345L,
-        )
-        db.appLoggerDao().insert(event)
-
-        val result = db.appLoggerDao().getAll().first()
-        assertEquals("Should have 1 app event", 1, result.size)
-        assertEquals("test_key", result[0].eventKey)
-    }
+            val result = db.doorEventDao().recentDoorEvents().first()
+            assertEquals("Should have 1 door event", 1, result.size)
+            assertEquals(DoorPosition.CLOSED, result[0].doorPosition)
+            assertEquals("The door is closed.", result[0].message)
+            assertEquals(1000L, result[0].lastCheckInTimeSeconds)
+            assertEquals(900L, result[0].lastChangeTimeSeconds)
+        }
 
     @Test
-    fun insertAndPruneKey_keepsMostRecentRowsUpToLimit() = runBlocking {
-        // Insert 5 rows; cap to 3. Oldest 2 should be evicted; newest 3 retained.
-        for (i in 1..5) {
-            db.appLoggerDao().insertAndPruneKey(
-                appEvent = AppEvent(eventKey = "k", timestamp = i.toLong()),
-                limit = 3,
+    fun insertAndReadAppEvent() =
+        runBlocking {
+            val event = AppEvent(
+                eventKey = "test_key",
+                timestamp = 12345L,
+            )
+            db.appLoggerDao().insert(event)
+
+            val result = db.appLoggerDao().getAll().first()
+            assertEquals("Should have 1 app event", 1, result.size)
+            assertEquals("test_key", result[0].eventKey)
+        }
+
+    @Test
+    fun insertAndPruneKey_keepsMostRecentRowsUpToLimit() =
+        runBlocking {
+            // Insert 5 rows; cap to 3. Oldest 2 should be evicted; newest 3 retained.
+            for (i in 1..5) {
+                db.appLoggerDao().insertAndPruneKey(
+                    appEvent = AppEvent(eventKey = "k", timestamp = i.toLong()),
+                    limit = 3,
+                )
+            }
+
+            val rows = db.appLoggerDao().getAll().first()
+            assertEquals("Should keep at most 3 rows for the key", 3, rows.size)
+            assertEquals(
+                "Most recent timestamps retained",
+                listOf(3L, 4L, 5L),
+                rows.map { it.timestamp }.sorted(),
             )
         }
 
-        val rows = db.appLoggerDao().getAll().first()
-        assertEquals("Should keep at most 3 rows for the key", 3, rows.size)
-        assertEquals(
-            "Most recent timestamps retained",
-            listOf(3L, 4L, 5L),
-            rows.map { it.timestamp }.sorted(),
-        )
-    }
-
     @Test
-    fun insertAndPruneKey_doesNotAffectOtherKeys() = runBlocking {
-        // High-volume key + a single low-volume key. Cap each to 2.
-        for (i in 1..5) {
+    fun insertAndPruneKey_doesNotAffectOtherKeys() =
+        runBlocking {
+            // High-volume key + a single low-volume key. Cap each to 2.
+            for (i in 1..5) {
+                db.appLoggerDao().insertAndPruneKey(
+                    appEvent = AppEvent(eventKey = "noisy", timestamp = i.toLong()),
+                    limit = 2,
+                )
+            }
             db.appLoggerDao().insertAndPruneKey(
-                appEvent = AppEvent(eventKey = "noisy", timestamp = i.toLong()),
+                appEvent = AppEvent(eventKey = "quiet", timestamp = 100L),
                 limit = 2,
             )
-        }
-        db.appLoggerDao().insertAndPruneKey(
-            appEvent = AppEvent(eventKey = "quiet", timestamp = 100L),
-            limit = 2,
-        )
 
-        val all = db.appLoggerDao().getAll().first()
-        val noisy = all.filter { it.eventKey == "noisy" }
-        val quiet = all.filter { it.eventKey == "quiet" }
-        assertEquals("Noisy key capped at 2", 2, noisy.size)
-        assertEquals("Quiet key untouched", 1, quiet.size)
-    }
+            val all = db.appLoggerDao().getAll().first()
+            val noisy = all.filter { it.eventKey == "noisy" }
+            val quiet = all.filter { it.eventKey == "quiet" }
+            assertEquals("Noisy key capped at 2", 2, noisy.size)
+            assertEquals("Quiet key untouched", 1, quiet.size)
+        }
 
     @Test
-    fun pruneAllKeys_trimsLegacyRowsForEveryKey() = runBlocking {
-        // Simulate the migration case: many existing rows pre-cap.
-        for (i in 1..10) {
-            db.appLoggerDao().insert(AppEvent(eventKey = "a", timestamp = i.toLong()))
-        }
-        for (i in 1..7) {
-            db.appLoggerDao().insert(AppEvent(eventKey = "b", timestamp = i.toLong()))
-        }
+    fun pruneAllKeys_trimsLegacyRowsForEveryKey() =
+        runBlocking {
+            // Simulate the migration case: many existing rows pre-cap.
+            for (i in 1..10) {
+                db.appLoggerDao().insert(AppEvent(eventKey = "a", timestamp = i.toLong()))
+            }
+            for (i in 1..7) {
+                db.appLoggerDao().insert(AppEvent(eventKey = "b", timestamp = i.toLong()))
+            }
 
-        db.appLoggerDao().pruneAllKeys(limit = 4)
+            db.appLoggerDao().pruneAllKeys(limit = 4)
 
-        val all = db.appLoggerDao().getAll().first()
-        assertEquals("Both keys trimmed to limit", 8, all.size)
-        assertEquals(4, all.count { it.eventKey == "a" })
-        assertEquals(4, all.count { it.eventKey == "b" })
-    }
+            val all = db.appLoggerDao().getAll().first()
+            assertEquals("Both keys trimmed to limit", 8, all.size)
+            assertEquals(4, all.count { it.eventKey == "a" })
+            assertEquals(4, all.count { it.eventKey == "b" })
+        }
 
     @Test
-    fun deleteAllAppEvents_clearsTheTable() = runBlocking {
-        db.appLoggerDao().insert(AppEvent(eventKey = "k", timestamp = 1L))
-        db.appLoggerDao().insert(AppEvent(eventKey = "k", timestamp = 2L))
+    fun deleteAllAppEvents_clearsTheTable() =
+        runBlocking {
+            db.appLoggerDao().insert(AppEvent(eventKey = "k", timestamp = 1L))
+            db.appLoggerDao().insert(AppEvent(eventKey = "k", timestamp = 2L))
 
-        db.appLoggerDao().deleteAllAppEvents()
+            db.appLoggerDao().deleteAllAppEvents()
 
-        val rows = db.appLoggerDao().getAll().first()
-        assertEquals("Table should be empty", 0, rows.size)
-    }
+            val rows = db.appLoggerDao().getAll().first()
+            assertEquals("Table should be empty", 0, rows.size)
+        }
 
     /**
      * Wires through the actual [RoomAppLoggerRepository.log] (not the DAO
@@ -200,24 +206,25 @@ class DatabaseSanityTest {
     }
 
     @Test
-    fun doorEventReplaceAll() = runBlocking {
-        val events = listOf(
-            DoorEventEntity(
-                doorPosition = DoorPosition.OPEN,
-                message = "Open",
-                lastChangeTimeSeconds = 100L,
-            ),
-            DoorEventEntity(
-                doorPosition = DoorPosition.CLOSED,
-                message = "Closed",
-                lastChangeTimeSeconds = 200L,
-            ),
-        )
-        db.doorEventDao().replaceAll(events)
+    fun doorEventReplaceAll() =
+        runBlocking {
+            val events = listOf(
+                DoorEventEntity(
+                    doorPosition = DoorPosition.OPEN,
+                    message = "Open",
+                    lastChangeTimeSeconds = 100L,
+                ),
+                DoorEventEntity(
+                    doorPosition = DoorPosition.CLOSED,
+                    message = "Closed",
+                    lastChangeTimeSeconds = 200L,
+                ),
+            )
+            db.doorEventDao().replaceAll(events)
 
-        val result = db.doorEventDao().recentDoorEvents().first()
-        assertEquals("Should have 2 door events", 2, result.size)
-    }
+            val result = db.doorEventDao().recentDoorEvents().first()
+            assertEquals("Should have 2 door events", 2, result.size)
+        }
 
     /**
      * Wires the real [RoomAppLoggerRepository] through

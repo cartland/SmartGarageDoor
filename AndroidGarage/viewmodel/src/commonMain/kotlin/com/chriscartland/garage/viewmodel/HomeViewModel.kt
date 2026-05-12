@@ -239,7 +239,9 @@ class DefaultHomeViewModel(
             when (
                 val result = pushRemoteButtonUseCase(
                     buttonAckToken = ButtonAckToken.create(
-                        currentTimeMillis = System.currentTimeMillis(),
+                        currentTimeMillis = kotlinx.datetime.Clock.System
+                            .now()
+                            .toEpochMilliseconds(),
                         appVersion = appVersion,
                     ),
                 )

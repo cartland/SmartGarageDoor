@@ -34,6 +34,7 @@ import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
+import com.chriscartland.garage.usecase.AppStartup
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultLiveClock
