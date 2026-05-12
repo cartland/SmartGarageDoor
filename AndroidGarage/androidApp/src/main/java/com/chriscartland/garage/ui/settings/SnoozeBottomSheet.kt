@@ -120,7 +120,6 @@ fun SnoozeSheetContent(
         Text(
             text = stringResource(R.string.settings_snooze_title),
             style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(bottom = 8.dp),
         )
 
         SnoozeOptionRow(
