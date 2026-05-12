@@ -61,6 +61,9 @@ $GRADLE checkNoImplSuffix && pass "no *Impl suffix" || fail "no *Impl suffix"
 step "No 'Ui' / 'View' in class names (KMP collision; ported from battery-butler)"
 $GRADLE checkNamingConvention && pass "naming convention" || fail "naming convention"
 
+step "Previews don't transitively use Clock.System.now() / Instant.now() (deterministic screenshots)"
+$GRADLE checkPreviewTime && pass "preview time determinism" || fail "preview time determinism"
+
 step "No idToken parameter on UseCases (ADR-027 — token internal to repos)"
 $GRADLE checkNoTokenInUseCase && pass "no token in UseCase" || fail "no token in UseCase"
 

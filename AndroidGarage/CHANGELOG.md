@@ -15,6 +15,15 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.16.33
+- **`checkPreviewTime` build-time check** ported from battery-butler. Two-pass BFS that ensures `@Preview` Composables never transitively call a Composable whose default parameter value uses `Clock.System.now()` / `Instant.now()` / `System.currentTimeMillis()` etc. without explicitly passing the time parameter.
+  - **Why this matters**: `@Preview` and screenshot tests render at preview-time. A default like `now: Instant = Instant.now()` reads wall-clock at render — screenshots flap, golden-image tests get false-positive diffs, framed README screenshot drifts on every regen.
+  - **Pass 1**: collect "time-sensitive" Composables (those with a `now()`-defaulted parameter).
+  - **Pass 2**: BFS from each `@Preview` Composable through the call chain (depth-limited at 6). For every call to a time-sensitive Composable, verify the time-sensitive parameter was explicitly passed.
+  - **Codebase is clean at port time** — `rememberDurationSince` (the only Composable that calls `Instant.now()`) reads wall-clock from inside `LaunchedEffect` (not a default param) and short-circuits via `LocalInspectionMode` to a fixed value in previews. Zero violations; this prevents drift.
+  - **Suppression**: add `// @PreviewTimeExempt` on the call line if intentional.
+  - Wired into `validate.sh`. Adapted to use SmartGarageDoor's `sourceDirs: List<String>` convention (vs. battery-butler's `project.rootDir.walk()`).
+
 ## 2.16.32
 - **Stricter conformity checks ported from battery-butler.** No user-facing change; new build-time enforcement.
   - **`checkNamingConvention`** (NEW lint task in `:buildSrc`) — forbids `Ui` and `View` (except `*ViewModel`) in class/interface/object names. KMP guardrail: `Ui` collides with iOS UIKit naming; `View` is ambiguous between Android View system and Compose. Codebase is clean at port time. Suppress with `// @NamingExempt` for unavoidable cases. Wired into `validate.sh`.

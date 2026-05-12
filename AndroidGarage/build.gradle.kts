@@ -212,6 +212,12 @@ tasks.register<architecture.LiteralStringsInComposeCheckTask>("checkNoLiteralStr
     exemptionsFile = "$rootDir/string-literal-exemptions.txt"
 }
 
+tasks.register<architecture.PreviewTimeCheckTask>("checkPreviewTime") {
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+    )
+}
+
 tasks.register<architecture.NamingConventionCheckTask>("checkNamingConvention") {
     sourceDirs = listOf(
         "$rootDir/androidApp/src/main/java",
