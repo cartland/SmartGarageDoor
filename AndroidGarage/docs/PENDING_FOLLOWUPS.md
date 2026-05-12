@@ -1,10 +1,10 @@
 ---
 category: plan
 status: active
-last_verified: 2026-05-11
+last_verified: 2026-05-12
 ---
 
-> **Last update 2026-05-11:** Developer-allowlist flag fully shipped (server/26 + android/235). String-resource migration started — first PR (#784) covered SettingsContent; comprehensive plan added below.
+> **Last update 2026-05-12:** iOS KMP wiring landed (PRs #820–#824 → Phase 38A complete). Phase 38B–G (Xcode project + Swift bridges + SwiftUI screens) added as Open item 1 below, blocked on Apple Developer + Firebase iOS setup. Kotlin 2.2+ / kotlin-inject 0.9.0+ bump added as deferred Open item 2 with explicit tripwire.
 
 # Pending Follow-ups
 
@@ -16,7 +16,117 @@ User-flagged items that aren't tied to a specific release and aren't smoke-test 
 
 ## Open
 
-> **No open items.** The string-resource migration completed 2026-05-11; entry moved to Done. Add new follow-ups here as they're flagged.
+### 1. iOS app construction (post-`:iosFramework`)
+
+**Status:** Blocked on Apple Developer + Firebase iOS setup. The Kotlin/KMP side is complete as of `feat/ios-skie-nativecomponent` (PR #824) — the iOS framework builds end-to-end with the full kotlin-inject DI graph and SKIE bridging.
+
+**What's already done** (5 merged PRs):
+
+| PR | Scope |
+|---|---|
+| [#820](https://github.com/cartland/SmartGarageDoor/pull/820) | Delete dormant `:shared` scaffold, add `:iosFramework` Gradle module |
+| [#821](https://github.com/cartland/SmartGarageDoor/pull/821) | iOS targets on `:domain` + `:data`; Ktor Darwin engine; `kotlin.jvm.JvmInline` + `kotlinx.coroutines.IO` portability fixes |
+| ~~[#822](https://github.com/cartland/SmartGarageDoor/pull/822)~~ | (Closed — content bundled into #823's squash-merge) |
+| [#823](https://github.com/cartland/SmartGarageDoor/pull/823) | `:data-local` Room KMP + DataStore-Okio; DAO suspend refactor; kotlinx-datetime for `currentTimeMillis`; `DatabaseFactory` expect/actual; iOS targets on `:usecase`/`:viewmodel`/`:presentation-model`/`:test-common`; `AppStartup` moved to `:usecase/commonMain` |
+| [#824](https://github.com/cartland/SmartGarageDoor/pull/824) | SKIE 0.10.9 plugin; `NativeComponent` DI graph (mirrors `AppComponent` with iOS deps); `IosNativeHelper`; `NoOpAuthBridge` + `NoOpMessagingBridge` placeholders; kotlin-inject 0.8.0 downgrade (see follow-up #2 below) |
+
+**Remaining work** — each requires user setup that the Kotlin side can't supply:
+
+#### A. Firebase iOS configuration (one-time, user)
+- Create iOS app in the existing Firebase project (bundle ID `com.chriscartland.garage` per the iOS plan)
+- Download `GoogleService-Info.plist` and commit to `AndroidGarage/iosApp/iosApp/` (it's config, not a secret — same posture as Android's `google-services.json`)
+- Auto-generated iOS OAuth client ID gets pasted into `Info.plist` URL Types
+- Generate APNs `.p8` key in Apple Developer console, upload to Firebase Cloud Messaging tab (decision: `.p8` key over `.cer` cert — no annual rotation)
+
+#### B. Xcode project scaffold (1 PR)
+- New folder `AndroidGarage/iosApp/` with `iosApp.xcodeproj` and standard SwiftUI app skeleton
+- Folder layout matches battery-butler's `ios-app-swift-ui/`: `Core/`, `Features/`, `iosApp/iOSApp.swift`, `iosApp/AppDelegate.swift`
+- Build phase script invokes `./gradlew :iosFramework:embedAndSignAppleFrameworkForXcode`
+- `FRAMEWORK_SEARCH_PATHS` points at `$(SRCROOT)/../iosFramework/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)`
+- Embed `shared.framework` with "Embed & Sign"
+- SPM packages: `firebase-ios-sdk` (Auth + Messaging), `GoogleSignIn-iOS`
+- Capabilities: Push Notifications, Background Modes → Remote notifications
+- Deployment target: iOS 16
+- `SWIFT_STRICT_CONCURRENCY = minimal` + `@preconcurrency import shared` everywhere (Kotlin types lack Swift `Sendable` info)
+- Empty `iOSApp.swift` that just calls `IosNativeHelper().createComponent(NoOpAuthBridge, NoOpMessagingBridge, IosNativeHelper.defaultDevAppConfig)` — proves the framework integration before any real bridges
+
+#### C. Swift bridge implementations (1 PR)
+- `iosApp/Auth/FirebaseAuthBridge.swift`: conforms to Kotlin's `AuthBridge` protocol. Wraps Firebase `Auth.auth().addStateDidChangeListener` in `callbackFlow` per ADR-018; `signInWithGoogleToken(idToken)` calls `Auth.auth().signIn(with: GoogleAuthProvider.credential(...))`; `getIdToken(forceRefresh:)` and `signOut()` thin wrappers
+- `iosApp/Fcm/FirebaseMessagingBridge.swift`: conforms to Kotlin's `MessagingBridge`. `subscribeToTopic` / `unsubscribeFromTopic` / `getToken()` via `Messaging.messaging()` calls
+- `iosApp/AppDelegate.swift`: `UIApplicationDelegate` adopter. `application(_:didFinishLaunchingWithOptions:)` calls `FirebaseApp.configure()`, instantiates bridges, calls `IosNativeHelper().createComponent(...)`, kicks `component.appStartup.run()`. `application(_:didRegisterForRemoteNotificationsWithDeviceToken:)` forwards APNs token to FCM
+- `UNUserNotificationCenterDelegate.userNotificationCenter(_:didReceive:)` calls `component.receiveFcmDoorEventUseCase(event)` with the parsed payload — same KMP `FcmMessageHandler` Android uses
+
+#### D. SwiftUI infrastructure (1 PR)
+- `Core/SharedViewModel.swift` — the `@StateObject`-friendly wrapper that owns a `ViewModelStore` tied to SwiftUI view lifetime (pattern from kmp-mvvm-exploration). `deinit` → `viewModelStore.clear()` → Kotlin `viewModelScope` cancels
+- `Core/KotlinAliases.swift` — `typealias` cleanups for K/N's snake_case generated type names
+- `Core/Theme/` — hand-translated `Colors.swift` and `Spacing.swift` mirroring `androidApp/ui/theme/`. Light/dark via system
+- Empty `Features/` directory ready for screens
+- Tab bar shell with 5 placeholder tabs
+
+#### E. SwiftUI screens (5 PRs, one per screen)
+- `Features/Home/HomeScreen.swift` + `HomeViewModelWrapper.swift` — canonical example. Uses SKIE's `.collect(flow:into:)` modifier to bind `DefaultHomeViewModel`'s `StateFlow`s to SwiftUI `@State`. Actions dispatch via direct `vm.instance.onTapButton()` calls. Sealed-class state types map to Swift `enum` via SKIE's `switch onEnum(of:)`
+- `Features/History/HistoryScreen.swift` + wrapper
+- `Features/Profile/ProfileScreen.swift` + wrapper
+- `Features/FunctionList/FunctionListScreen.swift` + wrapper
+- `Features/Diagnostics/DiagnosticsScreen.swift` + wrapper
+
+#### F. CI + release (1 PR)
+- New `scripts/release-ios.sh` mirroring `release-android.sh`: bump `CFBundleShortVersionString` + `CFBundleVersion`, tag `ios/N`, `xcodebuild archive` + `xcrun altool` to TestFlight
+- New `scripts/validate-ios.sh` building the framework + running Kotlin tests for iOS targets + `xcodebuild test` for SwiftUI unit tests
+- GitHub Actions `ios-ci.yml` on `macos-latest`
+- `AndroidGarage/iosApp/CHANGELOG.md` with `## N.M.K` heading rule (mirrors Android changelog gate)
+- First TestFlight Internal Testing distribution
+
+#### G. App Store submission (1 PR — last)
+- App icon (1024×1024, reuse Android artwork's primary glyph)
+- Screenshots for App Store Connect (iPhone + iPad)
+- Marketing description, keywords, age rating, privacy policy URL, support URL
+- Encryption export compliance: `ITSAppUsesNonExemptEncryption = NO` in `Info.plist`
+- Privacy manifest `PrivacyInfo.xcprivacy` (Firebase Auth = "User ID, linked to user, used for App Functionality")
+- Submit for review
+
+**Sequencing**: B → C → D → E (each screen as a separate PR, parallelizable after D) → F → G. Total: 10–14 PRs depending on whether screens parallelize.
+
+**Decisions already locked** (from the iOS migration plan):
+- Bundle ID: `com.chriscartland.garage`
+- Universal (iPhone + iPad)
+- iOS 16 minimum
+- Google Sign-In only (no Apple Sign-In v1 — may add if App Store review demands)
+- Framework name: `shared`, module name: `:iosFramework`
+- DI: kotlin-inject `NativeComponent`
+- Bridge tech: SKIE
+- Wrapper: `SharedViewModel<VM>` (battery-butler pattern)
+- Tabs: Home / History / Profile / Functions / Diagnostics (mirror Android)
+- Theme: system light/dark
+- Localization: English only at launch
+- APNs auth: `.p8` key
+- Versioning: independent, `ios/N` tags
+
+### 2. kotlin-inject 0.8.0 → 0.9.0+ via Kotlin 2.2+ bump (deferred)
+
+**Status:** Deferred. PR #824 downgraded kotlin-inject from 0.9.0 → 0.8.0 because 0.9.0's KLIBs are built with Kotlin 2.2.20 and this project is on Kotlin 2.1.20 (the Kotlin/Native KLIB resolver rejects the version mismatch). 0.8.0 is the youngest pre-2.2 release on Maven Central and works fine for both Android (`AppComponent`) and iOS (`NativeComponent`).
+
+**Why deferred:** the downgrade is not blocking iOS work. 0.8.0 still receives maintenance fixes; the 0.9.0 features we'd gain (improved KSP error messages, minor codegen tweaks) are nice-to-haves, not requirements.
+
+**Tripwire — revisit when ANY of these fire:**
+- A specific Kotlin 2.2+ language or KMP feature blocks something concrete (not "would be nicer")
+- SKIE releases a version requiring Kotlin 2.2+
+- kotlin-inject 0.8.x stops getting maintenance fixes (watch the GitHub releases page)
+- battery-butler diverges enough in its reference patterns that we lose the cross-reference value (battery-butler is currently on Kotlin 2.3.0 + kotlin-inject 0.9.0)
+- Bumping for an unrelated reason (e.g., AGP requires Kotlin 2.2+) lands this for free
+
+**Scope when done** (multi-PR per `docs/DEPENDENCY_UPGRADES.md`):
+1. Bump Kotlin to 2.2.20 or 2.3.0 in `libs.versions.toml`
+2. Bump KSP to the matching `<kotlin>-<ksp>` version
+3. Bump Compose Compiler plugin (tied to Kotlin)
+4. Bump Detekt to ≥1.24.0 (Kotlin 2.2 source-compat)
+5. Bump kotlin-inject `0.8.0 → 0.9.0+` once Kotlin is on 2.2+
+6. Verify Room 2.7.2 KSP still works (or bump to next Room point release)
+7. Touch `buildSrc/` Gradle tasks if Kotlin API breaks (the 7 custom architecture-check tasks use compiler reflection)
+8. Run `validate.sh` end-to-end
+9. Test both Android (debug + release) and iOS framework link
+
+**Why this needs care:** Kotlin major-version bumps are a runtime-level change that touches every module. The project has a documented sequencing playbook at [`docs/DEPENDENCY_UPGRADES.md`](../../docs/DEPENDENCY_UPGRADES.md) for exactly this kind of cascade — use it.
 
 <!-- Historical reference: original Phase 1/2/3 migration plan now in Done. -->
 
