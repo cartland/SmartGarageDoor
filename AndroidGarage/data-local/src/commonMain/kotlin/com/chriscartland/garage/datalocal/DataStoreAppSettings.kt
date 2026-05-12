@@ -24,6 +24,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.chriscartland.garage.domain.model.NavigationRailItemPosition
+import com.chriscartland.garage.domain.model.NavigationRailLayout
 import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import com.chriscartland.garage.domain.repository.Setting
 import kotlinx.coroutines.flow.Flow
@@ -57,7 +58,11 @@ class DataStoreAppSettings(
             valueOf = NavigationRailItemPosition::valueOf,
         )
     override val navigationRailTopPaddingDp: Setting<Int> =
-        DataStoreIntSetting(dataStore, "NAVIGATION_RAIL_TOP_PADDING_DP", 8)
+        DataStoreIntSetting(
+            dataStore,
+            "NAVIGATION_RAIL_TOP_PADDING_DP",
+            NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
+        )
 }
 
 private class DataStoreStringSetting(

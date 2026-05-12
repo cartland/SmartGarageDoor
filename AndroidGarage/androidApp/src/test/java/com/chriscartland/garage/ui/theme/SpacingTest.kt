@@ -18,6 +18,7 @@
 package com.chriscartland.garage.ui.theme
 
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.domain.model.NavigationRailLayout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -60,5 +61,25 @@ class SpacingTest {
         val pv = Spacing.ListContentPadding
         assertEquals(16.dp, pv.calculateTopPadding())
         assertEquals(24.dp, pv.calculateBottomPadding())
+    }
+
+    /**
+     * The Wide-mode NavigationRail's default extra top padding is
+     * derived from `Spacing.ListContentPadding.top` minus M3's
+     * intrinsic pre-pill offset (see `NavigationRailLayout` KDoc).
+     * If `Spacing.ListContentPadding.top` and
+     * `NavigationRailLayout.BODY_CONTENT_TOP_DP` drift apart, the rail
+     * default will silently misalign. Pin them as a single source.
+     */
+    @Test
+    fun navRailBodyContentTopMatchesListContentPaddingTop() {
+        assertEquals(
+            "NavigationRailLayout.BODY_CONTENT_TOP_DP must match " +
+                "Spacing.ListContentPadding.top so the derived rail " +
+                "default keeps the selected indicator pill aligned " +
+                "with body content. See NavigationRailLayout KDoc.",
+            Spacing.ListContentPadding.calculateTopPadding(),
+            NavigationRailLayout.BODY_CONTENT_TOP_DP.dp,
+        )
     }
 }

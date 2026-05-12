@@ -28,6 +28,7 @@ import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.NavigationRailItemPosition
+import com.chriscartland.garage.domain.model.NavigationRailLayout
 import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
@@ -160,7 +161,8 @@ class DefaultProfileViewModel(
     override val navigationRailItemPosition: StateFlow<NavigationRailItemPosition> =
         _navigationRailItemPosition
 
-    private val _navigationRailTopPaddingDp = MutableStateFlow(8)
+    private val _navigationRailTopPaddingDp =
+        MutableStateFlow(NavigationRailLayout.DEFAULT_TOP_PADDING_DP)
     override val navigationRailTopPaddingDp: StateFlow<Int> = _navigationRailTopPaddingDp
 
     // Cached so the snooze action can attach the latest door change time
