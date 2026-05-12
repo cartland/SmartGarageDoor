@@ -358,7 +358,7 @@ The original DEFERRED sub-sections landed through the Android Purity wave:
 | 10. Shared ViewModels | Medium | Phase 9 | **COMPLETE** (all 5 ViewModels in shared modules) |
 | 11. Platform Abstractions | Small | Phase 9 | **COMPLETE** (bridges extracted) |
 | 12. Type-Safe Navigation | Medium | None | **COMPLETE** (Nav2→Nav3 in #192) |
-| 13. iOS Target | Large | Phase 38 | TODO (renumbered to Phase 38) |
+| 13. iOS Target | Large | Phase 38 | **IN PROGRESS** — KMP wiring landed 2026-05-12 in PRs #820–#824 (Phase 38A). Xcode + Swift bridges + SwiftUI screens pending (Phase 38B–G — see [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md)). |
 | 14. Typed Errors | Medium | Phase 8 | **COMPLETE** |
 | 15. Kermit Logging | Small | None | **COMPLETE** |
 | 16. Integration Tests | Medium | Phase 9 | **COMPLETE** (data module) |
@@ -611,13 +611,31 @@ New UseCases created for the migration:
 
 **Goal:** Add iOS app consuming shared KMP modules via SwiftUI.
 
-**Changes:**
-- Add iOS targets (iosArm64, iosSimulatorArm64) to shared modules
-- Add `actual` implementations: Darwin HTTP engine, iOS database factory, currentTimeMillis
-- iOS auth: Google Sign-In SDK → Firebase Auth (same backend, iOS-specific SDK)
-- iOS push: Firebase Cloud Messaging or APNs (whichever is more maintainable)
-- Create Swift DI bridge module (`ios-swift-di`)
-- SwiftUI screens observing shared ViewModels via `@ObservableObject` wrapper
-- Xcode project, signing, CI
+### Phase 38A: KMP wiring — COMPLETE (2026-05-12, PRs #820–#824)
 
-**Rule:** Finish each phase before starting the next. Update this document with commit hashes when items complete.
+All shared modules build for iOS. The `:iosFramework` module produces `shared.framework` with the full kotlin-inject DI graph and SKIE bridging.
+
+| PR | Scope | SHA |
+|---|---|---|
+| [#820](https://github.com/cartland/SmartGarageDoor/pull/820) | Delete dormant `:shared` scaffold, add `:iosFramework` skeleton | `6be9ec87` |
+| [#821](https://github.com/cartland/SmartGarageDoor/pull/821) | iOS targets on `:domain` + `:data`; Ktor Darwin engine; portability fixes | `a58f6417` |
+| ~~[#822](https://github.com/cartland/SmartGarageDoor/pull/822)~~ | Closed — content rolled up into #823's squash-merge | — |
+| [#823](https://github.com/cartland/SmartGarageDoor/pull/823) | `:data-local` Room KMP + DataStore-Okio; DAO suspend refactor; kotlinx-datetime; iOS targets on remaining shared modules; `AppStartup` moved to `:usecase` | `024d772b` |
+| [#824](https://github.com/cartland/SmartGarageDoor/pull/824) | SKIE 0.10.9 + kotlin-inject `NativeComponent` DI graph + `IosNativeHelper` + NoOp bridges | (pending merge) |
+
+**Deferred from Phase 38A:** kotlin-inject 0.8.0 → 0.9.0+ via Kotlin 2.2+ bump — see [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md) item 2 for the tripwire.
+
+### Phase 38B–G: iOS app — PENDING USER SETUP
+
+Full per-PR breakdown lives in [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md) item 1. Quick map:
+
+- **38B** Xcode project scaffold + framework embed + SPM Firebase iOS / Google Sign-In (1 PR, needs `GoogleService-Info.plist`)
+- **38C** Swift `AuthBridge` + `MessagingBridge` implementations + `AppDelegate` (1 PR)
+- **38D** SwiftUI infrastructure: `SharedViewModel<VM>` wrapper, theme tokens hand-translated, tab shell (1 PR)
+- **38E** 5 SwiftUI screens, one PR each (Home, History, Profile, FunctionList, Diagnostics)
+- **38F** `release-ios.sh` + `validate-ios.sh` + GitHub Actions CI + first TestFlight (1 PR)
+- **38G** App Store assets + privacy manifest + submission (1 PR)
+
+**Decisions locked** during Phase 38A planning: bundle ID `com.chriscartland.garage`, Universal (iPhone + iPad), iOS 16 minimum, Google Sign-In only, framework `shared`, module `:iosFramework`, SKIE for bridging, `SharedViewModel<VM>` for VM ownership, mirror Android tab order, system light/dark, English only, APNs `.p8` key, independent `ios/N` versioning. See [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md) for the rationale on each.
+
+**Rule:** Finish each sub-phase before starting the next within a track. Sub-phases 38E (the 5 screens) parallelize after 38D lands. Update this document and the PENDING_FOLLOWUPS entry as items complete.
