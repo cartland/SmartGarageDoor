@@ -493,7 +493,7 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
-    fun provideAppDatabase(): AppDatabase = DatabaseFactory.getDatabase(application)
+    fun provideAppDatabase(): AppDatabase = DatabaseFactory(application).createDatabase()
 
     @Provides
     @Singleton

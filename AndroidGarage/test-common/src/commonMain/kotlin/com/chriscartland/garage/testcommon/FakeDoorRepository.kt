@@ -56,7 +56,7 @@ class FakeDoorRepository : DoorRepository {
 
     override suspend fun fetchBuildTimestampCached(): String? = buildTimestamp
 
-    override fun insertDoorEvent(doorEvent: DoorEvent) {
+    override suspend fun insertDoorEvent(doorEvent: DoorEvent) {
         _currentDoorEvent.value = doorEvent
         _currentDoorPosition.value = doorEvent.doorPosition ?: DoorPosition.UNKNOWN
     }

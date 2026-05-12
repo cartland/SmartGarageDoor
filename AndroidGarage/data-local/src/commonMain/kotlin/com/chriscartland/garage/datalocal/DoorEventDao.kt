@@ -33,17 +33,17 @@ interface DoorEventDao {
     fun recentDoorEvents(): Flow<List<DoorEventEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(doorEvent: DoorEventEntity)
+    suspend fun insert(doorEvent: DoorEventEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertList(doorEvents: List<DoorEventEntity>)
+    suspend fun insertList(doorEvents: List<DoorEventEntity>)
 
     @Transaction
-    fun replaceAll(doorEvents: List<DoorEventEntity>) {
+    suspend fun replaceAll(doorEvents: List<DoorEventEntity>) {
         deleteAll()
         insertList(doorEvents)
     }
 
     @Query("DELETE FROM DoorEvent")
-    fun deleteAll()
+    suspend fun deleteAll()
 }

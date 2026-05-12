@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface AppLoggerDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(appEvent: AppEvent)
+    suspend fun insert(appEvent: AppEvent)
 
     @Query("SELECT * FROM appEvent ORDER BY timestamp ASC")
     fun getAll(): Flow<List<AppEvent>>
@@ -36,20 +36,20 @@ interface AppLoggerDao {
     fun countKey(key: String): Flow<Long>
 
     @Query("SELECT DISTINCT eventKey FROM appEvent")
-    fun distinctKeys(): List<String>
+    suspend fun distinctKeys(): List<String>
 
     @Query(
         "DELETE FROM appEvent WHERE eventKey = :key " +
             "AND id NOT IN (SELECT id FROM appEvent WHERE eventKey = :key " +
             "ORDER BY timestamp DESC, id DESC LIMIT :limit)",
     )
-    fun pruneKey(
+    suspend fun pruneKey(
         key: String,
         limit: Int,
     )
 
     @Transaction
-    fun insertAndPruneKey(
+    suspend fun insertAndPruneKey(
         appEvent: AppEvent,
         limit: Int,
     ) {
@@ -66,7 +66,7 @@ interface AppLoggerDao {
      * legacy table may have ~50K rows across many keys, and FCM /
      * staleness / auth code paths may be firing log() simultaneously.
      */
-    fun pruneAllKeys(limit: Int) {
+    suspend fun pruneAllKeys(limit: Int) {
         require(limit > 0) { "limit must be > 0; got $limit" }
         for (key in distinctKeys()) {
             pruneKey(key, limit)
@@ -74,5 +74,5 @@ interface AppLoggerDao {
     }
 
     @Query("DELETE FROM appEvent")
-    fun deleteAllAppEvents()
+    suspend fun deleteAllAppEvents()
 }

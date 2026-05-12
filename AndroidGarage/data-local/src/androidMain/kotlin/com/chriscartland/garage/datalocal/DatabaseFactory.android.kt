@@ -5,24 +5,20 @@ import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 
 /**
- * Android-specific database factory.
- *
- * Uses Android [Context] for database file path.
- * iOS would use NSDocumentDirectory instead.
+ * Android `actual` for [DatabaseFactory]. Resolves the SQLite file
+ * path via `context.getDatabasePath("database")`. The kotlin-inject
+ * `@Singleton` provider in `AppComponent` is the singleton scope —
+ * no internal caching needed here.
  */
-object DatabaseFactory {
-    @Volatile
-    private var instance: AppDatabase? = null
-
-    fun getDatabase(context: Context): AppDatabase =
-        instance ?: synchronized(this) {
-            instance ?: Room
-                .databaseBuilder<AppDatabase>(
-                    context = context,
-                    name = context.getDatabasePath("database").absolutePath,
-                ).setDriver(BundledSQLiteDriver())
-                .fallbackToDestructiveMigration(false)
-                .build()
-                .also { instance = it }
-        }
+actual class DatabaseFactory(
+    private val context: Context,
+) {
+    actual fun createDatabase(): AppDatabase =
+        Room
+            .databaseBuilder<AppDatabase>(
+                context = context,
+                name = context.getDatabasePath("database").absolutePath,
+            ).setDriver(BundledSQLiteDriver())
+            .fallbackToDestructiveMigration(false)
+            .build()
 }
