@@ -11,7 +11,12 @@ tasks.register<ImportBoundaryCheckTask>("checkImportBoundary") {
 }
 
 kotlin {
+    applyDefaultHierarchyTemplate()
+
     androidTarget()
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
 
     sourceSets {
         commonMain.dependencies {
@@ -26,6 +31,9 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
+        }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
         commonTest.dependencies {
             implementation(project(":test-common"))
