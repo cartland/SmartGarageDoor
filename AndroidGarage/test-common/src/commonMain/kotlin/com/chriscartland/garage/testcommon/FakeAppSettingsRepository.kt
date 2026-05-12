@@ -1,6 +1,7 @@
 package com.chriscartland.garage.testcommon
 
 import com.chriscartland.garage.domain.model.NavigationRailItemPosition
+import com.chriscartland.garage.domain.model.NavigationRailLayout
 import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import com.chriscartland.garage.domain.repository.Setting
 import kotlinx.coroutines.flow.Flow
@@ -14,7 +15,8 @@ class FakeAppSettingsRepository : AppSettingsRepository {
     override val layoutDebugEnabled: Setting<Boolean> = InMemorySetting(false)
     override val navigationRailItemPosition: Setting<NavigationRailItemPosition> =
         InMemorySetting(NavigationRailItemPosition.TopAligned)
-    override val navigationRailTopPaddingDp: Setting<Int> = InMemorySetting(8)
+    override val navigationRailTopPaddingDp: Setting<Int> =
+        InMemorySetting(NavigationRailLayout.DEFAULT_TOP_PADDING_DP)
 }
 
 class InMemorySetting<T>(

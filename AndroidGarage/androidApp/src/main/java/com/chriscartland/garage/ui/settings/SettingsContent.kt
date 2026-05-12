@@ -60,6 +60,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.NavigationRailItemPosition
+import com.chriscartland.garage.domain.model.NavigationRailLayout
 import com.chriscartland.garage.ui.theme.AppAnimatedVisibility
 import com.chriscartland.garage.ui.theme.DividerInset
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
@@ -422,7 +423,7 @@ fun SettingsContentSignedOutPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
-            navigationRailTopPaddingDp = 8,
+            navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
         )
     }
 }
@@ -444,7 +445,7 @@ fun SettingsContentSignedInBasicPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
-            navigationRailTopPaddingDp = 8,
+            navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
         )
     }
 }
@@ -466,7 +467,7 @@ fun SettingsContentSignedInAllowlistedPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.TopAligned,
-            navigationRailTopPaddingDp = 8,
+            navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
         )
     }
 }
@@ -488,7 +489,7 @@ fun SettingsContentPermissionDeniedPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
-            navigationRailTopPaddingDp = 8,
+            navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
         )
     }
 }
@@ -513,7 +514,7 @@ fun SettingsContentSnoozeInFlightPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
-            navigationRailTopPaddingDp = 8,
+            navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
             snoozeInFlight = true,
         )
     }

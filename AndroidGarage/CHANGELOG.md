@@ -15,6 +15,14 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.16.31
+- **Default Nav rail top padding is now derived, not hardcoded.** Pre-2.16.31 the value `8` appeared as a literal in 8 places (`DataStoreAppSettings`, `FakeAppSettingsRepository`, `ProfileViewModel` initial state, 5 preview call sites). The relationship between `8` and `Spacing.ListContentPadding.top` (16 dp) was implicit — a future bump of `Spacing.ListContentPadding.top` (e.g. for a more spacious section rhythm) would silently break rail-vs-content alignment until someone smoke-tested on hardware. Now the default is **derived** from a single named relationship: `DEFAULT_TOP_PADDING_DP = BODY_CONTENT_TOP_DP − RAIL_INTRINSIC_PILL_OFFSET_DP`.
+  - **User-facing**: no behavior change. Default is still 8 dp; users can still override via Settings → Developer → Nav rail.
+  - **Internal: new domain object `NavigationRailLayout`** (in `:domain/.../model/NavigationRailLayout.kt`) with three named constants — `BODY_CONTENT_TOP_DP = 16`, `RAIL_INTRINSIC_PILL_OFFSET_DP = 8`, `DEFAULT_TOP_PADDING_DP = 8` (derived). Class KDoc explains the math (body-content-top vs rail-internal-padding) and the M3-internals drift risk (the `8` sum captures `NavigationRailVerticalPadding` 4 dp + `NavigationRailItem`'s own pre-pill padding 4 dp, neither of which is exposed by `androidx.compose.material3`).
+  - **Internal: 3 source-of-truth defaults** updated to use the derived constant: `DataStoreAppSettings.navigationRailTopPaddingDp`, `FakeAppSettingsRepository.navigationRailTopPaddingDp`, `ProfileViewModel._navigationRailTopPaddingDp`.
+  - **Internal: 7 preview call sites** in `:androidApp` updated from `navigationRailTopPaddingDp = 8` → `NavigationRailLayout.DEFAULT_TOP_PADDING_DP`.
+  - **Internal: build-time pin** — new `SpacingTest.navRailBodyContentTopMatchesListContentPaddingTop` asserts `Spacing.ListContentPadding.top.value == NavigationRailLayout.BODY_CONTENT_TOP_DP`. If a future PR bumps `Spacing.ListContentPadding.top` (e.g. 16 → 24) without also updating the domain constant, the test fails the build with a message pointing at `NavigationRailLayout` KDoc.
+
 ## 2.16.30
 - **Spacing rule audit fixes — bottom sheets and history.** Follow-up to 2.16.29 ("container owns the gap"). An audit found 5 more violations of the same rule across bottom sheets and the door-history screen. All fixed in this release; no children claim a vertical gap above or below themselves.
   - **Snooze sheet**: dropped `Modifier.padding(bottom = 8.dp)` from the title `Text`. The parent Column already provides 8 dp via `spacedBy(8.dp)`; the title was double-padding to **16 dp** while subsequent radio rows had **8 dp** — visible inconsistency.
