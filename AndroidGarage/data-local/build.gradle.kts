@@ -17,11 +17,16 @@ tasks.register<ImportBoundaryCheckTask>("checkImportBoundary") {
 }
 
 kotlin {
+    applyDefaultHierarchyTemplate()
+
     androidTarget {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
     }
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
 
     sourceSets {
         commonMain.dependencies {
@@ -29,6 +34,7 @@ kotlin {
             implementation(project(":data"))
             implementation(libs.kermit)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.datetime)
             api(libs.androidx.room.runtime)
             implementation(libs.sqlite.bundled)
             // `api` (not `implementation`) because DataStoreFactory's public
@@ -60,4 +66,7 @@ room {
 
 dependencies {
     add("kspAndroid", libs.androidx.room.compiler)
+    add("kspIosX64", libs.androidx.room.compiler)
+    add("kspIosArm64", libs.androidx.room.compiler)
+    add("kspIosSimulatorArm64", libs.androidx.room.compiler)
 }

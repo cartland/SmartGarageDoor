@@ -15,18 +15,11 @@
  *
  */
 
-package com.chriscartland.garage
+package com.chriscartland.garage.usecase
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppLoggerKeys
-import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
-import com.chriscartland.garage.usecase.CheckInStalenessManager
-import com.chriscartland.garage.usecase.FcmRegistrationManager
-import com.chriscartland.garage.usecase.InitialDoorFetchManager
-import com.chriscartland.garage.usecase.LiveClock
-import com.chriscartland.garage.usecase.LogAppEventUseCase
-import com.chriscartland.garage.usecase.RunStartupDiagnosticsMaintenanceUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 

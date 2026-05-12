@@ -33,12 +33,12 @@ class DatabaseLocalDoorDataSource(
             entities.map { it.toDomain() }
         }
 
-    override fun insertDoorEvent(doorEvent: DoorEvent) {
+    override suspend fun insertDoorEvent(doorEvent: DoorEvent) {
         Logger.d { "Inserting DoorEvent: $doorEvent" }
         appDatabase.doorEventDao().insert(doorEvent.toEntity())
     }
 
-    override fun replaceDoorEvents(doorEvents: List<DoorEvent>) {
+    override suspend fun replaceDoorEvents(doorEvents: List<DoorEvent>) {
         Logger.d { "Replacing DoorEvents: $doorEvents" }
         appDatabase.doorEventDao().replaceAll(doorEvents.map { it.toEntity() })
     }

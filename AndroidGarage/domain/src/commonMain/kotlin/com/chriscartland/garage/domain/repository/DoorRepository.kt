@@ -29,7 +29,7 @@ interface DoorRepository {
 
     suspend fun fetchBuildTimestampCached(): String?
 
-    fun insertDoorEvent(doorEvent: DoorEvent)
+    suspend fun insertDoorEvent(doorEvent: DoorEvent)
 
     /** One-time request: fetch current door event from server and cache locally. */
     suspend fun fetchCurrentDoorEvent(): AppResult<DoorEvent, FetchError>

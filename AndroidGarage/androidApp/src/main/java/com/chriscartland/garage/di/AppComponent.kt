@@ -20,7 +20,6 @@ package com.chriscartland.garage.di
 import android.app.Application
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import com.chriscartland.garage.AppStartup
 import com.chriscartland.garage.BuildConfig
 import com.chriscartland.garage.auth.FirebaseAuthBridge
 import com.chriscartland.garage.config.AppConfigFactory
@@ -72,6 +71,7 @@ import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.domain.repository.SnoozeRepository
 import com.chriscartland.garage.fcm.FirebaseMessagingBridge
 import com.chriscartland.garage.usecase.AppSettingsUseCase
+import com.chriscartland.garage.usecase.AppStartup
 import com.chriscartland.garage.usecase.ApplyButtonHealthFcmUseCase
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
@@ -493,7 +493,7 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
-    fun provideAppDatabase(): AppDatabase = DatabaseFactory.getDatabase(application)
+    fun provideAppDatabase(): AppDatabase = DatabaseFactory(application).createDatabase()
 
     @Provides
     @Singleton

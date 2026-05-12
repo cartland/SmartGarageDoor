@@ -84,7 +84,7 @@ class NetworkDoorRepository(
         return cached?.buildTimestamp
     }
 
-    override fun insertDoorEvent(doorEvent: DoorEvent) {
+    override suspend fun insertDoorEvent(doorEvent: DoorEvent) {
         Logger.d { "Inserting DoorEvent: $doorEvent" }
         localDoorDataSource.insertDoorEvent(doorEvent)
     }

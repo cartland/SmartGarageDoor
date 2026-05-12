@@ -45,12 +45,12 @@ class InMemoryLocalDoorDataSource : LocalDoorDataSource {
     val replaceCalls: List<List<DoorEvent>> get() = _replaceCalls
     val replaceCount: Int get() = _replaceCalls.size
 
-    override fun insertDoorEvent(doorEvent: DoorEvent) {
+    override suspend fun insertDoorEvent(doorEvent: DoorEvent) {
         _insertCalls.add(doorEvent)
         _currentDoorEvent.value = doorEvent
     }
 
-    override fun replaceDoorEvents(doorEvents: List<DoorEvent>) {
+    override suspend fun replaceDoorEvents(doorEvents: List<DoorEvent>) {
         _replaceCalls.add(doorEvents)
         _recentDoorEvents.value = doorEvents
         if (doorEvents.isNotEmpty()) {

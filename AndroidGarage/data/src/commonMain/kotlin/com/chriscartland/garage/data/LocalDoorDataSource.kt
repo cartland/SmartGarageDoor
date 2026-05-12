@@ -13,7 +13,7 @@ interface LocalDoorDataSource {
     val currentDoorEvent: Flow<DoorEvent?>
     val recentDoorEvents: Flow<List<DoorEvent>>
 
-    fun insertDoorEvent(doorEvent: DoorEvent)
+    suspend fun insertDoorEvent(doorEvent: DoorEvent)
 
-    fun replaceDoorEvents(doorEvents: List<DoorEvent>)
+    suspend fun replaceDoorEvents(doorEvents: List<DoorEvent>)
 }

@@ -23,13 +23,19 @@ tasks.register<ImportBoundaryCheckTask>("checkImportBoundary") {
 }
 
 kotlin {
+    applyDefaultHierarchyTemplate()
+
     androidTarget()
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
 
     sourceSets {
         commonMain.dependencies {
             implementation(project(":domain"))
             implementation(project(":usecase"))
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.datetime)
             implementation(libs.kermit)
             implementation(libs.androidx.lifecycle.viewmodel)
         }
