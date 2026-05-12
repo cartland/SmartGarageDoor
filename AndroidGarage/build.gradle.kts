@@ -212,6 +212,19 @@ tasks.register<architecture.LiteralStringsInComposeCheckTask>("checkNoLiteralStr
     exemptionsFile = "$rootDir/string-literal-exemptions.txt"
 }
 
+tasks.register<architecture.NamingConventionCheckTask>("checkNamingConvention") {
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+        "$rootDir/domain/src/commonMain/kotlin",
+        "$rootDir/data/src/commonMain/kotlin",
+        "$rootDir/data-local/src/commonMain/kotlin",
+        "$rootDir/usecase/src/commonMain/kotlin",
+        "$rootDir/viewmodel/src/commonMain/kotlin",
+        "$rootDir/presentation-model/src/commonMain/kotlin",
+        "$rootDir/test-common/src/commonMain/kotlin",
+    )
+}
+
 tasks.register<architecture.NoBareTopLevelFunctionsTask>("checkNoBareTopLevelFunctions") {
     sourceDirs = listOf(
         "$rootDir/androidApp/src/main/java",

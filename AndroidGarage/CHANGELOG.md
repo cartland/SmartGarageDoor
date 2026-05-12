@@ -15,6 +15,13 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.16.32
+- **Stricter conformity checks ported from battery-butler.** No user-facing change; new build-time enforcement.
+  - **`checkNamingConvention`** (NEW lint task in `:buildSrc`) — forbids `Ui` and `View` (except `*ViewModel`) in class/interface/object names. KMP guardrail: `Ui` collides with iOS UIKit naming; `View` is ambiguous between Android View system and Compose. Codebase is clean at port time. Suppress with `// @NamingExempt` for unavoidable cases. Wired into `validate.sh`.
+  - **`naming.InvalidPackageDeclaration`** (detekt rule, was off) — pins the root package to `com.chriscartland.garage`. Catches typos, misplaced files, and accidental drift to other roots when copy-pasting from sibling repos.
+  - **`style.ForbiddenMethodCall`** (detekt rule, was off) — blocks `print` and `println` outside test/script paths. Production code uses Kermit (`Logger.d/e`) so output is structured and routable. Currently zero violations; this prevents drift.
+- **Internal: ported from battery-butler 2026-05-12.** Pattern follows existing SmartGarageDoor Gradle task conventions (`abstract class ... : DefaultTask()`, `@get:Input var sourceDirs`, registered in root `build.gradle.kts`).
+
 ## 2.16.31
 - **Default Nav rail top padding is now derived, not hardcoded.** Pre-2.16.31 the value `8` appeared as a literal in 8 places (`DataStoreAppSettings`, `FakeAppSettingsRepository`, `ProfileViewModel` initial state, 5 preview call sites). The relationship between `8` and `Spacing.ListContentPadding.top` (16 dp) was implicit — a future bump of `Spacing.ListContentPadding.top` (e.g. for a more spacious section rhythm) would silently break rail-vs-content alignment until someone smoke-tested on hardware. Now the default is **derived** from a single named relationship: `DEFAULT_TOP_PADDING_DP = BODY_CONTENT_TOP_DP − RAIL_INTRINSIC_PILL_OFFSET_DP`.
   - **User-facing**: no behavior change. Default is still 8 dp; users can still override via Settings → Developer → Nav rail.
