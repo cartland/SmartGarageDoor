@@ -34,6 +34,13 @@ User-facing changes that have shipped to the **internal Play Store track** but n
    - **Function list**: gap between every button row is now 16 dp instead of 8 dp. List is taller; flicks more open. Same content, more breathable.
    - If any screen feels visibly tighter than the others or any section's header sits at an inconsistent y, file an issue — the rule is uniform 16 dp on every screen-level scrollable.
    - **Reference PNGs are stale on main** — local Layoutlib regen produced blank PNGs on this Mac. Smoke is the verification gate; PNGs will be regenerated on a working environment in a follow-up PR.
+3. **`android/243` / 2.16.30 + 2.16.31 — Spacing rule audit fixes + derived Nav rail default.** Combined release; both versions ship in the same APK (versionName 2.16.31). To verify on a real device:
+   - **(2.16.30) Snooze sheet rhythm**: open Snooze sheet → title-to-first-row gap should match row-to-row gap (uniform 8 dp). Pre-2.16.30 the title was 16 dp from the first row while rows were 8 dp apart — the inconsistency is gone.
+   - **(2.16.30) Version sheet rhythm**: open Settings → About → tap version row. Visual structure preserved: Icon and "App version" title cluster at the top with 16 dp between, then ~24 dp gap, then 4 field rows tightly packed (8 dp inter-row). Should look the same as before.
+   - **(2.16.30) Account sheet rhythm**: tap signed-in account chip (or Settings → Account). Icon at top, then identity cluster (display name + email tight together with 4 dp), then ~24 dp gap, then Sign out button. Should look the same as before.
+   - **(2.16.30) DoorHistory error banners**: trigger a stale-checkin or fetch error if possible. Banner should sit 16 dp below the TopAppBar and 32 dp above the history list (deliberate visual separation between error banner and content). With NO error, the history list itself sits 16 dp below the TopAppBar (no double-padding).
+   - **(2.16.30) History empty state**: clear all door history (or fresh install with no FCM events) → "No door events yet" empty state should be **vertically centered** in the available LazyColumn area, not pushed down 64 dp from the top (the prior behavior). UX improvement.
+   - **(2.16.31) Nav rail alignment unchanged**: open app on Wide layout (≥600dp, <1200dp) → selected indicator pill top still aligns with body's first content row top (same as 2.16.29). Default value is still 8 dp; no behavior change. Settings → Developer → Nav rail still works for override + reset.
 
 ## Open follow-ups (release-related but not smoke-test items)
 
