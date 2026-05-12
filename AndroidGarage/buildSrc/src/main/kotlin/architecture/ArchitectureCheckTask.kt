@@ -30,8 +30,8 @@ abstract class ArchitectureCheckTask : DefaultTask() {
         ":presentation-model" to listOf(":domain"),
         ":androidApp" to listOf("*"),
         ":android-screenshot-tests" to listOf("*"),
+        ":iosFramework" to listOf("*"),
         ":macrobenchmark" to listOf("*"),
-        ":shared" to listOf("*"),
     )
 
     /**
