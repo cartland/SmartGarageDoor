@@ -218,6 +218,16 @@ tasks.register<architecture.PreviewTimeCheckTask>("checkPreviewTime") {
     )
 }
 
+tasks.register<architecture.ThemeDetectionCheckTask>("checkThemeDetection") {
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+    )
+    // Files inside any directory containing this fragment may call
+    // `isSystemInDarkTheme()`; everything else must read theme values
+    // through `MaterialTheme.colorScheme.*` after `AppTheme` resolves.
+    themePathFragments = listOf("/ui/theme/")
+}
+
 tasks.register<architecture.NamingConventionCheckTask>("checkNamingConvention") {
     sourceDirs = listOf(
         "$rootDir/androidApp/src/main/java",
