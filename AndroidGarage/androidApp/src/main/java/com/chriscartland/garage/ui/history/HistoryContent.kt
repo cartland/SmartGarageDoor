@@ -18,6 +18,7 @@
 package com.chriscartland.garage.ui.history
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -167,7 +168,18 @@ fun HistoryContent(
             verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems),
         ) {
             if (days.isEmpty()) {
-                item { HistoryEmptyState() }
+                // Wrap in a parent-filled Box so the empty state is
+                // truly centered in the available LazyColumn height.
+                // The empty state Composable itself owns no top gap
+                // (parent-owns rule); the Box owns the centering.
+                item {
+                    Box(
+                        modifier = Modifier.fillParentMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        HistoryEmptyState()
+                    }
+                }
             } else {
                 days.forEach { day ->
                     item(key = HistoryDayKey.forLabel(day.label)) {
@@ -461,12 +473,16 @@ private fun HistoryStateRow(
     )
 }
 
+// Caller wraps this in a `Box(fillParentMaxSize, contentAlignment =
+// Center)` so the empty state is vertically centered in the LazyColumn.
+// This Composable owns only its internal shape (horizontal padding for
+// readable measure); no self-claimed vertical gap (parent-owns rule).
 @Composable
 private fun HistoryEmptyState() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 64.dp, start = 32.dp, end = 32.dp),
+            .padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(

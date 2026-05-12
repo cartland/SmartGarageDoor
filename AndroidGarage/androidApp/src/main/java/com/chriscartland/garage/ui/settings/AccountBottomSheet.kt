@@ -19,9 +19,7 @@ package com.chriscartland.garage.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -88,13 +86,17 @@ fun AccountSheetContent(
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Three logical groups: Icon, identity (name + email), Sign-out
+    // button. Outer Column owns the inter-group gap (24 dp); the
+    // identity sub-Column owns the tight name↔email gap (4 dp). No
+    // child claims a gap above or below itself (parent-owns rule).
     Column(
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         Icon(
             imageVector = Icons.Filled.AccountCircle,
@@ -102,17 +104,21 @@ fun AccountSheetContent(
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(72.dp),
         )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = displayName,
-            style = MaterialTheme.typography.titleLarge,
-        )
-        Text(
-            text = email,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(16.dp))
+        // Identity cluster: name + email tight together.
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = displayName,
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Text(
+                text = email,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         OutlinedButton(
             onClick = onSignOut,
             modifier = Modifier.fillMaxWidth(),

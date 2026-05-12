@@ -19,9 +19,7 @@ package com.chriscartland.garage.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -97,47 +95,61 @@ fun VersionSheetContent(
     onCopy: (label: String, value: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Three logical groups: header cluster (icon + title), then field
+    // rows. Outer Column owns the inter-group gap (24 dp); each inner
+    // Column owns its own intra-group gap. No child claims a gap above
+    // or below itself (parent-owns rule).
     Column(
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        Icon(
-            imageVector = Icons.Outlined.Info,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(72.dp),
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.settings_version_title),
-            style = MaterialTheme.typography.titleLarge,
-        )
-        Spacer(Modifier.height(16.dp))
+        // Header cluster: Icon + Title with 16 dp between.
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(72.dp),
+            )
+            Text(
+                text = stringResource(R.string.settings_version_title),
+                style = MaterialTheme.typography.titleLarge,
+            )
+        }
 
-        VersionFieldRow(
-            label = stringResource(R.string.settings_version_field_version),
-            value = versionName,
-            onCopy = onCopy,
-        )
-        VersionFieldRow(
-            label = stringResource(R.string.settings_version_field_build),
-            value = versionCode,
-            onCopy = onCopy,
-        )
-        VersionFieldRow(
-            label = stringResource(R.string.settings_version_field_package),
-            value = packageName,
-            onCopy = onCopy,
-        )
-        VersionFieldRow(
-            label = stringResource(R.string.settings_version_field_built),
-            value = buildTimestamp,
-            onCopy = onCopy,
-        )
+        // Field rows: tight 8 dp inter-row gap.
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            VersionFieldRow(
+                label = stringResource(R.string.settings_version_field_version),
+                value = versionName,
+                onCopy = onCopy,
+            )
+            VersionFieldRow(
+                label = stringResource(R.string.settings_version_field_build),
+                value = versionCode,
+                onCopy = onCopy,
+            )
+            VersionFieldRow(
+                label = stringResource(R.string.settings_version_field_package),
+                value = packageName,
+                onCopy = onCopy,
+            )
+            VersionFieldRow(
+                label = stringResource(R.string.settings_version_field_built),
+                value = buildTimestamp,
+                onCopy = onCopy,
+            )
+        }
     }
 }
 
@@ -155,17 +167,18 @@ private fun VersionFieldRow(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ),
     ) {
+        // label + value with a 2 dp gap, parent-owned via spacedBy.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(2.dp))
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium,
