@@ -37,6 +37,14 @@ naming:
     active: false
   MatchingDeclarationName:
     active: false
+  # Pin the root package — every file under main / commonMain must
+  # declare a package starting with `com.chriscartland.garage`.
+  # Catches typos, misplaced files, and accidental drift to other
+  # roots when copy-pasting from sibling repos.
+  InvalidPackageDeclaration:
+    active: true
+    rootPackage: 'com.chriscartland.garage'
+    requireRootInDeclaration: false
 
 potential-bugs:
   active: true
@@ -56,6 +64,26 @@ style:
         value: "FIXME:"
       - reason: "Must be removed before merging"
         value: "STOPSHIP:"
+  # Block `print` and `println` outside test/script paths — production
+  # code uses Kermit (Logger.d/e) so output is structured and routable.
+  # Test paths and `*.kts` are excluded so test fixtures and build
+  # scripts can still use println for diagnostics.
+  ForbiddenMethodCall:
+    active: true
+    methods:
+      - reason: "Use Logger.d/e (Kermit) instead — production logs must be structured."
+        value: "kotlin.io.print"
+      - reason: "Use Logger.d/e (Kermit) instead — production logs must be structured."
+        value: "kotlin.io.println"
+    excludes:
+      - "**/test/**"
+      - "**/androidTest/**"
+      - "**/commonTest/**"
+      - "**/jvmTest/**"
+      - "**/androidUnitTest/**"
+      - "**/androidInstrumentedTest/**"
+      - "**/screenshotTest/**"
+      - "**/*.kts"
   UnusedPrivateMember:
     active: false
   UnusedPrivateProperty:

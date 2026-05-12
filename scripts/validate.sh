@@ -58,6 +58,9 @@ $GRADLE checkNoLiteralStringsInCompose && pass "no literal Text() in Composable"
 step "No *Impl suffix on class names (ADR-008 — use descriptive prefix)"
 $GRADLE checkNoImplSuffix && pass "no *Impl suffix" || fail "no *Impl suffix"
 
+step "No 'Ui' / 'View' in class names (KMP collision; ported from battery-butler)"
+$GRADLE checkNamingConvention && pass "naming convention" || fail "naming convention"
+
 step "No idToken parameter on UseCases (ADR-027 — token internal to repos)"
 $GRADLE checkNoTokenInUseCase && pass "no token in UseCase" || fail "no token in UseCase"
 
