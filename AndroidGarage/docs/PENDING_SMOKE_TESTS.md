@@ -21,7 +21,19 @@ User-facing changes that have shipped to the **internal Play Store track** but n
 
 ## Cumulative queue
 
-> **Empty.** Last cleared 2026-05-12: `android/240` (nav-rail consolidated bottom sheet) and `android/241` (`:viewmodel` module extraction) smoke-tested on device. Add new entries here as releases ship to internal track.
+1. **`android/241+1` (PR #810) / 2.16.28 — Settings polish: Nav rail "Set default" button, no preselected Snooze radio, consistent Diagnostics buttons.** To verify on a real device:
+   - **Nav rail bottom sheet**: Settings → Developer → tap "Nav rail". Each section header now shows a `Set default` text button on the right (replaces the prior `↺` icon). Tap each — section snaps to its default. Item-position list shows `Top-aligned` on top, `Centered vertically` below (default first).
+   - **Snooze bottom sheet**: Settings → tap Snooze row. Sheet opens with **no radio selected**. Save button is disabled. Tap any radio (including "Don't snooze") → Save enables. Save commits the choice and dismisses the sheet.
+   - **Diagnostics buttons**: Settings → About → Diagnostics. All three buttons (`Copy auth token`, `Export CSV`, `Clear all diagnostics`) are now outlined with consistent styling. Only `Clear all` shows the destructive red tint. No filled primary button.
+2. **`android/242` / 2.16.29 — Spacing rule unification: container owns the gap.** Pure visual tidy-up. To verify on a real device:
+   - **Home with no alerts**: the `STATUS` section header sits at a comfortable distance below the TopAppBar (16 dp). Open and close the door (or wait for an alert to dismiss) until alerts are cleared.
+   - **Home with an alert**: trigger a permission/staleness alert if available, OR observe in any state where an `HomeAlertCard` is the first item. The gap between the alert card and the `STATUS` header is the same as the gap between any two sections (16 dp). The `STATUS` header should NOT visibly jump up/down relative to the screen when alerts appear/disappear — it should sit at the same y in both cases (because the `safeListContentPadding.top` 16 dp + the spacedBy 16 dp + the card height = consistent rhythm).
+   - **Settings**: scroll through. Inter-section spacing feels uniform; first section header sits a comfortable distance below the TopAppBar. No section's header sits visibly tighter or looser than the others.
+   - **History**: same expectation — uniform 16 dp between day sections.
+   - **Diagnostics**: gap between the counters surface and the action button stack is now larger (16 dp instead of 8 dp). Should feel less crowded.
+   - **Function list**: gap between every button row is now 16 dp instead of 8 dp. List is taller; flicks more open. Same content, more breathable.
+   - If any screen feels visibly tighter than the others or any section's header sits at an inconsistent y, file an issue — the rule is uniform 16 dp on every screen-level scrollable.
+   - **Reference PNGs are stale on main** — local Layoutlib regen produced blank PNGs on this Mac. Smoke is the verification gate; PNGs will be regenerated on a working environment in a follow-up PR.
 
 ## Open follow-ups (release-related but not smoke-test items)
 
