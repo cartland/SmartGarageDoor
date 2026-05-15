@@ -108,7 +108,11 @@ void real_garage_server_send_sensor_values(sensor_request_t *sensor_request, sen
 }
 
 void real_garage_server_send_button_token(button_request_t *button_request, button_response_t *button_response, http_receive_buffer_t *recv_buffer) {
-    ESP_LOGI(TAG, "Send button token to server: device_id: %s, button_token: %s",
+    // device_id + button_token are sensitive — anyone with a UART connection
+    // can read INFO-level logs. Log at DEBUG so they only appear when the
+    // build raises the log level above the default INFO threshold.
+    // Security audit reference: C2.
+    ESP_LOGD(TAG, "Send button token to server: device_id: %s, button_token: %s",
              button_request->device_id,
              button_request->button_token);
 

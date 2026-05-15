@@ -49,11 +49,14 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *evt) {
         break;
 
     case HTTP_EVENT_ON_HEADER:
-        ESP_LOGI(TAG, "HTTP_EVENT_ON_HEADER, key=%s, value=%s", evt->header_key, evt->header_value);
+        // Response headers + body can contain server-issued button-ack tokens
+        // and other sensitive material. Log at DEBUG so they only appear in
+        // builds that raise the log level above INFO. Security audit ref: C2.
+        ESP_LOGD(TAG, "HTTP_EVENT_ON_HEADER, key=%s, value=%s", evt->header_key, evt->header_value);
         break;
 
     case HTTP_EVENT_ON_DATA:
-        ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
+        ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
 
         // Check for buffer overflow
         if (recv_buffer->data_received_len + evt->data_len > recv_buffer->buffer_len) {
@@ -64,7 +67,8 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *evt) {
         // Copy the new data into the buffer
         memcpy(recv_buffer->buffer + recv_buffer->data_received_len, evt->data, evt->data_len);
         recv_buffer->data_received_len += evt->data_len;
-        ESP_LOGI(TAG, "Current buffer content: %.*s", recv_buffer->data_received_len, recv_buffer->buffer);
+        // Sensitive — see HTTP_EVENT_ON_HEADER above.
+        ESP_LOGD(TAG, "Current buffer content: %.*s", recv_buffer->data_received_len, recv_buffer->buffer);
         break;
 
     case HTTP_EVENT_ON_FINISH:

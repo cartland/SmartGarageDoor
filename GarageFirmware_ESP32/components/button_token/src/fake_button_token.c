@@ -23,7 +23,8 @@ static void consume_button_token(button_token_t *token, const char *new_token) {
     // Alternate between requesting a button press and not requesting a button press
     request_button_press = !request_button_press;
     snprintf(*token, MAX_BUTTON_TOKEN_LENGTH, "%s", new_token);
-    ESP_LOGI(TAG, "Button token is now %s", *token);
+    // Match real implementation: token is sensitive, log at DEBUG.
+    ESP_LOGD(TAG, "Button token is now %s", *token);
 }
 
 button_token_manager_t token_manager = {
