@@ -143,6 +143,6 @@ export const httpServerConfigUpdate = functions.https.onRequest(async (request, 
     }
   } catch (error) {
     console.error(error);
-    response.status(500).send(error);
+    response.status(500).send({ error: 'Internal Server Error' });
   }
 });

@@ -128,7 +128,6 @@ export async function handleSnoozeNotificationsRequest(input: {
         console.error(result);
         return err(403, result);
     }
-    console.log('googleIdToken:', input.googleIdTokenHeader);
     if (!input.googleIdTokenHeader || input.googleIdTokenHeader.length <= 0) {
         const result = { error: 'Unauthorized (token).' };
         console.error(result);
@@ -146,7 +145,6 @@ export async function handleSnoozeNotificationsRequest(input: {
         const result = { error: 'Unauthorized (token).' };
         return err(401, result);
     }
-    console.log('email:', email);
     const authorizedEmails = getRemoteButtonAuthorizedEmails(config);
     if (!isEmailInAllowlist(email, authorizedEmails)) {
         const result = { error: 'Forbidden (user).' };
