@@ -18,6 +18,8 @@
 package com.chriscartland.garage
 
 import android.app.Application
+import co.touchlab.kermit.Logger
+import co.touchlab.kermit.Severity
 import com.chriscartland.garage.di.AppComponent
 import com.chriscartland.garage.di.create
 
@@ -29,9 +31,30 @@ class GarageApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        configureLogging()
         // Warm the DataStore cache so settings are available before first composition.
         // DataStore reads are local file I/O — typically <10ms.
         // This ensures card expand/collapse state is correct on first render.
         component
+    }
+
+    /**
+     * Set a Kermit MinSeverity floor for release builds.
+     *
+     * Kermit defaults to Verbose, meaning every `Logger.v/d/i` call reaches
+     * logcat in release builds. Several of those calls in this codebase
+     * render `data class.toString()` for ServerConfig (carries
+     * `remoteButtonPushKey`), AuthState (carries user email), and FCM
+     * tokens — sensitive material that should not be readable via
+     * `adb logcat` on a production install. See the 2026-05-14 security
+     * audit, finding H1.
+     *
+     * Debug builds keep the full Verbose firehose so developers can see
+     * every log line during local iteration.
+     */
+    private fun configureLogging() {
+        if (!BuildConfig.DEBUG) {
+            Logger.setMinSeverity(Severity.Warn)
+        }
     }
 }
