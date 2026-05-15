@@ -12,9 +12,13 @@ service cloud.firestore {
       allow write: if false;
       allow read: if true;
     }
+    // `configCurrent/` holds remoteButtonPushKey, all 4 allowlists, and the
+    // device buildTimestamp — none of which should be readable by anonymous
+    // Firestore REST callers. Clients (Android, ESP32) reach config through
+    // the `httpServerConfig` Cloud Function (gated by X-ServerConfigKey),
+    // which uses the Admin SDK and is unaffected by these rules.
     match /configCurrent/{document=**} {
-      allow write: if false;
-      allow read: if true;
+      allow read, write: if false;
     }
   }
 }
