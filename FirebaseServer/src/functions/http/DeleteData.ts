@@ -26,6 +26,7 @@ import { deleteOldData } from '../../controller/DatabaseCleaner';
 import { isEmailInAllowlist } from '../../controller/Auth';
 import { SERVICE as AuthService } from '../../controller/AuthService';
 import { HandlerResult, ok, err } from '../HandlerResult';
+import { HTTP_RUNTIME_OPTS } from '../HttpRuntime';
 
 export interface DeleteOldDataResult {
   dryRun: boolean;
@@ -98,7 +99,7 @@ export async function handleDeleteOldData(input: {
   });
 }
 
-export const httpDeleteOldData = functions.https.onRequest(async (request, response) => {
+export const httpDeleteOldData = functions.runWith(HTTP_RUNTIME_OPTS).https.onRequest(async (request, response) => {
   try {
     const result = await handleDeleteOldData({
       query: request.query,

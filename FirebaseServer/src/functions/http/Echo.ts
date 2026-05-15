@@ -19,6 +19,7 @@ import { v4 as uuidv4 } from 'uuid';
 import * as functions from 'firebase-functions/v1';
 
 import { DATABASE as UpdateDatabase } from '../../database/UpdateDatabase';
+import { HTTP_RUNTIME_OPTS } from '../HttpRuntime';
 
 const SESSION_PARAM_KEY = "session";
 const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
@@ -66,7 +67,7 @@ export async function handleEchoRequest(input: {
 /**
  * HTTP endpoint captures request parameters, stores them in the database, and returns the data.
  */
-export const httpEcho = functions.https.onRequest(async (request, response) => {
+export const httpEcho = functions.runWith(HTTP_RUNTIME_OPTS).https.onRequest(async (request, response) => {
   try {
     const result = await handleEchoRequest({
       query: request.query,

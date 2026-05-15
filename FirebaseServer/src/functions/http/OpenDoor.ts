@@ -28,6 +28,7 @@ import {
 import { isEmailInAllowlist } from '../../controller/Auth';
 import { SERVICE as AuthService } from '../../controller/AuthService';
 import { HandlerResult, ok, err } from '../HandlerResult';
+import { HTTP_RUNTIME_OPTS } from '../HttpRuntime';
 
 // History: a DOOR_SENSOR_BUILD_TIMESTAMP_FALLBACK = 'Sat Mar 13 14:45:00 2021'
 // constant lived here through server/16. Removed in A3 after
@@ -94,7 +95,7 @@ export async function handleCheckForOpenDoorsRequest(input: {
   return ok(await sendFCMForOldData(buildTimestamp, eventData));
 }
 
-export const httpCheckForOpenDoors = functions.https.onRequest(async (request, response) => {
+export const httpCheckForOpenDoors = functions.runWith(HTTP_RUNTIME_OPTS).https.onRequest(async (request, response) => {
   try {
     const result = await handleCheckForOpenDoorsRequest({
       pushKeyHeader: request.get('X-RemoteButtonPushKey'),
