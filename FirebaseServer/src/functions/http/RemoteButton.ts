@@ -28,6 +28,7 @@ import { SERVICE as AuthService } from '../../controller/AuthService';
 
 import { RemoteButtonCommand } from '../../model/RemoteButtonCommand';
 import { HandlerResult, ok, err } from '../HandlerResult';
+import { HTTP_RUNTIME_OPTS } from '../HttpRuntime';
 
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 const SESSION_PARAM_KEY = "session";
@@ -140,7 +141,7 @@ export async function handleRemoteButtonPoll(input: {
 /**
  * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/remoteButton?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
  */
-export const httpRemoteButton = functions.https.onRequest(async (request, response) => {
+export const httpRemoteButton = functions.runWith(HTTP_RUNTIME_OPTS).https.onRequest(async (request, response) => {
   try {
     const result = await handleRemoteButtonPoll({
       query: request.query,
@@ -282,7 +283,7 @@ export async function handleAddRemoteButtonCommand(input: {
 /**
  * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/addRemoteButtonCommand?buildTimestamp=buildTimestamp&buttonAckToken=buttonAckToken
  */
-export const httpAddRemoteButtonCommand = functions.https.onRequest(async (request, response) => {
+export const httpAddRemoteButtonCommand = functions.runWith(HTTP_RUNTIME_OPTS).https.onRequest(async (request, response) => {
   try {
     const result = await handleAddRemoteButtonCommand({
       query: request.query,

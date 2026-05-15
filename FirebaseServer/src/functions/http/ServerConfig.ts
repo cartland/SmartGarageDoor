@@ -18,6 +18,7 @@ import * as functions from 'firebase-functions/v1';
 
 import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
 import { HandlerResult, ok, err } from '../HandlerResult';
+import { HTTP_RUNTIME_OPTS } from '../HttpRuntime';
 
 /**
  * Helper — navigate `functions.config()` to the `serverconfig.<field>`
@@ -112,7 +113,7 @@ export async function handleServerConfigUpdate(input: {
   return ok(config);
 }
 
-export const httpServerConfig = functions.https.onRequest(async (request, response) => {
+export const httpServerConfig = functions.runWith(HTTP_RUNTIME_OPTS).https.onRequest(async (request, response) => {
   const expectedKey = readServerConfigSecret(functions.config(), 'key');
   const result = await handleServerConfigRead({
     method: request.method,
@@ -126,7 +127,7 @@ export const httpServerConfig = functions.https.onRequest(async (request, respon
   }
 });
 
-export const httpServerConfigUpdate = functions.https.onRequest(async (request, response) => {
+export const httpServerConfigUpdate = functions.runWith(HTTP_RUNTIME_OPTS).https.onRequest(async (request, response) => {
   const expectedKey = readServerConfigSecret(functions.config(), 'updatekey');
   try {
     const result = await handleServerConfigUpdate({

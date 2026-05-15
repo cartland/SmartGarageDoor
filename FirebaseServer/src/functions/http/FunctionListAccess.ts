@@ -21,6 +21,7 @@ import { getFunctionListAuthorizedEmails } from '../../controller/config/ConfigA
 import { SERVICE as AuthService } from '../../controller/AuthService';
 import { isEmailInAllowlist } from '../../controller/Auth';
 import { HandlerResult, ok, err } from '../HandlerResult';
+import { HTTP_RUNTIME_OPTS } from '../HttpRuntime';
 
 export interface FunctionListAccessResponse {
   enabled: boolean;
@@ -79,7 +80,7 @@ export async function handleFunctionListAccess(input: {
  * curl -H "X-AuthTokenGoogle: <id_token>" \
  *      "http://localhost:5000/PROJECT-ID/us-central1/functionListAccess"
  */
-export const httpFunctionListAccess = functions.https.onRequest(async (request, response) => {
+export const httpFunctionListAccess = functions.runWith(HTTP_RUNTIME_OPTS).https.onRequest(async (request, response) => {
   const result = await handleFunctionListAccess({
     method: request.method,
     googleIdTokenHeader: request.get('X-AuthTokenGoogle'),

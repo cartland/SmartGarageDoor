@@ -24,6 +24,7 @@ import { SensorSnapshot } from '../../model/SensorSnapshot';
 
 import { getNewEventOrNull } from '../../controller/EventInterpreter';
 import { HandlerResult, ok, err } from '../HandlerResult';
+import { HTTP_RUNTIME_OPTS } from '../HttpRuntime';
 
 const SESSION_PARAM_KEY = "session";
 const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
@@ -172,7 +173,7 @@ export async function handleNextEvent(input: {
 /**
  * curl -H "Content-Type: application/json" http://localhost:5001/PROJECT-ID/us-central1/currentEventData?session=ABC&buildTimestamp=123&eventHistoryMaxCount=12
  */
-export const httpCurrentEventData = functions.https.onRequest(async (request, response) => {
+export const httpCurrentEventData = functions.runWith(HTTP_RUNTIME_OPTS).https.onRequest(async (request, response) => {
   try {
     const result = await handleCurrentEventData({ query: request.query, body: request.body });
     if (result.kind === 'error') {
@@ -189,7 +190,7 @@ export const httpCurrentEventData = functions.https.onRequest(async (request, re
 /**
  * curl -H "Content-Type: application/json" http://localhost:5001/PROJECT-ID/us-central1/eventHistory?session=ABC&buildTimestamp=123&eventHistoryMaxCount=20
  */
-export const httpEventHistory = functions.https.onRequest(async (request, response) => {
+export const httpEventHistory = functions.runWith(HTTP_RUNTIME_OPTS).https.onRequest(async (request, response) => {
   try {
     const result = await handleEventHistory({ query: request.query, body: request.body });
     if (result.kind === 'error') {
@@ -206,7 +207,7 @@ export const httpEventHistory = functions.https.onRequest(async (request, respon
 /**
  * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/event?session=ABC
  */
-export const httpNextEvent = functions.https.onRequest(async (request, response) => {
+export const httpNextEvent = functions.runWith(HTTP_RUNTIME_OPTS).https.onRequest(async (request, response) => {
   try {
     const result = await handleNextEvent({ query: request.query, body: request.body });
     if (result.kind === 'error') {

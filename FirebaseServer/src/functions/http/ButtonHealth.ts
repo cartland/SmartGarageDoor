@@ -21,6 +21,7 @@ import {
 import { isEmailInAllowlist } from '../../controller/Auth';
 import { SERVICE as AuthService } from '../../controller/AuthService';
 import { HandlerResult, ok, err } from '../HandlerResult';
+import { HTTP_RUNTIME_OPTS } from '../HttpRuntime';
 
 const BUILD_TIMESTAMP_PARAM_KEY = 'buildTimestamp';
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
@@ -109,7 +110,7 @@ export async function handleButtonHealth(input: {
  * curl -H "X-RemoteButtonPushKey: <key>" -H "X-AuthTokenGoogle: <id-token>" \
  *   "https://.../buttonHealth?buildTimestamp=<bt>"
  */
-export const httpButtonHealth = functions.https.onRequest(async (request, response) => {
+export const httpButtonHealth = functions.runWith(HTTP_RUNTIME_OPTS).https.onRequest(async (request, response) => {
   try {
     const result = await handleButtonHealth({
       query: request.query,

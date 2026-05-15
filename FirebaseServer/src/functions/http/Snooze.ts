@@ -22,6 +22,7 @@ import { isEmailInAllowlist } from '../../controller/Auth';
 import { SERVICE as AuthService } from '../../controller/AuthService';
 import { getSnoozeStatus, SnoozeLatestParams, SnoozeLatestResponse, SubmitSnoozeParams, submitSnoozeNotificationsRequest, SubmitSnoozeResponse } from '../../controller/SnoozeNotifications';
 import { HandlerResult, ok, err } from '../HandlerResult';
+import { HTTP_RUNTIME_OPTS } from '../HttpRuntime';
 
 const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
 const SNOOZE_DURATION_PARAM_KEY = 'snoozeDuration';
@@ -72,7 +73,7 @@ export async function handleSnoozeNotificationsLatest(input: {
  *    -H "Content-Type: application/json" \
  *    -d '{}' \ "http://localhost:5000/PROJECT-ID/us-central1/snoozeNotificationsLatest?buildTimestamp=Sat%20Mar%2013%2014%3A45%3A00%202021"
  */
-export const httpSnoozeNotificationsLatest = functions.https.onRequest(async (request, response) => {
+export const httpSnoozeNotificationsLatest = functions.runWith(HTTP_RUNTIME_OPTS).https.onRequest(async (request, response) => {
   const result = await handleSnoozeNotificationsLatest({
     method: request.method,
     query: request.query,
@@ -196,7 +197,7 @@ export async function handleSnoozeNotificationsRequest(input: {
 /**
  * curl -H "Content-Type: application/json" http://localhost:5000/PROJECT-ID/us-central1/snoozeNotificationsLatest?buildTimestamp=buildTimestamp
  */
-export const httpSnoozeNotificationsRequest = functions.https.onRequest(async (request, response) => {
+export const httpSnoozeNotificationsRequest = functions.runWith(HTTP_RUNTIME_OPTS).https.onRequest(async (request, response) => {
     const result = await handleSnoozeNotificationsRequest({
         method: request.method,
         query: request.query,
