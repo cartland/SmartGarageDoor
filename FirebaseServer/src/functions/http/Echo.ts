@@ -75,7 +75,7 @@ export const httpEcho = functions.https.onRequest(async (request, response) => {
     response.status(200).send(result);
   }
   catch (error) {
-    console.error(error)
-    response.status(500).send(error)
+    console.error(error);
+    response.status(500).send({ error: 'Internal Server Error' });
   }
 });

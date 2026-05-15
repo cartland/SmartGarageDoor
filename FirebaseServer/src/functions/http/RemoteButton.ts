@@ -154,7 +154,7 @@ export const httpRemoteButton = functions.https.onRequest(async (request, respon
   }
   catch (error) {
     console.error(error);
-    response.status(500).send(error);
+    response.status(500).send({ error: 'Internal Server Error' });
   }
 });
 
@@ -206,7 +206,6 @@ export async function handleAddRemoteButtonCommand(input: {
     console.error(result);
     return err(403, result);
   }
-  console.log('googleIdToken:', input.googleIdTokenHeader);
   if (!input.googleIdTokenHeader || input.googleIdTokenHeader.length <= 0) {
     const result = { error: 'Unauthorized (token).' };
     console.error(result);
@@ -218,7 +217,6 @@ export async function handleAddRemoteButtonCommand(input: {
   // Snooze's handler wraps this call in try/catch and returns 401 instead.
   const decodedToken = await AuthService.verifyIdToken(input.googleIdTokenHeader);
   const email = decodedToken.email;
-  console.log('email:', email);
   const authorizedEmails = getRemoteButtonAuthorizedEmails(config);
   if (!isEmailInAllowlist(email, authorizedEmails)) {
     const result = { error: 'Forbidden (user).' };
@@ -304,6 +302,6 @@ export const httpAddRemoteButtonCommand = functions.https.onRequest(async (reque
     // escaped the function and Firebase runtime's own error handler
     // sent 500.
     console.error(error);
-    response.status(500).send(error);
+    response.status(500).send({ error: 'Internal Server Error' });
   }
 });

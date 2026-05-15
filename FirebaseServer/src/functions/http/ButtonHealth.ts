@@ -125,6 +125,6 @@ export const httpButtonHealth = functions.https.onRequest(async (request, respon
     // Catches a propagated AuthService.verifyIdToken throw — yields 500,
     // matching handleAddRemoteButtonCommand's behavior.
     console.error(error);
-    response.status(500).send(error);
+    response.status(500).send({ error: 'Internal Server Error' });
   }
 });

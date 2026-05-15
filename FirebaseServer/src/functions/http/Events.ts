@@ -182,7 +182,7 @@ export const httpCurrentEventData = functions.https.onRequest(async (request, re
     }
   } catch (error) {
     console.error(error);
-    response.status(500).send(error);
+    response.status(500).send({ error: 'Internal Server Error' });
   }
 });
 
@@ -199,7 +199,7 @@ export const httpEventHistory = functions.https.onRequest(async (request, respon
     }
   } catch (error) {
     console.error(error);
-    response.status(500).send(error);
+    response.status(500).send({ error: 'Internal Server Error' });
   }
 });
 
@@ -216,6 +216,6 @@ export const httpNextEvent = functions.https.onRequest(async (request, response)
     }
   } catch (error) {
     console.error(error);
-    response.status(500).send(error);
+    response.status(500).send({ error: 'Internal Server Error' });
   }
 });
