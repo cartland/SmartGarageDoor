@@ -20,7 +20,7 @@ firebase.initializeApp();
 
 // HTTP Functions.
 import { httpEcho } from './functions/http/Echo'
-import { httpCurrentEventData, httpEventHistory, httpNextEvent } from './functions/http/Events'
+import { httpCurrentEventData, httpEventHistory } from './functions/http/Events'
 import { httpRemoteButton, httpAddRemoteButtonCommand } from './functions/http/RemoteButton'
 import { httpCheckForOpenDoors } from './functions/http/OpenDoor'
 import { httpDeleteOldData } from './functions/http/DeleteData'
@@ -115,16 +115,13 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'pubsubCheckButt
   exports.pubsubCheckButtonHealth = pubsubCheckButtonHealth;
 }
 
-/**
- * Debugging function: Trigger a new event by sending sensor data directly.
- *
- * Trigger Type: HTTP
- *
- * EventInterpreterTest.ts
- */
-if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'nextEvent') {
-  exports.nextEvent = httpNextEvent;
-}
+// `nextEvent` (httpNextEvent in functions/http/Events.ts) was a debugging
+// endpoint that let anonymous callers inject SensorEvent docs into Firestore,
+// which the firestoreUpdateEvents trigger then propagated as door-state FCMs.
+// Unauthenticated event-forgery surface. Audit finding H3 — removed from
+// production exports 2026-05-14. The function code remains in Events.ts as
+// a manually-callable utility (run via `gcloud functions call` against the
+// non-prod environment if needed).
 
 /**
  * Clients can fetch the latest event.

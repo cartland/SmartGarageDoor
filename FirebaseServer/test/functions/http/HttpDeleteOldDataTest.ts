@@ -16,10 +16,10 @@
 
 /**
  * Unit tests for the extracted httpDeleteOldData handler core. H5 of
- * the handler testing plan.
+ * the handler testing plan + audit follow-up (auth chain).
  *
  * deleteOldData is sinon-stubbed — controller-layer concern. The
- * handler's job is the config gate + query-param parsing.
+ * handler's job is the auth chain + config gate + query-param parsing.
  */
 
 import { expect } from 'chai';
@@ -30,30 +30,61 @@ import {
   setImpl as setServerConfigDBImpl,
   resetImpl as resetServerConfigDBImpl,
 } from '../../../src/database/ServerConfigDatabase';
+import {
+  setImpl as setAuthServiceImpl,
+  resetImpl as resetAuthServiceImpl,
+} from '../../../src/controller/AuthService';
 import { FakeServerConfigDatabase } from '../../fakes/FakeServerConfigDatabase';
+import { FakeAuthService } from '../../fakes/FakeAuthService';
 import * as DatabaseCleaner from '../../../src/controller/DatabaseCleaner';
+
+const ALLOWED_EMAIL = 'allowed@example.com';
+const DENIED_EMAIL = 'denied@example.com';
+const PUSH_KEY = 'test-push-key';
+const OK_TOKEN = 'google-id-token-xyz';
 
 describe('handleDeleteOldData (pure handler core)', () => {
   let fakeConfig: FakeServerConfigDatabase;
+  let fakeAuth: FakeAuthService;
   let deleteStub: sinon.SinonStub;
 
   beforeEach(() => {
     fakeConfig = new FakeServerConfigDatabase();
+    fakeAuth = new FakeAuthService();
     setServerConfigDBImpl(fakeConfig);
+    setAuthServiceImpl(fakeAuth);
     deleteStub = sinon.stub(DatabaseCleaner, 'deleteOldData').resolves({ deleted: 7 });
-    fakeConfig.seed({ body: { deleteOldDataEnabled: true } });
+    fakeConfig.seed({
+      body: {
+        deleteOldDataEnabled: true,
+        remoteButtonPushKey: PUSH_KEY,
+        remoteButtonAuthorizedEmails: [ALLOWED_EMAIL],
+      },
+    });
+    fakeAuth.seedDecoded({ email: ALLOWED_EMAIL });
   });
 
   afterEach(() => {
     resetServerConfigDBImpl();
+    resetAuthServiceImpl();
     sinon.restore();
   });
 
   it('returns 400 Disabled when deleteOldDataEnabled is false', async () => {
     fakeConfig.clear();
-    fakeConfig.seed({ body: { deleteOldDataEnabled: false } });
+    fakeConfig.seed({
+      body: {
+        deleteOldDataEnabled: false,
+        remoteButtonPushKey: PUSH_KEY,
+        remoteButtonAuthorizedEmails: [ALLOWED_EMAIL],
+      },
+    });
 
-    const result = await handleDeleteOldData({ query: {} });
+    const result = await handleDeleteOldData({
+      query: {},
+      pushKeyHeader: PUSH_KEY,
+      googleIdTokenHeader: OK_TOKEN,
+    });
 
     expect(result).to.deep.equal({
       kind: 'error',
@@ -63,8 +94,74 @@ describe('handleDeleteOldData (pure handler core)', () => {
     expect(deleteStub.called).to.be.false;
   });
 
+  it('returns 401 Unauthorized when push key header is missing', async () => {
+    const result = await handleDeleteOldData({
+      query: {},
+      pushKeyHeader: undefined,
+      googleIdTokenHeader: OK_TOKEN,
+    });
+
+    expect(result).to.deep.equal({
+      kind: 'error',
+      status: 401,
+      body: { error: 'Unauthorized (key).' },
+    });
+    expect(deleteStub.called).to.be.false;
+  });
+
+  it('returns 403 Forbidden when push key does not match', async () => {
+    const result = await handleDeleteOldData({
+      query: {},
+      pushKeyHeader: 'wrong-key',
+      googleIdTokenHeader: OK_TOKEN,
+    });
+
+    expect(result).to.deep.equal({
+      kind: 'error',
+      status: 403,
+      body: { error: 'Forbidden (key).' },
+    });
+    expect(deleteStub.called).to.be.false;
+  });
+
+  it('returns 401 Unauthorized when id-token header is missing', async () => {
+    const result = await handleDeleteOldData({
+      query: {},
+      pushKeyHeader: PUSH_KEY,
+      googleIdTokenHeader: undefined,
+    });
+
+    expect(result).to.deep.equal({
+      kind: 'error',
+      status: 401,
+      body: { error: 'Unauthorized (token).' },
+    });
+    expect(deleteStub.called).to.be.false;
+  });
+
+  it('returns 403 Forbidden (user) when email is not in allowlist', async () => {
+    fakeAuth.seedDecoded({ email: DENIED_EMAIL });
+
+    const result = await handleDeleteOldData({
+      query: {},
+      pushKeyHeader: PUSH_KEY,
+      googleIdTokenHeader: OK_TOKEN,
+    });
+
+    expect(result).to.deep.equal({
+      kind: 'error',
+      status: 403,
+      body: { error: 'Forbidden (user).' },
+    });
+    expect(deleteStub.called).to.be.false;
+  });
+
   it('parses cutoffTimestampSeconds from query and passes it through', async () => {
-    await handleDeleteOldData({ query: { cutoffTimestampSeconds: '1234567890' } });
+    await handleDeleteOldData({
+      query: { cutoffTimestampSeconds: '1234567890' },
+      pushKeyHeader: PUSH_KEY,
+      googleIdTokenHeader: OK_TOKEN,
+    });
 
     expect(deleteStub.calledOnce).to.be.true;
     const [cutoff, dryRun] = deleteStub.firstCall.args;
@@ -75,13 +172,21 @@ describe('handleDeleteOldData (pure handler core)', () => {
   it('sets dryRun=true when the query contains a dryRun key (regardless of value)', async () => {
     // The pre-extraction code uses `'dryRun' in request.query` — key
     // presence is what matters, not its value. Tests pin that.
-    await handleDeleteOldData({ query: { dryRun: '' } });
+    await handleDeleteOldData({
+      query: { dryRun: '' },
+      pushKeyHeader: PUSH_KEY,
+      googleIdTokenHeader: OK_TOKEN,
+    });
 
     expect(deleteStub.firstCall.args[1]).to.equal(true);
   });
 
   it('passes null cutoff when the query omits cutoffTimestampSeconds', async () => {
-    await handleDeleteOldData({ query: {} });
+    await handleDeleteOldData({
+      query: {},
+      pushKeyHeader: PUSH_KEY,
+      googleIdTokenHeader: OK_TOKEN,
+    });
 
     expect(deleteStub.firstCall.args[0]).to.be.null;
   });
@@ -89,6 +194,8 @@ describe('handleDeleteOldData (pure handler core)', () => {
   it('returns 200 ok with the { dryRun, summary } shape', async () => {
     const result = await handleDeleteOldData({
       query: { dryRun: '1', cutoffTimestampSeconds: '100' },
+      pushKeyHeader: PUSH_KEY,
+      googleIdTokenHeader: OK_TOKEN,
     });
 
     expect(result).to.deep.equal({
