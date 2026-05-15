@@ -15,20 +15,25 @@ static void button_init(button_token_t *token) {
 
 static bool is_button_press_requested(button_token_t *token, const char *new_token) {
     if (strcmp(*token, new_token) == 0) {
-        ESP_LOGI(TAG, "Button token is not changed");
+        ESP_LOGD(TAG, "Button token is not changed");
         return false;
     } else if (strlen(new_token) == 0) {
-        ESP_LOGI(TAG, "Button press not requested because button token is empty");
+        ESP_LOGD(TAG, "Button press not requested because button token is empty");
         return false;
     } else {
-        ESP_LOGI(TAG, "Push the button for %s", new_token);
+        // Button token is sensitive — anyone with a UART connection (USB cable
+        // to the dev board) can read INFO-level logs. Log at DEBUG so the
+        // token only appears in builds that explicitly raise the log level
+        // above the default INFO threshold. Security audit reference: C2.
+        ESP_LOGD(TAG, "Push the button for %s", new_token);
         return true;
     }
 }
 
 static void consume_button_token(button_token_t *token, const char *new_token) {
     snprintf(*token, MAX_BUTTON_TOKEN_LENGTH, "%s", new_token);
-    ESP_LOGI(TAG, "Button token is now %s", *token);
+    // Sensitive — see is_button_press_requested above.
+    ESP_LOGD(TAG, "Button token is now %s", *token);
 }
 
 button_token_manager_t token_manager = {
