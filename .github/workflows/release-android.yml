@@ -69,12 +69,16 @@ jobs:
           echo "Renamed AAB files:"
           ls "$AAB_DIR"/*.aab
 
+      # Short retention because the signed AAB embeds BuildConfig.SERVER_CONFIG_KEY
+      # and is publicly fetchable for the retention window via the GitHub Actions
+      # artifacts API on a public repo. Play Store is the source of truth for the
+      # binary; this 1-day artifact exists only for same-day release-debugging.
       - name: Upload release AAB artifact
         uses: actions/upload-artifact@v6
         with:
           name: release-aab-${{ steps.validate.outputs.version_code }}
           path: AndroidGarage/androidApp/build/outputs/bundle/release/
-          retention-days: 30
+          retention-days: 1
 
       - name: Deploy to Google Play (Internal Track)
         uses: r0adkll/upload-google-play@v1.1.3
