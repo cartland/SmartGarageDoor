@@ -135,6 +135,9 @@ jobs:
         with:
           name: debug-apk
           path: AndroidGarage/androidApp/build/outputs/apk/debug/
+          # Short retention: debug builds embed BuildConfig.SERVER_CONFIG_KEY
+          # too. Same exposure window applies on a public repo.
+          retention-days: 1
 
   build_release:
     name: Build Release AAB
@@ -162,3 +165,5 @@ jobs:
         with:
           name: release-aab
           path: AndroidGarage/androidApp/build/outputs/bundle/release/
+          # Short retention because the signed AAB embeds BuildConfig.SERVER_CONFIG_KEY.
+          retention-days: 1
