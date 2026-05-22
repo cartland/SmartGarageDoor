@@ -271,6 +271,9 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(project(":test-common"))
+    // Konsist pilot — see androidApp/src/test/.../konsist/. Additive to the
+    // existing buildSrc/ Gradle tasks; both checks coexist by design.
+    testImplementation(libs.konsist)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
