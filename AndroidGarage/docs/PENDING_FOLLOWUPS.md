@@ -162,6 +162,41 @@ Currently pinned at 0.8.0 deliberately. Tripwire conditions in § 2 below — no
 
 **Why this needs care:** Kotlin major-version bumps are a runtime-level change that touches every module. The project has a documented sequencing playbook at [`docs/DEPENDENCY_UPGRADES.md`](../../docs/DEPENDENCY_UPGRADES.md) for exactly this kind of cascade — use it.
 
+### 3. Security audit 2026-05-14 — deferred findings
+
+**Status:** The top 10 items (1× Critical + 8 High + 1 follow-on) shipped 2026-05-15 as PRs #827–#834 (plus docs PR #835). The Medium / Low / informational findings below were intentionally deferred at the time per user instruction. Each line names the audit finding ID, the file/area, and a one-line description so a future PR can pick one up without re-reading the original audit report.
+
+**Medium findings deferred:**
+
+- **M1** — No `runWith({maxInstances, timeoutSeconds, memory})` on **pubsub** functions. HTTP functions were capped in PR #834; the pubsub side (`functions.pubsub.schedule(...)`) is externally unreachable so this is a maintenance concern, not security. Adds a billing-safety floor if a scheduled job ever runs hot.
+- **M2** — `httpServerConfig` / `httpServerConfigUpdate` use deprecated `functions.config()` API for the static `X-ServerConfigKey` gate. Should migrate to `firebase secrets` and add Firebase ID-token gate ABOVE the static-key check (so even the key holder must be authenticated).
+- **M3** — "4 documented allowlists" is actually 3 in code (`snooze`, `remoteButton`, `buttonHealth` all share `remoteButtonAuthorizedEmails`; `functionList` and `developerAccess` have their own). Either accept and update the CLAUDE.md wording to "3 allowlists", or split snooze out into its own list. No security impact today.
+- **M4** — `r0adkll/upload-google-play@v1.1.3` in `release-android.yml` is pinned to a moving tag. Should pin to a 40-char commit SHA so the upstream maintainer can't swap behavior under the GitHub Actions cache.
+- **M5** — No required PR reviewers in branch protection (acceptable for solo, worth noting).
+- **M6** — `android:allowBackup="true"` with empty include/exclude rules — Room DB + DataStore back up to Google Drive by default. Populate `backup_rules.xml` to exclude `databases/database` and DataStore preferences, OR set `allowBackup="false"`.
+- **M7** — `eventHistoryMaxCount=NaN` / huge numbers and `cutoffTimestampSeconds=NaN` are not validated. Add `Math.min(parseInt(...), 100)` + `Number.isFinite(...)` checks.
+- **M8** — ESP32 WPA2-PSK without PMF required (KRACK / deauth surface). Set `pmf_cfg.required = true; .capable = true` in `wifi_connector.c`.
+- **M9** — ESP32 test fakes are flag-gated by hand-edited `garage_config.h:5-11`, not a Kconfig switch. Easy to ship a build that opens the door every other poll. Move to Kconfig + `#error` guard on release optimization.
+- **M10** — `Arduino_ESP32/*/secrets.h` are tracked (placeholder values), not gitignored. Foot-gun for future commits. `git rm --cached` + rename to `secrets.template.h`.
+- **M11** — ESP32: no flash encryption, no secure boot v2, no NVS encryption. Anyone with physical access can dump flash and read WiFi creds. Enable `CONFIG_SECURE_FLASH_ENC_ENABLED=y` + secure boot v2 (the bigger ESP32 hardening project).
+- **M12** — Firmware-pinned root CA expires 2036-06-22 with no OTA path. Needs signed OTA implemented before 2036, OR bake in fresher GTS Root R3/R4.
+- **M13** — `set -e` missing from `decrypt-secrets.sh` / `clean-secrets.sh` / `encrypt-secrets.sh`. Add `set -euo pipefail` to all three so a failing `gpg` doesn't silently leave plaintext on disk.
+- **M14** — No `.github/dependabot.yml`. CI runs `npm audit` warn-only but no automated upgrade flow. Add npm + gradle + github-actions ecosystems.
+- **M15** — ESP-IDF version not pinned (`idf_component.yml` missing). Recommend `idf: ">=5.3.2,<5.4"` and document upgrade cadence.
+- **M16** — Compose BOM ~6 months behind (2025.06.01 vs 2026.01+). No known CVEs at the pinned version; lag is the largest deferred Android upgrade.
+
+**Low / informational findings deferred:**
+
+- 7 of 9 GitHub Actions pinned to floating major tags (not SHAs). First-party = lower risk; third-party (`r0adkll/upload-google-play`) covered by M4.
+- `network_security_config.xml` allows cleartext to `localhost`/`127.0.0.1` in main variant (should be debug-only).
+- ProGuard `-keep class com.chriscartland.garage.data.ktor.** { *; }` is broader than needed per ADR-020.
+- `cJSON_Print(root)` heap leak inside `ESP_LOGI` — slow OOM over months of uptime.
+- No watchdog explicitly armed on ESP32 tasks.
+- Server log retention = default 30 days (Cloud Logging). Consider 7-day pin now that token logging is fixed.
+- No `/deleteMyData` endpoint (fine for single-user; GDPR-relevant if ever multi-tenant).
+
+**Picking one to ship:** M6 (allowBackup) and M13 (`set -e` in release scripts) are both single-file, single-PR fixes. M14 (dependabot.yml) is a small additive config that unblocks future Dependabot PRs. The other Mediums are larger or require coordination (M11 = flash encryption rollout; M2 = secrets migration + Android client change).
+
 <!-- Historical reference: original Phase 1/2/3 migration plan now in Done. -->
 
 <details>
