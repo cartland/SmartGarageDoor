@@ -1,10 +1,10 @@
 ---
 category: plan
 status: active
-last_verified: 2026-05-12
+last_verified: 2026-05-13
 ---
 
-> **Last update 2026-05-12:** iOS KMP wiring landed (PRs #820–#824 → Phase 38A complete). Phase 38B–G (Xcode project + Swift bridges + SwiftUI screens) added as Open item 1 below, blocked on Apple Developer + Firebase iOS setup. Kotlin 2.2+ / kotlin-inject 0.9.0+ bump added as deferred Open item 2 with explicit tripwire.
+> **Last update 2026-05-13:** iOS Phase 38A fully complete — `NativeComponent` DI graph runtime-verified via `NativeComponentTest` (40/40 pass on `iosSimulatorArm64`, PR #826). Phase 38B–G remain blocked on user setup. User-action checklist added as the first subsection below so the user-blocked moves are visible without scrolling.
 
 # Pending Follow-ups
 
@@ -13,6 +13,40 @@ User-flagged items that aren't tied to a specific release and aren't smoke-test 
 **Scope:** items that need their own design/implementation effort. Smoke-test verifications belong in [`PENDING_SMOKE_TESTS.md`](./PENDING_SMOKE_TESTS.md). Per-version implementation history belongs in [`../CHANGELOG.md`](../CHANGELOG.md). Architectural conventions belong in [`../../CLAUDE.md`](../../CLAUDE.md).
 
 **Why this lives in the repo, not memory:** project-specific TODOs need to be reviewable in PRs and discoverable to anyone reading the repo cold. See `feedback_dump_context_repo_first.md` for the rule.
+
+## User action items (2026-05-13)
+
+Concrete things only the user can do. Each item points to the detailed section below or to a sibling doc. Ordered by leverage (A unblocks the most downstream work).
+
+### A. Unblock iOS Phase 38B — Apple Developer + Firebase iOS setup (~1 hour, one-time)
+
+Single block unblocks ~10 PRs of Swift / SwiftUI work. Three sub-steps:
+
+1. **Apple Developer Account** → register bundle ID `com.chriscartland.garage`.
+2. **Firebase Console** → add iOS app to the existing project (same bundle ID). Download `GoogleService-Info.plist`. (Config, not a secret — same posture as Android's `google-services.json`.) Hand the file to the agent and it will commit to `AndroidGarage/iosApp/iosApp/`.
+3. **Apple Developer Console** → generate an APNs `.p8` key, then upload it to Firebase Console → Cloud Messaging tab. (`.p8` chosen over `.cer` so there's no annual rotation.)
+
+Once those land, tell the agent "iOS setup done" and it will start Phase 38B (Xcode project scaffold).
+
+Reference: § 1.A below.
+
+### B. Run the 3 pending smoke tests on a device
+
+All three are on internal Play Store track now. Reference: [`PENDING_SMOKE_TESTS.md`](./PENDING_SMOKE_TESTS.md).
+
+1. **2.16.28** — Nav rail "Set default" buttons, Snooze sheet no-preselected radio, Diagnostics button styling.
+2. **2.16.29** — Uniform 16 dp inter-section spacing across Home / Settings / History / Diagnostics / Function list.
+3. **2.16.30 + 2.16.31** — Snooze / Version / Account sheet rhythm, DoorHistory error banners, History empty state centered, Nav rail derived default still works.
+
+Walk through each on a phone or tablet. Report any failures and the agent files issues; queue clears.
+
+### C. (Optional, no rush) kotlin-inject 0.9.0 decision
+
+Currently pinned at 0.8.0 deliberately. Tripwire conditions in § 2 below — none have fired. Revisit when SKIE or another dep forces Kotlin 2.2+, or when bumping for an unrelated reason lands it for free.
+
+---
+
+**Default suggestion:** start with **A** — it's the only one that unblocks new code. If the setup-time feels heavy and smoke-testing first is preferable, that's also fine; the iOS gates don't expire.
 
 ## Open
 
