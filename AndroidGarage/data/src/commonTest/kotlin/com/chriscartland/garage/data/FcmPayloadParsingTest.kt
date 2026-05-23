@@ -1,6 +1,10 @@
 package com.chriscartland.garage.data
 
 import com.chriscartland.garage.domain.model.DoorPosition
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -109,5 +113,57 @@ class FcmPayloadParsingTest {
         assertEquals("The door is open.", event.message)
         assertEquals(1710000000L, event.lastChangeTimeSeconds)
         assertEquals(1710000060L, event.lastCheckInTimeSeconds)
+    }
+
+    // Wire-contract tests: parse the canonical fixtures shared with
+    // the server's EventFCMTest.ts. A unilateral key rename on either
+    // side breaks at least one of these tests (or the server's
+    // deep-equal assertion). The fixtures live in
+    // ../../../../../../wire-contracts/fcmDoorEvent/ (3 levels up from
+    // commonTest/kotlin to data/, then up to AndroidGarage/, then up
+    // to the repo root, then down into wire-contracts/).
+    //
+    // FCM data payloads are Map<String, String> on the wire — values
+    // are always strings, even numeric ones. The fixture file
+    // represents this as a JSON object with string-typed values.
+
+    @Test
+    fun fixturePayloadClosedParses() {
+        val payload = loadFcmDoorEventFixture("payload_closed.json")
+        val event = FcmPayloadParser.parseDoorEvent(payload)
+        assertNotNull(event, "Wire-contract fixture must parse")
+        assertEquals(DoorPosition.CLOSED, event.doorPosition)
+        assertEquals("The door is closed.", event.message)
+        assertEquals(1725781082L, event.lastChangeTimeSeconds)
+        assertEquals(1725781092L, event.lastCheckInTimeSeconds)
+    }
+
+    @Test
+    fun fixturePayloadOpenParses() {
+        val payload = loadFcmDoorEventFixture("payload_open.json")
+        val event = FcmPayloadParser.parseDoorEvent(payload)
+        assertNotNull(event)
+        assertEquals(DoorPosition.OPEN, event.doorPosition)
+        assertEquals(1710000000L, event.lastChangeTimeSeconds)
+    }
+
+    @Test
+    fun fixturePayloadOpeningParses() {
+        val payload = loadFcmDoorEventFixture("payload_opening.json")
+        val event = FcmPayloadParser.parseDoorEvent(payload)
+        assertNotNull(event)
+        assertEquals(DoorPosition.OPENING, event.doorPosition)
+    }
+
+    private fun loadFcmDoorEventFixture(name: String): Map<String, String> {
+        val fixtureFile = File("../../wire-contracts/fcmDoorEvent/$name")
+        require(fixtureFile.exists()) {
+            "Wire-contract fixture missing: ${fixtureFile.absolutePath}. " +
+                "Tests run from the :data module dir; fixture lives at " +
+                "<repo>/wire-contracts/fcmDoorEvent/."
+        }
+        val parsed = Json.parseToJsonElement(fixtureFile.readText())
+        return parsed.jsonObject
+            .mapValues { (it.value as JsonPrimitive).content }
     }
 }

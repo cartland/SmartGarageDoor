@@ -1,0 +1,6 @@
+{
+  "checkInTimestampSeconds": "1710000060",
+  "message": "The door is opening.",
+  "timestampSeconds": "1710000000",
+  "type": "OPENING"
+}
