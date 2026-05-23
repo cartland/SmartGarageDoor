@@ -58,6 +58,12 @@ class ComputeButtonHealthDisplayUseCase(
     applicationScope: CoroutineScope,
 ) {
     private val state: StateFlow<ButtonHealthDisplay> =
+        // authState-passthrough-ok: ButtonHealthDisplayLogic.compute
+        // is pure derivation. The lambda does not call any auth-wrapped
+        // UseCase, so token refreshes don't create a feedback loop.
+        // The downstream StateFlow conflates equal outputs, so token
+        // rotation that produces the same ButtonHealthDisplay does
+        // not propagate. See AuthStateProjectionTask for the rule.
         combine(
             authRepository.authState,
             buttonHealthRepository.buttonHealth,

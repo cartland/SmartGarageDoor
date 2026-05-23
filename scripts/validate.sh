@@ -94,6 +94,9 @@ $GRADLE checkNoMockitoImports && pass "no Mockito imports" || fail "no Mockito i
 step "Mutex withLock (no bare .lock()/.unlock())"
 $GRADLE checkMutexWithLock && pass "mutex withLock" || fail "mutex withLock"
 
+step "Auth state projection (no raw authState in side-effecting combine watchers)"
+$GRADLE checkAuthStateProjection && pass "authState projection" || fail "authState projection"
+
 step "Layer imports (ViewModel→UseCase, UseCase→domain)"
 $GRADLE checkLayerImports && pass "layer imports" || fail "layer imports"
 
