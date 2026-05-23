@@ -55,10 +55,24 @@ import org.junit.Test
 class ScreenViewModelCardinalityKonsistTest {
     @Test
     fun `each Content kt file imports at most one ViewModel`() {
-        val violations = Konsist
+        // Konsist's `file.name` returns the simple name WITHOUT the
+        // `.kt` extension, so `it.name.endsWith("Content.kt")` matches
+        // nothing and the test passes vacuously. Filter on `path`
+        // instead. Discovered while wiring the
+        // `ComposableNullableDefaultKonsistTest` — this test had been
+        // silently passing-with-zero-files since it landed (PR #836,
+        // 2026-05-22).
+        val contentFiles = Konsist
             .scopeFromProduction()
             .files
-            .filter { it.name.endsWith("Content.kt") }
+            .filter { it.path.endsWith("Content.kt") }
+        require(contentFiles.isNotEmpty()) {
+            "No *Content.kt files in Konsist scope — the scope filter " +
+                "is broken and this test would pass vacuously. See " +
+                "CLAUDE.md 'Scope sanity pattern'."
+        }
+
+        val violations = contentFiles
             .mapNotNull { file ->
                 val viewModels = file.imports
                     .map { it.name }
