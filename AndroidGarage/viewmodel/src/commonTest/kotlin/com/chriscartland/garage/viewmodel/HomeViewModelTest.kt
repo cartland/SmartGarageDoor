@@ -110,6 +110,14 @@ class HomeViewModelTest {
         scope: CoroutineScope,
         authState: AuthState = AuthState.Unauthenticated,
         fetchOnInit: Boolean = true,
+        // Default true to keep existing behavior. The no-flicker
+        // tests pass false so they can observe the VM's state
+        // immediately after construction, before the
+        // `viewModelScope.launch(dispatchers.io) { collect ... }`
+        // body has executed. That's the state a real Composable
+        // sees on first composition in production (where the IO
+        // launch races the first-frame read of .value).
+        runScheduler: Boolean = true,
     ): DefaultHomeViewModel {
         authRepository.setAuthState(authState)
         val stalenessManager = CheckInStalenessManager(
@@ -152,7 +160,9 @@ class HomeViewModelTest {
             appVersion = "test",
             fetchOnInit = fetchOnInit,
         )
-        testDispatcher.scheduler.runCurrent()
+        if (runScheduler) {
+            testDispatcher.scheduler.runCurrent()
+        }
         return vm
     }
 
@@ -248,6 +258,46 @@ class HomeViewModelTest {
 
             // LiveClock backed by AppClock { 0L }: initial value is 0.
             assertEquals(0L, viewModel.nowEpochSeconds.value)
+        }
+
+    /**
+     * Reads `viewModel.currentDoorEvent.value` BEFORE
+     * `runCurrent()` — simulates the production race where the
+     * Composable's first composition reads `.value` before the
+     * `viewModelScope.launch(dispatchers.io) { collect { ... } }`
+     * body has had a chance to fire on the IO thread.
+     *
+     * Bug class this guards (ADR-023 / 2.4.4 Home-tab flicker;
+     * PR #738 mirror seed fix): if `_currentDoorEvent` is seeded
+     * with `Loading(null)`, the first-composition read returns
+     * `Loading(null)` → maps to UNKNOWN/MIDWAY door icon, then the
+     * IO launch lands `Complete(actualEvent)` → maps to OPEN/CLOSED,
+     * and `LaunchedEffect(doorPosition)` in `GarageIcon` visibly
+     * animates MIDWAY → actual on every fresh `NavBackStackEntry`.
+     *
+     * Correct: seed from `observeDoorEvents.current().value` so
+     * the synchronous initial value is `Complete(cachedValue)`,
+     * not `Loading(null)`.
+     */
+    @Test
+    fun initialCurrentDoorEventValueIsCompleteFromUpstreamCache() =
+        runTest {
+            // testDoorEvent is pre-seeded into the repo in setup().
+            val viewModel = createViewModel(
+                scope = backgroundScope,
+                fetchOnInit = false,
+                runScheduler = false,
+            )
+
+            val initial = viewModel.currentDoorEvent.value
+            assertTrue(
+                initial is LoadingResult.Complete,
+                "Expected Complete on construction (no flicker), was $initial. " +
+                    "If this fails, the VM's mirror MutableStateFlow is probably " +
+                    "seeded with Loading(...) instead of Complete(upstream.value). " +
+                    "See ADR-023 / 2.4.4 regression.",
+            )
+            assertEquals(testDoorEvent, initial.data)
         }
 
     @Test
