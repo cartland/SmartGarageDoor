@@ -240,6 +240,29 @@ The legacy multi-purpose VMs (`AuthViewModel`, `DoorViewModel`, `RemoteButtonVie
 
 When adding a new screen: write the ViewModel first (in `usecase/.../<X>ViewModel.kt`), wire it into `AppComponent.kt` as a non-`@Singleton` `@Provides`, then resolve it from the screen via `viewModel { component.<x>ViewModel }`. Full rationale in `AndroidGarage/docs/DECISIONS.md` ADR-026.
 
+### Konsist — redundant architecture enforcement (additive to buildSrc)
+
+[Konsist 0.17.3](https://github.com/LemonAppDev/konsist) is a `testImplementation` dep of `:androidApp` (added 2026-05-22 via PRs #836 + #837). The Konsist tests live under `AndroidGarage/androidApp/src/test/java/com/chriscartland/garage/konsist/`.
+
+**Adoption posture is EXPLICITLY ADDITIVE, not migration.** Every Konsist test mirrors a rule that is ALSO enforced by an existing `buildSrc/` Gradle task — both run on every PR. The duplication is intentional: two enforcement points, one structural (Konsist's typed PSI) and one textual (`buildSrc` grep), catch slightly different failure modes and surface the rule's existence in two CI logs.
+
+Current Konsist tests:
+- `ScreenViewModelCardinalityKonsistTest` — mirrors `checkScreenViewModelCardinality` Gradle task (ADR-026 / one VM per `*Content.kt`)
+- `ImportBoundaryKonsistTest` — mirrors per-module `checkImportBoundary` tasks (6 KMP modules) + project-wide `org.mockito.*` ban
+
+**Drift policy (load-bearing — these rules are kept in sync by hand):**
+1. When a module's `allowedPrefixes` list in `build.gradle.kts` changes, update the matching test method in `ImportBoundaryKonsistTest.kt`.
+2. When `ImportBoundaryCheckTask`'s default `forbiddenPrefixes` changes, update `ImportBoundaryKonsistTest.defaultForbidden`.
+3. When an exemption is added to `screen-viewmodel-exemptions.txt`, also add a Konsist `withoutNameContaining(...)` filter (or accept the test will go red and refactor instead).
+
+A future "rules in sync" check could automate this, but isn't worth building until both enforcement points diverge in practice.
+
+**Scope sanity pattern:** every per-module Konsist test contains a `require(filesInScope.isNotEmpty()) { "..." }` after the path-substring filter. Without it, a future Konsist scope misconfiguration (e.g., upstream library change to `scopeFromProduction()`) would silently make the test pass vacuously while drifting from the legacy Gradle task's coverage. The require triggers iff the filter returns 0 files; every audited module always has ≥1 production file. Apply this pattern to every new Konsist test that filters by path or package.
+
+**When to add Konsist instead of buildSrc:** for new rules that fit Konsist's vocabulary cleanly (file imports, class names, naming conventions, package boundaries), prefer adding to the existing Konsist test classes rather than writing a new `buildSrc/` task. For rules requiring parsed semantics that PSI exposes (annotation analysis, type-hierarchy walks, cross-file declaration references), Konsist is strictly easier. For rules requiring parsing of GENERATED code (KSP output, R8 mapping files, AGP intermediates), keep using `buildSrc/` — Konsist parses source, not artifacts.
+
+**When NOT to use Konsist:** rules that depend on Gradle's project / dependency graph (e.g., the existing `architecture` task that walks `Project.configurations`) belong in `buildSrc/` — Konsist has no Gradle awareness.
+
 ### Releasing Android
 Use `./scripts/release-android.sh` — never create or push tags directly (hooks block `git tag`).
 
