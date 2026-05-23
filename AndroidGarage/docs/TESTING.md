@@ -40,6 +40,41 @@ last_verified: 2026-04-24
 
 ---
 
+## Upgrade-scenario tests: when persisted-state backing changes
+
+Some bugs only fire on the second-ever launch of a new app version — when the user is on the *upgrade path* from N-1 to N, not on a fresh install. CI's tests build the world from scratch every run, so an upgrade-time regression looks like a clean test pass and silently ships.
+
+**Required when a PR touches:**
+- A DataStore key or DataStore file (any change in `:data-local` under `DataStore*.kt`).
+- A Room entity, DAO, or `@Database(version = ...)` annotation.
+- A `kotlinx-serialization` `@SerialName` annotation on a persisted (not just network) class.
+- A constant whose value is used as a key/version/format string on disk.
+- The store backing a user-visible value (e.g. moving counts from a Room aggregate query to a separate DataStore file — the canonical 2.11.0 → 2.11.1 regression).
+
+**Plan the migration BEFORE writing the new code.** The dismissal pattern to watch for: *"counts will start at 0 on first launch but it's fine."* Stop and check whether the user explicitly asked for that reset. If they didn't, you're shipping a regression that's invisible in CI.
+
+**Test shape.** A "fresh install" test (default of every test today) does NOT exercise the upgrade path. Add a second test that:
+
+1. **Sets up the OLD shape on disk.** Write rows / preferences / files in the pre-PR format. Use raw inserts into Room (bypassing the new entity), DataStore writes via the old key, etc.
+2. **Constructs the new code stack.** Build the repositories / UseCases as production would in the new version.
+3. **Runs whatever recovery logic exists** (e.g. a one-shot `SeedXFromYUseCase` invoked from `AppStartup`).
+4. **Asserts the user-visible value is preserved** (or, if loss is unavoidable, asserts the documented best-effort floor).
+
+**Canonical example:** `SeedDiagnosticsCountersFromRoomUseCase` in `:usecase`. The 2.11.0 release moved diagnostics counters from a Room aggregate query (`COUNT(*) GROUP BY eventKey`) to a brand-new DataStore file with per-key lifetime counters. Without recovery code, the DataStore file initialized to 0 on first launch after upgrade and the user's accumulated history visibly disappeared. The 2.11.1 fix:
+- Added the UseCase: read the existing Room rows, group by `eventKey`, and seed the DataStore counters to `max(counter, room_row_count)` once per install.
+- Gated with an internal "already seeded" boolean in the same DataStore (idempotent on every launch).
+- Bounded above by the per-key row cap (1000 rows max as of 2.10.4) — best-effort recovery, not perfect, but better than zero.
+
+The test surface that catches future regressions of this class:
+- `SeedDiagnosticsCountersFromRoomUseCaseTest` — confirms the seed counts every key, idempotent, no-op when Room is empty.
+- `DatabaseSanityTest.seedDiagnosticsFromRoom_groupsRealRoomRowsByEventKey` — wires the REAL `RoomAppLoggerRepository` through `SeedDiagnosticsCountersFromRoomUseCase` against a real Room DB (no fake) so a regression in the `groupingBy { it.eventKey }` chain or the SQL `getAll()` query is caught on a device build.
+
+**What this is NOT.** It is not the same as a Room migration test. A Room migration (`@AutoMigration` or a `Migration` class) preserves schema-level shape — rows, columns, indexes. The upgrade-scenario test exists for the orthogonal case: when the *storage location* of a user-visible value moves between persistent stores (Room ↔ DataStore, DataStore key A ↔ key B). Both can be needed in the same PR.
+
+**Related safeguards.** `RoomSchemaTest.everyVersionPairHasDeclaredMigration` (in `:androidApp` JVM unit tests) catches the schema-level migration case at PR time. The upgrade-scenario test is the layer above — *the migration declares the rows are still there, this test asserts the user-facing UI reads them correctly under the new code paths*.
+
+---
+
 ## Test layering: where to fake
 
 The codebase uses two test patterns deliberately, picked by what's under test:
