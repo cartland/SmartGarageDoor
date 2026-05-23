@@ -85,6 +85,14 @@ class DoorHistoryViewModelTest {
     private fun createViewModel(
         scope: CoroutineScope,
         fetchOnInit: Boolean = true,
+        // Default true to keep existing behavior. The no-flicker
+        // tests pass false so they can observe the VM's state
+        // immediately after construction, before the
+        // `viewModelScope.launch(dispatchers.io) { collect ... }`
+        // body has executed. That's the state a real Composable
+        // sees on first composition in production (where the IO
+        // launch races the first-frame read of .value).
+        runScheduler: Boolean = true,
     ): DefaultDoorHistoryViewModel {
         val stalenessManager = CheckInStalenessManager(
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
@@ -111,9 +119,49 @@ class DoorHistoryViewModelTest {
             liveClock = liveClock,
             fetchOnInit = fetchOnInit,
         )
-        testDispatcher.scheduler.runCurrent()
+        if (runScheduler) {
+            testDispatcher.scheduler.runCurrent()
+        }
         return vm
     }
+
+    /**
+     * Reads `viewModel.recentDoorEvents.value` BEFORE
+     * `runCurrent()` — simulates the production race where the
+     * Composable's first composition reads `.value` before the
+     * `viewModelScope.launch(dispatchers.io) { collect { ... } }`
+     * body has had a chance to fire on the IO thread.
+     *
+     * Bug class this guards (ADR-023 / PR #739): if
+     * `_recentDoorEvents` is seeded with `Loading(emptyList())`,
+     * the first-composition read returns the empty list, the
+     * history `LazyColumn` renders zero items for one frame, then
+     * the IO launch lands `Complete(actualList)` and the list
+     * pops in. Visible flicker on every fresh `NavBackStackEntry`.
+     *
+     * Correct: seed from `observeDoorEvents.recent().value` so
+     * the synchronous initial value is `Complete(cachedList)`.
+     */
+    @Test
+    fun initialRecentDoorEventsValueIsCompleteFromUpstreamCache() =
+        runTest {
+            // testDoorEvent is pre-seeded into the repo in setup().
+            val viewModel = createViewModel(
+                scope = backgroundScope,
+                fetchOnInit = false,
+                runScheduler = false,
+            )
+
+            val initial = viewModel.recentDoorEvents.value
+            assertTrue(
+                initial is LoadingResult.Complete,
+                "Expected Complete on construction (no flicker), was $initial. " +
+                    "If this fails, the VM's mirror MutableStateFlow is probably " +
+                    "seeded with Loading(...) instead of Complete(upstream.value). " +
+                    "See ADR-023 / PR #739.",
+            )
+            assertEquals(listOf(testDoorEvent), initial.data)
+        }
 
     @Test
     fun collectsRecentDoorEventsFromRepository() =
