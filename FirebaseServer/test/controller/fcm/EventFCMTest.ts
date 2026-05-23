@@ -17,9 +17,27 @@
 // npm run tests
 
 import { expect } from 'chai';
+import * as fs from 'fs';
+import * as path from 'path';
 import { getFCMDataFromEvent } from '../../../src/controller/fcm/EventFCM';
 import { SensorEvent, SensorEventType } from '../../../src/model/SensorEvent';
 import { AndroidMessagePriority } from '../../../src/model/FCM';
+
+// Wire-contract fixtures shared with Android's FcmPayloadParsingTest.
+// A unilateral rename (e.g. `timestampSeconds` → `timestampSec`) on
+// either side breaks the deep-equal assertion below OR the Android
+// parse — but not both, so unilateral drift becomes a test failure
+// on at least one side.
+const FIXTURE_DIR = path.join(__dirname, '..', '..', '..', '..', 'wire-contracts', 'fcmDoorEvent');
+const CLOSED_FIXTURE = JSON.parse(
+    fs.readFileSync(path.join(FIXTURE_DIR, 'payload_closed.json'), 'utf8'),
+);
+const OPEN_FIXTURE = JSON.parse(
+    fs.readFileSync(path.join(FIXTURE_DIR, 'payload_open.json'), 'utf8'),
+);
+const OPENING_FIXTURE = JSON.parse(
+    fs.readFileSync(path.join(FIXTURE_DIR, 'payload_opening.json'), 'utf8'),
+);
 
 describe('getFCMDataFromEvent', () => {
     it('returns FCM with correct topic', () => {
@@ -132,5 +150,42 @@ describe('getFCMDataFromEvent', () => {
         const event = getFCMDataFromEvent(buildTimestamp, sensorEvent);
         const actual = event.notification;
         expect(actual).to.be.undefined
+    });
+
+    describe('wire-contract fixtures (shared with Android)', () => {
+        const buildTimestamp = 'Sat Mar 13 14:45:00 2021';
+
+        it('CLOSED matches payload_closed.json', () => {
+            const sensorEvent = <SensorEvent>{
+                type: SensorEventType.Closed,
+                timestampSeconds: 1725781082,
+                message: "The door is closed.",
+                checkInTimestampSeconds: 1725781092,
+            };
+            const event = getFCMDataFromEvent(buildTimestamp, sensorEvent);
+            expect(event.data).to.deep.equal(CLOSED_FIXTURE);
+        });
+
+        it('OPEN matches payload_open.json', () => {
+            const sensorEvent = <SensorEvent>{
+                type: SensorEventType.Open,
+                timestampSeconds: 1710000000,
+                message: "The door is open.",
+                checkInTimestampSeconds: 1710000060,
+            };
+            const event = getFCMDataFromEvent(buildTimestamp, sensorEvent);
+            expect(event.data).to.deep.equal(OPEN_FIXTURE);
+        });
+
+        it('OPENING matches payload_opening.json', () => {
+            const sensorEvent = <SensorEvent>{
+                type: SensorEventType.Opening,
+                timestampSeconds: 1710000000,
+                message: "The door is opening.",
+                checkInTimestampSeconds: 1710000060,
+            };
+            const event = getFCMDataFromEvent(buildTimestamp, sensorEvent);
+            expect(event.data).to.deep.equal(OPENING_FIXTURE);
+        });
     });
 });

@@ -9,9 +9,27 @@
  */
 
 import { expect } from 'chai';
+import * as fs from 'fs';
+import * as path from 'path';
 import { buildTransitionPayload } from '../../../src/controller/fcm/ButtonHealthFCM';
 import { ButtonHealthRecord } from '../../../src/database/ButtonHealthDatabase';
 import { AndroidMessagePriority } from '../../../src/model/FCM';
+
+// Wire-contract fixtures shared with Android's FcmPayloadParsingTest.
+// A unilateral rename (e.g. `buttonState` → `state`) on either side
+// breaks the deep-equal assertion below OR the Android parse — but
+// not both, so unilateral drift becomes a test failure on at least
+// one side.
+const FIXTURE_DIR = path.join(__dirname, '..', '..', '..', '..', 'wire-contracts', 'fcmButtonHealth');
+const ONLINE_FIXTURE = JSON.parse(
+  fs.readFileSync(path.join(FIXTURE_DIR, 'payload_online.json'), 'utf8'),
+);
+const OFFLINE_FIXTURE = JSON.parse(
+  fs.readFileSync(path.join(FIXTURE_DIR, 'payload_offline.json'), 'utf8'),
+);
+const ONLINE_WITH_LASTPOLL_FIXTURE = JSON.parse(
+  fs.readFileSync(path.join(FIXTURE_DIR, 'payload_online_with_lastpoll.json'), 'utf8'),
+);
 
 describe('buildTransitionPayload', () => {
   const buildTimestamp = 'Sat Apr 10 23:57:32 2021';
@@ -96,5 +114,34 @@ describe('buildTransitionPayload', () => {
     const message = buildTransitionPayload(buildTimestamp, record, null);
     expect(message.data.lastPollAtSeconds).to.equal(undefined);
     expect(Object.keys(message.data)).to.not.include('lastPollAtSeconds');
+  });
+
+  describe('wire-contract fixtures (shared with Android)', () => {
+    it('ONLINE without lastPoll matches payload_online.json', () => {
+      const record: ButtonHealthRecord = {
+        state: 'ONLINE',
+        stateChangedAtSeconds: 1_730_000_000,
+      };
+      const message = buildTransitionPayload(buildTimestamp, record, null);
+      expect(message.data).to.deep.equal(ONLINE_FIXTURE);
+    });
+
+    it('OFFLINE with lastPoll matches payload_offline.json', () => {
+      const record: ButtonHealthRecord = {
+        state: 'OFFLINE',
+        stateChangedAtSeconds: 1_730_000_000,
+      };
+      const message = buildTransitionPayload(buildTimestamp, record, 1_729_999_850);
+      expect(message.data).to.deep.equal(OFFLINE_FIXTURE);
+    });
+
+    it('ONLINE with lastPoll matches payload_online_with_lastpoll.json', () => {
+      const record: ButtonHealthRecord = {
+        state: 'ONLINE',
+        stateChangedAtSeconds: 1_730_000_000,
+      };
+      const message = buildTransitionPayload(buildTimestamp, record, 1_730_000_500);
+      expect(message.data).to.deep.equal(ONLINE_WITH_LASTPOLL_FIXTURE);
+    });
   });
 });
