@@ -350,6 +350,16 @@ tasks.register<architecture.MutexWithLockTask>("checkMutexWithLock") {
     )
 }
 
+tasks.register<architecture.AuthStateProjectionTask>("checkAuthStateProjection") {
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java",
+        "$rootDir/usecase/src/commonMain/kotlin",
+        "$rootDir/viewmodel/src/commonMain/kotlin",
+        "$rootDir/data/src/commonMain/kotlin",
+        "$rootDir/data-local/src/commonMain/kotlin",
+    )
+}
+
 allprojects {
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "io.gitlab.arturbosch.detekt")
