@@ -32,6 +32,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
@@ -120,6 +123,17 @@ private fun AnimatedDoorIcon(
     )
 }
 
+/**
+ * Test-support semantics: publishes the live door offset so the
+ * instrumented animation audit ([GarageDoorAnimationBehaviorTest]) can read
+ * the actual `Animatable` value the real wiring produces frame-by-frame.
+ * The trajectory is otherwise unobservable — screenshot tests render
+ * `static = true` and can't advance a `LaunchedEffect`. Production cost is
+ * one Float in the semantics tree per icon; nothing reads it at runtime.
+ */
+val DoorOffsetSemanticsKey = SemanticsPropertyKey<Float>("DoorOffset")
+private var SemanticsPropertyReceiver.doorOffsetSemantics by DoorOffsetSemanticsKey
+
 @Composable
 private fun DoorIconBox(
     doorOffset: Float,
@@ -128,7 +142,9 @@ private fun DoorIconBox(
     color: Color,
 ) {
     Box(
-        modifier = modifier.aspectRatio(GARAGE_DOOR_ASPECT_RATIO),
+        modifier = modifier
+            .aspectRatio(GARAGE_DOOR_ASPECT_RATIO)
+            .semantics { doorOffsetSemantics = doorOffset },
         contentAlignment = Alignment.Center,
     ) {
         GarageDoorCanvas(

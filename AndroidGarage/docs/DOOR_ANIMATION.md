@@ -90,9 +90,10 @@ Linear easing matches the roughly constant-speed motion of a real garage door.
 |-------|------------------|-------|
 | Unit (mapping) | Each `DoorAnimation.*For` function returns the documented value for every `DoorPosition` | [`GarageDoorAnimationMappingTest`](../androidApp/src/test/java/com/chriscartland/garage/ui/GarageDoorAnimationMappingTest.kt) |
 | Compile-time | Every `DoorPosition` enum value is mapped (exhaustive `when`, no `else`) | The compiler — adding a new enum value breaks the build |
+| Instrumented (trajectory) | The live offset **curve**: fresh-composition motion states snap to target (no slide); live transitions tween CLOSED↔OPEN in the right direction; a mid-slide direction flip reverses | [`GarageDoorAnimationBehaviorTest`](../androidApp/src/androidTest/java/com/chriscartland/garage/ui/GarageDoorAnimationBehaviorTest.kt) (device required) |
 | Screenshot | The icon renders as expected for each state in light + dark themes | [`GarageDoorScreenshotTest`](../android-screenshot-tests/src/screenshotTest/kotlin/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTest.kt), regenerate via `./scripts/generate-android-screenshots.sh` |
 
-Screenshot tests use `static = true` so they render deterministically (no `mainClock`-dependent animation frames). The current AGP `screenshot` plugin renders Compose previews and does not expose `mainClock`; adding intermediate-frame screenshots would require switching to Paparazzi/Roborazzi and is intentionally out of scope.
+Screenshot tests use `static = true` so they render deterministically (no `mainClock`-dependent animation frames). The current AGP `screenshot` plugin renders Compose previews and does not expose `mainClock`; capturing the *trajectory* (not just single frames) is instead done by the instrumented `GarageDoorAnimationBehaviorTest`, which drives `mainClock` manually and reads the live offset back through the `DoorOffsetSemanticsKey` test-support semantics property on `GarageIcon`. That is the layer that pins "the slide only plays on a live state change, not on fresh composition" — the behavior that otherwise looks like an intermittent bug. Adding intermediate-frame *screenshots* would still require Paparazzi/Roborazzi and remains out of scope; the trajectory assertions cover the motion correctness without pixel capture.
 
 ## Updating the contract
 
