@@ -15,6 +15,13 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.16.35
+- **Internal: instrumented audit of the door-animation trajectory.** No user-facing change. Adds `GarageDoorAnimationBehaviorTest`, which drives `mainClock` manually and reads the live door offset back through a new test-only `DoorOffsetSemanticsKey` on `GarageIcon`, pinning the open/close slide behavior in **both directions**.
+  - **What it locks**: the documented 2.16.4 / ADR-025 behavior — the slide plays only on a *live* state change (the icon was already alive when the door state changed), not on a fresh composition into an already-in-motion state. Cold-open / tab-switch / back-nav into OPENING/CLOSING render at the target position with the arrow overlay as the motion cue, with no replay of the slide. This is why the animation "sometimes" appears to work.
+  - **Matrix pinned** (instrumented, device required): fresh OPENING/CLOSING render at target with no motion; live CLOSED to OPENING slides open; live OPEN to CLOSING slides closed; a mid-slide direction flip reverses toward the new target.
+  - **Why a new test layer**: `GarageDoorAnimationMappingTest` pins only the pure target mappings; screenshot tests render `static = true` (Layoutlib can't advance a `LaunchedEffect`), so the trajectory was previously unobservable in tests.
+  - Production change is one test-support semantics property (~13 lines); nothing reads it at runtime. `DOOR_ANIMATION.md` verification table updated. Shipped in PR #848.
+
 ## 2.16.34
 - **`checkThemeDetection` build-time check** ported from battery-butler's `ThemeLayerCheckTask`. Forbids `isSystemInDarkTheme()` calls outside `androidApp/.../ui/theme/`.
   - **Why this matters**: Theme detection (light vs dark) is the theme module's responsibility. If a screen Composable reads `isSystemInDarkTheme()` directly, it's reimplementing what `AppTheme` already resolved and propagated via `MaterialTheme.colorScheme.*` — duplicating the decision and making future theme changes (dynamic-color opt-in, custom dark-color overrides) leak into screen code.
