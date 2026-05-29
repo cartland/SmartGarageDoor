@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.viewmodel
 
+import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
@@ -248,6 +249,35 @@ class ProfileViewModelTest {
                 viewModel.snoozeAction.value is SnoozeAction.Succeeded,
                 "Expected Succeeded after the snooze call returns; got " +
                     "${viewModel.snoozeAction.value}",
+            )
+        }
+
+    // Pins the ActionError.SnoozeEventChanged → SnoozeAction.Failed.EventChanged
+    // mapping. The variant exists so the UI can dispatch a specific snackbar
+    // for the "door state changed during sheet open" case instead of the
+    // generic NetworkError copy. See docs/SNOOZE_BEHAVIOR.md.
+    @Test
+    fun snoozeFailureSnoozeEventChangedMapsToFailedEventChanged() =
+        runTest {
+            val viewModel = createViewModel(
+                authState = AuthState.Authenticated(testUser),
+            )
+            snoozeRepository.setSnoozeResult(AppResult.Error(ActionError.SnoozeEventChanged))
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(
+                    doorPosition = DoorPosition.OPENING,
+                    lastChangeTimeSeconds = 900L,
+                ),
+            )
+            advanceUntilIdle()
+
+            viewModel.snoozeOpenDoorsNotifications(SnoozeDurationUIOption.OneHour)
+            testDispatcher.scheduler.runCurrent()
+
+            assertEquals(
+                SnoozeAction.Failed.EventChanged,
+                viewModel.snoozeAction.value,
+                "ActionError.SnoozeEventChanged must map to Failed.EventChanged",
             )
         }
 }

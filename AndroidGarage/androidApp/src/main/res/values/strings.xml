@@ -91,6 +91,14 @@
     <string name="settings_snooze_cancel">Cancel</string>
     <string name="settings_snooze_save">Save</string>
 
+    <!-- Snooze save-failure snackbar messages. Shown in ProfileContent
+         when SnoozeAction transitions into Failed.*. See
+         docs/SNOOZE_BEHAVIOR.md for what each failure mode means. -->
+    <string name="snooze_failed_event_changed">Door state changed before snooze could apply. Try again.</string>
+    <string name="snooze_failed_network">Snooze did not apply. Check your connection and try again.</string>
+    <string name="snooze_failed_not_authenticated">Sign in to snooze notifications.</string>
+    <string name="snooze_failed_missing_data">No recent door event available. Try again in a moment.</string>
+
     <!-- Settings → Account bottom sheet — sign out action. -->
     <string name="settings_account_sign_out">Sign out</string>
 

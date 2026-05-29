@@ -48,7 +48,7 @@ Two coupled mechanisms collide and the result is deterministic, not random:
 
 ### Mechanism 1 — Submit-time race (`:152-158`)
 
-The client reads `lastChangeTimeSeconds` when the snooze sheet opens and sends that exact value on Save. During a transition (CLOSED→OPENING→OPEN; OPEN→CLOSING→CLOSED), the event timestamp rolls over every few seconds. By the time the user picks a duration and taps Save, the door has probably advanced past it. Server rejects with 404. The client maps that to `ActionError.NetworkFailed` (a generic error) — the user sees a vague failure rather than "the door state changed before your snooze could apply."
+The client reads `lastChangeTimeSeconds` when the snooze sheet opens and sends that exact value on Save. During a transition (CLOSED→OPENING→OPEN; OPEN→CLOSING→CLOSED), the event timestamp rolls over every few seconds. By the time the user picks a duration and taps Save, the door has probably advanced past it. Server rejects with HTTP 404. The client maps this specifically to `ActionError.SnoozeEventChanged` → `SnoozeAction.Failed.EventChanged` and surfaces a "Door state changed before snooze could apply" snackbar in `ProfileContent`. Other HTTP error codes still map to the generic `NetworkFailed`. (Pre-android/246: all HTTP errors mapped to `NetworkFailed` and no Failed.* variant was rendered, so the failure was invisible to the user.)
 
 ### Mechanism 2 — `EventInterpreter` 60-second promotion (`EventInterpreter.ts:26, 194-197`)
 
@@ -112,5 +112,5 @@ Any redesign discussion belongs in a new ADR; don't unilaterally remove the time
 
 - Anyone touches `SnoozeNotifications.ts`, `EventInterpreter.ts:26`, or `OldDataFCM.ts:93-117`.
 - The client changes which event timestamp it sends as `snoozeEventTimestamp`.
-- A typed client error for "snooze rejected due to event change" replaces the generic `ActionError.NetworkFailed` mapping (would be the natural Tier 2 follow-up).
+- The HTTP-error → typed-error mapping in `NetworkSnoozeRepository.doSnoozeNotifications` changes (e.g., a different HTTP code is added to the 404-special-case branch, or the server starts returning a different code for the timestamp-mismatch path).
 - A redesign ADR lands that changes the event-coupling.

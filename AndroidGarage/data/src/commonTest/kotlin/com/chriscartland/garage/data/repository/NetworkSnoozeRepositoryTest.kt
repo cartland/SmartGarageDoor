@@ -321,6 +321,82 @@ class NetworkSnoozeRepositoryTest {
             externalScope.cancel()
         }
 
+    // Pins the HTTP-404 → ActionError.SnoozeEventChanged mapping. The
+    // server returns 404 when `snoozeEventTimestamp` no longer matches
+    // the current event — the dominant failure mode during
+    // `OPENING`/`CLOSING` transitions (see docs/SNOOZE_BEHAVIOR.md).
+    // The typed variant lets the UI surface a specific snackbar
+    // ("Door state changed before snooze could apply") instead of the
+    // generic NetworkError copy.
+    @Test
+    fun submit404MapsToSnoozeEventChanged() =
+        runTest {
+            val buttonDs = FakeNetworkButtonDataSource().apply {
+                setFetchSnoozeResult(NetworkResult.Success(0L))
+                setSnoozeResult(NetworkResult.HttpError(404))
+            }
+            val configDs = FakeNetworkConfigDataSource().apply { setServerConfigResult(validConfig) }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+
+            val repo = NetworkSnoozeRepository(
+                networkButtonDataSource = buttonDs,
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
+                authRepository = makeAuthRepo(),
+                snoozeNotificationsOption = true,
+                currentTimeSeconds = { 0L },
+                externalScope = externalScope,
+            )
+            advanceUntilIdle()
+
+            val submitted = repo.snoozeNotifications("1h", 0L)
+            advanceUntilIdle()
+
+            assertEquals(
+                AppResult.Error(ActionError.SnoozeEventChanged),
+                submitted,
+                "HTTP 404 on snooze submit should map to SnoozeEventChanged",
+            )
+            assertEquals(SnoozeState.NotSnoozing, repo.snoozeState.value)
+
+            externalScope.cancel()
+        }
+
+    // Sanity counterpart to submit404MapsToSnoozeEventChanged: any other
+    // HTTP error code should keep the generic NetworkFailed mapping.
+    // Without this, a future refactor that broadened the 404 branch to
+    // catch other codes would slip past CI.
+    @Test
+    fun submit500MapsToNetworkFailedNotSnoozeEventChanged() =
+        runTest {
+            val buttonDs = FakeNetworkButtonDataSource().apply {
+                setFetchSnoozeResult(NetworkResult.Success(0L))
+                setSnoozeResult(NetworkResult.HttpError(500))
+            }
+            val configDs = FakeNetworkConfigDataSource().apply { setServerConfigResult(validConfig) }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+
+            val repo = NetworkSnoozeRepository(
+                networkButtonDataSource = buttonDs,
+                serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
+                authRepository = makeAuthRepo(),
+                snoozeNotificationsOption = true,
+                currentTimeSeconds = { 0L },
+                externalScope = externalScope,
+            )
+            advanceUntilIdle()
+
+            val submitted = repo.snoozeNotifications("1h", 0L)
+            advanceUntilIdle()
+
+            assertEquals(
+                AppResult.Error(ActionError.NetworkFailed),
+                submitted,
+                "Non-404 HTTP errors should keep the generic NetworkFailed mapping",
+            )
+
+            externalScope.cancel()
+        }
+
     @Test
     fun featureDisabledTransitionsOffLoading() =
         runTest {
