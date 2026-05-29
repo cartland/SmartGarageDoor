@@ -501,6 +501,9 @@ Push notifications are the hardest feature to verify in production. If topic nam
 - Wire-contract fixtures pin the payload Map<String, String> shape across server + Android (PR #842, 2026-05-23): `wire-contracts/fcmDoorEvent/payload_{closed,open,opening}.json` and `wire-contracts/fcmButtonHealth/payload_{online,offline,online_with_lastpoll}.json`. Server tests (`EventFCMTest.ts`, `ButtonHealthFCMTest.ts`) `deep.equal` against the loaded fixture; Android `FcmPayloadParsingTest.fixturePayload*Parses` loads the same JSON as `Map<String, String>` and asserts the parse. A unilateral rename on either side breaks at least one half.
 - FCM-related code: `FCMService`, `DoorFcmRepository`, `FcmPayloadParser`, topic subscription flow
 
+### Snooze (event-coupled, do not "fix" without an ADR)
+The server's snooze model is bound to the door event timestamp that was current when the snooze was set (`SnoozeNotifications.ts:100`). Any subsequent door event silently voids it — including the ESP32-poll-triggered `Opening → OpeningTooLong` promotion at 60s (`EventInterpreter.ts:26, 194-197`). Practical consequence: **a stuck-`OPENING` or stuck-`CLOSING` door cannot meaningfully be snoozed** with the current model. Submit during a transition may also fail with HTTP 404 (`:152-158`), which the client currently surfaces as a generic `ActionError.NetworkFailed`. Not a regression — this has been the design since 2024-11-18 (`3e73f7384`). Full design + rationale + source pointers + verification table: [`docs/SNOOZE_BEHAVIOR.md`](docs/SNOOZE_BEHAVIOR.md). Don't unilaterally remove the timestamp check; if a redesign is wanted, write an ADR first.
+
 ### Code Patterns
 - No bare top-level functions — group in a named `object {}` for discoverability (Composables exempt). Enforced by `checkNoBareTopLevelFunctions` (in `validate.sh`). See ADR-009
 - No extension functions on generic types (e.g., `FcmPayloadParser.parse(data)` not `Map.asDoorEvent()`)

@@ -69,6 +69,27 @@ describe('SnoozeNotifications', () => {
       const result = await getSnoozeStatus(params);
       expect(result.status).to.equal(SnoozeStatus.ACTIVE);
     });
+
+    // Pins the "auto-void on next door event" behavior — the dominant
+    // reason snooze "doesn't work" during opening/closing. The stored
+    // snooze record is still in the future (end-time +1h) AND the same
+    // user just set it, but the door event has advanced (e.g., the
+    // ESP32's next poll after 60s promoted Opening → OpeningTooLong,
+    // writing a new event with a new timestamp). getSnoozeStatus must
+    // return NONE so the notification check (OldDataFCM) falls through
+    // to the normal 15-min stuck-open path. See docs/SNOOZE_BEHAVIOR.md.
+    it('should return NONE when the snooze record is future-dated but the current event has advanced', async () => {
+      const currentEvent = { currentEvent: { timestampSeconds: '99999' } }; // newer event
+      const snoozeRequest = {
+        snoozeEndTimeSeconds: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+        currentEventTimestampSeconds: 12345,                         // older event
+      };
+      sinon.stub(SensorEventDatabase, 'getCurrent').resolves(currentEvent);
+      sinon.stub(SnoozeNotificationsDatabase, 'get').resolves(snoozeRequest);
+      const params = { buildTimestamp: 'test' };
+      const result = await getSnoozeStatus(params);
+      expect(result.status).to.equal(SnoozeStatus.NONE);
+    });
   });
 
   describe('submitSnoozeNotificationsRequest', () => {
