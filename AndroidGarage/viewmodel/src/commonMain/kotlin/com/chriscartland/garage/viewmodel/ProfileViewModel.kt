@@ -238,6 +238,7 @@ class DefaultProfileViewModel(
                         ActionError.NotAuthenticated -> SnoozeAction.Failed.NotAuthenticated
                         ActionError.MissingData -> SnoozeAction.Failed.MissingData
                         ActionError.NetworkFailed -> SnoozeAction.Failed.NetworkError
+                        ActionError.SnoozeEventChanged -> SnoozeAction.Failed.EventChanged
                     }
                     scheduleActionReset()
                 }

@@ -165,13 +165,28 @@ class NetworkSnoozeRepository(
             }
             is NetworkResult.HttpError -> {
                 Logger.e { "Snooze HTTP ${result.code}" }
-                AppResult.Error(ActionError.NetworkFailed)
+                // HTTP 404 on snooze submit is the server's "event timestamp
+                // does not match current event" response from
+                // `submitSnoozeNotificationsRequest`. The handler also returns
+                // 404 for invalid duration, which is structurally impossible
+                // from this client (the Android enum mirrors the server's
+                // allowed list), so treating 404 as event-changed is safe in
+                // practice. See `docs/SNOOZE_BEHAVIOR.md`.
+                if (result.code == HTTP_NOT_FOUND) {
+                    AppResult.Error(ActionError.SnoozeEventChanged)
+                } else {
+                    AppResult.Error(ActionError.NetworkFailed)
+                }
             }
             NetworkResult.ConnectionFailed -> {
                 Logger.e { "Snooze connection failed" }
                 AppResult.Error(ActionError.NetworkFailed)
             }
         }
+    }
+
+    private companion object {
+        const val HTTP_NOT_FOUND = 404
     }
 
     /** If still Loading (first fetch), fall back to NotSnoozing so the UI doesn't show "Loading..." forever. */

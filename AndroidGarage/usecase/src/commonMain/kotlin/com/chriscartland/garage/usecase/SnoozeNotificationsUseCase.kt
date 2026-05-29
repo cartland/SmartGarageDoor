@@ -39,6 +39,9 @@ import com.chriscartland.garage.domain.repository.SnoozeRepository
  * - [ActionError.NotAuthenticated] — user not signed in.
  * - [ActionError.MissingData] — no current door event timestamp available.
  * - [ActionError.NetworkFailed] — repository reported a network failure.
+ * - [ActionError.SnoozeEventChanged] — server rejected the submit because
+ *   the door state advanced between sheet-open and Save. The snooze did
+ *   NOT apply; the user should retry. See `docs/SNOOZE_BEHAVIOR.md`.
  */
 class SnoozeNotificationsUseCase(
     private val authRepository: AuthRepository,

@@ -75,6 +75,16 @@ sealed interface SnoozeAction {
 
         /** Server unreachable or returned an error. */
         data object NetworkError : Failed
+
+        /**
+         * Server rejected the request because the door state changed
+         * between the time the snooze sheet opened and the time the
+         * user tapped Save. The snooze did NOT apply; retrying with the
+         * now-current door event is the natural fix. Common during
+         * `OPENING`/`CLOSING` transitions and stuck-in-motion windows.
+         * See `docs/SNOOZE_BEHAVIOR.md` for the underlying server model.
+         */
+        data object EventChanged : Failed
     }
 }
 

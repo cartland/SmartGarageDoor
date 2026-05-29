@@ -260,6 +260,14 @@ class DefaultHomeViewModel(
                         Logger.w { "Push failed — network error" }
                         stateMachine.onNetworkFailed()
                     }
+                    // SnoozeEventChanged is snooze-specific; the push
+                    // repository never returns it. Defensive branch only —
+                    // logs the unexpected case and resets the state machine
+                    // so the UI doesn't latch on a half-completed press.
+                    ActionError.SnoozeEventChanged -> {
+                        Logger.e { "Push got unexpected SnoozeEventChanged (snooze-only error)" }
+                        stateMachine.reset()
+                    }
                 }
             }
         }

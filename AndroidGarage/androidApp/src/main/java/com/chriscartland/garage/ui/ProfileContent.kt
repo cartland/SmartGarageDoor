@@ -21,13 +21,18 @@ import android.content.Intent
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.ReportDrawn
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -116,6 +121,30 @@ fun ProfileContent(
         }
     }
 
+    // Snackbar host for surfacing snooze save failures. Before this, the
+    // `SnoozeAction.Failed.*` states were computed by [ProfileViewModel]
+    // and auto-reset by `scheduleActionReset()` but were never rendered
+    // anywhere — failures were silent (the spinner just stopped). The
+    // hostState + LaunchedEffect below dispatch a per-variant message
+    // on each transition into a Failed.* state. See docs/SNOOZE_BEHAVIOR.md.
+    val snackbarHostState = remember { SnackbarHostState() }
+    val snoozeFailedEventChangedMessage = stringResource(R.string.snooze_failed_event_changed)
+    val snoozeFailedNetworkMessage = stringResource(R.string.snooze_failed_network)
+    val snoozeFailedNotAuthenticatedMessage = stringResource(R.string.snooze_failed_not_authenticated)
+    val snoozeFailedMissingDataMessage = stringResource(R.string.snooze_failed_missing_data)
+    LaunchedEffect(snoozeAction) {
+        val action = snoozeAction
+        if (action is SnoozeAction.Failed) {
+            val message = when (action) {
+                SnoozeAction.Failed.EventChanged -> snoozeFailedEventChangedMessage
+                SnoozeAction.Failed.NetworkError -> snoozeFailedNetworkMessage
+                SnoozeAction.Failed.NotAuthenticated -> snoozeFailedNotAuthenticatedMessage
+                SnoozeAction.Failed.MissingData -> snoozeFailedMissingDataMessage
+            }
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+
     val unknownNameFallback = stringResource(R.string.profile_account_name_unknown)
     val accountState = when (val s = authState) {
         is AuthState.Authenticated -> AccountRowState.SignedIn(
@@ -133,41 +162,46 @@ fun ProfileContent(
         SnoozeRowState.PermissionDenied
     }
 
-    SettingsContent(
-        accountState = accountState,
-        snoozeState = snoozeRowState,
-        showSnoozeRow = appConfig.snoozeNotificationsOption,
-        showDeveloperSection = developerAccess == true,
-        showFunctionListRow = functionListAccess == true,
-        versionName = appVersion.versionName,
-        versionCode = appVersion.versionCode.toString(),
-        layoutDebugEnabled = layoutDebugEnabled,
-        navigationRailItemPosition = navigationRailItemPosition,
-        navigationRailTopPaddingDp = navigationRailTopPaddingDp,
-        modifier = modifier,
-        snoozeInFlight = snoozeAction is SnoozeAction.Sending,
-        onAccountTap = { accountSheetOpen = true },
-        onSignInTap = { googleSignIn.launchSignIn() },
-        onSnoozeTap = {
-            if (notificationsGranted) {
-                snoozeSheetOpen = true
-            } else {
-                notificationPermissionState.launchPermissionRequest()
-            }
-        },
-        onFunctionListTap = onNavigateToFunctionList,
-        onVersionTap = { versionSheetOpen = true },
-        onPlayStoreTap = {
-            val url = "https://play.google.com/store/apps/details?id=${appVersion.packageName}"
-            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-        },
-        onPrivacyPolicyTap = {
-            context.startActivity(Intent(Intent.ACTION_VIEW, PRIVACY_POLICY_URL.toUri()))
-        },
-        onDiagnosticsTap = onNavigateToDiagnostics,
-        onLayoutDebugChange = resolved::setLayoutDebugEnabled,
-        onNavRailTap = { navRailSheetOpen = true },
-    )
+    Box(modifier = modifier) {
+        SettingsContent(
+            accountState = accountState,
+            snoozeState = snoozeRowState,
+            showSnoozeRow = appConfig.snoozeNotificationsOption,
+            showDeveloperSection = developerAccess == true,
+            showFunctionListRow = functionListAccess == true,
+            versionName = appVersion.versionName,
+            versionCode = appVersion.versionCode.toString(),
+            layoutDebugEnabled = layoutDebugEnabled,
+            navigationRailItemPosition = navigationRailItemPosition,
+            navigationRailTopPaddingDp = navigationRailTopPaddingDp,
+            snoozeInFlight = snoozeAction is SnoozeAction.Sending,
+            onAccountTap = { accountSheetOpen = true },
+            onSignInTap = { googleSignIn.launchSignIn() },
+            onSnoozeTap = {
+                if (notificationsGranted) {
+                    snoozeSheetOpen = true
+                } else {
+                    notificationPermissionState.launchPermissionRequest()
+                }
+            },
+            onFunctionListTap = onNavigateToFunctionList,
+            onVersionTap = { versionSheetOpen = true },
+            onPlayStoreTap = {
+                val url = "https://play.google.com/store/apps/details?id=${appVersion.packageName}"
+                context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+            },
+            onPrivacyPolicyTap = {
+                context.startActivity(Intent(Intent.ACTION_VIEW, PRIVACY_POLICY_URL.toUri()))
+            },
+            onDiagnosticsTap = onNavigateToDiagnostics,
+            onLayoutDebugChange = resolved::setLayoutDebugEnabled,
+            onNavRailTap = { navRailSheetOpen = true },
+        )
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+    }
 
     if (snoozeSheetOpen) {
         SnoozeBottomSheet(

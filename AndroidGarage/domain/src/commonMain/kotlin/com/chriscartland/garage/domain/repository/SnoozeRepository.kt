@@ -45,8 +45,11 @@ interface SnoozeRepository {
      * for broader reactivity.
      *
      * Returns [AppResult.Error] with [ActionError.NetworkFailed] on any
-     * network-layer failure. Auth/input errors (NotAuthenticated,
-     * MissingData) are not produced here — they're the UseCase's concern.
+     * network-layer failure, or [ActionError.SnoozeEventChanged] when the
+     * server rejects the request because the door event timestamp the
+     * client sent no longer matches the current event (HTTP 404). Auth/
+     * input errors (NotAuthenticated, MissingData) are not produced here
+     * — they're the UseCase's concern.
      *
      * TODO: replace [snoozeDurationHours]: String with a domain value type
      * (e.g. SnoozeDurationServerOption). The "0h".."12h" encoding is
