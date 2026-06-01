@@ -85,26 +85,41 @@ object DoorAnimation {
         }
 
     /**
-     * Initial Animatable seed for a given state.
+     * The "from" end a motion state slides *out of* — the position the icon
+     * is seeded at when it should replay the full open/close animation from
+     * the start.
      *
-     * Always equal to [targetPositionFor] — a freshly composed icon
-     * renders at the target position with no animation. The motion
-     * animation (`OPENING` / `CLOSING`) only fires when [doorPosition]
-     * **changes** during the icon's lifetime (state CLOSED→OPENING
-     * triggers `LaunchedEffect` to animate from CLOSED to OPEN), not on
-     * every fresh composition.
+     * - `OPENING` slides up out of `CLOSED_POSITION`.
+     * - `CLOSING` slides down out of `OPEN_POSITION`.
+     * - Non-motion states have no distinct "from" end; they equal
+     *   [targetPositionFor] (the spring settles in place, no replay).
      *
-     * Pre-2.16.4 behavior was: `OPENING → CLOSED_POSITION` and
-     * `CLOSING → OPEN_POSITION` so the icon animated the full motion on
-     * first compose (including screen return mid-motion). That re-ran
-     * the open/close animation every time the user navigated back to
-     * Home while the server still reported a transient OPENING/CLOSING
-     * state — visible flicker that didn't represent reality (the
-     * animation timing didn't sync with the physical door). The
-     * [overlayFor] arrows (ARROW_UP / ARROW_DOWN) preserve the
-     * "in motion" visual cue without re-animating.
+     * Whether this seed is actually used is decided per fresh composition by
+     * [DoorAnimationMemory]: a newly observed motion event (cold-open / first
+     * view) seeds here and slides; re-entry of an already-animated event seeds
+     * at [targetPositionFor] and snaps. Live transitions during the icon's
+     * lifetime animate from the current value via `LaunchedEffect`, never from
+     * this seed — so a mid-slide direction flip reverses smoothly. See
+     * `AndroidGarage/docs/DOOR_ANIMATION.md` and ADR-025 (amended).
+     *
+     * This restores the slide trajectory that 2.16.4 removed, but gated on
+     * "first view of this event" rather than firing on every fresh
+     * composition (which had replayed the slide on every tab-switch /
+     * back-nav).
      */
-    fun initialPositionFor(doorPosition: DoorPosition): Float = targetPositionFor(doorPosition)
+    fun fromPositionFor(doorPosition: DoorPosition): Float =
+        when (doorPosition) {
+            DoorPosition.OPENING -> CLOSED_POSITION
+            DoorPosition.CLOSING -> OPEN_POSITION
+            DoorPosition.UNKNOWN,
+            DoorPosition.CLOSED,
+            DoorPosition.OPENING_TOO_LONG,
+            DoorPosition.OPEN,
+            DoorPosition.OPEN_MISALIGNED,
+            DoorPosition.CLOSING_TOO_LONG,
+            DoorPosition.ERROR_SENSOR_CONFLICT,
+            -> targetPositionFor(doorPosition)
+        }
 
     /**
      * Which animation spec family applies.

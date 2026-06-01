@@ -106,6 +106,7 @@ fun DoorStatusCard(
                         .weight(1f),
                     static = false,
                     color = color,
+                    lastChangeTimeSeconds = lastChangeTimeSeconds,
                 )
                 Row(
                     modifier = Modifier,

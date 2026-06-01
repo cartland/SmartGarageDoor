@@ -18,6 +18,7 @@
 package com.chriscartland.garage.ui
 
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.SemanticsMatcher
@@ -49,18 +50,22 @@ import java.time.Duration
  *
  * ## Behavior matrix this audit pins (see `docs/DOOR_ANIMATION.md`)
  *
- * | Entry scenario                         | OPENING                | CLOSING                |
- * |----------------------------------------|------------------------|------------------------|
- * | Fresh composition already in motion    | snap to OPEN, no move  | snap to CLOSED, no move|
- * | Live transition while composed         | tween CLOSED→OPEN      | tween OPEN→CLOSED       |
+ * | Entry scenario                          | OPENING               | CLOSING                |
+ * |-----------------------------------------|-----------------------|------------------------|
+ * | Fresh composition, NEW event (cold-open)| tween CLOSED→OPEN      | tween OPEN→CLOSED       |
+ * | Fresh composition, already-animated     | snap to OPEN, no move  | snap to CLOSED, no move|
+ * | Live transition while composed          | tween CLOSED→OPEN      | tween OPEN→CLOSED       |
  *
- * The "fresh composition" row is the documented 2.16.4 / ADR-025 behavior:
- * `initialPositionFor == targetPositionFor`, so a cold-open / tab-switch /
- * back-nav into an in-motion state renders at the target with only the arrow
- * overlay as the motion cue — it does NOT replay the slide. The "live
- * transition" row is the case where the slide is visible. This is why the
- * animation "sometimes works": it depends entirely on whether the icon was
- * already alive when the state changed.
+ * The first row is the cold-open / first-view case: a motion event this
+ * [DoorAnimationMemory] hasn't seen replays the full slide from the start
+ * (the behavior the user asked for — "start at the beginning regardless of
+ * how long it's been in that state"). The second row is re-entry (tab-switch
+ * / back-nav) of an *already-animated* event: it snaps to the target so the
+ * slide is not replayed on every fresh composition (the 2.16.4 concern that
+ * motivated suppressing it). The third row — a state change while the icon is
+ * already alive — animates from the current value as before. See ADR-025
+ * (amended): the seed is now gated on event identity, not always equal to the
+ * target.
  *
  * **Instrumented — requires a connected device/emulator.** Not part of
  * `validate.sh`; runs via `./scripts/run-instrumented-tests.sh` and the
@@ -77,41 +82,112 @@ class GarageDoorAnimationBehaviorTest {
     private val stepMs = 250L
     private val steps = 6 // 6 * 250 = 1500ms > duration, so the tween completes
 
-    // --- Fresh composition in a motion state: snaps, no slide -----------------
+    // --- Fresh composition, NEW event (cold-open): slides from the start ------
 
     @Test
-    fun freshComposition_opening_rendersAtTarget_withNoMotion() {
+    fun freshComposition_opening_newEvent_slidesFromStart() {
+        val memory = DoorAnimationMemory()
         composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
-            GarageIcon(
-                doorPosition = DoorPosition.OPENING,
-                modifier = Modifier.size(ICON_DP.dp),
-                duration = testDuration,
-            )
+            CompositionLocalProvider(LocalDoorAnimationMemory provides memory) {
+                GarageIcon(
+                    doorPosition = DoorPosition.OPENING,
+                    modifier = Modifier.size(ICON_DP.dp),
+                    duration = testDuration,
+                    lastChangeTimeSeconds = EVENT_T,
+                )
+            }
         }
         composeTestRule.mainClock.advanceTimeByFrame()
 
-        // Seeded at the target (OPEN) and stays there across the full window.
-        assertEquals(OPEN_POSITION, composeTestRule.doorOffset(), EPS)
+        // Seeded at the CLOSED "from" end, not the target — proves the slide
+        // starts at the beginning regardless of how long the door has been
+        // opening. Then slides up to OPEN.
+        assertEquals(
+            "slide should start at the CLOSED end",
+            CLOSED_POSITION,
+            composeTestRule.doorOffset(),
+            START_EPS,
+        )
         val samples = composeTestRule.sampleOffsets()
-        assertNoMotion(samples, expected = OPEN_POSITION)
+        assertMonotonic(samples, decreasing = true)
+        assertMotionOccurred(samples)
+        assertEquals(OPEN_POSITION, samples.last(), EPS)
     }
 
     @Test
-    fun freshComposition_closing_rendersAtTarget_withNoMotion() {
+    fun freshComposition_closing_newEvent_slidesFromStart() {
+        val memory = DoorAnimationMemory()
         composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
-            GarageIcon(
-                doorPosition = DoorPosition.CLOSING,
-                modifier = Modifier.size(ICON_DP.dp),
-                duration = testDuration,
-            )
+            CompositionLocalProvider(LocalDoorAnimationMemory provides memory) {
+                GarageIcon(
+                    doorPosition = DoorPosition.CLOSING,
+                    modifier = Modifier.size(ICON_DP.dp),
+                    duration = testDuration,
+                    lastChangeTimeSeconds = EVENT_T,
+                )
+            }
+        }
+        composeTestRule.mainClock.advanceTimeByFrame()
+
+        assertEquals(
+            "slide should start at the OPEN end",
+            OPEN_POSITION,
+            composeTestRule.doorOffset(),
+            START_EPS,
+        )
+        val samples = composeTestRule.sampleOffsets()
+        assertMonotonic(samples, decreasing = false)
+        assertMotionOccurred(samples)
+        assertEquals(CLOSED_POSITION, samples.last(), EPS)
+    }
+
+    // --- Fresh composition, already-animated event (re-entry): snaps ----------
+
+    @Test
+    fun reentry_opening_sameEvent_snapsToTarget_withNoMotion() {
+        val memory = DoorAnimationMemory()
+        // Simulate the event having already animated (e.g. the cold-open slide
+        // played, then the user tab-switched away and back).
+        memory.consumeAnimateFromStart(DoorMotionKey(DoorPosition.OPENING, EVENT_T))
+        composeTestRule.mainClock.autoAdvance = false
+        composeTestRule.setContent {
+            CompositionLocalProvider(LocalDoorAnimationMemory provides memory) {
+                GarageIcon(
+                    doorPosition = DoorPosition.OPENING,
+                    modifier = Modifier.size(ICON_DP.dp),
+                    duration = testDuration,
+                    lastChangeTimeSeconds = EVENT_T,
+                )
+            }
+        }
+        composeTestRule.mainClock.advanceTimeByFrame()
+
+        // Already animated → seeds at the target (OPEN), no replay.
+        assertEquals(OPEN_POSITION, composeTestRule.doorOffset(), EPS)
+        assertNoMotion(composeTestRule.sampleOffsets(), expected = OPEN_POSITION)
+    }
+
+    @Test
+    fun reentry_closing_sameEvent_snapsToTarget_withNoMotion() {
+        val memory = DoorAnimationMemory()
+        memory.consumeAnimateFromStart(DoorMotionKey(DoorPosition.CLOSING, EVENT_T))
+        composeTestRule.mainClock.autoAdvance = false
+        composeTestRule.setContent {
+            CompositionLocalProvider(LocalDoorAnimationMemory provides memory) {
+                GarageIcon(
+                    doorPosition = DoorPosition.CLOSING,
+                    modifier = Modifier.size(ICON_DP.dp),
+                    duration = testDuration,
+                    lastChangeTimeSeconds = EVENT_T,
+                )
+            }
         }
         composeTestRule.mainClock.advanceTimeByFrame()
 
         assertEquals(CLOSED_POSITION, composeTestRule.doorOffset(), EPS)
-        val samples = composeTestRule.sampleOffsets()
-        assertNoMotion(samples, expected = CLOSED_POSITION)
+        assertNoMotion(composeTestRule.sampleOffsets(), expected = CLOSED_POSITION)
     }
 
     // --- Live transition while composed: slides ------------------------------
@@ -121,11 +197,14 @@ class GarageDoorAnimationBehaviorTest {
         val state = mutableStateOf(DoorPosition.CLOSED)
         composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
-            GarageIcon(
-                doorPosition = state.value,
-                modifier = Modifier.size(ICON_DP.dp),
-                duration = testDuration,
-            )
+            CompositionLocalProvider(LocalDoorAnimationMemory provides DoorAnimationMemory()) {
+                GarageIcon(
+                    doorPosition = state.value,
+                    modifier = Modifier.size(ICON_DP.dp),
+                    duration = testDuration,
+                    lastChangeTimeSeconds = EVENT_T,
+                )
+            }
         }
         composeTestRule.mainClock.advanceTimeByFrame()
         // Settled closed before the transition.
@@ -146,11 +225,14 @@ class GarageDoorAnimationBehaviorTest {
         val state = mutableStateOf(DoorPosition.OPEN)
         composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
-            GarageIcon(
-                doorPosition = state.value,
-                modifier = Modifier.size(ICON_DP.dp),
-                duration = testDuration,
-            )
+            CompositionLocalProvider(LocalDoorAnimationMemory provides DoorAnimationMemory()) {
+                GarageIcon(
+                    doorPosition = state.value,
+                    modifier = Modifier.size(ICON_DP.dp),
+                    duration = testDuration,
+                    lastChangeTimeSeconds = EVENT_T,
+                )
+            }
         }
         composeTestRule.mainClock.advanceTimeByFrame()
         assertEquals(OPEN_POSITION, composeTestRule.doorOffset(), EPS)
@@ -172,11 +254,14 @@ class GarageDoorAnimationBehaviorTest {
         val state = mutableStateOf(DoorPosition.CLOSED)
         composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
-            GarageIcon(
-                doorPosition = state.value,
-                modifier = Modifier.size(ICON_DP.dp),
-                duration = testDuration,
-            )
+            CompositionLocalProvider(LocalDoorAnimationMemory provides DoorAnimationMemory()) {
+                GarageIcon(
+                    doorPosition = state.value,
+                    modifier = Modifier.size(ICON_DP.dp),
+                    duration = testDuration,
+                    lastChangeTimeSeconds = EVENT_T,
+                )
+            }
         }
         composeTestRule.mainClock.advanceTimeByFrame()
 
@@ -250,6 +335,14 @@ class GarageDoorAnimationBehaviorTest {
 
     private companion object {
         const val EPS = 0.01f
+
+        // Looser tolerance for the first-frame read of a slide: one frame of
+        // the compressed tween has already advanced the offset slightly off
+        // the exact "from" end.
+        const val START_EPS = 0.08f
         const val ICON_DP = 200
+
+        // Arbitrary stable event timestamp; identity matters, not the value.
+        const val EVENT_T = 1_000L
     }
 }

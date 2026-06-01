@@ -57,6 +57,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -85,9 +86,17 @@ fun GarageApp() {
     // `LocalConfiguration.current.screenWidthDp` directly. See
     // `AppWindowSizeClass.kt` for the rationale + the lint that enforces it
     // (`checkNoLocalConfigurationDimensionReads`).
+    // App-root memory of which door motion events have already played their
+    // slide. Held by remember at the Compose root so it survives tab-switch /
+    // back-nav (root isn't disposed) but resets on process death — exactly
+    // when a cold open should replay the slide. Pure presentation state; see
+    // DoorAnimationMemory + ADR-025.
+    val doorAnimationMemory = remember { DoorAnimationMemory() }
     ProvideAppWindowSizeClass {
         AppTheme {
-            AppNavigation()
+            CompositionLocalProvider(LocalDoorAnimationMemory provides doorAnimationMemory) {
+                AppNavigation()
+            }
         }
     }
 }

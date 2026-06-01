@@ -49,7 +49,15 @@ import java.time.Duration
  *   ([targetPositionFor]) — no dependency on the current animation value.
  * - Motion states (OPENING/CLOSING) tween linearly over [duration].
  * - Terminal/error states settle via a slow, no-bounce spring.
+ * - A motion state seen for the first time (cold-open / first view of this
+ *   event) replays the full slide from the start; re-entry of the same event
+ *   snaps to the target. See [LocalDoorAnimationMemory].
  *
+ * @param lastChangeTimeSeconds server timestamp of the door's last position
+ *   change. Combined with [doorPosition] it identifies one motion event so
+ *   the slide replays once per event (not on every tab-switch / back-nav).
+ *   Pass the live event's value for the animated icon; `null` is fine for
+ *   one-off renders (it just animates every fresh composition).
  * @param static when `true`, render at [staticPositionFor] (no animation,
  *   no Animatable). Used by past-event snapshots in the recent events list.
  *   Always treated as `true` under [LocalInspectionMode] (Studio previews +
@@ -64,6 +72,7 @@ fun GarageIcon(
     static: Boolean = false,
     color: Color = LocalDoorStatusColorScheme.current.openFresh,
     duration: Duration = DEFAULT_GARAGE_DOOR_ANIMATION_DURATION,
+    lastChangeTimeSeconds: Long? = null,
 ) {
     if (static || LocalInspectionMode.current) {
         DoorIconBox(
@@ -75,6 +84,7 @@ fun GarageIcon(
     } else {
         AnimatedDoorIcon(
             doorPosition = doorPosition,
+            lastChangeTimeSeconds = lastChangeTimeSeconds,
             modifier = modifier,
             color = color,
             duration = duration,
@@ -85,15 +95,36 @@ fun GarageIcon(
 @Composable
 private fun AnimatedDoorIcon(
     doorPosition: DoorPosition,
+    lastChangeTimeSeconds: Long?,
     modifier: Modifier,
     color: Color,
     duration: Duration,
 ) {
-    // Hoisted Animatable: one position state for this icon instance.
-    // LaunchedEffect is keyed on the enum so same-value re-emits do not
-    // restart the animation. The pure mappings (target/initial/spec) are
-    // defined in AnimatableGarageDoor.kt.
-    val position = remember { Animatable(DoorAnimation.initialPositionFor(doorPosition)) }
+    // Decide ONCE per fresh composition whether this icon should replay the
+    // full slide from the "from" end. True only for a motion state whose event
+    // this memory hasn't animated yet — i.e. cold-open / first view. Re-entry
+    // of an already-animated event seeds at the target (snap, no replay).
+    // Consuming inside remember(key) keys the decision to this composition;
+    // live state changes are driven by the LaunchedEffect below from the
+    // current value (so a mid-slide direction flip reverses smoothly), not by
+    // re-seeding here. See AnimatableGarageDoor.fromPositionFor + ADR-025.
+    val memory = LocalDoorAnimationMemory.current
+    val key = DoorMotionKey(doorPosition, lastChangeTimeSeconds)
+    val seedFromStart = remember(key) {
+        !DoorAnimation.useSpringFor(doorPosition) && memory.consumeAnimateFromStart(key)
+    }
+    // Hoisted Animatable: one position state for this icon instance. Seeded at
+    // the "from" end when replaying, else at the target. LaunchedEffect is
+    // keyed on the enum so same-value re-emits do not restart the animation.
+    val position = remember {
+        Animatable(
+            if (seedFromStart) {
+                DoorAnimation.fromPositionFor(doorPosition)
+            } else {
+                DoorAnimation.targetPositionFor(doorPosition)
+            },
+        )
+    }
     LaunchedEffect(doorPosition) {
         val target = DoorAnimation.targetPositionFor(doorPosition)
         if (DoorAnimation.useSpringFor(doorPosition)) {

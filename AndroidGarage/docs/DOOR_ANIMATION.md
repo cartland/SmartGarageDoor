@@ -19,28 +19,40 @@ Five pure mappings on the [`DoorAnimation`](../androidApp/src/main/java/com/chri
 | Function | Returns | Used by |
 |----------|---------|---------|
 | `DoorAnimation.targetPositionFor(state)` | offset to animate toward | `LaunchedEffect` |
-| `DoorAnimation.initialPositionFor(state)` | seed value for `Animatable` on first composition | `remember { Animatable(...) }` |
+| `DoorAnimation.fromPositionFor(state)` | the "from" end a motion state slides out of (seed when replaying from the start) | `remember { Animatable(...) }` |
 | `DoorAnimation.useSpringFor(state)` | `false` → tween (motion); `true` → spring (settle) | `LaunchedEffect` |
 | `DoorAnimation.staticPositionFor(state)` | offset to render when `static = true` (no animation) | recent events list |
 | `DoorAnimation.overlayFor(state)` | which overlay icon (arrow up/down, warning, none) to draw | `DoorIconBox` |
+
+The `Animatable` **seed** is not a pure function of state alone — it depends on whether this motion event has already been animated (see [Cold-open replay](#cold-open-replay-doormotionkey) below). `fromPositionFor` supplies the "from" end; the seed is `fromPositionFor` for a not-yet-animated motion event, else `targetPositionFor`.
 
 Each is an exhaustive `when` over `DoorPosition` with no `else`. Adding a new enum value fails to compile until every mapping is updated.
 
 ## State table
 
-| State | `target` | `initial` | spec | overlay |
-|-------|----------|-----------|------|---------|
+| State | `target` | `from` | spec | overlay |
+|-------|----------|--------|------|---------|
 | `UNKNOWN` | `MIDWAY_POSITION` | target | spring | warning |
 | `CLOSED` | `CLOSED_POSITION` | target | spring | none |
-| `OPENING` | `OPEN_POSITION` | target | tween (linear, 12s) | arrow up |
+| `OPENING` | `OPEN_POSITION` | `CLOSED_POSITION` | tween (linear, 12s) | arrow up |
 | `OPENING_TOO_LONG` | `MIDWAY_POSITION` | target | spring | warning |
 | `OPEN` | `OPEN_POSITION` | target | spring | none |
 | `OPEN_MISALIGNED` | `OPEN_POSITION` | target | spring | none |
-| `CLOSING` | `CLOSED_POSITION` | target | tween (linear, 12s) | arrow down |
+| `CLOSING` | `CLOSED_POSITION` | `OPEN_POSITION` | tween (linear, 12s) | arrow down |
 | `CLOSING_TOO_LONG` | `MIDWAY_POSITION` | target | spring | warning |
 | `ERROR_SENSOR_CONFLICT` | `MIDWAY_POSITION` | target | spring | warning |
 
-`initial = target` for every state. The motion animation (tween for OPENING/CLOSING) only fires when `doorPosition` *changes* during the icon's lifetime — not on every fresh composition. Pre-2.16.4 used `OPENING → CLOSED_POSITION` and `CLOSING → OPEN_POSITION` so a freshly composed motion-state icon animated the full motion. That re-ran the animation on every screen re-entry while the server still reported a transient OPENING/CLOSING — visible flicker that didn't represent reality (animation timing didn't sync with the physical door). The arrow overlays preserve the "in motion" cue without re-animating.
+`from = target` for every non-motion state (the spring settles in place). Only `OPENING` and `CLOSING` have a distinct "from" end.
+
+### Cold-open replay (`DoorMotionKey`)
+
+A motion state seen for the **first time** — a cold open, or the first time the user looks at the icon for this event — seeds the `Animatable` at `fromPositionFor` and plays the full slide. Re-entry of the **same** event (tab-switch, back-nav) seeds at `targetPositionFor` and snaps. The two are told apart by a `DoorMotionKey(doorPosition, lastChangeTimeSeconds)` recorded in `DoorAnimationMemory` — a plain holder `remember`ed at the Compose root (`GarageApp`), provided via `LocalDoorAnimationMemory`. It survives tab-switch / back-nav (root not disposed) but resets on process death — exactly when a cold open should replay.
+
+This is a **presentation-layer** concern: no DI graph, no domain/usecase involvement. The icon takes `lastChangeTimeSeconds` and reads the local.
+
+The replay is **always from the start, regardless of how long the door has been in that state** — we do not seed mid-motion from elapsed time (clock drift would put the icon at a silently wrong position; see ADR-025). A live state change *during* the icon's lifetime still animates from the current value (so a mid-slide direction flip reverses smoothly), driven by `LaunchedEffect`, never by the seed.
+
+History (pre-2.16.4): a motion-state icon animated the full slide on *every* fresh composition (`OPENING → CLOSED_POSITION` seed unconditionally), which replayed on every screen re-entry while the server still reported a transient OPENING/CLOSING. 2.16.4 over-corrected by making the seed always equal the target, which suppressed the slide even on cold open. The `DoorAnimationMemory` gate recovers the cold-open slide without the re-entry replay.
 
 Position constants in `AnimatableGarageDoor.kt`:
 
@@ -78,7 +90,7 @@ Linear easing matches the roughly constant-speed motion of a real garage door.
 
 ## Trade-offs
 
-**Fresh composition seeds at the target, not the "from" end.** When the app opens (or a screen re-enters) with the server reporting an in-motion state, the icon renders immediately at the target position (OPEN for OPENING, CLOSED for CLOSING) with the arrow overlay carrying the motion cue. Pre-2.16.4 the icon animated the full motion on every fresh composition; 2.16.4 changed `initialPositionFor` to always equal `targetPositionFor` so the animation only fires when `doorPosition` actually changes during the icon's lifetime (e.g., the user is looking at the screen when the server transitions CLOSED→OPENING). Computing `now() - lastChangeTimeSeconds` to seed mid-motion is still rejected because clock drift between device and server is significant — relying on it would put the icon at a silently wrong position.
+**Cold open replays the slide from the start; re-entry snaps.** When the app opens (or the icon is first viewed) with the server reporting an in-motion state, the icon seeds at the "from" end and plays the full slide — regardless of how long the door has already been opening/closing. Re-entering a screen where the *same* event is still current (tab-switch, back-nav) snaps to the target instead of replaying. The two are distinguished by `DoorMotionKey` in `DoorAnimationMemory` (see [Cold-open replay](#cold-open-replay-doormotionkey)). Computing `now() - lastChangeTimeSeconds` to seed *mid*-motion is still rejected because device/server clock drift would put the icon at a silently wrong position — "from the start" is deliberate, not a fallback.
 
 **Always animate to target on state change.** No `|current - target| < ε` skip — that would make behavior depend on current animation value, defeating the "target is pure" principle. If `current ≈ target`, the spring is a near-noop with no perceived movement.
 
@@ -90,7 +102,7 @@ Linear easing matches the roughly constant-speed motion of a real garage door.
 |-------|------------------|-------|
 | Unit (mapping) | Each `DoorAnimation.*For` function returns the documented value for every `DoorPosition` | [`GarageDoorAnimationMappingTest`](../androidApp/src/test/java/com/chriscartland/garage/ui/GarageDoorAnimationMappingTest.kt) |
 | Compile-time | Every `DoorPosition` enum value is mapped (exhaustive `when`, no `else`) | The compiler — adding a new enum value breaks the build |
-| Instrumented (trajectory) | The live offset **curve**: fresh-composition motion states snap to target (no slide); live transitions tween CLOSED↔OPEN in the right direction; a mid-slide direction flip reverses | [`GarageDoorAnimationBehaviorTest`](../androidApp/src/androidTest/java/com/chriscartland/garage/ui/GarageDoorAnimationBehaviorTest.kt) (device required) |
+| Instrumented (trajectory) | The live offset **curve**: a fresh composition of a NEW motion event slides from the "from" end; re-entry of an already-animated event snaps to target (no slide); live transitions tween CLOSED↔OPEN in the right direction; a mid-slide direction flip reverses | [`GarageDoorAnimationBehaviorTest`](../androidApp/src/androidTest/java/com/chriscartland/garage/ui/GarageDoorAnimationBehaviorTest.kt) (device required) |
 | Screenshot | The icon renders as expected for each state in light + dark themes | [`GarageDoorScreenshotTest`](../android-screenshot-tests/src/screenshotTest/kotlin/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTest.kt), regenerate via `./scripts/generate-android-screenshots.sh` |
 
 Screenshot tests use `static = true` so they render deterministically (no `mainClock`-dependent animation frames). The current AGP `screenshot` plugin renders Compose previews and does not expose `mainClock`; capturing the *trajectory* (not just single frames) is instead done by the instrumented `GarageDoorAnimationBehaviorTest`, which drives `mainClock` manually and reads the live offset back through the `DoorOffsetSemanticsKey` test-support semantics property on `GarageIcon`. That is the layer that pins "the slide only plays on a live state change, not on fresh composition" — the behavior that otherwise looks like an intermittent bug. Adding intermediate-frame *screenshots* would still require Paparazzi/Roborazzi and remains out of scope; the trajectory assertions cover the motion correctness without pixel capture.
