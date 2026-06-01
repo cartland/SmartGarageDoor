@@ -1,0 +1,76 @@
+# XcodeGen spec — source of truth for iosApp.xcodeproj.
+#
+# The .xcodeproj is GENERATED, not committed (see .gitignore). Regenerate
+# after editing this file or adding/removing Swift sources:
+#
+#     brew install xcodegen        # one-time
+#     cd AndroidGarage/iosApp && xcodegen generate
+#
+# Build for the simulator from the CLI:
+#
+#     cd AndroidGarage/iosApp && xcodegen generate
+#     xcodebuild -project iosApp.xcodeproj -scheme iosApp \
+#       -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+#       CODE_SIGNING_ALLOWED=NO build
+#
+# The Kotlin `shared.framework` is produced by a pre-build Run Script that
+# invokes `:iosFramework:embedAndSignAppleFrameworkForXcode` (mirrors
+# battery-butler's wiring). FRAMEWORK_SEARCH_PATHS points at the task's
+# output dir; the task also embeds + signs the framework into the app.
+
+name: iosApp
+options:
+  bundleIdPrefix: com.chriscartland.garage
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    # Kotlin/Native types lack Swift `Sendable` info; keep strict concurrency
+    # at `minimal` and `@preconcurrency import shared` where needed.
+    SWIFT_STRICT_CONCURRENCY: minimal
+    # KMP gradle Run Script writes outside the Xcode sandbox.
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+targets:
+  iosApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: iosApp
+      - path: Core
+      - path: Features
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.chriscartland.garage
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: iosApp/Info.plist
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Garage
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        TARGETED_DEVICE_FAMILY: "1,2"
+        FRAMEWORK_SEARCH_PATHS:
+          - $(inherited)
+          - $(SRCROOT)/../iosFramework/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
+        OTHER_LDFLAGS:
+          - $(inherited)
+          - -framework
+          - shared
+    preBuildScripts:
+      - name: "Build Kotlin shared.framework (embedAndSign)"
+        basedOnDependencyAnalysis: false
+        script: |
+          if [ "YES" = "$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED" ]; then
+            echo "Skipping Gradle build (OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED=YES)"
+            exit 0
+          fi
+          cd "$SRCROOT/.."
+          ./gradlew :iosFramework:embedAndSignAppleFrameworkForXcode
