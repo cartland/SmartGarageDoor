@@ -31,8 +31,7 @@ struct MainScreen: View {
         TabView {
             ForEach(MainTab.allCases) { tab in
                 NavigationStack {
-                    TabPlaceholder(tab: tab)
-                        .navigationTitle(tab.title)
+                    screen(for: tab)
                 }
                 .tabItem {
                     Label(tab.title, systemImage: tab.systemImage)
@@ -40,23 +39,20 @@ struct MainScreen: View {
             }
         }
     }
-}
 
-/// Temporary per-tab body for the Phase B foundation. Replaced screen-by-screen.
-private struct TabPlaceholder: View {
-    let tab: MainTab
-
-    var body: some View {
-        VStack(spacing: GarageSpacing.betweenItems) {
-            Image(systemName: tab.systemImage)
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
-            Text(tab.title)
-                .font(.title2.weight(.semibold))
-            Text("Screen coming soon")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+    @ViewBuilder
+    private func screen(for tab: MainTab) -> some View {
+        switch tab {
+        case .home:
+            HomeScreen(component: component)
+        case .history:
+            HistoryScreen(component: component)
+        case .profile:
+            ProfileScreen(component: component)
+        case .functions:
+            FunctionListScreen(component: component)
+        case .diagnostics:
+            DiagnosticsScreen(component: component)
         }
-        .padding(GarageSpacing.screen)
     }
 }
