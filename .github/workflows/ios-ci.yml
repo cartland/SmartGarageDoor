@@ -1,0 +1,107 @@
+# iOS CI — builds the SwiftUI app (AndroidGarage/iosApp) against the Kotlin
+# shared.framework on a macOS runner, and runs the iosFramework DI-graph
+# identity test (NativeComponentTest).
+#
+# NOT a required status check (yet). It validates the iOS build going forward;
+# branch protection still gates on "Android CI Complete" / "Firebase CI Complete".
+# Promote to required once it has a stable green history (see CLAUDE.md
+# "Renaming a branch-protection-required gate job" for the ordering rules).
+#
+# Scoped to the modules the framework actually pulls in, so Android-only PRs
+# don't pay for a macOS runner.
+
+name: iOS CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'AndroidGarage/iosApp/**'
+      - 'AndroidGarage/iosFramework/**'
+      - 'AndroidGarage/domain/**'
+      - 'AndroidGarage/data/**'
+      - 'AndroidGarage/data-local/**'
+      - 'AndroidGarage/usecase/**'
+      - 'AndroidGarage/viewmodel/**'
+      - 'AndroidGarage/presentation-model/**'
+      - 'AndroidGarage/gradle/libs.versions.toml'
+      - 'AndroidGarage/settings.gradle.kts'
+      - 'AndroidGarage/build.gradle.kts'
+      - '.github/workflows/ios-ci.yml'
+  pull_request:
+    paths:
+      - 'AndroidGarage/iosApp/**'
+      - 'AndroidGarage/iosFramework/**'
+      - 'AndroidGarage/domain/**'
+      - 'AndroidGarage/data/**'
+      - 'AndroidGarage/data-local/**'
+      - 'AndroidGarage/usecase/**'
+      - 'AndroidGarage/viewmodel/**'
+      - 'AndroidGarage/presentation-model/**'
+      - 'AndroidGarage/gradle/libs.versions.toml'
+      - 'AndroidGarage/settings.gradle.kts'
+      - 'AndroidGarage/build.gradle.kts'
+      - '.github/workflows/ios-ci.yml'
+
+concurrency:
+  group: ios-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-ios:
+    name: Build iOS app + framework test
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-ios-${{ hashFiles('AndroidGarage/**/*.gradle*', 'AndroidGarage/gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-ios-
+            ${{ runner.os }}-gradle-
+
+      - name: Cache Xcode DerivedData
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-xcode-ios-${{ hashFiles('AndroidGarage/iosApp/**/*.swift', 'AndroidGarage/iosApp/project.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-xcode-ios-
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      # DI-graph identity test (mirrors NativeComponentTest, 40/40 on simulator).
+      # Also warms the framework artifacts the app build embeds.
+      - name: Run iosFramework simulator tests
+        working-directory: AndroidGarage
+        run: ./gradlew :iosFramework:iosSimulatorArm64Test
+
+      - name: Generate Xcode project
+        working-directory: AndroidGarage/iosApp
+        run: xcodegen generate
+
+      - name: Build iOS app (simulator)
+        working-directory: AndroidGarage/iosApp
+        run: |
+          xcodebuild \
+            -project iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            build \
+            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
