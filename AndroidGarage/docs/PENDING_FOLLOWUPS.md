@@ -64,7 +64,15 @@ Currently pinned at 0.8.0 deliberately. Tripwire conditions in § 2 below — no
 | [#823](https://github.com/cartland/SmartGarageDoor/pull/823) | `:data-local` Room KMP + DataStore-Okio; DAO suspend refactor; kotlinx-datetime for `currentTimeMillis`; `DatabaseFactory` expect/actual; iOS targets on `:usecase`/`:viewmodel`/`:presentation-model`/`:test-common`; `AppStartup` moved to `:usecase/commonMain` |
 | [#824](https://github.com/cartland/SmartGarageDoor/pull/824) | SKIE 0.10.9 plugin; `NativeComponent` DI graph (mirrors `AppComponent` with iOS deps); `IosNativeHelper`; `NoOpAuthBridge` + `NoOpMessagingBridge` placeholders; kotlin-inject 0.8.0 downgrade (see follow-up #2 below) |
 
-**Remaining work** — each requires user setup that the Kotlin side can't supply:
+**Progress (2026-05-31):** Phase B/D foundation landed — `AndroidGarage/iosApp/`
+(XcodeGen `project.yml`, `iOSApp.swift` building the `NativeComponent` graph with
+NoOp bridges + `defaultDevAppConfig`, `SharedViewModel`, theme tokens, 5-tab shell)
+plus `KmpViewModelStore` in `:viewmodel`. **Verified: builds and links against
+`shared.framework` on the iOS simulator** (`** BUILD SUCCEEDED **`, no Firebase /
+Apple account needed). Next: Phase F (iOS CI on `macos-latest`), then Phase E
+(the 5 real screens). Phases A/C/G remain gated on the user setup below.
+
+**Remaining work** — Phases A, C, F, G; some require user setup the Kotlin side can't supply:
 
 #### A. Firebase iOS configuration (one-time, user)
 - Create iOS app in the existing Firebase project (bundle ID `com.chriscartland.garage` per the iOS plan)
