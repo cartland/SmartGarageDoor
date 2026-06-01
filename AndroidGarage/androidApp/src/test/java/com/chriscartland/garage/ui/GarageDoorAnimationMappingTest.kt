@@ -78,19 +78,29 @@ class GarageDoorAnimationMappingTest {
         assertEquals(MIDWAY_POSITION, DoorAnimation.targetPositionFor(DoorPosition.ERROR_SENSOR_CONFLICT))
     }
 
-    // --- initialPositionFor ---------------------------------------------------
+    // --- fromPositionFor ------------------------------------------------------
 
     @Test
-    fun initialPositionFor_alwaysEqualsTarget() {
-        // Per 2.16.4: every state's initial == target. Motion animations
-        // (OPENING/CLOSING tweens) only fire when doorPosition CHANGES during
-        // the icon's lifetime, not on every fresh composition. The arrow
-        // overlays carry the "in motion" cue without re-animating.
-        for (state in DoorPosition.entries) {
+    fun fromPositionFor_opening_isClosedEnd() {
+        // OPENING slides up out of CLOSED.
+        assertEquals(CLOSED_POSITION, DoorAnimation.fromPositionFor(DoorPosition.OPENING))
+    }
+
+    @Test
+    fun fromPositionFor_closing_isOpenEnd() {
+        // CLOSING slides down out of OPEN.
+        assertEquals(OPEN_POSITION, DoorAnimation.fromPositionFor(DoorPosition.CLOSING))
+    }
+
+    @Test
+    fun fromPositionFor_nonMotionStates_matchTarget() {
+        // Non-motion states have no distinct "from" end; the spring settles in
+        // place, so the seed equals the target.
+        for (state in nonMotionStates) {
             assertEquals(
-                "Initial position for $state should equal target",
+                "From position for $state should equal target",
                 DoorAnimation.targetPositionFor(state),
-                DoorAnimation.initialPositionFor(state),
+                DoorAnimation.fromPositionFor(state),
             )
         }
     }

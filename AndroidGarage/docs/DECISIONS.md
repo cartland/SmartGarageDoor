@@ -1465,6 +1465,18 @@ Intermediate-frame screenshot tests (e.g., 25/50/75% of motion) were considered 
 - [`GarageIcon.kt`](../androidApp/src/main/java/com/chriscartland/garage/ui/GarageIcon.kt) — `Animatable` host
 - [`GarageDoorAnimationMappingTest`](../androidApp/src/test/java/com/chriscartland/garage/ui/GarageDoorAnimationMappingTest.kt) — pinned mapping tests
 
+### Amendment — 2026-05-31: cold-open replays the slide from the start
+
+**Context.** The original decision (and the 2.16.4 follow-up that set `initialPositionFor == targetPositionFor`) meant a cold open — or any first view — of an in-motion door rendered the icon already at its target (OPEN for OPENING, CLOSED for CLOSING) with only the arrow overlay as the motion cue. The slide only played on a live state change while the icon was already composed. Users reading the screen on open saw the door "at the end," not animating. The 2.16.35 audit (`GarageDoorAnimationBehaviorTest`) had characterized and *locked* that behavior, which made the gap look intended.
+
+**Decision.** Replay the full open/close slide the **first time** a given motion event is observed (cold open / first view), and snap on **re-entry** of the same event (tab-switch / back-nav). The two are distinguished by a `DoorMotionKey(doorPosition, lastChangeTimeSeconds)` recorded in a `DoorAnimationMemory`. The slide always starts at the "from" end (`fromPositionFor`) regardless of how long the door has been in that state — **not** seeded mid-motion from elapsed time (the clock-drift objection in the original rationale stands; this amendment does not weaken it).
+
+**Why it stays in the view layer.** `DoorAnimationMemory` is a plain holder `remember`ed at the Compose root (`GarageApp`) and provided via `LocalDoorAnimationMemory` — no DI graph, no domain/usecase involvement. "Has this icon already played its slide?" is a presentation concern, so it lives in the Compose tree, not `AppComponent`. Root-level `remember` gives the exact lifetime we want: survives tab-switch / back-nav (root not disposed), resets on process death (when a cold open *should* replay).
+
+**Why the original "always animate on fresh composition" is still rejected.** Seeding unconditionally at the "from" end (pre-2.16.4) replayed the slide on *every* re-entry while the same transient event was still current — visible, repetitive, and not synced to the physical door. The memory gate is what makes "replay once per event" different from "replay on every composition."
+
+**What is preserved.** `targetPositionFor` is still a pure function of state. Live transitions (and mid-slide direction flips) still animate from the current `Animatable` value via `LaunchedEffect`, never from the seed — so the smooth-reversal consequence above is unchanged. `initialPositionFor` is removed; `fromPositionFor` replaces it. Contract + state table: [`DOOR_ANIMATION.md`](DOOR_ANIMATION.md) § Cold-open replay.
+
 ## ADR-026: One ViewModel Per Screen
 
 ### Status

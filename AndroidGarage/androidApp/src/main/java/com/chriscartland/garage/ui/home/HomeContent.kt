@@ -362,6 +362,10 @@ private fun HomeStatusCardBody(
                 static = false,
                 color = doorColor,
                 modifier = Modifier.size(160.dp),
+                // Identifies the motion event so the slide replays once per
+                // event (cold-open / first view) rather than on every fresh
+                // composition. See DoorAnimationMemory.
+                lastChangeTimeSeconds = status.lastChangeTimeSeconds,
             )
         }
         Column(
