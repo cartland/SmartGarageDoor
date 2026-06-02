@@ -18,17 +18,25 @@ User-flagged items that aren't tied to a specific release and aren't smoke-test 
 
 Concrete things only the user can do. Each item points to the detailed section below or to a sibling doc. Ordered by leverage (A unblocks the most downstream work).
 
-### A. Unblock iOS Phase 38B — Apple Developer + Firebase iOS setup (~1 hour, one-time)
+### A. Unblock iOS Phase C/G — Apple Developer + Firebase iOS setup (~1 hour, one-time)
 
-Single block unblocks ~10 PRs of Swift / SwiftUI work. Three sub-steps:
+**The Xcode project, iOS CI, and all 5 SwiftUI screens already exist and build on the
+simulator + macOS CI** (Phases B/D/E/F shipped 2026-06-01, PRs #856/#857/#858). The app
+currently runs against `defaultDevAppConfig` + NoOp auth/push, so it renders signed-out /
+empty data. This one-time setup is what unblocks the **remaining** work — real Google
+Sign-In + FCM (Phase C) and the App Store submission (Phase G). Three sub-steps:
 
 1. **Apple Developer Account** → register bundle ID `com.chriscartland.garage`.
 2. **Firebase Console** → add iOS app to the existing project (same bundle ID). Download `GoogleService-Info.plist`. (Config, not a secret — same posture as Android's `google-services.json`.) Hand the file to the agent and it will commit to `AndroidGarage/iosApp/iosApp/`.
 3. **Apple Developer Console** → generate an APNs `.p8` key, then upload it to Firebase Console → Cloud Messaging tab. (`.p8` chosen over `.cer` so there's no annual rotation.)
 
-Once those land, tell the agent "iOS setup done" and it will start Phase 38B (Xcode project scaffold).
+You'll also need the iOS equivalent of the Android `SERVER_CONFIG_KEY` + backend base URL
+(read into `AppConfig` from `Info.plist`) for the app to hit the real server.
 
-Reference: § 1.A below.
+Once those land, tell the agent "iOS setup done" and it will start **Phase C** (the Firebase
+Swift bridges + `AppDelegate` wiring), then surface the data on the screens that already exist.
+
+Reference: §§ 1.A + 1.C below.
 
 ### B. Run the 3 pending smoke tests on a device
 
@@ -52,7 +60,7 @@ Currently pinned at 0.8.0 deliberately. Tripwire conditions in § 2 below — no
 
 ### 1. iOS app construction (post-`:iosFramework`)
 
-**Status:** Blocked on Apple Developer + Firebase iOS setup. The Kotlin/KMP side is complete as of `feat/ios-skie-nativecomponent` (PR #824) — the iOS framework builds end-to-end with the full kotlin-inject DI graph and SKIE bridging.
+**Status:** Phases B/D/E/F shipped (PRs #856/#857/#858, 2026-06-01) — the Xcode project, iOS CI on `macos-latest`, and all 5 SwiftUI screens exist and build green. Remaining phases **A/C/G** are blocked on Apple Developer + Firebase iOS setup (see "User action items § A"). The Kotlin/KMP side has been complete since PR #824.
 
 **What's already done** (5 merged PRs):
 
