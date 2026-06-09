@@ -1,9 +1,11 @@
 name: Play Track Snapshot
 
-# Reads the current Play Store release-track state and appends a snapshot to a
-# single long-lived "Play Store track state log" issue. Append-only: every run
-# adds a comment, nothing is ever edited or deleted. Read-only against the
-# store (lists tracks via an edit that is then abandoned).
+# Reads the current Play Store release-track state and records it on a long-lived
+# "Play Store track state log" issue: the latest snapshot is written to the issue
+# BODY (overwritten each run, an at-a-glance dashboard) and ALSO appended as a
+# COMMENT (immutable, append-only history). Read-only against the store (lists
+# tracks via an edit that is then abandoned). When the active issue accumulates
+# many comments it rolls over to a fresh one (see MAX_COMMENTS below).
 #
 # Triggers:
 #   - workflow_dispatch: run manually after promoting a track in the Console
@@ -55,32 +57,51 @@ jobs:
           export SNAPSHOT_TIMESTAMP="$(date -u '+%Y-%m-%d %H:%M UTC')"
           node .github/scripts/play-track-snapshot.mjs
 
-      - name: Append snapshot to track-state log issue
+      - name: Update track-state log issue (latest in body, history in comments)
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
           LABEL="play-track-log"
           TITLE="Play Store track state log"
+          MAX_COMMENTS=1000 # roll over to a fresh issue past this (GitHub hard cap ~2500)
 
           # Ensure the label exists (idempotent).
           gh label create "$LABEL" --color "0e8a16" \
-            --description "Append-only Play Store track-state snapshots" 2>/dev/null || true
+            --description "Play Store track-state snapshots (body = latest, comments = history)" 2>/dev/null || true
 
-          # Find the single long-lived log issue (open or closed); create it once.
-          ISSUE=$(gh issue list --label "$LABEL" --state all --json number --jq '.[0].number' 2>/dev/null)
+          # Create a new log issue with the given initial body; echo its number.
+          # Read the number straight from create output — `gh issue list` is
+          # eventually consistent and won't surface a just-created issue yet.
+          create_issue() {
+            local url
+            url=$(gh issue create --title "$TITLE" --label "$LABEL" --body "$1")
+            echo "${url##*/}"
+          }
+
+          # The active log is the OPEN issue carrying the label; create one if none.
+          ISSUE=$(gh issue list --label "$LABEL" --state open --json number --jq '.[0].number' 2>/dev/null)
+          [ "$ISSUE" = "null" ] && ISSUE=""
           if [ -z "$ISSUE" ]; then
-            # Capture the number straight from create — `gh issue list` is
-            # eventually consistent and won't surface a just-created issue yet
-            # (the first-run race that produced an empty number before).
-            ISSUE_URL=$(gh issue create --title "$TITLE" --label "$LABEL" \
-              --body "Append-only history of Play Store release-track state. Each comment is one snapshot from \`edits.tracks.list\`, written by the Play Track Snapshot workflow (manual run, or after an Android release). Comments are never edited or deleted — scroll for history; newest is at the bottom.")
-            ISSUE="${ISSUE_URL##*/}"
+            ISSUE=$(create_issue "_Initializing… the latest snapshot will appear here on the next run._")
           fi
-
           if [ -z "$ISSUE" ]; then
             echo "::error::Could not resolve the track-state log issue number"
             exit 1
           fi
 
+          # Roll over to a fresh issue once the log gets large (keeps the page fast).
+          COUNT=$(gh api "repos/$REPO/issues/$ISSUE" --jq '.comments' 2>/dev/null || echo 0)
+          if [ "${COUNT:-0}" -ge "$MAX_COMMENTS" ]; then
+            gh issue comment "$ISSUE" --body "📦 Reached $COUNT snapshots — rolling over to a fresh log issue to keep this page fast."
+            NEW=$(create_issue "_Continued from #$ISSUE. The latest snapshot will appear here on the next run._")
+            gh issue comment "$NEW" --body "Continued from #$ISSUE."
+            gh issue comment "$ISSUE" --body "Continued in #$NEW."
+            gh issue close "$ISSUE"
+            ISSUE="$NEW"
+          fi
+
+          # Latest state -> issue body (overwritten); history -> a comment (append-only).
+          gh issue edit "$ISSUE" --body-file snapshot-body.md
           gh issue comment "$ISSUE" --body-file snapshot-comment.md
-          echo "Appended snapshot to issue #$ISSUE"
+          echo "Updated issue #$ISSUE (body refreshed; snapshot appended; $COUNT prior comments)"
