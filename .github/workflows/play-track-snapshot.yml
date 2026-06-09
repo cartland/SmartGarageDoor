@@ -1,0 +1,78 @@
+name: Play Track Snapshot
+
+# Reads the current Play Store release-track state and appends a snapshot to a
+# single long-lived "Play Store track state log" issue. Append-only: every run
+# adds a comment, nothing is ever edited or deleted. Read-only against the
+# store (lists tracks via an edit that is then abandoned).
+#
+# Triggers:
+#   - workflow_dispatch: run manually after promoting a track in the Console
+#   - workflow_run:      after "Android Release" completes (captures the new
+#                        internal-track upload)
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Android Release']
+    types: [completed]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: play-track-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    # On workflow_run, only snapshot when the release actually succeeded.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # need tags to map versionCode N -> android/N -> versionName
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install reader dependency
+        run: npm install --no-save googleapis
+
+      - name: Read tracks and build snapshot
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          PACKAGE_NAME: com.chriscartland.garage
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            TRIGGER="release (${{ github.event.workflow_run.head_branch }})"
+          else
+            TRIGGER="manual (@${{ github.actor }})"
+          fi
+          export SNAPSHOT_TRIGGER="$TRIGGER"
+          export SNAPSHOT_TIMESTAMP="$(date -u '+%Y-%m-%d %H:%M UTC')"
+          node .github/scripts/play-track-snapshot.mjs
+
+      - name: Append snapshot to track-state log issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LABEL="play-track-log"
+          TITLE="Play Store track state log"
+
+          # Ensure the label exists (idempotent).
+          gh label create "$LABEL" --color "0e8a16" \
+            --description "Append-only Play Store track-state snapshots" 2>/dev/null || true
+
+          # Find the single long-lived log issue (open or closed); create it once.
+          ISSUE=$(gh issue list --label "$LABEL" --state all --json number --jq '.[0].number' 2>/dev/null)
+          if [ -z "$ISSUE" ]; then
+            gh issue create --title "$TITLE" --label "$LABEL" \
+              --body "Append-only history of Play Store release-track state. Each comment is one snapshot from \`edits.tracks.list\`, written by the Play Track Snapshot workflow (manual run, or after an Android release). Comments are never edited or deleted — scroll for history; newest is at the bottom."
+            ISSUE=$(gh issue list --label "$LABEL" --state all --json number --jq '.[0].number')
+          fi
+
+          gh issue comment "$ISSUE" --body-file snapshot-comment.md
+          echo "Appended snapshot to issue #$ISSUE"
