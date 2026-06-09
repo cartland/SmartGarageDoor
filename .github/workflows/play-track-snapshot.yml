@@ -69,9 +69,17 @@ jobs:
           # Find the single long-lived log issue (open or closed); create it once.
           ISSUE=$(gh issue list --label "$LABEL" --state all --json number --jq '.[0].number' 2>/dev/null)
           if [ -z "$ISSUE" ]; then
-            gh issue create --title "$TITLE" --label "$LABEL" \
-              --body "Append-only history of Play Store release-track state. Each comment is one snapshot from \`edits.tracks.list\`, written by the Play Track Snapshot workflow (manual run, or after an Android release). Comments are never edited or deleted — scroll for history; newest is at the bottom."
-            ISSUE=$(gh issue list --label "$LABEL" --state all --json number --jq '.[0].number')
+            # Capture the number straight from create — `gh issue list` is
+            # eventually consistent and won't surface a just-created issue yet
+            # (the first-run race that produced an empty number before).
+            ISSUE_URL=$(gh issue create --title "$TITLE" --label "$LABEL" \
+              --body "Append-only history of Play Store release-track state. Each comment is one snapshot from \`edits.tracks.list\`, written by the Play Track Snapshot workflow (manual run, or after an Android release). Comments are never edited or deleted — scroll for history; newest is at the bottom.")
+            ISSUE="${ISSUE_URL##*/}"
+          fi
+
+          if [ -z "$ISSUE" ]; then
+            echo "::error::Could not resolve the track-state log issue number"
+            exit 1
           fi
 
           gh issue comment "$ISSUE" --body-file snapshot-comment.md
