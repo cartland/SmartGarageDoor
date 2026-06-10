@@ -86,7 +86,7 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.chriscartland.garage
           releaseFiles: AndroidGarage/androidApp/build/outputs/bundle/release/*.aab
-          track: internal
+          tracks: internal
           whatsNewDirectory: AndroidGarage/distribution/whatsnew
 
       - name: Release summary
