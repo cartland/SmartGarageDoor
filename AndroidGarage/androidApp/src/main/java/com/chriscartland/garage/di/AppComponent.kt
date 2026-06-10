@@ -85,6 +85,7 @@ import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.FetchFcmStatusUseCase
+import com.chriscartland.garage.usecase.FetchOlderDoorEventsUseCase
 import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.GetAuthTokenForCopyUseCase
@@ -385,6 +386,10 @@ abstract class AppComponent(
     @Provides
     fun provideFetchRecentDoorEventsUseCase(doorRepository: DoorRepository): FetchRecentDoorEventsUseCase =
         FetchRecentDoorEventsUseCase(doorRepository)
+
+    @Provides
+    fun provideFetchOlderDoorEventsUseCase(doorRepository: DoorRepository): FetchOlderDoorEventsUseCase =
+        FetchOlderDoorEventsUseCase(doorRepository)
 
     @Provides
     fun provideFetchFcmStatusUseCase(doorFcmRepository: DoorFcmRepository): FetchFcmStatusUseCase = FetchFcmStatusUseCase(doorFcmRepository)

@@ -45,3 +45,16 @@ class FetchRecentDoorEventsUseCase(
 ) {
     suspend operator fun invoke(): AppResult<List<DoorEvent>, FetchError> = doorRepository.fetchRecentDoorEvents()
 }
+
+/**
+ * Fetches the next OLDER page of door events (pagination "load more") and
+ * appends it to the cache. No-op when there is nothing more to load.
+ *
+ * Returns [AppResult] so callers can handle [FetchError.NotReady] and
+ * [FetchError.NetworkFailed] explicitly with exhaustive `when`.
+ */
+class FetchOlderDoorEventsUseCase(
+    private val doorRepository: DoorRepository,
+) {
+    suspend operator fun invoke(): AppResult<List<DoorEvent>, FetchError> = doorRepository.fetchOlderDoorEvents()
+}

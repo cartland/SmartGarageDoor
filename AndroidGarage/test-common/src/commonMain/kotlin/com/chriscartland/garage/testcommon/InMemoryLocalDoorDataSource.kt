@@ -45,6 +45,10 @@ class InMemoryLocalDoorDataSource : LocalDoorDataSource {
     val replaceCalls: List<List<DoorEvent>> get() = _replaceCalls
     val replaceCount: Int get() = _replaceCalls.size
 
+    private val _appendCalls = mutableListOf<List<DoorEvent>>()
+    val appendCalls: List<List<DoorEvent>> get() = _appendCalls
+    val appendCount: Int get() = _appendCalls.size
+
     override suspend fun insertDoorEvent(doorEvent: DoorEvent) {
         _insertCalls.add(doorEvent)
         _currentDoorEvent.value = doorEvent
@@ -56,5 +60,14 @@ class InMemoryLocalDoorDataSource : LocalDoorDataSource {
         if (doorEvents.isNotEmpty()) {
             _currentDoorEvent.value = doorEvents.first()
         }
+    }
+
+    override suspend fun appendDoorEvents(doorEvents: List<DoorEvent>) {
+        _appendCalls.add(doorEvents)
+        // Mirror Room: dedupe by the entity PK (lastChangeTimeSeconds + doorPosition),
+        // keep the list newest-first.
+        _recentDoorEvents.value = (_recentDoorEvents.value + doorEvents)
+            .distinctBy { it.lastChangeTimeSeconds to it.doorPosition }
+            .sortedByDescending { it.lastChangeTimeSeconds ?: Long.MIN_VALUE }
     }
 }

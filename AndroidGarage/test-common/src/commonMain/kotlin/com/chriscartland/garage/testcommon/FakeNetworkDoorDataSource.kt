@@ -20,38 +20,48 @@ package com.chriscartland.garage.testcommon
 import com.chriscartland.garage.data.NetworkDoorDataSource
 import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorEventPage
 
 /**
  * Fake [NetworkDoorDataSource] for unit testing.
  *
  * Configure responses with `setX()` methods. Tracks each call via `*Calls`
  * lists (ADR-017 Rule 5 — call-list pattern), so tests can assert on the
- * exact arguments passed (build timestamps, page sizes). The `*Count`
+ * exact arguments passed (build timestamps, page sizes, tokens). The `*Count`
  * accessors are convenience reads backed by the lists.
  */
 class FakeNetworkDoorDataSource : NetworkDoorDataSource {
-    data class FetchRecentCall(
+    data class FetchPageCall(
         val buildTimestamp: String,
-        val count: Int,
+        val pageSize: Int,
+        val pageToken: String?,
     )
 
     private var currentDoorEventResult: NetworkResult<DoorEvent> = NetworkResult.ConnectionFailed
-    private var recentDoorEventsResult: NetworkResult<List<DoorEvent>> = NetworkResult.ConnectionFailed
+    private var doorEventPageResult: NetworkResult<DoorEventPage> = NetworkResult.ConnectionFailed
+
+    // When set, the next fetchDoorEventPage call returns this instead, then clears.
+    private var nextDoorEventPageResult: NetworkResult<DoorEventPage>? = null
 
     private val _fetchCurrentBuildTimestamps = mutableListOf<String>()
     val fetchCurrentBuildTimestamps: List<String> get() = _fetchCurrentBuildTimestamps
     val fetchCurrentCount: Int get() = _fetchCurrentBuildTimestamps.size
 
-    private val _fetchRecentCalls = mutableListOf<FetchRecentCall>()
-    val fetchRecentCalls: List<FetchRecentCall> get() = _fetchRecentCalls
-    val fetchRecentCount: Int get() = _fetchRecentCalls.size
+    private val _fetchPageCalls = mutableListOf<FetchPageCall>()
+    val fetchPageCalls: List<FetchPageCall> get() = _fetchPageCalls
+    val fetchPageCount: Int get() = _fetchPageCalls.size
 
     fun setCurrentDoorEventResult(value: NetworkResult<DoorEvent>) {
         currentDoorEventResult = value
     }
 
-    fun setRecentDoorEventsResult(value: NetworkResult<List<DoorEvent>>) {
-        recentDoorEventsResult = value
+    fun setDoorEventPageResult(value: NetworkResult<DoorEventPage>) {
+        doorEventPageResult = value
+    }
+
+    /** Arm the NEXT fetchDoorEventPage call to return [value] (e.g. an older page). */
+    fun setNextDoorEventPageResult(value: NetworkResult<DoorEventPage>) {
+        nextDoorEventPageResult = value
     }
 
     override suspend fun fetchCurrentDoorEvent(buildTimestamp: String): NetworkResult<DoorEvent> {
@@ -59,11 +69,16 @@ class FakeNetworkDoorDataSource : NetworkDoorDataSource {
         return currentDoorEventResult
     }
 
-    override suspend fun fetchRecentDoorEvents(
+    override suspend fun fetchDoorEventPage(
         buildTimestamp: String,
-        count: Int,
-    ): NetworkResult<List<DoorEvent>> {
-        _fetchRecentCalls.add(FetchRecentCall(buildTimestamp = buildTimestamp, count = count))
-        return recentDoorEventsResult
+        pageSize: Int,
+        pageToken: String?,
+    ): NetworkResult<DoorEventPage> {
+        _fetchPageCalls.add(FetchPageCall(buildTimestamp = buildTimestamp, pageSize = pageSize, pageToken = pageToken))
+        nextDoorEventPageResult?.let {
+            nextDoorEventPageResult = null
+            return it
+        }
+        return doorEventPageResult
     }
 }

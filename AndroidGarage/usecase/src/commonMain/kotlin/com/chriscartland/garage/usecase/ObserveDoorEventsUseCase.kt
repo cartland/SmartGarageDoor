@@ -19,6 +19,7 @@ package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.domain.model.PaginationState
 import com.chriscartland.garage.domain.repository.DoorRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,6 +47,12 @@ class ObserveDoorEventsUseCase(
     fun current(): StateFlow<DoorEvent?> = doorRepository.currentDoorEvent
 
     fun recent(): StateFlow<List<DoorEvent>> = doorRepository.recentDoorEvents
+
+    /**
+     * Pagination cursor for [recent] (ADR-022 pass-through — the repo owns the
+     * StateFlow; do NOT wrap). Drives the history screen's "load more".
+     */
+    fun paginationState(): StateFlow<PaginationState> = doorRepository.paginationState
 
     /** Stream of door position changes — needed by ButtonStateMachine. */
     fun position(): Flow<DoorPosition> = doorRepository.currentDoorPosition

@@ -30,7 +30,8 @@ object AppConfigFactory {
     fun create(): AppConfig =
         AppConfig(
             baseUrl = BuildConfig.BASE_URL,
-            recentEventCount = 30,
+            // First-page size for door history; the server caps this at 50.
+            recentEventCount = 50,
             serverConfigKey = BuildConfig.SERVER_CONFIG_KEY,
             snoozeNotificationsOption = true,
             remoteButtonPushEnabled = true,
