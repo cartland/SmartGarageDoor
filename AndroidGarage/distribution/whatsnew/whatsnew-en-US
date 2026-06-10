@@ -1,1 +1,1 @@
-2.16: Three-pane dashboard on large tablets and Chromebooks. Home, History, and Settings now appear side by side at 840dp+ window widths. The bottom navigation hides to give the dashboard the full window width.
+2.17: Load more door history by scrolling. Older events load as you reach the bottom of the list, all the way back to your first recorded event.
