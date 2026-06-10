@@ -26,8 +26,10 @@ import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.LoadingResult
+import com.chriscartland.garage.domain.model.PaginationState
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
+import com.chriscartland.garage.usecase.FetchOlderDoorEventsUseCase
 import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.LiveClock
 import com.chriscartland.garage.usecase.LogAppEventUseCase
@@ -57,7 +59,17 @@ interface DoorHistoryViewModel {
      */
     val nowEpochSeconds: StateFlow<Long>
 
+    /**
+     * Pagination cursor for the history list (ADR-022 pass-through — the repo
+     * owns the StateFlow). Drives the "load more" footer + scroll trigger:
+     * `canLoadMore` gates the trigger, `isLoadingMore` shows the spinner.
+     */
+    val paginationState: StateFlow<PaginationState>
+
     fun fetchRecentDoorEvents()
+
+    /** Fetch the next OLDER page (load-more); appends to [recentDoorEvents]. */
+    fun fetchOlderDoorEvents()
 
     fun deregisterFcm()
 
@@ -69,6 +81,7 @@ class DefaultDoorHistoryViewModel(
     private val logAppEvent: LogAppEventUseCase,
     private val dispatchers: DispatcherProvider,
     private val fetchRecentDoorEventsUseCase: FetchRecentDoorEventsUseCase,
+    private val fetchOlderDoorEventsUseCase: FetchOlderDoorEventsUseCase,
     private val deregisterFcmUseCase: DeregisterFcmUseCase,
     private val checkInStalenessManager: CheckInStalenessManager,
     private val liveClock: LiveClock,
@@ -82,6 +95,10 @@ class DefaultDoorHistoryViewModel(
     DoorHistoryViewModel {
     // ADR-022: pass through LiveClock's StateFlow — no mirror.
     override val nowEpochSeconds: StateFlow<Long> = liveClock.nowEpochSeconds
+
+    // ADR-022: pass through the repo-owned pagination StateFlow — no mirror,
+    // no stateIn. The repo is the single source of truth for token + flags.
+    override val paginationState: StateFlow<PaginationState> = observeDoorEvents.paginationState()
 
     // Seed from the singleton repo's StateFlow `.value` (pass-through via
     // `observeDoorEvents.recent()` per ADR-022) so we never expose
@@ -136,6 +153,22 @@ class DefaultDoorHistoryViewModel(
                         FetchError.NotReady -> Logger.w { "Server config not ready" }
                         FetchError.NetworkFailed -> Logger.w { "Network request failed" }
                     }
+                }
+            }
+        }
+    }
+
+    override fun fetchOlderDoorEvents() {
+        Logger.d { "fetchOlderDoorEvents" }
+        // The appended events flow in via the Room-backed `recentDoorEvents`
+        // collector; `isLoadingMore` is driven by the repo's paginationState.
+        // So this just kicks the use case — no local loading-state mirror.
+        viewModelScope.launch(dispatchers.io) {
+            when (val result = fetchOlderDoorEventsUseCase()) {
+                is AppResult.Success -> Unit
+                is AppResult.Error -> when (result.error) {
+                    FetchError.NotReady -> Logger.w { "Server config not ready" }
+                    FetchError.NetworkFailed -> Logger.w { "Load-more network request failed" }
                 }
             }
         }

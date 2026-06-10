@@ -22,6 +22,7 @@ import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.LoadingResult
+import com.chriscartland.garage.domain.model.PaginationState
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import com.chriscartland.garage.testcommon.FakeDoorFcmRepository
@@ -30,6 +31,7 @@ import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
+import com.chriscartland.garage.usecase.FetchOlderDoorEventsUseCase
 import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
@@ -114,6 +116,7 @@ class DoorHistoryViewModelTest {
             ),
             dispatchers = TestDispatcherProvider(testDispatcher),
             fetchRecentDoorEventsUseCase = FetchRecentDoorEventsUseCase(doorRepository),
+            fetchOlderDoorEventsUseCase = FetchOlderDoorEventsUseCase(doorRepository),
             deregisterFcmUseCase = DeregisterFcmUseCase(doorFcmRepository),
             checkInStalenessManager = stalenessManager,
             liveClock = liveClock,
@@ -237,5 +240,55 @@ class DoorHistoryViewModelTest {
             val viewModel = createViewModel(scope = backgroundScope, fetchOnInit = false)
 
             assertEquals(0L, viewModel.nowEpochSeconds.value)
+        }
+
+    @Test
+    fun paginationStatePassesThroughRepository() =
+        runTest {
+            val viewModel = createViewModel(scope = backgroundScope, fetchOnInit = false)
+
+            doorRepository.setPaginationState(
+                PaginationState(nextPageToken = "tok", canLoadMore = true),
+            )
+
+            assertEquals("tok", viewModel.paginationState.value.nextPageToken)
+            assertTrue(viewModel.paginationState.value.canLoadMore)
+        }
+
+    @Test
+    fun fetchOlderDoorEventsCallsRepository() =
+        runTest {
+            val viewModel = createViewModel(scope = backgroundScope, fetchOnInit = false)
+
+            viewModel.fetchOlderDoorEvents()
+            advanceUntilIdle()
+
+            assertEquals(1, doorRepository.fetchOlderDoorEventsCount)
+        }
+
+    @Test
+    fun fetchOlderDoorEventsAppendsOlderPageAndAdvancesState() =
+        runTest {
+            val viewModel = createViewModel(scope = backgroundScope, fetchOnInit = false)
+            val older = DoorEvent(doorPosition = DoorPosition.OPEN, lastChangeTimeSeconds = 100L)
+            doorRepository.setPaginationState(
+                PaginationState(nextPageToken = "tok", canLoadMore = true),
+            )
+            // Reaching the oldest event: the next state has no token.
+            doorRepository.setOlderPage(
+                events = listOf(older),
+                resultingState = PaginationState(nextPageToken = null, canLoadMore = false),
+            )
+
+            viewModel.fetchOlderDoorEvents()
+            advanceUntilIdle()
+
+            val result = viewModel.recentDoorEvents.value
+            assertTrue(result is LoadingResult.Complete, "Recent events should be Complete after append")
+            assertTrue(
+                result.data?.contains(older) == true,
+                "Older page should be appended to the recent-events list",
+            )
+            assertEquals(false, viewModel.paginationState.value.canLoadMore)
         }
 }
