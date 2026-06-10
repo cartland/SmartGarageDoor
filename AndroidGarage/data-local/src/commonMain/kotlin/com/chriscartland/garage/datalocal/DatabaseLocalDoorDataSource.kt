@@ -42,4 +42,10 @@ class DatabaseLocalDoorDataSource(
         Logger.d { "Replacing DoorEvents: $doorEvents" }
         appDatabase.doorEventDao().replaceAll(doorEvents.map { it.toEntity() })
     }
+
+    override suspend fun appendDoorEvents(doorEvents: List<DoorEvent>) {
+        Logger.d { "Appending DoorEvents: ${doorEvents.size}" }
+        // insertList uses REPLACE-on-conflict, so overlapping page rows dedupe by PK.
+        appDatabase.doorEventDao().insertList(doorEvents.map { it.toEntity() })
+    }
 }

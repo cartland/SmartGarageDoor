@@ -21,6 +21,7 @@ import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.NetworkDoorDataSource
 import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorEventPage
 import com.chriscartland.garage.domain.model.DoorPosition
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -58,35 +59,43 @@ class KtorNetworkDoorDataSource(
         }
     }
 
-    override suspend fun fetchRecentDoorEvents(
+    override suspend fun fetchDoorEventPage(
         buildTimestamp: String,
-        count: Int,
-    ): NetworkResult<List<DoorEvent>> {
+        pageSize: Int,
+        pageToken: String?,
+    ): NetworkResult<DoorEventPage> {
         return try {
             val response = client.get("eventHistory") {
                 parameter("buildTimestamp", buildTimestamp)
-                parameter("eventHistoryMaxCount", count)
+                parameter("pageSize", pageSize)
+                // Legacy alias: lets a pre-pagination server still apply the limit
+                // (keeps this client safe to ship before the server deploys).
+                parameter("eventHistoryMaxCount", pageSize)
+                if (pageToken != null) {
+                    parameter("pageToken", pageToken)
+                }
             }
             if (!response.status.isSuccess()) {
                 Logger.e { "Response code is ${response.status.value}" }
                 return NetworkResult.HttpError(response.status.value)
             }
             val body = response.body<KtorRecentEventDataResponse>()
-            if (body.eventHistory.isNullOrEmpty()) {
-                Logger.i { "recentEventData is empty" }
-                return NetworkResult.Success(emptyList())
-            }
-            val doorEvents = body.eventHistory.mapNotNull {
+            val doorEvents = body.eventHistory.orEmpty().mapNotNull {
                 it.currentEvent?.toDoorEvent()
             }
-            if (doorEvents.size != body.eventHistory.size) {
-                Logger.e { "Door events size ${doorEvents.size} does not match response size ${body.eventHistory.size}" }
-            }
-            NetworkResult.Success(doorEvents)
+            NetworkResult.Success(
+                DoorEventPage(
+                    events = doorEvents,
+                    nextPageToken = body.nextPageToken,
+                    prevPageToken = body.prevPageToken,
+                    // Old server omits hasMore — derive it from the older-direction token.
+                    hasMore = body.hasMore ?: (body.nextPageToken != null),
+                ),
+            )
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            Logger.e { "Error fetching recent door events: $e" }
+            Logger.e { "Error fetching door event page: $e" }
             NetworkResult.ConnectionFailed
         }
     }
@@ -102,6 +111,9 @@ private data class KtorCurrentEventDataResponse(
 @Serializable
 private data class KtorRecentEventDataResponse(
     val eventHistory: List<KtorEventData>? = null,
+    val nextPageToken: String? = null,
+    val prevPageToken: String? = null,
+    val hasMore: Boolean? = null,
 )
 
 @Serializable

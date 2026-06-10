@@ -20,6 +20,7 @@ package com.chriscartland.garage.data.repository
 import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorEventPage
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.ServerConfig
@@ -144,18 +145,21 @@ class NetworkDoorRepositoryIntegrationTest {
             assertNull(repo.currentDoorEvent.first())
         }
 
-    // --- fetchRecentDoorEvents ---
+    // --- fetchRecentDoorEvents (first page) ---
 
     @Test
-    fun fetchRecentDoorEventsStoresInLocal() =
+    fun fetchRecentDoorEventsReplacesCacheAndSetsPagination() =
         runTest {
             configDataSource.setServerConfigResult(successConfig())
             val events = listOf(
                 DoorEvent(doorPosition = DoorPosition.OPEN, lastChangeTimeSeconds = 300L),
                 DoorEvent(doorPosition = DoorPosition.CLOSED, lastChangeTimeSeconds = 200L),
-                DoorEvent(doorPosition = DoorPosition.OPENING, lastChangeTimeSeconds = 100L),
             )
-            networkDataSource.setRecentDoorEventsResult(NetworkResult.Success(events))
+            networkDataSource.setDoorEventPageResult(
+                NetworkResult.Success(
+                    DoorEventPage(events = events, nextPageToken = "older-1", prevPageToken = null, hasMore = true),
+                ),
+            )
 
             val repo = createRepository()
             val result = repo.fetchRecentDoorEvents()
@@ -163,6 +167,13 @@ class NetworkDoorRepositoryIntegrationTest {
             assertIs<AppResult.Success<*>>(result)
             assertEquals(events, repo.recentDoorEvents.first())
             assertEquals(1, localDataSource.replaceCount)
+            assertEquals(0, localDataSource.appendCount)
+            // First page sends no token; pageSize comes from config (10 in this test).
+            assertEquals(1, networkDataSource.fetchPageCount)
+            assertNull(networkDataSource.fetchPageCalls[0].pageToken)
+            assertEquals(10, networkDataSource.fetchPageCalls[0].pageSize)
+            assertEquals("older-1", repo.paginationState.value.nextPageToken)
+            assertEquals(true, repo.paginationState.value.canLoadMore)
         }
 
     @Test
@@ -175,7 +186,7 @@ class NetworkDoorRepositoryIntegrationTest {
 
             assertIs<AppResult.Error<*>>(result)
             assertEquals(FetchError.NotReady, result.error)
-            assertEquals(0, networkDataSource.fetchRecentCount)
+            assertEquals(0, networkDataSource.fetchPageCount)
             assertEquals(0, localDataSource.replaceCount)
         }
 
@@ -183,15 +194,70 @@ class NetworkDoorRepositoryIntegrationTest {
     fun fetchRecentDoorEventsWithNullNetworkResponseReturnsNetworkFailed() =
         runTest {
             configDataSource.setServerConfigResult(successConfig())
-            networkDataSource.setRecentDoorEventsResult(NetworkResult.ConnectionFailed)
+            networkDataSource.setDoorEventPageResult(NetworkResult.ConnectionFailed)
 
             val repo = createRepository()
             val result = repo.fetchRecentDoorEvents()
 
             assertIs<AppResult.Error<*>>(result)
             assertEquals(FetchError.NetworkFailed, result.error)
-            assertEquals(1, networkDataSource.fetchRecentCount)
+            assertEquals(1, networkDataSource.fetchPageCount)
             assertEquals(0, localDataSource.replaceCount)
+        }
+
+    // --- fetchOlderDoorEvents (pagination) ---
+
+    @Test
+    fun fetchOlderDoorEventsAppendsAndAdvancesToken() =
+        runTest {
+            configDataSource.setServerConfigResult(successConfig())
+            val firstPage = listOf(
+                DoorEvent(doorPosition = DoorPosition.OPEN, lastChangeTimeSeconds = 300L),
+                DoorEvent(doorPosition = DoorPosition.CLOSED, lastChangeTimeSeconds = 200L),
+            )
+            networkDataSource.setDoorEventPageResult(
+                NetworkResult.Success(
+                    DoorEventPage(firstPage, nextPageToken = "older-1", prevPageToken = null, hasMore = true),
+                ),
+            )
+            val repo = createRepository()
+            repo.fetchRecentDoorEvents()
+
+            // The older page reaches the oldest event (hasMore = false).
+            val olderPage = listOf(DoorEvent(doorPosition = DoorPosition.OPENING, lastChangeTimeSeconds = 100L))
+            networkDataSource.setNextDoorEventPageResult(
+                NetworkResult.Success(
+                    DoorEventPage(olderPage, nextPageToken = null, prevPageToken = "newer-1", hasMore = false),
+                ),
+            )
+
+            val result = repo.fetchOlderDoorEvents()
+
+            assertIs<AppResult.Success<*>>(result)
+            assertEquals(olderPage, result.data)
+            assertEquals(1, localDataSource.appendCount)
+            // The older page used the stored token from the first page.
+            assertEquals("older-1", networkDataSource.fetchPageCalls[1].pageToken)
+            // Cache grew (newest-first), not replaced.
+            assertEquals(firstPage + olderPage, repo.recentDoorEvents.first())
+            assertEquals(1, localDataSource.replaceCount)
+            // Reached the oldest → no more.
+            assertNull(repo.paginationState.value.nextPageToken)
+            assertEquals(false, repo.paginationState.value.canLoadMore)
+        }
+
+    @Test
+    fun fetchOlderDoorEventsWithNoTokenIsNoOpWithNoNetwork() =
+        runTest {
+            configDataSource.setServerConfigResult(successConfig())
+            val repo = createRepository() // pagination starts Initial (no token)
+
+            val result = repo.fetchOlderDoorEvents()
+
+            assertIs<AppResult.Success<*>>(result)
+            assertEquals(emptyList<DoorEvent>(), result.data)
+            assertEquals(0, networkDataSource.fetchPageCount)
+            assertEquals(0, localDataSource.appendCount)
         }
 
     // --- insertDoorEvent ---

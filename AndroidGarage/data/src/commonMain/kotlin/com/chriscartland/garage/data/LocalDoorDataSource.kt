@@ -15,5 +15,12 @@ interface LocalDoorDataSource {
 
     suspend fun insertDoorEvent(doorEvent: DoorEvent)
 
+    /** Replace the whole cache (initial load / pull-to-refresh). */
     suspend fun replaceDoorEvents(doorEvents: List<DoorEvent>)
+
+    /**
+     * Append older events to the cache without clearing it (pagination load-more).
+     * Page-boundary overlap is de-duplicated by primary key.
+     */
+    suspend fun appendDoorEvents(doorEvents: List<DoorEvent>)
 }
