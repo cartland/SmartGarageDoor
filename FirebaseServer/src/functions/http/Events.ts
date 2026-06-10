@@ -48,8 +48,8 @@ const NEXT_PAGE_TOKEN_KEY = "nextPageToken";
 const PREV_PAGE_TOKEN_KEY = "prevPageToken";
 const HAS_MORE_KEY = "hasMore";
 
-const PAGE_SIZE_MAX = 50;
-const PAGE_SIZE_DEFAULT = 50;
+const PAGE_SIZE_MAX = 100;
+const PAGE_SIZE_DEFAULT = 100;
 const WINDOW_SECONDS = 7 * 24 * 60 * 60; // default first-page window: last 7 days
 const PAGE_TOKEN_VERSION = 1;
 

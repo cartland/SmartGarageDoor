@@ -29,6 +29,9 @@ Example (placeholder tag numbers — the gate looks for exact `server/<real numb
 
 ---
 
+## server/29
+- **`eventHistory` page size raised 50 → 100.** Both the default (no `pageSize`) and the maximum cap are now 100, so each page returns up to twice as many events. The 7-day window is unchanged. Purely a larger cap — wire-compatible, no client change required; a client that requests a smaller `pageSize`/`eventHistoryMaxCount` is unaffected. PR #875.
+
 ## server/28
 - **`eventHistory` pagination + windowed default.** The endpoint now returns the **last 7 days of events, capped at 50** (newest first) by default, and supports **cursor pagination** into the past via an opaque `nextPageToken`. The response adds `nextPageToken` (older), `prevPageToken` (newer), and `hasMore`; a null `nextPageToken` is the end-of-history signal (covers both "no events" and "reached the oldest"). All legacy keys (`eventHistory`, `eventHistoryCount`, …) are preserved, so the change is **wire-compatible** — the live client ignores the new keys.
 - **Universal default (behavior change):** the 7-day window applies to *every* non-cursor request, including the current app, the moment this deploys. A quiet door will show fewer events until the user updates to the paginating client. No wire break.
