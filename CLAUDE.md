@@ -173,12 +173,19 @@ Run `./scripts/run-instrumented-tests.sh` when changing Room entities/DAOs, DI w
 - When every changed file matches `**/*.md`, `docs/**`, `.claude/**`, `LICENSE`, `.gitignore`, or `AndroidGarage/distribution/whatsnew/**`, the `checks` reusable workflow is skipped and the gate jobs post success in ~20–30s.
 - Mixed PRs (docs + code) take the full pipeline. Anything under `.github/**` or `scripts/**` is NOT docs — workflow and script edits still trigger full CI.
 - Rule: skip CI only when the change cannot affect what CI verifies.
+- The `Script unit tests` required check is a separate always-run workflow (no `paths:` filter), so it **does** run on docs-only PRs too — a fast ~6s gate, not part of the skipped `checks` workflow.
 
 **Renaming a branch-protection-required gate job (ordering rule):**
 - `Android CI Complete` (Android pre-submit) and `Firebase CI Complete` (Firebase pre-submit) are listed in branch protection's required status checks. Their names cannot be changed in a single PR without stalling every subsequent PR.
 - Correct order: (1) PR adds a new gate job alongside the old one (both run); (2) wait for the new check-run to appear on a completed PR; (3) `gh api repos/:owner/:repo/branches/main/protection/required_status_checks/contexts --method PUT --input <(echo '["<new name>","<other required>"]')` — swaps the required contexts; (4) follow-up PR deletes the old gate job.
 - **NEVER delete the old gate job before removing it from required contexts.** Reverse order leaves branch protection expecting a check-run no workflow produces, which blocks every PR. Recovery is re-adding the old context via the same `gh api` call.
 - This was used to rename `CI Complete` → `Android CI Complete` in PRs #474 + #475.
+
+**Required status checks (branch protection):** `Android CI Complete`, `Firebase CI Complete`, and `Script unit tests` (added 2026-06-09). Read/modify the list with `gh api repos/cartland/SmartGarageDoor/branches/main/protection/required_status_checks/contexts` — GET to read, `--method PUT --input <file>` to replace (PUT replaces the **whole** list, so include every context you want kept; write the bare JSON array to a temp file to avoid `$(...)`/`<(...)` in the command).
+
+**A path-filtered workflow must NEVER be a required check.** A required check that uses `on: { pull_request: { paths: [...] } }` simply does not run on a PR touching none of those paths — its context then sits in `Expected`/pending forever and the PR can never merge. Before promoting any check to a required context: remove its `paths:` filter so it runs (and concludes) on *every* PR, and add `timeout-minutes` so a stuck runner fails fast instead of blocking for the 6h default. `Script unit tests` (`.github/workflows/scripts-tests.yml`) is the canonical example — it runs `node --test` on the `.github/scripts/` Node scripts on every PR (~6s, no deps) precisely so it's safe as a required gate. Verified before promoting by opening a docs-only PR and confirming the check still ran (#864 → throwaway verify PR #865 → promote, 2026-06-09).
+
+**Node scripts under `.github/scripts/` have unit tests.** Pure logic lives in `lib/*.mjs` (no I/O, deps injected) with `*.test.mjs` beside it; `scripts-tests.yml` runs them. Target tests by glob (`node --test '.github/scripts/**/*.test.mjs'`) — `node --test <dir>` would also import the non-test `.mjs` entry points (which pull in `googleapis`) and fail with `MODULE_NOT_FOUND`.
 
 **Screenshot generation**: Use `./scripts/generate-android-screenshots.sh` (never run screenshot Gradle tasks directly — hooks block this).
 
@@ -306,6 +313,15 @@ git checkout android/M                 # 1. move HEAD to the commit you want to 
 ```
 
 **Versioning rule (see [CHANGELOG.md](AndroidGarage/CHANGELOG.md#versioning)):** major = rewrite or core-experience shift; minor = added or removed user-facing feature/capability; patch = fixes, polish, refactors. `CHANGELOG.md` logs every version; `distribution/whatsnew/` gets one line per minor/major (patches roll up).
+
+### Play Store track-state log
+
+`.github/workflows/play-track-snapshot.yml` records the current Play Store release-track state (internal / alpha / beta / production: versionCode → versionName, status, staged-rollout %) onto a single long-lived GitHub issue labelled `play-track-log`. The **latest** snapshot is written to the issue **body** (overwritten each run) and **also** appended as a **comment** (immutable, append-only history). It rolls over to a fresh issue past 1000 comments. Read-only against the store: `edits.insert` → `edits.tracks.list` → `edits.delete` (never commits). Reuses the `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` secret (the same SA that uploads — it has read access).
+
+- **Triggers:** `workflow_dispatch` (run manually right after promoting a track in the Play Console) and `workflow_run` after *Android Release* succeeds (snapshots the new internal upload). Manual dispatch needs repo **Write** access (GitHub-enforced).
+- **Why it matters:** release scripts only ever deploy to the **internal** track; promotions to alpha/beta/production are manual Console actions with no other record. This log is that record.
+- **versionCode ↔ tag:** each `android/N` tag has `versionCode == N`, so the snapshot maps a code back to its `versionName` via `git show android/N:AndroidGarage/version.properties` (needs `fetch-depth: 0`).
+- **Gotcha (baked into the workflow):** read a just-created issue's number straight from `gh issue create`'s output URL — `gh issue list` is eventually consistent and won't surface it yet. Rendering is unit-tested (`.github/scripts/lib/format-snapshot.mjs` + `play-track-snapshot.test.mjs`). Shipped 2026-06-09 in PRs #860, #862 (first-run race fix), #863 (body+history+rollover+tests).
 
 ### Releasing Firebase Server
 Use `./scripts/release-firebase.sh` — same pattern as Android releases (same flags, same `--check` copy-paste workflow, same rollback recipe).
