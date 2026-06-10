@@ -15,7 +15,7 @@ Shipped in `server/28` (PR #867) + Android PRs #869 (data) / #871 (UI).
 ## Behavior
 
 - **Universal default:** every non-cursor request returns the **last 7 days of
-  events, capped at 50** (newest first). This applies to *all* clients — on
+  events, capped at 100** (newest first). This applies to *all* clients — on
   deploy, an un-updated app's history view windows to ~1 week. Wire-compatible:
   the response keeps every legacy key.
 - **Cursor pagination into the past:** the response carries `nextPageToken`
@@ -23,7 +23,7 @@ Shipped in `server/28` (PR #867) + Android PRs #869 (data) / #871 (UI).
   `nextPageToken` back to fetch the next older page. A **null `nextPageToken`**
   is the end-of-history signal — it covers both "no events at all" and "you've
   reached the oldest event."
-- **Page size:** `pageSize` (clamped to `[1, 50]`). The client also sends the
+- **Page size:** `pageSize` (clamped to `[1, 100]`). The client also sends the
   legacy `eventHistoryMaxCount` as an alias so an old server still applies the
   limit (forward/backward-compatible deploy in any order).
 
@@ -35,9 +35,9 @@ In `handleEventHistory` (after the existing `buildTimestamp` 400 guard):
 pageToken present + valid + scoped to this buildTimestamp
     -> CURSOR PAGE: startAfter(token), no time window, direction from token
 pageSize / eventHistoryMaxCount present, no token
-    -> WINDOWED PAGE: sinceTimestamp = now - 7d, limit = clamp(.. ,1,50)
+    -> WINDOWED PAGE: sinceTimestamp = now - 7d, limit = clamp(.. ,1,100)
 else
-    -> WINDOWED PAGE with the default page size (50)
+    -> WINDOWED PAGE with the default page size (100)
 ```
 
 `now` is injected from the thin wrapper (`Date.now()`) so the window is

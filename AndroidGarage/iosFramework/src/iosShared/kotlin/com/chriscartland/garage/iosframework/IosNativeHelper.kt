@@ -77,7 +77,7 @@ class IosNativeHelper {
          */
         val defaultDevAppConfig: AppConfig = AppConfig(
             baseUrl = "https://example.invalid",
-            recentEventCount = 50,
+            recentEventCount = 100,
             serverConfigKey = "",
             snoozeNotificationsOption = true,
             remoteButtonPushEnabled = true,
