@@ -55,6 +55,7 @@ fun DoorHistoryContent(
     val resolved = doorHistoryViewModel ?: viewModel { component.doorHistoryViewModel }
     val recentDoorEvents by resolved.recentDoorEvents.collectAsState()
     val isCheckInStale by resolved.isCheckInStale.collectAsState()
+    val pagination by resolved.paginationState.collectAsState()
     // `now` is driven by the VM's LiveClock-backed StateFlow (1s tick) —
     // `rememberLiveNow()` no longer exists; the ticker is owned by the
     // UseCase layer and lives across the app, not per-Composable.
@@ -66,6 +67,12 @@ fun DoorHistoryContent(
         now = now,
         zone = ZoneId.systemDefault(),
         modifier = modifier,
+        canLoadMore = pagination.canLoadMore,
+        isLoadingMore = pagination.isLoadingMore,
+        onLoadMore = {
+            resolved.log(AppLoggerKeys.USER_LOAD_MORE_DOOR)
+            resolved.fetchOlderDoorEvents()
+        },
         onFetchRecentDoorEvents = {
             resolved.log(AppLoggerKeys.USER_FETCH_RECENT_DOOR)
             resolved.fetchRecentDoorEvents()
@@ -83,6 +90,9 @@ fun DoorHistoryContent(
     zone: ZoneId,
     modifier: Modifier = Modifier,
     isCheckInStale: Boolean = false,
+    canLoadMore: Boolean = false,
+    isLoadingMore: Boolean = false,
+    onLoadMore: () -> Unit = {},
     onFetchRecentDoorEvents: () -> Unit = {},
     onResetFcm: () -> Unit = {},
 ) {
@@ -139,6 +149,9 @@ fun DoorHistoryContent(
             zone = zone,
             isRefreshing = recentDoorEvents is LoadingResult.Loading,
             onRefresh = onFetchRecentDoorEvents,
+            canLoadMore = canLoadMore,
+            isLoadingMore = isLoadingMore,
+            onLoadMore = onLoadMore,
             modifier = Modifier.fillMaxWidth(),
         )
     }

@@ -3,7 +3,7 @@
 
 # Preview Screenshot Coverage
 
-**97 / 97 (100%)**
+**99 / 99 (100%)**
 
 ## Covered
 
@@ -40,8 +40,10 @@
 - `GarageDoorButtonSucceededPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/GarageDoorButton.kt`
 - `GarageIconPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/GarageIcon.kt`
 - `HistoryContentEmptyPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/history/HistoryContent.kt`
+- `HistoryContentLoadingMoreFooterPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/history/HistoryContent.kt`
 - `HistoryContentMultiDayClosedPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/history/HistoryContent.kt`
 - `HistoryContentMultiDayPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/history/HistoryContent.kt`
+- `HistoryContentReachedBeginningPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/history/HistoryContent.kt`
 - `HistoryTabPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/TabPreviews.kt`
 - `HomeContentAwaitingConfirmationPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
 - `HomeContentClosedSignedInPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`

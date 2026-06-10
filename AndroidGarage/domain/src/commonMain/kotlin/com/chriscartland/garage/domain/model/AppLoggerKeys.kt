@@ -6,6 +6,7 @@ object AppLoggerKeys {
     const val INIT_RECENT_DOOR = "init_recent_door"
     const val USER_FETCH_CURRENT_DOOR = "user_fetch_current_door"
     const val USER_FETCH_RECENT_DOOR = "user_fetch_recent_door"
+    const val USER_LOAD_MORE_DOOR = "user_load_more_door"
     const val FCM_DOOR_RECEIVED = "fcm_door_received"
     const val FCM_SUBSCRIBE_TOPIC = "fcm_subscribe_topic"
     const val ON_CREATE_FCM_SUBSCRIBE_TOPIC = "on_create_fcm_subscribe_topic"

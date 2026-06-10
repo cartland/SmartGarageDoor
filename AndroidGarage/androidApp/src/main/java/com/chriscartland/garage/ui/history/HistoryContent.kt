@@ -29,9 +29,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -42,6 +44,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -147,6 +152,11 @@ data class HistoryDay(
  *   callers tie this to the `LoadingResult.Loading` flag of the underlying
  *   events flow.
  * @param onRefresh fires when the user completes a downward pull gesture.
+ * @param canLoadMore older events are available to page in (drives the
+ *   scroll-to-end trigger and the footer's terminal state).
+ * @param isLoadingMore an older-page fetch is in flight (footer spinner).
+ * @param onLoadMore fires when the user scrolls near the end and more is
+ *   available; appends the next older page.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -156,13 +166,36 @@ fun HistoryContent(
     modifier: Modifier = Modifier,
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
+    canLoadMore: Boolean = false,
+    isLoadingMore: Boolean = false,
+    onLoadMore: () -> Unit = {},
 ) {
+    val listState = rememberLazyListState()
+
+    // Fire load-more when the user scrolls within 2 items of the end, gated on
+    // canLoadMore + not already loading. derivedStateOf only recomputes when the
+    // layout changes; the repo's reentrancy guard backstops duplicate fires.
+    val nearEnd by remember {
+        derivedStateOf {
+            val info = listState.layoutInfo
+            val total = info.totalItemsCount
+            val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: -1
+            total > 0 && lastVisible >= total - 2
+        }
+    }
+    LaunchedEffect(nearEnd, canLoadMore, isLoadingMore) {
+        if (nearEnd && canLoadMore && !isLoadingMore) {
+            onLoadMore()
+        }
+    }
+
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
         modifier = modifier.fillMaxSize(),
     ) {
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = safeListContentPadding(),
             verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems),
@@ -186,7 +219,38 @@ fun HistoryContent(
                         HistoryDaySection(day = day, zone = zone)
                     }
                 }
+                item(key = "history-footer") {
+                    HistoryFooter(isLoadingMore = isLoadingMore, canLoadMore = canLoadMore)
+                }
             }
+        }
+    }
+}
+
+/**
+ * Bottom-of-list pagination footer. Spinner while an older page loads; a muted
+ * terminal note once there's nothing older (distinct from the empty-list state,
+ * which means "no events at all"). Renders nothing while idle with more to load
+ * — the scroll-to-end trigger does the work.
+ */
+@Composable
+private fun HistoryFooter(
+    isLoadingMore: Boolean,
+    canLoadMore: Boolean,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = Spacing.BetweenItems),
+        contentAlignment = Alignment.Center,
+    ) {
+        when {
+            isLoadingMore -> CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            !canLoadMore -> Text(
+                text = stringResource(R.string.history_footer_reached_beginning),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -609,4 +673,45 @@ fun HistoryContentMultiDayClosedPreview() {
 @Composable
 fun HistoryContentEmptyPreview() {
     HistoryContent(days = emptyList(), zone = HistoryPreviewData.zone)
+}
+
+// Footer-state previews use a SHORT list (one day) so the footer renders inside
+// the screenshot viewport — Layoutlib captures at scroll position 0, so a footer
+// below a tall list would be off-screen (see the LazyColumn screenshot caveat in
+// CLAUDE.md).
+
+private object HistoryFooterPreviewData {
+    fun shortDay(): List<HistoryDay> =
+        HistoryMapper.toHistoryDays(
+            events = listOf(
+                HistoryPreviewData.event(DoorPosition.OPEN, "2026-04-29T10:15:08Z"),
+                HistoryPreviewData.event(DoorPosition.CLOSING, "2026-04-29T09:53:00Z"),
+                HistoryPreviewData.event(DoorPosition.CLOSED, "2026-04-29T09:53:06Z"),
+            ),
+            now = java.time.Instant.parse("2026-04-29T10:27:00Z"),
+            zone = HistoryPreviewData.zone,
+        )
+}
+
+/** Footer spinner while an older page is loading. */
+@Preview
+@Composable
+fun HistoryContentLoadingMoreFooterPreview() {
+    HistoryContent(
+        days = HistoryFooterPreviewData.shortDay(),
+        zone = HistoryPreviewData.zone,
+        canLoadMore = true,
+        isLoadingMore = true,
+    )
+}
+
+/** Terminal "reached the beginning" footer once there's nothing older. */
+@Preview
+@Composable
+fun HistoryContentReachedBeginningPreview() {
+    HistoryContent(
+        days = HistoryFooterPreviewData.shortDay(),
+        zone = HistoryPreviewData.zone,
+        canLoadMore = false,
+    )
 }

@@ -225,6 +225,7 @@
     <!-- History tab — empty state. -->
     <string name="history_empty_title">No events yet</string>
     <string name="history_empty_subtitle">Open or close the garage and check back here.</string>
+    <string name="history_footer_reached_beginning">You\'ve reached the beginning of your history</string>
 
     <!-- Notification permission justification — base + escalation lines. -->
     <!-- Composable assembles base + conditional escalation appends in -->
