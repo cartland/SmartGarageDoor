@@ -1,3 +1,9 @@
+---
+category: reference
+status: active
+last_verified: 2026-06-10
+---
+
 # iosApp — SwiftUI client
 
 SwiftUI front-end for the Smart Garage Door system. Consumes the shared
