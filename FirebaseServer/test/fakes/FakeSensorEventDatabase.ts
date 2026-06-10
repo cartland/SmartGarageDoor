@@ -8,10 +8,31 @@
  *     http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import { SensorEventDatabase } from '../../src/database/SensorEventDatabase';
+import {
+  SensorEventDatabase,
+  GetPageOptions,
+  EventPage,
+  TimestampCursor,
+} from '../../src/database/SensorEventDatabase';
+
+/** A seeded event with its ordering cursor, so paging can be exercised without Firestore. */
+export interface FakePageEntry {
+  cursor: TimestampCursor;
+  item: any;
+}
+
+function compareCursors(a: TimestampCursor, b: TimestampCursor): number {
+  return a.seconds !== b.seconds ? a.seconds - b.seconds : a.nanoseconds - b.nanoseconds;
+}
 
 export class FakeSensorEventDatabase implements SensorEventDatabase {
   private readonly store = new Map<string, any>();
+
+  /** Seeded paging entries per buildTimestamp (any order; sorted on read). */
+  private readonly pageEntries = new Map<string, FakePageEntry[]>();
+
+  /** Audit log of all getPageForBuildTimestamp() calls. */
+  readonly pageCalls: GetPageOptions[] = [];
 
   /** Audit log of all save() calls, even ones that throw. */
   readonly saved: Array<[string, any]> = [];
@@ -83,6 +104,68 @@ export class FakeSensorEventDatabase implements SensorEventDatabase {
     return [];
   }
 
+  /**
+   * In-memory mirror of the Firestore cursor paging: window filter, startAfter,
+   * limit+1 hasMore, the under-fill probe, and the newest-first reverse for the
+   * 'newer' direction. Faithful enough that handler tests exercise real paging
+   * behavior; returns the seeded `item` payloads (cursors kept separate).
+   */
+  async getPageForBuildTimestamp(opts: GetPageOptions): Promise<EventPage> {
+    this.pageCalls.push(opts);
+    const all = (this.pageEntries.get(opts.buildTimestamp) ?? [])
+      .slice()
+      .sort((x, y) => compareCursors(y.cursor, x.cursor)); // newest-first
+
+    const windowed =
+      opts.sinceSeconds !== undefined
+        ? all.filter((e) => e.cursor.seconds >= opts.sinceSeconds)
+        : all;
+    let ordered = opts.direction === 'older' ? windowed : windowed.slice().reverse();
+    if (opts.startAfter) {
+      const sa = opts.startAfter;
+      ordered = ordered.filter((e) =>
+        opts.direction === 'older' ? compareCursors(e.cursor, sa) < 0 : compareCursors(e.cursor, sa) > 0,
+      );
+    }
+
+    let hasMore = ordered.length > opts.limit;
+    const pageEntries = ordered.slice(0, opts.limit);
+
+    if (opts.direction === 'older' && !hasMore && opts.sinceSeconds !== undefined) {
+      const cutoff: TimestampCursor = { seconds: opts.sinceSeconds, nanoseconds: 0 };
+      const boundary = pageEntries.length > 0 ? pageEntries[pageEntries.length - 1].cursor : cutoff;
+      if (all.some((e) => compareCursors(e.cursor, boundary) < 0)) {
+        hasMore = true;
+      }
+    }
+
+    let newest: FakePageEntry | null = null;
+    let oldest: FakePageEntry | null = null;
+    if (pageEntries.length > 0) {
+      if (opts.direction === 'older') {
+        newest = pageEntries[0];
+        oldest = pageEntries[pageEntries.length - 1];
+      } else {
+        oldest = pageEntries[0];
+        newest = pageEntries[pageEntries.length - 1];
+      }
+    }
+    let oldestCursor = oldest ? oldest.cursor : null;
+    const newestCursor = newest ? newest.cursor : null;
+    if (opts.direction === 'older' && hasMore && !oldestCursor && opts.sinceSeconds !== undefined) {
+      oldestCursor = { seconds: opts.sinceSeconds, nanoseconds: 0 };
+    }
+
+    const items = pageEntries.map((e) => e.item);
+    const orderedItems = opts.direction === 'newer' ? items.slice().reverse() : items;
+    return { items: orderedItems, hasMore, oldestCursor, newestCursor };
+  }
+
+  /** Test-only helper: seed paging entries (cursor + item) for a buildTimestamp. */
+  seedPageEvents(buildTimestamp: string, entries: FakePageEntry[]): void {
+    this.pageEntries.set(buildTimestamp, entries);
+  }
+
   /** Test-only helper: pre-populate storage without recording in saved[]. */
   seed(buildTimestamp: string, data: any): void {
     this.store.set(buildTimestamp, data);
@@ -91,6 +174,8 @@ export class FakeSensorEventDatabase implements SensorEventDatabase {
   /** Test-only helper: wipe storage and audit logs. */
   clear(): void {
     this.store.clear();
+    this.pageEntries.clear();
+    this.pageCalls.length = 0;
     this.saved.length = 0;
     this.updates.length = 0;
     this.deleteCalls.length = 0;

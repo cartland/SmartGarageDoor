@@ -1,0 +1,15 @@
+{
+  "queryParams": {
+    "session": "fixture-session",
+    "buildTimestamp": "Sat Mar 13 14:45:00 2021",
+    "pageSize": "50"
+  },
+  "body": {},
+  "session": "fixture-session",
+  "buildTimestamp": "Sat Mar 13 14:45:00 2021",
+  "eventHistory": [],
+  "eventHistoryCount": 0,
+  "nextPageToken": null,
+  "prevPageToken": null,
+  "hasMore": false
+}

@@ -15,6 +15,20 @@
       ]
     },
     {
+      "collectionGroup": "eventsAll",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "buildTimestamp",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "FIRESTORE_databaseTimestamp",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "updateAll",
       "queryScope": "COLLECTION",
       "fields": [

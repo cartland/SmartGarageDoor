@@ -1,0 +1,25 @@
+{
+  "queryParams": {
+    "session": "fixture-session",
+    "buildTimestamp": "Sat Mar 13 14:45:00 2021",
+    "pageSize": "50",
+    "pageToken": "eyJ2IjoxLCJidCI6IlNhdCBNYXIgMTMgMTQ6NDU6MDAgMjAyMSIsInMiOjE2OTk5OTgwMDAsIm4iOjAsImQiOiJvbGRlciJ9"
+  },
+  "body": {},
+  "session": "fixture-session",
+  "buildTimestamp": "Sat Mar 13 14:45:00 2021",
+  "eventHistory": [
+    {
+      "currentEvent": {
+        "type": "OPENING",
+        "message": "",
+        "timestampSeconds": 1699000000,
+        "checkInTimestampSeconds": 1699000000
+      }
+    }
+  ],
+  "eventHistoryCount": 1,
+  "nextPageToken": null,
+  "prevPageToken": "eyJ2IjoxLCJidCI6IlNhdCBNYXIgMTMgMTQ6NDU6MDAgMjAyMSIsInMiOjE2OTkwMDAwMDAsIm4iOjAsImQiOiJuZXdlciJ9",
+  "hasMore": false
+}
