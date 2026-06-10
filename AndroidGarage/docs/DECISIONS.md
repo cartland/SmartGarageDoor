@@ -1599,7 +1599,7 @@ Accepted — 2026-06-10.
 
 ### Context
 
-The door-history endpoint evolved to return a windowed first page (last 7 days, max 50) plus cursor pagination — the client fetches older events with an opaque `nextPageToken` and a `hasMore`/end signal (server side: [`docs/EVENT_HISTORY_PAGINATION.md`](../../docs/EVENT_HISTORY_PAGINATION.md)). The Android side has to: (a) hold the current cursor token, (b) append older pages to the list rather than replacing it, and (c) drive a "load more on scroll-to-end" affordance with a loading + terminal state.
+The door-history endpoint evolved to return a windowed first page (last 7 days, max 100) plus cursor pagination — the client fetches older events with an opaque `nextPageToken` and a `hasMore`/end signal (server side: [`docs/EVENT_HISTORY_PAGINATION.md`](../../docs/EVENT_HISTORY_PAGINATION.md)). The Android side has to: (a) hold the current cursor token, (b) append older pages to the list rather than replacing it, and (c) drive a "load more on scroll-to-end" affordance with a loading + terminal state.
 
 The token is **server state tied to the cache contents** — it only makes sense alongside the events currently cached. The history list is already a repository-owned, Room-backed `StateFlow` with an always-on collector (ADR-022). Two placement questions follow: where does the token + load-more flags live, and how does the cache grow?
 
