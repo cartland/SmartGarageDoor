@@ -188,7 +188,7 @@ describe('handleEventHistory (pure handler core)', () => {
     expect(result).to.deep.equal({ kind: 'ok', data: EMPTY_FIXTURE });
   });
 
-  it('clamps pageSize to the 50 maximum', async () => {
+  it('clamps pageSize to the 100 maximum', async () => {
     const result = await handleEventHistory({
       query: { buildTimestamp: BUILD_TIMESTAMP, pageSize: '999' },
       body: {},
@@ -196,7 +196,16 @@ describe('handleEventHistory (pure handler core)', () => {
     });
     expect(result.kind).to.equal('ok');
     expect(fakeDB.pageCalls).to.have.lengthOf(1);
-    expect(fakeDB.pageCalls[0].limit).to.equal(50);
+    expect(fakeDB.pageCalls[0].limit).to.equal(100);
+  });
+
+  it('uses the 100 default page size when none is given', async () => {
+    await handleEventHistory({
+      query: { buildTimestamp: BUILD_TIMESTAMP },
+      body: {},
+      nowMillis: NOW_MILLIS,
+    });
+    expect(fakeDB.pageCalls[0].limit).to.equal(100);
   });
 
   it('decodes the page token into a startAfter cursor and drops the time window', async () => {
