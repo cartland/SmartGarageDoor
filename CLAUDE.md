@@ -301,12 +301,11 @@ The script computes the next tag as `android/<highest + 1>`. The `--confirm-tag`
 
 The changelog and the Play Store whatsnew are different files: `CHANGELOG.md` is the permanent internal history (every version, patches included); `distribution/whatsnew/` is rolling and only covers the current minor/major. Missing changelog entries silently went unnoticed through 2.5.0 (added in #548) — the gate closes that gap.
 
-**Stat-cache stale after `validate.sh`** (recurring — observed in `android/193`, `android/194`, and `server/24` releases). When the release script reports `Working tree has uncommitted changes` but `git status --short` is empty, it's git's stat-cache holding stale `lstat` info from files validate.sh touched (Gradle build outputs, marker file write). The release script's quick check uses timestamps; when they look new but content is identical, it falsely flags dirty. Fix:
+**Stat-cache stale after `validate.sh`** (was recurring — `android/193`, `android/194`, `android/248`, `server/24`). When the release script reported `Working tree has uncommitted changes` but `git status --short` was empty, it was git's stat-cache holding stale `lstat` info from files validate.sh touched (Gradle build outputs, marker file write): the quick dirty check uses timestamps; when they look new but content is identical, it falsely flagged dirty. **Both release scripts now run `git update-index -q --refresh` inside the clean-tree gate (before the `diff-index`/`diff` check), so this false positive should no longer occur** — the refresh re-stats every file and clears mtime-only false positives, and it can NEVER mask a real change (a file whose content differs from HEAD stays flagged). If you somehow still hit it (e.g. running an older script version), the manual fix is the same operation:
 ```bash
 git update-index --refresh > /dev/null 2>&1   # forces git to re-stat everything
 ./scripts/release-android.sh --confirm-tag android/N    # then retry
 ```
-Same pattern works for `release-firebase.sh`. The stat-cache refresh is harmless either way; safe to run before every release-script retry. (Both Android and Firebase release scripts share the same `git diff-index --quiet HEAD --` check pattern.)
 
 **Rollback requires two steps** (intentionally hard to do accidentally):
 ```bash

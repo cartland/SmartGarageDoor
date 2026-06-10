@@ -372,6 +372,14 @@ echo ""
 
 # === Gate: Clean working tree (only when tagging HEAD) ===
 if [ -z "$CONFIRM_HASH" ]; then
+    # Reconcile git's stat-cache before the dirty check. validate-firebase.sh
+    # touches tracked files (the validation marker), bumping their mtime without
+    # changing content; the stale cached lstat then makes this check report a false
+    # "dirty" even though `git status` is clean. --refresh re-stats every file and
+    # clears mtime-only false positives. It NEVER masks a real change: a file whose
+    # content differs from HEAD stays flagged. (CLAUDE.md § "Stat-cache stale after
+    # validate.sh" — hit on server/24, android/193, /194, /248.)
+    git update-index -q --refresh > /dev/null 2>&1 || true
     if ! git diff --quiet HEAD 2>/dev/null; then
         echo -e "${RED}Error: Working tree has uncommitted changes.${RESET}"
         echo "Commit or stash changes before releasing."
