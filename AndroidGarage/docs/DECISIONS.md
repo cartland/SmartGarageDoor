@@ -1590,3 +1590,49 @@ The 2.13.3 defensive `forceRefresh = false ?: forceRefresh = true` fallback in t
 - ADR-018 — reactive auth listener pattern (predecessor; this ADR sharpens the rule)
 - ADR-022 — `StateFlow` at the repository boundary (this ADR refines what's *in* that StateFlow)
 - 2.13.3 CHANGELOG entry — the defensive patch this refactor supersedes
+
+## ADR-028: Door-history pagination cursor lives in the `@Singleton` repository
+
+### Status
+
+Accepted — 2026-06-10.
+
+### Context
+
+The door-history endpoint evolved to return a windowed first page (last 7 days, max 50) plus cursor pagination — the client fetches older events with an opaque `nextPageToken` and a `hasMore`/end signal (server side: [`docs/EVENT_HISTORY_PAGINATION.md`](../../docs/EVENT_HISTORY_PAGINATION.md)). The Android side has to: (a) hold the current cursor token, (b) append older pages to the list rather than replacing it, and (c) drive a "load more on scroll-to-end" affordance with a loading + terminal state.
+
+The token is **server state tied to the cache contents** — it only makes sense alongside the events currently cached. The history list is already a repository-owned, Room-backed `StateFlow` with an always-on collector (ADR-022). Two placement questions follow: where does the token + load-more flags live, and how does the cache grow?
+
+### Decision
+
+1. **Pagination state lives in the `@Singleton` repository**, exposed as `paginationState: StateFlow<PaginationState>` (`nextPageToken`, `canLoadMore`, `isLoadingMore`) and passed through a UseCase and the ViewModel unchanged (ADR-022 — no `stateIn`, no mirror). The repo is the single source of truth; the VM and both wide-screen panes read the same instance, so they can't diverge across `NavBackStackEntry` churn.
+2. **The list grows by append, not replace.** `fetchRecentDoorEvents()` (initial / pull-to-refresh) replaces the cache and resets the token; `fetchOlderDoorEvents()` appends the next older page (`DoorEventDao.insertList`, REPLACE-on-PK dedups page-boundary overlap) and advances the token. `recentDoorEvents` stays the list-y Room `StateFlow` and re-emits the grown list automatically.
+3. **`isLoadingMore` is the repository's single source of truth + a reentrancy guard.** `fetchOlderDoorEvents()` no-ops (returns `Success(emptyList())`) when there's no token or a load is already in flight, so a scroll fling that fires the trigger twice can't double-append.
+4. **No Room schema migration.** Pagination only appends rows to the existing `DoorEvent` table; the token is in-memory and never persisted (re-established by the first-page fetch on cold start). `RoomSchemaTest` / the schema-drift check confirm the version is untouched.
+5. **No growth cap for v1.** The dataset is a single garage door; the list is bounded by how far the user scrolls. If profiling ever shows a problem, add a trim query after append — deferred, recorded here so the absence is a decision, not an oversight.
+
+### Rationale
+
+**Why the repo, not the VM.** Putting the token in the VM resurrects exactly the multi-instance divergence ADR-022 was written to kill: each fresh `NavBackStackEntry` VM would hold its own token, drifting from the shared Room cache (and from the other dashboard pane). The repo already owns the cache; the cursor that describes the cache belongs next to it.
+
+**Why append uses `insertList` (REPLACE), not a bespoke merge.** The entity PK is `lastChangeTimeSeconds + ":" + doorPosition`, so an overlapping page row replaces its duplicate for free; the `recentDoorEvents()` query already returns all rows newest-first, so appended older rows just extend the tail. No new DAO query, no manual de-dup.
+
+**Why `isLoadingMore` in the repo, not the VM.** The load-more fetch runs on the repo's external scope (ADR-019), and the scroll trigger must be debounced against the shared cache regardless of which VM is alive. One flag in the repo is the cleanest single source of truth; the VM passes it through.
+
+### Consequences
+
+- The history UI's "load more" footer distinguishes two terminal reasons: empty list = "no events at all"; non-empty + `!canLoadMore` = "reached the beginning" (matches the API's null-token semantics).
+- The scroll-to-end trigger lives in `HistoryContent` (`derivedStateOf` near-end + `LaunchedEffect`), gated on `canLoadMore && !isLoadingMore`, with the repo guard as a backstop.
+- Adding a different paged list later reuses the same shape: repo-owned `PaginationState` + append-vs-replace.
+
+### When this decision might change
+
+- Unbounded growth becomes a real problem (huge histories) → add a trim-after-append query + a cap constant; this ADR's point 5 flips.
+- A second paged surface appears → consider extracting a small reusable `PagedRepository<T>` rather than copying the pattern a third time.
+
+### References
+
+- [`PaginationState.kt`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/model/PaginationState.kt), [`DoorEventPage.kt`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/model/DoorEventPage.kt)
+- [`NetworkDoorRepository.kt`](../data/src/commonMain/kotlin/com/chriscartland/garage/data/repository/NetworkDoorRepository.kt) — `fetchOlderDoorEvents` + the reentrancy guard
+- [`docs/EVENT_HISTORY_PAGINATION.md`](../../docs/EVENT_HISTORY_PAGINATION.md) — the server token contract this consumes
+- ADR-022 — `StateFlow` pass-through (this ADR applies it to the new `paginationState`)
