@@ -29,6 +29,13 @@ Example (placeholder tag numbers — the gate looks for exact `server/<real numb
 
 ---
 
+## server/28
+- **`eventHistory` pagination + windowed default.** The endpoint now returns the **last 7 days of events, capped at 50** (newest first) by default, and supports **cursor pagination** into the past via an opaque `nextPageToken`. The response adds `nextPageToken` (older), `prevPageToken` (newer), and `hasMore`; a null `nextPageToken` is the end-of-history signal (covers both "no events" and "reached the oldest"). All legacy keys (`eventHistory`, `eventHistoryCount`, …) are preserved, so the change is **wire-compatible** — the live client ignores the new keys.
+- **Universal default (behavior change):** the 7-day window applies to *every* non-cursor request, including the current app, the moment this deploys. A quiet door will show fewer events until the user updates to the paginating client. No wire break.
+- **Backward/forward compatible deploy:** clients may send `pageSize` (new) and/or legacy `eventHistoryMaxCount` (server reads either, pageSize wins, clamped to 50). Old client + new server → windowed legacy list; new client + old server → no tokens, no load-more (graceful).
+- **No new index for the core path:** the window is expressed as a range on the same field as the sort (`FIRESTORE_databaseTimestamp`), reusing the existing composite index. A new **ASC** `eventsAll` index is added to `firestore.indexes.json` for the (currently dormant) backward/`newer` direction — deploy it with `firebase deploy --only firestore:indexes` before any client pages toward the present.
+- Token is `base64url({ v, bt, s, n, d })` (boundary Timestamp + direction, scoped to buildTimestamp); malformed/foreign tokens fall back leniently to a fresh first page. Shared wire-contract fixtures under `wire-contracts/eventHistory/` are loaded by both the server Mocha tests and the Android Ktor test. PR #867.
+
 ## server/27
 - **Test infrastructure only — no production code change.** Adds shared FCM wire-contract fixtures so the server and Android client load the same JSON files when asserting payload shape. Files: `wire-contracts/fcmDoorEvent/payload_{closed,open,opening}.json` and `wire-contracts/fcmButtonHealth/payload_{online,offline,online_with_lastpoll}.json`; server tests (`EventFCMTest.ts`, `ButtonHealthFCMTest.ts`) `deep.equal` the loaded fixture, Android `FcmPayloadParsingTest` loads the same JSON as `Map<String, String>` and asserts the parse. A unilateral payload-key rename on either side now breaks at least one half. Shipped in PR #842.
 - Deployment is functionally a no-op; tag exists to keep the deployed Cloud Functions snapshot in lockstep with `main`.

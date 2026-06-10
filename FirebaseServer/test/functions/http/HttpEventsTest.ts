@@ -24,6 +24,8 @@
 
 import { expect } from 'chai';
 import * as sinon from 'sinon';
+import * as fs from 'fs';
+import * as path from 'path';
 
 import {
   handleCurrentEventData,
@@ -40,14 +42,35 @@ import { SensorEventType } from '../../../src/model/SensorEvent';
 
 const BUILD_TIMESTAMP = 'Sat Mar 13 14:45:00 2021';
 
-// Loosen the real FakeSensorEventDatabase.getRecentForBuildTimestamp
-// default (returns []) only where the test needs a history payload.
-class HistoryFake extends FakeSensorEventDatabase {
-  private recent: any[] = [];
-  setRecent(items: any[]): void { this.recent = items; }
-  async getRecentForBuildTimestamp(_b: string, _n: number): Promise<any> {
-    return this.recent;
-  }
+// Wire-contract fixtures shared with Android's KtorNetworkDoorDataSourceTest.
+const HISTORY_FIXTURE_DIR = path.join(__dirname, '..', '..', '..', '..', 'wire-contracts', 'eventHistory');
+const FIRST_PAGE_FIXTURE = JSON.parse(
+  fs.readFileSync(path.join(HISTORY_FIXTURE_DIR, 'response_first_page.json'), 'utf8'),
+);
+const LAST_PAGE_FIXTURE = JSON.parse(
+  fs.readFileSync(path.join(HISTORY_FIXTURE_DIR, 'response_last_page.json'), 'utf8'),
+);
+const EMPTY_FIXTURE = JSON.parse(
+  fs.readFileSync(path.join(HISTORY_FIXTURE_DIR, 'response_empty.json'), 'utf8'),
+);
+
+// Fixed clock so the 7-day window cutoff is deterministic. EVENT_A/B fall inside
+// the window; EVENT_C is older than the cutoff (drives the under-fill probe).
+const NOW_MILLIS = 1700000000000;
+const WINDOW_SECONDS = 7 * 24 * 60 * 60;
+const EXPECTED_SINCE_SECONDS = Math.floor(NOW_MILLIS / 1000) - WINDOW_SECONDS;
+
+const EVENT_A = FIRST_PAGE_FIXTURE.eventHistory[0]; // OPEN @ 1699999000
+const EVENT_B = FIRST_PAGE_FIXTURE.eventHistory[1]; // CLOSED @ 1699998000
+const EVENT_C = LAST_PAGE_FIXTURE.eventHistory[0]; // OPENING @ 1699000000 (outside window)
+const NEXT_TOKEN = FIRST_PAGE_FIXTURE.nextPageToken;
+
+function seedAbc(db: FakeSensorEventDatabase): void {
+  db.seedPageEvents(BUILD_TIMESTAMP, [
+    { cursor: { seconds: 1699999000, nanoseconds: 0 }, item: EVENT_A },
+    { cursor: { seconds: 1699998000, nanoseconds: 0 }, item: EVENT_B },
+    { cursor: { seconds: 1699000000, nanoseconds: 0 }, item: EVENT_C },
+  ]);
 }
 
 describe('handleCurrentEventData (pure handler core)', () => {
@@ -111,10 +134,10 @@ describe('handleCurrentEventData (pure handler core)', () => {
 });
 
 describe('handleEventHistory (pure handler core)', () => {
-  let fakeDB: HistoryFake;
+  let fakeDB: FakeSensorEventDatabase;
 
   beforeEach(() => {
-    fakeDB = new HistoryFake();
+    fakeDB = new FakeSensorEventDatabase();
     setSensorEventDBImpl(fakeDB);
   });
 
@@ -131,34 +154,97 @@ describe('handleEventHistory (pure handler core)', () => {
     }
   });
 
-  it('returns the recent history list with the count included', async () => {
-    const history = [{ id: 1 }, { id: 2 }, { id: 3 }];
-    fakeDB.setRecent(history);
-
+  it('returns the windowed first page with pagination tokens (wire contract)', async () => {
+    seedAbc(fakeDB);
     const result = await handleEventHistory({
-      query: { buildTimestamp: BUILD_TIMESTAMP, eventHistoryMaxCount: '3' },
+      query: { session: 'fixture-session', buildTimestamp: BUILD_TIMESTAMP, pageSize: '50' },
       body: {},
+      nowMillis: NOW_MILLIS,
     });
-
-    expect(result.kind).to.equal('ok');
-    if (result.kind === 'ok') {
-      expect(result.data.eventHistory).to.deep.equal(history);
-      expect(result.data.eventHistoryCount).to.equal(3);
-    }
+    expect(result).to.deep.equal({ kind: 'ok', data: FIRST_PAGE_FIXTURE });
   });
 
-  it('falls back to the 12-item default when the max-count param is absent', async () => {
-    fakeDB.setRecent([]);
-    // Pin the default by spying on the DB method.
-    const getRecentSpy = sinon.spy(fakeDB, 'getRecentForBuildTimestamp');
-
-    await handleEventHistory({
-      query: { buildTimestamp: BUILD_TIMESTAMP },
+  it('pages older via the token to the oldest event, then signals no more (wire contract)', async () => {
+    seedAbc(fakeDB);
+    const result = await handleEventHistory({
+      query: {
+        session: 'fixture-session',
+        buildTimestamp: BUILD_TIMESTAMP,
+        pageSize: '50',
+        pageToken: NEXT_TOKEN,
+      },
       body: {},
+      nowMillis: NOW_MILLIS,
     });
+    expect(result).to.deep.equal({ kind: 'ok', data: LAST_PAGE_FIXTURE });
+  });
 
-    expect(getRecentSpy.calledOnce).to.be.true;
-    expect(getRecentSpy.firstCall.args).to.deep.equal([BUILD_TIMESTAMP, 12]);
+  it('returns an empty page with no tokens when there are no events (wire contract)', async () => {
+    const result = await handleEventHistory({
+      query: { session: 'fixture-session', buildTimestamp: BUILD_TIMESTAMP, pageSize: '50' },
+      body: {},
+      nowMillis: NOW_MILLIS,
+    });
+    expect(result).to.deep.equal({ kind: 'ok', data: EMPTY_FIXTURE });
+  });
+
+  it('clamps pageSize to the 50 maximum', async () => {
+    const result = await handleEventHistory({
+      query: { buildTimestamp: BUILD_TIMESTAMP, pageSize: '999' },
+      body: {},
+      nowMillis: NOW_MILLIS,
+    });
+    expect(result.kind).to.equal('ok');
+    expect(fakeDB.pageCalls).to.have.lengthOf(1);
+    expect(fakeDB.pageCalls[0].limit).to.equal(50);
+  });
+
+  it('decodes the page token into a startAfter cursor and drops the time window', async () => {
+    await handleEventHistory({
+      query: { buildTimestamp: BUILD_TIMESTAMP, pageSize: '50', pageToken: NEXT_TOKEN },
+      body: {},
+      nowMillis: NOW_MILLIS,
+    });
+    const opts = fakeDB.pageCalls[0];
+    expect(opts.direction).to.equal('older');
+    expect(opts.startAfter).to.deep.equal({ seconds: 1699998000, nanoseconds: 0 });
+    expect(opts.sinceSeconds).to.be.undefined;
+  });
+
+  it('applies the 7-day window even when only the legacy eventHistoryMaxCount is sent', async () => {
+    await handleEventHistory({
+      query: { buildTimestamp: BUILD_TIMESTAMP, eventHistoryMaxCount: '30' },
+      body: {},
+      nowMillis: NOW_MILLIS,
+    });
+    const opts = fakeDB.pageCalls[0];
+    expect(opts.direction).to.equal('older');
+    expect(opts.limit).to.equal(30);
+    expect(opts.sinceSeconds).to.equal(EXPECTED_SINCE_SECONDS);
+    expect(opts.startAfter).to.be.undefined;
+  });
+
+  it('falls back to a fresh windowed first page when the token is malformed', async () => {
+    await handleEventHistory({
+      query: { buildTimestamp: BUILD_TIMESTAMP, pageSize: '50', pageToken: 'not-a-valid-token' },
+      body: {},
+      nowMillis: NOW_MILLIS,
+    });
+    const opts = fakeDB.pageCalls[0];
+    expect(opts.startAfter).to.be.undefined;
+    expect(opts.sinceSeconds).to.equal(EXPECTED_SINCE_SECONDS);
+  });
+
+  it('ignores a token scoped to a different buildTimestamp', async () => {
+    await handleEventHistory({
+      query: { buildTimestamp: 'Different Build 2022', pageSize: '50', pageToken: NEXT_TOKEN },
+      body: {},
+      nowMillis: NOW_MILLIS,
+    });
+    const opts = fakeDB.pageCalls[0];
+    expect(opts.buildTimestamp).to.equal('Different Build 2022');
+    expect(opts.startAfter).to.be.undefined;
+    expect(opts.sinceSeconds).to.equal(EXPECTED_SINCE_SECONDS);
   });
 });
 

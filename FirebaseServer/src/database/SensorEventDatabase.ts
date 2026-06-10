@@ -14,7 +14,17 @@
  * limitations under the License.
  */
 
-import { TimeSeriesDatabase } from './TimeSeriesDatabase';
+import { TimeSeriesDatabase, EventPage, PageDirection, TimestampCursor } from './TimeSeriesDatabase';
+
+export { EventPage, PageDirection, TimestampCursor } from './TimeSeriesDatabase';
+
+export interface GetPageOptions {
+  buildTimestamp: string;
+  limit: number;
+  direction: PageDirection;
+  startAfter?: TimestampCursor;
+  sinceSeconds?: number;
+}
 
 // Canonical collection strings for this database. Pinned by
 // test/database/SensorEventDatabaseTest.ts. Changing them requires a
@@ -30,6 +40,7 @@ export interface SensorEventDatabase {
   deleteAllBefore(cutoffTimestampSeconds: number, dryRun: boolean): Promise<number>;
   getLatestN(n: number): Promise<any>;
   getRecentForBuildTimestamp(buildTimestamp: string, n: number): Promise<any>;
+  getPageForBuildTimestamp(opts: GetPageOptions): Promise<EventPage>;
 }
 
 class FirestoreSensorEventDatabase implements SensorEventDatabase {
@@ -42,6 +53,7 @@ class FirestoreSensorEventDatabase implements SensorEventDatabase {
   deleteAllBefore(c: number, dry: boolean) { return this.db.deleteAllBefore(c, dry); }
   getLatestN(n: number) { return this.db.getLatestN(n); }
   getRecentForBuildTimestamp(t: string, n: number) { return this.db.getRecentForBuildTimestamp(t, n); }
+  getPageForBuildTimestamp(opts: GetPageOptions) { return this.db.getPageForBuildTimestamp(opts); }
 }
 
 let _instance: SensorEventDatabase = new FirestoreSensorEventDatabase();
@@ -53,6 +65,7 @@ export const DATABASE: SensorEventDatabase = {
   deleteAllBefore: (c, dry) => _instance.deleteAllBefore(c, dry),
   getLatestN: (n) => _instance.getLatestN(n),
   getRecentForBuildTimestamp: (t, n) => _instance.getRecentForBuildTimestamp(t, n),
+  getPageForBuildTimestamp: (opts) => _instance.getPageForBuildTimestamp(opts),
 };
 
 /** TEST-ONLY: swap in a fake implementation. */

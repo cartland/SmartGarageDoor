@@ -1,0 +1,32 @@
+{
+  "queryParams": {
+    "session": "fixture-session",
+    "buildTimestamp": "Sat Mar 13 14:45:00 2021",
+    "pageSize": "50"
+  },
+  "body": {},
+  "session": "fixture-session",
+  "buildTimestamp": "Sat Mar 13 14:45:00 2021",
+  "eventHistory": [
+    {
+      "currentEvent": {
+        "type": "OPEN",
+        "message": "",
+        "timestampSeconds": 1699999000,
+        "checkInTimestampSeconds": 1699999000
+      }
+    },
+    {
+      "currentEvent": {
+        "type": "CLOSED",
+        "message": "",
+        "timestampSeconds": 1699998000,
+        "checkInTimestampSeconds": 1699998000
+      }
+    }
+  ],
+  "eventHistoryCount": 2,
+  "nextPageToken": "eyJ2IjoxLCJidCI6IlNhdCBNYXIgMTMgMTQ6NDU6MDAgMjAyMSIsInMiOjE2OTk5OTgwMDAsIm4iOjAsImQiOiJvbGRlciJ9",
+  "prevPageToken": null,
+  "hasMore": true
+}

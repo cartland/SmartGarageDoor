@@ -17,6 +17,25 @@
 import { assert } from 'console';
 import * as firebase from 'firebase-admin';
 
+export type PageDirection = 'older' | 'newer';
+
+/** A Firestore Timestamp boundary, split into its serializable parts. */
+export interface TimestampCursor {
+  seconds: number;
+  nanoseconds: number;
+}
+
+export interface EventPage {
+  /** Page items, always newest-first regardless of query direction. */
+  items: any[];
+  /** True if more items exist beyond this page in the queried direction. */
+  hasMore: boolean;
+  /** Boundary of the oldest returned item (or the week cutoff when the page is empty); drives the next OLDER page. */
+  oldestCursor: TimestampCursor | null;
+  /** Boundary of the newest returned item; drives the next NEWER page. */
+  newestCursor: TimestampCursor | null;
+}
+
 export class TimeSeriesDatabase {
 
   collectionCurrent: string;
@@ -120,6 +139,102 @@ export class TimeSeriesDatabase {
         });
         return results;
       });
+  }
+
+  /**
+   * Cursor-based page of events for a buildTimestamp, ordered newest-first.
+   *
+   * Pagination keys off `FIRESTORE_databaseTimestamp` (a Firestore Timestamp,
+   * sub-second precision) — the same field `getRecentForBuildTimestamp` orders
+   * by, so the existing `buildTimestamp ASC + FIRESTORE_databaseTimestamp DESC`
+   * composite index serves the default/older paths with no new index. The
+   * `newer` direction orders ASC and needs the matching ASC index (added to
+   * firestore.indexes.json; dormant until a client pages toward the present).
+   *
+   *  - `direction`     'older' (into the past, DESC) or 'newer' (toward now, ASC)
+   *  - `startAfter`    cursor boundary; exclusive
+   *  - `sinceSeconds`  optional lower time bound (the 7-day default window),
+   *                    applied as a range on the SAME field as the orderBy so
+   *                    Firestore accepts it and the existing index covers it
+   *
+   * `hasMore` is computed by fetching `limit + 1`. For a windowed first page
+   * that under-fills (or is empty), a cheap 1-doc probe checks whether events
+   * exist older than the window so the end-of-history signal is accurate.
+   */
+  async getPageForBuildTimestamp(opts: {
+    buildTimestamp: string;
+    limit: number;
+    direction: PageDirection;
+    startAfter?: TimestampCursor;
+    sinceSeconds?: number;
+  }): Promise<EventPage> {
+    const TS_KEY = TimeSeriesDatabase.DATABASE_TIMESTAMP_KEY;
+    const coll = firebase.app().firestore().collection(this.collectionAll);
+    const order = opts.direction === 'older' ? 'desc' : 'asc';
+
+    let cutoff: firebase.firestore.Timestamp | null = null;
+    let query: firebase.firestore.Query = coll.where('buildTimestamp', '==', opts.buildTimestamp);
+    if (opts.sinceSeconds !== undefined) {
+      cutoff = new firebase.firestore.Timestamp(opts.sinceSeconds, 0);
+      query = query.where(TS_KEY, '>=', cutoff);
+    }
+    query = query.orderBy(TS_KEY, order);
+    if (opts.startAfter) {
+      query = query.startAfter(
+        new firebase.firestore.Timestamp(opts.startAfter.seconds, opts.startAfter.nanoseconds),
+      );
+    }
+
+    const snapshot = await query.limit(opts.limit + 1).get();
+    let docs = snapshot.docs;
+    let hasMore = docs.length > opts.limit;
+    if (hasMore) {
+      docs = docs.slice(0, opts.limit);
+    }
+
+    const cursorOf = (doc: firebase.firestore.QueryDocumentSnapshot): TimestampCursor => {
+      const ts = doc.data()[TS_KEY] as firebase.firestore.Timestamp;
+      return { seconds: ts.seconds, nanoseconds: ts.nanoseconds };
+    };
+
+    // Docs are in query order; orient newest..oldest for cursor extraction.
+    let newestDoc: firebase.firestore.QueryDocumentSnapshot | null = null;
+    let oldestDoc: firebase.firestore.QueryDocumentSnapshot | null = null;
+    if (docs.length > 0) {
+      if (opts.direction === 'older') {
+        newestDoc = docs[0];
+        oldestDoc = docs[docs.length - 1];
+      } else {
+        oldestDoc = docs[0];
+        newestDoc = docs[docs.length - 1];
+      }
+    }
+    let oldestCursor = oldestDoc ? cursorOf(oldestDoc) : null;
+    const newestCursor = newestDoc ? cursorOf(newestDoc) : null;
+
+    // Windowed older page that didn't overflow: are there events older than what
+    // we returned (or older than the cutoff if the page is empty)? One read.
+    if (opts.direction === 'older' && !hasMore && cutoff) {
+      const boundary = oldestDoc ? (oldestDoc.data()[TS_KEY] as firebase.firestore.Timestamp) : cutoff;
+      const probe = await coll
+        .where('buildTimestamp', '==', opts.buildTimestamp)
+        .where(TS_KEY, '<', boundary)
+        .orderBy(TS_KEY, 'desc')
+        .limit(1)
+        .get();
+      if (!probe.empty) {
+        hasMore = true;
+        // Empty window: the next older page must start after the cutoff.
+        if (!oldestCursor) {
+          oldestCursor = { seconds: cutoff.seconds, nanoseconds: cutoff.nanoseconds };
+        }
+      }
+    }
+
+    const items = docs.map((doc) => TimeSeriesDatabase.convertFromFirestore(doc.data()));
+    // 'newer' queried ASC; flip to newest-first to match the response contract.
+    const orderedItems = opts.direction === 'newer' ? items.slice().reverse() : items;
+    return { items: orderedItems, hasMore, oldestCursor, newestCursor };
   }
 
   async deleteAllBefore(cutoffTimestampSeconds: number, dryRun: boolean): Promise<number> {
