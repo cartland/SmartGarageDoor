@@ -65,6 +65,9 @@ should_skip() {
         */android-screenshot-tests/*SCREENSHOT_GALLERY.md) return 0 ;;
         */android-screenshot-tests/*PREVIEW_COVERAGE.md) return 0 ;;
         */android-screenshot-tests/collections/*) return 0 ;;
+        # Generated Play Store asset gallery (screenshots/store/README.md) — same
+        # generated-artifact class as the screenshot galleries above.
+        */screenshots/store/*) return 0 ;;
         */detekt.md) return 0 ;;
         */GarageFirmware_ESP32/*) return 0 ;;
         */Arduino_ESP32/*) return 0 ;;

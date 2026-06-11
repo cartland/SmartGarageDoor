@@ -1,3 +1,9 @@
+---
+category: reference
+status: active
+last_verified: 2026-06-11
+---
+
 # Play Store listing assets
 
 Garage-door identity for the Google Play listing and the on-device launcher
