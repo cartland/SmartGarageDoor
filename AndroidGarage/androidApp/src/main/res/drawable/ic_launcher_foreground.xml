@@ -1,5 +1,5 @@
 <!--
-  ~ Copyright 2021 Chris Cartland. All rights reserved.
+  ~ Copyright 2026 Chris Cartland. All rights reserved.
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -15,34 +15,34 @@
   ~
   -->
 
+<!--
+  Adaptive-icon foreground: cream garage door (lintel + slatted panel + window
+  row) sized within the 66dp safe zone. The window/slat knockouts are painted
+  in the brand green (#466730) so they read as openings against the flat green
+  background layer. Source of truth for the full-bleed art is
+  distribution/playstore/src/icon.svg.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-  <group android:scaleX="0.11601563"
-      android:scaleY="0.11601563"
-      android:translateX="24.3"
-      android:translateY="24.3">
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M94,463.5c-4.14,0 -7.5,-3.36 -7.5,-7.5V176.5h339V456c0,4.14 -3.36,7.5 -7.5,7.5H94z"/>
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M425,177v279c0,3.86 -3.14,7 -7,7H94c-3.86,0 -7,-3.14 -7,-7V177H425M426,176H86v280c0,4.42 3.58,8 8,8h324c4.42,0 8,-3.58 8,-8V176L426,176z"/>
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M445.93,152.38c23.14,12.71 20.47,23.12 -5.93,23.12H72.91c-26.4,0 -29.09,-10.43 -5.97,-23.19l147.04,-81.12c23.12,-12.75 60.96,-12.78 84.09,-0.07L445.93,152.38z"/>
-    <path
-        android:strokeWidth="1"
-        android:pathData="M445.93,152.38c23.14,12.71 20.47,23.12 -5.93,23.12H72.91c-26.4,0 -29.09,-10.43 -5.97,-23.19l147.04,-81.12c23.12,-12.75 60.96,-12.78 84.09,-0.07L445.93,152.38z"
-        android:fillColor="#00000000"
-        android:strokeColor="#000000"/>
-    <path
-        android:pathData="M112.46,439.5l289.04,-259.66l0,259.66z"
-        android:fillColor="#FFFFFF"/>
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M401,180.96V439H113.76L401,180.96M402,178.71L111.15,440H402V178.71L402,178.71z"/>
-  </group>
+  <!-- lintel / header bar -->
+  <path
+      android:fillColor="#F5F2E8"
+      android:pathData="M31,26 h46 a2,2 0 0 1 2,2 v2 a2,2 0 0 1 -2,2 h-46 a2,2 0 0 1 -2,-2 v-2 a2,2 0 0 1 2,-2 z"/>
+  <!-- door panel -->
+  <path
+      android:fillColor="#F5F2E8"
+      android:pathData="M35.5,36 h37 a3.5,3.5 0 0 1 3.5,3.5 v42 a3.5,3.5 0 0 1 -3.5,3.5 h-37 a3.5,3.5 0 0 1 -3.5,-3.5 v-42 a3.5,3.5 0 0 1 3.5,-3.5 z"/>
+  <!-- window row (knockout to background green) -->
+  <path android:fillColor="#466730" android:pathData="M36,40 h6.5 v5 h-6.5 z"/>
+  <path android:fillColor="#466730" android:pathData="M46,40 h6.5 v5 h-6.5 z"/>
+  <path android:fillColor="#466730" android:pathData="M56,40 h6.5 v5 h-6.5 z"/>
+  <path android:fillColor="#466730" android:pathData="M66,40 h6.5 v5 h-6.5 z"/>
+  <!-- slat dividers (knockout to background green) -->
+  <path android:fillColor="#466730" android:pathData="M33,48 h42 v1.8 h-42 z"/>
+  <path android:fillColor="#466730" android:pathData="M33,58 h42 v1.8 h-42 z"/>
+  <path android:fillColor="#466730" android:pathData="M33,68 h42 v1.8 h-42 z"/>
+  <path android:fillColor="#466730" android:pathData="M33,78 h42 v1.8 h-42 z"/>
 </vector>
