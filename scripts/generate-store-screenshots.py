@@ -11,10 +11,10 @@ though Layoutlib screenshot rendering is blank locally. Sources:
   * tablet  -> the CI-committed wide / 3-pane reference renders under the
                android-screenshot-tests reference dir.
 
-Images are written at their NATIVE dimensions - no aspect-ratio padding or
-cropping. Play's listing states 16:9 / 9:16; we ship the renders as-is to test
-what it actually accepts, and only add framing/ratio handling if uploads are
-rejected.
+Phone shots are flattened onto white at their native ~2.12:1 (Play accepted this
+ratio, approved 2026-06-11 - do not pad). Tablet shots are wrapped in a
+programmatic tablet bezel (frame_tablet) centered on a white 16:9 canvas, which
+both polishes the shot and makes it Play-compliant.
 
 Output goes to AndroidGarage/screenshots/store/{phoneScreenshots,
 sevenInchScreenshots,tenInchScreenshots}/. Copy the ones you want into
