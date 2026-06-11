@@ -5,11 +5,12 @@ icon. The mark is the **app's own closed garage door** — the same art drawn in
 Compose (`androidApp/.../ui/GarageDoorCanvas.kt`, `doorOffset = CLOSED_POSITION`)
 — in its green (`closedFresh`, `#226B43`) on a light-green ground.
 
-This directory is the **curated set we keep in sync with the live store**. It is
-committed; the generators do NOT write here. They write to a gitignored staging
-dir (`AndroidGarage/screenshots/store/`) and you copy the images you want into
-this directory by hand, PR them, then upload them manually in the Play Console.
-**The full procedure is the `play-store-assets` skill** (`/play-store-assets`).
+This directory is the **curated set we keep in sync with the live store**. The
+generators do NOT write here — they write to the committed generated dir
+(`AndroidGarage/screenshots/store/`) and you copy the images you want into this
+directory by hand, PR them, then upload them manually in the Play Console. Both
+dirs are committed. **The full procedure is the `play-store-assets` skill**
+(`/play-store-assets`).
 
 These are **manual uploads** — the release workflow (`release-android.yml`) only
 ships the AAB + `whatsnew/`, it does not push store graphics.
@@ -45,11 +46,16 @@ bash AndroidGarage/distribution/playstore/generate.sh
 ```
 
 `generate.sh` writes `icon-512.png` + `feature-graphic-1024x500.png` into the
-**staging** dir (`AndroidGarage/screenshots/store/`, gitignored), and regenerates
-the in-app launcher mipmaps in `androidApp/.../res/mipmap-*/ic_launcher*.png`
-(those are app code — committed and shipped in the AAB, not store uploads).
-Screenshots are staged by `scripts/generate-store-screenshots.py`. Copy from
-staging into this directory by hand per the `play-store-assets` skill.
+committed generated dir (`AndroidGarage/screenshots/store/`), and regenerates the
+in-app launcher mipmaps in `androidApp/.../res/mipmap-*/ic_launcher*.png` (those
+are app code — committed and shipped in the AAB, not store uploads).
+
+**Screenshots regenerate automatically** with the normal screenshot update
+(`./scripts/generate-android-screenshots.sh`, i.e. the `update-android-screenshots`
+flow), which now runs `scripts/generate-store-screenshots.py` after framing. So
+the generated `screenshots/store/` set stays fresh on its own; copying the subset
+you want into this directory is the only manual step (see the `play-store-assets`
+skill).
 
 ### Keeping the icon in sync with the app
 

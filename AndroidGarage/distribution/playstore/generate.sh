@@ -17,11 +17,12 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SRC="$HERE/src"
 RES="$HERE/../../androidApp/src/main/res"
-# Store assets are generated into a STAGING dir (gitignored), NOT into
+# Store assets are generated into the committed screenshots/store/ dir, NOT into
 # distribution/. distribution/ is the curated set we keep in sync with the live
-# store by hand - copy from staging when updating. See the play-store-assets
-# skill. (The launcher mipmaps below DO write into res/ because they are in-app
-# resources shipped in the AAB, not store-listing images.)
+# store by hand - copy from the generated dir when updating. See the
+# play-store-assets skill. (The launcher mipmaps below DO write into res/
+# because they are in-app resources shipped in the AAB, not store-listing
+# images.)
 STAGING="$HERE/../../screenshots/store"
 mkdir -p "$STAGING"
 TMP="$(mktemp -d)"
