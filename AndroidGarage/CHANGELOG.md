@@ -15,6 +15,9 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.17.1
+- **New app icon.** The launcher icon is now the app's own green garage door (the closed-door graphic drawn in the app), replacing the old placeholder. Includes the adaptive icon (foreground/background) and an Android 13+ themed-icon (monochrome) layer. PR #882.
+
 ## 2.17.0
 - **Door history now loads older events as you scroll (pagination).** The history list opens to a recent window and, when you scroll to the bottom, loads the next page of older events — all the way back to your first recorded event. A footer shows a spinner while a page loads and a "You've reached the beginning of your history" note once there are no older events. Pull-to-refresh still resets to the most recent page.
 - **Server-backed windowing + cursor pagination.** The `eventHistory` endpoint now returns a windowed first page (last 7 days, newest first) plus an opaque next-page cursor; the app pages further into the past on demand (cursor pages are not time-limited). First-page size is 100 events. Requires the matching server (`server/28`/`server/29`, already deployed). Heads-up: because the first page is windowed to ~7 days, history older than a week now appears as you scroll rather than all at once.
