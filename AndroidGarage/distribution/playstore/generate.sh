@@ -17,6 +17,14 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SRC="$HERE/src"
 RES="$HERE/../../androidApp/src/main/res"
+# Store assets are generated into the committed screenshots/store/ dir, NOT into
+# distribution/. distribution/ is the curated set we keep in sync with the live
+# store by hand - copy from the generated dir when updating. See the
+# play-store-assets skill. (The launcher mipmaps below DO write into res/
+# because they are in-app resources shipped in the AAB, not store-listing
+# images.)
+STAGING="$HERE/../../screenshots/store"
+mkdir -p "$STAGING"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
@@ -25,14 +33,14 @@ render() { # svg out_png size
   sips -z "$3" "$3" "$TMP/$(basename "$1").png" --out "$2" >/dev/null
 }
 
-echo "==> Play Store hi-res icon (512x512)"
-render "$SRC/icon.svg" "$HERE/icon-512.png" 512
+echo "==> Play Store hi-res icon (512x512)  [staging]"
+render "$SRC/icon.svg" "$STAGING/icon-512.png" 512
 
-echo "==> Play Store feature graphic (1024x500)"
+echo "==> Play Store feature graphic (1024x500)  [staging]"
 # Pillow, not qlmanage: qlmanage rasterizes SVG onto a square canvas, which
 # letterboxes + squashes a 1024x500 design. feature_graphic.py draws at exact
-# target dimensions and reuses the icon-512 we just rendered.
-python3 "$SRC/feature_graphic.py" "$HERE/icon-512.png" "$HERE/feature-graphic-1024x500.png"
+# target dimensions and reuses the staged icon-512 we just rendered.
+python3 "$SRC/feature_graphic.py" "$STAGING/icon-512.png" "$STAGING/feature-graphic-1024x500.png"
 
 echo "==> Launcher raster mipmaps (square + round)"
 # density -> px (launcher icon base 48dp)
@@ -65,4 +73,9 @@ for entry in "${sizes[@]}"; do
   sips -z "$px" "$px" "$TMP/round.png" --out "$RES/mipmap-$dens/ic_launcher_round.png" >/dev/null
 done
 
-echo "Done. Review the PNGs, then commit."
+echo ""
+echo "Done."
+echo "  Launcher mipmaps written into res/ (in-app, commit with the app change)."
+echo "  Store icon + feature graphic staged in: $STAGING"
+echo "  When updating the store, copy the staged files you want into"
+echo "  distribution/playstore/ by hand. See the play-store-assets skill."

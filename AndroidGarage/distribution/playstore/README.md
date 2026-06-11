@@ -5,18 +5,28 @@ icon. The mark is the **app's own closed garage door** — the same art drawn in
 Compose (`androidApp/.../ui/GarageDoorCanvas.kt`, `doorOffset = CLOSED_POSITION`)
 — in its green (`closedFresh`, `#226B43`) on a light-green ground.
 
-These are **manual uploads** in the Play Console — the release workflow
-(`release-android.yml`) only ships the AAB + `whatsnew/`, it does not push store
-graphics.
+This directory is the **curated set we keep in sync with the live store**. The
+generators do NOT write here — they write to the committed generated dir
+(`AndroidGarage/screenshots/store/`) and you copy the images you want into this
+directory by hand, PR them, then upload them manually in the Play Console. Both
+dirs are committed. **The full procedure is the `play-store-assets` skill**
+(`/play-store-assets`).
 
-## Files
+These are **manual uploads** — the release workflow (`release-android.yml`) only
+ships the AAB + `whatsnew/`, it does not push store graphics.
+
+## Curated files (what's live in the store)
 
 | File | Play Console field | Spec |
 | --- | --- | --- |
 | `icon-512.png` | App icon (hi-res) | 512×512 PNG, 32-bit |
 | `feature-graphic-1024x500.png` | Feature graphic | 1024×500 PNG/JPG |
+| `screenshots/phoneScreenshots/*.png` | Phone screenshots | 2–8, 9:16 |
+| `screenshots/sevenInchScreenshots/*.png` | 7-inch tablet | ≤8, 16:9 |
+| `screenshots/tenInchScreenshots/*.png` | 10-inch tablet | ≤8, 16:9 |
 
-Screenshots are not generated here yet (see _Follow-ups_).
+Populate `screenshots/` by copying from staging when you update the store; only
+`icon-512.png` + `feature-graphic-1024x500.png` are committed today.
 
 ## Sources & regeneration
 
@@ -31,12 +41,21 @@ Everything is generated from the sources in `src/` — never hand-edit the PNGs.
   wordmark) with Pillow.
 
 ```bash
-# macOS only (uses Quick Look + sips + Pillow)
-./generate.sh
+# macOS only (uses Quick Look + sips + Pillow). Run from repo root.
+bash AndroidGarage/distribution/playstore/generate.sh
 ```
 
-`generate.sh` rewrites `icon-512.png`, `feature-graphic-1024x500.png`, and the
-legacy raster launcher mipmaps (`androidApp/.../res/mipmap-*/ic_launcher*.png`).
+`generate.sh` writes `icon-512.png` + `feature-graphic-1024x500.png` into the
+committed generated dir (`AndroidGarage/screenshots/store/`), and regenerates the
+in-app launcher mipmaps in `androidApp/.../res/mipmap-*/ic_launcher*.png` (those
+are app code — committed and shipped in the AAB, not store uploads).
+
+**Screenshots regenerate automatically** with the normal screenshot update
+(`./scripts/generate-android-screenshots.sh`, i.e. the `update-android-screenshots`
+flow), which now runs `scripts/generate-store-screenshots.py` after framing. So
+the generated `screenshots/store/` set stays fresh on its own; copying the subset
+you want into this directory is the only manual step (see the `play-store-assets`
+skill).
 
 ### Keeping the icon in sync with the app
 
@@ -55,12 +74,14 @@ The raster `mipmap-*/ic_launcher*.png` files are a dead-code fallback for
 API < 26 — regenerated for hygiene only. (They previously still held the stock
 Android Studio robot template, which is why nobody noticed.)
 
-## Follow-ups
+## Notes
 
-- **Screenshots**: the listing also wants 2–8 phone screenshots. The framed
-  device shots in `AndroidGarage/screenshots/framed/` are the natural source,
-  but local screenshot regeneration renders blank on this machine (see the
-  root `CLAUDE.md` screenshot note), so capturing store screenshots is deferred
-  to a working environment / CI artifact.
+- **Screenshots** (phone + 7"/10" tablet) are staged by
+  `scripts/generate-store-screenshots.py` from the committed framed shots +
+  tablet reference renders. See the `play-store-assets` skill for the full flow.
+- **Refreshing the screenshot *sources*** (re-rendering the app UI) needs a
+  working environment / CI — local screenshot regeneration renders blank on this
+  machine (root `CLAUDE.md`). The staging generator only re-composes the
+  currently-committed sources.
 - **`AppIconClosedDoorPreviewTest` reference PNG**: same local-render limitation
   — its reference image is generated on a working environment / in CI, not here.

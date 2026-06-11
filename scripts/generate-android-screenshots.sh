@@ -36,8 +36,16 @@ if python3 -c "import PIL" 2>/dev/null; then
         "$REFERENCE_DIR" \
         AndroidGarage/screenshots/framed \
         || echo "WARN: framing step had non-fatal failures"
+
+    echo ""
+    echo "Generating Play Store screenshots (committed under screenshots/store/)..."
+    # Composes the framed shots + tablet reference renders just produced above.
+    # Copying the curated subset into distribution/playstore/ is the only manual
+    # step - see the play-store-assets skill.
+    python3 ./scripts/generate-store-screenshots.py \
+        || echo "WARN: store screenshot generation had non-fatal failures"
 else
-    echo "WARN: Pillow not installed (pip install Pillow); skipping framing step"
+    echo "WARN: Pillow not installed (pip install Pillow); skipping framing + store steps"
 fi
 
 echo ""

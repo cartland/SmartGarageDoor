@@ -15,6 +15,8 @@ My original firmware implementation was based on Arduino (2021). I've since migr
 
 <img src="AndroidGarage/screenshots/framed/home_tab_light.png" width="200" alt="Garage app home tab showing the door closed and the action button"> <img src="AndroidGarage/screenshots/framed/history_tab_light.png" width="200" alt="Garage history tab listing recent door events">
 
+The latest generated Play Store listing assets (app icon, feature graphic, phone + tablet screenshots) are previewed in [`AndroidGarage/screenshots/store/`](AndroidGarage/screenshots/store/README.md). They regenerate with the screenshot pipeline; the curated set that's live in the store lives in [`AndroidGarage/distribution/playstore/`](AndroidGarage/distribution/playstore/README.md).
+
 ## Getting Started
 
 Pick the path that matches what you came here for:
