@@ -37,9 +37,11 @@ python3 "$SRC/feature_graphic.py" "$HERE/icon-512.png" "$HERE/feature-graphic-10
 echo "==> Launcher raster mipmaps (square + round)"
 # density -> px (launcher icon base 48dp)
 sizes=("mdpi 48" "hdpi 72" "xhdpi 96" "xxhdpi 144" "xxxhdpi 192")
-# master square render at high res, then downscale per density
-qlmanage -t -s 512 -o "$TMP" "$SRC/icon.svg" >/dev/null 2>&1
-MASTER="$TMP/icon.svg.png"
+# Use launcher.svg (the PADDED adaptive composition), NOT icon.svg (full-bleed
+# store icon) - the store door reaches the edges and its corners would be
+# clipped by the round / squircle launcher masks.
+qlmanage -t -s 512 -o "$TMP" "$SRC/launcher.svg" >/dev/null 2>&1
+MASTER="$TMP/launcher.svg.png"
 # build a circular-masked master for the round variant
 python3 - "$MASTER" "$TMP/round.png" <<'PY'
 import sys
