@@ -1,0 +1,31 @@
+name: Docs — Front-matter contract
+
+# Validates the AGENTS.md YAML front-matter contract on every markdown file in
+# scope (scripts/check-doc-frontmatter.sh). Previously this ran ONLY in
+# validate.sh (the release gate), so a missing/invalid front-matter block merged
+# green and only surfaced at release time — e.g. the store-asset READMEs added in
+# #882/#883 slipped through PR CI and blocked the android/250 release validation.
+#
+# Deliberately NO `paths:` filter. The `Doc front-matter` job is a REQUIRED
+# status check, and a path-filtered required check stays Expected/pending forever
+# on any PR that doesn't touch the filtered paths — which blocks the merge.
+# Running on every PR/push (the script is ~2s of pure bash, no deps) guarantees
+# the check always concludes. `timeout-minutes` bounds a stuck runner.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  frontmatter:
+    name: Doc front-matter
+    runs-on: ubuntu-latest
+    timeout-minutes: 5 # never hang; the check takes ~2s
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check doc front-matter
+        run: bash scripts/check-doc-frontmatter.sh
