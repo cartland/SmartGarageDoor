@@ -55,8 +55,8 @@ screenshots/store/
 ```
 
 - **Phone** — the framed Pixel shots flattened onto white at their native ratio
-  (~2.12:1). Left as-is to test what Play accepts (Play states 9:16); if rejected,
-  give them the same white-canvas treatment as tablets.
+  (~2.12:1). Play **accepted** this ratio (uploads approved 2026-06-11), so it's
+  left native — do not pad to 9:16.
 - **Tablet** — wrapped in a programmatic tablet bezel (`frame_tablet`) centered on
   a white **16:9** canvas (3840×2160 for 7-inch, 4494×2528 for 10-inch). Polished
   and Play-compliant.
