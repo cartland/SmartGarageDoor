@@ -54,7 +54,10 @@ screenshots/store/
   tenInchScreenshots/      01..04  (~3734x2100, 16:9)
 ```
 
-All output is Play-compliant: PNG, < 8 MB, exact 16:9 / 9:16, sides within range.
+Output is **native dimensions** — no aspect-ratio padding or cropping (PNG, < 8 MB,
+sides within range). Play's listing states 16:9 / 9:16; the renders are shipped
+as-is (phone ~2.12:1, tablets 1.28–1.6:1) to test what Play actually accepts. If
+an upload is rejected, add framing/ratio handling back to the generator.
 
 ## Updating the store — step by step
 

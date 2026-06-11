@@ -7,17 +7,18 @@ already-committed PNGs - it does NOT render, so it works on this machine even
 though Layoutlib screenshot rendering is blank locally. Sources:
 
   * phone   -> the framed README shots in AndroidGarage/screenshots/framed/
-               (already wrapped in a Pixel bezel), padded to 9:16.
+               (already wrapped in a Pixel bezel).
   * tablet  -> the CI-committed wide / 3-pane reference renders under the
-               android-screenshot-tests reference dir, padded to 16:9.
+               android-screenshot-tests reference dir.
+
+Images are written at their NATIVE dimensions - no aspect-ratio padding or
+cropping. Play's listing states 16:9 / 9:16; we ship the renders as-is to test
+what it actually accepts, and only add framing/ratio handling if uploads are
+rejected.
 
 Output goes to AndroidGarage/screenshots/store/{phoneScreenshots,
-sevenInchScreenshots,tenInchScreenshots}/ - a STAGING area. Nothing under
-distribution/ is written; copy the ones you want into
+sevenInchScreenshots,tenInchScreenshots}/. Copy the ones you want into
 distribution/playstore/screenshots/ by hand when updating the store.
-
-Play limits honored: PNG, <=8 MB, each side within range, ratio padded to an
-exact 16:9 / 9:16 (well inside Play's 2:1 cap).
 
 Usage: python3 scripts/generate-store-screenshots.py
 """
@@ -76,40 +77,6 @@ def resolve(source):
     return hits[0] if hits else None
 
 
-def _edge_color(img, vertical_bars):
-    """Mean color of the edges that will be extended, so the pad bars blend into
-    the content instead of reading as stark black frames. vertical_bars=True
-    samples the left+right columns (bars go on the sides), else top+bottom rows."""
-    w, h = img.size
-    s = max(2, min(w, h) // 100)  # a few-pixel strip
-    if vertical_bars:
-        strips = [img.crop((0, 0, s, h)), img.crop((w - s, 0, w, h))]
-    else:
-        strips = [img.crop((0, 0, w, s)), img.crop((0, h - s, w, h))]
-    cols = [st.resize((1, 1), Image.BOX).getpixel((0, 0)) for st in strips]
-    return tuple(sum(c[i] for c in cols) // len(cols) for i in range(3))
-
-
-def pad(img, orientation):
-    """Center img on the smallest exact-16:9 (landscape) / 9:16 (portrait) canvas.
-    Bars are filled with the sampled edge color so they blend into the UI."""
-    w, h = img.size
-    if orientation == "portrait":          # W/H = 9/16
-        if h * 9 >= w * 16:                 # too tall -> widen (side bars)
-            cw, ch = -(-h * 9 // 16), h
-        else:                               # too wide -> heighten (top/bottom bars)
-            cw, ch = w, -(-w * 16 // 9)
-    else:                                   # landscape, W/H = 16/9
-        if w * 9 <= h * 16:                 # too tall/narrow -> widen (side bars)
-            cw, ch = -(-h * 16 // 9), h
-        else:                               # too wide -> heighten (top/bottom bars)
-            cw, ch = w, -(-w * 9 // 16)
-    bg = _edge_color(img, vertical_bars=(cw > w))
-    canvas = Image.new("RGB", (cw, ch), bg)
-    canvas.paste(img, ((cw - w) // 2, (ch - h) // 2))
-    return canvas
-
-
 def write_gallery(by_cat):
     """Emit screenshots/store/README.md so the latest store images are always
     viewable on GitHub. Includes icon + feature graphic (produced by
@@ -142,9 +109,9 @@ def write_gallery(by_cat):
         if feat:
             lines += [f'<img src="{feat}" width="600" alt="feature graphic">', ""]
     titles = [
-        ("phoneScreenshots", "Phone (9:16)", 180),
-        ("sevenInchScreenshots", "7-inch tablet (16:9)", 360),
-        ("tenInchScreenshots", "10-inch tablet (16:9)", 360),
+        ("phoneScreenshots", "Phone", 180),
+        ("sevenInchScreenshots", "7-inch tablet", 360),
+        ("tenInchScreenshots", "10-inch tablet", 360),
     ]
     for cat, title, width in titles:
         paths = sorted(f"{cat}/{n}" for n in by_cat.get(cat, []))
@@ -164,13 +131,15 @@ def main():
         if not src:
             print(f"  MISSING source for {cat}/{name}: {source}")
             continue
-        out = pad(Image.open(src).convert("RGB"), orient)
+        # Native dimensions - no aspect-ratio padding or cropping. Play states
+        # 16:9 / 9:16; we ship the renders as-is to test what it accepts.
+        out = Image.open(src).convert("RGB")
         dst = os.path.join(outdir, name)
         out.save(dst, optimize=True)
         w, h = out.size
         mb = os.path.getsize(dst) / 1_048_576
-        flag = "" if max(w, h) <= 2 * min(w, h) and mb <= 8 else "  <-- CHECK"
-        print(f"  {cat}/{name}: {w}x{h} ratio {max(w,h)/min(w,h):.3f} {mb:.2f}MB{flag}")
+        cap = "" if max(w, h) <= 2 * min(w, h) else "  <-- exceeds 2:1"
+        print(f"  {cat}/{name}: {w}x{h} ratio {max(w,h)/min(w,h):.3f} {mb:.2f}MB{cap}")
         by_cat.setdefault(cat, []).append(name)
         made += 1
     write_gallery(by_cat)

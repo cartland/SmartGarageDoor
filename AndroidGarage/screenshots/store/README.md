@@ -11,14 +11,14 @@ is copied by hand into `AndroidGarage/distribution/playstore/` (see the `play-st
 
 <img src="feature-graphic-1024x500.png" width="600" alt="feature graphic">
 
-## Phone (9:16)
+## Phone
 
 <img src="phoneScreenshots/01_home_light.png" width="180" alt="01_home_light.png"> <img src="phoneScreenshots/02_history_light.png" width="180" alt="02_history_light.png"> <img src="phoneScreenshots/03_settings_light.png" width="180" alt="03_settings_light.png"> <img src="phoneScreenshots/04_home_dark.png" width="180" alt="04_home_dark.png"> <img src="phoneScreenshots/05_history_dark.png" width="180" alt="05_history_dark.png"> <img src="phoneScreenshots/06_settings_dark.png" width="180" alt="06_settings_dark.png">
 
-## 7-inch tablet (16:9)
+## 7-inch tablet
 
 <img src="sevenInchScreenshots/01_dashboard_light.png" width="360" alt="01_dashboard_light.png"> <img src="sevenInchScreenshots/02_threepane_light.png" width="360" alt="02_threepane_light.png"> <img src="sevenInchScreenshots/03_dashboard_dark.png" width="360" alt="03_dashboard_dark.png"> <img src="sevenInchScreenshots/04_threepane_dark.png" width="360" alt="04_threepane_dark.png">
 
-## 10-inch tablet (16:9)
+## 10-inch tablet
 
 <img src="tenInchScreenshots/01_threepane_light.png" width="360" alt="01_threepane_light.png"> <img src="tenInchScreenshots/02_dashboard_light.png" width="360" alt="02_dashboard_light.png"> <img src="tenInchScreenshots/03_threepane_dark.png" width="360" alt="03_threepane_dark.png"> <img src="tenInchScreenshots/04_dashboard_dark.png" width="360" alt="04_dashboard_dark.png">
