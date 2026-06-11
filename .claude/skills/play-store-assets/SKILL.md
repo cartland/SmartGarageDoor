@@ -54,10 +54,14 @@ screenshots/store/
   tenInchScreenshots/      01..04  (~3734x2100, 16:9)
 ```
 
-Output is **native dimensions** — no aspect-ratio padding or cropping (PNG, < 8 MB,
-sides within range). Play's listing states 16:9 / 9:16; the renders are shipped
-as-is (phone ~2.12:1, tablets 1.28–1.6:1) to test what Play actually accepts. If
-an upload is rejected, add framing/ratio handling back to the generator.
+- **Phone** — the framed Pixel shots flattened onto white at their native ratio
+  (~2.12:1). Left as-is to test what Play accepts (Play states 9:16); if rejected,
+  give them the same white-canvas treatment as tablets.
+- **Tablet** — wrapped in a programmatic tablet bezel (`frame_tablet`) centered on
+  a white **16:9** canvas (3840×2160 for 7-inch, 4494×2528 for 10-inch). Polished
+  and Play-compliant.
+
+All PNG, < 8 MB, sides within range.
 
 ## Updating the store — step by step
 
