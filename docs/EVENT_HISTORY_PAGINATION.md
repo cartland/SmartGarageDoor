@@ -86,16 +86,29 @@ composite index serves the default + older-cursor + under-fill-probe queries.
 under-fills (or is empty) a cheap 1-doc `< cutoff` probe decides whether older
 events exist beyond the window so the end signal is correct.
 
-### One index IS added — for the dormant `newer` direction
+### One index IS added — for the `newer` direction
 
 The `newer` (backward-toward-present) direction orders **ascending**, which the
-DESC-only index doesn't cover. `firestore.indexes.json` adds
-`eventsAll: buildTimestamp ASC + FIRESTORE_databaseTimestamp ASC` for it. The UI
-doesn't page newer yet (only `prevPageToken` ships as contract), so this index is
-**dormant** — but **deploy it before any client uses the newer direction**:
+DESC-only index doesn't cover. A composite index's sort direction is fixed at
+build time: an `ASC` `orderBy` can't be served by a `DESC` index, so each
+direction needs its own. `firestore.indexes.json` adds
+`eventsAll: buildTimestamp ASC + FIRESTORE_databaseTimestamp ASC` for it
+(alongside the long-existing `... DESC` index the older/default path reuses).
+
+**Status (2026-06-10): the ASC index is DEPLOYED and the `newer` direction is
+verified working in production** (returns 200 + newer events; `prevPageToken: null`
+correctly signals "reached the present"). It stays **dormant on the client** —
+the UI only scrolls older today; only `prevPageToken` ships as contract.
+
+Indexes are NOT deployed by the functions release (`release-firebase.sh` runs
+`firebase deploy --only functions`). If you change `firestore.indexes.json`
+again, deploy the index separately — and note Firestore builds composite indexes
+**asynchronously** (the deploy command returns before the build finishes; queries
+needing a still-`CREATING` index return 500 until it's `READY`):
 
 ```
 firebase deploy --only firestore:indexes
+gcloud firestore indexes composite list --project escape-echo   # check CREATING vs READY
 ```
 
 Creating an index never breaks existing queries, so this deploy is safe at any
