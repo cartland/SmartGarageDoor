@@ -77,6 +77,16 @@ def resolve(source):
     return hits[0] if hits else None
 
 
+def flatten_white(src_path):
+    """Load and flatten onto a WHITE background (Play needs opaque RGB; the
+    framed phone shots have a transparent background, which would otherwise
+    become black). Opaque tablet renders are unaffected."""
+    img = Image.open(src_path).convert("RGBA")
+    out = Image.new("RGB", img.size, (255, 255, 255))
+    out.paste(img, mask=img.split()[3])
+    return out
+
+
 def write_gallery(by_cat):
     """Emit screenshots/store/README.md so the latest store images are always
     viewable on GitHub. Includes icon + feature graphic (produced by
@@ -133,7 +143,8 @@ def main():
             continue
         # Native dimensions - no aspect-ratio padding or cropping. Play states
         # 16:9 / 9:16; we ship the renders as-is to test what it accepts.
-        out = Image.open(src).convert("RGB")
+        # Flattened onto white (transparent framed-phone bg would be black).
+        out = flatten_white(src)
         dst = os.path.join(outdir, name)
         out.save(dst, optimize=True)
         w, h = out.size
