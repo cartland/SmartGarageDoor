@@ -19,3 +19,6 @@ local.properties
 /app/release/
 /.kotlin
 /traces
+
+# Generated Play Store asset staging (curated copies live in distribution/playstore/)
+screenshots/store/
