@@ -1,0 +1,49 @@
+<!--
+  ~ Copyright 2026 Chris Cartland. All rights reserved.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  ~
+  -->
+
+<!--
+  Monochrome layer for Android 13+ themed icons. Same garage-door geometry as
+  ic_launcher_foreground (the GarageDoorCanvas closed door mapped into 108dp via
+  v -> v / 6 + 29), flattened to a single tint-able color. The 4 separate panels
+  leave the slat gaps open so the door reads through the system tint; no
+  gradient. The gradient foreground is NOT reusable here - its fills are opaque
+  and would tint to a solid blob.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+  <!-- door panels, clipped inside the frame -->
+  <group>
+    <clip-path android:pathData="M32.667,32.667 h42.666 v46.333 h-42.666 z"/>
+    <path android:fillColor="#000000" android:pathData="M32.333,32.667 h43.333 v10.167 h-43.333 z"/>
+    <path android:fillColor="#000000" android:pathData="M32.333,43.833 h43.333 v10.167 h-43.333 z"/>
+    <path android:fillColor="#000000" android:pathData="M32.333,55.0 h43.333 v10.167 h-43.333 z"/>
+    <path android:fillColor="#000000" android:pathData="M32.333,66.167 h43.333 v10.167 h-43.333 z"/>
+    <path android:fillColor="#000000" android:pathData="M52.167,75.333 h3.667 v0.667 h-3.667 z"/>
+  </group>
+
+  <!-- U-shaped frame -->
+  <path
+      android:fillColor="#00000000"
+      android:strokeColor="#000000"
+      android:strokeWidth="2.0"
+      android:strokeLineCap="butt"
+      android:pathData="M30.667,77.333 L30.667,33.333 A2.667,2.667 0 0 1 33.333,30.667 L74.667,30.667 A2.667,2.667 0 0 1 77.333,33.333 L77.333,77.333"/>
+</vector>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Smart Garage Door - Play Store hi-res icon (512x512) source.
+
+  This is a faithful port of the in-app closed garage door drawn in Compose:
+  androidApp/.../ui/GarageDoorCanvas.kt (doorOffset = CLOSED_POSITION = 0).
+  All geometry is the GarageDoorCanvas 300-unit design space (VP = 300),
+  scaled + centered into the 512 icon canvas. The green door (closedFresh,
+  #226B43) sits on a light-green ground; the vertical gradient and panel/frame
+  layout match the Canvas. Keep this in sync with GarageDoorCanvas.kt; the
+  AppIconClosedDoorPreview screenshot renders the real Composable for diffing.
+
+  Regenerate the PNGs with distribution/playstore/generate.sh.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <!-- GarageDoorCanvas gradient: 0.3 -> color, 1.0 -> darkColor (color blended 50% to black). -->
+    <linearGradient id="door" gradientUnits="userSpaceOnUse" x1="256" y1="51" x2="256" y2="461">
+      <stop offset="0" stop-color="#226B43"/>
+      <stop offset="0.3" stop-color="#226B43"/>
+      <stop offset="1" stop-color="#113521"/>
+    </linearGradient>
+    <!-- Panels are clipped inside the frame (clipInset = FRAME_INSET + STROKE/2 + PANEL_GAP = 22). -->
+    <clipPath id="panelClip" clipPathUnits="userSpaceOnUse">
+      <rect x="22" y="22" width="256" height="278"/>
+    </clipPath>
+  </defs>
+  <rect width="512" height="512" fill="#D7E8CE"/>
+  <!-- 300-unit GarageDoorCanvas design space, scaled 1.3667 + centered (offset 51). -->
+  <g transform="translate(51,51) scale(1.3667)">
+    <g clip-path="url(#panelClip)">
+      <rect x="20" y="22"  width="260" height="61" rx="3" fill="url(#door)"/>
+      <rect x="20" y="89"  width="260" height="61" rx="3" fill="url(#door)"/>
+      <rect x="20" y="156" width="260" height="61" rx="3" fill="url(#door)"/>
+      <rect x="20" y="223" width="260" height="61" rx="3" fill="url(#door)"/>
+      <rect x="139" y="278" width="22" height="4" rx="2" fill="#111111"/>
+    </g>
+    <path d="M10,290 L10,26 A16,16 0 0 1 26,10 L274,10 A16,16 0 0 1 290,26 L290,290"
+          fill="none" stroke="url(#door)" stroke-width="12"/>
+  </g>
+</svg>

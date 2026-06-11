@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Launcher raster source (square + round mipmaps). This is the ADAPTIVE icon
+  composed flat: the light-green background (#D7E8CE) + the padded closed door,
+  matching ic_launcher_background.xml + ic_launcher_foreground.xml exactly
+  (GarageDoorCanvas geometry mapped by v -> v / 6 + 29, ~50dp door in the 108
+  viewport). The padding is deliberate so the round / squircle masks do NOT clip
+  the door corners.
+
+  Distinct from icon.svg (the full-bleed Play Store hi-res icon, which stays
+  fuller because Play's listing mask is gentle). Regenerate via generate.sh.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 108 108">
+  <defs>
+    <linearGradient id="door" gradientUnits="userSpaceOnUse" x1="54" y1="29" x2="54" y2="79">
+      <stop offset="0" stop-color="#226B43"/>
+      <stop offset="0.3" stop-color="#226B43"/>
+      <stop offset="1" stop-color="#113521"/>
+    </linearGradient>
+    <clipPath id="panelClip" clipPathUnits="userSpaceOnUse">
+      <rect x="32.667" y="32.667" width="42.666" height="46.333"/>
+    </clipPath>
+  </defs>
+  <rect width="108" height="108" fill="#D7E8CE"/>
+  <g clip-path="url(#panelClip)">
+    <rect x="32.333" y="32.667" width="43.333" height="10.167" fill="url(#door)"/>
+    <rect x="32.333" y="43.833" width="43.333" height="10.167" fill="url(#door)"/>
+    <rect x="32.333" y="55.0"  width="43.333" height="10.167" fill="url(#door)"/>
+    <rect x="32.333" y="66.167" width="43.333" height="10.167" fill="url(#door)"/>
+    <rect x="52.167" y="75.333" width="3.667" height="0.667" fill="#111111"/>
+  </g>
+  <path d="M30.667,77.333 L30.667,33.333 A2.667,2.667 0 0 1 33.333,30.667 L74.667,30.667 A2.667,2.667 0 0 1 77.333,33.333 L77.333,77.333"
+        fill="none" stroke="url(#door)" stroke-width="2.0"/>
+</svg>
