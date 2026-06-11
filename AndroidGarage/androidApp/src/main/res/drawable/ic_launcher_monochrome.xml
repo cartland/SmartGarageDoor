@@ -16,24 +16,34 @@
   -->
 
 <!--
-  Monochrome layer for Android 13+ themed icons. A single-color garage-door
-  silhouette: the door is filled, with the window row and slat gaps cut out
-  (fillType evenOdd) so the slat/window detail survives the system tint. The
-  full-color foreground (ic_launcher_foreground) is NOT reusable here because
-  its cream + green fills are both opaque and would tint to a solid blob.
+  Monochrome layer for Android 13+ themed icons. Same garage-door geometry as
+  ic_launcher_foreground (the GarageDoorCanvas closed door mapped into 108dp),
+  flattened to a single tint-able color. The 4 separate panels leave the slat
+  gaps open so the door reads through the system tint; no gradient. The cream +
+  green foreground is NOT reusable here - both its fills are opaque and would
+  tint to a solid blob.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-  <!-- lintel / header bar -->
+
+  <!-- door panels, clipped inside the frame -->
+  <group>
+    <clip-path android:pathData="M24.133,24.133 h59.734 v64.867 h-59.734 z"/>
+    <path android:fillColor="#000000" android:pathData="M23.667,24.133 h60.667 v14.233 h-60.667 z"/>
+    <path android:fillColor="#000000" android:pathData="M23.667,39.767 h60.667 v14.233 h-60.667 z"/>
+    <path android:fillColor="#000000" android:pathData="M23.667,55.4 h60.667 v14.233 h-60.667 z"/>
+    <path android:fillColor="#000000" android:pathData="M23.667,71.033 h60.667 v14.233 h-60.667 z"/>
+    <path android:fillColor="#000000" android:pathData="M51.433,83.867 h5.133 v0.933 h-5.133 z"/>
+  </group>
+
+  <!-- U-shaped frame -->
   <path
-      android:fillColor="#000000"
-      android:pathData="M31,26 h46 a2,2 0 0 1 2,2 v2 a2,2 0 0 1 -2,2 h-46 a2,2 0 0 1 -2,-2 v-2 a2,2 0 0 1 2,-2 z"/>
-  <!-- door panel with window + slat cutouts -->
-  <path
-      android:fillColor="#000000"
-      android:fillType="evenOdd"
-      android:pathData="M35.5,36 h37 a3.5,3.5 0 0 1 3.5,3.5 v42 a3.5,3.5 0 0 1 -3.5,3.5 h-37 a3.5,3.5 0 0 1 -3.5,-3.5 v-42 a3.5,3.5 0 0 1 3.5,-3.5 z M36,40 h6.5 v5 h-6.5 z M46,40 h6.5 v5 h-6.5 z M56,40 h6.5 v5 h-6.5 z M66,40 h6.5 v5 h-6.5 z M33,48 h42 v1.8 h-42 z M33,58 h42 v1.8 h-42 z M33,68 h42 v1.8 h-42 z M33,78 h42 v1.8 h-42 z"/>
+      android:fillColor="#00000000"
+      android:strokeColor="#000000"
+      android:strokeWidth="2.8"
+      android:strokeLineCap="butt"
+      android:pathData="M21.333,86.667 L21.333,25.067 A3.733,3.733 0 0 1 25.067,21.333 L82.933,21.333 A3.733,3.733 0 0 1 86.667,25.067 L86.667,86.667"/>
 </vector>
