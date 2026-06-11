@@ -9,6 +9,8 @@ status: shipped
 
 `scripts/frame-screenshot.py` wraps Compose `@Preview` screenshots in a programmatic Pixel-style bezel for README / docs use. Six framed shots ship today (Home / History / Settings × Light / Dark) — full primary-tab coverage. Sub-screen previews are intentionally NOT framed; the Pixel bezel signals "phone view of the app" and only true full-screen tab views (top app bar + content + bottom nav) qualify. Both READMEs reference the framed set, and `AndroidGarage/android-screenshot-tests/collections/framed.md` is auto-generated as an index from `framed.yaml` via the same generator that produces `app-overview.md` and `button-flow.md`. **All goals met as of 2026-04-26.** Future maintenance: adding a new framed shot is a one-line append to `scripts/framed-screenshots.txt` plus a matching entry in `framed.yaml`.
 
+This doc covers the **README** framed set only. The separate **Play Store** screenshot flow (phone + tablet, with a programmatic tablet frame) reuses the same framing ideas but lives in `scripts/generate-store-screenshots.py` and outputs to `AndroidGarage/screenshots/store/`; see the `play-store-assets` skill.
+
 ## Background
 
 Until 2026-04-25 the README's screenshots (`AndroidGarage/screenshots/home_closed.png`, `history.png`, `user.png`) were one-off real-device captures. They were checked in once, never refreshed, and silently drifted from the live app as the UI changed (~4 months stale by 2026-04-25).

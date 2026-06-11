@@ -10,6 +10,8 @@ Android app for monitoring and controlling the garage door remotely. Built with 
 
 <img src="screenshots/framed/home_tab_light.png" width="200" alt="Garage app home tab showing the door closed and the action button"> <img src="screenshots/framed/history_tab_light.png" width="200" alt="Garage history tab listing recent door events">
 
+The latest generated Play Store listing assets (icon, feature graphic, phone + tablet screenshots) are previewed in [`screenshots/store/`](screenshots/store/README.md); the curated set live in the store is in [`distribution/playstore/`](distribution/playstore/README.md).
+
 ## Features
 - Monitor garage door status (open/closed)
 - Control garage door remotely with secure authentication
