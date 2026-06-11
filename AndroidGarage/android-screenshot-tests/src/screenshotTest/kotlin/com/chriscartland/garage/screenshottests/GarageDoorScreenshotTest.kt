@@ -188,7 +188,7 @@ fun AppIconClosedDoorPreviewTest() {
     ) {
         GarageDoorCanvas(
             doorOffset = CLOSED_POSITION,
-            modifier = Modifier.size(72.dp),
+            modifier = Modifier.size(50.dp),
             color = Color(0xFF226B43),
         )
     }

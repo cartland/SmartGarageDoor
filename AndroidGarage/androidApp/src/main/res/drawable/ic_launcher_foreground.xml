@@ -18,10 +18,11 @@
 <!--
   Adaptive-icon foreground: the in-app closed garage door (GarageDoorCanvas.kt,
   doorOffset = 0). The 300-unit Canvas design space is mapped into the 108dp
-  adaptive viewport by  v -> v * 0.2333 + 19  (door ~68dp, inside the 66dp safe
-  zone). U-shaped frame stroke + 4 panels + handle, with the same vertical
-  gradient (#226B43 -> #113521). Panels are clipped inside the frame. Keep in
-  sync with GarageDoorCanvas.kt and distribution/playstore/src/icon.svg.
+  adaptive viewport by  v -> v / 6 + 29  (door ~50dp, well inside the 66dp safe
+  zone with generous padding so circular / squircle launcher masks don't crop
+  the corners). U-shaped frame stroke + 4 panels + handle, with the same
+  vertical gradient (#226B43 -> #113521). Panels are clipped inside the frame.
+  Keep in sync with GarageDoorCanvas.kt and distribution/playstore/src/icon.svg.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
@@ -32,38 +33,38 @@
 
   <!-- door panels + handle, clipped inside the frame -->
   <group>
-    <clip-path android:pathData="M24.133,24.133 h59.734 v64.867 h-59.734 z"/>
+    <clip-path android:pathData="M32.667,32.667 h42.666 v46.333 h-42.666 z"/>
 
-    <path android:pathData="M23.667,24.133 h60.667 v14.233 h-60.667 z">
+    <path android:pathData="M32.333,32.667 h43.333 v10.167 h-43.333 z">
       <aapt:attr name="android:fillColor">
-        <gradient android:type="linear" android:startX="54" android:startY="19" android:endX="54" android:endY="89">
+        <gradient android:type="linear" android:startX="54" android:startY="29" android:endX="54" android:endY="79">
           <item android:offset="0.0" android:color="#FF226B43"/>
           <item android:offset="0.3" android:color="#FF226B43"/>
           <item android:offset="1.0" android:color="#FF113521"/>
         </gradient>
       </aapt:attr>
     </path>
-    <path android:pathData="M23.667,39.767 h60.667 v14.233 h-60.667 z">
+    <path android:pathData="M32.333,43.833 h43.333 v10.167 h-43.333 z">
       <aapt:attr name="android:fillColor">
-        <gradient android:type="linear" android:startX="54" android:startY="19" android:endX="54" android:endY="89">
+        <gradient android:type="linear" android:startX="54" android:startY="29" android:endX="54" android:endY="79">
           <item android:offset="0.0" android:color="#FF226B43"/>
           <item android:offset="0.3" android:color="#FF226B43"/>
           <item android:offset="1.0" android:color="#FF113521"/>
         </gradient>
       </aapt:attr>
     </path>
-    <path android:pathData="M23.667,55.4 h60.667 v14.233 h-60.667 z">
+    <path android:pathData="M32.333,55.0 h43.333 v10.167 h-43.333 z">
       <aapt:attr name="android:fillColor">
-        <gradient android:type="linear" android:startX="54" android:startY="19" android:endX="54" android:endY="89">
+        <gradient android:type="linear" android:startX="54" android:startY="29" android:endX="54" android:endY="79">
           <item android:offset="0.0" android:color="#FF226B43"/>
           <item android:offset="0.3" android:color="#FF226B43"/>
           <item android:offset="1.0" android:color="#FF113521"/>
         </gradient>
       </aapt:attr>
     </path>
-    <path android:pathData="M23.667,71.033 h60.667 v14.233 h-60.667 z">
+    <path android:pathData="M32.333,66.167 h43.333 v10.167 h-43.333 z">
       <aapt:attr name="android:fillColor">
-        <gradient android:type="linear" android:startX="54" android:startY="19" android:endX="54" android:endY="89">
+        <gradient android:type="linear" android:startX="54" android:startY="29" android:endX="54" android:endY="79">
           <item android:offset="0.0" android:color="#FF226B43"/>
           <item android:offset="0.3" android:color="#FF226B43"/>
           <item android:offset="1.0" android:color="#FF113521"/>
@@ -71,17 +72,17 @@
       </aapt:attr>
     </path>
     <!-- handle -->
-    <path android:fillColor="#FF111111" android:pathData="M51.433,83.867 h5.133 v0.933 h-5.133 z"/>
+    <path android:fillColor="#FF111111" android:pathData="M52.167,75.333 h3.667 v0.667 h-3.667 z"/>
   </group>
 
   <!-- U-shaped frame, drawn on top as a stroke -->
   <path
       android:fillColor="#00000000"
-      android:strokeWidth="2.8"
+      android:strokeWidth="2.0"
       android:strokeLineCap="butt"
-      android:pathData="M21.333,86.667 L21.333,25.067 A3.733,3.733 0 0 1 25.067,21.333 L82.933,21.333 A3.733,3.733 0 0 1 86.667,25.067 L86.667,86.667">
+      android:pathData="M30.667,77.333 L30.667,33.333 A2.667,2.667 0 0 1 33.333,30.667 L74.667,30.667 A2.667,2.667 0 0 1 77.333,33.333 L77.333,77.333">
     <aapt:attr name="android:strokeColor">
-      <gradient android:type="linear" android:startX="54" android:startY="19" android:endX="54" android:endY="89">
+      <gradient android:type="linear" android:startX="54" android:startY="29" android:endX="54" android:endY="79">
         <item android:offset="0.0" android:color="#FF226B43"/>
         <item android:offset="0.3" android:color="#FF226B43"/>
         <item android:offset="1.0" android:color="#FF113521"/>
