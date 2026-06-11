@@ -76,22 +76,36 @@ def resolve(source):
     return hits[0] if hits else None
 
 
+def _edge_color(img, vertical_bars):
+    """Mean color of the edges that will be extended, so the pad bars blend into
+    the content instead of reading as stark black frames. vertical_bars=True
+    samples the left+right columns (bars go on the sides), else top+bottom rows."""
+    w, h = img.size
+    s = max(2, min(w, h) // 100)  # a few-pixel strip
+    if vertical_bars:
+        strips = [img.crop((0, 0, s, h)), img.crop((w - s, 0, w, h))]
+    else:
+        strips = [img.crop((0, 0, w, s)), img.crop((0, h - s, w, h))]
+    cols = [st.resize((1, 1), Image.BOX).getpixel((0, 0)) for st in strips]
+    return tuple(sum(c[i] for c in cols) // len(cols) for i in range(3))
+
+
 def pad(img, orientation):
-    """Center img on the smallest exact-16:9 (landscape) / 9:16 (portrait) canvas."""
+    """Center img on the smallest exact-16:9 (landscape) / 9:16 (portrait) canvas.
+    Bars are filled with the sampled edge color so they blend into the UI."""
     w, h = img.size
     if orientation == "portrait":          # W/H = 9/16
-        cw, ch = max(w, -(-h * 9 // 16)), max(h, -(-w * 16 // 9))
-        # grow only the deficient axis
-        if h * 9 >= w * 16:
+        if h * 9 >= w * 16:                 # too tall -> widen (side bars)
             cw, ch = -(-h * 9 // 16), h
-        else:
+        else:                               # too wide -> heighten (top/bottom bars)
             cw, ch = w, -(-w * 16 // 9)
     else:                                   # landscape, W/H = 16/9
-        if w * 9 <= h * 16:                 # too tall/narrow -> widen
+        if w * 9 <= h * 16:                 # too tall/narrow -> widen (side bars)
             cw, ch = -(-h * 16 // 9), h
-        else:                               # too wide -> heighten
+        else:                               # too wide -> heighten (top/bottom bars)
             cw, ch = w, -(-w * 9 // 16)
-    canvas = Image.new("RGB", (cw, ch), BG)
+    bg = _edge_color(img, vertical_bars=(cw > w))
+    canvas = Image.new("RGB", (cw, ch), bg)
     canvas.paste(img, ((cw - w) // 2, (ch - h) // 2))
     return canvas
 
