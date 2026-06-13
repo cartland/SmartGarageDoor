@@ -278,7 +278,7 @@ A future "rules in sync" check could automate this, but isn't worth building unt
 **When NOT to use Konsist:** rules that depend on Gradle's project / dependency graph (e.g., the existing `architecture` task that walks `Project.configurations`) belong in `buildSrc/` — Konsist has no Gradle awareness.
 
 ### Releasing Android
-Use `./scripts/release-android.sh` — never create or push tags directly (hooks block `git tag`).
+Use `./scripts/release-android.sh` — never create or push tags directly (hooks block `git tag`). For the *why* behind the release model (layered rules, conformance audit, deviations), see [`docs/RELEASE_STRATEGY.md`](docs/RELEASE_STRATEGY.md).
 
 **Tag-membership checks:** the hook also blocks `git tag --contains <sha>` (any `git tag` invocation except `git tag -l`). To ask "is commit X in tag Y?", use `git merge-base --is-ancestor <sha> <tag>` instead — same answer, hook-friendly.
 
@@ -341,7 +341,7 @@ Uploading store-listing graphics is a **manual Play Console step** — the relea
 - **Tablet**: `frame_tablet()` wraps each landscape render in a programmatic tablet bezel centered on a **white 16:9 canvas** (7" → 3840×2160, 10" → 4494×2528). The white canvas both polishes the shot and makes it 16:9 in one step. Play states "16:9 / 9:16" and is stricter on tablets, so the native square-ish renders (1.28–1.6:1) DO need this; bare black bars looked bad (flatten transparent → black) — the fix was white background + a real frame, not bars.
 
 ### Releasing Firebase Server
-Use `./scripts/release-firebase.sh` — same pattern as Android releases (same flags, same `--check` copy-paste workflow, same rollback recipe).
+Use `./scripts/release-firebase.sh` — same pattern as Android releases (same flags, same `--check` copy-paste workflow, same rollback recipe). Principles + conformance audit: [`docs/RELEASE_STRATEGY.md`](docs/RELEASE_STRATEGY.md).
 
 ```bash
 ./scripts/release-firebase.sh --check              # State + copy-paste-ready next command

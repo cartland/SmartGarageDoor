@@ -11,6 +11,7 @@ This folder holds documentation that spans more than one component (Android, Fir
 ## Start here
 
 - **[`AGENTS.md`](AGENTS.md)** — the documentation contract: doc categories, YAML front-matter, source-of-truth map. Read this first if you are an AI agent or a new contributor adding documentation.
+- **[`RELEASE_STRATEGY.md`](RELEASE_STRATEGY.md)** — the release & deployment blueprint: layered (general → platform → repository) MUST/SHOULD/CAN rules for how code ships, plus a conformance audit of where this repo stands today. The *why* behind the release runbooks.
 
 ## Firebase server (control docs)
 

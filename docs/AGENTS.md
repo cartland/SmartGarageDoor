@@ -106,6 +106,7 @@ When you need to find or update a fact, this table tells you which doc owns it. 
 | Build commands (Android, Firebase) | `CLAUDE.md` § Build Commands |
 | PR workflow rules (stacked PRs, auto-merge, branch protection) | `CLAUDE.md` § PR Workflow |
 | CI architecture | `CLAUDE.md` § CI Architecture |
+| Release & deploy strategy (layered principles + conformance audit) | `docs/RELEASE_STRATEGY.md` |
 | Agent design + doc taxonomy | This file |
 
 ### Android
