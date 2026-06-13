@@ -9,6 +9,8 @@ Long-term maintenance guide for the Firebase Cloud Functions that back the Smart
 
 **No secrets in this document.** Only the structure and the commands to re-provision. Actual credentials live in GitHub Actions secrets and are never checked into git.
 
+> **The *why* behind this runbook** — the general release principles it implements (the layered MUST/SHOULD rules, the conformance audit, and recorded deviations such as single-environment-no-staging) — lives in [`RELEASE_STRATEGY.md`](RELEASE_STRATEGY.md). This file owns the operational *how*; that one owns the *principles*.
+
 ---
 
 ## Status
