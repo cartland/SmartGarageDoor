@@ -74,16 +74,35 @@ export async function sendFCMForOldData(buildTimestamp: string, eventData): Prom
   const data = {};
   data[NOTIFICATION_CURRENT_EVENT_KEY] = currentEvent;
   data[NOTIFICATION_MESSAGE_KEY] = message;
-  await NotificationsDatabase.save(buildTimestamp, data);
   console.log('Sending notification', JSON.stringify(message));
-  await firebase.messaging().send(message)
-    .then((response) => {
-      // Response is a message ID string.
-      console.log('Successfully sent message:', JSON.stringify(response));
-    })
-    .catch((error) => {
-      console.log('Error sending message:', JSON.stringify(error));
-    });
+  // Send BEFORE recording the dedup marker. If the send fails we must NOT
+  // persist "already notified for this event" — otherwise the duplicate-
+  // suppression check above would block every future retry and the user
+  // would never be told the door is open. Leaving the marker unsaved lets
+  // the next pubsubCheckForOpenDoorsJob tick (every 5 min) re-send while the
+  // door stays open: at-most-once becomes at-least-once. Note that "success"
+  // here means FCM *accepted* the message, not that the device received it.
+  // Full rationale + tradeoffs: docs/NOTIFICATION_RELIABILITY.md (R5).
+  try {
+    const response = await firebase.messaging().send(message);
+    // Response is a message ID string.
+    console.log('Successfully sent message:', JSON.stringify(response));
+  } catch (error) {
+    console.error('Error sending message:', JSON.stringify(error));
+    return null; // No dedup marker written → the next tick retries.
+  }
+  // Record the dedup marker only AFTER a confirmed send. A failure here is
+  // rare (a Firestore write) but means the next tick re-sends a duplicate,
+  // coalesced by collapse_key 'door_not_closed'. Log loudly so a persistent
+  // failure is noticed rather than silently re-notifying every 5 minutes.
+  try {
+    await NotificationsDatabase.save(buildTimestamp, data);
+  } catch (error) {
+    console.error(
+      'Sent notification but failed to persist dedup marker; may re-send next tick:',
+      JSON.stringify(error),
+    );
+  }
   return message;
 }
 
