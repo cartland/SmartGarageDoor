@@ -287,42 +287,14 @@ describe('sendFCMForOldData (via fakes)', () => {
     expect(sendStub.calledOnce).to.be.true;
   });
 
-  // --- Failure modes ---
+  // --- Failure modes (R5: docs/NOTIFICATION_RELIABILITY.md) ---
 
   describe('failure modes', () => {
-    async function assertRejects(fn: () => Promise<any>): Promise<Error> {
-      try {
-        await fn();
-      } catch (e) {
-        return e as Error;
-      }
-      throw new Error('expected promise to reject, but it resolved');
-    }
-
-    it('propagates NotificationsDatabase.save failure; FCM is NOT called', async () => {
-      const staleOpen: SensorEvent = {
-        type: SensorEventType.Open,
-        timestampSeconds: STALE_EVENT_TS,
-        message: '',
-        checkInTimestampSeconds: 0,
-      };
-      fakeSensorEvents.seed(BUILD_TIMESTAMP, { currentEvent: staleOpen });
-      fakeNotifications.failNextSave(new Error('Firestore down: notifications.save'));
-
-      const err = await assertRejects(() => sendFCMForOldData(BUILD_TIMESTAMP, { currentEvent: staleOpen }));
-      expect(err.message).to.equal('Firestore down: notifications.save');
-
-      // save() was attempted (captured in audit log even when it threw).
-      expect(fakeNotifications.saved).to.have.length(1);
-      // FCM must NOT have been called — proves the save error short-circuits.
-      expect(sendStub.called).to.be.false;
-    });
-
-    it('FCM send() failure is swallowed internally; message still returned', async () => {
-      // Pin current behavior: sendFCMForOldData wraps firebase.messaging().send()
-      // in a `.catch()` that logs. Callers do not see the failure. This test
-      // documents and locks that contract — changing it (to propagate) is a
-      // behavior change, not a refactor.
+    it('FCM send() failure: returns null and does NOT persist the dedup marker (so the next tick retries)', async () => {
+      // R5 fix: the dedup marker is committed only AFTER a confirmed send. A
+      // failed send must leave no marker, so the every-5-min pubsub job
+      // re-sends while the door stays open instead of silently giving up
+      // (the old swallowed-error behavior locked in "already notified").
       const staleOpen: SensorEvent = {
         type: SensorEventType.Open,
         timestampSeconds: STALE_EVENT_TS,
@@ -334,11 +306,34 @@ describe('sendFCMForOldData (via fakes)', () => {
 
       const result = await sendFCMForOldData(BUILD_TIMESTAMP, { currentEvent: staleOpen });
 
-      // Result is the built message even though FCM send threw — swallowed.
-      expect(result).to.not.be.null;
-      // DB save committed before FCM attempt.
-      expect(fakeNotifications.saved).to.have.length(1);
+      // Send was attempted but failed → no message returned, no marker saved.
+      expect(result).to.be.null;
       expect(sendStub.calledOnce).to.be.true;
+      expect(fakeNotifications.saved).to.be.empty;
+    });
+
+    it('save() failure AFTER a successful send: message still returned, error swallowed+logged', async () => {
+      // The deliberate tradeoff of the R5 reorder: if the dedup-marker save
+      // fails after FCM already accepted the message, we do NOT reject (which
+      // would noise up the pubsub job) — we log loudly and return the message.
+      // The marker is absent, so the next tick may re-send a duplicate
+      // (coalesced by collapse_key). Strictly preferred over a silent miss.
+      const staleOpen: SensorEvent = {
+        type: SensorEventType.Open,
+        timestampSeconds: STALE_EVENT_TS,
+        message: '',
+        checkInTimestampSeconds: 0,
+      };
+      fakeSensorEvents.seed(BUILD_TIMESTAMP, { currentEvent: staleOpen });
+      fakeNotifications.failNextSave(new Error('Firestore down: notifications.save'));
+
+      const result = await sendFCMForOldData(BUILD_TIMESTAMP, { currentEvent: staleOpen });
+
+      // Send happened first and succeeded → message returned despite save failure.
+      expect(result).to.not.be.null;
+      expect(sendStub.calledOnce).to.be.true;
+      // save() was attempted (the fake records the attempt even when it throws).
+      expect(fakeNotifications.saved).to.have.length(1);
     });
   });
 });

@@ -19,8 +19,10 @@ keys, data-only vs notification-payload split) — that lives in `CLAUDE.md`
 § "Safety Rules → FCM Push Notifications" and the `wire-contracts/` fixtures.
 Read those first for *how it works*; this doc is *where it's fragile*.
 
-All fixes below are **proposed, not yet implemented**. When one ships, move its
-row to "Resolved" and bump `last_verified`.
+All fixes below are **proposed, not yet implemented** — except **R5**, whose
+reorder fix has landed in `OldDataFCM.ts` (live in `main`, pending a `server/N`
+deploy to reach production). When a fix ships, annotate its row and bump
+`last_verified`.
 
 ## Findings summary
 
@@ -30,7 +32,7 @@ where they affect *delivery/surfacing* reliability.
 
 | ID | Sev | Feature | Finding | Source |
 |----|-----|---------|---------|--------|
-| **R5** | High | Open-door notif | At-most-once: a single dropped/failed send is never retried (dedup marker saved before send; send error swallowed). | `FirebaseServer/src/controller/fcm/OldDataFCM.ts:63-87` |
+| **R5** ✅ | High | Open-door notif | **Fixed in code, pending deploy.** Was at-most-once: a single dropped/failed send was never retried (dedup marker saved before send; send error swallowed). Now: send-before-save, so a failed send leaves no marker and the next 5-min tick retries. | `FirebaseServer/src/controller/fcm/OldDataFCM.ts` |
 | **R6** | Med | Open-door notif | Foreground drop: a notification-payload message that arrives while the app is foregrounded is only logged, never shown. | `AndroidGarage/androidApp/.../fcm/FCMService.kt:62-64` |
 | **R1** | Med | Push data | Missed-push recovery is manual: staleness is auto-detected but only raises a banner; nothing auto-refetches. | `AndroidGarage/usecase/.../CheckInStalenessManager.kt:54-104` |
 | **R2** | Med | Push data | Runtime topic change unhandled: `FcmRegistrationManager.restart()` exists but nothing calls it (explicit `TODO`). | `AndroidGarage/usecase/.../FcmRegistrationManager.kt:78-90` |
@@ -119,6 +121,12 @@ try {
 The existing every-5-minute job then becomes a real retry loop: a failed send
 leaves no marker, so the next tick tries again until one succeeds — while still
 delivering only one notification per episode.
+
+**Status (2026-06-14):** implemented in `OldDataFCM.ts` — send-before-save
+reorder, `return null` on send failure, plus a loud-log guard on the post-send
+marker save (mitigation for tradeoff #1 below). Live in `main`; reaches
+production on the next `server/N` deploy. The two failure-mode tests in
+`OldDataFCMFakeTest.ts` now lock the new contract.
 
 ## R5 — tradeoff / risks of this fix
 
