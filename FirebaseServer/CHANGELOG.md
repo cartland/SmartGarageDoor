@@ -29,6 +29,10 @@ Example (placeholder tag numbers — the gate looks for exact `server/<real numb
 
 ---
 
+## server/30
+- **Open-door "too long" notification now retries on a failed send (reliability fix).** `sendFCMForOldData` used to write its duplicate-suppression marker *before* sending and swallow the send error, so a single dropped FCM permanently suppressed the alert for that open-door episode. The send now runs first and the marker is written only after FCM accepts the message; a failed send leaves no marker, so the every-5-min `pubsubCheckForOpenDoorsJob` retries until one succeeds. **Behavior change:** at-most-once → at-least-once — a rare post-send marker-save failure is logged loudly and may re-send a duplicate (coalesced by `collapse_key`), preferred over a silent miss. Rationale + tradeoffs in `docs/NOTIFICATION_RELIABILITY.md` (R5). PR #892.
+- Removed dead code in `EventInterpreter.ts` (unused `isEventOld` helper + its duplicate `TOO_LONG_OPEN_SECONDS` constant). No behavior change. PR #894.
+
 ## server/29
 - **`eventHistory` page size raised 50 → 100.** Both the default (no `pageSize`) and the maximum cap are now 100, so each page returns up to twice as many events. The 7-day window is unchanged. Purely a larger cap — wire-compatible, no client change required; a client that requests a smaller `pageSize`/`eventHistoryMaxCount` is unaffected. PR #875.
 
