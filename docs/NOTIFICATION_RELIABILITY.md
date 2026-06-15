@@ -20,8 +20,9 @@ keys, data-only vs notification-payload split) — that lives in `CLAUDE.md`
 Read those first for *how it works*; this doc is *where it's fragile*.
 
 Most fixes below are **proposed, not yet implemented**; rows marked ✅ have
-landed in `main` (server-side fixes still need a `server/N` deploy to reach
-production). When a fix ships, annotate its row and bump `last_verified`.
+landed in `main`, with per-row deploy status noted (server-side fixes reach
+production only via a `server/N` deploy). When a fix ships, annotate its row
+and bump `last_verified`.
 
 ## Findings summary
 
@@ -31,12 +32,12 @@ where they affect *delivery/surfacing* reliability.
 
 | ID | Sev | Feature | Finding | Source |
 |----|-----|---------|---------|--------|
-| **R5** ✅ | High | Open-door notif | **Fixed in code, pending deploy.** Was at-most-once: a single dropped/failed send was never retried (dedup marker saved before send; send error swallowed). Now: send-before-save, so a failed send leaves no marker and the next 5-min tick retries. | `FirebaseServer/src/controller/fcm/OldDataFCM.ts` |
+| **R5** ✅ | High | Open-door notif | **Deployed in `server/30`.** Was at-most-once: a single dropped/failed send was never retried (dedup marker saved before send; send error swallowed). Now: send-before-save, so a failed send leaves no marker and the next 5-min tick retries. | `FirebaseServer/src/controller/fcm/OldDataFCM.ts` |
 | **R6** | Med | Open-door notif | Foreground drop: a notification-payload message that arrives while the app is foregrounded is only logged, never shown. | `AndroidGarage/androidApp/.../fcm/FCMService.kt:62-64` |
 | **R1** | Med | Push data | Missed-push recovery is manual: staleness is auto-detected but only raises a banner; nothing auto-refetches. | `AndroidGarage/usecase/.../CheckInStalenessManager.kt:54-104` |
 | **R2** | Med | Push data | Runtime topic change unhandled: `FcmRegistrationManager.restart()` exists but nothing calls it (explicit `TODO`). | `AndroidGarage/usecase/.../FcmRegistrationManager.kt:78-90` |
 | **M4** | Low | Open-door notif | No app-owned notification channel: the alert lands in FCM's fallback "Miscellaneous" channel, which the user can disable. | `AndroidGarage/androidApp/src/main/AndroidManifest.xml` (no `default_notification_channel_id`) |
-| **M3** ✅ | Low | Open-door notif | **Fixed (dead code removed).** `TOO_LONG_OPEN_SECONDS` was duplicated, but EventInterpreter's copy was used only by `isEventOld`, which had **zero callers** — dead code. Removed the dead function + its constant; `OldDataFCM` keeps the single live copy. | `EventInterpreter.ts` |
+| **M3** ✅ | Low | Open-door notif | **Fixed (dead code removed), deployed in `server/30`.** `TOO_LONG_OPEN_SECONDS` was duplicated, but EventInterpreter's copy was used only by `isEventOld`, which had **zero callers** — dead code. Removed the dead function + its constant; `OldDataFCM` keeps the single live copy. | `EventInterpreter.ts` |
 | **M1** ✅ | Low | Push data | **Fixed.** `getFcmTopic()` wrapped the empty default in `DoorFcmTopic("")` and never returned null, so `fetchStatus()` reported an unregistered device as `Registered`. Now returns null for the unset default (also makes the misnamed `fetchStatusReturnsNotRegisteredWhenNoTopicSaved` test honest). Android-only — no deploy needed. | `FirebaseDoorFcmRepository.kt` |
 | **R3** | Info | Push data | Freshness rides a HIGH-priority per-check-in heartbeat FCM (not transition-only). Powers R1's detection, but is a battery cost and risks Android's high-priority background quota. Fails safe (staleness banner). | `EventUpdates.ts:91` |
 | **R4** | Info | Push data | `onNewToken` only logs; doesn't re-subscribe. Usually fine (FCM migrates topic subs; cold start re-subscribes) but not guaranteed. | `FCMService.kt:41-43` |
@@ -123,9 +124,9 @@ delivering only one notification per episode.
 
 **Status (2026-06-14):** implemented in `OldDataFCM.ts` — send-before-save
 reorder, `return null` on send failure, plus a loud-log guard on the post-send
-marker save (mitigation for tradeoff #1 below). Live in `main`; reaches
-production on the next `server/N` deploy. The two failure-mode tests in
-`OldDataFCMFakeTest.ts` now lock the new contract.
+marker save (mitigation for tradeoff #1 below). Deployed to production in
+`server/30`. The two failure-mode tests in `OldDataFCMFakeTest.ts` now lock
+the new contract.
 
 ## R5 — tradeoff / risks of this fix
 
