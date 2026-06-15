@@ -25,7 +25,6 @@ import { buildTimestampToFcmTopic } from '../model/FcmTopic';
 
 const TOO_LONG_DURATION_SECONDS = 60;
 const TOO_SHORT_DURATION_SECONDS = 3;
-const TOO_LONG_OPEN_SECONDS = 15 * 60;
 
 export function getNewEventOrNull(oldEvent: SensorEvent, sensorSnapshot: SensorSnapshot, timestampSeconds: number): SensorEvent {
   const NOT_SET = 'NOT_SET';
@@ -227,11 +226,6 @@ export function getNewEventOrNull(oldEvent: SensorEvent, sensorSnapshot: SensorS
       return Unknown(timestampSeconds);
   }
   // Unreachable code. Switch statement must return a value.
-}
-
-export function isEventOld(currentEvent: SensorEvent, now: number): boolean {
-  const eventDurationSeconds = now - currentEvent.timestampSeconds;
-  return eventDurationSeconds > TOO_LONG_OPEN_SECONDS;
 }
 
 export function getMessageFromEvent(buildTimestamp: string, currentEvent: SensorEvent, now: number): TopicMessage {
