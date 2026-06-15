@@ -190,3 +190,37 @@ app. Frame it honestly as "we prefer a rare duplicate over a silent miss," not
 "we made it reliable." If the spam risk (#1) is a concern, bound the downside
 without returning to silence: cap retries per episode, or loudly log when
 save-after-a-successful-send fails so the rare case is noticed.
+
+---
+
+## Recommended sequence for the remaining fixes
+
+Priority order for the still-proposed fixes (R6, R1, R2, M4), with the reasoning
+worked out during the 2026-06 examination. None is urgent — the receive path and
+the open-door gating are already solid (see "What's already solid"). All four are
+**Android-only** (no server deploy; they ride the next `android/N`).
+
+1. **R1 — auto-recover from a missed push (highest value).** This is the
+   *primary* goal's (push-data) weak link: staleness is already detected
+   (`CheckInStalenessManager`) but recovery is manual (the user must tap the
+   stale-data banner). **Measure before building it:** turn on FCM delivery data
+   (Firebase console → Cloud Messaging reporting, or the BigQuery delivery
+   export) and reconcile against a client receive-log to learn the *actual*
+   delivery rate. ~99.9% → R1 is polish; lower → R1 is urgent. The fix itself is
+   a medium Android change: wire `isCheckInStale` to one debounced re-fetch with
+   backoff, keeping the banner as the fallback.
+
+2. **R6 + M4 together — foreground display + a dedicated channel.** They
+   compound (a delivered alert is dropped in the foreground *and* lands in the
+   user-silenceable "Miscellaneous" channel). Do both at once: build the
+   notification in `FCMService.onMessageReceived` AND post it to an app-owned
+   HIGH-importance channel (+ `default_notification_channel_id` / icon / color
+   meta-data). This adds the most *new* code, so it ranks below R1. Notification
+   display is **device-only** behavior — build a fixture-level verification
+   signal per the "verify device-only behavior" rule in `CLAUDE.md` rather than
+   deferring to a manual smoke.
+
+3. **R2 — runtime topic change (defer).** Low likelihood: only when the device
+   `buildTimestamp` changes while the app process stays alive (cold-start
+   re-subscribes anyway). Wire the existing `FcmRegistrationManager.restart()`
+   to a server-config `buildTimestamp` change when convenient.
