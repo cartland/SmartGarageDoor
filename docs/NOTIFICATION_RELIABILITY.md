@@ -19,10 +19,9 @@ keys, data-only vs notification-payload split) — that lives in `CLAUDE.md`
 § "Safety Rules → FCM Push Notifications" and the `wire-contracts/` fixtures.
 Read those first for *how it works*; this doc is *where it's fragile*.
 
-All fixes below are **proposed, not yet implemented** — except **R5**, whose
-reorder fix has landed in `OldDataFCM.ts` (live in `main`, pending a `server/N`
-deploy to reach production). When a fix ships, annotate its row and bump
-`last_verified`.
+Most fixes below are **proposed, not yet implemented**; rows marked ✅ have
+landed in `main` (server-side fixes still need a `server/N` deploy to reach
+production). When a fix ships, annotate its row and bump `last_verified`.
 
 ## Findings summary
 
@@ -37,7 +36,7 @@ where they affect *delivery/surfacing* reliability.
 | **R1** | Med | Push data | Missed-push recovery is manual: staleness is auto-detected but only raises a banner; nothing auto-refetches. | `AndroidGarage/usecase/.../CheckInStalenessManager.kt:54-104` |
 | **R2** | Med | Push data | Runtime topic change unhandled: `FcmRegistrationManager.restart()` exists but nothing calls it (explicit `TODO`). | `AndroidGarage/usecase/.../FcmRegistrationManager.kt:78-90` |
 | **M4** | Low | Open-door notif | No app-owned notification channel: the alert lands in FCM's fallback "Miscellaneous" channel, which the user can disable. | `AndroidGarage/androidApp/src/main/AndroidManifest.xml` (no `default_notification_channel_id`) |
-| **M3** | Low | Open-door notif | Threshold constant `TOO_LONG_OPEN_SECONDS = 15*60` duplicated in two files; can silently diverge. | `EventInterpreter.ts:28` + `OldDataFCM.ts:91` |
+| **M3** ✅ | Low | Open-door notif | **Fixed (dead code removed).** `TOO_LONG_OPEN_SECONDS` was duplicated, but EventInterpreter's copy was used only by `isEventOld`, which had **zero callers** — dead code. Removed the dead function + its constant; `OldDataFCM` keeps the single live copy. | `EventInterpreter.ts` |
 | **M1** | Low | Push data | `getFcmTopic()` never returns null (default is `""` wrapped in `DoorFcmTopic`), so `fetchStatus()` reports an unregistered device as `Registered`; downstream null-guards are partly dead. | `FirebaseDoorFcmRepository.kt:96-101`, default at `DataStoreAppSettings.kt:44` |
 | **R3** | Info | Push data | Freshness rides a HIGH-priority per-check-in heartbeat FCM (not transition-only). Powers R1's detection, but is a battery cost and risks Android's high-priority background quota. Fails safe (staleness banner). | `EventUpdates.ts:91` |
 | **R4** | Info | Push data | `onNewToken` only logs; doesn't re-subscribe. Usually fine (FCM migrates topic subs; cold start re-subscribes) but not guaranteed. | `FCMService.kt:41-43` |
