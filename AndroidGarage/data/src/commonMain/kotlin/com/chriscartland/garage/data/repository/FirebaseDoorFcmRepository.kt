@@ -95,9 +95,12 @@ class FirebaseDoorFcmRepository(
 
     private suspend fun getFcmTopic(): DoorFcmTopic? {
         Logger.d { "getFcmTopic" }
-        return settings.fcmDoorTopic.flow.first().let {
-            DoorFcmTopic(it)
-        }
+        val stored = settings.fcmDoorTopic.flow.first()
+        // The DataStore default is "" (never registered). Treat empty as "no
+        // topic" so fetchStatus() reports NotRegistered for an unsubscribed
+        // device instead of Registered(DoorFcmTopic("")), and deregisterDoor()
+        // skips a no-op unsubscribe. See M1 in docs/NOTIFICATION_RELIABILITY.md.
+        return if (stored.isEmpty()) null else DoorFcmTopic(stored)
     }
 
     private suspend fun setFcmTopic(topic: DoorFcmTopic) {

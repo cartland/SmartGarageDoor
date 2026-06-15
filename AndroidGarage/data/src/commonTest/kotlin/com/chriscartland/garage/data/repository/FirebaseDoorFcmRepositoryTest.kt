@@ -22,11 +22,12 @@ class FirebaseDoorFcmRepositoryTest {
     @Test
     fun fetchStatusReturnsNotRegisteredWhenNoTopicSaved() =
         runTest {
-            // Default setting is "" which creates DoorFcmTopic("")
-            // Current behavior: empty string topic is treated as registered
-            // This tests the actual behavior, not ideal behavior
+            // Default setting is "" (never registered) → getFcmTopic() returns
+            // null → fetchStatus() reports NotRegistered. (M1: previously the
+            // empty string was wrapped in DoorFcmTopic("") and wrongly reported
+            // Registered — the test name now matches the behavior.)
             val state = repo.fetchStatus()
-            assertIs<DoorFcmState.Registered>(state)
+            assertIs<DoorFcmState.NotRegistered>(state)
         }
 
     @Test
@@ -117,10 +118,12 @@ class FirebaseDoorFcmRepositoryTest {
     @Test
     fun deregisterDoorWhenNoTopicReturnsNotRegisteredWithoutUnsubscribe() =
         runTest {
-            // Default is "" which creates DoorFcmTopic("") — treated as non-null
-            // But deregisterDoor checks if getFcmTopic() is null, which it never is
-            // So it will try to unsubscribe from empty string topic
+            // Default is "" (never registered) → getFcmTopic() returns null →
+            // deregisterDoor() early-returns NotRegistered without attempting an
+            // unsubscribe. (M1: previously it tried to unsubscribe from the
+            // empty-string topic.)
             val state = repo.deregisterDoor()
             assertIs<DoorFcmState.NotRegistered>(state)
+            assertTrue(bridge.unsubscribedTopics.isEmpty())
         }
 }
