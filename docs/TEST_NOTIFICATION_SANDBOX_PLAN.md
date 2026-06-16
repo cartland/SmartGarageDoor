@@ -5,7 +5,7 @@ status: active
 
 # Test Notification Sandbox — implementation plan
 
-**Status: v1 COMPLETE (in PR).**
+**Status: SHIPPED — `android/251` / 2.18.0 (internal track). Permanent diagnostic feature; do not roll it back. The real "Resolved" feature builds alongside it, reusing this infra.**
 
 **Progress:** ✅ Engine (repo invariant + 4 UseCases + safety test). ✅ App-built display (presenter, parser, handler branch, FCMService). ✅ VM + read-side `ObserveTestNotificationStateUseCase` + DI (AppComponent + NativeComponent) + Function List UI + ComponentGraphTest singleton guard + VM test. ✅ `validate.sh` green (one fix: screen Composable used `String = ""` not `String? = null` per the Konsist nullable-default ban).
 
@@ -23,6 +23,26 @@ can be refactored onto this foundation.
 - **Gated** behind the existing `featureFunctionList` flag (lives in the Function
   List screen — no new flag).
 - **Zero touch** to `OldDataFCM` / `EventFCM` / the door path.
+
+## Sending test notifications (CLI)
+
+Use the checked-in script — no Firebase console needed:
+
+```bash
+# A "warning"
+scripts/send-test-notification.sh <topic> \
+  --title "Garage door open" --body "Open for 12 minutes" --tag door-1
+
+# The "resolved" — SAME --tag replaces the warning in place
+scripts/send-test-notification.sh <topic> \
+  --title "Resolved: garage door closed" \
+  --body "It was open for 14 minutes (2:00-2:14 PM)." --tag door-1
+```
+
+- `<topic>` is the `testNotification-<id>` value copied from the app (Function List → sandbox).
+- The script **refuses any non-`testNotification-` topic**, so a typo can't target a production topic.
+- Auth is `gcloud auth print-access-token` (run `gcloud auth login` if it fails). Project defaults to `escape-echo` (override with `--project` or `$FCM_PROJECT_ID`).
+- It sends a **data** message so it routes through the app-built presenter (foreground + background render identically). `scripts/send-test-notification.sh --help` for all options.
 
 ## Architecture
 
