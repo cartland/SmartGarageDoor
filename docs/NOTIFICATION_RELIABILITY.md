@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-06-14
+last_verified: 2026-06-15
 ---
 
 # Notification & push-data reliability
@@ -224,3 +224,46 @@ the open-door gating are already solid (see "What's already solid"). All four ar
    `buildTimestamp` changes while the app process stays alive (cold-start
    re-subscribes anyway). Wire the existing `FcmRegistrationManager.restart()`
    to a server-config `buildTimestamp` change when convenient.
+
+---
+
+## Resolved-on-close notification — design goal (validated in the sandbox)
+
+When the door **closes** after a "too long open" warning was sent, the app shows
+a **"Resolved"** notification. Validated end-to-end on a real released build
+(`android/251`, 2.18.0) via the Test Notification Sandbox: an app-built
+notification on a dedicated channel + icon, with `tag`-based inline replace.
+
+**Display behavior (decided 2026-06-15 — this is the GOAL, not a bug):**
+- Warning **still showing** → the resolved **replaces it in place** (same
+  `(tag, id)` via `NotificationManagerCompat.notify`).
+- Warning **already dismissed** → the resolved **appears as a new notification**.
+  This is **intentional**: the user should always learn the door closed, even if
+  they swiped the warning away. A stale "door open" alert quietly vanishing
+  without confirmation is worse than an informative re-ping.
+- **Do NOT** add a `getActiveNotifications()` "suppress if dismissed" gate. This
+  deliberately **reverses** the "don't resurrect a dismissed warning" concern
+  raised during the feasibility investigation — the settled product decision is
+  **resurface-always**.
+- `setOnlyAlertOnce(true)` is fine (silent update when replacing an active one);
+  it does not affect the dismissed-then-resurfaced case.
+
+**Finalized copy (template):**
+- **Title:** `Resolved: garage door closed` (static)
+- **Body:** `It was open for {duration} ({startTime}-{endTime}).`
+- Sentence case, no em dashes (repo string rules).
+
+**Duration / time source:** the open-episode **start** is the timestamp the
+warning measured from — the `NotificationsDatabase` marker's
+`notificationCurrentEvent.timestampSeconds`, **not** the immediate `previousEvent`
+(which understates in a multi-step `Open → Closing → Closed`). End = the close
+event timestamp. Format in the device's locale/timezone.
+
+**Trigger gate:** fire **only if a warning was actually sent** for that open
+episode (the marker exists; it is absent when snoozed, or when the door closed
+before the 15-min threshold).
+
+**Built on:** the app-built notification infrastructure (R6 foreground display +
+M4 dedicated channel) — this feature is the forcing function for those. The Test
+Notification Sandbox ([`docs/TEST_NOTIFICATION_SANDBOX_PLAN.md`](TEST_NOTIFICATION_SANDBOX_PLAN.md))
+is the isolated, shipped prototype of that infra, proven on a real device.
