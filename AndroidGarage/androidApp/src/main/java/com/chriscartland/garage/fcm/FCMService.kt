@@ -31,12 +31,17 @@ class FCMService : FirebaseMessagingService() {
         TestNotificationPresenter(applicationContext)
     }
 
+    private val doorNotificationPresenter: DoorNotificationPresenter by lazy {
+        DoorNotificationPresenter(applicationContext)
+    }
+
     private val handler: FcmMessageHandler by lazy {
         val component = (application as GarageApplication).component
         FcmMessageHandler(
             receiveFcmDoorEvent = component.receiveFcmDoorEventUseCase,
             applyButtonHealthFcm = component.applyButtonHealthFcmUseCase,
             showTestNotification = testNotificationPresenter::show,
+            showDoorNotification = doorNotificationPresenter::show,
         )
     }
 

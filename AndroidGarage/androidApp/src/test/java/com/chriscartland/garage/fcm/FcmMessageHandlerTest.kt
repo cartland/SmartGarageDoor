@@ -41,11 +41,13 @@ class FcmMessageHandlerTest {
     private val buttonHealthRepo = RecordingButtonHealthRepository()
     private val applyButtonHealthFcm = ApplyButtonHealthFcmUseCase(buttonHealthRepo)
     private val testNotifications = mutableListOf<Map<String, String>>()
+    private val doorNotifications = mutableListOf<Map<String, String>>()
     private val handler =
         FcmMessageHandler(
             receiveFcmDoorEvent,
             applyButtonHealthFcm,
             showTestNotification = { testNotifications.add(it) },
+            showDoorNotification = { doorNotifications.add(it) },
         )
 
     private fun doorPayload(
@@ -172,6 +174,37 @@ class FcmMessageHandlerTest {
             assertEquals(data, testNotifications.single())
             assertNull(receiveFcmDoorEvent.lastEvent) // Door branch NOT invoked.
             assertNull(buttonHealthRepo.lastApplied) // Button-health branch NOT invoked.
+        }
+
+    // --- Resolved-on-close v2 branch (additive; isolated from the door state path) ---
+
+    @Test
+    fun doorResolvedV2Topic_routesToDoorPresenter_notLegacyDoorBranch() =
+        runTest {
+            val data = mapOf(
+                "kind" to "open_door_resolved",
+                "openTimestampSeconds" to "1800000000",
+                "closeTimestampSeconds" to "1800000840",
+            )
+            val result = handler.handleMessage(topic = "door_open_v2-X", data = data)
+
+            assertTrue(result)
+            assertEquals(1, doorNotifications.size)
+            assertEquals(data, doorNotifications.single())
+            // The legacy door state-sync branch must NOT be invoked for v2.
+            assertNull(receiveFcmDoorEvent.lastEvent)
+            assertNull(buttonHealthRepo.lastApplied)
+        }
+
+    @Test
+    fun legacyDoorTopic_doesNotRouteToV2Presenter() =
+        runTest {
+            // door_open- must still hit the door state-sync branch, NOT the v2 presenter.
+            val result = handler.handleMessage(topic = "door_open-X", data = doorPayload())
+
+            assertTrue(result)
+            assertEquals(0, doorNotifications.size)
+            assertEquals(DoorPosition.CLOSED, receiveFcmDoorEvent.lastEvent?.doorPosition)
         }
 }
 

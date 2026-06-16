@@ -44,6 +44,7 @@ import com.chriscartland.garage.data.repository.DefaultTestNotificationRepositor
 import com.chriscartland.garage.data.repository.FirebaseAuthRepository
 import com.chriscartland.garage.data.repository.FirebaseButtonHealthFcmRepository
 import com.chriscartland.garage.data.repository.FirebaseDoorFcmRepository
+import com.chriscartland.garage.data.repository.FirebaseDoorResolvedFcmRepository
 import com.chriscartland.garage.data.repository.NetworkButtonHealthRepository
 import com.chriscartland.garage.data.repository.NetworkDoorRepository
 import com.chriscartland.garage.data.repository.NetworkRemoteButtonRepository
@@ -66,6 +67,7 @@ import com.chriscartland.garage.domain.repository.ButtonHealthRepository
 import com.chriscartland.garage.domain.repository.DiagnosticsCountersRepository
 import com.chriscartland.garage.domain.repository.DoorFcmRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
+import com.chriscartland.garage.domain.repository.DoorResolvedFcmRepository
 import com.chriscartland.garage.domain.repository.FeatureAllowlistRepository
 import com.chriscartland.garage.domain.repository.RemoteButtonRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
@@ -84,6 +86,7 @@ import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.DefaultReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.DefaultRegisterFcmUseCase
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
+import com.chriscartland.garage.usecase.DoorResolvedFcmSubscriptionManager
 import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
@@ -199,6 +202,8 @@ abstract class AppComponent(
     abstract val buttonHealthFcmRepository: ButtonHealthFcmRepository
     abstract val buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager
     abstract val applyButtonHealthFcmUseCase: ApplyButtonHealthFcmUseCase
+    abstract val doorResolvedFcmRepository: DoorResolvedFcmRepository
+    abstract val doorResolvedFcmSubscriptionManager: DoorResolvedFcmSubscriptionManager
     abstract val initialDoorFetchManager: InitialDoorFetchManager
     abstract val computeButtonHealthDisplayUseCase: ComputeButtonHealthDisplayUseCase
 
@@ -732,6 +737,26 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
+    fun provideDoorResolvedFcmRepository(messagingBridge: MessagingBridge): DoorResolvedFcmRepository =
+        FirebaseDoorResolvedFcmRepository(messagingBridge)
+
+    @Provides
+    @Singleton
+    fun provideDoorResolvedFcmSubscriptionManager(
+        serverConfigRepository: ServerConfigRepository,
+        doorResolvedFcmRepository: DoorResolvedFcmRepository,
+        applicationScope: CoroutineScope,
+        dispatchers: DispatcherProvider,
+    ): DoorResolvedFcmSubscriptionManager =
+        DoorResolvedFcmSubscriptionManager(
+            serverConfigRepository = serverConfigRepository,
+            fcmRepository = doorResolvedFcmRepository,
+            scope = applicationScope,
+            dispatcher = dispatchers.io,
+        )
+
+    @Provides
+    @Singleton
     fun provideFcmRegistrationManager(
         registerFcm: RegisterFcmUseCase,
         applicationScope: CoroutineScope,
@@ -793,6 +818,7 @@ abstract class AppComponent(
         logAppEvent: LogAppEventUseCase,
         runStartupDiagnosticsMaintenance: RunStartupDiagnosticsMaintenanceUseCase,
         buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager,
+        doorResolvedFcmSubscriptionManager: DoorResolvedFcmSubscriptionManager,
         initialDoorFetchManager: InitialDoorFetchManager,
         applicationScope: CoroutineScope,
         dispatchers: DispatcherProvider,
@@ -804,6 +830,7 @@ abstract class AppComponent(
             logAppEvent = logAppEvent,
             runStartupDiagnosticsMaintenance = runStartupDiagnosticsMaintenance,
             buttonHealthFcmSubscriptionManager = buttonHealthFcmSubscriptionManager,
+            doorResolvedFcmSubscriptionManager = doorResolvedFcmSubscriptionManager,
             initialDoorFetchManager = initialDoorFetchManager,
             externalScope = applicationScope,
             dispatchers = dispatchers,

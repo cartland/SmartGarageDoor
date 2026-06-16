@@ -21,6 +21,7 @@ import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.ButtonHealthFcmPayloadParser
 import com.chriscartland.garage.data.FcmPayloadParser
 import com.chriscartland.garage.data.repository.DefaultTestNotificationRepository
+import com.chriscartland.garage.domain.model.DOOR_RESOLVED_FCM_TOPIC_PREFIX
 import com.chriscartland.garage.usecase.ApplyButtonHealthFcmUseCase
 import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 
@@ -30,6 +31,8 @@ import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
  * Dispatches by topic prefix:
  *  - `testNotification-*` → [showTestNotification] (diagnostic sandbox; an
  *    app-built notification, fully isolated from the production door path)
+ *  - `door_open_v2-*` → [showDoorNotification] (additive resolved-on-close;
+ *    an app-built notification — the legacy `door_open-` path is untouched)
  *  - `buttonHealth-*` → [ApplyButtonHealthFcmUseCase]
  *  - everything else → door-event parser (default-preserving — the
  *    existing door FCM path stays exactly as it was)
@@ -41,6 +44,7 @@ class FcmMessageHandler(
     private val receiveFcmDoorEvent: ReceiveFcmDoorEventUseCase,
     private val applyButtonHealthFcm: ApplyButtonHealthFcmUseCase,
     private val showTestNotification: (Map<String, String>) -> Unit,
+    private val showDoorNotification: (Map<String, String>) -> Unit,
 ) {
     /**
      * Process an FCM data message. Topic prefix determines which
@@ -64,6 +68,11 @@ class FcmMessageHandler(
             topic.startsWith(DefaultTestNotificationRepository.TEST_TOPIC_PREFIX) -> {
                 Logger.d { "Test notification FCM payload: $data" }
                 showTestNotification(data)
+                true
+            }
+            topic.startsWith(DOOR_RESOLVED_FCM_TOPIC_PREFIX) -> {
+                Logger.d { "Door resolved FCM payload: $data" }
+                showDoorNotification(data)
                 true
             }
             topic.startsWith("buttonHealth-") -> handleButtonHealthMessage(data)
