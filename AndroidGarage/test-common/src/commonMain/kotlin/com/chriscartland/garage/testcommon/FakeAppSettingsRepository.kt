@@ -17,6 +17,9 @@ class FakeAppSettingsRepository : AppSettingsRepository {
         InMemorySetting(NavigationRailItemPosition.TopAligned)
     override val navigationRailTopPaddingDp: Setting<Int> =
         InMemorySetting(NavigationRailLayout.DEFAULT_TOP_PADDING_DP)
+    override val testNotificationCurrentTopic: Setting<String> = InMemorySetting("")
+    override val testNotificationWantSubscribed: Setting<Boolean> = InMemorySetting(false)
+    override val testNotificationSubscribedTopic: Setting<String> = InMemorySetting("")
 }
 
 class InMemorySetting<T>(
