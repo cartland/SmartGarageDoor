@@ -181,3 +181,22 @@ export function isSnoozeNotificationsEnabled(config: any): boolean {
   }
   return false;
 }
+
+/**
+ * Master on/off for the additive resolved-on-close notification
+ * (docs/RESOLVED_NOTIFICATION_PLAN.md). Stored as
+ * `body.resolvedOnCloseEnabled: boolean` on `configCurrent/current` — edited
+ * in-place in the Firebase console's Firestore Data tab (NEVER via a scripted
+ * whole-doc POST, which would clobber buildTimestamp/allowlists; see
+ * docs/FIREBASE_CONFIG_AUTHORITY.md). Read live per close event, so flipping it
+ * takes effect with no redeploy and reverts instantly.
+ *
+ * Fail-safe: anything other than the literal boolean `true` (missing key, null,
+ * a string, wrong type) returns `false` — when off, the server does nothing new
+ * on a door close, i.e. today's behavior byte-for-byte. Deliberately does NOT
+ * throw (unlike requireBuildTimestamp): an unreadable flag must keep the safe
+ * legacy path, never fail the door-event update.
+ */
+export function isResolvedOnCloseEnabled(config: any): boolean {
+  return config?.body?.resolvedOnCloseEnabled === true;
+}

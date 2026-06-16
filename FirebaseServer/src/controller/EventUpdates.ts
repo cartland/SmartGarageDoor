@@ -21,8 +21,9 @@ import { DATABASE as SensorEventDatabase } from '../database/SensorEventDatabase
 import { SensorSnapshot } from '../model/SensorSnapshot';
 
 import { getNewEventOrNull } from './EventInterpreter';
-import { SensorEvent } from '../model/SensorEvent';
+import { SensorEvent, SensorEventType } from '../model/SensorEvent';
 import { SERVICE as EventFCMService } from '../controller/fcm/EventFCM';
+import { SERVICE as ResolvedNotificationFCMService } from '../controller/fcm/ResolvedNotificationFCM';
 
 const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
@@ -79,6 +80,17 @@ async function updateWithParams(buildTimestamp, sensorSnapshot, timestampSeconds
     data[CURRENT_EVENT_KEY] = newEvent;
     await SensorEventDatabase.save(buildTimestamp, data);
     await EventFCMService.sendFCMForSensorEvent(buildTimestamp, newEvent);
+    if (newEvent.type === SensorEventType.Closed) {
+      // Additive resolved-on-close notification. Gated internally by the live
+      // `resolvedOnCloseEnabled` config flag. Wrapped so this feature can NEVER
+      // break the primary event/state-sync path above — a resolved-send failure
+      // is logged and swallowed. See docs/RESOLVED_NOTIFICATION_PLAN.md.
+      try {
+        await ResolvedNotificationFCMService.sendFCMForResolvedDoor(buildTimestamp, newEvent);
+      } catch (error) {
+        console.error('Resolved-on-close send failed (non-fatal):', JSON.stringify(error));
+      }
+    }
   } else {
     if (scheduledJob) {
       // Do nothing. Do not update database during scheduled check unless it results in a new event.

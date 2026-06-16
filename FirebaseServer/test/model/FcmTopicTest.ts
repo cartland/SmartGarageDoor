@@ -17,7 +17,7 @@
 // npm run tests
 
 import { expect } from 'chai';
-import { buildTimestampToFcmTopic } from '../../src/model/FcmTopic';
+import { buildTimestampToFcmTopic, buildTimestampToFcmTopicV2 } from '../../src/model/FcmTopic';
 
 describe('buildTimestampToFcmTopic', () => {
   it('can convert buildTimestamp to FcmTopic', () => {
@@ -25,5 +25,22 @@ describe('buildTimestampToFcmTopic', () => {
     const expected = 'door_open-Sat.Mar.13.14.45.00.2021';
     const actual = buildTimestampToFcmTopic(input);
     expect(actual).to.equal(expected);
+  });
+});
+
+describe('buildTimestampToFcmTopicV2', () => {
+  // Must stay byte-identical to the Android side (DoorFcmModel.kt). A unilateral
+  // rename on either side breaks the resolved-on-close notification silently.
+  it('converts buildTimestamp to the additive v2 FcmTopic', () => {
+    const input = 'Sat Mar 13 14:45:00 2021';
+    const expected = 'door_open_v2-Sat.Mar.13.14.45.00.2021';
+    const actual = buildTimestampToFcmTopicV2(input);
+    expect(actual).to.equal(expected);
+  });
+
+  it('uses a distinct prefix from the legacy door topic (old apps unaffected)', () => {
+    const input = 'Sat Mar 13 14:45:00 2021';
+    expect(buildTimestampToFcmTopicV2(input)).to.not.equal(buildTimestampToFcmTopic(input));
+    expect(buildTimestampToFcmTopicV2(input).startsWith('door_open_v2-')).to.be.true;
   });
 });
