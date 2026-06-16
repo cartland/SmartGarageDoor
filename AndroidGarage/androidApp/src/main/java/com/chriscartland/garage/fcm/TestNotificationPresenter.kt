@@ -53,7 +53,8 @@ class TestNotificationPresenter(
         val content = TestNotificationPayload.parse(data)
         Logger.d { "TestNotification: posting tag=${content.tag} title=${content.title}" }
         val notification =
-            NotificationCompat.Builder(context, CHANNEL_ID)
+            NotificationCompat
+                .Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle(content.title)
                 .setContentText(content.body)
@@ -76,7 +77,8 @@ class TestNotificationPresenter(
                 ).apply {
                     description = "Sandbox channel for the test-notification diagnostic feature."
                 }
-            context.getSystemService(NotificationManager::class.java)
+            context
+                .getSystemService(NotificationManager::class.java)
                 ?.createNotificationChannel(channel)
         }
     }

@@ -118,6 +118,19 @@ class ComponentGraphTest {
     }
 
     @Test
+    fun testNotificationRepositoryIsSingleton() {
+        // Owns the max-one-subscription mutex + subscription record. Two
+        // instances would each track their own state and could leave the
+        // device subscribed to multiple test topics at once.
+        val c = component
+        assertSame(
+            "TestNotificationRepository must be singleton",
+            c.testNotificationRepository,
+            c.testNotificationRepository,
+        )
+    }
+
+    @Test
     fun remoteButtonRepositoryIsSingleton() {
         val c = component
         assertSame("RemoteButtonRepository must be singleton", c.remoteButtonRepository, c.remoteButtonRepository)

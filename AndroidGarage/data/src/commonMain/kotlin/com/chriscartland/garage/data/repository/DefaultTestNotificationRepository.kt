@@ -52,7 +52,11 @@ class DefaultTestNotificationRepository(
     private val messagingBridge: MessagingBridge,
     private val settings: AppSettingsRepository,
     private val newTopicId: () -> String = {
-        kotlin.random.Random.nextLong().toULong().toString(16).padStart(16, '0')
+        kotlin.random.Random
+            .nextLong()
+            .toULong()
+            .toString(16)
+            .padStart(16, '0')
     },
 ) : TestNotificationRepository {
     private val mutex = Mutex()
@@ -112,7 +116,9 @@ class DefaultTestNotificationRepository(
         val current = settings.testNotificationCurrentTopic.flow.first()
         val target: String? = if (want && current.isNotEmpty()) current else null
         val subscribed: String? =
-            settings.testNotificationSubscribedTopic.flow.first().ifEmpty { null }
+            settings.testNotificationSubscribedTopic.flow
+                .first()
+                .ifEmpty { null }
 
         if (subscribed == target) return
 

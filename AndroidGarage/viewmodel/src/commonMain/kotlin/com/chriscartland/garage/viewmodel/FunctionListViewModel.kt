@@ -25,22 +25,28 @@ import com.chriscartland.garage.domain.model.AppLoggerLimits
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
+import com.chriscartland.garage.domain.model.TestNotificationSandboxState
 import com.chriscartland.garage.domain.model.toServer
 import com.chriscartland.garage.usecase.ButtonAckToken
+import com.chriscartland.garage.usecase.ChangeTestNotificationTopicUseCase
 import com.chriscartland.garage.usecase.ClearDiagnosticsUseCase
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
+import com.chriscartland.garage.usecase.GetTestNotificationTopicUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
+import com.chriscartland.garage.usecase.ObserveTestNotificationStateUseCase
 import com.chriscartland.garage.usecase.PruneDiagnosticsLogUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
+import com.chriscartland.garage.usecase.SubscribeTestNotificationUseCase
+import com.chriscartland.garage.usecase.UnsubscribeTestNotificationUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -90,6 +96,17 @@ interface FunctionListViewModel {
     fun registerFcm()
 
     fun deregisterFcm()
+
+    // --- Test-notification sandbox (diagnostic) ---
+
+    /** Current sandbox state: the personal topic + whether subscribed. */
+    val testNotificationState: StateFlow<TestNotificationSandboxState>
+
+    fun subscribeTestNotification()
+
+    fun unsubscribeTestNotification()
+
+    fun changeTestNotificationTopic()
 }
 
 class DefaultFunctionListViewModel(
@@ -107,6 +124,11 @@ class DefaultFunctionListViewModel(
     private val pruneDiagnosticsLogUseCase: PruneDiagnosticsLogUseCase,
     private val registerFcmUseCase: RegisterFcmUseCase,
     private val deregisterFcmUseCase: DeregisterFcmUseCase,
+    private val getTestNotificationTopicUseCase: GetTestNotificationTopicUseCase,
+    private val changeTestNotificationTopicUseCase: ChangeTestNotificationTopicUseCase,
+    private val subscribeTestNotificationUseCase: SubscribeTestNotificationUseCase,
+    private val unsubscribeTestNotificationUseCase: UnsubscribeTestNotificationUseCase,
+    private val observeTestNotificationStateUseCase: ObserveTestNotificationStateUseCase,
     private val dispatchers: DispatcherProvider,
     private val appVersion: String,
 ) : ViewModel(),
@@ -118,6 +140,9 @@ class DefaultFunctionListViewModel(
     private val _accessGranted = MutableStateFlow<Boolean?>(null)
     override val accessGranted: StateFlow<Boolean?> = _accessGranted
 
+    override val testNotificationState: StateFlow<TestNotificationSandboxState> =
+        observeTestNotificationStateUseCase()
+
     init {
         viewModelScope.launch(dispatchers.io) {
             observeDoorEventsUseCase.current().collect { currentDoorEvent.value = it }
@@ -125,6 +150,8 @@ class DefaultFunctionListViewModel(
         viewModelScope.launch(dispatchers.io) {
             observeFeatureAccessUseCase.functionList().collect { _accessGranted.value = it }
         }
+        // Ensure a personal test topic exists so the UI can show/copy it.
+        viewModelScope.launch(dispatchers.io) { getTestNotificationTopicUseCase() }
     }
 
     override fun openOrCloseDoor() {
@@ -211,5 +238,20 @@ class DefaultFunctionListViewModel(
         viewModelScope.launch(dispatchers.io) {
             deregisterFcmUseCase()
         }
+    }
+
+    override fun subscribeTestNotification() {
+        Logger.d { "subscribeTestNotification" }
+        viewModelScope.launch(dispatchers.io) { subscribeTestNotificationUseCase() }
+    }
+
+    override fun unsubscribeTestNotification() {
+        Logger.d { "unsubscribeTestNotification" }
+        viewModelScope.launch(dispatchers.io) { unsubscribeTestNotificationUseCase() }
+    }
+
+    override fun changeTestNotificationTopic() {
+        Logger.d { "changeTestNotificationTopic" }
+        viewModelScope.launch(dispatchers.io) { changeTestNotificationTopicUseCase() }
     }
 }

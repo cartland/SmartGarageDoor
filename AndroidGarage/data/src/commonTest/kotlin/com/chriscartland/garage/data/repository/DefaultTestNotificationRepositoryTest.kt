@@ -49,8 +49,7 @@ class DefaultTestNotificationRepositoryTest {
         return net.filterValues { it > 0 }.keys.toList()
     }
 
-    private fun FakeMessagingBridge.allTouchedTopics(): List<String> =
-        subscribedTopics + unsubscribedTopics
+    private fun FakeMessagingBridge.allTouchedTopics(): List<String> = subscribedTopics + unsubscribedTopics
 
     // --- getTopic ---
 
@@ -82,7 +81,11 @@ class DefaultTestNotificationRepositoryTest {
             f.repo.subscribe()
 
             assertEquals(1, f.bridge.activeTopics().size)
-            assertEquals(f.repo.state.value.topic?.string, f.bridge.activeTopics().single())
+            assertEquals(
+                f.repo.state.value.topic
+                    ?.string,
+                f.bridge.activeTopics().single(),
+            )
             assertTrue(f.repo.state.value.isSubscribed)
         }
 
@@ -125,13 +128,18 @@ class DefaultTestNotificationRepositoryTest {
         runTest {
             val f = Fixture()
             f.repo.subscribe()
-            val old = f.repo.state.value.topic?.string
+            val old = f.repo.state.value.topic
+                ?.string
             val new = f.repo.changeTopic().string
 
             assertTrue(f.bridge.unsubscribedTopics.contains(old))
             assertTrue(f.bridge.subscribedTopics.contains(new))
             assertEquals(listOf(new), f.bridge.activeTopics())
-            assertEquals(new, f.repo.state.value.topic?.string)
+            assertEquals(
+                new,
+                f.repo.state.value.topic
+                    ?.string,
+            )
             assertTrue(f.repo.state.value.isSubscribed)
         }
 
@@ -143,7 +151,11 @@ class DefaultTestNotificationRepositoryTest {
             val new = f.repo.changeTopic().string
 
             assertTrue(f.bridge.allTouchedTopics().isEmpty())
-            assertEquals(new, f.repo.state.value.topic?.string)
+            assertEquals(
+                new,
+                f.repo.state.value.topic
+                    ?.string,
+            )
             assertEquals(false, f.repo.state.value.isSubscribed)
         }
 
@@ -179,7 +191,12 @@ class DefaultTestNotificationRepositoryTest {
                 val active = f.bridge.activeTopics()
                 assertEquals(active.isNotEmpty(), f.repo.state.value.isSubscribed, "seq=$seq")
                 if (active.isNotEmpty()) {
-                    assertEquals(f.repo.state.value.topic?.string, active.single(), "seq=$seq")
+                    assertEquals(
+                        f.repo.state.value.topic
+                            ?.string,
+                        active.single(),
+                        "seq=$seq",
+                    )
                 }
             }
         }

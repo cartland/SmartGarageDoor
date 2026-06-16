@@ -36,6 +36,7 @@ import com.chriscartland.garage.data.ktor.KtorNetworkDoorDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkFeatureAllowlistDataSource
 import com.chriscartland.garage.data.repository.CachedFeatureAllowlistRepository
 import com.chriscartland.garage.data.repository.CachedServerConfigRepository
+import com.chriscartland.garage.data.repository.DefaultTestNotificationRepository
 import com.chriscartland.garage.data.repository.FirebaseAuthRepository
 import com.chriscartland.garage.data.repository.FirebaseButtonHealthFcmRepository
 import com.chriscartland.garage.data.repository.FirebaseDoorFcmRepository
@@ -65,10 +66,12 @@ import com.chriscartland.garage.domain.repository.FeatureAllowlistRepository
 import com.chriscartland.garage.domain.repository.RemoteButtonRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.domain.repository.SnoozeRepository
+import com.chriscartland.garage.domain.repository.TestNotificationRepository
 import com.chriscartland.garage.usecase.AppSettingsUseCase
 import com.chriscartland.garage.usecase.AppStartup
 import com.chriscartland.garage.usecase.ApplyButtonHealthFcmUseCase
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
+import com.chriscartland.garage.usecase.ChangeTestNotificationTopicUseCase
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.ClearDiagnosticsUseCase
 import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
@@ -84,6 +87,7 @@ import com.chriscartland.garage.usecase.FetchOlderDoorEventsUseCase
 import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.GetAuthTokenForCopyUseCase
+import com.chriscartland.garage.usecase.GetTestNotificationTopicUseCase
 import com.chriscartland.garage.usecase.InitialDoorFetchManager
 import com.chriscartland.garage.usecase.LiveClock
 import com.chriscartland.garage.usecase.LogAppEventUseCase
@@ -92,6 +96,7 @@ import com.chriscartland.garage.usecase.ObserveDiagnosticsCountUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
 import com.chriscartland.garage.usecase.ObserveSnoozeStateUseCase
+import com.chriscartland.garage.usecase.ObserveTestNotificationStateUseCase
 import com.chriscartland.garage.usecase.PruneDiagnosticsLogUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
@@ -101,6 +106,8 @@ import com.chriscartland.garage.usecase.SeedDiagnosticsCountersFromRoomUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
+import com.chriscartland.garage.usecase.SubscribeTestNotificationUseCase
+import com.chriscartland.garage.usecase.UnsubscribeTestNotificationUseCase
 import com.chriscartland.garage.viewmodel.DefaultDiagnosticsViewModel
 import com.chriscartland.garage.viewmodel.DefaultDoorHistoryViewModel
 import com.chriscartland.garage.viewmodel.DefaultFunctionListViewModel
@@ -172,6 +179,7 @@ abstract class NativeComponent(
     abstract val snoozeRepository: SnoozeRepository
     abstract val remoteButtonRepository: RemoteButtonRepository
     abstract val doorFcmRepository: DoorFcmRepository
+    abstract val testNotificationRepository: TestNotificationRepository
     abstract val featureAllowlistRepository: FeatureAllowlistRepository
     abstract val fcmRegistrationManager: FcmRegistrationManager
     abstract val checkInStalenessManager: CheckInStalenessManager
@@ -218,6 +226,11 @@ abstract class NativeComponent(
         pruneDiagnosticsLog: PruneDiagnosticsLogUseCase,
         registerFcm: RegisterFcmUseCase,
         deregisterFcm: DeregisterFcmUseCase,
+        getTestNotificationTopic: GetTestNotificationTopicUseCase,
+        changeTestNotificationTopic: ChangeTestNotificationTopicUseCase,
+        subscribeTestNotification: SubscribeTestNotificationUseCase,
+        unsubscribeTestNotification: UnsubscribeTestNotificationUseCase,
+        observeTestNotificationState: ObserveTestNotificationStateUseCase,
         dispatchers: DispatcherProvider,
         appVersion: String,
     ): DefaultFunctionListViewModel =
@@ -236,6 +249,11 @@ abstract class NativeComponent(
             pruneDiagnosticsLogUseCase = pruneDiagnosticsLog,
             registerFcmUseCase = registerFcm,
             deregisterFcmUseCase = deregisterFcm,
+            getTestNotificationTopicUseCase = getTestNotificationTopic,
+            changeTestNotificationTopicUseCase = changeTestNotificationTopic,
+            subscribeTestNotificationUseCase = subscribeTestNotification,
+            unsubscribeTestNotificationUseCase = unsubscribeTestNotification,
+            observeTestNotificationStateUseCase = observeTestNotificationState,
             dispatchers = dispatchers,
             appVersion = appVersion,
         )
@@ -410,6 +428,26 @@ abstract class NativeComponent(
 
     @Provides
     fun provideDeregisterFcmUseCase(doorFcmRepository: DoorFcmRepository): DeregisterFcmUseCase = DeregisterFcmUseCase(doorFcmRepository)
+
+    @Provides
+    fun provideGetTestNotificationTopicUseCase(repository: TestNotificationRepository): GetTestNotificationTopicUseCase =
+        GetTestNotificationTopicUseCase(repository)
+
+    @Provides
+    fun provideChangeTestNotificationTopicUseCase(repository: TestNotificationRepository): ChangeTestNotificationTopicUseCase =
+        ChangeTestNotificationTopicUseCase(repository)
+
+    @Provides
+    fun provideSubscribeTestNotificationUseCase(repository: TestNotificationRepository): SubscribeTestNotificationUseCase =
+        SubscribeTestNotificationUseCase(repository)
+
+    @Provides
+    fun provideUnsubscribeTestNotificationUseCase(repository: TestNotificationRepository): UnsubscribeTestNotificationUseCase =
+        UnsubscribeTestNotificationUseCase(repository)
+
+    @Provides
+    fun provideObserveTestNotificationStateUseCase(repository: TestNotificationRepository): ObserveTestNotificationStateUseCase =
+        ObserveTestNotificationStateUseCase(repository)
 
     @Provides
     fun providePushRemoteButtonUseCase(
@@ -614,6 +652,14 @@ abstract class NativeComponent(
         appSettings: AppSettingsRepository,
         appLoggerRepository: AppLoggerRepository,
     ): DoorFcmRepository = FirebaseDoorFcmRepository(messagingBridge, appSettings, appLoggerRepository)
+
+    // @SharedSingleton: one instance owns the max-one-subscription mutex + record.
+    @Provides
+    @SharedSingleton
+    fun provideTestNotificationRepository(
+        messagingBridge: MessagingBridge,
+        appSettings: AppSettingsRepository,
+    ): TestNotificationRepository = DefaultTestNotificationRepository(messagingBridge, appSettings)
 
     @Provides
     @SharedSingleton
