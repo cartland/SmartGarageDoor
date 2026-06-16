@@ -27,11 +27,16 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 class FCMService : FirebaseMessagingService() {
+    private val testNotificationPresenter: TestNotificationPresenter by lazy {
+        TestNotificationPresenter(applicationContext)
+    }
+
     private val handler: FcmMessageHandler by lazy {
         val component = (application as GarageApplication).component
         FcmMessageHandler(
             receiveFcmDoorEvent = component.receiveFcmDoorEventUseCase,
             applyButtonHealthFcm = component.applyButtonHealthFcmUseCase,
+            showTestNotification = testNotificationPresenter::show,
         )
     }
 

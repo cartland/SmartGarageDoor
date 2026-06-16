@@ -20,6 +20,7 @@ package com.chriscartland.garage.fcm
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.ButtonHealthFcmPayloadParser
 import com.chriscartland.garage.data.FcmPayloadParser
+import com.chriscartland.garage.data.repository.DefaultTestNotificationRepository
 import com.chriscartland.garage.usecase.ApplyButtonHealthFcmUseCase
 import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 
@@ -27,6 +28,8 @@ import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
  * Handles FCM data messages. Extracted from FCMService for testability.
  *
  * Dispatches by topic prefix:
+ *  - `testNotification-*` → [showTestNotification] (diagnostic sandbox; an
+ *    app-built notification, fully isolated from the production door path)
  *  - `buttonHealth-*` → [ApplyButtonHealthFcmUseCase]
  *  - everything else → door-event parser (default-preserving — the
  *    existing door FCM path stays exactly as it was)
@@ -37,6 +40,7 @@ import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 class FcmMessageHandler(
     private val receiveFcmDoorEvent: ReceiveFcmDoorEventUseCase,
     private val applyButtonHealthFcm: ApplyButtonHealthFcmUseCase,
+    private val showTestNotification: (Map<String, String>) -> Unit,
 ) {
     /**
      * Process an FCM data message. Topic prefix determines which
@@ -56,10 +60,14 @@ class FcmMessageHandler(
             Logger.d { "Message data payload is empty" }
             return false
         }
-        return if (topic.startsWith("buttonHealth-")) {
-            handleButtonHealthMessage(data)
-        } else {
-            handleDoorMessage(data)
+        return when {
+            topic.startsWith(DefaultTestNotificationRepository.TEST_TOPIC_PREFIX) -> {
+                Logger.d { "Test notification FCM payload: $data" }
+                showTestNotification(data)
+                true
+            }
+            topic.startsWith("buttonHealth-") -> handleButtonHealthMessage(data)
+            else -> handleDoorMessage(data)
         }
     }
 
