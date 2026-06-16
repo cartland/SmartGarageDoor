@@ -159,6 +159,30 @@ class ComponentGraphTest {
     }
 
     @Test
+    fun doorResolvedFcmRepositoryIsSingleton() {
+        // Singleton-scoped because it owns the in-memory last-subscribed-topic
+        // state for the additive resolved-on-close (door_open_v2-) subscription.
+        val c = component
+        assertSame(
+            "DoorResolvedFcmRepository must be singleton",
+            c.doorResolvedFcmRepository,
+            c.doorResolvedFcmRepository,
+        )
+    }
+
+    @Test
+    fun doorResolvedFcmSubscriptionManagerIsSingleton() {
+        // Singleton-scoped so the additive v2 subscription collector starts
+        // exactly once per process (mirrors ButtonHealthFcmSubscriptionManager).
+        val c = component
+        assertSame(
+            "DoorResolvedFcmSubscriptionManager must be singleton",
+            c.doorResolvedFcmSubscriptionManager,
+            c.doorResolvedFcmSubscriptionManager,
+        )
+    }
+
+    @Test
     fun computeButtonHealthDisplayUseCaseIsSingleton() {
         // Singleton-scoped because the use case maintains an Eagerly-started
         // `stateIn` over a `combine(authState, buttonHealth, clock)` flow.

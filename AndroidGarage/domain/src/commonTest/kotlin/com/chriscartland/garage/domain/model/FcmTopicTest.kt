@@ -52,4 +52,32 @@ class FcmTopicTest {
         val topic2 = input.toFcmTopic()
         assertEquals(topic1.string, topic2.string, "Topic generation must be deterministic")
     }
+
+    // --- Additive resolved-on-close v2 topic ---
+    // Must stay byte-identical to the server's buildTimestampToFcmTopicV2
+    // (FcmTopic.ts) — a unilateral rename on either side breaks the resolved
+    // notification silently.
+
+    @Test
+    fun v2TopicMatchesKnownBuildTimestamp() {
+        assertEquals(
+            "door_open_v2-Sat.Mar.13.14.45.00.2021",
+            "Sat Mar 13 14:45:00 2021".toDoorResolvedFcmTopic(),
+        )
+    }
+
+    @Test
+    fun v2TopicHasDistinctPrefixFromLegacyDoorTopic() {
+        val input = "Sat Mar 13 14:45:00 2021"
+        assertTrue(input.toDoorResolvedFcmTopic().startsWith(DOOR_RESOLVED_FCM_TOPIC_PREFIX))
+        // door_open_v2- does NOT start with door_open- (next char is '_', not '-'),
+        // so prefix routing never confuses the two.
+        assertTrue(!input.toDoorResolvedFcmTopic().startsWith("door_open-"))
+        assertTrue(!input.toFcmTopic().string.startsWith(DOOR_RESOLVED_FCM_TOPIC_PREFIX))
+    }
+
+    @Test
+    fun v2TopicReplacesSpecialCharactersWithDot() {
+        assertEquals("door_open_v2-Test.Build...2024.", "Test Build @ 2024!".toDoorResolvedFcmTopic())
+    }
 }

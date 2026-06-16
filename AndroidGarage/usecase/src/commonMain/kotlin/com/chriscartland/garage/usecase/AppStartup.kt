@@ -41,6 +41,7 @@ class AppStartup(
     private val logAppEvent: LogAppEventUseCase,
     private val runStartupDiagnosticsMaintenance: RunStartupDiagnosticsMaintenanceUseCase,
     private val buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager,
+    private val doorResolvedFcmSubscriptionManager: DoorResolvedFcmSubscriptionManager,
     private val initialDoorFetchManager: InitialDoorFetchManager,
     private val externalScope: CoroutineScope,
     private val dispatchers: DispatcherProvider,
@@ -68,6 +69,10 @@ class AppStartup(
         Logger.d { "AppStartup: Starting button health FCM subscription manager" }
         buttonHealthFcmSubscriptionManager.start()
         actions.add("startButtonHealthFcmSubscription")
+
+        Logger.d { "AppStartup: Starting door resolved-on-close FCM subscription manager" }
+        doorResolvedFcmSubscriptionManager.start()
+        actions.add("startDoorResolvedFcmSubscription")
 
         Logger.d { "AppStartup: Starting initial door fetch (one-shot per process)" }
         initialDoorFetchManager.start()

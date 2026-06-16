@@ -28,6 +28,7 @@ import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.domain.repository.ButtonHealthFcmRepository
 import com.chriscartland.garage.domain.repository.ButtonHealthRepository
+import com.chriscartland.garage.domain.repository.DoorResolvedFcmRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
@@ -38,6 +39,7 @@ import com.chriscartland.garage.usecase.AppStartup
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultLiveClock
+import com.chriscartland.garage.usecase.DoorResolvedFcmSubscriptionManager
 import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
@@ -129,6 +131,31 @@ class AppStartupTest {
         )
     }
 
+    private fun createDoorResolvedFcmSubscriptionManager(scope: TestScope): DoorResolvedFcmSubscriptionManager {
+        val configRepo = object : ServerConfigRepository {
+            override val serverConfig: StateFlow<ServerConfig?> = MutableStateFlow(null)
+
+            override suspend fun fetchServerConfig(): ServerConfig? = null
+        }
+        val fcmRepo = object : DoorResolvedFcmRepository {
+            @Suppress("EmptyFunctionBlock")
+            override suspend fun subscribe(buildTimestamp: String) {
+                // no-op fake
+            }
+
+            @Suppress("EmptyFunctionBlock")
+            override suspend fun unsubscribeAll() {
+                // no-op fake
+            }
+        }
+        return DoorResolvedFcmSubscriptionManager(
+            serverConfigRepository = configRepo,
+            fcmRepository = fcmRepo,
+            scope = scope.backgroundScope,
+            dispatcher = testDispatcher,
+        )
+    }
+
     private fun createInitialDoorFetchManager(
         scope: TestScope,
         logger: FakeAppLoggerRepository,
@@ -153,6 +180,7 @@ class AppStartupTest {
         val stalenessManager = createStalenessManager(scope)
         val liveClock = createLiveClock(scope)
         val buttonHealthMgr = createButtonHealthFcmSubscriptionManager(scope)
+        val doorResolvedMgr = createDoorResolvedFcmSubscriptionManager(scope)
         val initialDoorFetchMgr = createInitialDoorFetchManager(scope, logger, counters)
         // UnconfinedTestDispatcher for the IO dispatcher so AppStartup's
         // fire-and-forget launches resolve synchronously inside the test.
@@ -170,6 +198,7 @@ class AppStartupTest {
                 prune = PruneDiagnosticsLogUseCase(logger),
             ),
             buttonHealthFcmSubscriptionManager = buttonHealthMgr,
+            doorResolvedFcmSubscriptionManager = doorResolvedMgr,
             initialDoorFetchManager = initialDoorFetchMgr,
             externalScope = scope.backgroundScope,
             dispatchers = TestDispatcherProvider(ioDispatcher),
@@ -204,6 +233,7 @@ class AppStartupTest {
                     "startCheckInStaleness",
                     "startLiveClock",
                     "startButtonHealthFcmSubscription",
+                    "startDoorResolvedFcmSubscription",
                     "startInitialDoorFetch",
                     "logFcmSubscribe",
                     "runDiagnosticsMaintenance",
