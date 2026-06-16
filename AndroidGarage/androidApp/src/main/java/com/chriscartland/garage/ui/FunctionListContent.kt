@@ -65,7 +65,7 @@ fun FunctionListContent(
     FunctionListContent(
         modifier = modifier,
         accessGranted = accessGranted,
-        testNotificationTopic = testNotificationState.topic?.string,
+        testNotificationTopic = testNotificationState.topic?.string ?: "",
         testNotificationSubscribed = testNotificationState.isSubscribed,
         onSubscribeTestNotification = resolved::subscribeTestNotification,
         onUnsubscribeTestNotification = resolved::unsubscribeTestNotification,
@@ -93,7 +93,7 @@ fun FunctionListContent(
 fun FunctionListContent(
     modifier: Modifier = Modifier,
     accessGranted: Boolean? = null,
-    testNotificationTopic: String? = null,
+    testNotificationTopic: String = "",
     testNotificationSubscribed: Boolean = false,
     onSubscribeTestNotification: () -> Unit = {},
     onUnsubscribeTestNotification: () -> Unit = {},
@@ -142,7 +142,7 @@ fun FunctionListContent(
             }
             // Test-notification sandbox (diagnostic). Hidden until the personal
             // topic is generated, so previews/screenshots are unaffected.
-            if (testNotificationTopic != null) {
+            if (testNotificationTopic.isNotEmpty()) {
                 item {
                     Text(
                         text = "Test notification topic:\n$testNotificationTopic",

@@ -5,9 +5,9 @@ status: active
 
 # Test Notification Sandbox — implementation plan
 
-**Status: IN PROGRESS** (this doc is the resume point if the session is interrupted).
+**Status: v1 COMPLETE (in PR).**
 
-**Progress:** ✅ domain + data repo + 4 UseCases + invariant/safety test (committed). ✅ Android app-built display: presenter, parser, FcmMessageHandler branch, FCMService wiring + tests (committed). ⏳ Remaining: VM wiring (+ a read-side `ObserveTestNotificationStateUseCase`, since VMs can't inject repos), DI (AppComponent + NativeComponent), Function List UI, ComponentGraphTest assertSame, VM test, validate.sh.
+**Progress:** ✅ Engine (repo invariant + 4 UseCases + safety test). ✅ App-built display (presenter, parser, handler branch, FCMService). ✅ VM + read-side `ObserveTestNotificationStateUseCase` + DI (AppComponent + NativeComponent) + Function List UI + ComponentGraphTest singleton guard + VM test. ✅ `validate.sh` green (one fix: screen Composable used `String = ""` not `String? = null` per the Konsist nullable-default ban).
 
 A diagnostic-gated, **purely additive** Android feature to prototype app-owned
 notification infrastructure (app-built notifications, dedicated channel,
