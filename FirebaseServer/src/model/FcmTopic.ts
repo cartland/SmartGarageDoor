@@ -14,7 +14,24 @@
  * limitations under the License.
  */
 
-export function buildTimestampToFcmTopic(buildTimestamp: string): string {
+function sanitizeBuildTimestamp(buildTimestamp: string): string {
   const re = /[^a-zA-Z0-9-_.~%]/g;
-  return 'door_open-' + buildTimestamp.replace(re, '.');
+  return buildTimestamp.replace(re, '.');
+}
+
+export function buildTimestampToFcmTopic(buildTimestamp: string): string {
+  return 'door_open-' + sanitizeBuildTimestamp(buildTimestamp);
+}
+
+/**
+ * Additive "v2" door topic, introduced for the resolved-on-close notification
+ * (docs/RESOLVED_NOTIFICATION_PLAN.md). Carries DATA-ONLY messages only — never
+ * a notification payload — so the new app build constructs the notification
+ * itself (dedicated channel, foreground display, tag-based replace). The legacy
+ * `door_open-` topic is left completely untouched, so old app builds are
+ * unaffected. The Android side must compute a byte-identical string; pinned by
+ * FcmTopicTest on both server and client.
+ */
+export function buildTimestampToFcmTopicV2(buildTimestamp: string): string {
+  return 'door_open_v2-' + sanitizeBuildTimestamp(buildTimestamp);
 }
