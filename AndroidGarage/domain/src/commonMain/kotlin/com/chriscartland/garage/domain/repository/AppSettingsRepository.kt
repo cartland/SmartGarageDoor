@@ -60,4 +60,17 @@ interface AppSettingsRepository {
      * Settings → Developer → "Nav rail top padding". Default 0.
      */
     val navigationRailTopPaddingDp: Setting<Int>
+
+    // --- Test-notification sandbox (diagnostic feature) ---
+    // Three values the TestNotificationRepository reconciles to. Kept separate
+    // from fcmDoorTopic so the sandbox shares no state with production FCM.
+
+    /** The current personal test topic (`testNotification-<uuid>`); `""` until generated. */
+    val testNotificationCurrentTopic: Setting<String>
+
+    /** User intent: whether they want to be subscribed to the test topic. */
+    val testNotificationWantSubscribed: Setting<Boolean>
+
+    /** Authoritative record of the topic FCM is actually subscribed to; `""` = none. */
+    val testNotificationSubscribedTopic: Setting<String>
 }

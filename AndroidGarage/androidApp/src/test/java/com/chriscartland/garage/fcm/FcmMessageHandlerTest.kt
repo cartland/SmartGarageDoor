@@ -40,7 +40,13 @@ class FcmMessageHandlerTest {
     private val receiveFcmDoorEvent = RecordingReceiveFcmDoorEventUseCase()
     private val buttonHealthRepo = RecordingButtonHealthRepository()
     private val applyButtonHealthFcm = ApplyButtonHealthFcmUseCase(buttonHealthRepo)
-    private val handler = FcmMessageHandler(receiveFcmDoorEvent, applyButtonHealthFcm)
+    private val testNotifications = mutableListOf<Map<String, String>>()
+    private val handler =
+        FcmMessageHandler(
+            receiveFcmDoorEvent,
+            applyButtonHealthFcm,
+            showTestNotification = { testNotifications.add(it) },
+        )
 
     private fun doorPayload(
         type: String? = "CLOSED",
@@ -151,6 +157,21 @@ class FcmMessageHandlerTest {
 
             assertFalse(result)
             assertNull(buttonHealthRepo.lastApplied)
+        }
+
+    // --- Test-notification sandbox branch (diagnostic; isolated from production) ---
+
+    @Test
+    fun testNotificationTopic_routesToPresenter_notDoorOrButtonHealth() =
+        runTest {
+            val data = mapOf("title" to "Hi", "body" to "There", "tag" to "t1")
+            val result = handler.handleMessage(topic = "testNotification-abc123", data = data)
+
+            assertTrue(result)
+            assertEquals(1, testNotifications.size)
+            assertEquals(data, testNotifications.single())
+            assertNull(receiveFcmDoorEvent.lastEvent) // Door branch NOT invoked.
+            assertNull(buttonHealthRepo.lastApplied) // Button-health branch NOT invoked.
         }
 }
 

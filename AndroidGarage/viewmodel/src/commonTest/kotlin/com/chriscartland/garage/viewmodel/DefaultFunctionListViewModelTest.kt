@@ -37,7 +37,9 @@ import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.FakeFeatureAllowlistRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import com.chriscartland.garage.testcommon.FakeSnoozeRepository
+import com.chriscartland.garage.testcommon.FakeTestNotificationRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
+import com.chriscartland.garage.usecase.ChangeTestNotificationTopicUseCase
 import com.chriscartland.garage.usecase.ClearDiagnosticsUseCase
 import com.chriscartland.garage.usecase.DefaultRegisterFcmUseCase
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
@@ -45,13 +47,17 @@ import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
+import com.chriscartland.garage.usecase.GetTestNotificationTopicUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
+import com.chriscartland.garage.usecase.ObserveTestNotificationStateUseCase
 import com.chriscartland.garage.usecase.PruneDiagnosticsLogUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
+import com.chriscartland.garage.usecase.SubscribeTestNotificationUseCase
+import com.chriscartland.garage.usecase.UnsubscribeTestNotificationUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -102,6 +108,7 @@ class DefaultFunctionListViewModelTest {
 
     private fun createViewModel(authState: AuthState = AuthState.Unauthenticated): DefaultFunctionListViewModel {
         authRepository.setAuthState(authState)
+        val testNotif = FakeTestNotificationRepository()
         return DefaultFunctionListViewModel(
             pushRemoteButtonUseCase = PushRemoteButtonUseCase(
                 authRepository,
@@ -129,6 +136,11 @@ class DefaultFunctionListViewModelTest {
             pruneDiagnosticsLogUseCase = PruneDiagnosticsLogUseCase(appLoggerRepository),
             registerFcmUseCase = DefaultRegisterFcmUseCase(doorRepository, doorFcmRepository),
             deregisterFcmUseCase = DeregisterFcmUseCase(doorFcmRepository),
+            getTestNotificationTopicUseCase = GetTestNotificationTopicUseCase(testNotif),
+            changeTestNotificationTopicUseCase = ChangeTestNotificationTopicUseCase(testNotif),
+            subscribeTestNotificationUseCase = SubscribeTestNotificationUseCase(testNotif),
+            unsubscribeTestNotificationUseCase = UnsubscribeTestNotificationUseCase(testNotif),
+            observeTestNotificationStateUseCase = ObserveTestNotificationStateUseCase(testNotif),
             dispatchers = TestDispatcherProvider(testDispatcher),
             appVersion = "test",
         )

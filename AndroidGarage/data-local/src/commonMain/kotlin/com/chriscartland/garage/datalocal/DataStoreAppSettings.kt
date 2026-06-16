@@ -63,6 +63,12 @@ class DataStoreAppSettings(
             "NAVIGATION_RAIL_TOP_PADDING_DP",
             NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
         )
+    override val testNotificationCurrentTopic: Setting<String> =
+        DataStoreStringSetting(dataStore, "TEST_NOTIFICATION_CURRENT_TOPIC", "")
+    override val testNotificationWantSubscribed: Setting<Boolean> =
+        DataStoreBooleanSetting(dataStore, "TEST_NOTIFICATION_WANT_SUBSCRIBED", false)
+    override val testNotificationSubscribedTopic: Setting<String> =
+        DataStoreStringSetting(dataStore, "TEST_NOTIFICATION_SUBSCRIBED_TOPIC", "")
 }
 
 private class DataStoreStringSetting(

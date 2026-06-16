@@ -31,7 +31,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -57,10 +59,20 @@ fun FunctionListContent(
         onTokenReceived = { token -> resolved.signInWithGoogle(token) },
     )
     val copyAuthToken = rememberAuthTokenCopier()
+    val testNotificationState by resolved.testNotificationState.collectAsState()
+    val clipboard = LocalClipboardManager.current
 
     FunctionListContent(
         modifier = modifier,
         accessGranted = accessGranted,
+        testNotificationTopic = testNotificationState.topic?.string ?: "",
+        testNotificationSubscribed = testNotificationState.isSubscribed,
+        onSubscribeTestNotification = resolved::subscribeTestNotification,
+        onUnsubscribeTestNotification = resolved::unsubscribeTestNotification,
+        onChangeTestNotificationTopic = resolved::changeTestNotificationTopic,
+        onCopyTestNotificationTopic = {
+            testNotificationState.topic?.let { clipboard.setText(AnnotatedString(it.string)) }
+        },
         onOpenOrCloseDoor = resolved::openOrCloseDoor,
         onRefreshDoorStatus = resolved::refreshDoorStatus,
         onRefreshDoorHistory = resolved::refreshDoorHistory,
@@ -81,6 +93,12 @@ fun FunctionListContent(
 fun FunctionListContent(
     modifier: Modifier = Modifier,
     accessGranted: Boolean? = null,
+    testNotificationTopic: String = "",
+    testNotificationSubscribed: Boolean = false,
+    onSubscribeTestNotification: () -> Unit = {},
+    onUnsubscribeTestNotification: () -> Unit = {},
+    onChangeTestNotificationTopic: () -> Unit = {},
+    onCopyTestNotificationTopic: () -> Unit = {},
     onOpenOrCloseDoor: () -> Unit = {},
     onRefreshDoorStatus: () -> Unit = {},
     onRefreshDoorHistory: () -> Unit = {},
@@ -121,6 +139,35 @@ fun FunctionListContent(
             // the verification property the user asked for.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 item { FunctionButton(stringResource(R.string.function_list_copy_auth_token), onCopyAuthToken) }
+            }
+            // Test-notification sandbox (diagnostic). Hidden until the personal
+            // topic is generated, so previews/screenshots are unaffected.
+            if (testNotificationTopic.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "Test notification topic:\n$testNotificationTopic",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                    )
+                }
+                item { FunctionButton("Copy test topic", onCopyTestNotificationTopic) }
+                item {
+                    FunctionButton(
+                        label = if (testNotificationSubscribed) {
+                            "Unsubscribe test notifications"
+                        } else {
+                            "Subscribe test notifications"
+                        },
+                        onClick = if (testNotificationSubscribed) {
+                            onUnsubscribeTestNotification
+                        } else {
+                            onSubscribeTestNotification
+                        },
+                    )
+                }
+                item { FunctionButton("Change test topic", onChangeTestNotificationTopic) }
             }
         }
     } else {
