@@ -18,7 +18,10 @@
 #   scripts/send-test-notification.sh <topic> [options]
 #
 # Required:
-#   <topic>          a testNotification-* topic copied from the app
+#   <topic>          a testNotification-<id> topic.
+#                    How to get it: open the app signed in with an allowlisted
+#                    account, go to the Function List screen, and tap
+#                    "Copy test topic" under the Test Notification Sandbox section.
 #
 # Options:
 #   --title TEXT     notification title   (default: "Test notification")
@@ -50,8 +53,9 @@ TAG="test"
 TOPIC=""
 
 usage() {
-    # Print the leading comment block (lines starting with '#') as help.
-    sed -n '3,46p' "$0" | sed 's/^#\{0,1\} \{0,1\}//'
+    # Print the leading comment block (every comment line after the shebang,
+    # until the first non-comment line) as help. Robust to header edits.
+    awk 'NR==1 { next } /^#/ { sub(/^#[[:space:]]?/, ""); print; next } { exit }' "$0"
 }
 
 # Escape a string for embedding inside a JSON double-quoted value. Covers the
@@ -85,7 +89,9 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -z "$TOPIC" ]; then
-    echo "Error: <topic> is required." >&2
+    echo "Error: a <topic> is required." >&2
+    echo "  Get it from the app: sign in with an allowlisted account -> Function List" >&2
+    echo "  -> Test Notification Sandbox -> 'Copy test topic'. Pass it as the first arg." >&2
     echo >&2
     usage >&2
     exit 1
