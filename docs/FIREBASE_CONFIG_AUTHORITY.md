@@ -85,6 +85,25 @@ jq '.body | {buildTimestamp, remoteButtonBuildTimestamp}' serverConfig-backup-*.
 
 If `buildTimestamp` is present and non-empty, the backup is good.
 
+### Store the backup securely
+
+The config `body` contains **secrets** (e.g. `remoteButtonPushKey`) and the
+allowlist emails — so the backup file must be treated as a secret:
+
+- **Outside the repo, locked down.** `mkdir -p ~/garage-config-backups && chmod 700`
+  it; `chmod 600` the file. Keeping it outside the working tree means it can never be
+  accidentally `git add`-ed. Don't sync that folder anywhere shared.
+- **Keep the read key out of shell history.** Read it into a variable instead of
+  pasting it on the `curl` line. **zsh** (this machine's shell) prompt syntax differs
+  from bash — use `read -rs "RK?Read key: "` (the prompt goes *inside* the name;
+  bash's `read -rsp "Read key: " RK` errors in zsh with `read: -p: no coprocess`),
+  then `curl -H "X-ServerConfigKey: $RK" …` and `unset RK` after.
+- **Encrypt at rest (recommended).** `gpg --symmetric --cipher-algo AES256 <file>`
+  → keep only the `.gpg`, `rm` the plaintext, and store the passphrase in your
+  password manager. Recover with `gpg --decrypt <file>.gpg > /tmp/restore.json`.
+- **Never paste the file contents into a chat / PR / issue.** To verify a backup
+  with someone, share only a non-secret field like `buildTimestamp`.
+
 ### Restore (re-send the complete known-good body)
 
 The whole-doc replace that makes a *partial* POST dangerous is exactly what makes

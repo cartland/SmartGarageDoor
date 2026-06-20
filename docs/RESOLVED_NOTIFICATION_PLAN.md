@@ -1,18 +1,66 @@
 ---
 category: plan
 status: active
-last_verified: 2026-06-15
+last_verified: 2026-06-20
 ---
 
 # Resolved-on-close notification — Phase 1 (additive) implementation plan
 
-**Status: PLAN (not yet built).** Scope confirmed by the user 2026-06-15:
-**Phase 1 only** — the additive resolved-on-close notification. The app-built
-*warning* (Phase 2) is deliberately deferred.
+**Status: Phase 1 BUILT + MERGED, but DEPLOY HELD / PARKED (2026-06-20).**
+Code shipped to `main` — server `server/31` (#903) + Android `2.19.0` (#904) +
+config backup recipe (#905) — and is fully CLI-validated, but **nothing is live**:
+`server/31` and `2.19.0` are unreleased and the off-by-default
+`resolvedOnCloseEnabled` flag has never been flipped. The user **parked** it (did
+not deploy) on a deliberate product call — see "Why this is parked" below. The
+app-built *warning* (Phase 2) remains deferred.
+
+> ⚠️ **Read "Phase 1 as-shipped — known limitations" before deploying or
+> resuming.** Phase 1 does **not** deliver the clean inline warning→resolved
+> replacement; it adds a resolved notification that **coexists** with the existing
+> OS-tray warning. That, plus the parked decision, is the load-bearing context.
 
 This plan is the durable record of a multi-agent design audit (5 parallel agents:
 topology, delivery-matrix, subscription-migration, server-send-path, deploy-ordering).
 Read it before touching any file below.
+
+## Phase 1 as-shipped — known limitations (review before deploying)
+
+1. **No inline replace — two coexisting notifications.** The production warning is
+   still the server's **OS-tray** notification (notification-payload on `door_open-`,
+   with FCM's own `(tag,id)`). The resolved is **app-built** (`tag="garage_door"`,
+   id `7001`, channel `garage_door`). Different identities → the resolved **does not
+   replace the warning**; when the door closes you see **both** — a lingering
+   "Garage door open" warning *and* a separate "Resolved" card, briefly
+   contradictory. The clean "the warning *becomes* resolved" experience (validated in
+   the sandbox, where both were app-built) requires **Phase 2** (app-built warning on
+   the same tag). The inline-replace described in the "design goal" of
+   `NOTIFICATION_RELIABILITY.md` is the **Phase 2** behavior, not Phase 1's.
+2. **Resolved is a HIGH-importance heads-up.** Channel `garage_door` is
+   `IMPORTANCE_HIGH` (so it's ready for Phase 2's warning), so on Android 8+ the
+   resolved heads-up/buzzes like the warning — arguably too loud for "good news."
+   Decide: a quieter dedicated channel for the resolved, or accept the buzz.
+3. **Copy says "open" for non-Open warned states.** A warning can fire for
+   `OpeningTooLong` or a sensor-error state; the body still reads "It was open for X,"
+   and the duration anchors on the *promotion* time (~60s late) for the
+   `Opening→OpeningTooLong` case. Branch the copy on the marker's stored event type if
+   precision matters.
+4. **End-to-end is unproven.** Everything is CLI-green and the *display mechanics*
+   were device-validated via the sandbox, but the full chain (server fires on close →
+   released app's v2 subscription receives → presenter renders) has never run. The
+   flag flip **is** that test; there is no fixture short of it.
+
+## Why this is parked (the product call, 2026-06-20)
+
+The existing open-door warning has worked well for **months/years** — it is not
+broken, and the resolved is an **additive nice-to-have, not a fix**. So the bar is
+"is it worth disturbing a proven product?", and Phase 1 alone does not clearly clear
+it: it adds a second card (limitation #1) that may *detract*, and the clean version
+(Phase 2) touches the **primary push-data path** — the part you most want to protect.
+With no problem to fix and no urgency, the decision was **restraint**: leave the
+merged code dormant (zero cost, revertible-by-never-enabling) and make a deliberate
+Phase-2-or-not decision later. If the goal is to *strengthen* notifications, the
+better-aligned, lower-risk move is **R6** (make the existing warning show in the
+foreground) — hardening what works, not adding to it.
 
 ## Goal
 

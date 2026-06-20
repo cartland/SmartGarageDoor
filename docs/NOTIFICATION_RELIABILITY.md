@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-06-15
+last_verified: 2026-06-20
 ---
 
 # Notification & push-data reliability
@@ -58,6 +58,36 @@ where they affect *delivery/surfacing* reliability.
   `OldDataFCMTest.ts`, `OldDataFCMFakeTest.ts`, `PubsubOpenDoorsJobTest.ts`.
 
 ---
+
+## Failure-mode posture: miss vs. duplicate (the design asymmetry)
+
+The two failure modes are **not** equal in stakes, and the right bias **flips**
+between the two notification types. This is the principle behind why the warning
+and the resolved are built differently.
+
+- **Open-door warning = safety alert → bias toward *sending*.** A silent miss means
+  "your garage is open and you don't know" (theft / weather / safety) — far worse
+  than a duplicate. That's why R5 changed it from at-most-once to **at-least-once
+  with retry**. *But* over-notifying has a tail risk: alert fatigue → the user mutes
+  the channel → then misses a *real* future warning. So the target is "deliver
+  reliably, then dedup/collapse to ~one per episode," not spam.
+- **Resolved = reassurance → bias toward *not firing when unsure*.** Both outcomes
+  are low-stakes (the door is safely closed either way), but a **false/spurious
+  resolved** ("open for 9 hours" when nothing happened) is worse than a missed one,
+  because it **erodes trust in the warning that actually matters**. Hence Phase 1's
+  heavy "only when certain" guards: fire only if a warning was sent, consume the
+  marker on close (single-use), 7-day stale-marker cap.
+- **They're coupled through trust.** Notifications are a trust channel; cry wolf and
+  the user silences *everything*, including the safety-critical warning. So the
+  correctness of the *informational* resolved protects the reliability of the
+  *critical* warning.
+- **Push data** (silent state-sync, not user-visible): a miss → stale door state.
+  Posture: **fail *visible*** — the staleness banner flags it rather than silently
+  showing wrong state (auto-recovery is R1, still manual). Duplicates are harmless
+  (idempotent upsert; only wasted wake-ups — R3/battery).
+
+Net rule of thumb: **warning** accepts a rare duplicate to never miss; **resolved**
+accepts a rare miss to never show a false one.
 
 ## R5 — open-door alert is delivered at most once (worked example)
 
@@ -228,6 +258,15 @@ the open-door gating are already solid (see "What's already solid"). All four ar
 ---
 
 ## Resolved-on-close notification — design goal (validated in the sandbox)
+
+> **Status (2026-06-20): Phase 1 BUILT + MERGED, deploy PARKED.** The additive
+> Phase 1 (resolved on its own `door_open_v2-` topic) shipped to `main` (server
+> `server/31` #903 + Android `2.19.0` #904) but is **unreleased and the flag is
+> never flipped** — nothing is live. **The inline-replace described below is the
+> Phase 2 goal, NOT what Phase 1 delivers.** In Phase 1 the production warning is
+> still OS-tray (different `(tag,id)`), so the resolved **coexists** with it (two
+> cards). The clean replacement needs Phase 2 (app-built warning). Limitations +
+> the parked product decision: [`RESOLVED_NOTIFICATION_PLAN.md`](RESOLVED_NOTIFICATION_PLAN.md).
 
 When the door **closes** after a "too long open" warning was sent, the app shows
 a **"Resolved"** notification. Validated end-to-end on a real released build

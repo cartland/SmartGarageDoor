@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-06-12
+last_verified: 2026-06-20
 ---
 
 # Release & Deployment Strategy
@@ -192,6 +192,19 @@ mistakes begin.
   channel (an internal/test track, a preview surface). Promotion to the production,
   user-facing channel MUST be a deliberate human action. This is the app analog of the
   server's production-anchor rule.
+- **A1.1 — A pre-production channel is a rollout stage, NOT a safety boundary.** An app
+  builds *one* artifact and **promotes the same artifact** through channels
+  (internal → alpha → beta → production), so code shipped to a test track *will* run on
+  production users the moment it's promoted. Never justify shipping risky or unproven code
+  with "it's only on the internal track" — that's a rollout choice, not isolation. Feature
+  safety MUST come from the **code itself**: additive + dormant-by-default + flag-gated,
+  with a server-side kill switch for instant revert. The meaningful isolation is **app
+  version** — builds *without* the new code are the real boundary (e.g. they never
+  subscribe to a new topic, so a server-side flag flip can't reach them). The track
+  controls *who has the capable build*, not *whether the feature is safe*. (Learned
+  2026-06-20 reasoning about the resolved-on-close flag: the original "internal-only ⇒
+  production-safe" framing was wrong; what actually held was additive + dormant + flagged +
+  version-gated.)
 - **A2 — Release notes are mandatory.** A release MUST carry user-facing notes for the
   version being shipped; releasing without them requires an explicit, grounded override.
 - **A3 — Monotonic, tag-derived versioning.** The user-visible version / build identifier
