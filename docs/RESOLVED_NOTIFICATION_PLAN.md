@@ -62,8 +62,10 @@ Read it before touching any file below.
 2. **~~Resolved out-shouts the warning~~ — FIXED in 2.20.0.** *Original: channel
    `garage_door` is `IMPORTANCE_HIGH`, so the resolved heads-up/buzzed while the
    warning (Miscellaneous/DEFAULT) did not — backwards alerting.* M4 resolved this by
-   moving the warning onto the same HIGH "Garage door" channel, so warning and
-   resolved now alert identically.
+   moving the warning onto the same HIGH "Garage door" channel, so the warning
+   now heads-up/buzzes like the resolved. (When the resolved *replaces* an
+   already-showing foreground warning in the shared slot, that update is
+   intentionally silent — `setOnlyAlertOnce` — so the all-clear doesn't re-buzz.)
 3. **Copy says "open" for non-Open warned states.** A warning can fire for
    `OpeningTooLong` or a sensor-error state; the body still reads "It was open for X,"
    and the duration anchors on the *promotion* time (~60s late) for the

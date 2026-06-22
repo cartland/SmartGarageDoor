@@ -44,8 +44,10 @@ import java.util.TimeZone
  *    topic, kind `open_door_resolved`).
  *
  * Both post to the same "Garage door" channel (HIGH importance) and the same
- * (tag, id), so they have identical sound / heads-up behavior and the resolved
- * replaces the warning in place. The channel is created eagerly at startup
+ * (tag, id) slot. They therefore have the same alerting *potential* (heads-up +
+ * sound); note `setOnlyAlertOnce(true)` makes the resolved's in-place
+ * replacement of an already-showing warning a silent update — intended, so the
+ * all-clear doesn't re-buzz. The channel is created eagerly at startup
  * ([createChannel]) so the manifest `default_notification_channel_id` has a
  * real channel for the OS-rendered background warning to land on (M4) — without
  * it, background warnings fall back to the default "Miscellaneous" channel +

@@ -17,12 +17,21 @@
 
 package com.chriscartland.garage.domain.model
 
+/**
+ * Topic prefix for the legacy door topic — carries BOTH the live state-sync
+ * data messages AND the open-door warning (notification-payload). Distinct from
+ * [DOOR_RESOLVED_FCM_TOPIC_PREFIX]: `door_open_v2-` does NOT start with
+ * `door_open-` (the next char is `_`, not `-`), so the two never collide in
+ * prefix routing. Pinned by FcmTopicTest / DoorFcmModelTest on both sides.
+ */
+const val DOOR_FCM_TOPIC_PREFIX = "door_open-"
+
 fun String.toFcmTopic(): DoorFcmTopic = DoorFcmTopic(toDoorOpenFcmTopic())
 
 private fun String.toDoorOpenFcmTopic(): String {
     val re = Regex("[^a-zA-Z0-9-_.~%]")
     val filtered = re.replace(this, ".")
-    return "door_open-$filtered"
+    return "$DOOR_FCM_TOPIC_PREFIX$filtered"
 }
 
 /** Topic prefix for the additive resolved-on-close door notification ("v2"). */
