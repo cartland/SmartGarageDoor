@@ -1,7 +1,7 @@
 ---
 category: plan
 status: active
-last_verified: 2026-06-21
+last_verified: 2026-06-22
 ---
 
 # Resolved-on-close notification — Phase 1 (additive) implementation plan
@@ -304,3 +304,18 @@ data-only app-built (fixes R6 foreground-drop + M4 channel); true inline
 warning→resolved replace. Cancel the app-built warning on the always-on
 state-sync close, NOT on the flag-gated resolved, so a revert never strands a
 posted notification. Full rationale in this file's git history and the audit.
+
+**Decision reaffirmed 2026-06-22 — Phase 2 stays parked; the end state is "two
+*consistent* cards."** After R6+M4 shipped (`2.20.0`) and the open/resolved flow
+was validated on-device, the marginal benefit of Phase 2 was re-scoped precisely:
+the clean single-card replace **already works** for the *foreground* warning (R6
+renders it app-built into the shared slot) and was proven in the sandbox; Phase 2
+only extends that to the *backgrounded* warning. That narrow gain is **not worth**
+converting the OS-rendered (rock-solid, app-free) warning to a data-only message
+the app must wake to render (subject to the same high-priority FCM throttling that
+visibly dropped rapid test sends) **and** reworking the primary state-sync path.
+The settled end state and the additive remaining steps (tap-to-open `2.20.1`,
+optional resolved deploy, optional R1) are in
+[`NOTIFICATION_RELIABILITY.md`](NOTIFICATION_RELIABILITY.md) § "Recommended final
+architecture." The on-device testing also surfaced + fixed the **tap-to-open**
+gap (app-built notifications had no `contentIntent`) in `2.20.1`.

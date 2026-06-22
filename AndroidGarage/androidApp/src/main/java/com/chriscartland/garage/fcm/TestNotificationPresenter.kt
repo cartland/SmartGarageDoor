@@ -20,13 +20,16 @@ package com.chriscartland.garage.fcm
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import co.touchlab.kermit.Logger
+import com.chriscartland.garage.MainActivity
 
 /**
  * Renders test-notification-sandbox messages as **app-owned** notifications.
@@ -62,9 +65,27 @@ class TestNotificationPresenter(
                 .setAutoCancel(true)
                 .setOnlyAlertOnce(true)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(launchAppIntent())
                 .build()
         // Same (tag, id) replaces the existing notification in place.
         NotificationManagerCompat.from(context).notify(content.tag, NOTIFICATION_ID, notification)
+    }
+
+    /**
+     * Tap target: open the app. App-built notifications get no tap action by
+     * default (FCM only auto-attaches a launch intent to OS-rendered
+     * notification-payload messages). FLAG_IMMUTABLE is mandatory at target SDK.
+     */
+    private fun launchAppIntent(): PendingIntent {
+        val launch = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        return PendingIntent.getActivity(
+            context,
+            0,
+            launch,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
     }
 
     private fun ensureChannel() {
