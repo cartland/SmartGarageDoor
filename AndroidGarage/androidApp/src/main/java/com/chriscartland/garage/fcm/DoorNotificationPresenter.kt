@@ -27,33 +27,56 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import co.touchlab.kermit.Logger
+import com.chriscartland.garage.R
 import com.chriscartland.garage.data.DoorResolvedPayload
 import java.util.Locale
 import java.util.TimeZone
 
 /**
- * Renders the additive resolved-on-close message (`door_open_v2-*`, kind
- * `open_door_resolved`) as an **app-owned** notification: a dedicated
- * production channel, `tag`-based inline replacement, and uniform
- * foreground/background rendering (a data message always reaches
- * `onMessageReceived`). Generalizes the proven `TestNotificationPresenter`.
+ * Renders the garage-door alerts as **app-owned** notifications on a single
+ * dedicated channel + (tag, id) slot:
+ *  - [showWarning] — the open-door "too long" WARNING when it arrives in the
+ *    foreground (R6). The server sends the warning as a notification-payload
+ *    message, which Android only renders itself when the app is backgrounded;
+ *    in the foreground `FCMService.onMessageReceived` receives it and must
+ *    render it, or it is silently dropped.
+ *  - [show] — the additive resolved-on-close message (data-only, `door_open_v2-`
+ *    topic, kind `open_door_resolved`).
  *
- * This is flag-agnostic: it renders whatever resolved payload arrives on the v2
- * topic. The server-side flag (`resolvedOnCloseEnabled`) decides whether the
- * server sends anything at all — so an instant revert is purely server-side,
- * with no app change. See docs/RESOLVED_NOTIFICATION_PLAN.md.
+ * Both post to the same "Garage door" channel (HIGH importance) and the same
+ * (tag, id) slot. They therefore have the same alerting *potential* (heads-up +
+ * sound); note `setOnlyAlertOnce(true)` makes the resolved's in-place
+ * replacement of an already-showing warning a silent update — intended, so the
+ * all-clear doesn't re-buzz. The channel is created eagerly at startup
+ * ([createChannel]) so the manifest `default_notification_channel_id` has a
+ * real channel for the OS-rendered background warning to land on (M4) — without
+ * it, background warnings fall back to the default "Miscellaneous" channel +
+ * launcher icon. Generalizes the proven `TestNotificationPresenter`.
+ *
+ * The resolved path is flag-agnostic: it renders whatever resolved payload
+ * arrives on the v2 topic. The server-side flag (`resolvedOnCloseEnabled`)
+ * decides whether the server sends anything at all. See
+ * docs/RESOLVED_NOTIFICATION_PLAN.md.
  */
 class DoorNotificationPresenter(
     private val context: Context,
 ) {
+    /**
+     * Render the open-door warning (R6). Title/body come straight from the
+     * server's notification payload (already human-readable, e.g. "Garage door
+     * open" / "Open for more than 16 minutes").
+     */
+    fun showWarning(
+        title: String,
+        body: String,
+    ) {
+        ensureChannel()
+        Logger.d { "DoorNotification: posting warning tag=$TAG title=$title" }
+        post(title = title, body = body)
+    }
+
+    /** Render the additive resolved-on-close message. */
     fun show(data: Map<String, String>) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            Logger.w { "DoorNotification: POST_NOTIFICATIONS not granted; skipping notify" }
-            return
-        }
         val content = DoorResolvedPayload.parse(data) ?: run {
             Logger.d { "DoorNotification: payload not a resolved-on-close message; ignoring" }
             return
@@ -66,43 +89,68 @@ class DoorNotificationPresenter(
             locale = Locale.getDefault(),
         )
         Logger.d { "DoorNotification: posting resolved tag=$TAG body=$body" }
+        post(title = DoorResolvedNotificationText.TITLE, body = body)
+    }
+
+    private fun post(
+        title: String,
+        body: String,
+    ) {
+        // The permission guard must live in the same method as notify() — lint's
+        // MissingPermission check does not follow it across a helper call.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            Logger.w { "DoorNotification: POST_NOTIFICATIONS not granted; skipping notify" }
+            return
+        }
         val notification =
             NotificationCompat
-                .Builder(context, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setContentTitle(DoorResolvedNotificationText.TITLE)
+                .Builder(context, context.getString(R.string.door_notification_channel_id))
+                .setSmallIcon(R.drawable.ic_notification_garage)
+                .setContentTitle(title)
                 .setContentText(body)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(body))
                 .setAutoCancel(true)
                 .setOnlyAlertOnce(true)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .build()
-        // Same (tag, id) replaces the existing notification in place — the slot a
-        // future app-built warning (Phase 2) will share for inline replacement.
+        // Same (tag, id) replaces the existing door notification in place — the
+        // single slot shared by the warning and its resolution.
         NotificationManagerCompat.from(context).notify(TAG, NOTIFICATION_ID, notification)
     }
 
-    private fun ensureChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel =
-                NotificationChannel(
-                    CHANNEL_ID,
-                    "Garage door",
-                    NotificationManager.IMPORTANCE_HIGH,
-                ).apply {
-                    description = "Garage door open-too-long alerts and their resolution."
-                }
-            context
-                .getSystemService(NotificationManager::class.java)
-                ?.createNotificationChannel(channel)
-        }
-    }
+    private fun ensureChannel() = createChannel(context)
 
     companion object {
-        const val CHANNEL_ID = "garage_door"
-
-        /** One door-alert slot; a future warning shares this (tag, id) for inline replace. */
+        /** One door-alert slot; the warning and its resolution share this (tag, id) for inline replace. */
         const val TAG = "garage_door"
         const val NOTIFICATION_ID = 7001
+
+        /**
+         * Create the app-owned "Garage door" channel (HIGH importance).
+         *
+         * Called eagerly at startup (GarageApplication.onCreate) so the manifest
+         * `default_notification_channel_id` has a real channel for the
+         * OS-rendered background open-door warning to land on (M4), and so the
+         * foreground warning + resolved render on it too. Creating a channel
+         * that already exists is a no-op, so this is safe to call repeatedly.
+         */
+        fun createChannel(context: Context) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val channel =
+                    NotificationChannel(
+                        context.getString(R.string.door_notification_channel_id),
+                        "Garage door",
+                        NotificationManager.IMPORTANCE_HIGH,
+                    ).apply {
+                        description = "Garage door open-too-long alerts and their resolution."
+                    }
+                context
+                    .getSystemService(NotificationManager::class.java)
+                    ?.createNotificationChannel(channel)
+            }
+        }
     }
 }

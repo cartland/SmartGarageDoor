@@ -55,6 +55,22 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
+        <!--
+          FCM: render OS-shown (background) open-door warnings on the app-owned
+          "Garage door" channel + garage icon, instead of FCM's default
+          "Miscellaneous" channel + launcher icon (M4). The channel id is the
+          shared @string/door_notification_channel_id (also used by
+          DoorNotificationPresenter); the channel itself is created eagerly at
+          startup (GarageApplication.onCreate) so it exists before any
+          background warning arrives.
+        -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="@string/door_notification_channel_id" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification_garage" />
     </application>
 
 </manifest>

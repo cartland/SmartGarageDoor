@@ -22,6 +22,7 @@ import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import com.chriscartland.garage.di.AppComponent
 import com.chriscartland.garage.di.create
+import com.chriscartland.garage.fcm.DoorNotificationPresenter
 
 class GarageApplication : Application() {
     /** kotlin-inject component for dependency injection. */
@@ -36,6 +37,10 @@ class GarageApplication : Application() {
         // DataStore reads are local file I/O — typically <10ms.
         // This ensures card expand/collapse state is correct on first render.
         component
+        // Create the app-owned "Garage door" notification channel eagerly so the
+        // manifest default_notification_channel_id has a real channel for
+        // OS-rendered background open-door warnings to land on (M4). Idempotent.
+        DoorNotificationPresenter.createChannel(this)
     }
 
     /**

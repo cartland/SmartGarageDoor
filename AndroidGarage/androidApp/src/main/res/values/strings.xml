@@ -237,4 +237,12 @@
     <string name="notification_justification_attempt_4">Android might be blocking requests because the permission was denied multiple times.</string>
     <!-- Appended at attempt count 5+. %1$d is the attempt count. -->
     <string name="notification_justification_attempt_5">You have clicked the button %1$d times.</string>
+
+    <!-- App-owned notification channel id for garage-door alerts (the open-door
+         warning and its resolution). SINGLE SOURCE: referenced both by the
+         FCM default_notification_channel_id meta-data in AndroidManifest.xml
+         (so OS-rendered background warnings land on this channel) and by
+         DoorNotificationPresenter (foreground warning + resolved). Keep these
+         in sync via this resource — do not hardcode the literal again. -->
+    <string name="door_notification_channel_id" translatable="false">garage_door</string>
 </resources>
