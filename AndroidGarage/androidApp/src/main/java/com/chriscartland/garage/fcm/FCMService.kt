@@ -69,8 +69,20 @@ class FCMService : FirebaseMessagingService() {
             }
         }
 
-        remoteMessage.notification?.let {
-            Logger.d { "Message Notification Body: ${it.body}" }
+        // R6: the open-door WARNING is a notification-payload message. Android
+        // renders it itself when the app is backgrounded (this callback is not
+        // invoked then), but in the FOREGROUND this callback fires and the OS
+        // does NOT display it — so render it here on the app-owned "Garage door"
+        // channel/slot. Without this the warning is silently dropped whenever the
+        // app is in the foreground. Only the warning carries a notification block
+        // (state-sync, button-health, resolved are all data-only), so this never
+        // double-renders with an OS-shown notification.
+        remoteMessage.notification?.let { notification ->
+            Logger.d { "Foreground notification: ${notification.title} / ${notification.body}" }
+            doorNotificationPresenter.showWarning(
+                title = notification.title.orEmpty(),
+                body = notification.body.orEmpty(),
+            )
         }
     }
 

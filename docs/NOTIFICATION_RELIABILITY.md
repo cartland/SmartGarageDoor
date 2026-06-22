@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-06-20
+last_verified: 2026-06-21
 ---
 
 # Notification & push-data reliability
@@ -33,10 +33,10 @@ where they affect *delivery/surfacing* reliability.
 | ID | Sev | Feature | Finding | Source |
 |----|-----|---------|---------|--------|
 | **R5** ✅ | High | Open-door notif | **Deployed in `server/30`.** Was at-most-once: a single dropped/failed send was never retried (dedup marker saved before send; send error swallowed). Now: send-before-save, so a failed send leaves no marker and the next 5-min tick retries. | `FirebaseServer/src/controller/fcm/OldDataFCM.ts` |
-| **R6** | Med | Open-door notif | Foreground drop: a notification-payload message that arrives while the app is foregrounded is only logged, never shown. | `AndroidGarage/androidApp/.../fcm/FCMService.kt:62-64` |
+| **R6** ✅ | Med | Open-door notif | **Fixed in Android `2.20.0` (merged, not yet released).** Was a foreground drop: a notification-payload warning arriving while the app was foregrounded was only logged. Now `FCMService.onMessageReceived` renders it via `DoorNotificationPresenter.showWarning(...)` on the app-owned "Garage door" channel/slot. | `AndroidGarage/androidApp/.../fcm/FCMService.kt` (notification block) |
 | **R1** | Med | Push data | Missed-push recovery is manual: staleness is auto-detected but only raises a banner; nothing auto-refetches. | `AndroidGarage/usecase/.../CheckInStalenessManager.kt:54-104` |
 | **R2** | Med | Push data | Runtime topic change unhandled: `FcmRegistrationManager.restart()` exists but nothing calls it (explicit `TODO`). | `AndroidGarage/usecase/.../FcmRegistrationManager.kt:78-90` |
-| **M4** | Low | Open-door notif | No app-owned notification channel: the alert lands in FCM's fallback "Miscellaneous" channel, which the user can disable. | `AndroidGarage/androidApp/src/main/AndroidManifest.xml` (no `default_notification_channel_id`) |
+| **M4** ✅ | Low | Open-door notif | **Fixed in Android `2.20.0` (merged, not yet released).** The warning no longer lands in FCM's "Miscellaneous" channel: manifest `default_notification_channel_id`/`default_notification_icon` route the OS-rendered background warning to an app-owned "Garage door" HIGH channel + garage icon (created eagerly at startup); the foreground warning + resolved render on the same channel. Channel id is a shared string resource (no manifest/code drift). | `AndroidManifest.xml` + `DoorNotificationPresenter.kt` + `GarageApplication.kt` |
 | **M3** ✅ | Low | Open-door notif | **Fixed (dead code removed), deployed in `server/30`.** `TOO_LONG_OPEN_SECONDS` was duplicated, but EventInterpreter's copy was used only by `isEventOld`, which had **zero callers** — dead code. Removed the dead function + its constant; `OldDataFCM` keeps the single live copy. | `EventInterpreter.ts` |
 | **M1** ✅ | Low | Push data | **Fixed.** `getFcmTopic()` wrapped the empty default in `DoorFcmTopic("")` and never returned null, so `fetchStatus()` reported an unregistered device as `Registered`. Now returns null for the unset default (also makes the misnamed `fetchStatusReturnsNotRegisteredWhenNoTopicSaved` test honest). Android-only — no deploy needed. | `FirebaseDoorFcmRepository.kt` |
 | **R3** | Info | Push data | Freshness rides a HIGH-priority per-check-in heartbeat FCM (not transition-only). Powers R1's detection, but is a battery cost and risks Android's high-priority background quota. Fails safe (staleness banner). | `EventUpdates.ts:91` |
@@ -225,10 +225,26 @@ save-after-a-successful-send fails so the rare case is noticed.
 
 ## Recommended sequence for the remaining fixes
 
-Priority order for the still-proposed fixes (R6, R1, R2, M4), with the reasoning
-worked out during the 2026-06 examination. None is urgent — the receive path and
-the open-door gating are already solid (see "What's already solid"). All four are
+Priority order for the still-proposed fixes (R1, R2), with the reasoning worked
+out during the 2026-06 examination. None is urgent — the receive path and the
+open-door gating are already solid (see "What's already solid"). Both are
 **Android-only** (no server deploy; they ride the next `android/N`).
+
+**Done — R6 + M4 (Android `2.20.0`, merged, not yet released).** The two
+compounding open-door-warning gaps (foreground drop + no app channel) were fixed
+together: `FCMService.onMessageReceived` now renders a foreground warning via
+`DoorNotificationPresenter.showWarning(...)`, and manifest
+`default_notification_channel_id`/`default_notification_icon` + an
+eagerly-created HIGH "Garage door" channel move both the background and
+foreground warning (and the resolved) onto one app-owned channel + status-bar
+icon. Channel id is a shared string resource (`door_notification_channel_id`) so
+the manifest and the presenter can't drift. **Residual (Phase 2):** the
+*background* warning is still OS-rendered with FCM's own notification tag, so the
+resolved replaces an in-place *foreground* warning but coexists with a
+background-rendered one — closing that needs an app-built warning (move the
+warning to data-only). Notification *display* remains device-only behavior;
+verification reuses the on-device-proven app-built presenter (2.18.0 sandbox)
+plus build-time resource/manifest validation in `validate.sh`.
 
 1. **R1 — auto-recover from a missed push (highest value).** This is the
    *primary* goal's (push-data) weak link: staleness is already detected
@@ -240,17 +256,7 @@ the open-door gating are already solid (see "What's already solid"). All four ar
    a medium Android change: wire `isCheckInStale` to one debounced re-fetch with
    backoff, keeping the banner as the fallback.
 
-2. **R6 + M4 together — foreground display + a dedicated channel.** They
-   compound (a delivered alert is dropped in the foreground *and* lands in the
-   user-silenceable "Miscellaneous" channel). Do both at once: build the
-   notification in `FCMService.onMessageReceived` AND post it to an app-owned
-   HIGH-importance channel (+ `default_notification_channel_id` / icon / color
-   meta-data). This adds the most *new* code, so it ranks below R1. Notification
-   display is **device-only** behavior — build a fixture-level verification
-   signal per the "verify device-only behavior" rule in `CLAUDE.md` rather than
-   deferring to a manual smoke.
-
-3. **R2 — runtime topic change (defer).** Low likelihood: only when the device
+2. **R2 — runtime topic change (defer).** Low likelihood: only when the device
    `buildTimestamp` changes while the app process stays alive (cold-start
    re-subscribes anyway). Wire the existing `FcmRegistrationManager.restart()`
    to a server-config `buildTimestamp` change when convenient.
@@ -303,6 +309,10 @@ episode (the marker exists; it is absent when snoozed, or when the door closed
 before the 15-min threshold).
 
 **Built on:** the app-built notification infrastructure (R6 foreground display +
-M4 dedicated channel) — this feature is the forcing function for those. The Test
-Notification Sandbox ([`docs/TEST_NOTIFICATION_SANDBOX_PLAN.md`](TEST_NOTIFICATION_SANDBOX_PLAN.md))
+M4 dedicated channel), now shipped in Android `2.20.0` (merged, unreleased). The
+warning and the resolved already share one HIGH "Garage door" channel + (tag, id)
+slot, so a *foreground* warning is replaced in place by the resolved today; the
+remaining Phase 2 work is making the *background* warning app-built (data-only)
+so it shares the slot too. The Test Notification Sandbox
+([`docs/TEST_NOTIFICATION_SANDBOX_PLAN.md`](TEST_NOTIFICATION_SANDBOX_PLAN.md))
 is the isolated, shipped prototype of that infra, proven on a real device.

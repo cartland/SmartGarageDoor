@@ -25,36 +25,45 @@ Read it before touching any file below.
 
 ## Phase 1 as-shipped — known limitations (review before deploying)
 
-1. **No inline replace — two coexisting, visually DIFFERENT notifications.** The
-   production warning is still the server's **OS-tray** notification
-   (notification-payload on `door_open-`, with FCM's own `(tag,id)`). The resolved is
-   **app-built** (`tag="garage_door"`, id `7001`, channel `garage_door`). Different
-   identities → the resolved **does not replace the warning**; in the realistic test
-   path (app backgrounded, warning shown, then close) you see **both** — a lingering
-   "Garage door open" warning *and* a separate "Resolved" card. And they don't just
-   coexist, they look like **two different features** (analysis 2026-06-21):
+> **Updated 2026-06-21 — Android `2.20.0` (R6 + M4, merged, unreleased) closed most
+> of limitation #1+#2.** The warning and resolved now share **one** app-owned
+> "Garage door" channel (HIGH), the **same** `ic_notification_garage` status-bar
+> icon, and the **same** `(tag="garage_door", id=7001)` slot. So the
+> "two different features" divergence and the "backwards alerting" below are
+> **fixed**; what remains is a narrower coexistence case (background warning not
+> *replaced*) that still needs Phase 2. The original (pre-2.20.0) text is preserved
+> in italics for provenance.
 
-   | | Warning (existing) | Resolved (new) |
+1. **Inline replace works for a FOREGROUND warning; a BACKGROUND warning still
+   coexists (not replaced).** With R6+M4 (2.20.0): a warning that arrives while the
+   app is **foregrounded** is app-built on `(tag="garage_door", id 7001)` → the
+   resolved **replaces it in place**. A warning shown while **backgrounded** is still
+   **OS-rendered** with FCM's own tag (the manifest `default_notification_channel_id`
+   routes it to the same "Garage door" channel + garage icon, but cannot set the
+   `tag`), so the resolved **coexists** with it — two cards. Crucially they now look
+   like **one feature**: same channel, same garage icon, same heads-up importance.
+
+   | | Warning | Resolved |
    |---|---|---|
-   | Channel | FCM **"Miscellaneous"** fallback (manifest sets no `default_notification_channel_id` — the M4 gap) | app-owned **"Garage door"** |
-   | Icon | **app launcher icon** (no `default_notification_icon` meta-data) | **`ic_dialog_info`** ("ⓘ") |
-   | Importance | fallback channel (typically DEFAULT — sound, no heads-up on Android 8+; the message's `PRIORITY_MAX` only affects pre-8) | **HIGH → heads-up + sound** |
+   | Channel | app-owned **"Garage door"** (manifest default; was "Miscellaneous") | app-owned **"Garage door"** |
+   | Icon | **`ic_notification_garage`** (manifest default; was launcher icon) | **`ic_notification_garage`** (was `ic_dialog_info`) |
+   | Importance | **HIGH → heads-up + sound** (channel; was DEFAULT) | **HIGH → heads-up + sound** |
+   | Inline replace by resolved | **foreground: yes** / background: no (FCM tag) | n/a |
 
-   Two consequences worth a decision: (a) different channel + icon means the user
-   manages/mutes them separately and they read as unrelated; (b) the alerting is
-   **backwards** — the informational *resolved* (HIGH, heads-up) is **more prominent**
-   than the safety *warning* (stuck on the uncustomized Miscellaneous channel). The
-   clean "warning *becomes* resolved" experience (validated in the sandbox, where both
-   were app-built on one channel/tag) requires **Phase 2** (app-built warning, same
-   channel + tag). The inline-replace in the `NOTIFICATION_RELIABILITY.md` "design
-   goal" is **Phase 2** behavior, not Phase 1's. *Exceptions to "two cards": you'd see
-   only 1 if you dismissed the warning before closing, or if the app was foregrounded
-   when the warning fired (R6 drops it — but then the warning was silently missed).*
-2. **Resolved is a HIGH-importance heads-up; the warning is not.** Channel
-   `garage_door` is `IMPORTANCE_HIGH` (so it's ready for Phase 2's warning), so on
-   Android 8+ the resolved heads-up/buzzes — and per the table above it out-shouts the
-   actual warning. Decide: a quieter dedicated channel for the resolved, or fix M4
-   (give the warning an app-owned channel) so the two are consistent, or accept it.
+   The remaining gap — making the *background* warning share the slot so the resolved
+   replaces it too — requires **Phase 2** (move the warning to an app-built data-only
+   message). *Original (pre-2.20.0): the warning was the server's OS-tray
+   notification-payload on FCM's "Miscellaneous" channel with the launcher icon and
+   DEFAULT importance; the resolved was the only app-built card, on "Garage door" with
+   `ic_dialog_info` at HIGH — so the two read as different features and the resolved
+   out-shouted the warning.* *Exceptions to "two cards": only 1 if you dismissed the
+   warning before closing, or (now) if the warning arrived in the foreground and was
+   replaced in place.*
+2. **~~Resolved out-shouts the warning~~ — FIXED in 2.20.0.** *Original: channel
+   `garage_door` is `IMPORTANCE_HIGH`, so the resolved heads-up/buzzed while the
+   warning (Miscellaneous/DEFAULT) did not — backwards alerting.* M4 resolved this by
+   moving the warning onto the same HIGH "Garage door" channel, so warning and
+   resolved now alert identically.
 3. **Copy says "open" for non-Open warned states.** A warning can fire for
    `OpeningTooLong` or a sensor-error state; the body still reads "It was open for X,"
    and the duration anchors on the *promotion* time (~60s late) for the
@@ -74,9 +83,15 @@ it: it adds a second card (limitation #1) that may *detract*, and the clean vers
 (Phase 2) touches the **primary push-data path** — the part you most want to protect.
 With no problem to fix and no urgency, the decision was **restraint**: leave the
 merged code dormant (zero cost, revertible-by-never-enabling) and make a deliberate
-Phase-2-or-not decision later. If the goal is to *strengthen* notifications, the
-better-aligned, lower-risk move is **R6** (make the existing warning show in the
-foreground) — hardening what works, not adding to it.
+Phase-2-or-not decision later.
+
+**Update (2026-06-21):** the lower-risk "strengthen what works" move that was
+recommended over flipping the resolved flag — **R6 + M4** (show the existing warning
+in the foreground; give it a real app-owned channel/icon) — has now **shipped** in
+Android `2.20.0` (merged, unreleased). This hardens the proven warning without
+enabling the resolved, and as a side effect makes the warning and resolved
+*consistent* (same channel/icon/importance), which softens limitation #1 if the
+resolved is ever enabled. The resolved flag itself remains parked.
 
 ## Isolation guarantee (risk stays on new builds)
 
