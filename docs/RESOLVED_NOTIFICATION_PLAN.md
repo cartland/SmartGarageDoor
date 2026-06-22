@@ -62,6 +62,39 @@ Phase-2-or-not decision later. If the goal is to *strengthen* notifications, the
 better-aligned, lower-risk move is **R6** (make the existing warning show in the
 foreground) — hardening what works, not adding to it.
 
+## Isolation guarantee (risk stays on new builds)
+
+Confirmed 2026-06-20. The feature's risk is isolated to **new** Android builds by
+**construction**, not by being careful — the boundary is **app version → topic
+subscription**:
+
+- **Old builds (< 2.19.0) never receive the resolved.** They subscribe only to
+  `door_open-`; the resolved is sent **only** to `door_open_v2-`, which only the
+  new build (via `DoorResolvedFcmSubscriptionManager`) subscribes to. A message
+  that never goes to `door_open-` can't reach them. Pinned by
+  `ResolvedNotificationFCMFakeTest` § "old-app isolation."
+- **What old builds DO receive is byte-for-byte unchanged.** Phase 1 doesn't touch
+  the warning (`OldDataFCM` → `door_open-`) or the state-sync (`EventFCM` →
+  `door_open-`); it only *appends* a resolved send on the `Closed` transition,
+  after the state-sync, in a try/catch. So old builds' warning + live state are
+  identical with the flag on or off.
+- **`server/31` is inert until the flag flips.** With `resolvedOnCloseEnabled` off
+  (default), the resolved path does one config read and returns — no send, no
+  marker write. Pinned by the "flag off → no send, no save" test. So the global
+  server deploy is a no-op for every user until you flip it.
+- **Backwards + forward compatible.** No existing topic or payload key was renamed
+  (only added) — satisfies the CLAUDE.md FCM-safety rule. The v2 channel is also
+  forward-compatible: the `2.19.0` client gates on `kind == "open_door_resolved"`
+  and ignores unknown kinds, so a future Phase-2 `open_door_warning` payload won't
+  break today's build.
+
+**Controls (mobile):** there is **no per-user opt-in** — the gates are app version
+(must be `2.19.0+`) + the **global** server flag. The kill switch is global and
+instant: flip `resolvedOnCloseEnabled` off → the flag-agnostic client stops
+rendering immediately, no app update. A per-user opt-in/kill would require adding a
+`featureXAllowedEmails`-style allowlist gating the v2 subscription (not built;
+global was accepted as sufficient 2026-06-21).
+
 ## Goal
 
 When the garage door **closes after an open-door warning was actually sent**,

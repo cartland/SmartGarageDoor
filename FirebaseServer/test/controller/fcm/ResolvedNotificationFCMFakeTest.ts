@@ -50,9 +50,14 @@ import {
 import { FakeNotificationsDatabase } from '../../fakes/FakeNotificationsDatabase';
 import { FakeServerConfigDatabase } from '../../fakes/FakeServerConfigDatabase';
 import { SensorEvent, SensorEventType } from '../../../src/model/SensorEvent';
+import { buildTimestampToFcmTopic } from '../../../src/model/FcmTopic';
 
 const BUILD_TIMESTAMP = 'Sat Mar 13 14:45:00 2021';
 const EXPECTED_V2_TOPIC = 'door_open_v2-Sat.Mar.13.14.45.00.2021';
+// The LEGACY door topic old app builds subscribe to. The resolved feature must
+// NEVER target this — that is the boundary that keeps the feature isolated to
+// new (door_open_v2-) builds. See docs/RESOLVED_NOTIFICATION_PLAN.md.
+const LEGACY_DOOR_TOPIC = buildTimestampToFcmTopic(BUILD_TIMESTAMP);
 
 const OPEN_TS = 1_800_000_000;
 const CLOSE_TS = OPEN_TS + 14 * 60; // 14 minutes later — a normal warned episode.
@@ -259,6 +264,39 @@ describe('sendFCMForResolvedDoor (via fakes)', () => {
     expect(result).to.be.null;
     expect(sendStub.calledOnce).to.be.true;
     expect(fakeNotifications.saved).to.be.empty; // marker left un-consumed
+  });
+
+  // --- Old-app isolation invariant ---
+  // The resolved feature is isolated to NEW builds (door_open_v2- subscribers)
+  // purely because it only ever targets the v2 topic. Old builds (< 2.19.0)
+  // subscribe only to the legacy door_open- topic, so a message that never goes
+  // there can never reach them. These tests pin that invariant so it can't
+  // silently regress (e.g. a refactor swapping the topic builder). Combined with
+  // the "flag off → no send, no save" test above (which proves server/31 is inert
+  // for everyone until the flag is flipped), this is the backwards-compatibility
+  // guarantee in code. See docs/RESOLVED_NOTIFICATION_PLAN.md § Isolation guarantee.
+
+  describe('old-app isolation (never targets the legacy door_open- topic)', () => {
+    it('sends the resolved ONLY to the v2 topic, never to the legacy door topic', async () => {
+      enableFlag();
+      fakeNotifications.seed(BUILD_TIMESTAMP, warnedMarker(OPEN_TS));
+
+      await ResolvedNotificationFCMService.sendFCMForResolvedDoor(
+        BUILD_TIMESTAMP, closedEventAt(CLOSE_TS),
+      );
+
+      expect(sendStub.calledOnce).to.be.true;
+      const sentTopic = sendStub.firstCall.args[0].topic;
+      expect(sentTopic).to.equal(EXPECTED_V2_TOPIC);
+      expect(sentTopic.startsWith('door_open_v2-')).to.be.true;
+      expect(sentTopic).to.not.equal(LEGACY_DOOR_TOPIC); // old builds never hear this
+    });
+
+    it('getResolvedMessage targets the v2 topic, never the legacy door topic', () => {
+      const topic = getResolvedMessage(BUILD_TIMESTAMP, OPEN_TS, CLOSE_TS).topic;
+      expect(topic).to.equal(EXPECTED_V2_TOPIC);
+      expect(topic).to.not.equal(LEGACY_DOOR_TOPIC);
+    });
   });
 
   // --- Pure message builder ---
