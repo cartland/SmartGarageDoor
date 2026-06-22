@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-06-21
+last_verified: 2026-06-22
 ---
 
 # Notification & push-data reliability
@@ -230,7 +230,7 @@ out during the 2026-06 examination. None is urgent — the receive path and the
 open-door gating are already solid (see "What's already solid"). Both are
 **Android-only** (no server deploy; they ride the next `android/N`).
 
-**Done — R6 + M4 (Android `2.20.0`, merged, not yet released).** The two
+**Done — R6 + M4 (Android `2.20.0` / `android/252`, RELEASED to internal track 2026-06-22).** The two
 compounding open-door-warning gaps (foreground drop + no app channel) were fixed
 together: `FCMService.onMessageReceived` now renders a foreground warning via
 `DoorNotificationPresenter.showWarning(...)`, and manifest
@@ -245,6 +245,15 @@ background-rendered one — closing that needs an app-built warning (move the
 warning to data-only). Notification *display* remains device-only behavior;
 verification reuses the on-device-proven app-built presenter (2.18.0 sandbox)
 plus build-time resource/manifest validation in `validate.sh`.
+
+**Done — M5 tap-to-open (Android `2.20.1`).** App-built notifications get **no**
+tap action by default — FCM only auto-attaches a launch intent to *OS-rendered
+notification-payload* messages, so the foreground warning, the resolved, and the
+sandbox (all `NotificationCompat`-built) did nothing when tapped. Fixed by adding
+`setContentIntent(PendingIntent → MainActivity, FLAG_IMMUTABLE)` to
+`DoorNotificationPresenter` + `TestNotificationPresenter`. Found during on-device
+v2-topic testing (the background OS-rendered warning already opened the app, so
+the gap only showed on the app-built notifications).
 
 1. **R1 — auto-recover from a missed push (highest value).** This is the
    *primary* goal's (push-data) weak link: staleness is already detected
@@ -262,6 +271,75 @@ plus build-time resource/manifest validation in `validate.sh`.
    to a server-config `buildTimestamp` change when convenient.
 
 ---
+
+## Recommended final architecture (version-safe, additive)
+
+Settled 2026-06-22. The end state is **additive, never a migration**: every new
+feature rides a **new topic only new apps subscribe to**; the legacy `door_open-`
+topic and its payload shapes are **frozen**, so old apps keep working forever with
+zero version coordination. The version→subscription boundary IS the isolation.
+
+| Topic | Carries | Subscribers |
+|---|---|---|
+| `door_open-` | silent **state-sync** data + the **open warning** (server notification-payload) | **all** versions — *frozen* |
+| `door_open_v2-` | the **resolved/close** (data-only, app-built) | **new** apps only |
+| `buttonHealth-` | button online/offline (data-only) | new apps |
+
+- **The warning stays OS-rendered** on `door_open-` (renders with no app running —
+  rock-solid). New apps additionally render it app-built in the foreground (R6) on
+  the "Garage door" channel (M4); old apps are unchanged.
+- **The resolved is purely additive** on `door_open_v2-`, server-flag-gated for
+  instant on/off, structurally invisible to old apps.
+- **Deliberately stops at "two *consistent* cards"** (warning + resolved share
+  channel/icon; foreground warning replaces in place). The clean single-card
+  replace for *backgrounded* warnings is **Phase 2 — not pursued**: it would cost
+  the warning's OS-render reliability and rework the primary state-sync path. The
+  marginal gain (one card vs two consistent cards) is a nicety, not a fix.
+
+**Remaining steps to get there (all additive, each reverts cleanly):**
+1. ✅ `2.20.1` tap-to-open (M5). Done.
+2. **Turn the resolved on when wanted:** back up config → deploy `server/31` →
+   flip `resolvedOnCloseEnabled=true`. Revert = flip the flag false, no redeploy.
+3. **R1 (optional, later):** measure real FCM delivery first; if low, wire
+   `isCheckInStale` → one debounced re-fetch. The higher-value reliability win
+   than Phase 2.
+
+## Manual testing & live diagnosis (runbook)
+
+Garage Firebase project: **`escape-echo`** (the committed `google-services.json`
+keeps the real `project_id`; only API keys are redacted). gcloud/firebase auth as
+the project owner can send FCM and read Firestore.
+
+**Send a manual door notification** (HTTP v1 API; `gcloud auth print-access-token`
+for the bearer; add `"validateOnly":true` to dry-run). Topic suffix = the config
+`buildTimestamp` with `[^a-zA-Z0-9-_.~%]` → `.`:
+- **Open warning** = a `notification`-payload message (`{title,body}`, no `data`).
+  On `door_open-` it reaches **all** versions; on `door_open_v2-` it's new-app-only
+  but renders **only when backgrounded** (the R6 foreground render is gated to the
+  `door_open-` prefix).
+- **Close/resolved** = a `data`-only message
+  `{kind:"open_door_resolved", openTimestampSeconds, closeTimestampSeconds}` on
+  `door_open_v2-`. Renders foreground + background via the real
+  `DoorNotificationPresenter`.
+- The flag-gated server send copies `collapse_key: "door_not_closed"`. Both door
+  messages use it.
+
+**Gotcha — rapid repeated sends get dropped.** FCM throttles a burst of
+high-priority data messages to a device (and gives no ordering guarantee), so
+toggling open/close many times in seconds will silently drop/reorder some. It's a
+transport artifact, not a code bug — space sends ~5–10s apart. (Live illustration
+of the same "best-effort" reality behind R5/R6/R1.)
+
+**Check whether a device is actually checking in** (door sensor vs remote button
+are *separate* ESP32s, distinct `buildTimestamp`s) — read Firestore directly:
+- `buttonHealthCurrent/{buildTimestamp}` → `{state, stateChangedAtSeconds}` (the
+  exact data the app's button-health pill shows).
+- Latest `remoteButtonRequestAll` / `eventsAll` doc ordered by
+  `FIRESTORE_databaseTimestampSeconds` desc → the device's real last poll/check-in.
+- The pubsub jobs (`pubsubCheckButtonHealth`, `pubsubCheckForOpenDoorsJob`, etc.)
+  log every minute, so their presence confirms the server side is healthy even when
+  a device is silent. Note `httpRemoteButton` execution logs may be excluded (cost)
+  — trust the Firestore write record, not the function logs.
 
 ## Resolved-on-close notification — design goal (validated in the sandbox)
 
