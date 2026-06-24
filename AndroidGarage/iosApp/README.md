@@ -45,15 +45,28 @@ into the app. `FRAMEWORK_SEARCH_PATHS` points at that task's output.
 
 ## Status
 
-**Phase B/D foundation (current).** The app builds and launches on the simulator
-with `NoOpAuthBridge` / `NoOpMessagingBridge` (inert auth + push) and
-`defaultDevAppConfig` (placeholder backend) — no Firebase or Apple Developer
-account required. This proves the framework + DI graph integrate.
+**Phase C — Firebase auth wired.** `AppDelegate` runs `FirebaseApp.configure()`,
+builds the `NativeComponent` with the real `FirebaseAuthBridge` /
+`FirebaseMessagingBridge` (Core/Firebase/), and runs `AppStartup`. Google Sign-In
+(Profile tab) presents via `GoogleSignInCoordinator` and signs into Firebase;
+`AppConfig` is read from `Info.plist`. Verified locally: builds + links against the
+Firebase SPM packages and launches on the simulator (real signed-out auth state +
+notification-permission prompt render).
+
+The Swift↔Kotlin bridge conformance is non-obvious — see the KDoc in
+`Core/Firebase/FirebaseAuthBridge.swift` and `iosFramework/.../IosAuthUserStateHolder.kt`:
+SKIE exposes the Kotlin suspend bridge methods as `__`-prefixed `async throws`
+Swift requirements, and `observeAuthUser()` must return
+`SkieSwiftOptionalFlow<DataAuthUserInfo>` (Swift can't construct a Kotlin Flow, so
+the holder supplies one).
 
 **Pending (gated on user setup):**
-- Real screens bound to the `Default*ViewModel`s (Phase E).
-- iOS CI on `macos-latest` (Phase F).
-- `FirebaseAuthBridge` / `FirebaseMessagingBridge`, `GoogleService-Info.plist`,
-  and `AppConfig` read from `Info.plist` (Phase C) — needs the Firebase iOS app +
-  APNs key.
-- TestFlight + App Store (Phases F/G) — needs the Apple Developer account.
+- Garage backend `GARAGE_BASE_URL` + `GARAGE_SERVER_CONFIG_KEY` in `Info.plist`
+  (iOS equivalent of Android's `SERVER_CONFIG_KEY` + base URL). Until set, the app
+  uses `defaultDevAppConfig`, so Firebase Auth works but **door data does not load**.
+- APNs `.p8` key uploaded to Firebase Cloud Messaging. Until then **push is not
+  delivered**; the messaging bridge + registration compile and run inertly.
+- FCM notification-receive → `DoorEvent` parsing (mirrors Android `FcmMessageHandler`),
+  wired in `AppDelegate.userNotificationCenter(_:didReceive:)`. Deferred until the
+  APNs key lands (untestable without it); door state still refreshes on cold start.
+- TestFlight + App Store (Phase G) — needs the Apple Developer account.

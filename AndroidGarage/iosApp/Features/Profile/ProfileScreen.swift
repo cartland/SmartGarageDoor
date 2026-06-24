@@ -19,8 +19,8 @@ import SwiftUI
 @preconcurrency import shared
 
 /// Profile tab — account + snooze. Mirrors Android's `ProfileContent`.
-/// Google Sign-In is wired once the Firebase iOS SDK lands (Phase C); for now
-/// the account row reflects the (NoOp) auth state.
+/// Google Sign-In (Phase C) presents via `GoogleSignInCoordinator` and hands the
+/// token to the shared ViewModel; the account row reflects the real auth state.
 struct ProfileScreen: View {
     @StateObject private var wrapper: ProfileViewModelWrapper
 
@@ -35,6 +35,8 @@ struct ProfileScreen: View {
                     .foregroundStyle(.secondary)
                 if wrapper.signedIn {
                     Button("Sign out", role: .destructive) { wrapper.signOut() }
+                } else {
+                    Button("Sign in with Google") { wrapper.signInWithGoogle() }
                 }
             }
 
