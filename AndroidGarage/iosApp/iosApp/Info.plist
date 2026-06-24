@@ -23,13 +23,15 @@
 			</array>
 		</dict>
 	</array>
-	<!-- Garage backend config (iOS equivalent of Android SERVER_CONFIG_KEY + base URL).
-	     Leave blank to fall back to IosNativeHelper.defaultDevAppConfig (Firebase Auth
-	     still works; door data will not load until these are set). Supply real values
-	     here or via an xcconfig before any production-track build. -->
+	<!-- Garage backend config (iOS equivalent of Android's BASE_URL + SERVER_CONFIG_KEY).
+	     BASE_URL is non-secret (matches androidApp/build.gradle.kts) and committed here.
+	     The server config key is a SECRET, substituted from the GARAGE_SERVER_CONFIG_KEY
+	     build setting (Secrets.xcconfig -> Secrets.local.xcconfig, gitignored). When the
+	     key resolves empty (CI / no local secret), AppConfigFactory keeps the dev fallback
+	     for the key and door data does not load (Firebase Auth still works). -->
 	<key>GARAGE_BASE_URL</key>
-	<string></string>
+	<string>https://us-central1-escape-echo.cloudfunctions.net/</string>
 	<key>GARAGE_SERVER_CONFIG_KEY</key>
-	<string></string>
+	<string>$(GARAGE_SERVER_CONFIG_KEY)</string>
 </dict>
 </plist>
