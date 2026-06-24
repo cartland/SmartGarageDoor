@@ -8,5 +8,28 @@
 	<!-- Encryption export compliance: app uses only standard TLS. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- Receive FCM data/notification messages while backgrounded. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+	<!-- Google Sign-In callback. Value = GoogleService-Info.plist REVERSED_CLIENT_ID. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.587667443259-c9i2m20jusj0i5lmg51m6389jr7js4kj</string>
+			</array>
+		</dict>
+	</array>
+	<!-- Garage backend config (iOS equivalent of Android SERVER_CONFIG_KEY + base URL).
+	     Leave blank to fall back to IosNativeHelper.defaultDevAppConfig (Firebase Auth
+	     still works; door data will not load until these are set). Supply real values
+	     here or via an xcconfig before any production-track build. -->
+	<key>GARAGE_BASE_URL</key>
+	<string></string>
+	<key>GARAGE_SERVER_CONFIG_KEY</key>
+	<string></string>
 </dict>
 </plist>

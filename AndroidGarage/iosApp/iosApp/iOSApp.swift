@@ -20,32 +20,24 @@ import SwiftUI
 
 /// SwiftUI entry point.
 ///
-/// Builds the Kotlin DI graph (`NativeComponent`) exactly once at launch and
-/// hands it to the view tree, mirroring battery-butler's `iOSApp.swift` and
-/// the Android `AppComponent` lifetime.
+/// The Kotlin DI graph (`NativeComponent`) is built exactly once in
+/// `AppDelegate.didFinishLaunching` (after `FirebaseApp.configure()`), mirroring
+/// battery-butler's `iOSApp.swift` and the Android `AppComponent` lifetime. This
+/// `App` reads the already-built graph from the delegate and hands it to the
+/// view tree.
 ///
-/// **Phase B baseline:** the graph is built with `NoOpAuthBridge` /
-/// `NoOpMessagingBridge` (inert auth + push) and `defaultDevAppConfig`
-/// (placeholder backend). No Firebase, no Apple Developer account required —
-/// this proves the framework + DI graph integrate and the app launches on the
-/// simulator. The real Firebase bridges (`FirebaseAuthBridge`,
-/// `FirebaseMessagingBridge`) and `AppConfig` read from `Info.plist` land in
-/// later PRs once the iOS Firebase config (`GoogleService-Info.plist`) exists.
+/// **Phase C:** built with the real `FirebaseAuthBridge` /
+/// `FirebaseMessagingBridge` and `AppConfig` read from `Info.plist`. Firebase
+/// Auth (Google Sign-In) works on the simulator; garage door data needs the
+/// `GARAGE_BASE_URL` / `GARAGE_SERVER_CONFIG_KEY` Info.plist values, and push
+/// delivery needs the APNs key uploaded to Firebase.
 @main
 struct GarageApp: App {
-    let component: NativeComponent
-
-    init() {
-        component = IosNativeHelper().createComponent(
-            authBridge: NoOpAuthBridge.shared,
-            messagingBridge: NoOpMessagingBridge.shared,
-            appConfig: IosNativeHelper.companion.defaultDevAppConfig
-        )
-    }
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
         WindowGroup {
-            MainScreen(component: component)
+            MainScreen(component: appDelegate.component)
         }
     }
 }

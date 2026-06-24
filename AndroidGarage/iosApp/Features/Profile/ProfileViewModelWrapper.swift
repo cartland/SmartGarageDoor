@@ -93,6 +93,16 @@ final class ProfileViewModelWrapper: ObservableObject {
         }
     }
 
+    func signInWithGoogle() {
+        Task { @MainActor in
+            // GoogleIdToken is a Kotlin value class erased to its String at the
+            // boundary, so the VM's `idToken: Any` parameter takes the raw token.
+            if let idToken = await GoogleSignInCoordinator.signIn() {
+                vm.signInWithGoogle(idToken: idToken)
+            }
+        }
+    }
+
     func signOut() { vm.signOut() }
     func refreshSnooze() { vm.fetchSnoozeStatus() }
     func snooze(_ option: SnoozeDurationUIOption) { vm.snoozeOpenDoorsNotifications(snoozeDuration: option) }

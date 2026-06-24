@@ -32,6 +32,19 @@ Concrete things only the user can do. Each item points to the detailed section b
 > Google Sign-In + live door data work in the simulator without the Apple account; only push/FCM
 > verification waits on the APNs upload. Still open beyond the three sub-steps below: the iOS
 > equivalent of `SERVER_CONFIG_KEY` + backend base URL read into `AppConfig` from `Info.plist`.
+>
+> **Update 2026-06-24 — Phase C auth IMPLEMENTED.** Firebase Auth + Messaging bridges
+> (`iosApp/Core/Firebase/`), `AppDelegate` (`FirebaseApp.configure()` + `NativeComponent`
+> build + `AppStartup.run()` + push registration), Google Sign-In (`GoogleSignInCoordinator`
+> + Profile-tab button), and `AppConfig`-from-`Info.plist` plumbing all landed and are
+> verified building + launching on the simulator (real signed-out state + notification
+> prompt render). **Remaining user inputs:** (a) set `GARAGE_BASE_URL` +
+> `GARAGE_SERVER_CONFIG_KEY` in `Info.plist` — door data stays blank until then; (b) upload
+> the APNs `.p8` key — no push delivery until then. **Remaining code:** FCM
+> notification-receive → `DoorEvent` parsing (deferred until APNs; untestable without it),
+> and Phase G (App Store). The Swift↔Kotlin bridge conformance pattern (`__`-prefixed
+> `async throws`; `observeAuthUser()` returns `SkieSwiftOptionalFlow`) is documented in the
+> bridge files' KDoc.
 
 **The Xcode project, iOS CI, and all 5 SwiftUI screens already exist and build on the
 simulator + macOS CI** (Phases B/D/E/F shipped 2026-06-01, PRs #856/#857/#858). The app
