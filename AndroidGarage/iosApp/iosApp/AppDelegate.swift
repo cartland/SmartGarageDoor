@@ -68,6 +68,39 @@ final class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNU
         GIDSignIn.sharedInstance.handle(url)
     }
 
+    // MARK: Door-event push (data messages)
+
+    /// Data FCM messages (door state changes) arrive here. Parse with the SHARED
+    /// `FcmPayloadParser` (via `IosNativeHelper`, so the payload-key contract
+    /// matches Android and can't drift) and hand the result to the shared use
+    /// case, which updates the door-event cache the UI observes — the live-update
+    /// counterpart to the cold-start `InitialDoorFetchManager`.
+    func application(
+        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        if let event = doorEvent(from: userInfo) {
+            component.receiveFcmDoorEventUseCase.invoke(event: event)
+            completionHandler(.newData)
+        } else {
+            completionHandler(.noData)
+        }
+    }
+
+    /// Map an APNs/FCM `userInfo` to a `DoorEvent` via the shared parser, or nil
+    /// if it isn't a door event. The parser reads string key/value pairs, matching
+    /// the Android FCM data-message shape ("type", "timestampSeconds", …).
+    private func doorEvent(from userInfo: [AnyHashable: Any]) -> DoorEvent? {
+        var data: [String: String] = [:]
+        for (key, value) in userInfo {
+            if let key = key as? String, let value = value as? String {
+                data[key] = value
+            }
+        }
+        return IosNativeHelper().parseFcmDoorEvent(data: data)
+    }
+
     // MARK: MessagingDelegate
 
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
@@ -90,11 +123,10 @@ final class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNU
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
-        // TODO (Phase C, push-receive): parse
-        // `response.notification.request.content.userInfo` into a `DoorEvent` and
-        // call `component.receiveFcmDoorEventUseCase(event:)` — mirrors Android's
-        // `FcmMessageHandler`. Deferred until the APNs key lands (untestable
-        // without it); door state still refreshes on cold start via
-        // `InitialDoorFetchManager`.
+        // Tapping a notification opens the app; if it carries door-event data,
+        // apply it too. (The live data-message path is didReceiveRemoteNotification.)
+        if let event = doorEvent(from: response.notification.request.content.userInfo) {
+            component.receiveFcmDoorEventUseCase.invoke(event: event)
+        }
     }
 }

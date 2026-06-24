@@ -62,13 +62,19 @@ Swift requirements, and `observeAuthUser()` must return
 `SkieSwiftOptionalFlow<DataAuthUserInfo>` (Swift can't construct a Kotlin Flow, so
 the holder supplies one).
 
-**Pending (gated on user setup):**
-- Garage backend `GARAGE_BASE_URL` + `GARAGE_SERVER_CONFIG_KEY` in `Info.plist`
-  (iOS equivalent of Android's `SERVER_CONFIG_KEY` + base URL). Until set, the app
-  uses `defaultDevAppConfig`, so Firebase Auth works but **door data does not load**.
-- APNs `.p8` key uploaded to Firebase Cloud Messaging. Until then **push is not
-  delivered**; the messaging bridge + registration compile and run inertly.
-- FCM notification-receive → `DoorEvent` parsing (mirrors Android `FcmMessageHandler`),
-  wired in `AppDelegate.userNotificationCenter(_:didReceive:)`. Deferred until the
-  APNs key lands (untestable without it); door state still refreshes on cold start.
-- TestFlight + App Store (Phase G) — needs the Apple Developer account.
+**Door data + FCM receive (wired):** the garage backend config (`GARAGE_BASE_URL`
+committed; secret `GARAGE_SERVER_CONFIG_KEY` via gitignored `Secrets.local.xcconfig`)
+flows into the shared Ktor client — verified on the simulator showing real door
+STATUS. FCM data messages are parsed with the **shared** `FcmPayloadParser`
+(via `IosNativeHelper.parseFcmDoorEvent`, so the payload-key contract matches
+Android) in `AppDelegate.application(_:didReceiveRemoteNotification:…)` and applied
+through `ReceiveFcmDoorEventUseCase` → the door-event cache the UI observes.
+
+**Pending:**
+- **APNs key** is uploaded to Firebase, but real push *delivery* needs a signed
+  device build (`aps-environment` entitlement). The FCM-receive path is wired but
+  **not runtime-verified**: `simctl` silent (`content-available`) push does not
+  reliably reach `didReceiveRemoteNotification` (a known limitation, compounded by
+  Firebase app-delegate swizzling), so this is a device / Phase-G check.
+- **Google Sign-In end-to-end** — wired; the OAuth flow needs an interactive tap-through.
+- **TestFlight + App Store** (Phase G) — needs device signing + entitlements.
