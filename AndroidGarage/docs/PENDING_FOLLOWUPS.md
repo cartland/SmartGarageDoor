@@ -20,6 +20,19 @@ Concrete things only the user can do. Each item points to the detailed section b
 
 ### A. Unblock iOS Phase C/G — Apple Developer + Firebase iOS setup (~1 hour, one-time)
 
+> **Progress 2026-06-23 (in flight):** Sub-step 2 (Firebase iOS app) is **done** — the iOS
+> app is registered in the existing `escape-echo` project (bundle `com.chriscartland.garage`),
+> and `GoogleService-Info.plist` is placed at `AndroidGarage/iosApp/iosApp/` (config, not a
+> secret; currently uncommitted in the working tree — handling deferred to the Phase C PR).
+> The plist already carries `CLIENT_ID` + `REVERSED_CLIENT_ID`, so the **Google Sign-In
+> provider is already enabled** in Firebase Auth — no extra Auth-provider step is needed for
+> iOS. Sub-step 1 (Apple Developer Program enrollment) is **processing** (started 2026-06-23;
+> Apple quotes "up to 48 hours"). Sub-step 3 (APNs `.p8` key) is **blocked** until enrollment
+> clears. **Phase C (Swift bridges + `AppDelegate`) needs only the plist and can start now** —
+> Google Sign-In + live door data work in the simulator without the Apple account; only push/FCM
+> verification waits on the APNs upload. Still open beyond the three sub-steps below: the iOS
+> equivalent of `SERVER_CONFIG_KEY` + backend base URL read into `AppConfig` from `Info.plist`.
+
 **The Xcode project, iOS CI, and all 5 SwiftUI screens already exist and build on the
 simulator + macOS CI** (Phases B/D/E/F shipped 2026-06-01, PRs #856/#857/#858). The app
 currently runs against `defaultDevAppConfig` + NoOp auth/push, so it renders signed-out /
