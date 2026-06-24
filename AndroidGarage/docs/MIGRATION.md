@@ -638,4 +638,6 @@ Full per-PR breakdown lives in [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md) 
 
 **Decisions locked** during Phase 38A planning: bundle ID `com.chriscartland.garage`, Universal (iPhone + iPad), iOS 16 minimum, Google Sign-In only, framework `shared`, module `:iosFramework`, SKIE for bridging, `SharedViewModel<VM>` for VM ownership, mirror Android tab order, system light/dark, English only, APNs `.p8` key, independent `ios/N` versioning. See [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md) for the rationale on each.
 
+**Governing principle for the two apps:** [ADR-029](./DECISIONS.md#adr-029-ios--android--feature-parity-platform-native-design-one-shared-identity) — eventual 1:1 *capability* parity, platform-native/idiomatic UI on each side, and one recognizable shared "Garage" identity (door visualization, state semantics + colors, naming, tab structure) enforced by the shared KMP typed states. Read it before deciding whether an iOS screen should match Android.
+
 **Rule:** Finish each sub-phase before starting the next within a track. Sub-phases 38E (the 5 screens) parallelize after 38D lands. Update this document and the PENDING_FOLLOWUPS entry as items complete.

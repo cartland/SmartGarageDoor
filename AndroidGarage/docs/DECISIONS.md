@@ -1636,3 +1636,58 @@ The token is **server state tied to the cache contents** — it only makes sense
 - [`NetworkDoorRepository.kt`](../data/src/commonMain/kotlin/com/chriscartland/garage/data/repository/NetworkDoorRepository.kt) — `fetchOlderDoorEvents` + the reentrancy guard
 - [`docs/EVENT_HISTORY_PAGINATION.md`](../../docs/EVENT_HISTORY_PAGINATION.md) — the server token contract this consumes
 - ADR-022 — `StateFlow` pass-through (this ADR applies it to the new `paginationState`)
+
+## ADR-029: iOS ↔ Android — feature parity, platform-native design, one shared identity
+
+### Status
+
+Accepted — 2026-06-24.
+
+### Context
+
+The app ships on Android (Jetpack Compose) and iOS (SwiftUI), sharing business logic through the KMP layer (`domain`/`data`/`usecase`/`viewmodel`) consumed on iOS via the `:iosFramework` SKIE bridge (ADR-004, Phase 38). As iOS catches up to Android feature-by-feature, we need a stated principle for *how much* the two apps should match and *in which dimensions* — otherwise every new feature reopens an ad-hoc "should iOS look and behave exactly like Android here?" debate, and the apps drift either into divergent capabilities or into a non-native lowest-common-denominator UI.
+
+Until now this intent existed only implicitly, scattered across mechanical "mirror Android" decisions (same tab order, hand-translated theme tokens, mirrored release/changelog tooling) and a single "pixel-level Android parity is deferred polish" aside. The governing *why* was never written down.
+
+### Decision
+
+1. **Capability parity is the north star.** Every *meaningful* user feature should eventually exist on both platforms — a 1:1 capability mapping. "Eventually," not simultaneously: a feature may land on one platform first, but shipping it on only one platform *indefinitely* is a gap to close, not an accepted end state. Parity is tracked as direction, not enforced per-PR.
+
+2. **UI is platform-native and platform-idiomatic.** Each app uses its platform's conventions — SwiftUI navigation, sheets, `List`/Settings idioms, swipe-back on iOS; Material 3, navigation rail, 3-pane adaptive layout, edge-to-edge insets on Android. Divergence here is *expected and good* where it serves the platform. We do NOT pursue pixel-identical screens or port one platform's affordances onto the other.
+
+3. **One recognizable "Garage" identity spans both.** The shared brand through-line stays consistent regardless of platform: the door-status visualization, the door-state semantics and their color meaning (closed / open / opening-too-long / unknown), feature and section naming, status and warning copy intent, and the top-level tab structure (Home / History / Profile / Functions / Diagnostics). The KMP layer is the enforcement mechanism — it emits the same typed states (`DoorPosition`, `AuthState`, `SnoozeState`, `HomeAlert`, …) to both UIs, so the *meaning* cannot drift even when the *rendering* differs.
+
+4. **The shared layer is the parity contract.** New user-facing capability is built as shared `domain`/`usecase`/`viewmodel` first; both UIs then render it. A feature that can only be expressed in one platform's UI layer (no shared state) is a smell — prefer pushing the logic and state down so the other platform gets it nearly for free.
+
+### What parity does NOT mean
+
+- Not pixel-identical layouts, nor matching animations frame-for-frame.
+- Not matching platform-specific affordances 1:1 (Android's nav rail / 3-pane has no iOS equivalent; iOS's interactive swipe-back has no Android equivalent).
+- Not simultaneous release — platforms version independently (`android/N`, `ios/N`).
+
+### Current deliberate gaps (north star ≠ current state)
+
+iOS is mid-build; these are known, tracked in [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md), and are not violations of this ADR:
+
+- Animated door canvas (iOS renders door *state*; the animation is deferred polish).
+- FCM notification-receive → `DoorEvent` parsing.
+- Google Sign-In end-to-end verification on a device.
+- Device-signed build / push entitlement / TestFlight / App Store (Phase G).
+
+### Consequences
+
+- The new-feature checklist gains a question: *does this land on both platforms, and is the shared state in the KMP layer?* If iOS lags, file the follow-up rather than silently shipping Android-only.
+- iOS screens are reviewed against "native + identity-consistent," not "matches the Android screenshot."
+- The theme bridge (`iosApp/Core/Theme/` mirroring `androidApp/.../ui/theme/`) and the shared typed states are load-bearing for identity — a change to door-state semantics or colors must update both platforms.
+
+### When this decision might change
+
+- A platform-exclusive feature is deliberately chosen (e.g. a watchOS / widget surface) — record it as an explicit exception here.
+- The product intentionally splits into materially different iOS vs Android experiences (not anticipated).
+
+### References
+
+- ADR-004 — KMP migration target (shared business logic, native UI per platform).
+- [`MIGRATION.md`](./MIGRATION.md) Phase 38 — iOS "decisions locked" (tab order, theme, versioning).
+- [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md) § 1 — iOS construction status + the current gap list.
+- [`iosApp/README.md`](../iosApp/README.md) — iOS app status.
