@@ -11,6 +11,8 @@ Kotlin business logic via the `:iosFramework` Gradle module (`shared.framework`)
 mirroring the Android app's clean architecture. See the iOS construction plan in
 [`../docs/PENDING_FOLLOWUPS.md`](../docs/PENDING_FOLLOWUPS.md) § "iOS app construction".
 
+**How this app should relate to the Android app:** [ADR-029](../docs/DECISIONS.md#adr-029-ios--android--feature-parity-platform-native-design-one-shared-identity) — eventual 1:1 *capability* parity, platform-native/idiomatic UI (don't copy Android's layout pixel-for-pixel), and one shared "Garage" identity (door visualization, state semantics + colors, naming, tab order) carried by the shared KMP typed states.
+
 ## Layout
 
 ```
