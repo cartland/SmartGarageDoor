@@ -17,15 +17,14 @@
 
 import Foundation
 
-/// The five top-level tabs, mirroring the Android nav chrome
-/// (`AppLayoutMode.visibleTabs`): Home / History / Profile / Functions /
-/// Diagnostics.
+/// The three top-level tabs, mirroring Android's nav chrome: Home / History /
+/// Settings. Diagnostics and Functions are NOT top-level tabs — they live in a
+/// gated Developer section under Settings (parity with Android, where they're
+/// `developerAccess`-gated rows, not tabs).
 enum MainTab: String, CaseIterable, Identifiable {
     case home
     case history
-    case profile
-    case functions
-    case diagnostics
+    case settings
 
     var id: String { rawValue }
 
@@ -33,9 +32,7 @@ enum MainTab: String, CaseIterable, Identifiable {
         switch self {
         case .home: return "Home"
         case .history: return "History"
-        case .profile: return "Profile"
-        case .functions: return "Functions"
-        case .diagnostics: return "Diagnostics"
+        case .settings: return "Settings"
         }
     }
 
@@ -44,9 +41,7 @@ enum MainTab: String, CaseIterable, Identifiable {
         switch self {
         case .home: return "house"
         case .history: return "clock.arrow.circlepath"
-        case .profile: return "person.crop.circle"
-        case .functions: return "square.grid.2x2"
-        case .diagnostics: return "stethoscope"
+        case .settings: return "gearshape"
         }
     }
 }

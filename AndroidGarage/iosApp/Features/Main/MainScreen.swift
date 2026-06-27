@@ -18,12 +18,9 @@
 import SwiftUI
 @preconcurrency import shared
 
-/// Root tab shell. Holds the DI `component` and routes each tab to its screen.
-///
-/// **Phase B baseline:** tab bodies are placeholders. Each screen
-/// (Home / History / Profile / Functions / Diagnostics) is wired to its real
-/// `Default*ViewModel` from `component` in the screens PR; the placeholder
-/// names the ViewModel that will back it so the wiring target is explicit.
+/// Root tab shell — three tabs (Home / History / Settings). Diagnostics and
+/// Functions are reached from the gated Developer section inside Settings, not
+/// as tabs (see `SettingsScreen`).
 struct MainScreen: View {
     let component: NativeComponent
 
@@ -47,12 +44,8 @@ struct MainScreen: View {
             HomeScreen(component: component)
         case .history:
             HistoryScreen(component: component)
-        case .profile:
-            ProfileScreen(component: component)
-        case .functions:
-            FunctionListScreen(component: component)
-        case .diagnostics:
-            DiagnosticsScreen(component: component)
+        case .settings:
+            SettingsScreen(component: component)
         }
     }
 }

@@ -42,9 +42,9 @@ A browsable visual reference of every SwiftUI `#Preview` in the iOS app, capture
 ### Home-open-signed-in.1
 <img src="__Snapshots__/PreviewTests.generated/Home-open-signed-in.1.png" width="240" />
 
-### Profile-signed-in-snoozing.1
-<img src="__Snapshots__/PreviewTests.generated/Profile-signed-in-snoozing.1.png" width="240" />
+### Settings-signed-in-developer.1
+<img src="__Snapshots__/PreviewTests.generated/Settings-signed-in-developer.1.png" width="240" />
 
-### Profile-signed-out.1
-<img src="__Snapshots__/PreviewTests.generated/Profile-signed-out.1.png" width="240" />
+### Settings-signed-out.1
+<img src="__Snapshots__/PreviewTests.generated/Settings-signed-out.1.png" width="240" />
 
