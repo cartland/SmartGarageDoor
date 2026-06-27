@@ -22,16 +22,33 @@ import SwiftUI
 /// Mirrors Android's `DiagnosticsContent`.
 struct DiagnosticsScreen: View {
     @StateObject private var wrapper: DiagnosticsViewModelWrapper
-    @State private var showClearConfirm = false
 
     init(component: NativeComponent) {
         _wrapper = StateObject(wrappedValue: DiagnosticsViewModelWrapper(component: component))
     }
 
     var body: some View {
+        DiagnosticsContentView(
+            counters: wrapper.counters,
+            clearInFlight: wrapper.clearInFlight,
+            onClear: { wrapper.clearDiagnostics() }
+        )
+    }
+}
+
+/// Pure Diagnostics content — renders without a live `NativeComponent`. Captured
+/// by the `#Preview`s / snapshot gallery.
+struct DiagnosticsContentView: View {
+    let counters: [DiagnosticsViewModelWrapper.Counter]
+    let clearInFlight: Bool
+    let onClear: () -> Void
+
+    @State private var showClearConfirm = false
+
+    var body: some View {
         List {
             Section("Counters") {
-                ForEach(wrapper.counters) { counter in
+                ForEach(counters) { counter in
                     HStack {
                         Text(counter.label)
                         Spacer()
@@ -47,13 +64,13 @@ struct DiagnosticsScreen: View {
                     showClearConfirm = true
                 } label: {
                     HStack(spacing: GarageSpacing.tight) {
-                        if wrapper.clearInFlight {
+                        if clearInFlight {
                             ProgressView().controlSize(.small)
                         }
-                        Text(wrapper.clearInFlight ? "Clearing…" : "Clear all diagnostics")
+                        Text(clearInFlight ? "Clearing…" : "Clear all diagnostics")
                     }
                 }
-                .disabled(wrapper.clearInFlight)
+                .disabled(clearInFlight)
             }
         }
         .navigationTitle("Diagnostics")
@@ -62,10 +79,29 @@ struct DiagnosticsScreen: View {
             isPresented: $showClearConfirm,
             titleVisibility: .visible
         ) {
-            Button("Clear all", role: .destructive) { wrapper.clearDiagnostics() }
+            Button("Clear all", role: .destructive) { onClear() }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Wipes the app-event log and lifetime counters.")
         }
+    }
+}
+
+#Preview("Diagnostics counters") {
+    NavigationStack {
+        DiagnosticsContentView(
+            counters: [
+                .init(id: "initCurrent", label: "Init current door", value: 12),
+                .init(id: "initRecent", label: "Init recent door", value: 8),
+                .init(id: "userCurrent", label: "User fetch current", value: 34),
+                .init(id: "userRecent", label: "User fetch recent", value: 21),
+                .init(id: "fcmReceived", label: "FCM door events received", value: 57),
+                .init(id: "fcmSubscribe", label: "FCM topic subscribes", value: 3),
+                .init(id: "fcmExceeded", label: "Exceeded expected time without FCM", value: 1),
+                .init(id: "fcmInRange", label: "Time without FCM in range", value: 56),
+            ],
+            clearInFlight: false,
+            onClear: {}
+        )
     }
 }

@@ -47,6 +47,10 @@ canvas), then run the script. Notes:
   16, so use the plain `#Preview("Name") { ... }` form.
 - Screen-level views that take `component: NativeComponent` (a live DI graph)
   need a preview-friendly pure sub-view + fixtures before they can be captured.
+- A `#Preview` body is embedded **verbatim** into the generated `PreviewTests`,
+  which is in the test target (`@testable import iosApp`). So the body may only
+  reference symbols visible at that access level (`internal` or higher) — never a
+  `private` file-scope helper. Inline such fixtures into the preview body.
 
 ## Files
 
