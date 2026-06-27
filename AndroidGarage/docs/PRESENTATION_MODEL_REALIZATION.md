@@ -35,6 +35,24 @@ module already exists (`HomeScreenState`, `DoorHistoryScreenState`,
 - Android `*Content.kt` and iOS `*ContentView`/wrapper become thin renderers of
   the VM's typed state. The `androidApp/` mapper is **deleted** per slice.
 - Mapper unit tests move to shared `commonTest`.
+- **Calendar / time-zone work uses `kotlinx-datetime`, never `java.time`** — the
+  latter is import-boundary-forbidden in `presentation-model` (P3 added the dep).
+  Take the zone as an IANA id `String` (`zone.id` on Android,
+  `TimeZone.current.identifier` on iOS) and **expose primitive date parts**
+  (`year`/`monthNumber`/`dayOfMonth`), not a `kotlinx-datetime` type, so no date
+  library leaks across the SKIE/Swift bridge (keep the dep `implementation`, not
+  `api`). Canonical: `DayLabel.Date` (P3).
+- **A pure mapper called from each UI is a valid alternative to a VM `StateFlow`**
+  when the existing consumer already maps at render (Android `remember`). It needs
+  **no VM ctor change → no DI-graph edits** (avoids the two-DI-component trap).
+  Use it when the slice doesn't otherwise need new VM state. Canonical:
+  `HistoryMapper` (P3). Prefer a computed VM `StateFlow` only when the value must
+  be observed/seeded for no-flicker (P1/P2).
+- **Share the gnarly *decision*, not necessarily every byte of arithmetic.** If a
+  slice's only-remaining-shared candidate is a trivial `%60` decomposition AND
+  sharing it would churn a behavior-preserving render path, leave it per-UI (a
+  small Swift mirror is fine). Share when the *choice* is non-trivial (P2's
+  `ElapsedDuration` bucket); skip when it's just division (P3's duration parts).
 
 ## Per-slice checklist
 
