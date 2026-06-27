@@ -63,6 +63,7 @@ import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.permissions.NotificationJustification
+import com.chriscartland.garage.presentation.DoorWarning
 import com.chriscartland.garage.ui.DeviceCheckInPill
 import com.chriscartland.garage.ui.DoorStatusInfoBottomSheet
 import com.chriscartland.garage.ui.GarageIcon
@@ -94,9 +95,10 @@ import java.time.ZoneId
  * @param doorPosition drives the [GarageIcon] visual + door coloring AND the
  *   headline label.
  * @param lastChangeTimeSeconds raw epoch seconds for the "Since X · Y" line.
- * @param warning optional typed warning, surfaced for `OPENING_TOO_LONG`,
- *   `OPEN_MISALIGNED`, `CLOSING_TOO_LONG`, `ERROR_SENSOR_CONFLICT`, etc.
- *   See [DoorWarning].
+ * @param warning optional typed warning for stuck / anomalous states. The TYPE
+ *   and its mapping now live in the shared `presentation-model` ([DoorWarning],
+ *   ADR-031) and the value is sourced from `DefaultHomeViewModel.warning` (not
+ *   this screen's mapper); the route wrapper threads it onto the display bundle.
  */
 data class HomeStatusDisplay(
     val doorPosition: DoorPosition,

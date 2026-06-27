@@ -30,6 +30,8 @@ import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.RemoteButtonState
+import com.chriscartland.garage.presentation.DoorWarning
+import com.chriscartland.garage.presentation.DoorWarningMapper
 import com.chriscartland.garage.usecase.ButtonAckToken
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
 import com.chriscartland.garage.usecase.ButtonStateMachine
@@ -44,7 +46,10 @@ import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
@@ -62,6 +67,16 @@ interface HomeViewModel {
     val authState: StateFlow<AuthState>
 
     val currentDoorEvent: StateFlow<LoadingResult<DoorEvent?>>
+
+    /**
+     * Typed warning for stuck / anomalous door states (ADR-031 shared
+     * presentation model), derived from [currentDoorEvent]. Null when the
+     * current state warrants no warning. Each UI resolves the typed value to a
+     * localized string at render time. Exposed as [StateFlow] (seeded
+     * synchronously from the cached door event) so neither UI flashes a stale
+     * warning on a fresh screen entry.
+     */
+    val warning: StateFlow<DoorWarning?>
 
     /** True when the last check-in is older than the staleness threshold (11 min). */
     val isCheckInStale: StateFlow<Boolean>
@@ -144,6 +159,20 @@ class DefaultHomeViewModel(
             LoadingResult.Complete(observeDoorEvents.current().value),
         )
     override val currentDoorEvent: StateFlow<LoadingResult<DoorEvent?>> = _currentDoorEvent
+
+    // Derived typed warning (ADR-031). `map` is a transformation, so this is a
+    // genuine derivation (not a pass-through) — `stateIn(..., Eagerly, ...)`
+    // with a synchronously-computed initial value keeps it readable on first
+    // composition without a `Loading`/stale flash, mirroring the
+    // ComputeButtonHealthDisplayUseCase pattern.
+    override val warning: StateFlow<DoorWarning?> =
+        _currentDoorEvent
+            .map { DoorWarningMapper.forEvent(it.data) }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.Eagerly,
+                initialValue = DoorWarningMapper.forEvent(_currentDoorEvent.value.data),
+            )
 
     private val _isCheckInStale = MutableStateFlow(false)
     override val isCheckInStale: StateFlow<Boolean> = _isCheckInStale

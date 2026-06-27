@@ -25,6 +25,12 @@ final class HomeViewModelWrapper: ObservableObject {
     @Published private(set) var signedIn: Bool = false
     @Published private(set) var doorPosition: DoorPosition = .unknown
     @Published private(set) var doorMessage: String?
+    /// Localized text for the typed `DoorWarning` exposed by the shared VM
+    /// (ADR-031), or `nil` when the current state warrants no warning. The
+    /// shared layer emits a *typed* warning; this wrapper resolves it to a
+    /// string here (iOS's localization boundary) — mirrors Android's
+    /// `doorWarningText` Composable + `strings.xml`.
+    @Published private(set) var warningText: String?
     @Published private(set) var lastChangeTimeSeconds: Int64?
     @Published private(set) var isCheckInStale: Bool = false
     @Published private(set) var buttonStateLabel: String = "Ready"
@@ -38,6 +44,7 @@ final class HomeViewModelWrapper: ObservableObject {
         shared = SharedViewModel(component.homeViewModel)
         applyAuth(vm.authState.value)
         applyDoor(vm.currentDoorEvent.value)
+        applyWarning(vm.warning.value)
         applyButton(vm.buttonState.value)
         applyHealth(vm.buttonHealthDisplay.value)
         isCheckInStale = vm.isCheckInStale.value.boolValue
@@ -47,6 +54,9 @@ final class HomeViewModelWrapper: ObservableObject {
         })
         tasks.append(Task { @MainActor [weak self] in
             for await v in self!.vm.currentDoorEvent { self?.applyDoor(v) }
+        })
+        tasks.append(Task { @MainActor [weak self] in
+            for await v in self!.vm.warning { self?.applyWarning(v) }
         })
         tasks.append(Task { @MainActor [weak self] in
             for await v in self!.vm.buttonState { self?.applyButton(v) }
@@ -72,6 +82,28 @@ final class HomeViewModelWrapper: ObservableObject {
         doorPosition = event?.doorPosition ?? .unknown
         doorMessage = event?.message
         lastChangeTimeSeconds = event?.lastChangeTimeSeconds?.int64Value
+    }
+
+    /// Resolves the shared typed `DoorWarning` to a localized string. The four
+    /// fallback strings mirror Android's `home_warning_*` resources verbatim so
+    /// both platforms read identically; a server-supplied message renders as-is.
+    private func applyWarning(_ warning: DoorWarning?) {
+        guard let warning else {
+            warningText = nil
+            return
+        }
+        switch onEnum(of: warning) {
+        case .serverMessage(let message):
+            warningText = message.text
+        case .openingTooLong:
+            warningText = "Opening, taking longer than expected"
+        case .closingTooLong:
+            warningText = "Closing, taking longer than expected"
+        case .openMisaligned:
+            warningText = "Door is open and misaligned"
+        case .sensorConflict:
+            warningText = "Sensor conflict. Check the door."
+        }
     }
 
     private func applyButton(_ state: RemoteButtonState) {

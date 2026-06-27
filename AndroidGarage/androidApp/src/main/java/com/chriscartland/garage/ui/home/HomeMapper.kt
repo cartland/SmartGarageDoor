@@ -30,10 +30,14 @@ import com.chriscartland.garage.permissions.NotificationJustification
  * Per the string-resource migration plan
  * (`AndroidGarage/docs/PENDING_FOLLOWUPS.md` item #1, Phases 2A/2B/2C),
  * this mapper does NOT produce user-visible text. It emits typed states
- * ([HomeStatusDisplay], [DoorWarning], [HomeAlert]) and raw data (epoch
- * seconds, exception text). The Composable layer resolves typed values to
- * localized strings via `stringResource` / `pluralStringResource` at render
- * time.
+ * ([HomeStatusDisplay], [HomeAlert]) and raw data (epoch seconds, exception
+ * text). The Composable layer resolves typed values to localized strings via
+ * `stringResource` / `pluralStringResource` at render time.
+ *
+ * The typed door warning moved to the shared `presentation-model`
+ * (`DoorWarning` / `DoorWarningMapper`, ADR-031) and is now exposed by
+ * `DefaultHomeViewModel.warning`; the Composable reads it from the VM rather
+ * than from this mapper.
  *
  * The "Since X · Y" status line is now built by the production HomeContent
  * wrapper (Composable scope) using [HomeStatusFormatter] + plurals, then
@@ -58,7 +62,6 @@ object HomeMapper {
         return HomeStatusDisplay(
             doorPosition = doorPosition,
             lastChangeTimeSeconds = event?.lastChangeTimeSeconds,
-            warning = warning(event),
             isStale = isCheckInStale,
         )
     }
@@ -112,30 +115,6 @@ object HomeMapper {
             AuthState.Unauthenticated -> HomeAuthState.SignedOut
             is AuthState.Authenticated -> HomeAuthState.SignedIn
         }
-
-    /**
-     * Returns the typed warning to surface inside the Status card for stuck
-     * or anomalous states. Prefers the server-supplied message
-     * ([DoorWarning.ServerMessage]); falls back to a typed enum case per
-     * [DoorPosition] so the Composable can render a localized string from
-     * `strings.xml` when the server sends nothing.
-     */
-    internal fun warning(event: DoorEvent?): DoorWarning? {
-        if (event == null) return null
-        val message = event.message?.takeIf { it.isNotBlank() }
-        return when (event.doorPosition) {
-            DoorPosition.OPENING_TOO_LONG ->
-                message?.let(DoorWarning::ServerMessage) ?: DoorWarning.OpeningTooLong
-            DoorPosition.CLOSING_TOO_LONG ->
-                message?.let(DoorWarning::ServerMessage) ?: DoorWarning.ClosingTooLong
-            DoorPosition.OPEN_MISALIGNED ->
-                message?.let(DoorWarning::ServerMessage) ?: DoorWarning.OpenMisaligned
-            DoorPosition.ERROR_SENSOR_CONFLICT ->
-                message?.let(DoorWarning::ServerMessage) ?: DoorWarning.SensorConflict
-            DoorPosition.UNKNOWN -> message?.let(DoorWarning::ServerMessage)
-            else -> null
-        }
-    }
 
     private const val MAX_ERROR_MESSAGE_LEN = 500
 }

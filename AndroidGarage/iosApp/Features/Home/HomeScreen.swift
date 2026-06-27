@@ -32,6 +32,7 @@ struct HomeScreen: View {
         HomeContentView(
             doorPosition: wrapper.doorPosition,
             doorMessage: wrapper.doorMessage,
+            warningText: wrapper.warningText,
             isCheckInStale: wrapper.isCheckInStale,
             buttonStateLabel: wrapper.buttonStateLabel,
             buttonHealthLabel: wrapper.buttonHealthLabel,
@@ -48,6 +49,10 @@ struct HomeScreen: View {
 struct HomeContentView: View {
     let doorPosition: DoorPosition
     let doorMessage: String?
+    /// Already-localized warning text (resolved from the shared typed
+    /// `DoorWarning` in the wrapper). Non-nil only for stuck/anomalous states;
+    /// when present it replaces the plain `doorMessage` subtitle.
+    let warningText: String?
     let isCheckInStale: Bool
     let buttonStateLabel: String
     let buttonHealthLabel: String
@@ -65,7 +70,9 @@ struct HomeContentView: View {
                     VStack(spacing: GarageSpacing.tight) {
                         Text(doorPosition.statusLabel)
                             .font(.title2.weight(.semibold))
-                        if let message = doorMessage {
+                        if let warningText {
+                            DoorWarningChip(text: warningText)
+                        } else if let message = doorMessage {
                             Text(message)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
@@ -106,11 +113,30 @@ struct HomeContentView: View {
     }
 }
 
+/// Warning chip for stuck / anomalous door states — the SwiftUI analog of
+/// Android's errorContainer warning Surface in `HomeContent`. Renders the
+/// already-localized `text` (resolved from the shared typed `DoorWarning`).
+private struct DoorWarningChip: View {
+    let text: String
+
+    var body: some View {
+        Label(text, systemImage: "exclamationmark.triangle.fill")
+            .font(.footnote)
+            .multilineTextAlignment(.leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(GarageColors.statusWarning.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+            .foregroundStyle(GarageColors.statusWarning)
+    }
+}
+
 #Preview("Home closed signed out") {
     NavigationStack {
         HomeContentView(
             doorPosition: .closed,
             doorMessage: "The door is closed.",
+            warningText: nil,
             isCheckInStale: true,
             buttonStateLabel: "Tap to open / close",
             buttonHealthLabel: "Sign in to see device health",
@@ -126,6 +152,23 @@ struct HomeContentView: View {
         HomeContentView(
             doorPosition: .open,
             doorMessage: "The door is open.",
+            warningText: nil,
+            isCheckInStale: false,
+            buttonStateLabel: "Tap to open / close",
+            buttonHealthLabel: "Online",
+            signedIn: true,
+            onButtonTap: {},
+            onRefresh: {}
+        )
+    }
+}
+
+#Preview("Home opening too long warning") {
+    NavigationStack {
+        HomeContentView(
+            doorPosition: .openingTooLong,
+            doorMessage: nil,
+            warningText: "Opening, taking longer than expected",
             isCheckInStale: false,
             buttonStateLabel: "Tap to open / close",
             buttonHealthLabel: "Online",

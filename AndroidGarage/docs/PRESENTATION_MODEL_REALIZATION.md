@@ -62,15 +62,26 @@ Each slice is one PR (cross-cutting; `validate.sh` required):
 
 Start small to prove the pattern, then widen.
 
-### Phase 1 — `DoorWarning` (smallest end-to-end slice; proves the pattern)
+### Phase 1 — `DoorWarning` (smallest end-to-end slice; proves the pattern) — ✅ SHIPPED
 
 `DoorPosition → DoorWarning` (sealed: `ServerMessage(text)` + enum fallbacks
-`OpeningTooLong` / `ClosingTooLong` / `OpenMisaligned` / `SensorConflict`). Move
+`OpeningTooLong` / `ClosingTooLong` / `OpenMisaligned` / `SensorConflict`). Moved
 `androidApp/.../ui/home/DoorWarning.kt` + the `HomeMapper.warning` mapping into
-shared; expose `warning: DoorWarning?` on `DefaultHomeViewModel`. Android renders
-the existing chip from VM state; iOS renders a warning chip (today it shows the
-raw server message only). Smallest cross-cutting change — establishes the
-pattern, lints, and the two-UI render.
+shared `presentation-model` (`DoorWarning` + `DoorWarningMapper`, tests in
+`commonTest`); `DefaultHomeViewModel` exposes `warning: StateFlow<DoorWarning?>`
+(derived via `map` + `stateIn(Eagerly)`, seeded synchronously — no flicker, no
+ctor change so both DI graphs are untouched). Android keeps the chip but sources
+`HomeStatusDisplay.warning` from the VM (route wrapper `.copy(warning = …)`), not
+the mapper. iOS gained a real warning chip (`DoorWarningChip` in
+`HomeContentView`, resolved from the typed value in `HomeViewModelWrapper`).
+
+**As-built note on the "thinner Android" goal:** the typed `DoorWarning` lives on
+the existing `HomeStatusDisplay` bundle rather than as a standalone screen-level
+Composable parameter. A nullable-with-default Composable param (`warning:
+DoorWarning? = null`) is blocked by `ComposableNullableDefaultKonsistTest`
+(the "fixture silently omits a production element" guard); the data-class field —
+deliberately out of that check's scope — is the convention-clean home. The
+mapping + type still moved to shared; only the render-time field location stayed.
 
 ### Phase 2 — Home status line + door color/icon semantics
 
@@ -110,7 +121,7 @@ Condensed from the 2026-06-27 audit. Items already shipped are struck through.
   ~~account name/email + About/version (#927)~~. Remaining: store/privacy links
   (deferred until published), tap-to-copy version, typed snooze-failure messages,
   snooze permission state.
-- **Home** — typed `DoorWarning` chip (P1); "Since · duration" line (P2);
+- **Home** — ~~typed `DoorWarning` chip (P1)~~ ✅; "Since · duration" line (P2);
   alert banners stale/fetch-error/permission (P4); info sheets + check-in/health
   pills (P5); network-progress diagram (P5, optional).
 - **History** — day grouping, door icons, durations, transit/anomaly tags,

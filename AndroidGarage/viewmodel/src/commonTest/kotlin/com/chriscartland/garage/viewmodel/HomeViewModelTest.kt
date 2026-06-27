@@ -31,6 +31,7 @@ import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.domain.repository.ButtonHealthRepository
+import com.chriscartland.garage.presentation.DoorWarning
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
@@ -63,6 +64,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -298,6 +300,57 @@ class HomeViewModelTest {
                     "See ADR-023 / 2.4.4 regression.",
             )
             assertEquals(testDoorEvent, initial.data)
+        }
+
+    @Test
+    fun warningIsNullForNormalDoorState() =
+        runTest {
+            // setup() pre-seeds a CLOSED event → no warning (ADR-031 shared
+            // DoorWarningMapper returns null for non-anomalous states).
+            val viewModel = createViewModel(scope = backgroundScope, fetchOnInit = false)
+
+            assertNull(viewModel.warning.value)
+        }
+
+    @Test
+    fun warningDerivesFromCurrentDoorEvent() =
+        runTest {
+            val viewModel = createViewModel(scope = backgroundScope, fetchOnInit = false)
+
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(
+                    doorPosition = DoorPosition.OPENING_TOO_LONG,
+                    message = "Taking too long",
+                    lastChangeTimeSeconds = 900L,
+                ),
+            )
+            testDispatcher.scheduler.runCurrent()
+
+            assertEquals(DoorWarning.ServerMessage("Taking too long"), viewModel.warning.value)
+        }
+
+    /**
+     * The warning [StateFlow] is `stateIn`'d with a synchronously-computed
+     * initial value seeded from the cached door event, so a fresh screen entry
+     * exposes the correct warning on first read — no flicker. Mirrors
+     * [initialCurrentDoorEventValueIsCompleteFromUpstreamCache] for the warning
+     * slice (ADR-031).
+     */
+    @Test
+    fun warningInitialValueSeededFromCacheNoFlicker() =
+        runTest {
+            // Pre-seed an anomalous event BEFORE construction; the warning must
+            // be exposed synchronously, before the IO collector runs.
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.OPENING_TOO_LONG, lastChangeTimeSeconds = 900L),
+            )
+            val viewModel = createViewModel(
+                scope = backgroundScope,
+                fetchOnInit = false,
+                runScheduler = false,
+            )
+
+            assertEquals(DoorWarning.OpeningTooLong, viewModel.warning.value)
         }
 
     @Test

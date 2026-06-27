@@ -25,7 +25,6 @@ import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.User
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -60,78 +59,12 @@ class HomeMapperTest {
     //  time. New DoorPosition variants are caught by exhaustiveness on
     //  the `when` block in that Composable.)
 
-    // region warning
-    // Phase 2A of the string-resource migration: warning() returns a typed
-    // DoorWarning?, not a String?. Tests assert on type so a copy revision
-    // doesn't break them.
-
-    @Test
-    fun warning_null_event_returns_null() = assertNull(HomeMapper.warning(null))
-
-    @Test
-    fun warning_open_no_warning() = assertNull(HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.OPEN, message = "anything")))
-
-    @Test
-    fun warning_closed_no_warning() = assertNull(HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.CLOSED, message = "anything")))
-
-    @Test
-    fun warning_opening_no_warning() = assertNull(HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.OPENING)))
-
-    @Test
-    fun warning_closing_no_warning() = assertNull(HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.CLOSING)))
-
-    @Test
-    fun warning_openingTooLong_uses_server_message_when_present() {
-        val w = HomeMapper.warning(
-            DoorEvent(doorPosition = DoorPosition.OPENING_TOO_LONG, message = "Specific server text"),
-        )
-        assertEquals(DoorWarning.ServerMessage("Specific server text"), w)
-    }
-
-    @Test
-    fun warning_openingTooLong_falls_back_to_typed_default_when_message_null() {
-        val w = HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.OPENING_TOO_LONG))
-        assertEquals(DoorWarning.OpeningTooLong, w)
-    }
-
-    @Test
-    fun warning_openingTooLong_falls_back_to_typed_default_when_message_blank() {
-        val w = HomeMapper.warning(
-            DoorEvent(doorPosition = DoorPosition.OPENING_TOO_LONG, message = "   "),
-        )
-        assertEquals(DoorWarning.OpeningTooLong, w)
-    }
-
-    @Test
-    fun warning_closingTooLong_default() {
-        val w = HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.CLOSING_TOO_LONG))
-        assertEquals(DoorWarning.ClosingTooLong, w)
-    }
-
-    @Test
-    fun warning_openMisaligned_default() {
-        val w = HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.OPEN_MISALIGNED))
-        assertEquals(DoorWarning.OpenMisaligned, w)
-    }
-
-    @Test
-    fun warning_sensorConflict_default() {
-        val w = HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.ERROR_SENSOR_CONFLICT))
-        assertEquals(DoorWarning.SensorConflict, w)
-    }
-
-    @Test
-    fun warning_unknown_uses_server_message_only_no_default() {
-        // Unknown is too vague for a fixed default, so only the server's
-        // own message is surfaced — and only when non-blank.
-        assertNull(HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.UNKNOWN)))
-        assertEquals(
-            DoorWarning.ServerMessage("Server says X"),
-            HomeMapper.warning(DoorEvent(doorPosition = DoorPosition.UNKNOWN, message = "Server says X")),
-        )
-    }
-
-    // endregion
+    // (region warning was removed in the presentation-model realization
+    //  (ADR-031) — the typed `DoorWarning` + its mapping moved to the shared
+    //  `presentation-model` module. The contract is now guarded by
+    //  `DoorWarningMapperTest` in that module's commonTest, so it runs on every
+    //  platform. `DefaultHomeViewModel.warning` exposes the typed value; the
+    //  Composable renders it.)
 
     // (regions formatDuration, formatTimeOrDate, sinceLine were removed in
     //  Phase 2C — those helpers moved to HomeStatusFormatter as pure
@@ -147,7 +80,6 @@ class HomeMapperTest {
         val display = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(null))
         assertEquals(DoorPosition.UNKNOWN, display.doorPosition)
         assertNull(display.lastChangeTimeSeconds)
-        assertNull(display.warning)
     }
 
     @Test
@@ -178,15 +110,15 @@ class HomeMapperTest {
         val display = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event))
         assertEquals(DoorPosition.OPEN, display.doorPosition)
         assertEquals(event.lastChangeTimeSeconds, display.lastChangeTimeSeconds)
-        assertNull(display.warning)
     }
 
     @Test
-    fun toHomeStatusDisplay_openingTooLong_surfaces_warning() {
+    fun toHomeStatusDisplay_openingTooLong_maps_position() {
+        // The typed warning moved to DoorWarningMapper (shared); this mapper
+        // now only carries the door position + timestamp for the status card.
         val event = event(DoorPosition.OPENING_TOO_LONG, secondsAgo = 4 * 60)
         val display = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event))
         assertEquals(DoorPosition.OPENING_TOO_LONG, display.doorPosition)
-        assertNotNull(display.warning)
     }
 
     // endregion
