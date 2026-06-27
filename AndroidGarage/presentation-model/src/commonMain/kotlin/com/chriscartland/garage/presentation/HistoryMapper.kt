@@ -15,54 +15,61 @@
  *
  */
 
-package com.chriscartland.garage.ui.history
+package com.chriscartland.garage.presentation
 
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.daysUntil
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * Pure-function pipeline that converts raw [DoorEvent]s into the display-ready
- * [HistoryDay] list rendered by [HistoryContent].
+ * [HistoryDay] list rendered by each UI (ADR-031 shared presentation model).
  *
- * The composable takes its arguments verbatim — every string in [HistoryDay] /
- * [HistoryEntry] is computed here. Tests in `HistoryMapperTest` cover the
- * merge rules, dedup, duration computation, and formatting in isolation.
+ * Moved verbatim from `androidApp/.../ui/history/HistoryMapper.kt` so the merge
+ * rules live in `commonMain` and run on every platform. The only platform
+ * coupling — converting epoch seconds to a local calendar day for grouping — is
+ * handled here via `kotlinx-datetime`, taking the time zone as an IANA id string
+ * (`ZoneId.systemDefault().id` on Android; `TimeZone.current.identifier` on iOS).
+ *
+ * Every value in [HistoryDay] / [HistoryEntry] is typed, never a user-visible
+ * string; each UI formats localized strings at render time. Tests in
+ * `HistoryMapperTest` (commonTest) cover the merge rules, dedup, duration
+ * computation, and day grouping in isolation.
  *
  * Pipeline (in order):
  *
  *   1. Sort by `lastChangeTimeSeconds` (oldest → newest) and drop events with
  *      missing position or timestamp.
  *   2. Dedup consecutive same-position events.
- *   3. Merge transitions: `OPENING → OPEN` and `CLOSING → CLOSED` collapse
- *      into a single `Opened` / `Closed` record. `_TOO_LONG → terminal`
- *      collapses into a terminal with a transit-warning note. `_TOO_LONG`
- *      that never reaches its terminal becomes a `Stuck opening` /
- *      `Stuck closing` anomaly.
- *   4. Compute durations: each terminal carries its own state's duration —
- *      "Open for 6 min" reaches forward to the next CLOSED, "Closed for
- *      22 min" reaches forward to the next OPENED. The most recent terminal
- *      gets `isCurrent = true` and "X and counting".
- *   5. Format display strings using the supplied [ZoneId] (locale-fixed to
- *      `Locale.US` for predictable test output).
- *   6. Group entries by local date, newest day first, with friendly day
- *      labels ("Today" / "Yesterday" / "Mon, Apr 27").
+ *   3. Merge transitions: `OPENING → OPEN` and `CLOSING → CLOSED` collapse into
+ *      a single `Opened` / `Closed` record. `_TOO_LONG → terminal` collapses
+ *      into a terminal with a transit-warning note. `_TOO_LONG` that never
+ *      reaches its terminal becomes a `Stuck opening` / `Stuck closing` anomaly.
+ *   4. Compute durations: each terminal carries its own state's duration — "Open
+ *      for 6 min" reaches forward to the next CLOSED, "Closed for 22 min"
+ *      reaches forward to the next OPENED. The most recent terminal gets
+ *      `isCurrent = true` and "X and counting".
+ *   5. Group entries by local date, newest day first, with typed [DayLabel]s
+ *      (Today / Yesterday / Date).
  */
 object HistoryMapper {
     /**
      * Convert a list of door events into display-ready [HistoryDay]s.
      *
      * @param events raw events; order is irrelevant (sorted internally).
-     * @param now reference instant for "and counting" durations and
+     * @param nowEpochSeconds reference instant for "and counting" durations and
      *   "Today" / "Yesterday" day labels.
-     * @param zone time zone for time-of-day formatting and day grouping.
+     * @param timeZoneId IANA time-zone id for day grouping (e.g. "UTC",
+     *   "America/Los_Angeles").
      */
     fun toHistoryDays(
         events: List<DoorEvent>,
-        now: Instant,
-        zone: ZoneId,
+        nowEpochSeconds: Long,
+        timeZoneId: String,
     ): List<HistoryDay> {
         val chronological = events
             .filter { it.lastChangeTimeSeconds != null && it.doorPosition != null }
@@ -71,10 +78,10 @@ object HistoryMapper {
         if (chronological.isEmpty()) return emptyList()
 
         val merged = mergeEvents(chronological)
-        val withDurations = computeDurations(merged, now)
+        val withDurations = computeDurations(merged, nowEpochSeconds)
         // Display order is newest-first; group by local date while we still
         // have the raw epoch seconds.
-        return groupByDay(withDurations.asReversed(), now, zone)
+        return groupByDay(withDurations.asReversed(), nowEpochSeconds, TimeZone.of(timeZoneId))
     }
 
     // ---------- Step 2: dedup ----------
@@ -139,9 +146,7 @@ object HistoryMapper {
 
     /**
      * Mutable state holder that the per-position handlers operate on. Pulling
-     * the loop body out of [mergeEvents] keeps each handler shallow and lets
-     * detekt see them as standalone functions instead of branches deep inside
-     * a `for` over a giant `when`.
+     * the loop body out of [mergeEvents] keeps each handler shallow.
      */
     private class MergeState {
         val result = mutableListOf<MergedRecord>()
@@ -217,8 +222,8 @@ object HistoryMapper {
          * Three cases in priority order:
          *   1. An Opening is pending → terminate as Opened(misaligned = true)
          *      with the transit warning if the opening was tooLong.
-         *   2. The most recent open-state context in `result` is an Opened
-         *      (no Closed between) → set its misaligned flag. Don't emit.
+         *   2. The most recent open-state context in `result` is an Opened (no
+         *      Closed between) → set its misaligned flag. Don't emit.
          *   3. Otherwise → standalone Anomaly so data isn't dropped.
          */
         private fun handleOpenMisaligned(time: Long) {
@@ -260,9 +265,9 @@ object HistoryMapper {
     /**
      * Find the index of the most recent [MergedRecord.Opened] in [result] that
      * still represents the current open-state context — i.e. there is no
-     * intervening [MergedRecord.Closed]. Anomalies are skipped (they don't
-     * break the open-state context). Returns null when the most recent
-     * terminal is a Closed or there is no Opened at all.
+     * intervening [MergedRecord.Closed]. Anomalies are skipped (they don't break
+     * the open-state context). Returns null when the most recent terminal is a
+     * Closed or there is no Opened at all.
      */
     private fun findOpenedToMergeMisalignment(result: List<MergedRecord>): Int? {
         for (i in result.indices.reversed()) {
@@ -323,18 +328,18 @@ object HistoryMapper {
     )
 
     /**
-     * For each terminal record, compute "how long this state lasted." Walks
-     * in reverse so we can reach the next opposite-state event in O(n).
+     * For each terminal record, compute "how long this state lasted." Walks in
+     * reverse so we can reach the next opposite-state event in O(n).
      *
      * An `Opened`'s span ends at the earlier of the next `Closed` or next
      * `Opened` — adjacent same-state records (e.g. when an `OPEN_MISALIGNED`
-     * splits an open run into two `Opened` rows) carve out non-overlapping
-     * spans rather than each spanning to the same future `Closed`. Symmetric
-     * for `Closed`.
+     * splits an open run into two `Opened` rows) carve out non-overlapping spans
+     * rather than each spanning to the same future `Closed`. Symmetric for
+     * `Closed`.
      */
     internal fun computeDurations(
         merged: List<MergedRecord>,
-        now: Instant,
+        nowEpochSeconds: Long,
     ): List<WithDuration> {
         var nextClosedTime: Long? = null
         var nextOpenedTime: Long? = null
@@ -344,7 +349,7 @@ object HistoryMapper {
             when (record) {
                 is MergedRecord.Opened -> {
                     val end = listOfNotNull(nextClosedTime, nextOpenedTime).minOrNull()
-                    val duration = (end ?: now.epochSecond) - record.timeSeconds
+                    val duration = (end ?: nowEpochSeconds) - record.timeSeconds
                     reversed.add(
                         WithDuration(
                             record = record,
@@ -356,7 +361,7 @@ object HistoryMapper {
                 }
                 is MergedRecord.Closed -> {
                     val end = listOfNotNull(nextOpenedTime, nextClosedTime).minOrNull()
-                    val duration = (end ?: now.epochSecond) - record.timeSeconds
+                    val duration = (end ?: nowEpochSeconds) - record.timeSeconds
                     reversed.add(
                         WithDuration(
                             record = record,
@@ -397,39 +402,38 @@ object HistoryMapper {
             )
         }
 
-    // ---------- Step 6: group by day ----------
+    // ---------- Step 5: group by day ----------
 
     /**
-     * Decide the [DayLabel] for a calendar date relative to "today".
-     * Phase 2E — returns a typed value; the Composable resolves to a
-     * localized string at render time.
+     * Decide the [DayLabel] for a calendar date relative to "today". Returns a
+     * typed value; each UI resolves to a localized string at render time.
      */
     internal fun dayLabel(
         date: LocalDate,
         today: LocalDate,
     ): DayLabel =
-        when (today.toEpochDay() - date.toEpochDay()) {
-            0L -> DayLabel.Today
-            1L -> DayLabel.Yesterday
-            else -> DayLabel.Date(date)
+        when (date.daysUntil(today)) {
+            0 -> DayLabel.Today
+            1 -> DayLabel.Yesterday
+            else -> DayLabel.Date(date.year, date.monthNumber, date.dayOfMonth)
         }
 
     /**
-     * Group [WithDuration] records (newest-first) by local date and format
-     * each into a [HistoryEntry]. We do this in one pass so the raw epoch
-     * second from [MergedRecord] is available for day bucketing without
-     * round-tripping through display strings.
+     * Group [WithDuration] records (newest-first) by local date and convert each
+     * into a [HistoryEntry]. We do this in one pass so the raw epoch second from
+     * [MergedRecord] is available for day bucketing without round-tripping
+     * through display strings.
      */
     private fun groupByDay(
         records: List<WithDuration>,
-        now: Instant,
-        zone: ZoneId,
+        nowEpochSeconds: Long,
+        timeZone: TimeZone,
     ): List<HistoryDay> {
         if (records.isEmpty()) return emptyList()
-        val today = now.atZone(zone).toLocalDate()
+        val today = Instant.fromEpochSeconds(nowEpochSeconds).toLocalDateTime(timeZone).date
         val groups = LinkedHashMap<LocalDate, MutableList<HistoryEntry>>()
         for (rec in records) {
-            val date = Instant.ofEpochSecond(rec.record.timeSeconds).atZone(zone).toLocalDate()
+            val date = Instant.fromEpochSeconds(rec.record.timeSeconds).toLocalDateTime(timeZone).date
             groups.getOrPut(date) { mutableListOf() }.add(rec.toHistoryEntry())
         }
         return groups.map { (date, list) ->

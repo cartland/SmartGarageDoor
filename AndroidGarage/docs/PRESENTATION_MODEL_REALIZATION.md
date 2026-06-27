@@ -104,13 +104,42 @@ coarser 3-bucket model. Sharing the 3-bucket enum would be Android-only-consumed
 not a real cross-cutting win. Revisit only if a future change needs the color
 *bucket* shared.
 
-### Phase 3 — History entries
+### Phase 3 — History entries — ✅ SHIPPED
 
 `DoorEvent → HistoryEntry` (Opened / Closed / Anomaly), `AnomalyKind`,
-`TransitWarning`, and the day-grouping key (Today / Yesterday / date). Move
-`androidApp/.../ui/history/HistoryMapper.kt` to shared. iOS gains day grouping,
-door icons, durations, transit/anomaly tags — and load-more pagination
-(server + Android data already support it; ADR-028).
+`TransitWarning`, and the day-grouping key (Today / Yesterday / date). Moved
+`androidApp/.../ui/history/HistoryMapper.kt` + the entry types into shared
+`presentation-model` (`HistoryMapper.toHistoryDays(events, nowEpochSeconds,
+timeZoneId)` + `History.kt`); the 60-case test suite moved to `commonTest`. The
+one platform-coupled step — epoch-seconds → local calendar day for grouping —
+uses **`kotlinx-datetime`** (added to the module), taking the zone as an IANA id
+string (`zone.id` on Android; `TimeZone.current.identifier` on iOS). iOS gained
+the full rich screen: day sections, garage-door icons, durations, and
+transit / anomaly / misaligned tags (it was a flat position + relative-time list
+before).
+
+**As-built notes:**
+
+- **No VM / DI change.** The mapper is a pure function called from each UI
+  (Android `DoorHistoryContent`'s `remember`; the iOS wrapper) — matching how
+  Android already consumed `HistoryMapper`. Both DI graphs are untouched, so the
+  two-DI-component trap doesn't apply to this slice.
+- **`DayLabel.Date` carries primitive `year` / `monthNumber` / `dayOfMonth`** (not
+  a date-library type), so the typed surface — and the Swift bridge — stay free
+  of any `kotlinx-datetime` type. `kotlinx-datetime` is an `implementation` dep,
+  so it never leaks into the framework's public API.
+- **Duration *formatting* stays per-UI.** Only the gnarly merge / dedup /
+  duration-span / grouping logic moved (the real drift risk). Android keeps
+  `HistoryFormatter` (java.time formatting + the `%60` parts decomposition) and
+  the Composable's granularity switch; iOS reimplements the same small arithmetic
+  in Swift. Sharing the trivial decomposition wasn't worth churning the
+  behavior-preserving Android render path. (Contrast Phase 2, which shared
+  `ElapsedDuration` because the bucket *choice* was the non-trivial part.)
+- **iOS load-more is deferred.** The iOS screen renders the current
+  `recentDoorEvents` window; the scroll-to-end load-more trigger (Android has it;
+  server + data support it per ADR-028) is a follow-up — it needs the pagination
+  `StateFlow` + a SwiftUI scroll-position trigger, independent of the shared
+  display mapping this slice delivered.
 
 ### Phase 4 — Home alerts + permission/notification state
 
@@ -147,8 +176,8 @@ Condensed from the 2026-06-27 audit. Items already shipped are struck through.
 - **Home** — ~~typed `DoorWarning` chip (P1)~~ ✅; ~~"Since · duration" line
   (P2)~~ ✅; alert banners stale/fetch-error/permission (P4); info sheets +
   check-in/health pills (P5); network-progress diagram (P5, optional).
-- **History** — day grouping, door icons, durations, transit/anomaly tags,
-  empty-state, load-more (P3).
+- **History** — ~~day grouping, door icons, durations, transit/anomaly tags,
+  empty-state (P3)~~ ✅; load-more (P3 follow-up — deferred, see Phase 3 note).
 - **Diagnostics** — Export CSV, copy-auth-token (P5).
 - **Functions** — sign in/out, copy-auth-token, test-notification topic
   (copy/subscribe/change), "developers only" warning (P5).

@@ -58,6 +58,12 @@ import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.presentation.AnomalyKind
+import com.chriscartland.garage.presentation.DayLabel
+import com.chriscartland.garage.presentation.HistoryDay
+import com.chriscartland.garage.presentation.HistoryEntry
+import com.chriscartland.garage.presentation.HistoryMapper
+import com.chriscartland.garage.presentation.TransitWarning
 import com.chriscartland.garage.ui.GarageIcon
 import com.chriscartland.garage.ui.theme.DividerInset
 import com.chriscartland.garage.ui.theme.DoorColorState
@@ -67,76 +73,8 @@ import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.doorColorState
 import com.chriscartland.garage.ui.theme.safeListContentPadding
+import java.time.LocalDate
 import java.time.ZoneId
-
-/**
- * One entry in the history list.
- *
- * Open and Closed are separate rows (no merging across the open/close
- * boundary). Each row carries the duration of *that* state (until the next
- * opposite-state event), not the duration of the prior state.
- *
- * Phase 2E of the string-resource migration plan
- * (`AndroidGarage/docs/PENDING_FOLLOWUPS.md` item #1) — no user-visible
- * strings live on this type. Times are raw epoch seconds, durations are
- * raw second counts, anomaly kinds + transit warnings are typed sealed
- * types ([AnomalyKind], [TransitWarning]). The Composable layer assembles
- * localized display strings via `stringResource` + `pluralStringResource`
- * at render time.
- */
-sealed interface HistoryEntry {
-    /**
-     * The door was opened.
-     *
-     * @param timeSeconds epoch seconds of the open event (Composable formats).
-     * @param durationSeconds how long the door stayed open after this event
-     *   (until the next CLOSE), or "and counting" seconds when this is the
-     *   most-recent terminal and the door is still open.
-     * @param isCurrent true when this is the most recent event and the door
-     *   is still open. Drives "Open · Since X" wording instead of past-tense
-     *   "Opened at X".
-     * @param transitWarning non-null ([TransitWarning.ToOpen]) when an
-     *   `OPENING_TOO_LONG` was merged into this row.
-     */
-    data class Opened(
-        val timeSeconds: Long,
-        val durationSeconds: Long,
-        val isCurrent: Boolean = false,
-        val transitWarning: TransitWarning? = null,
-        val misaligned: Boolean = false,
-    ) : HistoryEntry
-
-    /** The door was closed. Mirrors [Opened]. */
-    data class Closed(
-        val timeSeconds: Long,
-        val durationSeconds: Long,
-        val isCurrent: Boolean = false,
-        val transitWarning: TransitWarning? = null,
-    ) : HistoryEntry
-
-    /**
-     * Errors and unresolved transitions: sensor conflict, unknown,
-     * misalignment, stuck opening/closing where the door never reached its
-     * terminal state.
-     *
-     * @param doorPosition drives the GarageIcon leading visual (e.g. an
-     *   `OPEN_MISALIGNED` anomaly shows the open door art).
-     * @param kind typed anomaly kind; the Composable resolves to a
-     *   localized title via `stringResource`. See [AnomalyKind].
-     * @param timeSeconds epoch seconds of the anomaly event.
-     */
-    data class Anomaly(
-        val doorPosition: DoorPosition,
-        val kind: AnomalyKind,
-        val timeSeconds: Long,
-    ) : HistoryEntry
-}
-
-/** A single day's worth of entries, newest-first. */
-data class HistoryDay(
-    val label: DayLabel,
-    val entries: List<HistoryEntry>,
-)
 
 /**
  * Sectioned-list history. Day labels in primary uppercase, grouped Material 3
@@ -144,9 +82,9 @@ data class HistoryDay(
  * matches the redesigned Settings tab aesthetic and reuses the rest of the
  * app's door-state coloring.
  *
- * Stateless: callers pass already-grouped, already-formatted [HistoryDay]
- * instances. The pairing/grouping pipeline (DoorEvent → HistoryDay) is
- * Phase 3 production work.
+ * Stateless: callers pass already-grouped [HistoryDay] instances. The
+ * pairing / grouping pipeline (DoorEvent → HistoryDay) lives in the shared
+ * `presentation-model` [HistoryMapper] (ADR-031) so iOS renders the same data.
  *
  * @param isRefreshing drives the M3 pull-to-refresh spinner. Production
  *   callers tie this to the `LoadingResult.Loading` flag of the underlying
@@ -266,7 +204,7 @@ private object HistoryDayKey {
         when (label) {
             DayLabel.Today -> "today"
             DayLabel.Yesterday -> "yesterday"
-            is DayLabel.Date -> label.date.toString()
+            is DayLabel.Date -> "${label.year}-${label.monthNumber}-${label.dayOfMonth}"
         }
 }
 
@@ -398,7 +336,9 @@ private fun dayLabelText(label: DayLabel): String =
     when (label) {
         DayLabel.Today -> stringResource(R.string.history_day_today)
         DayLabel.Yesterday -> stringResource(R.string.history_day_yesterday)
-        is DayLabel.Date -> HistoryFormatter.formatDate(label.date)
+        is DayLabel.Date -> HistoryFormatter.formatDate(
+            LocalDate.of(label.year, label.monthNumber, label.dayOfMonth),
+        )
     }
 
 /** Resolve an [AnomalyKind] to its localized headline string. */
@@ -577,7 +517,7 @@ private fun HistoryEmptyState() {
 // via the eye). HistoryMapperTest covers the same paths for correctness.
 
 private object HistoryPreviewData {
-    val zone: java.time.ZoneId = java.time.ZoneOffset.UTC
+    val zone: java.time.ZoneId = java.time.ZoneId.of("UTC")
 
     fun event(
         position: DoorPosition,
@@ -630,8 +570,10 @@ fun HistoryContentMultiDayPreview() {
     )
     val days = HistoryMapper.toHistoryDays(
         events = events,
-        now = java.time.Instant.parse("2026-04-29T10:27:00Z"),
-        zone = HistoryPreviewData.zone,
+        nowEpochSeconds = java.time.Instant
+            .parse("2026-04-29T10:27:00Z")
+            .epochSecond,
+        timeZoneId = HistoryPreviewData.zone.id,
     )
     HistoryContent(days = days, zone = HistoryPreviewData.zone)
 }
@@ -663,8 +605,10 @@ fun HistoryContentMultiDayClosedPreview() {
     )
     val days = HistoryMapper.toHistoryDays(
         events = events,
-        now = java.time.Instant.parse("2026-04-29T12:17:00Z"),
-        zone = HistoryPreviewData.zone,
+        nowEpochSeconds = java.time.Instant
+            .parse("2026-04-29T12:17:00Z")
+            .epochSecond,
+        timeZoneId = HistoryPreviewData.zone.id,
     )
     HistoryContent(days = days, zone = HistoryPreviewData.zone)
 }
@@ -688,8 +632,10 @@ private object HistoryFooterPreviewData {
                 HistoryPreviewData.event(DoorPosition.CLOSING, "2026-04-29T09:53:00Z"),
                 HistoryPreviewData.event(DoorPosition.CLOSED, "2026-04-29T09:53:06Z"),
             ),
-            now = java.time.Instant.parse("2026-04-29T10:27:00Z"),
-            zone = HistoryPreviewData.zone,
+            nowEpochSeconds = java.time.Instant
+                .parse("2026-04-29T10:27:00Z")
+                .epochSecond,
+            timeZoneId = HistoryPreviewData.zone.id,
         )
 }
 
