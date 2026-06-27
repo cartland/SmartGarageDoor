@@ -18,13 +18,18 @@
 import SwiftUI
 @preconcurrency import shared
 
-/// Bridges `DefaultProfileViewModel` to SwiftUI.
+/// Bridges `DefaultProfileViewModel` to SwiftUI (the Settings tab).
 @MainActor
-final class ProfileViewModelWrapper: ObservableObject {
+final class SettingsViewModelWrapper: ObservableObject {
     @Published private(set) var signedIn: Bool = false
     @Published private(set) var snoozeLabel: String = "Not snoozing"
     @Published private(set) var snoozeSending: Bool = false
     @Published private(set) var snoozeError: String?
+    /// Tri-state allowlist flags (`nil` = not yet known). The Developer section
+    /// is shown only when `developerAccess == true`; the Functions row inside it
+    /// only when `functionListAccess == true` — mirrors Android. See FEATURE_FLAGS.md.
+    @Published private(set) var developerAccess: Bool?
+    @Published private(set) var functionListAccess: Bool?
 
     /// Duration options exposed to the UI, in display order.
     let durations: [(label: String, option: SnoozeDurationUIOption)] = [
@@ -44,6 +49,8 @@ final class ProfileViewModelWrapper: ObservableObject {
         applyAuth(vm.authState.value)
         applySnooze(vm.snoozeState.value)
         applyAction(vm.snoozeAction.value)
+        developerAccess = vm.developerAccess.value?.boolValue
+        functionListAccess = vm.functionListAccess.value?.boolValue
 
         tasks.append(Task { @MainActor [weak self] in
             guard let self else { return }
@@ -56,6 +63,14 @@ final class ProfileViewModelWrapper: ObservableObject {
         tasks.append(Task { @MainActor [weak self] in
             guard let self else { return }
             for await v in self.vm.snoozeAction { self.applyAction(v) }
+        })
+        tasks.append(Task { @MainActor [weak self] in
+            guard let self else { return }
+            for await v in self.vm.developerAccess { self.developerAccess = v?.boolValue }
+        })
+        tasks.append(Task { @MainActor [weak self] in
+            guard let self else { return }
+            for await v in self.vm.functionListAccess { self.functionListAccess = v?.boolValue }
         })
     }
 

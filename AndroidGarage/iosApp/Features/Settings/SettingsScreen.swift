@@ -18,39 +18,61 @@
 import SwiftUI
 @preconcurrency import shared
 
-/// Profile tab — account + snooze. Mirrors Android's `ProfileContent`.
-/// Google Sign-In (Phase C) presents via `GoogleSignInCoordinator` and hands the
-/// token to the shared ViewModel; the account row reflects the real auth state.
-struct ProfileScreen: View {
-    @StateObject private var wrapper: ProfileViewModelWrapper
+/// Pushed destinations reachable from the Settings Developer section.
+enum SettingsRoute: Hashable {
+    case diagnostics
+    case functions
+}
+
+/// Settings tab — account, snooze, and (allowlisted) a Developer section that
+/// pushes to Diagnostics / Functions. Mirrors Android's Settings screen, where
+/// those developer surfaces are `developerAccess`-gated rows rather than tabs.
+struct SettingsScreen: View {
+    private let component: NativeComponent
+    @StateObject private var wrapper: SettingsViewModelWrapper
 
     init(component: NativeComponent) {
-        _wrapper = StateObject(wrappedValue: ProfileViewModelWrapper(component: component))
+        self.component = component
+        _wrapper = StateObject(wrappedValue: SettingsViewModelWrapper(component: component))
     }
 
     var body: some View {
-        ProfileContentView(
+        SettingsContentView(
             signedIn: wrapper.signedIn,
             snoozeLabel: wrapper.snoozeLabel,
             snoozeSending: wrapper.snoozeSending,
             snoozeError: wrapper.snoozeError,
             durations: wrapper.durations,
+            developerAccess: wrapper.developerAccess,
+            functionListAccess: wrapper.functionListAccess,
             onSignIn: { wrapper.signInWithGoogle() },
             onSignOut: { wrapper.signOut() },
             onSnooze: { wrapper.snooze($0) },
             onRefresh: { wrapper.refreshSnooze() }
         )
+        .navigationDestination(for: SettingsRoute.self) { route in
+            switch route {
+            case .diagnostics:
+                DiagnosticsScreen(component: component)
+            case .functions:
+                FunctionListScreen(component: component)
+            }
+        }
     }
 }
 
-/// Pure Profile content — plain values + actions, renders without a live
-/// `NativeComponent`. Captured by the `#Preview`s / snapshot gallery.
-struct ProfileContentView: View {
+/// Pure Settings content — plain values + actions, renders without a live
+/// `NativeComponent`. Captured by the `#Preview`s / snapshot gallery. The
+/// Developer section uses value-based `NavigationLink`s so it stays
+/// component-free; the screen shell supplies the destinations.
+struct SettingsContentView: View {
     let signedIn: Bool
     let snoozeLabel: String
     let snoozeSending: Bool
     let snoozeError: String?
     let durations: [(label: String, option: SnoozeDurationUIOption)]
+    let developerAccess: Bool?
+    let functionListAccess: Bool?
     let onSignIn: () -> Void
     let onSignOut: () -> Void
     let onSnooze: (SnoozeDurationUIOption) -> Void
@@ -82,8 +104,23 @@ struct ProfileContentView: View {
                         .disabled(snoozeSending)
                 }
             }
+
+            // Developer section — allowlisted only (parity with Android). The
+            // Functions row is additionally gated on functionListAccess.
+            if developerAccess == true {
+                Section("Developer") {
+                    NavigationLink(value: SettingsRoute.diagnostics) {
+                        Label("Diagnostics", systemImage: "stethoscope")
+                    }
+                    if functionListAccess == true {
+                        NavigationLink(value: SettingsRoute.functions) {
+                            Label("Functions", systemImage: "square.grid.2x2")
+                        }
+                    }
+                }
+            }
         }
-        .navigationTitle("Profile")
+        .navigationTitle("Settings")
         .refreshable { onRefresh() }
     }
 }
@@ -92,35 +129,39 @@ struct ProfileContentView: View {
 // it may only reference symbols visible via `@testable import iosApp` (internal+)
 // — never a `private` file-scope helper. Hence the durations are inlined here.
 
-#Preview("Profile signed out") {
+#Preview("Settings signed out") {
     let durations: [(label: String, option: SnoozeDurationUIOption)] = [
         ("Do not snooze", .none), ("1 hour", .oneHour), ("4 hours", .fourHours),
         ("8 hours", .eightHours), ("12 hours", .twelveHours),
     ]
     return NavigationStack {
-        ProfileContentView(
+        SettingsContentView(
             signedIn: false,
             snoozeLabel: "Not snoozing",
             snoozeSending: false,
             snoozeError: nil,
             durations: durations,
+            developerAccess: false,
+            functionListAccess: false,
             onSignIn: {}, onSignOut: {}, onSnooze: { _ in }, onRefresh: {}
         )
     }
 }
 
-#Preview("Profile signed in snoozing") {
+#Preview("Settings signed in developer") {
     let durations: [(label: String, option: SnoozeDurationUIOption)] = [
         ("Do not snooze", .none), ("1 hour", .oneHour), ("4 hours", .fourHours),
         ("8 hours", .eightHours), ("12 hours", .twelveHours),
     ]
     return NavigationStack {
-        ProfileContentView(
+        SettingsContentView(
             signedIn: true,
             snoozeLabel: "Snoozing until 9:00 PM",
             snoozeSending: false,
             snoozeError: nil,
             durations: durations,
+            developerAccess: true,
+            functionListAccess: true,
             onSignIn: {}, onSignOut: {}, onSnooze: { _ in }, onRefresh: {}
         )
     }
