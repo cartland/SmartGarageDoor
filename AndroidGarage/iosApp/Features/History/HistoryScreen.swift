@@ -18,7 +18,8 @@
 import SwiftUI
 @preconcurrency import shared
 
-/// History tab — recent door events. Mirrors Android's `DoorHistoryContent`.
+/// History tab — recent door events. Thin shell binding the wrapper into the
+/// pure `HistoryContentView`. Mirrors Android's `DoorHistoryContent`.
 struct HistoryScreen: View {
     @StateObject private var wrapper: HistoryViewModelWrapper
 
@@ -27,17 +28,38 @@ struct HistoryScreen: View {
     }
 
     var body: some View {
+        HistoryContentView(
+            rows: wrapper.rows,
+            isLoading: wrapper.isLoading,
+            onRefresh: { wrapper.refresh() }
+        )
+    }
+}
+
+/// Pure History content — renders without a live `NativeComponent`. Captured by
+/// the `#Preview`s / snapshot gallery.
+///
+/// `now` is the reference instant for the relative timestamps. It defaults to the
+/// live clock in production; previews inject a fixed `PreviewFixtures.now` so the
+/// rendered "x ago" strings (and thus the snapshots) are deterministic.
+struct HistoryContentView: View {
+    let rows: [HistoryViewModelWrapper.Row]
+    let isLoading: Bool
+    var now: Date = Date()
+    let onRefresh: () -> Void
+
+    var body: some View {
         List {
-            if wrapper.rows.isEmpty {
-                Text(wrapper.isLoading ? "Loading…" : "No recent events")
+            if rows.isEmpty {
+                Text(isLoading ? "Loading…" : "No recent events")
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(wrapper.rows) { row in
+                ForEach(rows) { row in
                     HStack {
                         Text(row.position)
                         Spacer()
                         if let seconds = row.changeTimeSeconds {
-                            Text(Self.relative(seconds))
+                            Text(Self.relative(seconds, now: now))
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                         }
@@ -46,13 +68,41 @@ struct HistoryScreen: View {
             }
         }
         .navigationTitle("History")
-        .refreshable { wrapper.refresh() }
+        .refreshable { onRefresh() }
     }
 
-    private static func relative(_ epochSeconds: Int64) -> String {
+    private static func relative(_ epochSeconds: Int64, now: Date) -> String {
         let date = Date(timeIntervalSince1970: TimeInterval(epochSeconds))
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: Date())
+        return formatter.localizedString(for: date, relativeTo: now)
+    }
+}
+
+#Preview("History recent events") {
+    let base = Int64(PreviewFixtures.now.timeIntervalSince1970)
+    return NavigationStack {
+        HistoryContentView(
+            rows: [
+                .init(id: 0, position: "Open", changeTimeSeconds: base - 300),
+                .init(id: 1, position: "Closed", changeTimeSeconds: base - 3_600),
+                .init(id: 2, position: "Opening too long", changeTimeSeconds: base - 86_400),
+                .init(id: 3, position: "Closed", changeTimeSeconds: base - 172_800),
+            ],
+            isLoading: false,
+            now: PreviewFixtures.now,
+            onRefresh: {}
+        )
+    }
+}
+
+#Preview("History empty") {
+    NavigationStack {
+        HistoryContentView(
+            rows: [],
+            isLoading: false,
+            now: PreviewFixtures.now,
+            onRefresh: {}
+        )
     }
 }
