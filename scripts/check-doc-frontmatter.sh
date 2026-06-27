@@ -65,6 +65,12 @@ should_skip() {
         */android-screenshot-tests/*SCREENSHOT_GALLERY.md) return 0 ;;
         */android-screenshot-tests/*PREVIEW_COVERAGE.md) return 0 ;;
         */android-screenshot-tests/collections/*) return 0 ;;
+        # Generated iOS snapshot gallery (same generated-artifact class as the
+        # Android gallery above).
+        */SnapshotTests/SCREENSHOT_GALLERY.md) return 0 ;;
+        # iOS snapshot-generation DerivedData (gitignored; holds SPM checkouts'
+        # own README/docc markdown). Analogous to the */build/* skip above.
+        */.derivedData-snapshots/*) return 0 ;;
         # Generated Play Store asset gallery (screenshots/store/README.md) — same
         # generated-artifact class as the screenshot galleries above.
         */screenshots/store/*) return 0 ;;

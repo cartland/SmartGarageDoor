@@ -1691,3 +1691,60 @@ iOS is mid-build; these are known, tracked in [`PENDING_FOLLOWUPS.md`](./PENDING
 - [`MIGRATION.md`](./MIGRATION.md) Phase 38 — iOS "decisions locked" (tab order, theme, versioning).
 - [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md) § 1 — iOS construction status + the current gap list.
 - [`iosApp/README.md`](../iosApp/README.md) — iOS app status.
+
+---
+
+## ADR-030: iOS screenshot gallery — Prefire + swift-snapshot-testing, regenerate not assert
+
+### Status
+
+Accepted — 2026-06-26.
+
+### Context
+
+Android has a browsable visual reference of the whole UI: `@Preview` Composables are captured to committed reference PNGs by `scripts/generate-android-screenshots.sh`, surfaced as `SCREENSHOT_GALLERY.md`, and coverage-checked by `checkPreviewCoverage`. The PNGs are *references*, not pixel-perfect assertions — they're regenerated (`updateScreenshotTest`), never diff-gated in CI.
+
+iOS had no equivalent. The app had no Swift test target at all; iOS CI only built the app and ran the Kotlin `:iosFramework` test. There was no methodical way to browse "what each iOS component / screen looks like" in the repo, so visual review depended on ad-hoc `simctl io screenshot` runs. As iOS catches up to Android per ADR-029, it needs the same browsable-reference discipline.
+
+### Decision
+
+**Capture every SwiftUI `#Preview` to a committed reference PNG via Prefire + swift-snapshot-testing, with a "regenerate, don't assert" posture — mirroring the Android flow, not the Android tooling.**
+
+- **Tooling.** [Prefire](https://github.com/BarredEwe/Prefire) auto-discovers every `#Preview` and generates one snapshot test per preview; [pointfreeco/swift-snapshot-testing](https://github.com/pointfreeco/swift-snapshot-testing) renders them. Authors only write `#Preview`s (which they do anyway for the Xcode canvas) — no hand-written per-view snapshot code. This is the iOS analog of Android's `@Preview` → gallery flow.
+- **CLI generation, not the build-tool plugin.** Prefire's `PrefireTestsPlugin` (an SPM build-tool plugin) requires disabling Xcode's package-plugin execution sandbox machine-wide (`IDEPackageSupportDisablePluginExecutionSandbox`). We do NOT weaken that mitigation. Instead the prebuilt `prefire` CLI (vendored in the resolved Prefire package as a macOS artifact bundle) generates `SnapshotTests/PreviewTests.generated.swift` as a normal script step.
+- **The generated test file is NOT committed.** `PreviewTests.generated.swift` is fully derived from the `#Preview` macros + `.prefire.yml` + the Prefire version, so it is gitignored and regenerated — no committed generated code, and it cannot drift from the previews. The committed artifacts are the **outputs**: the reference PNGs and `SCREENSHOT_GALLERY.md`.
+- **Generation is a build step (best-practice codegen), so Xcode builds directly.** The test target has a pre-build Run Script phase that runs the `prefire` CLI before compiling. This mirrors the standard Gradle codegen idiom (e.g. battery-butler's Wire / `generateBuildConfig`: generated code is gitignored, produced by a build task whose declared output the compiler consumes, with the cache in the build dir). The Xcode mechanics: the phase **declares the file as an output** (so the build graph orders compilation after it and the new build system's "input file cannot be found" pre-flight passes on a fresh checkout where the file is absent), the file is referenced in Compile Sources via XcodeGen `optional: true` (so it's a member even when absent at project-generation time), Prefire writes only when content changes (no recompile churn), and its parse cache goes to `$DERIVED_FILE_DIR` (cleaned with DerivedData, never the source tree). Net: `Cmd-U` / `xcodebuild test` works with no prerequisite script run. The generated `.swift` stays in the (gitignored) source tree rather than `$DERIVED_FILE_DIR` only because XcodeGen's static Compile-Sources reference needs a fixed path — the standard SwiftGen/Sourcery/R.swift compromise. The app build and gating iOS CI never compile the test target (it builds only for the test action), so they're unaffected.
+- **Regenerate, don't assert.** `scripts/generate-ios-screenshots.sh` deletes the references and re-runs the snapshot target; swift-snapshot-testing's record-on-missing path writes the PNGs and reports each as a test "failure", which is expected and ignored (the script's success criterion is "PNGs exist"). The PNGs + `SCREENSHOT_GALLERY.md` are committed and browsed in the repo. **Snapshot tests are NOT part of gating CI** — they are a visual reference, exactly as on Android.
+- **Determinism.** The generated tests render at a fixed `DeviceConfig` (iPhone-class), so output is independent of which simulator runs them. Local rendering is real (the simulator renders for real), so — unlike the Android Layoutlib-blank-render problem on this Mac — iOS regen produces real PNGs locally.
+
+### Layout
+
+- `AndroidGarage/iosApp/SnapshotTests/` — the snapshot test target (`iosAppSnapshotTests`, a host-based unit-test bundle).
+- `AndroidGarage/iosApp/SnapshotTests/PreviewTests.generated.swift` — generated by the `prefire` CLI; **gitignored**, regenerated by the test target's pre-build phase (and by the script).
+- `AndroidGarage/iosApp/SnapshotTests/__Snapshots__/**` — committed reference PNGs.
+- `AndroidGarage/iosApp/SnapshotTests/SCREENSHOT_GALLERY.md` — generated browsable gallery.
+- `AndroidGarage/iosApp/.prefire.yml` — Prefire config (`target: iosApp`, `imports: [shared]` so previews referencing Kotlin types compile in the generated tests).
+- `scripts/generate-ios-screenshots.sh` + `scripts/generate-ios-screenshot-gallery.py` — the regeneration pipeline.
+
+### What this does NOT do (yet)
+
+- **No CI integration.** Regeneration is a local step (like the Android local flow). Committed PNGs are the artifact. A future non-required workflow could regenerate + diff, but it is not a gate.
+- **No coverage check.** Android's `checkPreviewCoverage` ensures every `@Preview` is captured; the iOS equivalent (assert every `#Preview` has a generated test / recorded PNG) is a deferred follow-up. Today coverage is "whatever the last script run recorded."
+- **Screen-level coverage is limited by preview-ability.** Screens that take `component: NativeComponent` (a live DI graph) need a preview-friendly pure sub-view + fixtures before they can be captured. The first slice covers the `GarageDoorView` component + states; expanding screen coverage is the same pure-sub-view refactor ADR-029 already implies.
+
+### Consequences
+
+- Adding a new iOS component/screen with a `#Preview` and running `./scripts/generate-ios-screenshots.sh` adds it to the gallery — the methodical "browse what exists" surface Android already has.
+- The snapshot test target pulls two SPM packages (Prefire, swift-snapshot-testing) into the project; package resolution time in iOS CI grows modestly even though the target isn't built by the gating `xcodebuild build` (it builds only for the test action).
+- A `#Preview` that references a `shared` (Kotlin) type needs `shared` in `.prefire.yml` `imports` so the generated test compiles.
+
+### When this decision might change
+
+- If Apple ships a first-class headless `#Preview`-capture API, the Prefire CLI layer could be dropped.
+- If we want true pixel-diff gating (a stricter posture than ADR intends), that's a separate decision — it would make the snapshots tests, not references.
+
+### References
+
+- ADR-029 — iOS ↔ Android parity / platform-native / shared identity (the door visualization this first captures is an identity item).
+- [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md) § 1 — iOS construction status.
+- Android analog: `scripts/generate-android-screenshots.sh`, `android-screenshot-tests/SCREENSHOT_GALLERY.md`, `checkPreviewCoverage`.

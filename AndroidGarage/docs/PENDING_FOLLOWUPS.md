@@ -69,6 +69,8 @@ Currently pinned at 0.8.0 deliberately. Tripwire conditions in § 2 below — no
 
 **SKIE binding notes** (for future screens): sealed Kotlin types use `onEnum(of:)`; `:usecase` types are module-prefixed in Swift (e.g. `UsecaseButtonHealthDisplay`); `StateFlow<Long>` → `.value.int64Value`. Local verification workflow + the iosFramework-spotless / non-required-iOS-CI traps: see [`../../CLAUDE.md`](../../CLAUDE.md) § "iOS local verification".
 
+**Snapshot gallery (ADR-030).** iOS now has a browsable visual reference of every SwiftUI `#Preview`, captured to committed PNGs via Prefire + swift-snapshot-testing (regenerate, don't assert — the Android-style posture). Regenerate with `./scripts/generate-ios-screenshots.sh`; browse [`../iosApp/SnapshotTests/SCREENSHOT_GALLERY.md`](../iosApp/SnapshotTests/SCREENSHOT_GALLERY.md). **When adding/refactoring an iOS view, add a `#Preview` so it lands in the gallery.** First slice covers the `GarageDoorView` component + states; expanding screen coverage needs the pure-sub-view refactor (screens take a live `NativeComponent`) — that's the natural next step and dovetails with the adaptive-layout parity work.
+
 #### Remaining plan
 
 Ordered by leverage. Phases 1–2 are verification of already-built code; Phases 3–4 are the path to a published app; the parity items are tracked under [ADR-029](./DECISIONS.md#adr-029-ios--android--feature-parity-platform-native-design-one-shared-identity).
@@ -84,7 +86,7 @@ Ordered by leverage. Phases 1–2 are verification of already-built code; Phases
 4. **Phase G — App Store** (1 PR, last): 1024² icon (reuse Android glyph), App Store Connect screenshots (iPhone + iPad), listing copy, `ITSAppUsesNonExemptEncryption = NO` (already set), `PrivacyInfo.xcprivacy` (Firebase Auth = "User ID, linked, App Functionality"), submit for review. **User-gated.**
 
 **Feature-parity audit (ADR-029).** Capability parity is the north star; these are the known iOS gaps vs Android (UI may differ by platform, but the capability/identity should land):
-- **Animated door canvas.** Android renders an animated `GarageDoorCanvas`; iOS Home shows door state as `Text` (`HomeScreen.swift:34`). The door visualization is part of the shared "Garage" identity (ADR-029 § 3) — bring a SwiftUI door rendering to iOS (animation can be a later polish pass; the *visual* is the identity item).
+- **Animated door canvas — DONE (PR #919, 2026-06-26).** iOS Home now renders a SwiftUI `GarageDoorView` (port of Android's `GarageDoorCanvas.kt` + `GarageIcon.kt`): U-frame + panels + handle + gradient, per-state color (fresh/stale, light/dark) and offset, directional/warning overlays, eased transitions. The full Android animation trajectory (12 s linear tween + once-per-event `DoorAnimationMemory` replay) remains a deferred polish pass; the identity *visual* has landed.
 - **Adaptive / iPad layout.** Android adapts via `AppLayoutMode` (nav rail, 3-pane, wide dashboard); iOS `MainScreen` is a plain phone-style `TabView` + `NavigationStack` with no size-class adaptation, even though the app is Universal (iPhone + iPad). Add iPad/landscape adaptation with SwiftUI-idiomatic constructs (e.g. `NavigationSplitView`) — platform-native, not a port of the Android rail.
 - **Capability spot-check.** Audit each Android screen's actions against its iOS counterpart for any silently-missing capability (the screens exist, but parity is action-level, not screen-level). Run before the first TestFlight so the published app isn't missing a meaningful feature.
 
