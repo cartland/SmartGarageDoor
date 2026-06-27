@@ -1,7 +1,7 @@
 ---
 category: plan
 status: active
-last_verified: 2026-05-13
+last_verified: 2026-06-24
 ---
 
 > **Last update 2026-05-13:** iOS Phase 38A fully complete — `NativeComponent` DI graph runtime-verified via `NativeComponentTest` (40/40 pass on `iosSimulatorArm64`, PR #826). Phase 38B–G remain blocked on user setup. User-action checklist added as the first subsection below so the user-blocked moves are visible without scrolling.
@@ -18,51 +18,13 @@ User-flagged items that aren't tied to a specific release and aren't smoke-test 
 
 Concrete things only the user can do. Each item points to the detailed section below or to a sibling doc. Ordered by leverage (A unblocks the most downstream work).
 
-### A. Unblock iOS Phase C/G — Apple Developer + Firebase iOS setup (~1 hour, one-time)
+### A. iOS Phase A/C + door data — DONE (2026-06-24)
 
-> **Progress 2026-06-23 (in flight):** Sub-step 2 (Firebase iOS app) is **done** — the iOS
-> app is registered in the existing `escape-echo` project (bundle `com.chriscartland.garage`),
-> and `GoogleService-Info.plist` is placed at `AndroidGarage/iosApp/iosApp/` (config, not a
-> secret; currently uncommitted in the working tree — handling deferred to the Phase C PR).
-> The plist already carries `CLIENT_ID` + `REVERSED_CLIENT_ID`, so the **Google Sign-In
-> provider is already enabled** in Firebase Auth — no extra Auth-provider step is needed for
-> iOS. Sub-step 1 (Apple Developer Program enrollment) is **processing** (started 2026-06-23;
-> Apple quotes "up to 48 hours"). Sub-step 3 (APNs `.p8` key) is **blocked** until enrollment
-> clears. **Phase C (Swift bridges + `AppDelegate`) needs only the plist and can start now** —
-> Google Sign-In + live door data work in the simulator without the Apple account; only push/FCM
-> verification waits on the APNs upload. Still open beyond the three sub-steps below: the iOS
-> equivalent of `SERVER_CONFIG_KEY` + backend base URL read into `AppConfig` from `Info.plist`.
->
-> **Update 2026-06-24 — Phase C auth IMPLEMENTED.** Firebase Auth + Messaging bridges
-> (`iosApp/Core/Firebase/`), `AppDelegate` (`FirebaseApp.configure()` + `NativeComponent`
-> build + `AppStartup.run()` + push registration), Google Sign-In (`GoogleSignInCoordinator`
-> + Profile-tab button), and `AppConfig`-from-`Info.plist` plumbing all landed and are
-> verified building + launching on the simulator (real signed-out state + notification
-> prompt render). **Remaining user inputs:** (a) set `GARAGE_BASE_URL` +
-> `GARAGE_SERVER_CONFIG_KEY` in `Info.plist` — door data stays blank until then; (b) upload
-> the APNs `.p8` key — no push delivery until then. **Remaining code:** FCM
-> notification-receive → `DoorEvent` parsing (deferred until APNs; untestable without it),
-> and Phase G (App Store). The Swift↔Kotlin bridge conformance pattern (`__`-prefixed
-> `async throws`; `observeAuthUser()` returns `SkieSwiftOptionalFlow`) is documented in the
-> bridge files' KDoc.
+The one-time Apple Developer + Firebase iOS setup is complete, and the Swift Firebase wiring shipped:
+- Firebase iOS app registered in `escape-echo` (bundle `com.chriscartland.garage`); `GoogleService-Info.plist` committed; Google Sign-In provider enabled; Apple Developer enrollment done; APNs `.p8` uploaded to Firebase Cloud Messaging.
+- Real Firebase Auth + Google Sign-In + live door data, verified on the simulator (PRs #912/#913/#915).
 
-**The Xcode project, iOS CI, and all 5 SwiftUI screens already exist and build on the
-simulator + macOS CI** (Phases B/D/E/F shipped 2026-06-01, PRs #856/#857/#858). The app
-currently runs against `defaultDevAppConfig` + NoOp auth/push, so it renders signed-out /
-empty data. This one-time setup is what unblocks the **remaining** work — real Google
-Sign-In + FCM (Phase C) and the App Store submission (Phase G). Three sub-steps:
-
-1. **Apple Developer Account** → register bundle ID `com.chriscartland.garage`.
-2. **Firebase Console** → add iOS app to the existing project (same bundle ID). Download `GoogleService-Info.plist`. (Config, not a secret — same posture as Android's `google-services.json`.) Hand the file to the agent and it will commit to `AndroidGarage/iosApp/iosApp/`.
-3. **Apple Developer Console** → generate an APNs `.p8` key, then upload it to Firebase Console → Cloud Messaging tab. (`.p8` chosen over `.cer` so there's no annual rotation.)
-
-You'll also need the iOS equivalent of the Android `SERVER_CONFIG_KEY` + backend base URL
-(read into `AppConfig` from `Info.plist`) for the app to hit the real server.
-
-Once those land, tell the agent "iOS setup done" and it will start **Phase C** (the Firebase
-Swift bridges + `AppDelegate` wiring), then surface the data on the screens that already exist.
-
-Reference: §§ 1.A + 1.C below.
+**The remaining iOS work is the go-forward plan in § 1 "Remaining plan"** — sign-in verification, push *delivery* (device), Phase F release tooling, Phase G App Store, and the parity gaps (door canvas, adaptive layout). The only items still needing the user are **Apple code-signing** (TestFlight / App Store) and an interactive **sign-in tap-through**.
 
 ### B. Run the 3 pending smoke tests on a device
 
@@ -86,7 +48,7 @@ Currently pinned at 0.8.0 deliberately. Tripwire conditions in § 2 below — no
 
 ### 1. iOS app construction (post-`:iosFramework`)
 
-**Status:** Phases B/D/E/F shipped (PRs #856/#857/#858, 2026-06-01) — the Xcode project, iOS CI on `macos-latest`, and all 5 SwiftUI screens exist and build green. Remaining phases **A/C/G** are blocked on Apple Developer + Firebase iOS setup (see "User action items § A"). The Kotlin/KMP side has been complete since PR #824.
+**Status (2026-06-24):** The iOS app is **functional on the simulator with real backend data**. Phases B–F (Xcode project, SwiftUI screens, iOS CI) shipped 2026-06-01; Phase A (Apple Developer + Firebase iOS) is done; Phase C (real Firebase Auth/Messaging bridges + Google Sign-In) shipped this session, plus garage backend config (live door data) and the FCM-receive path. **Verified on the simulator:** Firebase init, real signed-out auth state, notification-permission prompt, and **live door STATUS from the production server**. **Remaining is mostly user/device-gated:** interactive sign-in verification, push *delivery* (needs a signed device build), release tooling (Phase F), App Store (Phase G), plus two feature-parity gaps (door-canvas animation, iPad/adaptive layout). The go-forward plan is in **"Remaining plan"** below.
 
 **What's already done** (5 merged PRs):
 
@@ -98,80 +60,35 @@ Currently pinned at 0.8.0 deliberately. Tripwire conditions in § 2 below — no
 | [#823](https://github.com/cartland/SmartGarageDoor/pull/823) | `:data-local` Room KMP + DataStore-Okio; DAO suspend refactor; kotlinx-datetime for `currentTimeMillis`; `DatabaseFactory` expect/actual; iOS targets on `:usecase`/`:viewmodel`/`:presentation-model`/`:test-common`; `AppStartup` moved to `:usecase/commonMain` |
 | [#824](https://github.com/cartland/SmartGarageDoor/pull/824) | SKIE 0.10.9 plugin; `NativeComponent` DI graph (mirrors `AppComponent` with iOS deps); `IosNativeHelper`; `NoOpAuthBridge` + `NoOpMessagingBridge` placeholders; kotlin-inject 0.8.0 downgrade (see follow-up #2 below) |
 
-**Progress (2026-05-31 → 06-01):** Phases B/D/F/E landed (PRs #856, #857, + screens):
-- **B/D** — `AndroidGarage/iosApp/` foundation: XcodeGen `project.yml`, `iOSApp.swift`
-  building the `NativeComponent` graph with NoOp bridges + `defaultDevAppConfig`,
-  `SharedViewModel`, theme tokens, 5-tab shell; plus `KmpViewModelStore` in `:viewmodel`.
-- **F** — `.github/workflows/ios-ci.yml` (build app + `iosSimulatorArm64Test` on `macos-latest`).
-- **E** — all 5 screens (Home / History / Profile / Functions / Diagnostics) wired to the
-  real `Default*ViewModel`s via per-screen `*ViewModelWrapper`s (SKIE `onEnum(of:)` +
-  `for await` flow binding). Functional baseline — real data + primary actions; the
-  animated door canvas and pixel-level Android parity are deferred polish.
+**Shipped (Phases A–F + functional backend):**
+- **B/D/E/F** (PRs #856/#857/#858, 2026-06-01) — `AndroidGarage/iosApp/` foundation (XcodeGen `project.yml`, `SharedViewModel`, theme tokens, 5-tab shell, `KmpViewModelStore`), `.github/workflows/ios-ci.yml` (`macos-latest`), and all 5 screens (Home / History / Profile / Functions / Diagnostics) wired to the real `Default*ViewModel`s via `*ViewModelWrapper`s.
+- **A** (2026-06-23) — Firebase iOS app registered in `escape-echo`, `GoogleService-Info.plist` committed; Apple Developer enrollment + APNs `.p8` uploaded to Firebase Cloud Messaging.
+- **C** (PR #912, 2026-06-24) — real `FirebaseAuthBridge` / `FirebaseMessagingBridge` (`Core/Firebase/`), `AppDelegate` (`FirebaseApp.configure()` + `NativeComponent` build + `AppStartup.run()` + push registration), Google Sign-In (`GoogleSignInCoordinator` + Profile button). SKIE bridge-conformance contract pinned (see `FirebaseAuthBridge.swift` / `IosAuthUserStateHolder.kt` KDoc): suspend methods → `__`-prefixed `async throws`; `observeAuthUser()` → `SkieSwiftOptionalFlow<DataAuthUserInfo>`.
+- **Door data** (PR #913) — `GARAGE_BASE_URL` committed; secret `GARAGE_SERVER_CONFIG_KEY` via gitignored `Secrets.local.xcconfig` (mirrors Android's `local.properties`). **Verified on simulator: real STATUS "Closed".**
+- **FCM receive** (PR #915) — `IosNativeHelper.parseFcmDoorEvent` (shared `FcmPayloadParser`) + `AppDelegate.didReceiveRemoteNotification` → `ReceiveFcmDoorEventUseCase`. Compiles; not runtime-verified (`simctl` silent push unreliable — device/Phase-G check).
 
-**Verified: builds and links against `shared.framework` on the iOS simulator**
-(`** BUILD SUCCEEDED **`) with no Firebase / Apple account. The app currently runs
-against `defaultDevAppConfig` (placeholder backend) + NoOp auth/push, so screens render
-empty/signed-out until Phase A/C wire the real Firebase config + backend. SKIE binding
-notes for future screens: sealed Kotlin types use `onEnum(of:)`; `:usecase` types are
-module-prefixed in Swift (e.g. `UsecaseButtonHealthDisplay`); `StateFlow<Long>` values
-read via `.value.int64Value`.
+**SKIE binding notes** (for future screens): sealed Kotlin types use `onEnum(of:)`; `:usecase` types are module-prefixed in Swift (e.g. `UsecaseButtonHealthDisplay`); `StateFlow<Long>` → `.value.int64Value`. Local verification workflow + the iosFramework-spotless / non-required-iOS-CI traps: see [`../../CLAUDE.md`](../../CLAUDE.md) § "iOS local verification".
 
-**Remaining work** — Phases A, C, G; all require user setup the Kotlin side can't supply:
+#### Remaining plan
 
-#### A. Firebase iOS configuration (one-time, user)
-- Create iOS app in the existing Firebase project (bundle ID `com.chriscartland.garage` per the iOS plan)
-- Download `GoogleService-Info.plist` and commit to `AndroidGarage/iosApp/iosApp/` (it's config, not a secret — same posture as Android's `google-services.json`)
-- Auto-generated iOS OAuth client ID gets pasted into `Info.plist` URL Types
-- Generate APNs `.p8` key in Apple Developer console, upload to Firebase Cloud Messaging tab (decision: `.p8` key over `.cer` cert — no annual rotation)
+Ordered by leverage. Phases 1–2 are verification of already-built code; Phases 3–4 are the path to a published app; the parity items are tracked under [ADR-029](./DECISIONS.md#adr-029-ios--android--feature-parity-platform-native-design-one-shared-identity).
 
-#### B. Xcode project scaffold (1 PR)
-- New folder `AndroidGarage/iosApp/` with `iosApp.xcodeproj` and standard SwiftUI app skeleton
-- Folder layout matches battery-butler's `ios-app-swift-ui/`: `Core/`, `Features/`, `iosApp/iOSApp.swift`, `iosApp/AppDelegate.swift`
-- Build phase script invokes `./gradlew :iosFramework:embedAndSignAppleFrameworkForXcode`
-- `FRAMEWORK_SEARCH_PATHS` points at `$(SRCROOT)/../iosFramework/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)`
-- Embed `shared.framework` with "Embed & Sign"
-- SPM packages: `firebase-ios-sdk` (Auth + Messaging), `GoogleSignIn-iOS`
-- Capabilities: Push Notifications, Background Modes → Remote notifications
-- Deployment target: iOS 16
-- `SWIFT_STRICT_CONCURRENCY = minimal` + `@preconcurrency import shared` everywhere (Kotlin types lack Swift `Sendable` info)
-- Empty `iOSApp.swift` that just calls `IosNativeHelper().createComponent(NoOpAuthBridge, NoOpMessagingBridge, IosNativeHelper.defaultDevAppConfig)` — proves the framework integration before any real bridges
+1. **Sign-in end-to-end verification** (small; simulator). The Google Sign-In code path is wired but unverified — completing the OAuth flow needs an interactive tap-through (Profile → "Sign in with Google"). Confirms `GoogleSignInCoordinator` → `signInWithGoogle` → `AuthBridge` → signed-in auth state + that the snooze / device-health rows light up. **Safe to drive** (never touch the Home remote button while signed in — see CLAUDE.md § "iOS simulator testing").
+2. **Push delivery verification** (device-only; depends on Phase 3 signing). Real FCM → APNs → device requires a signed build with the `aps-environment` entitlement. Verifies the FCM-receive path (#915) end-to-end and the subscribe/token side of `FirebaseMessagingBridge`. Cannot be done on the simulator; folds into the first TestFlight build.
+3. **Phase F — release tooling + first TestFlight** (1–2 PRs):
+   - `scripts/release-ios.sh` mirroring `release-android.sh`: bump `CFBundleShortVersionString` + `CFBundleVersion`, tag `ios/N`, `xcodebuild archive` + upload to TestFlight.
+   - `scripts/validate-ios.sh`: build framework + `:iosFramework:iosSimulatorArm64Test` + `xcodebuild build` (+ any SwiftUI unit tests).
+   - `AndroidGarage/iosApp/CHANGELOG.md` with the `## N.M.K` heading gate (mirrors the Android changelog gate).
+   - Signing: register the App ID + Push Notifications capability + provisioning; first TestFlight Internal Testing upload. **User-gated** (Apple signing identity).
+   - Consider promoting iOS CI (`Build iOS app + framework test`) to a required check once stable (per CLAUDE.md branch-protection ordering) — closes the non-required-iOS-CI / auto-merge race.
+4. **Phase G — App Store** (1 PR, last): 1024² icon (reuse Android glyph), App Store Connect screenshots (iPhone + iPad), listing copy, `ITSAppUsesNonExemptEncryption = NO` (already set), `PrivacyInfo.xcprivacy` (Firebase Auth = "User ID, linked, App Functionality"), submit for review. **User-gated.**
 
-#### C. Swift bridge implementations (1 PR)
-- `iosApp/Auth/FirebaseAuthBridge.swift`: conforms to Kotlin's `AuthBridge` protocol. Wraps Firebase `Auth.auth().addStateDidChangeListener` in `callbackFlow` per ADR-018; `signInWithGoogleToken(idToken)` calls `Auth.auth().signIn(with: GoogleAuthProvider.credential(...))`; `getIdToken(forceRefresh:)` and `signOut()` thin wrappers
-- `iosApp/Fcm/FirebaseMessagingBridge.swift`: conforms to Kotlin's `MessagingBridge`. `subscribeToTopic` / `unsubscribeFromTopic` / `getToken()` via `Messaging.messaging()` calls
-- `iosApp/AppDelegate.swift`: `UIApplicationDelegate` adopter. `application(_:didFinishLaunchingWithOptions:)` calls `FirebaseApp.configure()`, instantiates bridges, calls `IosNativeHelper().createComponent(...)`, kicks `component.appStartup.run()`. `application(_:didRegisterForRemoteNotificationsWithDeviceToken:)` forwards APNs token to FCM
-- `UNUserNotificationCenterDelegate.userNotificationCenter(_:didReceive:)` calls `component.receiveFcmDoorEventUseCase(event)` with the parsed payload — same KMP `FcmMessageHandler` Android uses
+**Feature-parity audit (ADR-029).** Capability parity is the north star; these are the known iOS gaps vs Android (UI may differ by platform, but the capability/identity should land):
+- **Animated door canvas.** Android renders an animated `GarageDoorCanvas`; iOS Home shows door state as `Text` (`HomeScreen.swift:34`). The door visualization is part of the shared "Garage" identity (ADR-029 § 3) — bring a SwiftUI door rendering to iOS (animation can be a later polish pass; the *visual* is the identity item).
+- **Adaptive / iPad layout.** Android adapts via `AppLayoutMode` (nav rail, 3-pane, wide dashboard); iOS `MainScreen` is a plain phone-style `TabView` + `NavigationStack` with no size-class adaptation, even though the app is Universal (iPhone + iPad). Add iPad/landscape adaptation with SwiftUI-idiomatic constructs (e.g. `NavigationSplitView`) — platform-native, not a port of the Android rail.
+- **Capability spot-check.** Audit each Android screen's actions against its iOS counterpart for any silently-missing capability (the screens exist, but parity is action-level, not screen-level). Run before the first TestFlight so the published app isn't missing a meaningful feature.
 
-#### D. SwiftUI infrastructure (1 PR)
-- `Core/SharedViewModel.swift` — the `@StateObject`-friendly wrapper that owns a `ViewModelStore` tied to SwiftUI view lifetime (pattern from kmp-mvvm-exploration). `deinit` → `viewModelStore.clear()` → Kotlin `viewModelScope` cancels
-- `Core/KotlinAliases.swift` — `typealias` cleanups for K/N's snake_case generated type names
-- `Core/Theme/` — hand-translated `Colors.swift` and `Spacing.swift` mirroring `androidApp/ui/theme/`. Light/dark via system
-- Empty `Features/` directory ready for screens
-- Tab bar shell with 5 placeholder tabs
-
-#### E. SwiftUI screens (5 PRs, one per screen)
-- `Features/Home/HomeScreen.swift` + `HomeViewModelWrapper.swift` — canonical example. Uses SKIE's `.collect(flow:into:)` modifier to bind `DefaultHomeViewModel`'s `StateFlow`s to SwiftUI `@State`. Actions dispatch via direct `vm.instance.onTapButton()` calls. Sealed-class state types map to Swift `enum` via SKIE's `switch onEnum(of:)`
-- `Features/History/HistoryScreen.swift` + wrapper
-- `Features/Profile/ProfileScreen.swift` + wrapper
-- `Features/FunctionList/FunctionListScreen.swift` + wrapper
-- `Features/Diagnostics/DiagnosticsScreen.swift` + wrapper
-
-#### F. CI + release (1 PR)
-- New `scripts/release-ios.sh` mirroring `release-android.sh`: bump `CFBundleShortVersionString` + `CFBundleVersion`, tag `ios/N`, `xcodebuild archive` + `xcrun altool` to TestFlight
-- New `scripts/validate-ios.sh` building the framework + running Kotlin tests for iOS targets + `xcodebuild test` for SwiftUI unit tests
-- GitHub Actions `ios-ci.yml` on `macos-latest`
-- `AndroidGarage/iosApp/CHANGELOG.md` with `## N.M.K` heading rule (mirrors Android changelog gate)
-- First TestFlight Internal Testing distribution
-
-#### G. App Store submission (1 PR — last)
-- App icon (1024×1024, reuse Android artwork's primary glyph)
-- Screenshots for App Store Connect (iPhone + iPad)
-- Marketing description, keywords, age rating, privacy policy URL, support URL
-- Encryption export compliance: `ITSAppUsesNonExemptEncryption = NO` in `Info.plist`
-- Privacy manifest `PrivacyInfo.xcprivacy` (Firebase Auth = "User ID, linked to user, used for App Functionality")
-- Submit for review
-
-**Sequencing**: B → C → D → E (each screen as a separate PR, parallelizable after D) → F → G. Total: 10–14 PRs depending on whether screens parallelize.
+**Sequencing:** Phase 1 (verify sign-in) now → parity items (door canvas, adaptive layout) can proceed in parallel any time → Phase 3 (release tooling + signing) → Phase 2 (device push verify, folds into TestFlight) → Phase 4 (App Store). Phases 3–4 and Phase 2 are user-gated on Apple signing.
 
 **Decisions already locked** (from the iOS migration plan):
 - Bundle ID: `com.chriscartland.garage`
