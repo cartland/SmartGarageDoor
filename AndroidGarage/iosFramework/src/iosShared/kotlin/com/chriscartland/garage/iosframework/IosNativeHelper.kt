@@ -18,10 +18,12 @@
 package com.chriscartland.garage.iosframework
 
 import com.chriscartland.garage.data.AuthBridge
+import com.chriscartland.garage.data.FcmPayloadParser
 import com.chriscartland.garage.data.MessagingBridge
 import com.chriscartland.garage.datalocal.DataStoreFactory
 import com.chriscartland.garage.datalocal.DatabaseFactory
 import com.chriscartland.garage.domain.model.AppConfig
+import com.chriscartland.garage.domain.model.DoorEvent
 import platform.Foundation.NSBundle
 
 /**
@@ -59,6 +61,19 @@ class IosNativeHelper {
             appConfig = appConfig,
             appVersion = currentAppVersion(),
         )
+
+    /**
+     * Parse an FCM data-message payload into a [DoorEvent] using the SHARED
+     * [FcmPayloadParser] — the same parser Android uses, so the payload-key
+     * contract cannot drift between platforms. Returns null if the payload is
+     * not a door event.
+     *
+     * Exposed on this entry point because the Swift `AppDelegate` receives the
+     * raw push `userInfo`, and `FcmPayloadParser` is otherwise not reachable in
+     * the framework's exported ObjC/Swift API: Kotlin/Native only exports
+     * declarations reachable from an entry point, and nothing else references it.
+     */
+    fun parseFcmDoorEvent(data: Map<String, String>): DoorEvent? = FcmPayloadParser.parseDoorEvent(data)
 
     private fun currentAppVersion(): String {
         val bundle = NSBundle.mainBundle
