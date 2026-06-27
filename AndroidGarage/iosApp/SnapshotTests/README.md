@@ -1,3 +1,9 @@
+---
+category: reference
+status: active
+last_verified: 2026-06-27
+---
+
 # iOS snapshot gallery
 
 A browsable visual reference of every SwiftUI `#Preview` in the iOS app, captured
