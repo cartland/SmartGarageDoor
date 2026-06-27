@@ -39,9 +39,9 @@ import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.LoadingResult
+import com.chriscartland.garage.presentation.HistoryMapper
 import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.history.HistoryContent
-import com.chriscartland.garage.ui.history.HistoryMapper
 import com.chriscartland.garage.viewmodel.DoorHistoryViewModel
 import java.time.Instant
 import java.time.ZoneId
@@ -99,8 +99,8 @@ fun DoorHistoryContent(
     val days = remember(recentDoorEvents.data, now, zone) {
         HistoryMapper.toHistoryDays(
             events = recentDoorEvents.data ?: emptyList(),
-            now = now,
-            zone = zone,
+            nowEpochSeconds = now.epochSecond,
+            timeZoneId = zone.id,
         )
     }
 

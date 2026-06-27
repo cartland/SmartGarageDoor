@@ -59,20 +59,6 @@ object HistoryFormatter {
     fun formatDate(date: LocalDate): String = date.format(dateFormatter)
 
     /**
-     * Convert an epoch-seconds value into the local date in [zone],
-     * used by [HistoryMapper.toHistoryDays] for day grouping and by
-     * the Composable for [DayLabel] resolution.
-     */
-    fun localDate(
-        timeSeconds: Long,
-        zone: ZoneId,
-    ): LocalDate =
-        Instant
-            .ofEpochSecond(timeSeconds)
-            .atZone(zone)
-            .toLocalDate()
-
-    /**
      * Decompose a state-span duration in seconds into the parts the
      * Composable uses to pick a granularity:
      *  - `days >= 1` → render `"$days day [$hours hr]"` (drop hours when 0)
