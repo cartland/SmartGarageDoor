@@ -51,6 +51,10 @@ canvas), then run the script. Notes:
   which is in the test target (`@testable import iosApp`). So the body may only
   reference symbols visible at that access level (`internal` or higher) — never a
   `private` file-scope helper. Inline such fixtures into the preview body.
+- For **time-dependent** content (relative timestamps, "x ago"), inject a fixed
+  clock so the snapshot doesn't churn against the real `Date()`. The view takes a
+  `now: Date = Date()` (live in production); previews pass the shared
+  `PreviewFixtures.now`. `HistoryContentView` is the canonical example.
 
 ## Files
 
