@@ -31,6 +31,8 @@ import io.ktor.http.URLBuilder
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.utils.io.ByteReadChannel
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -79,16 +81,25 @@ class KtorNetworkFeatureAllowlistDataSourceTest {
     private fun mockClient(
         responses: Map<String, EndpointResponse>,
         capturedRequests: MutableList<RecordedRequest> = mutableListOf(),
-    ): HttpClient =
-        HttpClient(
+    ): HttpClient {
+        // The data source issues both endpoint GETs in parallel (coroutineScope +
+        // async), so MockEngine can invoke this handler concurrently on different
+        // threads. `capturedRequests` is a plain mutableListOf — guard every
+        // mutation with a Mutex so two concurrent `add`s can't race and drop one
+        // (which made `assertEquals(2, captured.size)` flaky in CI). withLock keeps
+        // the capture deterministic regardless of the engine's dispatcher.
+        val capturedMutex = Mutex()
+        return HttpClient(
             MockEngine { request ->
-                capturedRequests.add(
-                    RecordedRequest(
-                        method = request.method,
-                        urlPath = request.url.encodedPath,
-                        headers = request.headers.entries().associate { it.key to it.value },
-                    ),
-                )
+                capturedMutex.withLock {
+                    capturedRequests.add(
+                        RecordedRequest(
+                            method = request.method,
+                            urlPath = request.url.encodedPath,
+                            headers = request.headers.entries().associate { it.key to it.value },
+                        ),
+                    )
+                }
                 val match = responses[request.url.encodedPath]
                     ?: error("No mock response configured for ${request.url.encodedPath}")
                 respond(
@@ -115,6 +126,7 @@ class KtorNetworkFeatureAllowlistDataSourceTest {
                 url(URLBuilder("https://example.invalid/").build().toString())
             }
         }
+    }
 
     private data class EndpointResponse(
         val status: HttpStatusCode,
