@@ -73,8 +73,7 @@ class IosNativeHelper {
      * the framework's exported ObjC/Swift API: Kotlin/Native only exports
      * declarations reachable from an entry point, and nothing else references it.
      */
-    fun parseFcmDoorEvent(data: Map<String, String>): DoorEvent? =
-        FcmPayloadParser.parseDoorEvent(data)
+    fun parseFcmDoorEvent(data: Map<String, String>): DoorEvent? = FcmPayloadParser.parseDoorEvent(data)
 
     private fun currentAppVersion(): String {
         val bundle = NSBundle.mainBundle
