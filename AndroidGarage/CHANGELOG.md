@@ -15,6 +15,10 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.20.2
+- **No user-facing changes.** Refactor checkpoint release: a clean build + internal-track deploy to confirm the in-progress iOS shared-logic work hasn't accidentally regressed Android.
+- **Internal:** ADR-031 Phase 1. The typed door warning (`DoorWarning`) and its mapping moved from `androidApp` into the shared `presentation-model` module so Android and iOS render it from one source of truth. `DefaultHomeViewModel` now exposes `warning: StateFlow<DoorWarning?>` (the route wrapper threads it onto `HomeStatusDisplay`); `HomeMapper.warning` and the androidApp-local `DoorWarning` type were deleted, and the warning-mapping unit tests moved to shared `commonTest` (so they run on Android and iOS). Behavior-preserving: same chip, same copy, same triggers; no resources, manifest, Room schema, FCM, or DI constructor changes. PR #929. Plan: [`docs/PRESENTATION_MODEL_REALIZATION.md`](docs/PRESENTATION_MODEL_REALIZATION.md).
+
 ## 2.20.1
 - **Tapping a garage-door notification now opens the app.** The foreground open-door warning and the resolved-on-close notification are app-built, and were missing a tap action, so tapping them did nothing. They now launch the app. (The OS-rendered background warning already opened the app via FCM's default launch intent; this brings the app-built notifications in line.) The diagnostic test-notification sandbox got the same fix.
 - **Internal:** added `setContentIntent(PendingIntent → MainActivity, FLAG_IMMUTABLE)` to `DoorNotificationPresenter` and `TestNotificationPresenter`. FCM only auto-attaches a launch intent to OS-rendered notification-payload messages; app-built (`NotificationCompat`) notifications must set their own `contentIntent`.
