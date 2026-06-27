@@ -69,6 +69,7 @@ fun HomeContent(
         onTokenReceived = { token -> resolved.signInWithGoogle(token) },
     )
     val currentDoorEvent by resolved.currentDoorEvent.collectAsState()
+    val warning by resolved.warning.collectAsState()
     val buttonState by resolved.buttonState.collectAsState()
     val authState by resolved.authState.collectAsState()
     val isCheckInStale by resolved.isCheckInStale.collectAsState()
@@ -91,7 +92,12 @@ fun HomeContent(
     val now = remember(nowEpochSeconds) { Instant.ofEpochSecond(nowEpochSeconds) }
     val zone = remember { ZoneId.systemDefault() }
 
-    val status = HomeMapper.toHomeStatusDisplay(currentDoorEvent, isCheckInStale)
+    // The mapper builds the status-card display bundle; the typed warning is
+    // sourced separately from the shared VM (ADR-031 — the warning mapping
+    // moved to `presentation-model`, no longer computed by `HomeMapper`).
+    val status = HomeMapper
+        .toHomeStatusDisplay(currentDoorEvent, isCheckInStale)
+        .copy(warning = warning)
     val sinceLine = rememberSinceLine(status.lastChangeTimeSeconds, now, zone)
     val alerts = HomeMapper.toHomeAlerts(
         currentDoorEvent = currentDoorEvent,

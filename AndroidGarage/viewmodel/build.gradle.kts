@@ -34,6 +34,9 @@ kotlin {
         commonMain.dependencies {
             implementation(project(":domain"))
             implementation(project(":usecase"))
+            // Shared presentation models (typed display state rendered by both
+            // Compose and SwiftUI) — ADR-031. `DoorWarning` lives here.
+            implementation(project(":presentation-model"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kermit)
