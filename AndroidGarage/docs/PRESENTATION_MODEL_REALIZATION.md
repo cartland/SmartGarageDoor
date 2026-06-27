@@ -126,6 +126,16 @@ typed display state, then the developer-surface gaps (Diagnostics Export CSV /
 copy-token; Functions auth + test-notification actions), and door-canvas
 animation polish.
 
+### Out of scope — adaptive / iPad layout
+
+The adaptive iPad layout (`NavigationSplitView` vs the phone-style `TabView`) is
+a separate iOS parity item, **not** a presentation-model slice — it's an
+adaptive-layout concern, not shared display logic, so it doesn't follow the
+per-slice recipe above. It's deprioritized (user, 2026-06-27) and tracked in
+[`PENDING_FOLLOWUPS.md` § 1 "iOS app construction"](./PENDING_FOLLOWUPS.md)
+alongside the other device/user-gated iOS work (sign-in tap-through, push
+delivery, release tooling, App Store).
+
 ## iOS parity-gap inventory (the work this plan delivers)
 
 Condensed from the 2026-06-27 audit. Items already shipped are struck through.
