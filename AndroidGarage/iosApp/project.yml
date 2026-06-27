@@ -44,6 +44,12 @@ packages:
   GoogleSignIn:
     url: https://github.com/google/GoogleSignIn-iOS
     from: "7.1.0"
+  SnapshotTesting:
+    url: https://github.com/pointfreeco/swift-snapshot-testing
+    from: "1.18.0"
+  Prefire:
+    url: https://github.com/BarredEwe/Prefire
+    from: "5.6.0"
 
 targets:
   iosApp:
@@ -92,3 +98,43 @@ targets:
           fi
           cd "$SRCROOT/.."
           ./gradlew :iosFramework:embedAndSignAppleFrameworkForXcode
+
+  # Snapshot-test target. Renders SwiftUI #Previews to committed reference PNGs
+  # via Prefire (auto-generates tests from #Preview) + swift-snapshot-testing.
+  # Posture is "regenerate, don't assert" — driven by
+  # scripts/generate-ios-screenshots.sh; not a gating CI check.
+  iosAppSnapshotTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: SnapshotTests
+    dependencies:
+      - target: iosApp
+      - package: SnapshotTesting
+        product: SnapshotTesting
+      - package: Prefire
+        product: Prefire
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.chriscartland.garage.SnapshotTests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/iosApp.app/iosApp"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        # `import shared` needs the Kotlin framework module on the search path,
+        # same as the app target. Symbols resolve against the host at runtime.
+        FRAMEWORK_SEARCH_PATHS:
+          - $(inherited)
+          - $(SRCROOT)/../iosFramework/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
+
+schemes:
+  iosApp:
+    build:
+      targets:
+        iosApp: all
+        iosAppSnapshotTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - iosAppSnapshotTests

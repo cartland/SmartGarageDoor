@@ -312,6 +312,18 @@ extension DoorPosition {
     }
 }
 
+#Preview("Door closed") {
+    GarageDoorView(position: .closed)
+        .frame(width: 180, height: 180)
+        .padding()
+}
+
+#Preview("Door opening") {
+    GarageDoorView(position: .opening)
+        .frame(width: 180, height: 180)
+        .padding()
+}
+
 #Preview("Door states") {
     let states: [DoorPosition] = [
         .closed, .opening, .open, .closing, .openingTooLong, .errorSensorConflict, .unknown,

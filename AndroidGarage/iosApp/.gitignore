@@ -9,6 +9,11 @@ Secrets.local.xcconfig
 build/
 DerivedData/
 
+# Snapshot-generation DerivedData (scripts/generate-ios-screenshots.sh). The
+# recorded reference PNGs under SnapshotTests/__Snapshots__/ and the generated
+# SnapshotTests/PreviewTests.generated.swift ARE committed (they are the gallery).
+.derivedData-snapshots/
+
 # Xcode user state
 *.xcuserstate
 **/xcuserdata/

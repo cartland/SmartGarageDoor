@@ -1,0 +1,14 @@
+# Prefire config — drives snapshot-test generation from #Preview macros.
+# https://github.com/BarredEwe/Prefire
+#
+# `target` is the app module Prefire scans for #Preview / PreviewProvider and
+# `@testable import`s in the generated PreviewTests. The generated tests render
+# each preview via swift-snapshot-testing. Generation + the "regenerate, don't
+# assert" record posture are driven by scripts/generate-ios-screenshots.sh.
+test_configuration:
+  target: iosApp
+  # Previews reference Kotlin types (e.g. DoorPosition) from the `shared`
+  # framework; `@testable import iosApp` does not re-export it, so the
+  # generated PreviewTests need an explicit `import shared`.
+  imports:
+    - shared
