@@ -29,33 +29,99 @@ struct ProfileScreen: View {
     }
 
     var body: some View {
+        ProfileContentView(
+            signedIn: wrapper.signedIn,
+            snoozeLabel: wrapper.snoozeLabel,
+            snoozeSending: wrapper.snoozeSending,
+            snoozeError: wrapper.snoozeError,
+            durations: wrapper.durations,
+            onSignIn: { wrapper.signInWithGoogle() },
+            onSignOut: { wrapper.signOut() },
+            onSnooze: { wrapper.snooze($0) },
+            onRefresh: { wrapper.refreshSnooze() }
+        )
+    }
+}
+
+/// Pure Profile content — plain values + actions, renders without a live
+/// `NativeComponent`. Captured by the `#Preview`s / snapshot gallery.
+struct ProfileContentView: View {
+    let signedIn: Bool
+    let snoozeLabel: String
+    let snoozeSending: Bool
+    let snoozeError: String?
+    let durations: [(label: String, option: SnoozeDurationUIOption)]
+    let onSignIn: () -> Void
+    let onSignOut: () -> Void
+    let onSnooze: (SnoozeDurationUIOption) -> Void
+    let onRefresh: () -> Void
+
+    var body: some View {
         List {
             Section("Account") {
-                Text(wrapper.signedIn ? "Signed in" : "Signed out")
+                Text(signedIn ? "Signed in" : "Signed out")
                     .foregroundStyle(.secondary)
-                if wrapper.signedIn {
-                    Button("Sign out", role: .destructive) { wrapper.signOut() }
+                if signedIn {
+                    Button("Sign out", role: .destructive) { onSignOut() }
                 } else {
-                    Button("Sign in with Google") { wrapper.signInWithGoogle() }
+                    Button("Sign in with Google") { onSignIn() }
                 }
             }
 
             Section("Snooze notifications") {
                 HStack {
-                    Text(wrapper.snoozeLabel)
+                    Text(snoozeLabel)
                     Spacer()
-                    if wrapper.snoozeSending { ProgressView().controlSize(.small) }
+                    if snoozeSending { ProgressView().controlSize(.small) }
                 }
-                if let error = wrapper.snoozeError {
+                if let error = snoozeError {
                     Text(error).font(.footnote).foregroundStyle(GarageColors.statusWarning)
                 }
-                ForEach(wrapper.durations, id: \.label) { entry in
-                    Button(entry.label) { wrapper.snooze(entry.option) }
-                        .disabled(wrapper.snoozeSending)
+                ForEach(durations, id: \.label) { entry in
+                    Button(entry.label) { onSnooze(entry.option) }
+                        .disabled(snoozeSending)
                 }
             }
         }
         .navigationTitle("Profile")
-        .refreshable { wrapper.refreshSnooze() }
+        .refreshable { onRefresh() }
+    }
+}
+
+// NOTE: a #Preview body is embedded verbatim into the generated PreviewTests, so
+// it may only reference symbols visible via `@testable import iosApp` (internal+)
+// — never a `private` file-scope helper. Hence the durations are inlined here.
+
+#Preview("Profile signed out") {
+    let durations: [(label: String, option: SnoozeDurationUIOption)] = [
+        ("Do not snooze", .none), ("1 hour", .oneHour), ("4 hours", .fourHours),
+        ("8 hours", .eightHours), ("12 hours", .twelveHours),
+    ]
+    return NavigationStack {
+        ProfileContentView(
+            signedIn: false,
+            snoozeLabel: "Not snoozing",
+            snoozeSending: false,
+            snoozeError: nil,
+            durations: durations,
+            onSignIn: {}, onSignOut: {}, onSnooze: { _ in }, onRefresh: {}
+        )
+    }
+}
+
+#Preview("Profile signed in snoozing") {
+    let durations: [(label: String, option: SnoozeDurationUIOption)] = [
+        ("Do not snooze", .none), ("1 hour", .oneHour), ("4 hours", .fourHours),
+        ("8 hours", .eightHours), ("12 hours", .twelveHours),
+    ]
+    return NavigationStack {
+        ProfileContentView(
+            signedIn: true,
+            snoozeLabel: "Snoozing until 9:00 PM",
+            snoozeSending: false,
+            snoozeError: nil,
+            durations: durations,
+            onSignIn: {}, onSignOut: {}, onSnooze: { _ in }, onRefresh: {}
+        )
     }
 }
