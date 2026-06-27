@@ -85,10 +85,13 @@ Ordered by leverage. Phases 1–2 are verification of already-built code; Phases
    - Consider promoting iOS CI (`Build iOS app + framework test`) to a required check once stable (per CLAUDE.md branch-protection ordering) — closes the non-required-iOS-CI / auto-merge race.
 4. **Phase G — App Store** (1 PR, last): 1024² icon (reuse Android glyph), App Store Connect screenshots (iPhone + iPad), listing copy, `ITSAppUsesNonExemptEncryption = NO` (already set), `PrivacyInfo.xcprivacy` (Firebase Auth = "User ID, linked, App Functionality"), submit for review. **User-gated.**
 
-**Feature-parity audit (ADR-029).** Capability parity is the north star; these are the known iOS gaps vs Android (UI may differ by platform, but the capability/identity should land):
-- **Animated door canvas — DONE (PR #919, 2026-06-26).** iOS Home now renders a SwiftUI `GarageDoorView` (port of Android's `GarageDoorCanvas.kt` + `GarageIcon.kt`): U-frame + panels + handle + gradient, per-state color (fresh/stale, light/dark) and offset, directional/warning overlays, eased transitions. The full Android animation trajectory (12 s linear tween + once-per-event `DoorAnimationMemory` replay) remains a deferred polish pass; the identity *visual* has landed.
-- **Adaptive / iPad layout.** Android adapts via `AppLayoutMode` (nav rail, 3-pane, wide dashboard); iOS `MainScreen` is a plain phone-style `TabView` + `NavigationStack` with no size-class adaptation, even though the app is Universal (iPhone + iPad). Add iPad/landscape adaptation with SwiftUI-idiomatic constructs (e.g. `NavigationSplitView`) — platform-native, not a port of the Android rail.
-- **Capability spot-check.** Audit each Android screen's actions against its iOS counterpart for any silently-missing capability (the screens exist, but parity is action-level, not screen-level). Run before the first TestFlight so the published app isn't missing a meaningful feature.
+**Feature-parity audit (ADR-029).** Capability parity is the north star. The full iOS↔Android audit ran 2026-06-27 → the gap inventory + the execution plan now live in **[ADR-031](./DECISIONS.md#adr-031) + [`PRESENTATION_MODEL_REALIZATION.md`](./PRESENTATION_MODEL_REALIZATION.md)** (realize the shared `presentation-model` layer so typed display state is computed once in `commonMain` and rendered by both Compose and SwiftUI). Status:
+- **Animated door canvas — DONE (#919).** SwiftUI `GarageDoorView` (full Android trajectory deferred; identity visual landed).
+- **Snapshot gallery — DONE (#920–#924).** All 5 screens captured (ADR-030).
+- **3-tab restructure + gated Developer section — DONE (#926).** Diagnostics + Functions moved under Settings, `developerAccess`-gated (no longer leaked to all users).
+- **Account identity + About/version — DONE (#927).**
+- **Remaining richness (Home warnings/duration/alerts, History day-grouping/rich-rows/load-more, info sheets, dev-action gaps)** is the `presentation-model` realization — phased in the plan doc above. This is the active iOS workstream.
+- **Adaptive / iPad layout — DEPRIORITIZED (user, 2026-06-27).** `NavigationSplitView` adaptation is low-value right now; revisit after the richness parity lands.
 
 **Sequencing:** Phase 1 (verify sign-in) now → parity items (door canvas, adaptive layout) can proceed in parallel any time → Phase 3 (release tooling + signing) → Phase 2 (device push verify, folds into TestFlight) → Phase 4 (App Store). Phases 3–4 and Phase 2 are user-gated on Apple signing.
 

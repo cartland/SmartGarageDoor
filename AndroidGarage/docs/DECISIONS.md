@@ -1748,3 +1748,56 @@ iOS had no equivalent. The app had no Swift test target at all; iOS CI only buil
 - ADR-029 — iOS ↔ Android parity / platform-native / shared identity (the door visualization this first captures is an identity item).
 - [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md) § 1 — iOS construction status.
 - Android analog: `scripts/generate-android-screenshots.sh`, `android-screenshot-tests/SCREENSHOT_GALLERY.md`, `checkPreviewCoverage`.
+
+---
+
+## ADR-031: Realize the shared `presentation-model` layer — typed display state in shared ViewModels, rendered by both Compose and SwiftUI
+
+### Status
+
+Accepted — 2026-06-27. **Plan only; not yet implemented.** Phased rollout: [`PRESENTATION_MODEL_REALIZATION.md`](./PRESENTATION_MODEL_REALIZATION.md).
+
+### Context
+
+ADR-029 set the principle: *the shared KMP layer is the parity contract; prefer pushing logic and state down so the other platform gets it nearly for free.* The iOS↔Android feature-parity audit (2026-06-27) showed where that principle is currently violated.
+
+The per-screen **display mapping** — `DoorPosition → DoorWarning`, the "Since 9:47 AM · 2 hr 14 min" status line, the `DoorEvent → HistoryEntry` typing (Opened / Closed / Anomaly, transit warnings, anomaly kinds, day grouping) — lives in `androidApp/`'s UI-layer mappers (`HomeMapper`, `HomeStatusFormatter`, `DoorWarning`, `HistoryMapper`). **iOS cannot reach `androidApp` code.** So today iOS either shows a thinner screen (raw door message instead of typed warning; no duration line; flat history list) or would have to **re-implement** the mapping in Swift — a second source of truth that drifts.
+
+A shared `presentation-model` KMP module already exists (`HomeScreenState`, `DoorHistoryScreenState`, `ProfileScreenState`) but is **dormant**: the types are skeletal and nothing produces or consumes them. The scaffolding is there; it was never wired.
+
+### Decision
+
+**Realize the `presentation-model` layer.** Move the per-screen display mapping out of `androidApp/` and into the shared KMP layer, expose the resulting typed state from the shared `Default*ViewModel`s, and have **both** Jetpack Compose and SwiftUI render it.
+
+Principles:
+
+1. **Shared emits typed state, never user-visible strings.** Per the string-resource migration rule (ADR-023 era), mappers/VMs emit sealed types, enums, and primitive/numeric parts (`DoorWarning`, `AnomalyKind`, `TransitWarning`, day-group keys, duration as `days/hours/minutes` ints, epoch deltas). Each UI converts those to **localized strings at render time** (Compose `stringResource`/`pluralStringResource`; SwiftUI `Text` + formatters). Locale-dependent formatting (clock time, plurals) stays per-UI; the *typed/numeric* inputs are shared so the two renders cannot diverge in meaning.
+2. **The mapping logic lives in `commonMain`** — in `presentation-model` (pure functions over domain types) and/or computed `StateFlow`s on the shared VM. No platform types.
+3. **The shared VM exposes the typed screen state** (enrich `HomeScreenState` / `DoorHistoryScreenState` etc.), so the UI layers are thin renderers.
+4. **Android gets thinner.** Each slice deletes the corresponding `androidApp/` mapper and points `*Content.kt` at the VM state. The mapper unit tests move to shared `commonTest` (so they run on every platform and guard the contract).
+
+### What moves vs. what stays
+
+| Concern | Where |
+|---|---|
+| `DoorWarning`, `AnomalyKind`, `TransitWarning`, history-entry kind, day-group key | **Shared** (typed) |
+| `DoorPosition → DoorWarning`, `DoorEvent → HistoryEntry`, since/duration *as numeric parts*, grouping | **Shared** (pure mapping) |
+| "9:47 AM", "2 hr 14 min", plural rendering, icon/color choice | **Per-UI** (locale + platform), driven by the shared typed/numeric inputs |
+
+### Consequences
+
+- **Cross-cutting per slice** (shared + Android + iOS + tests) → `validate.sh` is required (custom lints, `:test-common` compile, VM↔UseCase boundary). VM ctor changes touch **both** DI graphs (`AppComponent` + `NativeComponent`) — see the two-DI-component rule in CLAUDE.md.
+- iOS feature parity (the audit's richness gaps) is delivered as a by-product of each slice, not as duplicated Swift.
+- The typed shared state becomes the cross-platform "wire contract" for UI meaning — analogous to `wire-contracts/` for HTTP.
+- Net less code: one mapping + one test suite instead of one-per-platform.
+
+### When this decision might change
+
+- If a screen's display logic turns out to be genuinely platform-specific (no shared meaning), that piece stays per-UI — recorded as an exception in the plan doc.
+
+### References
+
+- ADR-029 — the parity principle this implements.
+- [`PRESENTATION_MODEL_REALIZATION.md`](./PRESENTATION_MODEL_REALIZATION.md) — the phased plan, slice checklist, and parity-gap inventory.
+- Dormant scaffolding: `presentation-model/.../{HomeScreenState,DoorHistoryScreenState,ProfileScreenState}.kt`.
+- Mappers to relocate: `androidApp/.../ui/home/{HomeMapper,HomeStatusFormatter,DoorWarning}.kt`, `androidApp/.../ui/history/HistoryMapper.kt`.
