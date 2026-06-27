@@ -108,6 +108,13 @@ targets:
     platform: iOS
     sources:
       - path: SnapshotTests
+        # Only the generated PreviewTests.swift is a build input. The recorded
+        # PNGs are written to disk by swift-snapshot-testing via #filePath (not
+        # Xcode membership); bundling them as target resources would make the
+        # build fail copying them after the script deletes __Snapshots__.
+        excludes:
+          - "__Snapshots__/**"
+          - "*.md"
     dependencies:
       - target: iosApp
       - package: SnapshotTesting
