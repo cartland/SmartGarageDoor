@@ -36,15 +36,27 @@ struct SettingsScreen: View {
         _wrapper = StateObject(wrappedValue: SettingsViewModelWrapper(component: component))
     }
 
+    private static var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+    }
+
+    private static var appBuild: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
+    }
+
     var body: some View {
         SettingsContentView(
             signedIn: wrapper.signedIn,
+            displayName: wrapper.displayName,
+            email: wrapper.email,
             snoozeLabel: wrapper.snoozeLabel,
             snoozeSending: wrapper.snoozeSending,
             snoozeError: wrapper.snoozeError,
             durations: wrapper.durations,
             developerAccess: wrapper.developerAccess,
             functionListAccess: wrapper.functionListAccess,
+            appVersion: Self.appVersion,
+            appBuild: Self.appBuild,
             onSignIn: { wrapper.signInWithGoogle() },
             onSignOut: { wrapper.signOut() },
             onSnooze: { wrapper.snooze($0) },
@@ -67,12 +79,16 @@ struct SettingsScreen: View {
 /// component-free; the screen shell supplies the destinations.
 struct SettingsContentView: View {
     let signedIn: Bool
+    let displayName: String?
+    let email: String?
     let snoozeLabel: String
     let snoozeSending: Bool
     let snoozeError: String?
     let durations: [(label: String, option: SnoozeDurationUIOption)]
     let developerAccess: Bool?
     let functionListAccess: Bool?
+    let appVersion: String
+    let appBuild: String
     let onSignIn: () -> Void
     let onSignOut: () -> Void
     let onSnooze: (SnoozeDurationUIOption) -> Void
@@ -81,11 +97,20 @@ struct SettingsContentView: View {
     var body: some View {
         List {
             Section("Account") {
-                Text(signedIn ? "Signed in" : "Signed out")
-                    .foregroundStyle(.secondary)
                 if signedIn {
+                    VStack(alignment: .leading, spacing: GarageSpacing.tight) {
+                        Text(displayName ?? "Signed in")
+                            .font(.headline)
+                        if let email {
+                            Text(email)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                     Button("Sign out", role: .destructive) { onSignOut() }
                 } else {
+                    Text("Signed out")
+                        .foregroundStyle(.secondary)
                     Button("Sign in with Google") { onSignIn() }
                 }
             }
@@ -103,6 +128,11 @@ struct SettingsContentView: View {
                     Button(entry.label) { onSnooze(entry.option) }
                         .disabled(snoozeSending)
                 }
+            }
+
+            Section("About") {
+                LabeledContent("Version", value: appVersion)
+                LabeledContent("Build", value: appBuild)
             }
 
             // Developer section — allowlisted only (parity with Android). The
@@ -137,12 +167,16 @@ struct SettingsContentView: View {
     return NavigationStack {
         SettingsContentView(
             signedIn: false,
+            displayName: nil,
+            email: nil,
             snoozeLabel: "Not snoozing",
             snoozeSending: false,
             snoozeError: nil,
             durations: durations,
             developerAccess: false,
             functionListAccess: false,
+            appVersion: "0.1.0",
+            appBuild: "1",
             onSignIn: {}, onSignOut: {}, onSnooze: { _ in }, onRefresh: {}
         )
     }
@@ -156,12 +190,16 @@ struct SettingsContentView: View {
     return NavigationStack {
         SettingsContentView(
             signedIn: true,
+            displayName: "Chris Cartland",
+            email: "chris@example.com",
             snoozeLabel: "Snoozing until 9:00 PM",
             snoozeSending: false,
             snoozeError: nil,
             durations: durations,
             developerAccess: true,
             functionListAccess: true,
+            appVersion: "0.1.0",
+            appBuild: "1",
             onSignIn: {}, onSignOut: {}, onSnooze: { _ in }, onRefresh: {}
         )
     }

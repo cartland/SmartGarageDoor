@@ -22,6 +22,8 @@ import SwiftUI
 @MainActor
 final class SettingsViewModelWrapper: ObservableObject {
     @Published private(set) var signedIn: Bool = false
+    @Published private(set) var displayName: String?
+    @Published private(set) var email: String?
     @Published private(set) var snoozeLabel: String = "Not snoozing"
     @Published private(set) var snoozeSending: Bool = false
     @Published private(set) var snoozeError: String?
@@ -75,10 +77,17 @@ final class SettingsViewModelWrapper: ObservableObject {
     }
 
     private func applyAuth(_ state: AuthState) {
-        if case .authenticated = onEnum(of: state) {
+        if case .authenticated(let authed) = onEnum(of: state) {
             signedIn = true
+            // `User.name`/`.email` are Kotlin value classes (DisplayName / Email)
+            // erased to their underlying String at the ObjC boundary (typed `id`),
+            // so they bridge to Swift as `Any` holding an NSString.
+            displayName = authed.user.name as? String
+            email = authed.user.email as? String
         } else {
             signedIn = false
+            displayName = nil
+            email = nil
         }
     }
 
