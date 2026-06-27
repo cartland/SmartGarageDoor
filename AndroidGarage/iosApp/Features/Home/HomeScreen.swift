@@ -19,7 +19,8 @@ import SwiftUI
 @preconcurrency import shared
 
 /// Home tab — current door status, the open/close button, device health.
-/// Functional baseline; the animated door canvas is a later polish pass.
+/// Thin shell: owns the ViewModel wrapper and binds its state into the pure,
+/// preview-able `HomeContentView`.
 struct HomeScreen: View {
     @StateObject private var wrapper: HomeViewModelWrapper
 
@@ -28,22 +29,49 @@ struct HomeScreen: View {
     }
 
     var body: some View {
+        HomeContentView(
+            doorPosition: wrapper.doorPosition,
+            doorMessage: wrapper.doorMessage,
+            isCheckInStale: wrapper.isCheckInStale,
+            buttonStateLabel: wrapper.buttonStateLabel,
+            buttonHealthLabel: wrapper.buttonHealthLabel,
+            signedIn: wrapper.signedIn,
+            onButtonTap: { wrapper.onButtonTap() },
+            onRefresh: { wrapper.refresh() }
+        )
+    }
+}
+
+/// Pure Home content — takes plain values + actions so it renders without a live
+/// `NativeComponent` (mirrors Android's `HomeContent(state)`). This is what the
+/// `#Preview`s and snapshot gallery capture.
+struct HomeContentView: View {
+    let doorPosition: DoorPosition
+    let doorMessage: String?
+    let isCheckInStale: Bool
+    let buttonStateLabel: String
+    let buttonHealthLabel: String
+    let signedIn: Bool
+    let onButtonTap: () -> Void
+    let onRefresh: () -> Void
+
+    var body: some View {
         List {
             Section("Status") {
                 VStack(spacing: GarageSpacing.card) {
-                    GarageDoorView(position: wrapper.doorPosition, isStale: wrapper.isCheckInStale)
+                    GarageDoorView(position: doorPosition, isStale: isCheckInStale)
                         .frame(height: 160)
                         .frame(maxWidth: .infinity)
                     VStack(spacing: GarageSpacing.tight) {
-                        Text(wrapper.doorPosition.statusLabel)
+                        Text(doorPosition.statusLabel)
                             .font(.title2.weight(.semibold))
-                        if let message = wrapper.doorMessage {
+                        if let message = doorMessage {
                             Text(message)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
                         }
-                        if wrapper.isCheckInStale {
+                        if isCheckInStale {
                             Label("Check-in is stale", systemImage: "exclamationmark.triangle")
                                 .font(.footnote)
                                 .foregroundStyle(GarageColors.statusWarning)
@@ -55,8 +83,8 @@ struct HomeScreen: View {
             }
 
             Section("Remote button") {
-                Button(action: { wrapper.onButtonTap() }) {
-                    Text(wrapper.buttonStateLabel)
+                Button(action: onButtonTap) {
+                    Text(buttonStateLabel)
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -65,15 +93,45 @@ struct HomeScreen: View {
             }
 
             Section("Device health") {
-                Text(wrapper.buttonHealthLabel).foregroundStyle(.secondary)
+                Text(buttonHealthLabel).foregroundStyle(.secondary)
             }
 
             Section("Account") {
-                Text(wrapper.signedIn ? "Signed in" : "Signed out")
+                Text(signedIn ? "Signed in" : "Signed out")
                     .foregroundStyle(.secondary)
             }
         }
         .navigationTitle("Garage")
-        .refreshable { wrapper.refresh() }
+        .refreshable { onRefresh() }
+    }
+}
+
+#Preview("Home closed signed out") {
+    NavigationStack {
+        HomeContentView(
+            doorPosition: .closed,
+            doorMessage: "The door is closed.",
+            isCheckInStale: true,
+            buttonStateLabel: "Tap to open / close",
+            buttonHealthLabel: "Sign in to see device health",
+            signedIn: false,
+            onButtonTap: {},
+            onRefresh: {}
+        )
+    }
+}
+
+#Preview("Home open signed in") {
+    NavigationStack {
+        HomeContentView(
+            doorPosition: .open,
+            doorMessage: "The door is open.",
+            isCheckInStale: false,
+            buttonStateLabel: "Tap to open / close",
+            buttonHealthLabel: "Online",
+            signedIn: true,
+            onButtonTap: {},
+            onRefresh: {}
+        )
     }
 }
