@@ -30,18 +30,27 @@ struct HomeScreen: View {
     var body: some View {
         List {
             Section("Status") {
-                VStack(alignment: .leading, spacing: GarageSpacing.tight) {
-                    Text(wrapper.doorPosition.replacingOccurrences(of: "_", with: " ").capitalized)
-                        .font(.largeTitle.weight(.bold))
-                    if let message = wrapper.doorMessage {
-                        Text(message).font(.subheadline).foregroundStyle(.secondary)
-                    }
-                    if wrapper.isCheckInStale {
-                        Label("Check-in is stale", systemImage: "exclamationmark.triangle")
-                            .font(.footnote)
-                            .foregroundStyle(GarageColors.statusWarning)
+                VStack(spacing: GarageSpacing.card) {
+                    GarageDoorView(position: wrapper.doorPosition, isStale: wrapper.isCheckInStale)
+                        .frame(height: 160)
+                        .frame(maxWidth: .infinity)
+                    VStack(spacing: GarageSpacing.tight) {
+                        Text(wrapper.doorPosition.statusLabel)
+                            .font(.title2.weight(.semibold))
+                        if let message = wrapper.doorMessage {
+                            Text(message)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        if wrapper.isCheckInStale {
+                            Label("Check-in is stale", systemImage: "exclamationmark.triangle")
+                                .font(.footnote)
+                                .foregroundStyle(GarageColors.statusWarning)
+                        }
                     }
                 }
+                .frame(maxWidth: .infinity)
                 .padding(.vertical, GarageSpacing.tight)
             }
 

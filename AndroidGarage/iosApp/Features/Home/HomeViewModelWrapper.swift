@@ -23,7 +23,7 @@ import SwiftUI
 @MainActor
 final class HomeViewModelWrapper: ObservableObject {
     @Published private(set) var signedIn: Bool = false
-    @Published private(set) var doorPosition: String = "UNKNOWN"
+    @Published private(set) var doorPosition: DoorPosition = .unknown
     @Published private(set) var doorMessage: String?
     @Published private(set) var lastChangeTimeSeconds: Int64?
     @Published private(set) var isCheckInStale: Bool = false
@@ -69,7 +69,7 @@ final class HomeViewModelWrapper: ObservableObject {
 
     private func applyDoor(_ result: LoadingResult<DoorEvent>) {
         let event = result.data
-        doorPosition = event?.doorPosition?.name ?? "UNKNOWN"
+        doorPosition = event?.doorPosition ?? .unknown
         doorMessage = event?.message
         lastChangeTimeSeconds = event?.lastChangeTimeSeconds?.int64Value
     }
