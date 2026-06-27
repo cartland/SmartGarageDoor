@@ -107,20 +107,52 @@ targets:
     type: bundle.unit-test
     platform: iOS
     sources:
-      - path: SnapshotTests
-        # Only the generated PreviewTests.swift is a build input. The recorded
-        # PNGs are written to disk by swift-snapshot-testing via #filePath (not
-        # Xcode membership); bundling them as target resources would make the
-        # build fail copying them after the script deletes __Snapshots__.
-        excludes:
-          - "__Snapshots__/**"
-          - "*.md"
+      # The single build input is the generated PreviewTests file. It is NOT
+      # committed (gitignored) and may be absent on a fresh checkout, so it is
+      # listed `optional: true` — XcodeGen still references it in Compile
+      # Sources, and the pre-build script below regenerates it before compiling.
+      # The recorded PNGs + *.md are deliberately NOT target members (they are
+      # written to disk by swift-snapshot-testing via #filePath, and bundling
+      # them as resources would break the build after the script clears
+      # __Snapshots__).
+      - path: SnapshotTests/PreviewTests.generated.swift
+        optional: true
     dependencies:
       - target: iosApp
       - package: SnapshotTesting
         product: SnapshotTesting
       - package: Prefire
         product: Prefire
+    preBuildScripts:
+      # Regenerate PreviewTests.generated.swift from the #Preview macros so the
+      # test target builds and runs in Xcode directly (Cmd-U / build-for-testing)
+      # WITHOUT first running scripts/generate-ios-screenshots.sh. Mirrors the
+      # CLI step in that script. Only runs when the test target is built (the app
+      # target and gating iOS CI `xcodebuild build` never trigger it).
+      - name: "Generate Prefire snapshot tests"
+        basedOnDependencyAnalysis: false
+        # Declaring the generated file as an output tells the build system the
+        # script produces it, so the Compile Sources phase that consumes it
+        # doesn't fail its pre-flight "input file cannot be found" check on a
+        # fresh checkout (the file is gitignored / may be absent at build start).
+        outputFiles:
+          - $(SRCROOT)/SnapshotTests/PreviewTests.generated.swift
+        script: |
+          DD_ROOT="${BUILD_DIR%%/Build/*}"
+          PREFIRE="$(/usr/bin/find "$DD_ROOT/SourcePackages/checkouts/Prefire" -type f -name prefire -path '*Binaries*bin*' 2>/dev/null | head -1)"
+          if [ -z "$PREFIRE" ]; then
+            echo "warning: Prefire CLI not found under $DD_ROOT/SourcePackages — PreviewTests not regenerated"
+            exit 0
+          fi
+          # --cache-base-path keeps Prefire's parse cache in the build dir (not
+          # the source tree); it is cleaned with DerivedData, so the cache and
+          # the generated output can never go stale relative to each other.
+          # Prefire writes the output only when its content changes, so this
+          # phase running every build does not cause recompile churn.
+          "$PREFIRE" tests "$SRCROOT/Features" "$SRCROOT/Core" \
+            --target iosApp --test-target iosAppSnapshotTests \
+            --config "$SRCROOT/.prefire.yml" --output "$SRCROOT/SnapshotTests" \
+            --cache-base-path "$DERIVED_FILE_DIR"
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

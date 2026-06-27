@@ -50,8 +50,16 @@ canvas), then run the script. Notes:
 | `SCREENSHOT_GALLERY.md` | Yes | Generated browsable gallery. |
 | `../.prefire.yml` | Yes | Prefire config (`target: iosApp`, `imports: [shared]`). |
 
-Because `PreviewTests.generated.swift` is not committed, the snapshot test target
-has no Swift source on a fresh checkout until you run the script. That's expected:
-the app build and the gating iOS CI never compile the test target (it builds only
-for the test action), and the script regenerates the file before recording. To
-run the snapshot tests in Xcode directly, run the script once first.
+## Building in Xcode
+
+`PreviewTests.generated.swift` is gitignored, but you don't need to run the
+script before opening Xcode: the test target has a **"Generate Prefire snapshot
+tests" pre-build phase** that regenerates it from the `#Preview` macros before
+every build. So building / running the snapshot tests in Xcode (Cmd-U or
+build-for-testing) works directly. The phase declares the file as an output (so
+the build system orders compilation after it and doesn't fail the missing-input
+pre-flight on a fresh checkout), Prefire only rewrites the file when its content
+changes (no recompile churn), and its parse cache lives in `$DERIVED_FILE_DIR`
+(the build dir, cleaned with DerivedData). The app build and gating iOS CI never
+compile the test target (it builds only for the test action), so they're
+unaffected. The script above is for a full headless re-record + gallery rebuild.
