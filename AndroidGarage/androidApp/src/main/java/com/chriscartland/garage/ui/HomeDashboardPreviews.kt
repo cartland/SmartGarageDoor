@@ -46,6 +46,7 @@ import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.RemoteButtonState
+import com.chriscartland.garage.presentation.SinceStatusMapper
 import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.home.DeviceCheckIn
 import com.chriscartland.garage.ui.home.HomeAuthState
@@ -182,7 +183,10 @@ private fun WideHomeBody(modifier: Modifier = Modifier) {
         currentDoorEvent = LoadingResult.Complete(event),
     )
     val sinceLine = rememberSinceLine(
-        lastChangeTimeSeconds = status.lastChangeTimeSeconds,
+        sinceStatus = SinceStatusMapper.forEvent(
+            lastChangeEpochSeconds = status.lastChangeTimeSeconds,
+            nowEpochSeconds = DashboardDemoData.now.epochSecond,
+        ),
         now = DashboardDemoData.now,
         zone = DashboardDemoData.zone,
     )

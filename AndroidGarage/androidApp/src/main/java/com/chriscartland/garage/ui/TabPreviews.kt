@@ -45,6 +45,7 @@ import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.domain.model.NavigationRailLayout
 import com.chriscartland.garage.domain.model.RemoteButtonState
+import com.chriscartland.garage.presentation.SinceStatusMapper
 import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.home.DeviceCheckIn
 import com.chriscartland.garage.ui.home.HomeAuthState
@@ -146,7 +147,11 @@ fun HomeTabPreview() {
     val event = demoDoorEvents.firstOrNull()
     val now = Instant.parse("2026-04-29T12:00:00Z")
     val status = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event))
-    val sinceLine = rememberSinceLine(status.lastChangeTimeSeconds, now, ZoneOffset.UTC)
+    val sinceLine = rememberSinceLine(
+        SinceStatusMapper.forEvent(status.lastChangeTimeSeconds, now.epochSecond),
+        now,
+        ZoneOffset.UTC,
+    )
     val deviceCheckIn = DeviceCheckIn.format(
         lastCheckInSeconds = now.epochSecond - (5 * 60),
         nowSeconds = now.epochSecond,
@@ -180,7 +185,11 @@ fun HomeTabStalePillPreview() {
     val event = demoDoorEvents.firstOrNull()
     val now = Instant.parse("2026-04-29T12:00:00Z")
     val status = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event))
-    val sinceLine = rememberSinceLine(status.lastChangeTimeSeconds, now, ZoneOffset.UTC)
+    val sinceLine = rememberSinceLine(
+        SinceStatusMapper.forEvent(status.lastChangeTimeSeconds, now.epochSecond),
+        now,
+        ZoneOffset.UTC,
+    )
     val deviceCheckIn = DeviceCheckIn.format(
         lastCheckInSeconds = now.epochSecond - (23 * 60),
         nowSeconds = now.epochSecond,
@@ -413,7 +422,11 @@ fun HomeRailPreview700dp() {
     val event = demoDoorEvents.firstOrNull()
     val now = Instant.parse("2026-04-29T12:00:00Z")
     val status = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event))
-    val sinceLine = rememberSinceLine(status.lastChangeTimeSeconds, now, ZoneOffset.UTC)
+    val sinceLine = rememberSinceLine(
+        SinceStatusMapper.forEvent(status.lastChangeTimeSeconds, now.epochSecond),
+        now,
+        ZoneOffset.UTC,
+    )
     val deviceCheckIn = DeviceCheckIn.format(
         lastCheckInSeconds = now.epochSecond - (5 * 60),
         nowSeconds = now.epochSecond,
@@ -443,7 +456,11 @@ private fun HomeRailTopAlignedPreview700dp() {
     val event = demoDoorEvents.firstOrNull()
     val now = Instant.parse("2026-04-29T12:00:00Z")
     val status = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event))
-    val sinceLine = rememberSinceLine(status.lastChangeTimeSeconds, now, ZoneOffset.UTC)
+    val sinceLine = rememberSinceLine(
+        SinceStatusMapper.forEvent(status.lastChangeTimeSeconds, now.epochSecond),
+        now,
+        ZoneOffset.UTC,
+    )
     val deviceCheckIn = DeviceCheckIn.format(
         lastCheckInSeconds = now.epochSecond - (5 * 60),
         nowSeconds = now.epochSecond,

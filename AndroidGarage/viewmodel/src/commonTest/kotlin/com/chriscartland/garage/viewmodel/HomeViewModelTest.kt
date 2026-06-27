@@ -32,6 +32,7 @@ import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.domain.repository.ButtonHealthRepository
 import com.chriscartland.garage.presentation.DoorWarning
+import com.chriscartland.garage.presentation.ElapsedDuration
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
@@ -351,6 +352,29 @@ class HomeViewModelTest {
             )
 
             assertEquals(DoorWarning.OpeningTooLong, viewModel.warning.value)
+        }
+
+    @Test
+    fun sinceStatusReflectsCurrentDoorEvent() =
+        runTest {
+            // testDoorEvent.lastChangeTimeSeconds = 900; LiveClock now = 0 (AppClock { 0L }).
+            val viewModel = createViewModel(scope = backgroundScope, fetchOnInit = false)
+
+            val status = viewModel.sinceStatus.value
+            assertEquals(900L, status?.sinceEpochSeconds)
+            // now (0) < since (900): wall-clock skew clamps elapsed to zero.
+            assertEquals(ElapsedDuration.Seconds(0), status?.elapsed)
+        }
+
+    @Test
+    fun sinceStatusNullWhenTimestampUnknown() =
+        runTest {
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.UNKNOWN, lastChangeTimeSeconds = null),
+            )
+            val viewModel = createViewModel(scope = backgroundScope, fetchOnInit = false)
+
+            assertNull(viewModel.sinceStatus.value)
         }
 
     @Test

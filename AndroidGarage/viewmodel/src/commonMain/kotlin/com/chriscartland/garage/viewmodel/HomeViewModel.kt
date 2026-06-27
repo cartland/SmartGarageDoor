@@ -32,6 +32,8 @@ import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.presentation.DoorWarning
 import com.chriscartland.garage.presentation.DoorWarningMapper
+import com.chriscartland.garage.presentation.SinceStatus
+import com.chriscartland.garage.presentation.SinceStatusMapper
 import com.chriscartland.garage.usecase.ButtonAckToken
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
 import com.chriscartland.garage.usecase.ButtonStateMachine
@@ -48,6 +50,7 @@ import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -77,6 +80,15 @@ interface HomeViewModel {
      * warning on a fresh screen entry.
      */
     val warning: StateFlow<DoorWarning?>
+
+    /**
+     * Typed data for the "Since … · duration" status line (ADR-031 shared
+     * presentation model), derived from [currentDoorEvent] + [nowEpochSeconds].
+     * Null when the last-change time is unknown. The elapsed bucket is shared;
+     * each UI formats the clock time + localized units itself. Recomputes on
+     * each clock tick so the duration updates live.
+     */
+    val sinceStatus: StateFlow<SinceStatus?>
 
     /** True when the last check-in is older than the staleness threshold (11 min). */
     val isCheckInStale: StateFlow<Boolean>
@@ -173,6 +185,22 @@ class DefaultHomeViewModel(
                 started = SharingStarted.Eagerly,
                 initialValue = DoorWarningMapper.forEvent(_currentDoorEvent.value.data),
             )
+
+    // Derived status-line data (ADR-031). Combines the door event with the live
+    // clock so the elapsed bucket re-buckets on each tick; seeded synchronously
+    // from the cached values so a fresh screen entry shows the right line with
+    // no flicker.
+    override val sinceStatus: StateFlow<SinceStatus?> =
+        combine(_currentDoorEvent, nowEpochSeconds) { event, now ->
+            SinceStatusMapper.forEvent(event.data?.lastChangeTimeSeconds, now)
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = SinceStatusMapper.forEvent(
+                _currentDoorEvent.value.data?.lastChangeTimeSeconds,
+                nowEpochSeconds.value,
+            ),
+        )
 
     private val _isCheckInStale = MutableStateFlow(false)
     override val isCheckInStale: StateFlow<Boolean> = _isCheckInStale

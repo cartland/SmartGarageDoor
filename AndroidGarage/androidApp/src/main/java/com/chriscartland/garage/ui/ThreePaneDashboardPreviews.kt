@@ -31,6 +31,7 @@ import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.domain.model.NavigationRailLayout
 import com.chriscartland.garage.domain.model.RemoteButtonState
+import com.chriscartland.garage.presentation.SinceStatusMapper
 import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.home.DeviceCheckIn
 import com.chriscartland.garage.ui.home.HomeAuthState
@@ -147,7 +148,10 @@ private fun HomePaneBody(modifier: Modifier) {
         currentDoorEvent = LoadingResult.Complete(event),
     )
     val sinceLine = rememberSinceLine(
-        lastChangeTimeSeconds = status.lastChangeTimeSeconds,
+        sinceStatus = SinceStatusMapper.forEvent(
+            lastChangeEpochSeconds = status.lastChangeTimeSeconds,
+            nowEpochSeconds = ThreePaneDemoData.now.epochSecond,
+        ),
         now = ThreePaneDemoData.now,
         zone = ThreePaneDemoData.zone,
     )

@@ -70,6 +70,7 @@ fun HomeContent(
     )
     val currentDoorEvent by resolved.currentDoorEvent.collectAsState()
     val warning by resolved.warning.collectAsState()
+    val sinceStatus by resolved.sinceStatus.collectAsState()
     val buttonState by resolved.buttonState.collectAsState()
     val authState by resolved.authState.collectAsState()
     val isCheckInStale by resolved.isCheckInStale.collectAsState()
@@ -98,7 +99,9 @@ fun HomeContent(
     val status = HomeMapper
         .toHomeStatusDisplay(currentDoorEvent, isCheckInStale)
         .copy(warning = warning)
-    val sinceLine = rememberSinceLine(status.lastChangeTimeSeconds, now, zone)
+    // The elapsed bucket comes from the shared VM (ADR-031); this layer only
+    // formats clock time + localized units.
+    val sinceLine = rememberSinceLine(sinceStatus, now, zone)
     val alerts = HomeMapper.toHomeAlerts(
         currentDoorEvent = currentDoorEvent,
         isCheckInStale = isCheckInStale,

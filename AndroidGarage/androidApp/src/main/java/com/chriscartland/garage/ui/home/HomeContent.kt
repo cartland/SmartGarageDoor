@@ -64,6 +64,8 @@ import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.permissions.NotificationJustification
 import com.chriscartland.garage.presentation.DoorWarning
+import com.chriscartland.garage.presentation.ElapsedDuration
+import com.chriscartland.garage.presentation.SinceStatus
 import com.chriscartland.garage.ui.DeviceCheckInPill
 import com.chriscartland.garage.ui.DoorStatusInfoBottomSheet
 import com.chriscartland.garage.ui.GarageIcon
@@ -502,43 +504,42 @@ private fun doorStateLabel(doorPosition: DoorPosition): String =
     }
 
 /**
- * Resolves a raw [lastChangeTimeSeconds] (epoch) + clock + timezone into the
- * "Since X · Y" status line, fully localized.
+ * Resolves the typed [SinceStatus] (ADR-031 shared presentation model) +
+ * clock + timezone into the "Since X · Y" status line, fully localized.
  *
- * Phase 2C of the string-resource migration plan
- * (`AndroidGarage/docs/PENDING_FOLLOWUPS.md` item #1) — this Composable
- * replaces `HomeMapper.sinceLine()` (deleted). The pure-function bits
- * (`formatTimeOrDate`, `durationParts`) live in [HomeStatusFormatter] and
- * stay unit-testable; localization happens here via `stringResource` +
- * `pluralStringResource`.
+ * The elapsed-bucket *logic* now lives in the shared `presentation-model`
+ * ([SinceStatus] / [ElapsedDuration] / `SinceStatusMapper`) and is exposed by
+ * `DefaultHomeViewModel.sinceStatus`. This Composable owns only the
+ * Android-side rendering: clock-time formatting via [HomeStatusFormatter] and
+ * localized unit strings via `stringResource` / `pluralStringResource`.
  *
  * Returns `R.string.home_since_unknown` ("Last change time unknown") when
- * [lastChangeTimeSeconds] is null.
+ * [sinceStatus] is null (unknown last-change time).
  */
 @Composable
 fun rememberSinceLine(
-    lastChangeTimeSeconds: Long?,
+    sinceStatus: SinceStatus?,
     now: Instant,
     zone: ZoneId,
 ): String {
-    if (lastChangeTimeSeconds == null) {
+    if (sinceStatus == null) {
         return stringResource(R.string.home_since_unknown)
     }
-    val instant = remember(lastChangeTimeSeconds) { Instant.ofEpochSecond(lastChangeTimeSeconds) }
+    val instant = remember(sinceStatus.sinceEpochSeconds) {
+        Instant.ofEpochSecond(sinceStatus.sinceEpochSeconds)
+    }
     val timeText = remember(instant, now, zone) {
         HomeStatusFormatter.formatTimeOrDate(instant, now, zone)
     }
-    val totalSeconds = (now.epochSecond - lastChangeTimeSeconds).coerceAtLeast(0L)
-    val parts = remember(totalSeconds) { HomeStatusFormatter.durationParts(totalSeconds) }
-    val durationText = when {
-        parts.days >= 1 ->
-            pluralStringResource(R.plurals.home_duration_days, parts.days, parts.days)
-        parts.hours >= 1 ->
-            stringResource(R.string.home_duration_hours_minutes, parts.hours, parts.minutes)
-        parts.minutes >= 1 ->
-            pluralStringResource(R.plurals.home_duration_minutes, parts.minutes, parts.minutes)
-        else ->
-            pluralStringResource(R.plurals.home_duration_seconds, parts.seconds, parts.seconds)
+    val durationText = when (val elapsed = sinceStatus.elapsed) {
+        is ElapsedDuration.Days ->
+            pluralStringResource(R.plurals.home_duration_days, elapsed.days, elapsed.days)
+        is ElapsedDuration.HoursMinutes ->
+            stringResource(R.string.home_duration_hours_minutes, elapsed.hours, elapsed.minutes)
+        is ElapsedDuration.Minutes ->
+            pluralStringResource(R.plurals.home_duration_minutes, elapsed.minutes, elapsed.minutes)
+        is ElapsedDuration.Seconds ->
+            pluralStringResource(R.plurals.home_duration_seconds, elapsed.seconds, elapsed.seconds)
     }
     return stringResource(R.string.home_since_format, timeText, durationText)
 }

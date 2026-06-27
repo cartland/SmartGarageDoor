@@ -24,7 +24,12 @@ import SwiftUI
 final class HomeViewModelWrapper: ObservableObject {
     @Published private(set) var signedIn: Bool = false
     @Published private(set) var doorPosition: DoorPosition = .unknown
-    @Published private(set) var doorMessage: String?
+    /// Pre-formatted "Since 9:47 AM · 2 hr 14 min" status line, resolved from
+    /// the shared VM's typed `SinceStatus` (ADR-031); `nil` when the last-change
+    /// time is unknown. The elapsed-bucket *logic* is shared; the clock-time +
+    /// localized-unit formatting happen here (mirrors Android's
+    /// `rememberSinceLine`).
+    @Published private(set) var sinceLine: String?
     /// Localized text for the typed `DoorWarning` exposed by the shared VM
     /// (ADR-031), or `nil` when the current state warrants no warning. The
     /// shared layer emits a *typed* warning; this wrapper resolves it to a
@@ -45,6 +50,7 @@ final class HomeViewModelWrapper: ObservableObject {
         applyAuth(vm.authState.value)
         applyDoor(vm.currentDoorEvent.value)
         applyWarning(vm.warning.value)
+        applySince(vm.sinceStatus.value)
         applyButton(vm.buttonState.value)
         applyHealth(vm.buttonHealthDisplay.value)
         isCheckInStale = vm.isCheckInStale.value.boolValue
@@ -57,6 +63,9 @@ final class HomeViewModelWrapper: ObservableObject {
         })
         tasks.append(Task { @MainActor [weak self] in
             for await v in self!.vm.warning { self?.applyWarning(v) }
+        })
+        tasks.append(Task { @MainActor [weak self] in
+            for await v in self!.vm.sinceStatus { self?.applySince(v) }
         })
         tasks.append(Task { @MainActor [weak self] in
             for await v in self!.vm.buttonState { self?.applyButton(v) }
@@ -80,8 +89,53 @@ final class HomeViewModelWrapper: ObservableObject {
     private func applyDoor(_ result: LoadingResult<DoorEvent>) {
         let event = result.data
         doorPosition = event?.doorPosition ?? .unknown
-        doorMessage = event?.message
         lastChangeTimeSeconds = event?.lastChangeTimeSeconds?.int64Value
+    }
+
+    /// Builds the "Since {time} · {duration}" line from the shared typed
+    /// `SinceStatus`. The elapsed bucket is decided in shared code; here we
+    /// format the clock time (same-day → time only, else month + time) and the
+    /// localized units — the unit wording mirrors Android's `home_duration_*`
+    /// resources verbatim. `nil` status → no line (unknown last-change time).
+    private func applySince(_ status: SinceStatus?) {
+        guard let status else {
+            sinceLine = nil
+            return
+        }
+        let date = Date(timeIntervalSince1970: TimeInterval(status.sinceEpochSeconds))
+        sinceLine = "Since \(Self.clockText(for: date)) · \(Self.durationText(for: status.elapsed))"
+    }
+
+    private static let timeOnlyFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US")
+        formatter.dateFormat = "h:mm a"
+        return formatter
+    }()
+
+    private static let dateTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US")
+        formatter.dateFormat = "MMM d, h:mm a"
+        return formatter
+    }()
+
+    private static func clockText(for date: Date) -> String {
+        let formatter = Calendar.current.isDateInToday(date) ? timeOnlyFormatter : dateTimeFormatter
+        return formatter.string(from: date)
+    }
+
+    private static func durationText(for elapsed: ElapsedDuration) -> String {
+        switch onEnum(of: elapsed) {
+        case .days(let days):
+            return days.days == 1 ? "1 day" : "\(days.days) days"
+        case .hoursMinutes(let hm):
+            return "\(hm.hours) hr \(hm.minutes) min"
+        case .minutes(let minutes):
+            return minutes.minutes == 1 ? "1 min" : "\(minutes.minutes) min"
+        case .seconds(let seconds):
+            return seconds.seconds == 1 ? "1 sec" : "\(seconds.seconds) sec"
+        }
     }
 
     /// Resolves the shared typed `DoorWarning` to a localized string. The four
