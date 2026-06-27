@@ -31,7 +31,7 @@ struct HomeScreen: View {
     var body: some View {
         HomeContentView(
             doorPosition: wrapper.doorPosition,
-            doorMessage: wrapper.doorMessage,
+            sinceLine: wrapper.sinceLine,
             warningText: wrapper.warningText,
             isCheckInStale: wrapper.isCheckInStale,
             buttonStateLabel: wrapper.buttonStateLabel,
@@ -48,10 +48,12 @@ struct HomeScreen: View {
 /// `#Preview`s and snapshot gallery capture.
 struct HomeContentView: View {
     let doorPosition: DoorPosition
-    let doorMessage: String?
+    /// Pre-formatted "Since 9:47 AM · 2 hr 14 min" line (resolved from the shared
+    /// typed `SinceStatus` in the wrapper); `nil` when the last-change time is
+    /// unknown. Mirrors Android's status line; replaces the old raw door message.
+    let sinceLine: String?
     /// Already-localized warning text (resolved from the shared typed
-    /// `DoorWarning` in the wrapper). Non-nil only for stuck/anomalous states;
-    /// when present it replaces the plain `doorMessage` subtitle.
+    /// `DoorWarning` in the wrapper). Non-nil only for stuck/anomalous states.
     let warningText: String?
     let isCheckInStale: Bool
     let buttonStateLabel: String
@@ -70,13 +72,14 @@ struct HomeContentView: View {
                     VStack(spacing: GarageSpacing.tight) {
                         Text(doorPosition.statusLabel)
                             .font(.title2.weight(.semibold))
-                        if let warningText {
-                            DoorWarningChip(text: warningText)
-                        } else if let message = doorMessage {
-                            Text(message)
+                        if let sinceLine {
+                            Text(sinceLine)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
+                        }
+                        if let warningText {
+                            DoorWarningChip(text: warningText)
                         }
                         if isCheckInStale {
                             Label("Check-in is stale", systemImage: "exclamationmark.triangle")
@@ -135,7 +138,7 @@ private struct DoorWarningChip: View {
     NavigationStack {
         HomeContentView(
             doorPosition: .closed,
-            doorMessage: "The door is closed.",
+            sinceLine: "Since 11:22 AM · 38 min",
             warningText: nil,
             isCheckInStale: true,
             buttonStateLabel: "Tap to open / close",
@@ -151,7 +154,7 @@ private struct DoorWarningChip: View {
     NavigationStack {
         HomeContentView(
             doorPosition: .open,
-            doorMessage: "The door is open.",
+            sinceLine: "Since 9:47 AM · 2 hr 14 min",
             warningText: nil,
             isCheckInStale: false,
             buttonStateLabel: "Tap to open / close",
@@ -167,7 +170,7 @@ private struct DoorWarningChip: View {
     NavigationStack {
         HomeContentView(
             doorPosition: .openingTooLong,
-            doorMessage: nil,
+            sinceLine: "Since 12:01 PM · 4 min",
             warningText: "Opening, taking longer than expected",
             isCheckInStale: false,
             buttonStateLabel: "Tap to open / close",

@@ -25,16 +25,15 @@ import java.time.ZoneOffset
 /**
  * Tests for [HomeStatusFormatter].
  *
- * Phase 2C of the string-resource migration plan
- * (`AndroidGarage/docs/PENDING_FOLLOWUPS.md` item #1) — `formatTimeOrDate`
- * was moved here from `HomeMapper` (along with the duration-decomposition
- * logic, now expressed as [HomeStatusFormatter.durationParts] returning a
- * typed [DurationParts]).
+ * Covers the Android-only clock-time formatting. The duration-decomposition
+ * logic moved to the shared `presentation-model` (`SinceStatusMapper` →
+ * `ElapsedDuration`) in the presentation-model realization (ADR-031) and is
+ * tested by `SinceStatusMapperTest` in that module's commonTest, so it now runs
+ * on every platform.
  *
- * These tests cover the pure-function formatting boundaries; the localized
- * "Since X · Y" assembly happens in `rememberSinceLine` (Composable, in
- * `HomeContent.kt`) and is verified via screenshot tests + the `home_*`
- * resources in `strings.xml` / `plurals.xml`.
+ * The localized "Since X · Y" assembly happens in `rememberSinceLine`
+ * (Composable, in `HomeContent.kt`) and is verified via screenshot tests + the
+ * `home_*` resources in `strings.xml` / `plurals.xml`.
  */
 class HomeStatusFormatterTest {
     private val zone = ZoneOffset.UTC
@@ -71,51 +70,6 @@ class HomeStatusFormatterTest {
 
     // endregion
 
-    // region durationParts
-
-    @Test
-    fun durationParts_zero() {
-        assertEquals(DurationParts(days = 0, hours = 0, minutes = 0, seconds = 0), HomeStatusFormatter.durationParts(0))
-    }
-
-    @Test
-    fun durationParts_negative_clamped() {
-        assertEquals(DurationParts(0, 0, 0, 0), HomeStatusFormatter.durationParts(-100))
-    }
-
-    @Test
-    fun durationParts_seconds_under_minute() {
-        assertEquals(DurationParts(0, 0, 0, 1), HomeStatusFormatter.durationParts(1))
-        assertEquals(DurationParts(0, 0, 0, 38), HomeStatusFormatter.durationParts(38))
-        assertEquals(DurationParts(0, 0, 0, 59), HomeStatusFormatter.durationParts(59))
-    }
-
-    @Test
-    fun durationParts_minutes_under_hour() {
-        assertEquals(DurationParts(0, 0, 1, 0), HomeStatusFormatter.durationParts(60))
-        assertEquals(DurationParts(0, 0, 4, 0), HomeStatusFormatter.durationParts(60L * 4))
-        assertEquals(DurationParts(0, 0, 38, 30), HomeStatusFormatter.durationParts(60L * 38 + 30))
-        assertEquals(DurationParts(0, 0, 59, 59), HomeStatusFormatter.durationParts(60L * 59 + 59))
-    }
-
-    @Test
-    fun durationParts_hours_decompose_into_hours_and_minutes() {
-        assertEquals(DurationParts(0, 1, 0, 0), HomeStatusFormatter.durationParts(3_600))
-        assertEquals(DurationParts(0, 2, 14, 0), HomeStatusFormatter.durationParts(2 * 3_600L + 14 * 60))
-        assertEquals(DurationParts(0, 23, 59, 0), HomeStatusFormatter.durationParts(23 * 3_600L + 59 * 60))
-    }
-
-    @Test
-    fun durationParts_one_day() {
-        assertEquals(DurationParts(1, 0, 0, 0), HomeStatusFormatter.durationParts(86_400))
-        assertEquals(DurationParts(1, 5, 0, 0), HomeStatusFormatter.durationParts(86_400 + 5 * 3_600))
-    }
-
-    @Test
-    fun durationParts_multi_day() {
-        assertEquals(DurationParts(2, 0, 0, 0), HomeStatusFormatter.durationParts(2 * 86_400L))
-        assertEquals(DurationParts(7, 0, 0, 0), HomeStatusFormatter.durationParts(7 * 86_400L))
-    }
-
-    // endregion
+    // (region durationParts removed — the elapsed-bucket logic moved to the
+    //  shared `presentation-model` (ADR-031); see `SinceStatusMapperTest`.)
 }

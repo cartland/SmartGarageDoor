@@ -83,13 +83,26 @@ DoorWarning? = null`) is blocked by `ComposableNullableDefaultKonsistTest`
 deliberately out of that check's scope — is the convention-clean home. The
 mapping + type still moved to shared; only the render-time field location stayed.
 
-### Phase 2 — Home status line + door color/icon semantics
+### Phase 2 — Home status line ("Since · duration") — ✅ SHIPPED
 
-The "Since 9:47 AM · 2 hr 14 min" line and the fresh/stale door color state.
-Shared exposes the *typed/numeric* parts (epoch delta, since-timestamp, color
-state enum from `DoorColorState`); each UI formats clock time + duration with its
-own locale APIs (Compose plurals; SwiftUI `Date.FormatStyle` /
-`RelativeDateTimeFormatter`). iOS gains the duration line.
+The "Since 9:47 AM · 2 hr 14 min" line. Shared `presentation-model` now owns the
+gnarly part — the elapsed-bucket *granularity* (`ElapsedDuration`:
+Days / HoursMinutes / Minutes / Seconds, with leading-unit-only truncation) +
+`SinceStatus` + `SinceStatusMapper.forEvent`; `DefaultHomeViewModel.sinceStatus:
+StateFlow<SinceStatus?>` combines the door event with the live clock. Each UI
+formats clock time + localized units with its own APIs (Compose
+`DateTimeFormatter` + plurals; SwiftUI `DateFormatter`). **iOS gained the line**
+(it had none — it now replaces the redundant raw door-message subtitle, matching
+Android). Android's `HomeStatusFormatter.durationParts` was deleted; its tests
+moved to shared `commonTest`.
+
+**Door color/icon semantics — DEFERRED (not part of this slice).** The
+fresh/stale door color was originally grouped here, but it's low-value to unify:
+iOS already handles stale via its own per-position `DoorPalette`
+(`GarageDoorView(position:isStale:)`), and the Android `DoorColorState` is a
+coarser 3-bucket model. Sharing the 3-bucket enum would be Android-only-consumed,
+not a real cross-cutting win. Revisit only if a future change needs the color
+*bucket* shared.
 
 ### Phase 3 — History entries
 
@@ -121,9 +134,9 @@ Condensed from the 2026-06-27 audit. Items already shipped are struck through.
   ~~account name/email + About/version (#927)~~. Remaining: store/privacy links
   (deferred until published), tap-to-copy version, typed snooze-failure messages,
   snooze permission state.
-- **Home** — ~~typed `DoorWarning` chip (P1)~~ ✅; "Since · duration" line (P2);
-  alert banners stale/fetch-error/permission (P4); info sheets + check-in/health
-  pills (P5); network-progress diagram (P5, optional).
+- **Home** — ~~typed `DoorWarning` chip (P1)~~ ✅; ~~"Since · duration" line
+  (P2)~~ ✅; alert banners stale/fetch-error/permission (P4); info sheets +
+  check-in/health pills (P5); network-progress diagram (P5, optional).
 - **History** — day grouping, door icons, durations, transit/anomaly tags,
   empty-state, load-more (P3).
 - **Diagnostics** — Export CSV, copy-auth-token (P5).
