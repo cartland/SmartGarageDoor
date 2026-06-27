@@ -21,12 +21,13 @@ From the repository root:
 ./scripts/generate-ios-screenshots.sh
 ```
 
-This (1) locates the prebuilt `prefire` CLI from the resolved SPM package,
-(2) runs `prefire tests` to (re)generate `PreviewTests.generated.swift` from every
-`#Preview` in `Features/` + `Core/`, (3) regenerates the Xcode project,
-(4) deletes the old references and re-runs the `iosAppSnapshotTests` target on a
-simulator (swift-snapshot-testing records the missing references — the run's
-"failures" are expected and ignored), and (5) rebuilds `SCREENSHOT_GALLERY.md`.
+This (1) resolves the SPM packages (so the build phase can find the `prefire`
+CLI), (2) regenerates the Xcode project, (3) deletes the old references and
+re-runs the `iosAppSnapshotTests` target on a simulator — the target's pre-build
+phase regenerates `PreviewTests.generated.swift` from every `#Preview` in
+`Features/` + `Core/`, then swift-snapshot-testing records the missing references
+(the run's "failures" are expected and ignored) — and (4) rebuilds
+`SCREENSHOT_GALLERY.md`.
 
 ## Add a snapshot
 
