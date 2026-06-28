@@ -16,6 +16,7 @@
  */
 
 import SwiftUI
+import UIKit
 @preconcurrency import shared
 
 /// Pushed destinations reachable from the Settings Developer section.
@@ -44,6 +45,10 @@ struct SettingsScreen: View {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
     }
 
+    private static var appPackage: String {
+        Bundle.main.bundleIdentifier ?? "unknown"
+    }
+
     var body: some View {
         SettingsContentView(
             signedIn: wrapper.signedIn,
@@ -57,6 +62,7 @@ struct SettingsScreen: View {
             functionListAccess: wrapper.functionListAccess,
             appVersion: Self.appVersion,
             appBuild: Self.appBuild,
+            appPackage: Self.appPackage,
             onSignIn: { wrapper.signInWithGoogle() },
             onSignOut: { wrapper.signOut() },
             onSnooze: { wrapper.snooze($0) },
@@ -89,6 +95,7 @@ struct SettingsContentView: View {
     let functionListAccess: Bool?
     let appVersion: String
     let appBuild: String
+    let appPackage: String
     let onSignIn: () -> Void
     let onSignOut: () -> Void
     let onSnooze: (SnoozeDurationUIOption) -> Void
@@ -130,9 +137,13 @@ struct SettingsContentView: View {
                 }
             }
 
+            // Tap any row to copy its value (mirrors Android's VersionBottomSheet
+            // tap-to-copy; iOS-native inline rows rather than a sheet). iOS shows
+            // no system "copied" chip, so each row flashes its own confirmation.
             Section("About") {
-                LabeledContent("Version", value: appVersion)
-                LabeledContent("Build", value: appBuild)
+                CopyableValueRow(label: "Version", value: appVersion)
+                CopyableValueRow(label: "Build", value: appBuild)
+                CopyableValueRow(label: "Package", value: appPackage)
             }
 
             // Developer section — allowlisted only (parity with Android). The
@@ -152,6 +163,44 @@ struct SettingsContentView: View {
         }
         .navigationTitle("Settings")
         .refreshable { onRefresh() }
+    }
+}
+
+/// A List row that copies [value] to the clipboard when tapped, briefly
+/// showing a "Copied" confirmation in place of the value. Resting state matches
+/// a standard value row (label leading, value trailing/secondary). The
+/// `@State` is internal to this row, so it doesn't affect `SettingsContentView`'s
+/// memberwise init / the generated snapshot test.
+private struct CopyableValueRow: View {
+    let label: String
+    let value: String
+    @State private var copied = false
+
+    var body: some View {
+        Button {
+            UIPasteboard.general.string = value
+            withAnimation { copied = true }
+            Task {
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                withAnimation { copied = false }
+            }
+        } label: {
+            HStack {
+                Text(label)
+                    .foregroundStyle(.primary)
+                Spacer()
+                if copied {
+                    Label("Copied", systemImage: "checkmark")
+                        .labelStyle(.titleAndIcon)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(value)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Double tap to copy")
     }
 }
 
@@ -177,6 +226,7 @@ struct SettingsContentView: View {
             functionListAccess: false,
             appVersion: "0.1.0",
             appBuild: "1",
+            appPackage: "com.chriscartland.garage",
             onSignIn: {}, onSignOut: {}, onSnooze: { _ in }, onRefresh: {}
         )
     }
@@ -200,6 +250,7 @@ struct SettingsContentView: View {
             functionListAccess: true,
             appVersion: "0.1.0",
             appBuild: "1",
+            appPackage: "com.chriscartland.garage",
             onSignIn: {}, onSignOut: {}, onSnooze: { _ in }, onRefresh: {}
         )
     }
