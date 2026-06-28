@@ -46,9 +46,9 @@ a platform idiom clearly serves the user better. A surface may **split** across 
 | Door-status visualization (canvas geometry, panel layout, proportions) | **1** | Brand through-line. Geometry constants are the next shared-constant candidate (`GarageDoorCanvas.swift` ↔ `AnimatableGarageDoor.kt` currently duplicate them). |
 | Door-state color semantics (closed / open / opening-too-long / unknown) | **1** | Color **is** meaning; must not drift. `DoorPalette` (iOS) mirrors Android `Color.kt` by hand today → candidate to share. |
 | App icon, feature graphic, brand naming ("Garage") | **1** | Identity assets. See the `play-store-assets` skill + `distribution/playstore/`. |
-| Tab **set** (Home / History / Profile / Functions / Diagnostics) | **1** | The *which-tabs* is identity (ADR-029 §3). |
+| Tab **set** (Home / History / Settings) | **1** | The *which-tabs* is identity (ADR-029 §3). Both ship **3** top-level tabs; Functions + Diagnostics are `developerAccess`-gated **sub-screens of Settings** (Android rows / iOS `NavigationLink`s), not tabs. |
 | Tab **rendering** (iOS `TabView` vs Android bottom-nav / nav rail / 3-pane) | **3** | Platform idiom; adaptive layout is Android-only (see Tier 4 below). |
-| Theme tokens (color roles, typography scale, spacing) | **2** | `iosApp/Core/Theme/` mirrors `androidApp/.../ui/theme/`; same role meanings, native type. |
+| Theme tokens (color roles, typography scale, spacing) | **2** | iOS intentionally uses **system semantic colors + system accent**, *not* a port of Android's ~30-role scheme: `iosApp/Core/Theme/GarageColors.swift` is a 4-color stub (`statusOk`/`statusOpen`/`statusWarning`/`cardBackground`) and applies no `.tint`. Only the door-state colors (above) are brand-locked Tier 1. If the Android pastel-blue primary (`#A6C8FF`) is brand, escalate that single token to Tier 1 (shared constant) + apply on iOS. |
 | Navigation chrome (sheets, back gesture, modal presentation) | **3** | `.sheet` vs `ModalBottomSheet`; swipe-back vs predictive-back. |
 | Window insets / safe area (edge-to-edge vs safe-area) | **3** | Platform layout idiom. Android `WindowInsets.safeDrawing`; iOS safe-area. |
 | Notification presentation (channels/heads-up vs `UNUserNotificationCenter`) | **3** | Shared = the door-state semantics + copy *intent*; rendering is per-OS. See [`docs/NOTIFICATION_RELIABILITY.md`](../../docs/NOTIFICATION_RELIABILITY.md). |
@@ -60,7 +60,7 @@ a platform idiom clearly serves the user better. A surface may **split** across 
 |---|---|---|
 | Door visualization (static state render) | **1** | See cross-cutting. iOS shipped #919. |
 | Door **animation** trajectory + once-per-event replay | **1 (intent), deferred** | Identity-level, but **verification-gap deferred** — trajectory/replay can't be CLI/snapshot-verified on iOS. See realization plan § Door-canvas animation + ADR-025. |
-| Status pill, check-in pill, button-health pill — **meaning + color** | **1** | Device-availability grammar; antenna/antenna-slash + state colors mirror Android. |
+| Status pill, check-in pill, button-health pill — **meaning + color** | **1** | Device-availability grammar + state colors are brand-locked. ⚠️ Icon **family currently diverges**: Android uses Material `Sensors`/`SensorsOff`, iOS uses SF `antenna.radiowaves…(.slash)` — a Tier-1 drift to reconcile (pick one visually-equivalent family; tracked in PENDING_FOLLOWUPS § 4). Other glyphs (lock, sync, question-circle) + color→meaning already agree. |
 | Pill capsule **chrome** (shape, padding, typography) | **2** | Native styling of the shell. |
 | Status-card information architecture | **2** | Same sections/data; card vs `List` styling local. |
 | "Since · duration" status line | **2** | Shared `SinceStatus` / `ElapsedDuration` (P2); clock/duration formatting per-UI. |
@@ -74,7 +74,8 @@ a platform idiom clearly serves the user better. A surface may **split** across 
 |---|---|---|
 | Day grouping, door icons, durations, transit/anomaly/misaligned tags, empty-state | **2** | Shared `DoorEvent→HistoryDay` pipeline + typed state (P3); 60-case test in commonTest. |
 | Day/time/duration **formatting** | **2 (per-UI)** | Trivial `%60` decomposition stays per-UI (P3 rationale); the gnarly merge/group is shared. |
-| Load-more (scroll-to-end pagination) | **2, deferred** | iOS renders the current `recentDoorEvents` window; scroll trigger is a P3 follow-up. |
+| Alert banner (stale check-in → "Not receiving updates" + reset-FCM Retry) | **2, iOS gap** | Android renders it above the list (`DoorHistoryContent.kt`); iOS has none, so a stale iOS user gets no warning + no recovery. Route via a shared `HistoryAlert` mapper (mirroring `HomeAlertMapper`). Tracked in PENDING_FOLLOWUPS § 4. |
+| Load-more (scroll-to-end pagination) | **2, deferred** | iOS renders the current `recentDoorEvents` window; the shared VM already exposes `paginationState` + `fetchOlderDoorEvents()` — iOS just needs to consume them. P3 follow-up; tracked in PENDING_FOLLOWUPS § 4. |
 
 ## Settings / Profile
 

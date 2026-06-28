@@ -1,7 +1,7 @@
 ---
 category: plan
 status: active
-last_verified: 2026-06-24
+last_verified: 2026-06-28
 ---
 
 > **Last update 2026-05-13:** iOS Phase 38A fully complete — `NativeComponent` DI graph runtime-verified via `NativeComponentTest` (40/40 pass on `iosSimulatorArm64`, PR #826). Phase 38B–G remain blocked on user setup. User-action checklist added as the first subsection below so the user-blocked moves are visible without scrolling.
@@ -170,6 +170,31 @@ Ordered by leverage. Phases 1–2 are verification of already-built code; Phases
 - No `/deleteMyData` endpoint (fine for single-user; GDPR-relevant if ever multi-tenant).
 
 **Picking one to ship:** M6 (allowBackup) and M13 (`set -e` in release scripts) are both single-file, single-PR fixes. M14 (dependabot.yml) is a small additive config that unblocks future Dependabot PRs. The other Mediums are larger or require coordination (M11 = flash encryption rollout; M2 = secrets migration + Android client change).
+
+### 4. iOS ↔ Android parity-audit findings (2026-06-28)
+
+A 13-agent screen-by-screen parity audit (6 auditors + adversarial verifiers + synthesis, all findings file:line-verified) classified every screen against the [ADR-032](./DECISIONS.md#adr-032) fidelity tiers ([`UI_FIDELITY_TIERS.md`](./UI_FIDELITY_TIERS.md)). Overall verdict: **parity is fundamentally healthy** — the meaning-bearing layers are genuinely shared (History pipeline, snooze typed-failures, info-sheet copy, test-notification sandbox, access tri-states, door semantics). The discrete gaps below are each a self-contained PR. **Already fixed in the same batch:** the one HIGH finding — iOS Home showed an inert remote button when signed out with no Home sign-in path — was resolved by auth-gating iOS Home (consume the shared `AuthState`; signed-out → sign-in CTA + button hidden; redundant Account row dropped).
+
+**Tier 1 — identity (highest leverage):**
+- **Door constants shared-hoist (systemic).** Geometry (viewport 300, frame/panel/handle, `clipInset` — *derived* on Android, hardcoded `22` on iOS), the 12 light/dark door-state hex pairs, and the open/close offsets + `DoorPosition→offset/overlay/colorState` mapping are **hand-duplicated** in Kotlin (`GarageDoorCanvas.kt`, `Color.kt`, `AnimatableGarageDoor.kt`, `DoorStatusColorScheme.kt`) and Swift (`GarageDoorCanvas.swift`) with no guard. They match by coincidence; an edit on one side silently drifts the brand on the other. Hoist to shared `domain` constants + a pure mapping usecase (the `AppLinks` pattern), consumed by both. This is the cleanest engineering win.
+- **Device-availability pill icon family diverges.** Android `Sensors`/`SensorsOff` vs iOS SF `antenna.radiowaves…(.slash)`. Pick one visually-equivalent family; record the cross-platform icon-name pairing.
+
+**Tier 2 — convergent gaps (mostly iOS-side):**
+- **Copy auth token** absent on iOS (Functions + Diagnostics). Needs a shared token-fetch usecase + iOS `UIPasteboard` write + an iOS sensitivity posture (no clean `EXTRA_IS_SENSITIVE` equivalent).
+- **Export CSV** absent on iOS Diagnostics. Needs a shared CSV-content usecase + a native share sheet (`UIActivityViewController`/`ShareLink`).
+- **History stale banner + reset-FCM recovery** absent on iOS. Route through a shared `HistoryAlert` mapper (mirroring `HomeAlertMapper`) so the show/hide decision can't diverge.
+- **History load-more pagination** absent on iOS. The shared VM already exposes `paginationState` + `fetchOlderDoorEvents()` — consume them + add a last-row `onAppear` trigger + native footer.
+- **About build-timestamp copy row** absent on iOS (Android exposes 4 copyable values; iOS has 3). Source from a shared `AppVersion` value object / the bundle.
+- **`ProfileScreenState` dead slice.** The shared `presentation-model` slice exists but is consumed nowhere; both platforms hand-roll the account+snooze projection. Realize it as the shared slice both consume, or delete it as dead code.
+- **Diagnostics counter row order drift.** Android renders FCM-subscribe before FCM-received; iOS (and the shared VM field order) is the reverse. Add a shared ordered-counter display model (typed ids, labels per-UI) and align Android.
+
+**Tier 2/3 — low-severity polish:**
+- iOS warning tint is a literal `Color.red` placeholder (`GarageColors.statusWarning`) vs Android's M3 error-container role — map to the iOS theme equivalent.
+- Label drift: Home section header "Remote button" (iOS) vs "Remote control" (Android, and iOS's *own* info-sheet title); Functions chrome title "Function list" (Android) vs "Functions" (iOS). Pick one each (strings stay per-UI per ADR-031; meaning must align).
+- iOS Diagnostics clear-all confirm drops the scope + irreversibility clauses Android states.
+- Dead Android `ErrorCard` in `DoorHistoryContent` (the VM always writes `Complete(prev)`, never `Error`) — delete or wire.
+
+**Doc corrections from the audit (shipped with this entry):** `UI_FIDELITY_TIERS.md` had 4 stale rows — tab-set enumerated 5 tabs (real app ships 3: Home/History/Settings), the pill note wrongly said the icon "mirrors Android," the theme row claimed iOS "mirrors" the Android scheme (it's a 4-color stub on system accent), and History had no banner row. All corrected.
 
 <!-- Historical reference: original Phase 1/2/3 migration plan now in Done. -->
 
