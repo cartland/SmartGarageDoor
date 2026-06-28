@@ -59,7 +59,8 @@ import com.chriscartland.garage.domain.model.GarageDoorGeometry.VP
  *
  * @param doorOffset Vertical offset as a proportion of container height.
  *   0.0 = fully closed (door fills frame), negative = door sliding up (opening).
- *   Use position constants like [CLOSED_POSITION], [OPEN_POSITION].
+ *   Use position constants like `DoorAnimation.CLOSED_POSITION` /
+ *   `DoorAnimation.OPEN_POSITION` (shared `:domain` `DoorAnimation`).
  * @param color Tint color for the door and frame. A vertical gradient from [color]
  *   to a darker shade is applied.
  */

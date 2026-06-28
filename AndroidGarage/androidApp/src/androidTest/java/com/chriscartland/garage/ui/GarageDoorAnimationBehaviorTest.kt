@@ -25,6 +25,8 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.domain.model.DoorAnimation.CLOSED_POSITION
+import com.chriscartland.garage.domain.model.DoorAnimation.OPEN_POSITION
 import com.chriscartland.garage.domain.model.DoorPosition
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -36,7 +38,7 @@ import java.time.Duration
  * Audit of the live garage-door animation **trajectory** — the behavior the
  * user actually sees, not just the static target mappings.
  *
- * `GarageDoorAnimationMappingTest` (a JVM unit test) pins the pure
+ * `DoorAnimationTest` (a shared commonTest) pins the pure
  * `DoorAnimation.*For` mappings. This test pins the *wiring* in
  * [GarageIcon] / `AnimatedDoorIcon`: the `remember { Animatable(initial) }`
  * seed plus the `LaunchedEffect(doorPosition)` that drives `animateTo`.

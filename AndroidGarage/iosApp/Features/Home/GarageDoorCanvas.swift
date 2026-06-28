@@ -22,9 +22,10 @@ import SwiftUI
 // animated garage-door visualization that is part of the shared "Garage"
 // identity (ADR-029 § 3). The drawing **geometry** (`GarageDoorGeometry`) and
 // the door-fill **palette** (`GarageDoorPalette`) are now shared `:domain`
-// single sources of truth, consumed by both platforms via SKIE. The
-// door-position → offset / color-state / overlay mappings still mirror the
-// Android source (follow-up hoist).
+// single sources of truth, consumed by both platforms via SKIE — as is the
+// **animation spec** (`DoorAnimation`: offset constants + the
+// `DoorPosition → offset / overlay` mappings). Only the door-position →
+// color-state mapping still mirrors the Android source (a follow-up hoist).
 //
 // Parity scope (v1): the *visual* — door shape, per-state offset, per-state
 // color (fresh / stale), and the directional / warning overlay. The animation
@@ -44,7 +45,7 @@ struct GarageDoorView: View {
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let offset = DoorVisual.offset(for: position)
+        let offset = CGFloat(DoorAnimation.shared.staticPositionFor(doorPosition: position))
         let rgb = DoorPalette.doorRGB(for: position, stale: isStale, scheme: scheme)
         ZStack {
             GarageDoorCanvas(
@@ -61,7 +62,7 @@ struct GarageDoorView: View {
     }
 
     @ViewBuilder private var overlay: some View {
-        switch DoorVisual.overlay(for: position) {
+        switch DoorAnimation.shared.overlayFor(doorPosition: position) {
         case .none:
             EmptyView()
         case .arrowUp:
@@ -209,52 +210,21 @@ private struct DoorOverlayBadge: View {
     }
 }
 
-// MARK: - Door state → visual mappings (mirror DoorAnimation.kt)
+// MARK: - Door state → color mapping (mirror Android doorColorState())
 
 private enum DoorColorState { case closed, open, unknown }
-private enum DoorOverlayKind { case none, arrowUp, arrowDown, warning }
 
 private enum DoorVisual {
-    // Door offset positions as a proportion of viewport height — mirror the
-    // constants in `AnimatableGarageDoor.kt`.
-    private static let closed: CGFloat = 0.0
-    private static let closingStatic: CGFloat = -0.20
-    private static let midway: CGFloat = -0.35
-    private static let openingStatic: CGFloat = -0.65
-    private static let open: CGFloat = -0.75
-
-    /// Visual offset for a state. Motion states use the mid-motion "static"
-    /// offsets (Android `staticPositionFor`) so OPENING / CLOSING read as a
-    /// door in motion under the simple ease, rather than snapping to the
-    /// open / closed endpoints (`targetPositionFor`).
-    static func offset(for p: DoorPosition) -> CGFloat {
-        switch p {
-        case .unknown: return midway
-        case .closed: return closed
-        case .opening: return openingStatic
-        case .openingTooLong: return midway
-        case .open: return open
-        case .openMisaligned: return open
-        case .closing: return closingStatic
-        case .closingTooLong: return midway
-        case .errorSensorConflict: return midway
-        }
-    }
-
+    /// The door's color *family* for a state — feeds `DoorPalette`. Verbatim
+    /// mirror of Android `doorColorState()` (theme layer). The offset + overlay
+    /// mappings are now the shared `:domain` `DoorAnimation`, consumed directly
+    /// in `GarageDoorView`; this color-state mapping is a follow-up hoist (it is
+    /// woven through Android's theme package — see UI_FIDELITY_TIERS § (a)).
     static func colorState(for p: DoorPosition) -> DoorColorState {
         switch p {
         case .unknown, .errorSensorConflict: return .unknown
         case .closed: return .closed
         case .opening, .openingTooLong, .open, .openMisaligned, .closing, .closingTooLong: return .open
-        }
-    }
-
-    static func overlay(for p: DoorPosition) -> DoorOverlayKind {
-        switch p {
-        case .opening: return .arrowUp
-        case .closing: return .arrowDown
-        case .unknown, .openingTooLong, .closingTooLong, .errorSensorConflict: return .warning
-        case .closed, .open, .openMisaligned: return .none
         }
     }
 }

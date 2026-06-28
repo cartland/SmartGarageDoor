@@ -15,67 +15,67 @@
  *
  */
 
-package com.chriscartland.garage.ui
+package com.chriscartland.garage.domain.model
 
-import com.chriscartland.garage.domain.model.DoorPosition
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /**
- * Pins the door-animation mapping contract. See `AndroidGarage/docs/DOOR_ANIMATION.md`.
+ * Pins the door-animation mapping contract. See
+ * `AndroidGarage/docs/DOOR_ANIMATION.md`.
  *
- * Each mapping is an exhaustive `when` over [DoorPosition], so adding a new
- * enum value fails to compile until every mapping is updated. These tests pin
- * the *values* so a wrong update is also caught.
+ * Each mapping is an exhaustive `when` over [DoorPosition], so adding a new enum
+ * value fails to compile until every mapping is updated. These tests pin the
+ * *values* so a wrong update is also caught. Runs in `commonTest`, so it guards
+ * the Tier-1 door-animation spec for Android and iOS alike (ADR-032).
  */
-class GarageDoorAnimationMappingTest {
+class DoorAnimationTest {
     // --- targetPositionFor ----------------------------------------------------
 
     @Test
     fun targetPositionFor_unknown_isMidway() {
-        assertEquals(MIDWAY_POSITION, DoorAnimation.targetPositionFor(DoorPosition.UNKNOWN))
+        assertEquals(DoorAnimation.MIDWAY_POSITION, DoorAnimation.targetPositionFor(DoorPosition.UNKNOWN))
     }
 
     @Test
     fun targetPositionFor_closed_isClosed() {
-        assertEquals(CLOSED_POSITION, DoorAnimation.targetPositionFor(DoorPosition.CLOSED))
+        assertEquals(DoorAnimation.CLOSED_POSITION, DoorAnimation.targetPositionFor(DoorPosition.CLOSED))
     }
 
     @Test
     fun targetPositionFor_opening_isOpen() {
-        assertEquals(OPEN_POSITION, DoorAnimation.targetPositionFor(DoorPosition.OPENING))
+        assertEquals(DoorAnimation.OPEN_POSITION, DoorAnimation.targetPositionFor(DoorPosition.OPENING))
     }
 
     @Test
     fun targetPositionFor_openingTooLong_isMidway() {
-        assertEquals(MIDWAY_POSITION, DoorAnimation.targetPositionFor(DoorPosition.OPENING_TOO_LONG))
+        assertEquals(DoorAnimation.MIDWAY_POSITION, DoorAnimation.targetPositionFor(DoorPosition.OPENING_TOO_LONG))
     }
 
     @Test
     fun targetPositionFor_open_isOpen() {
-        assertEquals(OPEN_POSITION, DoorAnimation.targetPositionFor(DoorPosition.OPEN))
+        assertEquals(DoorAnimation.OPEN_POSITION, DoorAnimation.targetPositionFor(DoorPosition.OPEN))
     }
 
     @Test
     fun targetPositionFor_openMisaligned_isOpen() {
-        assertEquals(OPEN_POSITION, DoorAnimation.targetPositionFor(DoorPosition.OPEN_MISALIGNED))
+        assertEquals(DoorAnimation.OPEN_POSITION, DoorAnimation.targetPositionFor(DoorPosition.OPEN_MISALIGNED))
     }
 
     @Test
     fun targetPositionFor_closing_isClosed() {
-        assertEquals(CLOSED_POSITION, DoorAnimation.targetPositionFor(DoorPosition.CLOSING))
+        assertEquals(DoorAnimation.CLOSED_POSITION, DoorAnimation.targetPositionFor(DoorPosition.CLOSING))
     }
 
     @Test
     fun targetPositionFor_closingTooLong_isMidway() {
-        assertEquals(MIDWAY_POSITION, DoorAnimation.targetPositionFor(DoorPosition.CLOSING_TOO_LONG))
+        assertEquals(DoorAnimation.MIDWAY_POSITION, DoorAnimation.targetPositionFor(DoorPosition.CLOSING_TOO_LONG))
     }
 
     @Test
     fun targetPositionFor_errorSensorConflict_isMidway() {
-        assertEquals(MIDWAY_POSITION, DoorAnimation.targetPositionFor(DoorPosition.ERROR_SENSOR_CONFLICT))
+        assertEquals(DoorAnimation.MIDWAY_POSITION, DoorAnimation.targetPositionFor(DoorPosition.ERROR_SENSOR_CONFLICT))
     }
 
     // --- fromPositionFor ------------------------------------------------------
@@ -83,13 +83,13 @@ class GarageDoorAnimationMappingTest {
     @Test
     fun fromPositionFor_opening_isClosedEnd() {
         // OPENING slides up out of CLOSED.
-        assertEquals(CLOSED_POSITION, DoorAnimation.fromPositionFor(DoorPosition.OPENING))
+        assertEquals(DoorAnimation.CLOSED_POSITION, DoorAnimation.fromPositionFor(DoorPosition.OPENING))
     }
 
     @Test
     fun fromPositionFor_closing_isOpenEnd() {
         // CLOSING slides down out of OPEN.
-        assertEquals(OPEN_POSITION, DoorAnimation.fromPositionFor(DoorPosition.CLOSING))
+        assertEquals(DoorAnimation.OPEN_POSITION, DoorAnimation.fromPositionFor(DoorPosition.CLOSING))
     }
 
     @Test
@@ -98,9 +98,9 @@ class GarageDoorAnimationMappingTest {
         // place, so the seed equals the target.
         for (state in nonMotionStates) {
             assertEquals(
-                "From position for $state should equal target",
                 DoorAnimation.targetPositionFor(state),
                 DoorAnimation.fromPositionFor(state),
+                "From position for $state should equal target",
             )
         }
     }
@@ -116,7 +116,7 @@ class GarageDoorAnimationMappingTest {
     @Test
     fun useSpringFor_nonMotionStates_useSpring() {
         for (state in nonMotionStates) {
-            assertTrue("$state should use spring", DoorAnimation.useSpringFor(state))
+            assertTrue(DoorAnimation.useSpringFor(state), "$state should use spring")
         }
     }
 
@@ -126,21 +126,21 @@ class GarageDoorAnimationMappingTest {
     fun staticPositionFor_opening_isOpeningSnapshot() {
         // Static snapshot of OPENING should look "in motion" (mid-cycle), not
         // identical to OPEN.
-        assertEquals(OPENING_STATIC_POSITION, DoorAnimation.staticPositionFor(DoorPosition.OPENING))
+        assertEquals(DoorAnimation.OPENING_STATIC_POSITION, DoorAnimation.staticPositionFor(DoorPosition.OPENING))
     }
 
     @Test
     fun staticPositionFor_closing_isClosingSnapshot() {
-        assertEquals(CLOSING_STATIC_POSITION, DoorAnimation.staticPositionFor(DoorPosition.CLOSING))
+        assertEquals(DoorAnimation.CLOSING_STATIC_POSITION, DoorAnimation.staticPositionFor(DoorPosition.CLOSING))
     }
 
     @Test
     fun staticPositionFor_nonMotionStates_matchTarget() {
         for (state in nonMotionStates) {
             assertEquals(
-                "Static position for $state should equal target",
                 DoorAnimation.targetPositionFor(state),
                 DoorAnimation.staticPositionFor(state),
+                "Static position for $state should equal target",
             )
         }
     }
@@ -149,12 +149,12 @@ class GarageDoorAnimationMappingTest {
 
     @Test
     fun overlayFor_opening_isArrowUp() {
-        assertEquals(OverlayKind.ARROW_UP, DoorAnimation.overlayFor(DoorPosition.OPENING))
+        assertEquals(DoorOverlayKind.ARROW_UP, DoorAnimation.overlayFor(DoorPosition.OPENING))
     }
 
     @Test
     fun overlayFor_closing_isArrowDown() {
-        assertEquals(OverlayKind.ARROW_DOWN, DoorAnimation.overlayFor(DoorPosition.CLOSING))
+        assertEquals(DoorOverlayKind.ARROW_DOWN, DoorAnimation.overlayFor(DoorPosition.CLOSING))
     }
 
     @Test
@@ -167,9 +167,9 @@ class GarageDoorAnimationMappingTest {
         )
         for (state in warningStates) {
             assertEquals(
-                "$state should use warning overlay",
-                OverlayKind.WARNING,
+                DoorOverlayKind.WARNING,
                 DoorAnimation.overlayFor(state),
+                "$state should use warning overlay",
             )
         }
     }
@@ -182,7 +182,7 @@ class GarageDoorAnimationMappingTest {
             DoorPosition.OPEN_MISALIGNED,
         )
         for (state in terminalStates) {
-            assertEquals("$state should have no overlay", OverlayKind.NONE, DoorAnimation.overlayFor(state))
+            assertEquals(DoorOverlayKind.NONE, DoorAnimation.overlayFor(state), "$state should have no overlay")
         }
     }
 
@@ -195,17 +195,9 @@ class GarageDoorAnimationMappingTest {
         for (state in DoorPosition.values()) {
             val target = DoorAnimation.targetPositionFor(state)
             assertTrue(
+                target in DoorAnimation.OPEN_POSITION..DoorAnimation.CLOSED_POSITION,
                 "$state target $target outside valid offset range [OPEN_POSITION, CLOSED_POSITION]",
-                target in OPEN_POSITION..CLOSED_POSITION,
             )
-        }
-    }
-
-    @Test
-    fun everyDoorPosition_hasOverlay() {
-        // Total function — no DoorPosition produces a null/missing overlay.
-        for (state in DoorPosition.values()) {
-            assertNotNull("$state has no overlay", DoorAnimation.overlayFor(state))
         }
     }
 
