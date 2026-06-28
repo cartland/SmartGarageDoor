@@ -377,6 +377,21 @@ final class HomeViewModelWrapper: ObservableObject {
     }
 
     func onButtonTap() { vm.onButtonTap() }
+
+    /// Presents Google Sign-In and hands the token to the shared VM — the same
+    /// flow as Settings (`DefaultHomeViewModel` already exposes `signInWithGoogle`,
+    /// mirroring Android's sign-in-from-Home affordance). Auth is global (shared
+    /// `AuthRepository`), so signing in here flips `signedIn` everywhere.
+    func signInWithGoogle() {
+        Task { @MainActor in
+            // GoogleIdToken is a Kotlin value class erased to its String at the
+            // boundary, so the VM's `idToken: Any` parameter takes the raw token.
+            if let idToken = await GoogleSignInCoordinator.signIn() {
+                vm.signInWithGoogle(idToken: idToken)
+            }
+        }
+    }
+
     func refresh() {
         vm.fetchCurrentDoorEvent()
         vm.refreshButtonHealth()
