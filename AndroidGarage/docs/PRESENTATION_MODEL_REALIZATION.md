@@ -201,9 +201,14 @@ inlined to `HomeAlert.PermissionMissing.attemptCount`.
   Stale banner + muted door color (`GarageDoorView(isStale:)`) signal staleness,
   matching Android (which never had an in-card stale label).
 
-### Phase 5 — Remaining richness (in progress)
+### Phase 5 — Remaining richness (paused 2026-06-28)
 
-Run as a sequence of small PRs, each one a self-contained slice:
+Run as a sequence of small PRs, each one a self-contained slice. **Status:** the
+clean, snapshot-verifiable iOS-only content-parity slices are done (check-in pill,
+button-health pill, info sheets #939, Functions warning + test-notification #941).
+Paused here by the user — each remaining item either has a verification gap
+(door-canvas animation) or needs shared-module work (Export CSV, copy-auth-token),
+so they're picked up deliberately rather than auto-continued.
 
 - **Check-in pill — ✅ SHIPPED.** `DoorEvent.lastCheckInTimeSeconds` + the live
   clock → typed `CheckInStatus` (`NoData` / `Reported(age, isStale)`) with a
@@ -290,7 +295,29 @@ Run as a sequence of small PRs, each one a self-contained slice:
   fetches the token; iOS has no token-fetch bridge yet, and the Android
   API-33 `EXTRA_IS_SENSITIVE` redaction nuance needs an iOS-pasteboard
   equivalent decision). Each is its own scoped slice.
-- **Door-canvas animation polish.**
+- **Door-canvas animation polish — deferred (verification gap).** iOS currently
+  uses a simple 0.6 s ease between per-state offsets. The full Android contract
+  (`AnimatableGarageDoor.kt` / `GarageIcon.kt` / `DoorAnimationMemory.kt`, see
+  `docs/DOOR_ANIMATION.md`) is a sizable faithful port: a 12 s **linear tween**
+  for OPENING/CLOSING, a no-bounce **spring** for terminal/error states, a
+  `static` vs animated rendering split (so non-animated snapshots keep the
+  mid-motion `staticPositionFor` offsets), and a **once-per-event "replay from
+  the start"** gated by presentation-layer memory (`DoorAnimationMemory`, keyed
+  on `(position, lastChangeTimeSeconds)`, held in a Compose-root `remember` —
+  the iOS analog is an app-root SwiftUI `@State` exposed via `Environment`, NOT
+  the DI graph — pure view-only memory belongs in the view tree, not DI).
+  **Why deferred (not just
+  "later"):** the animation's *core value* — the trajectory and the replay-once
+  behavior — cannot be verified by any CLI/snapshot means on iOS. The snapshot
+  gallery renders settled `static` frames only (Android itself needs an
+  *instrumented* semantics-reading test, `GarageDoorAnimationBehaviorTest`, to
+  audit the trajectory); `simctl` push is documented-unreliable; and the door
+  can't be driven into OPENING/CLOSING on the simulator without signing in
+  (and the remote button must never be tapped). A full port would therefore
+  ship its main behavior unverified — the verification-gap the project treats
+  as a design defect. Revisit when there's an iOS animation-audit harness (or
+  accept watch-on-device verification deliberately). Static gallery is unchanged
+  by the deferral; the per-state *static* renders already exist.
 
 ### Out of scope — adaptive / iPad layout
 
