@@ -42,6 +42,14 @@ module already exists (`HomeScreenState`, `DoorHistoryScreenState`,
   (`year`/`monthNumber`/`dayOfMonth`), not a `kotlinx-datetime` type, so no date
   library leaks across the SKIE/Swift bridge (keep the dep `implementation`, not
   `api`). Canonical: `DayLabel.Date` (P3).
+- **Shape shared APIs for SKIE's bridge limits when they're consumed from Swift.**
+  SKIE does **not** bridge Kotlin **default arguments** — a shared
+  `fun f(x, y, z = default)` fails the iOS compile with *"missing argument for
+  parameter 'z'"* (Swift sees only the full-arity signature). Provide an explicit
+  overload (`fun f(x, y) = f(x, y, default)`) instead of a Kotlin default.
+  Canonical: `CheckInStatusMapper.forCheckIn`'s two-arg overload (P5). This bites
+  only at the CI-exact iOS build (`generate-ios-screenshots.sh` / iOS CI), never
+  `validate.sh` (Android-only) — so build iOS locally after any shared-API change.
 - **A pure mapper called from each UI is a valid alternative to a VM `StateFlow`**
   when the existing consumer already maps at render (Android `remember`). It needs
   **no VM ctor change → no DI-graph edits** (avoids the two-DI-component trap).
