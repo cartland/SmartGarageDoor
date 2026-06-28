@@ -324,6 +324,16 @@ git checkout android/M                 # 1. move HEAD to the commit you want to 
 - **versionCode ↔ tag:** each `android/N` tag has `versionCode == N`, so the snapshot maps a code back to its `versionName` via `git show android/N:AndroidGarage/version.properties` (needs `fetch-depth: 0`).
 - **Gotcha (baked into the workflow):** read a just-created issue's number straight from `gh issue create`'s output URL — `gh issue list` is eventually consistent and won't surface it yet. Rendering is unit-tested (`.github/scripts/lib/format-snapshot.mjs` + `play-track-snapshot.test.mjs`). Shipped 2026-06-09 in PRs #860, #862 (first-run race fix), #863 (body+history+rollover+tests).
 
+### Determining what's actually deployed / live (verify, don't recall)
+
+**Before telling the user what is live in production, check authoritative sources — NOT memory and NOT a doc's status header.** Both drift fast; deploy/release state is exactly the kind of fact memories and "Status:" lines get wrong. Empirical (2026-06-28 session): an agent twice reported stale state to the user — "you should deploy `server/28`" when it had been **live since 2026-06-10**, and "the resolved-notification is parked" when its flag had been **on since 2026-06-22** — both from trusting a memory description + a stale doc header. The authoritative sources:
+
+- **Server (Cloud Functions) — what `server/N` is live:** `gh run list --workflow=firebase-deploy.yml --limit 8` → the latest `success` run is the deployed tag. Deploys are **cumulative from the tagged commit**, so everything merged up to that tag is live (e.g. `server/30` deploying means `server/28`'s pagination is live too). Each `server/N` tag pushed via `release-firebase.sh` triggers a deploy, so a tag existing ≈ deployed — but confirm with the run list.
+- **Android — what version is on which track:** the `play-track-log` issue (label `play-track-log`, currently #861) **body** holds the latest snapshot (internal / alpha / beta / production → versionName). Releases only ever reach the **internal** track; an empty `production` row means there is no public production release (the normal state for this repo).
+- **A live config flag's value** (e.g. `resolvedOnCloseEnabled`) is in Firestore `configCurrent/current` — it is **not** knowable from the repo at all. Ask the user or read the config; never infer it from a doc that says "off by default."
+
+When a memory or doc header conflicts with these sources, the sources win — and fix the stale doc/memory in the same pass (that's what PR #947 did for the resolved-notification status).
+
 ### Play Store listing assets (icon, feature graphic, screenshots)
 
 Uploading store-listing graphics is a **manual Play Console step** — the release workflow only ships the AAB + `whatsnew/`, never images. The procedure is the **`play-store-assets` skill** (`/play-store-assets`); read it before touching store assets. Shipped 2026-06-11 in PRs #882 (icon + feature graphic), #883 (generators + skill + staging), #884 (screenshots promoted to distribution).
