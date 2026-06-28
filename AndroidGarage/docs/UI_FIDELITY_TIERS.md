@@ -126,6 +126,17 @@ These are **not** parity gaps; they are end states, kept on one platform on purp
    - Tier 4 → add a row to the table above with the reason.
 3. Update this doc + `last_verified` in the same PR.
 
+### Hoisting an *existing* duplicated Tier-1 constant (verified-no-op recipe)
+
+When a Tier-1 value already exists as hand-duplicated literals on both platforms (geometry, palette, offsets), the hoist is a **refactor whose success = a proven no-op**. Recipe (canonical: `GarageDoorGeometry`, #952):
+
+1. **Confirm the Kotlin and Swift values are already identical** *before* writing anything. If they differ, that is a finding to decide on — not a silent merge that changes one platform's render.
+2. **Move them to a `:domain` `object`**, both UIs read via SKIE (`Object.shared.CONST` — names bridge verbatim; see CLAUDE.md § SKIE bridge shapes for `const val` / `List<Float>`). Derive related values (e.g. a clip inset from frame + gap) so they can't disagree.
+3. **Pin the values/relationships with a `commonTest`** — this is the drift guard the duplication lacked; it runs on both platforms.
+4. **Prove the no-op:** iOS snapshots **byte-identical** after `generate-ios-screenshots.sh` (local, real render — `git status` shows zero PNG diff), and the **Android CI screenshot-comparison** job green vs the *unchanged* golden PNGs (Android renders blank locally, so that half is CI-side). A non-identical snapshot is the alarm to investigate, not accept.
+
+A plain `object` needs no DI → both DI graphs are untouched (no two-DI-component trap). Scope by blast radius: geometry (touches only the canvases) before palette (Android theme path) before offsets/mappings (Android animation API).
+
 ## References
 
 - [ADR-032](./DECISIONS.md#adr-032) — the tiers, decision rule, and rationale (canonical).
