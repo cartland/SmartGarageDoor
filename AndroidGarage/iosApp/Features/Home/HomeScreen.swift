@@ -40,6 +40,7 @@ struct HomeScreen: View {
             alerts: wrapper.alerts,
             checkIn: wrapper.checkIn,
             onButtonTap: { wrapper.onButtonTap() },
+            onSignIn: { wrapper.signInWithGoogle() },
             onRefresh: { wrapper.refresh() },
             onAlertAction: { wrapper.onAlertAction($0) }
         )
@@ -72,6 +73,10 @@ struct HomeContentView: View {
     /// section header. `label == nil` renders icon-only (no heartbeat yet).
     let checkIn: DeviceCheckInItem
     let onButtonTap: () -> Void
+    /// Triggers Google Sign-In from Home — shown only when signed out, where the
+    /// remote button is replaced by a sign-in CTA (mirrors Android's signed-out
+    /// Home, which hides the button and shows a "Sign in" card).
+    let onSignIn: () -> Void
     let onRefresh: () -> Void
     let onAlertAction: (HomeAlertItem.Kind) -> Void
 
@@ -94,6 +99,7 @@ struct HomeContentView: View {
         alerts: [HomeAlertItem],
         checkIn: DeviceCheckInItem,
         onButtonTap: @escaping () -> Void,
+        onSignIn: @escaping () -> Void,
         onRefresh: @escaping () -> Void,
         onAlertAction: @escaping (HomeAlertItem.Kind) -> Void
     ) {
@@ -107,6 +113,7 @@ struct HomeContentView: View {
         self.alerts = alerts
         self.checkIn = checkIn
         self.onButtonTap = onButtonTap
+        self.onSignIn = onSignIn
         self.onRefresh = onRefresh
         self.onAlertAction = onAlertAction
     }
@@ -159,30 +166,49 @@ struct HomeContentView: View {
             }
 
             Section {
-                Button(action: onButtonTap) {
-                    Text(buttonStateLabel)
-                        .frame(maxWidth: .infinity)
+                if signedIn {
+                    Button(action: onButtonTap) {
+                        Text(buttonStateLabel)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .listRowInsets(EdgeInsets())
+                    .padding(GarageSpacing.tight)
+                } else {
+                    // Signed out — the remote action requires auth (the shared use
+                    // case returns NotAuthenticated). Show a sign-in CTA instead of
+                    // an inert button, and let the user sign in from Home (mirrors
+                    // Android's signed-out Home, which hides the button and shows a
+                    // "Sign in" card). Account details live on Settings.
+                    VStack(alignment: .leading, spacing: GarageSpacing.tight) {
+                        Text("Sign in to open or close the door.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Button("Sign in with Google") { onSignIn() }
+                            .buttonStyle(.borderedProminent)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(GarageSpacing.tight)
                 }
-                .buttonStyle(.borderedProminent)
-                .listRowInsets(EdgeInsets())
-                .padding(GarageSpacing.tight)
             } header: {
                 // Health pill right-aligned in the header, mirroring Android's
                 // `RemoteButtonHealthPill` in the "Remote control" section header.
-                // Replaces iOS's old separate "Device health" text section.
+                // Hidden when signed out (it would only read "Unauthorized",
+                // redundant with the CTA) — matching Android.
                 HStack {
                     Text("Remote button")
                     Spacer()
-                    RemoteButtonHealthPill(item: buttonHealth)
-                        .contentShape(Capsule())
-                        .onTapGesture { activeInfoSheet = .remoteControl }
+                    if signedIn {
+                        RemoteButtonHealthPill(item: buttonHealth)
+                            .contentShape(Capsule())
+                            .onTapGesture { activeInfoSheet = .remoteControl }
+                    }
                 }
             }
 
-            Section("Account") {
-                Text(signedIn ? "Signed in" : "Signed out")
-                    .foregroundStyle(.secondary)
-            }
+            // The redundant "Account" status row was removed — Settings owns the
+            // real account display + sign-out; Home's auth state now drives the
+            // Remote button section above (signed-out → sign-in CTA).
         }
         .navigationTitle("Garage")
         .refreshable { onRefresh() }
@@ -408,6 +434,7 @@ private struct HomeInfoSheetView: View {
             alerts: [],
             checkIn: DeviceCheckInItem(label: "23 min ago", isStale: true),
             onButtonTap: {},
+            onSignIn: {},
             onRefresh: {},
             onAlertAction: { _ in }
         )
@@ -427,6 +454,7 @@ private struct HomeInfoSheetView: View {
             alerts: [],
             checkIn: DeviceCheckInItem(label: "1 min ago", isStale: false),
             onButtonTap: {},
+            onSignIn: {},
             onRefresh: {},
             onAlertAction: { _ in }
         )
@@ -446,6 +474,7 @@ private struct HomeInfoSheetView: View {
             alerts: [],
             checkIn: DeviceCheckInItem(label: "1 min ago", isStale: false),
             onButtonTap: {},
+            onSignIn: {},
             onRefresh: {},
             onAlertAction: { _ in }
         )
@@ -478,6 +507,7 @@ private struct HomeInfoSheetView: View {
             ],
             checkIn: DeviceCheckInItem(label: "23 min ago", isStale: true),
             onButtonTap: {},
+            onSignIn: {},
             onRefresh: {},
             onAlertAction: { _ in }
         )
