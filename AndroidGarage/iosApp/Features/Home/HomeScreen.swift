@@ -37,8 +37,10 @@ struct HomeScreen: View {
             buttonStateLabel: wrapper.buttonStateLabel,
             buttonHealthLabel: wrapper.buttonHealthLabel,
             signedIn: wrapper.signedIn,
+            alerts: wrapper.alerts,
             onButtonTap: { wrapper.onButtonTap() },
-            onRefresh: { wrapper.refresh() }
+            onRefresh: { wrapper.refresh() },
+            onAlertAction: { wrapper.onAlertAction($0) }
         )
     }
 }
@@ -59,11 +61,25 @@ struct HomeContentView: View {
     let buttonStateLabel: String
     let buttonHealthLabel: String
     let signedIn: Bool
+    /// Resolved alert banners (ADR-031 Phase 4) shown above the Status card.
+    /// Empty in the steady state; the shared `HomeAlertMapper` decides when a
+    /// stale / permission / fetch-error banner applies.
+    let alerts: [HomeAlertItem]
     let onButtonTap: () -> Void
     let onRefresh: () -> Void
+    let onAlertAction: (HomeAlertItem.Kind) -> Void
 
     var body: some View {
         List {
+            if !alerts.isEmpty {
+                Section {
+                    ForEach(alerts) { alert in
+                        HomeAlertBanner(alert: alert, onAction: { onAlertAction(alert.kind) })
+                            .listRowBackground(GarageColors.statusWarning.opacity(0.12))
+                    }
+                }
+            }
+
             Section("Status") {
                 VStack(spacing: GarageSpacing.card) {
                     GarageDoorView(position: doorPosition, isStale: isCheckInStale)
@@ -81,11 +97,9 @@ struct HomeContentView: View {
                         if let warningText {
                             DoorWarningChip(text: warningText)
                         }
-                        if isCheckInStale {
-                            Label("Check-in is stale", systemImage: "exclamationmark.triangle")
-                                .font(.footnote)
-                                .foregroundStyle(GarageColors.statusWarning)
-                        }
+                        // Staleness now surfaces via the top Stale banner +
+                        // the muted door color (`GarageDoorView(isStale:)`),
+                        // matching Android — no separate in-card label.
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -113,6 +127,37 @@ struct HomeContentView: View {
         }
         .navigationTitle("Garage")
         .refreshable { onRefresh() }
+    }
+}
+
+/// One alert banner — the SwiftUI analog of Android's `HomeAlertCard`. Renders
+/// the already-resolved message + an action button. The leading icon is driven
+/// by the typed `kind`; the red-tinted list-row background (set by the caller)
+/// gives the banner its alert weight (mirrors Android's `errorContainer`).
+private struct HomeAlertBanner: View {
+    let alert: HomeAlertItem
+    let onAction: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: GarageSpacing.card) {
+            Image(systemName: icon)
+                .foregroundStyle(GarageColors.statusWarning)
+            Text(alert.message)
+                .font(.footnote)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button(alert.actionLabel, action: onAction)
+                .buttonStyle(.bordered)
+                .font(.footnote)
+        }
+        .padding(.vertical, GarageSpacing.tight)
+    }
+
+    private var icon: String {
+        switch alert.kind {
+        case .stale: return "wifi.slash"
+        case .permission: return "bell.badge"
+        case .fetchError: return "exclamationmark.triangle"
+        }
     }
 }
 
@@ -144,8 +189,10 @@ private struct DoorWarningChip: View {
             buttonStateLabel: "Tap to open / close",
             buttonHealthLabel: "Sign in to see device health",
             signedIn: false,
+            alerts: [],
             onButtonTap: {},
-            onRefresh: {}
+            onRefresh: {},
+            onAlertAction: { _ in }
         )
     }
 }
@@ -160,8 +207,10 @@ private struct DoorWarningChip: View {
             buttonStateLabel: "Tap to open / close",
             buttonHealthLabel: "Online",
             signedIn: true,
+            alerts: [],
             onButtonTap: {},
-            onRefresh: {}
+            onRefresh: {},
+            onAlertAction: { _ in }
         )
     }
 }
@@ -176,8 +225,41 @@ private struct DoorWarningChip: View {
             buttonStateLabel: "Tap to open / close",
             buttonHealthLabel: "Online",
             signedIn: true,
+            alerts: [],
             onButtonTap: {},
-            onRefresh: {}
+            onRefresh: {},
+            onAlertAction: { _ in }
+        )
+    }
+}
+
+#Preview("Home with alerts") {
+    NavigationStack {
+        HomeContentView(
+            doorPosition: .unknown,
+            sinceLine: "Since 8:15 AM · 1 hr 5 min",
+            warningText: nil,
+            isCheckInStale: true,
+            buttonStateLabel: "Tap to open / close",
+            buttonHealthLabel: "Online",
+            signedIn: true,
+            alerts: [
+                HomeAlertItem(
+                    id: "stale",
+                    kind: .stale,
+                    message: "Not receiving updates from server",
+                    actionLabel: "Retry"
+                ),
+                HomeAlertItem(
+                    id: "permission",
+                    kind: .permission,
+                    message: "Turn on notifications to get alerted when the door is left open.",
+                    actionLabel: "Allow"
+                ),
+            ],
+            onButtonTap: {},
+            onRefresh: {},
+            onAlertAction: { _ in }
         )
     }
 }

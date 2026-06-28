@@ -58,20 +58,3 @@ fun rememberPermissionAlwaysGranted(permission: String): PermissionState =
             override fun launchPermissionRequest() { /* Do nothing */ }
         }
     }
-
-/**
- * Typed justification for the notification-permission prompt. Replaces
- * the previous `NotificationPermissionCopy.justificationText(int): String`
- * builder.
- *
- * Phase 2F of the string-resource migration plan
- * (`AndroidGarage/docs/PENDING_FOLLOWUPS.md` item #1) — the typed value
- * carries only the [attemptCount]; the Composable layer assembles the
- * multi-line localized message at render time using `stringResource` +
- * conditional appends for the escalation lines (attempts 3+, 4+, 5+).
- *
- * Tests assert on [attemptCount] directly, decoupled from the copy text.
- */
-data class NotificationJustification(
-    val attemptCount: Int = 0,
-)

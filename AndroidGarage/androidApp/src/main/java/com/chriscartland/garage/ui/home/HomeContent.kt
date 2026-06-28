@@ -62,9 +62,9 @@ import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.RemoteButtonState
-import com.chriscartland.garage.permissions.NotificationJustification
 import com.chriscartland.garage.presentation.DoorWarning
 import com.chriscartland.garage.presentation.ElapsedDuration
+import com.chriscartland.garage.presentation.HomeAlert
 import com.chriscartland.garage.presentation.SinceStatus
 import com.chriscartland.garage.ui.DeviceCheckInPill
 import com.chriscartland.garage.ui.DoorStatusInfoBottomSheet
@@ -126,47 +126,6 @@ sealed interface HomeAuthState {
 
     /** Show the [RemoteButtonContent] inside the action card. */
     data object SignedIn : HomeAuthState
-}
-
-/**
- * Banner stack that appears above the Status card.
- *
- * All variants render with the same rounded-large surface so the visual
- * weight is consistent. Color carries the severity:
- * `errorContainer` for things the user can fix, `tertiaryContainer` for
- * informational alerts.
- */
-sealed interface HomeAlert {
-    /**
-     * Door telemetry hasn't arrived recently — server may be down. The
-     * Composable resolves the message + action label to localized strings
-     * via [HomeAlertCard]. Phase 2D of the string-resource migration —
-     * the previous `message: String = "..."` and `actionLabel: String = "Retry"`
-     * defaults were dropped.
-     */
-    data object Stale : HomeAlert
-
-    /**
-     * Notification permission denied / never asked. [justification] carries
-     * a typed [com.chriscartland.garage.permissions.NotificationJustification]
-     * — its [com.chriscartland.garage.permissions.NotificationJustification.attemptCount]
-     * drives the escalation lines (3+, 4+, 5+). The Composable resolver in
-     * `HomeAlertCard` assembles the multi-line localized message at
-     * render time. Phase 2F of the string-resource migration plan
-     * (`AndroidGarage/docs/PENDING_FOLLOWUPS.md` item #1).
-     */
-    data class PermissionMissing(
-        val justification: NotificationJustification,
-    ) : HomeAlert
-
-    /**
-     * A door-event fetch failed. [truncatedException] carries the raw,
-     * length-bounded exception text — the Composable interpolates it via
-     * `formatArgs` into the localized "Error fetching ..." string.
-     */
-    data class FetchError(
-        val truncatedException: String,
-    ) : HomeAlert
 }
 
 /**
@@ -439,19 +398,20 @@ private fun doorWarningText(warning: DoorWarning): String =
     }
 
 /**
- * Resolves a typed [NotificationJustification] to the multi-line localized
- * message rendered in the `HomeAlert.PermissionMissing` banner. The base
- * line always shows; escalation lines append at attempt counts 3+, 4+, 5+
- * — same shape as the legacy `NotificationPermissionCopy.justificationText`.
+ * Resolves the notification-permission [attemptCount] (from the shared
+ * [HomeAlert.PermissionMissing]) to the multi-line localized message rendered
+ * in the banner. The base line always shows; escalation lines append at
+ * attempt counts 3+, 4+, 5+ — same shape as the legacy
+ * `NotificationPermissionCopy.justificationText`.
  *
  * Phase 2F of the string-resource migration plan
- * (`AndroidGarage/docs/PENDING_FOLLOWUPS.md` item #1) — replaces the
- * non-Composable string-builder so the mapper can emit a typed value.
+ * (`AndroidGarage/docs/PENDING_FOLLOWUPS.md` item #1) — the typed alert
+ * carries only the count; this Composable assembles the localized copy.
  */
 @Composable
-private fun notificationJustificationText(justification: NotificationJustification): String {
+private fun notificationJustificationText(attemptCount: Int): String {
     val base = stringResource(R.string.notification_justification_base)
-    val attempt = justification.attemptCount
+    val attempt = attemptCount
     val attempt3 = if (attempt > 2) {
         stringResource(R.string.notification_justification_attempt_3)
     } else {
@@ -612,7 +572,7 @@ private fun HomeAlertCard(
     }
     val message = when (alert) {
         HomeAlert.Stale -> stringResource(R.string.home_alert_stale_message)
-        is HomeAlert.PermissionMissing -> notificationJustificationText(alert.justification)
+        is HomeAlert.PermissionMissing -> notificationJustificationText(alert.attemptCount)
         is HomeAlert.FetchError ->
             stringResource(R.string.home_alert_fetch_error_format, alert.truncatedException)
     }
@@ -678,9 +638,7 @@ private object HomePreviewData {
         ),
     )
     val staleAlert = HomeAlert.Stale
-    val permissionAlert = HomeAlert.PermissionMissing(
-        justification = NotificationJustification(attemptCount = 0),
-    )
+    val permissionAlert = HomeAlert.PermissionMissing(attemptCount = 0)
 
     // Heartbeat cadence is ~10 min, so a representative typical pill reads
     // ~5 min — comfortably under the 11-min staleness threshold.

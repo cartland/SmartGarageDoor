@@ -21,7 +21,6 @@ import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.LoadingResult
-import com.chriscartland.garage.permissions.NotificationJustification
 
 /**
  * Pure-function mapper that converts the Home tab's domain inputs into the
@@ -30,14 +29,18 @@ import com.chriscartland.garage.permissions.NotificationJustification
  * Per the string-resource migration plan
  * (`AndroidGarage/docs/PENDING_FOLLOWUPS.md` item #1, Phases 2A/2B/2C),
  * this mapper does NOT produce user-visible text. It emits typed states
- * ([HomeStatusDisplay], [HomeAlert]) and raw data (epoch seconds, exception
- * text). The Composable layer resolves typed values to localized strings via
- * `stringResource` / `pluralStringResource` at render time.
+ * ([HomeStatusDisplay]) and raw data (epoch seconds). The Composable layer
+ * resolves typed values to localized strings via `stringResource` /
+ * `pluralStringResource` at render time.
  *
  * The typed door warning moved to the shared `presentation-model`
  * (`DoorWarning` / `DoorWarningMapper`, ADR-031) and is now exposed by
  * `DefaultHomeViewModel.warning`; the Composable reads it from the VM rather
  * than from this mapper.
+ *
+ * The alert-banner stack (`HomeAlert` + selection logic) also moved to the
+ * shared `presentation-model` (`HomeAlert` / `HomeAlertMapper`, ADR-031
+ * Phase 4); the route wrapper calls `HomeAlertMapper.toHomeAlerts` directly.
  *
  * The "Since X · Y" status line is now built by the production HomeContent
  * wrapper (Composable scope) using [HomeStatusFormatter] + plurals, then
@@ -66,55 +69,10 @@ object HomeMapper {
         )
     }
 
-    /**
-     * Returns the alerts to render in the banner stack above the Status card,
-     * in display order: stale first, then permission, then fetch error.
-     *
-     * Phase 2D — `HomeAlert.Stale` and `HomeAlert.FetchError` no longer carry
-     * default user-visible strings. The Composable resolves the alert TYPE
-     * to a localized resource. `HomeAlert.FetchError.truncatedException`
-     * carries only the raw exception text (data, not a label) for the
-     * Composable to interpolate via `formatArgs`.
-     *
-     * `HomeAlert.PermissionMissing.justification` (Phase 2F) carries the
-     * typed [NotificationJustification] shape; the Composable layer
-     * assembles the multi-line localized message from
-     * [NotificationJustification.attemptCount] at render time.
-     */
-    fun toHomeAlerts(
-        currentDoorEvent: LoadingResult<DoorEvent?>,
-        isCheckInStale: Boolean,
-        notificationPermissionGranted: Boolean,
-        notificationRequestCount: Int,
-    ): List<HomeAlert> =
-        buildList {
-            if (isCheckInStale) {
-                add(HomeAlert.Stale)
-            }
-            if (!notificationPermissionGranted) {
-                add(
-                    HomeAlert.PermissionMissing(
-                        justification = NotificationJustification(notificationRequestCount),
-                    ),
-                )
-            }
-            if (currentDoorEvent is LoadingResult.Error) {
-                add(
-                    HomeAlert.FetchError(
-                        truncatedException = currentDoorEvent.exception
-                            .toString()
-                            .take(MAX_ERROR_MESSAGE_LEN),
-                    ),
-                )
-            }
-        }
-
     fun toHomeAuthState(authState: AuthState): HomeAuthState =
         when (authState) {
             AuthState.Unknown -> HomeAuthState.Unknown
             AuthState.Unauthenticated -> HomeAuthState.SignedOut
             is AuthState.Authenticated -> HomeAuthState.SignedIn
         }
-
-    private const val MAX_ERROR_MESSAGE_LEN = 500
 }

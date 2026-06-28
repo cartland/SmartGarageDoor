@@ -159,12 +159,39 @@ before).
   `StateFlow` + a SwiftUI scroll-position trigger, independent of the shared
   display mapping this slice delivered.
 
-### Phase 4 — Home alerts + permission/notification state
+### Phase 4 — Home alerts + permission/notification state — ✅ SHIPPED
 
-`HomeAlert` typed state (Stale / FetchError / PermissionMissing) as shared typed
-state where it's platform-neutral; the notification-permission piece stays
-per-UI (iOS `UNUserNotificationCenter` vs Android runtime permission), driven by
-a shared "permission needed" boolean. iOS gains the alert banners.
+`HomeAlert` typed state (Stale / PermissionMissing / FetchError) + the
+banner-selection logic moved to shared `presentation-model` (`HomeAlert` +
+`HomeAlertMapper.toHomeAlerts`, tests in `commonTest`). iOS gained the full
+alert-banner stack above the Status card (it had none) — stale, permission, and
+fetch-error banners with action buttons, mirroring Android's `HomeAlertCard`.
+The androidApp `HomeAlert` sealed type + `HomeMapper.toHomeAlerts` were deleted;
+the now-pointless `NotificationJustification` wrapper (a single `Int`) was
+inlined to `HomeAlert.PermissionMissing.attemptCount`.
+
+**As-built notes:**
+
+- **No VM / DI change.** Two of the four mapper inputs are platform-specific
+  UI-layer state — `notificationPermissionGranted` (Android runtime permission /
+  iOS `UNUserNotificationCenter`) and `notificationRequestCount` (Android
+  `rememberSaveable` / iOS in-memory counter) — so the alerts can't be a pure VM
+  `StateFlow`. The mapper is a pure function each UI calls with the VM's
+  `currentDoorEvent` + `isCheckInStale` plus its own permission inputs (same
+  pure-mapper-from-UI shape as Phase 3). Both DI graphs untouched.
+- **Permission detection stays per-UI** (ADR-031 — the gnarly *decision* of
+  which banners to show is shared; the platform permission API is not). iOS
+  probes `UNUserNotificationCenter.getNotificationSettings`, requests via
+  `requestAuthorization`, and defaults `granted = true` so the banner doesn't
+  flash before the async probe resolves. The shared layer is driven by the
+  resulting boolean.
+- **Escalation copy is per-UI.** The shared `PermissionMissing` carries only
+  `attemptCount`; each UI assembles its own localized multi-line justification
+  (Android `stringResource` referencing Android Settings; iOS literals
+  referencing the iOS Settings app). The 3+/4+/5+ escalation thresholds match.
+- **iOS dropped the redundant in-card "Check-in is stale" label** now that the
+  Stale banner + muted door color (`GarageDoorView(isStale:)`) signal staleness,
+  matching Android (which never had an in-card stale label).
 
 ### Phase 5 — Remaining richness
 
@@ -192,7 +219,7 @@ Condensed from the 2026-06-27 audit. Items already shipped are struck through.
   (deferred until published), tap-to-copy version, typed snooze-failure messages,
   snooze permission state.
 - **Home** — ~~typed `DoorWarning` chip (P1)~~ ✅; ~~"Since · duration" line
-  (P2)~~ ✅; alert banners stale/fetch-error/permission (P4); info sheets +
+  (P2)~~ ✅; ~~alert banners stale/fetch-error/permission (P4)~~ ✅; info sheets +
   check-in/health pills (P5); network-progress diagram (P5, optional).
 - **History** — ~~day grouping, door icons, durations, transit/anomaly tags,
   empty-state (P3)~~ ✅; load-more (P3 follow-up — deferred, see Phase 3 note).

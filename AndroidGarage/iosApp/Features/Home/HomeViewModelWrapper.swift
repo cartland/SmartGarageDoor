@@ -16,6 +16,7 @@
  */
 
 import SwiftUI
+import UserNotifications
 @preconcurrency import shared
 
 /// Bridges `DefaultHomeViewModel` to SwiftUI. See `DiagnosticsViewModelWrapper`
@@ -40,20 +41,37 @@ final class HomeViewModelWrapper: ObservableObject {
     @Published private(set) var isCheckInStale: Bool = false
     @Published private(set) var buttonStateLabel: String = "Ready"
     @Published private(set) var buttonHealthLabel: String = "Unknown"
+    /// Resolved alert banners shown above the Status card (ADR-031 Phase 4).
+    /// The shared `HomeAlertMapper` decides WHICH banners to show from typed
+    /// inputs; this wrapper resolves each typed `HomeAlert` to iOS banner copy.
+    @Published private(set) var alerts: [HomeAlertItem] = []
 
     private let shared: SharedViewModel<DefaultHomeViewModel>
     private var tasks: [Task<Void, Never>] = []
     private var vm: DefaultHomeViewModel { shared.instance }
 
+    // Inputs to the shared `HomeAlertMapper`. The door result + stale flag come
+    // from the VM; the notification-permission pieces are resolved per-UI here
+    // (iOS `UNUserNotificationCenter`, the analog of Android's runtime
+    // permission). `notificationGranted` defaults to `true` so the permission
+    // banner doesn't flash before the async settings probe resolves.
+    private var latestDoorResult: LoadingResult<DoorEvent>?
+    private var notificationGranted: Bool = true
+    private var notificationRequestCount: Int32 = 0
+
     init(component: NativeComponent) {
         shared = SharedViewModel(component.homeViewModel)
+        // Seed the stale flag before `applyDoor` so the first `rebuildAlerts`
+        // sees the real value rather than the default `false`.
+        isCheckInStale = vm.isCheckInStale.value.boolValue
         applyAuth(vm.authState.value)
         applyDoor(vm.currentDoorEvent.value)
         applyWarning(vm.warning.value)
         applySince(vm.sinceStatus.value)
         applyButton(vm.buttonState.value)
         applyHealth(vm.buttonHealthDisplay.value)
-        isCheckInStale = vm.isCheckInStale.value.boolValue
+        // Async — rebuilds the alert stack again once the OS settings resolve.
+        refreshNotificationPermission()
 
         tasks.append(Task { @MainActor [weak self] in
             for await v in self!.vm.authState { self?.applyAuth(v) }
@@ -74,7 +92,10 @@ final class HomeViewModelWrapper: ObservableObject {
             for await v in self!.vm.buttonHealthDisplay { self?.applyHealth(v) }
         })
         tasks.append(Task { @MainActor [weak self] in
-            for await v in self!.vm.isCheckInStale { self?.isCheckInStale = v.boolValue }
+            for await v in self!.vm.isCheckInStale {
+                self?.isCheckInStale = v.boolValue
+                self?.rebuildAlerts()
+            }
         })
     }
 
@@ -87,9 +108,103 @@ final class HomeViewModelWrapper: ObservableObject {
     }
 
     private func applyDoor(_ result: LoadingResult<DoorEvent>) {
+        latestDoorResult = result
         let event = result.data
         doorPosition = event?.doorPosition ?? .unknown
         lastChangeTimeSeconds = event?.lastChangeTimeSeconds?.int64Value
+        rebuildAlerts()
+    }
+
+    /// Recomputes the banner stack from the shared `HomeAlertMapper` using the
+    /// latest door result + stale flag + per-UI notification-permission state.
+    /// The mapper decides which typed alerts apply; `resolve` turns each into
+    /// iOS banner copy.
+    private func rebuildAlerts() {
+        guard let result = latestDoorResult else {
+            alerts = []
+            return
+        }
+        let typed = HomeAlertMapper.shared.toHomeAlerts(
+            currentDoorEvent: result,
+            isCheckInStale: isCheckInStale,
+            notificationPermissionGranted: notificationGranted,
+            notificationRequestCount: notificationRequestCount
+        )
+        alerts = typed.map { Self.resolve($0) }
+    }
+
+    /// Reads the current notification authorization and rebuilds the alerts.
+    /// `.authorized` / `.provisional` / `.ephemeral` all count as granted —
+    /// only a hard denial / not-yet-asked surfaces the permission banner.
+    private func refreshNotificationPermission() {
+        UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
+            let granted = settings.authorizationStatus == .authorized
+                || settings.authorizationStatus == .provisional
+                || settings.authorizationStatus == .ephemeral
+            Task { @MainActor in
+                self?.notificationGranted = granted
+                self?.rebuildAlerts()
+            }
+        }
+    }
+
+    /// Bumps the attempt count (drives the escalation copy, mirroring Android's
+    /// `rememberSaveable` counter) and asks the OS for authorization. Once a
+    /// user has denied, iOS silently returns the existing status without
+    /// re-prompting — the escalation lines then point them at Settings.
+    private func requestNotificationPermission() {
+        notificationRequestCount += 1
+        rebuildAlerts()
+        UNUserNotificationCenter.current()
+            .requestAuthorization(options: [.alert, .badge, .sound]) { [weak self] _, _ in
+                Task { @MainActor in self?.refreshNotificationPermission() }
+            }
+    }
+
+    /// Resolves a typed `HomeAlert` to its iOS banner copy. Stale + fetch-error
+    /// strings mirror Android's `home_alert_*` resources; the permission copy is
+    /// iOS-specific (points at the Settings app, not Android system settings).
+    private static func resolve(_ alert: HomeAlert) -> HomeAlertItem {
+        switch onEnum(of: alert) {
+        case .stale:
+            return HomeAlertItem(
+                id: "stale",
+                kind: .stale,
+                message: "Not receiving updates from server",
+                actionLabel: "Retry"
+            )
+        case .permissionMissing(let permission):
+            return HomeAlertItem(
+                id: "permission",
+                kind: .permission,
+                message: justificationText(attemptCount: permission.attemptCount),
+                actionLabel: "Allow"
+            )
+        case .fetchError(let fetchError):
+            return HomeAlertItem(
+                id: "fetchError",
+                kind: .fetchError,
+                message: "Error fetching current door event: \(fetchError.truncatedException)",
+                actionLabel: "Retry"
+            )
+        }
+    }
+
+    /// Assembles the multi-line permission justification from the attempt count.
+    /// Mirrors Android's `notificationJustificationText` escalation (3+, 4+, 5+)
+    /// but with iOS-appropriate wording.
+    private static func justificationText(attemptCount: Int32) -> String {
+        var lines = ["Turn on notifications to get alerted when the door is left open."]
+        if attemptCount > 2 {
+            lines.append("You can manage permissions in the iOS Settings app.")
+        }
+        if attemptCount > 3 {
+            lines.append("iOS may be blocking requests because the permission was denied multiple times.")
+        }
+        if attemptCount > 4 {
+            lines.append("You have tapped the button \(attemptCount) times.")
+        }
+        return lines.joined(separator: "\n")
     }
 
     /// Builds the "Since {time} · {duration}" line from the shared typed
@@ -199,5 +314,34 @@ final class HomeViewModelWrapper: ObservableObject {
         vm.refreshButtonHealth()
     }
 
+    /// Handles a tap on a banner's action button. Mirrors Android's
+    /// `onAlertAction` in the Home route wrapper.
+    func onAlertAction(_ kind: HomeAlertItem.Kind) {
+        switch kind {
+        case .stale:
+            // Re-register FCM + refetch, matching Android's "fix outdated info".
+            vm.deregisterFcm()
+            vm.fetchCurrentDoorEvent()
+        case .permission:
+            requestNotificationPermission()
+        case .fetchError:
+            vm.fetchCurrentDoorEvent()
+        }
+    }
+
     deinit { tasks.forEach { $0.cancel() } }
+}
+
+/// Resolved alert-banner display data for the Home tab. The shared
+/// `HomeAlertMapper` picks which typed `HomeAlert`s apply; the wrapper resolves
+/// each to this view-ready struct (icon-driving `kind` + localized copy).
+/// `internal` so `#Preview` fixtures can construct it (the generated snapshot
+/// test embeds preview bodies verbatim and can't see `private` symbols).
+struct HomeAlertItem: Identifiable {
+    enum Kind { case stale, permission, fetchError }
+
+    let id: String
+    let kind: Kind
+    let message: String
+    let actionLabel: String
 }
