@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
-import com.chriscartland.garage.ui.CLOSED_POSITION
+import com.chriscartland.garage.domain.model.DoorAnimation.CLOSED_POSITION
 import com.chriscartland.garage.ui.ClosedPreview
 import com.chriscartland.garage.ui.ClosingPreview
 import com.chriscartland.garage.ui.ClosingTooLongPreview

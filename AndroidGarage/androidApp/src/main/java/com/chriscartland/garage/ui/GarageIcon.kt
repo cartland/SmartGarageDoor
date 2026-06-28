@@ -36,6 +36,8 @@ import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
+import com.chriscartland.garage.domain.model.DoorAnimation
+import com.chriscartland.garage.domain.model.DoorOverlayKind
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.GarageDoorGeometry
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
@@ -185,10 +187,10 @@ private fun DoorIconBox(
             color = color,
         )
         when (DoorAnimation.overlayFor(doorPosition)) {
-            OverlayKind.NONE -> Unit
-            OverlayKind.ARROW_UP -> DirectionOverlay(-90f, "Up Arrow")
-            OverlayKind.ARROW_DOWN -> DirectionOverlay(90f, "Down Arrow")
-            OverlayKind.WARNING -> WarningOverlay()
+            DoorOverlayKind.NONE -> Unit
+            DoorOverlayKind.ARROW_UP -> DirectionOverlay(-90f, "Up Arrow")
+            DoorOverlayKind.ARROW_DOWN -> DirectionOverlay(90f, "Down Arrow")
+            DoorOverlayKind.WARNING -> WarningOverlay()
         }
     }
 }
