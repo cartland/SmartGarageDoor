@@ -20,6 +20,9 @@ package com.chriscartland.garage.domain.model
 /** Overlay glyph drawn on top of the door for a [DoorPosition]. */
 enum class DoorOverlayKind { NONE, ARROW_UP, ARROW_DOWN, WARNING }
 
+/** Color family a door state maps to — selects the [GarageDoorPalette] variant. */
+enum class DoorColorState { CLOSED, OPEN, UNKNOWN }
+
 /**
  * Shared **door-animation spec** — the pure `DoorPosition → visual` mappings
  * (offset targets + overlay) that drive the garage-door visualization on
@@ -30,7 +33,8 @@ enum class DoorOverlayKind { NONE, ARROW_UP, ARROW_DOWN, WARNING }
  * its motion is split into a provable **spec** (this object) and a best-effort
  * **execution** (each platform's native animation engine). This object is the
  * spec: *what* the animation does — the offsets, the per-state targets, the
- * tween-vs-spring family, the static snapshot offset, and the overlay. *How* it
+ * tween-vs-spring family, the static snapshot offset, the overlay, and the
+ * color family (which [GarageDoorPalette] variant a state uses). *How* it
  * renders frame-by-frame (Compose `Animatable` vs SwiftUI `.animation`, frame
  * pacing, reduce-motion) is platform-local and intentionally not shared. See
  * `AndroidGarage/docs/UI_FIDELITY_TIERS.md` § "Animation: split the spec from
@@ -158,5 +162,24 @@ object DoorAnimation {
             DoorPosition.OPEN,
             DoorPosition.OPEN_MISALIGNED,
             -> DoorOverlayKind.NONE
+        }
+
+    /**
+     * Which color family a door state uses (selects the [GarageDoorPalette]
+     * fresh/stale variant). Mirror of Android's former `doorColorState()`:
+     * unknown + sensor-conflict read gray, closed reads green, everything else
+     * (the open/in-motion states) reads red.
+     */
+    fun colorStateFor(doorPosition: DoorPosition): DoorColorState =
+        when (doorPosition) {
+            DoorPosition.UNKNOWN, DoorPosition.ERROR_SENSOR_CONFLICT -> DoorColorState.UNKNOWN
+            DoorPosition.CLOSED -> DoorColorState.CLOSED
+            DoorPosition.OPENING,
+            DoorPosition.OPENING_TOO_LONG,
+            DoorPosition.OPEN,
+            DoorPosition.OPEN_MISALIGNED,
+            DoorPosition.CLOSING,
+            DoorPosition.CLOSING_TOO_LONG,
+            -> DoorColorState.OPEN
         }
 }

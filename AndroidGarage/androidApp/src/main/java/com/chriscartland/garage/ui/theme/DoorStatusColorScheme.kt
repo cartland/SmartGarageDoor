@@ -18,8 +18,9 @@
 package com.chriscartland.garage.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import com.chriscartland.garage.domain.model.DoorAnimation
 import com.chriscartland.garage.domain.model.DoorEvent
-import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.domain.model.DoorColorState as DomainDoorColorState
 
 /**
  * Color scheme selected by the app theme.
@@ -106,16 +107,16 @@ val doorStatusDarkScheme =
         onUnknownStale = onUnknownStaleDark,
     )
 
-enum class DoorColorState {
-    OPEN,
-    CLOSED,
-    UNKNOWN,
-}
+/**
+ * The door's color family. Now the shared `:domain` [DomainDoorColorState]; this
+ * `typealias` keeps the theme-package import path stable (zero churn) for the UI
+ * consumers (`DoorStatusCard` / `HomeContent` / `HistoryContent`).
+ */
+typealias DoorColorState = DomainDoorColorState
 
-fun DoorEvent?.doorColorState(): DoorColorState =
-    when (this?.doorPosition) {
-        DoorPosition.UNKNOWN -> DoorColorState.UNKNOWN
-        DoorPosition.ERROR_SENSOR_CONFLICT -> DoorColorState.UNKNOWN
-        DoorPosition.CLOSED -> DoorColorState.CLOSED
-        else -> DoorColorState.OPEN
-    }
+/**
+ * Color family for a door event. Delegates to the shared
+ * [DoorAnimation.colorStateFor]; a null event keeps the long-standing
+ * "treat as open/red" fallback (the old `else -> OPEN` branch).
+ */
+fun DoorEvent?.doorColorState(): DoorColorState = this?.doorPosition?.let { DoorAnimation.colorStateFor(it) } ?: DoorColorState.OPEN
