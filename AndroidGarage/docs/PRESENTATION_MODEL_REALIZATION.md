@@ -238,8 +238,20 @@ Run as a sequence of small PRs, each one a self-contained slice:
   (same view-struct shape as `HomeAlertItem` / `DeviceCheckInItem`) and the pill
   reuses the check-in pill's antenna icon family for a consistent
   device-availability grammar.
-- **Info sheets** (door-status / remote-control) — iOS rendering of the
-  explanatory content Android shows on pill tap.
+- **Info sheets (iOS render) — ✅ SHIPPED.** Tapping the Status or Remote-button
+  pill on Home now opens a `.sheet` explaining what the indicator means — the
+  SwiftUI analog of Android's `DoorStatusInfoBottomSheet` /
+  `RemoteControlInfoBottomSheet` (`InfoBottomSheet.kt`). **Content-parity slice,
+  not a typed-state mapping:** the copy is static UI text (info icon + title +
+  two paragraphs), so — like the rest of the iOS app's user-facing strings — it
+  is sourced inline on iOS, matching Android's `strings.xml` copy verbatim
+  (reviewed with the user). No shared / Android change; iOS-only. A pure
+  `HomeInfoSheetContentView` (mirroring Android's `InfoSheetLayout`) gets its own
+  `#Preview`s so both sheets land in the snapshot gallery; the pills became
+  tappable via `.onTapGesture` driving a local `@State` `HomeInfoSheet?` (an
+  explicit `init` on `HomeContentView` keeps that `private @State` from lowering
+  the synthesized memberwise init to `private`, which would break the generated
+  snapshot test).
 - **Developer-surface gaps** — Diagnostics Export CSV / copy-token; Functions auth
   + test-notification actions.
 - **Door-canvas animation polish.**

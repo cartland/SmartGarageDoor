@@ -75,6 +75,42 @@ struct HomeContentView: View {
     let onRefresh: () -> Void
     let onAlertAction: (HomeAlertItem.Kind) -> Void
 
+    /// Which per-pill info sheet is open. Pure local UI state (no VM data),
+    /// mirroring Android's `openInfoSheet` `remember` in `HomeContent`. An
+    /// explicit `init` for the injected values keeps this `private @State`
+    /// from lowering the synthesized memberwise initializer to `private`
+    /// (which would break the generated snapshot test that constructs the
+    /// view across files).
+    @State private var activeInfoSheet: HomeInfoSheet?
+
+    init(
+        doorPosition: DoorPosition,
+        sinceLine: String?,
+        warningText: String?,
+        isCheckInStale: Bool,
+        buttonStateLabel: String,
+        buttonHealth: ButtonHealthItem,
+        signedIn: Bool,
+        alerts: [HomeAlertItem],
+        checkIn: DeviceCheckInItem,
+        onButtonTap: @escaping () -> Void,
+        onRefresh: @escaping () -> Void,
+        onAlertAction: @escaping (HomeAlertItem.Kind) -> Void
+    ) {
+        self.doorPosition = doorPosition
+        self.sinceLine = sinceLine
+        self.warningText = warningText
+        self.isCheckInStale = isCheckInStale
+        self.buttonStateLabel = buttonStateLabel
+        self.buttonHealth = buttonHealth
+        self.signedIn = signedIn
+        self.alerts = alerts
+        self.checkIn = checkIn
+        self.onButtonTap = onButtonTap
+        self.onRefresh = onRefresh
+        self.onAlertAction = onAlertAction
+    }
+
     var body: some View {
         List {
             if !alerts.isEmpty {
@@ -117,6 +153,8 @@ struct HomeContentView: View {
                     Text("Status")
                     Spacer()
                     DeviceCheckInPill(item: checkIn)
+                        .contentShape(Capsule())
+                        .onTapGesture { activeInfoSheet = .doorStatus }
                 }
             }
 
@@ -136,6 +174,8 @@ struct HomeContentView: View {
                     Text("Remote button")
                     Spacer()
                     RemoteButtonHealthPill(item: buttonHealth)
+                        .contentShape(Capsule())
+                        .onTapGesture { activeInfoSheet = .remoteControl }
                 }
             }
 
@@ -146,6 +186,10 @@ struct HomeContentView: View {
         }
         .navigationTitle("Garage")
         .refreshable { onRefresh() }
+        .sheet(item: $activeInfoSheet) { sheet in
+            HomeInfoSheetView(sheet: sheet)
+                .presentationDetents([.medium, .large])
+        }
     }
 }
 
@@ -276,6 +320,81 @@ private struct DoorWarningChip: View {
     }
 }
 
+/// Identifies which per-pill info sheet is open on the Home tab — the SwiftUI
+/// analog of Android's private `HomeInfoSheet` enum in `HomeContent.kt`. The
+/// explanatory copy mirrors Android's `InfoBottomSheet.kt` strings (short,
+/// reviewed with the user). iOS sources its own copy inline, matching how the
+/// rest of the iOS app handles user-facing strings.
+enum HomeInfoSheet: String, Identifiable {
+    case doorStatus
+    case remoteControl
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .doorStatus: return "Door status"
+        case .remoteControl: return "Remote control"
+        }
+    }
+
+    var paragraphs: [String] {
+        switch self {
+        case .doorStatus:
+            return [
+                "The door sensor checks in every 10 minutes, or whenever the door moves.",
+                "If we don't hear from it on schedule, this shows \"no signal\" so you know the sensor may be offline.",
+            ]
+        case .remoteControl:
+            return [
+                "The remote button checks in frequently. \"Available\" means it just told us it's ready to open or close the door.",
+                "If contact stops, this shows when we last heard from it. Tapping the button may not work until it reconnects.",
+            ]
+        }
+    }
+}
+
+/// Pure info-sheet content — the SwiftUI analog of Android's `InfoSheetLayout`
+/// in `InfoBottomSheet.kt`. Centered info icon + title + left-aligned
+/// paragraphs in a scrollable column (a `ModalBottomSheet` provides no scroll
+/// of its own; tall content on a short viewport would otherwise clip). Pure
+/// values so it renders in the snapshot gallery without a live component.
+struct HomeInfoSheetContentView: View {
+    let title: String
+    let paragraphs: [String]
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: GarageSpacing.card) {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.tint)
+                Text(title)
+                    .font(.title2)
+                    .multilineTextAlignment(.center)
+                ForEach(Array(paragraphs.enumerated()), id: \.offset) { _, paragraph in
+                    Text(paragraph)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .padding(GarageSpacing.card)
+            .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+/// Thin wrapper that maps the typed `HomeInfoSheet` to its content view, used
+/// as the `.sheet(item:)` builder on the Home content.
+private struct HomeInfoSheetView: View {
+    let sheet: HomeInfoSheet
+
+    var body: some View {
+        HomeInfoSheetContentView(title: sheet.title, paragraphs: sheet.paragraphs)
+    }
+}
+
 #Preview("Home closed signed out") {
     NavigationStack {
         HomeContentView(
@@ -363,4 +482,24 @@ private struct DoorWarningChip: View {
             onAlertAction: { _ in }
         )
     }
+}
+
+#Preview("Info door status") {
+    HomeInfoSheetContentView(
+        title: "Door status",
+        paragraphs: [
+            "The door sensor checks in every 10 minutes, or whenever the door moves.",
+            "If we don't hear from it on schedule, this shows \"no signal\" so you know the sensor may be offline.",
+        ]
+    )
+}
+
+#Preview("Info remote control") {
+    HomeInfoSheetContentView(
+        title: "Remote control",
+        paragraphs: [
+            "The remote button checks in frequently. \"Available\" means it just told us it's ready to open or close the door.",
+            "If contact stops, this shows when we last heard from it. Tapping the button may not work until it reconnects.",
+        ]
+    )
 }
