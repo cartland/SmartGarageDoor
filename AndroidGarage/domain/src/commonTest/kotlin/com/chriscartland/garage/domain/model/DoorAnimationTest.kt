@@ -186,6 +186,34 @@ class DoorAnimationTest {
         }
     }
 
+    // --- colorStateFor --------------------------------------------------------
+
+    @Test
+    fun colorStateFor_closed_isClosed() {
+        assertEquals(DoorColorState.CLOSED, DoorAnimation.colorStateFor(DoorPosition.CLOSED))
+    }
+
+    @Test
+    fun colorStateFor_unknownAndSensorConflict_areUnknown() {
+        assertEquals(DoorColorState.UNKNOWN, DoorAnimation.colorStateFor(DoorPosition.UNKNOWN))
+        assertEquals(DoorColorState.UNKNOWN, DoorAnimation.colorStateFor(DoorPosition.ERROR_SENSOR_CONFLICT))
+    }
+
+    @Test
+    fun colorStateFor_openAndMotionStates_areOpen() {
+        val openStates = listOf(
+            DoorPosition.OPENING,
+            DoorPosition.OPENING_TOO_LONG,
+            DoorPosition.OPEN,
+            DoorPosition.OPEN_MISALIGNED,
+            DoorPosition.CLOSING,
+            DoorPosition.CLOSING_TOO_LONG,
+        )
+        for (state in openStates) {
+            assertEquals(DoorColorState.OPEN, DoorAnimation.colorStateFor(state), "$state should read open/red")
+        }
+    }
+
     // --- Exhaustiveness sanity checks ----------------------------------------
 
     @Test

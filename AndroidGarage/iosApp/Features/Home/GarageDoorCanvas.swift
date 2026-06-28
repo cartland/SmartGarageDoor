@@ -24,8 +24,8 @@ import SwiftUI
 // the door-fill **palette** (`GarageDoorPalette`) are now shared `:domain`
 // single sources of truth, consumed by both platforms via SKIE — as is the
 // **animation spec** (`DoorAnimation`: offset constants + the
-// `DoorPosition → offset / overlay` mappings). Only the door-position →
-// color-state mapping still mirrors the Android source (a follow-up hoist).
+// `DoorPosition → offset / overlay / color-state` mappings). The door
+// visualization is now fully shared `:domain`; no hand-mirrored mappings remain.
 //
 // Parity scope (v1): the *visual* — door shape, per-state offset, per-state
 // color (fresh / stale), and the directional / warning overlay. The animation
@@ -210,25 +210,6 @@ private struct DoorOverlayBadge: View {
     }
 }
 
-// MARK: - Door state → color mapping (mirror Android doorColorState())
-
-private enum DoorColorState { case closed, open, unknown }
-
-private enum DoorVisual {
-    /// The door's color *family* for a state — feeds `DoorPalette`. Verbatim
-    /// mirror of Android `doorColorState()` (theme layer). The offset + overlay
-    /// mappings are now the shared `:domain` `DoorAnimation`, consumed directly
-    /// in `GarageDoorView`; this color-state mapping is a follow-up hoist (it is
-    /// woven through Android's theme package — see UI_FIDELITY_TIERS § (a)).
-    static func colorState(for p: DoorPosition) -> DoorColorState {
-        switch p {
-        case .unknown, .errorSensorConflict: return .unknown
-        case .closed: return .closed
-        case .opening, .openingTooLong, .open, .openMisaligned, .closing, .closingTooLong: return .open
-        }
-    }
-}
-
 // MARK: - Door status palette (mirror DoorStatusColorScheme.kt + Color.kt)
 
 private enum DoorPalette {
@@ -259,7 +240,7 @@ private enum DoorPalette {
 
     static func doorRGB(for p: DoorPosition, stale: Bool, scheme: ColorScheme) -> Int {
         let pair: (light: Int, dark: Int)
-        switch DoorVisual.colorState(for: p) {
+        switch DoorAnimation.shared.colorStateFor(doorPosition: p) {
         case .closed: pair = stale ? closedStale : closedFresh
         case .open: pair = stale ? openStale : openFresh
         case .unknown: pair = stale ? unknownStale : unknownFresh
