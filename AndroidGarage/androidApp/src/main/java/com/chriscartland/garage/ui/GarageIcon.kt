@@ -37,6 +37,7 @@ import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.domain.model.GarageDoorGeometry
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 import java.time.Duration
@@ -174,7 +175,7 @@ private fun DoorIconBox(
 ) {
     Box(
         modifier = modifier
-            .aspectRatio(GARAGE_DOOR_ASPECT_RATIO)
+            .aspectRatio(GarageDoorGeometry.ASPECT_RATIO)
             .semantics { doorOffsetSemantics = doorOffset },
         contentAlignment = Alignment.Center,
     ) {

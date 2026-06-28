@@ -43,7 +43,7 @@ a platform idiom clearly serves the user better. A surface may **split** across 
 
 | Surface / element | Tier | Notes |
 |---|---|---|
-| Door-status visualization (canvas geometry, panel layout, proportions) | **1** | Brand through-line. Geometry constants are the next shared-constant candidate (`GarageDoorCanvas.swift` ↔ `AnimatableGarageDoor.kt` currently duplicate them). |
+| Door-status visualization (canvas geometry, panel layout, proportions) | **1** | Brand through-line. **Geometry is now shared** — `:domain` `GarageDoorGeometry`, consumed identically by both canvases (pinned by `GarageDoorGeometryTest`). The color palette + offsets/state-mappings remain candidates (PENDING_FOLLOWUPS § 4). |
 | Door-state color semantics (closed / open / opening-too-long / unknown) | **1** | Color **is** meaning; must not drift. `DoorPalette` (iOS) mirrors Android `Color.kt` by hand today → candidate to share. |
 | App icon, feature graphic, brand naming ("Garage") | **1** | Identity assets. See the `play-store-assets` skill + `distribution/playstore/`. |
 | Tab **set** (Home / History / Settings) | **1** | The *which-tabs* is identity (ADR-029 §3). Both ship **3** top-level tabs; Functions + Diagnostics are `developerAccess`-gated **sub-screens of Settings** (Android rows / iOS `NavigationLink`s), not tabs. |
