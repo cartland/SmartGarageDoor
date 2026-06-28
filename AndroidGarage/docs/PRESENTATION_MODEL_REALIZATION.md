@@ -334,9 +334,9 @@ delivery, release tooling, App Store).
 Condensed from the 2026-06-27 audit. Items already shipped are struck through.
 
 - **Settings** — ~~3-tab restructure + gated Developer section (#926)~~;
-  ~~account name/email + About/version (#927)~~. Remaining: store/privacy links
-  (deferred until published), tap-to-copy version, typed snooze-failure messages,
-  snooze permission state.
+  ~~account name/email + About/version (#927)~~; ~~tap-to-copy version/build/package
+  (#943)~~ ✅; ~~typed snooze-failure messages~~ ✅. Remaining: store/privacy links
+  (deferred until published), snooze permission state.
 - **Home** — ~~typed `DoorWarning` chip (P1)~~ ✅; ~~"Since · duration" line
   (P2)~~ ✅; ~~alert banners stale/fetch-error/permission (P4)~~ ✅; ~~check-in
   pill (P5)~~ ✅; ~~button-health pill render (P5)~~ ✅; ~~info sheets (P5)~~ ✅

@@ -108,9 +108,22 @@ final class SettingsViewModelWrapper: ObservableObject {
         case .sending:
             snoozeSending = true
             snoozeError = nil
-        case .failed:
+        case .failed(let failed):
             snoozeSending = false
-            snoozeError = "Snooze failed, try again"
+            // Typed copy, verbatim from Android's `snooze_failed_*` strings.
+            // `SnoozeAction.Failed` is a shared sealed type, so this switch is
+            // exhaustive — a new failure case forces an update here rather than
+            // silently falling back to a generic message.
+            switch onEnum(of: failed) {
+            case .eventChanged:
+                snoozeError = "Door state changed before snooze could apply. Try again."
+            case .networkError:
+                snoozeError = "Snooze did not apply. Check your connection and try again."
+            case .notAuthenticated:
+                snoozeError = "Sign in to snooze notifications."
+            case .missingData:
+                snoozeError = "No recent door event available. Try again in a moment."
+            }
         case .idle, .succeeded:
             snoozeSending = false
             snoozeError = nil
