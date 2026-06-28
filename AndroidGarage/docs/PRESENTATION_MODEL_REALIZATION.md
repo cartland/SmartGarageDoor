@@ -30,6 +30,18 @@ module already exists (`HomeScreenState`, `DoorHistoryScreenState`,
 - **Shared emits typed state, never user-visible strings.** Sealed types, enums,
   numeric parts (`days/hours/minutes`, epoch deltas). Each UI renders localized
   strings at render time (Compose `stringResource`/plurals; SwiftUI formatters).
+- **But locale-invariant *config* DOES belong in shared — that's the opposite of
+  display strings.** A URL, a numeric threshold, a topic prefix, an ID — values
+  that are the same in every locale and on every platform — are a single-source
+  constant in `domain` (e.g. an `object` with a `const val`), consumed by both
+  UIs, NOT duplicated per platform. The test: *would a translator ever change
+  it?* If yes → per-platform display string. If no → shared `domain` constant.
+  Canonical: `AppLinks.PRIVACY_POLICY_URL` (P5, #946) — the privacy URL was an
+  Android-only `private const val`; it moved to `domain/.../model/AppLinks.kt`
+  (the `AppLoggerLimits` "cannot drift" convention) and both Android and iOS now
+  read it (iOS via SKIE `AppLinks.shared.PRIVACY_POLICY_URL`, since `domain` is an
+  exported framework module). When iOS is about to hardcode a value that already
+  exists on Android, ask "is this config or display?" before duplicating.
 - Mapping logic is **pure functions in `presentation-model/commonMain`** and/or
   computed `StateFlow`s on the shared VM. No platform types.
 - Android `*Content.kt` and iOS `*ContentView`/wrapper become thin renderers of
@@ -201,14 +213,24 @@ inlined to `HomeAlert.PermissionMissing.attemptCount`.
   Stale banner + muted door color (`GarageDoorView(isStale:)`) signal staleness,
   matching Android (which never had an in-card stale label).
 
-### Phase 5 — Remaining richness (paused 2026-06-28)
+### Phase 5 — Remaining richness (clean slices done 2026-06-28)
 
-Run as a sequence of small PRs, each one a self-contained slice. **Status:** the
-clean, snapshot-verifiable iOS-only content-parity slices are done (check-in pill,
-button-health pill, info sheets #939, Functions warning + test-notification #941).
-Paused here by the user — each remaining item either has a verification gap
-(door-canvas animation) or needs shared-module work (Export CSV, copy-auth-token),
-so they're picked up deliberately rather than auto-continued.
+Run as a sequence of small PRs, each one a self-contained slice. **Status:** every
+clean, snapshot-verifiable iOS-only parity slice is now shipped — check-in pill,
+button-health pill, info sheets (#939), Functions warning + test-notification
+(#941), Settings tap-to-copy version/build/package (#943), typed snooze-failure
+messages (#944), snooze permission state (#945), privacy-policy link with the URL
+shared via `domain` (#946). **iOS now has full verifiable parity across all five
+surfaces** (Home / History / Settings / Diagnostics / Functions).
+
+What remains all crosses the "needs a decision / can't be CLI-verified / shared
+work" line and is picked up deliberately, not auto-continued:
+- **Door-canvas animation** & **network-progress diagram** — verification gap
+  (animation trajectory isn't snapshot-verifiable on iOS; see the door-canvas
+  bullet below). The network diagram is also tied to the remote-button flow.
+- **Export CSV** & **copy-auth-token** (Diagnostics/Functions) — shared-module
+  work (shared CSV API + iOS share sheet; token-fetch bridge → two-DI-component).
+- **App Store link** (Settings) — deferred until the iOS listing is published.
 
 - **Check-in pill — ✅ SHIPPED.** `DoorEvent.lastCheckInTimeSeconds` + the live
   clock → typed `CheckInStatus` (`NoData` / `Reported(age, isStale)`) with a
