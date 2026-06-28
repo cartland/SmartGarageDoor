@@ -5,7 +5,7 @@
 
 A browsable visual reference of every SwiftUI `#Preview` in the iOS app, captured via Prefire + swift-snapshot-testing. These are reference images, **not** pixel-perfect gating tests — they are regenerated, never asserted.
 
-**18 snapshot(s)** across 1 group(s).
+**19 snapshot(s)** across 1 group(s).
 
 ## Table of contents
 - [PreviewTests.generated](#previewtestsgenerated)
@@ -59,6 +59,9 @@ A browsable visual reference of every SwiftUI `#Preview` in the iOS app, capture
 
 ### Info-remote-control.1
 <img src="__Snapshots__/PreviewTests.generated/Info-remote-control.1.png" width="240" />
+
+### Settings-notifications-disabled.1
+<img src="__Snapshots__/PreviewTests.generated/Settings-notifications-disabled.1.png" width="240" />
 
 ### Settings-signed-in-developer.1
 <img src="__Snapshots__/PreviewTests.generated/Settings-signed-in-developer.1.png" width="240" />

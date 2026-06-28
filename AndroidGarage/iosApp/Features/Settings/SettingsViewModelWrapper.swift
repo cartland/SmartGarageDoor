@@ -16,6 +16,7 @@
  */
 
 import SwiftUI
+import UserNotifications
 @preconcurrency import shared
 
 /// Bridges `DefaultProfileViewModel` to SwiftUI (the Settings tab).
@@ -27,6 +28,13 @@ final class SettingsViewModelWrapper: ObservableObject {
     @Published private(set) var snoozeLabel: String = "Not snoozing"
     @Published private(set) var snoozeSending: Bool = false
     @Published private(set) var snoozeError: String?
+    /// Whether notification authorization is granted. Drives the snooze section:
+    /// when `false`, the snooze controls are replaced by a "tap to enable" row
+    /// (mirrors Android's `SnoozeRowState.PermissionDenied`). Defaults `true` so
+    /// the prompt doesn't flash before the async read resolves. The notification
+    /// read/request mirror `HomeViewModelWrapper` (per-UI `UNUserNotificationCenter`,
+    /// the analog of Android's runtime permission).
+    @Published private(set) var notificationsGranted: Bool = true
     /// Tri-state allowlist flags (`nil` = not yet known). The Developer section
     /// is shown only when `developerAccess == true`; the Functions row inside it
     /// only when `functionListAccess == true` — mirrors Android. See FEATURE_FLAGS.md.
@@ -53,6 +61,7 @@ final class SettingsViewModelWrapper: ObservableObject {
         applyAction(vm.snoozeAction.value)
         developerAccess = vm.developerAccess.value?.boolValue
         functionListAccess = vm.functionListAccess.value?.boolValue
+        refreshNotificationPermission()
 
         tasks.append(Task { @MainActor [weak self] in
             guard let self else { return }
@@ -143,6 +152,31 @@ final class SettingsViewModelWrapper: ObservableObject {
     func signOut() { vm.signOut() }
     func refreshSnooze() { vm.fetchSnoozeStatus() }
     func snooze(_ option: SnoozeDurationUIOption) { vm.snoozeOpenDoorsNotifications(snoozeDuration: option) }
+
+    /// Reads current notification authorization. `.authorized` / `.provisional` /
+    /// `.ephemeral` count as granted; only a hard denial / not-yet-asked surfaces
+    /// the "tap to enable" snooze row. Called on init and on screen appear so a
+    /// permission change made in iOS Settings is reflected on return.
+    func refreshNotificationPermission() {
+        UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
+            let granted = settings.authorizationStatus == .authorized
+                || settings.authorizationStatus == .provisional
+                || settings.authorizationStatus == .ephemeral
+            Task { @MainActor in self?.notificationsGranted = granted }
+        }
+    }
+
+    /// Requests notification authorization, then refreshes the published state.
+    /// Mirrors Android's `launchPermissionRequest()` on the denied snooze row.
+    /// (After a prior hard denial iOS won't re-prompt — the same limitation as
+    /// Android; the Home permission banner carries the "manage in Settings"
+    /// escalation guidance.)
+    func requestNotificationPermission() {
+        UNUserNotificationCenter.current()
+            .requestAuthorization(options: [.alert, .badge, .sound]) { [weak self] _, _ in
+                Task { @MainActor in self?.refreshNotificationPermission() }
+            }
+    }
 
     deinit { tasks.forEach { $0.cancel() } }
 }
