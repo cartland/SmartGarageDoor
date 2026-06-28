@@ -38,6 +38,7 @@ struct HomeScreen: View {
             buttonHealthLabel: wrapper.buttonHealthLabel,
             signedIn: wrapper.signedIn,
             alerts: wrapper.alerts,
+            checkIn: wrapper.checkIn,
             onButtonTap: { wrapper.onButtonTap() },
             onRefresh: { wrapper.refresh() },
             onAlertAction: { wrapper.onAlertAction($0) }
@@ -65,6 +66,9 @@ struct HomeContentView: View {
     /// Empty in the steady state; the shared `HomeAlertMapper` decides when a
     /// stale / permission / fetch-error banner applies.
     let alerts: [HomeAlertItem]
+    /// Resolved device check-in pill (ADR-031 Phase 5) shown in the Status
+    /// section header. `label == nil` renders icon-only (no heartbeat yet).
+    let checkIn: DeviceCheckInItem
     let onButtonTap: () -> Void
     let onRefresh: () -> Void
     let onAlertAction: (HomeAlertItem.Kind) -> Void
@@ -80,7 +84,7 @@ struct HomeContentView: View {
                 }
             }
 
-            Section("Status") {
+            Section {
                 VStack(spacing: GarageSpacing.card) {
                     GarageDoorView(position: doorPosition, isStale: isCheckInStale)
                         .frame(height: 160)
@@ -104,6 +108,14 @@ struct HomeContentView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, GarageSpacing.tight)
+            } header: {
+                // Pill right-aligned in the section header, mirroring Android's
+                // `DeviceCheckInPill` in the "Status" header row.
+                HStack {
+                    Text("Status")
+                    Spacer()
+                    DeviceCheckInPill(item: checkIn)
+                }
             }
 
             Section("Remote button") {
@@ -161,6 +173,40 @@ private struct HomeAlertBanner: View {
     }
 }
 
+/// Compact device-heartbeat pill in the Home "Status" section header — the
+/// SwiftUI analog of Android's `DeviceCheckInPill`. Antenna icon + "… ago" text
+/// when fresh; slashed antenna + warning tint when stale (>11 min). Text is
+/// hidden (icon only) until the first heartbeat is observed (`label == nil`).
+/// `.textCase(nil)` keeps the duration text from being uppercased by the
+/// surrounding section-header style.
+private struct DeviceCheckInPill: View {
+    let item: DeviceCheckInItem
+
+    var body: some View {
+        HStack(spacing: GarageSpacing.tight) {
+            if let label = item.label {
+                Text(label)
+                    .font(.caption2.weight(.medium))
+                    .textCase(nil)
+            }
+            Image(systemName: item.isStale
+                ? "antenna.radiowaves.left.and.right.slash"
+                : "antenna.radiowaves.left.and.right")
+                .font(.caption2)
+        }
+        .foregroundStyle(item.isStale ? GarageColors.statusWarning : Color.secondary)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(
+            Capsule().fill(item.isStale
+                ? GarageColors.statusWarning.opacity(0.12)
+                : Color(uiColor: .tertiarySystemFill))
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(item.isStale ? "Device offline" : "Device online")
+    }
+}
+
 /// Warning chip for stuck / anomalous door states — the SwiftUI analog of
 /// Android's errorContainer warning Surface in `HomeContent`. Renders the
 /// already-localized `text` (resolved from the shared typed `DoorWarning`).
@@ -190,6 +236,7 @@ private struct DoorWarningChip: View {
             buttonHealthLabel: "Sign in to see device health",
             signedIn: false,
             alerts: [],
+            checkIn: DeviceCheckInItem(label: "23 min ago", isStale: true),
             onButtonTap: {},
             onRefresh: {},
             onAlertAction: { _ in }
@@ -208,6 +255,7 @@ private struct DoorWarningChip: View {
             buttonHealthLabel: "Online",
             signedIn: true,
             alerts: [],
+            checkIn: DeviceCheckInItem(label: "1 min ago", isStale: false),
             onButtonTap: {},
             onRefresh: {},
             onAlertAction: { _ in }
@@ -226,6 +274,7 @@ private struct DoorWarningChip: View {
             buttonHealthLabel: "Online",
             signedIn: true,
             alerts: [],
+            checkIn: DeviceCheckInItem(label: "1 min ago", isStale: false),
             onButtonTap: {},
             onRefresh: {},
             onAlertAction: { _ in }
@@ -257,6 +306,7 @@ private struct DoorWarningChip: View {
                     actionLabel: "Allow"
                 ),
             ],
+            checkIn: DeviceCheckInItem(label: "23 min ago", isStale: true),
             onButtonTap: {},
             onRefresh: {},
             onAlertAction: { _ in }

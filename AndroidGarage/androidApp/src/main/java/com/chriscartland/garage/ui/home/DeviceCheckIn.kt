@@ -17,16 +17,20 @@
 
 package com.chriscartland.garage.ui.home
 
+import com.chriscartland.garage.presentation.CheckInAge
+import com.chriscartland.garage.presentation.CheckInStatus
+import com.chriscartland.garage.presentation.CheckInStatusMapper
+
 /**
  * Display state for the device check-in indicator. Carries pre-formatted
  * strings so the renderer (currently [com.chriscartland.garage.ui.DeviceCheckInPill])
- * stays stateless and unit tests cover the formatting logic directly.
+ * stays stateless and unit tests cover the formatting directly.
  *
  * @param durationLabel e.g. "Just now", "30 sec ago", "1 min 30 sec ago".
- *   Returns "No data yet" when the heartbeat hasn't been observed.
+ *   Equals [NO_DATA_LABEL] when the heartbeat hasn't been observed.
  * @param isStale true once the heartbeat is older than the staleness
- *   threshold (`STALE_THRESHOLD_SECONDS`, 11 min). Drives the icon flip
- *   and color change.
+ *   threshold (`CheckInStatusMapper.STALE_THRESHOLD_SECONDS`, 11 min). Drives
+ *   the icon flip and color change.
  */
 data class DeviceCheckInDisplay(
     val durationLabel: String,
@@ -34,56 +38,62 @@ data class DeviceCheckInDisplay(
 )
 
 /**
- * Pure-function formatter for the device check-in label. Driven by
- * [com.chriscartland.garage.usecase.LiveClock]'s 1s tick — `MutableStateFlow`
- * equality-dedup makes per-second ticks free for unchanged formatted strings.
+ * Android adapter from the shared typed [CheckInStatus] to the rendered
+ * [DeviceCheckInDisplay]. The bucketing + staleness *decision* moved to the
+ * shared `presentation-model` ([CheckInStatusMapper], ADR-031); this object keeps
+ * only the Android-side "… ago" string formatting (the per-UI step iOS mirrors in
+ * Swift). Driven by [com.chriscartland.garage.usecase.LiveClock]'s tick via the
+ * caller's `nowSeconds` — `MutableStateFlow` equality-dedup makes per-tick calls
+ * free for unchanged formatted strings.
  *
- * @param lastCheckInSeconds epoch-seconds of the most recent device
- *   heartbeat (`DoorEvent.lastCheckInTimeSeconds`). Null when no event
- *   has been received yet.
- * @param nowSeconds epoch-seconds of the current wall-clock — typically
+ * @param lastCheckInSeconds epoch-seconds of the most recent device heartbeat
+ *   (`DoorEvent.lastCheckInTimeSeconds`). Null when no event has been received.
+ * @param nowSeconds epoch-seconds of the current wall clock — typically
  *   `LiveClock.nowEpochSeconds.value`.
- * @param staleThresholdSeconds heartbeat age past which the indicator
- *   flips to stale. Defaults to 11 minutes (matches
- *   `CheckInStalenessManager.CHECK_IN_STALE_THRESHOLD_SECONDS`).
+ * @param staleThresholdSeconds heartbeat age past which the indicator flips to
+ *   stale. Defaults to the shared 11-minute threshold.
  */
 object DeviceCheckIn {
     fun format(
         lastCheckInSeconds: Long?,
         nowSeconds: Long,
-        staleThresholdSeconds: Long = STALE_THRESHOLD_SECONDS,
-    ): DeviceCheckInDisplay {
-        if (lastCheckInSeconds == null) {
-            return DeviceCheckInDisplay(durationLabel = "No data yet", isStale = false)
+        staleThresholdSeconds: Long = CheckInStatusMapper.STALE_THRESHOLD_SECONDS,
+    ): DeviceCheckInDisplay =
+        when (
+            val status =
+                CheckInStatusMapper.forCheckIn(
+                    lastCheckInEpochSeconds = lastCheckInSeconds,
+                    nowEpochSeconds = nowSeconds,
+                    staleThresholdSeconds = staleThresholdSeconds,
+                )
+        ) {
+            CheckInStatus.NoData -> DeviceCheckInDisplay(durationLabel = NO_DATA_LABEL, isStale = false)
+            is CheckInStatus.Reported ->
+                DeviceCheckInDisplay(
+                    durationLabel = label(status.age),
+                    isStale = status.isStale,
+                )
         }
-        val age = (nowSeconds - lastCheckInSeconds).coerceAtLeast(0L)
-        val label = when {
-            age < SECONDS_PER_MIN -> if (age < 10) "Just now" else "$age sec ago"
-            age < SECONDS_PER_HOUR -> {
-                val minutes = age / SECONDS_PER_MIN
-                val seconds = age % SECONDS_PER_MIN
-                if (seconds == 0L) "$minutes min ago" else "$minutes min $seconds sec ago"
-            }
-            age < SECONDS_PER_DAY -> {
-                val hours = age / SECONDS_PER_HOUR
-                val minutes = (age % SECONDS_PER_HOUR) / SECONDS_PER_MIN
-                if (minutes == 0L) "$hours hr ago" else "$hours hr $minutes min ago"
-            }
-            else -> {
-                val days = age / SECONDS_PER_DAY
-                if (days == 1L) "1 day ago" else "$days days ago"
-            }
+
+    private fun label(age: CheckInAge): String =
+        when (age) {
+            CheckInAge.JustNow -> "Just now"
+            is CheckInAge.Seconds -> "${age.seconds} sec ago"
+            is CheckInAge.Minutes ->
+                if (age.seconds == 0) {
+                    "${age.minutes} min ago"
+                } else {
+                    "${age.minutes} min ${age.seconds} sec ago"
+                }
+            is CheckInAge.Hours ->
+                if (age.minutes == 0) {
+                    "${age.hours} hr ago"
+                } else {
+                    "${age.hours} hr ${age.minutes} min ago"
+                }
+            is CheckInAge.Days -> if (age.days == 1) "1 day ago" else "${age.days} days ago"
         }
-        return DeviceCheckInDisplay(
-            durationLabel = label,
-            isStale = age > staleThresholdSeconds,
-        )
-    }
 
-    private const val SECONDS_PER_MIN = 60L
-    private const val SECONDS_PER_HOUR = 3_600L
-    private const val SECONDS_PER_DAY = 86_400L
-
-    /** Mirrors `CheckInStalenessManager.CHECK_IN_STALE_THRESHOLD_SECONDS`. */
-    const val STALE_THRESHOLD_SECONDS = 11L * 60
+    /** Sentinel duration label for "no heartbeat yet"; the pill hides its text for this value. */
+    const val NO_DATA_LABEL = "No data yet"
 }

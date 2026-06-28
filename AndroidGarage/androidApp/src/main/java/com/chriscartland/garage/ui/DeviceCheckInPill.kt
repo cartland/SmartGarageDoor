@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.ui.home.DeviceCheckIn
 import com.chriscartland.garage.ui.home.DeviceCheckInDisplay
 import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 import com.chriscartland.garage.ui.theme.Spacing
@@ -82,7 +83,7 @@ fun DeviceCheckInPill(
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
-    val showText = display.durationLabel != "No data yet"
+    val showText = display.durationLabel != DeviceCheckIn.NO_DATA_LABEL
     val baseModifier = modifier
         .background(color = backgroundColor, shape = pillShape)
     val tapModifier = if (onTap != null) {
