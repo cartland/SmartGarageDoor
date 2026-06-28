@@ -1665,6 +1665,8 @@ Until now this intent existed only implicitly, scattered across mechanical "mirr
 - Not matching platform-specific affordances 1:1 (Android's nav rail / 3-pane has no iOS equivalent; iOS's interactive swipe-back has no Android equivalent).
 - Not simultaneous release — platforms version independently (`android/N`, `ios/N`).
 
+> **Refined by [ADR-032](#adr-032).** The blanket "not pixel-identical" above is too coarse — some surfaces (the door visualization, state colors) *are* brand-locked, while chrome fully diverges. ADR-032 replaces this single principle with four **fidelity tiers** (Identity / Convergent / Native-idiomatic / Platform-exclusive) and a decision rule; the per-surface classification lives in [`UI_FIDELITY_TIERS.md`](./UI_FIDELITY_TIERS.md).
+
 ### Current deliberate gaps (north star ≠ current state)
 
 iOS is mid-build; these are known, tracked in [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md), and are not violations of this ADR:
@@ -1801,3 +1803,67 @@ Principles:
 - [`PRESENTATION_MODEL_REALIZATION.md`](./PRESENTATION_MODEL_REALIZATION.md) — the phased plan, slice checklist, and parity-gap inventory.
 - Dormant scaffolding: `presentation-model/.../{HomeScreenState,DoorHistoryScreenState,ProfileScreenState}.kt`.
 - Mappers to relocate: `androidApp/.../ui/home/{HomeMapper,HomeStatusFormatter,DoorWarning}.kt`, `androidApp/.../ui/history/HistoryMapper.kt`.
+
+---
+
+## ADR-032: Cross-platform UI fidelity tiers — how much each surface should match across Android and iOS
+
+### Status
+
+Accepted — 2026-06-28. Refines ADR-029. Per-surface classification table: [`UI_FIDELITY_TIERS.md`](./UI_FIDELITY_TIERS.md).
+
+### Context
+
+ADR-029 stated the parity *principle* — capability parity is the north star, UI is platform-native, one shared "Garage" identity spans both — and a blanket "we do NOT pursue pixel-identical screens." That blanket is too coarse. In practice the door-status visualization and the door-state colors were always meant to be **brand-locked** (a different color literally means a different door state), while the navigation chrome was always meant to **fully diverge** (tab bar vs nav rail / 3-pane). Most screens sit *between* those: the same sections, data, and label-meaning, rendered with native styling.
+
+Without a stated spectrum, every new feature reopens an ad-hoc "how closely should iOS match Android here?" debate, and reviewers have no shared vocabulary for "this should match to the pixel" vs "this should look native." ADR-029's single principle needs a **classification lens** that says, for any given element, *how much* fidelity we owe and *which shared layer* enforces it.
+
+This ADR adds that lens. It does **not** introduce new infrastructure — the tiers map 1:1 onto the layers we already have (shared constants, the `presentation-model` of ADR-031, `domain`/`usecase`, and "no sharing").
+
+### Decision
+
+Classify every UI element into one of four **fidelity tiers**. For any element, apply the decision rule top-down — **first match wins**:
+
+1. **Does it carry brand identity, or does *looking different mean something different*?** → **Tier 1 — Identity (brand-locked).**
+2. **Is it content whose *structure* should match but whose styling can be native?** → **Tier 2 — Convergent.**
+3. **Is it navigation / chrome / a system integration with a strong OS idiom?** → **Tier 3 — Native-idiomatic.**
+4. **Is it genuinely one-platform, by *deliberate* decision?** → **Tier 4 — Platform-exclusive.**
+
+**Tie-breaker** (from ADR-029 §4): when torn between two adjacent tiers, prefer the **more-shared** one (push the logic/state down) unless a platform idiom clearly serves the user better. A single surface may be **split** across tiers — a status pill is Tier 1 in *meaning + color* but Tier 2 in its capsule chrome; the tab *set* is Tier 1 but its *rendering* is Tier 3.
+
+#### The four tiers
+
+| Tier | Name | Fidelity owed | Enforcing layer | Examples |
+|---|---|---|---|---|
+| **1** | **Identity (brand-locked)** | **Visually equivalent**, not literally pixel-matched — same shape, palette, icon family, proportions, and color→meaning. Native fonts/densities still differ. | Shared **constants** in `domain` (geometry, palette, door-offset positions — the `AppLinks` pattern) + a stated visual contract. | Door-status visualization; door-state colors (closed / open / opening-too-long / unknown); pill & warning *meaning + color*; app icon; brand naming; the tab *set*. |
+| **2** | **Convergent** | Same sections, order, data, and label-*meaning*; styling adopts platform norms ("mostly a pixel match, local styles allowed"). | Shared **`presentation-model`** typed state (ADR-031); each UI formats strings + picks card-vs-`List` chrome locally. | Home status-card information architecture; "Since · duration" line; alert banners; History day-grouping + rows; Settings *content* (account, About, snooze, privacy). |
+| **3** | **Native-idiomatic** | Platform *form* deliberately diverges; *logical structure + semantics* are shared. | Shared **`domain`/`usecase`** semantics; per-platform UI. No shared *display*. | Tab bar (iOS) vs nav rail / bottom-nav / 3-pane (Android); `.sheet` vs `ModalBottomSheet`; iOS Settings `List` vs Android sections; swipe-back vs predictive-back; safe-area vs edge-to-edge insets; notification presentation. |
+| **4** | **Platform-exclusive** | Exists on one platform only, by an **explicit** decision — *not* "only built once" (that is a parity *gap*, a Tier 1–3 item unported). | None. Recorded as an exception (here + in [`UI_FIDELITY_TIERS.md`](./UI_FIDELITY_TIERS.md)). | Android adaptive 3-pane / nav rail; iOS interactive swipe-back; API-33 clipboard `EXTRA_IS_SENSITIVE` redaction; a future widget / watch surface. |
+
+#### "Brand-locked" ≠ "pixel-perfect"
+
+Tier 1 aims for **visual equivalence across two rendering engines**, not byte-identical pixels — native font metrics, text layout, and display densities differ and that is fine. The lock is on *shape, palette, icon family, proportions, and the color→meaning contract*. The mechanism is **shared constants**, not a shared renderer: geometry/palette/offsets live once in `domain` (`AppLinks.PRIVACY_POLICY_URL` is the canonical shared-config example; door geometry/palette are the next candidates), so the two platforms render the same source numbers. The literal-pixel interpretation was explicitly rejected (2026-06-28) — it fights native typography and is unverifiable on iOS.
+
+#### Parity gap vs. platform-exclusive (Tier 4) — keep them distinct
+
+- A **parity gap** is a Tier 1–3 element that *should* exist on both but is currently on one (iOS mid-build). It is tracked to be closed (`PENDING_FOLLOWUPS.md`, the realization plan's inventory). Not a Tier 4.
+- **Tier 4** is a *deliberate end state*: we chose, or the platform forces, that it lives on one side only. It must be recorded with its reason. Mislabeling a gap as Tier 4 silently accepts drift.
+
+### Consequences
+
+- **Reviewers get shared vocabulary.** An iOS PR is reviewed against its tier: Tier 1 → "does it read as the same brand / same state?"; Tier 2 → "same structure + data, native styling OK"; Tier 3 → "is it idiomatic, and is the *meaning* shared?"; Tier 4 → "is the exception recorded?"
+- **The new-feature checklist gains a step:** classify each new surface, then build it through that tier's enforcing layer (Tier 1 → shared constant; Tier 2 → presentation-model slice; Tier 3 → shared semantics + native UI; Tier 4 → record the exception).
+- **The classification is a living `reference` doc** ([`UI_FIDELITY_TIERS.md`](./UI_FIDELITY_TIERS.md)), kept in sync as screens are added — not frozen in this ADR.
+- No new infrastructure or CI gate; this is a lens over existing layers. (A future lint could assert "no shared user-visible strings" and "Tier 1 constants live in `domain`," but is not built yet.)
+
+### When this decision might change
+
+- If a fifth distinct fidelity posture emerges that none of the four tiers expresses, add it here.
+- If the product deliberately splits into materially different iOS vs Android experiences (not anticipated; would also revise ADR-029).
+
+### References
+
+- ADR-029 — the parity principle this refines (capability parity, platform-native, shared identity).
+- ADR-031 + [`PRESENTATION_MODEL_REALIZATION.md`](./PRESENTATION_MODEL_REALIZATION.md) — the Tier-2 enforcing layer (shared typed display state).
+- [`UI_FIDELITY_TIERS.md`](./UI_FIDELITY_TIERS.md) — the per-surface classification table (kept in sync with the screens).
+- The shared-constant rule (Tier 1 mechanism): `PRESENTATION_MODEL_REALIZATION.md` § Architectural rules, "locale-invariant config belongs in shared"; canonical `domain/.../model/AppLinks.kt`.

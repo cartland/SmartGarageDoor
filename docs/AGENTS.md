@@ -108,6 +108,7 @@ When you need to find or update a fact, this table tells you which doc owns it. 
 | CI architecture | `CLAUDE.md` § CI Architecture |
 | Release & deploy strategy (layered principles + conformance audit) | `docs/RELEASE_STRATEGY.md` |
 | FCM push-data & notification reliability (findings + proposed fixes) | `docs/NOTIFICATION_RELIABILITY.md` |
+| Cross-platform UI fidelity (how much each Android↔iOS surface should match) | `AndroidGarage/docs/DECISIONS.md` ADR-032 (tiers + rule) + `AndroidGarage/docs/UI_FIDELITY_TIERS.md` (per-surface table) |
 | Agent design + doc taxonomy | This file |
 
 ### Android
