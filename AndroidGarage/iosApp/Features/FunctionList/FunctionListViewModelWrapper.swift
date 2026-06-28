@@ -16,6 +16,7 @@
  */
 
 import SwiftUI
+import UIKit
 @preconcurrency import shared
 
 /// Bridges `DefaultFunctionListViewModel` to SwiftUI.
@@ -27,6 +28,12 @@ import SwiftUI
 final class FunctionListViewModelWrapper: ObservableObject {
     @Published private(set) var accessGranted: Bool?
 
+    /// Test-notification sandbox (diagnostic). `testTopic` is the personal FCM
+    /// topic once generated (nil until then — the UI hides the section while
+    /// nil, matching Android). `testSubscribed` toggles the subscribe/unsub label.
+    @Published private(set) var testTopic: String?
+    @Published private(set) var testSubscribed: Bool = false
+
     private let shared: SharedViewModel<DefaultFunctionListViewModel>
     private var tasks: [Task<Void, Never>] = []
     private var vm: DefaultFunctionListViewModel { shared.instance }
@@ -34,11 +41,25 @@ final class FunctionListViewModelWrapper: ObservableObject {
     init(component: NativeComponent) {
         shared = SharedViewModel(component.functionListViewModel)
         accessGranted = vm.accessGranted.value?.boolValue
+        applyTestState(vm.testNotificationState.value)
 
         tasks.append(Task { @MainActor [weak self] in
             guard let self else { return }
             for await v in self.vm.accessGranted { self.accessGranted = v?.boolValue }
         })
+        tasks.append(Task { @MainActor [weak self] in
+            guard let self else { return }
+            for await v in self.vm.testNotificationState { self.applyTestState(v) }
+        })
+    }
+
+    /// `TestNotificationTopic` is a Kotlin value class erased to its underlying
+    /// String at the ObjC boundary (typed `id`), so an optional one bridges as
+    /// `Any?` holding an NSString — same pattern as `User.name`/`.email` in the
+    /// Settings wrapper.
+    private func applyTestState(_ state: TestNotificationSandboxState) {
+        testTopic = state.topic as? String
+        testSubscribed = state.isSubscribed
     }
 
     func openOrCloseDoor() { vm.openOrCloseDoor() }
@@ -51,6 +72,15 @@ final class FunctionListViewModelWrapper: ObservableObject {
     func deregisterFcm() { vm.deregisterFcm() }
     func clearDiagnostics() { vm.clearDiagnostics() }
     func pruneDiagnosticsLog() { vm.pruneDiagnosticsLog() }
+    func subscribeTestNotification() { vm.subscribeTestNotification() }
+    func unsubscribeTestNotification() { vm.unsubscribeTestNotification() }
+    func changeTestNotificationTopic() { vm.changeTestNotificationTopic() }
+
+    /// Copy the personal test topic to the clipboard. No sensitivity flag (the
+    /// topic is not a secret) — unlike the auth token, which is deferred.
+    func copyTestTopic() {
+        if let topic = testTopic { UIPasteboard.general.string = topic }
+    }
 
     deinit { tasks.forEach { $0.cancel() } }
 }

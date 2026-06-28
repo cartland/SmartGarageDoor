@@ -252,8 +252,44 @@ Run as a sequence of small PRs, each one a self-contained slice:
   explicit `init` on `HomeContentView` keeps that `private @State` from lowering
   the synthesized memberwise init to `private`, which would break the generated
   snapshot test).
-- **Developer-surface gaps** — Diagnostics Export CSV / copy-token; Functions auth
-  + test-notification actions.
+- **Functions: developer warning + test-notification sandbox (iOS render) — ✅
+  SHIPPED.** The iOS Functions screen gained Android's developer **warning**
+  banner (verbatim `function_list_warning` copy) at the top of the granted list,
+  plus the **test-notification sandbox** section — topic display + Copy test
+  topic + Subscribe/Unsubscribe (state-driven label) + Change test topic — shown
+  only once the personal topic exists (mirrors Android, which hides the rows
+  until then). **iOS-only slice, not a typed-state mapping:** the shared
+  `FunctionListViewModel` already exposed every action **and**
+  `testNotificationState`, so the wrapper just published the topic/subscribed
+  pair (the optional `TestNotificationTopic` value class bridges as `Any?`
+  holding an NSString — `state.topic as? String`, the `User.name`/`.email`
+  pattern) and forwarded the calls; no shared / Android / DI / VM change. As-built
+  notes:
+  - **Sign in / out intentionally skipped on iOS Functions** (platform-native,
+    ADR-029). Settings owns the Account section + sign-out, and the Functions
+    screen is reached only via Settings → Developer → Functions (gated on
+    `functionListAccess == true`, which requires being signed in). So a sign-in
+    button would be unreachable and a sign-out would pop you out of the screen
+    you're on — duplicating them is an Android-flat-list artifact, not iOS-native.
+  - **Test-notification section extracted to a pure `TestNotificationSectionView`
+    subview** (mirrors the `HomeInfoSheetContentView` extraction) so the snapshot
+    gallery captures the rows directly. In the full screen the section sits below
+    Door / Refresh / FCM / Diagnostics, i.e. below the top-anchored snapshot fold
+    — a full-screen "test notifications" preview was byte-identical to "Functions
+    granted". Same fold issue as Android Layoutlib rendering a LazyColumn at
+    scroll 0; the focused preview is the fix.
+  - **Warning string is a `private static let`, not a `private let` instance
+    property** — a private *stored instance* property would lower the struct's
+    synthesized memberwise init to `private` and break the cross-file generated
+    snapshot test (same trap as the #939 `private @State`; see CLAUDE.md § iOS
+    snapshot gallery). A type property is never part of the memberwise init.
+- **Developer-surface gaps (remaining)** — Diagnostics **Export CSV** (needs a
+  shared CSV-content API + an iOS share sheet; that's a shared change, so
+  two-DI-component territory) and **copy auth token** on both Diagnostics +
+  Functions (Android does it via a UI-layer `rememberAuthTokenCopier` helper that
+  fetches the token; iOS has no token-fetch bridge yet, and the Android
+  API-33 `EXTRA_IS_SENSITIVE` redaction nuance needs an iOS-pasteboard
+  equivalent decision). Each is its own scoped slice.
 - **Door-canvas animation polish.**
 
 ### Out of scope — adaptive / iPad layout
@@ -276,13 +312,15 @@ Condensed from the 2026-06-27 audit. Items already shipped are struck through.
   snooze permission state.
 - **Home** — ~~typed `DoorWarning` chip (P1)~~ ✅; ~~"Since · duration" line
   (P2)~~ ✅; ~~alert banners stale/fetch-error/permission (P4)~~ ✅; ~~check-in
-  pill (P5)~~ ✅; ~~button-health pill render (P5)~~ ✅; info sheets (P5);
-  network-progress diagram (P5, optional).
+  pill (P5)~~ ✅; ~~button-health pill render (P5)~~ ✅; ~~info sheets (P5)~~ ✅
+  (#939); network-progress diagram (P5, optional).
 - **History** — ~~day grouping, door icons, durations, transit/anomaly tags,
   empty-state (P3)~~ ✅; load-more (P3 follow-up — deferred, see Phase 3 note).
 - **Diagnostics** — Export CSV, copy-auth-token (P5).
-- **Functions** — sign in/out, copy-auth-token, test-notification topic
-  (copy/subscribe/change), "developers only" warning (P5).
+- **Functions** — ~~test-notification topic (copy/subscribe/change), "developers
+  only" warning (P5)~~ ✅; copy-auth-token (P5); sign in/out **intentionally
+  skipped** (Settings owns auth; the screen is `functionListAccess`-gated, so a
+  sign-in button is unreachable and sign-out pops you out — platform-native).
 
 ## Risks / guards
 
