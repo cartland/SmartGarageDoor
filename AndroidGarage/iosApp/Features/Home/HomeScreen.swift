@@ -35,7 +35,7 @@ struct HomeScreen: View {
             warningText: wrapper.warningText,
             isCheckInStale: wrapper.isCheckInStale,
             buttonStateLabel: wrapper.buttonStateLabel,
-            buttonHealthLabel: wrapper.buttonHealthLabel,
+            buttonHealth: wrapper.buttonHealth,
             signedIn: wrapper.signedIn,
             alerts: wrapper.alerts,
             checkIn: wrapper.checkIn,
@@ -60,7 +60,9 @@ struct HomeContentView: View {
     let warningText: String?
     let isCheckInStale: Bool
     let buttonStateLabel: String
-    let buttonHealthLabel: String
+    /// Resolved remote-button health pill (ADR-031 Phase 5) shown in the
+    /// "Remote button" section header, mirroring Android's `RemoteButtonHealthPill`.
+    let buttonHealth: ButtonHealthItem
     let signedIn: Bool
     /// Resolved alert banners (ADR-031 Phase 4) shown above the Status card.
     /// Empty in the steady state; the shared `HomeAlertMapper` decides when a
@@ -118,7 +120,7 @@ struct HomeContentView: View {
                 }
             }
 
-            Section("Remote button") {
+            Section {
                 Button(action: onButtonTap) {
                     Text(buttonStateLabel)
                         .frame(maxWidth: .infinity)
@@ -126,10 +128,15 @@ struct HomeContentView: View {
                 .buttonStyle(.borderedProminent)
                 .listRowInsets(EdgeInsets())
                 .padding(GarageSpacing.tight)
-            }
-
-            Section("Device health") {
-                Text(buttonHealthLabel).foregroundStyle(.secondary)
+            } header: {
+                // Health pill right-aligned in the header, mirroring Android's
+                // `RemoteButtonHealthPill` in the "Remote control" section header.
+                // Replaces iOS's old separate "Device health" text section.
+                HStack {
+                    Text("Remote button")
+                    Spacer()
+                    RemoteButtonHealthPill(item: buttonHealth)
+                }
             }
 
             Section("Account") {
@@ -207,6 +214,50 @@ private struct DeviceCheckInPill: View {
     }
 }
 
+/// Remote-button health pill in the "Remote button" section header — the SwiftUI
+/// analog of Android's `RemoteButtonHealthPill`. Label + an availability icon;
+/// only `.offline` uses the warning tint (matching Android's "offline screams,
+/// the rest whisper" hierarchy). Uses the same antenna icon family as
+/// `DeviceCheckInPill` for a consistent device-availability grammar.
+private struct RemoteButtonHealthPill: View {
+    let item: ButtonHealthItem
+
+    var body: some View {
+        HStack(spacing: GarageSpacing.tight) {
+            Text(item.label)
+                .font(.caption2.weight(.medium))
+                .textCase(nil)
+            Image(systemName: icon)
+                .font(.caption2)
+        }
+        .foregroundStyle(isOffline ? GarageColors.statusWarning : Color.secondary)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(
+            Capsule().fill(isOffline
+                ? GarageColors.statusWarning.opacity(0.12)
+                : Color(uiColor: .tertiarySystemFill))
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Remote button \(item.label)")
+    }
+
+    private var isOffline: Bool {
+        if case .offline = item.kind { return true }
+        return false
+    }
+
+    private var icon: String {
+        switch item.kind {
+        case .unauthorized: return "lock"
+        case .loading: return "arrow.triangle.2.circlepath"
+        case .unknown: return "questionmark.circle"
+        case .online: return "antenna.radiowaves.left.and.right"
+        case .offline: return "antenna.radiowaves.left.and.right.slash"
+        }
+    }
+}
+
 /// Warning chip for stuck / anomalous door states — the SwiftUI analog of
 /// Android's errorContainer warning Surface in `HomeContent`. Renders the
 /// already-localized `text` (resolved from the shared typed `DoorWarning`).
@@ -233,7 +284,7 @@ private struct DoorWarningChip: View {
             warningText: nil,
             isCheckInStale: true,
             buttonStateLabel: "Tap to open / close",
-            buttonHealthLabel: "Sign in to see device health",
+            buttonHealth: ButtonHealthItem(label: "Unauthorized", kind: .unauthorized),
             signedIn: false,
             alerts: [],
             checkIn: DeviceCheckInItem(label: "23 min ago", isStale: true),
@@ -252,7 +303,7 @@ private struct DoorWarningChip: View {
             warningText: nil,
             isCheckInStale: false,
             buttonStateLabel: "Tap to open / close",
-            buttonHealthLabel: "Online",
+            buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
             signedIn: true,
             alerts: [],
             checkIn: DeviceCheckInItem(label: "1 min ago", isStale: false),
@@ -271,7 +322,7 @@ private struct DoorWarningChip: View {
             warningText: "Opening, taking longer than expected",
             isCheckInStale: false,
             buttonStateLabel: "Tap to open / close",
-            buttonHealthLabel: "Online",
+            buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
             signedIn: true,
             alerts: [],
             checkIn: DeviceCheckInItem(label: "1 min ago", isStale: false),
@@ -290,7 +341,7 @@ private struct DoorWarningChip: View {
             warningText: nil,
             isCheckInStale: true,
             buttonStateLabel: "Tap to open / close",
-            buttonHealthLabel: "Online",
+            buttonHealth: ButtonHealthItem(label: "Unavailable · 11 min ago", kind: .offline),
             signedIn: true,
             alerts: [
                 HomeAlertItem(

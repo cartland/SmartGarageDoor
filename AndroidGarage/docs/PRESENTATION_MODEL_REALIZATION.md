@@ -217,10 +217,19 @@ Run as a sequence of small PRs, each one a self-contained slice:
     the same arithmetic in Swift. The staleness *threshold* (the shared decision)
     lives in `CheckInStatusMapper.STALE_THRESHOLD_SECONDS` (kept in sync by hand
     with `CheckInStalenessManager.CHECK_IN_STALE_THRESHOLD_SECONDS`).
-- **Button-health pill (iOS render).** iOS already receives the typed
-  `ButtonHealthDisplay` but flattens it to plain secondary `Text`; give it a styled
-  pill (icon + color) matching Android's `RemoteButtonHealthPill`. Low-risk
-  (no shared / Android / DI change).
+- **Button-health pill (iOS render) — ✅ SHIPPED.** iOS already received the
+  typed `ButtonHealthDisplay` (from `ComputeButtonHealthDisplayUseCase`) but
+  flattened it to plain secondary `Text` in a separate "Device health" section.
+  iOS now renders a styled pill in the "Remote button" section header — label +
+  availability icon, only `Offline` tinted (warning) — mirroring Android's
+  `RemoteButtonHealthPill` (labels "Available" / "Unavailable · {ago}" /
+  "Checking…" / "Unauthorized" / "Unknown"); the redundant "Device health"
+  section was removed (Android never had one). **iOS-only slice:**
+  `ButtonHealthDisplay` was already shared and consumed, so no shared / Android /
+  DI / VM change — the wrapper resolves the typed value to a plain `ButtonHealthItem`
+  (same view-struct shape as `HomeAlertItem` / `DeviceCheckInItem`) and the pill
+  reuses the check-in pill's antenna icon family for a consistent
+  device-availability grammar.
 - **Info sheets** (door-status / remote-control) — iOS rendering of the
   explanatory content Android shows on pill tap.
 - **Developer-surface gaps** — Diagnostics Export CSV / copy-token; Functions auth
@@ -247,7 +256,7 @@ Condensed from the 2026-06-27 audit. Items already shipped are struck through.
   snooze permission state.
 - **Home** — ~~typed `DoorWarning` chip (P1)~~ ✅; ~~"Since · duration" line
   (P2)~~ ✅; ~~alert banners stale/fetch-error/permission (P4)~~ ✅; ~~check-in
-  pill (P5)~~ ✅; info sheets + button-health pill render (P5);
+  pill (P5)~~ ✅; ~~button-health pill render (P5)~~ ✅; info sheets (P5);
   network-progress diagram (P5, optional).
 - **History** — ~~day grouping, door icons, durations, transit/anomaly tags,
   empty-state (P3)~~ ✅; load-more (P3 follow-up — deferred, see Phase 3 note).

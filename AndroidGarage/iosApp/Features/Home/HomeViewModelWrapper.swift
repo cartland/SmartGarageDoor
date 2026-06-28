@@ -45,7 +45,12 @@ final class HomeViewModelWrapper: ObservableObject {
     /// `DeviceCheckIn.format`). `label == nil` until the first heartbeat.
     @Published private(set) var checkIn: DeviceCheckInItem = DeviceCheckInItem(label: nil, isStale: false)
     @Published private(set) var buttonStateLabel: String = "Ready"
-    @Published private(set) var buttonHealthLabel: String = "Unknown"
+    /// Resolved remote-button health pill (ADR-031 Phase 5). The shared
+    /// `ButtonHealthDisplay` (from `ComputeButtonHealthDisplayUseCase`) is
+    /// resolved to a plain Swift struct here — label + icon-driving `kind` —
+    /// mirroring Android's `RemoteButtonHealthPill`.
+    @Published private(set) var buttonHealth: ButtonHealthItem =
+        ButtonHealthItem(label: "Unknown", kind: .unknown)
     /// Resolved alert banners shown above the Status card (ADR-031 Phase 4).
     /// The shared `HomeAlertMapper` decides WHICH banners to show from typed
     /// inputs; this wrapper resolves each typed `HomeAlert` to iOS banner copy.
@@ -297,18 +302,24 @@ final class HomeViewModelWrapper: ObservableObject {
         buttonStateLabel = HomeViewModelWrapper.label(for: state)
     }
 
+    /// Resolves the shared typed `ButtonHealthDisplay` to the view-ready pill.
+    /// Labels + the offline-only error tint mirror Android's
+    /// `RemoteButtonHealthPillContents` verbatim ("Available" / "Unavailable · X"
+    /// / "Checking…" / "Unauthorized" / "Unknown") so both platforms read
+    /// identically. The `Offline.durationLabel` is the shared pre-formatted
+    /// "… ago" string.
     private func applyHealth(_ display: UsecaseButtonHealthDisplay) {
         switch onEnum(of: display) {
         case .offline(let offline):
-            buttonHealthLabel = "Offline (\(offline.durationLabel))"
+            buttonHealth = ButtonHealthItem(label: "Unavailable · \(offline.durationLabel)", kind: .offline)
         case .online:
-            buttonHealthLabel = "Online"
+            buttonHealth = ButtonHealthItem(label: "Available", kind: .online)
         case .loading:
-            buttonHealthLabel = "Checking…"
+            buttonHealth = ButtonHealthItem(label: "Checking…", kind: .loading)
         case .unauthorized:
-            buttonHealthLabel = "Sign in to see device health"
+            buttonHealth = ButtonHealthItem(label: "Unauthorized", kind: .unauthorized)
         case .unknown:
-            buttonHealthLabel = "Unknown"
+            buttonHealth = ButtonHealthItem(label: "Unknown", kind: .unknown)
         }
     }
 
@@ -412,4 +423,17 @@ struct HomeAlertItem: Identifiable {
 struct DeviceCheckInItem {
     let label: String?
     let isStale: Bool
+}
+
+/// View-ready remote-button health pill data (ADR-031 Phase 5). The shared
+/// `ButtonHealthDisplay` is resolved to this plain struct in the wrapper — a
+/// localized `label` + an icon/color-driving `kind` — mirroring Android's
+/// `RemoteButtonHealthPill`. Only `.offline` uses the warning tint; the rest are
+/// neutral. `internal` so `#Preview` fixtures can build it (the generated
+/// snapshot test embeds preview bodies verbatim and can't see `private`).
+struct ButtonHealthItem {
+    enum Kind { case unauthorized, loading, unknown, online, offline }
+
+    let label: String
+    let kind: Kind
 }
