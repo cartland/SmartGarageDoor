@@ -39,6 +39,11 @@ final class HomeViewModelWrapper: ObservableObject {
     @Published private(set) var warningText: String?
     @Published private(set) var lastChangeTimeSeconds: Int64?
     @Published private(set) var isCheckInStale: Bool = false
+    /// Resolved device check-in pill (ADR-031 Phase 5). The shared
+    /// `CheckInStatusMapper` buckets the heartbeat age + decides staleness; this
+    /// wrapper formats the "… ago" string per-UI (mirrors Android's
+    /// `DeviceCheckIn.format`). `label == nil` until the first heartbeat.
+    @Published private(set) var checkIn: DeviceCheckInItem = DeviceCheckInItem(label: nil, isStale: false)
     @Published private(set) var buttonStateLabel: String = "Ready"
     @Published private(set) var buttonHealthLabel: String = "Unknown"
     /// Resolved alert banners shown above the Status card (ADR-031 Phase 4).
@@ -56,6 +61,9 @@ final class HomeViewModelWrapper: ObservableObject {
     // permission). `notificationGranted` defaults to `true` so the permission
     // banner doesn't flash before the async settings probe resolves.
     private var latestDoorResult: LoadingResult<DoorEvent>?
+    // Latest wall clock (epoch seconds), from the VM's `nowEpochSeconds`
+    // StateFlow. Drives the check-in "… ago" re-bucketing each tick.
+    private var latestNowEpochSeconds: Int64 = 0
     private var notificationGranted: Bool = true
     private var notificationRequestCount: Int32 = 0
 
@@ -64,6 +72,9 @@ final class HomeViewModelWrapper: ObservableObject {
         // Seed the stale flag before `applyDoor` so the first `rebuildAlerts`
         // sees the real value rather than the default `false`.
         isCheckInStale = vm.isCheckInStale.value.boolValue
+        // Seed the clock before `applyDoor` so the first `rebuildCheckIn` (called
+        // from `applyDoor`) sees the real now rather than 0.
+        latestNowEpochSeconds = vm.nowEpochSeconds.value.int64Value
         applyAuth(vm.authState.value)
         applyDoor(vm.currentDoorEvent.value)
         applyWarning(vm.warning.value)
@@ -97,6 +108,12 @@ final class HomeViewModelWrapper: ObservableObject {
                 self?.rebuildAlerts()
             }
         })
+        tasks.append(Task { @MainActor [weak self] in
+            for await v in self!.vm.nowEpochSeconds {
+                self?.latestNowEpochSeconds = v.int64Value
+                self?.rebuildCheckIn()
+            }
+        })
     }
 
     private func applyAuth(_ state: AuthState) {
@@ -113,6 +130,7 @@ final class HomeViewModelWrapper: ObservableObject {
         doorPosition = event?.doorPosition ?? .unknown
         lastChangeTimeSeconds = event?.lastChangeTimeSeconds?.int64Value
         rebuildAlerts()
+        rebuildCheckIn()
     }
 
     /// Recomputes the banner stack from the shared `HomeAlertMapper` using the
@@ -294,6 +312,45 @@ final class HomeViewModelWrapper: ObservableObject {
         }
     }
 
+    /// Recomputes the check-in pill from the latest door event's heartbeat
+    /// timestamp + the live clock, via the shared `CheckInStatusMapper`. The
+    /// mapper decides the bucket + staleness; `resolveCheckIn` formats the
+    /// "… ago" string here (iOS's localization boundary, mirroring Android's
+    /// `DeviceCheckIn.format`).
+    private func rebuildCheckIn() {
+        let status = CheckInStatusMapper.shared.forCheckIn(
+            lastCheckInEpochSeconds: latestDoorResult?.data?.lastCheckInTimeSeconds,
+            nowEpochSeconds: latestNowEpochSeconds
+        )
+        checkIn = Self.resolveCheckIn(status)
+    }
+
+    private static func resolveCheckIn(_ status: CheckInStatus) -> DeviceCheckInItem {
+        switch onEnum(of: status) {
+        case .noData:
+            return DeviceCheckInItem(label: nil, isStale: false)
+        case .reported(let reported):
+            return DeviceCheckInItem(label: agoText(reported.age), isStale: reported.isStale)
+        }
+    }
+
+    /// Formats a typed `CheckInAge` bucket as "… ago". Mirrors Android's
+    /// `DeviceCheckIn.label` verbatim so both platforms read identically.
+    private static func agoText(_ age: CheckInAge) -> String {
+        switch onEnum(of: age) {
+        case .justNow:
+            return "Just now"
+        case .seconds(let s):
+            return "\(s.seconds) sec ago"
+        case .minutes(let m):
+            return m.seconds == 0 ? "\(m.minutes) min ago" : "\(m.minutes) min \(m.seconds) sec ago"
+        case .hours(let h):
+            return h.minutes == 0 ? "\(h.hours) hr ago" : "\(h.hours) hr \(h.minutes) min ago"
+        case .days(let d):
+            return d.days == 1 ? "1 day ago" : "\(d.days) days ago"
+        }
+    }
+
     private static func label(for state: RemoteButtonState) -> String {
         switch onEnum(of: state) {
         case .ready: return "Tap to open / close"
@@ -344,4 +401,15 @@ struct HomeAlertItem: Identifiable {
     let kind: Kind
     let message: String
     let actionLabel: String
+}
+
+/// View-ready device check-in pill data (ADR-031 Phase 5). The shared
+/// `CheckInStatusMapper` buckets the heartbeat age + staleness; the wrapper
+/// resolves it to this struct (formatting the "… ago" `label` per-UI).
+/// `label == nil` means no heartbeat has been observed yet (icon-only pill).
+/// `internal` so `#Preview` fixtures can build it (the generated snapshot test
+/// embeds preview bodies verbatim and can't see `private` symbols).
+struct DeviceCheckInItem {
+    let label: String?
+    let isStale: Bool
 }

@@ -193,12 +193,39 @@ inlined to `HomeAlert.PermissionMissing.attemptCount`.
   Stale banner + muted door color (`GarageDoorView(isStale:)`) signal staleness,
   matching Android (which never had an in-card stale label).
 
-### Phase 5 — Remaining richness
+### Phase 5 — Remaining richness (in progress)
 
-Info sheets (door-status / remote-control), check-in + button-health pills as
-typed display state, then the developer-surface gaps (Diagnostics Export CSV /
-copy-token; Functions auth + test-notification actions), and door-canvas
-animation polish.
+Run as a sequence of small PRs, each one a self-contained slice:
+
+- **Check-in pill — ✅ SHIPPED.** `DoorEvent.lastCheckInTimeSeconds` + the live
+  clock → typed `CheckInStatus` (`NoData` / `Reported(age, isStale)`) with a
+  `CheckInAge` bucket (JustNow / Seconds / Minutes / Hours / Days), moved to
+  shared `presentation-model` (`CheckInStatus` + `CheckInStatusMapper`, tests in
+  `commonTest`). iOS **gained the pill** (it had none — only the door-color mute);
+  it renders an antenna / antenna-slash capsule in the Status section header,
+  mirroring Android's `DeviceCheckInPill`. As-built notes:
+  - **Pure-mapper-from-UI, no VM / DI change** (Phase 3/4 shape). Both UIs already
+    map at render from seeded StateFlows (`nowEpochSeconds` + the door event), so a
+    VM `StateFlow` wasn't needed; the mapper is a pure `object` each UI calls. iOS
+    gets the per-tick re-bucketing by observing the existing `vm.nowEpochSeconds`.
+  - **Android churn was near-zero:** `DeviceCheckIn.format()` kept its signature
+    and became a thin adapter over the shared mapper, so the pill, all previews,
+    the route wrapper, and the Android reference PNGs are unchanged. Only the
+    bucketing arithmetic + the duplicated 11-min threshold const moved out.
+  - **String formatting stays per-UI** (ADR-031): the shared layer emits the typed
+    bucket; Android assembles "1 min 30 sec ago" in `DeviceCheckIn`, iOS mirrors
+    the same arithmetic in Swift. The staleness *threshold* (the shared decision)
+    lives in `CheckInStatusMapper.STALE_THRESHOLD_SECONDS` (kept in sync by hand
+    with `CheckInStalenessManager.CHECK_IN_STALE_THRESHOLD_SECONDS`).
+- **Button-health pill (iOS render).** iOS already receives the typed
+  `ButtonHealthDisplay` but flattens it to plain secondary `Text`; give it a styled
+  pill (icon + color) matching Android's `RemoteButtonHealthPill`. Low-risk
+  (no shared / Android / DI change).
+- **Info sheets** (door-status / remote-control) — iOS rendering of the
+  explanatory content Android shows on pill tap.
+- **Developer-surface gaps** — Diagnostics Export CSV / copy-token; Functions auth
+  + test-notification actions.
+- **Door-canvas animation polish.**
 
 ### Out of scope — adaptive / iPad layout
 
@@ -219,8 +246,9 @@ Condensed from the 2026-06-27 audit. Items already shipped are struck through.
   (deferred until published), tap-to-copy version, typed snooze-failure messages,
   snooze permission state.
 - **Home** — ~~typed `DoorWarning` chip (P1)~~ ✅; ~~"Since · duration" line
-  (P2)~~ ✅; ~~alert banners stale/fetch-error/permission (P4)~~ ✅; info sheets +
-  check-in/health pills (P5); network-progress diagram (P5, optional).
+  (P2)~~ ✅; ~~alert banners stale/fetch-error/permission (P4)~~ ✅; ~~check-in
+  pill (P5)~~ ✅; info sheets + button-health pill render (P5);
+  network-progress diagram (P5, optional).
 - **History** — ~~day grouping, door icons, durations, transit/anomaly tags,
   empty-state (P3)~~ ✅; load-more (P3 follow-up — deferred, see Phase 3 note).
 - **Diagnostics** — Export CSV, copy-auth-token (P5).
