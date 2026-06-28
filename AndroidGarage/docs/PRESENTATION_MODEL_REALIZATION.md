@@ -335,8 +335,9 @@ Condensed from the 2026-06-27 audit. Items already shipped are struck through.
 
 - **Settings** — ~~3-tab restructure + gated Developer section (#926)~~;
   ~~account name/email + About/version (#927)~~; ~~tap-to-copy version/build/package
-  (#943)~~ ✅; ~~typed snooze-failure messages~~ ✅. Remaining: store/privacy links
-  (deferred until published), snooze permission state.
+  (#943)~~ ✅; ~~typed snooze-failure messages~~ ✅; ~~snooze permission state~~ ✅
+  (denied → tap-to-enable row). Remaining: store/privacy links (deferred until
+  published).
 - **Home** — ~~typed `DoorWarning` chip (P1)~~ ✅; ~~"Since · duration" line
   (P2)~~ ✅; ~~alert banners stale/fetch-error/permission (P4)~~ ✅; ~~check-in
   pill (P5)~~ ✅; ~~button-health pill render (P5)~~ ✅; ~~info sheets (P5)~~ ✅

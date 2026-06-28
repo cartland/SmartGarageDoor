@@ -63,10 +63,12 @@ struct SettingsScreen: View {
             appVersion: Self.appVersion,
             appBuild: Self.appBuild,
             appPackage: Self.appPackage,
+            notificationsGranted: wrapper.notificationsGranted,
             onSignIn: { wrapper.signInWithGoogle() },
             onSignOut: { wrapper.signOut() },
             onSnooze: { wrapper.snooze($0) },
-            onRefresh: { wrapper.refreshSnooze() }
+            onRefresh: { wrapper.refreshSnooze() },
+            onEnableNotifications: { wrapper.requestNotificationPermission() }
         )
         .navigationDestination(for: SettingsRoute.self) { route in
             switch route {
@@ -76,6 +78,9 @@ struct SettingsScreen: View {
                 FunctionListScreen(component: component)
             }
         }
+        // Re-read permission on appear so a change made in iOS Settings (while
+        // the app was backgrounded) is reflected when the user returns.
+        .onAppear { wrapper.refreshNotificationPermission() }
     }
 }
 
@@ -96,10 +101,12 @@ struct SettingsContentView: View {
     let appVersion: String
     let appBuild: String
     let appPackage: String
+    var notificationsGranted: Bool = true
     let onSignIn: () -> Void
     let onSignOut: () -> Void
     let onSnooze: (SnoozeDurationUIOption) -> Void
     let onRefresh: () -> Void
+    var onEnableNotifications: () -> Void = {}
 
     var body: some View {
         List {
@@ -123,17 +130,32 @@ struct SettingsContentView: View {
             }
 
             Section("Snooze notifications") {
-                HStack {
-                    Text(snoozeLabel)
-                    Spacer()
-                    if snoozeSending { ProgressView().controlSize(.small) }
-                }
-                if let error = snoozeError {
-                    Text(error).font(.footnote).foregroundStyle(GarageColors.statusWarning)
-                }
-                ForEach(durations, id: \.label) { entry in
-                    Button(entry.label) { onSnooze(entry.option) }
-                        .disabled(snoozeSending)
+                if notificationsGranted {
+                    HStack {
+                        Text(snoozeLabel)
+                        Spacer()
+                        if snoozeSending { ProgressView().controlSize(.small) }
+                    }
+                    if let error = snoozeError {
+                        Text(error).font(.footnote).foregroundStyle(GarageColors.statusWarning)
+                    }
+                    ForEach(durations, id: \.label) { entry in
+                        Button(entry.label) { onSnooze(entry.option) }
+                            .disabled(snoozeSending)
+                    }
+                } else {
+                    // Notifications denied — snoozing is meaningless without them,
+                    // so replace the controls with a tap-to-enable row (mirrors
+                    // Android's SnoozeRowState.PermissionDenied, whose tap calls
+                    // launchPermissionRequest()).
+                    Button {
+                        onEnableNotifications()
+                    } label: {
+                        HStack {
+                            Image(systemName: "bell.slash")
+                            Text("Notifications disabled. Tap to enable.")
+                        }
+                    }
                 }
             }
 
@@ -251,6 +273,31 @@ private struct CopyableValueRow: View {
             appVersion: "0.1.0",
             appBuild: "1",
             appPackage: "com.chriscartland.garage",
+            onSignIn: {}, onSignOut: {}, onSnooze: { _ in }, onRefresh: {}
+        )
+    }
+}
+
+#Preview("Settings notifications disabled") {
+    let durations: [(label: String, option: SnoozeDurationUIOption)] = [
+        ("Do not snooze", .none), ("1 hour", .oneHour), ("4 hours", .fourHours),
+        ("8 hours", .eightHours), ("12 hours", .twelveHours),
+    ]
+    return NavigationStack {
+        SettingsContentView(
+            signedIn: true,
+            displayName: "Chris Cartland",
+            email: "chris@example.com",
+            snoozeLabel: "Not snoozing",
+            snoozeSending: false,
+            snoozeError: nil,
+            durations: durations,
+            developerAccess: false,
+            functionListAccess: false,
+            appVersion: "0.1.0",
+            appBuild: "1",
+            appPackage: "com.chriscartland.garage",
+            notificationsGranted: false,
             onSignIn: {}, onSignOut: {}, onSnooze: { _ in }, onRefresh: {}
         )
     }
