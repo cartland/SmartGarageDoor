@@ -1,23 +1,30 @@
 ---
 category: plan
 status: active
-last_verified: 2026-06-22
+last_verified: 2026-06-28
 ---
 
 # Resolved-on-close notification — Phase 1 (additive) implementation plan
 
-**Status: Phase 1 BUILT + MERGED, but DEPLOY HELD / PARKED (2026-06-20).**
-Code shipped to `main` — server `server/31` (#903) + Android `2.19.0` (#904) +
-config backup recipe (#905) — and is fully CLI-validated, but **nothing is live**:
-`server/31` and `2.19.0` are unreleased and the off-by-default
-`resolvedOnCloseEnabled` flag has never been flipped. The user **parked** it (did
-not deploy) on a deliberate product call — see "Why this is parked" below. The
-app-built *warning* (Phase 2) remains deferred.
+**Status: Phase 1 ENABLED + LIVE (since 2026-06-22; confirmed still live
+2026-06-28).** `server/31` (#903) was deployed **2026-06-22**, the Android client
+shipped in **`2.20.2`** (internal track, flag-agnostic), and the maintainer set
+the live config flag **`resolvedOnCloseEnabled` = `true`** that same day (surgical
+Firestore PATCH of `configCurrent/current`, `body.resolvedOnCloseEnabled`) — so
+the resolved-on-close notification **fires in production**. Revert is instant:
+flip the flag `false` (no redeploy; the server reads it live per close). The
+app-built *warning* (Phase 2) remains deferred — see "Phase 1 as-shipped — known
+limitations," which are **now in effect in production**.
 
-> ⚠️ **Read "Phase 1 as-shipped — known limitations" before deploying or
-> resuming.** Phase 1 does **not** deliver the clean inline warning→resolved
-> replacement; it adds a resolved notification that **coexists** with the existing
-> OS-tray warning. That, plus the parked decision, is the load-bearing context.
+> _History: shipped to `main` 2026-06-16 (server `server/31` #903 + Android
+> `2.19.0` #904 + config backup recipe #905), briefly **parked** (a restraint
+> call), then deployed + flag-flipped on 2026-06-22. The "Why it was parked"
+> section below is the historical rationale for that brief restraint._
+
+> ⚠️ **The "Phase 1 as-shipped — known limitations" below are now LIVE.** Phase 1
+> does **not** deliver the clean inline warning→resolved replacement; it adds a
+> resolved notification that **coexists** with a backgrounded/OS-rendered warning
+> (two cards). That is the current production behavior; full replacement is Phase 2.
 
 This plan is the durable record of a multi-agent design audit (5 parallel agents:
 topology, delivery-matrix, subscription-migration, server-send-path, deploy-ordering).
@@ -76,7 +83,7 @@ Read it before touching any file below.
    released app's v2 subscription receives → presenter renders) has never run. The
    flag flip **is** that test; there is no fixture short of it.
 
-## Why this is parked (the product call, 2026-06-20)
+## Why it was parked (the 2026-06-20 product call) — since enabled 2026-06-22
 
 The existing open-door warning has worked well for **months/years** — it is not
 broken, and the resolved is an **additive nice-to-have, not a fix**. So the bar is
@@ -93,7 +100,16 @@ in the foreground; give it a real app-owned channel/icon) — has now **shipped*
 Android `2.20.0` (merged, unreleased). This hardens the proven warning without
 enabling the resolved, and as a side effect makes the warning and resolved
 *consistent* (same channel/icon/importance), which softens limitation #1 if the
-resolved is ever enabled. The resolved flag itself remains parked.
+resolved is ever enabled. The resolved flag itself remained parked through this
+point.
+
+**Update (2026-06-22, confirmed still live 2026-06-28):** the restraint period
+ended — the maintainer deployed `server/31` and set `resolvedOnCloseEnabled =
+true` (surgical Firestore PATCH), so the resolved-on-close notification is now
+**live in production**. The Phase-1 limitations above (notably the two-card
+coexistence with a backgrounded warning) are therefore in effect; Phase 2 (the
+app-built warning that would fully replace, not coexist) remains the deferred
+follow-on. Revert is a single flag flip back to `false`.
 
 ## Isolation guarantee (risk stays on new builds)
 
