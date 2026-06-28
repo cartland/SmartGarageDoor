@@ -43,6 +43,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chriscartland.garage.R
 import com.chriscartland.garage.auth.rememberGoogleSignIn
 import com.chriscartland.garage.di.rememberAppComponent
+import com.chriscartland.garage.domain.model.AppLinks
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeState
@@ -191,7 +192,7 @@ fun ProfileContent(
                 context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
             },
             onPrivacyPolicyTap = {
-                context.startActivity(Intent(Intent.ACTION_VIEW, PRIVACY_POLICY_URL.toUri()))
+                context.startActivity(Intent(Intent.ACTION_VIEW, AppLinks.PRIVACY_POLICY_URL.toUri()))
             },
             onDiagnosticsTap = onNavigateToDiagnostics,
             onLayoutDebugChange = resolved::setLayoutDebugEnabled,
@@ -262,8 +263,6 @@ fun ProfileContent(
 
     ReportDrawn()
 }
-
-private const val PRIVACY_POLICY_URL = "https://chriscart.land/garage-privacy-policy"
 
 private object ProfileContentHelpers {
     private val snoozeTimeFormatter = DateTimeFormatter.ofPattern("h:mm a")

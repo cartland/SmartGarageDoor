@@ -166,6 +166,20 @@ struct SettingsContentView: View {
                 CopyableValueRow(label: "Version", value: appVersion)
                 CopyableValueRow(label: "Build", value: appBuild)
                 CopyableValueRow(label: "Package", value: appPackage)
+                // Privacy policy URL is the shared `AppLinks.PRIVACY_POLICY_URL`
+                // (domain/commonMain) — same value Android's Settings opens, so
+                // the two platforms can't drift.
+                if let url = URL(string: AppLinks.shared.PRIVACY_POLICY_URL) {
+                    Link(destination: url) {
+                        HStack {
+                            Text("Privacy policy").foregroundStyle(.primary)
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
             }
 
             // Developer section — allowlisted only (parity with Android). The
