@@ -43,8 +43,8 @@ a platform idiom clearly serves the user better. A surface may **split** across 
 
 | Surface / element | Tier | Notes |
 |---|---|---|
-| Door-status visualization (canvas geometry, panel layout, proportions) | **1** | Brand through-line. **Geometry is now shared** — `:domain` `GarageDoorGeometry`, consumed identically by both canvases (pinned by `GarageDoorGeometryTest`). The color palette + offsets/state-mappings remain candidates (PENDING_FOLLOWUPS § 4). |
-| Door-state color semantics (closed / open / opening-too-long / unknown) | **1** | Color **is** meaning; must not drift. `DoorPalette` (iOS) mirrors Android `Color.kt` by hand today → candidate to share. |
+| Door-status visualization (canvas geometry, panel layout, proportions) | **1** | Brand through-line. **Geometry + fill palette are now shared** — `:domain` `GarageDoorGeometry` + `GarageDoorPalette`, consumed identically by both canvases (pinned by `GarageDoorGeometryTest` / `GarageDoorPaletteTest`). Offsets/state-mappings remain the last candidate (PENDING_FOLLOWUPS § 4). |
+| Door-state color semantics (closed / open / opening-too-long / unknown) | **1** | Color **is** meaning; must not drift. **Now shared** — iOS `DoorPalette` reads `:domain` `GarageDoorPalette` (the same 12 fill values Android `Color.kt` consumes). |
 | App icon, feature graphic, brand naming ("Garage") | **1** | Identity assets. See the `play-store-assets` skill + `distribution/playstore/`. |
 | Tab **set** (Home / History / Settings) | **1** | The *which-tabs* is identity (ADR-029 §3). Both ship **3** top-level tabs; Functions + Diagnostics are `developerAccess`-gated **sub-screens of Settings** (Android rows / iOS `NavigationLink`s), not tabs. |
 | Tab **rendering** (iOS `TabView` vs Android bottom-nav / nav rail / 3-pane) | **3** | Platform idiom; adaptive layout is Android-only (see Tier 4 below). |

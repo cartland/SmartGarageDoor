@@ -20,10 +20,11 @@ import SwiftUI
 
 // SwiftUI port of Android's `GarageDoorCanvas.kt` / `GarageIcon.kt` — the
 // animated garage-door visualization that is part of the shared "Garage"
-// identity (ADR-029 § 3). The drawing **geometry** is now the shared `:domain`
-// `GarageDoorGeometry` (single source of truth, consumed by both platforms via
-// SKIE). The door-position → offset / color / overlay mappings and the
-// door-status palette still mirror the Android source (follow-up hoists).
+// identity (ADR-029 § 3). The drawing **geometry** (`GarageDoorGeometry`) and
+// the door-fill **palette** (`GarageDoorPalette`) are now shared `:domain`
+// single sources of truth, consumed by both platforms via SKIE. The
+// door-position → offset / color-state / overlay mappings still mirror the
+// Android source (follow-up hoist).
 //
 // Parity scope (v1): the *visual* — door shape, per-state offset, per-state
 // color (fresh / stale), and the directional / warning overlay. The animation
@@ -261,13 +262,30 @@ private enum DoorVisual {
 // MARK: - Door status palette (mirror DoorStatusColorScheme.kt + Color.kt)
 
 private enum DoorPalette {
-    // (light, dark) hex pairs from Android `Color.kt`.
-    private static let closedFresh = (light: 0x226B43, dark: 0x25673C)
-    private static let closedStale = (light: 0x456C54, dark: 0x40694F)
-    private static let openFresh = (light: 0x932F1E, dark: 0x7A2B1E)
-    private static let openStale = (light: 0x9A655C, dark: 0x7A524B)
-    private static let unknownFresh = (light: 0x444444, dark: 0x555555)
-    private static let unknownStale = (light: 0x444444, dark: 0x555555)
+    // (light, dark) RGB pairs — the shared brand-locked `:domain`
+    // GarageDoorPalette (single source of truth, mirrored by Android `Color.kt`).
+    // The shared ARGB Longs are masked to the low 24 bits for `Color(rgb:)`.
+    private static func rgb(_ argb: Int64) -> Int { Int(argb & 0xFFFFFF) }
+    private static var palette: GarageDoorPalette { GarageDoorPalette.shared }
+
+    private static var closedFresh: (light: Int, dark: Int) {
+        (rgb(palette.CLOSED_FRESH_LIGHT), rgb(palette.CLOSED_FRESH_DARK))
+    }
+    private static var closedStale: (light: Int, dark: Int) {
+        (rgb(palette.CLOSED_STALE_LIGHT), rgb(palette.CLOSED_STALE_DARK))
+    }
+    private static var openFresh: (light: Int, dark: Int) {
+        (rgb(palette.OPEN_FRESH_LIGHT), rgb(palette.OPEN_FRESH_DARK))
+    }
+    private static var openStale: (light: Int, dark: Int) {
+        (rgb(palette.OPEN_STALE_LIGHT), rgb(palette.OPEN_STALE_DARK))
+    }
+    private static var unknownFresh: (light: Int, dark: Int) {
+        (rgb(palette.UNKNOWN_FRESH_LIGHT), rgb(palette.UNKNOWN_FRESH_DARK))
+    }
+    private static var unknownStale: (light: Int, dark: Int) {
+        (rgb(palette.UNKNOWN_STALE_LIGHT), rgb(palette.UNKNOWN_STALE_DARK))
+    }
 
     static func doorRGB(for p: DoorPosition, stale: Bool, scheme: ColorScheme) -> Int {
         let pair: (light: Int, dark: Int)

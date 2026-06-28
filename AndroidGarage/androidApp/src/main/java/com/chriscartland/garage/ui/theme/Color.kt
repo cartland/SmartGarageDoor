@@ -18,6 +18,7 @@
 package com.chriscartland.garage.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import com.chriscartland.garage.domain.model.GarageDoorPalette
 
 // Material3 Colors (Pastel)
 val primaryLight = Color(0xFFA6C8FF)
@@ -104,41 +105,46 @@ val surfaceContainerHighDark = Color(0xFF363831)
 val surfaceContainerHighestDark = Color(0xFF41433C)
 
 // Door Colors
+//
+// Fill colors are the shared, brand-locked `:domain` GarageDoorPalette (single
+// source of truth, mirrored by iOS `GarageDoorCanvas.swift`). The `on*`
+// foreground/text colors below are Android-local (iOS uses the system label
+// color), so they stay as literals here.
 
 // Variations of green.
-val closedFreshLight = Color(0xFF226B43)
+val closedFreshLight = Color(GarageDoorPalette.CLOSED_FRESH_LIGHT)
 val onClosedFreshLight = Color(0xFFD4F0D8)
-val closedStaleLight = Color(0xFF456C54)
+val closedStaleLight = Color(GarageDoorPalette.CLOSED_STALE_LIGHT)
 val onClosedStaleLight = Color(0xFFE0F0E6)
 
 // Variations of red.
-val openFreshLight = Color(0xFF932F1E)
+val openFreshLight = Color(GarageDoorPalette.OPEN_FRESH_LIGHT)
 val onOpenFreshLight = Color(0xFFFFDDD6)
-val openStaleLight = Color(0xFF9A655C)
+val openStaleLight = Color(GarageDoorPalette.OPEN_STALE_LIGHT)
 val onOpenStaleLight = Color(0xFFFFFFFF)
 
 // Variations of gray.
-val unknownFreshLight = Color(0xFF444444)
+val unknownFreshLight = Color(GarageDoorPalette.UNKNOWN_FRESH_LIGHT)
 val onUnknownFreshLight = Color(0xFFC9C9C9)
-val unknownStaleLight = Color(0xFF444444)
+val unknownStaleLight = Color(GarageDoorPalette.UNKNOWN_STALE_LIGHT)
 val onUnknownStaleLight = Color(0xFFC9C9C9)
 
 // Variations of green.
-val closedFreshDark = Color(0xFF25673C)
+val closedFreshDark = Color(GarageDoorPalette.CLOSED_FRESH_DARK)
 val onClosedFreshDark = Color(0xFFBEDCC2)
-val closedStaleDark = Color(0xFF40694F)
+val closedStaleDark = Color(GarageDoorPalette.CLOSED_STALE_DARK)
 val onClosedStaleDark = Color(0xFFD4EAD8)
 
 // Variations of red.
-val openFreshDark = Color(0xFF7A2B1E)
+val openFreshDark = Color(GarageDoorPalette.OPEN_FRESH_DARK)
 val onOpenFreshDark = Color(0xFFD5BAB3)
-val openStaleDark = Color(0xFF7A524B)
+val openStaleDark = Color(GarageDoorPalette.OPEN_STALE_DARK)
 val onOpenStaleDark = Color(0xFFE8D7D4)
 
 // Variations of gray.
-val unknownFreshDark = Color(0xFF555555)
+val unknownFreshDark = Color(GarageDoorPalette.UNKNOWN_FRESH_DARK)
 val onUnknownFreshDark = Color(0xFFC9C9C9)
-val unknownStaleDark = Color(0xFF555555)
+val unknownStaleDark = Color(GarageDoorPalette.UNKNOWN_STALE_DARK)
 val onUnknownStaleDark = Color(0xFFC9C9C9)
 
 // Network Diagram Colors
