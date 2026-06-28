@@ -20,9 +20,10 @@ import SwiftUI
 
 // SwiftUI port of Android's `GarageDoorCanvas.kt` / `GarageIcon.kt` — the
 // animated garage-door visualization that is part of the shared "Garage"
-// identity (ADR-029 § 3). The drawing geometry, the door-position → offset /
-// color / overlay mappings, and the door-status palette all mirror the Android
-// source so both platforms render the same door.
+// identity (ADR-029 § 3). The drawing **geometry** is now the shared `:domain`
+// `GarageDoorGeometry` (single source of truth, consumed by both platforms via
+// SKIE). The door-position → offset / color / overlay mappings and the
+// door-status palette still mirror the Android source (follow-up hoists).
 //
 // Parity scope (v1): the *visual* — door shape, per-state offset, per-state
 // color (fresh / stale), and the directional / warning overlay. The animation
@@ -80,28 +81,32 @@ struct GarageDoorCanvas: View, Animatable {
     var color: Color
     var darkColor: Color
 
-    /// 1:1 square — mirrors Android `GARAGE_DOOR_ASPECT_RATIO`.
-    static let aspectRatio: CGFloat = 1
+    /// 1:1 square — mirrors Android `GarageDoorGeometry.ASPECT_RATIO`.
+    static var aspectRatio: CGFloat { CGFloat(GarageDoorGeometry.shared.ASPECT_RATIO) }
 
     // Design viewport — all constants below are in this unit space. The canvas
-    // scales uniformly to fit. Values mirror `GarageDoorCanvas.kt`.
-    private static let vp: CGFloat = 300
-    private static let frameInset: CGFloat = 10
-    private static let frameStroke: CGFloat = 12
-    private static let frameCorner: CGFloat = 16
-    private static let frameBottom: CGFloat = 290
-    private static let panelX: CGFloat = 20
-    private static let panelWidth: CGFloat = 260
-    private static let panelHeight: CGFloat = 61
-    private static let panelRadius: CGFloat = 3
-    private static let panelYStarts: [CGFloat] = [22, 89, 156, 223]
-    private static let handleX: CGFloat = 139
-    private static let handleY: CGFloat = 278
-    private static let handleW: CGFloat = 22
-    private static let handleH: CGFloat = 4
-    private static let handleRadius: CGFloat = 2
-    // FRAME_INSET + FRAME_STROKE_WIDTH / 2 + PANEL_GAP (10 + 6 + 6).
-    private static let clipInset: CGFloat = 22
+    // scales uniformly to fit. The single source of truth is `:domain`
+    // `GarageDoorGeometry`, consumed identically by Android's `GarageDoorCanvas.kt`
+    // (Tier-1 brand surface, ADR-032) — read here into `CGFloat` so the drawing
+    // body below is unchanged.
+    private static var vp: CGFloat { CGFloat(GarageDoorGeometry.shared.VP) }
+    private static var frameInset: CGFloat { CGFloat(GarageDoorGeometry.shared.FRAME_INSET) }
+    private static var frameStroke: CGFloat { CGFloat(GarageDoorGeometry.shared.FRAME_STROKE_WIDTH) }
+    private static var frameCorner: CGFloat { CGFloat(GarageDoorGeometry.shared.FRAME_CORNER_RADIUS) }
+    private static var frameBottom: CGFloat { CGFloat(GarageDoorGeometry.shared.FRAME_BOTTOM) }
+    private static var panelX: CGFloat { CGFloat(GarageDoorGeometry.shared.PANEL_X) }
+    private static var panelWidth: CGFloat { CGFloat(GarageDoorGeometry.shared.PANEL_WIDTH) }
+    private static var panelHeight: CGFloat { CGFloat(GarageDoorGeometry.shared.PANEL_HEIGHT) }
+    private static var panelRadius: CGFloat { CGFloat(GarageDoorGeometry.shared.PANEL_RADIUS) }
+    private static var panelYStarts: [CGFloat] {
+        GarageDoorGeometry.shared.PANEL_Y_STARTS.map { CGFloat(truncating: $0) }
+    }
+    private static var handleX: CGFloat { CGFloat(GarageDoorGeometry.shared.HANDLE_X) }
+    private static var handleY: CGFloat { CGFloat(GarageDoorGeometry.shared.HANDLE_Y) }
+    private static var handleW: CGFloat { CGFloat(GarageDoorGeometry.shared.HANDLE_W) }
+    private static var handleH: CGFloat { CGFloat(GarageDoorGeometry.shared.HANDLE_H) }
+    private static var handleRadius: CGFloat { CGFloat(GarageDoorGeometry.shared.HANDLE_RADIUS) }
+    private static var clipInset: CGFloat { CGFloat(GarageDoorGeometry.shared.CLIP_INSET) }
 
     var animatableData: CGFloat {
         get { doorOffset }

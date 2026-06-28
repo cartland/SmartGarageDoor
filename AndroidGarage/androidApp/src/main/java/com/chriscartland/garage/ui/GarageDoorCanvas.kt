@@ -30,35 +30,27 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.CLIP_INSET
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.FRAME_BOTTOM
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.FRAME_CORNER_RADIUS
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.FRAME_INSET
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.FRAME_STROKE_WIDTH
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.HANDLE_H
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.HANDLE_RADIUS
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.HANDLE_W
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.HANDLE_X
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.HANDLE_Y
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.PANEL_HEIGHT
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.PANEL_RADIUS
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.PANEL_WIDTH
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.PANEL_X
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.PANEL_Y_STARTS
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.VP
 
-// Design viewport — all coordinates below are in this unit space.
-// The Canvas scales uniformly to fit the available size.
-private const val VP = 300f
-
-/** Aspect ratio of the garage door design (1:1 square). */
-const val GARAGE_DOOR_ASPECT_RATIO = 1f
-
-// Frame layout.
-private const val FRAME_INSET = 10f
-private const val FRAME_STROKE_WIDTH = 12f
-private const val FRAME_CORNER_RADIUS = 16f
-private const val FRAME_BOTTOM = 290f
-private const val INTERIOR_TOP = FRAME_INSET + FRAME_STROKE_WIDTH / 2f // 16
-
-// Door panel layout — 4 panels, evenly spaced (gap = pad = 6, radius = gap/2).
-private const val PANEL_GAP = 6f
-private const val PANEL_X = 20f
-private const val PANEL_WIDTH = 260f
-private const val PANEL_HEIGHT = 61f
-private const val PANEL_RADIUS = 3f
-private val PANEL_Y_STARTS = floatArrayOf(22f, 89f, 156f, 223f)
-
-// Handle on bottom panel.
-private const val HANDLE_X = 139f
-private const val HANDLE_Y = 278f
-private const val HANDLE_W = 22f
-private const val HANDLE_H = 4f
-private const val HANDLE_RADIUS = 2f
+// Door drawing geometry (viewport, frame, panels, handle) is the single shared
+// source of truth in `:domain` `GarageDoorGeometry`, consumed identically by the
+// iOS `GarageDoorCanvas.swift`. Tier-1 brand surface (ADR-032) — do not re-declare
+// local literals here.
 
 /**
  * Draws a garage door at a given vertical offset using pure Compose Canvas.
@@ -110,7 +102,7 @@ private fun DrawScope.drawGarageDoor(
 
     // Clip panels inside the frame with a gap matching the panel spacing.
     // This creates a reliable visual separator between panels and frame.
-    val clipInset = FRAME_INSET + FRAME_STROKE_WIDTH / 2f + PANEL_GAP
+    val clipInset = CLIP_INSET
 
     clipRect(
         left = x(clipInset),
