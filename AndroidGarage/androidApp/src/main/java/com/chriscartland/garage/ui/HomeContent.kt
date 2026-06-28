@@ -35,8 +35,9 @@ import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
+import com.chriscartland.garage.presentation.HomeAlert
+import com.chriscartland.garage.presentation.HomeAlertMapper
 import com.chriscartland.garage.ui.home.DeviceCheckIn
-import com.chriscartland.garage.ui.home.HomeAlert
 import com.chriscartland.garage.ui.home.HomeMapper
 import com.chriscartland.garage.ui.home.rememberSinceLine
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
@@ -102,7 +103,7 @@ fun HomeContent(
     // The elapsed bucket comes from the shared VM (ADR-031); this layer only
     // formats clock time + localized units.
     val sinceLine = rememberSinceLine(sinceStatus, now, zone)
-    val alerts = HomeMapper.toHomeAlerts(
+    val alerts = HomeAlertMapper.toHomeAlerts(
         currentDoorEvent = currentDoorEvent,
         isCheckInStale = isCheckInStale,
         notificationPermissionGranted = notificationPermissionState.status.isGranted,

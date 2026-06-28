@@ -26,7 +26,6 @@ import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.User
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 
@@ -123,128 +122,12 @@ class HomeMapperTest {
 
     // endregion
 
-    // region toHomeAlerts
-
-    @Test
-    fun toHomeAlerts_clean_state_empty() {
-        val alerts = HomeMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Complete(event(DoorPosition.OPEN)),
-            isCheckInStale = false,
-            notificationPermissionGranted = true,
-            notificationRequestCount = 0,
-        )
-        assertEquals(emptyList<HomeAlert>(), alerts)
-    }
-
-    @Test
-    fun toHomeAlerts_stale_only() {
-        val alerts = HomeMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Complete(event(DoorPosition.OPEN)),
-            isCheckInStale = true,
-            notificationPermissionGranted = true,
-            notificationRequestCount = 0,
-        )
-        assertEquals(1, alerts.size)
-        // Phase 2D: HomeAlert.Stale is now a `data object`, no message field.
-        assertEquals(HomeAlert.Stale, alerts[0])
-    }
-
-    @Test
-    fun toHomeAlerts_permission_only() {
-        val alerts = HomeMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Complete(event(DoorPosition.OPEN)),
-            isCheckInStale = false,
-            notificationPermissionGranted = false,
-            notificationRequestCount = 0,
-        )
-        assertEquals(1, alerts.size)
-        // Phase 2F: PermissionMissing carries a typed NotificationJustification
-        // instead of a String message. The Composable layer renders the
-        // multi-line localized message at the call site.
-        val pm = alerts[0] as HomeAlert.PermissionMissing
-        assertEquals(0, pm.justification.attemptCount)
-    }
-
-    @Test
-    fun toHomeAlerts_permission_attemptCount_passes_through() {
-        val firstAttempt = HomeMapper
-            .toHomeAlerts(
-                currentDoorEvent = LoadingResult.Complete(event(DoorPosition.OPEN)),
-                isCheckInStale = false,
-                notificationPermissionGranted = false,
-                notificationRequestCount = 0,
-            ).first() as HomeAlert.PermissionMissing
-        val manyAttempts = HomeMapper
-            .toHomeAlerts(
-                currentDoorEvent = LoadingResult.Complete(event(DoorPosition.OPEN)),
-                isCheckInStale = false,
-                notificationPermissionGranted = false,
-                notificationRequestCount = 5,
-            ).first() as HomeAlert.PermissionMissing
-        // Mapper passes the count through verbatim; the Composable's
-        // notificationJustificationText resolver appends escalation lines
-        // at counts 3+, 4+, 5+.
-        assertEquals(0, firstAttempt.justification.attemptCount)
-        assertEquals(5, manyAttempts.justification.attemptCount)
-    }
-
-    @Test
-    fun toHomeAlerts_fetch_error_only() {
-        val alerts = HomeMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Error(RuntimeException("boom")),
-            isCheckInStale = false,
-            notificationPermissionGranted = true,
-            notificationRequestCount = 0,
-        )
-        assertEquals(1, alerts.size)
-        val a = alerts[0] as HomeAlert.FetchError
-        // Phase 2D: FetchError now carries `truncatedException` (raw exception
-        // text only); the Composable interpolates it into the localized
-        // "Error fetching ..." string at render time.
-        assertTrue(a.truncatedException.contains("boom"))
-    }
-
-    @Test
-    fun toHomeAlerts_error_message_truncated_to_500() {
-        val long = "x".repeat(2_000)
-        val alerts = HomeMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Error(RuntimeException(long)),
-            isCheckInStale = false,
-            notificationPermissionGranted = true,
-            notificationRequestCount = 0,
-        )
-        val a = alerts[0] as HomeAlert.FetchError
-        // truncatedException is bounded to 500 chars; the localized prefix
-        // is added by the Composable, not stored in the typed alert.
-        assertTrue("Got len=${a.truncatedException.length}", a.truncatedException.length <= 500)
-    }
-
-    @Test
-    fun toHomeAlerts_all_three_in_documented_order() {
-        val alerts = HomeMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Error(RuntimeException("boom")),
-            isCheckInStale = true,
-            notificationPermissionGranted = false,
-            notificationRequestCount = 0,
-        )
-        assertEquals(3, alerts.size)
-        assertTrue("[0] should be Stale", alerts[0] is HomeAlert.Stale)
-        assertTrue("[1] should be PermissionMissing", alerts[1] is HomeAlert.PermissionMissing)
-        assertTrue("[2] should be FetchError", alerts[2] is HomeAlert.FetchError)
-    }
-
-    @Test
-    fun toHomeAlerts_loading_state_does_not_emit_fetch_error() {
-        val alerts = HomeMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Loading(null),
-            isCheckInStale = false,
-            notificationPermissionGranted = true,
-            notificationRequestCount = 0,
-        )
-        assertEquals(emptyList<HomeAlert>(), alerts)
-    }
-
-    // endregion
+    // (region toHomeAlerts was removed in the presentation-model realization
+    //  (ADR-031 Phase 4) — `HomeAlert` + the banner-selection logic moved to
+    //  the shared `presentation-model` module. The contract is now guarded by
+    //  `HomeAlertMapperTest` in that module's commonTest, so it runs on every
+    //  platform. The route wrapper calls `HomeAlertMapper.toHomeAlerts`; the
+    //  Composable `HomeAlertCard` resolves each typed alert to localized copy.)
 
     // region toHomeAuthState
 
