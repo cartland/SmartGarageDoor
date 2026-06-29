@@ -5,7 +5,7 @@
 
 A browsable visual reference of every SwiftUI `#Preview` in the iOS app, captured via Prefire + swift-snapshot-testing. These are reference images, **not** pixel-perfect gating tests — they are regenerated, never asserted.
 
-**19 snapshot(s)** across 1 group(s).
+**21 snapshot(s)** across 1 group(s).
 
 ## Table of contents
 - [PreviewTests.generated](#previewtestsgenerated)
@@ -38,6 +38,12 @@ A browsable visual reference of every SwiftUI `#Preview` in the iOS app, capture
 
 ### History-empty.1
 <img src="__Snapshots__/PreviewTests.generated/History-empty.1.png" width="240" />
+
+### History-loading-older-page.1
+<img src="__Snapshots__/PreviewTests.generated/History-loading-older-page.1.png" width="240" />
+
+### History-reached-beginning.1
+<img src="__Snapshots__/PreviewTests.generated/History-reached-beginning.1.png" width="240" />
 
 ### History-recent-events.1
 <img src="__Snapshots__/PreviewTests.generated/History-recent-events.1.png" width="240" />

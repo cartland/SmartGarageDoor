@@ -47,6 +47,12 @@ final class HistoryViewModelWrapper: ObservableObject {
 
     @Published private(set) var days: [DaySection] = []
     @Published private(set) var isLoading: Bool = false
+    /// Older events are available to page in — drives the scroll-to-end
+    /// trigger and the footer's terminal state. Pass-through of the shared
+    /// `paginationState.canLoadMore` (the repo owns the cursor; ADR-028).
+    @Published private(set) var canLoadMore: Bool = false
+    /// An older-page fetch is in flight — drives the footer spinner.
+    @Published private(set) var isLoadingMore: Bool = false
 
     private let shared: SharedViewModel<DefaultDoorHistoryViewModel>
     private var tasks: [Task<Void, Never>] = []
@@ -60,6 +66,7 @@ final class HistoryViewModelWrapper: ObservableObject {
         shared = SharedViewModel(component.doorHistoryViewModel)
         nowEpochSeconds = vm.nowEpochSeconds.value.int64Value
         apply(vm.recentDoorEvents.value)
+        applyPagination(vm.paginationState.value)
         rebuild()
 
         tasks.append(Task { @MainActor [weak self] in
@@ -76,6 +83,17 @@ final class HistoryViewModelWrapper: ObservableObject {
                 self.rebuild()
             }
         })
+        tasks.append(Task { @MainActor [weak self] in
+            guard let self else { return }
+            for await state in self.vm.paginationState {
+                self.applyPagination(state)
+            }
+        })
+    }
+
+    private func applyPagination(_ state: PaginationState) {
+        canLoadMore = state.canLoadMore
+        isLoadingMore = state.isLoadingMore
     }
 
     private func apply(_ result: LoadingResult<NSArray>) {
@@ -263,6 +281,12 @@ final class HistoryViewModelWrapper: ObservableObject {
     }()
 
     func refresh() { vm.fetchRecentDoorEvents() }
+
+    /// Page in the next older window. Appended events flow back through
+    /// `recentDoorEvents`; `isLoadingMore` / `canLoadMore` update via
+    /// `paginationState`. The shared repo guards against re-entrant fetches, so
+    /// a duplicate scroll-trigger fire is a no-op.
+    func loadMore() { vm.fetchOlderDoorEvents() }
 
     deinit { tasks.forEach { $0.cancel() } }
 }
