@@ -28,15 +28,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import com.chriscartland.garage.R
-import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AppResult
+import com.chriscartland.garage.domain.model.AuthError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
  * Composable hook returning a click handler that:
- *   1. Fetches the current Firebase ID token via [GetAuthTokenForCopyUseCase].
+ *   1. Fetches the current Firebase ID token via [fetch] — the screen passes
+ *      its ViewModel's `fetchAuthTokenForCopy` (ADR-033: UI routes through the
+ *      VM, never the UseCase directly).
  *   2. On success, writes the token to the system clipboard with
  *      `ClipDescription.EXTRA_IS_SENSITIVE` set so the OS preview chip
  *      (API 33+) redacts the value instead of displaying it on-screen.
@@ -44,12 +46,11 @@ import kotlinx.coroutines.withContext
  *      *"Sign in to copy auth token"* so the user knows the copy didn't
  *      happen.
  *
- * Single source of truth for the developer-only token-copy action.
- * Both [DiagnosticsScreen] and [FunctionListContent] call this hook so
- * the two surfaces decode + format + write the token identically — a
- * regression in clipboard behavior breaks both call sites at once,
- * which is the verification property the user asked for ("powered by a
- * UseCase in both places so it should be easy to verify both").
+ * Single source of truth for the developer-only token-copy clipboard+feedback
+ * behavior. Both [DiagnosticsScreen] and [FunctionListContent] call this hook so
+ * the two surfaces decode + format + write the token identically — a regression
+ * in clipboard behavior breaks both call sites at once. The token *fetch* is the
+ * VM's (`fetchAuthTokenForCopy`), shared at the UseCase level under both VMs.
  *
  * No success Toast: the OS clipboard preview chip with content hidden
  * is the confirmation; a Toast on top would be duplicate noise (mirrors
@@ -63,15 +64,13 @@ import kotlinx.coroutines.withContext
  * button is the only way to keep the action safe on older Android.
  */
 @Composable
-fun rememberAuthTokenCopier(): () -> Unit {
-    val component = rememberAppComponent()
+fun rememberAuthTokenCopier(fetch: suspend () -> AppResult<String, AuthError>): () -> Unit {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val useCase = component.getAuthTokenForCopyUseCase
-    return remember(useCase, context, scope) {
+    return remember(fetch, context, scope) {
         {
             scope.launch {
-                val result = withContext(Dispatchers.IO) { useCase() }
+                val result = withContext(Dispatchers.IO) { fetch() }
                 when (result) {
                     is AppResult.Success -> SensitiveClipboard.write(context, result.data)
                     is AppResult.Error ->

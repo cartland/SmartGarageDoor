@@ -204,7 +204,6 @@ abstract class NativeComponent(
     abstract val doorResolvedFcmSubscriptionManager: DoorResolvedFcmSubscriptionManager
     abstract val initialDoorFetchManager: InitialDoorFetchManager
     abstract val computeButtonHealthDisplayUseCase: ComputeButtonHealthDisplayUseCase
-    abstract val getAuthTokenForCopyUseCase: GetAuthTokenForCopyUseCase
 
     // --- ViewModels ---
 
@@ -212,8 +211,9 @@ abstract class NativeComponent(
     fun provideDiagnosticsViewModel(
         observeAppLogCount: ObserveDiagnosticsCountUseCase,
         clearDiagnostics: ClearDiagnosticsUseCase,
+        getAuthTokenForCopy: GetAuthTokenForCopyUseCase,
         dispatchers: DispatcherProvider,
-    ): DefaultDiagnosticsViewModel = DefaultDiagnosticsViewModel(observeAppLogCount, clearDiagnostics, dispatchers)
+    ): DefaultDiagnosticsViewModel = DefaultDiagnosticsViewModel(observeAppLogCount, clearDiagnostics, getAuthTokenForCopy, dispatchers)
 
     @Provides
     fun provideFunctionListViewModel(
@@ -236,6 +236,7 @@ abstract class NativeComponent(
         subscribeTestNotification: SubscribeTestNotificationUseCase,
         unsubscribeTestNotification: UnsubscribeTestNotificationUseCase,
         observeTestNotificationState: ObserveTestNotificationStateUseCase,
+        getAuthTokenForCopy: GetAuthTokenForCopyUseCase,
         dispatchers: DispatcherProvider,
         appVersion: String,
     ): DefaultFunctionListViewModel =
@@ -259,6 +260,7 @@ abstract class NativeComponent(
             subscribeTestNotificationUseCase = subscribeTestNotification,
             unsubscribeTestNotificationUseCase = unsubscribeTestNotification,
             observeTestNotificationStateUseCase = observeTestNotificationState,
+            getAuthTokenForCopyUseCase = getAuthTokenForCopy,
             dispatchers = dispatchers,
             appVersion = appVersion,
         )

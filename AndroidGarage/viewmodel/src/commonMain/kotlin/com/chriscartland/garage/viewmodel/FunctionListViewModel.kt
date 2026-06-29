@@ -22,6 +22,8 @@ import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppLoggerLimits
+import com.chriscartland.garage.domain.model.AppResult
+import com.chriscartland.garage.domain.model.AuthError
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
@@ -35,6 +37,7 @@ import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
+import com.chriscartland.garage.usecase.GetAuthTokenForCopyUseCase
 import com.chriscartland.garage.usecase.GetTestNotificationTopicUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
@@ -107,6 +110,14 @@ interface FunctionListViewModel {
     fun unsubscribeTestNotification()
 
     fun changeTestNotificationTopic()
+
+    /**
+     * Fetch the current Firebase ID token for the developer-only copy action
+     * (ADR-033 — the UI routes this through the VM rather than calling the
+     * UseCase directly). Returns the typed result; the platform UI does the
+     * clipboard write + "Copied" / "Sign in" feedback.
+     */
+    suspend fun fetchAuthTokenForCopy(): AppResult<String, AuthError>
 }
 
 class DefaultFunctionListViewModel(
@@ -129,6 +140,7 @@ class DefaultFunctionListViewModel(
     private val subscribeTestNotificationUseCase: SubscribeTestNotificationUseCase,
     private val unsubscribeTestNotificationUseCase: UnsubscribeTestNotificationUseCase,
     private val observeTestNotificationStateUseCase: ObserveTestNotificationStateUseCase,
+    private val getAuthTokenForCopyUseCase: GetAuthTokenForCopyUseCase,
     private val dispatchers: DispatcherProvider,
     private val appVersion: String,
 ) : ViewModel(),
@@ -254,4 +266,6 @@ class DefaultFunctionListViewModel(
         Logger.d { "changeTestNotificationTopic" }
         viewModelScope.launch(dispatchers.io) { changeTestNotificationTopicUseCase() }
     }
+
+    override suspend fun fetchAuthTokenForCopy(): AppResult<String, AuthError> = getAuthTokenForCopyUseCase()
 }

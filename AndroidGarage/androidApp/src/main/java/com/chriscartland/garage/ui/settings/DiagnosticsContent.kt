@@ -96,7 +96,7 @@ fun DiagnosticsScreen(
     val component = rememberAppComponent()
     val diagnosticsViewModel: DiagnosticsViewModel = viewModel { component.diagnosticsViewModel }
     val context = LocalContext.current
-    val copyAuthToken = rememberAuthTokenCopier()
+    val copyAuthToken = rememberAuthTokenCopier(diagnosticsViewModel::fetchAuthTokenForCopy)
 
     val initCurrent by diagnosticsViewModel.initCurrentDoorCount.collectAsState()
     val initRecent by diagnosticsViewModel.initRecentDoorCount.collectAsState()

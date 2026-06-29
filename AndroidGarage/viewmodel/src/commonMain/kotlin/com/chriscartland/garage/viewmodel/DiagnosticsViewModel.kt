@@ -21,7 +21,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppLoggerKeys
+import com.chriscartland.garage.domain.model.AppResult
+import com.chriscartland.garage.domain.model.AuthError
 import com.chriscartland.garage.usecase.ClearDiagnosticsUseCase
+import com.chriscartland.garage.usecase.GetAuthTokenForCopyUseCase
 import com.chriscartland.garage.usecase.ObserveDiagnosticsCountUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -63,11 +66,19 @@ interface DiagnosticsViewModel {
      * Confirmation dialog is the caller's responsibility.
      */
     fun clearDiagnostics()
+
+    /**
+     * Fetch the current Firebase ID token for the developer-only copy action
+     * (ADR-033 — the UI routes this through the VM rather than calling the
+     * UseCase directly). The platform UI does the clipboard write + feedback.
+     */
+    suspend fun fetchAuthTokenForCopy(): AppResult<String, AuthError>
 }
 
 class DefaultDiagnosticsViewModel(
     private val observeAppLogCount: ObserveDiagnosticsCountUseCase,
     private val clearDiagnosticsUseCase: ClearDiagnosticsUseCase,
+    private val getAuthTokenForCopyUseCase: GetAuthTokenForCopyUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel(),
     DiagnosticsViewModel {
@@ -131,4 +142,6 @@ class DefaultDiagnosticsViewModel(
             }
         }
     }
+
+    override suspend fun fetchAuthTokenForCopy(): AppResult<String, AuthError> = getAuthTokenForCopyUseCase()
 }
