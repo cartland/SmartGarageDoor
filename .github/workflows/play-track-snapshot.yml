@@ -36,7 +36,7 @@ jobs:
         with:
           fetch-depth: 0 # need tags to map versionCode N -> android/N -> versionName
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
 
