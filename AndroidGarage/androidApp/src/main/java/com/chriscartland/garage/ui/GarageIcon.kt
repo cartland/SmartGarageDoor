@@ -37,6 +37,7 @@ import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import com.chriscartland.garage.domain.model.DoorAnimation
+import com.chriscartland.garage.domain.model.DoorMotionKey
 import com.chriscartland.garage.domain.model.DoorOverlayKind
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.GarageDoorGeometry
