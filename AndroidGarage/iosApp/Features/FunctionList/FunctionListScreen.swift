@@ -158,7 +158,7 @@ struct FunctionListContentView: View {
                 .listRowBackground(Color.clear)
             }
         }
-        .navigationTitle("Functions")
+        .navigationTitle("Function list")
     }
 }
 
