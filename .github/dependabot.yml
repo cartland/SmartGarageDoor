@@ -1,0 +1,52 @@
+# Dependabot configuration — automated dependency-update PRs.
+#
+# Closes security audit finding M14 (2026-05-14): CI runs `npm audit` warn-only
+# but there was no automated upgrade flow. Dependabot opens PRs; merging stays
+# manual and follows the sequencing playbook in docs/DEPENDENCY_UPGRADES.md
+# (notably the deliberate "stay on Node 22" decision and the kotlin-inject 0.8.0
+# pin — Dependabot updates package versions, not the Node/Kotlin runtime, so
+# those pins are unaffected, but review every bump against that doc).
+#
+# Updates are grouped by minor/patch to keep PR count low (the check-pr-backlog
+# hook warns at 5 open PRs). Major bumps come as their own PRs so they get
+# individual review.
+version: 2
+updates:
+  # Firebase Cloud Functions (TypeScript) — package.json lives in FirebaseServer/.
+  - package-ecosystem: npm
+    directory: /FirebaseServer
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      firebase-server-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Android app + KMP modules — Gradle reads gradle/libs.versions.toml and the
+  # build.gradle.kts files under AndroidGarage/.
+  - package-ecosystem: gradle
+    directory: /AndroidGarage
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      android-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  # GitHub Actions used by the workflows in .github/workflows/. Addresses the
+  # low/informational finding that several actions are pinned to floating major
+  # tags rather than commit SHAs.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      github-actions-minor-patch:
+        update-types:
+          - minor
+          - patch
