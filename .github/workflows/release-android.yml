@@ -38,7 +38,7 @@ jobs:
           echo "Validated: tag=$TAG, versionCode=$VERSION"
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - uses: ./.github/actions/setup-android
         with:
@@ -103,7 +103,7 @@ jobs:
     needs: [release]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/ci-failure-tracker
         with:
           label: release-failure/android

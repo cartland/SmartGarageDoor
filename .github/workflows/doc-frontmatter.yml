@@ -26,6 +26,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5 # never hang; the check takes ~2s
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Check doc front-matter
         run: bash scripts/check-doc-frontmatter.sh
