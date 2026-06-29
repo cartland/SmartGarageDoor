@@ -32,7 +32,10 @@ struct HistoryScreen: View {
         HistoryContentView(
             days: wrapper.days,
             isLoading: wrapper.isLoading,
-            onRefresh: { wrapper.refresh() }
+            canLoadMore: wrapper.canLoadMore,
+            isLoadingMore: wrapper.isLoadingMore,
+            onRefresh: { wrapper.refresh() },
+            onLoadMore: { wrapper.loadMore() }
         )
     }
 }
@@ -43,7 +46,15 @@ struct HistoryScreen: View {
 struct HistoryContentView: View {
     let days: [HistoryViewModelWrapper.DaySection]
     let isLoading: Bool
+    /// Older events are available to page in — gates the scroll-to-end trigger
+    /// and the footer's terminal "reached the beginning" state.
+    var canLoadMore: Bool = false
+    /// An older-page fetch is in flight — shows the footer spinner.
+    var isLoadingMore: Bool = false
     let onRefresh: () -> Void
+    /// Fires when the bottom footer scrolls into view with more to load. The
+    /// shared repo guards re-entrancy, so an extra fire is harmless.
+    var onLoadMore: () -> Void = {}
 
     var body: some View {
         List {
@@ -61,6 +72,15 @@ struct HistoryContentView: View {
                         Text(day.title)
                     }
                 }
+                // Bottom-of-list pagination footer: spinner while an older page
+                // loads, a muted terminal note once nothing older remains. The
+                // footer appearing near the end is itself the load-more trigger
+                // (mirrors Android's near-end LaunchedEffect in HistoryContent).
+                HistoryLoadMoreFooter(canLoadMore: canLoadMore, isLoadingMore: isLoadingMore)
+                    .listRowSeparator(.hidden)
+                    .onAppear {
+                        if canLoadMore && !isLoadingMore { onLoadMore() }
+                    }
             }
         }
         .navigationTitle("History")
@@ -88,6 +108,33 @@ private struct HistoryRow: View {
                 }
             }
         }
+        .padding(.vertical, GarageSpacing.tight)
+    }
+}
+
+/// Bottom-of-list pagination footer. Spinner while an older page loads; a muted
+/// terminal note once there's nothing older (distinct from the empty-list state,
+/// which means "no events at all"). Renders nothing while idle with more to
+/// load — the `onAppear` scroll-to-end trigger does the work. Mirrors Android's
+/// `HistoryFooter`; the wording mirrors `R.string.history_footer_reached_beginning`.
+private struct HistoryLoadMoreFooter: View {
+    let canLoadMore: Bool
+    let isLoadingMore: Bool
+
+    var body: some View {
+        HStack {
+            Spacer(minLength: 0)
+            if isLoadingMore {
+                ProgressView()
+            } else if !canLoadMore {
+                Text("You've reached the beginning of your history")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity)
         .padding(.vertical, GarageSpacing.tight)
     }
 }
@@ -180,5 +227,46 @@ private struct HistoryEmptyState: View {
 #Preview("History empty") {
     NavigationStack {
         HistoryContentView(days: [], isLoading: false, onRefresh: {})
+    }
+}
+
+// Footer-state previews use a SHORT list (one day) so the pagination footer
+// renders inside the snapshot viewport (mirrors Android's HistoryFooter previews).
+
+#Preview("History loading older page") {
+    NavigationStack {
+        HistoryContentView(
+            days: [
+                .init(id: "today", title: "Today", entries: [
+                    .init(id: "t0", position: .closed, headline: "Closed at 9:53 AM",
+                          supporting: "Closed for 22 min", warnings: []),
+                    .init(id: "t1", position: .open, headline: "Opened at 9:47 AM",
+                          supporting: "Open for 6 min", warnings: []),
+                ]),
+            ],
+            isLoading: false,
+            canLoadMore: true,
+            isLoadingMore: true,
+            onRefresh: {},
+            onLoadMore: {}
+        )
+    }
+}
+
+#Preview("History reached beginning") {
+    NavigationStack {
+        HistoryContentView(
+            days: [
+                .init(id: "today", title: "Today", entries: [
+                    .init(id: "t0", position: .closed, headline: "Closed at 9:53 AM",
+                          supporting: "Closed for 22 min", warnings: []),
+                ]),
+            ],
+            isLoading: false,
+            canLoadMore: false,
+            isLoadingMore: false,
+            onRefresh: {},
+            onLoadMore: {}
+        )
     }
 }
