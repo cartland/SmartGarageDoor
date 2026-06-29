@@ -16,15 +16,29 @@
   -->
 
 <!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older that API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+   Auto Backup rules for API <= 30 (android:fullBackupContent). For API 31+
+   see data_extraction_rules.xml. Reference:
+   https://developer.android.com/guide/topics/data/autobackup
+
+   Security audit finding M6 (2026-05-14): with allowBackup="true" and empty
+   rules, the app's local data was copied to Google Drive Auto Backup by
+   default. None of it is irreplaceable — the Room door-event cache re-syncs
+   from the server and the DataStore files are device-local settings/diagnostics
+   counters — so excluding it from cloud backup removes an off-device copy of
+   the user's door-activity history at no real cost.
+
+   Paths are source-confirmed (so an exclude can't silently fail open):
+   - Room DB file is named "database" (DatabaseFactory.android.kt uses
+     context.getDatabasePath("database")); SQLite also writes -shm/-wal
+     sidecars next to it.
+   - DataStore files land directly in filesDir (DataStoreFactory.android.kt
+     resolves PREFERENCES_FILE_NAME / DIAGNOSTICS_COUNTERS_FILE_NAME against
+     context.filesDir), i.e. the "file" backup domain.
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <exclude domain="database" path="database" />
+    <exclude domain="database" path="database-shm" />
+    <exclude domain="database" path="database-wal" />
+    <exclude domain="file" path="app_settings.preferences_pb" />
+    <exclude domain="file" path="diagnostics_counters.preferences_pb" />
 </full-backup-content>
