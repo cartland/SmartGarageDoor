@@ -22,6 +22,7 @@ import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
+import com.chriscartland.garage.usecase.BuildAppLogCsvUseCase
 import com.chriscartland.garage.usecase.ClearDiagnosticsUseCase
 import com.chriscartland.garage.usecase.GetAuthTokenForCopyUseCase
 import com.chriscartland.garage.usecase.ObserveDiagnosticsCountUseCase
@@ -53,6 +54,7 @@ class DiagnosticsViewModelTest {
             observeAppLogCount = ObserveDiagnosticsCountUseCase(counters),
             clearDiagnosticsUseCase = ClearDiagnosticsUseCase(logger, counters),
             getAuthTokenForCopyUseCase = GetAuthTokenForCopyUseCase(FakeAuthRepository()),
+            buildAppLogCsvUseCase = BuildAppLogCsvUseCase(logger),
             dispatchers = dispatchers,
         )
     }

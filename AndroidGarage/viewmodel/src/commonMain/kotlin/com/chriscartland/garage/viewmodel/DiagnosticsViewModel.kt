@@ -23,6 +23,7 @@ import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthError
+import com.chriscartland.garage.usecase.BuildAppLogCsvUseCase
 import com.chriscartland.garage.usecase.ClearDiagnosticsUseCase
 import com.chriscartland.garage.usecase.GetAuthTokenForCopyUseCase
 import com.chriscartland.garage.usecase.ObserveDiagnosticsCountUseCase
@@ -73,12 +74,21 @@ interface DiagnosticsViewModel {
      * UseCase directly). The platform UI does the clipboard write + feedback.
      */
     suspend fun fetchAuthTokenForCopy(): AppResult<String, AuthError>
+
+    /**
+     * Build the diagnostics export CSV (ADR-033 — the UI routes the export
+     * through the VM rather than reaching the repository directly). The platform
+     * UI does only the side-effect: Android writes the bytes to a chosen content
+     * `Uri`, iOS shares the file.
+     */
+    suspend fun buildExportCsv(): String
 }
 
 class DefaultDiagnosticsViewModel(
     private val observeAppLogCount: ObserveDiagnosticsCountUseCase,
     private val clearDiagnosticsUseCase: ClearDiagnosticsUseCase,
     private val getAuthTokenForCopyUseCase: GetAuthTokenForCopyUseCase,
+    private val buildAppLogCsvUseCase: BuildAppLogCsvUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel(),
     DiagnosticsViewModel {
@@ -144,4 +154,6 @@ class DefaultDiagnosticsViewModel(
     }
 
     override suspend fun fetchAuthTokenForCopy(): AppResult<String, AuthError> = getAuthTokenForCopyUseCase()
+
+    override suspend fun buildExportCsv(): String = buildAppLogCsvUseCase()
 }

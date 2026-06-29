@@ -56,9 +56,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.chriscartland.garage.GarageApplication
 import com.chriscartland.garage.R
-import com.chriscartland.garage.applogger.exportAppLogCsvToUri
+import com.chriscartland.garage.applogger.writeCsvToUri
 import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.ui.auth.rememberAuthTokenCopier
 import com.chriscartland.garage.ui.theme.ButtonSpacing
@@ -124,9 +123,9 @@ fun DiagnosticsScreen(
         ActivityResultContracts.StartActivityForResult(),
     ) { result ->
         val uri = result.data?.data ?: return@rememberLauncherForActivityResult
-        val app = context.applicationContext as GarageApplication
         CoroutineScope(Dispatchers.IO).launch {
-            exportAppLogCsvToUri(app.component.appLoggerRepository, context, uri)
+            // ADR-033: the CSV is built by the VM; the UI does only the write.
+            writeCsvToUri(diagnosticsViewModel.buildExportCsv(), context, uri)
         }
     }
 
