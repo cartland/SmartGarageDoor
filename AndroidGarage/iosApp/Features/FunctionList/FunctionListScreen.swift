@@ -43,6 +43,7 @@ struct FunctionListScreen: View {
                 deregisterFcm: { wrapper.deregisterFcm() },
                 pruneDiagnosticsLog: { wrapper.pruneDiagnosticsLog() },
                 clearDiagnostics: { wrapper.clearDiagnostics() },
+                copyAuthToken: { await wrapper.copyAuthToken() },
                 copyTestTopic: { wrapper.copyTestTopic() },
                 subscribeTestNotification: { wrapper.subscribeTestNotification() },
                 unsubscribeTestNotification: { wrapper.unsubscribeTestNotification() },
@@ -65,6 +66,10 @@ struct FunctionListActions {
     var deregisterFcm: () -> Void = {}
     var pruneDiagnosticsLog: () -> Void = {}
     var clearDiagnostics: () -> Void = {}
+    /// Developer-only: copy the Firebase ID token. `async` (token fetch) and
+    /// returns the outcome so the button can flash. Defaults to `.notSignedIn`
+    /// for previews (no live component).
+    var copyAuthToken: () async -> AuthTokenCopyOutcome = { .notSignedIn }
     var copyTestTopic: () -> Void = {}
     var subscribeTestNotification: () -> Void = {}
     var unsubscribeTestNotification: () -> Void = {}
@@ -114,6 +119,13 @@ struct FunctionListContentView: View {
                 Section("FCM") {
                     Button("Register FCM") { actions.registerFcm() }
                     Button("Deregister FCM") { actions.deregisterFcm() }
+                }
+                Section("Auth") {
+                    // Developer-only: copy the Firebase ID token (mirrors
+                    // Android's `function_list_copy_auth_token`). The button owns
+                    // its own confirmation flash; the fetch + sensitivity posture
+                    // live in `AuthTokenCopier`.
+                    CopyAuthTokenButton(copy: actions.copyAuthToken)
                 }
                 Section("Diagnostics") {
                     Button("Prune diagnostics log") { actions.pruneDiagnosticsLog() }
