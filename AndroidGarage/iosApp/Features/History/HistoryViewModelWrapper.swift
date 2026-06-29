@@ -47,6 +47,10 @@ final class HistoryViewModelWrapper: ObservableObject {
 
     @Published private(set) var days: [DaySection] = []
     @Published private(set) var isLoading: Bool = false
+    /// Whether the stale-check-in banner should show — device telemetry is
+    /// older than the staleness threshold. The decision routes through the
+    /// shared `HistoryAlertMapper` (ADR-031) so it can't diverge from Android.
+    @Published private(set) var showStaleBanner: Bool = false
     /// Older events are available to page in — drives the scroll-to-end
     /// trigger and the footer's terminal state. Pass-through of the shared
     /// `paginationState.canLoadMore` (the repo owns the cursor; ADR-028).
@@ -67,6 +71,7 @@ final class HistoryViewModelWrapper: ObservableObject {
         nowEpochSeconds = vm.nowEpochSeconds.value.int64Value
         apply(vm.recentDoorEvents.value)
         applyPagination(vm.paginationState.value)
+        applyStale(vm.isCheckInStale.value.boolValue)
         rebuild()
 
         tasks.append(Task { @MainActor [weak self] in
@@ -74,6 +79,12 @@ final class HistoryViewModelWrapper: ObservableObject {
             for await result in self.vm.recentDoorEvents {
                 self.apply(result)
                 self.rebuild()
+            }
+        })
+        tasks.append(Task { @MainActor [weak self] in
+            guard let self else { return }
+            for await stale in self.vm.isCheckInStale {
+                self.applyStale(stale.boolValue)
             }
         })
         tasks.append(Task { @MainActor [weak self] in
@@ -94,6 +105,14 @@ final class HistoryViewModelWrapper: ObservableObject {
     private func applyPagination(_ state: PaginationState) {
         canLoadMore = state.canLoadMore
         isLoadingMore = state.isLoadingMore
+    }
+
+    private func applyStale(_ stale: Bool) {
+        // Route the show/hide decision through the shared HistoryAlertMapper so
+        // it can't diverge from Android (ADR-031). For the single current alert
+        // type this reduces to "is the list non-empty", but the decision lives
+        // in the shared layer, and new alert types land there for both platforms.
+        showStaleBanner = !HistoryAlertMapper.shared.toHistoryAlerts(isCheckInStale: stale).isEmpty
     }
 
     private func apply(_ result: LoadingResult<NSArray>) {
@@ -287,6 +306,14 @@ final class HistoryViewModelWrapper: ObservableObject {
     /// `paginationState`. The shared repo guards against re-entrant fetches, so
     /// a duplicate scroll-trigger fire is a no-op.
     func loadMore() { vm.fetchOlderDoorEvents() }
+
+    /// Stale-banner recovery: deregister FCM (so it re-subscribes fresh) and
+    /// refetch recent events. Mirrors Android's `DoorHistoryContent` reset-FCM
+    /// banner action (`onResetFcm` + `onFetchRecentDoorEvents`).
+    func resetFcmAndRefetch() {
+        vm.deregisterFcm()
+        vm.fetchRecentDoorEvents()
+    }
 
     deinit { tasks.forEach { $0.cancel() } }
 }

@@ -39,6 +39,8 @@ import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.LoadingResult
+import com.chriscartland.garage.presentation.HistoryAlert
+import com.chriscartland.garage.presentation.HistoryAlertMapper
 import com.chriscartland.garage.presentation.HistoryMapper
 import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.history.HistoryContent
@@ -111,7 +113,14 @@ fun DoorHistoryContent(
     // Without this conditional, the no-banner case would double-pad
     // (16 dp outer + 16 dp safeListContentPadding = 32 dp before the
     // first day section).
-    val anyBannerShown = isCheckInStale
+    // Banner-stack selection routes through the shared HistoryAlertMapper
+    // (ADR-031, the sibling of HomeAlertMapper) so the stale-banner show/hide
+    // decision can't diverge from iOS.
+    val alerts =
+        remember(isCheckInStale) {
+            HistoryAlertMapper.toHistoryAlerts(isCheckInStale = isCheckInStale)
+        }
+    val anyBannerShown = alerts.isNotEmpty()
     val outerModifier = if (anyBannerShown) {
         modifier.fillMaxSize().padding(top = 16.dp)
     } else {
@@ -121,17 +130,20 @@ fun DoorHistoryContent(
         modifier = outerModifier,
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        if (isCheckInStale) {
-            ErrorCard(
-                text = stringResource(R.string.home_history_stale_check_in_error),
-                buttonText = stringResource(R.string.home_history_retry_button),
-                onClick = {
-                    Logger.e { "Trying to fix outdated info. Resetting FCM, and fetching data." }
-                    onResetFcm()
-                    onFetchRecentDoorEvents()
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
+        alerts.forEach { alert ->
+            when (alert) {
+                HistoryAlert.StaleCheckIn ->
+                    ErrorCard(
+                        text = stringResource(R.string.home_history_stale_check_in_error),
+                        buttonText = stringResource(R.string.home_history_retry_button),
+                        onClick = {
+                            Logger.e { "Trying to fix outdated info. Resetting FCM, and fetching data." }
+                            onResetFcm()
+                            onFetchRecentDoorEvents()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+            }
         }
         HistoryContent(
             days = days,
