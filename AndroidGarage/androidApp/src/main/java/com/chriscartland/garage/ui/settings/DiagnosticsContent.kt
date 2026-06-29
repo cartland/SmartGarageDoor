@@ -106,13 +106,16 @@ fun DiagnosticsScreen(
     val exceededFcm by diagnosticsViewModel.exceededExpectedTimeWithoutFcmCount.collectAsState()
     val timeWithoutFcmInRange by diagnosticsViewModel.timeWithoutFcmInExpectedRangeCount.collectAsState()
 
+    // Order matches the shared `DiagnosticsViewModel` field order (the canonical
+    // cross-platform order, also rendered by iOS): FCM received before FCM
+    // subscribe. Keeps Android + iOS Diagnostics visually aligned.
     val counters = listOf(
         DiagnosticsCounter("App init (current door)", initCurrent),
         DiagnosticsCounter("App init (recent doors)", initRecent),
         DiagnosticsCounter("Door fetch (current)", fetchCurrent),
         DiagnosticsCounter("Door fetch (recent)", fetchRecent),
-        DiagnosticsCounter("FCM subscribe", fcmSubscribe),
         DiagnosticsCounter("FCM received", fcmReceived),
+        DiagnosticsCounter("FCM subscribe", fcmSubscribe),
         DiagnosticsCounter("FCM exceeded expected timeout", exceededFcm),
         DiagnosticsCounter("FCM in expected range", timeWithoutFcmInRange),
     )
@@ -373,8 +376,8 @@ fun DiagnosticsContentPreview() {
                 DiagnosticsCounter("App init (recent doors)", 17),
                 DiagnosticsCounter("Door fetch (current)", 836),
                 DiagnosticsCounter("Door fetch (recent)", 412),
-                DiagnosticsCounter("FCM subscribe", 8),
                 DiagnosticsCounter("FCM received", 1247),
+                DiagnosticsCounter("FCM subscribe", 8),
                 DiagnosticsCounter("FCM exceeded expected timeout", 3),
                 DiagnosticsCounter("FCM in expected range", 1244),
             ),
@@ -406,8 +409,8 @@ fun DiagnosticsContentClearInFlightPreview() {
                 DiagnosticsCounter("App init (recent doors)", 17),
                 DiagnosticsCounter("Door fetch (current)", 836),
                 DiagnosticsCounter("Door fetch (recent)", 412),
-                DiagnosticsCounter("FCM subscribe", 8),
                 DiagnosticsCounter("FCM received", 1247),
+                DiagnosticsCounter("FCM subscribe", 8),
                 DiagnosticsCounter("FCM exceeded expected timeout", 3),
                 DiagnosticsCounter("FCM in expected range", 1244),
             ),
