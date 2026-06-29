@@ -94,6 +94,25 @@ final class DiagnosticsViewModelWrapper: ObservableObject {
         (try? await vm.buildExportCsv()) ?? ""
     }
 
+    /// Copy the current Firebase ID token to the clipboard (developer-only).
+    /// Mirrors the Functions-panel action: the token *fetch* routes through the
+    /// ViewModel (`fetchAuthTokenForCopy`, ADR-033), and `AuthTokenCopier` owns
+    /// the iOS sensitivity posture (pasteboard expiration). Returns the outcome
+    /// so the button can flash "Copied" or "Sign in to copy auth token".
+    func copyAuthToken() async -> AuthTokenCopyOutcome {
+        do {
+            switch onEnum(of: try await vm.fetchAuthTokenForCopy()) {
+            case .success(let success):
+                AuthTokenCopier.writeSensitive(success.data)
+                return .copied
+            case .error:
+                return .notSignedIn
+            }
+        } catch {
+            return .notSignedIn
+        }
+    }
+
     deinit {
         tasks.forEach { $0.cancel() }
     }
