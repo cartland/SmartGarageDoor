@@ -5,8 +5,6 @@
 # route through its ViewModel. The goal is an EMPTY list — the check fails on a
 # stale entry (one that no longer violates) so the file can't accumulate.
 #
-# Burn-down:
-#   auth/AuthTokenCopier.kt       -> copy-token through FunctionListViewModel/DiagnosticsViewModel
+# Burn-down (copy-token DONE — routed through the VMs; one left):
 #   settings/DiagnosticsContent.kt -> Export CSV through DiagnosticsViewModel
-auth/AuthTokenCopier.kt
 settings/DiagnosticsContent.kt

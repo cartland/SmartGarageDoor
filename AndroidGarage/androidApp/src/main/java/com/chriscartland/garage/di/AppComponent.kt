@@ -178,7 +178,6 @@ abstract class AppComponent(
     abstract val messagingBridge: MessagingBridge
     abstract val authRepository: AuthRepository
 
-    abstract val getAuthTokenForCopyUseCase: GetAuthTokenForCopyUseCase
     abstract val doorRepository: DoorRepository
     abstract val serverConfigRepository: ServerConfigRepository
     abstract val snoozeRepository: SnoozeRepository
@@ -213,11 +212,13 @@ abstract class AppComponent(
     fun provideDiagnosticsViewModel(
         observeAppLogCount: ObserveDiagnosticsCountUseCase,
         clearDiagnostics: ClearDiagnosticsUseCase,
+        getAuthTokenForCopy: GetAuthTokenForCopyUseCase,
         dispatchers: DispatcherProvider,
     ): DefaultDiagnosticsViewModel =
         DefaultDiagnosticsViewModel(
             observeAppLogCount,
             clearDiagnostics,
+            getAuthTokenForCopy,
             dispatchers,
         )
 
@@ -268,6 +269,7 @@ abstract class AppComponent(
         subscribeTestNotification: SubscribeTestNotificationUseCase,
         unsubscribeTestNotification: UnsubscribeTestNotificationUseCase,
         observeTestNotificationState: ObserveTestNotificationStateUseCase,
+        getAuthTokenForCopy: GetAuthTokenForCopyUseCase,
         dispatchers: DispatcherProvider,
         appVersion: String,
     ): DefaultFunctionListViewModel =
@@ -291,6 +293,7 @@ abstract class AppComponent(
             subscribeTestNotificationUseCase = subscribeTestNotification,
             unsubscribeTestNotificationUseCase = unsubscribeTestNotification,
             observeTestNotificationStateUseCase = observeTestNotificationState,
+            getAuthTokenForCopyUseCase = getAuthTokenForCopy,
             dispatchers = dispatchers,
             appVersion = appVersion,
         )

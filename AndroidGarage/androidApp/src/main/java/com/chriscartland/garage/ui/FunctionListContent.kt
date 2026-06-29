@@ -58,7 +58,7 @@ fun FunctionListContent(
     val googleSignIn = rememberGoogleSignIn(
         onTokenReceived = { token -> resolved.signInWithGoogle(token) },
     )
-    val copyAuthToken = rememberAuthTokenCopier()
+    val copyAuthToken = rememberAuthTokenCopier(resolved::fetchAuthTokenForCopy)
     val testNotificationState by resolved.testNotificationState.collectAsState()
     val clipboard = LocalClipboardManager.current
 

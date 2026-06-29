@@ -47,6 +47,7 @@ import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
+import com.chriscartland.garage.usecase.GetAuthTokenForCopyUseCase
 import com.chriscartland.garage.usecase.GetTestNotificationTopicUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
@@ -141,6 +142,7 @@ class DefaultFunctionListViewModelTest {
             subscribeTestNotificationUseCase = SubscribeTestNotificationUseCase(testNotif),
             unsubscribeTestNotificationUseCase = UnsubscribeTestNotificationUseCase(testNotif),
             observeTestNotificationStateUseCase = ObserveTestNotificationStateUseCase(testNotif),
+            getAuthTokenForCopyUseCase = GetAuthTokenForCopyUseCase(authRepository),
             dispatchers = TestDispatcherProvider(testDispatcher),
             appVersion = "test",
         )

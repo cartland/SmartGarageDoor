@@ -38,14 +38,8 @@ final class FunctionListViewModelWrapper: ObservableObject {
     private var tasks: [Task<Void, Never>] = []
     private var vm: DefaultFunctionListViewModel { shared.instance }
 
-    /// Shared token-fetch usecase for the developer-only copy-auth-token action
-    /// (the token isn't VM state, so it's read straight from the graph — same as
-    /// Android's `rememberAuthTokenCopier`, which reads the usecase off the component).
-    private let getAuthTokenForCopyUseCase: UsecaseGetAuthTokenForCopyUseCase
-
     init(component: NativeComponent) {
         shared = SharedViewModel(component.functionListViewModel)
-        getAuthTokenForCopyUseCase = component.getAuthTokenForCopyUseCase
         accessGranted = vm.accessGranted.value?.boolValue
         applyTestState(vm.testNotificationState.value)
 
@@ -89,11 +83,22 @@ final class FunctionListViewModelWrapper: ObservableObject {
     }
 
     /// Copy the current Firebase ID token to the clipboard (developer-only).
-    /// Delegates to the shared [AuthTokenCopier] so the fetch + sensitivity
-    /// posture (pasteboard expiration) live in one place; returns the outcome so
-    /// the button can flash "Copied" or "Sign in to copy auth token".
+    /// The token *fetch* routes through the ViewModel (`fetchAuthTokenForCopy`,
+    /// ADR-033 — not the UseCase directly); `AuthTokenCopier` owns the iOS
+    /// sensitivity posture (pasteboard expiration). Returns the outcome so the
+    /// button can flash "Copied" or "Sign in to copy auth token".
     func copyAuthToken() async -> AuthTokenCopyOutcome {
-        await AuthTokenCopier.copy(using: getAuthTokenForCopyUseCase)
+        do {
+            switch onEnum(of: try await vm.fetchAuthTokenForCopy()) {
+            case .success(let success):
+                AuthTokenCopier.writeSensitive(success.data)
+                return .copied
+            case .error:
+                return .notSignedIn
+            }
+        } catch {
+            return .notSignedIn
+        }
     }
 
     deinit { tasks.forEach { $0.cancel() } }

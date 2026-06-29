@@ -26,37 +26,24 @@ enum AuthTokenCopyOutcome {
     case notSignedIn
 }
 
-/// Single source of truth for the developer-only "copy auth token" action — the
-/// iOS analog of Android's `rememberAuthTokenCopier` + `SensitiveClipboard`.
-/// Fetches the current Firebase ID token via the shared `GetAuthTokenForCopyUseCase`;
-/// on success writes it to the pasteboard with a short expiration.
-///
-/// iOS has no `ClipDescription.EXTRA_IS_SENSITIVE` equivalent (and shows no
-/// post-copy preview chip), so the **expiration is the sensitivity posture** —
-/// the JWT auto-clears from the pasteboard — and the caller flashes a "Copied"
-/// confirmation in place of the OS chip Android relies on.
+/// The developer-only "copy auth token" clipboard write — the iOS analog of
+/// Android's `SensitiveClipboard`. The token *fetch* now goes through the
+/// ViewModel (`fetchAuthTokenForCopy`, ADR-033); this owns only the iOS
+/// sensitivity posture: iOS has no `ClipDescription.EXTRA_IS_SENSITIVE`
+/// equivalent (and shows no post-copy preview chip), so the JWT is written with
+/// a short **expiration** (auto-clears from the pasteboard) and the caller
+/// flashes a "Copied" confirmation in place of the OS chip Android relies on.
 enum AuthTokenCopier {
     /// Pasteboard auto-clear window for the copied JWT.
     private static let expirySeconds: TimeInterval = 120
 
+    /// Write [token] to the pasteboard with the expiration sensitivity posture.
     @MainActor
-    static func copy(using useCase: UsecaseGetAuthTokenForCopyUseCase) async -> AuthTokenCopyOutcome {
-        // `invoke()` is `async throws` over the SKIE bridge; any thrown error
-        // (or the typed `AppResult.Error` for "not signed in") means no copy.
-        do {
-            switch onEnum(of: try await useCase.invoke()) {
-            case .success(let success):
-                UIPasteboard.general.setItems(
-                    [[UTType.utf8PlainText.identifier: success.data]],
-                    options: [.expirationDate: Date().addingTimeInterval(expirySeconds)]
-                )
-                return .copied
-            case .error:
-                return .notSignedIn
-            }
-        } catch {
-            return .notSignedIn
-        }
+    static func writeSensitive(_ token: Any) {
+        UIPasteboard.general.setItems(
+            [[UTType.utf8PlainText.identifier: token]],
+            options: [.expirationDate: Date().addingTimeInterval(expirySeconds)]
+        )
     }
 }
 
