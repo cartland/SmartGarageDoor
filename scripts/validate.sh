@@ -31,6 +31,9 @@ $GRADLE checkNoFullyQualifiedNames && pass "no FQNs" || fail "no FQNs"
 step "No Navigation 2 imports (use Nav3)"
 $GRADLE checkNoNav2Imports && pass "no Nav2" || fail "no Nav2"
 
+step "UI layer routes through ViewModel (no direct component.UseCase/Repository)"
+$GRADLE checkUiLayerNoGraphAccess && pass "ui layer no graph access" || fail "ui layer no graph access"
+
 step "RememberSaveable guard (no unsaved custom types)"
 $GRADLE checkRememberSaveable && pass "rememberSaveable guard" || fail "rememberSaveable guard"
 

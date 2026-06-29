@@ -53,6 +53,21 @@ tasks.register<codestyle.NoNav2ImportsTask>("checkNoNav2Imports") {
     )
 }
 
+// ADR-033: UI-triggered work goes through the ViewModel. UI code must not reach a
+// UseCase/Repository directly off the DI `component`. Exemptions grandfather the
+// two pre-rule violations while they're refactored through their VMs (goal: empty).
+tasks.register<architecture.UiLayerNoGraphAccessTask>("checkUiLayerNoGraphAccess") {
+    sourceDirs = listOf(
+        "$rootDir/androidApp/src/main/java/com/chriscartland/garage/ui",
+    )
+    exemptions = file("ui-layer-graph-access-exemptions.txt")
+        .takeIf { it.exists() }
+        ?.readLines()
+        ?.map { it.trim() }
+        ?.filter { it.isNotEmpty() && !it.startsWith("#") }
+        ?: emptyList()
+}
+
 tasks.register<architecture.ArchitectureCheckTask>("checkArchitecture") {
     // Capture module dependencies at configuration time (Gradle 9 compatible)
     moduleDependencies = subprojects
