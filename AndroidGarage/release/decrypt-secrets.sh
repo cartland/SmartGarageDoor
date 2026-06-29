@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Copyright 2021 Google LLC
 #
@@ -18,10 +19,12 @@ decrypt() {
   PASSPHRASE=$1
   INPUT=$2
   OUTPUT=$3
-  gpg --quiet --batch --yes --decrypt --passphrase="$PASSPHRASE" --output $OUTPUT $INPUT
+  gpg --quiet --batch --yes --decrypt --passphrase="$PASSPHRASE" --output "$OUTPUT" "$INPUT"
 }
 
-if [[ ! -z "$ENCRYPT_KEY" ]]; then
+# set -u: default ENCRYPT_KEY to empty so the unset case is the clean "empty"
+# branch below, not an "unbound variable" abort.
+if [[ -n "${ENCRYPT_KEY:-}" ]]; then
   # Decrypt Release key
   decrypt ${ENCRYPT_KEY} release/app-release.gpg release/app-release.jks
   # Decrypt Google Services key (Android)

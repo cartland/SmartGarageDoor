@@ -1,4 +1,7 @@
 #!/bin/sh
+# set -eu (no pipefail: not portable in POSIX sh). Fail fast so a botched rm
+# doesn't leave decrypted secrets on disk under the illusion of a clean tree.
+set -eu
 
 # Copyright 2021 Google LLC
 #
