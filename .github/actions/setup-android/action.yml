@@ -31,3 +31,20 @@ runs:
       run: ./release/decrypt-secrets.sh
       env:
         ENCRYPT_KEY: ${{ inputs.encrypt-key }}
+
+    # Dependabot-triggered runs don't receive repo secrets, so the decrypt above
+    # is skipped and google-services.json is absent — which fails
+    # processGoogleServices and every Android job. Drop in a committed placeholder
+    # so the build / test / lint jobs can still validate the dependency change.
+    # (The release-AAB job, which also needs the real signing keystore, is skipped
+    # on Dependabot runs in ci-checks.yml.) Guarded on the empty key so a real CI /
+    # release run — where decrypt produced the real file — is never touched.
+    - name: Provide placeholder google-services.json (no encrypt key)
+      if: inputs.encrypt-key == ''
+      working-directory: AndroidGarage
+      shell: bash
+      run: |
+        if [ ! -f androidApp/google-services.json ]; then
+          cp release/google-services-placeholder.json androidApp/google-services.json
+          echo "No encrypt key (e.g. Dependabot run): copied placeholder google-services.json."
+        fi
