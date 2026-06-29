@@ -33,7 +33,8 @@ struct DiagnosticsScreen: View {
             counters: wrapper.counters,
             clearInFlight: wrapper.clearInFlight,
             onClear: { wrapper.clearDiagnostics() },
-            onBuildCsv: { await wrapper.buildCsv() }
+            onBuildCsv: { await wrapper.buildCsv() },
+            onCopyAuthToken: { await wrapper.copyAuthToken() }
         )
     }
 }
@@ -48,6 +49,10 @@ struct DiagnosticsContentView: View {
     /// reads the log repo. Defaults to empty so the `#Preview`s/snapshot gallery
     /// render the button without a live component.
     let onBuildCsv: () async -> String
+    /// Copies the Firebase ID token (developer-only). `async` (token fetch);
+    /// returns the outcome so the button can flash. Defaults to `.notSignedIn`
+    /// for the `#Preview`s/snapshot gallery (no live component).
+    let onCopyAuthToken: () async -> AuthTokenCopyOutcome
 
     // `@State` here would lower the *synthesized* memberwise init to `private`
     // (the optional `shareItem` is the exact case that breaks the cross-file
@@ -62,12 +67,14 @@ struct DiagnosticsContentView: View {
         counters: [DiagnosticsViewModelWrapper.Counter],
         clearInFlight: Bool,
         onClear: @escaping () -> Void,
-        onBuildCsv: @escaping () async -> String = { "" }
+        onBuildCsv: @escaping () async -> String = { "" },
+        onCopyAuthToken: @escaping () async -> AuthTokenCopyOutcome = { .notSignedIn }
     ) {
         self.counters = counters
         self.clearInFlight = clearInFlight
         self.onClear = onClear
         self.onBuildCsv = onBuildCsv
+        self.onCopyAuthToken = onCopyAuthToken
     }
 
     var body: some View {
@@ -85,6 +92,13 @@ struct DiagnosticsContentView: View {
             }
 
             Section {
+                // Developer-only: copy the Firebase ID token (mirrors Android's
+                // Diagnostics `settings_diagnostics_copy_auth_token`). The button
+                // owns its confirmation flash; the fetch routes through the VM
+                // (`copyAuthToken` → `fetchAuthTokenForCopy`, ADR-033) and
+                // `AuthTokenCopier` owns the iOS sensitivity posture.
+                CopyAuthTokenButton(copy: onCopyAuthToken)
+
                 Button {
                     export()
                 } label: {
@@ -122,7 +136,14 @@ struct DiagnosticsContentView: View {
             Button("Clear all", role: .destructive) { onClear() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Wipes the app-event log and lifetime counters.")
+            // Mirrors Android's `settings_diagnostics_confirm_message` — names
+            // the scope (counters + event log), what is NOT affected (door
+            // history, other settings), and the irreversibility.
+            Text(
+                "Resets every counter on this screen to 0 and deletes the " +
+                    "exportable event log. Door history and other app settings " +
+                    "are not affected. This cannot be undone."
+            )
         }
         .sheet(item: $shareItem) { item in
             ActivityView(activityItems: [item.url])
