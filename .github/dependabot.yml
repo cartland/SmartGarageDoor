@@ -1,15 +1,25 @@
 # Dependabot configuration — automated dependency-update PRs.
 #
-# Closes security audit finding M14 (2026-05-14): CI runs `npm audit` warn-only
-# but there was no automated upgrade flow. Dependabot opens PRs; merging stays
-# manual and follows the sequencing playbook in docs/DEPENDENCY_UPGRADES.md
-# (notably the deliberate "stay on Node 22" decision and the kotlin-inject 0.8.0
-# pin — Dependabot updates package versions, not the Node/Kotlin runtime, so
-# those pins are unaffected, but review every bump against that doc).
+# Closes security audit finding M14 (2026-05-14): CI ran `npm audit` warn-only
+# with no automated upgrade flow.
 #
-# Updates are grouped by minor/patch to keep PR count low (the check-pr-backlog
-# hook warns at 5 open PRs). Major bumps come as their own PRs so they get
-# individual review.
+# POSTURE: minor/patch only. Major bumps are IGNORED here on purpose — the first
+# run (2026-06-29) opened a flood that included several majors (agp 8->9,
+# spotless 7->8, firebase-functions 6->7, firebase-admin 13->14, compose-bom,
+# action majors), each of which needs the deliberate sequencing playbook in
+# docs/DEPENDENCY_UPGRADES.md (and the "stay on Node 22" / kotlin-inject 0.8.0
+# pins), not a drop-in auto-PR. Take majors by hand when you choose. Minor/patch
+# bumps are grouped per ecosystem and auto-merge once CI is green.
+#
+# NOTE (Android-side CI): GitHub withholds repo Actions secrets from
+# Dependabot-triggered runs, so the google-services.json decrypt no-ops. CI is
+# made Dependabot-resilient separately (placeholder google-services.json +
+# skipping the release-AAB/signing job on Dependabot runs) so gradle/actions
+# minor/patch PRs can still pass the gate. npm PRs only trigger Firebase CI,
+# which needs no Android secrets.
+#
+# open-pull-requests-limit is low (3) so a wave never re-floods the backlog (the
+# check-pr-backlog hook warns at 5, blocks at 10).
 version: 2
 updates:
   # Firebase Cloud Functions (TypeScript) — package.json lives in FirebaseServer/.
@@ -17,12 +27,15 @@ updates:
     directory: /FirebaseServer
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     groups:
       firebase-server-minor-patch:
         update-types:
           - minor
           - patch
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   # Android app + KMP modules — Gradle reads gradle/libs.versions.toml and the
   # build.gradle.kts files under AndroidGarage/.
@@ -30,12 +43,15 @@ updates:
     directory: /AndroidGarage
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     groups:
       android-minor-patch:
         update-types:
           - minor
           - patch
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions used by the workflows in .github/workflows/. Addresses the
   # low/informational finding that several actions are pinned to floating major
@@ -44,9 +60,12 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     groups:
       github-actions-minor-patch:
         update-types:
           - minor
           - patch
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
