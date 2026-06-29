@@ -24,6 +24,14 @@ import SwiftUI
 struct MainScreen: View {
     let component: NativeComponent
 
+    /// App-root holder for the shared door-animation replay memory (`:domain`
+    /// `DoorAnimationMemory`). `@State` so the single instance survives tab
+    /// switches (the shell isn't recreated) but resets on process death —
+    /// exactly when a cold open should replay the slide. Mirrors Android's
+    /// `remember { DoorAnimationMemory() }` at the Compose root; injected into
+    /// the tree via the `\.doorAnimationMemory` environment value.
+    @State private var doorAnimationMemory = DoorAnimationMemory()
+
     var body: some View {
         TabView {
             ForEach(MainTab.allCases) { tab in
@@ -35,6 +43,7 @@ struct MainScreen: View {
                 }
             }
         }
+        .environment(\.doorAnimationMemory, doorAnimationMemory)
     }
 
     @ViewBuilder

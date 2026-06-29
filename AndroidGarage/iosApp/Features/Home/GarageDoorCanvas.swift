@@ -20,45 +20,77 @@ import SwiftUI
 
 // SwiftUI port of Android's `GarageDoorCanvas.kt` / `GarageIcon.kt` — the
 // animated garage-door visualization that is part of the shared "Garage"
-// identity (ADR-029 § 3). The drawing **geometry** (`GarageDoorGeometry`) and
-// the door-fill **palette** (`GarageDoorPalette`) are now shared `:domain`
-// single sources of truth, consumed by both platforms via SKIE — as is the
-// **animation spec** (`DoorAnimation`: offset constants + the
-// `DoorPosition → offset / overlay / color-state` mappings). The door
-// visualization is now fully shared `:domain`; no hand-mirrored mappings remain.
+// identity (ADR-029 § 3). The drawing **geometry** (`GarageDoorGeometry`), the
+// door-fill **palette** (`GarageDoorPalette`), and the **animation spec**
+// (`DoorAnimation`: offset constants, the `DoorPosition → offset / overlay /
+// color-state` mappings, the live-slide duration, and the
+// `DoorAnimationMemory` replay policy) are all shared `:domain` single sources
+// of truth, consumed by both platforms via SKIE. No hand-mirrored mappings
+// remain.
 //
-// Parity scope (v1): the *visual* — door shape, per-state offset, per-state
-// color (fresh / stale), and the directional / warning overlay. The animation
-// is a simple ease between offsets on state change. The full Android trajectory
-// (a 12 s linear tween for OPENING / CLOSING and a once-per-event "replay from
-// the start" gated by `DoorAnimationMemory`) is a deferred polish pass.
+// Animation (ADR-032 spec-vs-execution split): the *spec* is shared/provable —
+// what the door does (from/target offsets, the 12 s linear OPENING/CLOSING
+// slide, the spring settle on the terminal event, the once-per-event replay).
+// The *execution* is best-effort native — Android drives a Compose `Animatable`
+// + `LaunchedEffect`; iOS drives a SwiftUI `@State` offset + `withAnimation`
+// (below). Both read the identical shared parameters; only the frame-by-frame
+// interpolation engine differs. See `AndroidGarage/docs/DOOR_ANIMATION.md`.
 
 /// Renders the garage door for a [DoorPosition], including the directional /
-/// warning overlay, sized to a 1:1 square. Animates the door panels between
-/// states.
+/// warning overlay, sized to a 1:1 square.
+///
+/// Two modes:
+/// - **Static** (the default — History rows, previews, snapshot gallery): renders
+///   the per-state snapshot offset (`DoorAnimation.staticPositionFor`) with a
+///   gentle ease between states. Deterministic, no live trajectory.
+/// - **Animated** (`animated: true` — the live Home door, the one live surface):
+///   drives the full shared trajectory — a 12 s linear OPENING/CLOSING slide and
+///   a spring settle to the terminal state, replaying the slide from the start
+///   once per motion event. See `AnimatedDoorCanvas`.
 struct GarageDoorView: View {
     let position: DoorPosition
     /// Picks the muted "stale" color variant — mirrors Android's
     /// `HomeStatusDisplay.isStale` (which is the device check-in staleness).
     var isStale: Bool = false
+    /// Drive the full live trajectory instead of a static snapshot. Only the
+    /// live Home door sets this; History rows + previews stay static.
+    var animated: Bool = false
+    /// Server timestamp of the door's last position change — identifies one
+    /// motion event so the slide replays once per event (cold-open / first
+    /// view), not on every re-appearance. Only consulted when `animated`.
+    var lastChangeTimeSeconds: Int64?
 
     @Environment(\.colorScheme) private var scheme
+    /// Shared replay memory (`:domain` `DoorAnimationMemory`), injected at the
+    /// app root (`MainScreen`). Mirrors Android's `LocalDoorAnimationMemory`.
+    @Environment(\.doorAnimationMemory) private var memory
 
     var body: some View {
-        let offset = CGFloat(DoorAnimation.shared.staticPositionFor(doorPosition: position))
         let rgb = DoorPalette.doorRGB(for: position, stale: isStale, scheme: scheme)
+        let color = Color(rgb: rgb)
+        let darkColor = Color(rgb: DoorPalette.blendWithBlackHalf(rgb))
         ZStack {
-            GarageDoorCanvas(
-                doorOffset: offset,
-                color: Color(rgb: rgb),
-                darkColor: Color(rgb: DoorPalette.blendWithBlackHalf(rgb))
-            )
-            .animation(.easeInOut(duration: 0.6), value: offset)
-
+            if animated {
+                AnimatedDoorCanvas(
+                    position: position,
+                    lastChangeTimeSeconds: lastChangeTimeSeconds,
+                    memory: memory,
+                    color: color,
+                    darkColor: darkColor
+                )
+            } else {
+                staticCanvas(color: color, darkColor: darkColor)
+            }
             overlay
         }
         .aspectRatio(GarageDoorCanvas.aspectRatio, contentMode: .fit)
         .accessibilityHidden(true) // the status label carries the spoken state
+    }
+
+    private func staticCanvas(color: Color, darkColor: Color) -> some View {
+        let offset = CGFloat(DoorAnimation.shared.staticPositionFor(doorPosition: position))
+        return GarageDoorCanvas(doorOffset: offset, color: color, darkColor: darkColor)
+            .animation(.easeInOut(duration: 0.6), value: offset)
     }
 
     @ViewBuilder private var overlay: some View {
@@ -73,6 +105,89 @@ struct GarageDoorView: View {
             DoorOverlayBadge(systemName: "exclamationmark.triangle.fill", iconScale: 0.6)
         }
     }
+}
+
+/// Drives the live door trajectory in SwiftUI, consuming the shared `:domain`
+/// `DoorAnimation` spec + `DoorAnimationMemory` replay policy (Tier 1, ADR-032).
+/// This is the **execution** layer — best-effort native animation; every
+/// parameter it animates toward is shared and provable.
+///
+/// - First appearance of a not-yet-seen motion event (cold-open / first view):
+///   seed at the `from` end and slide linearly to the target over the shared
+///   `ANIMATION_DURATION_SECONDS`. Re-appearance of the same event snaps.
+/// - A live state change animates from the *current* offset: motion states slide
+///   linearly; terminal/error states settle via a slow no-overshoot spring —
+///   that settle is the "spring shut / spring open" when the real terminal event
+///   arrives over the network mid-slide.
+private struct AnimatedDoorCanvas: View {
+    let position: DoorPosition
+    let lastChangeTimeSeconds: Int64?
+    let memory: DoorAnimationMemory
+    let color: Color
+    let darkColor: Color
+
+    @State private var offset: CGFloat
+
+    init(
+        position: DoorPosition,
+        lastChangeTimeSeconds: Int64?,
+        memory: DoorAnimationMemory,
+        color: Color,
+        darkColor: Color
+    ) {
+        self.position = position
+        self.lastChangeTimeSeconds = lastChangeTimeSeconds
+        self.memory = memory
+        self.color = color
+        self.darkColor = darkColor
+        // Snap-safe default seed = the target. `onAppear` dips to the `from` end
+        // and slides only when this is a newly observed motion event.
+        _offset = State(initialValue: CGFloat(DoorAnimation.shared.targetPositionFor(doorPosition: position)))
+    }
+
+    var body: some View {
+        GarageDoorCanvas(doorOffset: offset, color: color, darkColor: darkColor)
+            .onAppear { seedAndAnimate() }
+            // iOS 16 single-parameter onChange (the two-param form is iOS 17+).
+            .onChange(of: position) { _ in animate(to: position) }
+    }
+
+    private func seedAndAnimate() {
+        let isMotion = !DoorAnimation.shared.useSpringFor(doorPosition: position)
+        let key = DoorMotionKey(
+            doorPosition: position,
+            lastChangeTimeSeconds: lastChangeTimeSeconds.map { KotlinLong(value: $0) }
+        )
+        let replay = isMotion && memory.consumeAnimateFromStart(key: key)
+        guard replay else {
+            offset = CGFloat(DoorAnimation.shared.targetPositionFor(doorPosition: position))
+            return
+        }
+        // Seed at the `from` end (no animation), then slide to target on the next
+        // runloop tick so SwiftUI animates the full slide instead of coalescing
+        // both assignments into the final value.
+        offset = CGFloat(DoorAnimation.shared.fromPositionFor(doorPosition: position))
+        DispatchQueue.main.async {
+            withAnimation(.linear(duration: Self.slideDuration)) {
+                offset = CGFloat(DoorAnimation.shared.targetPositionFor(doorPosition: position))
+            }
+        }
+    }
+
+    private func animate(to position: DoorPosition) {
+        let target = CGFloat(DoorAnimation.shared.targetPositionFor(doorPosition: position))
+        if DoorAnimation.shared.useSpringFor(doorPosition: position) {
+            // Slow, no-overshoot settle — the native analog of Android's
+            // spring(DampingRatioNoBouncy, StiffnessVeryLow). Exact feel is Tier-3
+            // native taste; the fact that terminal states *settle* is shared.
+            withAnimation(.spring(response: 0.6, dampingFraction: 1.0)) { offset = target }
+        } else {
+            withAnimation(.linear(duration: Self.slideDuration)) { offset = target }
+        }
+    }
+
+    /// Shared product-decision slide duration (12 s) read from `:domain`.
+    private static var slideDuration: Double { Double(DoorAnimation.shared.ANIMATION_DURATION_SECONDS) }
 }
 
 /// Pure drawing of the door at a vertical [doorOffset] (proportion of the drawn
@@ -207,6 +322,25 @@ private struct DoorOverlayBadge: View {
             .frame(width: diameter, height: diameter)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+    }
+}
+
+// MARK: - Shared door-animation replay memory (environment)
+
+/// Carries the shared `:domain` `DoorAnimationMemory` (the once-per-event slide
+/// dedup) down the view tree. The **iOS holder lifecycle** — analogous to
+/// Android's `LocalDoorAnimationMemory` `CompositionLocal`: a single instance is
+/// created once at the app root (`MainScreen`, a `@State` so it survives tab
+/// switches and resets on process death) and injected here. The default is a
+/// throwaway instance, harmless because static-mode rendering never consults it.
+private struct DoorAnimationMemoryKey: EnvironmentKey {
+    static let defaultValue = DoorAnimationMemory()
+}
+
+extension EnvironmentValues {
+    var doorAnimationMemory: DoorAnimationMemory {
+        get { self[DoorAnimationMemoryKey.self] }
+        set { self[DoorAnimationMemoryKey.self] = newValue }
     }
 }
 
