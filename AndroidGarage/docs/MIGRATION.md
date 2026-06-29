@@ -274,10 +274,13 @@ The original DEFERRED sub-sections landed through the Android Purity wave:
 - Migrated from Navigation Compose 2.x to Navigation 3 (`androidx.navigation3`) — `NavDisplay` + `entryProvider` at `androidApp/ui/Main.kt`
 - Nav2 import enforcement via `NoNav2ImportsTask` prevents regression
 
-## Phase 13: iOS Target (Future)
+## Phase 13: iOS Target — IN PROGRESS (functional)
 
-**Goal:** Add iOS framework target to shared modules.
+**Goal:** Add iOS framework target to shared modules + a SwiftUI app consuming them.
 
+The KMP targets, `actual` declarations, SwiftUI app, and all 5 screens have shipped; the app is functional on the simulator with real backend data, and cross-platform parity work is ongoing. **This section is intentionally a pointer — the live, detailed iOS status is maintained in [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md) § 1 (construction) + § 4 (parity backlog), not duplicated here** (it drifts too fast for the migration doc).
+
+Original scope (all done):
 - Add `iosX64()`, `iosArm64()`, `iosSimulatorArm64()` targets
 - Implement `actual` declarations for iOS
 - Create SwiftUI app consuming shared ViewModels via KMP framework
@@ -358,7 +361,7 @@ The original DEFERRED sub-sections landed through the Android Purity wave:
 | 10. Shared ViewModels | Medium | Phase 9 | **COMPLETE** (all 5 ViewModels in shared modules) |
 | 11. Platform Abstractions | Small | Phase 9 | **COMPLETE** (bridges extracted) |
 | 12. Type-Safe Navigation | Medium | None | **COMPLETE** (Nav2→Nav3 in #192) |
-| 13. iOS Target | Large | Phase 38 | **IN PROGRESS** — KMP wiring landed 2026-05-12 in PRs #820–#824 (Phase 38A). Xcode + Swift bridges + SwiftUI screens pending (Phase 38B–G — see [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md)). |
+| 13. iOS Target | Large | Phase 38 | **IN PROGRESS (functional)** — KMP wiring (#820–#824), the SwiftUI app + all 5 screens + iOS CI (#856–#859), real Firebase auth + live door data (#912–#915), and ongoing cross-platform parity (the door-visual sharing program completed #952–#960; History load-more #961) have all shipped. Remaining is mostly user/device-gated (sign-in tap-through, push delivery, TestFlight/App Store) + a Tier-2 parity backlog. **Source of truth: [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md) § 1 + § 4** (this row is a pointer, not a status mirror). |
 | 14. Typed Errors | Medium | Phase 8 | **COMPLETE** |
 | 15. Kermit Logging | Small | None | **COMPLETE** |
 | 16. Integration Tests | Medium | Phase 9 | **COMPLETE** (data module) |
