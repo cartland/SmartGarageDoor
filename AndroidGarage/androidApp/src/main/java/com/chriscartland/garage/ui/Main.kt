@@ -69,6 +69,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.chriscartland.garage.di.rememberAppComponent
+import com.chriscartland.garage.domain.model.DoorAnimationMemory
 import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.ui.settings.DiagnosticsScreen
 import com.chriscartland.garage.ui.theme.AppTheme

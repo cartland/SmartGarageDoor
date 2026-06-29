@@ -31,6 +31,16 @@ import kotlin.test.assertTrue
  * the Tier-1 door-animation spec for Android and iOS alike (ADR-032).
  */
 class DoorAnimationTest {
+    // --- ANIMATION_DURATION_SECONDS -------------------------------------------
+
+    @Test
+    fun animationDuration_is12Seconds() {
+        // Product decision (real door travel ~10 s + ~2 s network slack so the
+        // terminal event lands mid-slide and springs to target). Shared so iOS
+        // runs the identical motion; pinned here so a change is deliberate.
+        assertEquals(12, DoorAnimation.ANIMATION_DURATION_SECONDS)
+    }
+
     // --- targetPositionFor ----------------------------------------------------
 
     @Test

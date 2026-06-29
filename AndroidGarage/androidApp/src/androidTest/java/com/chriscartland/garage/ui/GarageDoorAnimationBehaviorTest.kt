@@ -27,6 +27,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.domain.model.DoorAnimation.CLOSED_POSITION
 import com.chriscartland.garage.domain.model.DoorAnimation.OPEN_POSITION
+import com.chriscartland.garage.domain.model.DoorAnimationMemory
+import com.chriscartland.garage.domain.model.DoorMotionKey
 import com.chriscartland.garage.domain.model.DoorPosition
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

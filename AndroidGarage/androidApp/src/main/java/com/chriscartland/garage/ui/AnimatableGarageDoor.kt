@@ -41,12 +41,18 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.ColorUtils
+import com.chriscartland.garage.domain.model.DoorAnimation
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 import java.time.Duration
 
-val DEFAULT_GARAGE_DOOR_ANIMATION_DURATION: Duration = Duration.ofSeconds(12)
+// Wraps the shared, brand-locked live-slide duration (Tier 1, ADR-032 — the
+// real door travel time + ~2 s network slack; see DoorAnimation) in the
+// `java.time.Duration` the Compose `tween` consumes. The value lives in
+// `:domain` so iOS runs the identical 12 s; do not hardcode it here.
+val DEFAULT_GARAGE_DOOR_ANIMATION_DURATION: Duration =
+    Duration.ofSeconds(DoorAnimation.ANIMATION_DURATION_SECONDS.toLong())
 
 // The door-animation spec (offset constants + `DoorPosition → offset / overlay`
 // mappings) is the shared `:domain` `DoorAnimation` (single source of truth,

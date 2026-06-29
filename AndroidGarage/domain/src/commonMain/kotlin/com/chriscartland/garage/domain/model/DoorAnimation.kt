@@ -62,6 +62,28 @@ object DoorAnimation {
     const val OPENING_STATIC_POSITION: Float = -0.65f
     const val OPEN_POSITION: Float = -0.75f
 
+    /**
+     * Live OPENING/CLOSING slide duration, in seconds — a **product decision**,
+     * not animation taste, so it is brand-locked and shared (Tier 1, ADR-032):
+     * Android and iOS run the identical linear motion.
+     *
+     * The value is deliberately the real garage door's physical travel time
+     * (~10 s) **plus ~2 s of network-delay slack**. The on-screen door is meant
+     * to take *slightly longer* than the real door, so that when the actual
+     * terminal event (`OPEN` / `CLOSED`) arrives over the network the icon is
+     * still mid-slide and **springs to the terminal position** — the satisfying
+     * "snap shut / snap open" — rather than the linear tween having already
+     * coasted to the end. If this were shorter than the real travel time the
+     * icon would finish early and sit still waiting for the event (no snap); if
+     * much longer it would visibly lag the real door.
+     *
+     * Only the live OPENING/CLOSING tween uses this; terminal/error states
+     * settle via a platform-native spring ([useSpringFor]). Android wraps it in
+     * `java.time.Duration`; iOS reads it as a `TimeInterval` for
+     * `.animation(.linear(duration:))`.
+     */
+    const val ANIMATION_DURATION_SECONDS: Int = 12
+
     /** Target offset to animate toward for the given state. */
     fun targetPositionFor(doorPosition: DoorPosition): Float =
         when (doorPosition) {

@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-04-25
+last_verified: 2026-06-28
 ---
 
 # Door Animation
@@ -14,7 +14,7 @@ See ADR-025 in [`DECISIONS.md`](DECISIONS.md) for the design decision that motiv
 
 **Target = pure function of state.** Same `DoorPosition` always produces the same target offset, regardless of where the animation currently is. The animation framework owns the *trajectory* (current value, current velocity, spec → next frame); the app owns the *target* (state → offset).
 
-Five pure mappings on the [`DoorAnimation`](../androidApp/src/main/java/com/chriscartland/garage/ui/AnimatableGarageDoor.kt) object:
+Pure mappings on the shared [`DoorAnimation`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/model/DoorAnimation.kt) object (in `:domain`, consumed identically by Android `GarageIcon.kt` and iOS `GarageDoorCanvas.swift` — Tier 1, ADR-032):
 
 | Function | Returns | Used by |
 |----------|---------|---------|
@@ -23,6 +23,9 @@ Five pure mappings on the [`DoorAnimation`](../androidApp/src/main/java/com/chri
 | `DoorAnimation.useSpringFor(state)` | `false` → tween (motion); `true` → spring (settle) | `LaunchedEffect` |
 | `DoorAnimation.staticPositionFor(state)` | offset to render when `static = true` (no animation) | recent events list |
 | `DoorAnimation.overlayFor(state)` | which overlay icon (arrow up/down, warning, none) to draw | `DoorIconBox` |
+| `DoorAnimation.colorStateFor(state)` | which `GarageDoorPalette` color family (closed/open/unknown) the door fill uses | door color scheme |
+
+The live slide duration is the shared `DoorAnimation.ANIMATION_DURATION_SECONDS` (12 s — see [Tween spec](#tween-spec)).
 
 The `Animatable` **seed** is not a pure function of state alone — it depends on whether this motion event has already been animated (see [Cold-open replay](#cold-open-replay-doormotionkey) below). `fromPositionFor` supplies the "from" end; the seed is `fromPositionFor` for a not-yet-animated motion event, else `targetPositionFor`.
 
@@ -46,7 +49,7 @@ Each is an exhaustive `when` over `DoorPosition` with no `else`. Adding a new en
 
 ### Cold-open replay (`DoorMotionKey`)
 
-A motion state seen for the **first time** — a cold open, or the first time the user looks at the icon for this event — seeds the `Animatable` at `fromPositionFor` and plays the full slide. Re-entry of the **same** event (tab-switch, back-nav) seeds at `targetPositionFor` and snaps. The two are told apart by a `DoorMotionKey(doorPosition, lastChangeTimeSeconds)` recorded in `DoorAnimationMemory` — a plain holder `remember`ed at the Compose root (`GarageApp`), provided via `LocalDoorAnimationMemory`. It survives tab-switch / back-nav (root not disposed) but resets on process death — exactly when a cold open should replay.
+A motion state seen for the **first time** — a cold open, or the first time the user looks at the icon for this event — seeds the `Animatable` at `fromPositionFor` and plays the full slide. Re-entry of the **same** event (tab-switch, back-nav) seeds at `targetPositionFor` and snaps. The two are told apart by a `DoorMotionKey(doorPosition, lastChangeTimeSeconds)` recorded in `DoorAnimationMemory`. Both `DoorMotionKey` and `DoorAnimationMemory` are shared `:domain` (pure Kotlin, no Compose dep) so the dedup *policy* is one source of truth across Android and iOS (Tier 1, ADR-032) — only the *holder lifecycle* is platform-local: Android `remember`s it at the Compose root (`GarageApp`) and exposes it via `LocalDoorAnimationMemory`; iOS holds an app-level instance. Either way it survives tab-switch / back-nav (root not disposed) but resets on process death — exactly when a cold open should replay.
 
 This is a **presentation-layer** concern: no DI graph, no domain/usecase involvement. The icon takes `lastChangeTimeSeconds` and reads the local.
 
@@ -54,7 +57,7 @@ The replay is **always from the start, regardless of how long the door has been 
 
 History (pre-2.16.4): a motion-state icon animated the full slide on *every* fresh composition (`OPENING → CLOSED_POSITION` seed unconditionally), which replayed on every screen re-entry while the server still reported a transient OPENING/CLOSING. 2.16.4 over-corrected by making the seed always equal the target, which suppressed the slide even on cold open. The `DoorAnimationMemory` gate recovers the cold-open slide without the re-entry replay.
 
-Position constants in `AnimatableGarageDoor.kt`:
+Position constants in the shared `:domain` `DoorAnimation`:
 
 | Constant | Value | Meaning |
 |----------|-------|---------|
@@ -88,6 +91,8 @@ tween(
 
 Linear easing matches the roughly constant-speed motion of a real garage door.
 
+**The 12 s duration is a shared product decision, not animation taste** — it lives in `:domain` as `DoorAnimation.ANIMATION_DURATION_SECONDS` so Android and iOS run the identical motion (Tier 1, ADR-032). It is deliberately the real door's physical travel time (~10 s) **plus ~2 s of network-delay slack**: the on-screen door takes slightly *longer* than the real door, so when the actual terminal event (`OPEN` / `CLOSED`) arrives over the network the icon is still mid-slide and **springs to the terminal position** (the satisfying snap) instead of having coasted to the end. Android wraps the value in `java.time.Duration` (`DEFAULT_GARAGE_DOOR_ANIMATION_DURATION`); iOS reads it as a `TimeInterval` for `.animation(.linear(duration:))`.
+
 ## Trade-offs
 
 **Cold open replays the slide from the start; re-entry snaps.** When the app opens (or the icon is first viewed) with the server reporting an in-motion state, the icon seeds at the "from" end and plays the full slide — regardless of how long the door has already been opening/closing. Re-entering a screen where the *same* event is still current (tab-switch, back-nav) snaps to the target instead of replaying. The two are distinguished by `DoorMotionKey` in `DoorAnimationMemory` (see [Cold-open replay](#cold-open-replay-doormotionkey)). Computing `now() - lastChangeTimeSeconds` to seed *mid*-motion is still rejected because device/server clock drift would put the icon at a silently wrong position — "from the start" is deliberate, not a fallback.
@@ -100,7 +105,8 @@ Linear easing matches the roughly constant-speed motion of a real garage door.
 
 | Layer | What it verifies | Where |
 |-------|------------------|-------|
-| Unit (mapping) | Each `DoorAnimation.*For` function returns the documented value for every `DoorPosition` | [`GarageDoorAnimationMappingTest`](../androidApp/src/test/java/com/chriscartland/garage/ui/GarageDoorAnimationMappingTest.kt) |
+| Unit (mapping) | Each `DoorAnimation.*For` function returns the documented value for every `DoorPosition`; `ANIMATION_DURATION_SECONDS == 12` | [`DoorAnimationTest`](../domain/src/commonTest/kotlin/com/chriscartland/garage/domain/model/DoorAnimationTest.kt) (commonTest — guards Android + iOS) |
+| Unit (replay) | `DoorAnimationMemory.consumeAnimateFromStart` returns `true` once per `DoorMotionKey`, `false` thereafter | [`DoorAnimationMemoryTest`](../domain/src/commonTest/kotlin/com/chriscartland/garage/domain/model/DoorAnimationMemoryTest.kt) (commonTest) |
 | Compile-time | Every `DoorPosition` enum value is mapped (exhaustive `when`, no `else`) | The compiler — adding a new enum value breaks the build |
 | Instrumented (trajectory) | The live offset **curve**: a fresh composition of a NEW motion event slides from the "from" end; re-entry of an already-animated event snaps to target (no slide); live transitions tween CLOSED↔OPEN in the right direction; a mid-slide direction flip reverses | [`GarageDoorAnimationBehaviorTest`](../androidApp/src/androidTest/java/com/chriscartland/garage/ui/GarageDoorAnimationBehaviorTest.kt) (device required) |
 | Screenshot | The icon renders as expected for each state in light + dark themes | [`GarageDoorScreenshotTest`](../android-screenshot-tests/src/screenshotTest/kotlin/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTest.kt), regenerate via `./scripts/generate-android-screenshots.sh` |
@@ -114,8 +120,8 @@ To add a new `DoorPosition` value:
 1. Add the enum value in [`DoorPosition.kt`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/model/DoorPosition.kt). The compiler will fail every `when` in the mapping functions.
 2. Decide the target/initial/spec/overlay for the new state and update each function.
 3. Update this doc's state table.
-4. Update [`GarageDoorAnimationMappingTest`](../androidApp/src/test/java/com/chriscartland/garage/ui/GarageDoorAnimationMappingTest.kt) with assertions for the new value.
-5. Add a `@Preview` in `AnimatableGarageDoor.kt` and a screenshot test in `GarageDoorScreenshotTest.kt` so the visual is captured.
+4. Update [`DoorAnimationTest`](../domain/src/commonTest/kotlin/com/chriscartland/garage/domain/model/DoorAnimationTest.kt) (commonTest) with assertions for the new value.
+5. Add a `@Preview` in `AnimatableGarageDoor.kt` and a screenshot test in `GarageDoorScreenshotTest.kt` so the visual is captured. Mirror the visual in the iOS gallery (`GarageDoorCanvas.swift` `#Preview`s).
 
 To change a target/spec for an existing state:
 
@@ -132,8 +138,12 @@ To change a target/spec for an existing state:
 
 ## References
 
-- [`AnimatableGarageDoor.kt`](../androidApp/src/main/java/com/chriscartland/garage/ui/AnimatableGarageDoor.kt) — pure mapping functions, position constants, overlays
+- [`DoorAnimation.kt`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/model/DoorAnimation.kt) — shared `:domain` spec: position constants, the `DoorPosition →` mapping functions, and `ANIMATION_DURATION_SECONDS`
+- [`DoorAnimationMemory.kt`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/model/DoorAnimationMemory.kt) — shared `:domain` replay policy (`DoorMotionKey` + `DoorAnimationMemory`)
+- [`AnimatableGarageDoor.kt`](../androidApp/src/main/java/com/chriscartland/garage/ui/AnimatableGarageDoor.kt) — Android execution: overlay Composables, gradient blend, the `DEFAULT_GARAGE_DOOR_ANIMATION_DURATION` wrapper, previews
 - [`GarageIcon.kt`](../androidApp/src/main/java/com/chriscartland/garage/ui/GarageIcon.kt) — composable that hosts the `Animatable` and `LaunchedEffect`
+- [`LocalDoorAnimationMemory.kt`](../androidApp/src/main/java/com/chriscartland/garage/ui/LocalDoorAnimationMemory.kt) — Android holder lifecycle (Compose-root `CompositionLocal`)
 - [`GarageDoorCanvas.kt`](../androidApp/src/main/java/com/chriscartland/garage/ui/GarageDoorCanvas.kt) — Canvas-based door rendering driven by `doorOffset`
+- [`GarageDoorCanvas.swift`](../iosApp/Features/Home/GarageDoorCanvas.swift) — iOS execution: SwiftUI port consuming the same shared `:domain` spec
 - [`DoorPosition.kt`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/model/DoorPosition.kt) — the enum
 - [`DECISIONS.md`](DECISIONS.md) ADR-025 — design decision that motivated this contract
