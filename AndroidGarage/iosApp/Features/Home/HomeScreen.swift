@@ -31,6 +31,7 @@ struct HomeScreen: View {
     var body: some View {
         HomeContentView(
             doorPosition: wrapper.doorPosition,
+            lastChangeTimeSeconds: wrapper.lastChangeTimeSeconds,
             sinceLine: wrapper.sinceLine,
             warningText: wrapper.warningText,
             isCheckInStale: wrapper.isCheckInStale,
@@ -52,6 +53,12 @@ struct HomeScreen: View {
 /// `#Preview`s and snapshot gallery capture.
 struct HomeContentView: View {
     let doorPosition: DoorPosition
+    /// Server timestamp of the door's last position change. Threaded to the live
+    /// `GarageDoorView(animated:)` so the open/close slide replays once per
+    /// motion event (cold-open / first view), not on every re-render. `nil` when
+    /// the last-change time is unknown. Mirrors Android's `lastChangeTimeSeconds`
+    /// passed to `GarageIcon`.
+    let lastChangeTimeSeconds: Int64?
     /// Pre-formatted "Since 9:47 AM · 2 hr 14 min" line (resolved from the shared
     /// typed `SinceStatus` in the wrapper); `nil` when the last-change time is
     /// unknown. Mirrors Android's status line; replaces the old raw door message.
@@ -90,6 +97,7 @@ struct HomeContentView: View {
 
     init(
         doorPosition: DoorPosition,
+        lastChangeTimeSeconds: Int64?,
         sinceLine: String?,
         warningText: String?,
         isCheckInStale: Bool,
@@ -104,6 +112,7 @@ struct HomeContentView: View {
         onAlertAction: @escaping (HomeAlertItem.Kind) -> Void
     ) {
         self.doorPosition = doorPosition
+        self.lastChangeTimeSeconds = lastChangeTimeSeconds
         self.sinceLine = sinceLine
         self.warningText = warningText
         self.isCheckInStale = isCheckInStale
@@ -131,9 +140,18 @@ struct HomeContentView: View {
 
             Section {
                 VStack(spacing: GarageSpacing.card) {
-                    GarageDoorView(position: doorPosition, isStale: isCheckInStale)
-                        .frame(height: 160)
-                        .frame(maxWidth: .infinity)
+                    // Live door — the one surface that drives the full shared
+                    // trajectory (12 s linear slide + spring-settle on the
+                    // terminal event), replaying once per motion event keyed by
+                    // `lastChangeTimeSeconds`. History rows stay static.
+                    GarageDoorView(
+                        position: doorPosition,
+                        isStale: isCheckInStale,
+                        animated: true,
+                        lastChangeTimeSeconds: lastChangeTimeSeconds
+                    )
+                    .frame(height: 160)
+                    .frame(maxWidth: .infinity)
                     VStack(spacing: GarageSpacing.tight) {
                         Text(doorPosition.statusLabel)
                             .font(.title2.weight(.semibold))
@@ -425,6 +443,7 @@ private struct HomeInfoSheetView: View {
     NavigationStack {
         HomeContentView(
             doorPosition: .closed,
+            lastChangeTimeSeconds: nil,
             sinceLine: "Since 11:22 AM · 38 min",
             warningText: nil,
             isCheckInStale: true,
@@ -445,6 +464,7 @@ private struct HomeInfoSheetView: View {
     NavigationStack {
         HomeContentView(
             doorPosition: .open,
+            lastChangeTimeSeconds: nil,
             sinceLine: "Since 9:47 AM · 2 hr 14 min",
             warningText: nil,
             isCheckInStale: false,
@@ -465,6 +485,7 @@ private struct HomeInfoSheetView: View {
     NavigationStack {
         HomeContentView(
             doorPosition: .openingTooLong,
+            lastChangeTimeSeconds: nil,
             sinceLine: "Since 12:01 PM · 4 min",
             warningText: "Opening, taking longer than expected",
             isCheckInStale: false,
@@ -485,6 +506,7 @@ private struct HomeInfoSheetView: View {
     NavigationStack {
         HomeContentView(
             doorPosition: .unknown,
+            lastChangeTimeSeconds: nil,
             sinceLine: "Since 8:15 AM · 1 hr 5 min",
             warningText: nil,
             isCheckInStale: true,
