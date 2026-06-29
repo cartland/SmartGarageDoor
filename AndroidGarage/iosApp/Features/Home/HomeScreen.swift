@@ -272,9 +272,14 @@ private struct HomeAlertBanner: View {
 }
 
 /// Compact device-heartbeat pill in the Home "Status" section header — the
-/// SwiftUI analog of Android's `DeviceCheckInPill`. Antenna icon + "… ago" text
-/// when fresh; slashed antenna + warning tint when stale (>11 min). Text is
+/// SwiftUI analog of Android's `DeviceCheckInPill`. `wifi` icon + "… ago" text
+/// when fresh; `wifi.slash` + warning tint when stale (>11 min). Text is
 /// hidden (icon only) until the first heartbeat is observed (`label == nil`).
+///
+/// Cross-platform icon pairing (recorded per the parity audit): Android
+/// Material `Sensors`/`SensorsOff` ↔ iOS SF `wifi`/`wifi.slash`, the nearest SF
+/// visual equivalent (concentric signal arcs from a point). The two icon
+/// systems can't share a literal glyph, so this pairing is the agreed match.
 /// `.textCase(nil)` keeps the duration text from being uppercased by the
 /// surrounding section-header style.
 private struct DeviceCheckInPill: View {
@@ -288,8 +293,8 @@ private struct DeviceCheckInPill: View {
                     .textCase(nil)
             }
             Image(systemName: item.isStale
-                ? "antenna.radiowaves.left.and.right.slash"
-                : "antenna.radiowaves.left.and.right")
+                ? "wifi.slash"
+                : "wifi")
                 .font(.caption2)
         }
         .foregroundStyle(item.isStale ? GarageColors.statusWarning : Color.secondary)
@@ -308,7 +313,7 @@ private struct DeviceCheckInPill: View {
 /// Remote-button health pill in the "Remote control" section header — the SwiftUI
 /// analog of Android's `RemoteButtonHealthPill`. Label + an availability icon;
 /// only `.offline` uses the warning tint (matching Android's "offline screams,
-/// the rest whisper" hierarchy). Uses the same antenna icon family as
+/// the rest whisper" hierarchy). Uses the same `wifi` icon family as
 /// `DeviceCheckInPill` for a consistent device-availability grammar.
 private struct RemoteButtonHealthPill: View {
     let item: ButtonHealthItem
@@ -343,8 +348,8 @@ private struct RemoteButtonHealthPill: View {
         case .unauthorized: return "lock"
         case .loading: return "arrow.triangle.2.circlepath"
         case .unknown: return "questionmark.circle"
-        case .online: return "antenna.radiowaves.left.and.right"
-        case .offline: return "antenna.radiowaves.left.and.right.slash"
+        case .online: return "wifi"
+        case .offline: return "wifi.slash"
         }
     }
 }
