@@ -16,9 +16,10 @@
  */
 
 import SwiftUI
+import UIKit
 @preconcurrency import shared
 
-/// Diagnostics tab — lifetime counters + "Clear all diagnostics".
+/// Diagnostics tab — lifetime counters + Export CSV + "Clear all diagnostics".
 /// Mirrors Android's `DiagnosticsContent`.
 struct DiagnosticsScreen: View {
     @StateObject private var wrapper: DiagnosticsViewModelWrapper
@@ -31,7 +32,8 @@ struct DiagnosticsScreen: View {
         DiagnosticsContentView(
             counters: wrapper.counters,
             clearInFlight: wrapper.clearInFlight,
-            onClear: { wrapper.clearDiagnostics() }
+            onClear: { wrapper.clearDiagnostics() },
+            onBuildCsv: { await wrapper.buildCsv() }
         )
     }
 }
@@ -42,8 +44,31 @@ struct DiagnosticsContentView: View {
     let counters: [DiagnosticsViewModelWrapper.Counter]
     let clearInFlight: Bool
     let onClear: () -> Void
+    /// Builds the export CSV (shared `AppLogCsv` format). `async` because it
+    /// reads the log repo. Defaults to empty so the `#Preview`s/snapshot gallery
+    /// render the button without a live component.
+    let onBuildCsv: () async -> String
 
+    // `@State` here would lower the *synthesized* memberwise init to `private`
+    // (the optional `shareItem` is the exact case that breaks the cross-file
+    // generated snapshot test), so an explicit `internal init` covers the
+    // injected `let`s and the `@State` stay initialized inline. Same pattern as
+    // `HomeContentView`'s info-sheet state.
     @State private var showClearConfirm = false
+    @State private var shareItem: CsvShareItem?
+    @State private var exporting = false
+
+    init(
+        counters: [DiagnosticsViewModelWrapper.Counter],
+        clearInFlight: Bool,
+        onClear: @escaping () -> Void,
+        onBuildCsv: @escaping () async -> String = { "" }
+    ) {
+        self.counters = counters
+        self.clearInFlight = clearInFlight
+        self.onClear = onClear
+        self.onBuildCsv = onBuildCsv
+    }
 
     var body: some View {
         List {
@@ -60,6 +85,21 @@ struct DiagnosticsContentView: View {
             }
 
             Section {
+                Button {
+                    export()
+                } label: {
+                    HStack(spacing: GarageSpacing.tight) {
+                        if exporting {
+                            ProgressView().controlSize(.small)
+                            Text("Exporting…")
+                        } else {
+                            Image(systemName: "square.and.arrow.up")
+                            Text("Export CSV")
+                        }
+                    }
+                }
+                .disabled(exporting)
+
                 Button(role: .destructive) {
                     showClearConfirm = true
                 } label: {
@@ -84,7 +124,52 @@ struct DiagnosticsContentView: View {
         } message: {
             Text("Wipes the app-event log and lifetime counters.")
         }
+        .sheet(item: $shareItem) { item in
+            ActivityView(activityItems: [item.url])
+        }
     }
+
+    /// Build the CSV off the main actor, write it to a temp `.csv`, then present
+    /// the system share sheet. Mirrors Android's "Export CSV" (which writes to a
+    /// user-chosen content `Uri`); iOS shares the file instead.
+    private func export() {
+        exporting = true
+        Task {
+            let csv = await onBuildCsv()
+            shareItem = writeTempCsv(csv).map(CsvShareItem.init)
+            exporting = false
+        }
+    }
+
+    private func writeTempCsv(_ csv: String) -> URL? {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("garage-app-log.csv")
+        do {
+            try csv.write(to: url, atomically: true, encoding: .utf8)
+            return url
+        } catch {
+            return nil
+        }
+    }
+}
+
+/// Identifiable wrapper so the share sheet can be driven by `.sheet(item:)`.
+private struct CsvShareItem: Identifiable {
+    let id = UUID()
+    let url: URL
+    init(_ url: URL) { self.url = url }
+}
+
+/// Minimal `UIActivityViewController` bridge for the share sheet (SwiftUI's
+/// `ShareLink` can't be triggered from an async button action cleanly).
+private struct ActivityView: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
 
 #Preview("Diagnostics counters") {
