@@ -1,0 +1,12 @@
+# UI-layer direct-graph-access exemptions (ADR-033, checkUiLayerNoGraphAccess).
+#
+# Paths are relative to androidApp/src/main/java/com/chriscartland/garage/ui/.
+# Each entry is a KNOWN pre-rule violation grandfathered while it is refactored to
+# route through its ViewModel. The goal is an EMPTY list — the check fails on a
+# stale entry (one that no longer violates) so the file can't accumulate.
+#
+# Burn-down:
+#   auth/AuthTokenCopier.kt       -> copy-token through FunctionListViewModel/DiagnosticsViewModel
+#   settings/DiagnosticsContent.kt -> Export CSV through DiagnosticsViewModel
+auth/AuthTokenCopier.kt
+settings/DiagnosticsContent.kt

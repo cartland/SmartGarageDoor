@@ -1867,3 +1867,46 @@ Tier 1 aims for **visual equivalence across two rendering engines**, not byte-id
 - ADR-031 + [`PRESENTATION_MODEL_REALIZATION.md`](./PRESENTATION_MODEL_REALIZATION.md) — the Tier-2 enforcing layer (shared typed display state).
 - [`UI_FIDELITY_TIERS.md`](./UI_FIDELITY_TIERS.md) — the per-surface classification table (kept in sync with the screens).
 - The shared-constant rule (Tier 1 mechanism): `PRESENTATION_MODEL_REALIZATION.md` § Architectural rules, "locale-invariant config belongs in shared"; canonical `domain/.../model/AppLinks.kt`.
+
+## ADR-033: UI-triggered work goes through the ViewModel; UseCases are called directly only by UI-less code
+
+### Status
+
+Accepted — 2026-06-29. Sharpens the existing rule ("non-screen orchestration uses UseCases directly — never a ViewModel") into a total, enforceable contract. Enforced by `checkUiLayerNoGraphAccess` (buildSrc, in `validate.sh`).
+
+### Context
+
+The same shared `Default*ViewModel` runs on both platforms (one per screen, ADR-026); UseCases are constructor-injected into VMs and reached only through them. But a UseCase is also exposed as a DI **component entry point** (`abstract val xUseCase`) when something *outside* a screen needs it — FCM handlers, `AppStartup`, app-scoped `@Singleton`s. Those genuinely have no UI lifecycle: a push wakes the process with no Activity/`NavBackStackEntry`/`ViewModelStore`, so it must call the shared UseCase directly.
+
+The grey area was UI-adjacent helpers calling a UseCase (or reaching a Repository) directly because the data "isn't VM state" — e.g. copy-auth-token (`rememberAuthTokenCopier` → `component.getAuthTokenForCopyUseCase`) and Export CSV (`DiagnosticsContent` → `component.appLoggerRepository`). These *could* go through the VM; they didn't, by habit (mirroring an older Android pattern). That ambiguity is what this ADR removes.
+
+### Decision
+
+**Hard rule:** if an action can be tied to a UI interaction, it goes through that screen's **ViewModel**. The **only** code permitted to call a UseCase (or touch a Repository) directly is code with **no UI lifecycle** — FCM handlers, `AppStartup`, app-scoped `@Singleton`s — and that code lives outside the `ui/` package.
+
+Together with the existing rule this is now total: **UI-triggered → ViewModel; screen-less → UseCase-direct. Nothing in between.**
+
+**The irreducible-side-effect boundary.** A clipboard write, a file write, the Android file-picker, the iOS share sheet are platform side-effects that cannot live in the shared KMP VM. "Through the VM" therefore means: the **VM owns the business produce/decision** (fetch the token, build the CSV string) and hands the value back; the **platform UI does only the irreducible platform write** with it. The UI's *entry point* is a VM method, not a UseCase — which is what the rule requires.
+
+**Which UseCases stay on the component as entry points** (the only justified reasons): (a) a UI-less caller (FCM/startup), or (b) `@Singleton`-DI machinery (kotlin-inject only honors `@Singleton` via an `abstract val`; e.g. `computeButtonHealthDisplayUseCase`, an eager app-lifetime combine that a VM reads by reference). Anything else exposed there is a smell.
+
+### Enforcement
+
+`checkUiLayerNoGraphAccess` (buildSrc `architecture.UiLayerNoGraphAccessTask`, run in `validate.sh`) scans `androidApp/.../ui/` for the **member-access** pattern `component.<name>UseCase` / `component.<name>Repository`. Member-access (not imports) is deliberate: a `:usecase`-module *data class* like `ButtonHealthDisplay` is legitimately imported by UI, so an import-based check would false-positive; pulling a *collaborator* off `component` is the precise anti-pattern. `ui-layer-graph-access-exemptions.txt` grandfathers known pre-rule violations during burn-down (the check fails on a stale entry, so the list can't accumulate; goal = empty). iOS (Swift, unlinted by buildSrc) follows the same rule by convention + review; a `scripts/` grep guard is a possible follow-up.
+
+### Consequences
+
+- **Refactors (burn-down):** copy-auth-token routes through `FunctionListViewModel`/`DiagnosticsViewModel`; Export CSV routes through `DiagnosticsViewModel` (a new `BuildAppLogCsvUseCase` injected into it). Each removes its exemption; `getAuthTokenForCopyUseCase` then comes off both component entry points.
+- Thin VM pass-throughs (e.g. `suspend fun fetchAuthTokenForCopy() = useCase()`) are *intended*, not ceremony — they make the dependency graph uniform (UI→VM→UseCase) and the action VM-testable.
+- New UI-triggered features have one obvious home (the screen VM) — no per-feature "VM or direct?" debate.
+
+### Alternatives considered
+
+- **Leave it a judgment call** (the prior soft category). Rejected — the user wants a hard, enforceable rule; ad-hoc bypasses drift and erode the layering.
+- **Push even the side-effect into the VM via a `ClipboardBridge`.** Viable for clipboard, but the file-picker/share-sheet for Export CSV can't be bridged that way; keeping both features on the same "VM produces, UI writes" shape is more consistent than bridging one and not the other.
+
+### References
+
+- ADR-026 — one ViewModel per screen (the UI's single dependency).
+- `CLAUDE.md` § Code Patterns — the "non-screen orchestration uses UseCases directly" rule this completes.
+- `buildSrc/.../architecture/UiLayerNoGraphAccessTask.kt` + `ui-layer-graph-access-exemptions.txt`.
