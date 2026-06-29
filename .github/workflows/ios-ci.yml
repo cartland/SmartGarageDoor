@@ -63,7 +63,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Cache Gradle
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches
@@ -74,7 +74,7 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Cache Xcode DerivedData
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: ${{ runner.os }}-xcode-ios-${{ hashFiles('AndroidGarage/iosApp/**/*.swift', 'AndroidGarage/iosApp/project.yml') }}
