@@ -35,7 +35,9 @@ struct HistoryScreen: View {
             canLoadMore: wrapper.canLoadMore,
             isLoadingMore: wrapper.isLoadingMore,
             onRefresh: { wrapper.refresh() },
-            onLoadMore: { wrapper.loadMore() }
+            onLoadMore: { wrapper.loadMore() },
+            showStaleBanner: wrapper.showStaleBanner,
+            onResetStale: { wrapper.resetFcmAndRefetch() }
         )
     }
 }
@@ -55,9 +57,22 @@ struct HistoryContentView: View {
     /// Fires when the bottom footer scrolls into view with more to load. The
     /// shared repo guards re-entrancy, so an extra fire is harmless.
     var onLoadMore: () -> Void = {}
+    /// Stale-check-in banner visibility — decided by the shared
+    /// `HistoryAlertMapper` upstream (parity with Android). When true, a
+    /// recovery banner renders above the day list.
+    var showStaleBanner: Bool = false
+    /// Stale-banner "Retry" action: resets FCM + refetches (upstream wires
+    /// `resetFcmAndRefetch`).
+    var onResetStale: () -> Void = {}
 
     var body: some View {
         List {
+            if showStaleBanner {
+                Section {
+                    HistoryStaleBanner(onRetry: onResetStale)
+                }
+                .listRowBackground(GarageColors.statusWarning.opacity(0.12))
+            }
             if days.isEmpty {
                 HistoryEmptyState(isLoading: isLoading)
                     .frame(maxWidth: .infinity)
@@ -135,6 +150,27 @@ private struct HistoryLoadMoreFooter: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity)
+        .padding(.vertical, GarageSpacing.tight)
+    }
+}
+
+/// Stale-check-in recovery banner shown above the History list when device
+/// telemetry is outdated. Mirrors Android's stale `ErrorCard`: warning text +
+/// a "Retry" action that resets FCM and refetches. The show/hide decision
+/// routes through the shared `HistoryAlertMapper` (ADR-031). Copy mirrors
+/// `home_history_stale_check_in_error` / `home_history_retry_button`.
+private struct HistoryStaleBanner: View {
+    let onRetry: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: GarageSpacing.tight) {
+            Label("Not receiving updates from server", systemImage: "exclamationmark.triangle")
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+            Button("Retry") { onRetry() }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+        }
         .padding(.vertical, GarageSpacing.tight)
     }
 }
@@ -227,6 +263,23 @@ private struct HistoryEmptyState: View {
 #Preview("History empty") {
     NavigationStack {
         HistoryContentView(days: [], isLoading: false, onRefresh: {})
+    }
+}
+
+#Preview("History stale banner") {
+    NavigationStack {
+        HistoryContentView(
+            days: [
+                .init(id: "today", title: "Today", entries: [
+                    .init(id: "t0", position: .closed, headline: "Closed at 9:53 AM",
+                          supporting: "Closed for 22 min", warnings: []),
+                ]),
+            ],
+            isLoading: false,
+            onRefresh: {},
+            showStaleBanner: true,
+            onResetStale: {}
+        )
     }
 }
 
