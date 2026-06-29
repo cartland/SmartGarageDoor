@@ -49,6 +49,21 @@ struct SettingsScreen: View {
         Bundle.main.bundleIdentifier ?? "unknown"
     }
 
+    /// Build timestamp sourced from the app bundle — the executable's
+    /// modification date is set at build/link time, so it's the iOS equivalent
+    /// of Android's "Built" row. Formatted to match Android
+    /// (`yyyy-MM-dd HH:mm:ss UTC`). Falls back to "unknown" if the bundle
+    /// attributes are unreadable.
+    private static var appBuilt: String {
+        guard let path = Bundle.main.executablePath,
+              let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+              let date = attrs[.modificationDate] as? Date else { return "unknown" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss 'UTC'"
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        return formatter.string(from: date)
+    }
+
     var body: some View {
         SettingsContentView(
             signedIn: wrapper.signedIn,
@@ -63,6 +78,7 @@ struct SettingsScreen: View {
             appVersion: Self.appVersion,
             appBuild: Self.appBuild,
             appPackage: Self.appPackage,
+            appBuilt: Self.appBuilt,
             notificationsGranted: wrapper.notificationsGranted,
             onSignIn: { wrapper.signInWithGoogle() },
             onSignOut: { wrapper.signOut() },
@@ -101,6 +117,7 @@ struct SettingsContentView: View {
     let appVersion: String
     let appBuild: String
     let appPackage: String
+    let appBuilt: String
     var notificationsGranted: Bool = true
     let onSignIn: () -> Void
     let onSignOut: () -> Void
@@ -166,6 +183,7 @@ struct SettingsContentView: View {
                 CopyableValueRow(label: "Version", value: appVersion)
                 CopyableValueRow(label: "Build", value: appBuild)
                 CopyableValueRow(label: "Package", value: appPackage)
+                CopyableValueRow(label: "Built", value: appBuilt)
                 // Privacy policy URL is the shared `AppLinks.PRIVACY_POLICY_URL`
                 // (domain/commonMain) — same value Android's Settings opens, so
                 // the two platforms can't drift.
@@ -191,7 +209,7 @@ struct SettingsContentView: View {
                     }
                     if functionListAccess == true {
                         NavigationLink(value: SettingsRoute.functions) {
-                            Label("Functions", systemImage: "square.grid.2x2")
+                            Label("Function list", systemImage: "square.grid.2x2")
                         }
                     }
                 }
@@ -263,6 +281,7 @@ private struct CopyableValueRow: View {
             appVersion: "0.1.0",
             appBuild: "1",
             appPackage: "com.chriscartland.garage",
+            appBuilt: "2026-01-15 12:00:00 UTC",
             onSignIn: {}, onSignOut: {}, onSnooze: { _ in }, onRefresh: {}
         )
     }
@@ -287,6 +306,7 @@ private struct CopyableValueRow: View {
             appVersion: "0.1.0",
             appBuild: "1",
             appPackage: "com.chriscartland.garage",
+            appBuilt: "2026-01-15 12:00:00 UTC",
             onSignIn: {}, onSignOut: {}, onSnooze: { _ in }, onRefresh: {}
         )
     }
@@ -311,6 +331,7 @@ private struct CopyableValueRow: View {
             appVersion: "0.1.0",
             appBuild: "1",
             appPackage: "com.chriscartland.garage",
+            appBuilt: "2026-01-15 12:00:00 UTC",
             notificationsGranted: false,
             onSignIn: {}, onSignOut: {}, onSnooze: { _ in }, onRefresh: {}
         )
