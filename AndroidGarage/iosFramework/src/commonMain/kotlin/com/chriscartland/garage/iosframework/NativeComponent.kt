@@ -72,6 +72,7 @@ import com.chriscartland.garage.domain.repository.TestNotificationRepository
 import com.chriscartland.garage.usecase.AppSettingsUseCase
 import com.chriscartland.garage.usecase.AppStartup
 import com.chriscartland.garage.usecase.ApplyButtonHealthFcmUseCase
+import com.chriscartland.garage.usecase.BuildAppLogCsvUseCase
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.ChangeTestNotificationTopicUseCase
 import com.chriscartland.garage.usecase.CheckInStalenessManager
@@ -212,8 +213,14 @@ abstract class NativeComponent(
         observeAppLogCount: ObserveDiagnosticsCountUseCase,
         clearDiagnostics: ClearDiagnosticsUseCase,
         getAuthTokenForCopy: GetAuthTokenForCopyUseCase,
+        buildAppLogCsv: BuildAppLogCsvUseCase,
         dispatchers: DispatcherProvider,
-    ): DefaultDiagnosticsViewModel = DefaultDiagnosticsViewModel(observeAppLogCount, clearDiagnostics, getAuthTokenForCopy, dispatchers)
+    ): DefaultDiagnosticsViewModel =
+        DefaultDiagnosticsViewModel(observeAppLogCount, clearDiagnostics, getAuthTokenForCopy, buildAppLogCsv, dispatchers)
+
+    @Provides
+    fun provideBuildAppLogCsvUseCase(appLoggerRepository: AppLoggerRepository): BuildAppLogCsvUseCase =
+        BuildAppLogCsvUseCase(appLoggerRepository)
 
     @Provides
     fun provideFunctionListViewModel(

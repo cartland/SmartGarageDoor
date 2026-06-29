@@ -77,6 +77,7 @@ import com.chriscartland.garage.fcm.FirebaseMessagingBridge
 import com.chriscartland.garage.usecase.AppSettingsUseCase
 import com.chriscartland.garage.usecase.AppStartup
 import com.chriscartland.garage.usecase.ApplyButtonHealthFcmUseCase
+import com.chriscartland.garage.usecase.BuildAppLogCsvUseCase
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.ChangeTestNotificationTopicUseCase
 import com.chriscartland.garage.usecase.CheckInStalenessManager
@@ -152,7 +153,12 @@ import me.tatarka.inject.annotations.Provides
  *      identity-tests the singletons externally.
  *   3. Every `@Provides fun` declares its deps as constructor-style
  *      parameters — never call sibling `provide*()` inside the body.
+ *
+ * `@Suppress("LargeClass")`: this is the DI graph — a flat list of `@Provides`
+ * factories that grows by one per wired dependency, not a complex god-class;
+ * splitting it would fight kotlin-inject's single-component model.
  */
+@Suppress("LargeClass")
 @Component
 @Singleton
 abstract class AppComponent(
@@ -213,14 +219,20 @@ abstract class AppComponent(
         observeAppLogCount: ObserveDiagnosticsCountUseCase,
         clearDiagnostics: ClearDiagnosticsUseCase,
         getAuthTokenForCopy: GetAuthTokenForCopyUseCase,
+        buildAppLogCsv: BuildAppLogCsvUseCase,
         dispatchers: DispatcherProvider,
     ): DefaultDiagnosticsViewModel =
         DefaultDiagnosticsViewModel(
             observeAppLogCount,
             clearDiagnostics,
             getAuthTokenForCopy,
+            buildAppLogCsv,
             dispatchers,
         )
+
+    @Provides
+    fun provideBuildAppLogCsvUseCase(appLoggerRepository: AppLoggerRepository): BuildAppLogCsvUseCase =
+        BuildAppLogCsvUseCase(appLoggerRepository)
 
     @Provides
     fun providePruneDiagnosticsLogUseCase(appLoggerRepository: AppLoggerRepository): PruneDiagnosticsLogUseCase =

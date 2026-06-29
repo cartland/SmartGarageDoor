@@ -5,6 +5,6 @@
 # route through its ViewModel. The goal is an EMPTY list — the check fails on a
 # stale entry (one that no longer violates) so the file can't accumulate.
 #
-# Burn-down (copy-token DONE — routed through the VMs; one left):
-#   settings/DiagnosticsContent.kt -> Export CSV through DiagnosticsViewModel
-settings/DiagnosticsContent.kt
+# Burn-down COMPLETE (2026-06-29): both pre-rule violations now route through
+# their ViewModels (copy-token + Export CSV). The list is empty — ADR-033 is
+# fully enforced with no grandfathered debt. New violations fail the build.

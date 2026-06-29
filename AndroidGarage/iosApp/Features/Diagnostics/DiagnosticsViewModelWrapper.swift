@@ -40,13 +40,8 @@ final class DiagnosticsViewModelWrapper: ObservableObject {
 
     private var vm: DefaultDiagnosticsViewModel { shared.instance }
 
-    /// Read directly for CSV export — mirrors Android, whose export reads
-    /// `app.component.appLoggerRepository` straight (the events aren't on the VM).
-    private let appLoggerRepository: AppLoggerRepository
-
     init(component: NativeComponent) {
         shared = SharedViewModel(component.diagnosticsViewModel)
-        appLoggerRepository = component.appLoggerRepository
         rebuildCounters()
         clearInFlight = vm.clearInFlight.value.boolValue
 
@@ -91,15 +86,12 @@ final class DiagnosticsViewModelWrapper: ObservableObject {
         vm.clearDiagnostics()
     }
 
-    /// Build the export CSV from the shared `AppLogCsv` builder (the same format
-    /// Android writes). Reads the first emission of the repo's `getAll()` flow —
-    /// the current snapshot of logged events (ordered ascending). Returns the
-    /// header-only CSV if the flow somehow never emits.
+    /// Build the export CSV via the ViewModel (ADR-033 — routes through the VM's
+    /// `buildExportCsv`, which uses the shared `BuildAppLogCsvUseCase`, rather
+    /// than reading the repository directly). The screen writes it to a shared
+    /// `.csv` file + share sheet. Empty string on the unlikely failure path.
     func buildCsv() async -> String {
-        for await events in appLoggerRepository.getAll() {
-            return AppLogCsv.shared.build(events: events)
-        }
-        return AppLogCsv.shared.HEADER
+        (try? await vm.buildExportCsv()) ?? ""
     }
 
     deinit {
