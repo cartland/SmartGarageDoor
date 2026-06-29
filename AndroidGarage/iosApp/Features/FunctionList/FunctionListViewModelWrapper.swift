@@ -38,8 +38,14 @@ final class FunctionListViewModelWrapper: ObservableObject {
     private var tasks: [Task<Void, Never>] = []
     private var vm: DefaultFunctionListViewModel { shared.instance }
 
+    /// Shared token-fetch usecase for the developer-only copy-auth-token action
+    /// (the token isn't VM state, so it's read straight from the graph — same as
+    /// Android's `rememberAuthTokenCopier`, which reads the usecase off the component).
+    private let getAuthTokenForCopyUseCase: UsecaseGetAuthTokenForCopyUseCase
+
     init(component: NativeComponent) {
         shared = SharedViewModel(component.functionListViewModel)
+        getAuthTokenForCopyUseCase = component.getAuthTokenForCopyUseCase
         accessGranted = vm.accessGranted.value?.boolValue
         applyTestState(vm.testNotificationState.value)
 
@@ -77,9 +83,17 @@ final class FunctionListViewModelWrapper: ObservableObject {
     func changeTestNotificationTopic() { vm.changeTestNotificationTopic() }
 
     /// Copy the personal test topic to the clipboard. No sensitivity flag (the
-    /// topic is not a secret) — unlike the auth token, which is deferred.
+    /// topic is not a secret) — unlike the auth token (see [copyAuthToken]).
     func copyTestTopic() {
         if let topic = testTopic { UIPasteboard.general.string = topic }
+    }
+
+    /// Copy the current Firebase ID token to the clipboard (developer-only).
+    /// Delegates to the shared [AuthTokenCopier] so the fetch + sensitivity
+    /// posture (pasteboard expiration) live in one place; returns the outcome so
+    /// the button can flash "Copied" or "Sign in to copy auth token".
+    func copyAuthToken() async -> AuthTokenCopyOutcome {
+        await AuthTokenCopier.copy(using: getAuthTokenForCopyUseCase)
     }
 
     deinit { tasks.forEach { $0.cancel() } }
