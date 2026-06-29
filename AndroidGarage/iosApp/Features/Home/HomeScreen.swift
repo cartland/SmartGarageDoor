@@ -69,7 +69,7 @@ struct HomeContentView: View {
     let isCheckInStale: Bool
     let buttonStateLabel: String
     /// Resolved remote-button health pill (ADR-031 Phase 5) shown in the
-    /// "Remote button" section header, mirroring Android's `RemoteButtonHealthPill`.
+    /// "Remote control" section header, mirroring Android's `RemoteButtonHealthPill`.
     let buttonHealth: ButtonHealthItem
     let signedIn: Bool
     /// Resolved alert banners (ADR-031 Phase 4) shown above the Status card.
@@ -214,7 +214,10 @@ struct HomeContentView: View {
                 // Hidden when signed out (it would only read "Unauthorized",
                 // redundant with the CTA) — matching Android.
                 HStack {
-                    Text("Remote button")
+                    // "Remote control" to match iOS's own info-sheet title and
+                    // Android's `home_section_remote_control` (the header text was
+                    // out of sync with the adjacent comment + the rest of the app).
+                    Text("Remote control")
                     Spacer()
                     if signedIn {
                         RemoteButtonHealthPill(item: buttonHealth)
@@ -302,7 +305,7 @@ private struct DeviceCheckInPill: View {
     }
 }
 
-/// Remote-button health pill in the "Remote button" section header — the SwiftUI
+/// Remote-button health pill in the "Remote control" section header — the SwiftUI
 /// analog of Android's `RemoteButtonHealthPill`. Label + an availability icon;
 /// only `.offline` uses the warning tint (matching Android's "offline screams,
 /// the rest whisper" hierarchy). Uses the same antenna icon family as
