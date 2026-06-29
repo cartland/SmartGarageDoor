@@ -106,12 +106,12 @@ fun DoorHistoryContent(
 
     // Outer Column owns inter-banner spacing via spacedBy. Top chrome
     // clearance (16 dp below the TopAppBar) is owned by the outer
-    // Column ONLY when at least one banner is shown — otherwise
+    // Column ONLY when the stale-check-in banner is shown — otherwise
     // HistoryContent's safeListContentPadding.top provides it.
     // Without this conditional, the no-banner case would double-pad
     // (16 dp outer + 16 dp safeListContentPadding = 32 dp before the
     // first day section).
-    val anyBannerShown = isCheckInStale || recentDoorEvents is LoadingResult.Error
+    val anyBannerShown = isCheckInStale
     val outerModifier = if (anyBannerShown) {
         modifier.fillMaxSize().padding(top = 16.dp)
     } else {
@@ -130,17 +130,6 @@ fun DoorHistoryContent(
                     onResetFcm()
                     onFetchRecentDoorEvents()
                 },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        if (recentDoorEvents is LoadingResult.Error) {
-            ErrorCard(
-                text = stringResource(
-                    R.string.home_history_fetch_error,
-                    recentDoorEvents.exception.toString().take(500),
-                ),
-                buttonText = stringResource(R.string.home_history_retry_button),
-                onClick = { onFetchRecentDoorEvents() },
                 modifier = Modifier.fillMaxWidth(),
             )
         }

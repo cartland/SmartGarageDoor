@@ -120,8 +120,6 @@
     <!-- History tab — error / stale-data banner copy. -->
     <string name="home_history_stale_check_in_error">Not receiving updates from server</string>
     <string name="home_history_retry_button">Retry</string>
-    <!-- History tab — fetch-error banner. %1$s is the truncated exception message. -->
-    <string name="home_history_fetch_error">Error fetching recent door events:%1$s</string>
 
     <!-- Home → Door status info bottom sheet. -->
     <string name="home_info_door_status_title">Door status</string>
