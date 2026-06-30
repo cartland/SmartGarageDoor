@@ -27,15 +27,25 @@ Kotlin Gradle Plugin can remove a build DSL. The first gradle group PR (#1004,
 deprecated `jvmTarget: String` DSL into a hard **error** — `:buildSrc:compileKotlin`
 failed, which failed every Android job uniformly, making the whole auto-group
 dead-on-arrival. So the gradle ecosystem `ignore`s the Bucket-C toolchain
-outright (`org.jetbrains.kotlin*`, `com.google.devtools.ksp*`, AGP plugin
-markers, `androidx.room:*`, `me.tatarka.inject:*`, `co.touchlab.skie*`,
-`org.jetbrains.kotlinx:kotlinx-serialization*`). These move by hand, serial,
-with a real `android/N` release as proof; their version lockstep (Kotlin ↔ KSP ↔
-SKIE, plus the kotlin-inject 0.8.0 pin) is exactly why they can't auto-group.
-Dependabot still auto-handles the safe libs (androidx, compose-bom, coroutines,
-kermit, datastore, lifecycle, detekt, spotless, mockito, etc.). A wrong ignore
+outright (`org.jetbrains.kotlin*`, `com.google.devtools.ksp*`, `com.android*`
+for AGP, `androidx.room*`, `me.tatarka.inject:*`, `co.touchlab.skie*`,
+`org.jetbrains.kotlinx:kotlinx-serialization*`, and `io.ktor:*`). These move by
+hand, serial, with a real `android/N` release as proof; their version lockstep
+(Kotlin ↔ KSP ↔ SKIE, plus the kotlin-inject 0.8.0 pin) is exactly why they
+can't auto-group. Ktor is in the list because the HTTP client is the
+wire-contract highest-risk surface (silent JSON shape drift). Dependabot still
+auto-handles the safe libs (androidx, compose-bom, coroutines, kermit, datastore,
+lifecycle, detekt, spotless, mockito, navigation3, etc.).
+
+**Match the EXACT name Dependabot prints, not the catalog alias.** #1006's first
+pass missed two — #1008 still carried them — because the obvious coordinate was
+wrong: Room is named bare `androidx.room` (the colon pattern `androidx.room:*`
+did not match), and the `agp` version is tracked under the plugin id
+`com.android.kotlin.multiplatform.library` (not `com.android.application` /
+`com.android.tools.build`). The authoritative names are in the open group PR's
+**body** (the `Updates \`group:artifact\` from X to Y` lines). A wrong ignore
 pattern is non-destructive — it only affects Dependabot's own PRs, never `main`
-— so refine reactively if a future group still drags a toolchain dep in.
+— so close the bad group PR, read its body for the real names, and refine.
 
 **Why Android-side Dependabot PRs need CI help:** GitHub withholds repo Actions
 secrets from Dependabot-triggered runs, so `setup-android`'s `google-services.json`

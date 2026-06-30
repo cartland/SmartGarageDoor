@@ -67,17 +67,23 @@ updates:
       # These are Bucket C in docs/DEPENDENCY_UPGRADES.md — take by hand, serial,
       # with a real `android/N` release as proof (and they're version-pinned for a
       # reason: kotlin-inject 0.8.0 and the Kotlin<->KSP<->SKIE version lockstep).
+      #
+      # Patterns must match the EXACT name Dependabot prints in the PR body, which
+      # is not always the obvious coordinate. #1006's first attempt missed two
+      # (#1008 still carried them): Room is named bare `androidx.room` (a colon
+      # pattern `androidx.room:*` did NOT match), and the `agp` version is tracked
+      # under the plugin id `com.android.kotlin.multiplatform.library` (not
+      # `com.android.application` / `com.android.tools.build`). When refining,
+      # read the real names from the open group PR's body, not the catalog alias.
       - dependency-name: "org.jetbrains.kotlin:*"
       - dependency-name: "org.jetbrains.kotlin.*"
       - dependency-name: "com.google.devtools.ksp*"
-      - dependency-name: "com.android.application*"
-      - dependency-name: "com.android.library*"
-      - dependency-name: "com.android.test*"
-      - dependency-name: "com.android.tools.build*"
-      - dependency-name: "androidx.room:*"
+      - dependency-name: "com.android*"                 # AGP (incl. com.android.kotlin.multiplatform.library)
+      - dependency-name: "androidx.room*"               # bare `androidx.room`, no colon
       - dependency-name: "me.tatarka.inject:*"
       - dependency-name: "co.touchlab.skie*"
       - dependency-name: "org.jetbrains.kotlinx:kotlinx-serialization*"
+      - dependency-name: "io.ktor:*"                    # HTTP client — wire-contract highest-risk (JSON shape drift)
 
   # GitHub Actions used by the workflows in .github/workflows/. Addresses the
   # low/informational finding that several actions are pinned to floating major
