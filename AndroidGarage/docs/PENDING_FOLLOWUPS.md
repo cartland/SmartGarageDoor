@@ -24,7 +24,7 @@ The one-time Apple Developer + Firebase iOS setup is complete, and the Swift Fir
 - Firebase iOS app registered in `escape-echo` (bundle `com.chriscartland.garage`); `GoogleService-Info.plist` committed; Google Sign-In provider enabled; Apple Developer enrollment done; APNs `.p8` uploaded to Firebase Cloud Messaging.
 - Real Firebase Auth + Google Sign-In + live door data, verified on the simulator (PRs #912/#913/#915).
 
-**The remaining iOS work is the go-forward plan in § 1 "Remaining plan"** — sign-in verification, push *delivery* (device), Phase F release tooling, Phase G App Store, and the parity gaps (door canvas, adaptive layout). The only items still needing the user are **Apple code-signing** (TestFlight / App Store) and an interactive **sign-in tap-through**.
+**The remaining iOS work is the go-forward plan in § 1 "Remaining plan"** — sign-in verification, push *delivery* (device), Phase F release tooling, Phase G App Store, and the one remaining parity gap (iPad/adaptive layout — the door-canvas animation gap closed 2026-06-29). The only items still needing the user are **Apple code-signing** (TestFlight / App Store) and an interactive **sign-in tap-through**.
 
 ### B. Run the 3 pending smoke tests on a device
 
@@ -48,7 +48,7 @@ Currently pinned at 0.8.0 deliberately. Tripwire conditions in § 2 below — no
 
 ### 1. iOS app construction (post-`:iosFramework`)
 
-**Status (2026-06-24):** The iOS app is **functional on the simulator with real backend data**. Phases B–F (Xcode project, SwiftUI screens, iOS CI) shipped 2026-06-01; Phase A (Apple Developer + Firebase iOS) is done; Phase C (real Firebase Auth/Messaging bridges + Google Sign-In) shipped this session, plus garage backend config (live door data) and the FCM-receive path. **Verified on the simulator:** Firebase init, real signed-out auth state, notification-permission prompt, and **live door STATUS from the production server**. **Remaining is mostly user/device-gated:** interactive sign-in verification, push *delivery* (needs a signed device build), release tooling (Phase F), App Store (Phase G), plus two feature-parity gaps (door-canvas animation, iPad/adaptive layout). The go-forward plan is in **"Remaining plan"** below.
+**Status (2026-06-29):** The iOS app is **functional on the simulator with real backend data**. Phases B–F (Xcode project, SwiftUI screens, iOS CI) shipped 2026-06-01; Phase A (Apple Developer + Firebase iOS) is done; Phase C (real Firebase Auth/Messaging bridges + Google Sign-In) shipped 2026-06-24, plus garage backend config (live door data) and the FCM-receive path. The cross-platform **door program + parity backlog landed 2026-06-29** (#949–#979): the animated door canvas (`AnimatedDoorCanvas` with `withAnimation` + shared `DoorAnimationMemory` replay), shared history-alert mapping + stale banner, device-availability pills, History load-more, and the ADR-032 UI-fidelity tiers. **Verified on the simulator:** Firebase init, real signed-out auth state, notification-permission prompt, and **live door STATUS from the production server**. **Remaining is mostly user/device-gated:** interactive sign-in verification, push *delivery* (needs a signed device build), release tooling (Phase F), App Store (Phase G), plus the one remaining feature-parity gap (iPad/adaptive layout — iOS is a plain `TabView` vs Android's `AppLayoutMode`). The go-forward plan is in **"Remaining plan"** below.
 
 **What's already done** (5 merged PRs):
 
