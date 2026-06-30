@@ -125,13 +125,43 @@ Xcode (⌘R). Real push *delivery* requires a physical device.
 4. Automatic signing recreates the certs/profiles on first archive — no manual cert export needed.
    The APNs `.p8` is already on Firebase (no per-machine step); only re-upload it if the key is rotated.
 
-## Future: automated releases (not yet built)
-Mirror the Android model (`release-android.sh` + a GitHub Actions workflow + store
-upload). Planned: `scripts/release-ios.sh` (bump `MARKETING_VERSION` +
-`CURRENT_PROJECT_VERSION`, tag `ios/N`, enforce the `iosApp/CHANGELOG.md` entry) and
-`.github/workflows/release-ios.yml` doing `xcodebuild archive` → `xcrun altool`/Fastlane
-upload to TestFlight. CI distribution signing + upload need an **App Store Connect API
-key** (Issuer ID + Key ID + a `.p8`) stored as **GitHub Actions secrets** — created at
-appstoreconnect.apple.com → Users and Access → Integrations → App Store Connect API.
-Deliberately *not* Xcode Cloud (keeps the release pipeline in GitHub Actions, consistent
-with Android/Firebase). See PENDING_FOLLOWUPS § 1 "Remaining plan".
+## Automated releases (`release-ios.sh` + `release-ios.yml`)
+
+Mirrors the Android model. `scripts/release-ios.sh` computes the next `ios/N` tag
+(N = build number), gates on a clean tree + a `validate-ios.sh` marker + an
+`iosApp/CHANGELOG.md` entry for `MARKETING_VERSION`, and pushes the tag.
+`.github/workflows/release-ios.yml` (macOS) reacts to `ios/[0-9]*`: it archives the
+Release app (overriding `CURRENT_PROJECT_VERSION` to N so the tag owns the build
+number), then `xcodebuild -exportArchive` with `destination=upload` ships it to
+**TestFlight Internal**. Same flags + `--check` copy-paste workflow as
+`release-android.sh`. Deliberately **not Xcode Cloud** — keeps the release pipeline
+in GitHub Actions, consistent with Android/Firebase.
+
+### One-time: create the App Store Connect API key + GitHub secrets
+The workflow signs and uploads via an **App Store Connect API key** (no cert is
+imported into a keychain — `xcodebuild -allowProvisioningUpdates` creates the
+Distribution cert + profile on demand):
+1. appstoreconnect.apple.com → **Users and Access → Integrations → App Store Connect API**
+   → generate a key with the **App Manager** role → note the **Issuer ID** + **Key ID**,
+   download the **`.p8`** (downloadable once — store it offline; it's a secret).
+2. Add four **GitHub Actions repo secrets** (Settings → Secrets and variables → Actions):
+   - `APP_STORE_CONNECT_KEY_ID` — the Key ID
+   - `APP_STORE_CONNECT_ISSUER_ID` — the Issuer ID
+   - `APP_STORE_CONNECT_KEY_P8` — the full contents of the `.p8`
+   - `GARAGE_SERVER_CONFIG_KEY` — the door-backend key (so the TestFlight build loads door data)
+
+### Cutting a release
+1. Bump `MARKETING_VERSION` in `project.yml` (if the user-facing version changed) and
+   add a matching `## X.Y.Z` heading to `AndroidGarage/iosApp/CHANGELOG.md`.
+2. `./scripts/validate-ios.sh` (writes the marker).
+3. `./scripts/release-ios.sh --check` → copy-paste the printed `--confirm-tag ios/N` command.
+4. The tag push triggers `release-ios.yml` → archive → upload → the build appears in
+   TestFlight after processing. Monitor the Actions run; a failure opens a
+   `release-failure/ios` issue (auto-closed on the next success).
+
+**Status:** the script + workflow are committed and the `--check`/gate logic is
+verified locally, but the **workflow has not run end-to-end yet** — it needs the four
+secrets above, and the first `ios/N` push is the real test. The `method`
+(`app-store-connect`) + automatic-signing-via-API-key path is the modern default; if a
+future Xcode rejects it, the fallback is importing a Distribution `.p12` + profile from
+secrets (manual signing). Until the first green run, treat it as provisional and watch it.
