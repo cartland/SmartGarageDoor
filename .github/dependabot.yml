@@ -82,7 +82,12 @@ updates:
       - dependency-name: "androidx.room*"               # bare `androidx.room`, no colon
       - dependency-name: "me.tatarka.inject:*"
       - dependency-name: "co.touchlab.skie*"
-      - dependency-name: "org.jetbrains.kotlinx:kotlinx-serialization*"
+      # Whole kotlinx ecosystem (serialization, coroutines, datetime) — all
+      # Kotlin-version-coupled, so they move with Kotlin by hand. serialization is
+      # wire-contract highest-risk (JSON shape drift); datetime tracks kotlin.time
+      # and a "minor" bump (0.6→0.8) made HistoryMapper's Clock/Instant usage
+      # require @OptIn(ExperimentalTime) and broke compile (#1013).
+      - dependency-name: "org.jetbrains.kotlinx:*"
       - dependency-name: "io.ktor:*"                    # HTTP client — wire-contract highest-risk (JSON shape drift)
       # AGP-coupled androidx: these gate on `checkDebugAarMetadata` ("requires
       # Android Gradle plugin 9.1.0 or higher") but AGP is pinned at 8.10.1 above,
