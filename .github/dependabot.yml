@@ -11,6 +11,13 @@
 # pins), not a drop-in auto-PR. Take majors by hand when you choose. Minor/patch
 # bumps are grouped per ecosystem and auto-merge once CI is green.
 #
+# The Kotlin/AGP/KSP/Room/kotlin-inject/SKIE/serialization toolchain is ALSO
+# ignored in the gradle ecosystem below (not just its majors): these are
+# high-impact even at a semver-MINOR bump and are Bucket C (hand-managed, serial,
+# release-proof). Exemplar: the first gradle group (#1004) bundled Kotlin
+# 2.1.20 -> 2.4.0, which turned `jvmTarget: String` into a hard error and broke
+# :buildSrc for all 58 grouped updates. See the per-ecosystem `ignore` for the list.
+#
 # NOTE (Android-side CI): GitHub withholds repo Actions secrets from
 # Dependabot-triggered runs, so the google-services.json decrypt no-ops. CI is
 # made Dependabot-resilient separately (placeholder google-services.json +
@@ -52,6 +59,25 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # Kotlin / AGP / KSP toolchain + KMP-bridge + wire-contract deps: HIGH-IMPACT
+      # even at a semver-MINOR bump, so they must not ride the auto android-minor-patch
+      # group. Exemplar: Dependabot's first gradle group (#1004) bumped Kotlin
+      # 2.1.20 -> 2.4.0, which turned the deprecated `jvmTarget: String` Gradle DSL
+      # into a hard error and broke `:buildSrc:compileKotlin` for the whole group.
+      # These are Bucket C in docs/DEPENDENCY_UPGRADES.md — take by hand, serial,
+      # with a real `android/N` release as proof (and they're version-pinned for a
+      # reason: kotlin-inject 0.8.0 and the Kotlin<->KSP<->SKIE version lockstep).
+      - dependency-name: "org.jetbrains.kotlin:*"
+      - dependency-name: "org.jetbrains.kotlin.*"
+      - dependency-name: "com.google.devtools.ksp*"
+      - dependency-name: "com.android.application*"
+      - dependency-name: "com.android.library*"
+      - dependency-name: "com.android.test*"
+      - dependency-name: "com.android.tools.build*"
+      - dependency-name: "androidx.room:*"
+      - dependency-name: "me.tatarka.inject:*"
+      - dependency-name: "co.touchlab.skie*"
+      - dependency-name: "org.jetbrains.kotlinx:kotlinx-serialization*"
 
   # GitHub Actions used by the workflows in .github/workflows/. Addresses the
   # low/informational finding that several actions are pinned to floating major

@@ -20,6 +20,23 @@ several majors (agp 8→9, spotless 7→8, firebase-functions 6→7, firebase-ad
 drop-in auto-PR. **Take majors by hand** when you choose; let Dependabot handle
 the safe minor/patch churn (grouped per ecosystem, `open-pull-requests-limit: 3`).
 
+**The Kotlin toolchain is ignored even at semver-minor.** Dependabot's
+semver classification is too coarse for a Kotlin project: a "minor" bump of the
+Kotlin Gradle Plugin can remove a build DSL. The first gradle group PR (#1004,
+58 grouped updates) bumped **Kotlin 2.1.20 → 2.4.0**, and 2.4.0 turned the
+deprecated `jvmTarget: String` DSL into a hard **error** — `:buildSrc:compileKotlin`
+failed, which failed every Android job uniformly, making the whole auto-group
+dead-on-arrival. So the gradle ecosystem `ignore`s the Bucket-C toolchain
+outright (`org.jetbrains.kotlin*`, `com.google.devtools.ksp*`, AGP plugin
+markers, `androidx.room:*`, `me.tatarka.inject:*`, `co.touchlab.skie*`,
+`org.jetbrains.kotlinx:kotlinx-serialization*`). These move by hand, serial,
+with a real `android/N` release as proof; their version lockstep (Kotlin ↔ KSP ↔
+SKIE, plus the kotlin-inject 0.8.0 pin) is exactly why they can't auto-group.
+Dependabot still auto-handles the safe libs (androidx, compose-bom, coroutines,
+kermit, datastore, lifecycle, detekt, spotless, mockito, etc.). A wrong ignore
+pattern is non-destructive — it only affects Dependabot's own PRs, never `main`
+— so refine reactively if a future group still drags a toolchain dep in.
+
 **Why Android-side Dependabot PRs need CI help:** GitHub withholds repo Actions
 secrets from Dependabot-triggered runs, so `setup-android`'s `google-services.json`
 decrypt no-ops and **every Android job fails at `processGoogleServices`** — a
