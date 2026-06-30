@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  APNs environment for FCM push. Value is driven by the APS_ENVIRONMENT build
+	  setting (Debug = development, Release = production) so a dev-device build and
+	  a TestFlight/App Store build each get the right APNs routing without editing
+	  this file. See project.yml `settings.configs`.
+	-->
+	<key>aps-environment</key>
+	<string>$(APS_ENVIRONMENT)</string>
+</dict>
+</plist>
