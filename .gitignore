@@ -1,6 +1,7 @@
 # Claude Code
 .claude/.validation-passed
 .claude/.firebase-validation-passed
+.claude/.ios-validation-passed
 .claude/.dev-mode
 .claude/scheduled_tasks.lock
 

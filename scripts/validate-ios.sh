@@ -86,4 +86,12 @@ xcodebuild \
 echo -e "${GREEN}[PASS] iOS app build${RESET}"
 echo ""
 
+# --- Write the validation marker (read by scripts/release-ios.sh) ---
+# Records the HEAD SHA that passed, so the release script can confirm the tag
+# is being cut on a validated commit. Kept separate from the Android marker
+# (.claude/.validation-passed) so validating one platform doesn't clear the other.
+mkdir -p "$REPO_ROOT/.claude"
+git -C "$REPO_ROOT" rev-parse HEAD > "$REPO_ROOT/.claude/.ios-validation-passed"
+
 echo -e "${GREEN}${BOLD}All iOS checks passed.${RESET}"
+echo "Wrote validation marker for $(git -C "$REPO_ROOT" rev-parse --short HEAD) (.claude/.ios-validation-passed)."

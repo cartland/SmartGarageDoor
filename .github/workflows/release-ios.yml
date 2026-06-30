@@ -1,0 +1,169 @@
+name: iOS Release
+
+# Triggered by ios/N tags pushed by scripts/release-ios.sh.
+# Archives the Release app and uploads it to TestFlight (Internal) — never the
+# public App Store; promotion to App Store review is a manual App Store Connect step.
+#
+# N (from the tag) is the build number (CFBundleVersion / CURRENT_PROJECT_VERSION),
+# overridden onto the archive here so the tag is the source of truth for it. The
+# user-facing MARKETING_VERSION (X.Y.Z) comes from project.yml (committed).
+#
+# REQUIRED GitHub secrets (see docs/IOS_RELEASE_SETUP.md § "Future: automated
+# releases"). Until these exist, this workflow fails fast at the steps that use them:
+#   APP_STORE_CONNECT_KEY_ID      App Store Connect API Key ID
+#   APP_STORE_CONNECT_ISSUER_ID   App Store Connect API Issuer ID
+#   APP_STORE_CONNECT_KEY_P8      full contents of the AuthKey_<KEY_ID>.p8
+#   GARAGE_SERVER_CONFIG_KEY      door-backend key (so the TestFlight build loads door data)
+#
+# Signing is automatic in CI via the App Store Connect API key
+# (`-allowProvisioningUpdates` + `-authenticationKey*`): xcodebuild creates/downloads
+# the Apple Distribution cert + App Store provisioning profile on demand — no cert
+# is imported into a keychain. The key needs the "App Manager" (or Admin) role.
+
+on:
+  push:
+    tags:
+      - 'ios/[0-9]*'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  release:
+    name: iOS Archive and Upload to TestFlight
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - name: Validate tag format
+        id: validate
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          if [[ ! "$TAG" =~ ^ios/[0-9]+$ ]]; then
+            echo "::error::Tag must match 'ios/N', got: $TAG"
+            exit 1
+          fi
+          echo "build_number=${TAG#ios/}" >> "$GITHUB_OUTPUT"
+          echo "Validated: tag=$TAG, buildNumber=${TAG#ios/}"
+
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-ios-${{ hashFiles('AndroidGarage/**/*.gradle*', 'AndroidGarage/gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-ios-
+            ${{ runner.os }}-gradle-
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      # Door-backend secret (mirrors the committed Secrets.xcconfig include); the
+      # app builds without it but door data won't load. Removed in the Clean step.
+      - name: Inject server config secret
+        env:
+          GARAGE_SERVER_CONFIG_KEY: ${{ secrets.GARAGE_SERVER_CONFIG_KEY }}
+        run: |
+          printf 'GARAGE_SERVER_CONFIG_KEY = %s\n' "$GARAGE_SERVER_CONFIG_KEY" \
+            > AndroidGarage/iosApp/Secrets.local.xcconfig
+
+      - name: Write App Store Connect API key
+        env:
+          KEY_P8: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/asc_keys"
+          printf '%s\n' "$KEY_P8" > "$RUNNER_TEMP/asc_keys/AuthKey_${KEY_ID}.p8"
+          echo "ASC_KEY_PATH=$RUNNER_TEMP/asc_keys/AuthKey_${KEY_ID}.p8" >> "$GITHUB_ENV"
+
+      - name: Generate Xcode project
+        working-directory: AndroidGarage/iosApp
+        run: xcodegen generate
+
+      # The pre-build Run Script builds shared.framework for device arm64 via Gradle.
+      - name: Archive (Release)
+        working-directory: AndroidGarage/iosApp
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          xcodebuild \
+            -project iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/iosApp.xcarchive" \
+            CURRENT_PROJECT_VERSION=${{ steps.validate.outputs.build_number }} \
+            -allowProvisioningUpdates \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            archive
+
+      - name: Create ExportOptions.plist
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>4EFTFGDT4G</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+          </dict>
+          </plist>
+          PLIST
+
+      # destination=upload sends the signed build straight to App Store Connect /
+      # TestFlight using the API key — no altool/Transporter step needed.
+      - name: Export + upload to TestFlight
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/iosApp.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" \
+            -authenticationKeyPath "$ASC_KEY_PATH"
+
+      - name: Clean secrets
+        if: always()
+        run: |
+          rm -f AndroidGarage/iosApp/Secrets.local.xcconfig
+          rm -rf "$RUNNER_TEMP/asc_keys"
+
+      - name: Release summary
+        run: |
+          echo "::notice title=iOS Release::Uploaded ${{ github.ref_name }} (build ${{ steps.validate.outputs.build_number }}) to TestFlight Internal (com.chriscartland.garage)"
+
+  # Track release failures via one GitHub issue (auto-create on failure,
+  # auto-close on the next successful release). Mirrors release-android.yml.
+  track-failure:
+    name: Track iOS Release Failure
+    if: always()
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/ci-failure-tracker
+        with:
+          label: release-failure/ios
+          result: ${{ needs.release.result == 'success' && 'success' || 'failure' }}
+          workflow-name: "iOS Release (tag: ${{ github.ref_name }})"
