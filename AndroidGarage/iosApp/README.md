@@ -13,6 +13,8 @@ mirroring the Android app's clean architecture. See the iOS construction plan in
 
 **How this app should relate to the Android app:** [ADR-029](../docs/DECISIONS.md#adr-029-ios--android--feature-parity-platform-native-design-one-shared-identity) — eventual 1:1 *capability* parity, platform-native/idiomatic UI (don't copy Android's layout pixel-for-pixel), and one shared "Garage" identity (door visualization, state semantics + colors, naming, tab order) carried by the shared KMP typed states.
 
+**Apple Developer / App Store Connect / Firebase setup, signing, the secrets map, and the TestFlight procedure:** [`../../docs/IOS_RELEASE_SETUP.md`](../../docs/IOS_RELEASE_SETUP.md).
+
 ## Layout
 
 ```
@@ -70,11 +72,17 @@ STATUS. FCM data messages are parsed with the **shared** `FcmPayloadParser`
 Android) in `AppDelegate.application(_:didReceiveRemoteNotification:…)` and applied
 through `ReceiveFcmDoorEventUseCase` → the door-event cache the UI observes.
 
+**Signing + first TestFlight build — DONE (2026-06-30).** Automatic code signing,
+the `aps-environment` push entitlement (Debug=development / Release=production), and
+the 1024 app icon are wired (see the setup runbook); the first build is uploaded to
+TestFlight Internal. Real distribution signing + production-APNs entitlement passed
+validation + upload.
+
 **Pending:**
-- **APNs key** is uploaded to Firebase, but real push *delivery* needs a signed
-  device build (`aps-environment` entitlement). The FCM-receive path is wired but
-  **not runtime-verified**: `simctl` silent (`content-available`) push does not
-  reliably reach `didReceiveRemoteNotification` (a known limitation, compounded by
-  Firebase app-delegate swizzling), so this is a device / Phase-G check.
-- **Google Sign-In end-to-end** — wired; the OAuth flow needs an interactive tap-through.
-- **TestFlight + App Store** (Phase G) — needs device signing + entitlements.
+- **On-device verification** — real push *delivery* (FCM→APNs→device) and the Google
+  Sign-In OAuth tap-through still need the installed TestFlight build / a physical
+  device to confirm end-to-end. The FCM-receive path is wired but not runtime-verified
+  (`simctl` silent push is unreliable; Firebase app-delegate swizzling compounds it).
+- **Release automation + App Store** (Phase G) — `scripts/release-ios.sh` +
+  `.github/workflows/release-ios.yml`, then the App Store listing/submit. See
+  [`../../docs/IOS_RELEASE_SETUP.md`](../../docs/IOS_RELEASE_SETUP.md) § "Future: automated releases".
