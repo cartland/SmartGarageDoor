@@ -47,6 +47,23 @@ did not match), and the `agp` version is tracked under the plugin id
 pattern is non-destructive — it only affects Dependabot's own PRs, never `main`
 — so close the bad group PR, read its body for the real names, and refine.
 
+**androidx is coupled to AGP — modern androidx "minor" bumps can't auto-merge
+while AGP is pinned.** After the toolchain was ignored, the next clean group
+(#1010, 31 updates, zero Kotlin/AGP/Room/Ktor) *still* failed —
+`:androidApp:checkDebugAarMetadata` rejected `androidx.core:1.19.0`,
+`androidx.lifecycle:2.11.0`, and `androidx.navigation3:1.2.0-alpha03` with
+"requires Android Gradle plugin 9.1.0 or higher." AGP is pinned at 8.10.1
+(Bucket C), so these androidx waves are gated on an AGP we hold by hand. They're
+therefore ALSO in the gradle `ignore` (`androidx.core*`, `androidx.lifecycle*`,
+`androidx.navigation3*`, `org.jetbrains.androidx*`) and move with AGP. The
+decoupled gradle deps (spotless, detekt, compose-bom, mockito, kermit, junit,
+screenshot, activity, datastore, sqlite, test libs) build fine on 8.10.1 and
+still auto-merge. **Caveat:** an allowed bump can still pull an AGP-gated androidx
+version *transitively* (core is a near-universal transitive dep), which would
+re-poison the group; if a future group goes red on AarMetadata despite these
+ignores, that's the cause — verify on the next run and widen the ignore or move
+the whole androidx+AGP+Kotlin wave by hand as one coordinated upgrade.
+
 **Why Android-side Dependabot PRs need CI help:** GitHub withholds repo Actions
 secrets from Dependabot-triggered runs, so `setup-android`'s `google-services.json`
 decrypt no-ops and **every Android job fails at `processGoogleServices`** — a

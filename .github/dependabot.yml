@@ -84,6 +84,17 @@ updates:
       - dependency-name: "co.touchlab.skie*"
       - dependency-name: "org.jetbrains.kotlinx:kotlinx-serialization*"
       - dependency-name: "io.ktor:*"                    # HTTP client — wire-contract highest-risk (JSON shape drift)
+      # AGP-coupled androidx: these gate on `checkDebugAarMetadata` ("requires
+      # Android Gradle plugin 9.1.0 or higher") but AGP is pinned at 8.10.1 above,
+      # so they can't auto-bump — they poison the whole group red (exemplar: #1010,
+      # core 1.19 / lifecycle 2.11 / navigation3 1.2.0-alpha each demand AGP 9.1).
+      # Hold them with AGP; they move together by hand when the toolchain moves.
+      # The decoupled deps (spotless, detekt, compose-bom, mockito, kermit, junit,
+      # screenshot, activity, datastore, sqlite, test libs) still auto-merge.
+      - dependency-name: "androidx.core*"
+      - dependency-name: "androidx.lifecycle*"
+      - dependency-name: "androidx.navigation3*"
+      - dependency-name: "org.jetbrains.androidx*"      # KMP nav3 / lifecycle variants (same AGP-coupled wave)
 
   # GitHub Actions used by the workflows in .github/workflows/. Addresses the
   # low/informational finding that several actions are pinned to floating major
