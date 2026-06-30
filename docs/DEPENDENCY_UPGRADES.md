@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-04-27
+last_verified: 2026-06-29
 ---
 
 # Dependency Upgrades — Sequencing Playbook
@@ -10,6 +10,26 @@ How to land a multi-PR dependency upgrade safely: GitHub Actions
 versions, npm runtime/dev deps, Dependabot alerts, transitive overrides.
 The 5-PR sweep on 2026-04-27 (PRs #581–#585, closed all 5 Dependabot
 alerts and 2 of 3 Node-20 deprecations) is the canonical exemplar.
+
+## Dependabot auto-update posture (2026-06-29)
+
+`.github/dependabot.yml` is configured **minor/patch only** — major version
+updates are `ignore`d on purpose. The first run opened an 11-PR flood including
+several majors (agp 8→9, spotless 7→8, firebase-functions 6→7, firebase-admin
+13→14, compose-bom, action majors), each of which needs this playbook, not a
+drop-in auto-PR. **Take majors by hand** when you choose; let Dependabot handle
+the safe minor/patch churn (grouped per ecosystem, `open-pull-requests-limit: 3`).
+
+**Why Android-side Dependabot PRs need CI help:** GitHub withholds repo Actions
+secrets from Dependabot-triggered runs, so `setup-android`'s `google-services.json`
+decrypt no-ops and **every Android job fails at `processGoogleServices`** — a
+secret artifact, unrelated to the dependency change (this is why the first run's
+gradle/actions PRs were all red). The fix (`.github/actions/setup-android/action.yml`
++ `.github/workflows/ci-checks.yml`): a committed placeholder `google-services.json`
+is dropped in when there's no encrypt key, and the **Build Release AAB** job (which
+also needs the real signing keystore) is skipped on Dependabot runs — the
+`if: always()` "Android CI Complete" gate tolerates the skip. npm PRs are
+unaffected (Firebase CI needs no Android secrets).
 
 ## Hard rules (every PR must satisfy)
 

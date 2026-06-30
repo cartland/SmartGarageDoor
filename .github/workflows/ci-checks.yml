@@ -141,7 +141,13 @@ jobs:
 
   build_release:
     name: Build Release AAB
-    if: inputs.android == 'true'
+    # Skipped on Dependabot runs: GitHub withholds the signing-keystore secrets
+    # from them, so a real release AAB can't be built. The "Android CI Complete"
+    # gate uses `if: always()` and only fails on a failed/cancelled check, so a
+    # skipped job here still lets the gate pass. The other jobs validate the
+    # dependency change (with the placeholder google-services.json from
+    # setup-android). A real release goes through release-android.yml, not here.
+    if: inputs.android == 'true' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
