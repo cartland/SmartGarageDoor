@@ -72,6 +72,13 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.chriscartland.garage
+        # Code signing. Team ID is not a secret (it appears in every app's
+        # provisioning), so it's committed. Automatic signing lets Xcode manage
+        # the cert + provisioning profile for the App ID. CI builds pass
+        # CODE_SIGNING_ALLOWED=NO, which makes these inert for the simulator build.
+        DEVELOPMENT_TEAM: 4EFTFGDT4G
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: iosApp/iosApp.entitlements
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_FILE: iosApp/Info.plist
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
@@ -88,6 +95,14 @@ targets:
           - $(inherited)
           - -framework
           - shared
+      configs:
+        # Drives `aps-environment` in iosApp.entitlements. Debug device builds
+        # use the development APNs sandbox; Release (archive → TestFlight / App
+        # Store) uses production APNs.
+        Debug:
+          APS_ENVIRONMENT: development
+        Release:
+          APS_ENVIRONMENT: production
     preBuildScripts:
       - name: "Build Kotlin shared.framework (embedAndSign)"
         basedOnDependencyAnalysis: false
