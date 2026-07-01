@@ -142,8 +142,13 @@ The workflow signs and uploads via an **App Store Connect API key** (no cert is
 imported into a keychain — `xcodebuild -allowProvisioningUpdates` creates the
 Distribution cert + profile on demand):
 1. appstoreconnect.apple.com → **Users and Access → Integrations → App Store Connect API**
-   → generate a key with the **App Manager** role → note the **Issuer ID** + **Key ID**,
+   → generate a key with the **Admin** role → note the **Issuer ID** + **Key ID**,
    download the **`.p8`** (downloadable once — store it offline; it's a secret).
+   **The role MUST be Admin, not App Manager.** Cloud signing (`-allowProvisioningUpdates`)
+   creates the *Distribution* certificate on demand, and only Admin can do that — an
+   App Manager key archives fine but fails export with `Cloud signing permission error` /
+   `No signing certificate "iOS Distribution" found` (empirically, `ios/1` attempt 1).
+   You can't change a key's role; regenerate as Admin and revoke the old key.
 2. Add four **GitHub Actions repo secrets** (Settings → Secrets and variables → Actions):
    - `APP_STORE_CONNECT_KEY_ID` — the Key ID
    - `APP_STORE_CONNECT_ISSUER_ID` — the Issuer ID
@@ -159,9 +164,9 @@ Distribution cert + profile on demand):
    TestFlight after processing. Monitor the Actions run; a failure opens a
    `release-failure/ios` issue (auto-closed on the next success).
 
-**Status:** the script + workflow are committed and the `--check`/gate logic is
-verified locally, but the **workflow has not run end-to-end yet** — it needs the four
-secrets above, and the first `ios/N` push is the real test. The `method`
-(`app-store-connect`) + automatic-signing-via-API-key path is the modern default; if a
-future Xcode rejects it, the fallback is importing a Distribution `.p12` + profile from
-secrets (manual signing). Until the first green run, treat it as provisional and watch it.
+**Status: verified end-to-end (`ios/1`, build 1 / 0.1.0, 2026-06-30).** The
+`app-store-connect` method + cloud-signing-via-API-key + `destination: upload` path
+works on `macos-latest` and lands the build in TestFlight Internal. The one gotcha
+was the API-key role (App Manager → Admin, above). If a future Xcode ever rejects
+cloud signing, the fallback is importing a Distribution `.p12` + profile from secrets
+(manual signing).
