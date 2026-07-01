@@ -4,7 +4,7 @@ status: active
 last_verified: 2026-06-10
 ---
 
-# iosApp — SwiftUI client
+# iosApp — GarageControl (SwiftUI client)
 
 SwiftUI front-end for the Smart Garage Door system. Consumes the shared
 Kotlin business logic via the `:iosFramework` Gradle module (`shared.framework`),
@@ -20,8 +20,8 @@ mirroring the Android app's clean architecture. See the iOS construction plan in
 ```
 iosApp/
 ├── project.yml              # XcodeGen spec — source of truth for the .xcodeproj
-├── iosApp/                  # App entry + Info.plist + asset catalog
-│   └── iOSApp.swift         # @main; builds the NativeComponent DI graph
+├── GarageControl/           # App entry + Info.plist + asset catalog
+│   └── GarageControlApp.swift  # @main; builds the NativeComponent DI graph
 ├── Core/                    # Cross-screen infrastructure
 │   ├── SharedViewModel.swift   # Ties a Kotlin viewModelScope to a SwiftUI view
 │   └── Theme/               # Colors + spacing tokens mirroring Android
@@ -38,7 +38,7 @@ is the reviewable source of truth.
 brew install xcodegen                 # one-time
 cd AndroidGarage/iosApp
 xcodegen generate
-xcodebuild -project iosApp.xcodeproj -scheme iosApp \
+xcodebuild -project GarageControl.xcodeproj -scheme GarageControl \
   -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
   CODE_SIGNING_ALLOWED=NO build
 ```

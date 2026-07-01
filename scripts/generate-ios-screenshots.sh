@@ -42,8 +42,8 @@ if [ ! -d "AndroidGarage/iosApp" ]; then
 fi
 
 PROJ="AndroidGarage/iosApp"
-XCODEPROJ="$PROJ/iosApp.xcodeproj"
-SCHEME="iosApp"
+XCODEPROJ="$PROJ/GarageControl.xcodeproj"
+SCHEME="GarageControl"
 SNAP_DIR="$PROJ/SnapshotTests"
 # Persistent, known DerivedData so the SPM checkouts (and the prebuilt `prefire`
 # CLI binary inside the Prefire package) live in one reusable location.

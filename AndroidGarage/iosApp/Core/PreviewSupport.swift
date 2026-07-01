@@ -20,7 +20,7 @@ import Foundation
 /// Shared fixtures for SwiftUI `#Preview`s / the snapshot gallery.
 ///
 /// `internal` (not `private`) on purpose: a `#Preview` body is embedded verbatim
-/// into the generated `PreviewTests` (test target, `@testable import iosApp`), so
+/// into the generated `PreviewTests` (test target, `@testable import GarageControl`), so
 /// anything it references must be visible at that access level.
 enum PreviewFixtures {
     /// A fixed "now" injected into time-dependent previews so their snapshots are

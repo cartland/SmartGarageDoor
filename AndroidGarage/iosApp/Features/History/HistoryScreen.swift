@@ -200,7 +200,7 @@ private struct HistoryEmptyState: View {
 //
 // Fixtures are inlined with the memberwise initializer (no file-private helper):
 // a #Preview body is embedded verbatim into the generated snapshot test target
-// (@testable import iosApp), so it may reference only internal+ symbols.
+// (@testable import GarageControl), so it may reference only internal+ symbols.
 
 #Preview("History recent events") {
     NavigationStack {

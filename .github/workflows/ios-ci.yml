@@ -98,8 +98,8 @@ jobs:
         working-directory: AndroidGarage/iosApp
         run: |
           xcodebuild \
-            -project iosApp.xcodeproj \
-            -scheme iosApp \
+            -project GarageControl.xcodeproj \
+            -scheme GarageControl \
             -configuration Debug \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \

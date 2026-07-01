@@ -32,7 +32,7 @@ the construction status/plan is in
 | Item | Secret? | Where it lives | How it's provided |
 |---|---|---|---|
 | Apple Team ID | No | `project.yml` `DEVELOPMENT_TEAM` | committed |
-| `GoogleService-Info.plist` | No* | `iosApp/iosApp/GoogleService-Info.plist` | committed |
+| `GoogleService-Info.plist` | No* | `iosApp/GarageControl/GoogleService-Info.plist` | committed |
 | Signing certificates + provisioning profiles | — | macOS Keychain + Apple servers | created on demand by Xcode **automatic signing**; never in repo |
 | `GARAGE_SERVER_CONFIG_KEY` (door backend) | **Yes** | `iosApp/Secrets.local.xcconfig` (**gitignored**) | build setting → `$(GARAGE_SERVER_CONFIG_KEY)` substituted into `Info.plist` |
 | APNs auth key (`.p8`) | **Yes** | uploaded to Firebase Console; `.p8` file kept offline by the maintainer | created in the Apple Developer portal, uploaded to Firebase Cloud Messaging — never in repo |
@@ -64,7 +64,7 @@ For real FCM push (FCM → APNs → device):
 
 ### 4. Firebase iOS app
 - Firebase Console → project `escape-echo` → Add app → **iOS**, bundle `com.chriscartland.garage`.
-- Download **`GoogleService-Info.plist`** → committed at `iosApp/iosApp/GoogleService-Info.plist`.
+- Download **`GoogleService-Info.plist`** → committed at `iosApp/GarageControl/GoogleService-Info.plist`.
 - Firebase Auth → enable the **Google** sign-in provider.
 - The plist's `REVERSED_CLIENT_ID` is wired into `Info.plist` → `CFBundleURLTypes` so the Google Sign-In OAuth callback returns to the app.
 
@@ -80,7 +80,7 @@ All committed; the `.xcodeproj` is regenerated from `project.yml` via XcodeGen.
 - `DEVELOPMENT_TEAM = 4EFTFGDT4G`, `CODE_SIGN_STYLE = Automatic` (Xcode manages the
   Apple Development + Apple Distribution certs and provisioning profiles on demand;
   those artifacts live in the Keychain / Apple's servers, never in the repo).
-- `CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements`, which declares
+- `CODE_SIGN_ENTITLEMENTS = GarageControl/GarageControl.entitlements`, which declares
   `aps-environment = $(APS_ENVIRONMENT)`.
 - `project.yml` per-config build settings drive that: **Debug → `development`**
   (dev-device APNs sandbox), **Release → `production`** (TestFlight / App Store APNs).
@@ -97,10 +97,10 @@ icon, and an empty `AppIcon` set also drops `CFBundleIconName`. The icon:
   `GarageDoorCanvas` port — closed green door on `#D7E8CE`) at 1024 via `qlmanage`,
   then **flattened to opaque RGB** (no alpha — the App Store requires it).
 - Added as a single **universal 1024** entry in
-  `iosApp/iosApp/Assets.xcassets/AppIcon.appiconset/`; Xcode's `actool`
+  `iosApp/GarageControl/Assets.xcassets/AppIcon.appiconset/`; Xcode's `actool`
   auto-generates the per-device sizes (120 iPhone, 152 iPad, …) and emits
   `CFBundleIconName` from it. Verify standalone with:
-  `actool --app-icon AppIcon --output-partial-info-plist /tmp/p.plist --compile /tmp/out --platform iphoneos --minimum-deployment-target 16.0 --target-device iphone --target-device ipad AndroidGarage/iosApp/iosApp/Assets.xcassets`.
+  `actool --app-icon AppIcon --output-partial-info-plist /tmp/p.plist --compile /tmp/out --platform iphoneos --minimum-deployment-target 16.0 --target-device iphone --target-device ipad AndroidGarage/iosApp/GarageControl/Assets.xcassets`.
 
 ### 8. First TestFlight build (manual, via Xcode)
 1. Toolbar destination = **Any iOS Device (arm64)** (Archive is greyed out on a simulator).
