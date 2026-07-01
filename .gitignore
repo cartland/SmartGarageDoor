@@ -5,6 +5,9 @@
 .claude/.dev-mode
 .claude/scheduled_tasks.lock
 
+# App Store Connect API creds for release-ios.sh (local only; never commit)
+scripts/.asc-credentials.local
+
 # macOS
 .DS_Store
 .DS_Store?

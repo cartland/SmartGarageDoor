@@ -87,6 +87,29 @@ jobs:
           printf '%s\n' "$KEY_P8" > "$RUNNER_TEMP/asc_keys/AuthKey_${KEY_ID}.p8"
           echo "ASC_KEY_PATH=$RUNNER_TEMP/asc_keys/AuthKey_${KEY_ID}.p8" >> "$GITHUB_ENV"
 
+      # Fail loudly BEFORE archiving if the tag's build number is already on App
+      # Store Connect. Otherwise Apple silently auto-resolves the collision to a
+      # different number (that's how ios/1 landed as CFBundleVersion 2), which
+      # breaks the "tag N == build number" guarantee. release-ios.sh runs the same
+      # check locally when ASC creds are available.
+      - name: Pre-flight — build number must be free on App Store Connect
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_BUNDLE_ID: com.chriscartland.garage
+          N: ${{ steps.validate.outputs.build_number }}
+        run: |
+          LATEST=$(ruby scripts/asc-latest-build.rb) || {
+            echo "::error::Could not query App Store Connect for existing builds (see log above)."
+            exit 1
+          }
+          echo "Latest build on App Store Connect: $LATEST; this release (tag ios/$N): build $N"
+          if [ "$N" -le "$LATEST" ]; then
+            echo "::error::Build number $N is not greater than the latest App Store Connect build ($LATEST). CFBundleVersion must strictly increase — retag as ios/$((LATEST + 1)) (or run ./scripts/release-ios.sh --check with local ASC creds, which computes the right tag)."
+            exit 1
+          fi
+          echo "Build number $N is free (> $LATEST). Proceeding."
+
       - name: Generate Xcode project
         working-directory: AndroidGarage/iosApp
         run: xcodegen generate
