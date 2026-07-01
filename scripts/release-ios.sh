@@ -110,21 +110,54 @@ done
 
 git fetch origin --tags --quiet
 
-# Compute latest ios/N tag number and its SHA.
-HIGHEST_VERSION=$(git tag -l 'ios/[0-9]*' | sed 's|ios/||' | grep -E '^[0-9]+$' || true)
-HIGHEST_VERSION=$(echo "$HIGHEST_VERSION" | sort -n | tail -1)
+# --- App Store Connect build-number authority (optional, graceful) ---
+# App Store Connect is the real source of truth for the CFBundleVersion, and the
+# workflow numbers each build by the tag N. If ASC credentials are available
+# locally, compute the next tag as (latest ASC build + 1) so the ios/N tag always
+# equals the next FREE build number — even if a build was uploaded out-of-band
+# (which is what put ios/1 at CFBundleVersion 2). Load creds from
+# scripts/.asc-credentials.local (gitignored; see scripts/asc-credentials.local.example)
+# or the environment. If unavailable, fall back to git tags only and say so; the CI
+# pre-flight in release-ios.yml enforces the same check regardless.
+ASC_CREDS_FILE="$REPO_ROOT/scripts/.asc-credentials.local"
+# shellcheck disable=SC1090
+[ -f "$ASC_CREDS_FILE" ] && . "$ASC_CREDS_FILE"
+ASC_LATEST=""
+if command -v ruby >/dev/null 2>&1 && [ -n "${ASC_KEY_ID:-}" ] && [ -n "${ASC_ISSUER_ID:-}" ] && [ -n "${ASC_KEY_PATH:-}" ]; then
+    ASC_ERR="$(mktemp)"
+    if ASC_LATEST=$(ASC_BUNDLE_ID="${ASC_BUNDLE_ID:-com.chriscartland.garage}" \
+            ruby "$REPO_ROOT/scripts/asc-latest-build.rb" 2>"$ASC_ERR"); then
+        ASC_NOTE="App Store Connect latest build: $ASC_LATEST (authoritative for the build number)"
+    else
+        ASC_NOTE="App Store Connect check FAILED — $(head -1 "$ASC_ERR" 2>/dev/null); using git tags only"
+        ASC_LATEST=""
+    fi
+    rm -f "$ASC_ERR"
+else
+    ASC_NOTE="App Store Connect check skipped (no local ASC creds — see scripts/asc-credentials.local.example); using git tags only"
+fi
 
-if [ -z "$HIGHEST_VERSION" ]; then
-    NEXT_VERSION=1
+# Highest ios/N git tag (0 if none).
+GIT_HIGHEST=$(git tag -l 'ios/[0-9]*' | sed 's|ios/||' | grep -E '^[0-9]+$' | sort -n | tail -1)
+GIT_HIGHEST=${GIT_HIGHEST:-0}
+
+# Next build number = strictly greater than BOTH the highest git tag AND the
+# latest App Store Connect build (when known), so the tag can never collide.
+if [ -n "$ASC_LATEST" ] && [ "$ASC_LATEST" -gt "$GIT_HIGHEST" ]; then
+    BASE=$ASC_LATEST
+else
+    BASE=$GIT_HIGHEST
+fi
+NEXT_VERSION=$((BASE + 1))
+NEW_TAG="ios/$NEXT_VERSION"
+
+if [ "$GIT_HIGHEST" -eq 0 ]; then
     LATEST_TAG="(none)"
     LATEST_TAG_SHA="(none)"
 else
-    NEXT_VERSION=$((HIGHEST_VERSION + 1))
-    LATEST_TAG="ios/$HIGHEST_VERSION"
+    LATEST_TAG="ios/$GIT_HIGHEST"
     LATEST_TAG_SHA=$(git rev-parse "$LATEST_TAG" 2>/dev/null || echo "(missing)")
 fi
-
-NEW_TAG="ios/$NEXT_VERSION"
 
 # Resolve target commit.
 if [ -n "$CONFIRM_HASH" ]; then
@@ -225,7 +258,8 @@ fi
 # === --check mode ===
 if [ "$MODE" = "check" ]; then
     echo "Latest tag:   $LATEST_TAG (sha: $LATEST_TAG_SHA)"
-    echo "Next tag:     $NEW_TAG"
+    echo "Next tag:     $NEW_TAG  (build number $NEXT_VERSION)"
+    echo "Build source: $ASC_NOTE"
     echo "HEAD:         $TARGET_COMMIT"
     echo "Branch:       $CURRENT_BRANCH"
 
@@ -479,6 +513,7 @@ echo "  Branch:      $CURRENT_BRANCH"
 echo "  Latest tag:  $LATEST_TAG ($LATEST_TAG_SHA)"
 echo "  New tag:     $NEW_TAG  (build number $NEXT_VERSION)"
 echo "  Marketing:   $VERSION_NAME"
+echo "  Build src:   $ASC_NOTE"
 echo "  Commit:      $TARGET_COMMIT_SHORT ($TARGET_COMMIT)"
 echo ""
 

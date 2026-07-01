@@ -155,14 +155,35 @@ Distribution cert + profile on demand):
    - `APP_STORE_CONNECT_KEY_P8` — the full contents of the `.p8`
    - `GARAGE_SERVER_CONFIG_KEY` — the door-backend key (so the TestFlight build loads door data)
 
+### Build numbering (tag `ios/N` == `CFBundleVersion`)
+The tag `ios/N` sets `CURRENT_PROJECT_VERSION = N`, which becomes the build's
+`CFBundleVersion`. App Store Connect requires each build number to be **unique and
+strictly increasing**, and it *silently auto-resolves* a collision to a different
+number rather than failing — that's how `ios/1` landed as build 2 (a manual upload
+had already taken build 1). To keep the tag matching the build number and to fail
+loudly instead:
+- **CI pre-flight (always on):** `release-ios.yml` queries App Store Connect
+  (`scripts/asc-latest-build.rb`) *before archiving* and **aborts** if `N` is not
+  strictly greater than the latest existing build.
+- **Local (optional):** if you provide ASC credentials, `release-ios.sh --check`
+  computes the next tag as **(latest App Store Connect build + 1)**, so it proposes
+  the correct `ios/N` even when git tags and build numbers have drifted. Copy
+  `scripts/asc-credentials.local.example` → `scripts/.asc-credentials.local`
+  (gitignored) and fill in the same Admin key's ID / Issuer ID / `.p8` path. Without
+  it the script falls back to git tags and prints a note (CI still enforces the check).
+
+Because the build number climbs monotonically with `N`, don't reuse a number — if
+CI aborts saying build `N` is taken, retag with the number it reports.
+
 ### Cutting a release
 1. Bump `MARKETING_VERSION` in `project.yml` (if the user-facing version changed) and
    add a matching `## X.Y.Z` heading to `AndroidGarage/iosApp/CHANGELOG.md`.
 2. `./scripts/validate-ios.sh` (writes the marker).
-3. `./scripts/release-ios.sh --check` → copy-paste the printed `--confirm-tag ios/N` command.
-4. The tag push triggers `release-ios.yml` → archive → upload → the build appears in
-   TestFlight after processing. Monitor the Actions run; a failure opens a
-   `release-failure/ios` issue (auto-closed on the next success).
+3. `./scripts/release-ios.sh --check` → copy-paste the printed `--confirm-tag ios/N`
+   command (the tag == the next free build number when local ASC creds are set).
+4. The tag push triggers `release-ios.yml` → **pre-flight build-number check** →
+   archive → upload → the build appears in TestFlight after processing. Monitor the
+   Actions run; a failure opens a `release-failure/ios` issue (auto-closed on the next success).
 
 **Status: verified end-to-end (`ios/1`, build 1 / 0.1.0, 2026-06-30).** The
 `app-store-connect` method + cloud-signing-via-API-key + `destination: upload` path
