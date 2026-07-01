@@ -131,11 +131,11 @@ jobs:
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           xcodebuild \
-            -project iosApp.xcodeproj \
-            -scheme iosApp \
+            -project GarageControl.xcodeproj \
+            -scheme GarageControl \
             -configuration Release \
             -destination 'generic/platform=iOS' \
-            -archivePath "$RUNNER_TEMP/iosApp.xcarchive" \
+            -archivePath "$RUNNER_TEMP/GarageControl.xcarchive" \
             CURRENT_PROJECT_VERSION=${{ steps.validate.outputs.build_number }} \
             -allowProvisioningUpdates \
             -authenticationKeyID "$KEY_ID" \
@@ -167,7 +167,7 @@ jobs:
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           xcodebuild -exportArchive \
-            -archivePath "$RUNNER_TEMP/iosApp.xcarchive" \
+            -archivePath "$RUNNER_TEMP/GarageControl.xcarchive" \
             -exportPath "$RUNNER_TEMP/export" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
             -allowProvisioningUpdates \

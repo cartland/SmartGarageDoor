@@ -22,7 +22,7 @@ import SwiftUI
 ///
 /// The Kotlin DI graph (`NativeComponent`) is built exactly once in
 /// `AppDelegate.didFinishLaunching` (after `FirebaseApp.configure()`), mirroring
-/// battery-butler's `iOSApp.swift` and the Android `AppComponent` lifetime. This
+/// battery-butler's app entry point and the Android `AppComponent` lifetime. This
 /// `App` reads the already-built graph from the delegate and hands it to the
 /// view tree.
 ///
@@ -32,7 +32,7 @@ import SwiftUI
 /// `GARAGE_BASE_URL` / `GARAGE_SERVER_CONFIG_KEY` Info.plist values, and push
 /// delivery needs the APNs key uploaded to Firebase.
 @main
-struct GarageApp: App {
+struct GarageControlApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {

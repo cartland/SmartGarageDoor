@@ -259,7 +259,7 @@ private struct CopyableValueRow: View {
 }
 
 // NOTE: a #Preview body is embedded verbatim into the generated PreviewTests, so
-// it may only reference symbols visible via `@testable import iosApp` (internal+)
+// it may only reference symbols visible via `@testable import GarageControl` (internal+)
 // — never a `private` file-scope helper. Hence the durations are inlined here.
 
 #Preview("Settings signed out") {

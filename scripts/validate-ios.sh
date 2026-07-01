@@ -37,7 +37,7 @@ RESET='\033[0m'
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 IOS_APP_DIR="$REPO_ROOT/AndroidGarage/iosApp"
-XCODEPROJ="$IOS_APP_DIR/iosApp.xcodeproj"
+XCODEPROJ="$IOS_APP_DIR/GarageControl.xcodeproj"
 PROJECT_SPEC="$IOS_APP_DIR/project.yml"
 
 fail() {
@@ -76,7 +76,7 @@ echo ""
 echo -e "${BOLD}[3/3] Build iOS app (xcodebuild, generic iOS Simulator)${RESET}"
 xcodebuild \
     -project "$XCODEPROJ" \
-    -scheme iosApp \
+    -scheme GarageControl \
     -configuration Debug \
     -sdk iphonesimulator \
     -destination 'generic/platform=iOS Simulator' \

@@ -27,7 +27,7 @@ import UserNotifications
 /// Mirrors the Android `Application` + `MainActivity.onCreate` split: configure
 /// Firebase, build the `NativeComponent` with the real Swift bridges, run
 /// `AppStartup`, and register for push. The component is built exactly once and
-/// read by the SwiftUI `App` (`iOSApp.swift`).
+/// read by the SwiftUI `App` (`GarageControlApp.swift`).
 final class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
     private(set) var component: NativeComponent!
 

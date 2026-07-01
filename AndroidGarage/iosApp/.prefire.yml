@@ -6,9 +6,9 @@
 # each preview via swift-snapshot-testing. Generation + the "regenerate, don't
 # assert" record posture are driven by scripts/generate-ios-screenshots.sh.
 test_configuration:
-  target: iosApp
+  target: GarageControl
   # Previews reference Kotlin types (e.g. DoorPosition) from the `shared`
-  # framework; `@testable import iosApp` does not re-export it, so the
+  # framework; `@testable import GarageControl` does not re-export it, so the
   # generated PreviewTests need an explicit `import shared`.
   imports:
     - shared

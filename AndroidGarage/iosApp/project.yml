@@ -1,4 +1,4 @@
-# XcodeGen spec — source of truth for iosApp.xcodeproj.
+# XcodeGen spec — source of truth for GarageControl.xcodeproj.
 #
 # The .xcodeproj is GENERATED, not committed (see .gitignore). Regenerate
 # after editing this file or adding/removing Swift sources:
@@ -9,7 +9,7 @@
 # Build for the simulator from the CLI:
 #
 #     cd AndroidGarage/iosApp && xcodegen generate
-#     xcodebuild -project iosApp.xcodeproj -scheme iosApp \
+#     xcodebuild -project GarageControl.xcodeproj -scheme GarageControl \
 #       -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
 #       CODE_SIGNING_ALLOWED=NO build
 #
@@ -18,7 +18,7 @@
 # battery-butler's wiring). FRAMEWORK_SEARCH_PATHS points at the task's
 # output dir; the task also embeds + signs the framework into the app.
 
-name: iosApp
+name: GarageControl
 options:
   bundleIdPrefix: com.chriscartland.garage
   deploymentTarget:
@@ -52,11 +52,11 @@ packages:
     from: "5.6.0"
 
 targets:
-  iosApp:
+  GarageControl:
     type: application
     platform: iOS
     sources:
-      - path: iosApp
+      - path: GarageControl
       - path: Core
       - path: Features
     dependencies:
@@ -78,9 +78,9 @@ targets:
         # CODE_SIGNING_ALLOWED=NO, which makes these inert for the simulator build.
         DEVELOPMENT_TEAM: 4EFTFGDT4G
         CODE_SIGN_STYLE: Automatic
-        CODE_SIGN_ENTITLEMENTS: iosApp/iosApp.entitlements
+        CODE_SIGN_ENTITLEMENTS: GarageControl/GarageControl.entitlements
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_FILE: iosApp/Info.plist
+        INFOPLIST_FILE: GarageControl/Info.plist
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_CFBundleDisplayName: Garage
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
@@ -96,7 +96,7 @@ targets:
           - -framework
           - shared
       configs:
-        # Drives `aps-environment` in iosApp.entitlements. Debug device builds
+        # Drives `aps-environment` in GarageControl.entitlements. Debug device builds
         # use the development APNs sandbox; Release (archive → TestFlight / App
         # Store) uses production APNs.
         Debug:
@@ -118,7 +118,7 @@ targets:
   # via Prefire (auto-generates tests from #Preview) + swift-snapshot-testing.
   # Posture is "regenerate, don't assert" — driven by
   # scripts/generate-ios-screenshots.sh; not a gating CI check.
-  iosAppSnapshotTests:
+  GarageControlSnapshotTests:
     type: bundle.unit-test
     platform: iOS
     sources:
@@ -133,7 +133,7 @@ targets:
       - path: SnapshotTests/PreviewTests.generated.swift
         optional: true
     dependencies:
-      - target: iosApp
+      - target: GarageControl
       - package: SnapshotTesting
         product: SnapshotTesting
       - package: Prefire
@@ -165,14 +165,14 @@ targets:
           # Prefire writes the output only when its content changes, so this
           # phase running every build does not cause recompile churn.
           "$PREFIRE" tests "$SRCROOT/Features" "$SRCROOT/Core" \
-            --target iosApp --test-target iosAppSnapshotTests \
+            --target GarageControl --test-target GarageControlSnapshotTests \
             --config "$SRCROOT/.prefire.yml" --output "$SRCROOT/SnapshotTests" \
             --cache-base-path "$DERIVED_FILE_DIR"
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: com.chriscartland.garage.SnapshotTests
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/iosApp.app/iosApp"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/GarageControl.app/GarageControl"
         BUNDLE_LOADER: "$(TEST_HOST)"
         # `import shared` needs the Kotlin framework module on the search path,
         # same as the app target. Symbols resolve against the host at runtime.
@@ -181,14 +181,14 @@ targets:
           - $(SRCROOT)/../iosFramework/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
 
 schemes:
-  iosApp:
+  GarageControl:
     build:
       targets:
-        iosApp: all
-        iosAppSnapshotTests: [test]
+        GarageControl: all
+        GarageControlSnapshotTests: [test]
     run:
       config: Debug
     test:
       config: Debug
       targets:
-        - iosAppSnapshotTests
+        - GarageControlSnapshotTests
