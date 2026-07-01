@@ -192,7 +192,23 @@ nothing deployed — and can be deleted: `git push origin :refs/tags/ios/N && gi
 
 **Status: verified end-to-end (`ios/1`, build 1 / 0.1.0, 2026-06-30).** The
 `app-store-connect` method + cloud-signing-via-API-key + `destination: upload` path
-works on `macos-latest` and lands the build in TestFlight Internal. The one gotcha
-was the API-key role (App Manager → Admin, above). If a future Xcode ever rejects
-cloud signing, the fallback is importing a Distribution `.p12` + profile from secrets
-(manual signing).
+lands the build in TestFlight Internal. The first-release gotcha was the API-key role
+(App Manager → Admin, above). If a future Xcode ever rejects cloud signing, the fallback
+is importing a Distribution `.p12` + profile from secrets (manual signing).
+
+### Runner Xcode / iOS 26 SDK requirement
+
+As of mid-2026 Apple **rejects any App Store Connect upload not built with the iOS 26
+SDK (Xcode 26+)**. The archive builds fine, but `xcodebuild -exportArchive` fails at
+validation with *"This app was built with the iOS 18.5 SDK. All iOS and iPadOS apps must
+be built with the iOS 26 SDK or later."* GitHub's `macos-latest` still resolved to
+**Xcode 16.4 / iOS 18.5 SDK** on 2026-07-01, so the `ios/3` upload was rejected — note
+the **pre-flight + archive + cloud-sign all succeeded; only the upload failed**, so this
+is a pure toolchain gate, not a signing or code problem.
+
+**Fix (in the repo):** both `release-ios.yml` and `ios-ci.yml` pin **`runs-on: macos-26`**
+(GA since 2026-02-26; default **Xcode 26.5**, which matches the maintainer's local Xcode
+that archives cleanly). The archive step runs `xcodebuild -version` so the SDK is visible
+in the run log. `ios/1` (2026-06-30) predated this enforcement, which is why it passed on
+the old runner. If Apple bumps the required SDK again, bump the runner image or add an
+explicit `maxim-lobanov/setup-xcode` step selecting the needed Xcode.
