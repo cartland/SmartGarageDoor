@@ -34,7 +34,11 @@ permissions:
 jobs:
   release:
     name: iOS Archive and Upload to TestFlight
-    runs-on: macos-latest
+    # Pinned to macos-26 (default Xcode 26.5). Apple rejects any upload not built
+    # with the iOS 26 SDK (Xcode 26+) as of mid-2026; `macos-latest` still resolved
+    # to Xcode 16.4 / iOS 18.5 SDK on 2026-07-01, and the ios/3 upload failed at
+    # validation ("must be built with the iOS 26 SDK"). See docs/IOS_RELEASE_SETUP.md.
+    runs-on: macos-26
     timeout-minutes: 60
     steps:
       - name: Validate tag format
@@ -130,6 +134,7 @@ jobs:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
+          xcodebuild -version   # log the Xcode/SDK: must be iOS 26 SDK for upload
           xcodebuild \
             -project GarageControl.xcodeproj \
             -scheme GarageControl \

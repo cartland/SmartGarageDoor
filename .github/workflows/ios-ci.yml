@@ -50,7 +50,10 @@ concurrency:
 jobs:
   build-ios:
     name: Build iOS app + framework test
-    runs-on: macos-latest
+    # Pinned to macos-26 (default Xcode 26.5) to match the release archive's SDK.
+    # Apple requires the iOS 26 SDK (Xcode 26+) for uploads; macos-latest still
+    # resolved to Xcode 16.4 in mid-2026. See docs/IOS_RELEASE_SETUP.md.
+    runs-on: macos-26
     timeout-minutes: 40
     steps:
       - name: Checkout
