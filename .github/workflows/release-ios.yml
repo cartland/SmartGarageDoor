@@ -49,6 +49,45 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      # This workflow is the ONLY credentialed path to a build — the deploy-capable
+      # App Store Connect API key lives only here, never on a dev machine. So the
+      # authoritative build-number check runs HERE, first, and fails fast (before the
+      # slow JDK/Gradle/Xcode setup + archive). release-ios.sh only suggests a tag
+      # from git tags; it cannot reach App Store Connect.
+      - name: Write App Store Connect API key
+        env:
+          KEY_P8: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/asc_keys"
+          printf '%s\n' "$KEY_P8" > "$RUNNER_TEMP/asc_keys/AuthKey_${KEY_ID}.p8"
+          echo "ASC_KEY_PATH=$RUNNER_TEMP/asc_keys/AuthKey_${KEY_ID}.p8" >> "$GITHUB_ENV"
+
+      - name: Pre-flight — build number must be free on App Store Connect
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_BUNDLE_ID: com.chriscartland.garage
+          N: ${{ steps.validate.outputs.build_number }}
+        run: |
+          echo "This release is tag ${GITHUB_REF#refs/tags/} (CFBundleVersion $N)."
+          echo "Querying App Store Connect for the highest existing build number..."
+          if ! LATEST=$(ruby scripts/asc-latest-build.rb); then
+            echo "::error title=iOS release aborted::Could not query App Store Connect (ruby error above); stopped before archiving. Check the APP_STORE_CONNECT_* secrets (must be an Admin-role key)."
+            exit 1
+          fi
+          echo "Highest existing build on App Store Connect: $LATEST"
+          if [ "$N" -le "$LATEST" ]; then
+            echo "Build $N is already used on App Store Connect (highest is $LATEST). Nothing was archived or uploaded."
+            echo "To fix: release again with build number $((LATEST + 1)):"
+            echo "    ./scripts/release-ios.sh --confirm-tag ios/$((LATEST + 1))"
+            echo "You can delete this failed tag first:"
+            echo "    git push origin :refs/tags/ios/$N && git tag -d ios/$N"
+            echo "::error title=iOS release aborted — build number $N already used::Tag ios/$N -> CFBundleVersion $N, but App Store Connect already has build $LATEST for com.chriscartland.garage. Build numbers must STRICTLY INCREASE (else Apple silently renumbers the upload and the tag stops matching the build). Re-release as ios/$((LATEST + 1)). Nothing was archived or uploaded."
+            exit 1
+          fi
+          echo "OK — build number $N is free (> $LATEST). Proceeding to setup + archive."
+
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
@@ -77,38 +116,6 @@ jobs:
         run: |
           printf 'GARAGE_SERVER_CONFIG_KEY = %s\n' "$GARAGE_SERVER_CONFIG_KEY" \
             > AndroidGarage/iosApp/Secrets.local.xcconfig
-
-      - name: Write App Store Connect API key
-        env:
-          KEY_P8: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
-          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-        run: |
-          mkdir -p "$RUNNER_TEMP/asc_keys"
-          printf '%s\n' "$KEY_P8" > "$RUNNER_TEMP/asc_keys/AuthKey_${KEY_ID}.p8"
-          echo "ASC_KEY_PATH=$RUNNER_TEMP/asc_keys/AuthKey_${KEY_ID}.p8" >> "$GITHUB_ENV"
-
-      # Fail loudly BEFORE archiving if the tag's build number is already on App
-      # Store Connect. Otherwise Apple silently auto-resolves the collision to a
-      # different number (that's how ios/1 landed as CFBundleVersion 2), which
-      # breaks the "tag N == build number" guarantee. release-ios.sh runs the same
-      # check locally when ASC creds are available.
-      - name: Pre-flight — build number must be free on App Store Connect
-        env:
-          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          ASC_BUNDLE_ID: com.chriscartland.garage
-          N: ${{ steps.validate.outputs.build_number }}
-        run: |
-          LATEST=$(ruby scripts/asc-latest-build.rb) || {
-            echo "::error::Could not query App Store Connect for existing builds (see log above)."
-            exit 1
-          }
-          echo "Latest build on App Store Connect: $LATEST; this release (tag ios/$N): build $N"
-          if [ "$N" -le "$LATEST" ]; then
-            echo "::error::Build number $N is not greater than the latest App Store Connect build ($LATEST). CFBundleVersion must strictly increase — retag as ios/$((LATEST + 1)) (or run ./scripts/release-ios.sh --check with local ASC creds, which computes the right tag)."
-            exit 1
-          fi
-          echo "Build number $N is free (> $LATEST). Proceeding."
 
       - name: Generate Xcode project
         working-directory: AndroidGarage/iosApp

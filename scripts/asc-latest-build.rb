@@ -3,13 +3,13 @@
 
 # Print the highest CFBundleVersion (build number) currently on App Store Connect
 # for the app, or 0 if there are none. Ruby stdlib only — no gems, so it runs
-# identically on the macOS CI runner and a local Mac.
+# identically on the macOS CI runner.
 #
-# Shared by:
-#   - .github/workflows/release-ios.yml  (pre-flight: abort if the tag's build
-#     number is not strictly greater than this)
-#   - scripts/release-ios.sh             (compute the next ios/N tag = this + 1,
-#     so the tag always equals the next free CFBundleVersion)
+# Used ONLY by .github/workflows/release-ios.yml (the pre-flight step: abort the
+# release if the tag's build number is not strictly greater than this). It is
+# deliberately NOT used by scripts/release-ios.sh: the deploy-capable API key lives
+# only in GitHub Actions secrets, so the authoritative build-number check runs in CI,
+# never on a dev machine. (release-ios.sh only suggests a tag from git tags.)
 #
 # Env:
 #   ASC_KEY_ID      App Store Connect API Key ID
