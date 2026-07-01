@@ -8,8 +8,7 @@ name: iOS Release
 # overridden onto the archive here so the tag is the source of truth for it. The
 # user-facing MARKETING_VERSION (X.Y.Z) comes from project.yml (committed).
 #
-# REQUIRED GitHub secrets (see docs/IOS_RELEASE_SETUP.md § "Future: automated
-# releases"). Until these exist, this workflow fails fast at the steps that use them:
+# REQUIRED GitHub secrets (see docs/IOS_RELEASE_SETUP.md § "Automated releases"):
 #   APP_STORE_CONNECT_KEY_ID      App Store Connect API Key ID
 #   APP_STORE_CONNECT_ISSUER_ID   App Store Connect API Issuer ID
 #   APP_STORE_CONNECT_KEY_P8      full contents of the AuthKey_<KEY_ID>.p8
@@ -18,7 +17,10 @@ name: iOS Release
 # Signing is automatic in CI via the App Store Connect API key
 # (`-allowProvisioningUpdates` + `-authenticationKey*`): xcodebuild creates/downloads
 # the Apple Distribution cert + App Store provisioning profile on demand — no cert
-# is imported into a keychain. The key needs the "App Manager" (or Admin) role.
+# is imported into a keychain. The key MUST have the "Admin" role — "App Manager"
+# archives fine but fails export with "Cloud signing permission error" (empirical,
+# ios/1 attempt 1). This is the ONLY place the deploy-capable key lives; dev machines
+# never hold it (release-ios.sh only suggests a tag from git tags).
 
 on:
   push:

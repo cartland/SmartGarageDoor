@@ -37,7 +37,7 @@ the construction status/plan is in
 | `GARAGE_SERVER_CONFIG_KEY` (door backend) | **Yes** | `iosApp/Secrets.local.xcconfig` (**gitignored**) | build setting → `$(GARAGE_SERVER_CONFIG_KEY)` substituted into `Info.plist` |
 | APNs auth key (`.p8`) | **Yes** | uploaded to Firebase Console; `.p8` file kept offline by the maintainer | created in the Apple Developer portal, uploaded to Firebase Cloud Messaging — never in repo |
 | Apple ID + password | **Yes** | maintainer's Apple account | interactive sign-in in Xcode / the portals — never in repo |
-| App Store Connect API key (for *future* CI release) | **Yes** | not yet created → will be GitHub Actions secrets | see "Future: automated releases" |
+| App Store Connect API key (CI release) | **Yes** | GitHub Actions secrets (`APP_STORE_CONNECT_KEY_ID` / `_ISSUER_ID` / `_KEY_P8`) — **Admin** role | never on a dev machine; see "Automated releases" |
 
 \* `GoogleService-Info.plist` is committed on purpose: a Firebase **iOS client config**
 is designed to ship inside the app bundle (it's extractable from any distributed
