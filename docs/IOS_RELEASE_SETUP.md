@@ -160,27 +160,32 @@ The tag `ios/N` sets `CURRENT_PROJECT_VERSION = N`, which becomes the build's
 `CFBundleVersion`. App Store Connect requires each build number to be **unique and
 strictly increasing**, and it *silently auto-resolves* a collision to a different
 number rather than failing — that's how `ios/1` landed as build 2 (a manual upload
-had already taken build 1). To keep the tag matching the build number and to fail
-loudly instead:
-- **CI pre-flight (always on):** `release-ios.yml` queries App Store Connect
-  (`scripts/asc-latest-build.rb`) *before archiving* and **aborts** if `N` is not
-  strictly greater than the latest existing build.
-- **Local (optional):** if you provide ASC credentials, `release-ios.sh --check`
-  computes the next tag as **(latest App Store Connect build + 1)**, so it proposes
-  the correct `ios/N` even when git tags and build numbers have drifted. Copy
-  `scripts/asc-credentials.local.example` → `scripts/.asc-credentials.local`
-  (gitignored) and fill in the same Admin key's ID / Issuer ID / `.p8` path. Without
-  it the script falls back to git tags and prints a note (CI still enforces the check).
+had already taken build 1).
 
-Because the build number climbs monotonically with `N`, don't reuse a number — if
-CI aborts saying build `N` is taken, retag with the number it reports.
+**Only GitHub Actions can deploy, so only GitHub Actions checks the number.** The
+deploy-capable App Store Connect API key lives *only* in GitHub Actions secrets —
+never on a dev machine — so `release-ios.yml` is the single credentialed path to a
+build, and it holds the authoritative build-number check:
+- **CI pre-flight (authoritative):** the *first* thing the workflow does (before the
+  slow toolchain setup + archive) is query App Store Connect (`scripts/asc-latest-build.rb`)
+  and **abort loudly** if `N` isn't strictly greater than the latest existing build —
+  with logs telling you the exact number to use next. Nothing is archived or uploaded
+  on a collision.
+- **`release-ios.sh --check` (advisory):** deliberately uses **git tags only** (no ASC
+  credentials, so nothing local can bypass Actions). It *suggests* `ios/(highest + 1)`;
+  CI has the final say. `--confirm-tag` lets you skip ahead to any higher `ios/N` (e.g.
+  the number CI told you), as long as it strictly increases.
+
+If CI aborts saying build `N` is taken, just re-release with the number it reports:
+`./scripts/release-ios.sh --confirm-tag ios/<that number>`. (The failed tag is inert —
+nothing deployed — and can be deleted: `git push origin :refs/tags/ios/N && git tag -d ios/N`.)
 
 ### Cutting a release
 1. Bump `MARKETING_VERSION` in `project.yml` (if the user-facing version changed) and
    add a matching `## X.Y.Z` heading to `AndroidGarage/iosApp/CHANGELOG.md`.
 2. `./scripts/validate-ios.sh` (writes the marker).
 3. `./scripts/release-ios.sh --check` → copy-paste the printed `--confirm-tag ios/N`
-   command (the tag == the next free build number when local ASC creds are set).
+   command (a git-based suggestion; CI verifies the actual build number).
 4. The tag push triggers `release-ios.yml` → **pre-flight build-number check** →
    archive → upload → the build appears in TestFlight after processing. Monitor the
    Actions run; a failure opens a `release-failure/ios` issue (auto-closed on the next success).

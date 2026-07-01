@@ -71,7 +71,8 @@ run next, with SHAs filled in. Copy-paste that command.
 Modes:
   (no args)                 Interactive mode — prompts for confirmation
   --check                   Print state + recommended next command, then exit
-  --confirm-tag <tag>       Non-interactive release. Tag must match computed next tag.
+  --confirm-tag <tag>       Non-interactive release. ios/N must strictly increase past
+                            the highest tag (skip ahead is allowed; CI checks the number).
   --dry-run                 Show what would happen without creating tags
 
 Override flags (all require a specific value from --check output):
@@ -110,45 +111,29 @@ done
 
 git fetch origin --tags --quiet
 
-# --- App Store Connect build-number authority (optional, graceful) ---
-# App Store Connect is the real source of truth for the CFBundleVersion, and the
-# workflow numbers each build by the tag N. If ASC credentials are available
-# locally, compute the next tag as (latest ASC build + 1) so the ios/N tag always
-# equals the next FREE build number — even if a build was uploaded out-of-band
-# (which is what put ios/1 at CFBundleVersion 2). Load creds from
-# scripts/.asc-credentials.local (gitignored; see scripts/asc-credentials.local.example)
-# or the environment. If unavailable, fall back to git tags only and say so; the CI
-# pre-flight in release-ios.yml enforces the same check regardless.
-ASC_CREDS_FILE="$REPO_ROOT/scripts/.asc-credentials.local"
-# shellcheck disable=SC1090
-[ -f "$ASC_CREDS_FILE" ] && . "$ASC_CREDS_FILE"
-ASC_LATEST=""
-if command -v ruby >/dev/null 2>&1 && [ -n "${ASC_KEY_ID:-}" ] && [ -n "${ASC_ISSUER_ID:-}" ] && [ -n "${ASC_KEY_PATH:-}" ]; then
-    ASC_ERR="$(mktemp)"
-    if ASC_LATEST=$(ASC_BUNDLE_ID="${ASC_BUNDLE_ID:-com.chriscartland.garage}" \
-            ruby "$REPO_ROOT/scripts/asc-latest-build.rb" 2>"$ASC_ERR"); then
-        ASC_NOTE="App Store Connect latest build: $ASC_LATEST (authoritative for the build number)"
-    else
-        ASC_NOTE="App Store Connect check FAILED — $(head -1 "$ASC_ERR" 2>/dev/null); using git tags only"
-        ASC_LATEST=""
-    fi
-    rm -f "$ASC_ERR"
-else
-    ASC_NOTE="App Store Connect check skipped (no local ASC creds — see scripts/asc-credentials.local.example); using git tags only"
-fi
-
-# Highest ios/N git tag (0 if none).
+# Build number = the tag N = CFBundleVersion. This script computes the SUGGESTED
+# next tag from git tags only (highest ios/N + 1) — no App Store Connect
+# credentials are used or stored locally, by design: the deploy-capable API key
+# lives ONLY in GitHub Actions secrets, so pushing an ios/N tag -> release-ios.yml
+# is the single credentialed path to a build. The AUTHORITATIVE build-number check
+# is the CI pre-flight in release-ios.yml (server-side key): it aborts loudly if N
+# is already used on App Store Connect and tells you the exact number to use. So
+# the suggestion below is advisory; CI has the final say.
 GIT_HIGHEST=$(git tag -l 'ios/[0-9]*' | sed 's|ios/||' | grep -E '^[0-9]+$' | sort -n | tail -1)
 GIT_HIGHEST=${GIT_HIGHEST:-0}
 
-# Next build number = strictly greater than BOTH the highest git tag AND the
-# latest App Store Connect build (when known), so the tag can never collide.
-if [ -n "$ASC_LATEST" ] && [ "$ASC_LATEST" -gt "$GIT_HIGHEST" ]; then
-    BASE=$ASC_LATEST
-else
-    BASE=$GIT_HIGHEST
+# In --confirm-tag mode you may skip ahead to a higher N (e.g. when CI told you a
+# number is taken); the only rule the script enforces is that N strictly increases
+# past the highest git tag. Otherwise the suggestion is highest + 1.
+REQUESTED_N=""
+if [ "$MODE" = "confirm" ] && [[ "$CONFIRM_TAG" =~ ^ios/([0-9]+)$ ]]; then
+    REQUESTED_N="${BASH_REMATCH[1]}"
 fi
-NEXT_VERSION=$((BASE + 1))
+if [ -n "$REQUESTED_N" ]; then
+    NEXT_VERSION="$REQUESTED_N"
+else
+    NEXT_VERSION=$((GIT_HIGHEST + 1))
+fi
 NEW_TAG="ios/$NEXT_VERSION"
 
 if [ "$GIT_HIGHEST" -eq 0 ]; then
@@ -258,8 +243,9 @@ fi
 # === --check mode ===
 if [ "$MODE" = "check" ]; then
     echo "Latest tag:   $LATEST_TAG (sha: $LATEST_TAG_SHA)"
-    echo "Next tag:     $NEW_TAG  (build number $NEXT_VERSION)"
-    echo "Build source: $ASC_NOTE"
+    echo "Next tag:     $NEW_TAG  (build number $NEXT_VERSION, suggested from git tags)"
+    echo "              CI verifies this number is free on App Store Connect and"
+    echo "              aborts with the exact number to use if it is already taken."
     echo "HEAD:         $TARGET_COMMIT"
     echo "Branch:       $CURRENT_BRANCH"
 
@@ -513,22 +499,27 @@ echo "  Branch:      $CURRENT_BRANCH"
 echo "  Latest tag:  $LATEST_TAG ($LATEST_TAG_SHA)"
 echo "  New tag:     $NEW_TAG  (build number $NEXT_VERSION)"
 echo "  Marketing:   $VERSION_NAME"
-echo "  Build src:   $ASC_NOTE"
 echo "  Commit:      $TARGET_COMMIT_SHORT ($TARGET_COMMIT)"
 echo ""
 
 # Confirmation.
 if [ "$MODE" = "confirm" ]; then
-    if [ "$CONFIRM_TAG" != "$NEW_TAG" ]; then
-        echo -e "${RED}Error: --confirm-tag does not match computed next tag.${RESET}"
+    if [[ ! "$CONFIRM_TAG" =~ ^ios/[0-9]+$ ]]; then
+        echo -e "${RED}Error: --confirm-tag must be of the form ios/N (a positive integer).${RESET}"
         echo "  Provided: $CONFIRM_TAG"
-        echo "  Expected: $NEW_TAG"
-        echo ""
-        echo "--confirm-tag is a safety check, not an override."
-        echo "The next tag is always computed as highest existing + 1."
         exit 1
     fi
-    echo "--confirm-tag matches, proceeding..."
+    # The build number must strictly increase past the highest existing tag. You
+    # MAY skip ahead to a higher N than the git suggestion (e.g. when the CI
+    # pre-flight told you a lower number is already used on App Store Connect).
+    if [ "$NEXT_VERSION" -le "$GIT_HIGHEST" ]; then
+        echo -e "${RED}Error: $CONFIRM_TAG is not above the highest existing tag ios/$GIT_HIGHEST.${RESET}"
+        echo "  Build numbers (CFBundleVersion) must strictly increase."
+        echo "  Run --check for the suggested next tag, or pass a higher ios/N."
+        exit 1
+    fi
+    echo "--confirm-tag $CONFIRM_TAG accepted (build number $NEXT_VERSION)."
+    echo "CI will verify it's free on App Store Connect before archiving."
 elif [ "$MODE" = "interactive" ]; then
     echo -e "${YELLOW}This will create tag '$NEW_TAG' and push it to origin.${RESET}"
     read -p "Proceed with release? (y/N) " -n 1 -r
