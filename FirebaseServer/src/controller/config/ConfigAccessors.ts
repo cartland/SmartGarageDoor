@@ -223,3 +223,25 @@ export function isResolvedOnCloseEnabled(config: any): boolean {
 export function isWarningReplaceTagEnabled(config: any): boolean {
   return config?.body?.warningReplaceTagEnabled === true;
 }
+
+/**
+ * Gate for sending the resolved-on-close as a COMBINED notification+data message
+ * (an OS-renderable notification block + the shared `garage_door` tag) instead of
+ * today's data-only message — the relaxed-A single-card design
+ * (docs/RESOLVED_NOTIFICATION_NO_COMPROMISE.md §9). Stored as
+ * `body.resolvedNotificationPayloadEnabled: boolean` on `configCurrent/current`,
+ * edited in-place in the Firestore console. Read live per close event.
+ *
+ * Orthogonal to `resolvedOnCloseEnabled` (which decides whether a resolved fires
+ * at all): this flag only decides data-only (default) vs combined. Both must be
+ * true for a combined resolved to fire. New-app-only — the resolved is on the v2
+ * topic, which frozen old apps never subscribe to.
+ *
+ * Fail-safe: anything other than literal `true` → false → the resolved is the
+ * data-only message that has been live in production, byte-identical (pinned by
+ * ResolvedNotificationFCMFakeTest). MUST stay false until the on-device
+ * cross-topic same-tag replacement gate (§9.4) passes.
+ */
+export function isResolvedNotificationPayloadEnabled(config: any): boolean {
+  return config?.body?.resolvedNotificationPayloadEnabled === true;
+}

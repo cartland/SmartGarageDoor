@@ -18,10 +18,10 @@ import * as firebase from 'firebase-admin';
 
 import { DATABASE as NotificationsDatabase } from '../../database/NotificationsDatabase';
 import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
-import { isResolvedOnCloseEnabled } from '../config/ConfigAccessors';
+import { isResolvedOnCloseEnabled, isResolvedNotificationPayloadEnabled } from '../config/ConfigAccessors';
 
 import { SensorEvent } from '../../model/SensorEvent';
-import { AndroidMessagePriority, TopicMessage, AndroidConfig } from '../../model/FCM';
+import { AndroidMessagePriority, TopicMessage, AndroidConfig, Notification, AndroidNotification, NotificationPriority } from '../../model/FCM';
 import { buildTimestampToFcmTopicV2 } from '../../model/FcmTopic';
 
 /**
@@ -100,11 +100,17 @@ class DefaultResolvedNotificationFCMService implements ResolvedNotificationFCMSe
       return null;
     }
 
-    // 4. Build + send the data-only resolved. Send BEFORE consuming the marker
-    //    (mirror R5): a failed send leaves the marker un-consumed so a duplicate
-    //    Closed report can retry, rather than marking "resolved" with nothing
-    //    delivered.
-    const message = getResolvedMessage(buildTimestamp, openTimestampSeconds, closeTimestampSeconds);
+    // 4. Build + send the resolved. Send BEFORE consuming the marker (mirror
+    //    R5): a failed send leaves the marker un-consumed so a duplicate Closed
+    //    report can retry, rather than marking "resolved" with nothing delivered.
+    //    `resolvedNotificationPayloadEnabled` (live) decides data-only (default,
+    //    today's shape) vs the relaxed-A combined notification+data message.
+    const message = getResolvedMessage(
+      buildTimestamp,
+      openTimestampSeconds,
+      closeTimestampSeconds,
+      isResolvedNotificationPayloadEnabled(config),
+    );
     console.log('Sending resolved-on-close notification', JSON.stringify(message));
     try {
       const response = await firebase.messaging().send(message);
@@ -148,21 +154,51 @@ export function setImpl(impl: ResolvedNotificationFCMService): void { _instance 
 /** TEST-ONLY: restore the default (Firebase-dispatching) implementation. */
 export function resetImpl(): void { _instance = new DefaultResolvedNotificationFCMService(); }
 
+// Drawer replace-key shared with the warning (OldDataFCM WARNING_REPLACE_TAG) and
+// the client (DoorNotificationPresenter.TAG = "garage_door"). Only attached in the
+// combined-message variant, so an OS-rendered resolved can replace the warning
+// in the tray on a never-woken device. See docs/RESOLVED_NOTIFICATION_NO_COMPROMISE.md §9.
+const RESOLVED_REPLACE_TAG = 'garage_door';
+
+/** Timezone-free open duration for the OS-rendered resolved body (server cannot
+ *  know the device timezone, so no wall-clock time — duration only). Mirrors
+ *  OldDataFCM's minutes/hours formatting. */
+function formatOpenDuration(durationSeconds: number): string {
+  const minutes = Math.floor(durationSeconds / 60);
+  if (minutes < 60) {
+    return minutes.toString() + ' minutes';
+  }
+  return Math.floor(minutes / 60).toString() + ' hours';
+}
+
 /**
- * Pure helper — builds the DATA-ONLY resolved payload. No side effects.
+ * Pure helper — builds the resolved payload. No side effects.
  *
- * The client formats the human strings (duration + local start/end times) in the
- * device timezone, so the server sends only raw second timestamps. `kind`
- * discriminates the notification intent (distinct from the door-event `type`
- * key). collapse_key matches the warning's so an offline device coalesces a
- * stale warning with its resolution; HIGH priority so the data wakes the app
- * promptly (there is no `notification` block, so this never renders an OS
- * heads-up — the app owns display).
+ * Two shapes, chosen by `includeNotificationPayload`:
+ *
+ *  - DATA-ONLY (default, today's live shape): only a `data` block + HIGH
+ *    priority. The client formats the human strings (duration + local start/end
+ *    times) in the device timezone, so the server sends only raw second
+ *    timestamps. No `notification` block, so it never renders an OS heads-up —
+ *    the app owns display.
+ *  - COMBINED (relaxed-A single-card, docs/RESOLVED_NOTIFICATION_NO_COMPROMISE.md
+ *    §9): the same `data` block PLUS a `notification` block sharing the warning's
+ *    `garage_door` tag. An alive app still builds the rich device-local body from
+ *    the data block; a never-woken app OS-renders the notification block, whose
+ *    body is a timezone-free duration and whose priority is lowered (NORMAL /
+ *    PRIORITY_LOW) so the all-clear does not heads-up or buzz (FCM has no
+ *    only_alert_once wire field, so priority is the only server lever).
+ *
+ * `kind` discriminates the notification intent (distinct from the door-event
+ * `type` key). collapse_key matches the warning's so an offline device coalesces
+ * a stale warning with its resolution. The `data` block is identical in both
+ * shapes (pinned to wire-contracts/openDoorResolved/payload_resolved.json).
  */
 export function getResolvedMessage(
   buildTimestamp: string,
   openTimestampSeconds: number,
   closeTimestampSeconds: number,
+  includeNotificationPayload = false,
 ): TopicMessage {
   const message = <TopicMessage>{};
   message.topic = buildTimestampToFcmTopicV2(buildTimestamp);
@@ -173,6 +209,16 @@ export function getResolvedMessage(
   };
   message.android = <AndroidConfig>{};
   message.android.collapse_key = 'door_not_closed';
-  message.android.priority = AndroidMessagePriority.HIGH;
+  if (includeNotificationPayload) {
+    message.notification = <Notification>{};
+    message.notification.title = 'Resolved: garage door closed';
+    message.notification.body = 'Was open for ' + formatOpenDuration(closeTimestampSeconds - openTimestampSeconds);
+    message.android.priority = AndroidMessagePriority.NORMAL;
+    message.android.notification = <AndroidNotification>{};
+    message.android.notification.notification_priority = NotificationPriority.PRIORITY_LOW;
+    message.android.notification.tag = RESOLVED_REPLACE_TAG;
+  } else {
+    message.android.priority = AndroidMessagePriority.HIGH;
+  }
   return message;
 }

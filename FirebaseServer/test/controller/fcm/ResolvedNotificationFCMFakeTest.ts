@@ -51,6 +51,7 @@ import { FakeNotificationsDatabase } from '../../fakes/FakeNotificationsDatabase
 import { FakeServerConfigDatabase } from '../../fakes/FakeServerConfigDatabase';
 import { SensorEvent, SensorEventType } from '../../../src/model/SensorEvent';
 import { buildTimestampToFcmTopic } from '../../../src/model/FcmTopic';
+import { AndroidMessagePriority, NotificationPriority } from '../../../src/model/FCM';
 
 const BUILD_TIMESTAMP = 'Sat Mar 13 14:45:00 2021';
 const EXPECTED_V2_TOPIC = 'door_open_v2-Sat.Mar.13.14.45.00.2021';
@@ -222,6 +223,45 @@ describe('sendFCMForResolvedDoor (via fakes)', () => {
     expect(sendStub.calledOnce).to.be.true; // only the first sent
   });
 
+  // --- Combined notification+data resolved (relaxed-A, resolvedNotificationPayloadEnabled) ---
+  // docs/RESOLVED_NOTIFICATION_NO_COMPROMISE.md §9. Requires BOTH flags on.
+
+  it('sends a COMBINED message (notification + shared tag + lowered priority) when the payload flag is on', async () => {
+    fakeConfig.seed({ body: { resolvedOnCloseEnabled: true, resolvedNotificationPayloadEnabled: true } });
+    fakeNotifications.seed(BUILD_TIMESTAMP, warnedMarker(OPEN_TS));
+
+    const result = await ResolvedNotificationFCMService.sendFCMForResolvedDoor(
+      BUILD_TIMESTAMP, closedEventAt(CLOSE_TS),
+    );
+
+    expect(result).to.not.be.null;
+    const sent = sendStub.firstCall.args[0];
+    // OS-renderable notification block with the shared drawer tag.
+    expect(sent.notification.title).to.equal('Resolved: garage door closed');
+    expect(sent.notification.body).to.equal('Was open for 14 minutes'); // timezone-free duration
+    expect(sent.android.notification.tag).to.equal('garage_door');
+    // Lowered alerting so the all-clear does not heads-up / buzz.
+    expect(sent.android.priority).to.equal(AndroidMessagePriority.NORMAL);
+    expect(sent.android.notification.notification_priority).to.equal(NotificationPriority.PRIORITY_LOW);
+    // Data block UNCHANGED — still drives the rich device-local foreground body.
+    expect(sent.data).to.deep.equal(RESOLVED_FIXTURE);
+    expect(sent.topic).to.equal(EXPECTED_V2_TOPIC);
+  });
+
+  it('stays DATA-ONLY when resolvedOnCloseEnabled is on but the payload flag is off', async () => {
+    fakeConfig.seed({ body: { resolvedOnCloseEnabled: true, resolvedNotificationPayloadEnabled: false } });
+    fakeNotifications.seed(BUILD_TIMESTAMP, warnedMarker(OPEN_TS));
+
+    const result = await ResolvedNotificationFCMService.sendFCMForResolvedDoor(
+      BUILD_TIMESTAMP, closedEventAt(CLOSE_TS),
+    );
+
+    expect(result).to.not.be.null;
+    const sent = sendStub.firstCall.args[0];
+    expect(sent).to.not.have.property('notification');
+    expect(sent.android.priority).to.equal(AndroidMessagePriority.HIGH);
+  });
+
   // --- Stale-marker guard ---
 
   it('does not send when the marker is stale (duration beyond the cap)', async () => {
@@ -308,6 +348,32 @@ describe('sendFCMForResolvedDoor (via fakes)', () => {
       expect(message).to.not.have.property('notification');
       expect(message.data).to.deep.equal(RESOLVED_FIXTURE);
       expect(message.android.collapse_key).to.equal('door_not_closed');
+      expect(message.android.priority).to.equal(AndroidMessagePriority.HIGH);
+    });
+
+    it('is data-only + HIGH when includeNotificationPayload is false (byte-identical to today)', () => {
+      const message = getResolvedMessage(BUILD_TIMESTAMP, OPEN_TS, CLOSE_TS, false);
+      expect(message).to.not.have.property('notification');
+      expect(message.android.priority).to.equal(AndroidMessagePriority.HIGH);
+      expect(message.data).to.deep.equal(RESOLVED_FIXTURE);
+    });
+
+    it('adds notification + tag + lowered priority when includeNotificationPayload is true, data unchanged', () => {
+      const message = getResolvedMessage(BUILD_TIMESTAMP, OPEN_TS, CLOSE_TS, true);
+      expect(message.topic).to.equal(EXPECTED_V2_TOPIC);
+      expect(message.notification.title).to.equal('Resolved: garage door closed');
+      expect(message.notification.body).to.equal('Was open for 14 minutes');
+      expect(message.android.priority).to.equal(AndroidMessagePriority.NORMAL);
+      expect(message.android.notification.notification_priority).to.equal(NotificationPriority.PRIORITY_LOW);
+      expect(message.android.notification.tag).to.equal('garage_door');
+      // Data block is identical across both shapes — the wire contract never changes.
+      expect(message.data).to.deep.equal(RESOLVED_FIXTURE);
+      expect(message.android.collapse_key).to.equal('door_not_closed');
+    });
+
+    it('formats the duration as hours past 60 minutes', () => {
+      const message = getResolvedMessage(BUILD_TIMESTAMP, OPEN_TS, OPEN_TS + 90 * 60, true);
+      expect(message.notification.body).to.equal('Was open for 1 hours');
     });
   });
 });
