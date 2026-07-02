@@ -212,3 +212,34 @@ that archives cleanly). The archive step runs `xcodebuild -version` so the SDK i
 in the run log. `ios/1` (2026-06-30) predated this enforcement, which is why it passed on
 the old runner. If Apple bumps the required SDK again, bump the runner image or add an
 explicit `maxim-lobanov/setup-xcode` step selecting the needed Xcode.
+
+### Verifying a release-pipeline change
+
+`validate-ios.sh` and iOS CI (`ios-ci.yml`) both do a **Debug build for the simulator
+with signing disabled**. They do **not** exercise the release path — Release config,
+device archive, code signing, export, and upload are all untested by them. So a change
+that touches release-sensitive surface (scheme / target / product names, `release-ios.yml`,
+`ExportOptions`, entitlements, archive/export flags, the runner's Xcode) can pass every
+local check and PR gate and still fail at release time. Verify by tier, cheapest first:
+
+1. **Local unsigned Release archive** — no secrets; catches almost all rename/config
+   breakage (Release compiles for device, the scheme's *archive* action runs, the product
+   is named correctly):
+   ```bash
+   xcodegen generate --spec AndroidGarage/iosApp/project.yml --project AndroidGarage/iosApp
+   xcodebuild -project AndroidGarage/iosApp/GarageControl.xcodeproj -scheme GarageControl \
+     -configuration Release -destination 'generic/platform=iOS' \
+     -archivePath /tmp/GarageControl.xcarchive archive CODE_SIGNING_ALLOWED=NO
+   ```
+   Then inspect `/tmp/GarageControl.xcarchive/Products/Applications/` (expect `GarageControl.app`)
+   and its `Info.plist` `CFBundleIdentifier` (must still be `com.chriscartland.garage` — the
+   product name can change, the bundle id must not). This does **not** test signing / export /
+   upload — those need the App Store Connect key, which lives only in CI.
+
+2. **A real tag (`ios/N`)** — the *only* thing that exercises cloud-signing + export +
+   **upload**, and the only thing that hits **Apple's upload-time validation** (SDK version,
+   entitlements, marketing icon, export compliance). Empirically these fail *only here*: the
+   iOS-26-SDK gate above passed pre-flight + archive + cloud-sign and failed at upload. There
+   is no local or PR-CI substitute — cutting the tag **is** the test. Read the run's outcome
+   explicitly with `gh run view <id> --json status,conclusion` (the `gh run watch` exit code
+   is unreliable), and on failure inspect the failed step's log tail for the real error.
