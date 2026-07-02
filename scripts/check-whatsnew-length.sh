@@ -12,7 +12,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-WHATSNEW_DIR="AndroidGarage/distribution/whatsnew"
+WHATSNEW_DIR="MobileGarage/distribution/whatsnew"
 MAX_BYTES=500
 FAIL=0
 

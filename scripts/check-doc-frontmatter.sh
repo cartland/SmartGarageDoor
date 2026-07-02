@@ -43,7 +43,7 @@ warn() {
 
 # In-scope directories. Exclusions are handled below.
 SCOPE=(
-    "$REPO_ROOT/AndroidGarage"
+    "$REPO_ROOT/MobileGarage"
     "$REPO_ROOT/FirebaseServer/README.md"
     "$REPO_ROOT/FirebaseServer/CHANGELOG.md"
     "$REPO_ROOT/docs"
@@ -105,7 +105,7 @@ validate_file() {
     local rel="${file#$REPO_ROOT/}"
 
     # Read the file once with CR stripped so CRLF-terminated files validate
-    # the same as LF (hit during a doc edit on 2026-04-25 — AndroidGarage/README.md
+    # the same as LF (hit during a doc edit on 2026-04-25 — MobileGarage/README.md
     # was the lone CRLF file in the repo and tripped the "---" comparison silently).
     # Use here-strings (<<<) downstream to avoid SIGPIPE under `set -o pipefail`.
     local content

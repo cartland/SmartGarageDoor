@@ -96,29 +96,29 @@ loading (`if (loading) showButtons()` is the trap to avoid).
 
 ### Android
 
-6. **`AndroidGarage/domain/.../model/FeatureAllowlist.kt`** — add field
+6. **`MobileGarage/domain/.../model/FeatureAllowlist.kt`** — add field
    `val featureX: Boolean` (or just `val x: Boolean`). Existing call sites
    that construct the data class break — that's intentional, the compile
    errors are the migration checklist.
-7. **`AndroidGarage/data/.../NetworkXAccessDataSource.kt`** + Ktor impl —
+7. **`MobileGarage/data/.../NetworkXAccessDataSource.kt`** + Ktor impl —
    copy `NetworkFeatureAllowlistDataSource` and its Ktor cousin. Each
    feature endpoint gets its own data source; the cached repo aggregates.
    *(When the user later refactors to a bulk `/featureAccess` endpoint at
    ~feature #3, these per-feature data sources collapse to one. Until
    then: one per endpoint.)*
-8. **`AndroidGarage/data/.../repository/CachedFeatureAllowlistRepository.kt`**
+8. **`MobileGarage/data/.../repository/CachedFeatureAllowlistRepository.kt`**
    — extend to fan out to the new data source on auth-driven refresh.
    Preserve the user-switch race guard (capture-email-then-recheck after
    the network call).
-9. **`AndroidGarage/usecase/.../ObserveFeatureAccessUseCase.kt`** — add
+9. **`MobileGarage/usecase/.../ObserveFeatureAccessUseCase.kt`** — add
    `fun x(): Flow<Boolean?> = featureAllowlistRepository.allowlist.map { it?.x }`.
 10. **The screen's ViewModel** — inject the new UseCase, expose
     `xAccess: StateFlow<Boolean?>` (or whatever name fits the screen).
     Keep tri-state semantics; gate UI on `== true`, deny otherwise.
-11. **`AndroidGarage/androidApp/.../di/AppComponent.kt`** — provider for
+11. **`MobileGarage/androidApp/.../di/AppComponent.kt`** — provider for
     the new data source as a `@Singleton` plus an abstract entry point.
     `ComponentGraphTest` gets a new `assertSame` identity test.
-12. **`AndroidGarage/test-common/.../FakeNetworkXAccessDataSource.kt`** —
+12. **`MobileGarage/test-common/.../FakeNetworkXAccessDataSource.kt`** —
     fake mirroring `FakeNetworkFeatureAllowlistDataSource`.
 13. **Tests** — copy `KtorNetworkFeatureAllowlistDataSourceTest` and
     `CachedFeatureAllowlistRepositoryTest` patterns. The wire-fixture
@@ -160,7 +160,7 @@ patch-bump-eligible (no new capability).
   have at least 3 features. Designing a bulk shape against one data point
   is more likely to be wrong than designing it after seeing a real second
   flag. PR #573 explicitly chose ship-now-refactor-later; that decision
-  documented in [`AndroidGarage/docs/DECISIONS.md`](../AndroidGarage/docs/DECISIONS.md).
+  documented in [`MobileGarage/docs/DECISIONS.md`](../MobileGarage/docs/DECISIONS.md).
 - **Do not** store URL-encoded values in `configCurrent`. The
   `remoteButtonBuildTimestamp` field is URL-encoded for historical
   reasons (April 2021 onward) and the accessor `decodeURIComponent`s it
@@ -172,7 +172,7 @@ patch-bump-eligible (no new capability).
   `console.log/error` only on failure paths, never the allowlist itself.
 - **Do not** rely on the client gate as a security boundary. Action
   endpoints **independently** check the allowlist server-side. This is
-  load-bearing — see [`AndroidGarage/docs/DECISIONS.md`](../AndroidGarage/docs/DECISIONS.md)
+  load-bearing — see [`MobileGarage/docs/DECISIONS.md`](../MobileGarage/docs/DECISIONS.md)
   ADR-026 and `RemoteButton.ts` / `Snooze.ts` for the canonical pattern.
 
 ## Operational concerns

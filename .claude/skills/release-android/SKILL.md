@@ -16,7 +16,7 @@ git checkout main && git pull && git status   # working tree must be clean
 ./scripts/validate.sh                          # required; the release script blocks on STALE/MISSING
 
 # 3. Add a CHANGELOG entry — REQUIRED by default
-# Edit AndroidGarage/CHANGELOG.md, add:
+# Edit MobileGarage/CHANGELOG.md, add:
 #   ## X.Y.Z          (X.Y.Z = current versionName from version.properties)
 #   - One or more bullets describing user-facing changes
 # Commit and push. The release script blocks on missing/empty entries.
@@ -45,7 +45,7 @@ gh run watch <run-id>
 - **Don't `git tag` directly.** Hooks block it.
 - **Don't deploy to production.** This script only deploys to the Play Store internal track.
 - **Don't skip validation without asking the user.** If `--check` shows validation is `STALE` or `MISSING`, the right move is almost always to run `./scripts/validate.sh`. Ask before reaching for `--confirm-unvalidated-release`.
-- **Don't skip the changelog.** `AndroidGarage/CHANGELOG.md` is the permanent history (every version, including patches). The Play Store whatsnew is rolling and only covers minor/major bumps. `--confirm-no-changelog <sha>` is for emergencies — write the entry retroactively.
+- **Don't skip the changelog.** `MobileGarage/CHANGELOG.md` is the permanent history (every version, including patches). The Play Store whatsnew is rolling and only covers minor/major bumps. `--confirm-no-changelog <sha>` is for emergencies — write the entry retroactively.
 
 ## Versioning
 

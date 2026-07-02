@@ -33,20 +33,20 @@ jobs:
         with:
           encrypt-key: ${{ secrets.ENCRYPT_KEY }}
       - name: Run Spotless Check
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         run: ./gradlew spotlessCheck
       - name: Run Detekt
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         run: ./gradlew :androidApp:detekt
       - name: Run Android Lint
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         run: ./gradlew :androidApp:lint
       - name: Compile Screenshot Tests
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         run: ./gradlew :android-screenshot-tests:compileDebugScreenshotTestKotlin
       - name: Clean secrets
         if: always()
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         run: ./release/clean-secrets.sh
 
   unit_tests:
@@ -59,21 +59,21 @@ jobs:
         with:
           encrypt-key: ${{ secrets.ENCRYPT_KEY }}
       - name: Run Unit Tests
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         env:
           SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
         run: ./gradlew test -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
       - name: Clean secrets
         if: always()
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         run: ./release/clean-secrets.sh
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: test-reports
-          path: AndroidGarage/androidApp/build/reports/tests/
+          path: MobileGarage/androidApp/build/reports/tests/
 
   fcm_contract_tests:
     # Dedicated job that names the FCM contract tests as a distinct
@@ -94,20 +94,20 @@ jobs:
         with:
           encrypt-key: ${{ secrets.ENCRYPT_KEY }}
       - name: FcmTopicTest (domain)
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         run: ./gradlew :domain:testDebugUnitTest --tests 'com.chriscartland.garage.domain.model.FcmTopicTest'
       - name: FcmPayloadParsingTest (data)
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         run: ./gradlew :data:testDebugUnitTest --tests 'com.chriscartland.garage.data.FcmPayloadParsingTest'
       - name: FcmMessageHandlerTest (androidApp)
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         env:
           SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
         run: ./gradlew :androidApp:testDebugUnitTest --tests 'com.chriscartland.garage.fcm.FcmMessageHandlerTest' -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
       - name: Clean secrets
         if: always()
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         run: ./release/clean-secrets.sh
 
   build_debug:
@@ -120,21 +120,21 @@ jobs:
         with:
           encrypt-key: ${{ secrets.ENCRYPT_KEY }}
       - name: Build Debug
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         env:
           SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
         run: ./gradlew :androidApp:assembleDebug -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
       - name: Clean secrets
         if: always()
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         run: ./release/clean-secrets.sh
       - name: Upload debug APK
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: debug-apk
-          path: AndroidGarage/androidApp/build/outputs/apk/debug/
+          path: MobileGarage/androidApp/build/outputs/apk/debug/
           # Short retention: debug builds embed BuildConfig.SERVER_CONFIG_KEY
           # too. Same exposure window applies on a public repo.
           retention-days: 1
@@ -155,7 +155,7 @@ jobs:
         with:
           encrypt-key: ${{ secrets.ENCRYPT_KEY }}
       - name: Build Release AAB
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         env:
           SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
@@ -164,12 +164,12 @@ jobs:
         run: ./gradlew :androidApp:bundleRelease -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" -PGARAGE_RELEASE_KEYSTORE_PWD="$GARAGE_RELEASE_KEYSTORE_PWD" -PGARAGE_RELEASE_KEY_PWD="$GARAGE_RELEASE_KEY_PWD"
       - name: Clean secrets
         if: always()
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         run: ./release/clean-secrets.sh
       - name: Upload release AAB
         uses: actions/upload-artifact@v6
         with:
           name: release-aab
-          path: AndroidGarage/androidApp/build/outputs/bundle/release/
+          path: MobileGarage/androidApp/build/outputs/bundle/release/
           # Short retention because the signed AAB embeds BuildConfig.SERVER_CONFIG_KEY.
           retention-days: 1

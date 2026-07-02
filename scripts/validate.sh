@@ -8,7 +8,7 @@ set -euo pipefail
 # modules are covered without editing this script.
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-GRADLE="$REPO_ROOT/AndroidGarage/gradlew -p $REPO_ROOT/AndroidGarage"
+GRADLE="$REPO_ROOT/MobileGarage/gradlew -p $REPO_ROOT/MobileGarage"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -129,7 +129,7 @@ $GRADLE :androidApp:lint && pass "lint" || fail "lint"
 # Android modules (androidApp) use variant-specific test tasks handled below.
 step "Shared module tests (auto-discovered)"
 FOUND_MODULES=0
-for module_dir in "$REPO_ROOT"/AndroidGarage/*/; do
+for module_dir in "$REPO_ROOT"/MobileGarage/*/; do
     module=$(basename "$module_dir")
     # Skip androidApp — it has variant-specific test tasks
     [ "$module" = "androidApp" ] && continue
@@ -184,7 +184,7 @@ step "Play Store whatsnew length (Google Play 500-char limit)"
 step "Room schema drift check"
 # After compilation, Room KSP generates schema JSON files.
 # If they differ from what's committed, the schema changed without being tracked.
-SCHEMA_DIR="$REPO_ROOT/AndroidGarage/data-local/schemas"
+SCHEMA_DIR="$REPO_ROOT/MobileGarage/data-local/schemas"
 if git diff --quiet -- "$SCHEMA_DIR" 2>/dev/null && \
    [ -z "$(git ls-files --others --exclude-standard -- "$SCHEMA_DIR" 2>/dev/null)" ]; then
     pass "Room schema unchanged"
@@ -222,7 +222,7 @@ fi
 # (`scripts/release-android.sh`) is the place to make this a hard gate
 # when cutting an Android release.
 #
-# Harness background: AndroidGarage/docs/R8_INSTRUMENTED_TESTS.md
+# Harness background: MobileGarage/docs/R8_INSTRUMENTED_TESTS.md
 # and ADR-020 (R8 release-build hardening).
 if [ "${VALIDATE_R8:-0}" = "1" ]; then
     step "R8 instrumented tests (opt-in via VALIDATE_R8=1)"

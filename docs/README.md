@@ -6,7 +6,7 @@ last_verified: 2026-04-25
 
 # `/docs/` — Cross-cutting documentation
 
-This folder holds documentation that spans more than one component (Android, Firebase server, ESP32 firmware), or that defines repo-wide conventions. Component-specific docs live next to the component (e.g., [`AndroidGarage/docs/`](../AndroidGarage/docs/), [`FirebaseServer/README.md`](../FirebaseServer/README.md)).
+This folder holds documentation that spans more than one component (Android, Firebase server, ESP32 firmware), or that defines repo-wide conventions. Component-specific docs live next to the component (e.g., [`MobileGarage/docs/`](../MobileGarage/docs/), [`FirebaseServer/README.md`](../FirebaseServer/README.md)).
 
 ## Start here
 
@@ -26,7 +26,7 @@ These four files are the canonical home for cross-cutting Firebase rules. Other 
 
 ## Component docs (links out)
 
-- **Android:** [`../AndroidGarage/docs/ARCHITECTURE.md`](../AndroidGarage/docs/ARCHITECTURE.md), [`../AndroidGarage/docs/DECISIONS.md`](../AndroidGarage/docs/DECISIONS.md), [`../AndroidGarage/docs/guides/`](../AndroidGarage/docs/guides/)
+- **Android:** [`../MobileGarage/docs/ARCHITECTURE.md`](../MobileGarage/docs/ARCHITECTURE.md), [`../MobileGarage/docs/DECISIONS.md`](../MobileGarage/docs/DECISIONS.md), [`../MobileGarage/docs/guides/`](../MobileGarage/docs/guides/)
 - **Firebase:** [`../FirebaseServer/README.md`](../FirebaseServer/README.md), [`../FirebaseServer/CHANGELOG.md`](../FirebaseServer/CHANGELOG.md)
 - **Agent operational rules:** [`../CLAUDE.md`](../CLAUDE.md)
 

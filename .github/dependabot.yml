@@ -45,9 +45,9 @@ updates:
         update-types: ["version-update:semver-major"]
 
   # Android app + KMP modules — Gradle reads gradle/libs.versions.toml and the
-  # build.gradle.kts files under AndroidGarage/.
+  # build.gradle.kts files under MobileGarage/.
   - package-ecosystem: gradle
-    directory: /AndroidGarage
+    directory: /MobileGarage
     schedule:
       interval: weekly
     open-pull-requests-limit: 3

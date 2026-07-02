@@ -40,7 +40,7 @@ jobs:
           fi
 
           # Docs-only fast path — see ci.yml for rationale.
-          NON_DOCS=$(echo "$CHANGED" | grep -vE '^(.*\.md$|docs/|.*/docs/|\.claude/|LICENSE$|\.gitignore$|AndroidGarage/distribution/whatsnew/)' || true)
+          NON_DOCS=$(echo "$CHANGED" | grep -vE '^(.*\.md$|docs/|.*/docs/|\.claude/|LICENSE$|\.gitignore$|MobileGarage/distribution/whatsnew/)' || true)
           if [ -z "$NON_DOCS" ] && [ -n "$CHANGED" ]; then
             echo "android=false" >> $GITHUB_OUTPUT
             echo "docs_only=true" >> $GITHUB_OUTPUT
@@ -51,10 +51,10 @@ jobs:
 
           echo "docs_only=false" >> $GITHUB_OUTPUT
 
-          if echo "$CHANGED" | grep -qE '^(AndroidGarage/|scripts/|\.github/(workflows|actions)/)'; then
+          if echo "$CHANGED" | grep -qE '^(MobileGarage/|scripts/|\.github/(workflows|actions)/)'; then
             echo "android=true" >> $GITHUB_OUTPUT
             echo "Android files changed:"
-            echo "$CHANGED" | grep -E '^(AndroidGarage/|scripts/|\.github/(workflows|actions)/)'
+            echo "$CHANGED" | grep -E '^(MobileGarage/|scripts/|\.github/(workflows|actions)/)'
           else
             echo "android=false" >> $GITHUB_OUTPUT
             echo "No Android files changed. Changed files:"
@@ -96,12 +96,12 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Run instrumented tests
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         run: ./gradlew pixel6Api34DebugAndroidTest
 
       - name: Clean secrets
         if: always()
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         run: ./release/clean-secrets.sh
 
   # Gate job — single check-run name for release script to verify.

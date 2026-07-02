@@ -13,9 +13,9 @@ My original firmware implementation was based on Arduino (2021). I've since migr
 * 2021: Arduino on Adafruit HUZZAH32 - ESP32 Feather
 * 2024: FreeRTOS on ESP32-DevKitC ESP32-WROOM-32U Development Board
 
-<img src="AndroidGarage/screenshots/framed/home_tab_light.png" width="200" alt="Garage app home tab showing the door closed and the action button"> <img src="AndroidGarage/screenshots/framed/history_tab_light.png" width="200" alt="Garage history tab listing recent door events">
+<img src="MobileGarage/screenshots/framed/home_tab_light.png" width="200" alt="Garage app home tab showing the door closed and the action button"> <img src="MobileGarage/screenshots/framed/history_tab_light.png" width="200" alt="Garage history tab listing recent door events">
 
-The latest generated Play Store listing assets (app icon, feature graphic, phone + tablet screenshots) are previewed in [`AndroidGarage/screenshots/store/`](AndroidGarage/screenshots/store/README.md). They regenerate with the screenshot pipeline; the curated set that's live in the store lives in [`AndroidGarage/distribution/playstore/`](AndroidGarage/distribution/playstore/README.md).
+The latest generated Play Store listing assets (app icon, feature graphic, phone + tablet screenshots) are previewed in [`MobileGarage/screenshots/store/`](MobileGarage/screenshots/store/README.md). They regenerate with the screenshot pipeline; the curated set that's live in the store lives in [`MobileGarage/distribution/playstore/`](MobileGarage/distribution/playstore/README.md).
 
 ## Getting Started
 
@@ -23,9 +23,9 @@ Pick the path that matches what you came here for:
 
 | I want to… | Start here |
 |---|---|
-| **Contribute to the Android app** | [`AndroidGarage/README.md`](AndroidGarage/README.md) → [`AndroidGarage/docs/ARCHITECTURE.md`](AndroidGarage/docs/ARCHITECTURE.md) |
+| **Contribute to the Android app** | [`MobileGarage/README.md`](MobileGarage/README.md) → [`MobileGarage/docs/ARCHITECTURE.md`](MobileGarage/docs/ARCHITECTURE.md) |
 | **Deploy or operate the Firebase server** | [`FirebaseServer/README.md`](FirebaseServer/README.md) → [`docs/FIREBASE_DEPLOY_SETUP.md`](docs/FIREBASE_DEPLOY_SETUP.md) |
-| **Understand the system as a whole** | This page → [`docs/AGENTS.md`](docs/AGENTS.md) → [`AndroidGarage/docs/ARCHITECTURE.md`](AndroidGarage/docs/ARCHITECTURE.md) |
+| **Understand the system as a whole** | This page → [`docs/AGENTS.md`](docs/AGENTS.md) → [`MobileGarage/docs/ARCHITECTURE.md`](MobileGarage/docs/ARCHITECTURE.md) |
 | **Build the ESP32 firmware** | [`GarageFirmware_ESP32/README.md`](GarageFirmware_ESP32/README.md) (FreeRTOS, current) or [`Arduino_ESP32/README.md`](Arduino_ESP32/README.md) (legacy 2021) |
 | **Work as an AI agent in this repo** | [`CLAUDE.md`](CLAUDE.md) → [`docs/AGENTS.md`](docs/AGENTS.md) |
 
@@ -33,7 +33,7 @@ Pick the path that matches what you came here for:
 
 ```
 SmartGarageDoor/
-├── AndroidGarage/         Android app (Kotlin, Compose, KMP-bound) — see AndroidGarage/README.md
+├── MobileGarage/         Android app (Kotlin, Compose, KMP-bound) — see MobileGarage/README.md
 ├── FirebaseServer/        Cloud Functions backend (TypeScript) — see FirebaseServer/README.md
 ├── GarageFirmware_ESP32/  Current ESP32 firmware (FreeRTOS + ESP-IDF)
 ├── Arduino_ESP32/         Legacy 2021 Arduino firmware (kept as reference)
@@ -98,7 +98,7 @@ The app is a thin client over the server. Key behaviors:
 * **Authentication** — Google Sign-In via Credential Manager, then Firebase Auth ID token. The server keeps an allow-list of authorized accounts.
 * **Two ID tokens** — Google ID token (for Sign-In) and Firebase ID token (sent to the server as `X-AuthTokenGoogle`). Only the Firebase token is accepted by the server.
 
-For the full architecture, module graph, and ADRs, see [`AndroidGarage/docs/ARCHITECTURE.md`](AndroidGarage/docs/ARCHITECTURE.md) and [`AndroidGarage/docs/DECISIONS.md`](AndroidGarage/docs/DECISIONS.md).
+For the full architecture, module graph, and ADRs, see [`MobileGarage/docs/ARCHITECTURE.md`](MobileGarage/docs/ARCHITECTURE.md) and [`MobileGarage/docs/DECISIONS.md`](MobileGarage/docs/DECISIONS.md).
 
 ## Server
 

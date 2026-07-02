@@ -1,8 +1,8 @@
 #!/bin/bash
 # Generate a Markdown gallery of all reference screenshots.
 
-OUTPUT_FILE="AndroidGarage/android-screenshot-tests/SCREENSHOT_GALLERY.md"
-REFERENCE_DIR="AndroidGarage/android-screenshot-tests/src/screenshotTestDebug/reference"
+OUTPUT_FILE="MobileGarage/android-screenshot-tests/SCREENSHOT_GALLERY.md"
+REFERENCE_DIR="MobileGarage/android-screenshot-tests/src/screenshotTestDebug/reference"
 
 echo "<!-- GENERATED FILE - DO NOT EDIT -->" > "$OUTPUT_FILE"
 echo "" >> "$OUTPUT_FILE"
@@ -16,7 +16,7 @@ CONTENT_FILE=$(mktemp)
 current_class=""
 
 find "$REFERENCE_DIR" -name "*.png" 2>/dev/null | sort | while read -r filepath; do
-    relative_path="${filepath#AndroidGarage/android-screenshot-tests/}"
+    relative_path="${filepath#MobileGarage/android-screenshot-tests/}"
     parent_dir=$(dirname "$filepath")
     class_name=$(basename "$parent_dir")
     filename=$(basename "$filepath")

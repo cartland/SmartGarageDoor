@@ -22,15 +22,15 @@ Thumbs.db
 *~
 
 # Android
-AndroidGarage/local.properties
-AndroidGarage/*/build/
-AndroidGarage/build/
-AndroidGarage/.gradle/
-AndroidGarage/captures/
-AndroidGarage/.externalNativeBuild/
-AndroidGarage/.cxx/
-AndroidGarage/app/release/
-AndroidGarage/app/debug/
+MobileGarage/local.properties
+MobileGarage/*/build/
+MobileGarage/build/
+MobileGarage/.gradle/
+MobileGarage/captures/
+MobileGarage/.externalNativeBuild/
+MobileGarage/.cxx/
+MobileGarage/app/release/
+MobileGarage/app/debug/
 
 # Firebase
 FirebaseServer/.firebase/

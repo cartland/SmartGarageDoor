@@ -417,7 +417,7 @@ whole phase and re-apply as a smaller one.
 
 - [`FIREBASE_DEPLOY_SETUP.md`](FIREBASE_DEPLOY_SETUP.md) — release and
   rollback mechanics for the server.
-- `AndroidGarage/docs/DECISIONS.md` — Android-side ADRs; some principles
+- `MobileGarage/docs/DECISIONS.md` — Android-side ADRs; some principles
   here (fakes over mocks, typed interfaces) mirror ADRs there (ADR-003
   no-Mockito, ADR-008 no-`*Impl`-suffix).
 

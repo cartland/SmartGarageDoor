@@ -12,8 +12,8 @@ No timestamp is written so re-running only diffs when an actual image changes.
 
 import os
 
-SNAP_ROOT = "AndroidGarage/iosApp/SnapshotTests/__Snapshots__"
-OUT_MD = "AndroidGarage/iosApp/SnapshotTests/SCREENSHOT_GALLERY.md"
+SNAP_ROOT = "MobileGarage/iosApp/SnapshotTests/__Snapshots__"
+OUT_MD = "MobileGarage/iosApp/SnapshotTests/SCREENSHOT_GALLERY.md"
 # Width the <img> tags render at (px). Screen-sized shots are tall; this keeps
 # the gallery scannable.
 IMG_WIDTH = 240

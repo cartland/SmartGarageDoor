@@ -15,7 +15,7 @@
 // point only does auth + the API read + the git-tag versionName lookup.
 //
 // versionCode -> versionName mapping: each release is tagged `android/N` where
-// N == versionCode, so `git show android/N:AndroidGarage/version.properties`
+// N == versionCode, so `git show android/N:MobileGarage/version.properties`
 // yields the versionName for that build. Requires a full-history checkout
 // (fetch-depth: 0) so the tags are present.
 
@@ -39,15 +39,20 @@ if (!saJson) {
 const versionNameCache = new Map()
 function resolveVersionName(vc) {
   if (versionNameCache.has(vc)) return versionNameCache.get(vc)
-  let name
-  try {
-    const out = execFileSync('git', ['show', `android/${vc}:AndroidGarage/version.properties`], {
-      encoding: 'utf8',
-    })
-    const m = out.match(/versionName=(.+)/)
-    name = m ? m[1].trim() : '(unknown)'
-  } catch {
-    name = '(no tag)'
+  let name = '(no tag)'
+  // The module dir was renamed AndroidGarage -> MobileGarage (2026-07). Tags cut
+  // before the rename keep version.properties at the OLD path, so try the current
+  // path first and fall back to the old one — otherwise historical versionCodes
+  // (android/<=255) stop resolving.
+  for (const path of ['MobileGarage/version.properties', 'AndroidGarage/version.properties']) {
+    try {
+      const out = execFileSync('git', ['show', `android/${vc}:${path}`], { encoding: 'utf8' })
+      const m = out.match(/versionName=(.+)/)
+      name = m ? m[1].trim() : '(unknown)'
+      break
+    } catch {
+      // path absent at this tag; try the next
+    }
   }
   versionNameCache.set(vc, name)
   return name

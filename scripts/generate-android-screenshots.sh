@@ -5,13 +5,13 @@ set -e
 # Each test file runs in its own Gradle invocation.
 
 echo "Cleaning reference screenshots..."
-REFERENCE_DIR="AndroidGarage/android-screenshot-tests/src/screenshotTestDebug/reference"
+REFERENCE_DIR="MobileGarage/android-screenshot-tests/src/screenshotTestDebug/reference"
 if [ -d "$REFERENCE_DIR" ]; then
     rm -rf "$REFERENCE_DIR"
 fi
 mkdir -p "$REFERENCE_DIR"
 
-for file in AndroidGarage/android-screenshot-tests/src/screenshotTest/kotlin/com/chriscartland/garage/screenshottests/*.kt; do
+for file in MobileGarage/android-screenshot-tests/src/screenshotTest/kotlin/com/chriscartland/garage/screenshottests/*.kt; do
     filename=$(basename "$file" .kt)
     classname="com.chriscartland.garage.screenshottests.${filename}Kt"
 
@@ -19,7 +19,7 @@ for file in AndroidGarage/android-screenshot-tests/src/screenshotTest/kotlin/com
     echo "Running screenshot generation for $classname"
     echo "----------------------------------------------------------------"
 
-    AndroidGarage/gradlew -p AndroidGarage --no-configuration-cache :android-screenshot-tests:updateDebugScreenshotTest --tests "$classname" -PretainedReferenceScreenshots
+    MobileGarage/gradlew -p MobileGarage --no-configuration-cache :android-screenshot-tests:updateDebugScreenshotTest --tests "$classname" -PretainedReferenceScreenshots
 done
 
 echo "Generating screenshot gallery..."
@@ -34,7 +34,7 @@ if python3 -c "import PIL" 2>/dev/null; then
     python3 ./scripts/frame-screenshot.py \
         --batch ./scripts/framed-screenshots.txt \
         "$REFERENCE_DIR" \
-        AndroidGarage/screenshots/framed \
+        MobileGarage/screenshots/framed \
         || echo "WARN: framing step had non-fatal failures"
 
     echo ""

@@ -18,7 +18,7 @@ runs:
         cache: gradle
 
     - name: Grant execute permissions
-      working-directory: AndroidGarage
+      working-directory: MobileGarage
       shell: bash
       run: |
         chmod +x gradlew
@@ -26,7 +26,7 @@ runs:
 
     - name: Decrypt secrets
       if: inputs.encrypt-key != ''
-      working-directory: AndroidGarage
+      working-directory: MobileGarage
       shell: bash
       run: ./release/decrypt-secrets.sh
       env:
@@ -41,7 +41,7 @@ runs:
     # release run — where decrypt produced the real file — is never touched.
     - name: Provide placeholder google-services.json (no encrypt key)
       if: inputs.encrypt-key == ''
-      working-directory: AndroidGarage
+      working-directory: MobileGarage
       shell: bash
       run: |
         if [ ! -f androidApp/google-services.json ]; then

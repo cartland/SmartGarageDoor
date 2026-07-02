@@ -1,0 +1,294 @@
+/*
+ * Copyright 2024 Chris Cartland. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+package com.chriscartland.garage.ui.theme
+
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.unit.dp
+
+/**
+ * Named spacing tokens for screen-level padding, item spacing, and tight
+ * groupings. Names describe role, not value — `Spacing.Screen` instead
+ * of `16.dp`.
+ *
+ * Full proposal and migration plan: `MobileGarage/docs/SPACING_PLAN.md`.
+ */
+object Spacing {
+    /**
+     * Horizontal padding between screen content and the device edges.
+     *
+     * **Applied ONCE** at `Main.kt`'s `NavDisplay` route wrapper. Child
+     * Composables must not re-apply it. PR #589 doubled the Settings
+     * card to 32dp by adding a second 16dp wrapper inside the screen's
+     * content; #593 was the fix. The comment at `Main.kt:173-178`
+     * codifies this rule.
+     */
+    val Screen = 16.dp
+
+    /**
+     * Vertical `contentPadding` on every screen-level `LazyColumn`.
+     * Provides breathing room above the first item and below the last.
+     */
+    val ListVertical = 16.dp
+
+    /**
+     * `Arrangement.spacedBy(...)` between items in a screen-level list.
+     *
+     * **Container-owned, single value (16dp).** Every screen-level
+     * `LazyColumn` in the app uses this as its `verticalArrangement`,
+     * regardless of whether the items are `Section`-wrapped (Home /
+     * Settings / History) or bare rows (Diagnostics, Function list).
+     * This — combined with [safeListContentPadding] / [ListContentPadding]
+     * supplying the same 16dp `top` — gives every page identical vertical
+     * rhythm. Children never apply their own top padding to claim the
+     * gap above themselves; the LazyColumn owns it (per the
+     * "parent owns the gap between its children" rule in
+     * `MobileGarage/docs/SPACING_PLAN.md`).
+     */
+    val BetweenItems = 16.dp
+
+    /**
+     * Tight grouping inside a single visual unit: icon ↔ text inside
+     * a pill, supporting text ↔ headline, label ↔ control.
+     */
+    val Tight = 4.dp
+
+    /**
+     * Section header padding values. Applied to the header's enclosing
+     * Row / Text. Used identically across `HomeSection`, `SettingsSection`,
+     * and `HistoryDaySection` — this is the most disciplined spacing
+     * pattern in the app.
+     *
+     * **No `SectionHeaderTop`.** The gap above a section header is owned
+     * by the parent `LazyColumn` (its `contentPadding.top` for the first
+     * item; its `verticalArrangement = spacedBy(BetweenItems)` between
+     * items). Pre-2.16.29 the section claimed an 8dp top padding for
+     * itself, which violated the parent-owns-gaps rule and produced
+     * inconsistent first-item spacing depending on whether the page
+     * had a `Section`-wrapped first item or a bare item.
+     *
+     * `SectionHeaderStart` = horizontal padding inside the header row
+     * (start + end). `SectionHeaderBottom` = gap between header text and
+     * the section's body card, applied as the outer Column's
+     * `verticalArrangement = spacedBy(SectionHeaderBottom)` so even this
+     * intra-section gap follows the parent-owns rule.
+     */
+    val SectionHeaderStart = 16.dp
+    val SectionHeaderBottom = 8.dp
+
+    /**
+     * Standard `contentPadding` for screen-level `LazyColumn`s whose
+     * bottom edge sits directly above the bottom NavigationBar.
+     *
+     * Top = 16dp — single source of breathing room above the first item.
+     * The first item never adds its own top padding (the parent-owns-
+     * gaps rule); this token is the gap.
+     *
+     * Bottom = 24dp — clearance between the last item and the tab bar.
+     * Larger than top on purpose: the NavigationBar is below the content,
+     * not above it, so the last item *scrolls into* this boundary as the
+     * user pulls up. Without the list owning the gap, the last item butts
+     * against the bar and the button's interior padding is the only
+     * cushion.
+     *
+     * Apply via `LazyColumn(contentPadding = Spacing.ListContentPadding, ...)`.
+     * Use raw [ListVertical] when the LazyColumn does NOT end at the tab
+     * bar (e.g. `DiagnosticsContent` has action buttons below its
+     * LazyColumn, so the chrome clearance is owned by the wrapper Column).
+     */
+    val ListContentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
+}
+
+/**
+ * Bottom-edge inset that screen-level scrollable leaves should observe,
+ * propagated from `Main.kt`'s Scaffold body wrapper. Per layout mode:
+ *  - Compact (bottom bar present): default `WindowInsets(0)` — the
+ *    bottomBar covers the gesture-nav region, so leaves don't add any
+ *    system inset themselves.
+ *  - Rail / None (no bottom bar): provided as
+ *    `WindowInsets.safeDrawing.only(Bottom)` — the gesture-nav reaches
+ *    the leaf, which then adds it as `contentPadding` so the last item
+ *    can scroll past it into the safe area.
+ *
+ * **Why this exists instead of `WindowInsets.safeDrawing.asPaddingValues()` direct**:
+ * `asPaddingValues()` reads the raw view-level safeDrawing — it is NOT
+ * consumption-aware (`Modifier.consumeWindowInsets(...)` upstream does
+ * not affect what `asPaddingValues()` returns). In Compact mode, the
+ * topBar / bottomBar visible padding handles the system inset
+ * structurally, but `asPaddingValues()` would still report the raw
+ * value, causing scrollable leaves to double-pad. This local breaks
+ * the cycle: the body wrapper explicitly declares what insets the
+ * leaves should observe, decoupling the leaf's padding math from
+ * raw window insets.
+ *
+ * **Top is never propagated to leaves.** The TopAppBar always handles
+ * the status-bar inset (in every layout mode), so [safeListContentPadding]
+ * always returns the same 16dp top — no system inset is added there.
+ * This local only carries the bottom inset for now.
+ */
+val LocalContentEdgeInsets: ProvidableCompositionLocal<WindowInsets> =
+    staticCompositionLocalOf { WindowInsets(0) }
+
+/**
+ * Edge-to-edge `contentPadding` for screen-level scrollables.
+ *
+ * Combines the existing [Spacing.ListContentPadding] visual chrome
+ * clearance (16dp top, 24dp bottom) with the bottom inset published by
+ * the Scaffold body wrapper via [LocalContentEdgeInsets]. The
+ * scrollable's content drawing area extends edge-to-edge in Wide /
+ * Expanded modes; the **scrollable padding** keeps the last item
+ * reachable in the unobstructed region (it can scroll up past the
+ * gesture nav into the safe area).
+ *
+ * **Top is always 16dp** — the TopAppBar covers the status-bar inset
+ * in every mode, so the leaf never needs to add it. The 16dp is the
+ * single source of breathing room above the first item (the first item
+ * never claims its own top padding). Bottom adds the propagated edge
+ * inset (zero in Compact, gesture-nav in Rail/None) on top of the 24dp
+ * visual chrome clearance.
+ *
+ * Composables call this instead of [Spacing.ListContentPadding] when
+ * the scrollable's bottom edge reaches the body's bottom edge (i.e.
+ * any screen-level scrollable that isn't followed by an action row or
+ * footer Composable).
+ */
+@Composable
+fun safeListContentPadding(): PaddingValues {
+    val edgeInsets = LocalContentEdgeInsets.current.asPaddingValues()
+    return PaddingValues(
+        // Top is always handled by the TopAppBar; never propagate
+        // the status-bar inset down to the leaf.
+        top = 16.dp,
+        bottom = edgeInsets.calculateBottomPadding() + 24.dp,
+    )
+}
+
+/**
+ * Interior padding for card bodies. Three role-named variants reflect
+ * three legitimate use cases observed in production. Adding a fourth
+ * requires ≥2 real call sites.
+ */
+object CardPadding {
+    /**
+     * Default uniform card body. Use for cards with normal-density
+     * content (lists, controls, forms).
+     */
+    val Standard = PaddingValues(16.dp)
+
+    /**
+     * Card with hero content (large icon, illustration, status display)
+     * that benefits from extra vertical breathing room.
+     */
+    val Tall = PaddingValues(vertical = 24.dp, horizontal = 16.dp)
+
+    /**
+     * Banner-style alert card. Slimmer vertical padding keeps the
+     * banner from dominating the screen.
+     */
+    val Compact = PaddingValues(vertical = 12.dp, horizontal = 16.dp)
+}
+
+/**
+ * `start` padding on `HorizontalDivider` between list rows. Inset
+ * values align the divider with the leading text of the row above /
+ * below, not with the leading icon.
+ */
+object DividerInset {
+    /**
+     * Material `ListItem` with the standard 24dp leading icon.
+     * 56dp = 16dp leading padding + 24dp icon + 16dp icon-to-text gap.
+     */
+    val ListItem = 56.dp
+
+    /**
+     * `ListItem` with a 40dp leading icon (e.g. `HistoryContent`'s
+     * `GarageIcon`). Larger leading slot pushes the divider further.
+     */
+    val LargeLeading = 72.dp
+
+    /**
+     * Row with no leading icon — divider spans the full
+     * card-content width, inset only by the card's interior padding.
+     */
+    val FullWidth = 16.dp
+}
+
+/**
+ * Spacing inside and between buttons.
+ */
+object ButtonSpacing {
+    /** Between leading icon and text label inside a single Button. */
+    val IconText = 8.dp
+
+    /** Between vertically-stacked action buttons (e.g. Diagnostics' Export → Clear). */
+    val Stacked = 16.dp
+
+    /**
+     * Between an inline message and an adjacent action button
+     * (e.g. `HomeAlertCard`'s message ↔ button row).
+     */
+    val Inline = 12.dp
+}
+
+/**
+ * Spacing around prose blocks. The app does not yet have a centralized
+ * paragraph-style typography system; these tokens are the closest thing
+ * to "vertical breathing room around text."
+ */
+object ParagraphSpacing {
+    /** Between a section title and the body text immediately below it. */
+    val TitleToBody = 4.dp
+
+    /**
+     * Between an icon and the prose it labels (empty states, alert
+     * cards, inline warnings).
+     */
+    val IconToText = 12.dp
+
+    /**
+     * Vertical padding around a standalone warning / info paragraph
+     * not inside a card.
+     */
+    val Block = 8.dp
+}
+
+/**
+ * Maximum content widths for the screen-level route wrapper. Caps
+ * the width of each screen's content on tablets, foldables, and
+ * landscape phones; on phones below the cap value, `widthIn(max = ...)`
+ * is a no-op.
+ *
+ * Applied at the same `Main.kt` route wrapper that owns `Spacing.Screen`.
+ *
+ * Forward-compatible with two-pane layout: when two-pane mode lands
+ * (behind a runtime toggle), it consumes the same `ContentWidth`
+ * tokens — the list pane in two-pane mode reuses these widths rather
+ * than introducing a new set.
+ */
+object ContentWidth {
+    /**
+     * Default cap for screen content. Roughly Material 3's medium
+     * `WindowSizeClass` upper bound. Phones unaffected; tablets,
+     * foldables, and landscape get centered content with margins.
+     */
+    val Standard = 640.dp
+}

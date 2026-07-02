@@ -267,7 +267,7 @@ resolved share the slot for inline replacement.
 - [ ] `wire-contracts/openDoorResolved/payload_resolved.json` — pin the payload shape; load it in the server test.
 - [ ] `CHANGELOG.md` — `## server/N` entry.
 
-### Android (AndroidGarage/)
+### Android (MobileGarage/)
 - [ ] `domain/.../model/DoorFcmModel.kt` (or new file) — add the `door_open_v2-` builder (mirror server, byte-identical).
 - [ ] `domain/.../repository/` + `data/.../repository/` — `DoorResolvedFcmRepository` interface + `FirebaseDoorResolvedFcmRepository` (clone `FirebaseButtonHealthFcmRepository`: subscribe records on confirmed success, `requireOwnTopic` guard for `door_open_v2-`, unsubscribeAll). NOT auth-gated (door isn't).
 - [ ] `usecase/.../DoorResolvedFcmSubscriptionManager.kt` — clone `ButtonHealthFcmSubscriptionManager` (sans auth gate). Idempotent `start()`.

@@ -122,7 +122,7 @@ gh issue list --state open --json number,title,labels --jq '.[] | {number, title
 
 ### 5. Migration Progress
 
-Read `AndroidGarage/docs/MIGRATION.md` and report the Phase Summary table — which phases are complete and what's next.
+Read `MobileGarage/docs/MIGRATION.md` and report the Phase Summary table — which phases are complete and what's next.
 
 ### 6. Local State
 

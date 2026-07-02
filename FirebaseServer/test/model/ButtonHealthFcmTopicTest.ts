@@ -9,7 +9,7 @@
  */
 
 // This test pins the FCM topic format on the SERVER side.
-// AndroidGarage/.../buttonhealth/ButtonHealthFcmTopicTest.kt MUST
+// MobileGarage/.../buttonhealth/ButtonHealthFcmTopicTest.kt MUST
 // share the exact same input/output pairs to catch drift between the
 // server topic builder and Android topic-string assumption.
 
