@@ -53,9 +53,14 @@ import {
   setImpl as setSnoozeDBImpl,
   resetImpl as resetSnoozeDBImpl,
 } from '../../../src/database/SnoozeNotificationsDatabase';
+import {
+  setImpl as setServerConfigDBImpl,
+  resetImpl as resetServerConfigDBImpl,
+} from '../../../src/database/ServerConfigDatabase';
 import { FakeNotificationsDatabase } from '../../fakes/FakeNotificationsDatabase';
 import { FakeSensorEventDatabase } from '../../fakes/FakeSensorEventDatabase';
 import { FakeSnoozeNotificationsDatabase } from '../../fakes/FakeSnoozeNotificationsDatabase';
+import { FakeServerConfigDatabase } from '../../fakes/FakeServerConfigDatabase';
 import { SensorEvent, SensorEventType } from '../../../src/model/SensorEvent';
 
 const BUILD_TIMESTAMP = 'Sat Mar 13 14:45:00 2021';
@@ -74,6 +79,7 @@ describe('sendFCMForOldData (via fakes)', () => {
   let fakeNotifications: FakeNotificationsDatabase;
   let fakeSensorEvents: FakeSensorEventDatabase;
   let fakeSnoozeDB: FakeSnoozeNotificationsDatabase;
+  let fakeConfig: FakeServerConfigDatabase;
   let sendStub: sinon.SinonStub;
 
   // firebase-admin requires an initialized default app before any service
@@ -89,9 +95,14 @@ describe('sendFCMForOldData (via fakes)', () => {
     fakeNotifications = new FakeNotificationsDatabase();
     fakeSensorEvents = new FakeSensorEventDatabase();
     fakeSnoozeDB = new FakeSnoozeNotificationsDatabase();
+    fakeConfig = new FakeServerConfigDatabase();
+    // Default: relaxed-A replace-tag flag OFF → tag-less warning (today's shape).
+    // sendFCMForOldData now reads config to decide whether to tag the warning.
+    fakeConfig.seed({ body: {} });
     setNotificationsDBImpl(fakeNotifications);
     setSensorEventDBImpl(fakeSensorEvents);
     setSnoozeDBImpl(fakeSnoozeDB);
+    setServerConfigDBImpl(fakeConfig);
 
     // Pin "now" so the 15-minute threshold is deterministic.
     sinon.stub(firebase.firestore.Timestamp, 'now').returns({
@@ -115,6 +126,7 @@ describe('sendFCMForOldData (via fakes)', () => {
     resetNotificationsDBImpl();
     resetSensorEventDBImpl();
     resetSnoozeDBImpl();
+    resetServerConfigDBImpl();
     sinon.restore();
   });
 
@@ -240,6 +252,43 @@ describe('sendFCMForOldData (via fakes)', () => {
     // FCM called exactly once with the built message.
     expect(sendStub.calledOnce).to.be.true;
     expect(sendStub.firstCall.args[0]).to.equal(result);
+  });
+
+  // --- Relaxed-A warning replace-tag flag (docs/RESOLVED_NOTIFICATION_NO_COMPROMISE.md §9) ---
+
+  it('sends a tag-less warning when warningReplaceTagEnabled is off (default)', async () => {
+    const staleOpen: SensorEvent = {
+      type: SensorEventType.Open,
+      timestampSeconds: STALE_EVENT_TS,
+      message: '',
+      checkInTimestampSeconds: 0,
+    };
+    fakeSensorEvents.seed(BUILD_TIMESTAMP, { currentEvent: staleOpen });
+
+    const result = await sendFCMForOldData(BUILD_TIMESTAMP, { currentEvent: staleOpen });
+
+    expect(result).to.not.be.null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((result!.android.notification as any).tag).to.be.undefined;
+  });
+
+  it('tags the sent warning garage_door when warningReplaceTagEnabled is true', async () => {
+    const staleOpen: SensorEvent = {
+      type: SensorEventType.Open,
+      timestampSeconds: STALE_EVENT_TS,
+      message: '',
+      checkInTimestampSeconds: 0,
+    };
+    fakeSensorEvents.seed(BUILD_TIMESTAMP, { currentEvent: staleOpen });
+    fakeConfig.seed({ body: { warningReplaceTagEnabled: true } });
+
+    const result = await sendFCMForOldData(BUILD_TIMESTAMP, { currentEvent: staleOpen });
+
+    expect(result).to.not.be.null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((result!.android.notification as any).tag).to.equal('garage_door');
+    // The flag must not disturb the send itself.
+    expect(sendStub.calledOnce).to.be.true;
   });
 
   // --- Duplicate-notification suppression ---

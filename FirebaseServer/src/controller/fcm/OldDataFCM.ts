@@ -17,6 +17,8 @@
 import * as firebase from 'firebase-admin';
 
 import { DATABASE as NotificationsDatabase } from '../../database/NotificationsDatabase';
+import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
+import { isWarningReplaceTagEnabled } from '../config/ConfigAccessors';
 
 import { SensorEvent, SensorEventType } from '../../model/SensorEvent';
 import { AndroidMessagePriority, TopicMessage, Notification, NotificationPriority, AndroidConfig, AndroidNotification } from '../../model/FCM';
@@ -28,6 +30,12 @@ const CURRENT_EVENT_KEY = 'currentEvent';
 const NOTIFICATION_CURRENT_EVENT_KEY = 'notificationCurrentEvent';
 const NOTIFICATION_MESSAGE_KEY = 'message';
 const TIMESTAMP_SECONDS_KEY = 'timestampSeconds';
+
+// Drawer replace-key shared with the client (DoorNotificationPresenter.TAG =
+// "garage_door") and the resolved. Only attached to the warning when the
+// `warningReplaceTagEnabled` config flag is on — see ConfigAccessors and
+// docs/RESOLVED_NOTIFICATION_NO_COMPROMISE.md §9. Off = byte-identical to today.
+const WARNING_REPLACE_TAG = 'garage_door';
 
 /**
  * Send an FCM message if the current event is old and the door is not closed.
@@ -55,7 +63,16 @@ export async function sendFCMForOldData(buildTimestamp: string, eventData): Prom
     return null;
   }
   console.debug('Decided to send FCM for open door');
-  const message = getDoorNotClosedMessageFromEvent(buildTimestamp, currentEvent, timestampSeconds);
+  // Live config read: whether to attach the drawer replace-tag to the warning
+  // (relaxed-A single-card design, flag-gated + device-gated). Fail-safe: any
+  // read problem yields `false`, i.e. today's tag-less warning.
+  const config = await ServerConfigDatabase.get();
+  const message = getDoorNotClosedMessageFromEvent(
+    buildTimestamp,
+    currentEvent,
+    timestampSeconds,
+    isWarningReplaceTagEnabled(config),
+  );
   if (!message) {
     console.error('Could not generate message to send');
     return null;
@@ -143,7 +160,7 @@ async function shouldSendFcmForOpenDoor(buildTimestamp: string, currentEvent: Se
  * @param now Unix time in seconds.
  * @return FCM message to send to users. Return null if no message is needed.
  */
-export function getDoorNotClosedMessageFromEvent(buildTimestamp: string, currentEvent: SensorEvent, now: number): TopicMessage {
+export function getDoorNotClosedMessageFromEvent(buildTimestamp: string, currentEvent: SensorEvent, now: number, replaceTagEnabled = false): TopicMessage {
   const eventDurationSeconds = now - currentEvent.timestampSeconds;
   const durationMinutes = Math.floor(eventDurationSeconds / 60);
   const durationHours = Math.floor(durationMinutes / 60);
@@ -161,6 +178,14 @@ export function getDoorNotClosedMessageFromEvent(buildTimestamp: string, current
   message.android.collapse_key = 'door_not_closed';
   message.android.priority = AndroidMessagePriority.HIGH;
   message.android.notification.notification_priority = NotificationPriority.PRIORITY_MAX;
+  // Relaxed-A single-card design (docs/RESOLVED_NOTIFICATION_NO_COMPROMISE.md §9):
+  // when enabled, share a fixed drawer tag with the resolved so it replaces this
+  // card instead of stacking. Set before the switch so every warning branch
+  // inherits it; the Closed branch returns null regardless. Flag off (default) =
+  // no tag = today's wire shape, pinned by the warning freeze-test.
+  if (replaceTagEnabled) {
+    message.android.notification.tag = WARNING_REPLACE_TAG;
+  }
   const type = currentEvent.type;
   switch (type) {
     case SensorEventType.Unknown:
