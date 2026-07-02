@@ -9,7 +9,7 @@
 #    - Default (`source: reference` or unset): match `<test>_*_0.png` under
 #      the screenshot-test reference dir, indexed by `test_class:`.
 #    - `source: framed`: read `image:` (a flat basename) from the entry and
-#      resolve to `AndroidGarage/screenshots/framed/<basename>`.
+#      resolve to `MobileGarage/screenshots/framed/<basename>`.
 # 4. Generates a Markdown file with metadata, descriptions, and inline images
 #
 # YAML format (default reference source):
@@ -31,9 +31,9 @@
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-COLLECTIONS_DIR="$REPO_ROOT/AndroidGarage/android-screenshot-tests/collections"
-REFERENCE_DIR="$REPO_ROOT/AndroidGarage/android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests"
-FRAMED_DIR="$REPO_ROOT/AndroidGarage/screenshots/framed"
+COLLECTIONS_DIR="$REPO_ROOT/MobileGarage/android-screenshot-tests/collections"
+REFERENCE_DIR="$REPO_ROOT/MobileGarage/android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests"
+FRAMED_DIR="$REPO_ROOT/MobileGarage/screenshots/framed"
 
 if [ ! -d "$COLLECTIONS_DIR" ]; then
     echo "No collections directory found at $COLLECTIONS_DIR"

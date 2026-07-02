@@ -271,7 +271,7 @@ Phase 4 reads this file, not the 381 individual files.
 
 ## 14. Documentation, ADRs, and memory
 
-**Shape:** `AndroidGarage/docs/DECISIONS.md` holds project ADRs (this-project decisions). `AndroidGarage/docs/guides/` holds portable third-person tech lessons. `MIGRATION.md` tracks phased roadmap with commit hashes. `CLAUDE.md` holds safety rules and workflow invariants. Memory files persist user preferences across sessions.
+**Shape:** `MobileGarage/docs/DECISIONS.md` holds project ADRs (this-project decisions). `MobileGarage/docs/guides/` holds portable third-person tech lessons. `MIGRATION.md` tracks phased roadmap with commit hashes. `CLAUDE.md` holds safety rules and workflow invariants. Memory files persist user preferences across sessions.
 
 **Exemplars:**
 - **#14** — architecture + ADRs + migration plan + testing doc landed early.

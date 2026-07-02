@@ -1,4 +1,4 @@
-# iOS CI — builds the SwiftUI app (AndroidGarage/iosApp) against the Kotlin
+# iOS CI — builds the SwiftUI app (MobileGarage/iosApp) against the Kotlin
 # shared.framework on a macOS runner, and runs the iosFramework DI-graph
 # identity test (NativeComponentTest).
 #
@@ -16,31 +16,31 @@ on:
   push:
     branches: [main]
     paths:
-      - 'AndroidGarage/iosApp/**'
-      - 'AndroidGarage/iosFramework/**'
-      - 'AndroidGarage/domain/**'
-      - 'AndroidGarage/data/**'
-      - 'AndroidGarage/data-local/**'
-      - 'AndroidGarage/usecase/**'
-      - 'AndroidGarage/viewmodel/**'
-      - 'AndroidGarage/presentation-model/**'
-      - 'AndroidGarage/gradle/libs.versions.toml'
-      - 'AndroidGarage/settings.gradle.kts'
-      - 'AndroidGarage/build.gradle.kts'
+      - 'MobileGarage/iosApp/**'
+      - 'MobileGarage/iosFramework/**'
+      - 'MobileGarage/domain/**'
+      - 'MobileGarage/data/**'
+      - 'MobileGarage/data-local/**'
+      - 'MobileGarage/usecase/**'
+      - 'MobileGarage/viewmodel/**'
+      - 'MobileGarage/presentation-model/**'
+      - 'MobileGarage/gradle/libs.versions.toml'
+      - 'MobileGarage/settings.gradle.kts'
+      - 'MobileGarage/build.gradle.kts'
       - '.github/workflows/ios-ci.yml'
   pull_request:
     paths:
-      - 'AndroidGarage/iosApp/**'
-      - 'AndroidGarage/iosFramework/**'
-      - 'AndroidGarage/domain/**'
-      - 'AndroidGarage/data/**'
-      - 'AndroidGarage/data-local/**'
-      - 'AndroidGarage/usecase/**'
-      - 'AndroidGarage/viewmodel/**'
-      - 'AndroidGarage/presentation-model/**'
-      - 'AndroidGarage/gradle/libs.versions.toml'
-      - 'AndroidGarage/settings.gradle.kts'
-      - 'AndroidGarage/build.gradle.kts'
+      - 'MobileGarage/iosApp/**'
+      - 'MobileGarage/iosFramework/**'
+      - 'MobileGarage/domain/**'
+      - 'MobileGarage/data/**'
+      - 'MobileGarage/data-local/**'
+      - 'MobileGarage/usecase/**'
+      - 'MobileGarage/viewmodel/**'
+      - 'MobileGarage/presentation-model/**'
+      - 'MobileGarage/gradle/libs.versions.toml'
+      - 'MobileGarage/settings.gradle.kts'
+      - 'MobileGarage/build.gradle.kts'
       - '.github/workflows/ios-ci.yml'
 
 concurrency:
@@ -71,7 +71,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-ios-${{ hashFiles('AndroidGarage/**/*.gradle*', 'AndroidGarage/gradle/libs.versions.toml') }}
+          key: ${{ runner.os }}-gradle-ios-${{ hashFiles('MobileGarage/**/*.gradle*', 'MobileGarage/gradle/libs.versions.toml') }}
           restore-keys: |
             ${{ runner.os }}-gradle-ios-
             ${{ runner.os }}-gradle-
@@ -80,7 +80,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData
-          key: ${{ runner.os }}-xcode-ios-${{ hashFiles('AndroidGarage/iosApp/**/*.swift', 'AndroidGarage/iosApp/project.yml') }}
+          key: ${{ runner.os }}-xcode-ios-${{ hashFiles('MobileGarage/iosApp/**/*.swift', 'MobileGarage/iosApp/project.yml') }}
           restore-keys: |
             ${{ runner.os }}-xcode-ios-
 
@@ -90,15 +90,15 @@ jobs:
       # DI-graph identity test (mirrors NativeComponentTest, 40/40 on simulator).
       # Also warms the framework artifacts the app build embeds.
       - name: Run iosFramework simulator tests
-        working-directory: AndroidGarage
+        working-directory: MobileGarage
         run: ./gradlew :iosFramework:iosSimulatorArm64Test
 
       - name: Generate Xcode project
-        working-directory: AndroidGarage/iosApp
+        working-directory: MobileGarage/iosApp
         run: xcodegen generate
 
       - name: Build iOS app (simulator)
-        working-directory: AndroidGarage/iosApp
+        working-directory: MobileGarage/iosApp
         run: |
           xcodebuild \
             -project GarageControl.xcodeproj \

@@ -17,7 +17,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-REFERENCE_DIR="$REPO_ROOT/AndroidGarage/android-screenshot-tests/src/screenshotTestDebug/reference"
+REFERENCE_DIR="$REPO_ROOT/MobileGarage/android-screenshot-tests/src/screenshotTestDebug/reference"
 BLANK_THRESHOLD=1024  # bytes — PNGs under this are likely blank renders
 
 echo "=== Screenshot Health Check ==="

@@ -8,7 +8,7 @@ last_verified: 2026-06-10
 
 How the `eventHistory` HTTP endpoint windows + paginates door events, and the
 two load-bearing design decisions behind it. The Android consumer's side is
-ADR-028 in [`AndroidGarage/docs/DECISIONS.md`](../AndroidGarage/docs/DECISIONS.md).
+ADR-028 in [`MobileGarage/docs/DECISIONS.md`](../MobileGarage/docs/DECISIONS.md).
 
 Shipped in `server/28` (PR #867) + Android PRs #869 (data) / #871 (UI).
 

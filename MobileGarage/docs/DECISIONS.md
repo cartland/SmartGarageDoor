@@ -1,0 +1,1912 @@
+---
+category: reference
+status: active
+last_verified: 2026-05-08
+---
+# Architectural Decision Records
+
+## ADR-001: Server-Centric Design
+
+**Status:** Accepted
+
+**Context:** The system has three clients (ESP32, Android app, potential future iOS/web). Business logic changes (door state interpretation, notification rules, error detection) should not require client updates.
+
+**Decision:** All critical business logic lives on the Firebase server. ESP32 reports raw sensor data. Android displays server-computed results. Neither client interprets sensor data. No offline business logic on clients — not even local door state interpretation.
+
+**Consequences:**
+- Feature updates deploy to one place (server), not three
+- Clients are thin and less likely to have bugs
+- ESP32 firmware updates (OTA) are risky and rare
+- Adds network dependency: if server is down, no door status interpretation
+- Increases server cost (every sensor reading hits Cloud Functions)
+- App shows stale data without network; this is an accepted tradeoff
+
+## ADR-002: Current Tech Stack (Android)
+
+**Status:** Accepted, partially migrated toward KMP (see ADR-004)
+
+**Context:** The Android app was built with standard 2024 Android libraries. DI and networking have been migrated to KMP-compatible alternatives.
+
+**Decision:** Current stack:
+- **DI:** kotlin-inject (KMP-compatible, replaced Hilt in Phase 3)
+- **Network:** Ktor HTTP + kotlinx.serialization (KMP-compatible, replaced Retrofit+Moshi in Phase 4)
+- **Database:** Room (Android Jetpack)
+- **UI:** Jetpack Compose + Material 3
+- **Async:** Kotlin Coroutines + Flow
+- **Testing:** JUnit 4 + Mockito (fakes preferred for new tests)
+
+**Consequences:**
+- DI and networking are now KMP-compatible
+- Room is still Android-only (will need expect/actual in Phase 5)
+- Clean architecture layers (domain, data, usecase) are pure Kotlin — ready for `commonMain`
+
+## ADR-003: Testing Philosophy
+
+**Status:** Accepted
+
+**Context:** Solo project with limited time for testing. Need to maximize value per test.
+
+**Decision:**
+1. **Tests must add value.** Every test catches a bug that code review alone would miss. No tests for trivial getters, data class defaults, or compiler-enforced exhaustive `when` mappings.
+2. **CI is the deployment gate.** If CI passes, the app is safe to ship.
+3. **Fakes over mocks** (target state). Mockito works but fakes are more readable, catch more integration issues, and work across KMP. Migrate toward fake implementations as the battery-butler project demonstrates.
+4. **Prioritize production risk.** Test silent failures, state machine edge cases, network error handling, auth token lifecycle.
+5. **Automate in CI.** If a check can run in CI, it should. Manual QA is a gap in the safety net.
+
+**Reference:** battery-butler's testing patterns (fakes, convention tests, custom Gradle checks).
+
+## ADR-004: Target Tech Stack
+
+**Status:** In progress (DI and networking migrated, KMP setup remaining)
+
+**Context:** Want to eventually share code across platforms (KMP). The battery-butler project demonstrates the target architecture. Migration will happen through several independent refactoring projects.
+
+**Decision:** Target stack:
+- **DI:** kotlin-inject (compile-time, KMP-compatible) — ✅ Done (Phase 3)
+- **Network:** Ktor HTTP client + kotlinx.serialization (not gRPC — server uses REST) — ✅ Done (Phase 4)
+- **Database:** Room with KMP support (alpha, same API)
+- **UI:** Compose Multiplatform
+- **Testing:** Fakes over Mockito, Kotlin Test, StandardTestDispatcher
+- **Static analysis:** Detekt with zero tolerance
+
+**KMP targets:** Android + iOS (no desktop). Firebase Auth on both platforms via platform-specific implementations behind a shared interface (expect/actual).
+
+**Not adopted from battery-butler:**
+- gRPC/Wire (server uses REST endpoints forever, no proto definitions)
+- Navigation3 (still alpha as of May 2025 — using type-safe routes via Navigation Compose 2.9 instead)
+- Desktop target (not needed for this project)
+
+**Consequences:**
+- Each migration phase is independent and can be a separate PR
+- DI migration (Hilt → kotlin-inject) is the most invasive change
+- Network migration (Retrofit → Ktor) requires new HTTP client setup
+- KMP preparation can happen incrementally after library migrations
+- REST endpoints are the permanent server protocol — no future protocol migration needed
+
+## ADR-005: DispatcherProvider Pattern
+
+**Status:** Implemented
+
+**Context:** ViewModel coroutines originally hardcoded `Dispatchers.IO`, making them untestable. Tests couldn't control coroutine execution timing.
+
+**Decision:** Inject `DispatcherProvider` interface with `main`, `io`, `default` dispatchers into all ViewModels. Tests use `TestDispatcherProvider` backed by `StandardTestDispatcher`.
+
+**Consequences:**
+- All ViewModel coroutines are deterministically testable
+- `runCurrent()` processes pending work without advancing past delays
+- Timeout state machine tests work correctly (delays are virtual)
+- Small addition to constructor signatures
+
+## ADR-006: Clean Architecture with UseCase Layer
+
+**Status:** Accepted. Adopted incrementally; all 5 production ViewModels use UseCases as of Phase 43. The "every VM operation goes through a UseCase, even pass-through ones" stance is reaffirmed as deliberate capability documentation, not redundancy — see ADR-021 and ADR-022 which depend on this layering.
+
+**Context:** Current architecture has ViewModels calling Repositories directly. This works but makes ViewModels harder to test (must mock repositories) and harder to share business logic across ViewModels.
+
+**Decision:** Adopt battery-butler's layered module structure:
+```
+domain/          → interfaces, models (depends on nothing)
+usecase/         → business logic (depends on domain)
+data/            → repository implementations (depends on domain)
+data-local/      → Room, DataStore (depends on domain)
+data-network/    → HTTP clients (depends on domain)
+viewmodel/       → state management (depends on usecase, domain)
+presentation/    → Compose UI (depends on viewmodel)
+```
+
+ViewModels depend on UseCases, not Repositories directly. Each UseCase has a single `operator fun invoke()` method. **Every ViewModel operation goes through a UseCase, even simple pass-through ones** — consistency over pragmatism.
+
+**Consequences:**
+- Each layer testable in isolation with fakes
+- UseCases are reusable across ViewModels
+- More files and modules (accepted overhead for consistency)
+- Convention tests can enforce structure (e.g., every UseCase has a test)
+- Migration is incremental: extract one UseCase at a time
+- Simple UseCases may feel like boilerplate but maintain uniform architecture
+
+## ADR-007: Screenshot Tests for Gallery Generation
+
+**Status:** Proposed
+
+**Context:** Need app screenshots for Play Store listings and development documentation. Manual screenshots are tedious and inconsistent.
+
+**Decision:** Use Compose screenshot tests (same approach as battery-butler) to generate gallery images. This is its own migration phase. Screenshots are for asset generation, NOT CI blocking checks. Screenshots will not fail CI on pixel mismatch — they are regenerated on demand.
+
+**Requirements:**
+- All preview composables use deterministic data (fixed timestamps, no `Clock.System.now()`)
+- Preview parameters threaded through composable chain
+- Generated screenshots committed to repository as reference gallery
+
+**Consequences:**
+- Consistent, reproducible app screenshots
+- Gallery updates are explicit (regenerate + commit)
+- No flaky CI from font rendering differences across environments
+- Requires disciplined preview authoring (deterministic data)
+
+## ADR-008: Implementation Naming — No "Impl" Suffix
+
+**Status:** Accepted
+
+**Context:** The codebase used `*Impl` suffixes for interface implementations (`DoorRepositoryImpl`, `AuthRepositoryImpl`). As the architecture grows with fakes, platform variants, and multiple real implementations, `Impl` conveys no information about _which_ implementation or _how_ it works.
+
+**Decision:** Name implementations with a descriptive prefix that explains the strategy. The description comes first. If no better name exists, `Default` is an acceptable prefix.
+
+**Naming patterns:**
+| Pattern | When to use | Example |
+|---------|------------|---------|
+| Strategy prefix | Implementation has a clear strategy | `CachedServerConfigRepository`, `NetworkDoorRepository` |
+| Platform prefix | Platform-specific implementation | `FirebaseAuthRepository`, `RoomAppLoggerRepository` |
+| `Default` prefix | No distinguishing strategy | `DefaultDispatcherProvider` |
+| Fake prefix | Test doubles — describe the fake type | `InMemoryDoorRepository`, `StubAuthRepository` |
+
+**Avoid:**
+- `*Impl` — says nothing about the implementation
+- `Fake*` without further description — `InMemory*` or `Stub*` is more descriptive
+
+**Migration:** Rename existing `*Impl` classes incrementally as they are touched. No bulk rename PR — renames happen alongside functional changes.
+
+**Consequences:**
+- Names communicate implementation strategy at a glance
+- Easier to distinguish multiple implementations of the same interface
+- Slightly longer class names (accepted tradeoff)
+
+## ADR-009: Object-Scoped Functions Over Top-Level Functions
+
+> _Broadened from original ADR-008 (parsing objects over extension functions)._
+
+**Status:** Accepted
+
+**Context:** Bare top-level functions pollute the global namespace and make code harder to discover. Extension functions on generic types (e.g., `Map<K, V>.asDoorEvent()`) create implicit coupling. Both problems get worse in KMP where the public API surface is shared across platforms.
+
+**Decision:** Group related functions in a named `object {}` rather than using bare top-level functions or extension functions on generic receiver types.
+
+**Rules:**
+1. **No bare top-level utility functions** — group in an `object {}` with a descriptive name
+2. **No extension functions on generic types** — use explicit parameter types instead
+3. **Private top-level functions are fine** — the rule targets public/internal API surface
+4. **Composable functions are exempt** — Compose conventions expect top-level `@Composable` functions
+
+**Example — avoid:**
+```kotlin
+// Bare top-level function — hard to discover, pollutes namespace
+fun createButtonAckToken(now: Date): String { ... }
+
+// Extension on generic type — implicit coupling
+private fun <K, V> Map<K, V>.asDoorEvent(): DoorEvent? { ... }
+```
+
+**Example — prefer:**
+```kotlin
+// Grouped in a named object — discoverable and namespaced
+object ButtonAckToken {
+    fun create(currentTimeMillis: Long, appVersion: String): String = ...
+}
+
+// Explicit parameter type — no generic-receiver coupling
+object FcmPayloadParser {
+    fun parseDoorEvent(data: Map<String, String>): DoorEvent? = ...
+}
+```
+
+**Consequences:**
+- Easier discovery — `object`-scoped functions show up as a single import target.
+- Composables are exempt; the `@Composable` annotation makes top-level placement idiomatic.
+- A small refactoring cost when this rule was first introduced (existing top-level utilities moved into named objects).
+
+**Enforcement:** `checkNoBareTopLevelFunctions` and `checkNoFullyQualifiedNames` Gradle tasks in `validate.sh`.
+
+## ADR-010: Typed API Patterns — Observation and One-Time Requests
+
+**Status:** Accepted
+
+**Context:** The app has two fundamental interaction patterns: ongoing state observation (door position, auth state) and discrete actions (push button, snooze, fetch data). Both patterns currently use nullable returns or Boolean success flags, which fail silently and don't enforce handling of edge cases.
+
+**Decision:** Adopt two typed API patterns throughout UseCase and ViewModel layers:
+
+1. **Observation APIs** — `Flow<Result<D, E>>` or `StateFlow<UiState>` where `UiState` is a sealed class with `Loading`, `Success`, `Error` variants. Use these for multi-stage transitions (e.g., button press tracking: SENDING → SENT → RECEIVED). The UI can show each phase.
+
+2. **One-time Request APIs** — `suspend fun action(): AppResult<D, E>` where both `D` (data) and `E` (error) are sealed or enum types. Use exhaustive `when` statements to handle every case at compile time. New edge cases produce compiler errors, not silent failures.
+
+**Rules:**
+- `D` and `E` should be sealed classes or enums — never open types
+- `invoke()` on UseCases returns `AppResult<D, E>`, not nullable types
+- ViewModels translate `AppResult` into UI-observable state (Flow or StateFlow)
+- Add new sealed variants when new edge cases are discovered — the compiler forces all call sites to handle them
+
+**Example:**
+```kotlin
+// UseCase returns typed result
+suspend operator fun invoke(token: String): AppResult<DoorEvent, FetchError>
+
+// Error is a sealed type — exhaustive when
+sealed interface FetchError : AppError {
+    data object NotReady : FetchError
+    data object NetworkFailed : FetchError
+    data class ServerError(val code: Int) : FetchError
+}
+
+// ViewModel handles exhaustively
+when (val result = fetchUseCase(token)) {
+    is AppResult.Success -> _state.value = UiState.Loaded(result.data)
+    is AppResult.Error -> when (result.error) {
+        FetchError.NotReady -> _state.value = UiState.ConfigMissing
+        FetchError.NetworkFailed -> _state.value = UiState.Offline
+        is FetchError.ServerError -> _state.value = UiState.Error(result.error.code)
+    }
+}
+```
+
+**Consequences:**
+- Eliminates silent failures — every error path is visible
+- New edge cases caught at compile time via exhaustive `when`
+- Slightly more verbose than nullable returns, but the safety is worth it
+- Requires migrating existing nullable/Boolean APIs incrementally
+
+## ADR-011: No-Throw Error Handling
+
+**Status:** Accepted
+
+**Context:** The codebase has multiple places where library exceptions are caught and silently swallowed (`catch (e: Exception) { Logger.e { ... } }`). Callers can't distinguish success from failure. The Detekt `SwallowedException` rule was allowing `Exception` in its ignore list, defeating its purpose.
+
+**Decision:** Adopt a no-throw error handling policy:
+
+1. **Never throw** from application code (except `CancellationException` for coroutine cancellation)
+2. **Catch at boundaries** — library exceptions (Ktor, Firebase, Room) are caught at the data source/bridge layer and converted to sealed error types
+3. **Return sealed results** — use `AppResult<D, E>` or `NetworkResult<T>` instead of nullable returns or Boolean success flags
+4. **No `else` in `when` on sealed types** — always list every variant explicitly so the compiler forces handling new variants
+5. **Detekt enforcement** — `SwallowedException` and `TooGenericExceptionCaught` rules are active. Existing violations are baselined and must be resolved incrementally
+
+**Rules:**
+- Data sources return `NetworkResult<T>` (Success, HttpError, ConnectionFailed)
+- Repositories return `AppResult<D, FetchError>` or `AppResult<D, ActionError>`
+- UseCases return `AppResult<D, E>` to ViewModels
+- ViewModels handle errors with exhaustive `when` and update UI state accordingly
+- Only `CancellationException` may propagate — all others must be caught and typed
+
+**Consequences:**
+- Every error path is visible and compiler-checked
+- Adding a new error variant forces all callers to handle it
+- Baselined Detekt violations track technical debt — each resolved violation is a win
+- New code cannot swallow exceptions or catch generic Exception without baseline entry
+
+**Example — preferred:**
+```kotlin
+object ButtonAckToken {
+    fun create(currentTimeMillis: Long, appVersion: String): String { ... }
+}
+
+object FcmPayloadParser {
+    fun parseDoorEvent(data: Map<String, String>): DoorEvent? { ... }
+}
+```
+
+**Consequences:**
+- Functions are discoverable via the containing object
+- Cleaner namespace, especially in KMP public API surface
+- Function signatures are explicit about expected input types
+- Slightly more nesting (accepted tradeoff for discoverability)
+- Migrate existing code incrementally — prioritize public/shared module APIs
+
+## ADR-012: Garage Door Button UX Redesign
+
+**Status:** Accepted
+
+**Context:** The remote garage button had several UX problems:
+1. Military terminology ("Arming"/"Armed") for a garage door button
+2. "Sending"/"Sent" describes network packets, not what the user cares about (the door)
+3. A numbered progress bar (0-5) with gaps and no clear meaning
+4. The button was a custom circular gradient — distinctive but non-standard
+5. No visual distinction between success and failure states (only text differed)
+6. The user cannot know whether the door will open or close — the button toggles
+
+**Decision:** Redesign the button and progress indicator:
+
+### Button
+- Standard Material3 rectangular button (not custom circle/gradient)
+- Idle text: "Garage Door Button" (clear that it's a button)
+- Confirmation text: "Door will move." (line 1) + "Confirm?" (line 2, separate Text composable)
+- Idle: default Material3 `FilledTonalButton`
+- Confirmation: amber/caution color (not red — caution, not danger)
+- Post-confirm: button disabled with simple status text (Sending.../Waiting.../Done!/Failed/Cancelled)
+- Parent layout gives both states the same width for visual stability
+
+### Network Diagram (replaces progress bar)
+- Three-node diagram: Phone → Server → Door (icon drawables, not emoji)
+- Connected by animated lines showing request flow
+- Gray dashed line: not started
+- Animated dotted line moving forward: in progress
+- Solid green line: succeeded
+- Solid red line: failed
+- Generic composable — takes node/edge states, not `RemoteButtonState` directly
+
+### State Renames
+| Old | New | User-facing text |
+|-----|-----|-----------------|
+| Ready | Ready | "Garage Door Button" |
+| Arming | Preparing | "Garage Door Button" (disabled) |
+| Armed | AwaitingConfirmation | "Door will move." / "Confirm?" |
+| NotConfirmed | Cancelled | "Cancelled" |
+| Sending | SendingToServer | "Sending..." |
+| Sent | SendingToDoor | "Waiting..." |
+| Received | Succeeded | "Done!" |
+| SendingTimeout | ServerFailed | "Failed" |
+| SentTimeout | DoorFailed | "Failed" |
+
+**Consequences:**
+- User sees where their command is in the Phone→Server→Door chain
+- Failures show exactly where the chain broke (red on the failed edge)
+- No military/network jargon — language describes physical outcomes
+- Standard M3 button is more accessible and consistent with platform conventions
+- Network diagram component is reusable (generic node/edge state model)
+- Touches domain (sealed interface), usecase (state machine + VM), UI (composables), and tests
+
+## ADR-013: Flow and StateFlow Boundaries
+
+**Status:** Partially superseded by ADR-022.
+
+The core insight of ADR-013 — that `StateFlow` is a **state** primitive, not an **event** primitive, and that conflation silently drops transient signals (SENDING → IDLE) — remains correct. The blanket rule "StateFlow lives only in ViewModels" was too restrictive and, applied uniformly, produced the snooze-state propagation bug documented in `archive/VIEWMODEL_SCOPING_ISSUE.md` (android/164-168). ADR-022 refines ADR-013 by distinguishing **event-y signals** (where ADR-013's ban on StateFlow still applies) from **state-y data with a current value** (where `StateFlow` belongs at the repository boundary, not only in ViewModels).
+
+Read ADR-022 alongside ADR-013; the rules below apply to event-y signals only.
+
+**Original context:** A critical bug was caused by using `StateFlow<PushStatus>` in a repository to signal transient events (SENDING → IDLE). StateFlow conflates intermediate values — if SENDING and IDLE are set in quick succession, collectors may only see IDLE, silently dropping the SENDING signal. This caused the button state machine to get stuck indefinitely. The root problem: StateFlow is a *state* primitive, not an *event* primitive.
+
+**Original decision:** Restrict where each Flow type may be used:
+
+### UseCases return one of two types:
+
+1. **One-shot operations:** `suspend fun invoke(): AppResult<D, E>`
+   - Call it, await the result, done
+   - The suspend function return *is* the completion signal
+   - Example: push button, snooze notifications, fetch data
+
+2. **Observations:** `fun invoke(): Flow<T>`
+   - Non-suspend — creating the Flow does nothing
+   - Collection requires a coroutine scope (caller's responsibility)
+   - Lifecycle is controlled by the collector's scope
+   - Example: observe door events, observe auth state
+
+### ~~StateFlow lives only in ViewModels~~ (superseded — see ADR-022)
+
+**Superseded by ADR-022 for state-y data.** State-y data (auth, snooze, current door event, server config, FCM registration) now lives as `StateFlow<T>` at the repository boundary — owned by `@Singleton` repos, passed through by reference to VMs. Every StateFlow still has an initial value (retained). The rules below apply only to **event-y signals** (transient data where conflation loses information).
+
+### Repositories use Flow and suspend (for event-y / cold / list-y data):
+
+- Streams (list-y / cold): `fun observeRecentEvents(): Flow<List<T>>` (backed by Room/DataStore)
+- Actions: `suspend fun doThing(): Result` (returns when complete)
+- Repositories must not use StateFlow for **transient / event-y** signals (retained rule)
+- State-y data with a current value DOES belong as `StateFlow<T>` at the repo per ADR-022
+
+### ~~Exceptions require individual approval~~ (superseded — see ADR-022)
+
+**Superseded for state-y data.** ADR-022 is the default shape: state-y → `StateFlow<T>` at the repo, no approval needed. Event-y signals below the ViewModel layer still need justification.
+
+**Resolved violations:**
+- `RemoteButtonRepository.pushButtonStatus: StateFlow<PushStatus>` — caused the button stuck bug. Remains banned (event-y signal; suspend return or Channel instead). ADR-013's original concern stands.
+- `AuthRepository.authState: StateFlow<AuthState>` — **resolved by ADR-022** — state-y by design, correctly exposed as StateFlow.
+- `SnoozeRepository.snoozeState: StateFlow<SnoozeState>` — **resolved by ADR-022** — state-y by design, correctly exposed as StateFlow.
+
+**Rules:**
+- `suspend fun` return = completion signal. Don't add a parallel StateFlow for the same information.
+- `Flow<T>` = observation stream. Collector manages lifecycle.
+- `StateFlow<T>` = UI state in ViewModel only. Always has initial value.
+- If every intermediate value matters (SENDING → IDLE), do not use StateFlow — use suspend return, Channel, or callback.
+
+**Consequences:**
+- Eliminates the class of bugs where StateFlow conflation silently drops signals
+- Clear ownership: ViewModel owns UI state, everything below produces raw data
+- Forces one-shot operations to use suspend returns, which are simpler and more reliable
+- Existing StateFlow usages in repositories must be reviewed and migrated
+- New code cannot add StateFlow below ViewModel without approval
+
+## ADR-014: FCM Architecture — Service, UseCase, and ViewModel Boundaries
+
+**Status:** Accepted
+
+**Context:** FCM registration logic currently lives in `DoorViewModel`. This is wrong for two reasons:
+1. ViewModels are tied to UI lifecycle — if the screen is closed, the ViewModel may not exist to handle registration retry
+2. `DoorViewModel` is a door-status ViewModel with FCM registration bolted on — mixed responsibilities
+
+The `FCMService` correctly inserts door events into the repository (data layer), but registration, retry, and status management need clearer ownership.
+
+**Decision:** FCM components are distributed across layers as follows:
+
+### Data Layer (infrastructure)
+- `FCMService` — Android entry point. Receives messages, delegates to `FcmMessageHandler`. Does not contain business logic.
+- `FcmMessageHandler` — Parses payload, inserts into `DoorRepository`, logs. Testable with fakes.
+- `FirebaseDoorFcmRepository` — Wraps Firebase subscribe/unsubscribe SDK calls behind `DoorFcmRepository` interface. Persists topic in DataStore.
+- `MessagingBridge` — Abstracts Firebase Messaging SDK for testability.
+
+### Domain Layer (business logic)
+- `RegisterFcmUseCase` — Single attempt: fetch build timestamp, subscribe to topic. Returns `AppResult<Unit, ActionError>`. Does not retry — caller decides retry policy.
+- `FetchFcmStatusUseCase` — Reads current registration status from repository.
+- `DoorFcmRepository` interface — Domain-level contract for FCM operations.
+- Domain models: `DoorFcmTopic`, `DoorFcmState`, `FcmRegistrationStatus`. No Firebase imports.
+
+### Presentation Layer (ViewModel)
+- ViewModel **observes** FCM registration status via `Flow<FcmRegistrationStatus>` from the repository
+- ViewModel does **not own** registration logic or retry policy
+- Registration is triggered by app startup (`AppStartupActions`), not by ViewModel
+
+### App Startup
+- `AppStartupActions` calls `RegisterFcmUseCase` with retry
+- Retry policy: fixed delay, retry forever (FCM is critical for the app)
+- Retry is app-scoped (via `ApplicationScope`), not screen-scoped
+- If registration succeeds, status updates via repository Flow → ViewModel → UI
+
+### Rules
+- `FCMService` must not contain business logic — delegate to handler/UseCase
+- Registration logic must not live in a ViewModel — it's app-scoped, not screen-scoped
+- FCM payload parsing happens in the data layer (`FcmPayloadParser`) — domain models have no Firebase imports
+- Registration retry is the caller's responsibility, not the UseCase's
+
+### Current violations to resolve
+- `DoorViewModel.registerFcm()` — must move to `AppStartupActions`
+- `DoorViewModel.fcmRegistrationStatus` — must become an observation of repository state
+- `DoorViewModel.fetchFcmRegistrationStatus()` — must move to startup or be removed
+- `FcmRegistration.kt` composable — remove, replace with ViewModel observation
+
+**Consequences:**
+- FCM registration works even when no screen is visible (app-scoped retry)
+- DoorViewModel becomes purely about door status — no FCM responsibility
+- Testable at every layer: handler, UseCase, retry policy, ViewModel observation
+- FCM message handling is already correct (FCMService → repository → Room → Flow → UI)
+
+## ADR-015: App-Scoped Managers for Lifecycle Operations
+
+**Status:** Accepted
+
+**Context:** Some operations (like FCM registration with retry) must outlive any single screen. UseCases are single-attempt by design (ADR-013). ViewModels are screen-scoped. We need a pattern for app-scoped operations that retry, poll, or run continuously.
+
+**Decision:** Use a **manager class** that owns the lifecycle of an app-scoped operation. The manager calls UseCases but adds lifecycle behavior (retry, cancellation, deduplication).
+
+**Pattern:**
+- Manager is created by DI with `ApplicationScope` (singleton coroutine scope)
+- Manager has a `start()` method called from `AppStartupActions`
+- Manager calls a UseCase (single-attempt, returns `AppResult`)
+- Manager owns the retry loop (fixed delay, forever or bounded)
+- Manager guards against concurrent starts (only one retry loop active)
+- Manager exposes status as `Flow` for ViewModel observation
+
+**Rules:**
+- UseCases remain single-attempt — never retry internally
+- Managers never touch UI state — they produce `Flow` that ViewModels observe
+- Managers are singleton — one instance per app process
+- `start()` is idempotent — calling twice doesn't create two retry loops
+
+**Consequences:**
+- Clear separation: UseCase = logic, Manager = lifecycle, ViewModel = UI state
+- App-scoped operations survive screen rotation and navigation
+- Testable: manager tested with fake UseCase and test dispatcher for time control
+- New pattern to learn, but limited to truly app-scoped operations (FCM, token refresh, sync)
+
+## ADR-016: Scope Injection for ViewModel Coroutines with Delay
+
+**Status:** Accepted
+
+**Context:** `DurationSince` was a Compose content-lambda composable wrapping entire UI trees to provide a live-updating `Duration`. This caused blank screenshots (content renders inside `LaunchedEffect` timing) and mixed display concerns (show "3 min ago") with business concerns (is the check-in stale?). When replacing it, the ViewModel's periodic staleness ticker (`while(true) { delay(30s) }`) hung `runTest` because `Dispatchers.setMain(testDispatcher)` routes `viewModelScope` coroutines to the test scheduler, and `runTest` tries to drain all pending virtual time.
+
+**Decision:** Split into two layers and inject `CoroutineScope` for timer coroutines:
+
+- **Display**: `rememberDurationSince()` returns `State<Duration>`, updated every 1s via `LaunchedEffect`. Lives in `androidApp` UI layer.
+- **Business**: `DoorViewModel.isCheckInStale: StateFlow<Boolean>` computed from `AppClock` + periodic 30s ticker + reactive data-change collect. Staleness logging moved from composable to ViewModel.
+- **Scope injection**: `DefaultDoorViewModel` accepts `CoroutineScope` for staleness coroutines (same pattern as `FcmRegistrationManager`, ADR-015). Production passes `applicationScope`. Jobs tracked and cancelled in `onCleared()`.
+
+**Test scope choice — `this` vs `backgroundScope`:**
+- `runTest { scope = this }` — use when the injected coroutine has a natural end (e.g., retry loop stops on success). `FcmRegistrationManagerTest` does this. `runTest` blocks until all children of `this` complete, so infinite loops would hang.
+- `runTest { scope = backgroundScope }` — use when the coroutine never ends (e.g., periodic ticker). `DoorViewModelTest` does this. `backgroundScope` is cancelled at test completion without blocking — the right choice for `while(true)` timer loops.
+- **Clock injection**: `AppClock` interface in domain module. Tests use `FakeClock` to control wall-clock time independently from coroutine virtual time.
+
+**Rules:**
+- ViewModel coroutines that use `delay` or infinite loops must run in injected scope, not `viewModelScope`
+- Display-layer timers (1s "ago" text) use `rememberDurationSince` — no business logic
+- Staleness boolean comes from ViewModel, never computed locally in composables
+- Two time axes in tests: `FakeClock.advanceSeconds()` for wall clock, `advanceTimeBy()` for coroutine delays
+
+**Consequences:**
+- No blank screenshots from content-lambda wrapping
+- Staleness is testable with virtual time + fake clock
+- One source of truth for "is check-in stale" (ViewModel, not composable)
+- Tests never hang — `backgroundScope` cancelled on test completion
+- Slight complexity: two scopes in ViewModel (viewModelScope for screen-scoped, injected scope for timer-scoped)
+
+## ADR-017: Test Conventions
+
+**Status:** Accepted
+
+**Context:** Test patterns across `*ViewModelTest.kt`, `*ManagerTest.kt`, and `Fake*.kt` files had drifted into multiple competing styles. An audit found three different ViewModel test setup patterns, mixed scope handling for tests with infinite coroutines, mixed state-observation styles (`.value` vs `.first()`), and mixed fake mutation styles (10 fakes use public `var`, 4 use `setX()` methods). This ADR locks in the conventions to follow.
+
+### Rule 1: ViewModel test setup
+
+Tests for classes that extend `androidx.lifecycle.ViewModel` MUST set up the Main dispatcher.
+
+```kotlin
+@BeforeTest fun setup() { Dispatchers.setMain(testDispatcher) }
+@AfterTest fun tearDown() { Dispatchers.resetMain() }
+```
+
+Tests for non-ViewModel classes (e.g., `FcmRegistrationManager`) don't need this — they have no `viewModelScope`.
+
+**Why:** `viewModelScope` uses `Dispatchers.Main.immediate`. Without `setMain`, ViewModel construction fails with "Module with the Main dispatcher is missing." Adding it where it's not needed pretends a class uses lifecycle infrastructure it doesn't.
+
+### Rule 2: Test control of ViewModel coroutines
+
+Tests MUST be able to cancel ViewModel coroutines before `runTest` drains the scheduler. An infinite `delay()` loop in `viewModelScope` will hang `runTest` indefinitely (the test scheduler tries to drain unbounded virtual time). Three techniques satisfy this rule — pick by what the timer is for:
+
+| Situation | Technique |
+|-----------|-----------|
+| App-scoped state (shared across screens, must outlive any single screen) | **Manager** (ADR-015): extract to a class that accepts `scope: CoroutineScope`. Production passes `applicationScope`; tests pass `this` or `backgroundScope` |
+| Screen-scoped timer (countdown, debounce, animation tick) | **`ViewModelStore.clear()` in test**: keep timer in `viewModelScope`, clean up explicitly per test (`try { ... } finally { store.clear() }`) — mirrors production cleanup |
+| Hybrid edge case where timer logic genuinely belongs in ViewModel but should outlive the screen | **Inject `scope: CoroutineScope`** into ViewModel constructor |
+
+**Test scope choice — `this` vs `backgroundScope`:**
+- `runTest { scope = this }` — use when the injected coroutine has a natural end (e.g., retry loop stops on success). `runTest` blocks until all children complete, so infinite loops would hang.
+- `runTest { scope = backgroundScope }` — use when the coroutine never ends (e.g., periodic ticker). `backgroundScope` is cancelled at test completion without blocking.
+
+**Why:** A blanket "no timers in ViewModels" rule is too broad. The core requirement is test cancellation, achievable three ways depending on the lifecycle of the state.
+
+### Rule 3: Manager scope in production
+
+App-scoped managers (FCM registration, staleness ticker) use `applicationScope` (singleton, lives for process lifetime).
+
+**Why:** These managers must keep working across screen rotations, navigation, and backgrounding. Cost of an idle `delay()` loop is negligible.
+
+**Tradeoff:** If a Manager ever does expensive polling/network work in its loop, switch to `SharingStarted.WhileSubscribed` so the loop pauses when nothing observes.
+
+### Rule 4: State observation in tests
+
+| Test target | Assertion |
+|-------------|-----------|
+| `StateFlow` (always direct exposure per Rule 6) | `.value` |
+| Plain `Flow` (no current value semantics) | `.first()` for single value, `launch { .toList(buf) }` for sequence |
+| `Flow` where intermediate emissions are part of the contract | sequence collection |
+
+**Why:** With Rule 6, every ViewModel `StateFlow` is direct exposure of an owned `MutableStateFlow` field — `.value` is identical to what subscribers see. There's no separate subscription path that can fail silently.
+
+### Rule 5: Fake state mutation
+
+Apply by field type:
+
+| Field type | Pattern |
+|------------|---------|
+| State others observe (Flow needed) | `private val _x = MutableStateFlow(...)` + `setX()` method |
+| State others read but don't write (counters, last-call) | `var x: T = ...` with `private set`, OR call-list (preferred) |
+| Result configuration mutated by tests | `setX()` method (no public `var`) |
+| Truly immutable | `val` |
+
+**Counter style — call-list preferred:**
+
+```kotlin
+// Good — call-list (richer, all val)
+private val _pushCalls = mutableListOf<PushArgs>()
+val pushCalls: List<PushArgs> get() = _pushCalls
+val pushCount: Int get() = _pushCalls.size
+
+// Acceptable — counter
+var pushCount: Int = 0
+    private set
+```
+
+Call-list lets tests assert on call arguments, not just count. Both fields stay `val`.
+
+**Anti-pattern (forbidden):** public `var pushResult: NetworkResult<Unit>` — tests can write whenever, no single call site to grep, test ordering becomes load-bearing.
+
+**Why:** The real risk of `var` is **public** mutability. `private set` removes that risk while keeping syntax minimal. `MutableStateFlow` is needed when observation is part of the contract; using it for plain counters adds ceremony without safety gain.
+
+### Rule 6: ViewModel `StateFlow` construction
+
+**Scope (updated by ADR-022):** this rule applies when the ViewModel materializes a cold `Flow` or transforms upstream data into a VM-local `StateFlow`. When the upstream is a repository-owned `StateFlow<T>` for state-y data, ADR-022 supersedes this rule: expose the repository's `StateFlow` by reference (no `_xState` mirror, no `init { collect }`). See ADR-022's "ViewModel shape" section.
+
+The rule below is retained for: (a) VM-local presentation state backed by a `MutableStateFlow` (e.g., `_snoozeAction`, `_buttonState`), and (b) VM `StateFlow` derived from a cold `Flow` at the repository boundary (e.g., recent-event lists).
+
+```kotlin
+// Required pattern — for VM-local presentation state OR cold-Flow materialization
+private val _snoozeAction = MutableStateFlow<SnoozeAction>(Idle)
+override val snoozeAction: StateFlow<SnoozeAction> = _snoozeAction
+
+// For cold-Flow materialization in the VM:
+private val _recentEvents = MutableStateFlow<List<DoorEvent>>(emptyList())
+override val recentEvents: StateFlow<List<DoorEvent>> = _recentEvents
+init {
+    viewModelScope.launch(dispatchers.io) {
+        observeRecentEvents().collect { _recentEvents.value = it }
+    }
+}
+
+// Forbidden pattern — stateIn in a ViewModel
+override val snoozeState: StateFlow<SnoozeState> = observeSnooze()
+    .stateIn(viewModelScope, SharingStarted.Eagerly, Loading)
+
+// Also forbidden (per ADR-022) — mirroring a repo-owned StateFlow
+private val _snoozeState = MutableStateFlow<SnoozeState>(Loading)
+override val snoozeState: StateFlow<SnoozeState> = _snoozeState
+init { viewModelScope.launch { observeSnooze().collect { _snoozeState.value = it } } }
+// Instead: override val snoozeState: StateFlow<SnoozeState> = observeSnooze()
+```
+
+**Why:** `stateIn(Eagerly)` had subtle timing issues that caused real production bugs (auth state UI not updating, see PR #295). The mirror pattern caused the snooze-state propagation bug in android/164-168 (see `archive/VIEWMODEL_SCOPING_ISSUE.md`). The explicit `MutableStateFlow` + `init.collect` pattern remains correct for VM-local presentation state and cold-Flow materialization; ADR-022 specifies passthrough for state-y data.
+
+**Enforcement:** `ViewModelStateFlowCheckTask` bans `.stateIn(viewModelScope, ...)` in ViewModel files. ADR-022 extends this to ban `MutableStateFlow<T>` in a VM when `T` is a repo-owned domain state type (allowlist).
+
+### Rule 7: Test data construction
+
+| Type complexity | Pattern |
+|-----------------|---------|
+| Type has 3+ fields, used in multiple tests | Factory function with sensible defaults |
+| Used once or trivially small | Inline literal |
+
+```kotlin
+// Factory — DoorEvent has 4+ fields, used everywhere
+private fun makeDoorEvent(
+    position: DoorPosition = DoorPosition.CLOSED,
+    lastCheckInTimeSeconds: Long = 1000L,
+    lastChangeTimeSeconds: Long = 900L,
+    message: String = "",
+): DoorEvent = DoorEvent(...)
+
+// Inline — small/local
+val token = GoogleIdToken("test-token")
+```
+
+### Bonus: Naming
+
+- `Fake*` for test doubles (e.g., `FakeAuthRepository`)
+- `InMemory*` for real implementations backed by collections that could ship in production (e.g., `InMemoryLocalDoorDataSource`)
+
+### Migration tasks (mandatory)
+
+These were tracked as separate follow-up PRs. The rules above apply immediately to new code; existing code was migrated to the rules in PRs #297–#305.
+
+1. Add `setMain`/`resetMain` to `DefaultAppLoggerViewModelTest` (Rule 1) — DONE (#297)
+2. Refactor `DoorViewModel` staleness ticker into `CheckInStalenessManager` (Rule 2 + ADR-015) — DONE (#299)
+3. Audit all ViewModels for `stateIn` usage; convert to explicit pattern (Rule 6) — DONE (#298)
+4. Add lint check banning `stateIn(viewModelScope, ...)` in ViewModel files (Rule 6 enforcement) — DONE (#300)
+5. Convert fakes with public `var` for results to `setX()` methods (Rule 5) — DONE (#301, #302, #303, #304, #305, #308)
+6. Adopt call-list pattern for new fakes; migrate counter-style fakes opportunistically (Rule 5) — DONE (#307, #309, #313, #314, #315, #316, #317, #318, #319, #320)
+
+### Enforcement
+
+- `ViewModelStateFlowCheckTask` (#300) bans `.stateIn(viewModelScope, ...)` in ViewModel files (Rule 6)
+- `FakePublicVarCheckTask` (#310, #313) bans public `var` and public mutable collections on `Fake*` classes (Rule 5)
+
+### Consequences
+
+- One pattern per test concern — no "which style do I use" decisions for new code
+- The auth state UI bug (PR #295) is now a structural impossibility — Rule 6 enforced
+- Test code reads consistently across modules, easier to onboard
+- All migration tasks (mandatory + opportunistic) completed 2026-04-16
+- Every fake whose methods take meaningful args now exposes a `*Calls: List<…>` for argument assertions; counter-only fakes (no-arg methods) keep simple counter accessors
+
+## ADR-018: Reactive Auth State — Use Platform Listeners, Not Imperative Polling
+
+**Status:** Accepted
+
+**Context:** Auth state UI stopped updating on sign-in/sign-out in `android/159`. The root cause had two parts:
+
+1. **Latent bug (Oct 2024):** `FirebaseAuthRepository.signInWithGoogle()` called `refreshFirebaseAuthState()` which did `getIdToken(forceRefresh=true)` — a network round-trip. Right after `signInWithCredential()` completed, this network call could fail or return null, causing the repo to commit `Unauthenticated` even though sign-in succeeded.
+
+2. **Trigger (PR #283, Apr 2026):** Replaced the direct `StateFlow` reference (`authRepository.authState`) with `observeAuthState(): Flow` + `stateIn(Eagerly)`. Before this change, even if the repo briefly committed the wrong state, the direct reference meant the UI saw subsequent corrections instantly. After the change, the `stateIn` layer faithfully propagated the wrong state with no self-correction mechanism.
+
+**Decision:** Auth state propagation must be reactive — driven by the platform's auth state listener, not imperative polling.
+
+### Rules
+
+1. **Use the platform's listener mechanism.** Firebase has `AuthStateListener`; future providers have their own. Wrap it in `callbackFlow` and expose as `observeAuthUser(): Flow<AuthUserInfo?>` on the bridge.
+
+2. **Commands are fire-and-forget.** `signInWithGoogle()` and `signOut()` call the bridge and return. The listener handles state propagation. No return values from commands.
+
+3. **No `getIdToken(forceRefresh=true)` in the sign-in/sign-out path.** Use `getIdToken(forceRefresh=false)` (cached token) in the listener collector. Force-refresh only for `EnsureFreshIdTokenUseCase` when the cached token is expired.
+
+4. **Don't wrap StateFlow in another StateFlow unnecessarily.** If a repository already exposes a `StateFlow`, pass the reference through — don't add `stateIn` or `MutableStateFlow + collect` unless converting from a cold `Flow`. Every intermediate subscription is a layer where bugs can hide.
+
+5. **Instrumented UI tests for critical state propagation.** Unit tests with fakes can't catch races between the platform SDK and the reactive chain. Add Compose instrumented tests (`createComposeRule`) that verify StateFlow changes trigger UI recomposition for critical user-facing state (auth, door events).
+
+### Consequences
+
+- Sign-in/sign-out UI updates are driven by Firebase's `AuthStateListener` — no network call in the critical path, no race condition.
+- `refreshFirebaseAuthState()` deleted. `getAuthState()` removed from the interface.
+- The auth state bug is structurally impossible: the listener fires after every auth change, and the repo just maps the emission to `AuthState`.
+- Compose UI tests (`AuthStateUIPropagationTest`) verify the full rendering chain on device.
+
+## ADR-019: Repository Side-Effects on `externalScope`; State From Authoritative Server Responses
+
+**Status:** Accepted
+
+**Context:** The snooze card UI stayed stuck on "Door notifications enabled" after a user saved a snooze (android/164 through android/166). Root cause had two parts:
+
+1. **VM-scope cancellation stranded the singleton.** `NetworkSnoozeRepository.snoozeStateFlow` is a `@Singleton`, but every write to it originated from a `viewModelScope.launch { ... }` in `DefaultRemoteButtonViewModel` (the init fetch, the polling `LaunchedEffect`, and the post-submit refetch). Ktor's `snoozeNotifications` / `fetchSnoozeEndTimeSeconds` rethrow `CancellationException` on cancellation. If the VM scope cancelled after the HTTP call returned but before the `when(result) { is Success -> snoozeStateFlow.value = ... }` branch ran, the write was skipped and the singleton's flow stayed on its previous value forever. Every future VM and subscriber saw the stale state.
+
+2. **Post-submit state relied on a follow-up GET.** The VM POSTed a snooze, then explicitly called `fetchSnoozeStatusUseCase()` to GET the new state. This added a second network call, a second cancellation window, and a second race against server read-after-write consistency. The server already returns the full `SnoozeRequest` (with `snoozeEndTimeSeconds`) in the POST response body — the client was discarding authoritative data and reaching for it again.
+
+**Decision:** Two complementary rules.
+
+### Rule 1 — Repository side-effects that must survive UI lifecycle run on `externalScope`
+
+Mirror the `FirebaseAuthRepository` pattern (ADR-018). Repositories that own shared mutable state must accept an `externalScope: CoroutineScope` (wired to `provideApplicationScope()`) and run every side-effecting call on it:
+
+```kotlin
+class NetworkSnoozeRepository(
+    // ...
+    private val externalScope: CoroutineScope,
+) : SnoozeRepository {
+    init { externalScope.launch { doFetchSnoozeStatus() } }
+
+    override suspend fun fetchSnoozeStatus() {
+        externalScope.launch { doFetchSnoozeStatus() }.join()
+    }
+
+    override suspend fun snoozeNotifications(...): Boolean =
+        externalScope.async { doSnoozeNotifications(...) }.await()
+}
+```
+
+- The caller still suspends (via `.join()` or `.await()`). If the caller's scope cancels, the `join`/`await` throws `CancellationException` in the caller — but the launched child is scoped to `externalScope`, **not** the caller, so it continues to completion.
+- State writes happen on a scope that cannot be cancelled by UI lifecycle. The singleton is correct for every subsequent subscriber.
+- VM `init` does **not** trigger the first fetch. The repository's own `init` does it, on `externalScope`.
+
+### Rule 2 — Update state from the authoritative server response, not a follow-up GET
+
+When the server's `POST` response already contains the domain-relevant data, parse it at the data-source layer and update state directly from it. Don't follow up with a `GET`.
+
+```kotlin
+// NetworkButtonDataSource
+suspend fun snoozeNotifications(...): NetworkResult<Long> // snoozeEndTimeSeconds
+
+// NetworkSnoozeRepository.doSnoozeNotifications — Success branch
+is NetworkResult.Success -> {
+    snoozeStateFlow.value = snoozeStateFromEndTime(result.data)
+    true
+}
+```
+
+- One network call, one interpretation function (`snoozeStateFromEndTime`), one write.
+- No race between the `POST` write and the follow-up `GET`'s read.
+- No client-side optimistic update. The end time comes from the server's response body.
+
+### Non-rules (explicit)
+
+- **No optimistic local writes to domain state.** The action-overlay optimistic text (`SnoozeAction.Succeeded.Set(optimisticEnd)`) is UI feedback, not state — it's ephemeral and auto-resets. The persistent `SnoozeState` only changes in response to real server data.
+- **Don't use `.join()` from a non-caller scope as a bridge.** The pattern only works because the launched child is a *child of `externalScope`*, not a child of the caller. If you wrote `externalScope.coroutineContext.launch { ... }.join()` from a viewModelScope coroutine, the child would still be scoped to the viewModelScope's Job — defeating the purpose.
+
+### Cross-platform dispatcher policy (KMP)
+
+`externalScope` is a `CoroutineScope` built from `SupervisorJob()` + a dispatcher. Dispatcher choice:
+
+- **Android/JVM:** `Dispatchers.Default` (CPU) or `Dispatchers.IO` (network/disk). `provideApplicationScope()` in `AppComponent.kt` uses `Dispatchers.IO`.
+- **Native (iOS):** `Dispatchers.IO` falls back to `Default` on Kotlin/Native. `Dispatchers.Main` requires explicit setup. iOS DI should wire `provideApplicationScope()` over `Dispatchers.Default`.
+- **Repositories do not hard-code dispatchers inside their bodies.** The dispatcher comes from the injected `externalScope`. This keeps `data/commonMain` code portable.
+- **Tests** inject `UnconfinedTestDispatcher` or `StandardTestDispatcher` via the `externalScope` constructor parameter.
+
+See ADR-022 for the shape of `StateFlow` ownership inside repositories that run on `externalScope`.
+
+### Consequences
+
+- The snooze Loading / stale-state class of bugs is structurally impossible: state only transitions via `externalScope`-owned writes, so no caller-scope cancellation can strand the singleton.
+- Post-submit refetch removed; the repo writes `SnoozeState` directly from the POST response.
+- VM no longer triggers the initial fetch in `init` — the repository does, on its own scope.
+- Repository gains slightly more complexity (the `async`/`await` dance) but in exchange owns all its side effects in one file.
+- Tests can reproduce the original bug by cancelling a `vmScope` mid-fetch and asserting the singleton reached the correct terminal state anyway (see `NetworkSnoozeRepositoryTest`).
+
+### When to apply
+
+Rule 1 applies to any repository that owns a singleton `MutableStateFlow` whose writes happen from suspend functions called across VM boundaries. Rule 2 applies to any `POST` endpoint that returns the updated entity — prefer the response body over a follow-up `GET`.
+
+## ADR-020: Release-Build Hardening — Explicit ProGuard Keep Rules + Raw-Body Diagnostic Logs
+
+**Status:** Accepted
+
+**Context:** A production bug (snooze card not updating after save on android/167) passed every unit test, the JVM integration test wiring the real repository + ViewModel, AND the instrumented Compose test on an emulator — but still reproduced on the Play Store release build. Investigation found `proguard-rules.pro` was **entirely empty comments** — the project was relying solely on `kotlinx.serialization`'s bundled consumer rules with no belt-and-suspenders keeps for `data.ktor.**` response classes. A diagnostic probe (flipping `debug` to `isMinifyEnabled=true`) crashed the test runner with `NoClassDefFoundError: kotlin.LazyKt`, confirming R8 was aggressive enough to strip stdlib classes when keep rules were missing.
+
+The failure mode is **silent**: a missing `@Serializable` keep leaves all `Long? = null` fields parsing as `null`, defaulting to `0L`. The app behaves as if the server returned "no snooze" — no exception, no log, no test failure. Emulator debug builds and JVM tests can't catch it because R8 runs only on release/minified builds.
+
+**Decision:** Two complementary rules.
+
+### Rule 1 — `proguard-rules.pro` keeps `kotlinx.serialization` infrastructure + all `data.ktor.**` classes
+
+```proguard
+# kotlinx.serialization infrastructure (belt-and-suspenders beyond bundled consumer rules)
+-if @kotlinx.serialization.Serializable class **
+-keepclassmembers class <1> {
+    static <1>$Companion Companion;
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-if @kotlinx.serialization.Serializable class **
+-keep class <1>$$serializer { *; }
+-if @kotlinx.serialization.Serializable class **
+-keep class <1>$Companion { *; }
+
+# Network response types — full class + members so R8 can't rename
+-keep class com.chriscartland.garage.data.ktor.** { *; }
+-keepclassmembers class com.chriscartland.garage.data.ktor.** { *; }
+
+# Annotations must survive
+-keepattributes *Annotation*, InnerClasses
+```
+
+### Rule 2 — Log raw body + parsed result at network-data-source boundaries producing state-critical data
+
+When a data-source call decodes JSON into a domain-state value (snooze end time, auth token, FCM registration, etc.), log both the verbatim body and the parsed result:
+
+```kotlin
+val rawBody: String = response.body()
+val body = json.decodeFromString(Response.serializer(), rawBody)
+val endTime = body.snoozeEndTimeSeconds ?: 0L
+Logger.i { "Snooze POST parsed endTime=$endTime rawBody=$rawBody" }
+```
+
+This costs one extra body read per response. In exchange, opaque on-device bugs become a single `adb logcat` line showing exactly what the server sent and what the client parsed — the only reliable ground-truth channel for production-only failures.
+
+### Why logging instead of more tests
+
+Tests can verify the happy path and known errors, but they cannot replicate the full production environment: real Firebase Functions runtime, Play-Store-signed APK with R8, real user account state. When a generated serializer is silently stripped, the nullable-default fallback masks it. The diagnostic log is the only tool that surfaces the failure mode from a deployed binary.
+
+### Consequences
+
+- Release-build parse failures surface as visible log lines, not silent no-ops.
+- Adding new `@Serializable` types under `data.ktor.*` is automatically covered by the package keep.
+- One extra body read on state-critical paths (trivial cost; body is already buffered).
+- The instrumented Compose test runs the debug variant and **cannot** catch R8-specific regressions. R8 regressions surface only on real release builds on real devices, so `proguard-rules.pro` must stay conservative.
+
+### When to apply
+
+Any new `@Serializable` response type under `data.ktor.*` is covered by Rule 1's package keep — no action needed. When adding a new endpoint producing state-critical data (repository writes, auth, FCM tokens), add raw-body logging at the data-source boundary per Rule 2, even if happy-path tests all pass.
+
+### Relationship to ADR-021 Rule 9
+
+Rule 2 (raw-body logging at network-data-source boundaries) is a specific instance of ADR-021 Rule 9 (observability-first). Rule 9 is the general principle — "every state-critical write is observable in production logs." ADR-020 Rule 2 is its concrete form for JSON-decoding boundaries. ADR-022 extends the same idea to every `_state.value = ...` write at the repository layer.
+
+## ADR-021: State Ownership and ViewModel Scoping Principles
+
+**Status:** Accepted and enforced.
+
+**Context:** The android/164-168 snooze-state propagation bug (see `archive/VIEWMODEL_SCOPING_ISSUE.md`) exposed an unstated assumption in the architecture: that "there is one `RemoteButtonViewModel`." In fact there were three — Activity-scope (dead code), Home nav entry, Profile nav entry — each with its own `_snoozeState: MutableStateFlow<SnoozeState>` mirroring the singleton repository. Compose read from one; the others emitted independently. Under production conditions the read-side VM could silently miss an emission while the other two saw it.
+
+The root issue is that *the same domain state existed as multiple copies*. Every VM held its own `MutableStateFlow` fed by an observer coroutine that mirrored the singleton. Three copies, three observers, three chances for something to go wrong. PR #354 worked around the symptom by writing directly to one of those copies from the suspend call's return value. The real fix is to stop copying.
+
+This ADR writes down the principles that make "multiple ViewModels is fine" structurally safe.
+
+### The core distinction — domain state vs. presentation state
+
+- **Domain state** is the single source of truth about the world. Snooze end time, current door event, auth state, FCM registration. There is ONE. It lives in a `@Singleton` Repository. Every consumer observes the SAME object.
+- **Presentation state** is local to a screen. Action overlays ("Saved!"), form input, dialog visibility, loading spinners. Each screen can legitimately have its own. It lives in a ViewModel.
+
+Mixing them — a VM holding a `MutableStateFlow<SnoozeState>` that mirrors the repository — is the anti-pattern. The mirror has no information the repository doesn't, but it's a separate object that can diverge.
+
+### Rules
+
+**Rule 1 — Domain state lives in `@Singleton` repositories.**
+If a piece of data must be consistent app-wide (snooze, auth, door events, FCM, server config), its authoritative owner is a `@Singleton` Repository that exposes a `StateFlow<T>`. Writes happen only inside the repository. Everyone else observes.
+
+**Rule 2 — ViewModels expose repository `StateFlow`s by reference, not by mirror.**
+```kotlin
+// Yes — pass-through, same object
+val snoozeState: StateFlow<SnoozeState> = observeSnoozeStateUseCase()
+
+// No — creates a local copy that must be kept in sync
+private val _snoozeState = MutableStateFlow<SnoozeState>(Loading)
+val snoozeState: StateFlow<SnoozeState> = _snoozeState
+init { viewModelScope.launch { observeSnoozeStateUseCase().collect { _snoozeState.value = it } } }
+```
+
+The "no" form is the anti-pattern that caused the bug. It's acceptable ONLY when the VM is transforming the data (combining with another flow, debouncing, etc.) or when the repository exposes a cold `Flow` that needs to be materialized. Neither applies for simple exposure.
+
+**Rule 3 — ViewModel-local state is only for per-screen presentation.**
+`_snoozeAction` (the "Saved!" overlay that auto-resets after 10s), `buttonState` (the confirm-flow machine), pending dialog visibility, text field input — these are legitimately per-screen. They stay in the VM as `MutableStateFlow` and don't need to survive the VM's lifecycle.
+
+**Rule 4 — Multiple ViewModel instances are allowed; they must converge via the repository, not via synchronization.**
+Home's `RemoteButtonViewModel` and Profile's `RemoteButtonViewModel` can both exist. They expose the same `snoozeState` (Rule 2 — the literal same object from the repo) and their own independent `snoozeAction` (Rule 3 — it's fine for Profile to show "Saved!" while Home shows nothing). No cross-VM communication is needed or allowed.
+
+**Rule 5 — ViewModel instantiation scope is explicit at every call site.**
+The principle is portable: every VM has exactly one owner declared at the call site, not inferred from the compositional default. Platform-specific mechanisms:
+
+- **Android:** use `activityViewModel(owner) { ... }` (see `androidApp/.../di/ActivityViewModels.kt`) with an explicit owner, or rely on the default Nav3 per-entry scope and document that the VM is per-screen-instance-of-presentation-state.
+- **iOS (future):** use `@StateObject` for per-screen ownership. Share across views via a parent view's `@StateObject` passed as `@ObservedObject` — avoid `@EnvironmentObject` for VMs holding domain pointers, since environment lookup is implicit.
+
+No implicit `LocalViewModelStoreOwner.current` on Android; no implicit `@EnvironmentObject` on iOS.
+
+**Rule 6 — Repositories are `@Singleton` in DI; ViewModels are not.**
+`@Singleton` on a ViewModel is a code smell: it implies either (a) the VM is holding domain state (→ move it to a Repository) or (b) you're trying to share presentation state across screens (→ rethink — either it's not really presentation state, or the screens should share a single owner).
+
+**Rule 7 — Background/domain work on `externalScope`; UI reactions on `viewModelScope`.**
+Repository writes, state mutations, and background refresh happen on `externalScope` (= application scope). The VM's auto-reset timer, the "Saved!" fade, navigation events that a screen triggers — those are on `viewModelScope`. Mixing is how we got the stranded-state bug in ADR-019.
+
+**Rule 8 — Dead ViewModel references are deleted, not tolerated.**
+If `val x = viewModel { ... }` is never read, remove it. A ghost VM running observer coroutines for no subscriber is a resource leak and a debugging trap.
+
+**Rule 9 — Observability-first.**
+When preventing a class of bug is complex or expensive, prioritize the ability to identify and understand it from production logs. State-critical writes, lifecycle transitions, and error paths emit grep-able log lines.
+
+Concretely:
+- Every `_state.value = ...` write at the repository layer emits a `Logger.i/d` line identifying the flow, new value, and write source (see ADR-022 for the shape).
+- Auth-state transitions log the direction (`Unauthenticated → Authenticated(email=...)` or vice versa).
+- Error paths log the reason, not just "failed."
+- Raw HTTP response bodies are logged at the data-source boundary for state-critical decodes (ADR-020 is the specific case).
+- kermit (`co.touchlab.kermit:kermit`) is the logging library; KMP-safe.
+
+Rationale: the android/164-168 snooze bug was invisible in logs until we added raw-body logging in PR #352. Every future cross-user leak, write-ordering race, or lifecycle-edge bug should be diagnosable from `adb logcat` (or iOS equivalent) without a debug build. Observability at state boundaries is cheap and removes the worst failure mode — "user reports a problem we cannot reproduce."
+
+This does not replace prevention (Rules 1-8 still apply). When prevention is ambiguous or expensive (race conditions, rare races, device-specific timing), Rule 9 makes the bug observable so we can diagnose-then-fix rather than guess-then-guess.
+
+### How the snooze path looks under these rules
+
+```
+NetworkSnoozeRepository (@Singleton)
+  └─ snoozeStateFlow: MutableStateFlow<SnoozeState>           ← Rule 1
+        │ writes happen on externalScope (Rule 7)
+        │ exposed as: observeSnoozeState(): StateFlow<SnoozeState>
+        │             (not widened to Flow — callers get .value)
+        ▼
+  ObserveSnoozeStateUseCase.invoke(): StateFlow<SnoozeState>  ← passthrough, Rule 2
+        │ same object, no transform
+        ▼
+  DefaultRemoteButtonViewModel (N instances allowed, Rule 4)
+        │ val snoozeState: StateFlow<SnoozeState> = observeSnoozeStateUseCase()
+        │   ← same object every VM exposes (Rule 2)
+        │ private val _snoozeAction = MutableStateFlow(Idle)
+        │   ← per-VM presentation state (Rule 3)
+        ▼
+  Compose collectAsState — reads the SAME StateFlow regardless of which VM
+```
+
+After this change, three VMs don't multiply the truth. They multiply only their local overlays, which is what we want.
+
+### Trade-offs and open choices
+
+- **`StateFlow` in the domain interface.** Rule 2 asks repositories to expose `StateFlow<T>`, not `Flow<T>`. This is a stronger contract: it guarantees a current value, enables `.value` synchronous reads, and prevents downstream `stateIn` layers. The cost is one more thing a Repository implementation has to commit to. Worth it for domain state where "there is always a current value" is true by construction.
+- **Per-screen VM that wraps shared state.** A VM that *only* forwards shared state and has no local presentation state is a sign the VM may not be needed at all — the Composable could consume the UseCase directly. Keep the VM if it owns local state; delete it if it's a passthrough shell.
+- **Instance-state VMs (e.g., auth's SignInClient).** `AuthViewModel` holds a `GoogleSignInClient` that can't safely be duplicated per nav entry. It uses `activityViewModel(...)` explicitly. That's the correct pattern for "state is per-instance but that instance must be shared" cases — distinct from "state is domain-wide and lives in a repo."
+
+### Consequences
+
+- The workaround in PR #354 (direct write to `_snoozeState` from the return value) becomes unnecessary. Applying Rule 2 removes `_snoozeState` entirely; the VM's `snoozeState` points at the repo's flow.
+- Tests that build a single VM directly are still valuable, but they can't catch scoping bugs alone. Add one integration test per feature that wires the full DI graph (see `SharedRepositoryUseCasesTest` as the model).
+- New features that introduce shared state must add the Repository first, with its `StateFlow` observable, and only then expose it via UseCase + VM property. "Put it in a VM for now" is not a valid stepping stone.
+
+### Enforcement
+
+- Code review: reject `private val _xState = MutableStateFlow(...)` in a VM when `x` is a domain concept owned by a repository.
+- Lint/architecture check: consider adding a Detekt rule that flags VM properties whose type is `StateFlow<T>` backed by a `MutableStateFlow<T>` where `T` matches a known domain state type. (Not automated yet — open task.)
+- Every repository exposing state should export `StateFlow`, not `Flow`. If it exports `Flow`, document why (cold/transformed).
+
+### Related
+
+- `archive/VIEWMODEL_SCOPING_ISSUE.md` — the background analysis that motivated this ADR.
+- ADR-018 — reactive auth listener; an instance of Rule 1 applied to auth state.
+- ADR-019 — repository side-effects on `externalScope`; an instance of Rule 7.
+- `ActivityViewModels.kt:31` — `activityViewModel(...)` helper for explicit-owner scoping.
+
+## ADR-022: `StateFlow` at the Repository Boundary for State-y Data
+
+**Status:** **Accepted and enforced (2026-04-19, restored on android/174).**
+Partially supersedes ADR-013.
+
+**Enforcement:**
+- `checkViewModelStateFlow` bans `MutableStateFlow<T>` in `*ViewModel.kt`
+  when `T` matches `bannedStateTypesInViewModels` (`SnoozeState`,
+  `AuthState`, `FcmRegistrationStatus`). Extend the list as more state-y
+  types migrate.
+- `checkSingletonGuard` requires `@Singleton` on every
+  `provide<State-owning-Repository>` method in `AppComponent`.
+- `ComponentGraphTest.*IsSingleton` runs `assertSame` on every `@Singleton`
+  entry point — without this, `@Singleton` is a lie. See
+  `docs/DI_SINGLETON_REQUIREMENTS.md`.
+
+### Timeline: withdrawal and restoration
+
+- **android/170** — shipped this ADR's original rollout (PR #358–#365).
+  Users reported the snooze card title did not update after saving; the
+  overlay (VM-local `SnoozeAction`) did. Matched the android/167 symptom.
+- **android/171** — rollback to android/169's commit via `--confirm-hash`.
+- **android/172** — VM-local `_snoozeState` mirror + direct write hotfix
+  (PR #354 pattern). ADR-022 Rule 2 marked **Withdrawn** on the
+  assumption that the pass-through pattern itself was unreliable.
+- **android/173** — Phase 2f: fixed the kotlin-inject `@Singleton`
+  scoping bug. The generated `InjectAppComponent.kt` had been 15 lines of
+  empty subclass; no `@Singleton` provider was cached. Multiple
+  `NetworkSnoozeRepository` instances coexisted — POST wrote to one
+  flow, VM observed another. Pass-through had been correct all along;
+  the DI was lying about singletons.
+- **android/174** — removed the android/172 hotfix, restored the
+  pass-through. On device: snooze still works. The DI fix was the
+  complete root cause. ADR-022 Rule 2 **restored**.
+
+Lesson: the debug instrumented tests passed because they construct a
+single VM with a single manually-wired repo — the production multi-
+instance DI graph was never exercised. `ComponentGraphTest.*IsSingleton`
+is now the load-bearing regression guard; without it, a future
+`AppComponent` drift would silently resurrect the same bug.
+
+### Glossary
+
+- **State-y data** (ADR-022) == **domain state** (ADR-021). Data that has a current value at any point in time; observable; owned by a `@Singleton` repository.
+- **Event-y signals** (ADR-013, ADR-022) == transient signals where every intermediate value matters. Distinct from presentation state (ADR-021).
+- **Presentation state** (ADR-021) — per-screen UI state (spinners, overlays, form input) that lives in ViewModels.
+
+### Context
+
+ADR-013 established that `StateFlow` is a state primitive (not an event primitive) and, based on the PushStatus SENDING→IDLE conflation bug, banned `StateFlow` below the ViewModel layer. Applied uniformly, that rule forced every repository exposing long-lived state to widen its interface to `Flow<T>` — even when the underlying storage was a `MutableStateFlow`. Downstream, ViewModels then held `private val _xState: MutableStateFlow<T>` fields that mirrored the repository via `init { observeX().collect { _xState.value = it } }`.
+
+That mirror pattern produced the android/164-168 snooze-state propagation bug (see `archive/VIEWMODEL_SCOPING_ISSUE.md`). Three `DefaultRemoteButtonViewModel` instances coexisted at runtime (Activity scope, Home nav entry, Profile nav entry) because of `rememberViewModelStoreNavEntryDecorator<Screen>()` and DI providers that weren't `@Singleton`. Each VM held its own `_snoozeState` mirror. Under production conditions the Profile-entry VM's observer coroutine failed to forward an emission, while the other two mirrors updated correctly — and Compose was bound to the one that silently missed it. PR #354 shipped a workaround (direct write to `_snoozeState` from the suspend return value). ADR-021 captured the principles. This ADR refines ADR-013 with the shape change that makes the bug structurally impossible.
+
+ADR-013 was right about event-y signals. It was wrong to generalize to state-y data.
+
+**Decision:** Distinguish data by nature and pick the observable type accordingly.
+
+### The three categories
+
+1. **State-y data with a current value.** Auth state, snooze state, current door event, server config, FCM registration status. There is always an answer to "what is the current value?" These belong in a `@Singleton` repository, owned as `MutableStateFlow<T>` internally, **exposed as `StateFlow<T>`** at the repository interface. UseCases that observe this data are passthroughs: `operator fun invoke(): StateFlow<T> = repository.xState`. ViewModels that present this data to Compose expose the same reference: `val xState: StateFlow<T> = observeXUseCase()`. **ViewModels do not hold a `MutableStateFlow<T>` mirror** of state-y data owned by a repository.
+
+2. **Cold / list-y data.** Recent door events (Room query), log counts (Room query). There is no naturally-current value; new collectors trigger new upstream work. Exposed as `Flow<List<T>>` (or `Flow<T>`) at the repository interface. A screen's ViewModel may convert to `StateFlow` via `stateIn(viewModelScope, WhileSubscribed(5_000), initial)` at the UseCase boundary if it needs `.value` — this is the one legitimate place to wrap, because the cold flow genuinely has no current value.
+
+3. **Event-y / transient signals.** Button state machine transitions, action-overlay reset timers, one-shot command outcomes, snackbar triggers. ADR-013's ban on `StateFlow` still applies — conflation drops signals. Use `suspend fun` return values for command completion (ADR-011, ADR-013), `Channel` or `MutableSharedFlow(replay=0)` for cross-component events, `MutableStateFlow` only inside a ViewModel when the signal is UI-local and its conflation is acceptable (e.g., the button state machine where the UI cares only about the latest state).
+
+### StateFlow lifecycle pattern: always-on collector in repo `init`
+
+State-y repositories own their `StateFlow` via an explicit always-on collector pattern, not via the `stateIn` operator. This is the shape `NetworkSnoozeRepository` already uses after ADR-019:
+
+```kotlin
+class NetworkSnoozeRepository(
+    private val externalScope: CoroutineScope,
+    // ...
+) : SnoozeRepository {
+    private val _snoozeState = MutableStateFlow<SnoozeState>(SnoozeState.Loading)
+    override val snoozeState: StateFlow<SnoozeState> = _snoozeState
+
+    init {
+        // Always-on collector: owns the translation from upstream (Room, listener,
+        // HTTP fetch) to the exposed StateFlow. Lifetime is process-lifetime via
+        // externalScope — no subscriber-count thrash, no WhileSubscribed traps.
+        externalScope.launch {
+            upstreamCurrentEvent.collect { _snoozeState.value = mapToState(it) }
+        }
+    }
+
+    override suspend fun snoozeNotifications(...): AppResult<SnoozeState, ActionError> = ...
+}
+```
+
+**Do not use `stateIn(externalScope, WhileSubscribed(5_000), initial)` for repo-owned state.** `WhileSubscribed` cancels the upstream collector when subscriber count drops to zero for the timeout window. Under production conditions (navigation, backgrounding, the multi-VM pattern from `archive/VIEWMODEL_SCOPING_ISSUE.md`), subscriber count thrashes, and an emission that lands during the dead window is silently lost on upstream restart. This is the exact class of bug ADR-022 is trying to eliminate — it would just move from the ViewModel layer to the repository layer.
+
+- `stateIn(externalScope, Eagerly, initial)` is safer than `WhileSubscribed` but less explicit about ownership than the collector-in-`init` pattern.
+- The always-on collector makes the translation logic a named function (`mapToState`), makes the write points easy to audit, and is trivial to lint (see Enforcement).
+
+### Interface shapes
+
+```kotlin
+// State-y data — repository owns the StateFlow
+interface SnoozeRepository {
+    val snoozeState: StateFlow<SnoozeState>
+    suspend fun snoozeNotifications(...): AppResult<SnoozeState, ActionError>
+    suspend fun fetchSnoozeStatus()
+}
+
+interface AuthRepository {
+    val authState: StateFlow<AuthState>
+    suspend fun signInWithGoogle(...): AuthState
+    suspend fun signOut()
+}
+
+// Mixed — state-y current + cold list
+interface DoorRepository {
+    val currentDoorEvent: StateFlow<DoorEvent?>     // state-y
+    fun observeRecentEvents(): Flow<List<DoorEvent>> // list-y, cold
+    suspend fun fetchCurrentDoorEvent(): AppResult<DoorEvent, ActionError>
+}
+
+// Event-y — ADR-013's rules unchanged
+interface RemoteButtonRepository {
+    suspend fun pushButton(...): AppResult<Unit, ActionError>
+    // NOT exposed: val pushStatus: StateFlow<PushStatus>  (the ADR-013 bug)
+}
+```
+
+### ViewModel shape under this ADR
+
+```kotlin
+class DefaultRemoteButtonViewModel(
+    observeSnooze: ObserveSnoozeStateUseCase,
+    // ...
+) : ViewModel() {
+    // Domain state — passthrough reference to the repo's StateFlow.
+    // No _snoozeState mirror, no init { collect } observer.
+    val snoozeState: StateFlow<SnoozeState> = observeSnooze()
+
+    // Presentation state — stays in the VM. Event-y per ADR-013.
+    private val _snoozeAction = MutableStateFlow<SnoozeAction>(Idle)
+    val snoozeAction: StateFlow<SnoozeAction> = _snoozeAction
+
+    // ButtonStateMachine output — event-y machine, VM-local.
+    val buttonState: StateFlow<RemoteButtonState> = stateMachine.state
+}
+```
+
+### Worked example: snooze has both state-y and event-y fields
+
+A single user action (tapping "Save 1 hour") drives both kinds of data on the same feature, and they belong in different places:
+
+- `SnoozeState` is **state-y**. There's a current value — the user is either snoozing (until X) or not. Every screen that shows snooze reads the SAME value. Lives in `SnoozeRepository.snoozeState: StateFlow<SnoozeState>`. Passthrough through UseCase. Passthrough through every VM.
+- `SnoozeAction` (`Idle / Sending / Succeeded.Cleared / Succeeded.Set / Failed.*`) is **event-y presentation state**. A "Saved!" overlay fades after 10 seconds. Each screen has its own (Profile's "Saved!" doesn't apply to Home). Lives in `DefaultRemoteButtonViewModel._snoozeAction: MutableStateFlow<SnoozeAction>`. Per-VM.
+
+The separation is the reason ADR-022 permits multiple VMs (Rule 4 in ADR-021) without state divergence: they share the state-y data by reference through the repository singleton, and they legitimately hold independent event-y presentation state for their own screen.
+
+### Write-ordering guarantees (last-writer-wins)
+
+Multiple writers can target the same repository `StateFlow` concurrently: an always-on collector driven by upstream, a `suspend` command's success branch, a post-action refetch. All run on `externalScope` (per ADR-019). `externalScope`'s dispatcher is a thread pool; two coroutines can resume on different threads and call `_state.value = ...` in undefined order. `MutableStateFlow.value` writes are atomic (no torn state) but not strictly ordered.
+
+**The rule:** accept last-writer-wins semantics for repository `StateFlow` writes. Do not add a `Mutex` or `limitedParallelism(1)` dispatcher globally. If a specific repository proves to need strict write ordering (observed race in production), add a `Mutex` **inside that repository** around writes to its `_state.value = ...`.
+
+Justification: in practice, concurrent writers target the same server-side truth. Even if a stale read overwrites a fresh write for one poll cycle, the next poll converges. The real-world failure mode is a ~60-second UI flash, not a permanent wrong value. Adding mutex ceremony at every write site across every repo is architectural tax for a theoretical concern — and would have to be added in every new repo by convention. State-write logging (see Observability below) makes any real instance of the race identifiable in production via `adb logcat`, which is more actionable than preventing it at the cost of complexity.
+
+### Sign-out and user-scoped state
+
+Singleton repositories outlive user sessions. State written during user A's session is still in memory when user B signs in on the same device. The rule:
+
+**Repositories that own user-scoped state must observe `AuthRepository.authState` on `externalScope` and reset their `_state.value` to a neutral initial value on transition to `AuthState.Unauthenticated`.** User-scoped state includes per-user caches (snooze, user-specific FCM tokens), anything the user can only change while signed in. Global state (server config, device-wide door events) is not user-scoped.
+
+**Implementation timing:** this rule is documented now but its per-repo implementation is Phase 2 work. Our current exposure is narrow (home-IoT app, typically single-user per device). Adding clearing logic to every repo in Phase 1 expands scope; adding the log line that would make cross-user leakage detectable is Phase 1 (see Observability). If the log ever shows evidence of leakage, Phase 2 prioritizes the retrofit.
+
+### Observability — state-write logging
+
+Per ADR-021 Rule 9 (observability-first), every `_state.value = ...` write at the repository layer emits a log line with flow name, new value, and write source. Shape:
+
+```kotlin
+private val _snoozeState = MutableStateFlow<SnoozeState>(Loading)
+override val snoozeState: StateFlow<SnoozeState> = _snoozeState
+
+init {
+    externalScope.launch {
+        upstreamCurrentEvent.collect { event ->
+            val newState = mapToState(event)
+            _snoozeState.value = newState
+            Logger.i { "snoozeStateFlow <- $newState (source=upstream)" }
+        }
+    }
+}
+
+override suspend fun snoozeNotifications(...): AppResult<SnoozeState, ActionError> {
+    // ... HTTP POST ...
+    val newState = SnoozeState.Snoozing(serverResponse.endTime)
+    _snoozeState.value = newState
+    Logger.i { "snoozeStateFlow <- $newState (source=POST)" }
+    return AppResult.Success(newState)
+}
+```
+
+This generalizes ADR-020's raw-body logging pattern (a specific instance) to all state-critical writes. The cost is a few log lines per event; the benefit is `adb logcat | grep snoozeStateFlow` shows the entire state trajectory for diagnosis. Race conditions, stale caches, and cross-user leakage become visible from the log even when we can't prevent them.
+
+kermit (`co.touchlab.kermit:kermit`) is KMP-safe; this rule applies on Android today and iOS when it lands.
+
+### What this supersedes from ADR-013
+
+- ✗ "StateFlow lives only in ViewModels." **Superseded** for state-y data.
+- ✗ "No UseCase, Repository, or data layer may expose StateFlow without explicit approval." **Superseded** for state-y data. The default shape for state-y data IS `StateFlow`.
+- ✓ "Every StateFlow has an initial value." **Retained.**
+- ✓ "If every intermediate value matters (SENDING → IDLE), do not use StateFlow — use suspend return, Channel, or callback." **Retained and reinforced.**
+- ✓ "ADR-011 — `suspend fun` return = completion signal. Don't add a parallel StateFlow for the same information." **Retained.**
+- The "Current violations to review" list (AuthRepository.authState, SnoozeRepository.snoozeState as StateFlow) is resolved: they become StateFlow by design.
+
+### Testing story
+
+Fake repositories for state-y data follow a uniform shape:
+
+```kotlin
+class FakeSnoozeRepository : SnoozeRepository {
+    private val _snoozeState = MutableStateFlow<SnoozeState>(NotSnoozing)
+    override val snoozeState: StateFlow<SnoozeState> = _snoozeState
+    fun setSnoozeState(s: SnoozeState) { _snoozeState.value = s }
+    override suspend fun snoozeNotifications(...): AppResult<SnoozeState, ActionError> = ...
+}
+```
+
+Tests mutate `_snoozeState.value` directly; observers see every distinct value via StateFlow's per-subscriber replay. No `Dispatchers.setMain`, no coroutine scheduling tricks, no VM-scope test plumbing for pure observation paths.
+
+**Reference-identity tests** lock in Rule 2 from ADR-021:
+
+```kotlin
+@Test fun vmSnoozeStateIsSameInstanceAsRepoStateFlow() {
+    val fake = FakeSnoozeRepository()
+    val vm = buildVm(fake)
+    assertSame(fake.snoozeState, vm.snoozeState,
+        "VM must expose repo's StateFlow by reference (ADR-022)")
+}
+```
+
+Without `assertSame`, the no-mirror rule is unenforced — a test that compares `.value` passes even when a mirror has been re-introduced.
+
+Feature-level integration tests wiring the real repository + multiple subscribers (per `SharedRepositoryUseCasesTest`) catch scoping regressions.
+
+### iOS bridging: Skie
+
+The project commits to **Skie** (`co.touchlab.skie`) as the iOS bridge for `StateFlow<T>` → `@Published` / `AsyncSequence` mapping when the iOS target lands. This is the same approach battery-butler uses. Constraints this places on shared types:
+
+- `T` must be a value-type-friendly shape Skie can project: `data class`, sealed hierarchies, enum. Avoid generic interfaces in `T` that Skie can't bridge.
+- When adding a new state-y type under `domain/model`, validate Skie compatibility before using it as a `StateFlow<T>` domain property.
+
+Skie adoption is tracked as Phase 38 (see `MIGRATION.md`).
+
+### Consequences
+
+- PR #354's direct-write workaround (`_snoozeState.value = result.data` inside `snoozeOpenDoorsNotifications`) becomes unnecessary — the VM no longer has a `_snoozeState`. The line gets removed as part of the migration (see `MIGRATION_PLAN.md`).
+- Repositories commit to a tighter contract: "I always have a current value for this state." Fine for state-y data by definition.
+- `WhileSubscribed` is banned for repo-owned StateFlow. The always-on collector in `init` is the required pattern.
+- Last-writer-wins write ordering is accepted by default; per-repo `Mutex` is opt-in for observed races.
+- User-scoped state clearing on sign-out is a documented rule; per-repo implementation is Phase 2.
+- Every repository state-write emits a log line. Grep-able observability replaces exhaustive prevention for rare race/lifecycle corner cases.
+
+### Enforcement
+
+- **Convention test:** `SingletonGuardTask` (buildSrc) extends to require any class that implements a `*Repository` interface and owns a `MutableStateFlow` field be `@Singleton` in `AppComponent`.
+- **Lint extension:** `ViewModelStateFlowCheckTask` extends to ban `MutableStateFlow<T>` properties in a ViewModel when `T` appears in a curated allowlist of domain state types (starting with `SnoozeState`, `AuthState`, `DoorEvent?`, `ServerConfig?`, `FcmRegistrationStatus`). Structural match, not just regex on `stateIn`. Handles the subtle `.map { it }` / `.distinctUntilChanged()` mirror variants by failing on any `StateFlow<T>` VM property whose type matches the allowlist and whose RHS is not a direct UseCase invocation.
+- **Reference-identity test:** each state-y feature adds an `assertSame(fakeRepo.xState, vm.xState)` test. Without this test, the lint rule protects the syntax but the test protects the semantics.
+- **State-write log convention:** every `_state.value = ...` in a `data/**/repository/**` file has a `Logger.*` call on the same statement or next line. Enforced by code review initially; upgrade to lint after the migration settles.
+
+### Related
+
+- `archive/VIEWMODEL_SCOPING_ISSUE.md` — the bug post-mortem that motivated this.
+- `MIGRATION_PLAN.md` — rollout sequence.
+- ADR-011 — suspend return values carry completion signals.
+- ADR-013 — event-y signals stay out of StateFlow (retained; see inline supersede marks).
+- ADR-017 Rule 6 — scoped (see amendments) so the cold-Flow materialization pattern no longer conflicts with passthrough for state-y data.
+- ADR-018 — reactive auth listener. This ADR makes the "AuthRepository.authState as StateFlow" choice explicit instead of a pending review.
+- ADR-019 — externalScope for repository side-effects. State writes in repos happen on externalScope.
+- ADR-020 — raw-body diagnostic logging. The state-write log convention generalizes this.
+- ADR-021 — state ownership principles. This ADR is the concrete shape; Rule 9 (observability) anchors the logging convention.
+
+---
+
+## ADR-023: ViewModel Fetch Methods Must Set `Complete` Explicitly on Success
+
+**Status:** **Accepted (2026-04-24).** Motivated by the android/174 → 2.4.4 Home-tab regression (PR #518).
+
+### Rule
+
+Any ViewModel method that performs a fetch and drives a `LoadingResult<T>` state must set `Complete(result.data)` **explicitly** in the `AppResult.Success` branch. Do not rely solely on a Flow observer (Room-backed or otherwise) to clear Loading.
+
+```kotlin
+// REQUIRED shape
+fun fetchX() {
+    viewModelScope.launch(dispatchers.io) {
+        _xState.value = LoadingResult.Loading(_xState.value.data)
+        when (val result = fetchXUseCase()) {
+            is AppResult.Success -> {
+                _xState.value = LoadingResult.Complete(result.data)  // explicit
+            }
+            is AppResult.Error -> {
+                _xState.value = LoadingResult.Complete(_xState.value.data)  // restore
+            }
+        }
+    }
+}
+```
+
+### Why
+
+The repository's `MutableStateFlow<T>` dedups emissions by `==` equality. When the fetch writes the same value that's already cached (common — the door spends most of its time in one state, a snooze is usually unchanged between polls, etc.), `_repoState.value = sameValue` is a no-op: no emission, no observer fire.
+
+The ViewModel's `observeX().collect { _xState.value = Complete(it) }` init-block coroutine is subscribed and waiting for emissions. When none come, Loading latches forever. **FCM pushes mask the bug** because they deliver a state *change* — a distinct value — so StateFlow does emit.
+
+This is compatible with ADR-022's "expose by reference" rule. By-reference handles the *observation* path correctly. The fetch-triggered transition is a *presentation-state* concern (ADR-021) that the ViewModel must drive explicitly.
+
+### Symmetry with the Error branch
+
+The `AppResult.Error` branch has always set `Complete(_xState.value.data)` to restore prior state and exit Loading. Success should be symmetric — the Loading→Complete transition is ViewModel responsibility in both branches, not something to delegate to the observation side channel.
+
+### When this doesn't apply
+
+Pure observation flows that never enter a Loading state (e.g. `authState: StateFlow<AuthState>` exposed by reference per ADR-022) are unaffected. This rule applies only to `LoadingResult<T>`-wrapped presentation state that toggles through an explicit Loading phase.
+
+### Enforcement
+
+No static check yet. If this regresses twice, add a detekt or custom Gradle check that flags `is AppResult.Success -> {}` (empty body) or `is AppResult.Success -> {` without a `_xState.value =` line within the branch.
+
+### Motivating bug
+
+PR #518 / android 2.4.4 / server/18–20 timeline:
+
+1. Home-tab UI stuck on "Loading" after app launch or tap-to-refresh.
+2. FCM pushes cleared the Loading — narrowed the bug to the fetch path, not observation.
+3. Rolled back server/18 → server/19 (= server/17 code) to rule out server regression.
+4. 4-agent parallel diagnostic; 2 independently converged on the missing `Complete(result.data)` in `DefaultDoorViewModel.fetchCurrentDoorEvent` and `fetchRecentDoorEvents`.
+5. Fix: add the explicit setter to both Success branches. Ship 2.4.4 and re-release server as server/20 (same tree as server/18).
+
+### References
+
+- PR #518 — the fix.
+- ADR-021 — presentation state vs domain state.
+- ADR-022 — `StateFlow` at the repository boundary (observation by reference).
+
+## ADR-024: Accept Play Console "Missing Native Debug Symbols" Warning
+
+### Status
+
+Accepted — 2026-04-24.
+
+### Context
+
+Google Play Console shows a warning on every AAB upload:
+
+> This App Bundle contains native code, and you've not uploaded debug symbols. We recommend you upload a symbol file to make your crashes and ANRs easier to analyze and debug.
+
+The app ships no native code of its own: no `externalNativeBuild`, no CMakeLists, no `src/main/jniLibs/`. The native `.so` files inside the AAB come from transitive AAR dependencies:
+
+- `libandroidx.graphics.path.so` (Compose graphics)
+- `libdatastore_shared_counter.so` (DataStore)
+- `libsqliteJni.so` (Room)
+
+The standard "one-line fix" is `android { defaultConfig { ndk { debugSymbolLevel = "SYMBOL_TABLE" } } }`. This triggers AGP's `extractReleaseNativeSymbolTables` task, which extracts symbols from **unstripped** `.so` files and ships them in `BUNDLE-METADATA/com.android.tools.build.debugsymbols/`.
+
+### Decision
+
+Do not enable `debugSymbolLevel`. Accept the Play warning as-is.
+
+### Rationale — empirical, not theoretical
+
+Added the config locally, ran `./MobileGarage/gradlew -p MobileGarage :androidApp:bundleRelease`, and inspected the AAB:
+
+- `extractReleaseNativeSymbolTables` task ran successfully.
+- Output directory `build/intermediates/native_symbol_tables/release/.../out/` was **empty**.
+- AAB file size: unchanged (9.1 MB).
+- No `BUNDLE-METADATA/com.android.tools.build.debugsymbols/` entry in the AAB.
+
+The config is a no-op for this app because the bundled `.so` files from the three AARs above are **pre-stripped** at the AAR packaging step — AGP has nothing to extract. This is standard practice for Google's own AARs (size optimization).
+
+The warning is therefore cosmetic. Native ANRs/crashes in these third-party libs would still show as raw addresses in Play Console — but those are rare, and paying the config cost for no benefit is worse than accepting the warning.
+
+### Detection — why local inspection, not CI
+
+`scripts/validate.sh` builds only `assembleDebug`. The release workflow (`.github/workflows/release-android.yml`) is the first place `bundleRelease` runs. A broken release-bundle config only surfaces on a user-initiated `android/N` tag push, which is too late. Any future re-evaluation must run `bundleRelease` locally and inspect the AAB before shipping.
+
+### When this decision might change
+
+Revisit if **any** of the following becomes true. Each trigger has its own verification step — do not re-enable the config without re-running the empirical check.
+
+1. **We add our own native code.** New `externalNativeBuild` block, new CMakeLists, or unstripped `.so` files placed in `src/main/jniLibs/`. In this case `debugSymbolLevel` is the correct fix and the warning's advice applies directly to our code.
+2. **We adopt Firebase Crashlytics with NDK support.** The Crashlytics NDK plugin uses a separate symbol-upload path (`uploadCrashlyticsSymbolFileRelease`), not `debugSymbolLevel`. Wiring that up is a real feature addition, not a one-line fix, and only worth it if we're using Crashlytics overall.
+3. **A direct dep starts shipping unstripped `.so` files.** Unlikely — size-conscious libs strip — but possible after an AAR version bump. Signal: AAB size grows unexpectedly after a dep upgrade. Verification: add `debugSymbolLevel = "SYMBOL_TABLE"` temporarily, run `bundleRelease`, check `unzip -l <aab> | grep debugsymbols`. If the entry appears, keep the config; if not, drop it again.
+4. **Play changes the warning to blocking.** Would force our hand regardless of the above.
+
+### How to re-verify before re-enabling
+
+```bash
+./MobileGarage/gradlew -p MobileGarage :androidApp:bundleRelease -PVERSION_CODE=99999
+AAB=MobileGarage/androidApp/build/outputs/bundle/release/*.aab
+unzip -l $AAB | grep -i debugsymbols   # Expected output if config works: non-empty
+```
+
+If that grep returns nothing, the config is not doing work on this codebase and should not be merged.
+
+### References
+
+- PR (dropped) — `chore/upload-native-debug-symbols` branch, tested locally and discarded after inspection showed empty symbol output.
+- [AGP docs: Include native symbol files](https://developer.android.com/studio/build/native-debug-symbols) — describes `debugSymbolLevel` and which `.so` files it can process.
+- [Firebase Crashlytics NDK](https://firebase.google.com/docs/crashlytics/ndk-reports) — separate mechanism, only relevant if Crashlytics is adopted.
+
+## ADR-025: Door Animation — Tween During Motion, Spring at Rest
+
+### Status
+
+Accepted — 2026-04-25.
+
+### Context
+
+The garage door icon (`GarageIcon`) translates the server-reported `DoorPosition` into a vertical door offset. Before this decision, motion states animated via `rememberInfiniteTransition` with a 12-second linear `tween` looped indefinitely (`infiniteRepeatable`), and the composable tree swapped to a static frame on terminal state. This produced two visible bugs:
+
+1. While a door was opening or closing, the icon cycled through opening → closed → opening forever, never settling at the predicted target.
+2. When the sensor confirmed the terminal state, the composable swap snapped the icon from "wherever it happened to be in the loop" to the terminal position — a discontinuous jump.
+
+### Decision
+
+Replace the looping animation with a single hoisted `Animatable<Float>` driven by `LaunchedEffect(doorPosition)` that calls `animateTo(target, spec)` on every state change. Two animation specs:
+
+- **Tween** (linear, 12s) for `OPENING` and `CLOSING` — matches the roughly constant-speed motion of a real garage door.
+- **Spring** (`StiffnessVeryLow`, `DampingRatioNoBouncy`, `initialVelocity = 0f`) for terminal/error/unknown — settles to target with no overshoot.
+
+The target offset is a **pure function of state alone** (`targetPositionFor(state)`), never of the current animation value. Same state always produces the same target. Mappings are exhaustive `when` over `DoorPosition` with no `else`, so adding an enum value fails to compile until every mapping is updated.
+
+The contract — full state table, position constants, trade-offs, verification map — lives in [`DOOR_ANIMATION.md`](DOOR_ANIMATION.md).
+
+### Rationale
+
+**Why hoist the `Animatable` above the state-routing `when`.** The pre-refactor `GarageIcon` dispatched to per-state composables (`Opening`, `Closing`, `Open`, `Closed`, `Midway`), each owning its own animation state. State changes destroyed and re-created the animation, defeating the premise of "one continuous animation across state changes." The hoisted `Animatable` keeps a single position state across the lifetime of the icon.
+
+**Why pure target.** Animation behavior must be deterministic and unit-testable. If the target depended on the current animation value (e.g., "spring to mid-position only if we're not already past it"), the same state could produce different visual outcomes depending on timing. That's untestable and surprising. With a pure target, the *trajectory* (how the spring or tween gets there) is owned by the framework — that physics is correct by construction and doesn't need test coverage.
+
+**Why ignore `lastChangeTimeSeconds` for initial position.** When the app opens with the door already in motion, we could compute elapsed time (`now() - lastChangeTimeSeconds`) and seed the icon at the predicted current position. But clock drift between the device and the server is large enough that this would silently put the icon in a wrong position — a worse failure mode than starting from the "from" end and animating the full motion. Computing drift correctly would require a server-side time-sync endpoint and persistent measurement. Out of scope.
+
+**Why no `|current - target| < ε` skip.** A skip rule would make behavior depend on current animation value, defeating the "target is pure" principle. If `current ≈ target`, the spring is a near-noop with no perceived movement — there is no cost to letting it run.
+
+### Consequences
+
+- The animation never gets "stuck" looping; every state change converges to its target.
+- Mid-motion transitions (e.g., `OPENING → CLOSING`) reverse smoothly via `Animatable.animateTo` cancelling the in-flight tween and starting a new one from the current value.
+- `TOO_LONG` and error states spring to `MIDWAY_POSITION`. From `0.95` this means the icon visibly moves backward to `0.5` — that visible movement *is* the state-change signal, paired with existing color/glyph overlays already in the UI.
+- Opening the app mid-motion shows the icon "starting over" from the from-end rather than at the door's literal current position. Accepted trade-off.
+- Per-state composables (`Opening`, `Closing`, `Open`, `Closed`, `Midway`) are removed. The single `GarageIcon` is the public composable; previews call it with `static = true` for the recent events list use case.
+
+### Verification
+
+| Layer | What it verifies |
+|-------|------------------|
+| Unit (`GarageDoorAnimationMappingTest`) | All five pure mappings return the documented value for every `DoorPosition` |
+| Compile-time | Exhaustive `when` over `DoorPosition` — adding a value breaks the build |
+| Screenshot (`GarageDoorScreenshotTest`) | Each `DoorPosition` renders as expected in light + dark themes (static = true so no `mainClock` flakiness) |
+
+Intermediate-frame screenshot tests (e.g., 25/50/75% of motion) were considered and rejected: the AGP `screenshot` plugin does not expose `mainClock`, so deterministic mid-animation captures would require switching to Paparazzi/Roborazzi. Out of scope for the value gained.
+
+### When this decision might change
+
+- A future feature requires the icon to mirror the door's literal current position mid-motion (e.g., a "door %" indicator). Would need a clock-drift correction strategy first.
+- We adopt Compose Multiplatform for the iOS port. The mapping functions are pure Kotlin and would move to a shared module; the `Animatable` use is already idiomatic and portable.
+- A new `DoorPosition` value is added with motion semantics that don't fit "tween linearly to terminal." Would need a third spec branch.
+
+### References
+
+- [`DOOR_ANIMATION.md`](DOOR_ANIMATION.md) — the full contract, state table, and update procedure
+- [`AnimatableGarageDoor.kt`](../androidApp/src/main/java/com/chriscartland/garage/ui/AnimatableGarageDoor.kt) — mapping functions and overlays
+- [`GarageIcon.kt`](../androidApp/src/main/java/com/chriscartland/garage/ui/GarageIcon.kt) — `Animatable` host
+- [`GarageDoorAnimationMappingTest`](../androidApp/src/test/java/com/chriscartland/garage/ui/GarageDoorAnimationMappingTest.kt) — pinned mapping tests
+
+### Amendment — 2026-05-31: cold-open replays the slide from the start
+
+**Context.** The original decision (and the 2.16.4 follow-up that set `initialPositionFor == targetPositionFor`) meant a cold open — or any first view — of an in-motion door rendered the icon already at its target (OPEN for OPENING, CLOSED for CLOSING) with only the arrow overlay as the motion cue. The slide only played on a live state change while the icon was already composed. Users reading the screen on open saw the door "at the end," not animating. The 2.16.35 audit (`GarageDoorAnimationBehaviorTest`) had characterized and *locked* that behavior, which made the gap look intended.
+
+**Decision.** Replay the full open/close slide the **first time** a given motion event is observed (cold open / first view), and snap on **re-entry** of the same event (tab-switch / back-nav). The two are distinguished by a `DoorMotionKey(doorPosition, lastChangeTimeSeconds)` recorded in a `DoorAnimationMemory`. The slide always starts at the "from" end (`fromPositionFor`) regardless of how long the door has been in that state — **not** seeded mid-motion from elapsed time (the clock-drift objection in the original rationale stands; this amendment does not weaken it).
+
+**Why it stays in the view layer.** `DoorAnimationMemory` is a plain holder `remember`ed at the Compose root (`GarageApp`) and provided via `LocalDoorAnimationMemory` — no DI graph, no domain/usecase involvement. "Has this icon already played its slide?" is a presentation concern, so it lives in the Compose tree, not `AppComponent`. Root-level `remember` gives the exact lifetime we want: survives tab-switch / back-nav (root not disposed), resets on process death (when a cold open *should* replay).
+
+**Why the original "always animate on fresh composition" is still rejected.** Seeding unconditionally at the "from" end (pre-2.16.4) replayed the slide on *every* re-entry while the same transient event was still current — visible, repetitive, and not synced to the physical door. The memory gate is what makes "replay once per event" different from "replay on every composition."
+
+**What is preserved.** `targetPositionFor` is still a pure function of state. Live transitions (and mid-slide direction flips) still animate from the current `Animatable` value via `LaunchedEffect`, never from the seed — so the smooth-reversal consequence above is unchanged. `initialPositionFor` is removed; `fromPositionFor` replaces it. Contract + state table: [`DOOR_ANIMATION.md`](DOOR_ANIMATION.md) § Cold-open replay.
+
+## ADR-026: One ViewModel Per Screen
+
+### Status
+
+Accepted — 2026-04-26.
+
+### Context
+
+Several legacy screens reach into multiple ViewModels (`HomeContent` reaches 4: `DoorViewModel`, `AuthViewModel`, `RemoteButtonViewModel`, `AppLoggerViewModel`; `ProfileContent` reaches 3; `DoorHistoryContent` reaches 2). Each `viewModel { component.X }` call creates a separately-stored VM instance keyed to the NavEntry's ViewModelStore, so a single screen ends up owning N independent VMs that each subscribe to flows and run their own `init` blocks. The Composable layer becomes responsible for stitching VMs together, which puts orchestration logic above the ViewModel layer rather than inside it.
+
+When introducing the Function List screen we considered the legacy "reach into 3 VMs" pattern but rejected it. The screen needs six actions sourced from many UseCases — but the natural place to *aggregate* UseCases is a ViewModel, not a Composable.
+
+### Decision
+
+Each screen Composable file (matching `*Content.kt` under `androidApp/.../ui/`) imports at most one ViewModel. New screens get a dedicated VM that injects whatever UseCases that screen needs. Sub-component Composables (e.g. `RemoteButtonContent`) import zero VMs and accept state via parameters from their parent screen.
+
+A Gradle task `checkScreenViewModelCardinality` enforces this rule. Existing legacy multi-VM screens are listed in `screen-viewmodel-exemptions.txt`; the file is intended to shrink, not grow. The check also fails when an exempt screen has been refactored to comply (≤1 VM) but still appears in the exemptions file — so stale entries do not accumulate.
+
+`FunctionListViewModel` is the canonical example: one VM, six actions, six UseCases injected, no other VM dependencies.
+
+### Rationale
+
+**Why aggregate inside the VM, not in the Composable.** ViewModels exist precisely to keep orchestration off the Composable layer. A Composable that calls `viewModel { authViewModel }` and `viewModel { doorViewModel }` and `viewModel { remoteButtonViewModel }` is acting as an ad-hoc orchestrator — adding a feature usually means adding another `viewModel {}` line, growing the screen's coupling surface. Aggregating inside one VM means adding a feature is "inject another UseCase" instead of "wire another VM," which is a smaller, more reviewable change.
+
+**Why not 100% strict.** Refactoring `HomeContent`, `ProfileContent`, and `DoorHistoryContent` to single-VM aggregators is a meaningful change with non-trivial test impact. Blocking the rule on those refactors would either delay shipping unrelated work or push the fix to expedient one-line "exempt me" entries with no real intent to follow up. The exemptions file is explicit about which screens carry technical debt and forces visibility every time the file is opened.
+
+**Why count distinct VM logical names (stripping `Default` prefix).** A future screen might import both the interface (`AuthViewModel`) and the impl (`DefaultAuthViewModel`) — that's still one VM conceptually. The check normalizes them so it doesn't punish a stylistic import choice.
+
+**Why the file-level pattern (`*Content.kt`) instead of an annotation.** Adding an annotation to mark "this file is a screen" is more truthful but requires touching every existing screen and complicates Compose Preview tooling. The `*Content.kt` suffix is the existing convention; the file pattern is good enough until it isn't.
+
+### Consequences
+
+- New screens require a screen-specific ViewModel from day one, so the screen's VM file lives next to its UseCases in the `usecase/` module.
+- The exemptions file is a tracked artifact; entries without a "why" comment will read as noise during review.
+- Renaming a sub-component to end in `Content.kt` retroactively subjects it to the rule. Prefer suffixes like `Card`, `Section`, or `Bar` for sub-components.
+
+### When this decision might change
+
+- A larger UI refactor lands and naturally collapses the legacy multi-VM screens. At that point we delete the exemptions file and lift the "≤1 VM" rule to "exactly 1 VM."
+- Compose adopts a first-class "screen" annotation (or KMP/iOS port introduces a different convention). The check moves from file-pattern to annotation-pattern.
+
+### References
+
+- [`ScreenViewModelCheckTask.kt`](../buildSrc/src/main/kotlin/architecture/ScreenViewModelCheckTask.kt) — the check
+- [`screen-viewmodel-exemptions.txt`](../screen-viewmodel-exemptions.txt) — the exemptions list
+- [`FunctionListViewModel.kt`](../usecase/src/commonMain/kotlin/com/chriscartland/garage/usecase/FunctionListViewModel.kt) — canonical 1:1 example
+
+## ADR-027: ID Token State Lives Inside `AuthRepository`
+
+### Status
+
+Accepted — 2026-05-08.
+
+### Context
+
+The current `AuthState.Authenticated(user: User)` couples user identity (name, email) with a refreshable Firebase ID token (`User.idToken`). Three problems compound from that coupling:
+
+1. **The reactive listener loop has a side-effecting fetch.** `FirebaseAuthRepository.init { externalScope.launch { authBridge.observeAuthUser().collect { ... } } }` calls `authBridge.getIdToken(...)` inside the observer to construct `AuthState.Authenticated`. An "observe" should not also be a "fetch". When the token fetch returns null, the observer writes `AuthState.Unauthenticated` even when the user is signed in — the 2.13.2 sign-in regression was a deterministic instance of this path firing.
+2. **Token refreshes mutate the StateFlow.** `AuthRepository.refreshIdToken()` writes a new `Authenticated` instance to `_authState.value` (same is-authed boolean, fresh idToken field), causing every `combine(authState, ...)` observer to re-emit. The 2.12.1 `ButtonHealthFcmSubscriptionManager` flicker was a feedback loop caused by this churn; we patched it by combining on `it is AuthState.Authenticated` instead of the full state.
+3. **Every authed UseCase has to plumb the token.** UseCases call `EnsureFreshIdTokenUseCase`, then read `authState.value.user.idToken`, then pass the token down to a data source. The token is now visible at three layers — UseCase, repository, data source — even though only the data source needs it for the HTTP header.
+
+The agent-team exploration on 2026-05-08 surfaced three options for resolving the architectural debt: a full Ktor `SendPipeline` interceptor (Option A), an explicit `getIdToken` UseCase-level call (Option B), or a hybrid where the repository owns the fetch (Option C).
+
+### Decision
+
+Adopt **Option C**: the ID token is a private concern of `AuthRepository` and the network repositories that need it. UseCases never touch a token.
+
+Concretely:
+
+- `User` carries `name` and `email` only — no `idToken` field.
+- `AuthState` emits identity changes only. Token refreshes do NOT cause `_authState` re-emission.
+- `AuthRepository` exposes `suspend fun getIdToken(forceRefresh: Boolean): FirebaseIdToken?` for components that *legitimately* need a token. Network repositories call it; UseCases do not.
+- Each `Network*Repository` (`NetworkButtonHealthRepository`, `NetworkRemoteButtonRepository`, `NetworkSnoozeRepository`, `CachedFeatureAllowlistRepository`) gets `AuthRepository` injected and calls `getIdToken(forceRefresh = true)` itself before delegating to its data source.
+- `EnsureFreshIdTokenUseCase` is deleted. Its responsibility moves into the repositories that own the network call.
+- The reactive listener loop in `FirebaseAuthRepository` becomes pure: it maps `AuthUserInfo?` to `AuthState` directly, with no `getIdToken` call inside the collector.
+
+The 2.13.3 defensive `forceRefresh = false ?: forceRefresh = true` fallback in the listener loop is *removed* as part of the migration — the listener no longer fetches a token at all, so the fallback has nothing to defend against.
+
+### Rationale
+
+**Why Option C and not A.** Option A (Ktor `SendPipeline` interceptor that adds the bearer header for every authed request, with UseCases token-free) is also clean but ~2,400 LOC across ~30 files and couples the data layer to Ktor specifically. Option C achieves the same UseCase-side outcome (no token visibility) at ~500 LOC across ~13 files without the HTTP-library coupling. If we ever want Option A's interceptor on top of Option C, the per-repo `getIdToken` call deletes cleanly — Option C is forward-compatible with A.
+
+**Why Option C and not B.** Option B (explicit `getIdToken` at the UseCase level) eliminates the listener-loop issue but leaves the token visible to UseCases. The user's framing question — "can the ID token be contained in the Repository and not exposed to a UseCase" — is exactly Option B's failure mode. Option C keeps the rules of Option B (listener pure, on-demand fetch) and moves the fetch *down one layer* into the repos that legitimately need it.
+
+**Why repositories make the call, not data sources.** Two reasons. First, data sources are the seam where we fake out the network in tests; making them depend on `AuthRepository` would force every fake to wire in an auth fake, which is unnecessary friction. Second, the repository is the right unit of business logic — "fetch button health" is a business concern; the token is an implementation detail of how to authenticate the call.
+
+**Why delete `EnsureFreshIdTokenUseCase`.** The UseCase exists to refresh an expired token before passing it to a UseCase that uses it. Once UseCases don't see tokens, the refresh logic moves inline into the repo's `getIdToken(forceRefresh = true)` call. Keeping `EnsureFreshIdTokenUseCase` as a thin wrapper would just be a layer of indirection without value.
+
+**Why the 2.12.1 workaround in `ButtonHealthFcmSubscriptionManager` survives this change.** Once `_authState` no longer churns on token refresh, `combine(authState, ...)` would not re-emit unnecessarily — making the workaround technically redundant. But the workaround is correct on its own merits (combine on the boolean we actually care about) and removing it would be cosmetic. Defer that cleanup; this ADR doesn't mandate it.
+
+### Consequences
+
+- Listener loop is pure observation. Sign-in race in `FirebaseAuthRepository.kt` (the deterministic state encountered on 2.13.2) cannot recur structurally.
+- `AuthState` is stable across token refreshes. Future `combine(authState, ...)` callers don't have to defend against churn.
+- Test surface for UseCases shrinks. `FetchButtonHealthUseCase`, `PushRemoteButtonUseCase`, `SnoozeNotificationsUseCase` no longer need `EnsureFreshIdTokenUseCase` injected; their tests drop the corresponding fake.
+- `Network*Repository` test surface grows by one dependency (`AuthRepository`). Fakes need to provide a sensible `getIdToken` implementation.
+- The 2.13.3 defensive fallback is deletable post-migration; the listener no longer fetches a token at all.
+- Migration is two PRs: a contract change (drop `idToken` from `User`, add `getIdToken` to interface, rewrite listener, update fakes — compilation breaks at every call site that read `user.idToken`, which is the migration guide), then a call-site fix-up.
+
+### When this decision might change
+
+- Adopting Option A's Ktor interceptor on top of Option C. The per-repo `getIdToken` calls disappear; everything else stays. Forward-compatible.
+- Adding a non-Firebase auth backend. `AuthRepository.getIdToken` is bridge-shaped — it doesn't care which IdP produced the token. The interface holds.
+- Token semantics that don't match Firebase's "ID token + refresh on demand" model (e.g., short-lived access token with separate refresh dance). At that point `AuthRepository.getIdToken` would split into multiple methods or expose a richer credential type.
+
+### References
+
+- [`FirebaseAuthRepository.kt`](../data/src/commonMain/kotlin/com/chriscartland/garage/data/repository/FirebaseAuthRepository.kt) — current listener loop with the 2.13.3 defensive fallback; rewritten to be pure under Option C
+- [`AuthRepository.kt`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/repository/AuthRepository.kt) — interface gaining `getIdToken(forceRefresh)`
+- [`AuthModel.kt`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/model/AuthModel.kt) — `User` losing `idToken`
+- ADR-018 — reactive auth listener pattern (predecessor; this ADR sharpens the rule)
+- ADR-022 — `StateFlow` at the repository boundary (this ADR refines what's *in* that StateFlow)
+- 2.13.3 CHANGELOG entry — the defensive patch this refactor supersedes
+
+## ADR-028: Door-history pagination cursor lives in the `@Singleton` repository
+
+### Status
+
+Accepted — 2026-06-10.
+
+### Context
+
+The door-history endpoint evolved to return a windowed first page (last 7 days, max 100) plus cursor pagination — the client fetches older events with an opaque `nextPageToken` and a `hasMore`/end signal (server side: [`docs/EVENT_HISTORY_PAGINATION.md`](../../docs/EVENT_HISTORY_PAGINATION.md)). The Android side has to: (a) hold the current cursor token, (b) append older pages to the list rather than replacing it, and (c) drive a "load more on scroll-to-end" affordance with a loading + terminal state.
+
+The token is **server state tied to the cache contents** — it only makes sense alongside the events currently cached. The history list is already a repository-owned, Room-backed `StateFlow` with an always-on collector (ADR-022). Two placement questions follow: where does the token + load-more flags live, and how does the cache grow?
+
+### Decision
+
+1. **Pagination state lives in the `@Singleton` repository**, exposed as `paginationState: StateFlow<PaginationState>` (`nextPageToken`, `canLoadMore`, `isLoadingMore`) and passed through a UseCase and the ViewModel unchanged (ADR-022 — no `stateIn`, no mirror). The repo is the single source of truth; the VM and both wide-screen panes read the same instance, so they can't diverge across `NavBackStackEntry` churn.
+2. **The list grows by append, not replace.** `fetchRecentDoorEvents()` (initial / pull-to-refresh) replaces the cache and resets the token; `fetchOlderDoorEvents()` appends the next older page (`DoorEventDao.insertList`, REPLACE-on-PK dedups page-boundary overlap) and advances the token. `recentDoorEvents` stays the list-y Room `StateFlow` and re-emits the grown list automatically.
+3. **`isLoadingMore` is the repository's single source of truth + a reentrancy guard.** `fetchOlderDoorEvents()` no-ops (returns `Success(emptyList())`) when there's no token or a load is already in flight, so a scroll fling that fires the trigger twice can't double-append.
+4. **No Room schema migration.** Pagination only appends rows to the existing `DoorEvent` table; the token is in-memory and never persisted (re-established by the first-page fetch on cold start). `RoomSchemaTest` / the schema-drift check confirm the version is untouched.
+5. **No growth cap for v1.** The dataset is a single garage door; the list is bounded by how far the user scrolls. If profiling ever shows a problem, add a trim query after append — deferred, recorded here so the absence is a decision, not an oversight.
+
+### Rationale
+
+**Why the repo, not the VM.** Putting the token in the VM resurrects exactly the multi-instance divergence ADR-022 was written to kill: each fresh `NavBackStackEntry` VM would hold its own token, drifting from the shared Room cache (and from the other dashboard pane). The repo already owns the cache; the cursor that describes the cache belongs next to it.
+
+**Why append uses `insertList` (REPLACE), not a bespoke merge.** The entity PK is `lastChangeTimeSeconds + ":" + doorPosition`, so an overlapping page row replaces its duplicate for free; the `recentDoorEvents()` query already returns all rows newest-first, so appended older rows just extend the tail. No new DAO query, no manual de-dup.
+
+**Why `isLoadingMore` in the repo, not the VM.** The load-more fetch runs on the repo's external scope (ADR-019), and the scroll trigger must be debounced against the shared cache regardless of which VM is alive. One flag in the repo is the cleanest single source of truth; the VM passes it through.
+
+### Consequences
+
+- The history UI's "load more" footer distinguishes two terminal reasons: empty list = "no events at all"; non-empty + `!canLoadMore` = "reached the beginning" (matches the API's null-token semantics).
+- The scroll-to-end trigger lives in `HistoryContent` (`derivedStateOf` near-end + `LaunchedEffect`), gated on `canLoadMore && !isLoadingMore`, with the repo guard as a backstop.
+- Adding a different paged list later reuses the same shape: repo-owned `PaginationState` + append-vs-replace.
+
+### When this decision might change
+
+- Unbounded growth becomes a real problem (huge histories) → add a trim-after-append query + a cap constant; this ADR's point 5 flips.
+- A second paged surface appears → consider extracting a small reusable `PagedRepository<T>` rather than copying the pattern a third time.
+
+### References
+
+- [`PaginationState.kt`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/model/PaginationState.kt), [`DoorEventPage.kt`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/model/DoorEventPage.kt)
+- [`NetworkDoorRepository.kt`](../data/src/commonMain/kotlin/com/chriscartland/garage/data/repository/NetworkDoorRepository.kt) — `fetchOlderDoorEvents` + the reentrancy guard
+- [`docs/EVENT_HISTORY_PAGINATION.md`](../../docs/EVENT_HISTORY_PAGINATION.md) — the server token contract this consumes
+- ADR-022 — `StateFlow` pass-through (this ADR applies it to the new `paginationState`)
+
+## ADR-029: iOS ↔ Android — feature parity, platform-native design, one shared identity
+
+### Status
+
+Accepted — 2026-06-24.
+
+### Context
+
+The app ships on Android (Jetpack Compose) and iOS (SwiftUI), sharing business logic through the KMP layer (`domain`/`data`/`usecase`/`viewmodel`) consumed on iOS via the `:iosFramework` SKIE bridge (ADR-004, Phase 38). As iOS catches up to Android feature-by-feature, we need a stated principle for *how much* the two apps should match and *in which dimensions* — otherwise every new feature reopens an ad-hoc "should iOS look and behave exactly like Android here?" debate, and the apps drift either into divergent capabilities or into a non-native lowest-common-denominator UI.
+
+Until now this intent existed only implicitly, scattered across mechanical "mirror Android" decisions (same tab order, hand-translated theme tokens, mirrored release/changelog tooling) and a single "pixel-level Android parity is deferred polish" aside. The governing *why* was never written down.
+
+### Decision
+
+1. **Capability parity is the north star.** Every *meaningful* user feature should eventually exist on both platforms — a 1:1 capability mapping. "Eventually," not simultaneously: a feature may land on one platform first, but shipping it on only one platform *indefinitely* is a gap to close, not an accepted end state. Parity is tracked as direction, not enforced per-PR.
+
+2. **UI is platform-native and platform-idiomatic.** Each app uses its platform's conventions — SwiftUI navigation, sheets, `List`/Settings idioms, swipe-back on iOS; Material 3, navigation rail, 3-pane adaptive layout, edge-to-edge insets on Android. Divergence here is *expected and good* where it serves the platform. We do NOT pursue pixel-identical screens or port one platform's affordances onto the other.
+
+3. **One recognizable "Garage" identity spans both.** The shared brand through-line stays consistent regardless of platform: the door-status visualization, the door-state semantics and their color meaning (closed / open / opening-too-long / unknown), feature and section naming, status and warning copy intent, and the top-level tab structure (Home / History / Profile / Functions / Diagnostics). The KMP layer is the enforcement mechanism — it emits the same typed states (`DoorPosition`, `AuthState`, `SnoozeState`, `HomeAlert`, …) to both UIs, so the *meaning* cannot drift even when the *rendering* differs.
+
+4. **The shared layer is the parity contract.** New user-facing capability is built as shared `domain`/`usecase`/`viewmodel` first; both UIs then render it. A feature that can only be expressed in one platform's UI layer (no shared state) is a smell — prefer pushing the logic and state down so the other platform gets it nearly for free.
+
+### What parity does NOT mean
+
+- Not pixel-identical layouts, nor matching animations frame-for-frame.
+- Not matching platform-specific affordances 1:1 (Android's nav rail / 3-pane has no iOS equivalent; iOS's interactive swipe-back has no Android equivalent).
+- Not simultaneous release — platforms version independently (`android/N`, `ios/N`).
+
+> **Refined by [ADR-032](#adr-032).** The blanket "not pixel-identical" above is too coarse — some surfaces (the door visualization, state colors) *are* brand-locked, while chrome fully diverges. ADR-032 replaces this single principle with four **fidelity tiers** (Identity / Convergent / Native-idiomatic / Platform-exclusive) and a decision rule; the per-surface classification lives in [`UI_FIDELITY_TIERS.md`](./UI_FIDELITY_TIERS.md).
+
+### Current deliberate gaps (north star ≠ current state)
+
+iOS is mid-build; these are known, tracked in [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md), and are not violations of this ADR:
+
+- Animated door canvas (iOS renders door *state*; the animation is deferred polish).
+- FCM notification-receive → `DoorEvent` parsing.
+- Google Sign-In end-to-end verification on a device.
+- Device-signed build / push entitlement / TestFlight / App Store (Phase G).
+
+### Consequences
+
+- The new-feature checklist gains a question: *does this land on both platforms, and is the shared state in the KMP layer?* If iOS lags, file the follow-up rather than silently shipping Android-only.
+- iOS screens are reviewed against "native + identity-consistent," not "matches the Android screenshot."
+- The theme bridge (`iosApp/Core/Theme/` mirroring `androidApp/.../ui/theme/`) and the shared typed states are load-bearing for identity — a change to door-state semantics or colors must update both platforms.
+
+### When this decision might change
+
+- A platform-exclusive feature is deliberately chosen (e.g. a watchOS / widget surface) — record it as an explicit exception here.
+- The product intentionally splits into materially different iOS vs Android experiences (not anticipated).
+
+### References
+
+- ADR-004 — KMP migration target (shared business logic, native UI per platform).
+- [`MIGRATION.md`](./MIGRATION.md) Phase 38 — iOS "decisions locked" (tab order, theme, versioning).
+- [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md) § 1 — iOS construction status + the current gap list.
+- [`iosApp/README.md`](../iosApp/README.md) — iOS app status.
+
+---
+
+## ADR-030: iOS screenshot gallery — Prefire + swift-snapshot-testing, regenerate not assert
+
+### Status
+
+Accepted — 2026-06-26.
+
+### Context
+
+Android has a browsable visual reference of the whole UI: `@Preview` Composables are captured to committed reference PNGs by `scripts/generate-android-screenshots.sh`, surfaced as `SCREENSHOT_GALLERY.md`, and coverage-checked by `checkPreviewCoverage`. The PNGs are *references*, not pixel-perfect assertions — they're regenerated (`updateScreenshotTest`), never diff-gated in CI.
+
+iOS had no equivalent. The app had no Swift test target at all; iOS CI only built the app and ran the Kotlin `:iosFramework` test. There was no methodical way to browse "what each iOS component / screen looks like" in the repo, so visual review depended on ad-hoc `simctl io screenshot` runs. As iOS catches up to Android per ADR-029, it needs the same browsable-reference discipline.
+
+### Decision
+
+**Capture every SwiftUI `#Preview` to a committed reference PNG via Prefire + swift-snapshot-testing, with a "regenerate, don't assert" posture — mirroring the Android flow, not the Android tooling.**
+
+- **Tooling.** [Prefire](https://github.com/BarredEwe/Prefire) auto-discovers every `#Preview` and generates one snapshot test per preview; [pointfreeco/swift-snapshot-testing](https://github.com/pointfreeco/swift-snapshot-testing) renders them. Authors only write `#Preview`s (which they do anyway for the Xcode canvas) — no hand-written per-view snapshot code. This is the iOS analog of Android's `@Preview` → gallery flow.
+- **CLI generation, not the build-tool plugin.** Prefire's `PrefireTestsPlugin` (an SPM build-tool plugin) requires disabling Xcode's package-plugin execution sandbox machine-wide (`IDEPackageSupportDisablePluginExecutionSandbox`). We do NOT weaken that mitigation. Instead the prebuilt `prefire` CLI (vendored in the resolved Prefire package as a macOS artifact bundle) generates `SnapshotTests/PreviewTests.generated.swift` as a normal script step.
+- **The generated test file is NOT committed.** `PreviewTests.generated.swift` is fully derived from the `#Preview` macros + `.prefire.yml` + the Prefire version, so it is gitignored and regenerated — no committed generated code, and it cannot drift from the previews. The committed artifacts are the **outputs**: the reference PNGs and `SCREENSHOT_GALLERY.md`.
+- **Generation is a build step (best-practice codegen), so Xcode builds directly.** The test target has a pre-build Run Script phase that runs the `prefire` CLI before compiling. This mirrors the standard Gradle codegen idiom (e.g. battery-butler's Wire / `generateBuildConfig`: generated code is gitignored, produced by a build task whose declared output the compiler consumes, with the cache in the build dir). The Xcode mechanics: the phase **declares the file as an output** (so the build graph orders compilation after it and the new build system's "input file cannot be found" pre-flight passes on a fresh checkout where the file is absent), the file is referenced in Compile Sources via XcodeGen `optional: true` (so it's a member even when absent at project-generation time), Prefire writes only when content changes (no recompile churn), and its parse cache goes to `$DERIVED_FILE_DIR` (cleaned with DerivedData, never the source tree). Net: `Cmd-U` / `xcodebuild test` works with no prerequisite script run. The generated `.swift` stays in the (gitignored) source tree rather than `$DERIVED_FILE_DIR` only because XcodeGen's static Compile-Sources reference needs a fixed path — the standard SwiftGen/Sourcery/R.swift compromise. The app build and gating iOS CI never compile the test target (it builds only for the test action), so they're unaffected.
+- **Regenerate, don't assert.** `scripts/generate-ios-screenshots.sh` deletes the references and re-runs the snapshot target; swift-snapshot-testing's record-on-missing path writes the PNGs and reports each as a test "failure", which is expected and ignored (the script's success criterion is "PNGs exist"). The PNGs + `SCREENSHOT_GALLERY.md` are committed and browsed in the repo. **Snapshot tests are NOT part of gating CI** — they are a visual reference, exactly as on Android.
+- **Determinism.** The generated tests render at a fixed `DeviceConfig` (iPhone-class), so output is independent of which simulator runs them. Local rendering is real (the simulator renders for real), so — unlike the Android Layoutlib-blank-render problem on this Mac — iOS regen produces real PNGs locally.
+
+### Layout
+
+- `MobileGarage/iosApp/SnapshotTests/` — the snapshot test target (`GarageControlSnapshotTests`, a host-based unit-test bundle).
+- `MobileGarage/iosApp/SnapshotTests/PreviewTests.generated.swift` — generated by the `prefire` CLI; **gitignored**, regenerated by the test target's pre-build phase (and by the script).
+- `MobileGarage/iosApp/SnapshotTests/__Snapshots__/**` — committed reference PNGs.
+- `MobileGarage/iosApp/SnapshotTests/SCREENSHOT_GALLERY.md` — generated browsable gallery.
+- `MobileGarage/iosApp/.prefire.yml` — Prefire config (`target: GarageControl`, `imports: [shared]` so previews referencing Kotlin types compile in the generated tests).
+- `scripts/generate-ios-screenshots.sh` + `scripts/generate-ios-screenshot-gallery.py` — the regeneration pipeline.
+
+### What this does NOT do (yet)
+
+- **No CI integration.** Regeneration is a local step (like the Android local flow). Committed PNGs are the artifact. A future non-required workflow could regenerate + diff, but it is not a gate.
+- **No coverage check.** Android's `checkPreviewCoverage` ensures every `@Preview` is captured; the iOS equivalent (assert every `#Preview` has a generated test / recorded PNG) is a deferred follow-up. Today coverage is "whatever the last script run recorded."
+- **Screen-level coverage is limited by preview-ability.** Screens that take `component: NativeComponent` (a live DI graph) need a preview-friendly pure sub-view + fixtures before they can be captured. The first slice covers the `GarageDoorView` component + states; expanding screen coverage is the same pure-sub-view refactor ADR-029 already implies.
+
+### Consequences
+
+- Adding a new iOS component/screen with a `#Preview` and running `./scripts/generate-ios-screenshots.sh` adds it to the gallery — the methodical "browse what exists" surface Android already has.
+- The snapshot test target pulls two SPM packages (Prefire, swift-snapshot-testing) into the project; package resolution time in iOS CI grows modestly even though the target isn't built by the gating `xcodebuild build` (it builds only for the test action).
+- A `#Preview` that references a `shared` (Kotlin) type needs `shared` in `.prefire.yml` `imports` so the generated test compiles.
+
+### When this decision might change
+
+- If Apple ships a first-class headless `#Preview`-capture API, the Prefire CLI layer could be dropped.
+- If we want true pixel-diff gating (a stricter posture than ADR intends), that's a separate decision — it would make the snapshots tests, not references.
+
+### References
+
+- ADR-029 — iOS ↔ Android parity / platform-native / shared identity (the door visualization this first captures is an identity item).
+- [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md) § 1 — iOS construction status.
+- Android analog: `scripts/generate-android-screenshots.sh`, `android-screenshot-tests/SCREENSHOT_GALLERY.md`, `checkPreviewCoverage`.
+
+---
+
+## ADR-031: Realize the shared `presentation-model` layer — typed display state in shared ViewModels, rendered by both Compose and SwiftUI
+
+### Status
+
+Accepted — 2026-06-27. **Plan only; not yet implemented.** Phased rollout: [`PRESENTATION_MODEL_REALIZATION.md`](./PRESENTATION_MODEL_REALIZATION.md).
+
+### Context
+
+ADR-029 set the principle: *the shared KMP layer is the parity contract; prefer pushing logic and state down so the other platform gets it nearly for free.* The iOS↔Android feature-parity audit (2026-06-27) showed where that principle is currently violated.
+
+The per-screen **display mapping** — `DoorPosition → DoorWarning`, the "Since 9:47 AM · 2 hr 14 min" status line, the `DoorEvent → HistoryEntry` typing (Opened / Closed / Anomaly, transit warnings, anomaly kinds, day grouping) — lives in `androidApp/`'s UI-layer mappers (`HomeMapper`, `HomeStatusFormatter`, `DoorWarning`, `HistoryMapper`). **iOS cannot reach `androidApp` code.** So today iOS either shows a thinner screen (raw door message instead of typed warning; no duration line; flat history list) or would have to **re-implement** the mapping in Swift — a second source of truth that drifts.
+
+A shared `presentation-model` KMP module already exists (`HomeScreenState`, `DoorHistoryScreenState`, `ProfileScreenState`) but is **dormant**: the types are skeletal and nothing produces or consumes them. The scaffolding is there; it was never wired.
+
+### Decision
+
+**Realize the `presentation-model` layer.** Move the per-screen display mapping out of `androidApp/` and into the shared KMP layer, expose the resulting typed state from the shared `Default*ViewModel`s, and have **both** Jetpack Compose and SwiftUI render it.
+
+Principles:
+
+1. **Shared emits typed state, never user-visible strings.** Per the string-resource migration rule (ADR-023 era), mappers/VMs emit sealed types, enums, and primitive/numeric parts (`DoorWarning`, `AnomalyKind`, `TransitWarning`, day-group keys, duration as `days/hours/minutes` ints, epoch deltas). Each UI converts those to **localized strings at render time** (Compose `stringResource`/`pluralStringResource`; SwiftUI `Text` + formatters). Locale-dependent formatting (clock time, plurals) stays per-UI; the *typed/numeric* inputs are shared so the two renders cannot diverge in meaning.
+2. **The mapping logic lives in `commonMain`** — in `presentation-model` (pure functions over domain types) and/or computed `StateFlow`s on the shared VM. No platform types.
+3. **The shared VM exposes the typed screen state** (enrich `HomeScreenState` / `DoorHistoryScreenState` etc.), so the UI layers are thin renderers.
+4. **Android gets thinner.** Each slice deletes the corresponding `androidApp/` mapper and points `*Content.kt` at the VM state. The mapper unit tests move to shared `commonTest` (so they run on every platform and guard the contract).
+
+### What moves vs. what stays
+
+| Concern | Where |
+|---|---|
+| `DoorWarning`, `AnomalyKind`, `TransitWarning`, history-entry kind, day-group key | **Shared** (typed) |
+| `DoorPosition → DoorWarning`, `DoorEvent → HistoryEntry`, since/duration *as numeric parts*, grouping | **Shared** (pure mapping) |
+| "9:47 AM", "2 hr 14 min", plural rendering, icon/color choice | **Per-UI** (locale + platform), driven by the shared typed/numeric inputs |
+
+### Consequences
+
+- **Cross-cutting per slice** (shared + Android + iOS + tests) → `validate.sh` is required (custom lints, `:test-common` compile, VM↔UseCase boundary). VM ctor changes touch **both** DI graphs (`AppComponent` + `NativeComponent`) — see the two-DI-component rule in CLAUDE.md.
+- iOS feature parity (the audit's richness gaps) is delivered as a by-product of each slice, not as duplicated Swift.
+- The typed shared state becomes the cross-platform "wire contract" for UI meaning — analogous to `wire-contracts/` for HTTP.
+- Net less code: one mapping + one test suite instead of one-per-platform.
+
+### When this decision might change
+
+- If a screen's display logic turns out to be genuinely platform-specific (no shared meaning), that piece stays per-UI — recorded as an exception in the plan doc.
+
+### References
+
+- ADR-029 — the parity principle this implements.
+- [`PRESENTATION_MODEL_REALIZATION.md`](./PRESENTATION_MODEL_REALIZATION.md) — the phased plan, slice checklist, and parity-gap inventory.
+- Dormant scaffolding: `presentation-model/.../{HomeScreenState,DoorHistoryScreenState,ProfileScreenState}.kt`.
+- Mappers to relocate: `androidApp/.../ui/home/{HomeMapper,HomeStatusFormatter,DoorWarning}.kt`, `androidApp/.../ui/history/HistoryMapper.kt`.
+
+---
+
+## ADR-032: Cross-platform UI fidelity tiers — how much each surface should match across Android and iOS
+
+### Status
+
+Accepted — 2026-06-28. Refines ADR-029. Per-surface classification table: [`UI_FIDELITY_TIERS.md`](./UI_FIDELITY_TIERS.md).
+
+### Context
+
+ADR-029 stated the parity *principle* — capability parity is the north star, UI is platform-native, one shared "Garage" identity spans both — and a blanket "we do NOT pursue pixel-identical screens." That blanket is too coarse. In practice the door-status visualization and the door-state colors were always meant to be **brand-locked** (a different color literally means a different door state), while the navigation chrome was always meant to **fully diverge** (tab bar vs nav rail / 3-pane). Most screens sit *between* those: the same sections, data, and label-meaning, rendered with native styling.
+
+Without a stated spectrum, every new feature reopens an ad-hoc "how closely should iOS match Android here?" debate, and reviewers have no shared vocabulary for "this should match to the pixel" vs "this should look native." ADR-029's single principle needs a **classification lens** that says, for any given element, *how much* fidelity we owe and *which shared layer* enforces it.
+
+This ADR adds that lens. It does **not** introduce new infrastructure — the tiers map 1:1 onto the layers we already have (shared constants, the `presentation-model` of ADR-031, `domain`/`usecase`, and "no sharing").
+
+### Decision
+
+Classify every UI element into one of four **fidelity tiers**. For any element, apply the decision rule top-down — **first match wins**:
+
+1. **Does it carry brand identity, or does *looking different mean something different*?** → **Tier 1 — Identity (brand-locked).**
+2. **Is it content whose *structure* should match but whose styling can be native?** → **Tier 2 — Convergent.**
+3. **Is it navigation / chrome / a system integration with a strong OS idiom?** → **Tier 3 — Native-idiomatic.**
+4. **Is it genuinely one-platform, by *deliberate* decision?** → **Tier 4 — Platform-exclusive.**
+
+**Tie-breaker** (from ADR-029 §4): when torn between two adjacent tiers, prefer the **more-shared** one (push the logic/state down) unless a platform idiom clearly serves the user better. A single surface may be **split** across tiers — a status pill is Tier 1 in *meaning + color* but Tier 2 in its capsule chrome; the tab *set* is Tier 1 but its *rendering* is Tier 3.
+
+#### The four tiers
+
+| Tier | Name | Fidelity owed | Enforcing layer | Examples |
+|---|---|---|---|---|
+| **1** | **Identity (brand-locked)** | **Visually equivalent**, not literally pixel-matched — same shape, palette, icon family, proportions, and color→meaning. Native fonts/densities still differ. | Shared **constants** in `domain` (geometry, palette, door-offset positions — the `AppLinks` pattern) + a stated visual contract. | Door-status visualization; door-state colors (closed / open / opening-too-long / unknown); pill & warning *meaning + color*; app icon; brand naming; the tab *set*. |
+| **2** | **Convergent** | Same sections, order, data, and label-*meaning*; styling adopts platform norms ("mostly a pixel match, local styles allowed"). | Shared **`presentation-model`** typed state (ADR-031); each UI formats strings + picks card-vs-`List` chrome locally. | Home status-card information architecture; "Since · duration" line; alert banners; History day-grouping + rows; Settings *content* (account, About, snooze, privacy). |
+| **3** | **Native-idiomatic** | Platform *form* deliberately diverges; *logical structure + semantics* are shared. | Shared **`domain`/`usecase`** semantics; per-platform UI. No shared *display*. | Tab bar (iOS) vs nav rail / bottom-nav / 3-pane (Android); `.sheet` vs `ModalBottomSheet`; iOS Settings `List` vs Android sections; swipe-back vs predictive-back; safe-area vs edge-to-edge insets; notification presentation. |
+| **4** | **Platform-exclusive** | Exists on one platform only, by an **explicit** decision — *not* "only built once" (that is a parity *gap*, a Tier 1–3 item unported). | None. Recorded as an exception (here + in [`UI_FIDELITY_TIERS.md`](./UI_FIDELITY_TIERS.md)). | Android adaptive 3-pane / nav rail; iOS interactive swipe-back; API-33 clipboard `EXTRA_IS_SENSITIVE` redaction; a future widget / watch surface. |
+
+#### "Brand-locked" ≠ "pixel-perfect"
+
+Tier 1 aims for **visual equivalence across two rendering engines**, not byte-identical pixels — native font metrics, text layout, and display densities differ and that is fine. The lock is on *shape, palette, icon family, proportions, and the color→meaning contract*. The mechanism is **shared constants**, not a shared renderer: geometry/palette/offsets live once in `domain` (`AppLinks.PRIVACY_POLICY_URL` is the canonical shared-config example; door geometry/palette are the next candidates), so the two platforms render the same source numbers. The literal-pixel interpretation was explicitly rejected (2026-06-28) — it fights native typography and is unverifiable on iOS.
+
+#### Parity gap vs. platform-exclusive (Tier 4) — keep them distinct
+
+- A **parity gap** is a Tier 1–3 element that *should* exist on both but is currently on one (iOS mid-build). It is tracked to be closed (`PENDING_FOLLOWUPS.md`, the realization plan's inventory). Not a Tier 4.
+- **Tier 4** is a *deliberate end state*: we chose, or the platform forces, that it lives on one side only. It must be recorded with its reason. Mislabeling a gap as Tier 4 silently accepts drift.
+
+### Consequences
+
+- **Reviewers get shared vocabulary.** An iOS PR is reviewed against its tier: Tier 1 → "does it read as the same brand / same state?"; Tier 2 → "same structure + data, native styling OK"; Tier 3 → "is it idiomatic, and is the *meaning* shared?"; Tier 4 → "is the exception recorded?"
+- **The new-feature checklist gains a step:** classify each new surface, then build it through that tier's enforcing layer (Tier 1 → shared constant; Tier 2 → presentation-model slice; Tier 3 → shared semantics + native UI; Tier 4 → record the exception).
+- **The classification is a living `reference` doc** ([`UI_FIDELITY_TIERS.md`](./UI_FIDELITY_TIERS.md)), kept in sync as screens are added — not frozen in this ADR.
+- No new infrastructure or CI gate; this is a lens over existing layers. (A future lint could assert "no shared user-visible strings" and "Tier 1 constants live in `domain`," but is not built yet.)
+
+### When this decision might change
+
+- If a fifth distinct fidelity posture emerges that none of the four tiers expresses, add it here.
+- If the product deliberately splits into materially different iOS vs Android experiences (not anticipated; would also revise ADR-029).
+
+### References
+
+- ADR-029 — the parity principle this refines (capability parity, platform-native, shared identity).
+- ADR-031 + [`PRESENTATION_MODEL_REALIZATION.md`](./PRESENTATION_MODEL_REALIZATION.md) — the Tier-2 enforcing layer (shared typed display state).
+- [`UI_FIDELITY_TIERS.md`](./UI_FIDELITY_TIERS.md) — the per-surface classification table (kept in sync with the screens).
+- The shared-constant rule (Tier 1 mechanism): `PRESENTATION_MODEL_REALIZATION.md` § Architectural rules, "locale-invariant config belongs in shared"; canonical `domain/.../model/AppLinks.kt`.
+
+## ADR-033: UI-triggered work goes through the ViewModel; UseCases are called directly only by UI-less code
+
+### Status
+
+Accepted — 2026-06-29. Sharpens the existing rule ("non-screen orchestration uses UseCases directly — never a ViewModel") into a total, enforceable contract. Enforced by `checkUiLayerNoGraphAccess` (buildSrc, in `validate.sh`).
+
+### Context
+
+The same shared `Default*ViewModel` runs on both platforms (one per screen, ADR-026); UseCases are constructor-injected into VMs and reached only through them. But a UseCase is also exposed as a DI **component entry point** (`abstract val xUseCase`) when something *outside* a screen needs it — FCM handlers, `AppStartup`, app-scoped `@Singleton`s. Those genuinely have no UI lifecycle: a push wakes the process with no Activity/`NavBackStackEntry`/`ViewModelStore`, so it must call the shared UseCase directly.
+
+The grey area was UI-adjacent helpers calling a UseCase (or reaching a Repository) directly because the data "isn't VM state" — e.g. copy-auth-token (`rememberAuthTokenCopier` → `component.getAuthTokenForCopyUseCase`) and Export CSV (`DiagnosticsContent` → `component.appLoggerRepository`). These *could* go through the VM; they didn't, by habit (mirroring an older Android pattern). That ambiguity is what this ADR removes.
+
+### Decision
+
+**Hard rule:** if an action can be tied to a UI interaction, it goes through that screen's **ViewModel**. The **only** code permitted to call a UseCase (or touch a Repository) directly is code with **no UI lifecycle** — FCM handlers, `AppStartup`, app-scoped `@Singleton`s — and that code lives outside the `ui/` package.
+
+Together with the existing rule this is now total: **UI-triggered → ViewModel; screen-less → UseCase-direct. Nothing in between.**
+
+**The irreducible-side-effect boundary.** A clipboard write, a file write, the Android file-picker, the iOS share sheet are platform side-effects that cannot live in the shared KMP VM. "Through the VM" therefore means: the **VM owns the business produce/decision** (fetch the token, build the CSV string) and hands the value back; the **platform UI does only the irreducible platform write** with it. The UI's *entry point* is a VM method, not a UseCase — which is what the rule requires.
+
+**Which UseCases stay on the component as entry points** (the only justified reasons): (a) a UI-less caller (FCM/startup), or (b) `@Singleton`-DI machinery (kotlin-inject only honors `@Singleton` via an `abstract val`; e.g. `computeButtonHealthDisplayUseCase`, an eager app-lifetime combine that a VM reads by reference). Anything else exposed there is a smell.
+
+### Enforcement
+
+`checkUiLayerNoGraphAccess` (buildSrc `architecture.UiLayerNoGraphAccessTask`, run in `validate.sh`) scans `androidApp/.../ui/` for the **member-access** pattern `component.<name>UseCase` / `component.<name>Repository`. Member-access (not imports) is deliberate: a `:usecase`-module *data class* like `ButtonHealthDisplay` is legitimately imported by UI, so an import-based check would false-positive; pulling a *collaborator* off `component` is the precise anti-pattern. `ui-layer-graph-access-exemptions.txt` grandfathers known pre-rule violations during burn-down (the check fails on a stale entry, so the list can't accumulate; goal = empty). iOS (Swift, unlinted by buildSrc) follows the same rule by convention + review; a `scripts/` grep guard is a possible follow-up.
+
+### Consequences
+
+- **Refactors (burn-down):** copy-auth-token routes through `FunctionListViewModel`/`DiagnosticsViewModel`; Export CSV routes through `DiagnosticsViewModel` (a new `BuildAppLogCsvUseCase` injected into it). Each removes its exemption; `getAuthTokenForCopyUseCase` then comes off both component entry points.
+- Thin VM pass-throughs (e.g. `suspend fun fetchAuthTokenForCopy() = useCase()`) are *intended*, not ceremony — they make the dependency graph uniform (UI→VM→UseCase) and the action VM-testable.
+- New UI-triggered features have one obvious home (the screen VM) — no per-feature "VM or direct?" debate.
+
+### Alternatives considered
+
+- **Leave it a judgment call** (the prior soft category). Rejected — the user wants a hard, enforceable rule; ad-hoc bypasses drift and erode the layering.
+- **Push even the side-effect into the VM via a `ClipboardBridge`.** Viable for clipboard, but the file-picker/share-sheet for Export CSV can't be bridged that way; keeping both features on the same "VM produces, UI writes" shape is more consistent than bridging one and not the other.
+
+### References
+
+- ADR-026 — one ViewModel per screen (the UI's single dependency).
+- `CLAUDE.md` § Code Patterns — the "non-screen orchestration uses UseCases directly" rule this completes.
+- `buildSrc/.../architecture/UiLayerNoGraphAccessTask.kt` + `ui-layer-graph-access-exemptions.txt`.

@@ -10,7 +10,7 @@
       "Bash(git *)",
       "Bash(gh *)",
       "Bash(./gradlew *)",
-      "Bash(AndroidGarage/gradlew *)",
+      "Bash(MobileGarage/gradlew *)",
       "Bash(./scripts/*)",
       "Bash(ls *)",
       "Bash(ls)",

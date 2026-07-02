@@ -6,15 +6,15 @@ last_verified: 2026-06-30
 
 # iOS App Setup & Release Runbook
 
-How the iOS app (`AndroidGarage/iosApp/`) was created and configured across Apple
+How the iOS app (`MobileGarage/iosApp/`) was created and configured across Apple
 Developer, App Store Connect, and Firebase; what configuration lives where; what is
 a secret (and how it is handled without entering the repo); and how to ship a build
 to TestFlight. This is the iOS analog of [`FIREBASE_DEPLOY_SETUP.md`](FIREBASE_DEPLOY_SETUP.md).
 
 Build/run mechanics (XcodeGen, the `shared.framework` pre-build script) and the
-Swift↔Kotlin bridge live in [`../AndroidGarage/iosApp/README.md`](../AndroidGarage/iosApp/README.md);
+Swift↔Kotlin bridge live in [`../MobileGarage/iosApp/README.md`](../MobileGarage/iosApp/README.md);
 the construction status/plan is in
-[`../AndroidGarage/docs/PENDING_FOLLOWUPS.md`](../AndroidGarage/docs/PENDING_FOLLOWUPS.md) § 1.
+[`../MobileGarage/docs/PENDING_FOLLOWUPS.md`](../MobileGarage/docs/PENDING_FOLLOWUPS.md) § 1.
 
 ## Identifiers at a glance
 
@@ -93,14 +93,14 @@ All committed; the `.xcodeproj` is regenerated from `project.yml` via XcodeGen.
 ### 7. App icon
 The App Store rejects any upload (TestFlight included) without a 1024×1024 marketing
 icon, and an empty `AppIcon` set also drops `CFBundleIconName`. The icon:
-- Rendered from `AndroidGarage/distribution/playstore/src/icon.svg` (the
+- Rendered from `MobileGarage/distribution/playstore/src/icon.svg` (the
   `GarageDoorCanvas` port — closed green door on `#D7E8CE`) at 1024 via `qlmanage`,
   then **flattened to opaque RGB** (no alpha — the App Store requires it).
 - Added as a single **universal 1024** entry in
   `iosApp/GarageControl/Assets.xcassets/AppIcon.appiconset/`; Xcode's `actool`
   auto-generates the per-device sizes (120 iPhone, 152 iPad, …) and emits
   `CFBundleIconName` from it. Verify standalone with:
-  `actool --app-icon AppIcon --output-partial-info-plist /tmp/p.plist --compile /tmp/out --platform iphoneos --minimum-deployment-target 16.0 --target-device iphone --target-device ipad AndroidGarage/iosApp/GarageControl/Assets.xcassets`.
+  `actool --app-icon AppIcon --output-partial-info-plist /tmp/p.plist --compile /tmp/out --platform iphoneos --minimum-deployment-target 16.0 --target-device iphone --target-device ipad MobileGarage/iosApp/GarageControl/Assets.xcassets`.
 
 ### 8. First TestFlight build (manual, via Xcode)
 1. Toolbar destination = **Any iOS Device (arm64)** (Archive is greyed out on a simulator).
@@ -121,7 +121,7 @@ Xcode (⌘R). Real push *delivery* requires a physical device.
    (get the value from the maintainer / the Firebase server config — see
    [`FIREBASE_CONFIG_AUTHORITY.md`](FIREBASE_CONFIG_AUTHORITY.md)). Without it the app
    builds and runs but door data won't load (Auth still works).
-3. `brew install xcodegen`, then `xcodegen generate --spec AndroidGarage/iosApp/project.yml --project AndroidGarage/iosApp`.
+3. `brew install xcodegen`, then `xcodegen generate --spec MobileGarage/iosApp/project.yml --project MobileGarage/iosApp`.
 4. Automatic signing recreates the certs/profiles on first archive — no manual cert export needed.
    The APNs `.p8` is already on Firebase (no per-machine step); only re-upload it if the key is rotated.
 
@@ -182,7 +182,7 @@ nothing deployed — and can be deleted: `git push origin :refs/tags/ios/N && gi
 
 ### Cutting a release
 1. Bump `MARKETING_VERSION` in `project.yml` (if the user-facing version changed) and
-   add a matching `## X.Y.Z` heading to `AndroidGarage/iosApp/CHANGELOG.md`.
+   add a matching `## X.Y.Z` heading to `MobileGarage/iosApp/CHANGELOG.md`.
 2. `./scripts/validate-ios.sh` (writes the marker).
 3. `./scripts/release-ios.sh --check` → copy-paste the printed `--confirm-tag ios/N`
    command (a git-based suggestion; CI verifies the actual build number).
@@ -226,8 +226,8 @@ local check and PR gate and still fail at release time. Verify by tier, cheapest
    breakage (Release compiles for device, the scheme's *archive* action runs, the product
    is named correctly):
    ```bash
-   xcodegen generate --spec AndroidGarage/iosApp/project.yml --project AndroidGarage/iosApp
-   xcodebuild -project AndroidGarage/iosApp/GarageControl.xcodeproj -scheme GarageControl \
+   xcodegen generate --spec MobileGarage/iosApp/project.yml --project MobileGarage/iosApp
+   xcodebuild -project MobileGarage/iosApp/GarageControl.xcodeproj -scheme GarageControl \
      -configuration Release -destination 'generic/platform=iOS' \
      -archivePath /tmp/GarageControl.xcarchive archive CODE_SIGNING_ALLOWED=NO
    ```

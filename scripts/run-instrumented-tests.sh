@@ -7,7 +7,7 @@ set -euo pipefail
 # Requires: a connected device or running emulator (check with `adb devices`)
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-GRADLE="$REPO_ROOT/AndroidGarage/gradlew -p $REPO_ROOT/AndroidGarage"
+GRADLE="$REPO_ROOT/MobileGarage/gradlew -p $REPO_ROOT/MobileGarage"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'

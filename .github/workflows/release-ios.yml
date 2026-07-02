@@ -106,7 +106,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-ios-${{ hashFiles('AndroidGarage/**/*.gradle*', 'AndroidGarage/gradle/libs.versions.toml') }}
+          key: ${{ runner.os }}-gradle-ios-${{ hashFiles('MobileGarage/**/*.gradle*', 'MobileGarage/gradle/libs.versions.toml') }}
           restore-keys: |
             ${{ runner.os }}-gradle-ios-
             ${{ runner.os }}-gradle-
@@ -121,15 +121,15 @@ jobs:
           GARAGE_SERVER_CONFIG_KEY: ${{ secrets.GARAGE_SERVER_CONFIG_KEY }}
         run: |
           printf 'GARAGE_SERVER_CONFIG_KEY = %s\n' "$GARAGE_SERVER_CONFIG_KEY" \
-            > AndroidGarage/iosApp/Secrets.local.xcconfig
+            > MobileGarage/iosApp/Secrets.local.xcconfig
 
       - name: Generate Xcode project
-        working-directory: AndroidGarage/iosApp
+        working-directory: MobileGarage/iosApp
         run: xcodegen generate
 
       # The pre-build Run Script builds shared.framework for device arm64 via Gradle.
       - name: Archive (Release)
-        working-directory: AndroidGarage/iosApp
+        working-directory: MobileGarage/iosApp
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -183,7 +183,7 @@ jobs:
       - name: Clean secrets
         if: always()
         run: |
-          rm -f AndroidGarage/iosApp/Secrets.local.xcconfig
+          rm -f MobileGarage/iosApp/Secrets.local.xcconfig
           rm -rf "$RUNNER_TEMP/asc_keys"
 
       - name: Release summary

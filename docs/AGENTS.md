@@ -24,8 +24,8 @@ If you've just landed in this repo, read in this order:
 
 1. **`/CLAUDE.md`** (~10 min) — project overview, build commands, agent operational rules (PR workflow, validation, hooks).
 2. **This file** (`/docs/AGENTS.md`, ~5 min) — taxonomy, front-matter, trust-but-verify rule.
-3. **`/AndroidGarage/docs/ARCHITECTURE.md`** (~10 min) — current Android module structure and data flows. Skip if working on Firebase only.
-4. **`/AndroidGarage/docs/DECISIONS.md`** (skim, ~5 min) — 24 ADRs. Read the one you're about to interact with; skim the rest.
+3. **`/MobileGarage/docs/ARCHITECTURE.md`** (~10 min) — current Android module structure and data flows. Skip if working on Firebase only.
+4. **`/MobileGarage/docs/DECISIONS.md`** (skim, ~5 min) — 24 ADRs. Read the one you're about to interact with; skim the rest.
 5. **Task-specific docs** — listed in §6 below.
 
 ## 3. Document categories
@@ -72,7 +72,7 @@ Docs older than 90 days surface as **warnings** in `validate.sh` output. Warning
 
 ### 4.4 Scope
 
-**In scope** (front-matter required, link-checker checks): `AndroidGarage/`, `FirebaseServer/`, `docs/`, root `README.md`, root `CLAUDE.md`.
+**In scope** (front-matter required, link-checker checks): `MobileGarage/`, `FirebaseServer/`, `docs/`, root `README.md`, root `CLAUDE.md`.
 
 **Excluded** (no front-matter required, ignored by checks):
 - `.claude/skills/` — has native Claude Code frontmatter
@@ -108,23 +108,23 @@ When you need to find or update a fact, this table tells you which doc owns it. 
 | CI architecture | `CLAUDE.md` § CI Architecture |
 | Release & deploy strategy (layered principles + conformance audit) | `docs/RELEASE_STRATEGY.md` |
 | FCM push-data & notification reliability (findings + proposed fixes) | `docs/NOTIFICATION_RELIABILITY.md` |
-| Cross-platform UI fidelity (how much each Android↔iOS surface should match) | `AndroidGarage/docs/DECISIONS.md` ADR-032 (tiers + rule) + `AndroidGarage/docs/UI_FIDELITY_TIERS.md` (per-surface table) |
+| Cross-platform UI fidelity (how much each Android↔iOS surface should match) | `MobileGarage/docs/DECISIONS.md` ADR-032 (tiers + rule) + `MobileGarage/docs/UI_FIDELITY_TIERS.md` (per-surface table) |
 | Agent design + doc taxonomy | This file |
 
 ### Android
 
 | Fact | Canonical doc |
 |---|---|
-| Module structure + data flows | `AndroidGarage/docs/ARCHITECTURE.md` |
-| Architectural decisions (ADRs) | `AndroidGarage/docs/DECISIONS.md` |
-| `@Singleton` + kotlin-inject rules | `AndroidGarage/docs/DI_SINGLETON_REQUIREMENTS.md` |
+| Module structure + data flows | `MobileGarage/docs/ARCHITECTURE.md` |
+| Architectural decisions (ADRs) | `MobileGarage/docs/DECISIONS.md` |
+| `@Singleton` + kotlin-inject rules | `MobileGarage/docs/DI_SINGLETON_REQUIREMENTS.md` |
 | Room schema change recipe | `CLAUDE.md` § Room Database Safety + `ARCHITECTURE.md` § Database |
-| Migration roadmap (KMP phases) | `AndroidGarage/docs/MIGRATION.md` |
-| ADR-021/022 state-ownership rollout | `AndroidGarage/docs/MIGRATION_PLAN.md` |
-| Pattern guides (DI, Nav3 scoping, R8 keep rules, reactive auth, repo APIs) | `AndroidGarage/docs/guides/` |
-| Library bug workarounds | `AndroidGarage/docs/library-bugs/` |
+| Migration roadmap (KMP phases) | `MobileGarage/docs/MIGRATION.md` |
+| ADR-021/022 state-ownership rollout | `MobileGarage/docs/MIGRATION_PLAN.md` |
+| Pattern guides (DI, Nav3 scoping, R8 keep rules, reactive auth, repo APIs) | `MobileGarage/docs/guides/` |
+| Library bug workarounds | `MobileGarage/docs/library-bugs/` |
 | Release procedure (Android) | `CLAUDE.md` § Releasing Android |
-| Release version history | `AndroidGarage/CHANGELOG.md` |
+| Release version history | `MobileGarage/CHANGELOG.md` |
 
 ### Firebase server
 
@@ -150,7 +150,7 @@ A doc moves through three states:
 2. **`shipped`** — work the doc described is complete. Doc kept for context. Move to an `archive/` folder, set `status: shipped`. Plans become history; principles stay live (extract them to a separate `reference` doc if needed).
 3. **`superseded`** — replaced by a different doc. Set `status: superseded`, `superseded_by: path/to/successor.md`.
 
-**Archive folders:** `AndroidGarage/docs/archive/` for Android, `docs/archive/` for cross-component / Firebase. Each has a `README.md` explaining what's there.
+**Archive folders:** `MobileGarage/docs/archive/` for Android, `docs/archive/` for cross-component / Firebase. Each has a `README.md` explaining what's there.
 
 ## 8. Self-diagnosis — what an agent should check at session end
 

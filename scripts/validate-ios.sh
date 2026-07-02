@@ -36,7 +36,7 @@ BOLD='\033[1m'
 RESET='\033[0m'
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-IOS_APP_DIR="$REPO_ROOT/AndroidGarage/iosApp"
+IOS_APP_DIR="$REPO_ROOT/MobileGarage/iosApp"
 XCODEPROJ="$IOS_APP_DIR/GarageControl.xcodeproj"
 PROJECT_SPEC="$IOS_APP_DIR/project.yml"
 
@@ -60,7 +60,7 @@ echo ""
 # unexpectedly on startup" with NO "Test Case ... failed" is a Gradle-daemon
 # infra flake, not a regression — rerun with --rerun-tasks to confirm.
 echo -e "${BOLD}[1/3] iosFramework simulator tests (:iosFramework:iosSimulatorArm64Test)${RESET}"
-"$REPO_ROOT/AndroidGarage/gradlew" -p "$REPO_ROOT/AndroidGarage" :iosFramework:iosSimulatorArm64Test \
+"$REPO_ROOT/MobileGarage/gradlew" -p "$REPO_ROOT/MobileGarage" :iosFramework:iosSimulatorArm64Test \
     || fail "iosFramework simulator tests failed."
 echo -e "${GREEN}[PASS] iosFramework simulator tests${RESET}"
 echo ""

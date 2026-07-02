@@ -39,7 +39,7 @@ because it didn't (so the test fails outright).
 
 ## Android-side usage (Kotlin / Ktor MockEngine)
 
-In `AndroidGarage/data/src/commonTest/kotlin/.../<EndpointName>DataSourceTest.kt`:
+In `MobileGarage/data/src/commonTest/kotlin/.../<EndpointName>DataSourceTest.kt`:
 
 ```kotlin
 import kotlinx.serialization.json.Json

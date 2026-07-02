@@ -96,8 +96,8 @@ Any redesign discussion belongs in a new ADR; don't unilaterally remove the time
 | `FirebaseServer/src/controller/EventInterpreter.ts` | `:26` | `TOO_LONG_DURATION_SECONDS = 60`. |
 | `FirebaseServer/src/controller/EventInterpreter.ts` | `:194-197` | `Opening → OpeningTooLong` promotion that writes a new event. |
 | `FirebaseServer/src/controller/fcm/OldDataFCM.ts` | `:93-117` | The single notification path snooze actually suppresses. |
-| `AndroidGarage/usecase/.../SnoozeNotificationsUseCase.kt` | `:54-60` | Client passes `lastChangeTimeSeconds` of the displayed event. |
-| `AndroidGarage/viewmodel/.../ProfileViewModel.kt` | `:222-225` | Snooze action call-site on the Settings page. |
+| `MobileGarage/usecase/.../SnoozeNotificationsUseCase.kt` | `:54-60` | Client passes `lastChangeTimeSeconds` of the displayed event. |
+| `MobileGarage/viewmodel/.../ProfileViewModel.kt` | `:222-225` | Snooze action call-site on the Settings page. |
 
 ## Verification
 

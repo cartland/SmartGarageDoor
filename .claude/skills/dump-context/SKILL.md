@@ -8,7 +8,7 @@ Capture conversation knowledge into durable artifacts before a session ends or c
 
 ## Priority: repo first, memory second
 
-**The repo is where long-lived knowledge lives.** `CLAUDE.md`, `AndroidGarage/docs/`, `FirebaseServer/docs/`, `docs/`, and code-adjacent `*/README.md` files all survive machine rebuilds, benefit from PR review, and are discoverable by anyone on the project (including future-you, reading the repo cold).
+**The repo is where long-lived knowledge lives.** `CLAUDE.md`, `MobileGarage/docs/`, `FirebaseServer/docs/`, `docs/`, and code-adjacent `*/README.md` files all survive machine rebuilds, benefit from PR review, and are discoverable by anyone on the project (including future-you, reading the repo cold).
 
 Memory is only for information that is **machine-local or session-pointer in nature**:
 
@@ -51,9 +51,9 @@ This is the main phase. Most dump-context work should land here.
 - New scripts, commands, or safety rules
 
 #### Component docs
-- `AndroidGarage/docs/TESTING.md` — testing plan, completed phases, test gaps
-- `AndroidGarage/docs/DECISIONS.md` — new ADRs from decisions made during the session
-- `AndroidGarage/docs/MIGRATION.md` — migration progress
+- `MobileGarage/docs/TESTING.md` — testing plan, completed phases, test gaps
+- `MobileGarage/docs/DECISIONS.md` — new ADRs from decisions made during the session
+- `MobileGarage/docs/MIGRATION.md` — migration progress
 - `FirebaseServer/CHANGELOG.md` — every release entry (gate-enforced)
 - `FirebaseServer/docs/*.md` — Firebase-server-specific patterns and plans
 - `docs/FIREBASE_DEPLOY_SETUP.md`, `docs/FIREBASE_DATABASE_REFACTOR.md` — cross-component runbooks
@@ -100,7 +100,7 @@ If Phase 2 produced repo changes (expected for most dumps):
 
 2. Stage and commit:
    ```bash
-   git add CLAUDE.md AndroidGarage/docs/ FirebaseServer/ docs/
+   git add CLAUDE.md MobileGarage/docs/ FirebaseServer/ docs/
    git commit -m "docs: Dump session context — [brief summary]"
    ```
 

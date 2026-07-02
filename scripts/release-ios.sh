@@ -9,8 +9,8 @@ set -euo pipefail
 #   - Tag is ios/N where N is the build number (CURRENT_PROJECT_VERSION); the
 #     workflow passes N to the archive, so the tag is the source of truth for it.
 #   - The user-facing version (MARKETING_VERSION, X.Y.Z) is read from
-#     AndroidGarage/iosApp/project.yml and is the key for the CHANGELOG gate.
-#   - The CHANGELOG is AndroidGarage/iosApp/CHANGELOG.md.
+#     MobileGarage/iosApp/project.yml and is the key for the CHANGELOG gate.
+#   - The CHANGELOG is MobileGarage/iosApp/CHANGELOG.md.
 #   - The validation marker is written by scripts/validate-ios.sh (macOS-only).
 #
 # IMPORTANT: only uploads to TestFlight Internal, never the App Store.
@@ -180,7 +180,7 @@ if [ -f "$VALIDATION_FILE" ]; then
 fi
 
 # MARKETING_VERSION from project.yml — the X.Y.Z the CHANGELOG heading uses.
-PROJECT_SPEC="$REPO_ROOT/AndroidGarage/iosApp/project.yml"
+PROJECT_SPEC="$REPO_ROOT/MobileGarage/iosApp/project.yml"
 VERSION_NAME=""
 if [ -f "$PROJECT_SPEC" ]; then
     VERSION_NAME=$(awk -F'"' '/^[[:space:]]*MARKETING_VERSION[[:space:]]*:/ { print $2; exit }' "$PROJECT_SPEC")
@@ -197,11 +197,11 @@ fi
 #   present  : `## X.Y.Z` heading exists with a non-empty body
 #   empty    : heading exists but body is whitespace-only
 #   missing  : no heading for this version
-#   no_file  : AndroidGarage/iosApp/CHANGELOG.md does not exist
+#   no_file  : MobileGarage/iosApp/CHANGELOG.md does not exist
 #   no_ver   : MARKETING_VERSION could not be parsed (hard failure)
 # Fenced code blocks are ignored; the heading must be `^## X.Y.Z` followed by
 # end-of-line or whitespace so `## 0.1` does not match `0.1.0`.
-CHANGELOG_FILE="$REPO_ROOT/AndroidGarage/iosApp/CHANGELOG.md"
+CHANGELOG_FILE="$REPO_ROOT/MobileGarage/iosApp/CHANGELOG.md"
 CHANGELOG_STATE="no_file"
 CHANGELOG_BODY=""
 if [ -z "$VERSION_NAME" ]; then
@@ -320,7 +320,7 @@ if [ "$MODE" = "check" ]; then
         echo ""
         echo "(1) Add an entry, commit, push, re-run --check (recommended):"
         echo ""
-        echo "    Edit AndroidGarage/iosApp/CHANGELOG.md and add at the top:"
+        echo "    Edit MobileGarage/iosApp/CHANGELOG.md and add at the top:"
         echo ""
         echo "      ## $VERSION_NAME"
         echo "      - <one or more bullets describing user-facing changes>"
@@ -467,13 +467,13 @@ elif [ -n "$CONFIRM_NO_CHANGELOG" ]; then
         exit 1
     fi
     echo -e "${YELLOW}WARNING: Releasing without CHANGELOG entry (--confirm-no-changelog).${RESET}"
-    echo "  Add an entry to AndroidGarage/iosApp/CHANGELOG.md after the fact."
+    echo "  Add an entry to MobileGarage/iosApp/CHANGELOG.md after the fact."
     echo ""
 else
     case "$CHANGELOG_STATE" in
         missing) REASON="no heading for $VERSION_NAME in iosApp/CHANGELOG.md" ;;
         empty)   REASON="heading for $VERSION_NAME exists but body is empty" ;;
-        no_file) REASON="AndroidGarage/iosApp/CHANGELOG.md does not exist" ;;
+        no_file) REASON="MobileGarage/iosApp/CHANGELOG.md does not exist" ;;
         *)       REASON="unknown" ;;
     esac
     echo -e "${RED}Error: CHANGELOG gate failed ($REASON).${RESET}"

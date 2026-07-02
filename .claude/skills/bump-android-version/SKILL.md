@@ -6,7 +6,7 @@ user-invocable: true
 
 # Bump Android Version
 
-Increment `versionName` in `AndroidGarage/version.properties` and create a PR.
+Increment `versionName` in `MobileGarage/version.properties` and create a PR.
 
 ## Arguments
 
@@ -18,7 +18,7 @@ If no argument is provided, default to `patch`.
 
 ## Versioning rule
 
-See [`AndroidGarage/CHANGELOG.md#versioning`](../../../AndroidGarage/CHANGELOG.md) for the authoritative rule:
+See [`MobileGarage/CHANGELOG.md#versioning`](../../../MobileGarage/CHANGELOG.md) for the authoritative rule:
 
 - **Major** — App rewrite or a core-experience shift so significant the previous version feels like a different product.
 - **Minor** — A new user-facing feature or capability (something a user couldn't do before), **or** the removal of a user-facing feature.
@@ -31,7 +31,7 @@ Before bumping, classify the pending work against this rule and confirm with the
 ### 1. Read current version
 
 ```bash
-cat AndroidGarage/version.properties
+cat MobileGarage/version.properties
 ```
 
 Parse the `versionName=X.Y.Z` value.
@@ -51,7 +51,7 @@ Write the new version to the file.
 
 For **minor** and **major** bumps, the Play Store gets a release note. For **patch** bumps, skip this step — patches roll up into the next minor/major's entry.
 
-`AndroidGarage/distribution/whatsnew/whatsnew-en-US` is **rolling, current-version-only**. Replace its entire content with a single entry for the new version. CHANGELOG.md is the permanent history (every version, including patches) — older whatsnew lines are already preserved there.
+`MobileGarage/distribution/whatsnew/whatsnew-en-US` is **rolling, current-version-only**. Replace its entire content with a single entry for the new version. CHANGELOG.md is the permanent history (every version, including patches) — older whatsnew lines are already preserved there.
 
 Format:
 
@@ -78,7 +78,7 @@ To draft:
 
 ## Rules
 
-- Modify only `AndroidGarage/version.properties` (always) and `AndroidGarage/distribution/whatsnew/whatsnew-en-US` (minor/major only) — nothing else
+- Modify only `MobileGarage/version.properties` (always) and `MobileGarage/distribution/whatsnew/whatsnew-en-US` (minor/major only) — nothing else
 - Whatsnew is rolling — **replace**, never accumulate. CHANGELOG.md is the permanent history.
 - Do not update the changelog here (use `/update-android-changelog` for that)
 - Patches must not touch whatsnew — they roll up into the next minor/major
@@ -86,6 +86,6 @@ To draft:
 
 ## Companion: update CHANGELOG.md before releasing
 
-`AndroidGarage/CHANGELOG.md` is a separate file from this bump and is **required by the release script** — `./scripts/release-android.sh` blocks the tag push if `## X.Y.Z` (the new versionName) is missing or has an empty body. The whatsnew you set here covers the Play Store; the changelog is the permanent internal history.
+`MobileGarage/CHANGELOG.md` is a separate file from this bump and is **required by the release script** — `./scripts/release-android.sh` blocks the tag push if `## X.Y.Z` (the new versionName) is missing or has an empty body. The whatsnew you set here covers the Play Store; the changelog is the permanent internal history.
 
 After this bump merges, run `/update-android-changelog` to draft the matching entry, OR include the changelog edit in the same PR if the user-facing description is already settled. The release-android skill will tell you the gate has failed if it's missed, but catching it earlier saves a round trip.

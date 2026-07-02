@@ -23,13 +23,13 @@ STRIPPED=$(echo "$COMMAND" | sed '/<<.*EOF/,/^EOF/d' | sed -E "s/'[^']*'//g; s/\
 
 # --- Block absolute paths to gradlew (use repo-relative paths) ---
 if echo "$STRIPPED" | grep -qE '(^|[;&|]\s*)/[^ ]*gradlew\b'; then
-  deny "BLOCKED: Use repo-relative path to gradlew (e.g., AndroidGarage/gradlew -p AndroidGarage), not an absolute path."
+  deny "BLOCKED: Use repo-relative path to gradlew (e.g., MobileGarage/gradlew -p MobileGarage), not an absolute path."
 fi
 
 # --- Block cd (run everything from repo root) ---
 # Match cd as a command (start of line, or after && || ; |), not as part of a word like "block-cd"
 if echo "$STRIPPED" | grep -qE '(^|[;&|]\s*)cd\s'; then
-  deny "BLOCKED: cd is not allowed. Run commands from the repository root using absolute paths or -p flags (e.g., ./gradlew -p AndroidGarage)."
+  deny "BLOCKED: cd is not allowed. Run commands from the repository root using absolute paths or -p flags (e.g., ./gradlew -p MobileGarage)."
 fi
 
 # --- Block git -C (bare repository attack vector) ---

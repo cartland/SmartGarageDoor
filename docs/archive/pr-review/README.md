@@ -95,7 +95,7 @@ phase1_reviewed: 2026-04-20
 
 **Goal:** <one sentence>
 
-**Files:** <one-line summary, e.g., "AndroidGarage/data/**, 5 files — Ktor data sources">
+**Files:** <one-line summary, e.g., "MobileGarage/data/**, 5 files — Ktor data sources">
 ```
 
 **Optional fields:**
@@ -219,8 +219,8 @@ grep -L "## Phase 2 assessment" docs/pr-review/pr-*.md | sort -r
 **Secondary labels** (frontmatter `[list]`) catch mixed content. Example: `primary: great, secondary: [ok]` for a PR whose main pattern is great but consumer updates are routine. Use `[]` if nothing secondary applies.
 
 **Still-current lesson — HIGH bar.** Skip if:
-- Already in an ADR (`AndroidGarage/docs/DECISIONS.md`)
-- Already in a guide (`AndroidGarage/docs/guides/`)
+- Already in an ADR (`MobileGarage/docs/DECISIONS.md`)
+- Already in a guide (`MobileGarage/docs/guides/`)
 - Already enforced by a lint rule (`buildSrc/.../architecture/*`)
 - Obvious to any Android developer
 
@@ -387,10 +387,10 @@ A Phase 4 session is **audit-only** — map every Phase 3 rule to its current en
 
 **Step 1 — Spawn an `Explore` agent** to inventory enforcement artifacts:
 
-- Custom lint tasks under `AndroidGarage/buildSrc/src/main/kotlin/**/*.kt` (one-line each)
+- Custom lint tasks under `MobileGarage/buildSrc/src/main/kotlin/**/*.kt` (one-line each)
 - Git hooks under `.claude/hooks/` (one-line each)
-- ADRs from `AndroidGarage/docs/DECISIONS.md` (number + title, no bodies)
-- Guides under `AndroidGarage/docs/guides/` (filename + topic)
+- ADRs from `MobileGarage/docs/DECISIONS.md` (number + title, no bodies)
+- Guides under `MobileGarage/docs/guides/` (filename + topic)
 - Safety docs: `CLAUDE.md` sections, `DI_SINGLETON_REQUIREMENTS.md`, `POSTMORTEM_ANDROID_170.md`, `R8_INSTRUMENTED_TESTS.md`, `VIEWMODEL_SCOPING_ISSUE.md`
 - Detekt config (`detekt.yml` tightened rules)
 - Contract tests (`FcmTopicTest`, `FcmPayloadParsingTest`, `RoomSchemaTest`, `ComponentGraphTest`)

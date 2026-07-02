@@ -198,7 +198,7 @@ fi
 # Parser tolerates `versionName=2.5.0` and `versionName = 2.5.0` (.properties
 # files allow whitespace around `=`). The trailing tr removes surrounding
 # whitespace, including CR from CRLF line endings.
-VERSION_PROPERTIES="$REPO_ROOT/AndroidGarage/version.properties"
+VERSION_PROPERTIES="$REPO_ROOT/MobileGarage/version.properties"
 VERSION_NAME=""
 if [ -f "$VERSION_PROPERTIES" ]; then
     VERSION_NAME=$(awk -F= '/^[[:space:]]*versionName[[:space:]]*=/ {
@@ -223,7 +223,7 @@ fi
 #   present  : `## X.Y.Z` heading exists and has non-empty body
 #   empty    : heading exists but body is whitespace-only
 #   missing  : no heading for this versionName
-#   no_file  : AndroidGarage/CHANGELOG.md does not exist
+#   no_file  : MobileGarage/CHANGELOG.md does not exist
 #   no_ver   : versionName could not be parsed from version.properties
 #              — treated as a hard failure in the gate (can't ship a
 #              release whose version we can't read)
@@ -234,7 +234,7 @@ fi
 # - Heading must be `^## X.Y.Z` followed by end-of-line or whitespace, so
 #   `## 2.5` does not falsely match `2.5.1`. Dots are escaped in the
 #   pattern so the match is literal.
-CHANGELOG_FILE="$REPO_ROOT/AndroidGarage/CHANGELOG.md"
+CHANGELOG_FILE="$REPO_ROOT/MobileGarage/CHANGELOG.md"
 CHANGELOG_STATE="no_file"
 CHANGELOG_BODY=""
 if [ -z "$VERSION_NAME" ]; then
@@ -296,14 +296,14 @@ if [ "$MODE" = "check" ]; then
     if [ -n "$VERSION_NAME" ]; then
         echo "versionName:  $VERSION_NAME"
     else
-        echo -e "versionName:  ${YELLOW}NOT FOUND${RESET} (could not parse AndroidGarage/version.properties)"
+        echo -e "versionName:  ${YELLOW}NOT FOUND${RESET} (could not parse MobileGarage/version.properties)"
     fi
 
     case "$CHANGELOG_STATE" in
-        present) echo -e "Changelog:    ${GREEN}PRESENT${RESET} (entry for $VERSION_NAME in AndroidGarage/CHANGELOG.md)" ;;
+        present) echo -e "Changelog:    ${GREEN}PRESENT${RESET} (entry for $VERSION_NAME in MobileGarage/CHANGELOG.md)" ;;
         empty)   echo -e "Changelog:    ${YELLOW}EMPTY${RESET} (heading for $VERSION_NAME has no body)" ;;
-        missing) echo -e "Changelog:    ${YELLOW}MISSING${RESET} (no heading for $VERSION_NAME in AndroidGarage/CHANGELOG.md)" ;;
-        no_file) echo -e "Changelog:    ${YELLOW}NO FILE${RESET} (AndroidGarage/CHANGELOG.md does not exist)" ;;
+        missing) echo -e "Changelog:    ${YELLOW}MISSING${RESET} (no heading for $VERSION_NAME in MobileGarage/CHANGELOG.md)" ;;
+        no_file) echo -e "Changelog:    ${YELLOW}NO FILE${RESET} (MobileGarage/CHANGELOG.md does not exist)" ;;
         no_ver)  echo -e "Changelog:    ${YELLOW}SKIPPED${RESET} (versionName not found in version.properties)" ;;
     esac
 
@@ -338,7 +338,7 @@ if [ "$MODE" = "check" ]; then
             echo ""
         fi
     elif [ "$CHANGELOG_STATE" = "no_ver" ]; then
-        echo -e "${RED}Cannot release: versionName not found in AndroidGarage/version.properties.${RESET}"
+        echo -e "${RED}Cannot release: versionName not found in MobileGarage/version.properties.${RESET}"
         echo ""
         echo "Fix version.properties — expected a line like:"
         echo "    versionName=X.Y.Z"
@@ -362,7 +362,7 @@ if [ "$MODE" = "check" ]; then
         echo ""
         echo "(1) Add an entry, commit, push, re-run --check (recommended):"
         echo ""
-        echo "    Use /update-android-changelog or edit AndroidGarage/CHANGELOG.md"
+        echo "    Use /update-android-changelog or edit MobileGarage/CHANGELOG.md"
         echo "    and add at the top (above the previous version):"
         echo ""
         echo "      ## $VERSION_NAME"
@@ -518,7 +518,7 @@ else
 fi
 
 # === Gate: CHANGELOG entry ===
-# AndroidGarage/CHANGELOG.md must have a `## X.Y.Z` heading with a non-empty
+# MobileGarage/CHANGELOG.md must have a `## X.Y.Z` heading with a non-empty
 # body for the current versionName. The Play Store whatsnew is rolling and
 # only covers minor/major bumps — the changelog is the permanent history,
 # every version (patch included). Mirrors the Firebase changelog gate.
@@ -532,7 +532,7 @@ if [ "$CHANGELOG_STATE" = "present" ]; then
         echo "  First line: $(echo "$FIRST_LINE" | head -c 120)"
     fi
 elif [ "$CHANGELOG_STATE" = "no_ver" ]; then
-    echo -e "${RED}Error: versionName could not be parsed from AndroidGarage/version.properties.${RESET}"
+    echo -e "${RED}Error: versionName could not be parsed from MobileGarage/version.properties.${RESET}"
     echo "  Expected a line like: versionName=X.Y.Z"
     echo "  Fix version.properties before releasing — do not use --confirm-no-changelog for this."
     exit 1
@@ -546,13 +546,13 @@ elif [ -n "$CONFIRM_NO_CHANGELOG" ]; then
         exit 1
     fi
     echo -e "${YELLOW}WARNING: Releasing without CHANGELOG entry (--confirm-no-changelog).${RESET}"
-    echo "  Add an entry to AndroidGarage/CHANGELOG.md after the fact."
+    echo "  Add an entry to MobileGarage/CHANGELOG.md after the fact."
     echo ""
 else
     case "$CHANGELOG_STATE" in
-        missing) REASON="no heading for $VERSION_NAME in AndroidGarage/CHANGELOG.md" ;;
+        missing) REASON="no heading for $VERSION_NAME in MobileGarage/CHANGELOG.md" ;;
         empty)   REASON="heading for $VERSION_NAME exists but body is empty" ;;
-        no_file) REASON="AndroidGarage/CHANGELOG.md does not exist" ;;
+        no_file) REASON="MobileGarage/CHANGELOG.md does not exist" ;;
         *)       REASON="unknown" ;;
     esac
     echo -e "${RED}Error: CHANGELOG gate failed ($REASON).${RESET}"

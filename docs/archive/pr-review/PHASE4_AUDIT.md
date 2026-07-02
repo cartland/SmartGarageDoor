@@ -15,7 +15,7 @@ Maps every still-current rule from `PHASE3_SUMMARY.md` against the repo's existi
 
 ## Inventory
 
-### Custom lint tasks (`AndroidGarage/buildSrc/src/main/kotlin/`)
+### Custom lint tasks (`MobileGarage/buildSrc/src/main/kotlin/`)
 
 | Task | What it enforces |
 |---|---|
@@ -41,11 +41,11 @@ Maps every still-current rule from `PHASE3_SUMMARY.md` against the repo's existi
 | `git-guardrails.sh` | Blocks push-to-main, force push, destructive commands, direct `git tag`, push to auto-merge PR; enforces squash-merge; warns on stale validation |
 | `warn-shell-loops.sh` | Warns on `for`/`while` (prefers individual Bash calls) |
 
-### ADRs (`AndroidGarage/docs/DECISIONS.md`, 22 total)
+### ADRs (`MobileGarage/docs/DECISIONS.md`, 22 total)
 
 Numbered 001–022. Key ones referenced below: 001 (server-centric), 005 (DispatcherProvider), 006 (clean arch + UseCase), 008 (no `*Impl`), 009 (object-scoped fns), 010 (typed APIs), 011 (no-throw error handling), 013 (flow/stateflow boundaries — **superseded by 022**), 014 (FCM arch), 015 (app-scoped Managers), 016 (scope injection), 017 (7 test conventions), 018 (reactive auth), 019 (externalScope side-effects), 020 (release-build hardening), 021 (state ownership + VM scoping), 022 (StateFlow at repo boundary, restored).
 
-### Guides (`AndroidGarage/docs/guides/`)
+### Guides (`MobileGarage/docs/guides/`)
 
 - `kotlin-inject.md` — scoping, abstract entry points
 - `r8-keep-rules.md` — ProGuard keeps for serializable types + Companion
@@ -56,12 +56,12 @@ Numbered 001–022. Key ones referenced below: 001 (server-centric), 005 (Dispat
 ### Top-level safety docs
 
 - **`CLAUDE.md`** — Safety Rules (FCM contract), AppComponent Safety (3 mandatory rules), Room Database Safety (3-layer check), Code Patterns (no bare top-level, no extension on generics, no `*Impl`), Versioning, PR Workflow, Auto-merge race, Docs-only fast path.
-- **`AndroidGarage/docs/DI_SINGLETON_REQUIREMENTS.md`** — kotlin-inject scoping; four defensive layers (convention, lint, identity test, generated code inspection).
-- **`AndroidGarage/docs/POSTMORTEM_ANDROID_170.md`** — 5-month singleton regression: timeline, invisibility properties, investigation failures, 7 prescriptions.
-- **`AndroidGarage/docs/R8_INSTRUMENTED_TESTS.md`** — `-PtestR8=true -PdebuggableBenchmark=true` harness for reproducing release-only failures.
-- **`AndroidGarage/docs/VIEWMODEL_SCOPING_ISSUE.md`** — Nav3 per-entry ViewModelStore multi-instance hazard.
+- **`MobileGarage/docs/DI_SINGLETON_REQUIREMENTS.md`** — kotlin-inject scoping; four defensive layers (convention, lint, identity test, generated code inspection).
+- **`MobileGarage/docs/POSTMORTEM_ANDROID_170.md`** — 5-month singleton regression: timeline, invisibility properties, investigation failures, 7 prescriptions.
+- **`MobileGarage/docs/R8_INSTRUMENTED_TESTS.md`** — `-PtestR8=true -PdebuggableBenchmark=true` harness for reproducing release-only failures.
+- **`MobileGarage/docs/VIEWMODEL_SCOPING_ISSUE.md`** — Nav3 per-entry ViewModelStore multi-instance hazard.
 
-### Detekt (`AndroidGarage/detekt.yml`)
+### Detekt (`MobileGarage/detekt.yml`)
 
 `maxIssues: 0` (zero baseline). Tightened rules: `SwallowedException` (allow only `InterruptedException`, `CancellationException`), `TooGenericExceptionCaught` (disallow `Exception`/`RuntimeException`/`Throwable`), `ForbiddenComment` (bans `FIXME:`, `STOPSHIP:`).
 
