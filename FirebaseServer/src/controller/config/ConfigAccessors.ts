@@ -200,3 +200,26 @@ export function isSnoozeNotificationsEnabled(config: any): boolean {
 export function isResolvedOnCloseEnabled(config: any): boolean {
   return config?.body?.resolvedOnCloseEnabled === true;
 }
+
+/**
+ * Gate for adding `android.notification.tag = 'garage_door'` to the open-door
+ * WARNING so a newer warning (or the resolved) replaces it in the tray instead
+ * of stacking — the relaxed-A single-card design
+ * (docs/RESOLVED_NOTIFICATION_NO_COMPROMISE.md §9). Stored as
+ * `body.warningReplaceTagEnabled: boolean` on `configCurrent/current`, edited
+ * in-place in the Firestore console (NEVER a whole-doc POST — see
+ * docs/FIREBASE_CONFIG_AUTHORITY.md). Read live per warning send.
+ *
+ * The tag is the ONLY wire change frozen old apps (< 2.19.0) can observe, so
+ * this flag MUST stay false in production until the on-device re-alert gate
+ * (docs/RESOLVED_NOTIFICATION_NO_COMPROMISE.md §9.4) passes on the target OEM
+ * set: a non-conformant ROM that silently coalesces a same-tag update could
+ * drop a warning's re-alert. On conformant Android the only change is
+ * stacking → replace-to-latest, which is neutral-to-improving.
+ *
+ * Fail-safe: anything other than literal `true` → false → the warning is sent
+ * WITHOUT a tag, byte-identical to today (guarded by the warning freeze-test).
+ */
+export function isWarningReplaceTagEnabled(config: any): boolean {
+  return config?.body?.warningReplaceTagEnabled === true;
+}
