@@ -156,6 +156,10 @@ The `compileDebugAndroidTestKotlin` step (added after #604) catches signature-br
 
 **Be on the PR branch when validating, not main.** Common foot-gun: PR fails CI → switch to main to investigate → run validate locally → "passes" → confused why CI fails. validate.sh on main validates main, which doesn't include the PR's changes. Always `git checkout <pr-branch>` first.
 
+### Repo-wide renames / bulk search-replace
+
+Drive the file list with **`git grep -l`** / `git ls-files`, **NOT `rg`** — `rg` skips dotfiles and dot-directories by default (no `--hidden` flag), so it silently omits `.github/` (CI workflows, actions, dependabot), `.claude/` (hooks, skills, settings), and `.gitignore`. Those are exactly the load-bearing files a rename must update; missing them ships broken CI that PR checks can't always catch. Empirical: the `AndroidGarage → MobileGarage` rename (#1032) — the first `rg -l0 | xargs sed` pass reported "0 remaining" but had skipped all 21 hidden files (every workflow + the hooks + `.gitignore`); `git grep -l` surfaced them. Verify completeness with **`git grep <oldname>`** afterwards (expect zero, modulo intentional keeps like a historical-path fallback). Note: `git mv <dir> <newdir>` also moves gitignored/untracked contents (e.g. `local.properties`, `Secrets.local.xcconfig`) along with the tracked files, so local builds keep working with no manual step.
+
 ### Instrumented Tests
 Run `./scripts/run-instrumented-tests.sh` when changing Room entities/DAOs, DI wiring (AppComponent), navigation, or Activity lifecycle code. Requires a connected device or emulator. Not part of `validate.sh` (too slow for every run). A git hook warns on push when these files are changed.
 
