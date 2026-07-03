@@ -51,7 +51,7 @@ import { FakeNotificationsDatabase } from '../../fakes/FakeNotificationsDatabase
 import { FakeServerConfigDatabase } from '../../fakes/FakeServerConfigDatabase';
 import { SensorEvent, SensorEventType } from '../../../src/model/SensorEvent';
 import { buildTimestampToFcmTopic } from '../../../src/model/FcmTopic';
-import { AndroidMessagePriority, NotificationPriority } from '../../../src/model/FCM';
+import { AndroidMessagePriority } from '../../../src/model/FCM';
 
 const BUILD_TIMESTAMP = 'Sat Mar 13 14:45:00 2021';
 const EXPECTED_V2_TOPIC = 'door_open_v2-Sat.Mar.13.14.45.00.2021';
@@ -226,7 +226,7 @@ describe('sendFCMForResolvedDoor (via fakes)', () => {
   // --- Combined notification+data resolved (relaxed-A, resolvedNotificationPayloadEnabled) ---
   // docs/RESOLVED_NOTIFICATION_NO_COMPROMISE.md §9. Requires BOTH flags on.
 
-  it('sends a COMBINED message (notification + shared tag + lowered priority) when the payload flag is on', async () => {
+  it('sends a COMBINED message (notification + shared tag + HIGH priority) when the payload flag is on', async () => {
     fakeConfig.seed({ body: { resolvedOnCloseEnabled: true, resolvedNotificationPayloadEnabled: true } });
     fakeNotifications.seed(BUILD_TIMESTAMP, warnedMarker(OPEN_TS));
 
@@ -240,9 +240,13 @@ describe('sendFCMForResolvedDoor (via fakes)', () => {
     expect(sent.notification.title).to.equal('Resolved: garage door closed');
     expect(sent.notification.body).to.equal('Was open for 14 minutes'); // timezone-free duration
     expect(sent.android.notification.tag).to.equal('garage_door');
-    // Lowered alerting so the all-clear does not heads-up / buzz.
-    expect(sent.android.priority).to.equal(AndroidMessagePriority.NORMAL);
-    expect(sent.android.notification.notification_priority).to.equal(NotificationPriority.PRIORITY_LOW);
+    // HIGH delivery priority so the never-woken replacement reaches a dozing
+    // device. No notification_priority lever: it can't quiet the all-clear (the
+    // HIGH channel importance wins on Android 8+, device gate 2026-07-02), and the
+    // buzzing all-clear is accepted — so the field is simply not set.
+    expect(sent.android.priority).to.equal(AndroidMessagePriority.HIGH);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((sent.android.notification as any).notification_priority).to.be.undefined;
     // Data block UNCHANGED — still drives the rich device-local foreground body.
     expect(sent.data).to.deep.equal(RESOLVED_FIXTURE);
     expect(sent.topic).to.equal(EXPECTED_V2_TOPIC);
@@ -358,13 +362,14 @@ describe('sendFCMForResolvedDoor (via fakes)', () => {
       expect(message.data).to.deep.equal(RESOLVED_FIXTURE);
     });
 
-    it('adds notification + tag + lowered priority when includeNotificationPayload is true, data unchanged', () => {
+    it('adds notification + tag + HIGH priority when includeNotificationPayload is true, data unchanged', () => {
       const message = getResolvedMessage(BUILD_TIMESTAMP, OPEN_TS, CLOSE_TS, true);
       expect(message.topic).to.equal(EXPECTED_V2_TOPIC);
       expect(message.notification.title).to.equal('Resolved: garage door closed');
       expect(message.notification.body).to.equal('Was open for 14 minutes');
-      expect(message.android.priority).to.equal(AndroidMessagePriority.NORMAL);
-      expect(message.android.notification.notification_priority).to.equal(NotificationPriority.PRIORITY_LOW);
+      expect(message.android.priority).to.equal(AndroidMessagePriority.HIGH);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((message.android.notification as any).notification_priority).to.be.undefined;
       expect(message.android.notification.tag).to.equal('garage_door');
       // Data block is identical across both shapes — the wire contract never changes.
       expect(message.data).to.deep.equal(RESOLVED_FIXTURE);

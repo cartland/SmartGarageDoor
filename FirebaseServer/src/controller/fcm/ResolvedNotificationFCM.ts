@@ -21,7 +21,7 @@ import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDat
 import { isResolvedOnCloseEnabled, isResolvedNotificationPayloadEnabled } from '../config/ConfigAccessors';
 
 import { SensorEvent } from '../../model/SensorEvent';
-import { AndroidMessagePriority, TopicMessage, AndroidConfig, Notification, AndroidNotification, NotificationPriority } from '../../model/FCM';
+import { AndroidMessagePriority, TopicMessage, AndroidConfig, Notification, AndroidNotification } from '../../model/FCM';
 import { buildTimestampToFcmTopicV2 } from '../../model/FcmTopic';
 
 /**
@@ -185,9 +185,14 @@ function formatOpenDuration(durationSeconds: number): string {
  *    §9): the same `data` block PLUS a `notification` block sharing the warning's
  *    `garage_door` tag. An alive app still builds the rich device-local body from
  *    the data block; a never-woken app OS-renders the notification block, whose
- *    body is a timezone-free duration and whose priority is lowered (NORMAL /
- *    PRIORITY_LOW) so the all-clear does not heads-up or buzz (FCM has no
- *    only_alert_once wire field, so priority is the only server lever).
+ *    body is a timezone-free duration. HIGH delivery priority (like the data-only
+ *    shape) so the message actually reaches a dozing device — that prompt delivery
+ *    is what makes the never-woken replacement happen. The all-clear DOES heads-up
+ *    / buzz: on Android 8+ the HIGH "Garage door" channel importance overrides any
+ *    per-notification `notification_priority`, so there is no server lever to quiet
+ *    it (device gate 2026-07-02 confirmed PRIORITY_LOW had no effect). The
+ *    maintainer accepted the buzzing all-clear (§9.4); a silent all-clear would
+ *    need a dedicated lower-importance channel, deferred.
  *
  * `kind` discriminates the notification intent (distinct from the door-event
  * `type` key). collapse_key matches the warning's so an offline device coalesces
@@ -209,16 +214,17 @@ export function getResolvedMessage(
   };
   message.android = <AndroidConfig>{};
   message.android.collapse_key = 'door_not_closed';
+  // HIGH in BOTH shapes: the data-only shape wakes the app; the combined shape
+  // needs prompt Doze delivery so the never-woken replacement actually arrives.
+  // Lowering it does NOT quiet the all-clear (channel importance wins, gate
+  // 2026-07-02) and would only risk deferring it. See the docstring + §9.4.
+  message.android.priority = AndroidMessagePriority.HIGH;
   if (includeNotificationPayload) {
     message.notification = <Notification>{};
     message.notification.title = 'Resolved: garage door closed';
     message.notification.body = 'Was open for ' + formatOpenDuration(closeTimestampSeconds - openTimestampSeconds);
-    message.android.priority = AndroidMessagePriority.NORMAL;
     message.android.notification = <AndroidNotification>{};
-    message.android.notification.notification_priority = NotificationPriority.PRIORITY_LOW;
     message.android.notification.tag = RESOLVED_REPLACE_TAG;
-  } else {
-    message.android.priority = AndroidMessagePriority.HIGH;
   }
   return message;
 }
