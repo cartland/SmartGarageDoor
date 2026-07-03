@@ -468,17 +468,27 @@ degradation, but it is a larger change; keep it out of the minimal design and re
 
 ### 9.4 Gates before this is safe to build
 
-1. **Undocumented FCM id behavior (hard device gate).** The whole never-woken win depends on two
-   same-tagged notification-payloads — even across `door_open-` and `door_open_v2-` — being posted by
-   FCM under the same `id`, so the OS replaces rather than stacks them on the new app. If FCM assigns
-   per-message ids, cross-topic replacement silently degrades to two cards (cosmetic, safe) and the
-   old-app tag change bought a smaller gain. This **must be device-verified first**: send two
-   same-tag notification-payloads from two topics to a backgrounded device and confirm the OS collapses
-   them to one card (and observe whether the second re-buzzes). Extend `scripts/send-test-notification.sh`
-   with a `--notification-payload` + `--tag` mode to reproduce it.
-2. **Re-buzz on OS replace.** The OS-rendered resolved cannot set `setOnlyAlertOnce`, so it may re-alert
-   when it replaces the warning in the background. Mitigate via notification priority, or accept one
-   all-clear buzz. The foreground app-built path already suppresses it.
+> **Gate results — Pixel, 2026-07-02 (PASS).** Run via `send-test-notification.sh --mode
+> notification|combined --tag garage_door` with the app backgrounded. (1) A same-tag warning
+> replacement **re-alerted** (buzzed) — the A-prime result: tagging the warning does not degrade old
+> apps. (2) A `--mode notification` warning followed by a `--mode combined` resolved with the same tag
+> **collapsed to one card** — cross-topic same-tag replacement works, so the never-woken single-card
+> holds. (3) The resolved **buzzed** despite `PRIORITY_LOW` (see #2 below). Warning-tag is cleared to
+> enable on Pixel; the OEM-variable re-alert should be re-run on a Samsung/Xiaomi if available.
+
+1. **Undocumented FCM id behavior — VERIFIED on Pixel.** The never-woken win depends on two same-tagged
+   notification-payloads — even across `door_open-` and `door_open_v2-` — replacing rather than
+   stacking. Confirmed on Pixel via the sandbox (`--mode notification` then `--mode combined`, same
+   tag, backgrounded → one card). Re-run on another OEM if the fleet includes Samsung/Xiaomi. If some
+   OEM assigns per-message ids, cross-topic replacement degrades to two cards there (cosmetic, safe).
+2. **Re-buzz on OS replace — confirmed on-device 2026-07-02; buzz accepted.** The OS-rendered resolved
+   cannot set `setOnlyAlertOnce`. The Pixel gate confirmed that lowering `notification_priority`
+   (PRIORITY_LOW) does **not** quiet it: on Android 8+ the HIGH "Garage door" channel importance
+   overrides any per-notification priority, so the all-clear heads-up / buzzes. The maintainer
+   **accepted the buzzing all-clear**, so the combined resolved uses **HIGH** delivery priority (like
+   the warning) for reliable never-woken Doze delivery and sets no `notification_priority`. A silent
+   all-clear would require a dedicated lower-importance channel (app-created + `channel_id` on the
+   payload) — deferred, not built. The foreground app-built path is still silent (`setOnlyAlertOnce`).
 3. **Time formatting in the background.** The OS-rendered resolved text is server-provided and cannot
    know the device timezone, so drop the local clock ("2:00-2:14 PM") from the background variant and
    keep the timezone-independent duration ("open for 14 minutes"). The foreground app-built path keeps
