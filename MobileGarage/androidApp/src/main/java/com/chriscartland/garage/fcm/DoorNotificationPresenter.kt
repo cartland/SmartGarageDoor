@@ -78,10 +78,40 @@ class DoorNotificationPresenter(
         post(title = title, body = body)
     }
 
-    /** Render the additive resolved-on-close message. */
-    fun show(data: Map<String, String>) {
-        val content = DoorResolvedPayload.parse(data) ?: run {
-            Logger.d { "DoorNotification: payload not a resolved-on-close message; ignoring" }
+    /**
+     * Render the additive resolved-on-close message.
+     *
+     * The rich body (device-local start/end times) is computed client-side from
+     * the raw timestamps in [data]. [fallbackTitle]/[fallbackBody] are the server's
+     * notification-block strings, present only for the relaxed-A COMBINED resolved
+     * (`resolvedNotificationPayloadEnabled`); the data-only resolved carries none.
+     *
+     * Failure mode — defensive, SHOULD NOT happen. The server always sends a
+     * well-formed data block (pinned byte-for-byte to
+     * `wire-contracts/openDoorResolved/`), so [DoorResolvedPayload.parse] should
+     * never return null for a real resolved. If it somehow does AND a server
+     * notification block was present, render that instead of silently dropping the
+     * notification. The ONLY UI degradation is the missing device-local start/end
+     * clock times ("2:00-2:14 PM") — the server body still states the door closed
+     * and the open duration. See docs/RESOLVED_NOTIFICATION_NO_COMPROMISE.md §9.4.
+     */
+    fun show(
+        data: Map<String, String>,
+        fallbackTitle: String? = null,
+        fallbackBody: String? = null,
+    ) {
+        val content = DoorResolvedPayload.parse(data)
+        if (content == null) {
+            if (!fallbackTitle.isNullOrBlank() || !fallbackBody.isNullOrBlank()) {
+                Logger.w {
+                    "DoorNotification: resolved data-parse failed; rendering server " +
+                        "notification fallback (degraded: missing device-local times)"
+                }
+                ensureChannel()
+                post(title = fallbackTitle.orEmpty(), body = fallbackBody.orEmpty())
+            } else {
+                Logger.d { "DoorNotification: payload not a resolved-on-close message; ignoring" }
+            }
             return
         }
         ensureChannel()

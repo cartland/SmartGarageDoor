@@ -41,13 +41,13 @@ class FcmMessageHandlerTest {
     private val buttonHealthRepo = RecordingButtonHealthRepository()
     private val applyButtonHealthFcm = ApplyButtonHealthFcmUseCase(buttonHealthRepo)
     private val testNotifications = mutableListOf<Map<String, String>>()
-    private val doorNotifications = mutableListOf<Map<String, String>>()
+    private val doorNotifications = mutableListOf<Triple<Map<String, String>, String?, String?>>()
     private val handler =
         FcmMessageHandler(
             receiveFcmDoorEvent,
             applyButtonHealthFcm,
             showTestNotification = { testNotifications.add(it) },
-            showDoorNotification = { doorNotifications.add(it) },
+            showDoorNotification = { data, title, body -> doorNotifications.add(Triple(data, title, body)) },
         )
 
     private fun doorPayload(
@@ -190,10 +190,34 @@ class FcmMessageHandlerTest {
 
             assertTrue(result)
             assertEquals(1, doorNotifications.size)
-            assertEquals(data, doorNotifications.single())
+            assertEquals(data, doorNotifications.single().first)
             // The legacy door state-sync branch must NOT be invoked for v2.
             assertNull(receiveFcmDoorEvent.lastEvent)
             assertNull(buttonHealthRepo.lastApplied)
+        }
+
+    @Test
+    fun doorResolvedV2Topic_forwardsServerNotificationAsFallback() =
+        runTest {
+            // The server notification title/body must reach the presenter so it can
+            // fall back to them if the data block ever fails to parse (defensive).
+            val data = mapOf(
+                "kind" to "open_door_resolved",
+                "openTimestampSeconds" to "1800000000",
+                "closeTimestampSeconds" to "1800000840",
+            )
+            val result = handler.handleMessage(
+                topic = "door_open_v2-X",
+                data = data,
+                notificationTitle = "Resolved: garage door closed",
+                notificationBody = "Was open for 14 minutes",
+            )
+
+            assertTrue(result)
+            val (fwdData, title, body) = doorNotifications.single()
+            assertEquals(data, fwdData)
+            assertEquals("Resolved: garage door closed", title)
+            assertEquals("Was open for 14 minutes", body)
         }
 
     @Test
