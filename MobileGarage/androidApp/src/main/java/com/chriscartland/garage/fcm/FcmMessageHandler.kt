@@ -44,7 +44,7 @@ class FcmMessageHandler(
     private val receiveFcmDoorEvent: ReceiveFcmDoorEventUseCase,
     private val applyButtonHealthFcm: ApplyButtonHealthFcmUseCase,
     private val showTestNotification: (Map<String, String>) -> Unit,
-    private val showDoorNotification: (Map<String, String>) -> Unit,
+    private val showDoorNotification: (data: Map<String, String>, fallbackTitle: String?, fallbackBody: String?) -> Unit,
 ) {
     /**
      * Process an FCM data message. Topic prefix determines which
@@ -54,11 +54,17 @@ class FcmMessageHandler(
      *   the `/topics/` prefix). Used to route between door and button-
      *   health channels.
      * @param data the FCM data payload (string key/value pairs).
+     * @param notificationTitle/notificationBody the server's notification-block
+     *   strings when the message carried one (the relaxed-A COMBINED resolved).
+     *   Forwarded to the door-resolved presenter as a fallback for a
+     *   should-never-happen data-parse failure; null for pure data messages.
      * @return true if the message was successfully parsed and handed off.
      */
     suspend fun handleMessage(
         topic: String,
         data: Map<String, String>,
+        notificationTitle: String? = null,
+        notificationBody: String? = null,
     ): Boolean {
         if (data.isEmpty()) {
             Logger.d { "Message data payload is empty" }
@@ -72,7 +78,7 @@ class FcmMessageHandler(
             }
             topic.startsWith(DOOR_RESOLVED_FCM_TOPIC_PREFIX) -> {
                 Logger.d { "Door resolved FCM payload: $data" }
-                showDoorNotification(data)
+                showDoorNotification(data, notificationTitle, notificationBody)
                 true
             }
             topic.startsWith("buttonHealth-") -> handleButtonHealthMessage(data)

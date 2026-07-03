@@ -64,7 +64,15 @@ class FCMService : FirebaseMessagingService() {
 
         serviceScope.launch(Dispatchers.IO) {
             try {
-                handler.handleMessage(topic, remoteMessage.data)
+                // Forward the server notification title/body (present on the
+                // relaxed-A combined resolved) so the resolved presenter can fall
+                // back to them if its data block ever fails to parse.
+                handler.handleMessage(
+                    topic,
+                    remoteMessage.data,
+                    remoteMessage.notification?.title,
+                    remoteMessage.notification?.body,
+                )
             } catch (e: IllegalStateException) {
                 Logger.e { "Failed to handle FCM message: $e" }
             }
