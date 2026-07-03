@@ -51,6 +51,22 @@ export function getFunctionListAuthorizedEmails(config: any): string[] | null {
 }
 
 /**
+ * Admin allowlist for the config-flag endpoint (httpConfigFlags / the
+ * set-config-flag CLI). A caller's verified Firebase email must be in this list
+ * to read or flip an editable feature flag. Stored as
+ * `body.configFlagAdminAllowedEmails: string[]` on `configCurrent/current`,
+ * edited in-place in the Firestore console. Returns null when the field is
+ * missing so `isEmailInAllowlist` treats it as deny-all — a fresh deploy starts
+ * closed, and you grant access by adding your email in the console.
+ */
+export function getConfigFlagAdminAllowedEmails(config: any): string[] | null {
+  if (config && config.hasOwnProperty('body') && config.body.hasOwnProperty('configFlagAdminAllowedEmails')) {
+    return config.body.configFlagAdminAllowedEmails;
+  }
+  return null;
+}
+
+/**
  * Per-feature email allowlist for the "Developer" section on the Android
  * Settings screen (currently houses Diagnostics; future home for any
  * dev-only affordances). Stored as `body.featureDeveloperAllowedEmails:

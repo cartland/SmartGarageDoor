@@ -25,6 +25,7 @@ import { httpRemoteButton, httpAddRemoteButtonCommand } from './functions/http/R
 import { httpCheckForOpenDoors } from './functions/http/OpenDoor'
 import { httpDeleteOldData } from './functions/http/DeleteData'
 import { httpServerConfig, httpServerConfigUpdate } from './functions/http/ServerConfig'
+import { httpConfigFlags } from './functions/http/SetConfigFlag'
 import { httpSnoozeNotificationsRequest, httpSnoozeNotificationsLatest} from './functions/http/Snooze'
 import { httpFunctionListAccess } from './functions/http/FunctionListAccess'
 import { httpDeveloperAccess } from './functions/http/DeveloperAccess'
@@ -242,6 +243,19 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'serverConfig') 
  */
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'serverConfigUpdate') {
   exports.serverConfigUpdate = httpServerConfigUpdate;
+}
+
+/**
+ * Safe, restricted read + flip of server feature flags. Firebase ID token
+ * (X-AuthTokenGoogle) + the `configFlagAdminAllowedEmails` allowlist; only the
+ * hardcoded EDITABLE_CONFIG_FLAGS may change; a read-modify-write touches ONLY
+ * that one boolean. The safe alternative to httpServerConfigUpdate's whole-doc
+ * overwrite. See docs/FIREBASE_CONFIG_AUTHORITY.md + scripts/set-config-flag.sh.
+ *
+ * Trigger Type: HTTP
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'configFlags') {
+  exports.configFlags = httpConfigFlags;
 }
 
 /**

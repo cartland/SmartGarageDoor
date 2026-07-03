@@ -120,13 +120,25 @@ curl -sS -X POST -H "X-ServerConfigKey: <WRITE_KEY>" -H "Content-Type: applicati
 `config.queryParams` resets to empty on restore — harmless; every accessor reads
 `config.body.*`, nothing reads `queryParams`.
 
-### Editing a single field safely
+### Toggling a boolean feature flag (safest — use this)
 
-Never hand-write a partial body. Either:
+For the boolean feature flags, prefer the **`configFlags` endpoint + `scripts/set-config-flag.sh`** over touching Firestore at all. It structurally cannot clobber `buildTimestamp`, secrets, or allowlists: it only ever writes ONE key from a hardcoded allowlist, as a read-modify-write that preserves every other field, and it refuses to write if the current config is missing `buildTimestamp`.
+
+```bash
+scripts/set-config-flag.sh --list                         # read current flag values
+scripts/set-config-flag.sh warningReplaceTagEnabled true  # flip one flag
+```
+
+- **Auth = a Firebase ID token** (from the app's "Copy auth token", Android or iOS) whose verified email is in `body.configFlagAdminAllowedEmails` (console-edited; deny-all when unset). Per-person, auditable, revocable by editing the list — no shared secret. First-use step: add your email to that allowlist in the console.
+- **Editable flags** (hardcoded in `FirebaseServer/src/functions/http/SetConfigFlag.ts`): `resolvedOnCloseEnabled`, `warningReplaceTagEnabled`, `resolvedNotificationPayloadEnabled`, `snoozeNotificationsEnabled`, `remoteButtonEnabled`. Anything not in that list (buildTimestamp, secrets, allowlists) is unreachable by this path.
+
+### Editing any other field safely
+
+For non-flag fields (allowlists, timestamps, secrets), never hand-write a partial body. Either:
 
 - **Firebase console (lowest risk)** — Firestore → `configCurrent` → `current` →
   `body` → edit the one field in place. A true single-field edit, no whole-doc
-  replace. This is how the per-user allowlists and feature flags are toggled.
+  replace. This is how the per-user allowlists are toggled.
 - **GET → modify → POST the full body**, so every other field is preserved:
   ```bash
   curl -sS -H "X-ServerConfigKey: <READ_KEY>" ".../httpServerConfig" \
