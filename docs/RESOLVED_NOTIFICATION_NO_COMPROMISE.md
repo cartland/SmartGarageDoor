@@ -6,8 +6,15 @@ last_verified: 2026-07-02
 
 # Open-door notification: is a no-compromise single-card design possible?
 
-Status: analysis and recommendation. Not yet shipped. Supersedes nothing; extends
-[`RESOLVED_NOTIFICATION_PLAN.md`](RESOLVED_NOTIFICATION_PLAN.md) (Phase 1 live) and
+**Status: the relaxed-A design (§9) is SHIPPED and ENABLED + LIVE in production as of
+2026-07-03.** The server code shipped dark in `server/32`/`server/33`; the two flags
+`warningReplaceTagEnabled` and `resolvedNotificationPayloadEnabled` were flipped `true`
+on 2026-07-03 (via `scripts/set-config-flag.sh`), and `resolvedOnCloseEnabled` was
+already on — so the never-woken single card fires in production on the installed
+`2.20.2` client (no Android release was needed). Device-gate: PASS on Pixel (§9.4).
+Revert = flip either flag `false` (instant). Check current flag values with
+`scripts/set-config-flag.sh --list`. Extends
+[`RESOLVED_NOTIFICATION_PLAN.md`](RESOLVED_NOTIFICATION_PLAN.md) (Phase 1) and
 [`NOTIFICATION_RELIABILITY.md`](NOTIFICATION_RELIABILITY.md) (R1-R6, final architecture).
 
 Produced by a multi-agent analysis (ground-truth readers + web research on FCM/Android
