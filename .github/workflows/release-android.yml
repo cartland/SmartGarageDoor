@@ -39,6 +39,27 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # full history so the mainline check below can walk ancestry
+
+      # Server-side re-assertion that this is a mainline commit. The release
+      # script already refuses to tag anything off `main` locally, and a
+      # Claude hook blocks pushing a tag ref directly -- but neither of those
+      # is enforced here, on the runner, which is the one place this
+      # workflow can't be argued with. This closes that gap independent of
+      # who cut the tag or how the ref was pushed.
+      - name: Verify tagged commit is on main
+        run: |
+          # Fetch into FETCH_HEAD rather than relying on refs/remotes/origin/main
+          # existing -- actions/checkout's configured refspec for a tag-triggered
+          # checkout is scoped to the tag, not a full branch mirror, so
+          # origin/main may not exist locally even after this fetch.
+          git fetch origin main --quiet
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" FETCH_HEAD; then
+            echo "::error::Tag ${GITHUB_REF_NAME} points to commit $GITHUB_SHA, which is not reachable from origin/main. Refusing to release a commit that hasn't gone through the required main-branch checks."
+            exit 1
+          fi
+          echo "Verified: $GITHUB_SHA is on origin/main."
 
       - uses: ./.github/actions/setup-android
         with:

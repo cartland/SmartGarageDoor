@@ -100,6 +100,32 @@ if echo "$STRIPPED" | grep -qE '\bgit\s+tag\b'; then
   fi
 fi
 
+# --- Block pushing release tags directly (use release scripts instead) ---
+# `git tag` (above) only blocks half the path: a tag ref can reach origin
+# without ever calling `git tag` -- e.g. `git push origin
+# HEAD:refs/tags/android/999`, `git push origin --tags`, `git push origin tag
+# android/999` (git's `push <remote> tag <name>` shorthand), or a bare `git
+# push origin android/999`. Each publishes a remote tag directly, bypassing
+# the validation/changelog/mainline gates the release scripts enforce just as
+# fully as a bare `git tag` would.
+#
+# Checked against each isolated `git push ...` segment with quote
+# *characters* (not quoted *content*, unlike $STRIPPED above) removed, so a
+# quoted ref name (`git push origin "android/999"`) can't slip through the
+# way it would if we matched against $STRIPPED. Isolating each match to the
+# push segment alone (stops at `;`/`&`/`|`) keeps this from being tripped by
+# unrelated quoted text elsewhere in a compound command (e.g. a chained
+# `gh pr create --body "...android/123..."`).
+PUSH_SEGMENTS=$(echo "$COMMAND" | sed '/<<.*EOF/,/^EOF/d' | grep -oE 'git[[:space:]]+push\b[^;&|]*' | sed -E "s/[\"']//g")
+if [ -n "$PUSH_SEGMENTS" ]; then
+  if echo "$PUSH_SEGMENTS" | grep -qE -- '--tags\b|refs/tags/|(^|[[:space:]])tag[[:space:]]'; then
+    deny "BLOCKED: Never push tags directly (--tags, refs/tags/, or the 'push <remote> tag <name>' form). Use ./scripts/release-android.sh, ./scripts/release-ios.sh, or ./scripts/release-firebase.sh -- they push release tags as part of a gated release."
+  fi
+  if echo "$PUSH_SEGMENTS" | grep -qE '(^|[[:space:]:])(android|ios|server)/[0-9]+([[:space:]:]|$)'; then
+    deny "BLOCKED: Never push an android/N, ios/N, or server/N ref directly. Use ./scripts/release-android.sh, ./scripts/release-ios.sh, or ./scripts/release-firebase.sh -- they push release tags as part of a gated release."
+  fi
+fi
+
 # --- Enforce squash merge ---
 if echo "$STRIPPED" | grep -qE '\bgh\s+pr\s+merge\b'; then
   if ! echo "$STRIPPED" | grep -qF -- '--squash'; then

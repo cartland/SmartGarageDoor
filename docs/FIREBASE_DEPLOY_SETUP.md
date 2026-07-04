@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-04-24
+last_verified: 2026-07-03
 ---
 # Firebase Server Operations
 
@@ -75,9 +75,11 @@ curl -sS -o /dev/null -w "%{http_code}\n" \
 
 Any `5xx` or connection-refused = something's wrong.
 
+**This check now also runs automatically** as a `firebase-deploy.yml` step after every CI-triggered deploy (`Smoke check deployed function`) — it fails the job on a 5xx or connection-refused response, so a broken deploy no longer depends on a human remembering to run the `curl` above. Still worth running by hand after a **manual** deploy (Rollback Option 1 below), since that path isn't covered by the workflow.
+
 ### ⚠️ The silent-failure pattern to watch for
 
-Before 2026-04-21, `firebase deploy` would exit 0 despite printing `⚠ functions: failed to update function <name>` — the workflow "succeeded" but nothing deployed. **Always look for `✔ Deploy complete!` in the log before trusting a "success" conclusion.** If you see the `⚠ failed to update` warning pattern return, the deployer service account has lost a role (see Troubleshooting).
+Before 2026-04-21, `firebase deploy` would exit 0 despite printing `⚠ functions: failed to update function <name>` — the workflow "succeeded" but nothing deployed. **This is now caught automatically**: the `Deploy to Firebase` step in `firebase-deploy.yml` greps its own output for `failed to update function` and requires `Deploy complete!` to appear, failing the job loudly instead of reporting a false green. If you see the `⚠ failed to update` warning pattern on a **manual** deploy (where nothing greps the output for you), the deployer service account has lost a role (see Troubleshooting) — the same fix applies.
 
 ---
 

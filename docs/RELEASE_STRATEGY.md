@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-06-20
+last_verified: 2026-07-03
 ---
 
 # Release & Deployment Strategy
@@ -395,8 +395,9 @@ A multi-component repository:
 - An **Android** app (Compose Multiplatform) — released to the Play **internal** track by
   `android/N` tags; production promotion is manual. *Composes: Foundations + App +
   Android.*
-- An **iOS** app (the shared CMP codebase) — **builds in CI but has no release pipeline
-  yet.** *Would compose: Foundations + App + iOS.*
+- An **iOS** app (the shared CMP codebase) — released to TestFlight **Internal** by
+  `ios/N` tags, mirroring the Android model; production App Store promotion is manual.
+  *Composes: Foundations + App + iOS.*
 - **ESP32 firmware** — flashed manually; outside this strategy (§8).
 
 There is **no web frontend**, so the Web layer (§7) does not apply.
@@ -416,11 +417,11 @@ Legend: ✅ met · ◐ partial · ⚠️ deviation (deliberate, recorded) · ❌
 |---|---|---|
 | F1 tagged/automated | ✅ | `server/N` / `android/N` tags trigger the deploy workflows; never push-to-main. |
 | F2 immutable, monotonic tags | ✅ | Plain incrementing counters; "never delete/move a tag" is documented (F-NOT2 ✅). |
-| F3 only mainline ships | ◐ | The release scripts enforce on-`main` + clean-tree *locally*, and branch protection (required checks, `enforce_admins`, no `--admin`) guards the merge. But the **deploy workflow** only re-checks the tagged commit's CI conclusion — it does not re-assert the commit is an ancestor of `main` server-side. See gap **G5**. |
+| F3 only mainline ships | ✅ | The release scripts enforce on-`main` + clean-tree *locally*, branch protection guards the merge, and all three deploy workflows now run a `git merge-base --is-ancestor "$GITHUB_SHA" origin/main` gate before touching any secrets or build steps — the pipeline itself refuses a tag that isn't reachable from `main`, independent of who cut it or how the ref reached origin. (Closed **G5**.) |
 | F4 preview before commitment | ✅ | `--check` prints state + the exact next command with real SHAs. |
 | F5 confirm = assertion | ✅ | `--confirm-tag` must equal the computed next tag, or it refuses. |
 | F6 grounded overrides | ✅ | Every override flag takes a SHA/tag and fails on mismatch ("a value from reality"). |
-| F7 gates overridable, invariants not | ✅ | Validation + changelog gates have grounded overrides; monotonic tag + confirm-assertion are not overridable. (Smoke override is moot until smoke runs in-pipeline — G4.) |
+| F7 gates overridable, invariants not | ◐ | Validation + changelog gates have grounded overrides; monotonic tag + confirm-assertion are not overridable. The Firebase smoke/silent-failure gate (G4, now in-pipeline) has **no override yet** — a real failure there is meant to be fixed forward, but there's no documented break-glass path if one's ever needed. Low priority: no local manual-deploy wrapper script exists for a grounded flag to live on. |
 | F8 truthful deploy record | ❌ | The running functions do not report the commit they were built from; "what's live?" is reconstructed from `gcloud` update-time + git. See gap **G1**. |
 | F9 recoverable failures | ✅ | A failed tag push deletes the local tag; the silent-success class is documented as a known watch-point. |
 | F10 dry run | ✅ | `--dry-run` runs the gates and creates nothing. |
@@ -429,7 +430,7 @@ Legend: ✅ met · ◐ partial · ⚠️ deviation (deliberate, recorded) · ❌
 | F13 keyless credentials | ❌ | Both Firebase and Play deploys use long-lived stored service-account JSON keys. See gap **G2**. |
 | F14 least-privilege runtime identity | ◐ | The deploy identity is separate from the runtime identity, but the runtime is the project's broad default service account. See gap **G3**. |
 | F-CAN1 break-glass manual path | ✅ | A documented hand-run deploy exists, separate from the tag path. |
-| F-CAN2 ad-hoc-tag guard | ✅ | A commit-time guard blocks direct `git tag`, steering to the release scripts. |
+| F-CAN2 ad-hoc-tag guard | ✅ | A commit-time guard blocks direct `git tag` *and* pushing a tag ref by any other route (`--tags`, `refs/tags/`, the `push <remote> tag <name>` form, or a bare `push origin android/N`/`ios/N`/`server/N`), steering to the release scripts. |
 
 **Server**
 
@@ -438,7 +439,7 @@ Legend: ✅ met · ◐ partial · ⚠️ deviation (deliberate, recorded) · ❌
 | S1 staging + production | ⚠️ | **Single-environment by deliberate choice** (solo-maintained, low blast radius). Recorded deviation; see trigger **D1**. |
 | S2 production anchored | ⚠️ | N/A under single-env (no staging to anchor to). Re-applies if a staging channel is added (D1). |
 | S3 promotion ships identical commit | ⚠️ | N/A under single-env. |
-| S4 self-verifying deploys | ❌ | A smoke check exists but is a **documented manual `curl`**, not a deploy-workflow step — so a deploy can report success without serving. This exact class bit once historically. High-priority gap **G4**. |
+| S4 self-verifying deploys | ✅ | The deploy workflow now greps its own `firebase deploy` output for the documented silent-failure warning (and requires the `Deploy complete!` marker) and runs the `serverConfig` smoke check as a deploy-workflow step, failing the job on a 5xx/connection-refused response or a silent-failure match. This exact class bit once historically. (Closed **G4** — the live deploy-record assertion this doc originally bundled into G4 is tracked separately under G1, since it needs a `/build-info`-style endpoint that doesn't exist yet.) |
 | S5 data changes are migrations | ◐ | Typed per-collection modules + contract tests are in place (see `FIREBASE_DATABASE_REFACTOR.md`); explicit schema-version + expand/migrate/contract discipline is not separately verified here. |
 | S6 staging permissive | ⚠️ | N/A under single-env. |
 | S7 named rollback path | ✅ | Rollback is a first-class script flow (re-release a prior tag with a grounded `--confirm-rollback-from`) and is documented with three options. |
@@ -465,14 +466,19 @@ Legend: ✅ met · ◐ partial · ⚠️ deviation (deliberate, recorded) · ❌
 | A3 / AN3 monotonic tag-derived version | ✅ | Version code is derived from the `android/N` counter. |
 | A4 / AN4 validation marker | ✅ | A validation marker must match the released commit (grounded override for emergencies). |
 | AN2 signing protected | ✅ | Keystore encrypted at rest, decrypted at build via an injected key, passwords as secrets, decrypted keystore removed after the build. |
-| A5 / AN5 release-note length checked | ◐ | A "what's new" directory ships, but its length is not auto-checked against store limits. Minor gap **G7**. |
+| A5 / AN5 release-note length checked | ✅ | `scripts/check-whatsnew-length.sh` enforces Google Play's 500-char-per-language limit on every `whatsnew-*` file and is wired into `validate.sh`, so the release script's validation gate (A4/AN4) already blocks an over-length entry. (Closed **G7**.) |
 | AN6 screenshots as record, not gate | ✅ | Screenshot assets are a reviewable record, not a pixel-diff CI gate. |
 
 **iOS**
 
 | Rule | State | Notes |
 |---|---|---|
-| IO1–IO6 | ❌ | The iOS app builds in CI (not a required check) but has **no release pipeline** — no TestFlight/App Store automation. Entire layer is a pending gap **G8**. |
+| IO1 TestFlight from automation only | ✅ | `release-ios.yml` uploads to TestFlight Internal only; App Store promotion is a manual App Store Connect action. (Closed **G8**.) |
+| IO2 signing protected | ✅ | No certificate is imported or stored — cloud signing via an App Store Connect API key (Admin role) creates the distribution cert/profile on demand; the key is written to a runner temp file and removed in an `if: always()` cleanup step. |
+| IO3 monotonic build number | ✅ | `ios/N` tag → `CFBundleVersion = N`, enforced strictly-increasing by the release script; the CI pre-flight (`scripts/asc-latest-build.rb`) is the authoritative check against App Store Connect's actual highest build (which can run ahead of git if a build was uploaded out-of-band). |
+| IO4 validation marker | ✅ | `scripts/validate-ios.sh` writes `.claude/.ios-validation-passed`; the release script blocks on a missing/stale marker (grounded override for emergencies), same pattern as Android/Firebase. |
+| IO5 release-note length checked | ❌ | No automated "What to Test" upload or length check exists yet — TestFlight test notes are still a manual App Store Connect step. Minor gap **G9**. |
+| IO6 screenshots as record, not gate | ✅ | The Prefire/swift-snapshot-testing gallery is a browsable reference, explicitly **not** a gating CI check. |
 
 **Web** — N/A (no web frontend).
 
@@ -494,26 +500,43 @@ toward full conformance.
   starts to matter (more data, more surfaces). *Action:* provision a dedicated runtime
   service account with narrow roles and run the functions as it; grant the deployer only
   `actAs` on it.
-- **G4 — S4: deploy not self-verifying.** *Trigger:* already bit once — treat as the
-  highest-priority gap. *Action:* run the existing smoke check as a **deploy-workflow
-  step** that fails the job on a non-expected response, and (with G1) assert the live
-  deploy record equals the just-shipped commit. Add a grounded `OVERRIDE_SKIP_SMOKE=<sha>`
-  for break-glass (F7), never set in CI.
-- **G5 — F3: server-side mainline re-assertion is partial.** *Trigger:* low (local script
-  + branch protection already cover the normal path), but cheap to close. *Action:* add a
-  `git merge-base --is-ancestor "$GITHUB_SHA" origin/main` gate to the deploy workflow so
-  the pipeline refuses any tag not on `main`, independent of who cut it.
+- **G4 — S4: deploy not self-verifying. RESOLVED.** The deploy workflow now runs the
+  `serverConfig` smoke check as a deploy-workflow step (fails the job on a 5xx/
+  connection-refused response) and greps its own `firebase deploy` output for the
+  documented silent-failure warning, requiring the `Deploy complete!` marker. A grounded
+  break-glass override (`OVERRIDE_SKIP_SMOKE=<sha>`, F7) was considered but deferred —
+  there's no local manual-deploy wrapper script for it to live on yet (the manual deploy
+  path in `FIREBASE_DEPLOY_SETUP.md` is still a raw `firebase deploy` command); add one if
+  a real need for a smoke override on the CI path emerges. The **live deploy-record**
+  half of the original combined action (asserting the running function reports the
+  just-shipped commit) still needs G1's `/build-info`-style endpoint and is tracked there,
+  not here.
+- **G5 — F3: server-side mainline re-assertion is partial. RESOLVED.** All three deploy
+  workflows (`release-android.yml`, `release-ios.yml`, `firebase-deploy.yml`) now run
+  `git fetch origin main && git merge-base --is-ancestor "$GITHUB_SHA" FETCH_HEAD` (with
+  `fetch-depth: 0`) before any secrets or build steps, refusing any tag not on `main`
+  independent of who cut it or how the ref reached origin. (`FETCH_HEAD`, not
+  `origin/main` — the checkout action's configured refspec for a tag-triggered checkout
+  is scoped to the tag, so `refs/remotes/origin/main` isn't guaranteed to exist locally.)
 - **G6 — FB3: rules/indexes not deployed with code.** *Trigger:* the first change that
   couples a function to a Firestore rules or index change. *Action:* include `firestore`
   (rules + indexes) — and hosting if it ever serves content — in the deploy scope so they
   ship atomically with the functions, or add a documented coupled-deploy step.
-- **G7 — A5/AN5: release-note length unchecked.** *Trigger:* the first time a store upload
-  is rejected/truncated for length. *Action:* add a length check against the store limit to
-  the release gate.
-- **G8 — iOS has no release pipeline.** *Trigger:* when you want to ship iOS to testers.
-  *Action:* add an `ios/N` tag-driven release mirroring Android — TestFlight-only,
-  monotonic build number from the counter, signing material encrypted at rest, manual App
-  Store promotion (the §6 layer).
+- **G7 — A5/AN5: release-note length unchecked. RESOLVED.** `scripts/check-whatsnew-length.sh`
+  already enforces Google Play's 500-char-per-language limit and is wired into
+  `validate.sh` — this was already in place; the audit above had drifted stale.
+- **G8 — iOS has no release pipeline. RESOLVED.** `scripts/release-ios.sh` +
+  `.github/workflows/release-ios.yml` ship an `ios/N` tag-driven release mirroring
+  Android: TestFlight Internal only, monotonic build number from the tag counter (cross-
+  checked against App Store Connect), cloud code-signing (no cert stored), manual App
+  Store promotion. Shipped `ios/1` (2026-06-30); see `docs/IOS_RELEASE_SETUP.md`. The
+  `release-ios` skill shortcut (mirroring `release-android`/`release-firebase`) was the
+  one missing piece and has been added.
+- **G9 — IO5: iOS release-note length unchecked, and no automated "What to Test" upload
+  at all.** *Trigger:* the first time a TestFlight upload is rejected/truncated for
+  length, or the first time someone wants test notes to ship without a manual App Store
+  Connect step. *Action:* if/when "What to Test" upload is automated, add a length check
+  against App Store Connect's limit to the release gate (mirroring G7's Android check).
 
 ### 9.4 Deliberate deviations
 

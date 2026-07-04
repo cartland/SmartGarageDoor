@@ -17,6 +17,31 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # full history so the mainline check below can walk ancestry
+
+      # Server-side re-assertion that this is a mainline commit. The release
+      # script already refuses to tag anything off `main` locally, and a
+      # Claude hook blocks pushing a tag ref directly -- but neither of those
+      # is enforced here, on the runner, which is the one place this
+      # workflow can't be argued with. This closes that gap independent of
+      # who cut the tag or how the ref was pushed, and runs before the CI
+      # status check below since it's the cheaper of the two to fail on.
+      - name: Verify tagged commit is on main
+        run: |
+          # Fetch into FETCH_HEAD rather than relying on refs/remotes/origin/main
+          # existing -- actions/checkout's configured refspec for a tag-triggered
+          # checkout is scoped to the tag, not a full branch mirror, so
+          # origin/main may not exist locally even after this fetch.
+          git fetch origin main --quiet
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" FETCH_HEAD; then
+            echo "::error::Tag ${GITHUB_REF_NAME} points to commit $GITHUB_SHA, which is not reachable from origin/main. Refusing to deploy a commit that hasn't gone through the required main-branch checks."
+            exit 1
+          fi
+          echo "Verified: $GITHUB_SHA is on origin/main."
+
       - name: Verify CI passed on tagged commit
         run: |
           TAG_SHA="${GITHUB_SHA}"
@@ -62,9 +87,41 @@ jobs:
         uses: 'google-github-actions/auth@v3'
         with:
           credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+      # firebase-tools has a known silent-failure mode: it can exit 0 while
+      # printing `⚠ functions: failed to update function <name>` -- the
+      # workflow shows green but nothing actually deployed (see
+      # docs/FIREBASE_DEPLOY_SETUP.md "silent-failure pattern"; this bit
+      # every CI deploy before 2026-04-21). Grep the log for both the
+      # failure warning and the success marker so a silent failure is a
+      # loud CI failure instead of something a human has to notice by
+      # reading the Actions log.
       - name: Deploy to Firebase
-        run: firebase deploy --only functions --project "${{ secrets.FIREBASE_PROJECT_ID }}"
         working-directory: FirebaseServer
+        run: |
+          firebase deploy --only functions --project "${{ secrets.FIREBASE_PROJECT_ID }}" 2>&1 | tee "$RUNNER_TEMP/firebase-deploy.log"
+          if grep -q "failed to update function" "$RUNNER_TEMP/firebase-deploy.log"; then
+            echo "::error::firebase deploy printed 'failed to update function' -- functions did not actually update even though the CLI may report success. See docs/FIREBASE_DEPLOY_SETUP.md 'silent-failure pattern' (likely cause: the deployer service account lost a role)."
+            exit 1
+          fi
+          if ! grep -q "Deploy complete!" "$RUNNER_TEMP/firebase-deploy.log"; then
+            echo "::error::firebase deploy did not print 'Deploy complete!' -- treating this as a failed deploy."
+            exit 1
+          fi
+
+      # Post-deploy smoke check (S4-style self-verification): confirm the
+      # live function actually responds, rather than trusting the deploy
+      # step's exit code alone. Mirrors the manual `curl .../serverConfig`
+      # check documented in FIREBASE_DEPLOY_SETUP.md, now automatic.
+      - name: Smoke check deployed function
+        run: |
+          URL="https://us-central1-${{ secrets.FIREBASE_PROJECT_ID }}.cloudfunctions.net/serverConfig"
+          STATUS="$(curl -s -o /dev/null -w '%{http_code}' "$URL" || true)"
+          STATUS="${STATUS:-000}"
+          echo "serverConfig responded: $STATUS"
+          if [ "$STATUS" -ge 500 ] || [ "$STATUS" = "000" ]; then
+            echo "::error::Post-deploy smoke check failed: $URL returned '$STATUS' (expected a non-5xx response)."
+            exit 1
+          fi
 
   # Track release failures via a single GitHub issue (auto-create on failure,
   # auto-close on the next successful release). Mirrors the post-merge CI pattern.
