@@ -1,1 +1,3 @@
-2.17: Load more door history by scrolling. Older events load as you reach the bottom of the list, all the way back to your first recorded event.
+Garage door notifications are now cleaner. When the door is left open too long, that alert updates in place to a single "Resolved: open for X minutes" notification once the door closes, instead of leaving a second card behind.
+
+You can also load older door history by scrolling to the bottom of the list.
