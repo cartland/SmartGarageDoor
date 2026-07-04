@@ -38,13 +38,14 @@ git checkout main && git pull && git status
 # Emergency:     --confirm-tag, --confirm-unvalidated-release <sha>
 # No-changelog:  --confirm-tag, --confirm-no-changelog <sha>
 
-# 6. Watch the deploy AND verify the success marker
+# 6. Watch the deploy
 gh run list --workflow=firebase-deploy.yml --limit 1
 gh run watch <run-id>
-# CRITICAL: confirm `✔ Deploy complete!` is in the log. firebase-tools
-# can exit 0 with a `⚠ failed to update function` warning — workflow
-# shows green but production never updated. See FIREBASE_DEPLOY_SETUP.md
-# § "silent-failure pattern".
+# The workflow now greps its own output for `✔ Deploy complete!` / the
+# `⚠ failed to update function` warning and runs a post-deploy smoke
+# check, failing the job loudly instead of reporting a false green (see
+# FIREBASE_DEPLOY_SETUP.md § "silent-failure pattern"). Still worth a
+# glance at the log if you're debugging a red run.
 ```
 
 ## Supersede rule for the changelog
@@ -62,7 +63,7 @@ Both SHAs in the rollback command must match `--check`'s computed values. You ca
 
 ## What you should NOT do
 
-- **Don't `git tag` directly.** Hooks block it.
+- **Don't `git tag` directly, or push a tag ref by any other route.** Hooks block `git tag`, `--tags`, `refs/tags/`, the `push <remote> tag <name>` form, and a bare `push origin server/N`.
 - **Don't skip validation.** `--confirm-unvalidated-release <sha>` is for emergencies — ask the user first.
 - **Don't skip the changelog.** `--confirm-no-changelog <sha>` is for emergencies — write the entry retroactively.
 - **Don't trust GitHub Actions "success" alone.** Always look for `✔ Deploy complete!` in the deploy log.
@@ -73,4 +74,4 @@ Both SHAs in the rollback command must match `--check`'s computed values. You ca
 - `CLAUDE.md` § Releasing Firebase Server — full design + rules
 - `docs/FIREBASE_DEPLOY_SETUP.md` — operational guide (deploy, rollback, monitoring, GCP setup, troubleshooting table)
 - `scripts/release-firebase.sh` — flag reference is in the script header
-- `.github/workflows/firebase-deploy.yml` — the CI that the tag triggers
+- `.github/workflows/firebase-deploy.yml` — the CI that the tag triggers (verifies the tagged commit is on `main` before touching secrets; deploy step fails on the documented silent-failure pattern; post-deploy smoke check against `serverConfig`)

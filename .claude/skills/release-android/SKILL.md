@@ -42,7 +42,7 @@ gh run watch <run-id>
 ## What you should NOT do
 
 - **Don't retype flags from memory.** `--check` prints the right command with the right SHAs filled in. Copy-paste prevents wrong-SHA accidents.
-- **Don't `git tag` directly.** Hooks block it.
+- **Don't `git tag` directly, or push a tag ref by any other route.** Hooks block `git tag`, `--tags`, `refs/tags/`, the `push <remote> tag <name>` form, and a bare `push origin android/N`.
 - **Don't deploy to production.** This script only deploys to the Play Store internal track.
 - **Don't skip validation without asking the user.** If `--check` shows validation is `STALE` or `MISSING`, the right move is almost always to run `./scripts/validate.sh`. Ask before reaching for `--confirm-unvalidated-release`.
 - **Don't skip the changelog.** `MobileGarage/CHANGELOG.md` is the permanent history (every version, including patches). The Play Store whatsnew is rolling and only covers minor/major bumps. `--confirm-no-changelog <sha>` is for emergencies — write the entry retroactively.
@@ -64,4 +64,4 @@ Both SHAs in the rollback command must match what `--check` computed on the chec
 
 - `CLAUDE.md` § Releasing Android — full design principle, why each guard exists
 - `scripts/release-android.sh` itself — the truth of which flags do what
-- `.github/workflows/release-android.yml` — the CI that the tag triggers
+- `.github/workflows/release-android.yml` — the CI that the tag triggers (verifies the tagged commit is on `main` before the build starts)

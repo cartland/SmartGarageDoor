@@ -181,6 +181,9 @@ If CI aborts saying build `N` is taken, just re-release with the number it repor
 nothing deployed — and can be deleted: `git push origin :refs/tags/ios/N && git tag -d ios/N`.)
 
 ### Cutting a release
+
+Agent-facing shortcut: the `release-ios` skill (`.claude/skills/release-ios/SKILL.md`) mirrors this section as a copy-paste runbook, same as `release-android` and `release-firebase`.
+
 1. Bump `MARKETING_VERSION` in `project.yml` (if the user-facing version changed) and
    add a matching `## X.Y.Z` heading to `MobileGarage/iosApp/CHANGELOG.md`.
 2. `./scripts/validate-ios.sh` (writes the marker).

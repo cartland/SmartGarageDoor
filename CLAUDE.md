@@ -519,7 +519,7 @@ Do not just tell the user to run it — the next Stop hook fires before they can
 
 ### Claude Hooks (.claude/hooks/)
 - **block-admin-bypass.sh** — Denies `--admin` on PR merges
-- **git-guardrails.sh** — Blocks push to main, force push, destructive commands; enforces squash merge; warns on stale validation; blocks push to branches with auto-merge enabled
+- **git-guardrails.sh** — Blocks push to main, force push, destructive commands; enforces squash merge; warns on stale validation; blocks push to branches with auto-merge enabled; blocks pushing a release tag by any route (`git tag`, `--tags`, `refs/tags/`, `push <remote> tag <name>`, or a bare `push origin android/N`/`ios/N`/`server/N`) — release tags may only reach origin via the release scripts
 - **check-pr-backlog.sh** — Warns at 5+ open PRs, blocks at 10+
 - **dev-mode.sh** — Keeps Claude working when `.claude/.dev-mode` exists
 - **warn-shell-loops.sh** — Warns on `for`/`while` loops (prefer separate Bash calls)
