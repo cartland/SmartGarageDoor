@@ -102,7 +102,11 @@ jobs:
           retention-days: 1
 
       - name: Deploy to Google Play (Internal Track)
-        uses: r0adkll/upload-google-play@v1.1.5
+        # Pinned to the v1.1.5 commit SHA (audit M4): a third-party action on a
+        # moving tag could be swapped underneath us; this one handles the Play
+        # service-account credential. Bump by resolving the new tag's SHA:
+        #   gh api repos/r0adkll/upload-google-play/git/ref/tags/<tag> --jq .object.sha
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.chriscartland.garage
