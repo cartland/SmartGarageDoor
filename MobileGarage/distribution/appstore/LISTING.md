@@ -93,31 +93,46 @@ Matches `PrivacyInfo.xcprivacy` (committed in the app target):
 ## Screenshots (staging: `MobileGarage/distribution/appstore/`)
 
 App Store Connect requires at least one screenshot per size class.
-**Staged now** (real app, live production door data, signed-out state):
+**Staged now: the full 12-image set**, matching the Play Store
+structure (Home / History / Settings × light/dark) — real app, live
+production door data, signed-out state:
 
-| File | Device captured on | Pixel size |
+| Files | Device captured on | Pixel size |
 |---|---|---|
-| `iphone-6.9-01-home.png` | iPhone 16 Pro Max simulator | 1320×2868 |
-| `ipad-13-01-home.png` | iPad Pro 13" (M4) simulator | 2064×2752 |
+| `iphone-6.9-0{1..6}-*.png` | iPhone 16 Pro Max simulator | 1320×2868 |
+| `ipad-13-0{1..6}-*.png` | iPad Pro 13" (M4) simulator | 2064×2752 |
 
 Capture procedure (repeat before submission so the shots match the
-submitted build):
+submitted build). Fully headless — tab taps via `idb`:
 
 ```bash
-# one-time: brew tap wix/brew && brew install applesimutils
+# one-time:
+#   brew tap wix/brew && brew install applesimutils     (permission pre-grant)
+#   brew tap facebook/fb && brew install idb-companion  (headless taps)
+#   python3 -m venv ~/idbenv && ~/idbenv/bin/pip install fb-idb
 xcrun simctl boot "iPhone 16 Pro Max"
 xcodegen generate --spec MobileGarage/iosApp/project.yml --project MobileGarage/iosApp
 xcodebuild -project MobileGarage/iosApp/GarageControl.xcodeproj -scheme GarageControl \
   -sdk iphonesimulator -destination "id=<booted-sim-udid>" build CODE_SIGNING_ALLOWED=NO
-xcrun simctl install booted <path-to>/GarageControl.app
-# pre-grant notifications so the permission alert doesn't cover the shot:
+# ALWAYS uninstall + reinstall first (fresh Alt-Svc cache — see HTTP/3 gotcha):
+xcrun simctl uninstall <udid> com.chriscartland.garage
+xcrun simctl install <udid> <path-to>/GarageControl.app
 applesimutils --byId <udid> --bundle com.chriscartland.garage --setPermissions notifications=YES
-xcrun simctl launch booted com.chriscartland.garage
-# wait ~15 s (live status fetch + the door settle animation), then:
-xcrun simctl io booted screenshot home.png
+xcrun simctl launch <udid> com.chriscartland.garage   # wait ~15 s (fetch + door settle)
+xcrun simctl io <udid> screenshot 01-home-light.png
+idb ui tap --udid <udid> 220 913                      # History (iPhone 16 Pro Max points)
+xcrun simctl io <udid> screenshot 02-history-light.png
+idb ui tap --udid <udid> 366 913                      # Settings
+xcrun simctl io <udid> screenshot 03-settings-light.png
+xcrun simctl ui <udid> appearance dark                # then repeat the three
 ```
 
-Gotchas learned capturing the first set:
+Tab-bar tap points: iPhone 16 Pro Max (bottom bar) Home 73,913 ·
+History 220,913 · Settings 366,913. iPad Pro 13" (top pills) Home
+417,47 · History 507,47 · Settings 598,47 — do NOT tap y≈25 on iPad
+(that's the multitasking "…" menu).
+
+Gotchas learned capturing this set:
 - The notification-permission alert covers the first launch — pre-grant
   with `applesimutils` (plain `simctl privacy` has no `notifications`
   service).
@@ -125,14 +140,18 @@ Gotchas learned capturing the first set:
   spring runs on first render). The pre-#1055 build also had a real
   fresh-install stuck-offset bug — fixed; if a capture shows a raised
   door labeled Closed, you are on a stale build.
-- Tab navigation can't be driven headlessly (`simctl` has no tap), so
-  History/Settings shots need one manual tap in the Simulator window,
-  then the same `screenshot` command. Add them to this directory as
-  `iphone-6.9-02-history.png` etc. when captured.
-
-Suggested final set (minimum 3 per size class): Home, History
-(day-grouped events), Settings. Optional: the door mid-animation
-(OPENING).
+- **HTTP/3 + VPN gotcha (why fresh-install-first is mandatory):** after
+  the first successful fetch, cloudfunctions' `Alt-Svc` header upgrades
+  the app's future requests to HTTP/3 (QUIC/UDP). With Tailscale (or a
+  similar VPN) up on the host, the sim's QUIC silently dies —
+  "network connection was lost" client-side while the server logs 200 —
+  and the app shows the stale banner forever (the R1 gap). The Alt-Svc
+  cache lives in the app container and survives relaunches AND sim
+  reboots; uninstall+reinstall resets it so the first fetch rides
+  HTTP/2 and succeeds. Capture promptly after launch.
+- The check-in pill legitimately reads up to ~10 min (the device's real
+  check-in cadence); only a red pill / "Not receiving updates" banner
+  means the fetch failed.
 
 ## Review notes (App Review box)
 
