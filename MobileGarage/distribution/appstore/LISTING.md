@@ -166,13 +166,10 @@ Apple sometimes asks for a demo video for hardware-dependent apps — a
 short screen recording of the app + the physical door is the standard
 answer if requested.
 
-## Submission checklist (manual, in order)
+## Submission checklist
 
-1. ✅ Done 2026-07-05: `ios/6` (0.1.0, build 6) uploaded to TestFlight
-   with `PrivacyInfo.xcprivacy` + the #1055 door fix — pick this build
-   (or any later one).
-2. Upload screenshots (from `MobileGarage/distribution/appstore/`).
-3. Paste subtitle / promo / description / keywords from this file.
-4. Fill the App Privacy questionnaire (§ App Privacy above).
-5. Set the privacy policy URL.
-6. Pick the TestFlight build → Submit for review.
+**The full click-by-click walkthrough with every value pre-filled is
+[`SUBMISSION_STEPS.md`](SUBMISSION_STEPS.md)** — follow that. Summary:
+build 6 is uploaded (✅ 2026-07-05, contains the privacy manifest);
+remaining steps are the App Store Connect session (screenshots, copy,
+App Privacy + privacy-policy URL, age rating, build pick, submit).
