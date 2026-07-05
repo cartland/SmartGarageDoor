@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.core.net.toUri
@@ -99,6 +100,10 @@ fun ProfileContent(
     val navigationRailTopPaddingDp by resolved.navigationRailTopPaddingDp.collectAsState()
     val appConfig = component.appConfig
     val context = LocalContext.current
+    // For click-time getString with runtime format args: LocalResources tracks
+    // Configuration changes, unlike context.resources (Compose 1.9's
+    // LocalContextGetResourceValueCall lint).
+    val resources = LocalResources.current
     val clipboardManager = LocalClipboardManager.current
     val appVersion = context.AppVersion()
 
@@ -240,7 +245,7 @@ fun ProfileContent(
                     Toast
                         .makeText(
                             context,
-                            context.getString(R.string.profile_version_toast_copied, label),
+                            resources.getString(R.string.profile_version_toast_copied, label),
                             Toast.LENGTH_SHORT,
                         ).show()
                 }
