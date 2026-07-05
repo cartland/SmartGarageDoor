@@ -137,7 +137,7 @@ for yaml_file in "$COLLECTIONS_DIR"/*.yaml; do
             fi
 
             # Glob for {test_name}_*_0.png (the hash varies across generations)
-            matches=("$class_dir"/${test_name}_*_0.png)
+            matches=("$class_dir"/"${test_name}"_*_0.png)
             if [ -f "${matches[0]}" ]; then
                 rel_path="$(python3 -c "import os.path; print(os.path.relpath('${matches[0]}', '$COLLECTIONS_DIR'))")"
                 image_paths+=("$rel_path")

@@ -102,7 +102,7 @@ date_to_epoch() {
 
 validate_file() {
     local file="$1"
-    local rel="${file#$REPO_ROOT/}"
+    local rel="${file#"$REPO_ROOT"/}"
 
     # Read the file once with CR stripped so CRLF-terminated files validate
     # the same as LF (hit during a doc edit on 2026-04-25 — MobileGarage/README.md
