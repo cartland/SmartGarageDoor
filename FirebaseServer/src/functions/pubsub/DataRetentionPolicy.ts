@@ -19,6 +19,7 @@ import * as functions from 'firebase-functions/v1';
 import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
 import { isDeleteOldDataEnabled } from '../../controller/config/ConfigAccessors';
 import { deleteOldData } from '../../controller/DatabaseCleaner';
+import { PUBSUB_RUNTIME_OPTS } from '../HttpRuntime';
 
 const TWO_WEEKS_SECONDS = 60 * 60 * 24 * 14;
 
@@ -49,7 +50,7 @@ export async function handleDataRetentionPolicy(
   await deleteOldData(cutoffSeconds, dryRunRequested);
 }
 
-export const pubsubDataRetentionPolicy = functions.pubsub
+export const pubsubDataRetentionPolicy = functions.runWith(PUBSUB_RUNTIME_OPTS).pubsub
   .schedule('0 0 * * *').timeZone('America/Los_Angeles') // California midnight every day.
   .onRun(async (_context) => {
     await handleDataRetentionPolicy();

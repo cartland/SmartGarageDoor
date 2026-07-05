@@ -173,7 +173,7 @@ describe('handleDeleteOldData (pure handler core)', () => {
     // The pre-extraction code uses `'dryRun' in request.query` — key
     // presence is what matters, not its value. Tests pin that.
     await handleDeleteOldData({
-      query: { dryRun: '' },
+      query: { dryRun: '', cutoffTimestampSeconds: '100' },
       pushKeyHeader: PUSH_KEY,
       googleIdTokenHeader: OK_TOKEN,
     });
@@ -181,14 +181,84 @@ describe('handleDeleteOldData (pure handler core)', () => {
     expect(deleteStub.firstCall.args[1]).to.equal(true);
   });
 
-  it('passes null cutoff when the query omits cutoffTimestampSeconds', async () => {
-    await handleDeleteOldData({
+  // M7 validation: the cutoff must be present, finite, positive, and not
+  // in the future. Pre-M7, a missing param passed `null` into the
+  // Firestore delete queries (opaque 500) and NaN / future values were
+  // forwarded unchecked.
+
+  it('returns 400 when the query omits cutoffTimestampSeconds', async () => {
+    const result = await handleDeleteOldData({
       query: {},
       pushKeyHeader: PUSH_KEY,
       googleIdTokenHeader: OK_TOKEN,
     });
 
-    expect(deleteStub.firstCall.args[0]).to.be.null;
+    expect(result).to.deep.equal({
+      kind: 'error',
+      status: 400,
+      body: { error: 'Missing cutoffTimestampSeconds' },
+    });
+    expect(deleteStub.called).to.be.false;
+  });
+
+  it('returns 400 for a non-numeric cutoff (NaN never reaches the delete)', async () => {
+    const result = await handleDeleteOldData({
+      query: { cutoffTimestampSeconds: 'not-a-number' },
+      pushKeyHeader: PUSH_KEY,
+      googleIdTokenHeader: OK_TOKEN,
+    });
+
+    expect(result).to.deep.equal({
+      kind: 'error',
+      status: 400,
+      body: { error: 'Invalid cutoffTimestampSeconds' },
+    });
+    expect(deleteStub.called).to.be.false;
+  });
+
+  it('returns 400 for zero and negative cutoffs', async () => {
+    for (const bad of ['0', '-5']) {
+      const result = await handleDeleteOldData({
+        query: { cutoffTimestampSeconds: bad },
+        pushKeyHeader: PUSH_KEY,
+        googleIdTokenHeader: OK_TOKEN,
+      });
+
+      expect(result).to.deep.equal({
+        kind: 'error',
+        status: 400,
+        body: { error: 'Invalid cutoffTimestampSeconds' },
+      });
+    }
+    expect(deleteStub.called).to.be.false;
+  });
+
+  it('returns 400 for a future cutoff (a huge value cannot mean delete-everything)', async () => {
+    const result = await handleDeleteOldData({
+      query: { cutoffTimestampSeconds: '1e99' },
+      pushKeyHeader: PUSH_KEY,
+      googleIdTokenHeader: OK_TOKEN,
+      nowSeconds: 2000,
+    });
+
+    expect(result).to.deep.equal({
+      kind: 'error',
+      status: 400,
+      body: { error: 'cutoffTimestampSeconds must not be in the future' },
+    });
+    expect(deleteStub.called).to.be.false;
+  });
+
+  it('accepts cutoff == now (deliberate delete-all-history remains expressible)', async () => {
+    await handleDeleteOldData({
+      query: { cutoffTimestampSeconds: '2000' },
+      pushKeyHeader: PUSH_KEY,
+      googleIdTokenHeader: OK_TOKEN,
+      nowSeconds: 2000,
+    });
+
+    expect(deleteStub.calledOnce).to.be.true;
+    expect(deleteStub.firstCall.args[0]).to.equal(2000);
   });
 
   it('returns 200 ok with the { dryRun, summary } shape', async () => {

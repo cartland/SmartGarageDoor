@@ -17,6 +17,7 @@ import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDat
 import { computeHealthFromLastPoll, detectTransition } from '../../controller/ButtonHealthInterpreter';
 import { SERVICE as ButtonHealthFCMService } from '../../controller/fcm/ButtonHealthFCM';
 import { isRemoteButtonEnabled, getRemoteButtonBuildTimestamp, requireBuildTimestamp } from '../../controller/config/ConfigAccessors';
+import { PUBSUB_RUNTIME_OPTS } from '../HttpRuntime';
 
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 
@@ -60,7 +61,7 @@ export async function handleCheckButtonHealth(): Promise<void> {
 // 10 min to 1 min on 2026-05-10 to bound worst-case OFFLINE-detection
 // latency to ~1 min. Cost: ~1.4K invocations/day (well under free
 // tier). Cannot affect device path. See BUTTON_HEALTH_ARCHITECTURE.md.
-export const pubsubCheckButtonHealth = functions.pubsub
+export const pubsubCheckButtonHealth = functions.runWith(PUBSUB_RUNTIME_OPTS).pubsub
   .schedule('every 1 minutes').timeZone('America/Los_Angeles')
   .onRun(async (_context) => {
     await handleCheckButtonHealth();
