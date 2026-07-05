@@ -149,7 +149,14 @@ private struct AnimatedDoorCanvas: View {
         GarageDoorCanvas(doorOffset: offset, color: color, darkColor: darkColor)
             .onAppear { seedAndAnimate() }
             // iOS 16 single-parameter onChange (the two-param form is iOS 17+).
-            .onChange(of: position) { _ in animate(to: position) }
+            // MUST use the closure's newValue, not the captured `position`: the
+            // invoked closure can be the one registered by the PREVIOUS body
+            // (stale struct copy), so `animate(to: position)` re-targeted the
+            // OLD state's offset. Empirical: on a fresh install the door seeded
+            // at UNKNOWN's raised offset and stayed there after CLOSED arrived
+            // (color/overlay updated, offset never moved) until app relaunch;
+            // live transitions animated one state behind for the same reason.
+            .onChange(of: position) { newPosition in animate(to: newPosition) }
     }
 
     private func seedAndAnimate() {
