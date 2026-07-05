@@ -94,12 +94,23 @@ updates:
       # so they can't auto-bump — they poison the whole group red (exemplar: #1010,
       # core 1.19 / lifecycle 2.11 / navigation3 1.2.0-alpha each demand AGP 9.1).
       # Hold them with AGP; they move together by hand when the toolchain moves.
-      # The decoupled deps (spotless, detekt, compose-bom, mockito, kermit, junit,
-      # screenshot, activity, datastore, sqlite, test libs) still auto-merge.
+      # The decoupled deps (spotless, detekt, compose-bom, mockito, junit,
+      # screenshot, activity, test libs) still auto-merge.
       - dependency-name: "androidx.core*"
       - dependency-name: "androidx.lifecycle*"
       - dependency-name: "androidx.navigation3*"
       - dependency-name: "org.jetbrains.androidx*"      # KMP nav3 / lifecycle variants (same AGP-coupled wave)
+      # kermit 2.1.0+ and androidx.datastore 1.2.x ship iOS KLIBs built with
+      # Kotlin 2.2.x, which the pinned Kotlin 2.1.20 rejects at
+      # :*:compileKotlinIosSimulatorArm64 / :data-local:kspKotlinIosSimulatorArm64
+      # — but the Android JVM side compiles fine, so a group PR passes every
+      # REQUIRED check and auto-merges, breaking main's (non-required) iOS CI.
+      # Empirical: #1033 (2026-07-05). Pinned at 2.0.4 / 1.1.7; unpin with the
+      # Kotlin 2.2+ bump. General rule: any KMP dep consumed from commonMain can
+      # hit this — when adding one, check what Kotlin its iOS KLIBs are built with.
+      - dependency-name: "co.touchlab:kermit*"
+      - dependency-name: "androidx.datastore*"
+      - dependency-name: "androidx.sqlite*"             # 2.7.0 KLIBs are Kotlin 2.3.20-built (same #1033 break)
 
   # GitHub Actions used by the workflows in .github/workflows/. Addresses the
   # low/informational finding that several actions are pinned to floating major

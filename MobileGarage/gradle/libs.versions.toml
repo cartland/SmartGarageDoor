@@ -23,7 +23,11 @@ androidxCore = "1.16.0"
 androidxNavigation = "2.9.8"
 androidxNavigation3 = "1.0.0-alpha02"
 jbLifecycle = "2.10.0-beta01"
-androidxDatastore = "1.2.1"
+# datastore is PINNED at 1.1.7 for the same reason as kermit below: 1.2.1's
+# iOS KLIBs are built with Kotlin 2.2.20, rejected by this project's Kotlin
+# 2.1.20 (:data-local:kspKotlinIosSimulatorArm64). Unpin with the Kotlin 2.2+
+# bump; also ignored in dependabot.yml.
+androidxDatastore = "1.1.7"
 composeBom = "2025.12.01"
 coroutines = "1.10.2"
 coroutinesTest = "1.10.2"
@@ -36,7 +40,12 @@ gms = "4.5.0"
 kotlinInject = "0.8.0"
 kotlinxSerialization = "1.8.1"
 ktor = "3.1.3"
-kermit = "2.1.0"
+# kermit is PINNED at 2.0.4: 2.1.0's iOS KLIBs are built with Kotlin 2.2.0 and
+# this project's Kotlin 2.1.20 KLIB resolver rejects them (ABI > 1.201.0) — the
+# Android JVM side compiles fine, so only the non-required iOS CI catches it
+# (broke main after #1033). Same story as kotlin-inject 0.8.0. Unpin with the
+# Kotlin 2.2+ bump (PENDING_FOLLOWUPS.md § 2); also ignored in dependabot.yml.
+kermit = "2.0.4"
 kotlinxDatetime = "0.6.2"
 skie = "0.10.9"
 junit = "4.13.2"
@@ -48,7 +57,10 @@ lifecycle = "2.9.1"
 mockito = "5.23.0"
 playServicesAuth = "21.6.0"
 room = "2.7.2"
-sqlite = "2.7.0"
+# sqlite is PINNED at 2.5.0 (same as kermit/datastore above: 2.7.0's iOS KLIBs
+# are built with Kotlin 2.3.20, rejected by Kotlin 2.1.20). Unpin with the
+# Kotlin 2.2+ bump; also ignored in dependabot.yml.
+sqlite = "2.5.0"
 screenshot = "0.0.1-alpha12"
 tracing = "1.3.0"
 spotless = "7.2.1"
