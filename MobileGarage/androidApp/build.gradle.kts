@@ -293,7 +293,7 @@ dependencies {
         // resolution locks the androidTest classpaths to the runtime version
         // (strictly 1.1.0), which the new test libs can't satisfy. Raising the
         // runtime to 1.2.0 aligns both sides.
-        implementation("androidx.concurrent:concurrent-futures:1.2.0")
+        implementation("androidx.concurrent:concurrent-futures:1.3.0")
     }
     // Debug
     debugImplementation(libs.androidx.ui.tooling)
