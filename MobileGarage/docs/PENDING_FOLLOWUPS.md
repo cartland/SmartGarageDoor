@@ -83,7 +83,11 @@ Ordered by leverage. Phases 1–2 are verification of already-built code; Phases
    - ✅ **`scripts/release-ios.sh` + `.github/workflows/release-ios.yml` — DONE + VERIFIED END-TO-END (`ios/1`, 2026-06-30).** Mirror `release-android.sh`: the script gates (clean tree + `validate-ios.sh` marker + `iosApp/CHANGELOG.md` entry for `MARKETING_VERSION`) and pushes `ios/N`; the workflow archives Release (overriding `CURRENT_PROJECT_VERSION` to N) and `xcodebuild -exportArchive destination=upload` → TestFlight Internal. First automated release (`ios/1`, build 1 / 0.1.0) archived + signed + uploaded green. **The four GitHub secrets are set** — note the API key must be **Admin** role (App Manager fails cloud-signing the Distribution cert; caught on `ios/1` attempt 1). Procedure + the role gotcha: [`../../docs/IOS_RELEASE_SETUP.md`](../../docs/IOS_RELEASE_SETUP.md) § "Automated releases".
    - ✅ **Signing + first TestFlight upload — DONE (2026-06-30).** App ID (`com.chriscartland.garage`) + Push capability registered, App Store Connect record (`Garage by Chris Cartland`) created, automatic distribution signing + `aps-environment` entitlement (Debug=development / Release=production) + 1024 app icon wired; first build archived → validated → uploaded to TestFlight Internal via Xcode. Full procedure + the secrets map: [`../../docs/IOS_RELEASE_SETUP.md`](../../docs/IOS_RELEASE_SETUP.md).
    - Consider promoting iOS CI (`Build iOS app + framework test`) to a required check once stable (per CLAUDE.md branch-protection ordering) — closes the non-required-iOS-CI / auto-merge race.
-4. **Phase G — App Store** (1 PR, last): 1024² icon (reuse Android glyph), App Store Connect screenshots (iPhone + iPad), listing copy, `ITSAppUsesNonExemptEncryption = NO` (already set), `PrivacyInfo.xcprivacy` (Firebase Auth = "User ID, linked, App Functionality"), submit for review. **User-gated.**
+4. **Phase G — App Store** (submission itself user-gated; prep largely DONE 2026-07-05):
+   - ✅ **`PrivacyInfo.xcprivacy` — SHIPPED (#1056).** No tracking; User ID + email (linked, app functionality); required-reason APIs (FileTimestamp DDA9.1/C617.1, UserDefaults CA92.1, SystemBootTime 35F9.1). Verified present in the built bundle. The submitted binary must contain it → submit the next `ios/N` build after #1056.
+   - ✅ **Listing copy + first screenshots — STAGED (#1057)** in `MobileGarage/distribution/appstore/` (`LISTING.md` = subtitle/promo/description/keywords + App Privacy answers + review notes + capture runbook + submission checklist; Home shots at exact ASC sizes for iPhone 6.9" + iPad 13").
+   - ✅ **Fresh-install door render bug — FIXED (#1055)** (found while capturing: `AnimatedDoorCanvas` stale-capture `onChange` left the door visibly half-open on first launch until relaunch; live transitions animated one state behind).
+   - **Remaining (user):** privacy-policy URL, History/Settings screenshots (one manual tap each — runbook in `LISTING.md`), ASC data entry, pick build, submit.
 
 **Feature-parity audit (ADR-029).** Capability parity is the north star. The full iOS↔Android audit ran 2026-06-27 → the gap inventory + the execution plan now live in **[ADR-031](./DECISIONS.md#adr-031) + [`PRESENTATION_MODEL_REALIZATION.md`](./PRESENTATION_MODEL_REALIZATION.md)** (realize the shared `presentation-model` layer so typed display state is computed once in `commonMain` and rendered by both Compose and SwiftUI). Status:
 - **Animated door canvas — DONE (#919).** SwiftUI `GarageDoorView` (full Android trajectory deferred; identity visual landed).
@@ -114,6 +118,8 @@ Ordered by leverage. Phases 1–2 are verification of already-built code; Phases
 
 **Status:** Deferred. PR #824 downgraded kotlin-inject from 0.9.0 → 0.8.0 because 0.9.0's KLIBs are built with Kotlin 2.2.20 and this project is on Kotlin 2.1.20 (the Kotlin/Native KLIB resolver rejects the version mismatch). 0.8.0 is the youngest pre-2.2 release on Maven Central and works fine for both Android (`AppComponent`) and iOS (`NativeComponent`).
 
+**The pin family grew 2026-07-05 (#1053):** **kermit 2.0.4**, **androidx.datastore 1.1.7**, and **androidx.sqlite 2.5.0** are pinned for the identical reason — their next minors ship iOS KLIBs built with Kotlin 2.2.0/2.2.20/2.3.20. The #1033 Dependabot group bumped them; Android compiled fine so every *required* check passed and it auto-merged, breaking only the non-required iOS CI on main (fix-forward #1053; all three are now in `dependabot.yml`'s ignore list). **Unpin all four together with the Kotlin 2.2+ bump.** General rule: any KMP dep consumed from `commonMain` can hit this — check what Kotlin its iOS KLIBs are built with before bumping.
+
 **Why deferred:** the downgrade is not blocking iOS work. 0.8.0 still receives maintenance fixes; the 0.9.0 features we'd gain (improved KSP error messages, minor codegen tweaks) are nice-to-haves, not requirements.
 
 **Tripwire — revisit when ANY of these fire:**
@@ -142,13 +148,13 @@ Ordered by leverage. Phases 1–2 are verification of already-built code; Phases
 
 **Medium findings deferred:**
 
-- **M1** — No `runWith({maxInstances, timeoutSeconds, memory})` on **pubsub** functions. HTTP functions were capped in PR #834; the pubsub side (`functions.pubsub.schedule(...)`) is externally unreachable so this is a maintenance concern, not security. Adds a billing-safety floor if a scheduled job ever runs hot.
+- ✅ **M1 — SHIPPED (#1050, rides `server/34`).** All five scheduled functions declare `runWith(PUBSUB_RUNTIME_OPTS)` (`maxInstances: 1`, 60 s, 256 MB) — scheduled jobs are periodic singletons, so a long tick queues instead of fanning out.
 - **M2** — `httpServerConfig` / `httpServerConfigUpdate` use deprecated `functions.config()` API for the static `X-ServerConfigKey` gate. Should migrate to `firebase secrets` and add Firebase ID-token gate ABOVE the static-key check (so even the key holder must be authenticated).
-- **M3** — "4 documented allowlists" is actually 3 in code (`snooze`, `remoteButton`, `buttonHealth` all share `remoteButtonAuthorizedEmails`; `functionList` and `developerAccess` have their own). Either accept and update the CLAUDE.md wording to "3 allowlists", or split snooze out into its own list. No security impact today.
-- **M4** — `r0adkll/upload-google-play@v1.1.3` in `release-android.yml` is pinned to a moving tag. Should pin to a 40-char commit SHA so the upstream maintainer can't swap behavior under the GitHub Actions cache.
+- ✅ **M3 — RESOLVED (premise now stale, 2026-07-05).** The "4 documented allowlists" claim no longer exists anywhere in CLAUDE.md or docs (verified via `git grep` — the only match was this finding itself); the CLAUDE.md sections it referred to were rewritten since the audit. Reality stands as: `snooze`/`remoteButton`/`buttonHealth` share `remoteButtonAuthorizedEmails`; `functionList`, `developerAccess`, and (since `server/33`) `configFlagAdmin` have their own. Nothing to change; splitting snooze out remains an option if ever wanted.
+- ✅ **M4 — SHIPPED (#1051).** `r0adkll/upload-google-play` (by then at `v1.1.5` via Dependabot) is pinned to the tag's commit SHA with an inline bump procedure. First-party `actions/*` stay on major tags per the audit's risk assessment.
 - **M5** — No required PR reviewers in branch protection (acceptable for solo, worth noting).
 - ✅ **M6 — SHIPPED (#984).** `backup_rules.xml` + `data_extraction_rules.xml` now exclude the Room DB (`database` + `-shm`/`-wal`) and both DataStore files (`app_settings.preferences_pb`, `diagnostics_counters.preferences_pb`) from cloud backup; `allowBackup` stays on and `<device-transfer>` is intact. Paths source-confirmed (`getDatabasePath("database")`, `filesDir`-resolved DataStore) so an exclude can't fail open. Firebase Auth's own backup behavior was left as a possible follow-up (not named in M6; fragile internal paths).
-- **M7** — `eventHistoryMaxCount=NaN` / huge numbers and `cutoffTimestampSeconds=NaN` are not validated. Add `Math.min(parseInt(...), 100)` + `Number.isFinite(...)` checks.
+- ✅ **M7 — SHIPPED (#1050, rides `server/34`).** `httpDeleteOldData` rejects a missing / non-numeric / non-positive / future `cutoffTimestampSeconds` with a 400 (a huge/future value could previously mean "delete everything"; `cutoff = now` keeps the deliberate full wipe expressible). The `eventHistoryMaxCount` half was already fixed by the pagination work (`parsePositiveInt` + clamp in `Events.ts`, `server/28`).
 - **M8** — ESP32 WPA2-PSK without PMF required (KRACK / deauth surface). Set `pmf_cfg.required = true; .capable = true` in `wifi_connector.c`.
 - **M9** — ESP32 test fakes are flag-gated by hand-edited `garage_config.h:5-11`, not a Kconfig switch. Easy to ship a build that opens the door every other poll. Move to Kconfig + `#error` guard on release optimization.
 - **M10** — `Arduino_ESP32/*/secrets.h` are tracked (placeholder values), not gitignored. Foot-gun for future commits. `git rm --cached` + rename to `secrets.template.h`.
@@ -161,15 +167,15 @@ Ordered by leverage. Phases 1–2 are verification of already-built code; Phases
 
 **Low / informational findings deferred:**
 
-- 7 of 9 GitHub Actions pinned to floating major tags (not SHAs). First-party = lower risk; third-party (`r0adkll/upload-google-play`) covered by M4.
-- `network_security_config.xml` allows cleartext to `localhost`/`127.0.0.1` in main variant (should be debug-only).
+- 7 of 9 GitHub Actions pinned to floating major tags (not SHAs). First-party = lower risk; third-party (`r0adkll/upload-google-play`) covered by M4 (✅ shipped #1051).
+- ✅ **Cleartext-localhost — SHIPPED (#1052).** `network_security_config.xml` split by source set: main is an explicit no-cleartext base config; the debug source set overrides with the localhost/127.0.0.1/10.0.2.2 exceptions. Verified per-variant via merged-resource inspection.
 - ProGuard `-keep class com.chriscartland.garage.data.ktor.** { *; }` is broader than needed per ADR-020.
 - `cJSON_Print(root)` heap leak inside `ESP_LOGI` — slow OOM over months of uptime.
 - No watchdog explicitly armed on ESP32 tasks.
 - Server log retention = default 30 days (Cloud Logging). Consider 7-day pin now that token logging is fixed.
 - No `/deleteMyData` endpoint (fine for single-user; GDPR-relevant if ever multi-tenant).
 
-**Picking one to ship:** M6, M13, and M14 — the three single-file/additive fixes — shipped 2026-06-29 (#984 / #982 / #981). The next easy picks are M7 (`eventHistoryMaxCount` / `cutoffTimestampSeconds` `Number.isFinite` + clamp validation — server-side, single handler) and M4 (pin `r0adkll/upload-google-play` to a commit SHA). The remaining Mediums are larger or need coordination (M11 = flash encryption rollout; M2 = secrets migration + Android client change).
+**Picking one to ship:** M6, M13, M14 shipped 2026-06-29 (#984 / #982 / #981); M1, M4, M7, the cleartext low-finding, and M3 (resolved-stale) shipped 2026-07-05 (#1050–#1052). The remaining Mediums are larger or need coordination (M11 = flash encryption rollout; M2 = secrets migration + Android client change; M5 policy; M8–M10/M12/M15 = ESP32 work needing the IDF toolchain; M16 = Compose BOM, partially advanced by the #1033 group bump).
 
 ### 4. iOS ↔ Android parity-audit findings (2026-06-28)
 
