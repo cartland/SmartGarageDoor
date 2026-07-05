@@ -20,6 +20,7 @@ import { sendFCMForOldData } from '../../controller/fcm/OldDataFCM';
 import { DATABASE as SensorEventDatabase } from '../../database/SensorEventDatabase';
 import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
 import { getBuildTimestamp, requireBuildTimestamp } from '../../controller/config/ConfigAccessors';
+import { PUBSUB_RUNTIME_OPTS } from '../HttpRuntime';
 
 // History: see http/OpenDoor.ts for the fallback removal rationale.
 // Same door-sensor device; same A3 story.
@@ -41,7 +42,7 @@ export async function handleCheckForOpenDoorsJob(): Promise<void> {
   await sendFCMForOldData(buildTimestamp, eventData);
 }
 
-export const pubsubCheckForOpenDoorsJob = functions.pubsub.schedule('every 5 minutes').onRun(async (_context) => {
+export const pubsubCheckForOpenDoorsJob = functions.runWith(PUBSUB_RUNTIME_OPTS).pubsub.schedule('every 5 minutes').onRun(async (_context) => {
   await handleCheckForOpenDoorsJob();
   return null;
 });

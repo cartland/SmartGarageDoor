@@ -21,6 +21,7 @@ import { DATABASE as REMOTE_BUTTON_REQUEST_DATABASE } from '../../database/Remot
 import { DATABASE as REMOTE_BUTTON_REQUEST_ERROR_DATABASE } from '../../database/RemoteButtonRequestErrorDatabase';
 import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
 import { getRemoteButtonBuildTimestamp, requireBuildTimestamp } from '../../controller/config/ConfigAccessors';
+import { PUBSUB_RUNTIME_OPTS } from '../HttpRuntime';
 
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 
@@ -89,7 +90,7 @@ export async function handleCheckForRemoteButtonErrors(): Promise<void> {
   console.log('checkForRemoteButtonErrors did not find any errors');
 }
 
-export const pubsubCheckForRemoteButtonErrors = functions.pubsub
+export const pubsubCheckForRemoteButtonErrors = functions.runWith(PUBSUB_RUNTIME_OPTS).pubsub
   .schedule('every 10 minutes').timeZone('America/Los_Angeles') // California after midnight every day.
   .onRun(async (_context) => {
     await handleCheckForRemoteButtonErrors();

@@ -19,6 +19,7 @@ import * as functions from 'firebase-functions/v1';
 import { updateEvent } from '../../controller/EventUpdates';
 import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDatabase';
 import { getBuildTimestamp, requireBuildTimestamp } from '../../controller/config/ConfigAccessors';
+import { PUBSUB_RUNTIME_OPTS } from '../HttpRuntime';
 
 const BUILD_TIMESTAMP_PARAM_KEY = 'buildTimestamp';
 
@@ -42,7 +43,7 @@ export async function handleCheckForDoorErrors(): Promise<void> {
   await updateEvent(data, true);
 }
 
-export const pubsubCheckForDoorErrors = functions.pubsub.schedule('every 1 minutes').onRun(async (_context) => {
+export const pubsubCheckForDoorErrors = functions.runWith(PUBSUB_RUNTIME_OPTS).pubsub.schedule('every 1 minutes').onRun(async (_context) => {
   await handleCheckForDoorErrors();
   return null;
 });

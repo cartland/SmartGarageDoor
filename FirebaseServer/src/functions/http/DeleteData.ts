@@ -48,11 +48,20 @@ export interface DeleteOldDataResult {
  * Same verifyIdToken-no-try/catch quirk as handleButtonHealth: a
  * malformed token propagates to the wrapper's outer catch and yields
  * 500 (not 401). Snooze wraps and returns 401 — inconsistency preserved.
+ *
+ * cutoffTimestampSeconds validation (audit M7): the cutoff must be a
+ * finite positive number no later than now. Pre-M7, `parseInt` let NaN
+ * (non-numeric input) reach the Firestore delete queries, a missing
+ * param passed `null` (Firestore rejects inequality against null →
+ * opaque 500), and a huge/future cutoff meant "delete everything".
+ * `nowSeconds` is injected so tests can pin the future-bound check;
+ * a deliberate delete-all is still expressible as cutoff = now.
  */
 export async function handleDeleteOldData(input: {
   query: any;
   pushKeyHeader: string | undefined;
   googleIdTokenHeader: string | undefined;
+  nowSeconds?: number;
 }): Promise<HandlerResult<DeleteOldDataResult>> {
   const config = await ServerConfigDatabase.get();
   if (!isDeleteOldDataEnabled(config)) {
@@ -83,14 +92,20 @@ export async function handleDeleteOldData(input: {
     console.error(result);
     return err(403, result);
   }
-  let cutoffTimestampSeconds: number = null;
   let dryRun = false;
   if (input.query && 'dryRun' in input.query) {
     dryRun = true;
   }
-  if (input.query && 'cutoffTimestampSeconds' in input.query) {
-    const s: string = input.query['cutoffTimestampSeconds'].toString();
-    cutoffTimestampSeconds = parseInt(s);
+  if (!input.query || !('cutoffTimestampSeconds' in input.query)) {
+    return err(400, { error: 'Missing cutoffTimestampSeconds' });
+  }
+  const cutoffTimestampSeconds = Number(input.query['cutoffTimestampSeconds'].toString());
+  if (!Number.isFinite(cutoffTimestampSeconds) || cutoffTimestampSeconds <= 0) {
+    return err(400, { error: 'Invalid cutoffTimestampSeconds' });
+  }
+  const nowSeconds = input.nowSeconds ?? Math.floor(Date.now() / 1000);
+  if (cutoffTimestampSeconds > nowSeconds) {
+    return err(400, { error: 'cutoffTimestampSeconds must not be in the future' });
   }
   const deleteCount = await deleteOldData(cutoffTimestampSeconds, dryRun);
   return ok({

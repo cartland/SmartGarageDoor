@@ -43,3 +43,27 @@ export const HTTP_RUNTIME_OPTS: RuntimeOptions = {
   timeoutSeconds: 60,
   memory: '256MB',
 };
+
+/**
+ * Shared runtime caps for every scheduled (pubsub) Cloud Function.
+ *
+ * Security audit reference: M1 (the HTTP functions were capped in the
+ * H1 fix; the pubsub side had no explicit runtime options). Scheduled
+ * jobs are externally unreachable, so this is a billing-safety floor,
+ * not an attack-surface fix.
+ *
+ *   maxInstances: 1
+ *     Each job is a periodic singleton (door-error check, open-door
+ *     check, button health, retention sweep). If a tick ever runs long,
+ *     the correct behavior is to queue the next tick behind it, not to
+ *     fan out concurrent instances doing duplicate Firestore work.
+ *
+ *   timeoutSeconds: 60 / memory: '256MB'
+ *     v1 defaults, same reasoning as HTTP_RUNTIME_OPTS — each tick is a
+ *     handful of Firestore reads/writes plus at most one FCM send.
+ */
+export const PUBSUB_RUNTIME_OPTS: RuntimeOptions = {
+  maxInstances: 1,
+  timeoutSeconds: 60,
+  memory: '256MB',
+};
