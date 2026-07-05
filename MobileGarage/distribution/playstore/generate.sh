@@ -67,6 +67,7 @@ out.paste(src, (0, 0), mask)
 out.save(sys.argv[2])
 PY
 for entry in "${sizes[@]}"; do
+  # shellcheck disable=SC2086 # word-splitting is intentional: $entry is a "dens px" pair meant to split into $1/$2
   set -- $entry; dens="$1"; px="$2"
   mkdir -p "$RES/mipmap-$dens"
   sips -z "$px" "$px" "$MASTER" --out "$RES/mipmap-$dens/ic_launcher.png" >/dev/null

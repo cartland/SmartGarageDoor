@@ -31,6 +31,7 @@ if [ "$OPEN_PRS" -ge 10 ]; then
   MERGEABLE="${MERGEABLE:-0}"
   if [ "$MERGEABLE" -eq 0 ]; then
     # All PRs waiting on CI, nothing to do — let Claude stop
+    # shellcheck disable=SC2016 # single-quoted on purpose: the backtick command is literal text for the user, not meant to expand
     echo '{"systemMessage":"Dev mode: 5+ PRs open, all waiting on CI. Pausing until PRs merge. Re-enable with `touch .claude/.dev-mode` when ready."}'
     exit 0
   fi

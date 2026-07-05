@@ -1,0 +1,50 @@
+name: Shellcheck
+
+# Lints every shell script in the repo with ShellCheck. Added after a manual
+# audit (PRs #1061, #1062) found and fixed several real bugs shellcheck
+# catches by default — most notably an unquoted ${ENCRYPT_KEY} in
+# MobileGarage/release/{en,de}crypt-secrets.sh that silently breaks on any
+# passphrase containing a space. This workflow is the permanent guardrail so
+# the next script edit can't reintroduce that class of bug unnoticed.
+#
+# Severity threshold is `info`, not the stricter `style`: `style`-level
+# findings (e.g. SC2129 "prefer a single redirect block") are pure
+# micro-optimizations with no correctness impact, and gating on them invites
+# noise/bikeshedding. `info` still catches real correctness issues —
+# SC2015 (A && B || C is not if/else), SC2086 (unquoted expansion — the
+# ENCRYPT_KEY bug above), SC2295 (unquoted glob pattern) are all `info`
+# severity despite being genuine bugs.
+#
+# Deliberately NO `paths:` filter, same reasoning as scripts-tests.yml's
+# "Script unit tests": a path-filtered required check stays
+# "Expected/pending" forever on a PR that doesn't touch a .sh file, which
+# blocks the merge. ShellCheck across ~28 files takes seconds, so running it
+# on every PR/push costs nothing and the check always concludes.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 5 # never hang; the lint itself takes seconds
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Ensure shellcheck is available
+        run: command -v shellcheck || (sudo apt-get update && sudo apt-get install -y shellcheck)
+
+      - name: Run shellcheck
+        run: |
+          find . -name '*.sh' \
+            -not -path '*/node_modules/*' \
+            -not -path '*/build/*' \
+            -not -path '*/.git/*' \
+            -not -path '*/DerivedData/*' \
+            -print0 | xargs -0 shellcheck --severity=info

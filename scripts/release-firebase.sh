@@ -164,10 +164,7 @@ fi
 
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
 if [ -z "$CURRENT_BRANCH" ]; then
-    IS_DETACHED="true"
     CURRENT_BRANCH="(detached)"
-else
-    IS_DETACHED="false"
 fi
 
 # Local validation marker state.
