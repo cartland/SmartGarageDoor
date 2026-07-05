@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthError
@@ -67,7 +68,11 @@ import kotlinx.coroutines.withContext
 fun rememberAuthTokenCopier(fetch: suspend () -> AppResult<String, AuthError>): () -> Unit {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    return remember(fetch, context, scope) {
+    // Resolved at composition (stringResource tracks Configuration changes;
+    // Compose 1.9's LocalContextGetResourceValueCall lint forbids resolving
+    // via LocalContext.current inside the click handler).
+    val signInRequiredMessage = stringResource(R.string.auth_token_copier_sign_in_required)
+    return remember(fetch, context, scope, signInRequiredMessage) {
         {
             scope.launch {
                 val result = withContext(Dispatchers.IO) { fetch() }
@@ -77,7 +82,7 @@ fun rememberAuthTokenCopier(fetch: suspend () -> AppResult<String, AuthError>): 
                         Toast
                             .makeText(
                                 context,
-                                context.getString(R.string.auth_token_copier_sign_in_required),
+                                signInRequiredMessage,
                                 Toast.LENGTH_SHORT,
                             ).show()
                 }
