@@ -168,9 +168,9 @@ answer if requested.
 
 ## Submission checklist (manual, in order)
 
-1. Merge the `PrivacyInfo.xcprivacy` PR; cut the next `ios/N` build via
-   `scripts/release-ios.sh` (the submitted binary must contain the
-   manifest).
+1. ✅ Done 2026-07-05: `ios/6` (0.1.0, build 6) uploaded to TestFlight
+   with `PrivacyInfo.xcprivacy` + the #1055 door fix — pick this build
+   (or any later one).
 2. Upload screenshots (from `MobileGarage/distribution/appstore/`).
 3. Paste subtitle / promo / description / keywords from this file.
 4. Fill the App Privacy questionnaire (§ App Privacy above).
