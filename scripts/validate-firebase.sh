@@ -55,9 +55,11 @@ pass "Node $NODE_VERSION"
 
 # Build (includes lint + tsc)
 step "Build (lint + tsc)"
-npm --prefix "$REPO_ROOT/FirebaseServer" run build \
-    && pass "npm run build" \
-    || fail "npm run build"
+if npm --prefix "$REPO_ROOT/FirebaseServer" run build; then
+    pass "npm run build"
+else
+    fail "npm run build"
+fi
 
 # Mocha pre-conditions (single-quoted glob + strip-types pin).
 # Both pitfalls are silent: a wrong glob silently skips nested test
@@ -82,9 +84,11 @@ fi
 # Tests (mocha) — includes collection-name contract tests and
 # verifyIdToken library-chain tests
 step "Tests (mocha)"
-npm --prefix "$REPO_ROOT/FirebaseServer" run tests \
-    && pass "npm run tests" \
-    || fail "npm run tests"
+if npm --prefix "$REPO_ROOT/FirebaseServer" run tests; then
+    pass "npm run tests"
+else
+    fail "npm run tests"
+fi
 
 # Record successful validation so release-firebase.sh knows we validated.
 git rev-parse HEAD > "$REPO_ROOT/.claude/.firebase-validation-passed"
