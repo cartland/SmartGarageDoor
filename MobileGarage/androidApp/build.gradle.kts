@@ -286,6 +286,15 @@ dependencies {
     androidTestImplementation(project(":usecase"))
     androidTestImplementation(project(":viewmodel"))
     androidTestImplementation(libs.kotlinx.coroutines.test)
+    constraints {
+        // espresso-core 3.7.0 / test.ext:junit 1.3.0 require concurrent-futures
+        // 1.2.0, but the app runtime classpath resolves 1.1.0 (transitive via
+        // profileinstaller + firebase-auth's browser). AGP's consistent
+        // resolution locks the androidTest classpaths to the runtime version
+        // (strictly 1.1.0), which the new test libs can't satisfy. Raising the
+        // runtime to 1.2.0 aligns both sides.
+        implementation("androidx.concurrent:concurrent-futures:1.2.0")
+    }
     // Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
