@@ -11,6 +11,15 @@ for the one thing an agent cannot do: your App Store Connect session.
 Work top to bottom; every value is pre-filled — copy/paste as you go.
 Estimated time: 30–45 minutes.
 
+> **Progress (2026-07-06): Steps 0–3 DONE, submission deliberately
+> PAUSED — TestFlight-only is sufficient for now. Resume at Step 4.**
+> Build 6 confirmed processed and visible in TestFlight; App
+> Information, age rating (4+), and Free pricing are saved in ASC.
+> Nothing has been submitted for review. Reminder: TestFlight builds
+> expire after 90 days (build 6 ≈ 2026-10-03) — cut a fresh `ios/N`
+> via `scripts/release-ios.sh` when needed; any later build works for
+> the eventual submission (all contain the privacy manifest).
+
 **Already done for you:** build 6 (`ios/6`, 0.1.0) is on TestFlight with
 the privacy manifest + door fix; 12 screenshots at exact ASC sizes are
 in this directory; all copy is drafted below and in
