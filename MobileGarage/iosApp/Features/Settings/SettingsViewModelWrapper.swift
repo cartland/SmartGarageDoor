@@ -26,6 +26,9 @@ final class SettingsViewModelWrapper: ObservableObject {
     @Published private(set) var displayName: String?
     @Published private(set) var email: String?
     @Published private(set) var snoozeLabel: String = "Not snoozing"
+    /// Whether a snooze is currently active — drives the Settings row icon
+    /// (bell vs bell.slash), mirroring Android's `SnoozeRowState` icon swap.
+    @Published private(set) var snoozeSnoozing: Bool = false
     @Published private(set) var snoozeSending: Bool = false
     @Published private(set) var snoozeError: String?
     /// Whether notification authorization is granted. Drives the snooze section:
@@ -105,10 +108,13 @@ final class SettingsViewModelWrapper: ObservableObject {
         case .snoozing(let snoozing):
             let date = Date(timeIntervalSince1970: TimeInterval(snoozing.untilEpochSeconds))
             snoozeLabel = "Snoozing until \(date.formatted(date: .omitted, time: .shortened))"
+            snoozeSnoozing = true
         case .loading:
             snoozeLabel = "Loading…"
+            snoozeSnoozing = false
         case .notSnoozing:
             snoozeLabel = "Not snoozing"
+            snoozeSnoozing = false
         }
     }
 
