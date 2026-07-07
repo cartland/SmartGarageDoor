@@ -534,6 +534,9 @@ private struct CopyableValueRow: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            // A .plain Button only hit-tests rendered content — the Spacer gap
+            // between label and value would be dead without a content shape.
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityHint("Double tap to copy")

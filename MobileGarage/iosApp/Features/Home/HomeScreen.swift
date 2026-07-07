@@ -348,7 +348,9 @@ struct RemoteProgressDiagram: View {
     private var phoneStatus: NodeStatus {
         switch phase {
         case nil: return .idle
-        case .sendingToServer: return .active
+        // Android lights the phone node while armed (Preparing /
+        // AwaitingConfirmation) — no leg underway yet.
+        case .armed, .sendingToServer: return .active
         case .sendingToDoor, .succeeded: return .succeeded
         case .serverFailed: return .failed
         case .doorFailed: return .succeeded
@@ -357,7 +359,7 @@ struct RemoteProgressDiagram: View {
 
     private var cloudStatus: NodeStatus {
         switch phase {
-        case nil, .sendingToServer, .serverFailed: return .idle
+        case nil, .armed, .sendingToServer, .serverFailed: return .idle
         case .sendingToDoor: return .active
         case .succeeded: return .succeeded
         case .doorFailed: return .failed
@@ -373,7 +375,7 @@ struct RemoteProgressDiagram: View {
 
     private var firstEdge: EdgeStatus {
         switch phase {
-        case nil: return .notStarted
+        case nil, .armed: return .notStarted
         case .sendingToServer: return .inProgress
         case .sendingToDoor, .succeeded, .doorFailed: return .succeeded
         case .serverFailed: return .failed
@@ -382,7 +384,7 @@ struct RemoteProgressDiagram: View {
 
     private var secondEdge: EdgeStatus {
         switch phase {
-        case nil, .sendingToServer, .serverFailed: return .notStarted
+        case nil, .armed, .sendingToServer, .serverFailed: return .notStarted
         case .sendingToDoor: return .inProgress
         case .succeeded: return .succeeded
         case .doorFailed: return .failed
@@ -423,6 +425,7 @@ struct RemoteProgressDiagram: View {
     private var accessibilityText: String {
         switch phase {
         case nil: return "Remote button idle"
+        case .armed: return "Ready to send"
         case .sendingToServer: return "Sending to server"
         case .sendingToDoor: return "Waiting for the door"
         case .succeeded: return "Command delivered"
@@ -768,7 +771,7 @@ private struct HomeInfoSheetView: View {
         }
         Section("Confirm") {
             RemoteButtonView(
-                item: RemoteButtonItem(kind: .confirm, title: "Door will move.", subtitle: "Tap again to confirm"),
+                item: RemoteButtonItem(kind: .confirm, title: "Door will move.", subtitle: "Tap again to confirm", phase: .armed),
                 onTap: {}
             )
         }
@@ -815,7 +818,7 @@ private struct HomeInfoSheetView: View {
             sinceLine: "Since 11:22 AM · 38 min",
             warningText: nil,
             isCheckInStale: false,
-            buttonItem: RemoteButtonItem(kind: .confirm, title: "Door will move.", subtitle: "Tap again to confirm"),
+            buttonItem: RemoteButtonItem(kind: .confirm, title: "Door will move.", subtitle: "Tap again to confirm", phase: .armed),
             buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
             signedIn: true,
             alerts: [],

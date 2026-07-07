@@ -377,9 +377,14 @@ final class HomeViewModelWrapper: ObservableObject {
         case .ready:
             return RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil)
         case .preparing:
-            return RemoteButtonItem(kind: .busy, title: "Preparing…", subtitle: nil)
+            return RemoteButtonItem(kind: .busy, title: "Preparing…", subtitle: nil, phase: .armed)
         case .awaitingConfirmation:
-            return RemoteButtonItem(kind: .confirm, title: "Door will move.", subtitle: "Tap again to confirm")
+            return RemoteButtonItem(
+                kind: .confirm,
+                title: "Door will move.",
+                subtitle: "Tap again to confirm",
+                phase: .armed
+            )
         case .cancelled:
             return RemoteButtonItem(kind: .idle, title: "Cancelled", subtitle: nil)
         case .sendingToServer:
@@ -481,7 +486,9 @@ struct RemoteButtonItem {
     enum Kind { case ready, confirm, busy, succeeded, failed, idle }
 
     /// Which leg of phone → cloud → house is underway (nil = at rest).
-    enum Phase { case sendingToServer, sendingToDoor, succeeded, serverFailed, doorFailed }
+    /// `armed` = the phone node is active but no leg has started — Android's
+    /// Preparing / AwaitingConfirmation diagram state.
+    enum Phase { case armed, sendingToServer, sendingToDoor, succeeded, serverFailed, doorFailed }
 
     let kind: Kind
     let title: String
