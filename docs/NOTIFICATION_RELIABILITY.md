@@ -341,6 +341,25 @@ are *separate* ESP32s, distinct `buildTimestamp`s) — read Firestore directly:
   a device is silent. Note `httpRemoteButton` execution logs may be excluded (cost)
   — trust the Firestore write record, not the function logs.
 
+**Function-name map for `gcloud logging read` diagnosis** (which endpoint means
+what; names as they appear in `resource.labels.function_name`):
+- `echo` — the **door sensor's** check-in POST (~every 10 min in steady state; a
+  healthy burst logs `save: updateCurrent updateAll <docId>` + status 200).
+- `updateEvents` — the Firestore trigger that interprets each check-in; its log
+  includes the outgoing state-sync FCM JSON with a fresh
+  `checkInTimestampSeconds` — the fastest "is the whole pipeline live?" check.
+- `remoteButton` — the **remote button ESP32's** poll (separate device).
+- `serverConfig` / `currentEventData` / `eventHistory` — the **app's** fetches.
+
+**Gotcha — raw vs. topic-sanitized `buildTimestamp` (cost an hour, 2026-07-05).**
+The FCM topic suffix is the config `buildTimestamp` with special chars mapped to
+`.` (`Sat.Mar.13.14.45.00.2021`), but Firestore documents and the HTTP query
+params key on the RAW value (`Sat Mar 13 14:45:00 2021`, URL-encoded when
+curling). Querying `currentEventData`/`eventHistory` with the sanitized form
+returns an **empty** `currentEventData: {}` / `eventHistory: []` — which looks
+exactly like lost data or a broken pipeline. Empty responses for a
+`buildTimestamp` you copied from an FCM topic = wrong key, not an outage.
+
 ## Resolved-on-close notification — design goal (validated in the sandbox)
 
 > **Status: Phase 1 ENABLED + LIVE (since 2026-06-22; confirmed 2026-06-28).** The
