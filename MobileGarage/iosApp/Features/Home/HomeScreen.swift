@@ -35,7 +35,7 @@ struct HomeScreen: View {
             sinceLine: wrapper.sinceLine,
             warningText: wrapper.warningText,
             isCheckInStale: wrapper.isCheckInStale,
-            buttonStateLabel: wrapper.buttonStateLabel,
+            buttonItem: wrapper.buttonItem,
             buttonHealth: wrapper.buttonHealth,
             signedIn: wrapper.signedIn,
             alerts: wrapper.alerts,
@@ -67,7 +67,10 @@ struct HomeContentView: View {
     /// `DoorWarning` in the wrapper). Non-nil only for stuck/anomalous states.
     let warningText: String?
     let isCheckInStale: Bool
-    let buttonStateLabel: String
+    /// View-ready remote-button state — styling kind + copy + progress phase.
+    /// All logic lives in the shared `ButtonStateMachine`; this is display data
+    /// (mirrors Android's `GarageDoorButton` + `NetworkProgressDiagram`).
+    let buttonItem: RemoteButtonItem
     /// Resolved remote-button health pill (ADR-031 Phase 5) shown in the
     /// "Remote control" section header, mirroring Android's `RemoteButtonHealthPill`.
     let buttonHealth: ButtonHealthItem
@@ -101,7 +104,7 @@ struct HomeContentView: View {
         sinceLine: String?,
         warningText: String?,
         isCheckInStale: Bool,
-        buttonStateLabel: String,
+        buttonItem: RemoteButtonItem,
         buttonHealth: ButtonHealthItem,
         signedIn: Bool,
         alerts: [HomeAlertItem],
@@ -116,7 +119,7 @@ struct HomeContentView: View {
         self.sinceLine = sinceLine
         self.warningText = warningText
         self.isCheckInStale = isCheckInStale
-        self.buttonStateLabel = buttonStateLabel
+        self.buttonItem = buttonItem
         self.buttonHealth = buttonHealth
         self.signedIn = signedIn
         self.alerts = alerts
@@ -185,39 +188,23 @@ struct HomeContentView: View {
 
             Section {
                 if signedIn {
-                    Button(action: onButtonTap) {
-                        Text(buttonStateLabel)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .listRowInsets(EdgeInsets())
-                    .padding(GarageSpacing.tight)
+                    RemoteButtonView(item: buttonItem, onTap: onButtonTap)
+                        .padding(.vertical, GarageSpacing.tight)
                 } else {
                     // Signed out — the remote action requires auth (the shared use
-                    // case returns NotAuthenticated). Show a sign-in CTA instead of
-                    // an inert button, and let the user sign in from Home (mirrors
-                    // Android's signed-out Home, which hides the button and shows a
-                    // "Sign in" card). Account details live on Settings.
-                    VStack(alignment: .leading, spacing: GarageSpacing.tight) {
-                        Text("Sign in to open or close the door.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Button("Sign in with Google") { onSignIn() }
-                            .buttonStyle(.borderedProminent)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(GarageSpacing.tight)
+                    // case returns NotAuthenticated). A tappable sign-in row
+                    // mirrors Android's `HomeSignInBody` ListItem (leading icon,
+                    // title + subtitle, chevron) — the whole row starts sign-in.
+                    HomeSignInRow(onSignIn: onSignIn)
                 }
             } header: {
                 // Health pill right-aligned in the header, mirroring Android's
                 // `RemoteButtonHealthPill` in the "Remote control" section header.
                 // Hidden when signed out (it would only read "Unauthorized",
-                // redundant with the CTA) — matching Android.
+                // redundant with the CTA) — matching Android, which also swaps
+                // the section label to "Sign in" when signed out.
                 HStack {
-                    // "Remote control" to match iOS's own info-sheet title and
-                    // Android's `home_section_remote_control` (the header text was
-                    // out of sync with the adjacent comment + the rest of the app).
-                    Text("Remote control")
+                    Text(signedIn ? "Remote control" : "Sign in")
                     Spacer()
                     if signedIn {
                         RemoteButtonHealthPill(item: buttonHealth)
@@ -268,6 +255,216 @@ private struct HomeAlertBanner: View {
         case .permission: return "bell.badge"
         case .fetchError: return "exclamationmark.triangle"
         }
+    }
+}
+
+/// The remote garage button + network progress diagram — the SwiftUI analog of
+/// Android's `RemoteButtonContent` (`GarageDoorButton` + `NetworkProgressDiagram`).
+/// Stateless: all logic (two-tap confirm, timeouts, network coordination) lives
+/// in the shared `ButtonStateMachine`; this renders the view-ready `item` and
+/// forwards taps. `internal` so the `#Preview` fixtures can render it.
+struct RemoteButtonView: View {
+    let item: RemoteButtonItem
+    let onTap: () -> Void
+
+    var body: some View {
+        VStack(spacing: GarageSpacing.card) {
+            Button(action: onTap) {
+                VStack(spacing: 2) {
+                    if item.kind == .busy {
+                        HStack(spacing: GarageSpacing.tight) {
+                            ProgressView().controlSize(.small).tint(.secondary)
+                            Text(item.title).font(.headline)
+                        }
+                    } else {
+                        Text(item.title).font(.headline)
+                    }
+                    if let subtitle = item.subtitle {
+                        Text(subtitle).font(.subheadline)
+                    }
+                }
+                .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(buttonTint)
+            .foregroundStyle(buttonForeground)
+            .disabled(!isTappable)
+            RemoteProgressDiagram(phase: item.phase)
+        }
+        .animation(.easeInOut(duration: 0.2), value: item.kind)
+    }
+
+    /// Only Ready and AwaitingConfirmation accept taps — every other state is
+    /// display-only until the shared state machine returns to Ready (mirrors
+    /// Android's disabled `FilledTonalButton` states).
+    private var isTappable: Bool {
+        item.kind == .ready || item.kind == .confirm
+    }
+
+    /// Amber for the confirm state (Android's `cautionContainer`), green
+    /// success, red failure, neutral tint otherwise. System colors adapt to
+    /// dark mode on their own.
+    private var buttonTint: Color {
+        switch item.kind {
+        case .confirm: return .orange
+        case .succeeded: return .green
+        case .failed: return .red
+        case .ready, .busy, .idle: return .accentColor
+        }
+    }
+
+    private var buttonForeground: Color {
+        switch item.kind {
+        case .confirm, .succeeded, .failed: return .white
+        case .ready, .busy, .idle: return .white
+        }
+    }
+}
+
+/// Phone → cloud → house progress diagram under the remote button — the SwiftUI
+/// analog of Android's `NetworkProgressDiagram`. Node/edge activation follows
+/// Android's `RemoteButtonDiagramMapping` table: sending-to-server animates the
+/// first leg, sending-to-door completes it and animates the second, success
+/// fills everything, failure marks the failing leg red. `internal` for previews.
+struct RemoteProgressDiagram: View {
+    let phase: RemoteButtonItem.Phase?
+
+    var body: some View {
+        HStack(spacing: GarageSpacing.tight) {
+            node("iphone", status: phoneStatus)
+            edge(status: firstEdge)
+            node("cloud", status: cloudStatus)
+            edge(status: secondEdge)
+            node("house", status: houseStatus)
+        }
+        .padding(.horizontal, GarageSpacing.card)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    private enum NodeStatus { case idle, active, succeeded, failed }
+    private enum EdgeStatus { case notStarted, inProgress, succeeded, failed }
+
+    private var phoneStatus: NodeStatus {
+        switch phase {
+        case nil: return .idle
+        // Android lights the phone node while armed (Preparing /
+        // AwaitingConfirmation) — no leg underway yet.
+        case .armed, .sendingToServer: return .active
+        case .sendingToDoor, .succeeded: return .succeeded
+        case .serverFailed: return .failed
+        case .doorFailed: return .succeeded
+        }
+    }
+
+    private var cloudStatus: NodeStatus {
+        switch phase {
+        case nil, .armed, .sendingToServer, .serverFailed: return .idle
+        case .sendingToDoor: return .active
+        case .succeeded: return .succeeded
+        case .doorFailed: return .failed
+        }
+    }
+
+    private var houseStatus: NodeStatus {
+        switch phase {
+        case .succeeded: return .succeeded
+        default: return .idle
+        }
+    }
+
+    private var firstEdge: EdgeStatus {
+        switch phase {
+        case nil, .armed: return .notStarted
+        case .sendingToServer: return .inProgress
+        case .sendingToDoor, .succeeded, .doorFailed: return .succeeded
+        case .serverFailed: return .failed
+        }
+    }
+
+    private var secondEdge: EdgeStatus {
+        switch phase {
+        case nil, .armed, .sendingToServer, .serverFailed: return .notStarted
+        case .sendingToDoor: return .inProgress
+        case .succeeded: return .succeeded
+        case .doorFailed: return .failed
+        }
+    }
+
+    private func node(_ systemName: String, status: NodeStatus) -> some View {
+        Image(systemName: systemName)
+            .font(.footnote)
+            .foregroundStyle(color(for: status))
+    }
+
+    private func color(for status: NodeStatus) -> Color {
+        switch status {
+        case .idle: return Color(uiColor: .tertiaryLabel)
+        case .active: return .accentColor
+        case .succeeded: return .green
+        case .failed: return .red
+        }
+    }
+
+    private func edge(status: EdgeStatus) -> some View {
+        RoundedRectangle(cornerRadius: 1)
+            .fill(edgeColor(for: status))
+            .frame(maxWidth: .infinity)
+            .frame(height: 2)
+    }
+
+    private func edgeColor(for status: EdgeStatus) -> Color {
+        switch status {
+        case .notStarted: return Color(uiColor: .tertiarySystemFill)
+        case .inProgress: return .accentColor
+        case .succeeded: return .green
+        case .failed: return .red
+        }
+    }
+
+    private var accessibilityText: String {
+        switch phase {
+        case nil: return "Remote button idle"
+        case .armed: return "Ready to send"
+        case .sendingToServer: return "Sending to server"
+        case .sendingToDoor: return "Waiting for the door"
+        case .succeeded: return "Command delivered"
+        case .serverFailed: return "Server error"
+        case .doorFailed: return "Door did not respond"
+        }
+    }
+}
+
+/// Signed-out sign-in row — the SwiftUI analog of Android's `HomeSignInBody`
+/// ListItem (leading icon, title + subtitle, chevron; whole row tappable).
+/// `internal` for previews.
+struct HomeSignInRow: View {
+    let onSignIn: () -> Void
+
+    var body: some View {
+        Button(action: onSignIn) {
+            HStack(spacing: GarageSpacing.card) {
+                Image(systemName: "person.crop.circle.badge.plus")
+                    .font(.title3)
+                    .foregroundStyle(.tint)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Sign in with Google")
+                        .font(.body)
+                        .foregroundStyle(.primary)
+                    Text("Required to use the remote button")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color(uiColor: .tertiaryLabel))
+            }
+            // A .plain Button only hit-tests rendered content — the Spacer gap
+            // would be dead without an explicit content shape.
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -455,7 +652,7 @@ private struct HomeInfoSheetView: View {
             sinceLine: "Since 11:22 AM · 38 min",
             warningText: nil,
             isCheckInStale: true,
-            buttonStateLabel: "Tap to open / close",
+            buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
             buttonHealth: ButtonHealthItem(label: "Unauthorized", kind: .unauthorized),
             signedIn: false,
             alerts: [],
@@ -476,7 +673,7 @@ private struct HomeInfoSheetView: View {
             sinceLine: "Since 9:47 AM · 2 hr 14 min",
             warningText: nil,
             isCheckInStale: false,
-            buttonStateLabel: "Tap to open / close",
+            buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
             buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
             signedIn: true,
             alerts: [],
@@ -497,7 +694,7 @@ private struct HomeInfoSheetView: View {
             sinceLine: "Since 12:01 PM · 4 min",
             warningText: "Opening, taking longer than expected",
             isCheckInStale: false,
-            buttonStateLabel: "Tap to open / close",
+            buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
             buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
             signedIn: true,
             alerts: [],
@@ -518,7 +715,7 @@ private struct HomeInfoSheetView: View {
             sinceLine: "Since 8:15 AM · 1 hr 5 min",
             warningText: nil,
             isCheckInStale: true,
-            buttonStateLabel: "Tap to open / close",
+            buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
             buttonHealth: ButtonHealthItem(label: "Unavailable · 11 min ago", kind: .offline),
             signedIn: true,
             alerts: [
@@ -562,4 +759,74 @@ private struct HomeInfoSheetView: View {
             "If contact stops, this shows when we last heard from it. Tapping the button may not work until it reconnects.",
         ]
     )
+}
+
+#Preview("Remote button states") {
+    List {
+        Section("Ready") {
+            RemoteButtonView(
+                item: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
+                onTap: {}
+            )
+        }
+        Section("Confirm") {
+            RemoteButtonView(
+                item: RemoteButtonItem(kind: .confirm, title: "Door will move.", subtitle: "Tap again to confirm", phase: .armed),
+                onTap: {}
+            )
+        }
+        Section("Sending") {
+            RemoteButtonView(
+                item: RemoteButtonItem(kind: .busy, title: "Sending…", subtitle: nil, phase: .sendingToServer),
+                onTap: {}
+            )
+        }
+        Section("Waiting for door") {
+            RemoteButtonView(
+                item: RemoteButtonItem(kind: .busy, title: "Waiting for door…", subtitle: nil, phase: .sendingToDoor),
+                onTap: {}
+            )
+        }
+        Section("Succeeded") {
+            RemoteButtonView(
+                item: RemoteButtonItem(kind: .succeeded, title: "Done", subtitle: nil, phase: .succeeded),
+                onTap: {}
+            )
+        }
+        Section("Door failed") {
+            RemoteButtonView(
+                item: RemoteButtonItem(kind: .failed, title: "Door did not move", subtitle: nil, phase: .doorFailed),
+                onTap: {}
+            )
+        }
+    }
+}
+
+#Preview("Home sign-in row") {
+    List {
+        Section("Sign in") {
+            HomeSignInRow(onSignIn: {})
+        }
+    }
+}
+
+#Preview("Home confirm state") {
+    NavigationStack {
+        HomeContentView(
+            doorPosition: .closed,
+            lastChangeTimeSeconds: nil,
+            sinceLine: "Since 11:22 AM · 38 min",
+            warningText: nil,
+            isCheckInStale: false,
+            buttonItem: RemoteButtonItem(kind: .confirm, title: "Door will move.", subtitle: "Tap again to confirm", phase: .armed),
+            buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
+            signedIn: true,
+            alerts: [],
+            checkIn: DeviceCheckInItem(label: "1 min ago", isStale: false),
+            onButtonTap: {},
+            onSignIn: {},
+            onRefresh: {},
+            onAlertAction: { _ in }
+        )
+    }
 }

@@ -44,7 +44,12 @@ final class HomeViewModelWrapper: ObservableObject {
     /// wrapper formats the "… ago" string per-UI (mirrors Android's
     /// `DeviceCheckIn.format`). `label == nil` until the first heartbeat.
     @Published private(set) var checkIn: DeviceCheckInItem = DeviceCheckInItem(label: nil, isStale: false)
-    @Published private(set) var buttonStateLabel: String = "Ready"
+    /// View-ready remote-button state (ADR-031 pattern). The shared
+    /// `ButtonStateMachine` owns all logic (two-tap confirm, timeouts, network
+    /// coordination); this is a pure presentation mapping of its typed state —
+    /// mirrors Android's `GarageDoorButton` + `NetworkProgressDiagram` pair.
+    @Published private(set) var buttonItem: RemoteButtonItem =
+        RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil)
     /// Resolved remote-button health pill (ADR-031 Phase 5). The shared
     /// `ButtonHealthDisplay` (from `ComputeButtonHealthDisplayUseCase`) is
     /// resolved to a plain Swift struct here — label + icon-driving `kind` —
@@ -299,7 +304,7 @@ final class HomeViewModelWrapper: ObservableObject {
     }
 
     private func applyButton(_ state: RemoteButtonState) {
-        buttonStateLabel = HomeViewModelWrapper.label(for: state)
+        buttonItem = HomeViewModelWrapper.item(for: state)
     }
 
     /// Resolves the shared typed `ButtonHealthDisplay` to the view-ready pill.
@@ -362,17 +367,36 @@ final class HomeViewModelWrapper: ObservableObject {
         }
     }
 
-    private static func label(for state: RemoteButtonState) -> String {
+    /// Maps the shared `RemoteButtonState` to view-ready display data. The
+    /// two-line confirm copy ("Door will move." / "Tap again to confirm")
+    /// mirrors Android's amber `AwaitingConfirmation` button; the progress
+    /// `phase` drives the phone → cloud → house diagram exactly like Android's
+    /// `RemoteButtonDiagramMapping`.
+    private static func item(for state: RemoteButtonState) -> RemoteButtonItem {
         switch onEnum(of: state) {
-        case .ready: return "Tap to open / close"
-        case .preparing: return "Preparing…"
-        case .awaitingConfirmation: return "Tap again to confirm"
-        case .cancelled: return "Cancelled"
-        case .sendingToServer: return "Sending…"
-        case .sendingToDoor: return "Waiting for door…"
-        case .succeeded: return "Done"
-        case .serverFailed: return "Server error"
-        case .doorFailed: return "Door did not move"
+        case .ready:
+            return RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil)
+        case .preparing:
+            return RemoteButtonItem(kind: .busy, title: "Preparing…", subtitle: nil, phase: .armed)
+        case .awaitingConfirmation:
+            return RemoteButtonItem(
+                kind: .confirm,
+                title: "Door will move.",
+                subtitle: "Tap again to confirm",
+                phase: .armed
+            )
+        case .cancelled:
+            return RemoteButtonItem(kind: .idle, title: "Cancelled", subtitle: nil)
+        case .sendingToServer:
+            return RemoteButtonItem(kind: .busy, title: "Sending…", subtitle: nil, phase: .sendingToServer)
+        case .sendingToDoor:
+            return RemoteButtonItem(kind: .busy, title: "Waiting for door…", subtitle: nil, phase: .sendingToDoor)
+        case .succeeded:
+            return RemoteButtonItem(kind: .succeeded, title: "Done", subtitle: nil, phase: .succeeded)
+        case .serverFailed:
+            return RemoteButtonItem(kind: .failed, title: "Server error", subtitle: nil, phase: .serverFailed)
+        case .doorFailed:
+            return RemoteButtonItem(kind: .failed, title: "Door did not move", subtitle: nil, phase: .doorFailed)
         }
     }
 
@@ -451,4 +475,30 @@ struct ButtonHealthItem {
 
     let label: String
     let kind: Kind
+}
+
+/// View-ready remote-button display data. `kind` drives the button's styling
+/// (tint / amber confirm / disabled busy / green success / red failure);
+/// `phase` drives the phone → cloud → house progress diagram (the SwiftUI
+/// analog of Android's `NetworkProgressDiagram` + `RemoteButtonDiagramMapping`).
+/// `internal` so `#Preview` fixtures can build it.
+struct RemoteButtonItem {
+    enum Kind { case ready, confirm, busy, succeeded, failed, idle }
+
+    /// Which leg of phone → cloud → house is underway (nil = at rest).
+    /// `armed` = the phone node is active but no leg has started — Android's
+    /// Preparing / AwaitingConfirmation diagram state.
+    enum Phase { case armed, sendingToServer, sendingToDoor, succeeded, serverFailed, doorFailed }
+
+    let kind: Kind
+    let title: String
+    let subtitle: String?
+    var phase: Phase?
+
+    init(kind: Kind, title: String, subtitle: String?, phase: Phase? = nil) {
+        self.kind = kind
+        self.title = title
+        self.subtitle = subtitle
+        self.phase = phase
+    }
 }
