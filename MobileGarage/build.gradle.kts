@@ -209,6 +209,18 @@ tasks.register<architecture.DataStoreSingletonCheckTask>("checkDataStoreSingleto
         // crash-on-double-construct rule applies (own file, own lazy
         // slot in DataStoreFactory).
         "provideDiagnosticsCountersRepository",
+        // The status-snapshot cache's raw storage — wraps
+        // factory.createStatusCacheDataStore() (own file, own lazy slot).
+        "provideStatusCacheStorage",
+    )
+}
+
+tasks.register<architecture.BackupRulesExcludeCheckTask>("checkBackupRulesExcludes") {
+    dataStoreFactoryFile =
+        "$rootDir/data-local/src/commonMain/kotlin/com/chriscartland/garage/datalocal/DataStoreFactory.kt"
+    backupRulesFiles = listOf(
+        "$rootDir/androidApp/src/main/res/xml/backup_rules.xml",
+        "$rootDir/androidApp/src/main/res/xml/data_extraction_rules.xml",
     )
 }
 

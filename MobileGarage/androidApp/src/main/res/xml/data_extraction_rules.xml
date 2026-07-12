@@ -34,5 +34,6 @@
         <exclude domain="database" path="database-wal" />
         <exclude domain="file" path="app_settings.preferences_pb" />
         <exclude domain="file" path="diagnostics_counters.preferences_pb" />
+        <exclude domain="file" path="status_cache.preferences_pb" />
     </cloud-backup>
 </data-extraction-rules>

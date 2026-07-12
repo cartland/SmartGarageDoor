@@ -88,12 +88,27 @@ abstract class DataStoreSingletonCheckTask : DefaultTask() {
                             trimmed.contains("fun $name(")
                         } ?: return@forEachIndexed
 
-                        // Look back up to 5 lines for the `@Provides` and
-                        // scope annotations. Annotations on Kotlin
-                        // functions can stack on separate lines or share
-                        // the same line as the `fun` declaration.
-                        val lookbackStart = maxOf(0, index - 5)
-                        val precedingLines = lines.subList(lookbackStart, index + 1)
+                        // Collect only the annotation/comment block
+                        // contiguously ATTACHED to this `fun` (plus the
+                        // `fun` line itself for same-line annotations).
+                        // A fixed look-back window is wrong here: with
+                        // adjacent providers, the PREVIOUS provider's
+                        // `@Singleton` lands in the window and the check
+                        // false-passes (found empirically when the
+                        // provideStatusCacheStorage red-test passed
+                        // despite a missing annotation).
+                        val precedingLines = mutableListOf(line)
+                        var lookback = index - 1
+                        while (lookback >= 0) {
+                            val t = lines[lookback].trim()
+                            val isAttached = t.startsWith("@") ||
+                                t.startsWith("//") ||
+                                t.startsWith("*") ||
+                                t.startsWith("/*")
+                            if (!isAttached) break
+                            precedingLines.add(lines[lookback])
+                            lookback--
+                        }
 
                         val hasProvidesAnnotation = precedingLines.any { providesPattern.containsMatchIn(it) }
                         // Skip if it's not a @Provides function — the

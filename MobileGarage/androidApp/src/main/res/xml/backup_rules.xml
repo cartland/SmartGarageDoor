@@ -32,8 +32,11 @@
      context.getDatabasePath("database")); SQLite also writes -shm/-wal
      sidecars next to it.
    - DataStore files land directly in filesDir (DataStoreFactory.android.kt
-     resolves PREFERENCES_FILE_NAME / DIAGNOSTICS_COUNTERS_FILE_NAME against
-     context.filesDir), i.e. the "file" backup domain.
+     resolves PREFERENCES_FILE_NAME / DIAGNOSTICS_COUNTERS_FILE_NAME /
+     STATUS_CACHE_FILE_NAME against context.filesDir), i.e. the "file"
+     backup domain. Every *_FILE_NAME constant in DataStoreFactory.kt must
+     be excluded here AND in data_extraction_rules.xml — enforced by the
+     checkBackupRulesExcludes Gradle task.
 -->
 <full-backup-content>
     <exclude domain="database" path="database" />
@@ -41,4 +44,5 @@
     <exclude domain="database" path="database-wal" />
     <exclude domain="file" path="app_settings.preferences_pb" />
     <exclude domain="file" path="diagnostics_counters.preferences_pb" />
+    <exclude domain="file" path="status_cache.preferences_pb" />
 </full-backup-content>

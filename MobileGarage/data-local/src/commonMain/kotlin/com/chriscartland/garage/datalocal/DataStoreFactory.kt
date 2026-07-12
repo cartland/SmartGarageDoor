@@ -61,7 +61,23 @@ expect class DataStoreFactory {
      * unrelated app preferences (snooze, FCM topic, etc.).
      */
     fun createDiagnosticsCountersDataStore(): DataStore<Preferences>
+
+    /**
+     * DataStore for the status-snapshot cache (last-known server
+     * statuses; see `MobileGarage/docs/STATUS_CACHE_PLAN.md`). Own
+     * file so settings/diagnostics clears can never touch it. Created
+     * with a `ReplaceFileCorruptionHandler` — a corrupted cache file
+     * self-heals to empty instead of throwing on every launch.
+     */
+    fun createStatusCacheDataStore(): DataStore<Preferences>
 }
 
+// NOTE: every *_FILE_NAME constant here MUST also appear in the
+// cloud-backup exclude lists (androidApp backup_rules.xml AND
+// data_extraction_rules.xml) — security-audit posture M6 keeps local
+// data out of Google Drive Auto Backup, and the excludes are
+// per-exact-filename, so a new file silently fails OPEN into backup.
+// Enforced by the `checkBackupRulesExcludes` Gradle task.
 internal const val PREFERENCES_FILE_NAME = "app_settings.preferences_pb"
 internal const val DIAGNOSTICS_COUNTERS_FILE_NAME = "diagnostics_counters.preferences_pb"
+internal const val STATUS_CACHE_FILE_NAME = "status_cache.preferences_pb"
