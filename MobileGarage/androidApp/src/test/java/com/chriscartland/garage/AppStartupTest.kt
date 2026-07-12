@@ -30,6 +30,7 @@ import com.chriscartland.garage.domain.repository.ButtonHealthFcmRepository
 import com.chriscartland.garage.domain.repository.ButtonHealthRepository
 import com.chriscartland.garage.domain.repository.DoorResolvedFcmRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
+import com.chriscartland.garage.domain.repository.UserScopedCache
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
@@ -51,6 +52,7 @@ import com.chriscartland.garage.usecase.PruneDiagnosticsLogUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import com.chriscartland.garage.usecase.RunStartupDiagnosticsMaintenanceUseCase
 import com.chriscartland.garage.usecase.SeedDiagnosticsCountersFromRoomUseCase
+import com.chriscartland.garage.usecase.SignOutCacheClearManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -188,6 +190,14 @@ class AppStartupTest {
         // advanceUntilIdle that swallow the launches; eager dispatch
         // sidesteps the timing.
         val ioDispatcher = UnconfinedTestDispatcher(scope.testScheduler)
+        val signOutCacheClearMgr = SignOutCacheClearManager(
+            authRepository = FakeAuthRepository(),
+            userScopedCache = object : UserScopedCache {
+                override suspend fun clearUserScopedEntries() = Unit
+            },
+            scope = scope.backgroundScope,
+            dispatcher = ioDispatcher,
+        )
         return AppStartup(
             fcmRegistrationManager = fcmManager,
             checkInStalenessManager = stalenessManager,
@@ -200,6 +210,7 @@ class AppStartupTest {
             buttonHealthFcmSubscriptionManager = buttonHealthMgr,
             doorResolvedFcmSubscriptionManager = doorResolvedMgr,
             initialDoorFetchManager = initialDoorFetchMgr,
+            signOutCacheClearManager = signOutCacheClearMgr,
             externalScope = scope.backgroundScope,
             dispatchers = TestDispatcherProvider(ioDispatcher),
         )
@@ -235,6 +246,7 @@ class AppStartupTest {
                     "startButtonHealthFcmSubscription",
                     "startDoorResolvedFcmSubscription",
                     "startInitialDoorFetch",
+                    "startSignOutCacheClear",
                     "logFcmSubscribe",
                     "runDiagnosticsMaintenance",
                 ),

@@ -137,6 +137,34 @@ class ComponentGraphTest {
     }
 
     @Test
+    fun statusCacheStorageIsSingleton() {
+        // Wraps the status-cache DataStore file; a second instance for
+        // the same file throws IllegalStateException at runtime.
+        val c = component
+        assertSame("StatusCacheStorage must be singleton", c.statusCacheStorage, c.statusCacheStorage)
+    }
+
+    @Test
+    fun statusSnapshotStoreIsSingleton() {
+        val c = component
+        assertSame("StatusSnapshotStore must be singleton", c.statusSnapshotStore, c.statusSnapshotStore)
+    }
+
+    @Test
+    fun userScopedCacheIsSingleton() {
+        val c = component
+        assertSame("UserScopedCache must be singleton", c.userScopedCache, c.userScopedCache)
+    }
+
+    @Test
+    fun signOutCacheClearManagerIsSingleton() {
+        // Owns the auth-observing collector Job; two instances would
+        // double-clear and double-collect.
+        val c = component
+        assertSame("SignOutCacheClearManager must be singleton", c.signOutCacheClearManager, c.signOutCacheClearManager)
+    }
+
+    @Test
     fun buttonHealthRepositoryIsSingleton() {
         val c = component
         assertSame("ButtonHealthRepository must be singleton", c.buttonHealthRepository, c.buttonHealthRepository)

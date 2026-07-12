@@ -1,8 +1,10 @@
 package com.chriscartland.garage.datalocal
 
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
 import kotlinx.cinterop.ExperimentalForeignApi
 import okio.Path.Companion.toPath
 import platform.Foundation.NSDocumentDirectory
@@ -26,9 +28,23 @@ actual class DataStoreFactory {
         createPreferences(DIAGNOSTICS_COUNTERS_FILE_NAME)
     }
 
+    private val statusCacheInstance: DataStore<Preferences> by lazy {
+        // Corruption handler: a corrupted cache file self-heals to empty
+        // instead of throwing on every launch — the cache is re-earned
+        // from the network, so losing it is always safe.
+        PreferenceDataStoreFactory.createWithPath(
+            corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+            produceFile = {
+                "${iosDocumentsDirectory()}/$STATUS_CACHE_FILE_NAME".toPath()
+            },
+        )
+    }
+
     actual fun createPreferencesDataStore(): DataStore<Preferences> = appSettingsInstance
 
     actual fun createDiagnosticsCountersDataStore(): DataStore<Preferences> = diagnosticsCountersInstance
+
+    actual fun createStatusCacheDataStore(): DataStore<Preferences> = statusCacheInstance
 
     private fun createPreferences(fileName: String): DataStore<Preferences> =
         PreferenceDataStoreFactory.createWithPath(

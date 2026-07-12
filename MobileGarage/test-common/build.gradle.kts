@@ -17,6 +17,9 @@ kotlin {
             implementation(project(":data"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.coroutines.test)
+            // FakeStatusSnapshotStore implements the :data store
+            // interface, whose signatures name KSerializer.
+            implementation(libs.kotlinx.serialization.json)
         }
     }
 }

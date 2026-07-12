@@ -89,6 +89,13 @@ else
     fail "datastore singleton"
 fi
 
+step "DataStore files excluded from cloud backup (M6 — backup_rules + data_extraction_rules)"
+if $GRADLE checkBackupRulesExcludes; then
+    pass "backup rules excludes"
+else
+    fail "backup rules excludes"
+fi
+
 step "No raw Dispatchers (ADR-005 — VM/UseCase must inject DispatcherProvider)"
 if $GRADLE checkNoRawDispatchers; then
     pass "no raw dispatchers"

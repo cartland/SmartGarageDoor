@@ -49,10 +49,16 @@ import com.chriscartland.garage.data.repository.NetworkButtonHealthRepository
 import com.chriscartland.garage.data.repository.NetworkDoorRepository
 import com.chriscartland.garage.data.repository.NetworkRemoteButtonRepository
 import com.chriscartland.garage.data.repository.NetworkSnoozeRepository
+import com.chriscartland.garage.data.statuscache.DefaultStatusSnapshotStore
+import com.chriscartland.garage.data.statuscache.DefaultUserScopedCache
+import com.chriscartland.garage.data.statuscache.StatusCacheKeys
+import com.chriscartland.garage.data.statuscache.StatusCacheStorage
+import com.chriscartland.garage.data.statuscache.StatusSnapshotStore
 import com.chriscartland.garage.datalocal.AppDatabase
 import com.chriscartland.garage.datalocal.DataStoreAppSettings
 import com.chriscartland.garage.datalocal.DataStoreDiagnosticsCounters
 import com.chriscartland.garage.datalocal.DataStoreFactory
+import com.chriscartland.garage.datalocal.DataStoreStatusCacheStorage
 import com.chriscartland.garage.datalocal.DatabaseFactory
 import com.chriscartland.garage.datalocal.DatabaseLocalDoorDataSource
 import com.chriscartland.garage.datalocal.RoomAppLoggerRepository
@@ -73,6 +79,7 @@ import com.chriscartland.garage.domain.repository.RemoteButtonRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.domain.repository.SnoozeRepository
 import com.chriscartland.garage.domain.repository.TestNotificationRepository
+import com.chriscartland.garage.domain.repository.UserScopedCache
 import com.chriscartland.garage.fcm.FirebaseMessagingBridge
 import com.chriscartland.garage.usecase.AppSettingsUseCase
 import com.chriscartland.garage.usecase.AppStartup
@@ -113,6 +120,7 @@ import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import com.chriscartland.garage.usecase.RunStartupDiagnosticsMaintenanceUseCase
 import com.chriscartland.garage.usecase.SeedDiagnosticsCountersFromRoomUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
+import com.chriscartland.garage.usecase.SignOutCacheClearManager
 import com.chriscartland.garage.usecase.SignOutUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
 import com.chriscartland.garage.usecase.SubscribeTestNotificationUseCase
@@ -211,6 +219,10 @@ abstract class AppComponent(
     abstract val doorResolvedFcmSubscriptionManager: DoorResolvedFcmSubscriptionManager
     abstract val initialDoorFetchManager: InitialDoorFetchManager
     abstract val computeButtonHealthDisplayUseCase: ComputeButtonHealthDisplayUseCase
+    abstract val statusCacheStorage: StatusCacheStorage
+    abstract val statusSnapshotStore: StatusSnapshotStore
+    abstract val userScopedCache: UserScopedCache
+    abstract val signOutCacheClearManager: SignOutCacheClearManager
 
     // --- ViewModels ---
 
@@ -558,6 +570,38 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
+    fun provideStatusCacheStorage(factory: DataStoreFactory): StatusCacheStorage =
+        DataStoreStatusCacheStorage(factory.createStatusCacheDataStore())
+
+    @Provides
+    @Singleton
+    fun provideStatusSnapshotStore(storage: StatusCacheStorage): StatusSnapshotStore = DefaultStatusSnapshotStore(storage)
+
+    @Provides
+    @Singleton
+    fun provideUserScopedCache(statusSnapshotStore: StatusSnapshotStore): UserScopedCache =
+        DefaultUserScopedCache(
+            statusSnapshotStore = statusSnapshotStore,
+            userScopedKeys = StatusCacheKeys.CLEARED_ON_SIGN_OUT,
+        )
+
+    @Provides
+    @Singleton
+    fun provideSignOutCacheClearManager(
+        authRepository: AuthRepository,
+        userScopedCache: UserScopedCache,
+        applicationScope: CoroutineScope,
+        dispatchers: DispatcherProvider,
+    ): SignOutCacheClearManager =
+        SignOutCacheClearManager(
+            authRepository = authRepository,
+            userScopedCache = userScopedCache,
+            scope = applicationScope,
+            dispatcher = dispatchers.io,
+        )
+
+    @Provides
+    @Singleton
     fun provideAppDatabase(): AppDatabase = DatabaseFactory(application).createDatabase()
 
     @Provides
@@ -835,6 +879,7 @@ abstract class AppComponent(
         buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager,
         doorResolvedFcmSubscriptionManager: DoorResolvedFcmSubscriptionManager,
         initialDoorFetchManager: InitialDoorFetchManager,
+        signOutCacheClearManager: SignOutCacheClearManager,
         applicationScope: CoroutineScope,
         dispatchers: DispatcherProvider,
     ): AppStartup =
@@ -847,6 +892,7 @@ abstract class AppComponent(
             buttonHealthFcmSubscriptionManager = buttonHealthFcmSubscriptionManager,
             doorResolvedFcmSubscriptionManager = doorResolvedFcmSubscriptionManager,
             initialDoorFetchManager = initialDoorFetchManager,
+            signOutCacheClearManager = signOutCacheClearManager,
             externalScope = applicationScope,
             dispatchers = dispatchers,
         )

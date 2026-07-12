@@ -119,6 +119,19 @@ class NativeComponentTest {
         )
 
     @Test
+    fun statusCacheStorageIsSingleton() = assertSame(component.statusCacheStorage, component.statusCacheStorage, "statusCacheStorage")
+
+    @Test
+    fun statusSnapshotStoreIsSingleton() = assertSame(component.statusSnapshotStore, component.statusSnapshotStore, "statusSnapshotStore")
+
+    @Test
+    fun userScopedCacheIsSingleton() = assertSame(component.userScopedCache, component.userScopedCache, "userScopedCache")
+
+    @Test
+    fun signOutCacheClearManagerIsSingleton() =
+        assertSame(component.signOutCacheClearManager, component.signOutCacheClearManager, "signOutCacheClearManager")
+
+    @Test
     fun authRepositoryIsSingleton() = assertSame(component.authRepository, component.authRepository, "authRepository")
 
     @Test
