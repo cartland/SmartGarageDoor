@@ -18,6 +18,7 @@
 package com.chriscartland.garage.data.statuscache
 
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -50,6 +51,10 @@ class DefaultStatusSnapshotStore(
     ): StatusSnapshot<T>? {
         val raw = runCatching { storage.get(key.storageKey) }
             .getOrElse { t ->
+                // Cancellation is a control signal, not an IO failure — it
+                // must unwind the caller, or a cancelled hydration keeps
+                // running and publishes a spurious cache-absent state.
+                if (t is CancellationException) throw t
                 Logger.w(t) { "StatusSnapshotStore: read failed for ${key.storageKey}; treating as absent" }
                 return null
             } ?: return null
@@ -99,6 +104,7 @@ class DefaultStatusSnapshotStore(
             )
             storage.put(key.storageKey, json.encodeToString(StatusSnapshotEnvelope.serializer(), envelope))
         }.onFailure { t ->
+            if (t is CancellationException) throw t
             Logger.w(t) { "StatusSnapshotStore: write failed for ${key.storageKey}; value not persisted" }
         }
     }
@@ -108,6 +114,7 @@ class DefaultStatusSnapshotStore(
         runCatching {
             storage.remove(keys.map { it.storageKey }.toSet())
         }.onFailure { t ->
+            if (t is CancellationException) throw t
             Logger.w(t) { "StatusSnapshotStore: clear failed for ${keys.map { it.storageKey }}" }
         }
     }

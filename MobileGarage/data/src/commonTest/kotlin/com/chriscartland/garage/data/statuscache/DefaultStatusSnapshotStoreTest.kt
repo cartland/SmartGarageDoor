@@ -17,10 +17,12 @@
 
 package com.chriscartland.garage.data.statuscache
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.Serializable
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -47,8 +49,10 @@ private class InMemoryStatusCacheStorage : StatusCacheStorage {
     var failNextGet = false
     var failNextPut = false
     var failNextRemove = false
+    var cancelNextCall = false
 
     override suspend fun get(key: String): String? {
+        throwIfInjected()
         if (failNextGet) {
             failNextGet = false
             throw RuntimeException("injected get failure")
@@ -60,6 +64,7 @@ private class InMemoryStatusCacheStorage : StatusCacheStorage {
         key: String,
         value: String,
     ) {
+        throwIfInjected()
         if (failNextPut) {
             failNextPut = false
             throw RuntimeException("injected put failure")
@@ -68,11 +73,19 @@ private class InMemoryStatusCacheStorage : StatusCacheStorage {
     }
 
     override suspend fun remove(keys: Set<String>) {
+        throwIfInjected()
         if (failNextRemove) {
             failNextRemove = false
             throw RuntimeException("injected remove failure")
         }
         keys.forEach { map.remove(it) }
+    }
+
+    private fun throwIfInjected() {
+        if (cancelNextCall) {
+            cancelNextCall = false
+            throw CancellationException("injected cancellation")
+        }
     }
 }
 
@@ -228,6 +241,45 @@ class DefaultStatusSnapshotStoreTest {
 
             // The injected failure was never consumed — no storage call.
             assertTrue(storage.failNextRemove)
+        }
+
+    @Test
+    fun readPropagatesCancellation() =
+        runTest {
+            val storage = InMemoryStatusCacheStorage()
+            val store = DefaultStatusSnapshotStore(storage)
+            storage.cancelNextCall = true
+
+            // Cancellation must unwind the caller, never degrade to
+            // cache-absent (a cancelled hydration would otherwise keep
+            // running and publish a spurious null).
+            assertFailsWith<CancellationException> {
+                store.read(key, 1, TestPayload.serializer())
+            }
+        }
+
+    @Test
+    fun writePropagatesCancellation() =
+        runTest {
+            val storage = InMemoryStatusCacheStorage()
+            val store = DefaultStatusSnapshotStore(storage)
+            storage.cancelNextCall = true
+
+            assertFailsWith<CancellationException> {
+                store.write(key, 1, TestPayload.serializer(), snapshot)
+            }
+        }
+
+    @Test
+    fun clearPropagatesCancellation() =
+        runTest {
+            val storage = InMemoryStatusCacheStorage()
+            val store = DefaultStatusSnapshotStore(storage)
+            storage.cancelNextCall = true
+
+            assertFailsWith<CancellationException> {
+                store.clear(setOf(key))
+            }
         }
 
     @Test

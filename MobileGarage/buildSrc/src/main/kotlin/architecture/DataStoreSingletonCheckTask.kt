@@ -101,6 +101,16 @@ abstract class DataStoreSingletonCheckTask : DefaultTask() {
                         var lookback = index - 1
                         while (lookback >= 0) {
                             val t = lines[lookback].trim()
+                            // Blank lines don't end attachment: skipping them
+                            // is safe because the previous declaration's
+                            // `fun`/body line is always a non-annotation
+                            // barrier, and ktlint (standard:annotation, run
+                            // via spotless in CI) forbids the shapes where
+                            // skipping could mis-attach.
+                            if (t.isEmpty()) {
+                                lookback--
+                                continue
+                            }
                             val isAttached = t.startsWith("@") ||
                                 t.startsWith("//") ||
                                 t.startsWith("*") ||
