@@ -662,7 +662,7 @@ fun HomeContentOpenSignedInPreview() =
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
-            buttonHealthDisplay = ButtonHealthDisplay.Loading,
+            buttonHealthDisplay = ButtonHealthDisplay.Online,
             modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
@@ -677,7 +677,7 @@ fun HomeContentClosedSignedInPreview() =
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
-            buttonHealthDisplay = ButtonHealthDisplay.Loading,
+            buttonHealthDisplay = ButtonHealthDisplay.Online,
             modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
@@ -692,7 +692,7 @@ fun HomeContentAwaitingConfirmationPreview() =
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.AwaitingConfirmation,
             deviceCheckIn = HomePreviewData.freshCheckIn,
-            buttonHealthDisplay = ButtonHealthDisplay.Loading,
+            buttonHealthDisplay = ButtonHealthDisplay.Online,
             modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
@@ -707,7 +707,7 @@ fun HomeContentSendingToDoorPreview() =
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.SendingToDoor,
             deviceCheckIn = HomePreviewData.freshCheckIn,
-            buttonHealthDisplay = ButtonHealthDisplay.Loading,
+            buttonHealthDisplay = ButtonHealthDisplay.Online,
             modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
@@ -722,7 +722,7 @@ fun HomeContentOpeningTooLongPreview() =
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
-            buttonHealthDisplay = ButtonHealthDisplay.Loading,
+            buttonHealthDisplay = ButtonHealthDisplay.Online,
             modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
@@ -738,7 +738,7 @@ fun HomeContentStaleBannerPreview() =
             remoteButtonState = RemoteButtonState.Ready,
             alerts = listOf(HomePreviewData.staleAlert),
             deviceCheckIn = HomePreviewData.staleCheckIn,
-            buttonHealthDisplay = ButtonHealthDisplay.Loading,
+            buttonHealthDisplay = ButtonHealthDisplay.Online,
             modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
@@ -754,7 +754,7 @@ fun HomeContentPermissionMissingPreview() =
             remoteButtonState = RemoteButtonState.Ready,
             alerts = listOf(HomePreviewData.permissionAlert),
             deviceCheckIn = HomePreviewData.freshCheckIn,
-            buttonHealthDisplay = ButtonHealthDisplay.Loading,
+            buttonHealthDisplay = ButtonHealthDisplay.Online,
             modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
@@ -768,7 +768,7 @@ fun HomeContentSignedOutPreview() =
             sinceLine = HomePreviewData.OPEN_SINCE_LINE,
             authState = HomeAuthState.SignedOut,
             deviceCheckIn = HomePreviewData.freshCheckIn,
-            buttonHealthDisplay = ButtonHealthDisplay.Loading,
+            buttonHealthDisplay = ButtonHealthDisplay.Online,
             modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
@@ -793,9 +793,12 @@ fun HomeContentRemotePillUnauthorizedPreview() =
         )
     }
 
+// Hidden-until-verdict fixture: the Remote control header renders with NO
+// pill at all (STATUS_CACHE_PLAN.md D2). The visible absence in this
+// reference render is the proof that the no-verdict state shows nothing.
 @Preview(heightDp = 900)
 @Composable
-fun HomeContentRemotePillLoadingPreview() =
+fun HomeContentRemotePillHiddenPreview() =
     PreviewScreenSurface {
         HomeContent(
             status = HomePreviewData.closedStatus,
@@ -803,7 +806,7 @@ fun HomeContentRemotePillLoadingPreview() =
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
-            buttonHealthDisplay = ButtonHealthDisplay.Loading,
+            buttonHealthDisplay = ButtonHealthDisplay.Hidden,
             modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }

@@ -40,7 +40,7 @@ import kotlinx.coroutines.flow.stateIn
  * the combine running for the lifetime of the process costs nothing
  * meaningful and guarantees subsequent subscribers see the latest
  * value immediately. `WhileSubscribed(timeout)` would re-emit the
- * initial `Loading` value after the timeout window, reintroducing the
+ * initial `Hidden` value after the timeout window, reintroducing the
  * flicker on the next subscription.
  *
  * The provider must be `@Singleton`-scoped so the eager combine runs
@@ -73,7 +73,11 @@ class ComputeButtonHealthDisplayUseCase(
         }.stateIn(
             scope = applicationScope,
             started = SharingStarted.Eagerly,
-            initialValue = ButtonHealthDisplay.Loading,
+            // Hidden, not a "checking" state: the iOS wrapper and the
+            // Compose pill both seed synchronously from `.value`, so this
+            // is what renders in the instant before the first combine
+            // emission — it must render NOTHING (hidden-until-verdict).
+            initialValue = ButtonHealthDisplay.Hidden,
         )
 
     operator fun invoke(): StateFlow<ButtonHealthDisplay> = state

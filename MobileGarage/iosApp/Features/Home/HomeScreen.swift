@@ -72,8 +72,9 @@ struct HomeContentView: View {
     /// (mirrors Android's `GarageDoorButton` + `NetworkProgressDiagram`).
     let buttonItem: RemoteButtonItem
     /// Resolved remote-button health pill (ADR-031 Phase 5) shown in the
-    /// "Remote control" section header, mirroring Android's `RemoteButtonHealthPill`.
-    let buttonHealth: ButtonHealthItem
+    /// "Remote control" section header, mirroring Android's
+    /// `RemoteButtonHealthPill`. Nil = hidden-until-verdict: no pill at all.
+    let buttonHealth: ButtonHealthItem?
     let signedIn: Bool
     /// Resolved alert banners (ADR-031 Phase 4) shown above the Status card.
     /// Empty in the steady state; the shared `HomeAlertMapper` decides when a
@@ -105,7 +106,7 @@ struct HomeContentView: View {
         warningText: String?,
         isCheckInStale: Bool,
         buttonItem: RemoteButtonItem,
-        buttonHealth: ButtonHealthItem,
+        buttonHealth: ButtonHealthItem?,
         signedIn: Bool,
         alerts: [HomeAlertItem],
         checkIn: DeviceCheckInItem,
@@ -206,7 +207,7 @@ struct HomeContentView: View {
                 HStack {
                     Text(signedIn ? "Remote control" : "Sign in")
                     Spacer()
-                    if signedIn {
+                    if signedIn, let buttonHealth {
                         RemoteButtonHealthPill(item: buttonHealth)
                             .contentShape(Capsule())
                             .onTapGesture { activeInfoSheet = .remoteControl }
@@ -543,7 +544,6 @@ private struct RemoteButtonHealthPill: View {
     private var icon: String {
         switch item.kind {
         case .unauthorized: return "lock"
-        case .loading: return "arrow.triangle.2.circlepath"
         case .unknown: return "questionmark.circle"
         case .online: return "wifi"
         case .offline: return "wifi.slash"

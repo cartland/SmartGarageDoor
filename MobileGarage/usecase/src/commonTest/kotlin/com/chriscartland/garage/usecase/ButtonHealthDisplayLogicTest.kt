@@ -65,7 +65,7 @@ class ButtonHealthDisplayLogicTest {
             health = LoadingResult.Loading(null),
             nowSeconds = now,
         )
-        assertEquals(ButtonHealthDisplay.Loading, display)
+        assertEquals(ButtonHealthDisplay.Hidden, display)
     }
 
     @Test
@@ -75,7 +75,7 @@ class ButtonHealthDisplayLogicTest {
             health = LoadingResult.Error(IllegalStateException("network")),
             nowSeconds = now,
         )
-        assertEquals(ButtonHealthDisplay.Loading, display)
+        assertEquals(ButtonHealthDisplay.Hidden, display)
     }
 
     @Test
@@ -85,7 +85,7 @@ class ButtonHealthDisplayLogicTest {
             health = LoadingResult.Complete(null),
             nowSeconds = now,
         )
-        assertEquals(ButtonHealthDisplay.Loading, display)
+        assertEquals(ButtonHealthDisplay.Hidden, display)
     }
 
     @Test

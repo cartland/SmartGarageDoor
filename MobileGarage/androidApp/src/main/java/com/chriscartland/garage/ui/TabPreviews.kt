@@ -202,7 +202,7 @@ fun HomeTabStalePillPreview() {
             modifier = modifier,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = deviceCheckIn,
-            buttonHealthDisplay = ButtonHealthDisplay.Loading,
+            buttonHealthDisplay = ButtonHealthDisplay.Online,
         )
     }
 }

@@ -31,7 +31,6 @@ import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Sensors
 import androidx.compose.material.icons.outlined.SensorsOff
-import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -48,10 +47,12 @@ import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
 
 /**
- * Always-on debug pill that renders for every [ButtonHealthDisplay] arm.
+ * Pill that renders every VERDICT arm of [ButtonHealthDisplay] — and
+ * renders NOTHING for [ButtonHealthDisplay.Hidden] (hidden-until-verdict,
+ * STATUS_CACHE_PLAN.md D2: no "Checking…" UI while unresolved).
  *
  * Sister to [RemoteOfflinePill]: same pill grammar (rounded-50, label + icon),
- * but the production-only `Offline` filter is removed so every state is
+ * but the production-only `Offline` filter is removed so every verdict is
  * visible. Intended as a temporary diagnostic surface — [RemoteOfflinePill]
  * is still the long-term home for the user-facing "something is wrong"
  * signal.
@@ -77,6 +78,8 @@ fun RemoteButtonHealthPill(
     modifier: Modifier = Modifier,
     onTap: (() -> Unit)? = null,
 ) {
+    // Hidden-until-verdict: no pill at all while there is nothing to say.
+    val contents = RemoteButtonHealthPillContents.from(display) ?: return
     val pillShape = RoundedCornerShape(50)
     val isOffline = display is ButtonHealthDisplay.Offline
     val backgroundColor = if (isOffline) {
@@ -89,7 +92,7 @@ fun RemoteButtonHealthPill(
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
-    val (label, icon, iconDescription) = RemoteButtonHealthPillContents.from(display)
+    val (label, icon, iconDescription) = contents
     val baseModifier = modifier
         .background(color = backgroundColor, shape = pillShape)
     val tapModifier = if (onTap != null) {
@@ -128,18 +131,15 @@ private data class PillContents(
 )
 
 private object RemoteButtonHealthPillContents {
-    fun from(display: ButtonHealthDisplay): PillContents =
+    /** Null = render nothing (the no-verdict arm has no pill). */
+    fun from(display: ButtonHealthDisplay): PillContents? =
         when (display) {
             is ButtonHealthDisplay.Unauthorized -> PillContents(
                 label = "Unauthorized",
                 icon = Icons.Outlined.Lock,
                 iconDescription = "Remote button unauthorized (signed out or not on allowlist)",
             )
-            is ButtonHealthDisplay.Loading -> PillContents(
-                label = "Checking…",
-                icon = Icons.Outlined.Sync,
-                iconDescription = "Checking remote button status",
-            )
+            is ButtonHealthDisplay.Hidden -> null
             is ButtonHealthDisplay.Unknown -> PillContents(
                 label = "Unknown",
                 icon = Icons.Outlined.HelpOutline,
@@ -163,14 +163,6 @@ private object RemoteButtonHealthPillContents {
 fun RemoteButtonHealthPillUnauthorizedPreview() {
     PreviewComponentSurface {
         RemoteButtonHealthPill(display = ButtonHealthDisplay.Unauthorized)
-    }
-}
-
-@Preview
-@Composable
-fun RemoteButtonHealthPillLoadingPreview() {
-    PreviewComponentSurface {
-        RemoteButtonHealthPill(display = ButtonHealthDisplay.Loading)
     }
 }
 

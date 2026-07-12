@@ -112,7 +112,7 @@ class ComputeButtonHealthDisplayUseCaseTest {
      * with, and return the first emission from the underlying combine —
      * which is what production observers actually display.
      */
-    private suspend fun StateFlow<ButtonHealthDisplay>.awaitComputed(): ButtonHealthDisplay = first { it !is ButtonHealthDisplay.Loading }
+    private suspend fun StateFlow<ButtonHealthDisplay>.awaitComputed(): ButtonHealthDisplay = first { it !is ButtonHealthDisplay.Hidden }
 }
 
 // ---- Inline fakes ----

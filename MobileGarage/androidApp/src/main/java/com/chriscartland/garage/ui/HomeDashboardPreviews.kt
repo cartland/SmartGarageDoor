@@ -205,7 +205,7 @@ private fun WideHomeBody(modifier: Modifier = Modifier) {
                 modifier = paneModifier,
                 remoteButtonState = RemoteButtonState.Ready,
                 deviceCheckIn = deviceCheckIn,
-                buttonHealthDisplay = ButtonHealthDisplay.Loading,
+                buttonHealthDisplay = ButtonHealthDisplay.Online,
             )
         },
         historyPane = { paneModifier ->

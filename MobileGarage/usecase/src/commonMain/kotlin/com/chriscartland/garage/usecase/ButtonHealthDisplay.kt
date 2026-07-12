@@ -20,25 +20,25 @@ package com.chriscartland.garage.usecase
 /**
  * Display state for the remote-button health indicator.
  *
- * Five arms (only `Offline` ever renders the pill), preserving the
- * *why* of "no pill" — useful for debugging and a future UX iteration
- * that wants to distinguish steady-state Online from in-flight Loading
- * from server-confirmed Unknown.
+ * [Hidden] is the no-verdict arm and MUST render nothing on both
+ * platforms (no text, no icon): "Checking…" was a prominent UI element
+ * for a state the user can't act on. With the persisted status cache
+ * (STATUS_CACHE_PLAN.md D2) a hydrated last-known verdict shows
+ * instantly, so [Hidden] only appears on true first-run, after a
+ * Forbidden cache-clear, or past the display-TTL.
  *
- * Loading and Unknown are different concepts:
- *  - [Loading]: the suspend cold-start fetch is in flight, no result yet.
- *  - [Unknown]: the cold-start fetch returned UNKNOWN (server has no
+ * Hidden and Unknown are different concepts:
+ *  - [Hidden]: no verdict to show — fetch in flight with nothing
+ *    cached, or repository in an error state pending retry.
+ *  - [Unknown]: a server VERDICT — the fetch returned UNKNOWN (no
  *    record yet for the device's buildTimestamp).
- *
- * Both render no pill, but the distinction matters for diagnostic
- * logs and for "stuck Loading > X sec" diagnostics.
  */
 sealed interface ButtonHealthDisplay {
     /** User is signed out. */
     data object Unauthorized : ButtonHealthDisplay
 
-    /** Cold-start fetch is in flight or repository is in an error state pending retry. */
-    data object Loading : ButtonHealthDisplay
+    /** No verdict to show. Renders NOTHING on both platforms. */
+    data object Hidden : ButtonHealthDisplay
 
     /** Server returned UNKNOWN (no buttonHealthCurrent doc yet). */
     data object Unknown : ButtonHealthDisplay

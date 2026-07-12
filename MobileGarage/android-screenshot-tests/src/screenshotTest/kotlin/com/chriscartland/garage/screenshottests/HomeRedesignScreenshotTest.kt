@@ -28,7 +28,7 @@ import com.chriscartland.garage.ui.home.HomeContentOnTabletPreview
 import com.chriscartland.garage.ui.home.HomeContentOpenSignedInPreview
 import com.chriscartland.garage.ui.home.HomeContentOpeningTooLongPreview
 import com.chriscartland.garage.ui.home.HomeContentPermissionMissingPreview
-import com.chriscartland.garage.ui.home.HomeContentRemotePillLoadingPreview
+import com.chriscartland.garage.ui.home.HomeContentRemotePillHiddenPreview
 import com.chriscartland.garage.ui.home.HomeContentRemotePillOfflinePreview
 import com.chriscartland.garage.ui.home.HomeContentRemotePillOnlinePreview
 import com.chriscartland.garage.ui.home.HomeContentRemotePillUnauthorizedPreview
@@ -154,8 +154,8 @@ fun HomeContentRemotePillUnauthorizedPreviewTest() {
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
-fun HomeContentRemotePillLoadingPreviewTest() {
-    AppTheme { HomeContentRemotePillLoadingPreview() }
+fun HomeContentRemotePillHiddenPreviewTest() {
+    AppTheme { HomeContentRemotePillHiddenPreview() }
 }
 
 @PreviewTest

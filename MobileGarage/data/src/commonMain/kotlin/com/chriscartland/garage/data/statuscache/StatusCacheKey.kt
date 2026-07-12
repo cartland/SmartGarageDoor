@@ -45,5 +45,10 @@ object StatusCacheKeys {
      * anything derived from the signed-in account (feature allowlist,
      * auth-gated statuses) belongs in this set.
      */
-    val CLEARED_ON_SIGN_OUT: Set<StatusCacheKey> = emptySet()
+    val CLEARED_ON_SIGN_OUT: Set<StatusCacheKey> = setOf(
+        // Auth-gated status: the display is signed-in-only and the fetch
+        // requires an allowlisted account, so the verdict doesn't belong
+        // to a signed-out device (STATUS_CACHE_PLAN.md D2).
+        ButtonHealthSnapshot.KEY,
+    )
 }

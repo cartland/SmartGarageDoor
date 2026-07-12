@@ -34,10 +34,11 @@ import com.chriscartland.garage.domain.model.LoadingResult
  *
  * TODO: when a server-side button-health allowlist is added to
  * FeatureAllowlist, gate Unauthorized on that too. Currently any
- * signed-in user reaches the Online/Offline/Unknown/Loading branches
- * — a non-allowlisted user would see Loading-then-Loading from the
- * cold-start 403, which renders as no pill (functionally correct,
- * but doesn't tell the manager to stop subscribing).
+ * signed-in user reaches the Online/Offline/Unknown/Hidden branches
+ * — a non-allowlisted user would see Hidden from the cold-start 403
+ * (which also clears the persisted snapshot), rendering as no pill
+ * (functionally correct, but doesn't tell the manager to stop
+ * subscribing).
  */
 object ButtonHealthDisplayLogic {
     fun compute(
@@ -50,12 +51,12 @@ object ButtonHealthDisplayLogic {
 
         // Sealed-type exhaustive when on LoadingResult — compiler-enforced.
         return when (health) {
-            is LoadingResult.Loading -> ButtonHealthDisplay.Loading
-            is LoadingResult.Error -> ButtonHealthDisplay.Loading // transient; retry will fix
+            is LoadingResult.Loading -> ButtonHealthDisplay.Hidden
+            is LoadingResult.Error -> ButtonHealthDisplay.Hidden // transient; retry will fix
             is LoadingResult.Complete -> {
                 val data = health.data
                 if (data == null) {
-                    ButtonHealthDisplay.Loading
+                    ButtonHealthDisplay.Hidden
                 } else {
                     when (data.state) {
                         ButtonHealthState.UNKNOWN -> ButtonHealthDisplay.Unknown
