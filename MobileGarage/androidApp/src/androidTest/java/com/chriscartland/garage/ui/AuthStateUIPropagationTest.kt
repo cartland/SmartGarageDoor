@@ -84,7 +84,7 @@ class AuthStateUIPropagationTest {
                 sinceLine = unknownSinceLine,
                 authState = HomeMapper.toHomeAuthState(AuthState.Unknown),
                 deviceCheckIn = noDataCheckIn,
-                buttonHealthDisplay = ButtonHealthDisplay.Loading,
+                buttonHealthDisplay = ButtonHealthDisplay.Hidden,
             )
         }
         composeTestRule.onNodeWithText("Checking sign-in…").assertIsDisplayed()
@@ -98,7 +98,7 @@ class AuthStateUIPropagationTest {
                 sinceLine = unknownSinceLine,
                 authState = HomeMapper.toHomeAuthState(AuthState.Unauthenticated),
                 deviceCheckIn = noDataCheckIn,
-                buttonHealthDisplay = ButtonHealthDisplay.Loading,
+                buttonHealthDisplay = ButtonHealthDisplay.Hidden,
             )
         }
         composeTestRule.onNodeWithText("Sign in with Google").assertIsDisplayed()
@@ -112,7 +112,7 @@ class AuthStateUIPropagationTest {
                 sinceLine = unknownSinceLine,
                 authState = HomeMapper.toHomeAuthState(AuthState.Authenticated(testUser)),
                 deviceCheckIn = noDataCheckIn,
-                buttonHealthDisplay = ButtonHealthDisplay.Loading,
+                buttonHealthDisplay = ButtonHealthDisplay.Hidden,
             )
         }
         composeTestRule.onNodeWithText("Sign in with Google").assertDoesNotExist()
@@ -131,7 +131,7 @@ class AuthStateUIPropagationTest {
                 sinceLine = unknownSinceLine,
                 authState = HomeMapper.toHomeAuthState(authState),
                 deviceCheckIn = noDataCheckIn,
-                buttonHealthDisplay = ButtonHealthDisplay.Loading,
+                buttonHealthDisplay = ButtonHealthDisplay.Hidden,
             )
         }
 
@@ -158,7 +158,7 @@ class AuthStateUIPropagationTest {
                 sinceLine = unknownSinceLine,
                 authState = HomeMapper.toHomeAuthState(authState),
                 deviceCheckIn = noDataCheckIn,
-                buttonHealthDisplay = ButtonHealthDisplay.Loading,
+                buttonHealthDisplay = ButtonHealthDisplay.Hidden,
             )
         }
 
@@ -184,7 +184,7 @@ class AuthStateUIPropagationTest {
                 sinceLine = unknownSinceLine,
                 authState = HomeMapper.toHomeAuthState(authState),
                 deviceCheckIn = noDataCheckIn,
-                buttonHealthDisplay = ButtonHealthDisplay.Loading,
+                buttonHealthDisplay = ButtonHealthDisplay.Hidden,
             )
         }
 
@@ -207,7 +207,7 @@ class AuthStateUIPropagationTest {
                 sinceLine = unknownSinceLine,
                 authState = HomeMapper.toHomeAuthState(authState),
                 deviceCheckIn = noDataCheckIn,
-                buttonHealthDisplay = ButtonHealthDisplay.Loading,
+                buttonHealthDisplay = ButtonHealthDisplay.Hidden,
             )
         }
 

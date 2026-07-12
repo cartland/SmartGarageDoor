@@ -725,12 +725,16 @@ abstract class NativeComponent(
         networkButtonHealthDataSource: NetworkButtonHealthDataSource,
         serverConfigRepository: ServerConfigRepository,
         authRepository: AuthRepository,
+        statusSnapshotStore: StatusSnapshotStore,
+        appClock: AppClock,
         applicationScope: CoroutineScope,
     ): ButtonHealthRepository =
         NetworkButtonHealthRepository(
             networkButtonHealthDataSource = networkButtonHealthDataSource,
             serverConfigRepository = serverConfigRepository,
             authRepository = authRepository,
+            statusSnapshotStore = statusSnapshotStore,
+            appClock = appClock,
             externalScope = applicationScope,
         )
 

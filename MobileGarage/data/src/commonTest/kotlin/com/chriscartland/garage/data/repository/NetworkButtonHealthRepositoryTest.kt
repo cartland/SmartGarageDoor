@@ -18,6 +18,10 @@
 package com.chriscartland.garage.data.repository
 
 import com.chriscartland.garage.data.NetworkResult
+import com.chriscartland.garage.data.statuscache.ButtonHealthSnapshot
+import com.chriscartland.garage.data.statuscache.ButtonHealthSnapshotDto
+import com.chriscartland.garage.data.statuscache.StatusSnapshot
+import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.ButtonHealth
 import com.chriscartland.garage.domain.model.ButtonHealthError
@@ -28,6 +32,7 @@ import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeNetworkButtonHealthDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
+import com.chriscartland.garage.testcommon.FakeStatusSnapshotStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
@@ -53,6 +58,8 @@ class NetworkButtonHealthRepositoryTest {
     private fun makeRepo(
         ds: FakeNetworkButtonHealthDataSource,
         scope: CoroutineScope,
+        store: FakeStatusSnapshotStore = FakeStatusSnapshotStore(),
+        clock: AppClock = AppClock { FIXED_NOW },
     ): NetworkButtonHealthRepository {
         val configDs = FakeNetworkConfigDataSource().apply { setServerConfigResult(validConfig) }
         val authRepo = FakeAuthRepository().apply {
@@ -62,6 +69,8 @@ class NetworkButtonHealthRepositoryTest {
             networkButtonHealthDataSource = ds,
             serverConfigRepository = CachedServerConfigRepository(configDs, "key", scope),
             authRepository = authRepo,
+            statusSnapshotStore = store,
+            appClock = clock,
             externalScope = scope,
         )
     }
@@ -100,6 +109,8 @@ class NetworkButtonHealthRepositoryTest {
                 networkButtonHealthDataSource = ds,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", scope),
                 authRepository = authRepo,
+                statusSnapshotStore = FakeStatusSnapshotStore(),
+                appClock = AppClock { FIXED_NOW },
                 externalScope = scope,
             )
 
@@ -198,16 +209,7 @@ class NetworkButtonHealthRepositoryTest {
 
     @Test
     fun shouldOverwrite_acceptsAnythingWhenCurrentIsLoading() {
-        val repo = NetworkButtonHealthRepository(
-            networkButtonHealthDataSource = FakeNetworkButtonHealthDataSource(),
-            serverConfigRepository = CachedServerConfigRepository(
-                FakeNetworkConfigDataSource(),
-                "key",
-                CoroutineScope(SupervisorJob()),
-            ),
-            authRepository = FakeAuthRepository(),
-            externalScope = CoroutineScope(SupervisorJob()),
-        )
+        val repo = makeRepoForRuleTest()
         assertTrue(
             repo.shouldOverwrite(
                 LoadingResult.Loading(null),
@@ -379,6 +381,201 @@ class NetworkButtonHealthRepositoryTest {
                 CoroutineScope(SupervisorJob()),
             ),
             authRepository = FakeAuthRepository(),
+            statusSnapshotStore = FakeStatusSnapshotStore(),
+            appClock = AppClock { FIXED_NOW },
             externalScope = CoroutineScope(SupervisorJob()),
         )
+
+    // Persisted-snapshot tests (STATUS_CACHE_PLAN.md D2) — hydration,
+    // write-through, freshness bookkeeping, and the Forbidden clear.
+
+    @Test
+    fun hydration_seedsPersistedVerdict() =
+        runTest {
+            val store = FakeStatusSnapshotStore().apply {
+                seed(
+                    ButtonHealthSnapshot.KEY,
+                    ButtonHealthSnapshot.SCHEMA_VERSION,
+                    freshSnapshot(ButtonHealthState.ONLINE, stateChangedAtSeconds = 1000L),
+                )
+            }
+            val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val repo = makeRepo(FakeNetworkButtonHealthDataSource(), scope, store)
+            advanceUntilIdle()
+
+            val complete = assertIs<LoadingResult.Complete<ButtonHealth>>(repo.buttonHealth.value)
+            assertEquals(ButtonHealthState.ONLINE, complete.data?.state)
+            scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        }
+
+    @Test
+    fun hydration_skipsSnapshotOlderThanDisplayTtl() =
+        runTest {
+            val store = FakeStatusSnapshotStore().apply {
+                seed(
+                    ButtonHealthSnapshot.KEY,
+                    ButtonHealthSnapshot.SCHEMA_VERSION,
+                    StatusSnapshot(
+                        payload = ButtonHealthSnapshotDto(state = ButtonHealthState.ONLINE.name),
+                        fetchedAtEpochSeconds = 0L,
+                        // Confirmed just past the display-TTL: never show an
+                        // affirmative verdict that stale.
+                        confirmedAtEpochSeconds =
+                            FIXED_NOW - NetworkButtonHealthRepository.DISPLAY_TTL_SECONDS - 1L,
+                    ),
+                )
+            }
+            val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val repo = makeRepo(FakeNetworkButtonHealthDataSource(), scope, store)
+            advanceUntilIdle()
+
+            assertIs<LoadingResult.Loading<ButtonHealth>>(repo.buttonHealth.value)
+            scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        }
+
+    @Test
+    fun diskSeed_losesToAnyServerResult_includingUnknown() =
+        runTest {
+            // shouldOverwrite would drop UNKNOWN over a known state — but a
+            // disk seed is last-process information and gets no UNKNOWN
+            // privilege: any server result replaces it.
+            val store = FakeStatusSnapshotStore().apply {
+                seed(
+                    ButtonHealthSnapshot.KEY,
+                    ButtonHealthSnapshot.SCHEMA_VERSION,
+                    freshSnapshot(ButtonHealthState.ONLINE, stateChangedAtSeconds = 1000L),
+                )
+            }
+            val ds = FakeNetworkButtonHealthDataSource().apply {
+                setResult(NetworkResult.Success(ButtonHealth(ButtonHealthState.UNKNOWN, null)))
+            }
+            val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val repo = makeRepo(ds, scope, store)
+            advanceUntilIdle()
+
+            repo.fetchButtonHealth()
+            advanceUntilIdle()
+
+            val complete = assertIs<LoadingResult.Complete<ButtonHealth>>(repo.buttonHealth.value)
+            assertEquals(ButtonHealthState.UNKNOWN, complete.data?.state)
+            scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        }
+
+    @Test
+    fun acceptedFetch_persistsSnapshot() =
+        runTest {
+            val store = FakeStatusSnapshotStore()
+            val ds = FakeNetworkButtonHealthDataSource().apply {
+                setResult(NetworkResult.Success(ButtonHealth(ButtonHealthState.ONLINE, 1000L)))
+            }
+            val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val repo = makeRepo(ds, scope, store)
+
+            repo.fetchButtonHealth()
+            advanceUntilIdle()
+
+            val persisted = store.read(
+                ButtonHealthSnapshot.KEY,
+                ButtonHealthSnapshot.SCHEMA_VERSION,
+                ButtonHealthSnapshotDto.serializer(),
+            )
+            assertEquals(ButtonHealthState.ONLINE.name, persisted?.payload?.state)
+            assertEquals(FIXED_NOW, persisted?.confirmedAtEpochSeconds)
+            scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        }
+
+    @Test
+    fun acceptedFcmUpdate_persistsSnapshot() =
+        runTest {
+            val store = FakeStatusSnapshotStore()
+            val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val repo = makeRepo(FakeNetworkButtonHealthDataSource(), scope, store)
+
+            repo.applyFcmUpdate(ButtonHealth(ButtonHealthState.OFFLINE, 5000L))
+            advanceUntilIdle()
+
+            val persisted = store.read(
+                ButtonHealthSnapshot.KEY,
+                ButtonHealthSnapshot.SCHEMA_VERSION,
+                ButtonHealthSnapshotDto.serializer(),
+            )
+            assertEquals(ButtonHealthState.OFFLINE.name, persisted?.payload?.state)
+            scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        }
+
+    @Test
+    fun rejectedFetch_refreshesConfirmedAtWithoutRewritingValue() =
+        runTest {
+            var nowSeconds = FIXED_NOW
+            val store = FakeStatusSnapshotStore()
+            val ds = FakeNetworkButtonHealthDataSource().apply {
+                setResult(NetworkResult.Success(ButtonHealth(ButtonHealthState.ONLINE, 1000L)))
+            }
+            val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val repo = makeRepo(ds, scope, store, clock = AppClock { nowSeconds })
+
+            // First fetch: accepted + persisted at FIXED_NOW.
+            repo.fetchButtonHealth()
+            advanceUntilIdle()
+
+            // Second fetch returns the SAME value (equal timestamp →
+            // rejected by shouldOverwrite) at a later wall clock. The fetch
+            // still authoritatively confirmed the stored value, so
+            // confirmedAt must advance while fetchedAt stays.
+            nowSeconds = FIXED_NOW + 600L
+            repo.fetchButtonHealth()
+            advanceUntilIdle()
+
+            val persisted = store.read(
+                ButtonHealthSnapshot.KEY,
+                ButtonHealthSnapshot.SCHEMA_VERSION,
+                ButtonHealthSnapshotDto.serializer(),
+            )
+            assertEquals(FIXED_NOW, persisted?.fetchedAtEpochSeconds)
+            assertEquals(FIXED_NOW + 600L, persisted?.confirmedAtEpochSeconds)
+            scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        }
+
+    @Test
+    fun forbidden_clearsMemoryAndSnapshot() =
+        runTest {
+            val store = FakeStatusSnapshotStore()
+            val ds = FakeNetworkButtonHealthDataSource().apply {
+                setResult(NetworkResult.Success(ButtonHealth(ButtonHealthState.ONLINE, 1000L)))
+            }
+            val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val repo = makeRepo(ds, scope, store)
+
+            repo.fetchButtonHealth()
+            advanceUntilIdle()
+            assertIs<LoadingResult.Complete<ButtonHealth>>(repo.buttonHealth.value)
+
+            // De-allowlisted: the manager also unsubscribes from FCM on
+            // Forbidden, so a preserved (or persisted) "Available" would
+            // never be corrected — both copies must go.
+            ds.setResult(NetworkResult.HttpError(403))
+            repo.fetchButtonHealth()
+            advanceUntilIdle()
+
+            assertIs<LoadingResult.Loading<ButtonHealth>>(repo.buttonHealth.value)
+            assertEquals(false, store.contains(ButtonHealthSnapshot.KEY))
+            scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        }
+
+    private fun freshSnapshot(
+        state: ButtonHealthState,
+        stateChangedAtSeconds: Long?,
+    ): StatusSnapshot<ButtonHealthSnapshotDto> =
+        StatusSnapshot(
+            payload = ButtonHealthSnapshotDto(
+                state = state.name,
+                stateChangedAtSeconds = stateChangedAtSeconds,
+            ),
+            fetchedAtEpochSeconds = FIXED_NOW - 60L,
+            confirmedAtEpochSeconds = FIXED_NOW - 60L,
+        )
+
+    private companion object {
+        const val FIXED_NOW = 100_000L
+    }
 }

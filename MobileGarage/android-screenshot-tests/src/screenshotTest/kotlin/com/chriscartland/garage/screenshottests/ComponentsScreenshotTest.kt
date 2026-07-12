@@ -36,7 +36,6 @@ import com.chriscartland.garage.ui.RemoteButtonContentSendingToServerPreview
 import com.chriscartland.garage.ui.RemoteButtonContentServerFailedPreview
 import com.chriscartland.garage.ui.RemoteButtonContentSucceededPreview
 import com.chriscartland.garage.ui.RemoteButtonHealthPillAvailablePreview
-import com.chriscartland.garage.ui.RemoteButtonHealthPillLoadingPreview
 import com.chriscartland.garage.ui.RemoteButtonHealthPillUnauthorizedPreview
 import com.chriscartland.garage.ui.RemoteButtonHealthPillUnavailablePreview
 import com.chriscartland.garage.ui.RemoteButtonHealthPillUnknownPreview
@@ -494,18 +493,6 @@ fun RemoteOfflinePillVeryStalePreviewTest() {
 @Composable
 fun RemoteButtonHealthPillUnauthorizedPreviewTest() {
     AppTheme { RemoteButtonHealthPillUnauthorizedPreview() }
-}
-
-@PreviewTest
-@Preview(showBackground = true, name = "Light")
-@Preview(
-    showBackground = true,
-    name = "Dark",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-)
-@Composable
-fun RemoteButtonHealthPillLoadingPreviewTest() {
-    AppTheme { RemoteButtonHealthPillLoadingPreview() }
 }
 
 @PreviewTest

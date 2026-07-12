@@ -3,7 +3,7 @@
 
 # Preview Screenshot Coverage
 
-**99 / 99 (100%)**
+**98 / 98 (100%)**
 
 ## Covered
 
@@ -51,7 +51,7 @@
 - `HomeContentOpenSignedInPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
 - `HomeContentOpeningTooLongPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
 - `HomeContentPermissionMissingPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
-- `HomeContentRemotePillLoadingPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
+- `HomeContentRemotePillHiddenPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
 - `HomeContentRemotePillOfflinePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
 - `HomeContentRemotePillOnlinePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
 - `HomeContentRemotePillUnauthorizedPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
@@ -82,7 +82,6 @@
 - `RemoteButtonContentServerFailedPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonContent.kt`
 - `RemoteButtonContentSucceededPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonContent.kt`
 - `RemoteButtonHealthPillAvailablePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonHealthPill.kt`
-- `RemoteButtonHealthPillLoadingPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonHealthPill.kt`
 - `RemoteButtonHealthPillUnauthorizedPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonHealthPill.kt`
 - `RemoteButtonHealthPillUnavailablePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonHealthPill.kt`
 - `RemoteButtonHealthPillUnknownPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonHealthPill.kt`

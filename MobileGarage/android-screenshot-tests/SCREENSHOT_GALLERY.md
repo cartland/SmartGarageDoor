@@ -214,11 +214,7 @@ Generated on Sun May 10 16:06:35 PDT 2026
 ### RemoteButtonHealthPillAvailablePreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillAvailablePreviewTest_Light_fc5b723e_0.png" width="300" />
 
-### RemoteButtonHealthPillLoadingPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillLoadingPreviewTest_Dark_77106447_0.png" width="300" />
 
-### RemoteButtonHealthPillLoadingPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillLoadingPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### RemoteButtonHealthPillUnauthorizedPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnauthorizedPreviewTest_Dark_77106447_0.png" width="300" />
@@ -388,11 +384,7 @@ Generated on Sun May 10 16:06:35 PDT 2026
 ### HomeContentPermissionMissingPreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentPermissionMissingPreviewTest_Light_fc5b723e_0.png" width="300" />
 
-### HomeContentRemotePillLoadingPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillLoadingPreviewTest_Dark_77106447_0.png" width="300" />
 
-### HomeContentRemotePillLoadingPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillLoadingPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### HomeContentRemotePillOfflinePreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillOfflinePreviewTest_Dark_77106447_0.png" width="300" />

@@ -53,9 +53,11 @@ final class HomeViewModelWrapper: ObservableObject {
     /// Resolved remote-button health pill (ADR-031 Phase 5). The shared
     /// `ButtonHealthDisplay` (from `ComputeButtonHealthDisplayUseCase`) is
     /// resolved to a plain Swift struct here — label + icon-driving `kind` —
-    /// mirroring Android's `RemoteButtonHealthPill`.
-    @Published private(set) var buttonHealth: ButtonHealthItem =
-        ButtonHealthItem(label: "Unknown", kind: .unknown)
+    /// mirroring Android's `RemoteButtonHealthPill`. Nil = the shared `Hidden`
+    /// arm: no pill at all while there is no verdict (hidden-until-verdict,
+    /// STATUS_CACHE_PLAN.md D2). Seeded synchronously in `init`, so a
+    /// hydrated last-known verdict never flashes.
+    @Published private(set) var buttonHealth: ButtonHealthItem?
     /// Resolved alert banners shown above the Status card (ADR-031 Phase 4).
     /// The shared `HomeAlertMapper` decides WHICH banners to show from typed
     /// inputs; this wrapper resolves each typed `HomeAlert` to iOS banner copy.
@@ -310,17 +312,17 @@ final class HomeViewModelWrapper: ObservableObject {
     /// Resolves the shared typed `ButtonHealthDisplay` to the view-ready pill.
     /// Labels + the offline-only error tint mirror Android's
     /// `RemoteButtonHealthPillContents` verbatim ("Available" / "Unavailable · X"
-    /// / "Checking…" / "Unauthorized" / "Unknown") so both platforms read
-    /// identically. The `Offline.durationLabel` is the shared pre-formatted
-    /// "… ago" string.
+    /// / "Unauthorized" / "Unknown") so both platforms read identically; the
+    /// shared `Hidden` arm maps to nil — no pill while there is no verdict.
+    /// The `Offline.durationLabel` is the shared pre-formatted "… ago" string.
     private func applyHealth(_ display: UsecaseButtonHealthDisplay) {
         switch onEnum(of: display) {
         case .offline(let offline):
             buttonHealth = ButtonHealthItem(label: "Unavailable · \(offline.durationLabel)", kind: .offline)
         case .online:
             buttonHealth = ButtonHealthItem(label: "Available", kind: .online)
-        case .loading:
-            buttonHealth = ButtonHealthItem(label: "Checking…", kind: .loading)
+        case .hidden:
+            buttonHealth = nil
         case .unauthorized:
             buttonHealth = ButtonHealthItem(label: "Unauthorized", kind: .unauthorized)
         case .unknown:
@@ -471,7 +473,7 @@ struct DeviceCheckInItem {
 /// neutral. `internal` so `#Preview` fixtures can build it (the generated
 /// snapshot test embeds preview bodies verbatim and can't see `private`).
 struct ButtonHealthItem {
-    enum Kind { case unauthorized, loading, unknown, online, offline }
+    enum Kind { case unauthorized, unknown, online, offline }
 
     let label: String
     let kind: Kind
