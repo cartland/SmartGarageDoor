@@ -18,44 +18,53 @@ import java.io.File
  * `DataStoreFactory.kt` without the matching `<exclude>` entries
  * breaks the build with instructions.
  *
- * Parsing contract (library-coupled check rule): the constants are
- * matched as `*_FILE_NAME = "<value>"` in [dataStoreFactoryFile]. If
- * ZERO constants parse, the task fails loudly — that means the
- * factory's shape changed and this check needs updating, not that
- * everything is excluded.
+ * Parsing contract (library-coupled check rule): every Kotlin source
+ * under [dataStoreSourceDir] is scanned for BOTH `*_FILE_NAME = "<value>"`
+ * constants AND any quoted `"*.preferences_pb"` literal, and the union
+ * is checked. The literal scan closes the partial-parse fail-open: a
+ * store whose constant deviates from the `_FILE_NAME` convention, or an
+ * inline filename in a platform `actual`, is still caught. If ZERO file
+ * names parse, the task fails loudly — that means the factory's shape
+ * changed and this check needs updating, not that everything is
+ * excluded.
  */
 abstract class BackupRulesExcludeCheckTask : DefaultTask() {
-    /** Path to data-local's commonMain DataStoreFactory.kt. */
+    /** Root of data-local's sources (all source sets), e.g. data-local/src. */
     @get:Input
-    var dataStoreFactoryFile: String = ""
+    var dataStoreSourceDir: String = ""
 
     /** backup_rules.xml + data_extraction_rules.xml paths. */
     @get:Input
     var backupRulesFiles: List<String> = emptyList()
 
     private val fileNameConstPattern = Regex("""\w*_FILE_NAME\s*=\s*"([^"]+)"""")
+    private val preferencesLiteralPattern = Regex(""""([\w.\-]+\.preferences_pb)"""")
 
     @TaskAction
     fun check() {
-        val factory = File(dataStoreFactoryFile)
-        if (!factory.exists()) {
+        val sourceRoot = File(dataStoreSourceDir)
+        if (!sourceRoot.exists()) {
             throw GradleException(
-                "BackupRulesExcludeCheck FAILED: DataStoreFactory not found at $dataStoreFactoryFile.\n" +
-                    "The file moved — update `dataStoreFactoryFile` in MobileGarage/build.gradle.kts.",
+                "BackupRulesExcludeCheck FAILED: source dir not found at $dataStoreSourceDir.\n" +
+                    "The directory moved — update `dataStoreSourceDir` in MobileGarage/build.gradle.kts.",
             )
         }
 
-        val fileNames = fileNameConstPattern
-            .findAll(factory.readText())
-            .map { it.groupValues[1] }
-            .toList()
+        val fileNames = sourceRoot
+            .walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .flatMap { file ->
+                val text = file.readText()
+                fileNameConstPattern.findAll(text).map { it.groupValues[1] } +
+                    preferencesLiteralPattern.findAll(text).map { it.groupValues[1] }
+            }.toSortedSet()
 
         if (fileNames.isEmpty()) {
             throw GradleException(
-                "BackupRulesExcludeCheck FAILED: no `*_FILE_NAME = \"...\"` constants parsed from\n" +
-                    "$dataStoreFactoryFile.\n" +
+                "BackupRulesExcludeCheck FAILED: no `*_FILE_NAME = \"...\"` constants and no\n" +
+                    "\"*.preferences_pb\" literals parsed under $dataStoreSourceDir.\n" +
                     "This is a check-assumption failure, not a clean pass: the factory's constant\n" +
-                    "naming changed and this task's regex needs updating to match it.",
+                    "naming changed and this task's regexes need updating to match it.",
             )
         }
 

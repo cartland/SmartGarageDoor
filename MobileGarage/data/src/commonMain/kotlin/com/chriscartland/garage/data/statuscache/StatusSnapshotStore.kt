@@ -29,10 +29,10 @@ import kotlinx.serialization.KSerializer
  * write arbitration, and hydration ordering belong to the consuming
  * repository.
  *
- * **The API never throws.** Callers run on the
- * `CoroutineExceptionHandler`-less `applicationScope`, where an
- * uncaught exception crashes the process — and a bad on-disk snapshot
- * would crash it on EVERY launch. So:
+ * **The API never throws — except coroutine cancellation, which
+ * propagates.** Callers run on the `CoroutineExceptionHandler`-less
+ * `applicationScope`, where an uncaught exception crashes the process —
+ * and a bad on-disk snapshot would crash it on EVERY launch. So:
  *  - [read] returns null for missing entries AND for every failure
  *    (envelope parse, schema-version mismatch, payload decode, storage
  *    IO); decode-level failures also delete the corrupt entry so the

@@ -216,8 +216,9 @@ tasks.register<architecture.DataStoreSingletonCheckTask>("checkDataStoreSingleto
 }
 
 tasks.register<architecture.BackupRulesExcludeCheckTask>("checkBackupRulesExcludes") {
-    dataStoreFactoryFile =
-        "$rootDir/data-local/src/commonMain/kotlin/com/chriscartland/garage/datalocal/DataStoreFactory.kt"
+    // The whole source tree (all source sets), so inline filenames in a
+    // platform `actual` are caught, not just commonMain constants.
+    dataStoreSourceDir = "$rootDir/data-local/src"
     backupRulesFiles = listOf(
         "$rootDir/androidApp/src/main/res/xml/backup_rules.xml",
         "$rootDir/androidApp/src/main/res/xml/data_extraction_rules.xml",

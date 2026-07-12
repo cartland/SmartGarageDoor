@@ -47,15 +47,13 @@ actual class DataStoreFactory(
     private val statusCacheInstance: DataStore<Preferences> by lazy {
         // Corruption handler: a corrupted cache file self-heals to empty
         // instead of throwing on every launch — the cache is re-earned
-        // from the network, so losing it is always safe.
-        PreferenceDataStoreFactory.createWithPath(
+        // from the network, so losing it is always safe. The two stores
+        // above deliberately have NO handler: they are the source of
+        // truth for their data, so silently discarding them on
+        // corruption is a different product tradeoff.
+        createPreferences(
+            STATUS_CACHE_FILE_NAME,
             corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
-            produceFile = {
-                context.filesDir
-                    .resolve(STATUS_CACHE_FILE_NAME)
-                    .absolutePath
-                    .toPath()
-            },
         )
     }
 
@@ -65,8 +63,12 @@ actual class DataStoreFactory(
 
     actual fun createStatusCacheDataStore(): DataStore<Preferences> = statusCacheInstance
 
-    private fun createPreferences(fileName: String): DataStore<Preferences> =
+    private fun createPreferences(
+        fileName: String,
+        corruptionHandler: ReplaceFileCorruptionHandler<Preferences>? = null,
+    ): DataStore<Preferences> =
         PreferenceDataStoreFactory.createWithPath(
+            corruptionHandler = corruptionHandler,
             produceFile = {
                 context.filesDir
                     .resolve(fileName)
