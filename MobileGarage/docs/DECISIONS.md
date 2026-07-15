@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-05-08
+last_verified: 2026-07-14
 ---
 # Architectural Decision Records
 
@@ -1910,3 +1910,53 @@ Together with the existing rule this is now total: **UI-triggered → ViewModel;
 - ADR-026 — one ViewModel per screen (the UI's single dependency).
 - `CLAUDE.md` § Code Patterns — the "non-screen orchestration uses UseCases directly" rule this completes.
 - `buildSrc/.../architecture/UiLayerNoGraphAccessTask.kt` + `ui-layer-graph-access-exemptions.txt`.
+
+## ADR-034: Persisted status snapshots — hydrate-then-revalidate with hidden-until-verdict
+
+### Status
+
+Accepted — 2026-07-14. Implemented across PRs #1072 (store infrastructure), #1073 (review fixes), #1074 (button health), #1076/#1077 (snooze), #1078 (feature allowlist). Design history: `STATUS_CACHE_PLAN.md` (shipped), which went through two adversarial multi-agent review rounds before implementation.
+
+### Context
+
+Server-fetched statuses (button health, snooze state, feature allowlist) lived only in in-memory `@Singleton` repository `StateFlow`s. They survived navigation (ADR-022) but not process restart: every cold launch re-earned each value over the network, showing "Checking…" pills, Loading subtitles, and Developer-section pop-in until the round-trips completed. One screen (Android Settings) additionally re-fetched snooze on every entry plus a 60s poll.
+
+### Decision
+
+A persisted last-known-value cache in the KMP layer; repositories **hydrate-then-revalidate**, and UIs render **nothing** for no-verdict states.
+
+**The store.** `StatusSnapshotStore` (interface + envelope + `@Serializable` DTOs in `:data`; DataStore-backed impl in `:data-local` on its own `status_cache.preferences_pb` file, cloud-backup-excluded — enforced by `checkBackupRulesExcludes`). One envelope per status: `{schemaVersion, fetchedAtEpochSeconds, confirmedAtEpochSeconds, accountEmail?, payload}`. Contract rules:
+- **Never throws** — reads AND writes catch-and-degrade (callers run on the `CoroutineExceptionHandler`-less `applicationScope`); coroutine cancellation propagates.
+- **Decode failure = treat-as-absent AND delete** (self-healing; `ignoreUnknownKeys`, defaulted new fields, schemaVersion bump = deliberate invalidation). `ReplaceFileCorruptionHandler` self-heals a corrupt file to empty.
+- **Clock-skew rule**: a timestamp more than 60s in the future reads as maximally stale — a backwards clock correction must never suppress revalidation.
+
+**Freshness has two independent notions.** `fetchedAt` = when the payload value was produced (gates *fetch* skipping); `confirmedAt` = when a server round-trip last confirmed the value as still true — refreshed even when the payload write is rejected as value-equal. **Display-TTLs key off `confirmedAt`**; without the split, a stable device's revalidates never refresh freshness and a correct verdict spuriously hides.
+
+**Hydration is a guarded writer, per repo shape** (a one-shot async disk seed racing live network/FCM writers — unlike the Room door cache, where Room is the single writer):
+- *Timestamp-arbitrated* (button health): hydration routes through the mutex-serialized `tryWrite`; a **disk seed gets no UNKNOWN privilege** — the first server result of any state replaces it.
+- *Sentinel-sequenced* (snooze): one init coroutine hydrates (CAS on the `Loading` sentinel), completes a `CompletableDeferred`, then TTL-decides the fetch; every other sentinel-touching writer awaits hydration. Persist the **raw end time**, never the derived state — hydration recomputes against the clock. GETs carry an **accept-generation** captured pre-network so a submit accepted mid-flight supersedes them.
+- *Auth-gated + account-keyed* (allowlist): hydration runs after `authState.first { it !is Unknown }`; a snapshot owned by another email is refused and deleted; no email = ignored, never deleted; `Unknown` never seeds and never deletes. Account-keying — not the best-effort sign-out clear (`SignOutCacheClearManager` + `CLEARED_ON_SIGN_OUT` registry) — is the cross-account guarantee.
+
+**TTL gates the FETCH, never the DISPLAY** — show the cached verdict instantly, revalidate silently. Fetch-TTLs: snooze ~5 min; button health and allowlist always revalidate on cold start (allowlist because app restart is the only grant-propagation path). Display-TTL 24h.
+
+**Hidden-until-verdict.** No-verdict states map to arms that render nothing on both platforms (`ButtonHealthDisplay.Hidden` — enforced by exhaustive `when`/Swift `onEnum` switches). Rows that are tap targets (snooze) stay visible with a neutral descriptive subtitle. With hydration, no-verdict is effectively first-run-only.
+
+**Live derivations replace polling.** Time-driven display changes combine the repo StateFlow with `LiveClock` in an `Eagerly`-started singleton use case (`ComputeEffectiveSnoozeStateUseCase` — the snooze expiry flip both platforms get for free); event-driven revalidation uses a domain-level nullable-handle bridge (`SnoozeDoorEventBridge`) so the FCM path never force-constructs a lazy repository.
+
+### Consequences
+
+- Cold launches render last-known verdicts instantly; the Android per-entry snooze fetch + 60s poll is gone (replaced by TTL-gated screen-entry revalidate on both platforms + the door-event hook + the expiry derivation); the pre-existing iOS stale "Snoozing until [past]" label is fixed.
+- Accepted staleness bounds (verified magnitudes): seconds on cold start (revalidate round-trip); ≤ fetch-TTL for server-side snooze voids that happen while the app is dead (fail-safe direction); offline cold start keeps the last confirmed verdict until display-TTL — same posture as the Room-hydrated door state.
+- Every new persisted status must: define its DTO + `StatusCacheKey` beside its repo, pick a hydration shape above, register per-user keys in `CLEARED_ON_SIGN_OUT`, and add both-component DI + identity tests. `ServerConfig` remains unpersisted (deferred; its absence bounds cold-start revalidate at 2–3 RTTs).
+
+### Alternatives considered
+
+- **Room entities per status** — rejected: single-value snapshots, not queryable lists; Preferences DataStore is the right primitive (door events stay in Room).
+- **Fetch-skip TTL for the allowlist** — rejected in review: it removed the only grant-propagation path (restart) with no manual-refresh fallback.
+- **Keeping "Checking…" UI** — rejected: it was prominent UI for a state the user cannot act on; with hydration it would appear exactly when least useful.
+
+### References
+
+- `STATUS_CACHE_PLAN.md` — full design + review-verified tradeoff magnitudes (shipped).
+- ADR-015 (managers), ADR-019 (externalScope writes), ADR-022 (repo-owned StateFlow), ADR-023 (Complete-on-Success) — the conventions this composes with.
+- `buildSrc/.../BackupRulesExcludeCheckTask.kt`, `DataStoreSingletonCheckTask.kt` — enforcement.
