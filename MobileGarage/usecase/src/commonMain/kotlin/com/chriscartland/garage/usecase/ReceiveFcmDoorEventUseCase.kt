@@ -21,6 +21,7 @@ import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
+import com.chriscartland.garage.domain.repository.SnoozeDoorEventBridge
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -46,6 +47,7 @@ interface ReceiveFcmDoorEventUseCase {
 class DefaultReceiveFcmDoorEventUseCase(
     private val doorRepository: DoorRepository,
     private val appLoggerRepository: AppLoggerRepository,
+    private val snoozeDoorEventBridge: SnoozeDoorEventBridge,
     private val externalScope: CoroutineScope,
 ) : ReceiveFcmDoorEventUseCase {
     override fun invoke(event: DoorEvent) {
@@ -53,5 +55,10 @@ class DefaultReceiveFcmDoorEventUseCase(
             doorRepository.insertDoorEvent(event)
             appLoggerRepository.log(AppLoggerKeys.FCM_DOOR_RECEIVED)
         }
+        // Door-event voiding hook (STATUS_CACHE_PLAN.md D3): a door event
+        // is exactly what voids a server-side snooze. The bridge is a
+        // no-op unless the snooze repository is already constructed, so
+        // background FCM wakes never pay repo-construction cost.
+        snoozeDoorEventBridge.notifyDoorEvent()
     }
 }

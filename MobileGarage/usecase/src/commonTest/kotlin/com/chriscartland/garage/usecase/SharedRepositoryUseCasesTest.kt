@@ -13,6 +13,7 @@ package com.chriscartland.garage.usecase
 import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.data.repository.CachedServerConfigRepository
 import com.chriscartland.garage.data.repository.NetworkSnoozeRepository
+import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
@@ -21,10 +22,12 @@ import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.User
+import com.chriscartland.garage.domain.repository.SnoozeDoorEventBridge
 import com.chriscartland.garage.domain.repository.SnoozeRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
+import com.chriscartland.garage.testcommon.FakeStatusSnapshotStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
@@ -43,7 +46,7 @@ import kotlin.test.assertTrue
  * Verifies the intended architecture: multiple UseCase instances share a
  * single [SnoozeRepository] singleton. A submit via `SnoozeNotificationsUseCase`
  * must (a) return the new [SnoozeState] as a structured result and (b) be
- * observable via a separately-constructed `ObserveSnoozeStateUseCase`
+ * observable via a separately-constructed `ComputeEffectiveSnoozeStateUseCase`
  * backed by the SAME repository — proving the observe and mutate paths
  * converge on one source of truth.
  *
@@ -87,12 +90,28 @@ class SharedRepositoryUseCasesTest {
             networkButtonDataSource = buttonDs,
             serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
             authRepository = authRepo,
+            statusSnapshotStore = FakeStatusSnapshotStore(),
+            snoozeDoorEventBridge = SnoozeDoorEventBridge(),
             snoozeNotificationsOption = true,
             currentTimeSeconds = { now },
             externalScope = externalScope,
         )
         return buttonDs to repo
     }
+
+    private fun buildEffectiveSnoozeState(
+        sharedRepo: SnoozeRepository,
+        now: Long,
+    ): ComputeEffectiveSnoozeStateUseCase =
+        ComputeEffectiveSnoozeStateUseCase(
+            snoozeRepository = sharedRepo,
+            liveClock = DefaultLiveClock(
+                clock = AppClock { now },
+                scope = externalScope,
+                dispatcher = UnconfinedTestDispatcher(),
+            ),
+            applicationScope = externalScope,
+        )
 
     private fun authenticatedAuthRepo(): FakeAuthRepository =
         FakeAuthRepository().apply {
@@ -124,7 +143,7 @@ class SharedRepositoryUseCasesTest {
             // pattern: UseCases are created fresh per access (not @Singleton),
             // the Repository is the only @Singleton.
             val submitUseCase = SnoozeNotificationsUseCase(authRepo, sharedRepo)
-            val observeUseCase = ObserveSnoozeStateUseCase(sharedRepo)
+            val observeUseCase = buildEffectiveSnoozeState(sharedRepo, now)
 
             advanceUntilIdle()
             // Baseline: both paths agree — no active snooze.
@@ -175,7 +194,7 @@ class SharedRepositoryUseCasesTest {
             val authRepo = authenticatedAuthRepo()
 
             val submitUseCase = SnoozeNotificationsUseCase(authRepo, sharedRepo)
-            val observeUseCase = ObserveSnoozeStateUseCase(sharedRepo)
+            val observeUseCase = buildEffectiveSnoozeState(sharedRepo, now)
 
             advanceUntilIdle()
             assertEquals(SnoozeState.Snoozing(5_000L), observeUseCase().first())

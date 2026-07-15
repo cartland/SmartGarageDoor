@@ -132,6 +132,18 @@ class NativeComponentTest {
         assertSame(component.signOutCacheClearManager, component.signOutCacheClearManager, "signOutCacheClearManager")
 
     @Test
+    fun snoozeDoorEventBridgeIsSingleton() =
+        assertSame(component.snoozeDoorEventBridge, component.snoozeDoorEventBridge, "snoozeDoorEventBridge")
+
+    @Test
+    fun computeEffectiveSnoozeStateUseCaseIsSingleton() =
+        assertSame(
+            component.computeEffectiveSnoozeStateUseCase,
+            component.computeEffectiveSnoozeStateUseCase,
+            "computeEffectiveSnoozeStateUseCase",
+        )
+
+    @Test
     fun authRepositoryIsSingleton() = assertSame(component.authRepository, component.authRepository, "authRepository")
 
     @Test

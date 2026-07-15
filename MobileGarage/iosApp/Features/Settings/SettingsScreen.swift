@@ -96,8 +96,13 @@ struct SettingsScreen: View {
             }
         }
         // Re-read permission on appear so a change made in iOS Settings (while
-        // the app was backgrounded) is reflected when the user returns.
-        .onAppear { wrapper.refreshNotificationPermission() }
+        // the app was backgrounded) is reflected when the user returns. The
+        // snooze revalidate is TTL-gated in the shared repo, so re-entering
+        // the tab costs a network round-trip at most every ~5 minutes.
+        .onAppear {
+            wrapper.refreshNotificationPermission()
+            wrapper.revalidateSnooze()
+        }
     }
 }
 

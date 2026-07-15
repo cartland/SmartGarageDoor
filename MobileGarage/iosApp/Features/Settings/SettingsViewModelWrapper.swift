@@ -161,6 +161,13 @@ final class SettingsViewModelWrapper: ObservableObject {
 
     func signOut() { vm.signOut() }
     func refreshSnooze() { vm.fetchSnoozeStatus() }
+
+    /// TTL-gated screen-entry revalidate (STATUS_CACHE_PLAN.md D3):
+    /// the cached snooze state renders instantly; the shared repo fetches
+    /// only when the last server round-trip is stale. Android parity —
+    /// its Settings entry calls the same VM method.
+    func revalidateSnooze() { vm.revalidateSnoozeIfStale() }
+
     func snooze(_ option: SnoozeDurationUIOption) { vm.snoozeOpenDoorsNotifications(snoozeDuration: option) }
 
     /// Reads current notification authorization. `.authorized` / `.provisional` /

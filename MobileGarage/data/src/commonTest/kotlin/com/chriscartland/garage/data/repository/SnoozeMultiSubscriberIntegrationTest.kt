@@ -22,9 +22,11 @@ import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.domain.model.SnoozeState
+import com.chriscartland.garage.domain.repository.SnoozeDoorEventBridge
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
+import com.chriscartland.garage.testcommon.FakeStatusSnapshotStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -76,6 +78,8 @@ class SnoozeMultiSubscriberIntegrationTest {
             networkButtonDataSource = buttonDs,
             serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
             authRepository = authRepo,
+            statusSnapshotStore = FakeStatusSnapshotStore(),
+            snoozeDoorEventBridge = SnoozeDoorEventBridge(),
             snoozeNotificationsOption = true,
             currentTimeSeconds = { currentTime },
             externalScope = externalScope,

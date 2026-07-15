@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.viewmodel
 
+import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AppResult
@@ -40,17 +41,21 @@ import com.chriscartland.garage.testcommon.FakeFeatureAllowlistRepository
 import com.chriscartland.garage.testcommon.FakeSnoozeRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import com.chriscartland.garage.usecase.AppSettingsUseCase
+import com.chriscartland.garage.usecase.ComputeEffectiveSnoozeStateUseCase
+import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
-import com.chriscartland.garage.usecase.ObserveSnoozeStateUseCase
+import com.chriscartland.garage.usecase.RevalidateSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -97,12 +102,21 @@ class ProfileViewModelTest {
         authRepository.setAuthState(authState)
         return DefaultProfileViewModel(
             observeAuthState = ObserveAuthStateUseCase(authRepository),
-            observeSnoozeState = ObserveSnoozeStateUseCase(snoozeRepository),
+            computeEffectiveSnoozeState = ComputeEffectiveSnoozeStateUseCase(
+                snoozeRepository = snoozeRepository,
+                liveClock = DefaultLiveClock(
+                    clock = AppClock { 0L },
+                    scope = CoroutineScope(SupervisorJob() + testDispatcher),
+                    dispatcher = testDispatcher,
+                ),
+                applicationScope = CoroutineScope(SupervisorJob() + testDispatcher),
+            ),
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
             observeFeatureAccessUseCase = ObserveFeatureAccessUseCase(featureAllowlistRepository),
             signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),
             signOutUseCase = SignOutUseCase(authRepository),
             fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
+            revalidateSnoozeStatusUseCase = RevalidateSnoozeStatusUseCase(snoozeRepository),
             snoozeNotificationsUseCase = SnoozeNotificationsUseCase(
                 authRepository,
                 snoozeRepository,

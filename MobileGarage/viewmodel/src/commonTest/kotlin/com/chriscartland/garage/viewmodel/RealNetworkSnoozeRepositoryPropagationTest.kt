@@ -20,6 +20,7 @@ package com.chriscartland.garage.viewmodel
 import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.data.repository.CachedServerConfigRepository
 import com.chriscartland.garage.data.repository.NetworkSnoozeRepository
+import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.DoorEvent
@@ -30,6 +31,7 @@ import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.User
+import com.chriscartland.garage.domain.repository.SnoozeDoorEventBridge
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAppSettingsRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
@@ -39,14 +41,17 @@ import com.chriscartland.garage.testcommon.FakeFeatureAllowlistRepository
 import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
+import com.chriscartland.garage.testcommon.FakeStatusSnapshotStore
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import com.chriscartland.garage.usecase.AppSettingsUseCase
+import com.chriscartland.garage.usecase.ComputeEffectiveSnoozeStateUseCase
+import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
-import com.chriscartland.garage.usecase.ObserveSnoozeStateUseCase
+import com.chriscartland.garage.usecase.RevalidateSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
@@ -177,6 +182,8 @@ class RealNetworkSnoozeRepositoryPropagationTest {
                     externalScope,
                 ),
                 authRepository = authRepository,
+                statusSnapshotStore = FakeStatusSnapshotStore(),
+                snoozeDoorEventBridge = SnoozeDoorEventBridge(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,
@@ -190,12 +197,21 @@ class RealNetworkSnoozeRepositoryPropagationTest {
             val testDispatcher = UnconfinedTestDispatcher(testScheduler)
             val vm = DefaultProfileViewModel(
                 observeAuthState = ObserveAuthStateUseCase(authRepository),
-                observeSnoozeState = ObserveSnoozeStateUseCase(snoozeRepository),
+                computeEffectiveSnoozeState = ComputeEffectiveSnoozeStateUseCase(
+                    snoozeRepository = snoozeRepository,
+                    liveClock = DefaultLiveClock(
+                        clock = AppClock { now },
+                        scope = externalScope,
+                        dispatcher = UnconfinedTestDispatcher(testScheduler),
+                    ),
+                    applicationScope = externalScope,
+                ),
                 observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
                 observeFeatureAccessUseCase = ObserveFeatureAccessUseCase(featureAllowlistRepository),
                 signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),
                 signOutUseCase = SignOutUseCase(authRepository),
                 fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
+                revalidateSnoozeStatusUseCase = RevalidateSnoozeStatusUseCase(snoozeRepository),
                 snoozeNotificationsUseCase = SnoozeNotificationsUseCase(
                     authRepository,
                     snoozeRepository,
@@ -276,6 +292,8 @@ class RealNetworkSnoozeRepositoryPropagationTest {
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "test-key", externalScope),
                 authRepository = authRepository,
+                statusSnapshotStore = FakeStatusSnapshotStore(),
+                snoozeDoorEventBridge = SnoozeDoorEventBridge(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,
@@ -285,12 +303,21 @@ class RealNetworkSnoozeRepositoryPropagationTest {
             val testDispatcher = UnconfinedTestDispatcher(testScheduler)
             val vm = DefaultProfileViewModel(
                 observeAuthState = ObserveAuthStateUseCase(authRepository),
-                observeSnoozeState = ObserveSnoozeStateUseCase(snoozeRepository),
+                computeEffectiveSnoozeState = ComputeEffectiveSnoozeStateUseCase(
+                    snoozeRepository = snoozeRepository,
+                    liveClock = DefaultLiveClock(
+                        clock = AppClock { now },
+                        scope = externalScope,
+                        dispatcher = UnconfinedTestDispatcher(testScheduler),
+                    ),
+                    applicationScope = externalScope,
+                ),
                 observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
                 observeFeatureAccessUseCase = ObserveFeatureAccessUseCase(featureAllowlistRepository),
                 signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),
                 signOutUseCase = SignOutUseCase(authRepository),
                 fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
+                revalidateSnoozeStatusUseCase = RevalidateSnoozeStatusUseCase(snoozeRepository),
                 snoozeNotificationsUseCase = SnoozeNotificationsUseCase(
                     authRepository,
                     snoozeRepository,

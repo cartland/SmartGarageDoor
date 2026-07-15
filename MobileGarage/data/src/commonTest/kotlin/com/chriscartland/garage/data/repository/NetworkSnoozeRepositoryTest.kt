@@ -11,14 +11,19 @@
 package com.chriscartland.garage.data.repository
 
 import com.chriscartland.garage.data.NetworkResult
+import com.chriscartland.garage.data.statuscache.SnoozeSnapshot
+import com.chriscartland.garage.data.statuscache.SnoozeSnapshotDto
+import com.chriscartland.garage.data.statuscache.StatusSnapshot
 import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.domain.model.SnoozeState
+import com.chriscartland.garage.domain.repository.SnoozeDoorEventBridge
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
+import com.chriscartland.garage.testcommon.FakeStatusSnapshotStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
@@ -70,6 +75,8 @@ class NetworkSnoozeRepositoryTest {
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 authRepository = makeAuthRepo(),
+                statusSnapshotStore = FakeStatusSnapshotStore(),
+                snoozeDoorEventBridge = SnoozeDoorEventBridge(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,
@@ -98,6 +105,8 @@ class NetworkSnoozeRepositoryTest {
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 authRepository = makeAuthRepo(),
+                statusSnapshotStore = FakeStatusSnapshotStore(),
+                snoozeDoorEventBridge = SnoozeDoorEventBridge(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,
@@ -128,6 +137,8 @@ class NetworkSnoozeRepositoryTest {
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 authRepository = makeAuthRepo(),
+                statusSnapshotStore = FakeStatusSnapshotStore(),
+                snoozeDoorEventBridge = SnoozeDoorEventBridge(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,
@@ -155,6 +166,8 @@ class NetworkSnoozeRepositoryTest {
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 authRepository = makeAuthRepo(),
+                statusSnapshotStore = FakeStatusSnapshotStore(),
+                snoozeDoorEventBridge = SnoozeDoorEventBridge(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,
@@ -185,6 +198,8 @@ class NetworkSnoozeRepositoryTest {
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 authRepository = makeAuthRepo(),
+                statusSnapshotStore = FakeStatusSnapshotStore(),
+                snoozeDoorEventBridge = SnoozeDoorEventBridge(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,
@@ -232,6 +247,8 @@ class NetworkSnoozeRepositoryTest {
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 authRepository = makeAuthRepo(),
+                statusSnapshotStore = FakeStatusSnapshotStore(),
+                snoozeDoorEventBridge = SnoozeDoorEventBridge(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,
@@ -271,6 +288,8 @@ class NetworkSnoozeRepositoryTest {
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 authRepository = makeAuthRepo(),
+                statusSnapshotStore = FakeStatusSnapshotStore(),
+                snoozeDoorEventBridge = SnoozeDoorEventBridge(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,
@@ -306,6 +325,8 @@ class NetworkSnoozeRepositoryTest {
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 authRepository = makeAuthRepo(),
+                statusSnapshotStore = FakeStatusSnapshotStore(),
+                snoozeDoorEventBridge = SnoozeDoorEventBridge(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,
@@ -342,6 +363,8 @@ class NetworkSnoozeRepositoryTest {
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 authRepository = makeAuthRepo(),
+                statusSnapshotStore = FakeStatusSnapshotStore(),
+                snoozeDoorEventBridge = SnoozeDoorEventBridge(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,
@@ -379,6 +402,8 @@ class NetworkSnoozeRepositoryTest {
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 authRepository = makeAuthRepo(),
+                statusSnapshotStore = FakeStatusSnapshotStore(),
+                snoozeDoorEventBridge = SnoozeDoorEventBridge(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,
@@ -408,6 +433,8 @@ class NetworkSnoozeRepositoryTest {
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 authRepository = makeAuthRepo(),
+                statusSnapshotStore = FakeStatusSnapshotStore(),
+                snoozeDoorEventBridge = SnoozeDoorEventBridge(),
                 snoozeNotificationsOption = false,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,
@@ -435,6 +462,8 @@ class NetworkSnoozeRepositoryTest {
                 networkButtonDataSource = buttonDs,
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
                 authRepository = authRepo,
+                statusSnapshotStore = FakeStatusSnapshotStore(),
+                snoozeDoorEventBridge = SnoozeDoorEventBridge(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { 0L },
                 externalScope = externalScope,
@@ -451,6 +480,203 @@ class NetworkSnoozeRepositoryTest {
             assertEquals(AppResult.Error(ActionError.NotAuthenticated), result)
             assertEquals(priorSnoozeCount, buttonDs.snoozeCount, "Should NOT call data source when token is null")
 
+            externalScope.cancel()
+        }
+
+    // Persisted-snapshot tests (STATUS_CACHE_PLAN.md D3) — hydration,
+    // fetch-TTL, the door-event hook, and write-through.
+
+    private fun seededStore(
+        endTimeSeconds: Long,
+        fetchedAtSeconds: Long,
+    ): FakeStatusSnapshotStore =
+        FakeStatusSnapshotStore().apply {
+            seed(
+                SnoozeSnapshot.KEY,
+                SnoozeSnapshot.SCHEMA_VERSION,
+                StatusSnapshot(
+                    payload = SnoozeSnapshotDto(endTimeSeconds = endTimeSeconds),
+                    fetchedAtEpochSeconds = fetchedAtSeconds,
+                    confirmedAtEpochSeconds = fetchedAtSeconds,
+                ),
+            )
+        }
+
+    private fun makeRepo(
+        buttonDs: FakeNetworkButtonDataSource,
+        externalScope: CoroutineScope,
+        store: FakeStatusSnapshotStore = FakeStatusSnapshotStore(),
+        bridge: SnoozeDoorEventBridge = SnoozeDoorEventBridge(),
+        nowSeconds: () -> Long = { 1_000L },
+    ): NetworkSnoozeRepository {
+        val configDs = FakeNetworkConfigDataSource().apply { setServerConfigResult(validConfig) }
+        return NetworkSnoozeRepository(
+            networkButtonDataSource = buttonDs,
+            serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
+            authRepository = makeAuthRepo(),
+            statusSnapshotStore = store,
+            snoozeDoorEventBridge = bridge,
+            snoozeNotificationsOption = true,
+            currentTimeSeconds = nowSeconds,
+            externalScope = externalScope,
+        )
+    }
+
+    @Test
+    fun hydrationSeedsActiveSnoozeAndFreshSnapshotSkipsInitFetch() =
+        runTest {
+            val buttonDs = FakeNetworkButtonDataSource()
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            // Persisted 60s ago, snooze active until 5000 (now = 1000).
+            val store = seededStore(endTimeSeconds = 5_000L, fetchedAtSeconds = 940L)
+
+            val repo = makeRepo(buttonDs, externalScope, store)
+            advanceUntilIdle()
+
+            assertEquals(SnoozeState.Snoozing(5_000L), repo.snoozeState.value)
+            assertEquals(0, buttonDs.fetchSnoozeCount, "Fresh snapshot must skip the init fetch")
+            externalScope.cancel()
+        }
+
+    @Test
+    fun hydrationRecomputesExpiredSnoozeAsNotSnoozing() =
+        runTest {
+            val buttonDs = FakeNetworkButtonDataSource()
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            // The raw end time is persisted, never the state: a snooze that
+            // ended while the app was dead hydrates as NotSnoozing.
+            val store = seededStore(endTimeSeconds = 500L, fetchedAtSeconds = 940L)
+
+            val repo = makeRepo(buttonDs, externalScope, store)
+            advanceUntilIdle()
+
+            assertEquals(SnoozeState.NotSnoozing, repo.snoozeState.value)
+            externalScope.cancel()
+        }
+
+    @Test
+    fun staleSnapshotHydratesThenInitFetchRuns() =
+        runTest {
+            val buttonDs = FakeNetworkButtonDataSource().apply {
+                setFetchSnoozeResult(NetworkResult.Success(7_000L))
+            }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            // Persisted 10 minutes ago — past the 5-minute fetch-TTL.
+            val store = seededStore(endTimeSeconds = 5_000L, fetchedAtSeconds = 400L)
+
+            val repo = makeRepo(buttonDs, externalScope, store, nowSeconds = { 1_000L })
+            advanceUntilIdle()
+
+            assertEquals(1, buttonDs.fetchSnoozeCount, "Stale snapshot must revalidate")
+            assertEquals(SnoozeState.Snoozing(7_000L), repo.snoozeState.value)
+            externalScope.cancel()
+        }
+
+    @Test
+    fun failedInitFetchKeepsHydratedStateInsteadOfClearingToNotSnoozing() =
+        runTest {
+            val buttonDs = FakeNetworkButtonDataSource().apply {
+                setFetchSnoozeResult(NetworkResult.ConnectionFailed)
+            }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            // Stale snapshot (so the init fetch runs) with an active snooze.
+            val store = seededStore(endTimeSeconds = 5_000L, fetchedAtSeconds = 400L)
+
+            val repo = makeRepo(buttonDs, externalScope, store)
+            advanceUntilIdle()
+
+            // clearLoadingState only converts the Loading SENTINEL; the
+            // hydrated verdict must survive an offline cold start.
+            assertEquals(SnoozeState.Snoozing(5_000L), repo.snoozeState.value)
+            externalScope.cancel()
+        }
+
+    @Test
+    fun revalidateSkipsWhenFreshAndFetchesWhenStale() =
+        runTest {
+            var now = 1_000L
+            val buttonDs = FakeNetworkButtonDataSource().apply {
+                setFetchSnoozeResult(NetworkResult.Success(0L))
+            }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val repo = makeRepo(buttonDs, externalScope, nowSeconds = { now })
+            advanceUntilIdle()
+            val fetchesAfterInit = buttonDs.fetchSnoozeCount
+
+            // Immediately after the init fetch: fresh — no network.
+            repo.revalidateSnoozeIfStale()
+            advanceUntilIdle()
+            assertEquals(fetchesAfterInit, buttonDs.fetchSnoozeCount)
+
+            // Past the TTL: revalidate fetches.
+            now += 6L * 60L
+            repo.revalidateSnoozeIfStale()
+            advanceUntilIdle()
+            assertEquals(fetchesAfterInit + 1, buttonDs.fetchSnoozeCount)
+            externalScope.cancel()
+        }
+
+    @Test
+    fun acceptedFetchPersistsEndTime() =
+        runTest {
+            val buttonDs = FakeNetworkButtonDataSource().apply {
+                setFetchSnoozeResult(NetworkResult.Success(5_000L))
+            }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val store = FakeStatusSnapshotStore()
+
+            makeRepo(buttonDs, externalScope, store)
+            advanceUntilIdle()
+
+            val persisted = store.read(
+                SnoozeSnapshot.KEY,
+                SnoozeSnapshot.SCHEMA_VERSION,
+                SnoozeSnapshotDto.serializer(),
+            )
+            assertEquals(5_000L, persisted?.payload?.endTimeSeconds)
+            externalScope.cancel()
+        }
+
+    @Test
+    fun doorEventWhileSnoozingTriggersOneRefetch() =
+        runTest {
+            val buttonDs = FakeNetworkButtonDataSource().apply {
+                setFetchSnoozeResult(NetworkResult.Success(5_000L))
+            }
+            val bridge = SnoozeDoorEventBridge()
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val repo = makeRepo(buttonDs, externalScope, bridge = bridge)
+            advanceUntilIdle()
+            assertEquals(SnoozeState.Snoozing(5_000L), repo.snoozeState.value)
+            val fetchesBefore = buttonDs.fetchSnoozeCount
+
+            // Server voids the snooze on any door event; the hook refetches.
+            buttonDs.setFetchSnoozeResult(NetworkResult.Success(0L))
+            bridge.notifyDoorEvent()
+            advanceUntilIdle()
+
+            assertEquals(fetchesBefore + 1, buttonDs.fetchSnoozeCount)
+            assertEquals(SnoozeState.NotSnoozing, repo.snoozeState.value)
+            externalScope.cancel()
+        }
+
+    @Test
+    fun doorEventWhileNotSnoozingDoesNotFetch() =
+        runTest {
+            val buttonDs = FakeNetworkButtonDataSource().apply {
+                setFetchSnoozeResult(NetworkResult.Success(0L))
+            }
+            val bridge = SnoozeDoorEventBridge()
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val repo = makeRepo(buttonDs, externalScope, bridge = bridge)
+            advanceUntilIdle()
+            assertEquals(SnoozeState.NotSnoozing, repo.snoozeState.value)
+            val fetchesBefore = buttonDs.fetchSnoozeCount
+
+            bridge.notifyDoorEvent()
+            advanceUntilIdle()
+
+            assertEquals(fetchesBefore, buttonDs.fetchSnoozeCount)
             externalScope.cancel()
         }
 }

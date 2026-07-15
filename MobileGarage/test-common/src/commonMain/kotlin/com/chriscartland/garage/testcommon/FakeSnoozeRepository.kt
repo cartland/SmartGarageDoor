@@ -62,6 +62,15 @@ class FakeSnoozeRepository : SnoozeRepository {
         return fetchResult ?: AppResult.Success(_snoozeState.value)
     }
 
+    private var _revalidateCount: Int = 0
+    val revalidateCount: Int get() = _revalidateCount
+
+    override suspend fun revalidateSnoozeIfStale() {
+        // The TTL policy lives in the production repo; the fake only
+        // records the call so VM tests can assert screen-entry wiring.
+        _revalidateCount++
+    }
+
     override suspend fun snoozeNotifications(
         snoozeDurationHours: String,
         snoozeEventTimestampSeconds: Long,
