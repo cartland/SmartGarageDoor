@@ -18,6 +18,10 @@
 package com.chriscartland.garage.data.repository
 
 import com.chriscartland.garage.data.NetworkResult
+import com.chriscartland.garage.data.statuscache.AllowlistSnapshot
+import com.chriscartland.garage.data.statuscache.AllowlistSnapshotDto
+import com.chriscartland.garage.data.statuscache.StatusSnapshot
+import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.Email
@@ -26,6 +30,7 @@ import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeNetworkFeatureAllowlistDataSource
+import com.chriscartland.garage.testcommon.FakeStatusSnapshotStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
@@ -71,7 +76,7 @@ class CachedFeatureAllowlistRepositoryTest {
             }
             val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
 
-            val repo = CachedFeatureAllowlistRepository(ds, authRepo, externalScope)
+            val repo = CachedFeatureAllowlistRepository(ds, authRepo, FakeStatusSnapshotStore(), AppClock { 1_000L }, externalScope)
             advanceUntilIdle()
             // Initial state is Unknown — no fetch yet.
             assertEquals(0, ds.fetchCount)
@@ -99,7 +104,7 @@ class CachedFeatureAllowlistRepositoryTest {
             }
             val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
 
-            val repo = CachedFeatureAllowlistRepository(ds, authRepo, externalScope)
+            val repo = CachedFeatureAllowlistRepository(ds, authRepo, FakeStatusSnapshotStore(), AppClock { 1_000L }, externalScope)
             advanceUntilIdle()
             assertEquals(sampleAllowlist, repo.allowlist.value)
 
@@ -123,7 +128,7 @@ class CachedFeatureAllowlistRepositoryTest {
             }
             val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
 
-            val repo = CachedFeatureAllowlistRepository(ds, authRepo, externalScope)
+            val repo = CachedFeatureAllowlistRepository(ds, authRepo, FakeStatusSnapshotStore(), AppClock { 1_000L }, externalScope)
             advanceUntilIdle()
 
             // The init collector saw Unauthenticated, so the cache is null and
@@ -151,7 +156,7 @@ class CachedFeatureAllowlistRepositoryTest {
             }
             val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
 
-            val repo = CachedFeatureAllowlistRepository(ds, authRepo, externalScope)
+            val repo = CachedFeatureAllowlistRepository(ds, authRepo, FakeStatusSnapshotStore(), AppClock { 1_000L }, externalScope)
             advanceUntilIdle()
             assertEquals(sampleAllowlist, repo.allowlist.value)
 
@@ -196,7 +201,7 @@ class CachedFeatureAllowlistRepositoryTest {
             ds.swapAuthDuringFetch = { authRepo.setAuthState(bobState) }
 
             val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
-            val repo = CachedFeatureAllowlistRepository(ds, authRepo, externalScope)
+            val repo = CachedFeatureAllowlistRepository(ds, authRepo, FakeStatusSnapshotStore(), AppClock { 1_000L }, externalScope)
             advanceUntilIdle()
 
             // After init: A's fetch fired, mid-fetch swapped to Bob. Result
@@ -225,7 +230,7 @@ class CachedFeatureAllowlistRepositoryTest {
             }
             val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
 
-            val repo = CachedFeatureAllowlistRepository(ds, authRepo, externalScope)
+            val repo = CachedFeatureAllowlistRepository(ds, authRepo, FakeStatusSnapshotStore(), AppClock { 1_000L }, externalScope)
             advanceUntilIdle()
             assertEquals(FeatureAllowlist(functionList = true, developer = false), repo.allowlist.value)
             assertEquals(listOf("alice-token"), ds.fetchIdTokens)
@@ -246,6 +251,172 @@ class CachedFeatureAllowlistRepositoryTest {
                 "fetch must have been called with both tokens, was: ${ds.fetchIdTokens}",
             )
 
+            externalScope.cancel()
+        }
+
+    // Persisted-snapshot tests (STATUS_CACHE_PLAN.md D4) — auth-gated
+    // account-keyed hydration + write-through.
+
+    private fun seededStore(
+        allowlist: FeatureAllowlist,
+        accountEmail: String?,
+        confirmedAtSeconds: Long = 900L,
+    ): FakeStatusSnapshotStore =
+        FakeStatusSnapshotStore().apply {
+            seed(
+                AllowlistSnapshot.KEY,
+                AllowlistSnapshot.SCHEMA_VERSION,
+                StatusSnapshot(
+                    payload = AllowlistSnapshotDto.fromDomain(allowlist),
+                    fetchedAtEpochSeconds = confirmedAtSeconds,
+                    confirmedAtEpochSeconds = confirmedAtSeconds,
+                    accountEmail = accountEmail,
+                ),
+            )
+        }
+
+    @Test
+    fun hydrationSeedsMatchingAccountBeforeTheFetchLands() =
+        runTest {
+            // The data source has no result configured, so the collector's
+            // fetch writes nothing — the observable value is the seed: the
+            // cold-start pop-in fix.
+            val ds = FakeNetworkFeatureAllowlistDataSource()
+            val authRepo = FakeAuthRepository().apply {
+                setIdTokenResult(FirebaseIdToken(idToken = "t", exp = Long.MAX_VALUE))
+                setAuthState(authenticatedState(email = "test@example.com"))
+            }
+            val store = seededStore(sampleAllowlist, accountEmail = "test@example.com")
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+
+            val repo = CachedFeatureAllowlistRepository(ds, authRepo, store, AppClock { 1_000L }, externalScope)
+            advanceUntilIdle()
+
+            assertEquals(sampleAllowlist, repo.allowlist.value)
+            externalScope.cancel()
+        }
+
+    @Test
+    fun hydrationRefusesAndDeletesAnotherAccountsSnapshot() =
+        runTest {
+            val ds = FakeNetworkFeatureAllowlistDataSource()
+            val authRepo = FakeAuthRepository().apply {
+                setIdTokenResult(FirebaseIdToken(idToken = "t", exp = Long.MAX_VALUE))
+                setAuthState(authenticatedState(email = "bob@example.com"))
+            }
+            // Alice's snapshot survived (conflation-skipped clear / process
+            // death) — Bob must never see her Developer access.
+            val store = seededStore(sampleAllowlist, accountEmail = "alice@example.com")
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+
+            val repo = CachedFeatureAllowlistRepository(ds, authRepo, store, AppClock { 1_000L }, externalScope)
+            advanceUntilIdle()
+
+            assertNull(repo.allowlist.value)
+            assertEquals(false, store.contains(AllowlistSnapshot.KEY), "confirmed mismatch must delete")
+            externalScope.cancel()
+        }
+
+    @Test
+    fun hydrationIgnoresButKeepsSnapshotWithNoAccountEmail() =
+        runTest {
+            val ds = FakeNetworkFeatureAllowlistDataSource()
+            val authRepo = FakeAuthRepository().apply {
+                setIdTokenResult(FirebaseIdToken(idToken = "t", exp = Long.MAX_VALUE))
+                setAuthState(authenticatedState())
+            }
+            val store = seededStore(sampleAllowlist, accountEmail = null)
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+
+            val repo = CachedFeatureAllowlistRepository(ds, authRepo, store, AppClock { 1_000L }, externalScope)
+            advanceUntilIdle()
+
+            assertNull(repo.allowlist.value)
+            // Never destroy data on missing information.
+            assertTrue(store.contains(AllowlistSnapshot.KEY))
+            externalScope.cancel()
+        }
+
+    @Test
+    fun hydrationSkipsSnapshotOlderThanDisplayTtl() =
+        runTest {
+            val ds = FakeNetworkFeatureAllowlistDataSource()
+            val authRepo = FakeAuthRepository().apply {
+                setIdTokenResult(FirebaseIdToken(idToken = "t", exp = Long.MAX_VALUE))
+                setAuthState(authenticatedState())
+            }
+            val now = 200_000L
+            val store = seededStore(
+                sampleAllowlist,
+                accountEmail = "test@example.com",
+                confirmedAtSeconds = now - (24L * 60L * 60L) - 1L,
+            )
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+
+            val repo = CachedFeatureAllowlistRepository(ds, authRepo, store, AppClock { now }, externalScope)
+            advanceUntilIdle()
+
+            assertNull(repo.allowlist.value)
+            externalScope.cancel()
+        }
+
+    @Test
+    fun unknownAuthNeverSeedsAndNeverDeletes() =
+        runTest {
+            val ds = FakeNetworkFeatureAllowlistDataSource()
+            val authRepo = FakeAuthRepository() // stays Unknown
+            val store = seededStore(sampleAllowlist, accountEmail = "test@example.com")
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+
+            val repo = CachedFeatureAllowlistRepository(ds, authRepo, store, AppClock { 1_000L }, externalScope)
+            advanceUntilIdle()
+
+            // No email to compare yet — nothing seeded, nothing destroyed.
+            assertNull(repo.allowlist.value)
+            assertTrue(store.contains(AllowlistSnapshot.KEY))
+            externalScope.cancel()
+        }
+
+    @Test
+    fun unauthenticatedFirstEmissionClearsPersistedSnapshot() =
+        runTest {
+            val ds = FakeNetworkFeatureAllowlistDataSource()
+            val authRepo = FakeAuthRepository().apply { setAuthState(AuthState.Unauthenticated) }
+            val store = seededStore(sampleAllowlist, accountEmail = "test@example.com")
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+
+            val repo = CachedFeatureAllowlistRepository(ds, authRepo, store, AppClock { 1_000L }, externalScope)
+            advanceUntilIdle()
+
+            assertNull(repo.allowlist.value)
+            assertEquals(false, store.contains(AllowlistSnapshot.KEY))
+            externalScope.cancel()
+        }
+
+    @Test
+    fun successfulFetchPersistsSnapshotKeyedToTheAccount() =
+        runTest {
+            val ds = FakeNetworkFeatureAllowlistDataSource().apply {
+                setFetchResult(NetworkResult.Success(sampleAllowlist))
+            }
+            val authRepo = FakeAuthRepository().apply {
+                setIdTokenResult(FirebaseIdToken(idToken = "t", exp = Long.MAX_VALUE))
+                setAuthState(authenticatedState(email = "test@example.com"))
+            }
+            val store = FakeStatusSnapshotStore()
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+
+            val repo = CachedFeatureAllowlistRepository(ds, authRepo, store, AppClock { 1_000L }, externalScope)
+            advanceUntilIdle()
+
+            assertEquals(sampleAllowlist, repo.allowlist.value)
+            val persisted = store.read(
+                AllowlistSnapshot.KEY,
+                AllowlistSnapshot.SCHEMA_VERSION,
+                AllowlistSnapshotDto.serializer(),
+            )
+            assertEquals(AllowlistSnapshotDto.fromDomain(sampleAllowlist), persisted?.payload)
+            assertEquals("test@example.com", persisted?.accountEmail)
             externalScope.cancel()
         }
 }
