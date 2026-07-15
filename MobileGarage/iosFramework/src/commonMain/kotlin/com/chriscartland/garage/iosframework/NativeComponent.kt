@@ -73,6 +73,7 @@ import com.chriscartland.garage.domain.repository.DoorResolvedFcmRepository
 import com.chriscartland.garage.domain.repository.FeatureAllowlistRepository
 import com.chriscartland.garage.domain.repository.RemoteButtonRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
+import com.chriscartland.garage.domain.repository.SnoozeDoorEventBridge
 import com.chriscartland.garage.domain.repository.SnoozeRepository
 import com.chriscartland.garage.domain.repository.TestNotificationRepository
 import com.chriscartland.garage.domain.repository.UserScopedCache
@@ -85,6 +86,7 @@ import com.chriscartland.garage.usecase.ChangeTestNotificationTopicUseCase
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.ClearDiagnosticsUseCase
 import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
+import com.chriscartland.garage.usecase.ComputeEffectiveSnoozeStateUseCase
 import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.DefaultReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.DefaultRegisterFcmUseCase
@@ -106,12 +108,12 @@ import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveDiagnosticsCountUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
-import com.chriscartland.garage.usecase.ObserveSnoozeStateUseCase
 import com.chriscartland.garage.usecase.ObserveTestNotificationStateUseCase
 import com.chriscartland.garage.usecase.PruneDiagnosticsLogUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
+import com.chriscartland.garage.usecase.RevalidateSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.RunStartupDiagnosticsMaintenanceUseCase
 import com.chriscartland.garage.usecase.SeedDiagnosticsCountersFromRoomUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
@@ -217,6 +219,8 @@ abstract class NativeComponent(
     abstract val statusSnapshotStore: StatusSnapshotStore
     abstract val userScopedCache: UserScopedCache
     abstract val signOutCacheClearManager: SignOutCacheClearManager
+    abstract val snoozeDoorEventBridge: SnoozeDoorEventBridge
+    abstract val computeEffectiveSnoozeStateUseCase: ComputeEffectiveSnoozeStateUseCase
 
     // --- ViewModels ---
 
@@ -319,12 +323,13 @@ abstract class NativeComponent(
     @Provides
     fun provideProfileViewModel(
         observeAuthState: ObserveAuthStateUseCase,
-        observeSnoozeState: ObserveSnoozeStateUseCase,
+        computeEffectiveSnoozeState: ComputeEffectiveSnoozeStateUseCase,
         observeDoorEvents: ObserveDoorEventsUseCase,
         observeFeatureAccess: ObserveFeatureAccessUseCase,
         signInWithGoogle: SignInWithGoogleUseCase,
         signOut: SignOutUseCase,
         fetchSnoozeStatus: FetchSnoozeStatusUseCase,
+        revalidateSnoozeStatus: RevalidateSnoozeStatusUseCase,
         snoozeNotifications: SnoozeNotificationsUseCase,
         logAppEvent: LogAppEventUseCase,
         appSettings: AppSettingsUseCase,
@@ -332,12 +337,13 @@ abstract class NativeComponent(
     ): DefaultProfileViewModel =
         DefaultProfileViewModel(
             observeAuthState = observeAuthState,
-            observeSnoozeState = observeSnoozeState,
+            computeEffectiveSnoozeState = computeEffectiveSnoozeState,
             observeDoorEvents = observeDoorEvents,
             observeFeatureAccessUseCase = observeFeatureAccess,
             signInWithGoogleUseCase = signInWithGoogle,
             signOutUseCase = signOut,
             fetchSnoozeStatusUseCase = fetchSnoozeStatus,
+            revalidateSnoozeStatusUseCase = revalidateSnoozeStatus,
             snoozeNotificationsUseCase = snoozeNotifications,
             logAppEvent = logAppEvent,
             appSettings = appSettings,
@@ -444,11 +450,13 @@ abstract class NativeComponent(
     fun provideReceiveFcmDoorEventUseCase(
         doorRepository: DoorRepository,
         appLoggerRepository: AppLoggerRepository,
+        snoozeDoorEventBridge: SnoozeDoorEventBridge,
         applicationScope: CoroutineScope,
     ): ReceiveFcmDoorEventUseCase =
         DefaultReceiveFcmDoorEventUseCase(
             doorRepository = doorRepository,
             appLoggerRepository = appLoggerRepository,
+            snoozeDoorEventBridge = snoozeDoorEventBridge,
             externalScope = applicationScope,
         )
 
@@ -492,8 +500,21 @@ abstract class NativeComponent(
         FetchSnoozeStatusUseCase(snoozeRepository)
 
     @Provides
-    fun provideObserveSnoozeStateUseCase(snoozeRepository: SnoozeRepository): ObserveSnoozeStateUseCase =
-        ObserveSnoozeStateUseCase(snoozeRepository)
+    fun provideRevalidateSnoozeStatusUseCase(snoozeRepository: SnoozeRepository): RevalidateSnoozeStatusUseCase =
+        RevalidateSnoozeStatusUseCase(snoozeRepository)
+
+    @Provides
+    @SharedSingleton
+    fun provideComputeEffectiveSnoozeStateUseCase(
+        snoozeRepository: SnoozeRepository,
+        liveClock: LiveClock,
+        applicationScope: CoroutineScope,
+    ): ComputeEffectiveSnoozeStateUseCase =
+        ComputeEffectiveSnoozeStateUseCase(
+            snoozeRepository = snoozeRepository,
+            liveClock = liveClock,
+            applicationScope = applicationScope,
+        )
 
     @Provides
     fun provideObserveFeatureAccessUseCase(featureAllowlistRepository: FeatureAllowlistRepository): ObserveFeatureAccessUseCase =
@@ -691,6 +712,8 @@ abstract class NativeComponent(
         networkButtonDataSource: NetworkButtonDataSource,
         serverConfigRepository: ServerConfigRepository,
         authRepository: AuthRepository,
+        statusSnapshotStore: StatusSnapshotStore,
+        snoozeDoorEventBridge: SnoozeDoorEventBridge,
         appConfig: AppConfig,
         applicationScope: CoroutineScope,
     ): SnoozeRepository =
@@ -698,10 +721,16 @@ abstract class NativeComponent(
             networkButtonDataSource = networkButtonDataSource,
             serverConfigRepository = serverConfigRepository,
             authRepository = authRepository,
+            statusSnapshotStore = statusSnapshotStore,
+            snoozeDoorEventBridge = snoozeDoorEventBridge,
             snoozeNotificationsOption = appConfig.snoozeNotificationsOption,
             currentTimeSeconds = { Clock.System.now().toEpochMilliseconds() / 1000 },
             externalScope = applicationScope,
         )
+
+    @Provides
+    @SharedSingleton
+    fun provideSnoozeDoorEventBridge(): SnoozeDoorEventBridge = SnoozeDoorEventBridge()
 
     @Provides
     @SharedSingleton

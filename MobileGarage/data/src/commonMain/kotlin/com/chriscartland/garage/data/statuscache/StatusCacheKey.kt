@@ -50,5 +50,9 @@ object StatusCacheKeys {
         // requires an allowlisted account, so the verdict doesn't belong
         // to a signed-out device (STATUS_CACHE_PLAN.md D2).
         ButtonHealthSnapshot.KEY,
+        // Household state, but surfaced on a signed-in-only settings row;
+        // clearing on sign-out keeps the cache free of anything the
+        // signed-out UI can't show (STATUS_CACHE_PLAN.md D3).
+        SnoozeSnapshot.KEY,
     )
 }

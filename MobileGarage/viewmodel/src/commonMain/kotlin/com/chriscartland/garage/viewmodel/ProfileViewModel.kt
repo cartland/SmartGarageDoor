@@ -34,12 +34,13 @@ import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.toServer
 import com.chriscartland.garage.usecase.AppSettingsUseCase
+import com.chriscartland.garage.usecase.ComputeEffectiveSnoozeStateUseCase
 import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
-import com.chriscartland.garage.usecase.ObserveSnoozeStateUseCase
+import com.chriscartland.garage.usecase.RevalidateSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
@@ -113,6 +114,14 @@ interface ProfileViewModel {
 
     fun fetchSnoozeStatus()
 
+    /**
+     * TTL-gated screen-entry revalidate (STATUS_CACHE_PLAN.md D3):
+     * cached state renders instantly; this fetches only when the last
+     * server round-trip is stale. Call once per screen entry — the
+     * per-minute poll it replaces is gone.
+     */
+    fun revalidateSnoozeIfStale()
+
     fun snoozeOpenDoorsNotifications(snoozeDuration: SnoozeDurationUIOption)
 
     fun setLayoutDebugEnabled(enabled: Boolean)
@@ -128,12 +137,13 @@ interface ProfileViewModel {
 
 class DefaultProfileViewModel(
     observeAuthState: ObserveAuthStateUseCase,
-    observeSnoozeState: ObserveSnoozeStateUseCase,
+    computeEffectiveSnoozeState: ComputeEffectiveSnoozeStateUseCase,
     private val observeDoorEvents: ObserveDoorEventsUseCase,
     private val observeFeatureAccessUseCase: ObserveFeatureAccessUseCase,
     private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
     private val signOutUseCase: SignOutUseCase,
     private val fetchSnoozeStatusUseCase: FetchSnoozeStatusUseCase,
+    private val revalidateSnoozeStatusUseCase: RevalidateSnoozeStatusUseCase,
     private val snoozeNotificationsUseCase: SnoozeNotificationsUseCase,
     private val logAppEvent: LogAppEventUseCase,
     private val appSettings: AppSettingsUseCase,
@@ -142,7 +152,11 @@ class DefaultProfileViewModel(
     ProfileViewModel {
     // ADR-022: pass through the repository's StateFlow by reference — no mirror.
     override val authState: StateFlow<AuthState> = observeAuthState()
-    override val snoozeState: StateFlow<SnoozeState> = observeSnoozeState()
+
+    // The user-facing snooze state: the singleton expiry derivation's
+    // StateFlow, passed through by reference (ADR-022) — "Snoozing until
+    // 3 PM" flips to NotSnoozing at 3 PM on both platforms, no polling.
+    override val snoozeState: StateFlow<SnoozeState> = computeEffectiveSnoozeState()
 
     private val _snoozeAction = MutableStateFlow<SnoozeAction>(SnoozeAction.Idle)
     override val snoozeAction: StateFlow<SnoozeAction> = _snoozeAction
@@ -211,6 +225,12 @@ class DefaultProfileViewModel(
     override fun fetchSnoozeStatus() {
         viewModelScope.launch(dispatchers.io) {
             fetchSnoozeStatusUseCase()
+        }
+    }
+
+    override fun revalidateSnoozeIfStale() {
+        viewModelScope.launch(dispatchers.io) {
+            revalidateSnoozeStatusUseCase()
         }
     }
 

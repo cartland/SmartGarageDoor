@@ -60,8 +60,6 @@ import com.chriscartland.garage.version.AppVersion
 import com.chriscartland.garage.viewmodel.ProfileViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
-import kotlinx.coroutines.delay
-import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -117,14 +115,14 @@ fun ProfileContent(
     var versionSheetOpen by rememberSaveable { mutableStateOf(false) }
     var navRailSheetOpen by rememberSaveable { mutableStateOf(false) }
 
-    // Refresh snooze status every minute while this screen is mounted.
-    // Mirrors the legacy ProfileContent behavior; the polling cadence
-    // covers both the row-secondary-text and the sheet's pre-selection.
+    // TTL-gated revalidate, once per screen entry (STATUS_CACHE_PLAN.md
+    // D3). The cached snooze state renders instantly (hydrated across
+    // process restarts); the fetch fires only when the last server
+    // round-trip is stale. The per-minute poll this replaces existed to
+    // catch expiry (now a shared LiveClock derivation) and server-side
+    // voiding (now the FCM door-event hook + this revalidate).
     LaunchedEffect(Unit) {
-        while (true) {
-            resolved.fetchSnoozeStatus()
-            delay(Duration.ofMinutes(1).toMillis())
-        }
+        resolved.revalidateSnoozeIfStale()
     }
 
     // Snackbar host for surfacing snooze save failures. Before this, the

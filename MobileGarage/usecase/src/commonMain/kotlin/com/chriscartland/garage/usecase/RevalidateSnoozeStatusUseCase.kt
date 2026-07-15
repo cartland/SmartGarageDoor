@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Chris Cartland. All rights reserved.
+ * Copyright 2026 Chris Cartland. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,19 +17,16 @@
 
 package com.chriscartland.garage.usecase
 
-import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.repository.SnoozeRepository
-import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Exposes the repository's authoritative snooze [StateFlow] by reference.
- *
- * Per ADR-022, state-y data is owned by the repository and passed through
- * UseCases and ViewModels without wrapping. The VM exposes the SAME
- * instance to Compose.
+ * Screen-entry snooze revalidate (STATUS_CACHE_PLAN.md D3). The
+ * fetch-TTL policy lives in the repository; this is the VM-facing
+ * pass-through. Contrast [FetchSnoozeStatusUseCase], which always hits
+ * the network (pull-to-refresh / manual refresh).
  */
-class ObserveSnoozeStateUseCase(
+class RevalidateSnoozeStatusUseCase(
     private val snoozeRepository: SnoozeRepository,
 ) {
-    operator fun invoke(): StateFlow<SnoozeState> = snoozeRepository.snoozeState
+    suspend operator fun invoke() = snoozeRepository.revalidateSnoozeIfStale()
 }

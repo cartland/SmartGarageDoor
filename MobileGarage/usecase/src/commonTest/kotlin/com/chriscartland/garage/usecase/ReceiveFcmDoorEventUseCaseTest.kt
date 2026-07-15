@@ -20,6 +20,7 @@ package com.chriscartland.garage.usecase
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.domain.repository.SnoozeDoorEventBridge
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import kotlinx.coroutines.test.runCurrent
@@ -37,6 +38,7 @@ class ReceiveFcmDoorEventUseCaseTest {
             val useCase = DefaultReceiveFcmDoorEventUseCase(
                 doorRepository = doorRepo,
                 appLoggerRepository = loggerRepo,
+                snoozeDoorEventBridge = SnoozeDoorEventBridge(),
                 externalScope = backgroundScope,
             )
             val event = DoorEvent(
@@ -60,6 +62,7 @@ class ReceiveFcmDoorEventUseCaseTest {
             val useCase = DefaultReceiveFcmDoorEventUseCase(
                 doorRepository = doorRepo,
                 appLoggerRepository = loggerRepo,
+                snoozeDoorEventBridge = SnoozeDoorEventBridge(),
                 externalScope = backgroundScope,
             )
 
@@ -84,6 +87,7 @@ class ReceiveFcmDoorEventUseCaseTest {
             val useCase = DefaultReceiveFcmDoorEventUseCase(
                 doorRepository = doorRepo,
                 appLoggerRepository = loggerRepo,
+                snoozeDoorEventBridge = SnoozeDoorEventBridge(),
                 externalScope = backgroundScope,
             )
             val event = DoorEvent(doorPosition = DoorPosition.OPEN, lastChangeTimeSeconds = 42L)

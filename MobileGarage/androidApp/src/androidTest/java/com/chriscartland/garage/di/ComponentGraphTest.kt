@@ -165,6 +165,26 @@ class ComponentGraphTest {
     }
 
     @Test
+    fun snoozeDoorEventBridgeIsSingleton() {
+        // The snooze repo registers its listener on ONE instance; the FCM
+        // path must notify the SAME instance or the hook silently no-ops.
+        val c = component
+        assertSame("SnoozeDoorEventBridge must be singleton", c.snoozeDoorEventBridge, c.snoozeDoorEventBridge)
+    }
+
+    @Test
+    fun computeEffectiveSnoozeStateUseCaseIsSingleton() {
+        // Owns an Eagerly-started stateIn combine; two instances would each
+        // run their own collector with their own initial value.
+        val c = component
+        assertSame(
+            "ComputeEffectiveSnoozeStateUseCase must be singleton",
+            c.computeEffectiveSnoozeStateUseCase,
+            c.computeEffectiveSnoozeStateUseCase,
+        )
+    }
+
+    @Test
     fun buttonHealthRepositoryIsSingleton() {
         val c = component
         assertSame("ButtonHealthRepository must be singleton", c.buttonHealthRepository, c.buttonHealthRepository)

@@ -60,4 +60,13 @@ interface SnoozeRepository {
         snoozeDurationHours: String,
         snoozeEventTimestampSeconds: Long,
     ): AppResult<SnoozeState, ActionError>
+
+    /**
+     * Screen-entry revalidate (STATUS_CACHE_PLAN.md D3): waits for
+     * hydration, then fetches ONLY when the last server round-trip is
+     * older than the fetch-TTL (~5 min). Replaces the deleted Android
+     * per-Settings-entry fetch + 60s poll — the cached state renders
+     * instantly and this keeps it honest without redundant round-trips.
+     */
+    suspend fun revalidateSnoozeIfStale()
 }
