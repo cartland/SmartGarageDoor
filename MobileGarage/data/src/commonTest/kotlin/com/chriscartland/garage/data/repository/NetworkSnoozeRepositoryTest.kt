@@ -661,6 +661,52 @@ class NetworkSnoozeRepositoryTest {
         }
 
     @Test
+    fun getStartedBeforeSubmitCannotRevertTheSubmittedSnooze() =
+        runTest {
+            // The submit-wins GAP the review caught: a GET launched BEFORE a
+            // submit but resolving AFTER the submit cleared its in-flight
+            // counter must not revert the just-submitted snooze. The accept
+            // generation (captured at GET start) closes it.
+            val buttonDs = FakeNetworkButtonDataSource().apply {
+                setFetchSnoozeResult(NetworkResult.Success(0L)) // server: no snooze yet
+            }
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val store = FakeStatusSnapshotStore()
+            val repo = makeRepo(buttonDs, externalScope, store)
+            advanceUntilIdle()
+            assertEquals(SnoozeState.NotSnoozing, repo.snoozeState.value)
+
+            // Hold a GET in flight (its stale NotSnoozing response is
+            // captured at request time; the gate delays only delivery).
+            val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+            buttonDs.setFetchSnoozeGate(gate)
+            val gatedFetch = externalScope.launch { repo.fetchSnoozeStatus() }
+            advanceUntilIdle()
+
+            // Submit completes fully while the GET is still in flight.
+            buttonDs.setFetchSnoozeGate(null)
+            buttonDs.setSnoozeResult(NetworkResult.Success(9_000L))
+            repo.snoozeNotifications(snoozeDurationHours = "1h", snoozeEventTimestampSeconds = 1L)
+            advanceUntilIdle()
+            assertEquals(SnoozeState.Snoozing(9_000L), repo.snoozeState.value)
+
+            // Now the stale GET resolves — it must be dropped, in memory
+            // AND on disk.
+            gate.complete(Unit)
+            advanceUntilIdle()
+            gatedFetch.join()
+
+            assertEquals(SnoozeState.Snoozing(9_000L), repo.snoozeState.value)
+            val persisted = store.read(
+                SnoozeSnapshot.KEY,
+                SnoozeSnapshot.SCHEMA_VERSION,
+                SnoozeSnapshotDto.serializer(),
+            )
+            assertEquals(9_000L, persisted?.payload?.endTimeSeconds)
+            externalScope.cancel()
+        }
+
+    @Test
     fun doorEventWhileNotSnoozingDoesNotFetch() =
         runTest {
             val buttonDs = FakeNetworkButtonDataSource().apply {

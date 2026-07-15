@@ -183,6 +183,12 @@ fun ProfileContent(
             onSignInTap = { googleSignIn.launchSignIn() },
             onSnoozeTap = {
                 if (notificationsGranted) {
+                    // Force-refresh (not TTL-gated): the sheet pre-selects
+                    // from the current state, and opening it is the one
+                    // user gesture that deserves an immediate uncached
+                    // fetch — the Android manual-refresh path now that the
+                    // poll is gone (iOS keeps pull-to-refresh).
+                    resolved.fetchSnoozeStatus()
                     snoozeSheetOpen = true
                 } else {
                     notificationPermissionState.launchPermissionRequest()

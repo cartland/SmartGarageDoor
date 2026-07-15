@@ -92,8 +92,26 @@ class FakeNetworkButtonDataSource : NetworkButtonDataSource {
         return snoozeResult
     }
 
+    private var fetchSnoozeGate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
+
+    /**
+     * When set, [fetchSnoozeEndTimeSeconds] suspends until the deferred
+     * completes — lets tests hold a GET in flight while other operations
+     * (e.g. a snooze submit) run to completion, to exercise write-ordering
+     * races the ordinary synchronous fake cannot reach. Pass null to
+     * disarm for subsequent fetches.
+     */
+    fun setFetchSnoozeGate(gate: kotlinx.coroutines.CompletableDeferred<Unit>?) {
+        fetchSnoozeGate = gate
+    }
+
     override suspend fun fetchSnoozeEndTimeSeconds(buildTimestamp: String): NetworkResult<Long> {
         _fetchSnoozeBuildTimestamps.add(buildTimestamp)
-        return fetchSnoozeResult
+        // Capture at request time (the server computes the response from
+        // then-current state); the gate only delays DELIVERY, so a gated
+        // response stays stale even if the test changes the result field.
+        val result = fetchSnoozeResult
+        fetchSnoozeGate?.await()
+        return result
     }
 }
