@@ -34,7 +34,6 @@ import com.chriscartland.garage.domain.repository.SnoozeDoorEventBridge
 import com.chriscartland.garage.domain.repository.SnoozeRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -99,24 +98,40 @@ class NetworkSnoozeRepository(
      */
     private val hydrated = CompletableDeferred<Unit>()
 
-    /** Guards [lastFetchedAtSeconds] + [submitInFlight] + sentinel writes. */
+    /**
+     * Guards [lastFetchedAtSeconds], [submitsInFlight], [acceptGeneration],
+     * [doorRefetchInFlight], and every sentinel/state write.
+     */
     private val writeMutex = Mutex()
 
     /** Epoch seconds of the last server round-trip (persisted or live). */
     private var lastFetchedAtSeconds: Long? = null
 
-    private var submitInFlight = false
+    /**
+     * Number of snooze POSTs currently in flight (a counter, not a
+     * boolean, so overlapping submits can't clear each other's guard).
+     */
+    private var submitsInFlight = 0
+
+    /**
+     * Bumped on every ACCEPTED server write. A GET captures it before
+     * its network call and its result is dropped when it changed — a
+     * GET launched BEFORE a submit but resolving AFTER the submit
+     * cleared its in-flight counter would otherwise silently revert
+     * the just-submitted snooze (in the StateFlow and on disk).
+     */
+    private var acceptGeneration = 0L
 
     /** Debounce for the door-event hook: at most one in-flight refetch. */
-    private var doorEventRefetchJob: Job? = null
+    private var doorRefetchInFlight = false
 
     init {
         snoozeDoorEventBridge.register(::onDoorEventReceived)
         externalScope.launch {
-            val fresh = hydrate()
-            if (!fresh) {
-                doFetchSnoozeStatus()
-            }
+            hydrate()
+            // Same TTL gate as the screen-entry revalidate — ONE freshness
+            // rule, so init-fetch and revalidate can never diverge.
+            fetchIfStale()
         }
     }
 
@@ -126,16 +141,20 @@ class NetworkSnoozeRepository(
         externalScope
             .async {
                 hydrated.await()
-                val last = writeMutex.withLock { lastFetchedAtSeconds }
-                val age = last?.let { currentTimeSeconds() - it }
-                // Future-skewed (negative age) counts as stale — a backwards
-                // clock correction must never suppress revalidation.
-                if (age != null && age in 0..FETCH_TTL_SECONDS) {
-                    Logger.d { "snooze revalidate: last fetch ${age}s ago; skipping" }
-                    return@async
-                }
-                doFetchSnoozeStatus()
+                fetchIfStale()
             }.await()
+    }
+
+    private suspend fun fetchIfStale() {
+        val last = writeMutex.withLock { lastFetchedAtSeconds }
+        val age = last?.let { currentTimeSeconds() - it }
+        // Future-skewed (negative age) counts as stale — a backwards
+        // clock correction must never suppress revalidation.
+        if (age != null && age in 0..FETCH_TTL_SECONDS) {
+            Logger.d { "snooze: last fetch ${age}s ago; skipping" }
+            return
+        }
+        doFetchSnoozeStatus()
     }
 
     override suspend fun snoozeNotifications(
@@ -148,17 +167,17 @@ class NetworkSnoozeRepository(
             }.await()
 
     /**
-     * Seeds the `Loading` sentinel from the persisted snapshot. Returns
-     * true when the snapshot is fresh enough for the init fetch to be
-     * skipped. Always completes [hydrated].
+     * Seeds the `Loading` sentinel from the persisted snapshot and
+     * records its `fetchedAt` so [fetchIfStale] owns the (single)
+     * freshness decision. Always completes [hydrated].
      */
-    private suspend fun hydrate(): Boolean {
+    private suspend fun hydrate() {
         try {
             val snapshot = statusSnapshotStore.read(
                 SnoozeSnapshot.KEY,
                 SnoozeSnapshot.SCHEMA_VERSION,
                 SnoozeSnapshotDto.serializer(),
-            ) ?: return false
+            ) ?: return
             val seeded = snoozeStateFromEndTime(snapshot.payload.endTimeSeconds)
             writeMutex.withLock {
                 lastFetchedAtSeconds = snapshot.fetchedAtEpochSeconds
@@ -169,8 +188,6 @@ class NetworkSnoozeRepository(
                     Logger.i { "snoozeState <- $seeded (source=disk seed)" }
                 }
             }
-            val age = snapshot.fetchedAgeSeconds(currentTimeSeconds())
-            return age <= FETCH_TTL_SECONDS
         } finally {
             hydrated.complete(Unit)
         }
@@ -194,13 +211,21 @@ class NetworkSnoozeRepository(
             clearLoadingState()
             return AppResult.Success(_snoozeState.value)
         }
+        // Capture the accept generation BEFORE the network call: if any
+        // submit is accepted while this GET is in flight, the generation
+        // moves and this GET's (older) response is dropped on arrival.
+        val startGeneration = writeMutex.withLock { acceptGeneration }
         return when (
             val result = networkButtonDataSource.fetchSnoozeEndTimeSeconds(
                 buildTimestamp = serverConfig.buildTimestamp,
             )
         ) {
             is NetworkResult.Success -> {
-                val applied = writeFetchedEndTime(result.data)
+                val applied = acceptServerEndTime(
+                    endTimeSeconds = result.data,
+                    source = "GET",
+                    fetchStartGeneration = startGeneration,
+                )
                 AppResult.Success(applied)
             }
             is NetworkResult.HttpError -> {
@@ -217,23 +242,36 @@ class NetworkSnoozeRepository(
     }
 
     /**
-     * Applies a successful GET result. Submit wins: while a snooze POST
-     * is in flight, the fetch result is discarded (the POST's
-     * authoritative response supersedes it) — without this, the
-     * door-event refetch or a screen-entry revalidate could overwrite a
-     * just-submitted snooze with the pre-submit server state.
+     * The single accept path for a server-provided end time (GET and
+     * POST): derive the state, publish it, record freshness from ONE
+     * clock read, bump the generation, and write through to disk.
+     *
+     * Submit wins: a GET result is discarded when a submit is in
+     * flight OR when any write was accepted after the GET started
+     * ([fetchStartGeneration] no longer current) — without the
+     * generation check, a GET launched before a submit but resolving
+     * after it cleared its in-flight counter would silently revert the
+     * just-submitted snooze in the StateFlow and on disk.
      */
-    private suspend fun writeFetchedEndTime(endTimeSeconds: Long): SnoozeState =
+    private suspend fun acceptServerEndTime(
+        endTimeSeconds: Long,
+        source: String,
+        fetchStartGeneration: Long? = null,
+    ): SnoozeState =
         writeMutex.withLock {
-            if (submitInFlight) {
-                Logger.i { "snoozeState: dropping GET result (submit in flight)" }
+            if (fetchStartGeneration != null &&
+                (submitsInFlight > 0 || acceptGeneration != fetchStartGeneration)
+            ) {
+                Logger.i { "snoozeState: dropping $source result (superseded by a submit)" }
                 return@withLock _snoozeState.value
             }
+            val now = currentTimeSeconds()
             val newState = snoozeStateFromEndTime(endTimeSeconds)
             _snoozeState.value = newState
-            lastFetchedAtSeconds = currentTimeSeconds()
-            persistEndTime(endTimeSeconds)
-            Logger.i { "snoozeState <- $newState (source=GET)" }
+            lastFetchedAtSeconds = now
+            acceptGeneration++
+            persistEndTime(endTimeSeconds, now)
+            Logger.i { "snoozeState <- $newState (source=$source)" }
             newState
         }
 
@@ -261,7 +299,7 @@ class NetworkSnoozeRepository(
             Logger.e { "Snooze: getIdToken returned null" }
             return AppResult.Error(ActionError.NotAuthenticated)
         }
-        writeMutex.withLock { submitInFlight = true }
+        writeMutex.withLock { submitsInFlight++ }
         try {
             return when (
                 val result = networkButtonDataSource.snoozeNotifications(
@@ -278,14 +316,10 @@ class NetworkSnoozeRepository(
                     // value. Subscribers observing [snoozeState] see the update
                     // via the flow alone — no caller needs the return value for
                     // correctness (ADR-022).
-                    val newState = writeMutex.withLock {
-                        val state = snoozeStateFromEndTime(result.data)
-                        _snoozeState.value = state
-                        lastFetchedAtSeconds = currentTimeSeconds()
-                        persistEndTime(result.data)
-                        state
-                    }
-                    Logger.i { "snoozeState <- $newState (source=POST)" }
+                    val newState = acceptServerEndTime(
+                        endTimeSeconds = result.data,
+                        source = "POST",
+                    )
                     AppResult.Success(newState)
                 }
                 is NetworkResult.HttpError -> {
@@ -309,7 +343,7 @@ class NetworkSnoozeRepository(
                 }
             }
         } finally {
-            writeMutex.withLock { submitInFlight = false }
+            writeMutex.withLock { submitsInFlight-- }
         }
     }
 
@@ -319,27 +353,45 @@ class NetworkSnoozeRepository(
      * Snoozing, one debounced refetch keeps the row honest. NotSnoozing
      * needs nothing — a snooze set from another device is covered by the
      * screen-entry revalidate.
+     *
+     * Called on whatever thread FCM delivers on, so the launch happens
+     * first (thread-safe) and the Snoozing check + debounce flag are
+     * read/written only under [writeMutex] — a plain check-then-launch
+     * here raced two near-simultaneous door events into duplicate GETs.
      */
     private fun onDoorEventReceived() {
-        if (_snoozeState.value !is SnoozeState.Snoozing) return
-        if (doorEventRefetchJob?.isActive == true) return
-        doorEventRefetchJob = externalScope.launch {
-            Logger.i { "snooze: door event while Snoozing; refetching" }
-            doFetchSnoozeStatus()
+        externalScope.launch {
+            val proceed = writeMutex.withLock {
+                if (_snoozeState.value !is SnoozeState.Snoozing || doorRefetchInFlight) {
+                    false
+                } else {
+                    doorRefetchInFlight = true
+                    true
+                }
+            }
+            if (!proceed) return@launch
+            try {
+                Logger.i { "snooze: door event while Snoozing; refetching" }
+                doFetchSnoozeStatus()
+            } finally {
+                writeMutex.withLock { doorRefetchInFlight = false }
+            }
         }
     }
 
-    /** Caller holds [writeMutex]. */
-    private suspend fun persistEndTime(endTimeSeconds: Long) {
-        val now = currentTimeSeconds()
+    /** Caller holds [writeMutex]; [nowEpochSeconds] is the accept-time clock read. */
+    private suspend fun persistEndTime(
+        endTimeSeconds: Long,
+        nowEpochSeconds: Long,
+    ) {
         statusSnapshotStore.write(
             SnoozeSnapshot.KEY,
             SnoozeSnapshot.SCHEMA_VERSION,
             SnoozeSnapshotDto.serializer(),
             StatusSnapshot(
                 payload = SnoozeSnapshotDto(endTimeSeconds = endTimeSeconds),
-                fetchedAtEpochSeconds = now,
-                confirmedAtEpochSeconds = now,
+                fetchedAtEpochSeconds = nowEpochSeconds,
+                confirmedAtEpochSeconds = nowEpochSeconds,
             ),
         )
     }
