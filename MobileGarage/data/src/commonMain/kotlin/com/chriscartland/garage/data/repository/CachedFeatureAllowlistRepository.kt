@@ -20,6 +20,11 @@ package com.chriscartland.garage.data.repository
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.data.NetworkFeatureAllowlistDataSource
 import com.chriscartland.garage.data.NetworkResult
+import com.chriscartland.garage.data.statuscache.AllowlistSnapshot
+import com.chriscartland.garage.data.statuscache.AllowlistSnapshotDto
+import com.chriscartland.garage.data.statuscache.StatusSnapshot
+import com.chriscartland.garage.data.statuscache.StatusSnapshotStore
+import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.FeatureAllowlist
 import com.chriscartland.garage.domain.repository.AuthRepository
@@ -27,6 +32,7 @@ import com.chriscartland.garage.domain.repository.FeatureAllowlistRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -43,10 +49,32 @@ import kotlinx.coroutines.sync.withLock
  * Network errors during fetch leave the previous successful value in
  * place (matching `CachedServerConfigRepository`'s behavior). Sign-out
  * always clears, even after a successful fetch — security boundary.
+ *
+ * Persisted last-known allowlist (STATUS_CACHE_PLAN.md D4): hydration
+ * removes the cold-start pop-in of the Developer/Function-List rows,
+ * and the repo still ALWAYS revalidates on the Authenticated emission
+ * — no fetch-skip TTL, because app restart is the only
+ * grant-propagation path (Settings has no pull-to-refresh) and
+ * skipping the fetch would trade one tiny request for a stuck grant.
+ *
+ * Account-keyed hydration is the cross-account guard: the keyed check
+ * runs INSIDE the auth gate (`authState.first { it !is Unknown }`) —
+ * at construction the auth state is typically `Unknown`, so there is
+ * no email to compare yet; `Unknown` must never seed and never delete.
+ * A snapshot whose `accountEmail` differs from the signed-in user is
+ * deleted (confirmed mismatch — covers a sign-out clear missed by
+ * StateFlow conflation or process death); a snapshot with NO email is
+ * treated as absent but not deleted (never destroy data on missing
+ * information). Only after the keyed hydration does the ordinary auth
+ * collector start — it replays the current value, so the Authenticated
+ * fetch still fires after the seed (hydrate-before-fetch, sequenced in
+ * one coroutine).
  */
 class CachedFeatureAllowlistRepository(
     private val networkDataSource: NetworkFeatureAllowlistDataSource,
     private val authRepository: AuthRepository,
+    private val statusSnapshotStore: StatusSnapshotStore,
+    private val appClock: AppClock,
     externalScope: CoroutineScope,
 ) : FeatureAllowlistRepository {
     private val _allowlist = MutableStateFlow<FeatureAllowlist?>(null)
@@ -56,6 +84,12 @@ class CachedFeatureAllowlistRepository(
 
     init {
         externalScope.launch {
+            // Keyed hydration inside the auth gate — see class KDoc.
+            when (val first = authRepository.authState.first { it !is AuthState.Unknown }) {
+                is AuthState.Authenticated -> hydrate(signedInEmail = first.user.email.asString())
+                AuthState.Unauthenticated -> statusSnapshotStore.clear(setOf(AllowlistSnapshot.KEY))
+                AuthState.Unknown -> Unit // unreachable: filtered above
+            }
             authRepository.authState.collect { state ->
                 when (state) {
                     is AuthState.Authenticated -> fetchAllowlist()
@@ -64,6 +98,9 @@ class CachedFeatureAllowlistRepository(
                             Logger.i { "allowlist cleared on sign-out" }
                             _allowlist.value = null
                         }
+                        // Best-effort disk clear (account-keying is the
+                        // guarantee; SignOutCacheClearManager also clears).
+                        statusSnapshotStore.clear(setOf(AllowlistSnapshot.KEY))
                     }
                     AuthState.Unknown -> Unit
                 }
@@ -71,15 +108,46 @@ class CachedFeatureAllowlistRepository(
         }
     }
 
+    /** Seeds the in-memory cache from a snapshot owned by [signedInEmail]. */
+    private suspend fun hydrate(signedInEmail: String) {
+        val snapshot = statusSnapshotStore.read(
+            AllowlistSnapshot.KEY,
+            AllowlistSnapshot.SCHEMA_VERSION,
+            AllowlistSnapshotDto.serializer(),
+        ) ?: return
+        val snapshotEmail = snapshot.accountEmail
+        if (snapshotEmail == null) {
+            // No owner recorded: treat as absent, but never delete on
+            // missing information.
+            Logger.w { "allowlist snapshot has no accountEmail; ignoring" }
+            return
+        }
+        if (snapshotEmail != signedInEmail) {
+            // Confirmed cross-account snapshot (a sign-out clear missed by
+            // conflation or process death) — refuse AND delete.
+            Logger.w { "allowlist snapshot belongs to another account; deleting" }
+            statusSnapshotStore.clear(setOf(AllowlistSnapshot.KEY))
+            return
+        }
+        if (snapshot.confirmedAgeSeconds(appClock.nowEpochSeconds()) > DISPLAY_TTL_SECONDS) {
+            Logger.i { "allowlist snapshot older than display-TTL; not seeding" }
+            return
+        }
+        // CAS: only seed if the collector's fetch hasn't landed yet (it
+        // can't have — the collector starts after hydration — but keep
+        // the guard).
+        if (_allowlist.value == null) {
+            val seeded = snapshot.payload.toDomain()
+            _allowlist.value = seeded
+            Logger.i { "allowlist <- $seeded (source=disk seed)" }
+        }
+    }
+
     /**
-     * Force-refresh the allowlist. Captures the email at fetch start and
-     * re-checks after the network call — if the user switched mid-fetch,
-     * the result is for the previous user and is discarded. This is the
-     * only place the user-switch race is closed: the auth-listener path
-     * clears `_allowlist` on `Unauthenticated` but does not acquire the
-     * mutex, so an in-flight fetch with user A's token can resolve while
-     * user B is signing in. The post-fetch email check ensures A's
-     * answer is never written under B's session.
+     * Force-fetch from the server. On success the value is written to
+     * [allowlist] and persisted (keyed to the fetching account). The
+     * user-switch guard discards a response that raced a sign-out or
+     * account change.
      */
     override suspend fun fetchAllowlist(): FeatureAllowlist? =
         fetchMutex.withLock {
@@ -114,8 +182,37 @@ class CachedFeatureAllowlistRepository(
             }
             if (result != null) {
                 _allowlist.value = result
+                persistAllowlist(result, accountEmail = initialEmail.asString())
                 Logger.i { "allowlist <- $result (source=GET)" }
             }
             result
         }
+
+    private suspend fun persistAllowlist(
+        allowlist: FeatureAllowlist,
+        accountEmail: String,
+    ) {
+        val now = appClock.nowEpochSeconds()
+        statusSnapshotStore.write(
+            AllowlistSnapshot.KEY,
+            AllowlistSnapshot.SCHEMA_VERSION,
+            AllowlistSnapshotDto.serializer(),
+            StatusSnapshot(
+                payload = AllowlistSnapshotDto.fromDomain(allowlist),
+                fetchedAtEpochSeconds = now,
+                confirmedAtEpochSeconds = now,
+                accountEmail = accountEmail,
+            ),
+        )
+    }
+
+    private companion object {
+        /**
+         * Never seed an allowlist whose last server confirmation is
+         * older than this — access grants/revocations must not ride a
+         * week-old snapshot (the always-revalidate fetch corrects it
+         * seconds later anyway; this bounds the wrong-rows window).
+         */
+        const val DISPLAY_TTL_SECONDS: Long = 24L * 60L * 60L
+    }
 }

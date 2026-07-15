@@ -666,11 +666,15 @@ abstract class NativeComponent(
     fun provideFeatureAllowlistRepository(
         networkFeatureAllowlistDataSource: NetworkFeatureAllowlistDataSource,
         authRepository: AuthRepository,
+        statusSnapshotStore: StatusSnapshotStore,
+        appClock: AppClock,
         applicationScope: CoroutineScope,
     ): FeatureAllowlistRepository =
         CachedFeatureAllowlistRepository(
             networkDataSource = networkFeatureAllowlistDataSource,
             authRepository = authRepository,
+            statusSnapshotStore = statusSnapshotStore,
+            appClock = appClock,
             externalScope = applicationScope,
         )
 

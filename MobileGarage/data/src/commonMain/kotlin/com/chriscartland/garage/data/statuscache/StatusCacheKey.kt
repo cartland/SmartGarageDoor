@@ -54,5 +54,9 @@ object StatusCacheKeys {
         // clearing on sign-out keeps the cache free of anything the
         // signed-out UI can't show (STATUS_CACHE_PLAN.md D3).
         SnoozeSnapshot.KEY,
+        // Genuinely per-user: Developer/Function-List access must not
+        // leak across accounts. The clear here is best-effort; the
+        // account-keyed hydration is the guarantee (STATUS_CACHE_PLAN.md D4).
+        AllowlistSnapshot.KEY,
     )
 }
