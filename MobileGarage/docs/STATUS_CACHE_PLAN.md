@@ -1,10 +1,14 @@
 ---
 category: plan
-status: active
-last_verified: 2026-07-12
+status: shipped
 ---
 
 # Status cache plan — persisted last-known-value snapshots (KMP)
+
+> **Shipped 2026-07-14** across PRs #1072 #1073 #1074 #1076 #1077 #1078. The
+> living rule is **ADR-034** in `DECISIONS.md`; this document is kept in place
+> (rather than moved to `archive/`) because KDoc throughout the status-cache
+> code references its section numbers (D1–D6) for design rationale.
 
 Plan for caching server-fetched statuses (button health, snooze state, feature allowlist) locally in the shared KMP layer, so screens show the last-known verdict instantly instead of "Checking…"/loading states, and redundant per-screen-load fetches are removed.
 
