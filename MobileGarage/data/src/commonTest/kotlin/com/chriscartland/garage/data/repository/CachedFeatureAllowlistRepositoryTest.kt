@@ -419,4 +419,49 @@ class CachedFeatureAllowlistRepositoryTest {
             assertEquals("test@example.com", persisted?.accountEmail)
             externalScope.cancel()
         }
+
+    @Test
+    fun blankEmailNeverMatchesASnapshotOwner() =
+        runTest {
+            // FirebaseAuthBridge maps a missing email to "" — two email-less
+            // accounts must not match each other's snapshots via "" == "".
+            val ds = FakeNetworkFeatureAllowlistDataSource()
+            val authRepo = FakeAuthRepository().apply {
+                setIdTokenResult(FirebaseIdToken(idToken = "t", exp = Long.MAX_VALUE))
+                setAuthState(authenticatedState(email = ""))
+            }
+            val store = seededStore(sampleAllowlist, accountEmail = "")
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+
+            val repo = CachedFeatureAllowlistRepository(ds, authRepo, store, AppClock { 1_000L }, externalScope)
+            advanceUntilIdle()
+
+            assertNull(repo.allowlist.value)
+            // Not a confirmed mismatch either — the entry is kept.
+            assertTrue(store.contains(AllowlistSnapshot.KEY))
+            externalScope.cancel()
+        }
+
+    @Test
+    fun fetchForEmaillessAccountDoesNotPersist() =
+        runTest {
+            val ds = FakeNetworkFeatureAllowlistDataSource().apply {
+                setFetchResult(NetworkResult.Success(sampleAllowlist))
+            }
+            val authRepo = FakeAuthRepository().apply {
+                setIdTokenResult(FirebaseIdToken(idToken = "t", exp = Long.MAX_VALUE))
+                setAuthState(authenticatedState(email = ""))
+            }
+            val store = FakeStatusSnapshotStore()
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+
+            val repo = CachedFeatureAllowlistRepository(ds, authRepo, store, AppClock { 1_000L }, externalScope)
+            advanceUntilIdle()
+
+            // In-memory value works normally; only the persisted snapshot
+            // is skipped (no ownable key to write).
+            assertEquals(sampleAllowlist, repo.allowlist.value)
+            assertEquals(false, store.contains(AllowlistSnapshot.KEY))
+            externalScope.cancel()
+        }
 }
