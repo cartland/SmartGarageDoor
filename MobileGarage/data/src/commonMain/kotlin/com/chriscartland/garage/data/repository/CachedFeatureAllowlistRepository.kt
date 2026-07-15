@@ -110,36 +110,58 @@ class CachedFeatureAllowlistRepository(
 
     /** Seeds the in-memory cache from a snapshot owned by [signedInEmail]. */
     private suspend fun hydrate(signedInEmail: String) {
-        val snapshot = statusSnapshotStore.read(
-            AllowlistSnapshot.KEY,
-            AllowlistSnapshot.SCHEMA_VERSION,
-            AllowlistSnapshotDto.serializer(),
-        ) ?: return
-        val snapshotEmail = snapshot.accountEmail
-        if (snapshotEmail == null) {
-            // No owner recorded: treat as absent, but never delete on
-            // missing information.
-            Logger.w { "allowlist snapshot has no accountEmail; ignoring" }
+        // Ownership needs a usable identity: FirebaseAuthBridge maps a
+        // missing email to "", and "" == "" must not let two email-less
+        // accounts match each other's snapshots.
+        if (signedInEmail.isBlank()) {
+            Logger.w { "allowlist hydrate: signed-in user has no email; skipping" }
             return
         }
-        if (snapshotEmail != signedInEmail) {
-            // Confirmed cross-account snapshot (a sign-out clear missed by
-            // conflation or process death) — refuse AND delete.
-            Logger.w { "allowlist snapshot belongs to another account; deleting" }
-            statusSnapshotStore.clear(setOf(AllowlistSnapshot.KEY))
-            return
-        }
-        if (snapshot.confirmedAgeSeconds(appClock.nowEpochSeconds()) > DISPLAY_TTL_SECONDS) {
-            Logger.i { "allowlist snapshot older than display-TTL; not seeding" }
-            return
-        }
-        // CAS: only seed if the collector's fetch hasn't landed yet (it
-        // can't have — the collector starts after hydration — but keep
-        // the guard).
-        if (_allowlist.value == null) {
-            val seeded = snapshot.payload.toDomain()
-            _allowlist.value = seeded
-            Logger.i { "allowlist <- $seeded (source=disk seed)" }
+        // Under fetchMutex so the seed's check-then-act can never
+        // interleave with a concurrent public fetchAllowlist() write
+        // (latent today — init sequences hydrate before the collector —
+        // but the public API permits it).
+        fetchMutex.withLock {
+            val snapshot = statusSnapshotStore.read(
+                AllowlistSnapshot.KEY,
+                AllowlistSnapshot.SCHEMA_VERSION,
+                AllowlistSnapshotDto.serializer(),
+            ) ?: return
+            val snapshotEmail = snapshot.accountEmail
+            if (snapshotEmail.isNullOrBlank()) {
+                // No usable owner recorded: treat as absent, but never
+                // delete on missing information.
+                Logger.w { "allowlist snapshot has no accountEmail; ignoring" }
+                return
+            }
+            if (snapshotEmail != signedInEmail) {
+                // Confirmed cross-account snapshot (a sign-out clear missed by
+                // conflation or process death) — refuse AND delete.
+                Logger.w { "allowlist snapshot belongs to another account; deleting" }
+                statusSnapshotStore.clear(setOf(AllowlistSnapshot.KEY))
+                return
+            }
+            if (snapshot.confirmedAgeSeconds(appClock.nowEpochSeconds()) > DISPLAY_TTL_SECONDS) {
+                Logger.i { "allowlist snapshot older than display-TTL; not seeding" }
+                return
+            }
+            // Post-read session recheck (mirrors fetchAllowlist's guard):
+            // the disk read suspended, and a fast A→B account switch can be
+            // conflated into never showing Unauthenticated — the seed must
+            // not publish A's rows into B's live session.
+            val auth = authRepository.authState.value
+            if (auth !is AuthState.Authenticated || auth.user.email.asString() != signedInEmail) {
+                Logger.w { "allowlist hydrate: session changed during read; not seeding" }
+                return
+            }
+            // CAS: only seed if the collector's fetch hasn't landed yet (it
+            // can't have — the collector starts after hydration — but keep
+            // the guard).
+            if (_allowlist.value == null) {
+                val seeded = snapshot.payload.toDomain()
+                _allowlist.value = seeded
+                Logger.i { "allowlist <- $seeded (source=disk seed)" }
+            }
         }
     }
 
@@ -192,6 +214,13 @@ class CachedFeatureAllowlistRepository(
         allowlist: FeatureAllowlist,
         accountEmail: String,
     ) {
+        if (accountEmail.isBlank()) {
+            // Can't establish ownership for an email-less account —
+            // don't persist rather than write an entry a different
+            // email-less account could later match.
+            Logger.w { "allowlist: no email to key the snapshot; not persisting" }
+            return
+        }
         val now = appClock.nowEpochSeconds()
         statusSnapshotStore.write(
             AllowlistSnapshot.KEY,
