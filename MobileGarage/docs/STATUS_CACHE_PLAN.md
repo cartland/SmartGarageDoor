@@ -73,9 +73,15 @@ Unifying gap: nothing except door events (Room) and app settings (DataStore) sur
 - Sign-out: key registered with the D1 clearer (account-keying is the real guard).
 - Display unchanged (null allowlist = rows absent); hydration removes the cold-start pop-in. Display-TTL 24h off `confirmedAt`, same skew guard.
 
-### D5. ServerConfig — deferred
+### D5. ServerConfig — decided NOT to persist (2026-07-18)
 
-`CachedServerConfigRepository` stays unpersisted for now. Consequence: the button-health cold-start revalidate is serially gated on a serverConfig fetch + token refresh (2–3 RTTs), so the stale-display window is a few seconds; bounded by the D2 display-TTL. If later persisted, `remoteButtonPushKey` rides in the already-backup-excluded file (and the key alone does not authorize pushes — the server also verifies the ID-token allowlist).
+`CachedServerConfigRepository` stays unpersisted — **this is a settled decision, not a "later" item.** The only payoff would be shortening the *silent* button-health cold-start revalidate (serially gated on a serverConfig fetch + token refresh, 2–3 RTTs → ~1). That window is invisible: `ServerConfig` has no UI of its own, and button-health *display* already hydrates instantly from its own snapshot (D2), so nothing a user sees would change.
+
+Against that zero visible gain sit two real costs the other three statuses don't carry:
+1. **Secret on disk.** `ServerConfig` holds `remoteButtonPushKey` (the `X-RemoteButtonPushKey` shared secret). Persisting it writes that secret to disk — mitigated (rides in the backup-excluded `status_cache.preferences_pb`; the key alone does not authorize a push, the server also verifies the ID-token + email allowlist), but still a new surface for no benefit.
+2. **Permanent maintenance weight** — a fourth persisted status: DTO, `StatusCacheKey`, both-component DI, identity tests, sign-out registration, carried forever.
+
+The only scenario where a cached config could matter is a cold start on a flaky network — but door control needs the network anyway, so a cached key unblocks nothing. Net-negative trade; not doing it. The accepted consequence is the permanent 2–3-RTT cold-start revalidate, bounded by the D2 display-TTL.
 
 ### D6. Platform-side exceptions
 
@@ -99,7 +105,7 @@ Unifying gap: nothing except door events (Room) and app settings (DataStore) sur
 
 ## Accepted tradeoffs (explicit, review-verified magnitudes)
 
-- Cold-start verdict staleness: seconds (revalidate round-trip; 2–3 RTTs while ServerConfig is unpersisted); the ~1-minute stale window after a firmware-rotation reset is closed by the disk-seed rule; offline cold start keeps the last confirmed verdict until the display-TTL — same posture as Room-hydrated door state.
+- Cold-start verdict staleness: seconds (revalidate round-trip; the 2–3-RTT chain is the permanent steady state — ServerConfig is deliberately not persisted, see D5); the ~1-minute stale window after a firmware-rotation reset is closed by the disk-seed rule; offline cold start keeps the last confirmed verdict until the display-TTL — same posture as Room-hydrated door state.
 - Cross-device snooze changes detected at: door-event hook, screen-entry TTL revalidate, manual refresh, cold start. Dominant failure direction fail-safe (unexpected warning rather than a missed one).
 - A stale-pushKey 403 clears the button-health cache → Hidden until next success (fail-safe).
 - In-flight write-through may re-write a just-cleared entry at sign-out (harmless for non-account-keyed entries; allowlist is account-keyed).

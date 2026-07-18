@@ -1947,13 +1947,14 @@ A persisted last-known-value cache in the KMP layer; repositories **hydrate-then
 
 - Cold launches render last-known verdicts instantly; the Android per-entry snooze fetch + 60s poll is gone (replaced by TTL-gated screen-entry revalidate on both platforms + the door-event hook + the expiry derivation); the pre-existing iOS stale "Snoozing until [past]" label is fixed.
 - Accepted staleness bounds (verified magnitudes): seconds on cold start (revalidate round-trip); ≤ fetch-TTL for server-side snooze voids that happen while the app is dead (fail-safe direction); offline cold start keeps the last confirmed verdict until display-TTL — same posture as the Room-hydrated door state.
-- Every new persisted status must: define its DTO + `StatusCacheKey` beside its repo, pick a hydration shape above, register per-user keys in `CLEARED_ON_SIGN_OUT`, and add both-component DI + identity tests. `ServerConfig` remains unpersisted (deferred; its absence bounds cold-start revalidate at 2–3 RTTs).
+- Every new persisted status must: define its DTO + `StatusCacheKey` beside its repo, pick a hydration shape above, register per-user keys in `CLEARED_ON_SIGN_OUT`, and add both-component DI + identity tests. `ServerConfig` is **deliberately not persisted** (decided 2026-07-18, not deferred — see Alternatives); its absence bounds cold-start revalidate at 2–3 RTTs, an accepted permanent cost.
 
 ### Alternatives considered
 
 - **Room entities per status** — rejected: single-value snapshots, not queryable lists; Preferences DataStore is the right primitive (door events stay in Room).
 - **Fetch-skip TTL for the allowlist** — rejected in review: it removed the only grant-propagation path (restart) with no manual-refresh fallback.
 - **Keeping "Checking…" UI** — rejected: it was prominent UI for a state the user cannot act on; with hydration it would appear exactly when least useful.
+- **Persisting `ServerConfig` as a fourth status** — rejected (2026-07-18). Its only payoff is shortening the *silent* button-health cold-start revalidate (2–3 RTTs → ~1); `ServerConfig` has no UI and button-health display already hydrates instantly (D2), so the gain is invisible. Against that: it holds the `remoteButtonPushKey` secret (persisting writes it to disk — mitigated but a new surface for zero benefit) and adds permanent maintenance weight (DTO, DI, identity tests, sign-out registration). Net-negative; the 2–3-RTT cold-start revalidate is an accepted permanent cost. `STATUS_CACHE_PLAN.md` § D5 has the full reasoning.
 
 ### References
 
