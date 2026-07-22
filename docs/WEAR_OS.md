@@ -117,7 +117,9 @@ create or push `wear/N` tags directly (the guardrails hook blocks them).
   wear/2 releases were live on the track for a day while the Pixel Watch 4
   couldn't see the app; the opt-in was submitted the same day. The Wear
   store-listing screenshots (`distribution/playstore/wear/`) satisfy the
-  review's asset requirements.
+  review's asset requirements. **Outcome: approved same-day (2026-07-22)**
+  — the app then surfaced on the watch Play Store and 0.1.1 was installed
+  on a Pixel Watch 4 (Wear OS 7), the app's first run on real hardware.
 - The `play-track-snapshot` renderer resolves wear versionCodes back to
   `wear/N` tags, so the track-state log stays readable.
 - **Release notes:** automated uploads send `distribution/wear-whatsnew/`
@@ -150,14 +152,16 @@ canvas (TimeText, centering, palette, overlay badge all correct).
 
 ## Deliberately not included (follow-ups, in rough priority order)
 
-1. **Real-watch verification.** The fixture screen has rendered correctly on
-   a round API 34 emulator (2026-07-22, see § Store listing assets), which
-   verifies layout/palette/typography on the round canvas — but the live app
-   (real network, Credential Manager sign-in, Firebase-on-watch) has still
-   never run on a physical watch. **Do not exercise the real remote button
-   while verifying — it operates the physical door.** The signed-out app is
-   inert (`PushRemoteButtonUseCase` gates on `Authenticated` before any
-   network call), so UI/layout verification while signed out is always safe.
+1. **Functional pass on the real watch.** 0.1.1 was installed from Play on
+   a physical Pixel Watch 4 (Wear OS 7) on 2026-07-22 — the app's first run
+   on real hardware (the emulator had verified layout/palette/typography;
+   see § Store listing assets). Still unconfirmed on-device: Credential
+   Manager sign-in, live door status accuracy, the foreground refresh
+   cadence, and the tap-to-arm → hold-to-confirm press. Only the maintainer
+   can run that last one: **the remote button operates the physical door.**
+   The signed-out app is inert (`PushRemoteButtonUseCase` gates on
+   `Authenticated` before any network call), so signed-out exploration is
+   always safe.
 2. **R8 for the Wear release build.** Minification is deliberately OFF in
    the release build type — the phone needed hand-tuned keep rules for
    kotlinx.serialization (ADR-020) and there is no CLI way to verify a
