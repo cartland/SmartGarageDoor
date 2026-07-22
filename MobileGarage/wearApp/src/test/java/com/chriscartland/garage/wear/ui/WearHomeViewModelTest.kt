@@ -247,9 +247,53 @@ class WearHomeViewModelTest {
     fun signInDelegatesToUseCase() =
         runTest {
             val viewModel = createViewModel()
-            viewModel.signIn(GoogleIdToken("test-google-token"))
+            authRepository.setSignInResult(
+                AuthState.Authenticated(
+                    User(name = DisplayName("Test User"), email = Email("test@example.com")),
+                ),
+            )
+            viewModel.onSignInResult(GoogleIdToken("test-google-token"))
             advanceUntilIdle()
             assertEquals(1, authRepository.signInCount)
+            assertFalse(viewModel.signInError.value)
+        }
+
+    @Test
+    fun nullSignInResultShowsTransientError() =
+        runTest {
+            val viewModel = createViewModel()
+            viewModel.onSignInResult(null)
+            runCurrent()
+            assertTrue(viewModel.signInError.value)
+            assertEquals(0, authRepository.signInCount)
+            advanceTimeBy(WearHomeViewModel.SIGN_IN_ERROR_DISPLAY_MILLIS + 1)
+            runCurrent()
+            assertFalse(viewModel.signInError.value)
+        }
+
+    @Test
+    fun failedFirebaseSignInShowsTransientError() =
+        runTest {
+            val viewModel = createViewModel()
+            authRepository.setSignInResult(AuthState.Unauthenticated)
+            viewModel.onSignInResult(GoogleIdToken("test-google-token"))
+            runCurrent()
+            assertEquals(1, authRepository.signInCount)
+            assertTrue(viewModel.signInError.value)
+            advanceTimeBy(WearHomeViewModel.SIGN_IN_ERROR_DISPLAY_MILLIS + 1)
+            runCurrent()
+            assertFalse(viewModel.signInError.value)
+        }
+
+    @Test
+    fun signInStartedClearsError() =
+        runTest {
+            val viewModel = createViewModel()
+            viewModel.onSignInResult(null)
+            runCurrent()
+            assertTrue(viewModel.signInError.value)
+            viewModel.onSignInStarted()
+            assertFalse(viewModel.signInError.value)
         }
 
     companion object {

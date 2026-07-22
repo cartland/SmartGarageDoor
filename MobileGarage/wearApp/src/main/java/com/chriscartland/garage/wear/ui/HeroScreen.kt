@@ -85,6 +85,7 @@ fun HeroScreen(
     val doorEvent by viewModel.currentDoorEvent.collectAsStateWithLifecycle()
     val buttonState by viewModel.buttonState.collectAsStateWithLifecycle()
     val isHolding by viewModel.isHolding.collectAsStateWithLifecycle()
+    val signInError by viewModel.signInError.collectAsStateWithLifecycle()
 
     // Foreground-only refresh: poll while the screen is visible, stop when hidden.
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -115,15 +116,15 @@ fun HeroScreen(
         onDoorTap = viewModel::onDoorTap,
         onHoldStart = viewModel::onHoldStart,
         onHoldEnd = viewModel::onHoldEnd,
+        signInError = signInError,
         onSignInClick = {
+            viewModel.onSignInStarted()
             scope.launch {
                 val token = WearGoogleSignIn.requestGoogleIdToken(
                     context = context,
                     serverClientId = signInConfig.googleServerClientId,
                 )
-                if (token != null) {
-                    viewModel.signIn(token)
-                }
+                viewModel.onSignInResult(token)
             }
         },
         modifier = modifier,
@@ -142,6 +143,7 @@ fun HeroScreenContent(
     authState: AuthState,
     buttonState: RemoteButtonState,
     isHolding: Boolean,
+    signInError: Boolean,
     onDoorTap: () -> Unit,
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit,
@@ -180,7 +182,17 @@ fun HeroScreenContent(
                 onDoorTap = onDoorTap,
                 onHoldStart = onHoldStart,
                 onHoldEnd = onHoldEnd,
-                modifier = Modifier.fillMaxWidth(DOOR_WIDTH_FRACTION),
+                // The signed-out layout also carries the button + error
+                // caption; a slightly smaller door keeps the whole column
+                // inside the round viewport (0.1.2 fix — the caption used
+                // to overflow into the screen's clipped bottom edge).
+                modifier = Modifier.fillMaxWidth(
+                    if (authState is AuthState.Authenticated) {
+                        DOOR_WIDTH_FRACTION
+                    } else {
+                        DOOR_WIDTH_FRACTION_SIGNED_OUT
+                    },
+                ),
             )
             Text(
                 text = HeroScreenMappers.doorStateLabel(doorPosition),
@@ -214,6 +226,16 @@ fun HeroScreenContent(
                     ) {
                         Text(text = stringResource(R.string.sign_in))
                     }
+                    // Reserved caption slot: empty text keeps the height
+                    // stable so the transient failure message (auto-cleared
+                    // by the ViewModel) never reflows the column.
+                    Text(
+                        text = if (signInError) stringResource(R.string.sign_in_failed) else "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center,
+                        minLines = 1,
+                    )
                 }
             }
         }
@@ -339,6 +361,7 @@ private fun HeroScreenContentArmedPreview() {
             ),
             buttonState = RemoteButtonState.AwaitingConfirmation,
             isHolding = false,
+            signInError = false,
             onDoorTap = {},
             onHoldStart = {},
             onHoldEnd = {},
@@ -357,6 +380,7 @@ private fun HeroScreenContentSignedOutPreview() {
             authState = AuthState.Unauthenticated,
             buttonState = RemoteButtonState.Ready,
             isHolding = false,
+            signInError = false,
             onDoorTap = {},
             onHoldStart = {},
             onHoldEnd = {},
@@ -366,6 +390,7 @@ private fun HeroScreenContentSignedOutPreview() {
 }
 
 private const val DOOR_WIDTH_FRACTION = 0.62f
+private const val DOOR_WIDTH_FRACTION_SIGNED_OUT = 0.54f
 private const val DOOR_INSIDE_RING_FRACTION = 0.78f
 private const val RING_STROKE_DP = 5
 private const val RING_RELEASE_MILLIS = 150
