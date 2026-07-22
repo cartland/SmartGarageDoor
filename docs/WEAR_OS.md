@@ -99,15 +99,14 @@ create or push `wear/N` tags directly (the guardrails hook blocks them).
   repo Actions variable `WEAR_PLAY_UPLOAD_ENABLED` is `'true'`, it also
   uploads to the Play **Wear internal** track (`tracks: wear:internal`,
   same pinned uploader action and service account as the phone).
-- **One-time bootstrap (manual, Play Console):** the variable stays unset for
-  the first release. Cut `wear/1`, download the artifact, then in Play
-  Console: opt in to the **Wear OS form factor** (Setup → Advanced settings →
-  Form factors), create a **Wear OS internal testing** release, upload the
-  AAB, add testers. After it's accepted, run the `play-track-snapshot`
-  workflow and check the track-state issue: the wear track's API name should
-  read `wear:internal` — if it differs, fix `release-wear.yml` first. Then set
-  `WEAR_PLAY_UPLOAD_ENABLED=true` (repo Settings → Secrets and variables →
-  Actions → Variables) and every later `wear/N` release deploys automatically.
+- **One-time bootstrap — COMPLETED 2026-07-22:** `wear/1` (0.1.0 /
+  versionCode 1000001) was uploaded manually in Play Console (Wear OS
+  form-factor opt-in → Wear OS internal testing → full rollout), the
+  `play-track-snapshot` log confirmed the track's API name is
+  `wear:internal`, and `WEAR_PLAY_UPLOAD_ENABLED` was set `true`. From
+  `wear/2` on, every release deploys automatically. (Recovery note: if the
+  variable is ever unset, releases fall back to artifact-only with a
+  manual-upload notice — same behavior the bootstrap used.)
 - The `play-track-snapshot` renderer resolves wear versionCodes back to
   `wear/N` tags, so the track-state log stays readable.
 - **Release notes:** automated uploads send `distribution/wear-whatsnew/`
