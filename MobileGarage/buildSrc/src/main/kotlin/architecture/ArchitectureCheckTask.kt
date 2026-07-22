@@ -29,6 +29,11 @@ abstract class ArchitectureCheckTask : DefaultTask() {
         ":usecase" to listOf(":domain"),
         ":presentation-model" to listOf(":domain"),
         ":androidApp" to listOf("*"),
+        // Deliberately narrow (test configurations are not captured): the
+        // watch reuses shared logic but must stay lean (no Room/DataStore,
+        // no phone ViewModels). Widening this list is a conscious
+        // architecture decision, not a default.
+        ":wearApp" to listOf(":domain", ":data", ":usecase"),
         ":android-screenshot-tests" to listOf("*"),
         ":iosFramework" to listOf("*"),
         ":macrobenchmark" to listOf("*"),

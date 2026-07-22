@@ -124,7 +124,7 @@ jobs:
         env:
           SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
-        run: ./gradlew :androidApp:assembleDebug -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
+        run: ./gradlew :androidApp:assembleDebug :wearApp:assembleDebug -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
       - name: Clean secrets
         if: always()
         working-directory: MobileGarage

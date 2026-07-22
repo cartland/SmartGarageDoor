@@ -48,3 +48,7 @@ runs:
           cp release/google-services-placeholder.json androidApp/google-services.json
           echo "No encrypt key (e.g. Dependabot run): copied placeholder google-services.json."
         fi
+        if [ ! -f wearApp/google-services.json ]; then
+          cp release/google-services-placeholder.json wearApp/google-services.json
+          echo "No encrypt key (e.g. Dependabot run): copied placeholder google-services.json (wearApp)."
+        fi

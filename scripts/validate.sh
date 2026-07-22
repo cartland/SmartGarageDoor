@@ -327,6 +327,13 @@ else
     fail "assembleDebug"
 fi
 
+step "Build Wear Debug APK"
+if $GRADLE :wearApp:assembleDebug; then
+    pass "wearApp assembleDebug"
+else
+    fail "wearApp assembleDebug"
+fi
+
 step "Screenshot tests (compile)"
 if $GRADLE :android-screenshot-tests:compileDebugScreenshotTestKotlin; then
     pass "screenshot test compilation"
