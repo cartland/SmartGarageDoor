@@ -1,0 +1,642 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Release the Wear OS app by creating and pushing a wear/N tag.
+# This triggers release-wear.yml to build the Wear AAB on CI.
+#
+# IMPORTANT: We only publish to the Play INTERNAL track, never production.
+# Users promote from internal to production manually in Play Console.
+#
+# The tag number maps to versionCode = 1000000 + N (offset keeps Wear
+# artifact codes unique vs the phone's android/N codes in the shared
+# applicationId).
+#
+# BOOTSTRAP NOTE: until the repo Actions variable WEAR_PLAY_UPLOAD_ENABLED
+# is set to 'true', the workflow only uploads the signed AAB as a CI
+# artifact (1-day retention) for MANUAL upload in Play Console. Set the
+# variable after the one-time manual upload + Wear form-factor opt-in has
+# succeeded; from then on CI uploads to the Wear internal track
+# automatically, like release-android.yml does for the phone.
+#
+# USAGE
+#
+# Start with --check. It prints the exact command(s) you should run next,
+# with real values (SHAs, tag names) already filled in. Copy-paste, don't
+# re-type from memory; seeing the concrete values is the whole point.
+#
+#   ./scripts/release-wear.sh --check
+#
+# Normal release (validation marker matches HEAD):
+#   ./scripts/release-wear.sh --confirm-tag wear/N
+#
+# Emergency release (validation has not passed for HEAD):
+#   ./scripts/release-wear.sh \
+#       --confirm-tag wear/N \
+#       --confirm-unvalidated-release <40-char-sha>
+#
+# Rollback release (detached HEAD on an older tag):
+#   git checkout wear/M               # older tag you want to re-release
+#   ./scripts/release-wear.sh --check     # prints the rollback command
+#   ./scripts/release-wear.sh \
+#       --confirm-tag wear/N \
+#       --confirm-hash <40-char-sha-of-target> \
+#       --confirm-rollback-from <40-char-sha-of-previous-latest>
+#
+# DESIGN PRINCIPLE
+#
+# Every override asks you to state a value from reality (a SHA, a tag).
+# The script fails if the value does not match. This makes correct usage
+# easy (read from --check output) and accidental usage hard (you would
+# have to type the right value for the wrong situation).
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
+# Parse flags.
+MODE="interactive"
+CONFIRM_TAG=""
+CONFIRM_HASH=""
+CONFIRM_ROLLBACK_FROM=""
+CONFIRM_UNVALIDATED_RELEASE=""
+CONFIRM_NO_CHANGELOG=""
+DRY_RUN=false
+
+show_help() {
+    cat <<'EOF'
+Usage: ./scripts/release-wear.sh [OPTIONS]
+
+Recommended workflow: run with --check first. It prints the exact
+command to run next, with SHAs filled in. Copy-paste that command.
+
+Modes:
+  (no args)                 Interactive mode — prompts for confirmation
+  --check                   Print state + recommended next command, then exit
+  --confirm-tag <tag>       Non-interactive release. Tag must match computed next tag.
+  --dry-run                 Show what would happen without creating tags
+
+Override flags (all require a specific value from --check output):
+  --confirm-hash <sha>              Release a specific commit. SHA must match
+                                    exactly (recommend 40-char full SHA).
+  --confirm-rollback-from <sha>     Required for rollback releases. Must match
+                                    the SHA the latest tag currently points to.
+  --confirm-unvalidated-release <sha>
+                                    Release without validation marker match.
+                                    SHA must equal the target commit.
+  --confirm-no-changelog <sha>      Release without a CHANGELOG entry for the
+                                    current versionName. SHA must equal the
+                                    target commit. Add the entry retroactively.
+
+Help:
+  -h, --help                Show this help
+
+Examples:
+  ./scripts/release-wear.sh --check
+  ./scripts/release-wear.sh --confirm-tag wear/1
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --check)
+            MODE="check"
+            shift
+            ;;
+        --confirm-tag)
+            MODE="confirm"
+            CONFIRM_TAG="$2"
+            shift 2
+            ;;
+        --confirm-hash)
+            CONFIRM_HASH="$2"
+            shift 2
+            ;;
+        --confirm-rollback-from)
+            CONFIRM_ROLLBACK_FROM="$2"
+            shift 2
+            ;;
+        --confirm-unvalidated-release)
+            CONFIRM_UNVALIDATED_RELEASE="$2"
+            shift 2
+            ;;
+        --confirm-no-changelog)
+            CONFIRM_NO_CHANGELOG="$2"
+            shift 2
+            ;;
+        --dry-run)
+            DRY_RUN=true
+            shift
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Error: Unknown option: $1${RESET}"
+            show_help
+            exit 1
+            ;;
+    esac
+done
+
+# Fetch tags.
+git fetch origin --tags --quiet
+
+# Compute latest tag number and its SHA.
+HIGHEST_VERSION=$(git tag -l 'wear/[0-9]*' | \
+    sed 's|wear/||' | \
+    grep -E '^[0-9]+$' || true)
+HIGHEST_VERSION=$(echo "$HIGHEST_VERSION" | sort -n | tail -1)
+
+if [ -z "$HIGHEST_VERSION" ]; then
+    NEXT_VERSION=1
+    LATEST_TAG="(none)"
+    LATEST_TAG_SHA="(none)"
+else
+    NEXT_VERSION=$((HIGHEST_VERSION + 1))
+    LATEST_TAG="wear/$HIGHEST_VERSION"
+    LATEST_TAG_SHA=$(git rev-parse "$LATEST_TAG" 2>/dev/null || echo "(missing)")
+fi
+
+NEW_TAG="wear/$NEXT_VERSION"
+
+# Resolve target commit.
+if [ -n "$CONFIRM_HASH" ]; then
+    TARGET_COMMIT=$(git rev-parse --verify "$CONFIRM_HASH" 2>/dev/null) || {
+        echo -e "${RED}Error: --confirm-hash '$CONFIRM_HASH' is not a valid git ref.${RESET}"
+        exit 1
+    }
+    TARGET_COMMIT_SHORT=$(git rev-parse --short "$TARGET_COMMIT")
+    TARGET_SOURCE="--confirm-hash $CONFIRM_HASH -> $TARGET_COMMIT_SHORT"
+else
+    TARGET_COMMIT=$(git rev-parse HEAD)
+    TARGET_COMMIT_SHORT=$(git rev-parse --short HEAD)
+    TARGET_SOURCE="HEAD ($TARGET_COMMIT_SHORT)"
+fi
+
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+if [ -z "$CURRENT_BRANCH" ]; then
+    CURRENT_BRANCH="(detached)"
+fi
+
+# Validation marker state.
+#   matches : marker exists and matches TARGET_COMMIT
+#   stale   : marker exists but matches some other commit
+#   missing : marker file does not exist
+# validate.sh builds + tests :wearApp too, so the shared marker covers Wear.
+VALIDATION_FILE="$REPO_ROOT/.claude/.validation-passed"
+VALIDATION_STATE="missing"
+VALIDATED_COMMIT=""
+if [ -f "$VALIDATION_FILE" ]; then
+    VALIDATED_COMMIT=$(cat "$VALIDATION_FILE" 2>/dev/null | tr -d '[:space:]')
+    if [ "$VALIDATED_COMMIT" = "$TARGET_COMMIT" ]; then
+        VALIDATION_STATE="matches"
+    else
+        VALIDATION_STATE="stale"
+    fi
+fi
+
+# versionName from wearApp/version.properties on the target commit.
+# wearApp/CHANGELOG.md uses the human-readable X.Y.Z heading (not the
+# wear/N tag), so this is the key we look up.
+#
+# Parser tolerates `versionName=0.1.0` and `versionName = 0.1.0` (.properties
+# files allow whitespace around `=`). The trailing tr removes surrounding
+# whitespace, including CR from CRLF line endings.
+VERSION_PROPERTIES="$REPO_ROOT/MobileGarage/wearApp/version.properties"
+VERSION_NAME=""
+if [ -f "$VERSION_PROPERTIES" ]; then
+    VERSION_NAME=$(awk -F= '/^[[:space:]]*versionName[[:space:]]*=/ {
+        sub(/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*/, "")
+        gsub(/[[:space:]]/, "")
+        print
+        exit
+    }' "$VERSION_PROPERTIES")
+fi
+
+# Escape regex special chars in versionName so values like `0.1.0` or
+# `0.1.0-rc.1` are matched literally in awk's extended-regex pattern.
+VERSION_NAME_RE=""
+if [ -n "$VERSION_NAME" ]; then
+    # shellcheck disable=SC2001
+    VERSION_NAME_RE=$(echo "$VERSION_NAME" | sed 's/[][\\.+*?(){}^$|]/\\&/g')
+fi
+
+# CHANGELOG state for the versionName we're about to release.
+#   present  : `## X.Y.Z` heading exists and has non-empty body
+#   empty    : heading exists but body is whitespace-only
+#   missing  : no heading for this versionName
+#   no_file  : MobileGarage/wearApp/CHANGELOG.md does not exist
+#   no_ver   : versionName could not be parsed from version.properties
+#              — treated as a hard failure in the gate (can't ship a
+#              release whose version we can't read)
+#
+# Matching rules:
+# - Lines inside fenced code blocks (```...```) are ignored, in case the
+#   docs intro ever embeds an example release heading.
+# - Heading must be `^## X.Y.Z` followed by end-of-line or whitespace, so
+#   `## 0.1` does not falsely match `0.1.1`. Dots are escaped in the
+#   pattern so the match is literal.
+CHANGELOG_FILE="$REPO_ROOT/MobileGarage/wearApp/CHANGELOG.md"
+CHANGELOG_STATE="no_file"
+CHANGELOG_BODY=""
+if [ -z "$VERSION_NAME" ]; then
+    CHANGELOG_STATE="no_ver"
+elif [ -f "$CHANGELOG_FILE" ]; then
+    CHANGELOG_BODY=$(awk -v ver="$VERSION_NAME_RE" '
+        BEGIN { in_fence = 0; found = 0 }
+        /^```/ { in_fence = !in_fence; next }
+        in_fence { next }
+        $0 ~ ("^## "ver"([ ]|$)") { found = 1; next }
+        found && /^## / { exit }
+        found { print }
+    ' "$CHANGELOG_FILE")
+    HEADING_FOUND=$(awk -v ver="$VERSION_NAME_RE" '
+        BEGIN { in_fence = 0 }
+        /^```/ { in_fence = !in_fence; next }
+        in_fence { next }
+        $0 ~ ("^## "ver"([ ]|$)") { print "yes"; exit }
+    ' "$CHANGELOG_FILE")
+    if [ -n "$(echo "$CHANGELOG_BODY" | tr -d '[:space:]')" ]; then
+        CHANGELOG_STATE="present"
+    elif [ "$HEADING_FOUND" = "yes" ]; then
+        CHANGELOG_STATE="empty"
+    else
+        CHANGELOG_STATE="missing"
+    fi
+fi
+
+# Rollback detection: target commit is already tagged (not the latest),
+# usually because the user ran `git checkout wear/M` on an older tag.
+EXISTING_TAGS_ON_TARGET=$(git tag -l 'wear/[0-9]*' --points-at "$TARGET_COMMIT" 2>/dev/null | sort -t/ -k2 -n || true)
+IS_ROLLBACK="false"
+if [ -n "$EXISTING_TAGS_ON_TARGET" ]; then
+    NEWEST_TAG_ON_TARGET=$(echo "$EXISTING_TAGS_ON_TARGET" | tail -1)
+    if [ "$NEWEST_TAG_ON_TARGET" != "$LATEST_TAG" ]; then
+        IS_ROLLBACK="true"
+    fi
+fi
+
+# === --check mode ===
+if [ "$MODE" = "check" ]; then
+    echo "Latest tag:   $LATEST_TAG (sha: $LATEST_TAG_SHA)"
+    echo "Next tag:     $NEW_TAG (versionCode $((1000000 + NEXT_VERSION)))"
+    echo "HEAD:         $TARGET_COMMIT"
+    echo "Branch:       $CURRENT_BRANCH"
+
+    case "$VALIDATION_STATE" in
+        matches)
+            echo -e "Validation:   ${GREEN}PASSED${RESET} on $VALIDATED_COMMIT"
+            ;;
+        stale)
+            echo -e "Validation:   ${YELLOW}STALE${RESET} (marker is for $VALIDATED_COMMIT, not HEAD)"
+            ;;
+        missing)
+            echo -e "Validation:   ${YELLOW}MISSING${RESET} — run ./scripts/validate.sh first"
+            ;;
+    esac
+
+    if [ -n "$VERSION_NAME" ]; then
+        echo "versionName:  $VERSION_NAME"
+    else
+        echo -e "versionName:  ${YELLOW}NOT FOUND${RESET} (could not parse MobileGarage/wearApp/version.properties)"
+    fi
+
+    case "$CHANGELOG_STATE" in
+        present) echo -e "Changelog:    ${GREEN}PRESENT${RESET} (entry for $VERSION_NAME in MobileGarage/wearApp/CHANGELOG.md)" ;;
+        empty)   echo -e "Changelog:    ${YELLOW}EMPTY${RESET} (heading for $VERSION_NAME has no body)" ;;
+        missing) echo -e "Changelog:    ${YELLOW}MISSING${RESET} (no heading for $VERSION_NAME in MobileGarage/wearApp/CHANGELOG.md)" ;;
+        no_file) echo -e "Changelog:    ${YELLOW}NO FILE${RESET} (MobileGarage/wearApp/CHANGELOG.md does not exist)" ;;
+        no_ver)  echo -e "Changelog:    ${YELLOW}SKIPPED${RESET} (versionName not found in version.properties)" ;;
+    esac
+
+    if [ -n "$EXISTING_TAGS_ON_TARGET" ]; then
+        echo "Target tags:  $(echo "$EXISTING_TAGS_ON_TARGET" | tr '\n' ' ')"
+    fi
+
+    echo ""
+
+    if [ "$IS_ROLLBACK" = "true" ]; then
+        echo -e "${BOLD}Detected ROLLBACK${RESET} (HEAD is on $NEWEST_TAG_ON_TARGET, older than $LATEST_TAG)."
+        echo ""
+        echo "Copy and run this command to proceed:"
+        echo ""
+        echo "  ./scripts/release-wear.sh \\"
+        echo "      --confirm-tag $NEW_TAG \\"
+        echo "      --confirm-hash $TARGET_COMMIT \\"
+        echo "      --confirm-rollback-from $LATEST_TAG_SHA"
+        echo ""
+        EXTRAS=()
+        if [ "$VALIDATION_STATE" != "matches" ]; then
+            EXTRAS+=("--confirm-unvalidated-release $TARGET_COMMIT")
+        fi
+        if [ "$CHANGELOG_STATE" != "present" ] && [ "$CHANGELOG_STATE" != "no_ver" ]; then
+            EXTRAS+=("--confirm-no-changelog $TARGET_COMMIT")
+        fi
+        if [ ${#EXTRAS[@]} -gt 0 ]; then
+            echo "Append the following for the conditions flagged above:"
+            for extra in "${EXTRAS[@]}"; do
+                echo "      $extra"
+            done
+            echo ""
+        fi
+    elif [ "$CHANGELOG_STATE" = "no_ver" ]; then
+        echo -e "${RED}Cannot release: versionName not found in MobileGarage/wearApp/version.properties.${RESET}"
+        echo ""
+        echo "Fix version.properties — expected a line like:"
+        echo "    versionName=X.Y.Z"
+        echo ""
+        echo "Then re-run: ./scripts/release-wear.sh --check"
+        echo ""
+    elif [ "$VALIDATION_STATE" != "matches" ]; then
+        echo "Validation is not passing for HEAD. Two options:"
+        echo ""
+        echo "(1) Run validation, then re-run --check (recommended):"
+        echo "    ./scripts/validate.sh && ./scripts/release-wear.sh --check"
+        echo ""
+        echo "(2) Release WITHOUT validation (emergency only):"
+        echo ""
+        echo "    ./scripts/release-wear.sh \\"
+        echo "        --confirm-tag $NEW_TAG \\"
+        echo "        --confirm-unvalidated-release $TARGET_COMMIT"
+        echo ""
+    elif [ "$CHANGELOG_STATE" != "present" ]; then
+        echo "No CHANGELOG entry for $VERSION_NAME. Two options:"
+        echo ""
+        echo "(1) Add an entry, commit, push, re-run --check (recommended):"
+        echo ""
+        echo "    Edit MobileGarage/wearApp/CHANGELOG.md and add at the top"
+        echo "    (above the previous version):"
+        echo ""
+        echo "      ## $VERSION_NAME"
+        echo "      - <one or more bullets describing user-facing changes>"
+        echo ""
+        echo "    Then: git commit + push, ./scripts/validate.sh, ./scripts/release-wear.sh --check"
+        echo ""
+        echo "(2) Release WITHOUT a changelog entry (emergency only):"
+        echo ""
+        echo "    ./scripts/release-wear.sh \\"
+        echo "        --confirm-tag $NEW_TAG \\"
+        echo "        --confirm-no-changelog $TARGET_COMMIT"
+        echo ""
+    else
+        echo "Copy and run this command to release:"
+        echo ""
+        echo "  ./scripts/release-wear.sh --confirm-tag $NEW_TAG"
+        echo ""
+    fi
+
+    exit 0
+fi
+
+# === Interactive mode guard ===
+if [ "$MODE" = "interactive" ]; then
+    if [ ! -t 0 ] || [ ! -t 1 ]; then
+        echo -e "${RED}Error: Interactive mode requires a TTY.${RESET}"
+        echo ""
+        echo "Run --check to see the exact command for this state:"
+        echo "  ./scripts/release-wear.sh --check"
+        exit 1
+    fi
+fi
+
+echo -e "${BOLD}=== Wear OS Release ===${RESET}"
+echo ""
+
+# === Gate: Clean working tree (only when tagging HEAD) ===
+if [ -z "$CONFIRM_HASH" ]; then
+    # Reconcile git's stat-cache before the fast dirty check. validate.sh touches
+    # tracked files (Gradle outputs, the validation marker), bumping their mtime
+    # without changing content; the stale cached lstat then makes diff-index report
+    # a false "dirty" even though `git status` is clean. --refresh re-stats every
+    # file and clears mtime-only false positives. It NEVER masks a real change: a
+    # file whose content differs from HEAD stays flagged. (CLAUDE.md § "Stat-cache
+    # stale after validate.sh".)
+    git update-index -q --refresh > /dev/null 2>&1 || true
+    if ! git diff-index --quiet HEAD --; then
+        echo -e "${RED}Error: Working tree has uncommitted changes.${RESET}"
+        echo "Commit or stash changes before releasing."
+        exit 1
+    fi
+
+    UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null)
+    if [ -n "$UNTRACKED" ]; then
+        echo -e "${YELLOW}Warning: Untracked files detected:${RESET}"
+        echo "$UNTRACKED" | head -10
+        UNTRACKED_COUNT=$(echo "$UNTRACKED" | wc -l | tr -d ' ')
+        if [ "$UNTRACKED_COUNT" -gt 10 ]; then
+            echo "  ... and $((UNTRACKED_COUNT - 10)) more"
+        fi
+        echo ""
+        if [ "$MODE" = "interactive" ]; then
+            read -p "Continue with untracked files? (y/N) " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo "Aborted. Remove or .gitignore untracked files before releasing."
+                exit 1
+            fi
+        else
+            echo -e "${YELLOW}Non-interactive: proceeding with untracked files.${RESET}"
+        fi
+    fi
+fi
+
+# === Gate: Must be on main (when tagging HEAD) — override via --confirm-hash ===
+if [ -z "$CONFIRM_HASH" ] && [ "$CURRENT_BRANCH" != "main" ]; then
+    echo -e "${RED}Error: Not on main branch (on '$CURRENT_BRANCH').${RESET}"
+    echo ""
+    echo "Run --check to see the exact command for this state:"
+    echo "  ./scripts/release-wear.sh --check"
+    exit 1
+fi
+
+if [ -n "$CONFIRM_HASH" ]; then
+    echo -e "${YELLOW}Releasing specific commit: $TARGET_COMMIT_SHORT${RESET}"
+    echo "  Resolved from: $CONFIRM_HASH"
+    echo "  Full SHA:      $TARGET_COMMIT"
+    echo ""
+fi
+
+# === Gate: Rollback confirmation ===
+# If --confirm-rollback-from is provided, validate it matches the latest tag's
+# current commit. If the target looks like a rollback but this flag is not
+# provided, require it (prevents accidental "rollback" by forgetting to
+# re-checkout main).
+if [ -n "$CONFIRM_ROLLBACK_FROM" ]; then
+    if [ "$CONFIRM_ROLLBACK_FROM" != "$LATEST_TAG_SHA" ]; then
+        echo -e "${RED}Error: --confirm-rollback-from does not match the latest tag's commit.${RESET}"
+        echo "  Expected (sha of $LATEST_TAG): $LATEST_TAG_SHA"
+        echo "  Got:                           $CONFIRM_ROLLBACK_FROM"
+        echo ""
+        echo "Run --check to see the correct value."
+        exit 1
+    fi
+    echo -e "${YELLOW}Rollback confirmed: $LATEST_TAG -> $NEW_TAG at $TARGET_COMMIT_SHORT${RESET}"
+    echo ""
+elif [ "$IS_ROLLBACK" = "true" ]; then
+    echo -e "${RED}Error: Target commit is on tag $NEWEST_TAG_ON_TARGET, older than $LATEST_TAG.${RESET}"
+    echo "  This looks like a rollback but --confirm-rollback-from was not provided."
+    echo ""
+    echo "Run --check to see the correct command."
+    exit 1
+fi
+
+# === Gate: Validation ===
+# Two acceptable paths:
+#   A. Validation marker matches target commit (normal)
+#   B. --confirm-unvalidated-release matches target commit (emergency)
+if [ "$VALIDATION_STATE" = "matches" ]; then
+    echo -e "${GREEN}Validation passed for this commit.${RESET}"
+elif [ -n "$CONFIRM_UNVALIDATED_RELEASE" ]; then
+    if [ "$CONFIRM_UNVALIDATED_RELEASE" != "$TARGET_COMMIT" ]; then
+        echo -e "${RED}Error: --confirm-unvalidated-release SHA does not match target commit.${RESET}"
+        echo "  Expected (target commit): $TARGET_COMMIT"
+        echo "  Got:                      $CONFIRM_UNVALIDATED_RELEASE"
+        echo ""
+        echo "Run --check to see the correct value."
+        exit 1
+    fi
+    echo -e "${YELLOW}WARNING: Releasing without validation (--confirm-unvalidated-release).${RESET}"
+    echo "  This is intended for emergencies (hotfixes, rollbacks of old tags)."
+    echo ""
+else
+    if [ "$MODE" = "interactive" ]; then
+        if [ "$VALIDATION_STATE" = "stale" ]; then
+            echo -e "${YELLOW}Warning: validation marker is stale.${RESET}"
+            echo "  Marker SHA:    $VALIDATED_COMMIT"
+            echo "  Target SHA:    $TARGET_COMMIT"
+        else
+            echo -e "${YELLOW}Warning: no validation marker — run ./scripts/validate.sh first.${RESET}"
+        fi
+        read -p "Continue without validation? (y/N) " -n 1 -r
+        echo ""
+        [[ $REPLY =~ ^[Yy]$ ]] || { echo "Aborted. Run ./scripts/validate.sh first, or run --check for options."; exit 1; }
+    else
+        echo -e "${RED}Error: validation has not passed for this commit.${RESET}"
+        echo ""
+        echo "Run --check to see the exact command for this state:"
+        echo "  ./scripts/release-wear.sh --check"
+        exit 1
+    fi
+fi
+
+# === Gate: CHANGELOG entry ===
+# MobileGarage/wearApp/CHANGELOG.md must have a `## X.Y.Z` heading with a
+# non-empty body for the current versionName. Mirrors the phone and
+# Firebase changelog gates: the changelog is the permanent history, every
+# version (patch included).
+#
+# If versionName cannot be parsed (no_ver), this is a hard failure — can't
+# ship a release whose version we can't read.
+if [ "$CHANGELOG_STATE" = "present" ]; then
+    FIRST_LINE=$(echo "$CHANGELOG_BODY" | grep -m1 -E '[^[:space:]]' || echo "")
+    echo -e "${GREEN}Changelog entry found for $VERSION_NAME.${RESET}"
+    if [ -n "$FIRST_LINE" ]; then
+        echo "  First line: $(echo "$FIRST_LINE" | head -c 120)"
+    fi
+elif [ "$CHANGELOG_STATE" = "no_ver" ]; then
+    echo -e "${RED}Error: versionName could not be parsed from MobileGarage/wearApp/version.properties.${RESET}"
+    echo "  Expected a line like: versionName=X.Y.Z"
+    echo "  Fix version.properties before releasing — do not use --confirm-no-changelog for this."
+    exit 1
+elif [ -n "$CONFIRM_NO_CHANGELOG" ]; then
+    if [ "$CONFIRM_NO_CHANGELOG" != "$TARGET_COMMIT" ]; then
+        echo -e "${RED}Error: --confirm-no-changelog SHA does not match target commit.${RESET}"
+        echo "  Expected (target commit): $TARGET_COMMIT"
+        echo "  Got:                      $CONFIRM_NO_CHANGELOG"
+        echo ""
+        echo "Run --check to see the correct value."
+        exit 1
+    fi
+    echo -e "${YELLOW}WARNING: Releasing without CHANGELOG entry (--confirm-no-changelog).${RESET}"
+    echo "  Add an entry to MobileGarage/wearApp/CHANGELOG.md after the fact."
+    echo ""
+else
+    case "$CHANGELOG_STATE" in
+        missing) REASON="no heading for $VERSION_NAME in MobileGarage/wearApp/CHANGELOG.md" ;;
+        empty)   REASON="heading for $VERSION_NAME exists but body is empty" ;;
+        no_file) REASON="MobileGarage/wearApp/CHANGELOG.md does not exist" ;;
+        *)       REASON="unknown" ;;
+    esac
+    echo -e "${RED}Error: CHANGELOG gate failed ($REASON).${RESET}"
+    echo ""
+    echo "Run --check to see how to fix (write the entry, or emergency override)."
+    exit 1
+fi
+
+# Existing tags on this commit (informational).
+if [ -n "$EXISTING_TAGS_ON_TARGET" ]; then
+    NEWEST_TAG_ON_COMMIT=$(echo "$EXISTING_TAGS_ON_TARGET" | tail -1)
+    if [ "$NEWEST_TAG_ON_COMMIT" = "$LATEST_TAG" ]; then
+        echo -e "${YELLOW}Note: This commit already has $LATEST_TAG.${RESET}"
+        echo "  Creating $NEW_TAG on the same commit (version bump, no code change)."
+    else
+        echo -e "${YELLOW}Note: This commit previously released as: $(echo "$EXISTING_TAGS_ON_TARGET" | tr '\n' ' ')${RESET}"
+    fi
+fi
+
+# Release details.
+echo ""
+echo "=== Release Details ==="
+echo "  Target:      $TARGET_SOURCE"
+echo "  Branch:      $CURRENT_BRANCH"
+echo "  Latest tag:  $LATEST_TAG ($LATEST_TAG_SHA)"
+echo "  New tag:     $NEW_TAG"
+echo "  versionCode: $((1000000 + NEXT_VERSION))"
+echo "  Commit:      $TARGET_COMMIT_SHORT ($TARGET_COMMIT)"
+echo ""
+
+# Confirmation.
+if [ "$MODE" = "confirm" ]; then
+    if [ "$CONFIRM_TAG" != "$NEW_TAG" ]; then
+        echo -e "${RED}Error: --confirm-tag does not match computed next tag.${RESET}"
+        echo "  Provided: $CONFIRM_TAG"
+        echo "  Expected: $NEW_TAG"
+        echo ""
+        echo "--confirm-tag is a safety check, not an override."
+        echo "The next tag is always computed as highest existing + 1."
+        exit 1
+    fi
+    echo "--confirm-tag matches, proceeding..."
+elif [ "$MODE" = "interactive" ]; then
+    echo -e "${YELLOW}This will create tag '$NEW_TAG' and push it to origin.${RESET}"
+    read -p "Proceed with release? (y/N) " -n 1 -r
+    echo ""
+    [[ $REPLY =~ ^[Yy]$ ]] || { echo "Aborted."; exit 0; }
+fi
+
+# Dry run.
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${YELLOW}=== Dry Run ===${RESET}"
+    echo "Would create tag $NEW_TAG on commit $TARGET_COMMIT_SHORT"
+    echo "Would push tag to origin"
+    echo "No tags were created or pushed."
+    exit 0
+fi
+
+# Create and push tag.
+echo ""
+echo "Creating tag $NEW_TAG on $TARGET_COMMIT_SHORT..."
+git tag "$NEW_TAG" "$TARGET_COMMIT"
+
+echo "Pushing tag to origin..."
+if git push origin "$NEW_TAG"; then
+    echo ""
+    echo -e "${GREEN}=== Release Initiated ===${RESET}"
+    echo ""
+    echo "Tag $NEW_TAG pushed to origin."
+    echo "Monitor: https://github.com/cartland/SmartGarageDoor/actions"
+    echo ""
+    echo "If WEAR_PLAY_UPLOAD_ENABLED is not set to 'true' in repo Actions"
+    echo "variables, download the AAB artifact from the workflow run (1-day"
+    echo "retention) and upload it manually in Play Console (Wear internal)."
+else
+    echo -e "${RED}Error: Failed to push tag.${RESET}"
+    echo "Removing local tag..."
+    git tag -d "$NEW_TAG"
+    exit 1
+fi

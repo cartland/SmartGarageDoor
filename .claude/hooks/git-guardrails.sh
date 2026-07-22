@@ -96,7 +96,7 @@ fi
 # --- Block tag creation (use release scripts instead) ---
 if echo "$STRIPPED" | grep -qE '\bgit\s+tag\b'; then
   if ! echo "$STRIPPED" | grep -qE '\bgit\s+tag\b.*(-l\b|--list\b)'; then
-    deny "BLOCKED: Never create or push tags directly. Use ./scripts/release-android.sh or ./scripts/release-firebase.sh for releases. Use git tag -l to list tags."
+    deny "BLOCKED: Never create or push tags directly. Use the release scripts (./scripts/release-android.sh, release-ios.sh, release-firebase.sh, release-wear.sh). Use git tag -l to list tags."
   fi
 fi
 
@@ -119,10 +119,10 @@ fi
 PUSH_SEGMENTS=$(echo "$COMMAND" | sed '/<<.*EOF/,/^EOF/d' | grep -oE 'git[[:space:]]+push\b[^;&|]*' | sed -E "s/[\"']//g")
 if [ -n "$PUSH_SEGMENTS" ]; then
   if echo "$PUSH_SEGMENTS" | grep -qE -- '--tags\b|refs/tags/|(^|[[:space:]])tag[[:space:]]'; then
-    deny "BLOCKED: Never push tags directly (--tags, refs/tags/, or the 'push <remote> tag <name>' form). Use ./scripts/release-android.sh, ./scripts/release-ios.sh, or ./scripts/release-firebase.sh -- they push release tags as part of a gated release."
+    deny "BLOCKED: Never push tags directly (--tags, refs/tags/, or the 'push <remote> tag <name>' form). Use ./scripts/release-android.sh, ./scripts/release-ios.sh, ./scripts/release-firebase.sh, or ./scripts/release-wear.sh -- they push release tags as part of a gated release."
   fi
-  if echo "$PUSH_SEGMENTS" | grep -qE '(^|[[:space:]:])(android|ios|server)/[0-9]+([[:space:]:]|$)'; then
-    deny "BLOCKED: Never push an android/N, ios/N, or server/N ref directly. Use ./scripts/release-android.sh, ./scripts/release-ios.sh, or ./scripts/release-firebase.sh -- they push release tags as part of a gated release."
+  if echo "$PUSH_SEGMENTS" | grep -qE '(^|[[:space:]:])(android|ios|server|wear)/[0-9]+([[:space:]:]|$)'; then
+    deny "BLOCKED: Never push an android/N, ios/N, server/N, or wear/N ref directly. Use ./scripts/release-android.sh, ./scripts/release-ios.sh, ./scripts/release-firebase.sh, or ./scripts/release-wear.sh -- they push release tags as part of a gated release."
   fi
 fi
 

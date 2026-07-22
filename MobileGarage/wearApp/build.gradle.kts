@@ -32,6 +32,11 @@ val localProperties = Properties().apply {
     }
 }
 
+// Wear artifact versionCodes share the phone's applicationId and must be
+// globally unique against android/N (= N) codes. wear/N maps to
+// WEAR_VERSION_CODE_OFFSET + N, keeping the two sequences disjoint.
+val wearVersionCodeOffset = 1_000_000
+
 android {
     namespace = "com.chriscartland.garage.wear"
     compileSdk = 36
@@ -46,11 +51,17 @@ android {
         // Wear OS 3 (API 30) and newer.
         minSdk = 30
         targetSdk = 36
-        // Wear releases are not wired into release-android.sh yet. When they
-        // are, versionCode must be globally unique vs the phone artifacts —
-        // use a large offset (e.g. 1_000_000 + N). See docs/WEAR_OS.md.
-        versionCode = 1
-        versionName = "0.1.0"
+        // versionCode comes from the wear/N tag via -PWEAR_VERSION_CODE=N
+        // (release-wear.yml), offset per wearVersionCodeOffset above.
+        // Local builds fall back to N=0, always below any real release.
+        val tagVersionCode = (project.findProperty("WEAR_VERSION_CODE") as? String)?.toIntOrNull()
+        versionCode = wearVersionCodeOffset + (tagVersionCode ?: 0)
+        // versionName from wearApp/version.properties (manually bumped, semver).
+        // release-wear.sh gates on a matching wearApp/CHANGELOG.md heading.
+        val versionProps = Properties().apply {
+            project.file("version.properties").inputStream().use { load(it) }
+        }
+        versionName = versionProps.getProperty("versionName")
         setProperty("archivesBaseName", "$applicationId-wear-$versionName-$versionCode")
 
         val serverConfigKey = "SERVER_CONFIG_KEY".let {

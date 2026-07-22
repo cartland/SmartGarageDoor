@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-07-03
+last_verified: 2026-07-22
 ---
 
 # Release & Deployment Strategy
@@ -398,6 +398,12 @@ A multi-component repository:
 - An **iOS** app (the shared CMP codebase) — released to TestFlight **Internal** by
   `ios/N` tags, mirroring the Android model; production App Store promotion is manual.
   *Composes: Foundations + App + iOS.*
+- A **Wear OS** app (same package as the phone app) — released by `wear/N` tags
+  (versionCode = 1000000 + N, disjoint from phone codes) to the Play **Wear internal**
+  track. Bootstrap state: the CI Play-upload step is gated behind the
+  `WEAR_PLAY_UPLOAD_ENABLED` repo variable until the one-time manual Console upload +
+  Wear form-factor opt-in is done; until then CI produces a 1-day AAB artifact for
+  manual upload. *Composes: Foundations + App + Android (§5 applies to both artifacts).*
 - **ESP32 firmware** — flashed manually; outside this strategy (§8).
 
 There is **no web frontend**, so the Web layer (§7) does not apply.

@@ -36,22 +36,33 @@ if (!saJson) {
   process.exit(1)
 }
 
+// Wear artifacts share the package with an offset versionCode: wear/N is
+// released as versionCode 1000000 + N (see wearApp/build.gradle.kts).
+const WEAR_VERSION_CODE_OFFSET = 1000000
+
 const versionNameCache = new Map()
 function resolveVersionName(vc) {
   if (versionNameCache.has(vc)) return versionNameCache.get(vc)
   let name = '(no tag)'
-  // The module dir was renamed AndroidGarage -> MobileGarage (2026-07). Tags cut
-  // before the rename keep version.properties at the OLD path, so try the current
-  // path first and fall back to the old one — otherwise historical versionCodes
-  // (android/<=255) stop resolving.
-  for (const path of ['MobileGarage/version.properties', 'AndroidGarage/version.properties']) {
+  // Candidate [tag, path] pairs for this versionCode. Phone codes map to
+  // android/N. The module dir was renamed AndroidGarage -> MobileGarage
+  // (2026-07): tags cut before the rename keep version.properties at the OLD
+  // path, so try the current path first and fall back — otherwise historical
+  // versionCodes (android/<=255) stop resolving.
+  const candidates = vc > WEAR_VERSION_CODE_OFFSET
+    ? [[`wear/${vc - WEAR_VERSION_CODE_OFFSET}`, 'MobileGarage/wearApp/version.properties']]
+    : [
+        [`android/${vc}`, 'MobileGarage/version.properties'],
+        [`android/${vc}`, 'AndroidGarage/version.properties'],
+      ]
+  for (const [tag, path] of candidates) {
     try {
-      const out = execFileSync('git', ['show', `android/${vc}:${path}`], { encoding: 'utf8' })
+      const out = execFileSync('git', ['show', `${tag}:${path}`], { encoding: 'utf8' })
       const m = out.match(/versionName=(.+)/)
       name = m ? m[1].trim() : '(unknown)'
       break
     } catch {
-      // path absent at this tag; try the next
+      // tag or path absent; try the next candidate
     }
   }
   versionNameCache.set(vc, name)

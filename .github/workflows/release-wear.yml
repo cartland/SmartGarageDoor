@@ -1,0 +1,132 @@
+name: Wear OS Release
+
+# Triggered by wear/N tags pushed by scripts/release-wear.sh
+# Builds the Wear AAB (versionCode = 1000000 + N) and uploads it as a
+# 1-day CI artifact. When the repo Actions variable WEAR_PLAY_UPLOAD_ENABLED
+# is 'true', also deploys to the Play Store WEAR INTERNAL track — never
+# production.
+#
+# Bootstrap: the variable stays unset until the one-time manual Play Console
+# steps are done (Wear OS form-factor opt-in + first manual AAB upload).
+# See docs/WEAR_OS.md § Releasing.
+# To retry a failed release, use "Re-run all jobs" in the Actions UI.
+on:
+  push:
+    tags:
+      - 'wear/[0-9]*'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  release:
+    name: Wear Release Build (and Deploy to Wear Internal when enabled)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Validate tag format
+        id: validate
+        run: |
+          REF="${GITHUB_REF}"
+          if [[ ! "$REF" =~ ^refs/tags/ ]]; then
+            echo "::error::This workflow must be run on a tag."
+            exit 1
+          fi
+
+          TAG="${REF#refs/tags/}"
+          if [[ ! "$TAG" =~ ^wear/[0-9]+$ ]]; then
+            echo "::error::Tag must match 'wear/N' pattern, got: $TAG"
+            exit 1
+          fi
+
+          TAG_NUMBER="${TAG#wear/}"
+          VERSION_CODE=$((1000000 + TAG_NUMBER))
+          echo "tag_number=$TAG_NUMBER" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "Validated: tag=$TAG, tagNumber=$TAG_NUMBER, versionCode=$VERSION_CODE"
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # full history so the mainline check below can walk ancestry
+
+      # Server-side re-assertion that this is a mainline commit. The release
+      # script already refuses to tag anything off `main` locally, and a
+      # Claude hook blocks pushing a tag ref directly -- but neither of those
+      # is enforced here, on the runner, which is the one place this
+      # workflow can't be argued with. This closes that gap independent of
+      # who cut the tag or how the ref was pushed.
+      - name: Verify tagged commit is on main
+        run: |
+          git fetch origin main --quiet
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" FETCH_HEAD; then
+            echo "::error::Tag ${GITHUB_REF_NAME} points to commit $GITHUB_SHA, which is not reachable from origin/main. Refusing to release a commit that hasn't gone through the required main-branch checks."
+            exit 1
+          fi
+          echo "Verified: $GITHUB_SHA is on origin/main."
+
+      - uses: ./.github/actions/setup-android
+        with:
+          encrypt-key: ${{ secrets.ENCRYPT_KEY }}
+
+      - name: Build Wear Release AAB
+        working-directory: MobileGarage
+        env:
+          SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GARAGE_RELEASE_KEYSTORE_PWD: ${{ secrets.GARAGE_RELEASE_KEYSTORE_PWD }}
+          GARAGE_RELEASE_KEY_PWD: ${{ secrets.GARAGE_RELEASE_KEY_PWD }}
+        run: ./gradlew :wearApp:bundleRelease -PWEAR_VERSION_CODE=${{ steps.validate.outputs.tag_number }} -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" -PGARAGE_RELEASE_KEYSTORE_PWD="$GARAGE_RELEASE_KEYSTORE_PWD" -PGARAGE_RELEASE_KEY_PWD="$GARAGE_RELEASE_KEY_PWD"
+
+      - name: Clean secrets
+        if: always()
+        working-directory: MobileGarage
+        run: ./release/clean-secrets.sh
+
+      # Short retention because the signed AAB embeds BuildConfig.SERVER_CONFIG_KEY
+      # and is publicly fetchable for the retention window via the GitHub Actions
+      # artifacts API on a public repo. Play Store is the source of truth for the
+      # binary; this 1-day artifact exists for the one-time manual upload flow and
+      # same-day release-debugging.
+      - name: Upload release AAB artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: wear-release-aab-${{ steps.validate.outputs.version_code }}
+          path: MobileGarage/wearApp/build/outputs/bundle/release/
+          retention-days: 1
+
+      - name: Deploy to Google Play (Wear Internal Track)
+        if: vars.WEAR_PLAY_UPLOAD_ENABLED == 'true'
+        # Pinned to the v1.1.5 commit SHA (audit M4), same as release-android.yml.
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.chriscartland.garage
+          releaseFiles: MobileGarage/wearApp/build/outputs/bundle/release/*.aab
+          tracks: wear:internal
+
+      - name: Manual upload instructions (Play upload disabled)
+        if: vars.WEAR_PLAY_UPLOAD_ENABLED != 'true'
+        run: |
+          echo "::notice title=Wear Release (manual upload)::Play upload is disabled (WEAR_PLAY_UPLOAD_ENABLED != 'true'). Download the 'wear-release-aab-${{ steps.validate.outputs.version_code }}' artifact from this run (1-day retention) and upload it in Play Console -> Wear OS internal testing. After the first manual upload succeeds, set the repo Actions variable WEAR_PLAY_UPLOAD_ENABLED=true to automate future wear/N releases."
+
+      - name: Release summary
+        run: |
+          TAG="wear/${{ steps.validate.outputs.tag_number }}"
+          echo "::notice title=Wear OS Release::Built $TAG (versionCode=${{ steps.validate.outputs.version_code }}, package=com.chriscartland.garage). Play upload enabled: ${{ vars.WEAR_PLAY_UPLOAD_ENABLED == 'true' }}"
+
+  # Track release failures via a single GitHub issue (auto-create on failure,
+  # auto-close on the next successful release). Mirrors the Android release pattern.
+  track-failure:
+    name: Track Wear Release Failure
+    if: always()
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/ci-failure-tracker
+        with:
+          label: release-failure/wear
+          result: ${{ needs.release.result == 'success' && 'success' || 'failure' }}
+          workflow-name: "Wear OS Release (tag: ${{ github.ref_name }})"
