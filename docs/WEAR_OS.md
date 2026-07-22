@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-07-21
+last_verified: 2026-07-22
 ---
 
 # Wear OS App (`MobileGarage/wearApp/`)
@@ -78,6 +78,39 @@ early release never submits, signed-out is inert).
 - Secrets: same `SERVER_CONFIG_KEY` / `GOOGLE_WEB_CLIENT_ID` from
   `local.properties` (or `-P` properties in CI).
 
+## Releasing (`wear/N` tags)
+
+Mirrors the phone release model. Use `./scripts/release-wear.sh` — never
+create or push `wear/N` tags directly (the guardrails hook blocks them).
+
+```bash
+./scripts/validate.sh                        # writes the validation marker
+./scripts/release-wear.sh --check            # prints the exact next command
+./scripts/release-wear.sh --confirm-tag wear/N
+```
+
+- **Version mapping:** tag `wear/N` builds versionCode `1000000 + N` (offset
+  keeps Wear codes unique vs the phone's `android/N` codes in the shared
+  applicationId). versionName comes from `wearApp/version.properties`; the
+  script gates on a matching `wearApp/CHANGELOG.md` heading, same as the
+  phone/Firebase gates.
+- **Workflow** (`release-wear.yml`): builds + signs the Wear AAB on CI and
+  always uploads it as a 1-day artifact (`wear-release-aab-<code>`). When the
+  repo Actions variable `WEAR_PLAY_UPLOAD_ENABLED` is `'true'`, it also
+  uploads to the Play **Wear internal** track (`tracks: wear:internal`,
+  same pinned uploader action and service account as the phone).
+- **One-time bootstrap (manual, Play Console):** the variable stays unset for
+  the first release. Cut `wear/1`, download the artifact, then in Play
+  Console: opt in to the **Wear OS form factor** (Setup → Advanced settings →
+  Form factors), create a **Wear OS internal testing** release, upload the
+  AAB, add testers. After it's accepted, run the `play-track-snapshot`
+  workflow and check the track-state issue: the wear track's API name should
+  read `wear:internal` — if it differs, fix `release-wear.yml` first. Then set
+  `WEAR_PLAY_UPLOAD_ENABLED=true` (repo Settings → Secrets and variables →
+  Actions → Variables) and every later `wear/N` release deploys automatically.
+- The `play-track-snapshot` renderer resolves wear versionCodes back to
+  `wear/N` tags, so the track-state log stays readable.
+
 ## Deliberately not included (follow-ups, in rough priority order)
 
 1. **On-device verification.** Nothing here has run on a watch or emulator —
@@ -90,11 +123,11 @@ early release never submits, signed-out is inert).
    operates the physical door.** The signed-out app is inert
    (`PushRemoteButtonUseCase` gates on `Authenticated` before any network
    call), so UI/layout verification while signed out is always safe.
-2. **Release plumbing.** No `wear/N` tag flow, no Play upload workflow,
-   versionCode hardcoded to 1. When wiring releases: Wear versionCodes must
-   not collide with phone artifact codes (use a large offset), R8 must be
-   enabled + ADR-020 keep rules ported (minification is off in this first
-   cut), and the Wear track in Play Console needs the standalone APK.
+2. **R8 for the Wear release build.** Minification is deliberately OFF in
+   the release build type — the phone needed hand-tuned keep rules for
+   kotlinx.serialization (ADR-020) and there is no CLI way to verify a
+   minified Wear build end-to-end yet. Fine for internal testing; enable +
+   port the keep rules (and verify on a device) before any wider rollout.
 3. **FCM push on the watch** (replace/augment polling; the shared
    `FcmRegistrationManager` + `MessagingBridge` seam already exists).
 4. **Tiles + complications** — the natural Wear surfaces for door status
