@@ -40,6 +40,7 @@
     <!-- Auth. -->
     <string name="sign_in">Sign in</string>
     <string name="sign_in_hint">Sign in to control the door</string>
+    <string name="sign_in_failed">Sign-in failed</string>
     <string name="checking_sign_in">Checking sign-in…</string>
 
     <!-- Content descriptions. -->

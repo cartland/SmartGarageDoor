@@ -14,6 +14,15 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.1.2
+
+- Sign-in failures now show a transient "Sign-in failed" message under the
+  button instead of silently doing nothing (the 0.1.1 button appeared
+  unresponsive when Credential Manager failed, e.g. watches whose Play
+  services lack the Identity Sign-In module).
+- Slightly smaller door in the signed-out layout so the sign-in button and
+  failure message fit the round screen.
+
 ## 0.1.1
 
 - No app changes. First release through the fully automated CI to Play

@@ -64,6 +64,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
                         ),
                         buttonState = fixture.buttonState,
                         isHolding = false,
+                        signInError = false,
                         onDoorTap = {},
                         onHoldStart = {},
                         onHoldEnd = {},

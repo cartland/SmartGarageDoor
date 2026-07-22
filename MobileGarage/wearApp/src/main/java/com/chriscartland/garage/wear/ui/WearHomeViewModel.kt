@@ -87,8 +87,14 @@ class WearHomeViewModel(
     /** True while a hold-to-confirm countdown is running (drives the radial indicator). */
     val isHolding: StateFlow<Boolean> = _isHolding
 
+    private val _signInError = MutableStateFlow(false)
+
+    /** True after a failed sign-in attempt; cleared by [onSignInStarted]. */
+    val signInError: StateFlow<Boolean> = _signInError
+
     private var holdJob: Job? = null
     private var refreshJob: Job? = null
+    private var signInErrorJob: Job? = null
 
     /** First tap on the door: arm the button. Gated on auth and `Ready`. */
     fun onDoorTap() {
@@ -146,9 +152,39 @@ class WearHomeViewModel(
         refreshJob = null
     }
 
-    fun signIn(googleIdToken: GoogleIdToken) {
+    /** A sign-in attempt is starting: clear any stale failure message. */
+    fun onSignInStarted() {
+        _signInError.value = false
+    }
+
+    /**
+     * Result of the platform sign-in flow. `null` means Credential Manager
+     * failed or was dismissed (e.g. `NoCredentialException:
+     * Auth.Api.Identity.SignIn.API is not available` on watches whose Play
+     * services lack the Identity module) — surface it instead of silently
+     * doing nothing, which reads as an unresponsive button (0.1.1 bug).
+     * The error is transient ([SIGN_IN_ERROR_DISPLAY_MILLIS]) because the
+     * UI renders it as a bottom-edge overlay on the round screen.
+     */
+    fun onSignInResult(googleIdToken: GoogleIdToken?) {
+        if (googleIdToken == null) {
+            showSignInError()
+            return
+        }
         viewModelScope.launch(dispatchers.io) {
-            signInWithGoogleUseCase(googleIdToken)
+            val result = signInWithGoogleUseCase(googleIdToken)
+            if (result !is AuthState.Authenticated) {
+                showSignInError()
+            }
+        }
+    }
+
+    private fun showSignInError() {
+        _signInError.value = true
+        signInErrorJob?.cancel()
+        signInErrorJob = viewModelScope.launch(dispatchers.default) {
+            delay(SIGN_IN_ERROR_DISPLAY_MILLIS)
+            _signInError.value = false
         }
     }
 
@@ -178,5 +214,8 @@ class WearHomeViewModel(
 
         /** Foreground poll cadence while a press is waiting on the door. */
         const val ACTIVE_POLL_MILLIS: Long = 2_000L
+
+        /** How long the transient sign-in failure message stays visible. */
+        const val SIGN_IN_ERROR_DISPLAY_MILLIS: Long = 5_000L
     }
 }
