@@ -107,6 +107,17 @@ create or push `wear/N` tags directly (the guardrails hook blocks them).
   `wear/2` on, every release deploys automatically. (Recovery note: if the
   variable is ever unset, releases fall back to artifact-only with a
   manual-upload notice — same behavior the bootstrap used.)
+- **Watch visibility requires a SEPARATE app-level Wear OS opt-in + Google
+  quality review** (Advanced settings → Form factors → Wear OS → opt in and
+  agree to the review policy). A rolled-out release on `wear:internal` is
+  NOT enough: until the review approves, the Device catalog shows every
+  watch as "Not opted in" and the app is hidden from watch Play Stores
+  **even for internal testers** (and the phone's remote-install picker
+  won't offer watches). Discovered empirically 2026-07-22 — the wear/1 and
+  wear/2 releases were live on the track for a day while the Pixel Watch 4
+  couldn't see the app; the opt-in was submitted the same day. The Wear
+  store-listing screenshots (`distribution/playstore/wear/`) satisfy the
+  review's asset requirements.
 - The `play-track-snapshot` renderer resolves wear versionCodes back to
   `wear/N` tags, so the track-state log stays readable.
 - **Release notes:** automated uploads send `distribution/wear-whatsnew/`
