@@ -29,6 +29,8 @@ if [[ -n "${ENCRYPT_KEY:-}" ]]; then
   decrypt "${ENCRYPT_KEY}" release/app-release.gpg release/app-release.jks
   # Decrypt Google Services key (Android)
   decrypt "${ENCRYPT_KEY}" release/google-services.gpg androidApp/google-services.json
+  # Wear app shares the phone applicationId, so the same file is valid there.
+  cp androidApp/google-services.json wearApp/google-services.json
 else
   echo "ENCRYPT_KEY is empty"
 fi

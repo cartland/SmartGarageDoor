@@ -21,3 +21,5 @@ set -eu
 rm -f release/app-release.jks
 
 rm -f androidApp/google-services.json
+
+rm -f wearApp/google-services.json

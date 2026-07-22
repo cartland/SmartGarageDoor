@@ -1,0 +1,165 @@
+/*
+ * Copyright 2026 Chris Cartland. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+package com.chriscartland.garage.wear.ui
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.lerp
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.CLIP_INSET
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.FRAME_BOTTOM
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.FRAME_CORNER_RADIUS
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.FRAME_INSET
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.FRAME_STROKE_WIDTH
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.HANDLE_H
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.HANDLE_RADIUS
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.HANDLE_W
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.HANDLE_X
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.HANDLE_Y
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.PANEL_HEIGHT
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.PANEL_RADIUS
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.PANEL_WIDTH
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.PANEL_X
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.PANEL_Y_STARTS
+import com.chriscartland.garage.domain.model.GarageDoorGeometry.VP
+
+// Wear port of the phone's `GarageDoorCanvas` (androidApp/.../ui/GarageDoorCanvas.kt).
+// All geometry comes from the shared `:domain` `GarageDoorGeometry` (Tier-1 brand
+// surface, ADR-032) — this file only re-implements the DrawScope execution, the
+// same way iOS re-implements it in SwiftUI. The one intentional difference:
+// the dark gradient stop uses `lerp` (compose-ui) instead of the phone's
+// `GarageColors.blendColors` (androidx.core ColorUtils) — same 50% blend.
+
+/**
+ * Draws a garage door at a given vertical offset using pure Compose Canvas.
+ *
+ * @param doorOffset Vertical offset as a proportion of container height.
+ *   0.0 = fully closed (door fills frame), negative = door sliding up (opening).
+ *   Use position constants like `DoorAnimation.CLOSED_POSITION` /
+ *   `DoorAnimation.OPEN_POSITION` (shared `:domain` `DoorAnimation`).
+ * @param color Tint color for the door and frame. A vertical gradient from [color]
+ *   to a darker shade is applied.
+ */
+@Composable
+fun GarageDoorCanvas(
+    doorOffset: Float,
+    modifier: Modifier = Modifier,
+    color: Color = Color(0xFF3C5232),
+) {
+    val darkColor = lerp(color, Color.Black, 0.5f)
+    Canvas(modifier = modifier) {
+        drawGarageDoor(doorOffset, color, darkColor)
+    }
+}
+
+private fun DrawScope.drawGarageDoor(
+    doorOffset: Float,
+    color: Color,
+    darkColor: Color,
+) {
+    // Uniform scale — fit within canvas without stretching.
+    val scale = minOf(size.width / VP, size.height / VP)
+    val drawSize = VP * scale
+    // Center the drawing within the canvas.
+    val offsetX = (size.width - drawSize) / 2f
+    val offsetY = (size.height - drawSize) / 2f
+
+    fun x(vp: Float) = vp * scale + offsetX
+
+    fun y(vp: Float) = vp * scale + offsetY
+
+    fun s(vp: Float) = vp * scale
+
+    val gradient = Brush.verticalGradient(
+        0.3f to color,
+        1f to darkColor,
+        startY = offsetY,
+        endY = offsetY + drawSize,
+    )
+
+    // Clip panels inside the frame with a gap matching the panel spacing.
+    val clipInset = CLIP_INSET
+
+    clipRect(
+        left = x(clipInset),
+        top = y(clipInset),
+        right = x(VP - clipInset),
+        bottom = y(VP),
+    ) {
+        // Door panels — translated vertically by doorOffset.
+        val panelOffsetPx = doorOffset * drawSize
+        for (panelY in PANEL_Y_STARTS) {
+            drawRoundRect(
+                brush = gradient,
+                topLeft = Offset(x(PANEL_X), y(panelY) + panelOffsetPx),
+                size = Size(s(PANEL_WIDTH), s(PANEL_HEIGHT)),
+                cornerRadius = CornerRadius(s(PANEL_RADIUS)),
+            )
+        }
+
+        // Handle on bottom panel.
+        drawRoundRect(
+            color = Color(0xFF111111),
+            topLeft = Offset(x(HANDLE_X), y(HANDLE_Y) + panelOffsetPx),
+            size = Size(s(HANDLE_W), s(HANDLE_H)),
+            cornerRadius = CornerRadius(s(HANDLE_RADIUS)),
+        )
+    }
+
+    // Frame — drawn on top as a stroke path (U-shape with rounded top corners).
+    val cr = s(FRAME_CORNER_RADIUS)
+    val framePath = Path().apply {
+        val left = x(FRAME_INSET)
+        val right = x(VP - FRAME_INSET)
+        val top = y(FRAME_INSET)
+        val bottom = y(FRAME_BOTTOM)
+
+        moveTo(left, bottom)
+        lineTo(left, top + cr)
+        arcTo(
+            rect = Rect(left, top, left + cr * 2, top + cr * 2),
+            startAngleDegrees = 180f,
+            sweepAngleDegrees = 90f,
+            forceMoveTo = false,
+        )
+        lineTo(right - cr, top)
+        arcTo(
+            rect = Rect(right - cr * 2, top, right, top + cr * 2),
+            startAngleDegrees = 270f,
+            sweepAngleDegrees = 90f,
+            forceMoveTo = false,
+        )
+        lineTo(right, bottom)
+    }
+
+    drawPath(
+        path = framePath,
+        brush = gradient,
+        style = Stroke(width = s(FRAME_STROKE_WIDTH)),
+    )
+}
