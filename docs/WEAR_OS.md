@@ -125,6 +125,19 @@ create or push `wear/N` tags directly (the guardrails hook blocks them).
 - **Release notes:** automated uploads send `distribution/wear-whatsnew/`
   (rolling, current release). For the one-time manual Console upload, paste
   the same text.
+- **Troubleshooting "the watch can't see the app"** (diagnostic order from
+  the 2026-07-22 bootstrap): (1) the **Device catalog** is authoritative —
+  search the watch model; "Not opted in" means the form-factor opt-in/review
+  gate above, "Excluded" states the exact reason (API level, feature); (2)
+  the phone Play Store's remote-install picker offering *other* devices but
+  not the watch points at compatibility/opt-in, not propagation; (3) verify
+  the artifact's declared requirements from the local APK with
+  `aapt2 dump badging wearApp/build/outputs/apk/debug/*.apk` — expect
+  `uses-feature: android.hardware.type.watch` and nothing else exclusionary;
+  (4) watch account must be the tester account (watch Settings → Accounts);
+  (5) Wear OS 2 watches (pre-2021, API < 30) are excluded by design
+  (minSdk 30); (6) only after all that, suspect watch Play Store
+  propagation/caching (up to ~24h; reboot or clear Play Store cache).
 
 ## Store listing assets (Wear)
 
