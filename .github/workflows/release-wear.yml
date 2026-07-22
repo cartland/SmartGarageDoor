@@ -105,6 +105,7 @@ jobs:
           packageName: com.chriscartland.garage
           releaseFiles: MobileGarage/wearApp/build/outputs/bundle/release/*.aab
           tracks: wear:internal
+          whatsNewDirectory: MobileGarage/distribution/wear-whatsnew
 
       - name: Manual upload instructions (Play upload disabled)
         if: vars.WEAR_PLAY_UPLOAD_ENABLED != 'true'

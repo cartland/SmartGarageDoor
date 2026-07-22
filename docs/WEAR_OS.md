@@ -110,19 +110,44 @@ create or push `wear/N` tags directly (the guardrails hook blocks them).
   Actions → Variables) and every later `wear/N` release deploys automatically.
 - The `play-track-snapshot` renderer resolves wear versionCodes back to
   `wear/N` tags, so the track-state log stays readable.
+- **Release notes:** automated uploads send `distribution/wear-whatsnew/`
+  (rolling, current release). For the one-time manual Console upload, paste
+  the same text.
+
+## Store listing assets (Wear)
+
+Same two-location model as the phone assets (`/play-store-assets` skill):
+`MobileGarage/screenshots/store/wear/` is generated staging;
+`MobileGarage/distribution/playstore/wear/` is the curated set mirroring
+what's uploaded in Play Console. Play's Wear screenshot rules: 1:1 aspect
+ratio, ≥384px, up to 8, actual on-watch UI without device frames or
+marketing overlays — the raw 454×454 emulator captures satisfy this as-is.
+
+Captures come from the debug-only fixture screen
+`wearApp/src/debug/.../ScreenshotStagesActivity` (renders `HeroScreenContent`
+with canned states — no ViewModel, no network, no auth) on a Wear emulator:
+
+```bash
+adb shell am start -n com.chriscartland.garage.debug/com.chriscartland.garage.wear.debug.ScreenshotStagesActivity -e stage closed   # closed|armed|moving|open
+adb exec-out screencap -p > wear-closed.png    # wait ~4s after am start; force-stop between stages
+```
+
+The four stages tell the hero story: closed ("Tap door to arm") → armed
+(hold ring, "Hold door to press") → moving (mid-slide, up arrow, "Door is
+moving") → open. Captured 2026-07-22 on a `wearos_large_round` API 34
+emulator — which is also the app's first verified render on a round watch
+canvas (TimeText, centering, palette, overlay badge all correct).
 
 ## Deliberately not included (follow-ups, in rough priority order)
 
-1. **On-device verification.** Nothing here has run on a watch or emulator —
-   by design, this was built and verified entirely via CLI (compile + unit
-   tests with fakes; nothing can reach the real button path in tests). The
-   Wear Compose 1.6.2 M3 API usage compiles against stable APIs, but layout
-   polish on real round screens, the Credential Manager sign-in flow, and
-   Firebase-on-watch behavior all need a device/emulator pass before any
-   release. **Do not exercise the real remote button while verifying — it
-   operates the physical door.** The signed-out app is inert
-   (`PushRemoteButtonUseCase` gates on `Authenticated` before any network
-   call), so UI/layout verification while signed out is always safe.
+1. **Real-watch verification.** The fixture screen has rendered correctly on
+   a round API 34 emulator (2026-07-22, see § Store listing assets), which
+   verifies layout/palette/typography on the round canvas — but the live app
+   (real network, Credential Manager sign-in, Firebase-on-watch) has still
+   never run on a physical watch. **Do not exercise the real remote button
+   while verifying — it operates the physical door.** The signed-out app is
+   inert (`PushRemoteButtonUseCase` gates on `Authenticated` before any
+   network call), so UI/layout verification while signed out is always safe.
 2. **R8 for the Wear release build.** Minification is deliberately OFF in
    the release build type — the phone needed hand-tuned keep rules for
    kotlinx.serialization (ADR-020) and there is no CLI way to verify a
