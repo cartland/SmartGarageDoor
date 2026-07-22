@@ -14,6 +14,12 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.1.1
+
+- No app changes. First release through the fully automated CI to Play
+  pipeline (wear/N tag to Wear internal track), now including Play release
+  notes from `distribution/wear-whatsnew/`.
+
 ## 0.1.0
 
 - Initial Wear OS release: animated garage door status with tap-to-arm and a
