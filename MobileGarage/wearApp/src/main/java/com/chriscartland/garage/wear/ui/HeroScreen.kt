@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -46,6 +47,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -90,6 +92,16 @@ fun HeroScreen(
     val buttonState by viewModel.buttonState.collectAsStateWithLifecycle()
     val isHolding by viewModel.isHolding.collectAsStateWithLifecycle()
     val signInError by viewModel.signInError.collectAsStateWithLifecycle()
+    val keepScreenOn by viewModel.keepScreenOn.collectAsStateWithLifecycle()
+
+    // Hold the screen awake only while the ViewModel says something worth
+    // watching is happening (press in flight / door moving, 15s cap). The
+    // window flag is the irreducible platform write; the decision is the VM's.
+    val view = LocalView.current
+    LaunchedEffect(view, keepScreenOn) { view.keepScreenOn = keepScreenOn }
+    DisposableEffect(view) {
+        onDispose { view.keepScreenOn = false }
+    }
 
     // Foreground-only refresh: poll while the screen is visible, stop when hidden.
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -143,6 +155,14 @@ fun HeroScreen(
  * on the screen (observed on the Initial pass, never consumed) — the
  * ViewModel uses it to keep the armed window alive while the user keeps
  * interacting.
+ *
+ * Geometry: the hold ring is centered on the PHYSICAL screen and hugs the
+ * bezel (like the platform's own progress rings), and in the signed-in
+ * layout the door is centered on the screen too, with the state label and
+ * hint anchored near the bottom edge. The signed-out/unknown layout keeps a
+ * centered column (smaller door + sign-in chip + reserved caption slot —
+ * the 0.1.2 overflow fix); the ring never shows there because arming
+ * requires authentication.
  */
 @Composable
 fun HeroScreenContent(
@@ -178,7 +198,7 @@ fun HeroScreenContent(
 
     val currentOnAnyTouch by rememberUpdatedState(onAnyTouch)
     ScreenScaffold(modifier = modifier) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {
@@ -199,37 +219,30 @@ fun HeroScreenContent(
                         currentOnAnyTouch()
                     }
                 },
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
-            DoorWithHoldRing(
-                doorPosition = doorPosition,
-                lastChangeTimeSeconds = lastChangeTimeSeconds,
-                animationMemory = animationMemory,
-                armed = buttonState is RemoteButtonState.AwaitingConfirmation,
-                holdProgress = holdProgress,
-                onDoorTap = onDoorTap,
-                onHoldStart = onHoldStart,
-                onHoldEnd = onHoldEnd,
-                // The signed-out layout also carries the button + error
-                // caption; a slightly smaller door keeps the whole column
-                // inside the round viewport (0.1.2 fix — the caption used
-                // to overflow into the screen's clipped bottom edge).
-                modifier = Modifier.fillMaxWidth(
-                    if (authState is AuthState.Authenticated) {
-                        DOOR_WIDTH_FRACTION
-                    } else {
-                        DOOR_WIDTH_FRACTION_SIGNED_OUT
-                    },
-                ),
-            )
-            Text(
-                text = HeroScreenMappers.doorStateLabel(doorPosition),
-                style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center,
-            )
-            when {
-                authState is AuthState.Authenticated -> {
+            if (authState is AuthState.Authenticated) {
+                GarageDoorTarget(
+                    doorPosition = doorPosition,
+                    lastChangeTimeSeconds = lastChangeTimeSeconds,
+                    animationMemory = animationMemory,
+                    onDoorTap = onDoorTap,
+                    onHoldStart = onHoldStart,
+                    onHoldEnd = onHoldEnd,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .fillMaxWidth(DOOR_WIDTH_FRACTION),
+                )
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = BOTTOM_TEXT_PADDING_DP.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = HeroScreenMappers.doorStateLabel(doorPosition),
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
+                    )
                     val hint = HeroScreenMappers.buttonHint(buttonState)
                     if (hint != null) {
                         Text(
@@ -240,51 +253,128 @@ fun HeroScreenContent(
                         )
                     }
                 }
-                authState is AuthState.Unknown -> {
+            } else {
+                // Signed-out/unknown: centered column. The smaller door keeps
+                // the door + label + chip + caption inside the round viewport
+                // (0.1.2 fix — the caption used to overflow into the screen's
+                // clipped bottom edge).
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    GarageDoorTarget(
+                        doorPosition = doorPosition,
+                        lastChangeTimeSeconds = lastChangeTimeSeconds,
+                        animationMemory = animationMemory,
+                        onDoorTap = onDoorTap,
+                        onHoldStart = onHoldStart,
+                        onHoldEnd = onHoldEnd,
+                        modifier = Modifier.fillMaxWidth(DOOR_WIDTH_FRACTION_SIGNED_OUT),
+                    )
                     Text(
-                        text = stringResource(R.string.checking_sign_in),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = HeroScreenMappers.doorStateLabel(doorPosition),
+                        style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
                     )
-                }
-                else -> {
-                    Button(
-                        onClick = onSignInClick,
-                        modifier = Modifier.padding(top = 4.dp),
-                    ) {
-                        Text(text = stringResource(R.string.sign_in))
+                    if (authState is AuthState.Unknown) {
+                        Text(
+                            text = stringResource(R.string.checking_sign_in),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    } else {
+                        Button(
+                            onClick = onSignInClick,
+                            modifier = Modifier.padding(top = 4.dp),
+                        ) {
+                            Text(text = stringResource(R.string.sign_in))
+                        }
+                        // Reserved caption slot: empty text keeps the height
+                        // stable so the transient failure message (auto-cleared
+                        // by the ViewModel) never reflows the column.
+                        Text(
+                            text = if (signInError) stringResource(R.string.sign_in_failed) else "",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center,
+                            minLines = 1,
+                        )
                     }
-                    // Reserved caption slot: empty text keeps the height
-                    // stable so the transient failure message (auto-cleared
-                    // by the ViewModel) never reflows the column.
-                    Text(
-                        text = if (signInError) stringResource(R.string.sign_in_failed) else "",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        textAlign = TextAlign.Center,
-                        minLines = 1,
-                    )
                 }
             }
+            // Hold-to-confirm ring: centered on the physical screen, hugging
+            // the bezel — never around the door image, whose own box sits
+            // wherever the layout puts it. LAST child on purpose: the ring
+            // draws on top of everything (it takes no input, so it can never
+            // block the door's gestures).
+            HoldRing(
+                armed = buttonState is RemoteButtonState.AwaitingConfirmation,
+                holdProgress = holdProgress,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(RING_PADDING_DP.dp),
+            )
         }
     }
 }
 
+/**
+ * The radial hold-to-confirm indicator, drawn at the bounds of whatever box
+ * it's given — the hero screen gives it the full physical screen so the ring
+ * is concentric with the bezel. Callers place it as the topmost layer.
+ */
 @Composable
-private fun DoorWithHoldRing(
+private fun HoldRing(
+    armed: Boolean,
+    holdProgress: Float,
+    modifier: Modifier = Modifier,
+) {
+    val ringColor = MaterialTheme.colorScheme.primary
+    val trackColor = MaterialTheme.colorScheme.onSurfaceVariant
+    Canvas(modifier = modifier) {
+        val stroke = RING_STROKE_DP.dp.toPx()
+        val inset = stroke / 2f
+        val arcSize = Size(size.width - stroke, size.height - stroke)
+        if (armed) {
+            // Faint full track while armed: "this is holdable".
+            drawArc(
+                color = trackColor,
+                startAngle = ARC_START_ANGLE,
+                sweepAngle = FULL_SWEEP,
+                useCenter = false,
+                topLeft = Offset(inset, inset),
+                size = arcSize,
+                alpha = TRACK_ALPHA,
+                style = Stroke(width = stroke),
+            )
+        }
+        if (holdProgress > 0f) {
+            drawArc(
+                color = ringColor,
+                startAngle = ARC_START_ANGLE,
+                sweepAngle = FULL_SWEEP * holdProgress,
+                useCenter = false,
+                topLeft = Offset(inset, inset),
+                size = arcSize,
+                style = Stroke(width = stroke, cap = StrokeCap.Round),
+            )
+        }
+    }
+}
+
+/** The tappable/holdable door: gestures land exactly on the door's box. */
+@Composable
+private fun GarageDoorTarget(
     doorPosition: DoorPosition,
     lastChangeTimeSeconds: Long?,
     animationMemory: DoorAnimationMemory,
-    armed: Boolean,
-    holdProgress: Float,
     onDoorTap: () -> Unit,
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val ringColor = MaterialTheme.colorScheme.primary
-    val trackColor = MaterialTheme.colorScheme.onSurfaceVariant
     val doorDescription = stringResource(R.string.cd_garage_door)
     Box(
         modifier = modifier
@@ -302,42 +392,12 @@ private fun DoorWithHoldRing(
             },
         contentAlignment = Alignment.Center,
     ) {
-        // Radial hold-to-confirm indicator, circumscribing the door.
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val stroke = RING_STROKE_DP.dp.toPx()
-            val inset = stroke / 2f
-            val arcSize = Size(size.width - stroke, size.height - stroke)
-            if (armed) {
-                // Faint full track while armed: "this is holdable".
-                drawArc(
-                    color = trackColor,
-                    startAngle = ARC_START_ANGLE,
-                    sweepAngle = FULL_SWEEP,
-                    useCenter = false,
-                    topLeft = Offset(inset, inset),
-                    size = arcSize,
-                    alpha = TRACK_ALPHA,
-                    style = Stroke(width = stroke),
-                )
-            }
-            if (holdProgress > 0f) {
-                drawArc(
-                    color = ringColor,
-                    startAngle = ARC_START_ANGLE,
-                    sweepAngle = FULL_SWEEP * holdProgress,
-                    useCenter = false,
-                    topLeft = Offset(inset, inset),
-                    size = arcSize,
-                    style = Stroke(width = stroke, cap = StrokeCap.Round),
-                )
-            }
-        }
         WearGarageIcon(
             doorPosition = doorPosition,
             animationMemory = animationMemory,
             lastChangeTimeSeconds = lastChangeTimeSeconds,
             color = WearDoorColors.forPosition(doorPosition),
-            modifier = Modifier.fillMaxSize(DOOR_INSIDE_RING_FRACTION),
+            modifier = Modifier.fillMaxSize(),
         )
     }
 }
@@ -420,11 +480,14 @@ private fun HeroScreenContentSignedOutPreview() {
     }
 }
 
-private const val DOOR_WIDTH_FRACTION = 0.62f
-private const val DOOR_WIDTH_FRACTION_SIGNED_OUT = 0.54f
-private const val DOOR_INSIDE_RING_FRACTION = 0.78f
+// Door sizes match the pre-centering effective sizes (the old width fraction
+// times the old inside-ring fraction) so the door itself reads the same.
+private const val DOOR_WIDTH_FRACTION = 0.52f
+private const val DOOR_WIDTH_FRACTION_SIGNED_OUT = 0.42f
+private const val RING_PADDING_DP = 2
 private const val RING_STROKE_DP = 5
 private const val RING_RELEASE_MILLIS = 150
 private const val ARC_START_ANGLE = -90f
 private const val FULL_SWEEP = 360f
 private const val TRACK_ALPHA = 0.25f
+private const val BOTTOM_TEXT_PADDING_DP = 18

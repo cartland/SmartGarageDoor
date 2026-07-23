@@ -24,6 +24,7 @@ import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.usecase.ButtonAckToken
@@ -37,6 +38,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 /**
@@ -69,6 +72,18 @@ import kotlinx.coroutines.launch
  * foreground-only refresh loop (stopped by [onHidden]). While a press is
  * waiting on the door, polling tightens to [ACTIVE_POLL_MILLIS] so the
  * machine's door-moved success detection fires promptly.
+ *
+ * Screen wake: [keepScreenOn] is true (for at most [KEEP_SCREEN_ON_MILLIS]
+ * per trigger) only while a submitted press is in flight or the door is
+ * physically moving — the moments the user needs to watch the screen.
+ * Normal viewing, including the armed state, never holds the screen awake;
+ * the battery cost is only paid while something is actually happening.
+ *
+ * Failure grace: the watch's network path (BT relay / Wi-Fi at the garage)
+ * is less reliable than the phone's, and door-moved detection additionally
+ * waits on the foreground poll — so the machine gets a wear-specific
+ * [DOOR_RESPONSE_TIMEOUT_MILLIS] (longer than the shared default) before
+ * declaring a press failed.
  */
 class WearHomeViewModel(
     observeDoorEvents: ObserveDoorEventsUseCase,
@@ -88,6 +103,7 @@ class WearHomeViewModel(
         onSubmit = ::submitButtonPress,
         scope = viewModelScope,
         dispatcher = dispatchers.io,
+        networkTimeoutMillis = DOOR_RESPONSE_TIMEOUT_MILLIS,
     )
     val buttonState: StateFlow<RemoteButtonState> = stateMachine.state
 
@@ -101,9 +117,30 @@ class WearHomeViewModel(
     /** True after a failed sign-in attempt; cleared by [onSignInStarted]. */
     val signInError: StateFlow<Boolean> = _signInError
 
+    private val _keepScreenOn = MutableStateFlow(false)
+
+    /**
+     * True while the UI should hold the screen awake: a submitted press in
+     * flight or a door in motion, capped at [KEEP_SCREEN_ON_MILLIS] per
+     * trigger. The window restarts on each new trigger (server ack, door
+     * starts moving) and clears immediately when nothing is happening.
+     */
+    val keepScreenOn: StateFlow<Boolean> = _keepScreenOn
+
     private var holdJob: Job? = null
     private var refreshJob: Job? = null
     private var signInErrorJob: Job? = null
+    private var keepScreenOnJob: Job? = null
+
+    init {
+        viewModelScope.launch(dispatchers.default) {
+            combine(stateMachine.state, currentDoorEvent) { button, doorEvent ->
+                keepScreenOnTrigger(button, doorEvent?.doorPosition)
+            }.distinctUntilChanged().collect { trigger ->
+                if (trigger != null) restartKeepScreenOnWindow() else clearKeepScreenOnWindow()
+            }
+        }
+    }
 
     /** First tap on the door: arm the button. Gated on auth and `Ready`. */
     fun onDoorTap() {
@@ -211,6 +248,39 @@ class WearHomeViewModel(
         }
     }
 
+    /**
+     * The moments worth holding the screen awake for, as a distinct value per
+     * trigger so the window restarts on each new phase (server ack, door
+     * starts moving) but not on repeated identical emissions. Null = nothing
+     * happening; the armed state is deliberately NOT a trigger.
+     */
+    private fun keepScreenOnTrigger(
+        buttonState: RemoteButtonState,
+        doorPosition: DoorPosition?,
+    ): String? =
+        when {
+            buttonState is RemoteButtonState.SendingToServer -> "sending-to-server"
+            buttonState is RemoteButtonState.SendingToDoor -> "sending-to-door"
+            doorPosition == DoorPosition.OPENING || doorPosition == DoorPosition.CLOSING ->
+                "door-moving-$doorPosition"
+            else -> null
+        }
+
+    private fun restartKeepScreenOnWindow() {
+        _keepScreenOn.value = true
+        keepScreenOnJob?.cancel()
+        keepScreenOnJob = viewModelScope.launch(dispatchers.default) {
+            delay(KEEP_SCREEN_ON_MILLIS)
+            _keepScreenOn.value = false
+        }
+    }
+
+    private fun clearKeepScreenOnWindow() {
+        keepScreenOnJob?.cancel()
+        keepScreenOnJob = null
+        _keepScreenOn.value = false
+    }
+
     private fun submitButtonPress() {
         stateMachine.onNetworkStarted()
         viewModelScope.launch(dispatchers.io) {
@@ -240,5 +310,23 @@ class WearHomeViewModel(
 
         /** How long the transient sign-in failure message stays visible. */
         const val SIGN_IN_ERROR_DISPLAY_MILLIS: Long = 5_000L
+
+        /**
+         * Cap on how long one trigger holds the screen awake. Real presses
+         * take 10+ seconds end to end (server ack + door start + travel);
+         * 15 seconds covers watching that without an unbounded wake.
+         */
+        const val KEEP_SCREEN_ON_MILLIS: Long = 15_000L
+
+        /**
+         * Wear-specific press timeout (the machine's `networkTimeoutMillis`,
+         * covering both the server call and the wait for the door to move).
+         * Longer than [ButtonStateMachine.DEFAULT_NETWORK_TIMEOUT] because
+         * the watch's network path is less reliable and door-moved detection
+         * additionally waits on the foreground poll cadence — declaring
+         * DoorFailed while the door is actually about to move reads as a
+         * false alarm.
+         */
+        const val DOOR_RESPONSE_TIMEOUT_MILLIS: Long = 15_000L
     }
 }

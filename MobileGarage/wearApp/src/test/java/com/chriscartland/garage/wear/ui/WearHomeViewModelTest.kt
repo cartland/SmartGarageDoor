@@ -318,6 +318,77 @@ class WearHomeViewModelTest {
         }
 
     @Test
+    fun keepScreenOnOnlyWhilePressInFlightOrDoorMoving() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            runCurrent()
+            assertFalse(viewModel.keepScreenOn.value)
+            // Armed alone must NOT hold the screen awake (normal viewing).
+            arm(viewModel)
+            runCurrent()
+            assertFalse(viewModel.keepScreenOn.value)
+            // A submitted press does.
+            viewModel.onHoldStart()
+            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS + 1)
+            runCurrent()
+            assertEquals(RemoteButtonState.SendingToDoor, viewModel.buttonState.value)
+            assertTrue(viewModel.keepScreenOn.value)
+            // Door starts moving: still watching.
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.OPENING, lastChangeTimeSeconds = 123L),
+            )
+            runCurrent()
+            assertTrue(viewModel.keepScreenOn.value)
+            // Door reaches a resting state: release immediately.
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.OPEN, lastChangeTimeSeconds = 130L),
+            )
+            runCurrent()
+            assertFalse(viewModel.keepScreenOn.value)
+        }
+
+    @Test
+    fun keepScreenOnCapsAtWindow() =
+        runTest {
+            val viewModel = createViewModel()
+            // A door moving on its own (no press) lights the screen too…
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.CLOSING, lastChangeTimeSeconds = 123L),
+            )
+            runCurrent()
+            assertTrue(viewModel.keepScreenOn.value)
+            // …but never longer than the cap, even if the state persists.
+            advanceTimeBy(WearHomeViewModel.KEEP_SCREEN_ON_MILLIS + 1)
+            runCurrent()
+            assertFalse(viewModel.keepScreenOn.value)
+        }
+
+    @Test
+    fun doorResponseGraceOutlastsSharedDefault() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            arm(viewModel)
+            viewModel.onHoldStart()
+            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS + 1)
+            runCurrent()
+            assertEquals(RemoteButtonState.SendingToDoor, viewModel.buttonState.value)
+            // The shared default (10s) would already have declared DoorFailed
+            // here; the wear-specific grace keeps waiting.
+            advanceTimeBy(ButtonStateMachine.DEFAULT_NETWORK_TIMEOUT + 1_000L)
+            runCurrent()
+            assertEquals(RemoteButtonState.SendingToDoor, viewModel.buttonState.value)
+            // The grace eventually gives up if the door never responds.
+            advanceTimeBy(
+                WearHomeViewModel.DOOR_RESPONSE_TIMEOUT_MILLIS -
+                    ButtonStateMachine.DEFAULT_NETWORK_TIMEOUT,
+            )
+            runCurrent()
+            assertEquals(RemoteButtonState.DoorFailed, viewModel.buttonState.value)
+        }
+
+    @Test
     fun signInDelegatesToUseCase() =
         runTest {
             val viewModel = createViewModel()
