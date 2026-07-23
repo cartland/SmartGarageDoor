@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Garage UI gallery</title>
+<style>
+  /* Chrome stays dark and quiet so the captures carry the page. */
+  :root {
+    --bg: #0f1115;
+    --panel: #14171d;
+    --panel-2: #1a1e26;
+    --border: #262b35;
+    --text: #c9ced6;
+    --muted: #828a97;
+    --accent: #7aa2f7;
+    --accent-dim: #33415e;
+    --tile: #1d2129;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    display: grid;
+    grid-template-areas: "topbar topbar" "sidebar feed";
+    grid-template-rows: 44px 1fr;
+    grid-template-columns: 250px 1fr;
+  }
+
+  /* ---- Top bar ---- */
+  #topbar {
+    grid-area: topbar;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 14px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    user-select: none;
+    white-space: nowrap;
+  }
+  #topbar .brand { font-weight: 600; letter-spacing: 0.2px; }
+  .seg { display: flex; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; }
+  .seg button {
+    background: transparent;
+    color: var(--muted);
+    border: none;
+    padding: 5px 12px;
+    font: inherit;
+    cursor: pointer;
+  }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button.active { background: var(--accent-dim); color: var(--text); }
+  .seg-key { margin-left: 6px; color: var(--muted); font-size: 11px; }
+  #rowIndicator { color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+  #rowIndicator b { color: var(--text); font-weight: 600; }
+  #topbar .hint { margin-left: auto; color: var(--muted); font-size: 12px; }
+  kbd {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font: 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--text);
+  }
+
+  /* ---- Sidebar ---- */
+  #sidebar {
+    grid-area: sidebar;
+    overflow-y: auto;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 10px 0 24px;
+    user-select: none;
+  }
+  #sidebar .sec {
+    margin: 14px 14px 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.9px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  #sidebar .nav-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-left: 2px solid transparent;
+    color: var(--text);
+    font: inherit;
+    padding: 4px 14px 4px 12px;
+    cursor: pointer;
+  }
+  #sidebar .nav-row:hover { background: var(--panel-2); }
+  #sidebar .nav-row.active {
+    background: var(--panel-2);
+    border-left-color: var(--accent);
+    color: #fff;
+  }
+  #sidebar .nav-row.empty { opacity: 0.42; }
+  #sidebar .nav-row .pin {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0 4px;
+  }
+
+  /* ---- Feed ---- */
+  #feed { grid-area: feed; overflow-y: auto; padding: 14px 22px 45vh; scroll-padding-top: 10px; }
+  .section-title {
+    margin: 26px 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .section-title:first-child { margin-top: 4px; }
+  .row {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 10px 14px 14px;
+    margin: 10px 0;
+  }
+  .row.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .row-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; user-select: none; }
+  .row-title { font-size: 14px; font-weight: 600; margin: 0; }
+  .row-axis { color: var(--muted); font-size: 11px; }
+  .chips { display: flex; gap: 5px; flex-wrap: wrap; margin-left: auto; }
+  .chip {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--muted);
+    font: 12px inherit;
+    font-family: inherit;
+    padding: 2px 10px;
+    cursor: pointer;
+  }
+  .chip.active { background: var(--accent-dim); border-color: var(--accent); color: #fff; }
+  .row-note { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+  .strip { display: flex; gap: 12px; overflow-x: auto; padding-top: 10px; align-items: flex-start; }
+  .cell { margin: 0; flex: none; }
+  .cell .frame {
+    display: block;
+    position: relative;
+    background: var(--tile);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .cell img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .cell .badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(15, 17, 21, 0.85);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--muted);
+    font-size: 10px;
+    padding: 1px 5px;
+    pointer-events: none;
+  }
+  .cell .ph {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: var(--muted);
+    font-size: 11px;
+    text-align: center;
+    padding: 8px;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+  }
+  .cell figcaption { color: var(--muted); font-size: 11px; padding-top: 4px; text-align: center; user-select: none; }
+
+  /* ---- Help overlay ---- */
+  #help {
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 9, 12, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  #help[hidden] { display: none; }
+  #help .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 26px;
+    min-width: 340px;
+  }
+  #help h2 { margin: 0 0 12px; font-size: 14px; }
+  #help table { border-collapse: collapse; }
+  #help td { padding: 3px 14px 3px 0; color: var(--muted); }
+  #help td:first-child { color: var(--text); }
+</style>
+</head>
+<body>
+<header id="topbar">
+  <div class="brand">Garage UI gallery</div>
+  <div class="seg" id="platformSeg"></div>
+  <div class="seg" id="themeSeg"></div>
+  <div id="rowIndicator"></div>
+  <div class="hint"><kbd>?</kbd> keys</div>
+</header>
+<nav id="sidebar"></nav>
+<main id="feed"></main>
+
+<div id="help" hidden>
+  <div class="card">
+    <h2>Keyboard</h2>
+    <table>
+      <tr><td><kbd>&uarr;</kbd> <kbd>&darr;</kbd> or <kbd>k</kbd> <kbd>j</kbd></td><td>previous / next row (wraps)</td></tr>
+      <tr><td><kbd>&larr;</kbd> <kbd>&rarr;</kbd> or <kbd>h</kbd> <kbd>l</kbd></td><td>previous / next variant in the row (wraps)</td></tr>
+      <tr><td><kbd>Space</kbd></td><td>switch platform (Android / iOS)</td></tr>
+      <tr><td><kbd>t</kbd></td><td>toggle light / dark theme</td></tr>
+      <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td>first / last row</td></tr>
+      <tr><td><kbd>?</kbd></td><td>show / hide this help</td></tr>
+    </table>
+  </div>
+</div>
+
+<script src="manifest.js"></script>
+<script>
+(function () {
+  "use strict";
+  var M = window.UI_GALLERY;
+  if (!M) {
+    document.getElementById("feed").textContent =
+      "manifest.js not found — run: python3 scripts/generate-ui-gallery.py";
+    return;
+  }
+
+  var STORAGE_KEY = "garage-ui-gallery.v1";
+
+  // Flatten rows; keep section titles for the indicator and sidebar.
+  var rows = [];
+  M.sections.forEach(function (section) {
+    section.rows.forEach(function (row) {
+      row.section = section.title;
+      // A row is "pinned" when none of its images are on a cycle platform
+      // (e.g. Wear OS): the global platform toggle doesn't apply to it.
+      var platforms = {};
+      row.items.forEach(function (item) {
+        item.platforms.forEach(function (p) { platforms[p] = true; });
+      });
+      row.pinned = M.platformCycle.every(function (p) { return !platforms[p]; });
+      rows.push(row);
+    });
+  });
+
+  // ---- State (URL params override localStorage; both validated) ----
+  var state = { rowId: rows[0].id, platform: M.platformCycle[0], theme: M.themes[0], variantByRow: {}, scrollTop: 0 };
+  try {
+    var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    if (saved && typeof saved === "object") {
+      if (typeof saved.rowId === "string") state.rowId = saved.rowId;
+      if (typeof saved.platform === "string") state.platform = saved.platform;
+      if (typeof saved.theme === "string") state.theme = saved.theme;
+      if (saved.variantByRow && typeof saved.variantByRow === "object") state.variantByRow = saved.variantByRow;
+      if (typeof saved.scrollTop === "number") state.scrollTop = saved.scrollTop;
+    }
+  } catch (e) { /* corrupt storage: start fresh */ }
+  var params = new URLSearchParams(location.search);
+  if (params.get("platform")) state.platform = params.get("platform");
+  if (params.get("theme")) state.theme = params.get("theme");
+  if (params.get("row")) state.rowId = params.get("row");
+  if (M.platformCycle.indexOf(state.platform) < 0) state.platform = M.platformCycle[0];
+  if (M.themes.indexOf(state.theme) < 0) state.theme = M.themes[0];
+  if (!rows.some(function (r) { return r.id === state.rowId; })) state.rowId = rows[0].id;
+  rows.forEach(function (row) {
+    var v = state.variantByRow[row.id];
+    if (!row.variants.some(function (x) { return x.id === v; })) {
+      state.variantByRow[row.id] = row.variants[0].id;
+    }
+  });
+
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* file:// quota quirks */ }
+  }
+
+  function rowIndex() {
+    for (var i = 0; i < rows.length; i++) if (rows[i].id === state.rowId) return i;
+    return 0;
+  }
+
+  // ---- Cell resolution ----
+  function cellFor(row, item) {
+    var variant = state.variantByRow[row.id];
+    var key = variant + "|" + state.platform + "|" + state.theme;
+    if (item.images[key]) return { img: item.images[key], platform: state.platform, pinned: false };
+    if (row.pinned) {
+      for (var i = 0; i < item.platforms.length; i++) {
+        var alt = variant + "|" + item.platforms[i] + "|" + state.theme;
+        if (item.images[alt]) return { img: item.images[alt], platform: item.platforms[i], pinned: true };
+      }
+    }
+    return null;
+  }
+
+  function placeholderInfo(row, item) {
+    var variant = state.variantByRow[row.id];
+    var reason;
+    var hasPlatformSomewhere = item.platforms.indexOf(state.platform) >= 0;
+    var otherThemeHasIt = M.themes.some(function (t) {
+      return t !== state.theme && item.images[variant + "|" + state.platform + "|" + t];
+    });
+    if (otherThemeHasIt) {
+      reason = "No " + state.theme + " capture";
+    } else if (hasPlatformSomewhere) {
+      reason = "No " + (M.platformLabels[state.platform] || state.platform) + " capture for this state";
+    } else {
+      reason = "Not captured on " + (M.platformLabels[state.platform] || state.platform);
+    }
+    // Reserve space with a plausible aspect: same variant on any platform/theme,
+    // else any capture of this item, else a phone-ish 3:4.
+    var aspect = null;
+    Object.keys(item.images).forEach(function (k) {
+      if (aspect === null && k.indexOf(variant + "|") === 0) aspect = item.images[k];
+    });
+    if (aspect === null) {
+      var keys = Object.keys(item.images);
+      if (keys.length) aspect = item.images[keys[0]];
+    }
+    return { reason: reason, w: aspect ? aspect.w : 3, h: aspect ? aspect.h : 4 };
+  }
+
+  // ---- Build DOM once; state changes only swap sources/classes so scroll holds. ----
+  var feed = document.getElementById("feed");
+  var sidebar = document.getElementById("sidebar");
+  var rowEls = {};   // rowId -> {rowEl, navEl, chipEls: {variantId: el}, cells: [{item, frame, img, link, badge, ph, caption}]}
+
+  M.sections.forEach(function (section) {
+    var secTitle = document.createElement("div");
+    secTitle.className = "section-title";
+    secTitle.textContent = section.title;
+    feed.appendChild(secTitle);
+
+    var navSec = document.createElement("div");
+    navSec.className = "sec";
+    navSec.textContent = section.title;
+    sidebar.appendChild(navSec);
+
+    section.rows.forEach(function (row) {
+      var rowEl = document.createElement("section");
+      rowEl.className = "row";
+      rowEl.id = "row-" + row.id;
+
+      var head = document.createElement("div");
+      head.className = "row-head";
+      var title = document.createElement("h3");
+      title.className = "row-title";
+      title.textContent = row.title;
+      head.appendChild(title);
+      if (row.axis) {
+        var axis = document.createElement("span");
+        axis.className = "row-axis";
+        axis.textContent = row.axis + " ←→";
+        head.appendChild(axis);
+      }
+      var chipEls = {};
+      if (row.variants.length > 1) {
+        var chips = document.createElement("div");
+        chips.className = "chips";
+        row.variants.forEach(function (variant) {
+          var chip = document.createElement("button");
+          chip.className = "chip";
+          chip.textContent = variant.label;
+          chip.tabIndex = -1;
+          chip.addEventListener("click", function () {
+            state.rowId = row.id;
+            state.variantByRow[row.id] = variant.id;
+            update();
+            save();
+          });
+          chips.appendChild(chip);
+          chipEls[variant.id] = chip;
+        });
+        head.appendChild(chips);
+      }
+      rowEl.appendChild(head);
+      if (row.note) {
+        var note = document.createElement("p");
+        note.className = "row-note";
+        note.textContent = row.note;
+        rowEl.appendChild(note);
+      }
+
+      var strip = document.createElement("div");
+      strip.className = "strip";
+      var cells = [];
+      row.items.forEach(function (item) {
+        var fig = document.createElement("figure");
+        fig.className = "cell";
+        var link = document.createElement("a");
+        link.className = "frame";
+        link.target = "_blank";
+        link.rel = "noopener";
+        var img = document.createElement("img");
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.alt = row.title + " — " + item.label;
+        img.addEventListener("error", function () {
+          // Stale manifest (renamed hashed PNGs): surface it instead of a broken icon.
+          img.hidden = true;
+          ph.hidden = false;
+          ph.textContent = "File missing — rerun scripts/generate-ui-gallery.py";
+        });
+        var badge = document.createElement("span");
+        badge.className = "badge";
+        badge.hidden = true;
+        var ph = document.createElement("div");
+        ph.className = "ph";
+        ph.hidden = true;
+        link.appendChild(img);
+        link.appendChild(badge);
+        link.appendChild(ph);
+        fig.appendChild(link);
+        if (row.items.length > 1) {
+          var caption = document.createElement("figcaption");
+          caption.textContent = item.label;
+          fig.appendChild(caption);
+        }
+        strip.appendChild(fig);
+        cells.push({ item: item, link: link, img: img, badge: badge, ph: ph });
+      });
+      rowEl.appendChild(strip);
+
+      rowEl.addEventListener("click", function () {
+        if (state.rowId !== row.id) {
+          state.rowId = row.id;
+          update();
+          save();
+        }
+      });
+      feed.appendChild(rowEl);
+
+      var navEl = document.createElement("button");
+      navEl.className = "nav-row";
+      var navLabel = document.createElement("span");
+      navLabel.textContent = row.title;
+      navEl.appendChild(navLabel);
+      if (row.pinned) {
+        var pin = document.createElement("span");
+        pin.className = "pin";
+        pin.textContent = M.platformLabels[row.items[0].platforms[0]] || "pinned";
+        navEl.appendChild(pin);
+      }
+      navEl.addEventListener("click", function () {
+        state.rowId = row.id;
+        update();
+        scrollToSelected();
+        save();
+      });
+      sidebar.appendChild(navEl);
+
+      rowEls[row.id] = { row: row, rowEl: rowEl, navEl: navEl, chipEls: chipEls, cells: cells };
+    });
+  });
+
+  // ---- Top bar segmented controls ----
+  var platformSeg = document.getElementById("platformSeg");
+  var platformBtns = {};
+  M.platformCycle.forEach(function (p) {
+    var b = document.createElement("button");
+    b.textContent = M.platformLabels[p] || p;
+    b.tabIndex = -1;
+    b.addEventListener("click", function () { state.platform = p; update(); save(); });
+    platformSeg.appendChild(b);
+    platformBtns[p] = b;
+  });
+  var segKey = document.createElement("span");
+  segKey.className = "seg-key";
+
+  var themeSeg = document.getElementById("themeSeg");
+  var themeBtns = {};
+  M.themes.forEach(function (t) {
+    var b = document.createElement("button");
+    b.textContent = t.charAt(0).toUpperCase() + t.slice(1);
+    b.tabIndex = -1;
+    b.addEventListener("click", function () { state.theme = t; update(); save(); });
+    themeSeg.appendChild(b);
+    themeBtns[t] = b;
+  });
+
+  var rowIndicator = document.getElementById("rowIndicator");
+
+  // ---- Render current state into the fixed DOM ----
+  function update() {
+    Object.keys(rowEls).forEach(function (id) {
+      var entry = rowEls[id];
+      var row = entry.row;
+      var selected = id === state.rowId;
+      entry.rowEl.classList.toggle("selected", selected);
+      entry.navEl.classList.toggle("active", selected);
+
+      var variant = state.variantByRow[id];
+      Object.keys(entry.chipEls).forEach(function (variantId) {
+        entry.chipEls[variantId].classList.toggle("active", variantId === variant);
+      });
+
+      var anyImage = false;
+      entry.cells.forEach(function (cell) {
+        var res = cellFor(row, cell.item);
+        if (res) {
+          anyImage = true;
+          var displayH = row.height;
+          var displayW = Math.round(displayH * res.img.w / res.img.h);
+          cell.link.style.width = displayW + "px";
+          cell.link.style.height = displayH + "px";
+          var src = encodeURI(res.img.src);
+          if (cell.img.getAttribute("src") !== src) cell.img.setAttribute("src", src);
+          cell.img.hidden = false;
+          cell.ph.hidden = true;
+          cell.link.href = src;
+          cell.link.title = res.img.src.replace(/^(\.\.\/)+/, "MobileGarage/");
+          cell.link.style.pointerEvents = "";
+          cell.badge.hidden = !res.pinned;
+          if (res.pinned) cell.badge.textContent = M.platformLabels[res.platform] || res.platform;
+        } else {
+          var info = placeholderInfo(row, cell.item);
+          var phH = row.height;
+          var phW = Math.round(phH * info.w / info.h);
+          cell.link.style.width = phW + "px";
+          cell.link.style.height = phH + "px";
+          cell.img.hidden = true;
+          cell.img.removeAttribute("src");
+          cell.ph.hidden = false;
+          cell.ph.textContent = info.reason;
+          cell.link.removeAttribute("href");
+          cell.link.removeAttribute("title");
+          cell.link.style.pointerEvents = "none";
+          cell.badge.hidden = true;
+        }
+      });
+      entry.navEl.classList.toggle("empty", !anyImage && !row.pinned);
+    });
+
+    Object.keys(platformBtns).forEach(function (p) {
+      platformBtns[p].classList.toggle("active", p === state.platform);
+    });
+    Object.keys(themeBtns).forEach(function (t) {
+      themeBtns[t].classList.toggle("active", t === state.theme);
+    });
+
+    var row = rows[rowIndex()];
+    var html = row.section + " · <b>" + row.title + "</b>";
+    if (row.variants.length > 1) {
+      var variant = state.variantByRow[row.id];
+      var vi = 0;
+      row.variants.forEach(function (v, i) { if (v.id === variant) vi = i; });
+      html += " — " + row.variants[vi].label + " (" + (vi + 1) + "/" + row.variants.length + ")";
+    }
+    rowIndicator.innerHTML = html;
+  }
+
+  function scrollToSelected() {
+    var entry = rowEls[state.rowId];
+    entry.rowEl.scrollIntoView({ block: "nearest" });
+    entry.navEl.scrollIntoView({ block: "nearest" });
+  }
+
+  // ---- Navigation ----
+  function moveRow(delta) {
+    var i = (rowIndex() + delta + rows.length) % rows.length;
+    state.rowId = rows[i].id;
+    update();
+    scrollToSelected();
+    save();
+  }
+  function selectRowAt(i) {
+    state.rowId = rows[i].id;
+    update();
+    scrollToSelected();
+    save();
+  }
+  function moveVariant(delta) {
+    var row = rows[rowIndex()];
+    if (row.variants.length < 2) return;
+    var current = state.variantByRow[row.id];
+    var vi = 0;
+    row.variants.forEach(function (v, i) { if (v.id === current) vi = i; });
+    vi = (vi + delta + row.variants.length) % row.variants.length;
+    state.variantByRow[row.id] = row.variants[vi].id;
+    update();
+    save();
+  }
+  function cyclePlatform() {
+    var i = M.platformCycle.indexOf(state.platform);
+    state.platform = M.platformCycle[(i + 1) % M.platformCycle.length];
+    update();
+    save();
+  }
+  function cycleTheme() {
+    var i = M.themes.indexOf(state.theme);
+    state.theme = M.themes[(i + 1) % M.themes.length];
+    update();
+    save();
+  }
+
+  var help = document.getElementById("help");
+  help.addEventListener("click", function () { help.hidden = true; });
+
+  window.addEventListener("keydown", function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    switch (e.key) {
+      case "ArrowDown": case "j": moveRow(1); break;
+      case "ArrowUp": case "k": moveRow(-1); break;
+      case "ArrowRight": case "l": moveVariant(1); break;
+      case "ArrowLeft": case "h": moveVariant(-1); break;
+      case " ": cyclePlatform(); break;
+      case "t": case "T": cycleTheme(); break;
+      case "Home": selectRowAt(0); break;
+      case "End": selectRowAt(rows.length - 1); break;
+      case "?": help.hidden = !help.hidden; break;
+      case "Escape": help.hidden = true; break;
+      default: return;
+    }
+    e.preventDefault();
+  });
+
+  // Scroll position is part of the remembered state (debounced).
+  var scrollTimer = null;
+  feed.addEventListener("scroll", function () {
+    if (scrollTimer) clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(function () {
+      state.scrollTop = feed.scrollTop;
+      save();
+    }, 200);
+  });
+
+  update();
+  // Tile sizes are fixed from manifest dimensions, so layout is stable
+  // before any image loads and the scroll offset restores exactly.
+  // A ?row= deep link wins over the remembered scroll position.
+  if (params.get("row") === state.rowId) {
+    scrollToSelected();
+  } else {
+    feed.scrollTop = state.scrollTop;
+  }
+})();
+</script>
+</body>
+</html>
