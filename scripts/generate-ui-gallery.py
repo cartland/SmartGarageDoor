@@ -218,6 +218,7 @@ def build_manifest(doc):
                     "axis": row.get("axis"),
                     "note": row.get("note"),
                     "height": row.get("height", 360),
+                    "maxw": row.get("maxw"),
                     "variants": variants,
                     "items": items,
                 }

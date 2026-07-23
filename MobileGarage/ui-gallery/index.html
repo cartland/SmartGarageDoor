@@ -151,7 +151,8 @@
   }
   .chip.active { background: var(--accent-dim); border-color: var(--accent); color: #fff; }
   .row-note { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
-  .strip { display: flex; gap: 12px; overflow-x: auto; padding-top: 10px; align-items: flex-start; }
+  /* Rows WRAP to fit the width — the page never scrolls horizontally. */
+  .strip { display: flex; gap: 12px; flex-wrap: wrap; padding-top: 10px; align-items: flex-start; }
   .cell { margin: 0; flex: none; }
   .cell .frame {
     display: block;
@@ -302,6 +303,21 @@
   function rowIndex() {
     for (var i = 0; i < rows.length; i++) if (rows[i].id === state.rowId) return i;
     return 0;
+  }
+
+  // Tile display size: nominal row height, but wide images are capped at the
+  // row's maxw (default 420) and scale DOWN proportionally — wide pills and
+  // full-width sections must not dominate the page.
+  var DEFAULT_MAX_TILE_W = 420;
+  function tileSize(row, imgW, imgH) {
+    var h = row.height;
+    var w = Math.round(h * imgW / imgH);
+    var maxW = row.maxw || DEFAULT_MAX_TILE_W;
+    if (w > maxW) {
+      h = Math.round(h * maxW / w);
+      w = maxW;
+    }
+    return { w: w, h: h };
   }
 
   // ---- Cell resolution ----
@@ -524,10 +540,9 @@
         var res = cellFor(row, cell.item);
         if (res) {
           anyImage = true;
-          var displayH = row.height;
-          var displayW = Math.round(displayH * res.img.w / res.img.h);
-          cell.link.style.width = displayW + "px";
-          cell.link.style.height = displayH + "px";
+          var size = tileSize(row, res.img.w, res.img.h);
+          cell.link.style.width = size.w + "px";
+          cell.link.style.height = size.h + "px";
           var src = encodeURI(res.img.src);
           if (cell.img.getAttribute("src") !== src) cell.img.setAttribute("src", src);
           cell.img.hidden = false;
@@ -539,10 +554,9 @@
           if (res.pinned) cell.badge.textContent = M.platformLabels[res.platform] || res.platform;
         } else {
           var info = placeholderInfo(row, cell.item);
-          var phH = row.height;
-          var phW = Math.round(phH * info.w / info.h);
-          cell.link.style.width = phW + "px";
-          cell.link.style.height = phH + "px";
+          var phSize = tileSize(row, info.w, info.h);
+          cell.link.style.width = phSize.w + "px";
+          cell.link.style.height = phSize.h + "px";
           cell.img.hidden = true;
           cell.img.removeAttribute("src");
           cell.ph.hidden = false;

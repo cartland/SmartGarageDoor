@@ -22,158 +22,199 @@ window.UI_GALLERY = {
     {
      "id": "home",
      "title": "Home",
-     "axis": "State",
+     "axis": null,
      "note": null,
-     "height": 420,
+     "height": 300,
+     "maxw": null,
      "variants": [
       {
-       "id": "closed",
-       "label": "Closed"
-      },
-      {
-       "id": "open",
-       "label": "Open"
-      },
-      {
-       "id": "confirming",
-       "label": "Confirming"
-      },
-      {
-       "id": "sending",
-       "label": "Sending"
-      },
-      {
-       "id": "warning",
-       "label": "Open too long"
-      },
-      {
-       "id": "stale",
-       "label": "Stale data"
-      },
-      {
-       "id": "alerts",
-       "label": "Alerts"
-      },
-      {
-       "id": "signed-out",
-       "label": "Signed out"
+       "id": "default",
+       "label": "Default"
       }
      ],
      "items": [
       {
-       "id": "screen",
-       "label": "Phone",
+       "id": "closed",
+       "label": "Closed",
        "platforms": [
         "android",
         "ios"
        ],
        "images": {
-        "closed|android|light": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentClosedSignedInPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "closed|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentClosedSignedInPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
-        "closed|ios|light": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-closed-signed-out.1.png",
          "w": 1125,
          "h": 2436
-        },
-        "open|android|light": {
+        }
+       }
+      },
+      {
+       "id": "open",
+       "label": "Open",
+       "platforms": [
+        "android",
+        "ios"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentOpenSignedInPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "open|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentOpenSignedInPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
-        "open|ios|light": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-open-signed-in.1.png",
          "w": 1125,
          "h": 2436
-        },
-        "confirming|android|light": {
+        }
+       }
+      },
+      {
+       "id": "confirming",
+       "label": "Confirming",
+       "platforms": [
+        "android",
+        "ios"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentAwaitingConfirmationPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "confirming|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentAwaitingConfirmationPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
-        "confirming|ios|light": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-confirm-state.1.png",
          "w": 1125,
          "h": 2436
-        },
-        "sending|android|light": {
+        }
+       }
+      },
+      {
+       "id": "sending",
+       "label": "Sending",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSendingToDoorPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "sending|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSendingToDoorPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
-        },
-        "warning|android|light": {
+        }
+       }
+      },
+      {
+       "id": "warning",
+       "label": "Open too long",
+       "platforms": [
+        "android",
+        "ios"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentOpeningTooLongPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "warning|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentOpeningTooLongPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
-        "warning|ios|light": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-opening-too-long-warning.1.png",
          "w": 1125,
          "h": 2436
-        },
-        "stale|android|light": {
+        }
+       }
+      },
+      {
+       "id": "stale",
+       "label": "Stale data",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentStaleBannerPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "stale|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentStaleBannerPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
-        },
-        "alerts|android|light": {
+        }
+       }
+      },
+      {
+       "id": "alerts",
+       "label": "Alerts",
+       "platforms": [
+        "android",
+        "ios"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentPermissionMissingPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "alerts|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentPermissionMissingPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
-        "alerts|ios|light": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-with-alerts.1.png",
          "w": 1125,
          "h": 2436
-        },
-        "signed-out|android|light": {
+        }
+       }
+      },
+      {
+       "id": "signed-out",
+       "label": "Signed out",
+       "platforms": [
+        "android",
+        "ios"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSignedOutPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "signed-out|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSignedOutPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
-        "signed-out|ios|light": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-sign-in-row.1.png",
          "w": 1125,
          "h": 2436
@@ -185,71 +226,87 @@ window.UI_GALLERY = {
     {
      "id": "home-remote-pill",
      "title": "Home, remote pill states",
-     "axis": "Pill state",
-     "note": "Same Home screen flipped through the remote-button health pill states.",
-     "height": 420,
+     "axis": null,
+     "note": "Same Home screen across the remote-button health pill states.",
+     "height": 300,
+     "maxw": null,
      "variants": [
       {
-       "id": "online",
-       "label": "Online"
-      },
-      {
-       "id": "offline",
-       "label": "Offline"
-      },
-      {
-       "id": "unauthorized",
-       "label": "Unauthorized"
-      },
-      {
-       "id": "unknown",
-       "label": "Unknown"
+       "id": "default",
+       "label": "Default"
       }
      ],
      "items": [
       {
-       "id": "screen",
-       "label": "Phone",
+       "id": "online",
+       "label": "Online",
        "platforms": [
         "android"
        ],
        "images": {
-        "online|android|light": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillOnlinePreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "online|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillOnlinePreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
-        },
-        "offline|android|light": {
+        }
+       }
+      },
+      {
+       "id": "offline",
+       "label": "Offline",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillOfflinePreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "offline|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillOfflinePreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
-        },
-        "unauthorized|android|light": {
+        }
+       }
+      },
+      {
+       "id": "unauthorized",
+       "label": "Unauthorized",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillUnauthorizedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "unauthorized|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillUnauthorizedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
-        },
-        "unknown|android|light": {
+        }
+       }
+      },
+      {
+       "id": "unknown",
+       "label": "Unknown",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillUnknownPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "unknown|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillUnknownPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
@@ -261,100 +318,128 @@ window.UI_GALLERY = {
     {
      "id": "history",
      "title": "History",
-     "axis": "State",
+     "axis": null,
      "note": null,
-     "height": 420,
+     "height": 300,
+     "maxw": null,
      "variants": [
       {
-       "id": "recent",
-       "label": "Recent events"
-      },
-      {
-       "id": "closed-days",
-       "label": "Closed days"
-      },
-      {
-       "id": "empty",
-       "label": "Empty"
-      },
-      {
-       "id": "loading-older",
-       "label": "Loading older"
-      },
-      {
-       "id": "reached-beginning",
-       "label": "Reached beginning"
-      },
-      {
-       "id": "stale",
-       "label": "Stale banner"
+       "id": "default",
+       "label": "Default"
       }
      ],
      "items": [
       {
-       "id": "screen",
-       "label": "Phone",
+       "id": "recent",
+       "label": "Recent events",
        "platforms": [
         "android",
         "ios"
        ],
        "images": {
-        "recent|android|light": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "recent|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
-        "recent|ios|light": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-recent-events.1.png",
          "w": 1125,
          "h": 2436
-        },
-        "closed-days|android|light": {
+        }
+       }
+      },
+      {
+       "id": "closed-days",
+       "label": "Closed days",
+       "platforms": [
+        "android",
+        "ios"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayClosedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "closed-days|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayClosedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
-        "closed-days|ios|light": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-closed-states.1.png",
          "w": 1125,
          "h": 2436
-        },
-        "empty|android|light": {
+        }
+       }
+      },
+      {
+       "id": "empty",
+       "label": "Empty",
+       "platforms": [
+        "android",
+        "ios"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentEmptyPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "empty|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentEmptyPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
-        "empty|ios|light": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-empty.1.png",
          "w": 1125,
          "h": 2436
-        },
-        "loading-older|ios|light": {
+        }
+       }
+      },
+      {
+       "id": "loading-older",
+       "label": "Loading older",
+       "platforms": [
+        "ios"
+       ],
+       "images": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-loading-older-page.1.png",
          "w": 1125,
          "h": 2436
-        },
-        "reached-beginning|ios|light": {
+        }
+       }
+      },
+      {
+       "id": "reached-beginning",
+       "label": "Reached beginning",
+       "platforms": [
+        "ios"
+       ],
+       "images": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-reached-beginning.1.png",
          "w": 1125,
          "h": 2436
-        },
-        "stale|ios|light": {
+        }
+       }
+      },
+      {
+       "id": "stale",
+       "label": "Stale banner",
+       "platforms": [
+        "ios"
+       ],
+       "images": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-stale-banner.1.png",
          "w": 1125,
          "h": 2436
@@ -366,106 +451,130 @@ window.UI_GALLERY = {
     {
      "id": "settings",
      "title": "Settings",
-     "axis": "State",
+     "axis": null,
      "note": null,
-     "height": 420,
+     "height": 300,
+     "maxw": null,
      "variants": [
       {
-       "id": "signed-in",
-       "label": "Signed in (allowlisted)"
-      },
-      {
-       "id": "signed-in-basic",
-       "label": "Signed in (basic)"
-      },
-      {
-       "id": "signed-out",
-       "label": "Signed out"
-      },
-      {
-       "id": "permission-denied",
-       "label": "Notifications off"
-      },
-      {
-       "id": "snooze-sending",
-       "label": "Snooze sending"
+       "id": "default",
+       "label": "Default"
       }
      ],
      "items": [
       {
-       "id": "screen",
-       "label": "Phone",
+       "id": "signed-in",
+       "label": "Signed in (allowlisted)",
        "platforms": [
         "android",
         "ios"
        ],
        "images": {
-        "signed-in|android|light": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedInAllowlistedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "signed-in|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedInAllowlistedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
-        "signed-in|ios|light": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Settings-signed-in-developer.1.png",
          "w": 1125,
          "h": 2436
-        },
-        "signed-in-basic|android|light": {
+        }
+       }
+      },
+      {
+       "id": "signed-in-basic",
+       "label": "Signed in (basic)",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedInBasicPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "signed-in-basic|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedInBasicPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
-        },
-        "signed-out|android|light": {
+        }
+       }
+      },
+      {
+       "id": "signed-out",
+       "label": "Signed out",
+       "platforms": [
+        "android",
+        "ios"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedOutPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "signed-out|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedOutPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
-        "signed-out|ios|light": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Settings-signed-out.1.png",
          "w": 1125,
          "h": 2436
-        },
-        "permission-denied|android|light": {
+        }
+       }
+      },
+      {
+       "id": "permission-denied",
+       "label": "Notifications off",
+       "platforms": [
+        "android",
+        "ios"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentPermissionDeniedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "permission-denied|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentPermissionDeniedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
-        "permission-denied|ios|light": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Settings-notifications-disabled.1.png",
          "w": 1125,
          "h": 2436
-        },
-        "snooze-sending|android|light": {
+        }
+       }
+      },
+      {
+       "id": "snooze-sending",
+       "label": "Snooze sending",
+       "platforms": [
+        "android",
+        "ios"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSnoozeInFlightPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "snooze-sending|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSnoozeInFlightPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
-        "snooze-sending|ios|light": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Settings-snooze-sending.1.png",
          "w": 1125,
          "h": 2436
@@ -477,63 +586,75 @@ window.UI_GALLERY = {
     {
      "id": "functions",
      "title": "Function list",
-     "axis": "Access",
+     "axis": null,
      "note": null,
-     "height": 420,
+     "height": 300,
+     "maxw": null,
      "variants": [
       {
-       "id": "granted",
-       "label": "Granted"
-      },
-      {
-       "id": "denied",
-       "label": "Denied"
-      },
-      {
-       "id": "test-notifications",
-       "label": "Test notifications"
+       "id": "default",
+       "label": "Default"
       }
      ],
      "items": [
       {
-       "id": "screen",
-       "label": "Phone",
+       "id": "granted",
+       "label": "Granted",
        "platforms": [
         "android",
         "ios"
        ],
        "images": {
-        "granted|android|light": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "granted|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
-        "granted|ios|light": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Functions-granted.1.png",
          "w": 1125,
          "h": 2436
-        },
-        "denied|android|light": {
+        }
+       }
+      },
+      {
+       "id": "denied",
+       "label": "Denied",
+       "platforms": [
+        "android",
+        "ios"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentDeniedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "denied|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentDeniedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
-        "denied|ios|light": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Functions-locked.1.png",
          "w": 1125,
          "h": 2436
-        },
-        "test-notifications|ios|light": {
+        }
+       }
+      },
+      {
+       "id": "test-notifications",
+       "label": "Test notifications",
+       "platforms": [
+        "ios"
+       ],
+       "images": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Functions-test-notifications.1.png",
          "w": 1125,
          "h": 2436
@@ -545,23 +666,20 @@ window.UI_GALLERY = {
     {
      "id": "diagnostics",
      "title": "Diagnostics",
-     "axis": "State",
+     "axis": null,
      "note": null,
-     "height": 420,
+     "height": 300,
+     "maxw": null,
      "variants": [
       {
        "id": "default",
-       "label": "Counters"
-      },
-      {
-       "id": "clearing",
-       "label": "Clear in flight"
+       "label": "Default"
       }
      ],
      "items": [
       {
-       "id": "screen",
-       "label": "Phone",
+       "id": "counters",
+       "label": "Counters",
        "platforms": [
         "android",
         "ios"
@@ -581,13 +699,22 @@ window.UI_GALLERY = {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Diagnostics-counters.1.png",
          "w": 1125,
          "h": 2436
-        },
-        "clearing|android|light": {
+        }
+       }
+      },
+      {
+       "id": "clearing",
+       "label": "Clear in flight",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/DiagnosticsContentClearInFlightPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
-        "clearing|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/DiagnosticsContentClearInFlightPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
@@ -604,54 +731,61 @@ window.UI_GALLERY = {
     {
      "id": "sheet-snooze",
      "title": "Snooze sheet",
-     "axis": "State",
+     "axis": null,
      "note": null,
-     "height": 300,
+     "height": 240,
+     "maxw": 300,
      "variants": [
       {
-       "id": "off",
-       "label": "Nothing selected"
-      },
-      {
-       "id": "active",
-       "label": "Option selected"
+       "id": "default",
+       "label": "Default"
       }
      ],
      "items": [
       {
-       "id": "sheet",
-       "label": "Sheet",
+       "id": "off",
+       "label": "Nothing selected",
        "platforms": [
         "android",
         "ios"
        ],
        "images": {
-        "off|android|light": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentOffPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 1519
         },
-        "off|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentOffPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 1519
         },
-        "off|ios|light": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Snooze-sheet-nothing-selected.1.png",
          "w": 1125,
          "h": 2436
-        },
-        "active|android|light": {
+        }
+       }
+      },
+      {
+       "id": "active",
+       "label": "Option selected",
+       "platforms": [
+        "android",
+        "ios"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentActivePreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 1519
         },
-        "active|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentActivePreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 1519
         },
-        "active|ios|light": {
+        "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Snooze-sheet-option-selected.1.png",
          "w": 1125,
          "h": 2436
@@ -665,7 +799,8 @@ window.UI_GALLERY = {
      "title": "Account & version sheets",
      "axis": null,
      "note": null,
-     "height": 300,
+     "height": 240,
+     "maxw": 300,
      "variants": [
       {
        "id": "default",
@@ -724,7 +859,8 @@ window.UI_GALLERY = {
      "title": "Info sheets",
      "axis": null,
      "note": null,
-     "height": 300,
+     "height": 240,
+     "maxw": 300,
      "variants": [
       {
        "id": "default",
@@ -789,7 +925,8 @@ window.UI_GALLERY = {
      "title": "Clear diagnostics dialog",
      "axis": null,
      "note": null,
-     "height": 240,
+     "height": 200,
+     "maxw": 300,
      "variants": [
       {
        "id": "default",
@@ -828,7 +965,8 @@ window.UI_GALLERY = {
      "title": "Home dashboard by width",
      "axis": null,
      "note": null,
-     "height": 280,
+     "height": 230,
+     "maxw": 520,
      "variants": [
       {
        "id": "default",
@@ -938,7 +1076,8 @@ window.UI_GALLERY = {
      "title": "Navigation rail",
      "axis": null,
      "note": null,
-     "height": 280,
+     "height": 230,
+     "maxw": 520,
      "variants": [
       {
        "id": "default",
@@ -1010,7 +1149,8 @@ window.UI_GALLERY = {
      "title": "Three-pane dashboard",
      "axis": null,
      "note": null,
-     "height": 280,
+     "height": 230,
+     "maxw": 520,
      "variants": [
       {
        "id": "default",
@@ -1106,7 +1246,8 @@ window.UI_GALLERY = {
      "title": "Door canvas",
      "axis": null,
      "note": "The shared door drawing. iOS renders the same geometry from the KMP constants.",
-     "height": 170,
+     "height": 130,
+     "maxw": null,
      "variants": [
       {
        "id": "default",
@@ -1304,7 +1445,8 @@ window.UI_GALLERY = {
      "title": "Door states grid (iOS)",
      "axis": null,
      "note": "The iOS snapshot gallery captures all door states as one composite.",
-     "height": 320,
+     "height": 260,
+     "maxw": null,
      "variants": [
       {
        "id": "default",
@@ -1333,7 +1475,8 @@ window.UI_GALLERY = {
      "title": "Garage icon",
      "axis": null,
      "note": null,
-     "height": 120,
+     "height": 110,
+     "maxw": null,
      "variants": [
       {
        "id": "default",
@@ -1372,7 +1515,8 @@ window.UI_GALLERY = {
      "title": "Garage door button",
      "axis": null,
      "note": "The round remote button, one tile per ButtonStateMachine state.",
-     "height": 150,
+     "height": 130,
+     "maxw": null,
      "variants": [
       {
        "id": "default",
@@ -1558,7 +1702,8 @@ window.UI_GALLERY = {
      "title": "Remote button states grid (iOS)",
      "axis": null,
      "note": null,
-     "height": 320,
+     "height": 260,
+     "maxw": null,
      "variants": [
       {
        "id": "default",
@@ -1585,141 +1730,182 @@ window.UI_GALLERY = {
     {
      "id": "remote-section",
      "title": "Remote control section",
-     "axis": "Button state",
-     "note": "The full-width Home section that hosts the button, flipped through states.",
-     "height": 240,
+     "axis": null,
+     "note": "The full-width Home section that hosts the button, one tile per state.",
+     "height": 180,
+     "maxw": 340,
      "variants": [
       {
-       "id": "ready",
-       "label": "Ready"
-      },
-      {
-       "id": "preparing",
-       "label": "Preparing"
-      },
-      {
-       "id": "awaiting",
-       "label": "Awaiting confirmation"
-      },
-      {
-       "id": "sending-server",
-       "label": "Sending to server"
-      },
-      {
-       "id": "sending-door",
-       "label": "Sending to door"
-      },
-      {
-       "id": "succeeded",
-       "label": "Succeeded"
-      },
-      {
-       "id": "cancelled",
-       "label": "Cancelled"
-      },
-      {
-       "id": "server-failed",
-       "label": "Server failed"
-      },
-      {
-       "id": "door-failed",
-       "label": "Door failed"
+       "id": "default",
+       "label": "Default"
       }
      ],
      "items": [
       {
-       "id": "section",
-       "label": "Section",
+       "id": "ready",
+       "label": "Ready",
        "platforms": [
         "android"
        ],
        "images": {
-        "ready|android|light": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
-        "ready|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
-        },
-        "preparing|android|light": {
+        }
+       }
+      },
+      {
+       "id": "preparing",
+       "label": "Preparing",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreparingPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
-        "preparing|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreparingPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
-        },
-        "awaiting|android|light": {
+        }
+       }
+      },
+      {
+       "id": "awaiting",
+       "label": "Awaiting confirmation",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentAwaitingConfirmationPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
-        "awaiting|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentAwaitingConfirmationPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
-        },
-        "sending-server|android|light": {
+        }
+       }
+      },
+      {
+       "id": "sending-server",
+       "label": "Sending to server",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingToServerPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
-        "sending-server|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingToServerPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
-        },
-        "sending-door|android|light": {
+        }
+       }
+      },
+      {
+       "id": "sending-door",
+       "label": "Sending to door",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingToDoorPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
-        "sending-door|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingToDoorPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
-        },
-        "succeeded|android|light": {
+        }
+       }
+      },
+      {
+       "id": "succeeded",
+       "label": "Succeeded",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSucceededPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
-        "succeeded|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSucceededPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
-        },
-        "cancelled|android|light": {
+        }
+       }
+      },
+      {
+       "id": "cancelled",
+       "label": "Cancelled",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentCancelledPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
-        "cancelled|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentCancelledPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
-        },
-        "server-failed|android|light": {
+        }
+       }
+      },
+      {
+       "id": "server-failed",
+       "label": "Server failed",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentServerFailedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
-        "server-failed|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentServerFailedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
-        },
-        "door-failed|android|light": {
+        }
+       }
+      },
+      {
+       "id": "door-failed",
+       "label": "Door failed",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentDoorFailedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
-        "door-failed|android|dark": {
+        "default|android|dark": {
          "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentDoorFailedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
@@ -1733,7 +1919,8 @@ window.UI_GALLERY = {
      "title": "Network diagram",
      "axis": null,
      "note": "The phone-to-server-to-door progress diagram shown while a press is in flight.",
-     "height": 150,
+     "height": 120,
+     "maxw": 320,
      "variants": [
       {
        "id": "default",
@@ -1867,7 +2054,8 @@ window.UI_GALLERY = {
      "title": "Device check-in pill",
      "axis": null,
      "note": null,
-     "height": 100,
+     "height": 80,
+     "maxw": 240,
      "variants": [
       {
        "id": "default",
@@ -1958,7 +2146,8 @@ window.UI_GALLERY = {
      "title": "Remote button health pill",
      "axis": null,
      "note": null,
-     "height": 100,
+     "height": 80,
+     "maxw": 240,
      "variants": [
       {
        "id": "default",
@@ -2049,7 +2238,8 @@ window.UI_GALLERY = {
      "title": "Remote offline pill",
      "axis": null,
      "note": null,
-     "height": 100,
+     "height": 80,
+     "maxw": 240,
      "variants": [
       {
        "id": "default",
@@ -2140,7 +2330,8 @@ window.UI_GALLERY = {
      "title": "Door status card",
      "axis": null,
      "note": null,
-     "height": 190,
+     "height": 160,
+     "maxw": 320,
      "variants": [
       {
        "id": "default",
@@ -2174,7 +2365,8 @@ window.UI_GALLERY = {
      "title": "Error card",
      "axis": null,
      "note": null,
-     "height": 190,
+     "height": 160,
+     "maxw": 320,
      "variants": [
       {
        "id": "default",
@@ -2251,7 +2443,8 @@ window.UI_GALLERY = {
      "title": "Hero flow",
      "axis": null,
      "note": "The single wear screen through the press narrative. Emulator captures, clock pinned to 10:10.",
-     "height": 220,
+     "height": 190,
+     "maxw": null,
      "variants": [
       {
        "id": "default",
@@ -2361,7 +2554,8 @@ window.UI_GALLERY = {
      "title": "Sign-in",
      "axis": null,
      "note": null,
-     "height": 220,
+     "height": 190,
+     "maxw": null,
      "variants": [
       {
        "id": "default",
