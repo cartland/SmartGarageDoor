@@ -57,6 +57,8 @@ lifecycle = "2.9.1"
 mockito = "5.23.0"
 playServicesAuth = "21.6.0"
 playServicesWearable = "20.0.1"
+wearRemoteInteractions = "1.0.0"
+concurrentFuturesKtx = "1.3.0"
 room = "2.7.2"
 # sqlite is PINNED at 2.5.0 (same as kermit/datastore above: 2.7.0's iOS KLIBs
 # are built with Kotlin 2.3.20, rejected by Kotlin 2.1.20). Unpin with the
@@ -137,6 +139,8 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockito" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 play-services-wearable = { group = "com.google.android.gms", name = "play-services-wearable", version.ref = "playServicesWearable" }
+androidx-wear-remote-interactions = { group = "androidx.wear", name = "wear-remote-interactions", version.ref = "wearRemoteInteractions" }
+androidx-concurrent-futures-ktx = { group = "androidx.concurrent", name = "concurrent-futures-ktx", version.ref = "concurrentFuturesKtx" }
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutines" }
 screenshot-validation-api = { group = "com.android.tools.screenshot", name = "screenshot-validation-api", version.ref = "screenshot" }
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }

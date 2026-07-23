@@ -81,6 +81,7 @@ import com.chriscartland.garage.domain.repository.SnoozeDoorEventBridge
 import com.chriscartland.garage.domain.repository.SnoozeRepository
 import com.chriscartland.garage.domain.repository.TestNotificationRepository
 import com.chriscartland.garage.domain.repository.UserScopedCache
+import com.chriscartland.garage.domain.repository.WearCompanionRepository
 import com.chriscartland.garage.fcm.FirebaseMessagingBridge
 import com.chriscartland.garage.usecase.AppSettingsUseCase
 import com.chriscartland.garage.usecase.AppStartup
@@ -114,10 +115,12 @@ import com.chriscartland.garage.usecase.ObserveDiagnosticsCountUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
 import com.chriscartland.garage.usecase.ObserveTestNotificationStateUseCase
+import com.chriscartland.garage.usecase.ObserveWatchAppStatusUseCase
 import com.chriscartland.garage.usecase.PruneDiagnosticsLogUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
+import com.chriscartland.garage.usecase.RequestWatchAppInstallUseCase
 import com.chriscartland.garage.usecase.RevalidateSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.RunStartupDiagnosticsMaintenanceUseCase
 import com.chriscartland.garage.usecase.SeedDiagnosticsCountersFromRoomUseCase
@@ -133,6 +136,7 @@ import com.chriscartland.garage.viewmodel.DefaultDoorHistoryViewModel
 import com.chriscartland.garage.viewmodel.DefaultFunctionListViewModel
 import com.chriscartland.garage.viewmodel.DefaultHomeViewModel
 import com.chriscartland.garage.viewmodel.DefaultProfileViewModel
+import com.chriscartland.garage.wearrelay.PlayServicesWearCompanionRepository
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -364,6 +368,8 @@ abstract class AppComponent(
         computeEffectiveSnoozeState: ComputeEffectiveSnoozeStateUseCase,
         observeDoorEvents: ObserveDoorEventsUseCase,
         observeFeatureAccess: ObserveFeatureAccessUseCase,
+        observeWatchAppStatus: ObserveWatchAppStatusUseCase,
+        requestWatchAppInstall: RequestWatchAppInstallUseCase,
         signInWithGoogle: SignInWithGoogleUseCase,
         signOut: SignOutUseCase,
         fetchSnoozeStatus: FetchSnoozeStatusUseCase,
@@ -378,6 +384,8 @@ abstract class AppComponent(
             computeEffectiveSnoozeState = computeEffectiveSnoozeState,
             observeDoorEvents = observeDoorEvents,
             observeFeatureAccessUseCase = observeFeatureAccess,
+            observeWatchAppStatusUseCase = observeWatchAppStatus,
+            requestWatchAppInstallUseCase = requestWatchAppInstall,
             signInWithGoogleUseCase = signInWithGoogle,
             signOutUseCase = signOut,
             fetchSnoozeStatusUseCase = fetchSnoozeStatus,
@@ -531,6 +539,24 @@ abstract class AppComponent(
     @Provides
     fun provideObserveFeatureAccessUseCase(featureAllowlistRepository: FeatureAllowlistRepository): ObserveFeatureAccessUseCase =
         ObserveFeatureAccessUseCase(featureAllowlistRepository)
+
+    @Provides
+    fun provideWearCompanionRepository(): WearCompanionRepository =
+        PlayServicesWearCompanionRepository(
+            context = application.applicationContext,
+            // The Play listing identity. Debug/benchmark builds carry an
+            // applicationId suffix that has no listing, so this is the
+            // release id, not BuildConfig.APPLICATION_ID.
+            playStorePackageName = "com.chriscartland.garage",
+        )
+
+    @Provides
+    fun provideObserveWatchAppStatusUseCase(wearCompanionRepository: WearCompanionRepository): ObserveWatchAppStatusUseCase =
+        ObserveWatchAppStatusUseCase(wearCompanionRepository)
+
+    @Provides
+    fun provideRequestWatchAppInstallUseCase(wearCompanionRepository: WearCompanionRepository): RequestWatchAppInstallUseCase =
+        RequestWatchAppInstallUseCase(wearCompanionRepository)
 
     @Provides
     fun provideFetchButtonHealthUseCase(

@@ -21,6 +21,7 @@
     <!-- Settings screen — section labels (uppercased at render time). -->
     <string name="settings_section_account">Account</string>
     <string name="settings_section_notifications">Notifications</string>
+    <string name="settings_section_watch">Watch</string>
     <string name="settings_section_about">About</string>
     <string name="settings_section_developer">Developer</string>
 
@@ -35,6 +36,14 @@
     <string name="settings_notifications_subtitle_off">Notifications enabled</string>
     <!-- Notifications row subtitle when a snooze is active. %1$s is the time the snooze ends. -->
     <string name="settings_notifications_subtitle_snoozing_until">Snoozing until %1$s</string>
+
+    <!-- Settings — Watch section (shown only when a watch is connected). -->
+    <string name="settings_watch_installed_title">Watch app installed</string>
+    <string name="settings_watch_installed_subtitle">The app is on your watch</string>
+    <string name="settings_watch_install_title">Install on your watch</string>
+    <string name="settings_watch_install_subtitle">Open the Play Store on your watch</string>
+    <string name="watch_install_opened_snackbar">Check your watch to finish installing</string>
+    <string name="watch_install_failed_snackbar">Couldn\'t reach your watch. Opening the Play Store here instead.</string>
 
     <!-- Settings — About section rows. -->
     <string name="settings_about_version_title">Version</string>

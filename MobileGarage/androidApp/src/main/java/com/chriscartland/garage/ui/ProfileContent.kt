@@ -48,6 +48,7 @@ import com.chriscartland.garage.domain.model.AppLinks
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeState
+import com.chriscartland.garage.domain.model.WatchInstallAction
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
 import com.chriscartland.garage.ui.settings.AccountBottomSheet
 import com.chriscartland.garage.ui.settings.AccountRowState
@@ -96,6 +97,8 @@ fun ProfileContent(
     val layoutDebugEnabled by resolved.layoutDebugEnabled.collectAsState()
     val navigationRailItemPosition by resolved.navigationRailItemPosition.collectAsState()
     val navigationRailTopPaddingDp by resolved.navigationRailTopPaddingDp.collectAsState()
+    val watchAppStatus by resolved.watchAppStatus.collectAsState()
+    val watchInstallAction by resolved.watchInstallAction.collectAsState()
     val appConfig = component.appConfig
     val context = LocalContext.current
     // For click-time getString with runtime format args: LocalResources tracks
@@ -149,6 +152,23 @@ fun ProfileContent(
         }
     }
 
+    // Install-on-watch outcome: confirm success, or fall back to the
+    // phone's own Play Store listing (its device picker can target the
+    // watch) when the remote launch fails.
+    val watchInstallOpenedMessage = stringResource(R.string.watch_install_opened_snackbar)
+    val watchInstallFailedMessage = stringResource(R.string.watch_install_failed_snackbar)
+    LaunchedEffect(watchInstallAction) {
+        when (watchInstallAction) {
+            WatchInstallAction.OpenedOnWatch -> snackbarHostState.showSnackbar(watchInstallOpenedMessage)
+            WatchInstallAction.Failed -> {
+                val url = "https://play.google.com/store/apps/details?id=${appVersion.packageName}"
+                context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                snackbarHostState.showSnackbar(watchInstallFailedMessage)
+            }
+            WatchInstallAction.Idle, WatchInstallAction.Sending -> Unit
+        }
+    }
+
     val unknownNameFallback = stringResource(R.string.profile_account_name_unknown)
     val accountState = when (val s = authState) {
         is AuthState.Authenticated -> AccountRowState.SignedIn(
@@ -175,12 +195,15 @@ fun ProfileContent(
             showSnoozeRow = appConfig.snoozeNotificationsOption,
             showDeveloperSection = developerAccess == true,
             showFunctionListRow = functionListAccess == true,
+            watchAppStatus = watchAppStatus,
             versionName = appVersion.versionName,
             versionCode = appVersion.versionCode.toString(),
             layoutDebugEnabled = layoutDebugEnabled,
             navigationRailItemPosition = navigationRailItemPosition,
             navigationRailTopPaddingDp = navigationRailTopPaddingDp,
             snoozeInFlight = snoozeAction is SnoozeAction.Sending,
+            watchInstallInFlight = watchInstallAction is WatchInstallAction.Sending,
+            onInstallOnWatchTap = resolved::installOnWatch,
             onAccountTap = { accountSheetOpen = true },
             onSignInTap = { googleSignIn.launchSignIn() },
             onSnoozeTap = {

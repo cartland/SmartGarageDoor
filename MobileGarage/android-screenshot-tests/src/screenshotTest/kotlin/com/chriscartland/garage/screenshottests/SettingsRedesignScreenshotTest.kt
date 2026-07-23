@@ -30,6 +30,8 @@ import com.chriscartland.garage.ui.settings.SettingsContentSignedInAllowlistedPr
 import com.chriscartland.garage.ui.settings.SettingsContentSignedInBasicPreview
 import com.chriscartland.garage.ui.settings.SettingsContentSignedOutPreview
 import com.chriscartland.garage.ui.settings.SettingsContentSnoozeInFlightPreview
+import com.chriscartland.garage.ui.settings.SettingsContentWatchInstallPreview
+import com.chriscartland.garage.ui.settings.SettingsContentWatchInstalledPreview
 import com.chriscartland.garage.ui.settings.SnoozeSheetContentActivePreview
 import com.chriscartland.garage.ui.settings.SnoozeSheetContentOffPreview
 import com.chriscartland.garage.ui.settings.VersionSheetContentPreview
@@ -105,6 +107,30 @@ fun SettingsContentPermissionDeniedPreviewTest() {
 @Composable
 fun SettingsContentSnoozeInFlightPreviewTest() {
     AppTheme { SettingsContentSnoozeInFlightPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun SettingsContentWatchInstallPreviewTest() {
+    AppTheme { SettingsContentWatchInstallPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun SettingsContentWatchInstalledPreviewTest() {
+    AppTheme { SettingsContentWatchInstalledPreview() }
 }
 
 @PreviewTest
