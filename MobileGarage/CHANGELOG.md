@@ -15,6 +15,11 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.21.1
+
+- **Calmer cold start.** Before the first door status arrives, Home now shows "Connecting…" instead of a gray door with a warning badge labeled "Unknown" — a real server-reported unknown state still shows the warning look. Settings shows a "Checking sign-in…" row instead of briefly flashing a "Sign in with Google" prompt at already-signed-in users while auth resolves. No structural change to either screen's states or flows, only the presentation of the pre-data window.
+- **Internal:** #1101 — `HomeStatusDisplay.hasData` / `AccountRowState.Checking`; `GarageIcon.suppressWarningOverlay` withholds the warning badge only when no door event exists at all. New previews (`HomeContentConnecting`, `SettingsContentChecking`). No new capability; patch.
+
 ## 2.21.0
 
 - Wear OS companion sign-in: the phone now answers the watch's request for

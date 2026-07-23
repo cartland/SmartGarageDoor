@@ -14,6 +14,20 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.1.5
+
+- The hold-to-confirm ring is now centered on the physical screen and hugs
+  the bezel, instead of circling the door image off-center. The screen now
+  stays on for up to 15 seconds while a press is in flight or the door is
+  moving, so you can watch the action complete without the display timing
+  out; it never stays on just because the button is armed. Pressing now
+  allows a little more time before showing "Door did not move," since the
+  watch's network path is less reliable than the phone's.
+- Before the first door status arrives, the screen now shows "Connecting…"
+  with no warning badge, instead of a gray door labeled "Unknown" with a
+  warning triangle — calmer during the first few seconds after opening the
+  app.
+
 ## 0.1.4
 
 - Armed button stays armed while you keep touching the screen: every touch
