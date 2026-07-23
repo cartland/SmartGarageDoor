@@ -267,6 +267,8 @@ dependencies {
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.play.services.auth)
+    // Wearable Data Layer — answers the watch's auth-relay RPC.
+    implementation(libs.play.services.wearable)
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
