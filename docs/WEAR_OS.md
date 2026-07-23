@@ -175,7 +175,8 @@ captured from a real Wear emulator by a single script.
 - **Fixture** — `wearApp/src/debug/.../ScreenshotStagesActivity` is the
   single enumeration of capture-worthy states (renders `HeroScreenContent`
   with canned values — no ViewModel, no network, no auth, no path to the
-  real door). Seven stages tell the whole story: `closed` → `armed` →
+  real door). Eight stages tell the whole story: `connecting` (cold start,
+  no data yet — "Connecting…", no ⚠ badge) → `closed` → `armed` →
   `holding` (full ring, press about to fire) → `moving` → `open`, plus
   `signed_out` and `sign_in_error`. **When the hero screen gains a new
   visual state, add a stage** — that is the whole maintenance contract.
@@ -185,8 +186,16 @@ captured from a real Wear emulator by a single script.
   installs the debug APK, pins the emulator clock to **10:10** (best
   effort via `adb root`, so TimeText doesn't churn every PNG on regen —
   the wear analog of the iOS fixed-clock rule), captures every stage with
-  `force-stop` between, sanity-checks sizes, regenerates the gallery
-  README, and shuts the emulator down.
+  `force-stop` between, sanity-checks sizes, and regenerates the gallery
+  README. Per stage it waits for the fixture's **window focus**
+  (`dumpsys window mCurrentFocus` naming the activity class) before the
+  settle sleep — both the system launch splash ("Starting…") and the
+  charging overlay are windows over a technically-RESUMED activity, so a
+  fixed sleep or a resumed-activity check race them; the launch is
+  re-issued every few seconds to climb back over any overlay. On success
+  the warm emulator is **left running** (cold boots are the flakiness
+  source; the script reuses a running instance on any port) — kill it
+  manually with `adb -s <serial> emu kill` when done.
 - **Committed** — `MobileGarage/screenshots/store/wear/` (PNGs +
   `README.md`; that README *is* the wear screenshot gallery, the analog of
   `SCREENSHOT_GALLERY.md`). **Manual** — copying the curated live subset
@@ -197,20 +206,25 @@ captured from a real Wear emulator by a single script.
 - **When to run** — on demand: whenever a PR visibly changes the hero
   screen, and before store-asset updates. Deliberately NOT in CI (emulator
   boot is slow/flaky; the posture is regenerate-don't-assert with the PR
-  diff as the review surface). With the clock pinned, captures are
-  **byte-stable across regens** (verified empirically, all 7 stages) — a
-  diff always means a real visual change. Even `holding` is stable:
-  `animateFloatAsState` initializes at its target on first composition,
-  so the static fixture renders the ring already full (mid-sweep is not
-  capturable from a static fixture; the full ring is the deterministic
-  "press about to fire" illustration).
-- **Graduation tripwire** — when the Wear app grows past one screen
-  (tiles, complications, settings), add a Layoutlib PR-time tier: AGP's
-  screenshot-test plugin on `:wearApp` with a `screenshotTest` source set
-  importing the previews (flip them `private` → `internal`), folded into
-  `generate-android-screenshots.sh` — the phone model, including its
-  local blank-render caveat. The emulator script then narrows back to
-  store assets + animation states only.
+  diff as the review surface). With the clock pinned, static stages are
+  **byte-stable across regens** — a diff means a real visual change —
+  with one exception: `moving` captures the door mid-slide of the 12s
+  animation, so the focus-wait's ±1s timing variance shifts its door
+  position slightly between runs (cosmetic churn; accept it). `holding`
+  is stable: `animateFloatAsState` initializes at its target on first
+  composition, so the static fixture renders the ring already full
+  (mid-sweep is not capturable from a static fixture; the full ring is
+  the deterministic "press about to fire" illustration).
+- **Graduation (directed, not just a tripwire)** — the maintainer's
+  standing direction (2026-07-22) is that these images should come from
+  the screenshot-testing libraries, not an emulator: add a Layoutlib
+  PR-time tier — AGP's screenshot-test plugin on `:wearApp` with a
+  `screenshotTest` source set importing the previews (flip them
+  `private` → `internal`), folded into `generate-android-screenshots.sh`
+  — the phone model, including its local blank-render caveat (references
+  render in CI). The emulator script then narrows to store assets +
+  animation states only, or retires entirely if Play accepts the
+  Layoutlib renders.
 
 ## Deliberately not included (follow-ups, in rough priority order)
 
