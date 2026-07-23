@@ -161,29 +161,56 @@ create or push `wear/N` tags directly (the guardrails hook blocks them).
   (minSdk 30); (6) only after all that, suspect watch Play Store
   propagation/caching (up to ~24h; reboot or clear Play Store cache).
 
-## Store listing assets (Wear)
+## Screenshots (gallery + store assets)
 
-Same two-location model as the phone assets (`/play-store-assets` skill):
-`MobileGarage/screenshots/store/wear/` is generated staging;
-`MobileGarage/distribution/playstore/wear/` is the curated set mirroring
-what's uploaded in Play Console. Play's Wear screenshot rules: 1:1 aspect
-ratio, ≥384px, up to 8, actual on-watch UI without device frames or
-marketing overlays — the raw 454×454 emulator captures satisfy this as-is.
-
-Captures come from the debug-only fixture screen
-`wearApp/src/debug/.../ScreenshotStagesActivity` (renders `HeroScreenContent`
-with canned states — no ViewModel, no network, no auth) on a Wear emulator:
+**One fixture, one script, one committed gallery.** At the current scale
+(one hero screen) there is deliberately no second rendering stack: the
+screenshot gallery and the Play Store staging set are the same artifacts,
+captured from a real Wear emulator by a single script.
 
 ```bash
-adb shell am start -n com.chriscartland.garage.debug/com.chriscartland.garage.wear.debug.ScreenshotStagesActivity -e stage closed   # closed|armed|moving|open
-adb exec-out screencap -p > wear-closed.png    # wait ~4s after am start; force-stop between stages
+./scripts/generate-wear-screenshots.sh
 ```
 
-The four stages tell the hero story: closed ("Tap door to arm") → armed
-(hold ring, "Hold door to press") → moving (mid-slide, up arrow, "Door is
-moving") → open. Captured 2026-07-22 on a `wearos_large_round` API 34
-emulator — which is also the app's first verified render on a round watch
-canvas (TimeText, centering, palette, overlay badge all correct).
+- **Fixture** — `wearApp/src/debug/.../ScreenshotStagesActivity` is the
+  single enumeration of capture-worthy states (renders `HeroScreenContent`
+  with canned values — no ViewModel, no network, no auth, no path to the
+  real door). Seven stages tell the whole story: `closed` → `armed` →
+  `holding` (full ring, press about to fire) → `moving` → `open`, plus
+  `signed_out` and `sign_in_error`. **When the hero screen gains a new
+  visual state, add a stage** — that is the whole maintenance contract.
+- **Script** — creates/boots the `wear_capture` AVD headless
+  (`wearos_large_round`, 454×454, `system-images;android-34;android-wear`;
+  self-installing, needs cmdline-tools 13114758+ for SDK XML v4), builds +
+  installs the debug APK, pins the emulator clock to **10:10** (best
+  effort via `adb root`, so TimeText doesn't churn every PNG on regen —
+  the wear analog of the iOS fixed-clock rule), captures every stage with
+  `force-stop` between, sanity-checks sizes, regenerates the gallery
+  README, and shuts the emulator down.
+- **Committed** — `MobileGarage/screenshots/store/wear/` (PNGs +
+  `README.md`; that README *is* the wear screenshot gallery, the analog of
+  `SCREENSHOT_GALLERY.md`). **Manual** — copying the curated live subset
+  to `MobileGarage/distribution/playstore/wear/` (no generator writes into
+  `distribution/`; `/play-store-assets` skill). Play's Wear rules — 1:1,
+  ≥384px, up to 8, real UI, no frames/overlays — are satisfied by the raw
+  454×454 captures as-is.
+- **When to run** — on demand: whenever a PR visibly changes the hero
+  screen, and before store-asset updates. Deliberately NOT in CI (emulator
+  boot is slow/flaky; the posture is regenerate-don't-assert with the PR
+  diff as the review surface). With the clock pinned, captures are
+  **byte-stable across regens** (verified empirically, all 7 stages) — a
+  diff always means a real visual change. Even `holding` is stable:
+  `animateFloatAsState` initializes at its target on first composition,
+  so the static fixture renders the ring already full (mid-sweep is not
+  capturable from a static fixture; the full ring is the deterministic
+  "press about to fire" illustration).
+- **Graduation tripwire** — when the Wear app grows past one screen
+  (tiles, complications, settings), add a Layoutlib PR-time tier: AGP's
+  screenshot-test plugin on `:wearApp` with a `screenshotTest` source set
+  importing the previews (flip them `private` → `internal`), folded into
+  `generate-android-screenshots.sh` — the phone model, including its
+  local blank-render caveat. The emulator script then narrows back to
+  store assets + animation states only.
 
 ## Deliberately not included (follow-ups, in rough priority order)
 
