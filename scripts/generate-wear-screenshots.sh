@@ -50,7 +50,11 @@ BOOT_TIMEOUT_SECONDS=180
 
 # Stage list mirrors ScreenshotStagesActivity.
 STAGES=(closed armed holding moving open signed_out sign_in_error)
-DEFAULT_SETTLE_SECONDS=5
+# Post-foreground settle: lets the system splash ("Starting…") dissolve and
+# the first real frame land. The foreground wait below handles slow cold
+# starts; this only covers render/splash latency after the activity resumes.
+DEFAULT_SETTLE_SECONDS=4
+FOREGROUND_TIMEOUT_SECONDS=30
 
 fail() {
     echo "ERROR: $1" >&2
@@ -112,12 +116,16 @@ else
     echo "Emulator booted (${waited}s)."
 fi
 
-cleanup() {
+# The emulator is deliberately left running on success: a warm instance is
+# both faster and far less flaky for the next regen (cold boots race the
+# charging overlay and slow first launches). Kill it manually when done:
+#   adb -s <serial> emu kill
+cleanup_on_failure() {
     if [ "$BOOTED_BY_SCRIPT" = "1" ]; then
         "$ADB" -s "$SERIAL" emu kill >/dev/null 2>&1 || true
     fi
 }
-trap cleanup EXIT
+trap 'if [ $? -ne 0 ]; then cleanup_on_failure; fi' EXIT
 
 # --- Build + install the debug APK (fixture ships only in debug) ---
 echo "Building :wearApp:assembleDebug..."
@@ -144,11 +152,40 @@ else
 fi
 
 # --- Capture every stage ---
+# A fixed sleep is NOT enough right after a fresh boot, and neither is a
+# resumed-ACTIVITY check: both the system launch splash ("Starting…") and the
+# charging overlay are WINDOWS drawn over a technically-resumed activity. The
+# reliable signal is window FOCUS — `dumpsys window` names the fixture's
+# activity class in mCurrentFocus only once its real window is frontmost
+# (the splash window is named "Splash Screen <package>", the charging screen
+# is a SysUI window). Re-issuing the launch climbs back over any overlay.
+FIXTURE_CLASS="com.chriscartland.garage.wear.debug.ScreenshotStagesActivity"
+
+wait_for_fixture_focus() {
+    stage_arg="$1"
+    fg_waited=0
+    while [ "$fg_waited" -lt "$FOREGROUND_TIMEOUT_SECONDS" ]; do
+        if "$ADB" -s "$SERIAL" shell dumpsys window 2>/dev/null \
+            | grep "mCurrentFocus" \
+            | grep -q "$FIXTURE_CLASS"; then
+            return 0
+        fi
+        sleep 1
+        fg_waited=$((fg_waited + 1))
+        if [ $((fg_waited % 3)) -eq 0 ]; then
+            "$ADB" -s "$SERIAL" shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1 || true
+            "$ADB" -s "$SERIAL" shell am start -n "$FIXTURE_ACTIVITY" -e stage "$stage_arg" >/dev/null
+        fi
+    done
+    fail "fixture window did not gain focus for stage '$stage_arg'"
+}
+
 mkdir -p "$OUT_DIR"
 for stage in "${STAGES[@]}"; do
     echo "Capturing stage: $stage"
     "$ADB" -s "$SERIAL" shell am force-stop "$PACKAGE"
     "$ADB" -s "$SERIAL" shell am start -n "$FIXTURE_ACTIVITY" -e stage "$stage" >/dev/null
+    wait_for_fixture_focus "$stage"
     sleep "$DEFAULT_SETTLE_SECONDS"
     "$ADB" -s "$SERIAL" exec-out screencap -p > "$OUT_DIR/wear-$stage.png"
 done
