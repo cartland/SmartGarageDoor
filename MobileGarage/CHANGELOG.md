@@ -15,6 +15,11 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.22.0
+
+- **Install the watch app from your phone.** Settings gains a "Watch" section that appears when a paired watch is connected: a green check when the Wear OS app is already on the watch, or an "Install on your watch" action that opens the Play Store listing directly on the watch so you can finish the install from your wrist. If the watch can't be reached, the phone's own Play Store listing opens instead. The status updates live while the screen is open, so completing the install on the watch flips the row to the green check.
+- **Internal:** #1107 — `WearCompanionRepository` (domain) + `PlayServicesWearCompanionRepository` (CapabilityClient detection, 15s poll while collected; `RemoteActivityHelper` remote launch); watch app declares the `garage_watch_app` capability (needs wear 0.1.6+ on the watch for detection — older installs show the install CTA, which harmlessly opens the watch's own listing). New minor: a user-facing capability that didn't exist before.
+
 ## 2.21.1
 
 - **Calmer cold start.** Before the first door status arrives, Home now shows "Connecting…" instead of a gray door with a warning badge labeled "Unknown" — a real server-reported unknown state still shows the warning look. Settings shows a "Checking sign-in…" row instead of briefly flashing a "Sign in with Google" prompt at already-signed-in users while auth resolves. No structural change to either screen's states or flows, only the presentation of the pre-data window.
