@@ -29,6 +29,7 @@ import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
+import com.chriscartland.garage.usecase.ButtonStateMachine
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
@@ -59,6 +60,8 @@ import org.junit.Test
  *  - a quick tap while armed never submits a press (only a completed hold does)
  *  - releasing before the hold completes never submits
  *  - nothing arms or submits while signed out
+ *  - touches keep the button armed (window counts from the last touch);
+ *    only a quiet period with no touches disarms it
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class WearHomeViewModelTest {
@@ -180,6 +183,77 @@ class WearHomeViewModelTest {
             viewModel.onDoorTap()
             runCurrent()
             assertEquals(RemoteButtonState.AwaitingConfirmation, viewModel.buttonState.value)
+            assertEquals(0, remoteButtonRepository.pushCount)
+        }
+
+    @Test
+    fun partialTapsKeepButtonArmed() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            arm(viewModel)
+            // Repeated aborted holds spanning well past the original window:
+            // every touch (down and up) restarts the disarm timer.
+            repeat(3) {
+                advanceTimeBy(ButtonStateMachine.DEFAULT_CONFIRMATION_TIMEOUT - 1_000L)
+                viewModel.onHoldStart()
+                advanceTimeBy(200L)
+                viewModel.onHoldEnd()
+                runCurrent()
+                assertEquals(RemoteButtonState.AwaitingConfirmation, viewModel.buttonState.value)
+            }
+            assertEquals(0, remoteButtonRepository.pushCount)
+            // A quiet period with no touches disarms.
+            advanceTimeBy(ButtonStateMachine.DEFAULT_CONFIRMATION_TIMEOUT + 1)
+            runCurrent()
+            assertEquals(RemoteButtonState.Cancelled, viewModel.buttonState.value)
+            assertEquals(0, remoteButtonRepository.pushCount)
+        }
+
+    @Test
+    fun screenTouchKeepsButtonArmed() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            arm(viewModel)
+            // A touch anywhere on the screen (not just the door) keeps it armed.
+            advanceTimeBy(ButtonStateMachine.DEFAULT_CONFIRMATION_TIMEOUT - 1_000L)
+            viewModel.onScreenTouch()
+            runCurrent()
+            advanceTimeBy(ButtonStateMachine.DEFAULT_CONFIRMATION_TIMEOUT - 1_000L)
+            runCurrent()
+            assertEquals(RemoteButtonState.AwaitingConfirmation, viewModel.buttonState.value)
+            assertEquals(0, remoteButtonRepository.pushCount)
+        }
+
+    @Test
+    fun holdStartedLateInArmedWindowStillSubmits() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            arm(viewModel)
+            // Finger down just before the original window would have expired:
+            // the touch restarts the timer, so the hold always gets its full
+            // 2 seconds. (Previously the machine could disarm mid-hold and a
+            // visually completed ring fired into a dead state.)
+            advanceTimeBy(ButtonStateMachine.DEFAULT_CONFIRMATION_TIMEOUT - 500L)
+            viewModel.onHoldStart()
+            runCurrent()
+            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS + 1)
+            runCurrent()
+            assertEquals(1, remoteButtonRepository.pushCount)
+            assertEquals(RemoteButtonState.SendingToDoor, viewModel.buttonState.value)
+        }
+
+    @Test
+    fun armedDisarmsAfterQuietPeriod() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            arm(viewModel)
+            advanceTimeBy(ButtonStateMachine.DEFAULT_CONFIRMATION_TIMEOUT + 1)
+            runCurrent()
+            assertEquals(RemoteButtonState.Cancelled, viewModel.buttonState.value)
             assertEquals(0, remoteButtonRepository.pushCount)
         }
 

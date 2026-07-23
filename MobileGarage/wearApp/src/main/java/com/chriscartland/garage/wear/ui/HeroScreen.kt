@@ -21,6 +21,8 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,12 +36,14 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -116,6 +120,7 @@ fun HeroScreen(
         onDoorTap = viewModel::onDoorTap,
         onHoldStart = viewModel::onHoldStart,
         onHoldEnd = viewModel::onHoldEnd,
+        onAnyTouch = viewModel::onScreenTouch,
         signInError = signInError,
         onSignInClick = {
             viewModel.onSignInStarted()
@@ -134,7 +139,10 @@ fun HeroScreen(
 /**
  * Stateless hero layout (previewable): the animated door with the radial
  * hold-to-confirm indicator, the door state label, and the button hint or
- * sign-in chip.
+ * sign-in chip. [onAnyTouch] fires for every pointer down AND up anywhere
+ * on the screen (observed on the Initial pass, never consumed) — the
+ * ViewModel uses it to keep the armed window alive while the user keeps
+ * interacting.
  */
 @Composable
 fun HeroScreenContent(
@@ -147,6 +155,7 @@ fun HeroScreenContent(
     onDoorTap: () -> Unit,
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit,
+    onAnyTouch: () -> Unit,
     onSignInClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -167,9 +176,29 @@ fun HeroScreenContent(
         label = "holdProgress",
     )
 
+    val currentOnAnyTouch by rememberUpdatedState(onAnyTouch)
     ScreenScaffold(modifier = modifier) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    // Observe (never consume) every gesture's down and up on
+                    // the Initial pass, so touches anywhere on the screen —
+                    // including ones handled by the door's own tap detector —
+                    // reach the ViewModel and restart the armed window.
+                    awaitEachGesture {
+                        awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                        currentOnAnyTouch()
+                        var anyPressed = true
+                        while (anyPressed) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            anyPressed = event.changes.any { it.pressed }
+                        }
+                        // Release counts too: the quiet period runs from the
+                        // LAST touch, so it starts at finger-up.
+                        currentOnAnyTouch()
+                    }
+                },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -365,6 +394,7 @@ private fun HeroScreenContentArmedPreview() {
             onDoorTap = {},
             onHoldStart = {},
             onHoldEnd = {},
+            onAnyTouch = {},
             onSignInClick = {},
         )
     }
@@ -384,6 +414,7 @@ private fun HeroScreenContentSignedOutPreview() {
             onDoorTap = {},
             onHoldStart = {},
             onHoldEnd = {},
+            onAnyTouch = {},
             onSignInClick = {},
         )
     }
