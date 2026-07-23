@@ -187,16 +187,18 @@ canvas (TimeText, centering, palette, overlay badge all correct).
 
 ## Deliberately not included (follow-ups, in rough priority order)
 
-1. **Functional pass on the real watch.** 0.1.1 was installed from Play on
-   a physical Pixel Watch 4 (Wear OS 7) on 2026-07-22 — the app's first run
-   on real hardware (the emulator had verified layout/palette/typography;
-   see § Store listing assets). Still unconfirmed on-device: Credential
-   Manager sign-in, live door status accuracy, the foreground refresh
-   cadence, and the tap-to-arm → hold-to-confirm press. Only the maintainer
-   can run that last one: **the remote button operates the physical door.**
-   The signed-out app is inert (`PushRemoteButtonUseCase` gates on
-   `Authenticated` before any network call), so signed-out exploration is
-   always safe.
+1. **Functional pass on the real watch.** The app has run on a physical
+   Pixel Watch 4 (Wear OS 7) since 0.1.1 (2026-07-22), and sign-in WAS
+   exercised on-device — that run is what proved GMS rejects Credential
+   Manager sign-in on Wear OS and motivated the phone relay
+   (§ Architecture). Still unconfirmed on-device: the phone-relay sign-in
+   end-to-end (needs the watch on 0.1.3+ AND the paired phone on 2.21.0+
+   from the internal tracks), live door status accuracy, the foreground
+   refresh cadence, and the tap-to-arm → hold-to-confirm press. Only the
+   maintainer can run that last one: **the remote button operates the
+   physical door.** The signed-out app is inert (`PushRemoteButtonUseCase`
+   gates on `Authenticated` before any network call), so signed-out
+   exploration is always safe.
 2. **R8 for the Wear release build.** Minification is deliberately OFF in
    the release build type — the phone needed hand-tuned keep rules for
    kotlinx.serialization (ADR-020) and there is no CLI way to verify a
@@ -212,5 +214,8 @@ canvas (TimeText, centering, palette, overlay badge all correct).
    and available; the door currently always renders the FRESH palette).
 7. **Hoist the duplicated `FirebaseAuthBridge`** (phone + wear copies) into
    a shared Android library module.
-8. **Phone-relay sign-in fallback** (Wearable Data Layer token relay) for
-   watches without Credential Manager.
+8. **True standalone auth** (no phone dependency). The per-call phone
+   relay (shipped 0.1.3) requires the paired phone reachable at press
+   time. A server-minted Firebase custom token could give the watch its
+   own session after a one-time phone-assisted bootstrap — needs a new
+   authenticated server endpoint; write the design (ADR) before building.
