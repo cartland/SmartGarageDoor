@@ -65,6 +65,12 @@ import com.chriscartland.garage.wear.R
  *
  * Renders statically at `staticPositionFor` under inspection mode so previews
  * are deterministic.
+ *
+ * @param suppressWarningOverlay set `true` only for the no-data cold-start
+ *   presentation (mirrors the phone's `GarageIcon`): the door shape still
+ *   renders (gray, midway) but the ⚠ badge is withheld — nothing is wrong,
+ *   the watch just hasn't heard from the server yet. Real UNKNOWN events
+ *   (with data) keep the badge.
  */
 @Composable
 fun WearGarageIcon(
@@ -73,6 +79,7 @@ fun WearGarageIcon(
     modifier: Modifier = Modifier,
     color: Color = Color(0xFF3C5232),
     lastChangeTimeSeconds: Long? = null,
+    suppressWarningOverlay: Boolean = false,
 ) {
     if (LocalInspectionMode.current) {
         DoorIconBox(
@@ -80,6 +87,7 @@ fun WearGarageIcon(
             doorPosition = doorPosition,
             modifier = modifier,
             color = color,
+            suppressWarningOverlay = suppressWarningOverlay,
         )
     } else {
         AnimatedDoorIcon(
@@ -88,6 +96,7 @@ fun WearGarageIcon(
             animationMemory = animationMemory,
             modifier = modifier,
             color = color,
+            suppressWarningOverlay = suppressWarningOverlay,
         )
     }
 }
@@ -99,6 +108,7 @@ private fun AnimatedDoorIcon(
     animationMemory: DoorAnimationMemory,
     modifier: Modifier,
     color: Color,
+    suppressWarningOverlay: Boolean,
 ) {
     // Same replay-once-per-motion-event logic as the phone icon (ADR-025).
     val key = DoorMotionKey(doorPosition, lastChangeTimeSeconds)
@@ -140,6 +150,7 @@ private fun AnimatedDoorIcon(
         doorPosition = doorPosition,
         modifier = modifier,
         color = color,
+        suppressWarningOverlay = suppressWarningOverlay,
     )
 }
 
@@ -149,6 +160,7 @@ private fun DoorIconBox(
     doorPosition: DoorPosition,
     modifier: Modifier,
     color: Color,
+    suppressWarningOverlay: Boolean = false,
 ) {
     Box(
         modifier = modifier.aspectRatio(GarageDoorGeometry.ASPECT_RATIO),
@@ -169,10 +181,12 @@ private fun DoorIconBox(
                 imageVector = Icons.Filled.KeyboardArrowDown,
                 contentDescription = stringResource(R.string.cd_arrow_down),
             )
-            DoorOverlayKind.WARNING -> OverlayBadge(
-                imageVector = Icons.Filled.Warning,
-                contentDescription = stringResource(R.string.cd_warning),
-            )
+            DoorOverlayKind.WARNING -> if (!suppressWarningOverlay) {
+                OverlayBadge(
+                    imageVector = Icons.Filled.Warning,
+                    contentDescription = stringResource(R.string.cd_warning),
+                )
+            }
         }
     }
 }
