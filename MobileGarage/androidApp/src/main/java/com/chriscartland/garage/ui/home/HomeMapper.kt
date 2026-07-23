@@ -66,6 +66,9 @@ object HomeMapper {
             doorPosition = doorPosition,
             lastChangeTimeSeconds = event?.lastChangeTimeSeconds,
             isStale = isCheckInStale,
+            // No event at all (cold start, empty cache) renders the calm
+            // connecting presentation instead of "Unknown" + warning badge.
+            hasData = event != null,
         )
     }
 

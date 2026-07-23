@@ -24,6 +24,7 @@ import com.chriscartland.garage.ui.DoorStatusInfoSheetContentPreview
 import com.chriscartland.garage.ui.RemoteControlInfoSheetContentPreview
 import com.chriscartland.garage.ui.home.HomeContentAwaitingConfirmationPreview
 import com.chriscartland.garage.ui.home.HomeContentClosedSignedInPreview
+import com.chriscartland.garage.ui.home.HomeContentConnectingPreview
 import com.chriscartland.garage.ui.home.HomeContentOnTabletPreview
 import com.chriscartland.garage.ui.home.HomeContentOpenSignedInPreview
 import com.chriscartland.garage.ui.home.HomeContentOpeningTooLongPreview
@@ -60,6 +61,18 @@ fun HomeContentOpenSignedInPreviewTest() {
 @Composable
 fun HomeContentClosedSignedInPreviewTest() {
     AppTheme { HomeContentClosedSignedInPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeContentConnectingPreviewTest() {
+    AppTheme { HomeContentConnectingPreview() }
 }
 
 @PreviewTest

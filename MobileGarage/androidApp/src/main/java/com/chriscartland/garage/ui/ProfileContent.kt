@@ -157,7 +157,9 @@ fun ProfileContent(
                 .ifBlank { unknownNameFallback },
             email = s.user.email.asString(),
         )
-        AuthState.Unauthenticated, AuthState.Unknown -> AccountRowState.SignedOut
+        AuthState.Unauthenticated -> AccountRowState.SignedOut
+        // Cold start: don't flash the sign-in CTA before Firebase resolves.
+        AuthState.Unknown -> AccountRowState.Checking
     }
     val notificationsGranted = notificationPermissionState.status.isGranted
     val snoozeRowState = if (notificationsGranted) {

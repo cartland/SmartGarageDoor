@@ -114,6 +114,14 @@ data class HomeStatusDisplay(
     val warning: DoorWarning? = null,
     /** Drives the muted "stale" door color and disables animation when true. */
     val isStale: Boolean = false,
+    /**
+     * False only while no door event exists at all (cold start, empty cache).
+     * The card then renders the calm connecting presentation — "Connecting…"
+     * headline, waiting sub-line, no ⚠ badge — instead of the alarming
+     * "Unknown" + warning look. A real server-reported UNKNOWN (an actual
+     * event) keeps the full warning presentation.
+     */
+    val hasData: Boolean = true,
 )
 
 /** Auth-gated bottom card variant. */
@@ -329,6 +337,7 @@ private fun HomeStatusCardBody(
                 // event (cold-open / first view) rather than on every fresh
                 // composition. See DoorAnimationMemory.
                 lastChangeTimeSeconds = status.lastChangeTimeSeconds,
+                suppressWarningOverlay = !status.hasData,
             )
         }
         Column(
@@ -336,12 +345,20 @@ private fun HomeStatusCardBody(
             verticalArrangement = Arrangement.spacedBy(Spacing.Tight),
         ) {
             Text(
-                text = doorStateLabel(status.doorPosition),
+                text = if (status.hasData) {
+                    doorStateLabel(status.doorPosition)
+                } else {
+                    stringResource(R.string.home_door_state_connecting)
+                },
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = sinceLine,
+                text = if (status.hasData) {
+                    sinceLine
+                } else {
+                    stringResource(R.string.home_since_connecting)
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -630,6 +647,11 @@ private object HomePreviewData {
         doorPosition = DoorPosition.CLOSED,
         lastChangeTimeSeconds = null,
     )
+    val connectingStatus = HomeStatusDisplay(
+        doorPosition = DoorPosition.UNKNOWN,
+        lastChangeTimeSeconds = null,
+        hasData = false,
+    )
     val openingTooLongStatus = HomeStatusDisplay(
         doorPosition = DoorPosition.OPENING_TOO_LONG,
         lastChangeTimeSeconds = null,
@@ -649,6 +671,13 @@ private object HomePreviewData {
     val staleCheckIn = DeviceCheckInDisplay(
         durationLabel = "23 min ago",
         isStale = true,
+    )
+
+    // Cold-start pill: label must equal DeviceCheckIn's no-data output so the
+    // pill hides its text exactly like production before the first event.
+    val noDataCheckIn = DeviceCheckInDisplay(
+        durationLabel = "No data yet",
+        isStale = false,
     )
 }
 
@@ -769,6 +798,22 @@ fun HomeContentSignedOutPreview() =
             authState = HomeAuthState.SignedOut,
             deviceCheckIn = HomePreviewData.freshCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Online,
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
+        )
+    }
+
+// Cold start, nothing heard yet: calm connecting presentation (no ⚠ badge,
+// "Connecting…" headline) + "Checking sign-in…" card + bare check-in pill.
+@Preview(heightDp = 900)
+@Composable
+fun HomeContentConnectingPreview() =
+    PreviewScreenSurface {
+        HomeContent(
+            status = HomePreviewData.connectingStatus,
+            sinceLine = "",
+            authState = HomeAuthState.Unknown,
+            deviceCheckIn = HomePreviewData.noDataCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Hidden,
             modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }

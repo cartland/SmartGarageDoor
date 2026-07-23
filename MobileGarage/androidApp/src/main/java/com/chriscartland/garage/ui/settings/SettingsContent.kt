@@ -72,6 +72,13 @@ import com.chriscartland.garage.ui.theme.safeListContentPadding
  * CTA or the signed-in user identity.
  */
 sealed interface AccountRowState {
+    /**
+     * Auth listener still resolving at cold start. Renders a calm
+     * "Checking sign-in…" row — NOT the sign-in CTA, which used to flash
+     * for already-signed-in users before Firebase resolved.
+     */
+    data object Checking : AccountRowState
+
     data object SignedOut : AccountRowState
 
     data class SignedIn(
@@ -136,6 +143,13 @@ fun SettingsContent(
         item {
             SettingsSection(label = stringResource(R.string.settings_section_account)) {
                 when (accountState) {
+                    AccountRowState.Checking -> SettingsRow(
+                        icon = Icons.Filled.AccountCircle,
+                        title = stringResource(R.string.settings_account_checking),
+                        subtitle = null,
+                        showChevron = false,
+                        onClick = {},
+                    )
                     AccountRowState.SignedOut -> SettingsRow(
                         icon = Icons.AutoMirrored.Outlined.Login,
                         title = stringResource(R.string.settings_account_sign_in),
@@ -416,6 +430,27 @@ fun SettingsContentSignedOutPreview() {
         SettingsContent(
             accountState = AccountRowState.SignedOut,
             snoozeState = SnoozeRowState.Off,
+            showSnoozeRow = true,
+            showDeveloperSection = false,
+            showFunctionListRow = false,
+            versionName = "2.6.1",
+            versionCode = "182",
+            layoutDebugEnabled = false,
+            navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
+        )
+    }
+}
+
+// Cold start: auth still resolving — calm "Checking sign-in…" row instead of
+// a flashed sign-in CTA.
+@Preview
+@Composable
+fun SettingsContentCheckingPreview() {
+    PreviewScreenSurface {
+        SettingsContent(
+            accountState = AccountRowState.Checking,
+            snoozeState = SnoozeRowState.Loading,
             showSnoozeRow = true,
             showDeveloperSection = false,
             showFunctionListRow = false,

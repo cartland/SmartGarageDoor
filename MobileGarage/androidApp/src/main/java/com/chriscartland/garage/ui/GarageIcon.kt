@@ -68,6 +68,10 @@ import java.time.Duration
  *   screenshot tests) so reference PNGs are deterministic — Layoutlib can't
  *   advance `LaunchedEffect`, so an animated `OPENING` would otherwise
  *   render at the start frame and look identical to `CLOSED`.
+ * @param suppressWarningOverlay set `true` only for the no-data cold-start
+ *   presentation: the door shape still renders (gray, midway) but the ⚠
+ *   badge is withheld — nothing is wrong, the app just hasn't heard from
+ *   the server yet. Real UNKNOWN events (with data) keep the badge.
  */
 @Composable
 fun GarageIcon(
@@ -77,6 +81,7 @@ fun GarageIcon(
     color: Color = LocalDoorStatusColorScheme.current.openFresh,
     duration: Duration = DEFAULT_GARAGE_DOOR_ANIMATION_DURATION,
     lastChangeTimeSeconds: Long? = null,
+    suppressWarningOverlay: Boolean = false,
 ) {
     if (static || LocalInspectionMode.current) {
         DoorIconBox(
@@ -84,6 +89,7 @@ fun GarageIcon(
             doorPosition = doorPosition,
             modifier = modifier,
             color = color,
+            suppressWarningOverlay = suppressWarningOverlay,
         )
     } else {
         AnimatedDoorIcon(
@@ -92,6 +98,7 @@ fun GarageIcon(
             modifier = modifier,
             color = color,
             duration = duration,
+            suppressWarningOverlay = suppressWarningOverlay,
         )
     }
 }
@@ -103,6 +110,7 @@ private fun AnimatedDoorIcon(
     modifier: Modifier,
     color: Color,
     duration: Duration,
+    suppressWarningOverlay: Boolean,
 ) {
     // Decide ONCE per fresh composition whether this icon should replay the
     // full slide from the "from" end. True only for a motion state whose event
@@ -155,6 +163,7 @@ private fun AnimatedDoorIcon(
         doorPosition = doorPosition,
         modifier = modifier,
         color = color,
+        suppressWarningOverlay = suppressWarningOverlay,
     )
 }
 
@@ -175,6 +184,7 @@ private fun DoorIconBox(
     doorPosition: DoorPosition,
     modifier: Modifier,
     color: Color,
+    suppressWarningOverlay: Boolean = false,
 ) {
     Box(
         modifier = modifier
@@ -191,7 +201,7 @@ private fun DoorIconBox(
             DoorOverlayKind.NONE -> Unit
             DoorOverlayKind.ARROW_UP -> DirectionOverlay(-90f, "Up Arrow")
             DoorOverlayKind.ARROW_DOWN -> DirectionOverlay(90f, "Down Arrow")
-            DoorOverlayKind.WARNING -> WarningOverlay()
+            DoorOverlayKind.WARNING -> if (!suppressWarningOverlay) WarningOverlay()
         }
     }
 }
