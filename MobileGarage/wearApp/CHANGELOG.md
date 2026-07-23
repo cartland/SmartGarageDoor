@@ -14,6 +14,13 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.1.6
+
+- The watch app now announces itself to the paired phone, so the phone's
+  new Settings "Watch" row (phone app 2.22.0+) can show a green check
+  when the app is installed instead of offering to install it again. No
+  visible change on the watch itself.
+
 ## 0.1.5
 
 - The hold-to-confirm ring is now centered on the physical screen and hugs
