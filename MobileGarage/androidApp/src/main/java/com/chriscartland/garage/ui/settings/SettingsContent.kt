@@ -31,6 +31,7 @@ import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.Description
@@ -41,6 +42,7 @@ import androidx.compose.material.icons.outlined.NotificationsPaused
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.VerticalAlignCenter
+import androidx.compose.material.icons.outlined.Watch
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -54,6 +56,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -61,8 +64,10 @@ import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.domain.model.NavigationRailLayout
+import com.chriscartland.garage.domain.model.WatchAppStatus
 import com.chriscartland.garage.ui.theme.AppAnimatedVisibility
 import com.chriscartland.garage.ui.theme.DividerInset
+import com.chriscartland.garage.ui.theme.DoorStatusTheme
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.ui.theme.safeListContentPadding
@@ -117,6 +122,7 @@ fun SettingsContent(
     showSnoozeRow: Boolean,
     showDeveloperSection: Boolean,
     showFunctionListRow: Boolean,
+    watchAppStatus: WatchAppStatus,
     versionName: String,
     versionCode: String,
     layoutDebugEnabled: Boolean,
@@ -124,9 +130,11 @@ fun SettingsContent(
     navigationRailTopPaddingDp: Int,
     modifier: Modifier = Modifier,
     snoozeInFlight: Boolean = false,
+    watchInstallInFlight: Boolean = false,
     onAccountTap: () -> Unit = {},
     onSignInTap: () -> Unit = {},
     onSnoozeTap: () -> Unit = {},
+    onInstallOnWatchTap: () -> Unit = {},
     onFunctionListTap: () -> Unit = {},
     onVersionTap: () -> Unit = {},
     onPlayStoreTap: () -> Unit = {},
@@ -196,6 +204,42 @@ fun SettingsContent(
                         onClick = onSnoozeTap,
                         inFlight = snoozeInFlight,
                     )
+                }
+            }
+        }
+
+        item {
+            // Only rendered when a watch is actually detected — phone-only
+            // users never see the section. Unknown/Unavailable/NoWatch all
+            // hide it; the poll flips it live if a watch connects.
+            AppAnimatedVisibility(
+                visible = watchAppStatus == WatchAppStatus.WatchNeedsApp ||
+                    watchAppStatus == WatchAppStatus.InstalledOnWatch,
+                label = "Watch section",
+            ) {
+                SettingsSection(label = stringResource(R.string.settings_section_watch)) {
+                    if (watchAppStatus == WatchAppStatus.InstalledOnWatch) {
+                        SettingsRow(
+                            icon = Icons.Outlined.Watch,
+                            title = stringResource(R.string.settings_watch_installed_title),
+                            subtitle = stringResource(R.string.settings_watch_installed_subtitle),
+                            showChevron = false,
+                            onClick = {},
+                            trailingIcon = Icons.Filled.CheckCircle,
+                            // The app's canonical green (door-closed), theme-aware.
+                            trailingIconTint = DoorStatusTheme.colorScheme.closedFresh,
+                        )
+                    } else {
+                        SettingsRow(
+                            icon = Icons.Outlined.Watch,
+                            title = stringResource(R.string.settings_watch_install_title),
+                            subtitle = stringResource(R.string.settings_watch_install_subtitle),
+                            showChevron = false,
+                            onClick = onInstallOnWatchTap,
+                            trailingIcon = Icons.AutoMirrored.Outlined.OpenInNew,
+                            inFlight = watchInstallInFlight,
+                        )
+                    }
                 }
             }
         }
@@ -329,6 +373,7 @@ private fun SettingsRow(
     showChevron: Boolean,
     onClick: () -> Unit,
     trailingIcon: ImageVector? = null,
+    trailingIconTint: Color? = null,
     inFlight: Boolean = false,
 ) {
     ListItem(
@@ -363,7 +408,7 @@ private fun SettingsRow(
                     Icon(
                         imageVector = trailingIcon,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = trailingIconTint ?: MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -433,6 +478,7 @@ fun SettingsContentSignedOutPreview() {
             showSnoozeRow = true,
             showDeveloperSection = false,
             showFunctionListRow = false,
+            watchAppStatus = WatchAppStatus.NoWatch,
             versionName = "2.6.1",
             versionCode = "182",
             layoutDebugEnabled = false,
@@ -454,6 +500,7 @@ fun SettingsContentCheckingPreview() {
             showSnoozeRow = true,
             showDeveloperSection = false,
             showFunctionListRow = false,
+            watchAppStatus = WatchAppStatus.NoWatch,
             versionName = "2.6.1",
             versionCode = "182",
             layoutDebugEnabled = false,
@@ -476,6 +523,7 @@ fun SettingsContentSignedInBasicPreview() {
             showSnoozeRow = true,
             showDeveloperSection = false,
             showFunctionListRow = false,
+            watchAppStatus = WatchAppStatus.NoWatch,
             versionName = "2.6.1",
             versionCode = "182",
             layoutDebugEnabled = false,
@@ -498,6 +546,7 @@ fun SettingsContentSignedInAllowlistedPreview() {
             showSnoozeRow = true,
             showDeveloperSection = true,
             showFunctionListRow = true,
+            watchAppStatus = WatchAppStatus.NoWatch,
             versionName = "2.6.1",
             versionCode = "182",
             layoutDebugEnabled = false,
@@ -520,6 +569,57 @@ fun SettingsContentPermissionDeniedPreview() {
             showSnoozeRow = true,
             showDeveloperSection = false,
             showFunctionListRow = false,
+            watchAppStatus = WatchAppStatus.NoWatch,
+            versionName = "2.6.1",
+            versionCode = "182",
+            layoutDebugEnabled = false,
+            navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
+        )
+    }
+}
+
+// A connected watch without the app: the Watch section shows the
+// install call-to-action row.
+@Preview
+@Composable
+fun SettingsContentWatchInstallPreview() {
+    PreviewScreenSurface {
+        SettingsContent(
+            accountState = AccountRowState.SignedIn(
+                displayName = "Chris Cartland",
+                email = "chris@example.com",
+            ),
+            snoozeState = SnoozeRowState.Off,
+            showSnoozeRow = true,
+            showDeveloperSection = false,
+            showFunctionListRow = false,
+            watchAppStatus = WatchAppStatus.WatchNeedsApp,
+            versionName = "2.6.1",
+            versionCode = "182",
+            layoutDebugEnabled = false,
+            navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
+        )
+    }
+}
+
+// Watch app detected: the Watch section shows the installed row with a
+// green check.
+@Preview
+@Composable
+fun SettingsContentWatchInstalledPreview() {
+    PreviewScreenSurface {
+        SettingsContent(
+            accountState = AccountRowState.SignedIn(
+                displayName = "Chris Cartland",
+                email = "chris@example.com",
+            ),
+            snoozeState = SnoozeRowState.Off,
+            showSnoozeRow = true,
+            showDeveloperSection = false,
+            showFunctionListRow = false,
+            watchAppStatus = WatchAppStatus.InstalledOnWatch,
             versionName = "2.6.1",
             versionCode = "182",
             layoutDebugEnabled = false,
@@ -545,6 +645,7 @@ fun SettingsContentSnoozeInFlightPreview() {
             showSnoozeRow = true,
             showDeveloperSection = false,
             showFunctionListRow = false,
+            watchAppStatus = WatchAppStatus.NoWatch,
             versionName = "2.6.1",
             versionCode = "182",
             layoutDebugEnabled = false,

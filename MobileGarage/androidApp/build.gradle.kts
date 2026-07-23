@@ -269,6 +269,12 @@ dependencies {
     implementation(libs.play.services.auth)
     // Wearable Data Layer — answers the watch's auth-relay RPC.
     implementation(libs.play.services.wearable)
+    // Install-on-watch: RemoteActivityHelper opens the Play Store listing
+    // on the paired watch; futures-ktx awaits its ListenableFuture and
+    // coroutines-play-services awaits the Wearable client Tasks.
+    implementation(libs.androidx.wear.remote.interactions)
+    implementation(libs.androidx.concurrent.futures.ktx)
+    implementation(libs.kotlinx.coroutines.play.services)
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

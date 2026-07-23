@@ -32,6 +32,9 @@ import com.chriscartland.garage.domain.model.NavigationRailLayout
 import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
+import com.chriscartland.garage.domain.model.WatchAppStatus
+import com.chriscartland.garage.domain.model.WatchInstallAction
+import com.chriscartland.garage.domain.model.WatchInstallResult
 import com.chriscartland.garage.domain.model.toServer
 import com.chriscartland.garage.usecase.AppSettingsUseCase
 import com.chriscartland.garage.usecase.ComputeEffectiveSnoozeStateUseCase
@@ -40,6 +43,8 @@ import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
+import com.chriscartland.garage.usecase.ObserveWatchAppStatusUseCase
+import com.chriscartland.garage.usecase.RequestWatchAppInstallUseCase
 import com.chriscartland.garage.usecase.RevalidateSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
@@ -50,6 +55,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 private const val SNOOZE_ACTION_RESET_DELAY_MS = 10_000L
+private const val WATCH_INSTALL_ACTION_RESET_DELAY_MS = 10_000L
 
 /**
  * Drives the Settings screen — one VM per screen (ADR-026). Aggregates the
@@ -108,7 +114,25 @@ interface ProfileViewModel {
      */
     val navigationRailTopPaddingDp: StateFlow<Int>
 
+    /**
+     * Whether the paired watch has the Wear OS app. Drives the Settings
+     * "Watch" section: hidden until a connected watch is detected, then a
+     * green check (installed) or an install call-to-action.
+     */
+    val watchAppStatus: StateFlow<WatchAppStatus>
+
+    /**
+     * Transient state of the install-on-watch action ([installOnWatch]).
+     * `Idle -> Sending -> (OpenedOnWatch | Failed) -> Idle` with auto-reset,
+     * mirroring [snoozeAction]. The UI surfaces OpenedOnWatch/Failed once
+     * (snackbar; Failed also falls back to the phone Play Store).
+     */
+    val watchInstallAction: StateFlow<WatchInstallAction>
+
     fun signInWithGoogle(idToken: GoogleIdToken)
+
+    /** Open the app's Play Store listing on the connected watch. */
+    fun installOnWatch()
 
     fun signOut()
 
@@ -140,6 +164,8 @@ class DefaultProfileViewModel(
     computeEffectiveSnoozeState: ComputeEffectiveSnoozeStateUseCase,
     private val observeDoorEvents: ObserveDoorEventsUseCase,
     private val observeFeatureAccessUseCase: ObserveFeatureAccessUseCase,
+    private val observeWatchAppStatusUseCase: ObserveWatchAppStatusUseCase,
+    private val requestWatchAppInstallUseCase: RequestWatchAppInstallUseCase,
     private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
     private val signOutUseCase: SignOutUseCase,
     private val fetchSnoozeStatusUseCase: FetchSnoozeStatusUseCase,
@@ -179,6 +205,12 @@ class DefaultProfileViewModel(
         MutableStateFlow(NavigationRailLayout.DEFAULT_TOP_PADDING_DP)
     override val navigationRailTopPaddingDp: StateFlow<Int> = _navigationRailTopPaddingDp
 
+    private val _watchAppStatus = MutableStateFlow<WatchAppStatus>(WatchAppStatus.Unknown)
+    override val watchAppStatus: StateFlow<WatchAppStatus> = _watchAppStatus
+
+    private val _watchInstallAction = MutableStateFlow<WatchInstallAction>(WatchInstallAction.Idle)
+    override val watchInstallAction: StateFlow<WatchInstallAction> = _watchInstallAction
+
     // Cached so the snooze action can attach the latest door change time
     // without the UI having to thread it through.
     private val currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
@@ -205,6 +237,24 @@ class DefaultProfileViewModel(
             appSettings.observeNavigationRailTopPaddingDp().collect {
                 _navigationRailTopPaddingDp.value = it
             }
+        }
+        viewModelScope.launch(dispatchers.io) {
+            observeWatchAppStatusUseCase().collect { _watchAppStatus.value = it }
+        }
+    }
+
+    override fun installOnWatch() {
+        // Guard double-taps: the row stays tappable while Sending renders
+        // the in-flight ring, so a second tap must not queue another launch.
+        if (_watchInstallAction.value is WatchInstallAction.Sending) return
+        _watchInstallAction.value = WatchInstallAction.Sending
+        viewModelScope.launch(dispatchers.io) {
+            _watchInstallAction.value = when (requestWatchAppInstallUseCase()) {
+                WatchInstallResult.OpenedOnWatch -> WatchInstallAction.OpenedOnWatch
+                WatchInstallResult.NoWatchReachable -> WatchInstallAction.Failed
+                WatchInstallResult.Failed -> WatchInstallAction.Failed
+            }
+            scheduleWatchInstallActionReset()
         }
     }
 
@@ -300,6 +350,13 @@ class DefaultProfileViewModel(
         viewModelScope.launch {
             delay(SNOOZE_ACTION_RESET_DELAY_MS)
             _snoozeAction.value = SnoozeAction.Idle
+        }
+    }
+
+    private fun scheduleWatchInstallActionReset() {
+        viewModelScope.launch {
+            delay(WATCH_INSTALL_ACTION_RESET_DELAY_MS)
+            _watchInstallAction.value = WatchInstallAction.Idle
         }
     }
 }

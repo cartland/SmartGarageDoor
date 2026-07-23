@@ -32,6 +32,9 @@ import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.User
+import com.chriscartland.garage.domain.model.WatchAppStatus
+import com.chriscartland.garage.domain.model.WatchInstallAction
+import com.chriscartland.garage.domain.model.WatchInstallResult
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAppSettingsRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
@@ -39,6 +42,7 @@ import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.FakeFeatureAllowlistRepository
 import com.chriscartland.garage.testcommon.FakeSnoozeRepository
+import com.chriscartland.garage.testcommon.FakeWearCompanionRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import com.chriscartland.garage.usecase.AppSettingsUseCase
 import com.chriscartland.garage.usecase.ComputeEffectiveSnoozeStateUseCase
@@ -48,6 +52,8 @@ import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
+import com.chriscartland.garage.usecase.ObserveWatchAppStatusUseCase
+import com.chriscartland.garage.usecase.RequestWatchAppInstallUseCase
 import com.chriscartland.garage.usecase.RevalidateSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
@@ -77,6 +83,7 @@ class ProfileViewModelTest {
     private lateinit var snoozeRepository: FakeSnoozeRepository
     private lateinit var featureAllowlistRepository: FakeFeatureAllowlistRepository
     private lateinit var appLoggerRepository: FakeAppLoggerRepository
+    private lateinit var wearCompanionRepository: FakeWearCompanionRepository
 
     private val testUser = User(
         name = DisplayName("User"),
@@ -91,6 +98,7 @@ class ProfileViewModelTest {
         snoozeRepository = FakeSnoozeRepository()
         featureAllowlistRepository = FakeFeatureAllowlistRepository()
         appLoggerRepository = FakeAppLoggerRepository()
+        wearCompanionRepository = FakeWearCompanionRepository()
     }
 
     @AfterTest
@@ -113,6 +121,8 @@ class ProfileViewModelTest {
             ),
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
             observeFeatureAccessUseCase = ObserveFeatureAccessUseCase(featureAllowlistRepository),
+            observeWatchAppStatusUseCase = ObserveWatchAppStatusUseCase(wearCompanionRepository),
+            requestWatchAppInstallUseCase = RequestWatchAppInstallUseCase(wearCompanionRepository),
             signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),
             signOutUseCase = SignOutUseCase(authRepository),
             fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
@@ -292,6 +302,70 @@ class ProfileViewModelTest {
                 SnoozeAction.Failed.EventChanged,
                 viewModel.snoozeAction.value,
                 "ActionError.SnoozeEventChanged must map to Failed.EventChanged",
+            )
+        }
+
+    @Test
+    fun watchAppStatusPassesThroughFromRepository() =
+        runTest {
+            val viewModel = createViewModel()
+            assertEquals(WatchAppStatus.Unknown, viewModel.watchAppStatus.value)
+
+            wearCompanionRepository.setWatchAppStatus(WatchAppStatus.WatchNeedsApp)
+            advanceUntilIdle()
+            assertEquals(WatchAppStatus.WatchNeedsApp, viewModel.watchAppStatus.value)
+
+            wearCompanionRepository.setWatchAppStatus(WatchAppStatus.InstalledOnWatch)
+            advanceUntilIdle()
+            assertEquals(WatchAppStatus.InstalledOnWatch, viewModel.watchAppStatus.value)
+        }
+
+    @Test
+    fun installOnWatchSuccessSetsOpenedThenAutoResets() =
+        runTest {
+            val viewModel = createViewModel()
+            wearCompanionRepository.setInstallResult(WatchInstallResult.OpenedOnWatch)
+
+            viewModel.installOnWatch()
+            // Don't `advanceUntilIdle` — that fires the 10s reset delay too.
+            testDispatcher.scheduler.runCurrent()
+
+            assertEquals(WatchInstallAction.OpenedOnWatch, viewModel.watchInstallAction.value)
+            assertEquals(1, wearCompanionRepository.installRequestCount)
+
+            advanceUntilIdle()
+            assertEquals(
+                WatchInstallAction.Idle,
+                viewModel.watchInstallAction.value,
+                "Action must auto-reset to Idle after the reset delay",
+            )
+        }
+
+    @Test
+    fun installOnWatchFailureSetsFailed() =
+        runTest {
+            val viewModel = createViewModel()
+            wearCompanionRepository.setInstallResult(WatchInstallResult.Failed)
+
+            viewModel.installOnWatch()
+            testDispatcher.scheduler.runCurrent()
+
+            assertEquals(WatchInstallAction.Failed, viewModel.watchInstallAction.value)
+        }
+
+    @Test
+    fun installOnWatchNoWatchReachableMapsToFailed() =
+        runTest {
+            val viewModel = createViewModel()
+            wearCompanionRepository.setInstallResult(WatchInstallResult.NoWatchReachable)
+
+            viewModel.installOnWatch()
+            testDispatcher.scheduler.runCurrent()
+
+            assertEquals(
+                WatchInstallAction.Failed,
+                viewModel.watchInstallAction.value,
+                "NoWatchReachable surfaces as Failed so the UI falls back to the phone store",
             )
         }
 }

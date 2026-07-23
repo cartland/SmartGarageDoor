@@ -42,6 +42,7 @@ import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import com.chriscartland.garage.testcommon.FakeStatusSnapshotStore
+import com.chriscartland.garage.testcommon.FakeWearCompanionRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import com.chriscartland.garage.usecase.AppSettingsUseCase
 import com.chriscartland.garage.usecase.ComputeEffectiveSnoozeStateUseCase
@@ -51,6 +52,8 @@ import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
+import com.chriscartland.garage.usecase.ObserveWatchAppStatusUseCase
+import com.chriscartland.garage.usecase.RequestWatchAppInstallUseCase
 import com.chriscartland.garage.usecase.RevalidateSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
@@ -208,6 +211,8 @@ class RealNetworkSnoozeRepositoryPropagationTest {
                 ),
                 observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
                 observeFeatureAccessUseCase = ObserveFeatureAccessUseCase(featureAllowlistRepository),
+                observeWatchAppStatusUseCase = ObserveWatchAppStatusUseCase(FakeWearCompanionRepository()),
+                requestWatchAppInstallUseCase = RequestWatchAppInstallUseCase(FakeWearCompanionRepository()),
                 signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),
                 signOutUseCase = SignOutUseCase(authRepository),
                 fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
@@ -314,6 +319,8 @@ class RealNetworkSnoozeRepositoryPropagationTest {
                 ),
                 observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
                 observeFeatureAccessUseCase = ObserveFeatureAccessUseCase(featureAllowlistRepository),
+                observeWatchAppStatusUseCase = ObserveWatchAppStatusUseCase(FakeWearCompanionRepository()),
+                requestWatchAppInstallUseCase = RequestWatchAppInstallUseCase(FakeWearCompanionRepository()),
                 signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),
                 signOutUseCase = SignOutUseCase(authRepository),
                 fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),

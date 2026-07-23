@@ -45,6 +45,7 @@ import com.chriscartland.garage.data.repository.NetworkButtonHealthRepository
 import com.chriscartland.garage.data.repository.NetworkDoorRepository
 import com.chriscartland.garage.data.repository.NetworkRemoteButtonRepository
 import com.chriscartland.garage.data.repository.NetworkSnoozeRepository
+import com.chriscartland.garage.data.repository.UnavailableWearCompanionRepository
 import com.chriscartland.garage.data.statuscache.DefaultStatusSnapshotStore
 import com.chriscartland.garage.data.statuscache.DefaultUserScopedCache
 import com.chriscartland.garage.data.statuscache.StatusCacheKeys
@@ -77,6 +78,7 @@ import com.chriscartland.garage.domain.repository.SnoozeDoorEventBridge
 import com.chriscartland.garage.domain.repository.SnoozeRepository
 import com.chriscartland.garage.domain.repository.TestNotificationRepository
 import com.chriscartland.garage.domain.repository.UserScopedCache
+import com.chriscartland.garage.domain.repository.WearCompanionRepository
 import com.chriscartland.garage.usecase.AppSettingsUseCase
 import com.chriscartland.garage.usecase.AppStartup
 import com.chriscartland.garage.usecase.ApplyButtonHealthFcmUseCase
@@ -109,10 +111,12 @@ import com.chriscartland.garage.usecase.ObserveDiagnosticsCountUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
 import com.chriscartland.garage.usecase.ObserveTestNotificationStateUseCase
+import com.chriscartland.garage.usecase.ObserveWatchAppStatusUseCase
 import com.chriscartland.garage.usecase.PruneDiagnosticsLogUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
+import com.chriscartland.garage.usecase.RequestWatchAppInstallUseCase
 import com.chriscartland.garage.usecase.RevalidateSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.RunStartupDiagnosticsMaintenanceUseCase
 import com.chriscartland.garage.usecase.SeedDiagnosticsCountersFromRoomUseCase
@@ -326,6 +330,8 @@ abstract class NativeComponent(
         computeEffectiveSnoozeState: ComputeEffectiveSnoozeStateUseCase,
         observeDoorEvents: ObserveDoorEventsUseCase,
         observeFeatureAccess: ObserveFeatureAccessUseCase,
+        observeWatchAppStatus: ObserveWatchAppStatusUseCase,
+        requestWatchAppInstall: RequestWatchAppInstallUseCase,
         signInWithGoogle: SignInWithGoogleUseCase,
         signOut: SignOutUseCase,
         fetchSnoozeStatus: FetchSnoozeStatusUseCase,
@@ -340,6 +346,8 @@ abstract class NativeComponent(
             computeEffectiveSnoozeState = computeEffectiveSnoozeState,
             observeDoorEvents = observeDoorEvents,
             observeFeatureAccessUseCase = observeFeatureAccess,
+            observeWatchAppStatusUseCase = observeWatchAppStatus,
+            requestWatchAppInstallUseCase = requestWatchAppInstall,
             signInWithGoogleUseCase = signInWithGoogle,
             signOutUseCase = signOut,
             fetchSnoozeStatusUseCase = fetchSnoozeStatus,
@@ -519,6 +527,17 @@ abstract class NativeComponent(
     @Provides
     fun provideObserveFeatureAccessUseCase(featureAllowlistRepository: FeatureAllowlistRepository): ObserveFeatureAccessUseCase =
         ObserveFeatureAccessUseCase(featureAllowlistRepository)
+
+    @Provides
+    fun provideWearCompanionRepository(): WearCompanionRepository = UnavailableWearCompanionRepository()
+
+    @Provides
+    fun provideObserveWatchAppStatusUseCase(wearCompanionRepository: WearCompanionRepository): ObserveWatchAppStatusUseCase =
+        ObserveWatchAppStatusUseCase(wearCompanionRepository)
+
+    @Provides
+    fun provideRequestWatchAppInstallUseCase(wearCompanionRepository: WearCompanionRepository): RequestWatchAppInstallUseCase =
+        RequestWatchAppInstallUseCase(wearCompanionRepository)
 
     @Provides
     fun provideFetchButtonHealthUseCase(
