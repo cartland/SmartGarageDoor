@@ -50,11 +50,20 @@ import kotlinx.coroutines.launch
  *     ([HOLD_TO_CONFIRM_MILLIS]). If the finger stays down the whole time,
  *     the machine's second tap fires and the press is submitted.
  *  3. [onHoldEnd] (finger lifted early) cancels the countdown; the machine
- *     stays in `AwaitingConfirmation` until its own timeout cancels it.
+ *     stays armed. Every touch on the screen — [onScreenTouch] from the
+ *     UI's screen-wide observer, plus the hold callbacks themselves —
+ *     restarts the machine's confirmation timeout, so the armed window
+ *     counts from the LAST touch and expires only after a quiet period
+ *     with no touches. Because finger-down restarts the window, a hold
+ *     started at the last instant can always run its full 2 seconds; the
+ *     machine can never disarm mid-hold.
  *
- * A quick tap while armed does nothing — only a completed hold confirms.
- * This is deliberately stricter than the phone's second-tap confirm; a
- * watch face is far easier to touch accidentally.
+ * A quick tap while armed never submits — it only keeps the button armed.
+ * Only a completed continuous hold confirms. This is deliberately stricter
+ * than the phone's second-tap confirm; a watch face is far easier to touch
+ * accidentally. There is deliberately no hard cap on how long touches can
+ * keep the button armed: the execute gate is the continuous hold, not the
+ * window length, and the quiet-period timeout handles abandonment.
  *
  * Freshness: the watch has no FCM registration, so [onVisible] starts a
  * foreground-only refresh loop (stopped by [onHidden]). While a press is
@@ -111,6 +120,8 @@ class WearHomeViewModel(
      * re-checked against `AwaitingConfirmation` when the countdown completes.
      */
     fun onHoldStart() {
+        // Any touch keeps the armed window alive (machine no-ops unless armed).
+        stateMachine.onUserInteraction()
         val state = buttonState.value
         val armedOrArming = state is RemoteButtonState.AwaitingConfirmation || state is RemoteButtonState.Preparing
         if (!armedOrArming) return
@@ -128,9 +139,21 @@ class WearHomeViewModel(
 
     /** Finger lifted: cancel an incomplete hold (no-op after a completed one). */
     fun onHoldEnd() {
+        // The quiet period runs from the LAST touch, so release also resets it.
+        stateMachine.onUserInteraction()
         holdJob?.cancel()
         holdJob = null
         _isHolding.value = false
+    }
+
+    /**
+     * Any touch observed anywhere on the screen (the UI's non-consuming
+     * screen-wide observer). While armed this restarts the machine's
+     * confirmation timeout so the button stays armed while the user keeps
+     * interacting; no-op in every other state.
+     */
+    fun onScreenTouch() {
+        stateMachine.onUserInteraction()
     }
 
     /** Screen became visible: start the foreground refresh loop. */

@@ -22,13 +22,27 @@ and palette as phone/iOS) with the door state label under it.
    ring sweeps around the door; when it completes, the machine's second tap
    fires and the press is submitted (`SendingToServer → SendingToDoor →
    Succeeded` when the door actually moves).
-3. **Release early** → the ring resets, nothing is sent. The machine's own
-   8s confirmation timeout eventually disarms (`Cancelled → Ready`).
+3. **Release early** → the ring resets, nothing is sent, and the button
+   **stays armed**. Every touch anywhere on the screen (down and up, seen by
+   a non-consuming Initial-pass observer) restarts the machine's
+   confirmation timeout via `ButtonStateMachine.onUserInteraction()`, so
+   the armed window counts from the **last touch**: partial taps and
+   aborted holds keep it armed, and only ~8s with no touches disarms it
+   (`Cancelled → Ready`). Because finger-down restarts the window, a hold
+   started at the last instant always gets its full 2 seconds — the machine
+   can never disarm mid-hold (pre-0.1.4, a late hold could visually
+   complete its ring and then fire into an already-cancelled state).
 
-A quick tap while armed does nothing — deliberately stricter than the phone's
-second-tap confirm, because a watch face is much easier to touch accidentally.
-`WearHomeViewModelTest` pins these safety properties (stray tap never submits,
-early release never submits, signed-out is inert).
+A quick tap while armed never submits — it only keeps the window alive.
+This is deliberately stricter than the phone's second-tap confirm, because
+a watch face is much easier to touch accidentally. There is deliberately no
+hard cap on how long touches can keep the button armed: the execute gate is
+the continuous 2s hold, not the window length, and the quiet-period timeout
+handles abandonment. `WearHomeViewModelTest` pins these safety properties
+(stray tap never submits, early release never submits, signed-out is inert,
+late hold still completes, quiet period disarms); `ButtonStateMachineTest`
+pins that `onUserInteraction` extends only the armed window and never
+disturbs the machine's other timers (it has a single timer slot).
 
 ## Architecture
 

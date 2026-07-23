@@ -14,6 +14,16 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.1.4
+
+- Armed button stays armed while you keep touching the screen: every touch
+  (down and up, anywhere on the screen) restarts the disarm timer, so
+  partial taps and aborted holds no longer let the button quietly disarm.
+  It now disarms only after ~8 seconds with no touches. Also fixes a
+  mid-hold disarm edge where a hold started late in the armed window could
+  visually complete but never fire. Operating the door still requires the
+  full continuous 2-second hold, and a quick tap still never triggers it.
+
 ## 0.1.3
 
 - Sign in with your phone: while the watch is signed out, the app now uses

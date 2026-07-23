@@ -58,7 +58,8 @@ import kotlinx.coroutines.launch
  *     --(displayMillis)--> Ready
  *
  * Failure paths:
- *   AwaitingConfirmation --(confirmationTimeoutMillis)--> Cancelled
+ *   AwaitingConfirmation --(confirmationTimeoutMillis since the last
+ *     [onUserInteraction], if any)--> Cancelled
  *     --(cancelledDisplayMillis)--> Ready
  *   SendingToServer --(networkTimeoutMillis)--> ServerFailed
  *     --(displayMillis)--> Ready
@@ -105,6 +106,19 @@ class ButtonStateMachine(
     /** Force back to [RemoteButtonState.Ready]. Cancels any pending timers. */
     fun reset() {
         events.trySend(Event.Reset)
+    }
+
+    /**
+     * User touched the controlling surface. While in
+     * [RemoteButtonState.AwaitingConfirmation] this restarts the confirmation
+     * timeout, so the armed window counts from the LAST touch rather than the
+     * arming tap — an engaged user (partial taps, aborted holds) stays armed
+     * and the window expires only after a quiet period with no touches.
+     * Ignored in every other state; in particular it must never disturb the
+     * Preparing or network timers (the machine has a single timer slot).
+     */
+    fun onUserInteraction() {
+        events.trySend(Event.UserInteraction)
     }
 
     /**
@@ -160,6 +174,11 @@ class ButtonStateMachine(
             Event.PreparingComplete -> if (current == RemoteButtonState.Preparing) {
                 transitionTo(RemoteButtonState.AwaitingConfirmation)
                 scheduleTimer(confirmationTimeoutMillis, Event.ConfirmationTimedOut)
+            }
+            Event.UserInteraction -> {
+                if (current == RemoteButtonState.AwaitingConfirmation) {
+                    scheduleTimer(confirmationTimeoutMillis, Event.ConfirmationTimedOut)
+                }
             }
             Event.ConfirmationTimedOut -> {
                 if (current == RemoteButtonState.AwaitingConfirmation) {
@@ -256,6 +275,9 @@ class ButtonStateMachine(
 
         /** ViewModel: network request failed (server error, connection failure). */
         data object NetworkFailed : Event
+
+        /** UI: user touched the controlling surface (extends the armed window). */
+        data object UserInteraction : Event
 
         /** External flow: door position changed. */
         data object DoorMoved : Event

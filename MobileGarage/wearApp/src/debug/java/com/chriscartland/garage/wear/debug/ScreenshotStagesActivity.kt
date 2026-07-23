@@ -68,6 +68,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
                         onDoorTap = {},
                         onHoldStart = {},
                         onHoldEnd = {},
+                        onAnyTouch = {},
                         onSignInClick = {},
                     )
                 }

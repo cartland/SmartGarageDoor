@@ -267,6 +267,82 @@ class ButtonStateMachineTest {
             assertEquals(RemoteButtonState.Ready, sm.state.value)
         }
 
+    // --- Armed-window extension (onUserInteraction) ---
+
+    @Test
+    fun userInteractionWhileArmedRestartsConfirmationTimeout() =
+        runTest {
+            val sm = create()
+            sm.onTap()
+            testScheduler.runCurrent()
+            advanceTimeBy(PREPARING_DELAY + 1)
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.AwaitingConfirmation, sm.state.value)
+
+            // Late in the window, a touch restarts it.
+            advanceTimeBy(CONFIRMATION_TIMEOUT - 1_000)
+            sm.onUserInteraction()
+            testScheduler.runCurrent()
+
+            // Still armed well past the ORIGINAL expiry — the restart worked.
+            advanceTimeBy(CONFIRMATION_TIMEOUT - 1_000)
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.AwaitingConfirmation, sm.state.value)
+
+            // A quiet period with no touches still disarms: 1s remained on
+            // the restarted window, so +1.5s lands inside Cancelled's display.
+            advanceTimeBy(1_500)
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.Cancelled, sm.state.value)
+
+            advanceTimeBy(CANCELLED_DISPLAY + 1)
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.Ready, sm.state.value)
+        }
+
+    @Test
+    fun userInteractionDuringPreparingDoesNotDisturbArming() =
+        runTest {
+            val sm = create()
+            sm.onTap()
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.Preparing, sm.state.value)
+
+            // The machine has ONE timer slot; a naive reschedule here would
+            // cancel the Preparing timer and strand the machine. Must no-op.
+            sm.onUserInteraction()
+            testScheduler.runCurrent()
+            advanceTimeBy(PREPARING_DELAY + 1)
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.AwaitingConfirmation, sm.state.value)
+        }
+
+    @Test
+    fun userInteractionInReadyIsIgnored() =
+        runTest {
+            val sm = create()
+            sm.onUserInteraction()
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.Ready, sm.state.value)
+        }
+
+    @Test
+    fun userInteractionDuringSendingDoesNotDisturbNetworkTimeout() =
+        runTest {
+            val sm = prepareAndConfirm()
+            sm.onNetworkStarted()
+            testScheduler.runCurrent()
+
+            sm.onUserInteraction()
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.SendingToServer, sm.state.value)
+
+            // The network timeout must still fire on schedule.
+            advanceTimeBy(NETWORK_TIMEOUT + 1)
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.ServerFailed, sm.state.value)
+        }
+
     // --- Full happy path ---
 
     @Test
