@@ -567,6 +567,7 @@ Detailed project documentation lives in `MobileGarage/docs/`:
 - [Migration](MobileGarage/docs/MIGRATION.md) — Phased roadmap toward battery-butler tech stack (kotlin-inject, Ktor, clean architecture, KMP)
 - [Testing](MobileGarage/docs/TESTING.md) — CI stability plan, testing phases, priority order
 - [Library Bugs](MobileGarage/docs/library-bugs/) — Known third-party library bugs with mitigations
+- [UI gallery](MobileGarage/ui-gallery/README.md) — local keyboard-driven viewer of the committed UI captures across Android/iOS/Wear (`open MobileGarage/ui-gallery/index.html`). `manifest.yaml` is the curated source; **after any screenshot refresh run `python3 scripts/generate-ui-gallery.py`** to re-resolve the hash-suffixed Android reference filenames into `manifest.js` (`--check` verifies without writing)
 
 Cross-component runbooks in `docs/`:
 
