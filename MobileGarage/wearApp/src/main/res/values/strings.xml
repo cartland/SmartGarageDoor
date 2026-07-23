@@ -19,6 +19,7 @@
     <string name="app_name">Garage</string>
 
     <!-- Door state labels (same wording as the phone Home screen). -->
+    <string name="door_state_connecting">Connecting…</string>
     <string name="door_state_unknown">Unknown</string>
     <string name="door_state_closed">Closed</string>
     <string name="door_state_opening">Opening</string>

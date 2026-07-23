@@ -126,6 +126,7 @@ fun HeroScreen(
     HeroScreenContent(
         doorPosition = doorEvent?.doorPosition ?: DoorPosition.UNKNOWN,
         lastChangeTimeSeconds = doorEvent?.lastChangeTimeSeconds,
+        hasDoorData = doorEvent != null,
         authState = authState,
         buttonState = buttonState,
         isHolding = isHolding,
@@ -168,6 +169,7 @@ fun HeroScreen(
 fun HeroScreenContent(
     doorPosition: DoorPosition,
     lastChangeTimeSeconds: Long?,
+    hasDoorData: Boolean,
     authState: AuthState,
     buttonState: RemoteButtonState,
     isHolding: Boolean,
@@ -225,6 +227,7 @@ fun HeroScreenContent(
                     doorPosition = doorPosition,
                     lastChangeTimeSeconds = lastChangeTimeSeconds,
                     animationMemory = animationMemory,
+                    suppressWarningOverlay = !hasDoorData,
                     onDoorTap = onDoorTap,
                     onHoldStart = onHoldStart,
                     onHoldEnd = onHoldEnd,
@@ -239,7 +242,7 @@ fun HeroScreenContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = HeroScreenMappers.doorStateLabel(doorPosition),
+                        text = HeroScreenMappers.doorStateLabel(doorPosition, hasDoorData),
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
                     )
@@ -267,13 +270,14 @@ fun HeroScreenContent(
                         doorPosition = doorPosition,
                         lastChangeTimeSeconds = lastChangeTimeSeconds,
                         animationMemory = animationMemory,
+                        suppressWarningOverlay = !hasDoorData,
                         onDoorTap = onDoorTap,
                         onHoldStart = onHoldStart,
                         onHoldEnd = onHoldEnd,
                         modifier = Modifier.fillMaxWidth(DOOR_WIDTH_FRACTION_SIGNED_OUT),
                     )
                     Text(
-                        text = HeroScreenMappers.doorStateLabel(doorPosition),
+                        text = HeroScreenMappers.doorStateLabel(doorPosition, hasDoorData),
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
                     )
@@ -370,6 +374,7 @@ private fun GarageDoorTarget(
     doorPosition: DoorPosition,
     lastChangeTimeSeconds: Long?,
     animationMemory: DoorAnimationMemory,
+    suppressWarningOverlay: Boolean,
     onDoorTap: () -> Unit,
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit,
@@ -397,6 +402,7 @@ private fun GarageDoorTarget(
             animationMemory = animationMemory,
             lastChangeTimeSeconds = lastChangeTimeSeconds,
             color = WearDoorColors.forPosition(doorPosition),
+            suppressWarningOverlay = suppressWarningOverlay,
             modifier = Modifier.fillMaxSize(),
         )
     }
@@ -404,6 +410,22 @@ private fun GarageDoorTarget(
 
 /** String/label mappers for the hero screen. */
 private object HeroScreenMappers {
+    /**
+     * No door event at all (cold start) renders the calm "Connecting…"
+     * headline — mirrors the phone Home card. A real server-reported
+     * UNKNOWN event (hasDoorData = true) keeps the "Unknown" label.
+     */
+    @Composable
+    fun doorStateLabel(
+        doorPosition: DoorPosition,
+        hasDoorData: Boolean,
+    ): String =
+        if (!hasDoorData) {
+            stringResource(R.string.door_state_connecting)
+        } else {
+            doorStateLabel(doorPosition)
+        }
+
     @Composable
     fun doorStateLabel(doorPosition: DoorPosition): String =
         stringResource(
@@ -442,6 +464,7 @@ private fun HeroScreenContentArmedPreview() {
         HeroScreenContent(
             doorPosition = DoorPosition.CLOSED,
             lastChangeTimeSeconds = null,
+            hasDoorData = true,
             authState = AuthState.Authenticated(
                 User(
                     name = DisplayName("Preview User"),
@@ -467,6 +490,7 @@ private fun HeroScreenContentSignedOutPreview() {
         HeroScreenContent(
             doorPosition = DoorPosition.OPEN,
             lastChangeTimeSeconds = null,
+            hasDoorData = true,
             authState = AuthState.Unauthenticated,
             buttonState = RemoteButtonState.Ready,
             isHolding = false,

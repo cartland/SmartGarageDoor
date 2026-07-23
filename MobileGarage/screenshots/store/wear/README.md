@@ -9,6 +9,7 @@ Captures are byte-stable across regens — a diff means a real visual change.
 
 | Stage | Capture | Shows |
 |---|---|---|
+| connecting | <img src="wear-connecting.png" width="180" alt="connecting"> | Cold start, no data yet: "Connecting…", no warning badge |
 | closed | <img src="wear-closed.png" width="180" alt="closed"> | Closed door, "Tap door to arm" |
 | armed | <img src="wear-armed.png" width="180" alt="armed"> | Armed: faint hold ring, "Hold door to press" |
 | holding | <img src="wear-holding.png" width="180" alt="holding"> | Hold completing: full radial ring, the instant before the press fires |

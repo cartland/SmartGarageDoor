@@ -49,7 +49,7 @@ FIXTURE_ACTIVITY="$PACKAGE/com.chriscartland.garage.wear.debug.ScreenshotStagesA
 BOOT_TIMEOUT_SECONDS=180
 
 # Stage list mirrors ScreenshotStagesActivity.
-STAGES=(closed armed holding moving open signed_out sign_in_error)
+STAGES=(connecting closed armed holding moving open signed_out sign_in_error)
 # Post-foreground settle: lets the system splash ("Starting…") dissolve and
 # the first real frame land. The foreground wait below handles slow cold
 # starts; this only covers render/splash latency after the activity resumes.
@@ -212,6 +212,7 @@ GALLERY="$OUT_DIR/README.md"
     echo
     echo "| Stage | Capture | Shows |"
     echo "|---|---|---|"
+    echo "| connecting | <img src=\"wear-connecting.png\" width=\"180\" alt=\"connecting\"> | Cold start, no data yet: \"Connecting…\", no warning badge |"
     echo "| closed | <img src=\"wear-closed.png\" width=\"180\" alt=\"closed\"> | Closed door, \"Tap door to arm\" |"
     echo "| armed | <img src=\"wear-armed.png\" width=\"180\" alt=\"armed\"> | Armed: faint hold ring, \"Hold door to press\" |"
     echo "| holding | <img src=\"wear-holding.png\" width=\"180\" alt=\"holding\"> | Hold completing: full radial ring, the instant before the press fires |"
