@@ -57,13 +57,21 @@ early release never submits, signed-out is inert).
   while visible, tightening to 2s while a press is waiting on the door so
   the machine's door-moved success detection fires promptly. No FCM, no
   background work, zero battery cost while the app is closed.
-- **Auth**: Firebase Auth directly on the watch. Sign-in uses Credential
-  Manager's Sign in with Google (`GetSignInWithGoogleOption`), the
-  recommended Wear OS 5.1+ flow, feeding the same
-  `SignInWithGoogleUseCase → FirebaseAuthRepository` chain as the phone.
-  On watches without Credential Manager support the sign-in chip simply
-  fails gracefully (token relay from the phone over the Data Layer is the
-  documented fallback, not yet built).
+- **Auth**: local-first with a phone relay fallback, composed in
+  `RelayFallbackAuthBridge` (consumed unchanged by the shared
+  `FirebaseAuthRepository`). Watch-local Credential Manager Sign in with
+  Google is attempted via the Sign in button — but **GMS hard-rejects it on
+  Wear OS** ("Google Identity Services do not support this Android
+  Credential Manager API on Wear OS", captured via logcat on a Pixel
+  Watch 4 / Wear OS 7 / GMS 26.28, 2026-07-22), so in practice auth comes
+  from the **phone relay**: while signed out, the watch polls the paired
+  phone over the Wearable Data Layer (`MessageClient.sendRequest` RPC,
+  wire shape pinned by `:data`'s `WearAuthRelayProtocol` codec + tests);
+  the phone's `WearAuthRelayService` (`:androidApp`, 2.21.0+) answers with
+  the signed-in identity and a fresh Firebase ID token per call. Requires
+  the phone reachable over Bluetooth/Wi-Fi for pushes — door *status*
+  needs no auth. Poll cadence: 15s, only while signed out and the app
+  process is alive.
 
 ## Build / CI integration
 

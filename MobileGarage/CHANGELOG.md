@@ -15,6 +15,14 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.21.0
+
+- Wear OS companion sign-in: the phone now answers the watch's request for
+  the signed-in account and a Firebase ID token over the Wearable Data
+  Layer, so the watch app can operate the door without watch-local Google
+  sign-in (which Play services rejects on Wear OS). Additive background
+  service; no phone UI or behavior changes.
+
 ## 2.20.4
 - **Statuses appear instantly when the app opens.** The remote-control availability, the notification snooze status, and the Developer-section access now remember their last-known values across app restarts and render immediately on launch, refreshing silently in the background. The prominent "Checking…" indicator is gone: while a status is genuinely unresolved (first run only, in practice) the app shows nothing, and the verdict appears once known.
 - **Fewer network requests and wakeups.** The Settings screen no longer re-fetches the snooze status on every visit or polls every minute. It now refreshes at most every ~5 minutes on entry, when a door event arrives that could have voided a snooze, or when the snooze sheet is opened. A snooze that reaches its end time now flips to "not snoozing" on screen at that moment instead of waiting for the next refresh.

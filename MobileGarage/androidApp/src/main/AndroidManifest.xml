@@ -56,6 +56,24 @@
             </intent-filter>
         </service>
 
+        <!-- Wear auth relay: answers the watch's RPC for the phone's
+             signed-in identity + a Firebase ID token (Wearable Data Layer).
+             Play services starts and binds it on demand; the path filter
+             matches WearAuthRelayProtocol.ID_TOKEN_PATH. exported=true is
+             the documented WearableListenerService pattern (only Play
+             services can deliver these intents). -->
+        <service
+            android:name=".wearrelay.WearAuthRelayService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.REQUEST_RECEIVED" />
+                <data
+                    android:host="*"
+                    android:pathPrefix="/garage/auth"
+                    android:scheme="wear" />
+            </intent-filter>
+        </service>
+
         <!--
           FCM: render OS-shown (background) open-door warnings on the app-owned
           "Garage door" channel + garage icon, instead of FCM's default

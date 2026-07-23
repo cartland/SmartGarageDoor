@@ -14,6 +14,16 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.1.3
+
+- Sign in with your phone: while the watch is signed out, the app now uses
+  the paired phone's signed-in account over Bluetooth or Wi-Fi (requires
+  phone app 2.21.0). Play services rejects watch-local Google sign-in on
+  Wear OS ("Google Identity Services do not support this Android
+  Credential Manager API on Wear OS", captured on a Pixel Watch 4), so the
+  phone relay is the working path; the Sign in button remains for watches
+  where it works.
+
 ## 0.1.2
 
 - Sign-in failures now show a transient "Sign-in failed" message under the

@@ -18,7 +18,9 @@
 package com.chriscartland.garage.wear
 
 import android.app.Application
+import com.chriscartland.garage.wear.auth.DataLayerWearAuthRelayClient
 import com.chriscartland.garage.wear.auth.FirebaseAuthBridge
+import com.chriscartland.garage.wear.auth.RelayFallbackAuthBridge
 import com.chriscartland.garage.wear.config.WearAppConfigFactory
 import com.chriscartland.garage.wear.di.WearComponent
 import com.chriscartland.garage.wear.di.WearSignInConfig
@@ -31,7 +33,13 @@ import com.chriscartland.garage.wear.di.create
 class GarageWearApplication : Application() {
     val component: WearComponent by lazy {
         WearComponent::class.create(
-            authBridge = FirebaseAuthBridge(),
+            // Local Firebase auth wins when present; otherwise the phone
+            // relay supplies identity + tokens (Credential Manager sign-in
+            // fails on some watches — see docs/WEAR_OS.md).
+            authBridge = RelayFallbackAuthBridge(
+                local = FirebaseAuthBridge(),
+                relay = DataLayerWearAuthRelayClient(this),
+            ),
             appConfig = WearAppConfigFactory.create(),
             signInConfig = WearSignInConfig(
                 googleServerClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID,

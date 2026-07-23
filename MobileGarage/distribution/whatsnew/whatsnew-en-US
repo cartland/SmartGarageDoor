@@ -1,3 +1,3 @@
-Garage door notifications are now cleaner. When the door is left open too long, that alert updates in place to a single "Resolved: open for X minutes" notification once the door closes, instead of leaving a second card behind.
+Wear OS companion support: the phone now shares its sign-in with the Garage watch app, so your watch can check the door and operate it without a separate sign-in.
 
-You can also load older door history by scrolling to the bottom of the list.
+Garage door notifications remain cleaner: the "left open" alert updates in place to a single "Resolved" notification once the door closes.
