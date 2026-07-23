@@ -31,19 +31,28 @@ import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.wear.ui.HeroScreenContent
 
 /**
- * Debug-only fixture screen for capturing Play Store listing screenshots on
- * a Wear emulator. Renders [HeroScreenContent] with canned states — no
- * ViewModel, no network, no auth, and therefore no path to the real door.
+ * Debug-only fixture screen for capturing the Wear screenshot gallery and
+ * Play Store listing assets on a Wear emulator. Renders [HeroScreenContent]
+ * with canned states — no ViewModel, no network, no auth, and therefore no
+ * path to the real door. This is the single enumeration of capture-worthy
+ * states; `./scripts/generate-wear-screenshots.sh` drives it.
  *
  * Launch (debug build only):
  *   adb shell am start -n com.chriscartland.garage.debug/com.chriscartland.garage.wear.debug.ScreenshotStagesActivity \
- *     -e stage closed|armed|moving|open
+ *     -e stage closed|armed|holding|moving|open|signed_out|sign_in_error
  *
  * Stages mirror the hero interaction narrative:
- *   closed — green closed door, "Tap door to arm"
- *   armed  — armed with the faint hold ring, "Hold door to press"
- *   moving — door sliding open with the up arrow, "Door is moving"
- *   open   — red open door
+ *   closed        — green closed door, "Tap door to arm"
+ *   armed         — armed with the faint hold ring, "Hold door to press"
+ *   holding       — full hold ring ("ring filled, press about to fire").
+ *                   animateFloatAsState initializes AT its target on first
+ *                   composition, so a static isHolding=true renders the
+ *                   ring already full — deterministic; mid-sweep is not
+ *                   capturable from a static fixture
+ *   moving        — door sliding open with the up arrow, "Door is moving"
+ *   open          — red open door
+ *   signed_out    — Sign in button under the door
+ *   sign_in_error — transient "Sign-in failed" caption under the button
  */
 class ScreenshotStagesActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,15 +65,10 @@ class ScreenshotStagesActivity : ComponentActivity() {
                     HeroScreenContent(
                         doorPosition = fixture.doorPosition,
                         lastChangeTimeSeconds = null,
-                        authState = AuthState.Authenticated(
-                            User(
-                                name = DisplayName("Screenshot User"),
-                                email = Email("screenshots@example.com"),
-                            ),
-                        ),
+                        authState = fixture.authState,
                         buttonState = fixture.buttonState,
-                        isHolding = false,
-                        signInError = false,
+                        isHolding = fixture.isHolding,
+                        signInError = fixture.signInError,
                         onDoorTap = {},
                         onHoldStart = {},
                         onHoldEnd = {},
@@ -79,13 +83,32 @@ class ScreenshotStagesActivity : ComponentActivity() {
     private data class StageFixture(
         val doorPosition: DoorPosition,
         val buttonState: RemoteButtonState,
+        val authState: AuthState = SCREENSHOT_USER,
+        val isHolding: Boolean = false,
+        val signInError: Boolean = false,
     )
 
     private fun fixtureFor(stage: String): StageFixture =
         when (stage) {
             STAGE_ARMED -> StageFixture(DoorPosition.CLOSED, RemoteButtonState.AwaitingConfirmation)
+            STAGE_HOLDING -> StageFixture(
+                DoorPosition.CLOSED,
+                RemoteButtonState.AwaitingConfirmation,
+                isHolding = true,
+            )
             STAGE_MOVING -> StageFixture(DoorPosition.OPENING, RemoteButtonState.Succeeded)
             STAGE_OPEN -> StageFixture(DoorPosition.OPEN, RemoteButtonState.Ready)
+            STAGE_SIGNED_OUT -> StageFixture(
+                DoorPosition.OPEN,
+                RemoteButtonState.Ready,
+                authState = AuthState.Unauthenticated,
+            )
+            STAGE_SIGN_IN_ERROR -> StageFixture(
+                DoorPosition.OPEN,
+                RemoteButtonState.Ready,
+                authState = AuthState.Unauthenticated,
+                signInError = true,
+            )
             else -> StageFixture(DoorPosition.CLOSED, RemoteButtonState.Ready)
         }
 
@@ -93,7 +116,17 @@ class ScreenshotStagesActivity : ComponentActivity() {
         const val STAGE_EXTRA = "stage"
         const val STAGE_CLOSED = "closed"
         const val STAGE_ARMED = "armed"
+        const val STAGE_HOLDING = "holding"
         const val STAGE_MOVING = "moving"
         const val STAGE_OPEN = "open"
+        const val STAGE_SIGNED_OUT = "signed_out"
+        const val STAGE_SIGN_IN_ERROR = "sign_in_error"
+
+        val SCREENSHOT_USER = AuthState.Authenticated(
+            User(
+                name = DisplayName("Screenshot User"),
+                email = Email("screenshots@example.com"),
+            ),
+        )
     }
 }
