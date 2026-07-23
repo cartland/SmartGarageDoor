@@ -22,7 +22,7 @@ the committed PNGs by relative path, so it works from a fresh clone.
 | Keys | Action |
 | --- | --- |
 | `↑` `↓` (or `k` `j`) | previous / next row (wraps) |
-| `←` `→` (or `h` `l`) | previous / next variant within the row (wraps, remembered per row) |
+| `←` `→` (or `h` `l`) | previous / next variant within the row (no-op today — all rows show every state at once) |
 | `Space` | switch platform (Android ↔ iOS) |
 | `t` | toggle light / dark theme |
 | `Home` / `End` | first / last row |
@@ -39,22 +39,22 @@ Every image cell is addressed by four dimensions:
 
 - **Row** (up/down) — a named collection inside a section. The whole feed is
   always rendered; up/down moves the selection and scrolls to it.
-- **Variant** (left/right) — a row-specific axis, one axis per row (e.g. the
-  Home row's axis is door *state*; the snooze sheet's axis is *selection*).
-  All tiles in the row swap together when the variant changes.
+- **Variant** (left/right) — a row-specific flip-in-place axis. Present in
+  the schema but **deliberately unused by the current curation** (see below).
 - **Platform** (Space) — global. `platformCycle` in the manifest defines what
   Space cycles through. Rows captured only on a platform outside the cycle
   (Wear OS) are **pinned**: they always show their platform, with a badge.
 - **Theme** (t) — global light/dark.
 
-**Items vs variants — the curation rule.** `items` are what you compare side
-by side at a glance; `variants` are what you flip in place:
+**Density first — show everything, no pills.** Every row puts ALL of its
+states in `items`, side by side, wrapping onto as many lines as the width
+needs — the page never scrolls horizontally. Eight Home states in one glance
+beats one image plus seven chips. Reach for `variants` only if a future row
+genuinely cannot show its states simultaneously; nothing today qualifies.
 
-- Small components put their *states* in `items` — nine door-canvas states in
-  one row is more useful than flipping through them one at a time.
-- Full screens put their states in `variants` — one big image flipped in
-  place, so Android and iOS renders of the same state sit under your eyes as
-  you hit Space.
+**Sizing.** `height` is the row's nominal tile height; `maxw` (default 420)
+caps display width, so wide components (pills, full-width sections) scale
+*down* to fit instead of dominating the page.
 
 A missing combination renders as a labeled placeholder ("No dark capture",
 "Not captured on iOS") rather than silently substituting — the gaps are
@@ -97,19 +97,21 @@ sections:
     rows:
       - id: home              # unique, stable (used in URLs + saved state)
         title: Home
-        axis: State           # label for the left/right dimension
-        height: 420           # tile display height in px
+        height: 300           # nominal tile height in px
+        maxw: 420             # optional width cap (default 420)
         note: Optional caption under the row header.
-        variants:             # omit entirely for a single implicit variant
-          - {id: closed, label: Closed}
-        items:
-          - id: screen
-            label: Phone
+        items:                # every state side by side (wraps to fit)
+          - id: closed
+            label: Closed
             images:
-              closed:                          # variant id
-                android: ${ref}/..._{theme}_*.png
-                ios: {light: "${ios}/Home-closed.1.png"}
+              android: ${ref}/..._{theme}_*.png
+              ios: {light: "${ios}/Home-closed.1.png"}
 ```
+
+A row may also declare `variants` (with an `axis` label) to make ←/→ flip
+all tiles in place; the current curation intentionally has none. With
+variants, each item's `images` gains a variant-id level above the platform
+keys.
 
 Image value idioms (one per platform, by design):
 

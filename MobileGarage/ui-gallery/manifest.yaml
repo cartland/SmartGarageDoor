@@ -4,11 +4,15 @@
 # Regenerate manifest.js after editing:  python3 scripts/generate-ui-gallery.py
 # Schema + curation philosophy: MobileGarage/ui-gallery/README.md
 #
-# The two per-row dimensions:
-#   items    = what you compare SIDE BY SIDE at a glance (up/down selects the row)
-#   variants = what you FLIP IN PLACE with left/right (one axis per row)
-# Small components put their states in `items` (see everything at once);
-# full screens put their states in `variants` (flip one big image).
+# Density-first curation: every row shows ALL of its states side by side
+# (`items`), wrapping onto multiple lines — never a horizontal scroll and
+# never a flip-through. The `variants` axis (left/right keys) exists in the
+# schema but is deliberately unused today: nothing in the current content
+# earns a flip when everything fits on screen at once.
+#
+# Sizing: `height` is the nominal tile height; `maxw` (default 420) caps the
+# display width so wide components (pills, full-width sections) scale DOWN
+# to fit instead of blowing up.
 #
 # Global dimensions (apply to every row):
 #   platform = Space key cycles `platformCycle`. Rows captured only on a
@@ -18,15 +22,17 @@
 # Image value idioms (one per platform, by design):
 #   android: ${ref}/...Foo_{theme}_*.png   # {theme} -> Light/Dark; * absorbs the
 #                                          # AGP content hash that changes on regen
-#   ios:     {light: "${ios}/Bar.1.png"}     # explicit: iOS snapshots are light-only
+#   ios:     {light: "${ios}/Bar.1.png"}   # explicit: iOS snapshots are light-only
 #   wear:    ${wear}/wear-baz.png          # plain string = all themes (the wear UI
 #                                          # has a single theme; same capture both)
+# Quote YAML boolean-like ids ("off", "on", "yes", "no") — YAML 1.1 parses
+# them as booleans and the generator rejects non-string ids.
 #
 # Deliberately omitted (curation, not exhaustiveness): synthetic fixtures
-# (SafeListContentPaddingCanary, SpacingTokensReference), *Screen/*Tab wrappers
-# that duplicate their *Content previews, framed marketing shots, and store
-# composites. Add a row when a state matters for design review, not merely
-# because a PNG exists.
+# (SafeListContentPaddingCanary, SpacingTokensReference), *Screen/*Tab
+# wrappers that duplicate their *Content previews, framed marketing shots,
+# and store composites. Add a row when a state matters for design review,
+# not merely because a PNG exists.
 
 version: 1
 
@@ -48,189 +54,185 @@ sections:
     rows:
       - id: home
         title: Home
-        axis: State
-        height: 420
-        variants:
-          - {id: closed, label: Closed}
-          - {id: open, label: Open}
-          - {id: confirming, label: Confirming}
-          - {id: sending, label: Sending}
-          - {id: warning, label: Open too long}
-          - {id: stale, label: Stale data}
-          - {id: alerts, label: Alerts}
-          - {id: signed-out, label: Signed out}
+        height: 300
         items:
-          - id: screen
-            label: Phone
+          - id: closed
+            label: Closed
             images:
-              closed:
-                android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentClosedSignedInPreviewTest_{theme}_*.png
-                ios: {light: "${ios}/Home-closed-signed-out.1.png"}
-              open:
-                android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentOpenSignedInPreviewTest_{theme}_*.png
-                ios: {light: "${ios}/Home-open-signed-in.1.png"}
-              confirming:
-                android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentAwaitingConfirmationPreviewTest_{theme}_*.png
-                ios: {light: "${ios}/Home-confirm-state.1.png"}
-              sending:
-                android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentSendingToDoorPreviewTest_{theme}_*.png
-              warning:
-                android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentOpeningTooLongPreviewTest_{theme}_*.png
-                ios: {light: "${ios}/Home-opening-too-long-warning.1.png"}
-              stale:
-                android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentStaleBannerPreviewTest_{theme}_*.png
-              alerts:
-                android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentPermissionMissingPreviewTest_{theme}_*.png
-                ios: {light: "${ios}/Home-with-alerts.1.png"}
-              signed-out:
-                android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentSignedOutPreviewTest_{theme}_*.png
-                ios: {light: "${ios}/Home-sign-in-row.1.png"}
+              android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentClosedSignedInPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Home-closed-signed-out.1.png"}
+          - id: open
+            label: Open
+            images:
+              android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentOpenSignedInPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Home-open-signed-in.1.png"}
+          - id: confirming
+            label: Confirming
+            images:
+              android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentAwaitingConfirmationPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Home-confirm-state.1.png"}
+          - id: sending
+            label: Sending
+            images:
+              android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentSendingToDoorPreviewTest_{theme}_*.png
+          - id: warning
+            label: Open too long
+            images:
+              android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentOpeningTooLongPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Home-opening-too-long-warning.1.png"}
+          - id: stale
+            label: Stale data
+            images:
+              android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentStaleBannerPreviewTest_{theme}_*.png
+          - id: alerts
+            label: Alerts
+            images:
+              android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentPermissionMissingPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Home-with-alerts.1.png"}
+          - id: signed-out
+            label: Signed out
+            images:
+              android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentSignedOutPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Home-sign-in-row.1.png"}
 
       - id: home-remote-pill
         title: Home, remote pill states
-        axis: Pill state
-        height: 420
-        note: Same Home screen flipped through the remote-button health pill states.
-        variants:
-          - {id: online, label: Online}
-          - {id: offline, label: Offline}
-          - {id: unauthorized, label: Unauthorized}
-          - {id: unknown, label: Unknown}
+        height: 300
+        note: Same Home screen across the remote-button health pill states.
         items:
-          - id: screen
-            label: Phone
+          - id: online
+            label: Online
             images:
-              online:
-                android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentRemotePillOnlinePreviewTest_{theme}_*.png
-              offline:
-                android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentRemotePillOfflinePreviewTest_{theme}_*.png
-              unauthorized:
-                android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentRemotePillUnauthorizedPreviewTest_{theme}_*.png
-              unknown:
-                android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentRemotePillUnknownPreviewTest_{theme}_*.png
+              android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentRemotePillOnlinePreviewTest_{theme}_*.png
+          - id: offline
+            label: Offline
+            images:
+              android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentRemotePillOfflinePreviewTest_{theme}_*.png
+          - id: unauthorized
+            label: Unauthorized
+            images:
+              android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentRemotePillUnauthorizedPreviewTest_{theme}_*.png
+          - id: unknown
+            label: Unknown
+            images:
+              android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentRemotePillUnknownPreviewTest_{theme}_*.png
 
       - id: history
         title: History
-        axis: State
-        height: 420
-        variants:
-          - {id: recent, label: Recent events}
-          - {id: closed-days, label: Closed days}
-          - {id: empty, label: Empty}
-          - {id: loading-older, label: Loading older}
-          - {id: reached-beginning, label: Reached beginning}
-          - {id: stale, label: Stale banner}
+        height: 300
         items:
-          - id: screen
-            label: Phone
+          - id: recent
+            label: Recent events
             images:
-              recent:
-                android: ${ref}/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayPreviewTest_{theme}_*.png
-                ios: {light: "${ios}/History-recent-events.1.png"}
-              closed-days:
-                android: ${ref}/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayClosedPreviewTest_{theme}_*.png
-                ios: {light: "${ios}/History-closed-states.1.png"}
-              empty:
-                android: ${ref}/HistoryRedesignScreenshotTestKt/HistoryContentEmptyPreviewTest_{theme}_*.png
-                ios: {light: "${ios}/History-empty.1.png"}
-              loading-older:
-                ios: {light: "${ios}/History-loading-older-page.1.png"}
-              reached-beginning:
-                ios: {light: "${ios}/History-reached-beginning.1.png"}
-              stale:
-                ios: {light: "${ios}/History-stale-banner.1.png"}
+              android: ${ref}/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/History-recent-events.1.png"}
+          - id: closed-days
+            label: Closed days
+            images:
+              android: ${ref}/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayClosedPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/History-closed-states.1.png"}
+          - id: empty
+            label: Empty
+            images:
+              android: ${ref}/HistoryRedesignScreenshotTestKt/HistoryContentEmptyPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/History-empty.1.png"}
+          - id: loading-older
+            label: Loading older
+            images:
+              ios: {light: "${ios}/History-loading-older-page.1.png"}
+          - id: reached-beginning
+            label: Reached beginning
+            images:
+              ios: {light: "${ios}/History-reached-beginning.1.png"}
+          - id: stale
+            label: Stale banner
+            images:
+              ios: {light: "${ios}/History-stale-banner.1.png"}
 
       - id: settings
         title: Settings
-        axis: State
-        height: 420
-        variants:
-          - {id: signed-in, label: Signed in (allowlisted)}
-          - {id: signed-in-basic, label: Signed in (basic)}
-          - {id: signed-out, label: Signed out}
-          - {id: permission-denied, label: Notifications off}
-          - {id: snooze-sending, label: Snooze sending}
+        height: 300
         items:
-          - id: screen
-            label: Phone
+          - id: signed-in
+            label: Signed in (allowlisted)
             images:
-              signed-in:
-                android: ${ref}/SettingsRedesignScreenshotTestKt/SettingsContentSignedInAllowlistedPreviewTest_{theme}_*.png
-                ios: {light: "${ios}/Settings-signed-in-developer.1.png"}
-              signed-in-basic:
-                android: ${ref}/SettingsRedesignScreenshotTestKt/SettingsContentSignedInBasicPreviewTest_{theme}_*.png
-              signed-out:
-                android: ${ref}/SettingsRedesignScreenshotTestKt/SettingsContentSignedOutPreviewTest_{theme}_*.png
-                ios: {light: "${ios}/Settings-signed-out.1.png"}
-              permission-denied:
-                android: ${ref}/SettingsRedesignScreenshotTestKt/SettingsContentPermissionDeniedPreviewTest_{theme}_*.png
-                ios: {light: "${ios}/Settings-notifications-disabled.1.png"}
-              snooze-sending:
-                android: ${ref}/SettingsRedesignScreenshotTestKt/SettingsContentSnoozeInFlightPreviewTest_{theme}_*.png
-                ios: {light: "${ios}/Settings-snooze-sending.1.png"}
+              android: ${ref}/SettingsRedesignScreenshotTestKt/SettingsContentSignedInAllowlistedPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Settings-signed-in-developer.1.png"}
+          - id: signed-in-basic
+            label: Signed in (basic)
+            images:
+              android: ${ref}/SettingsRedesignScreenshotTestKt/SettingsContentSignedInBasicPreviewTest_{theme}_*.png
+          - id: signed-out
+            label: Signed out
+            images:
+              android: ${ref}/SettingsRedesignScreenshotTestKt/SettingsContentSignedOutPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Settings-signed-out.1.png"}
+          - id: permission-denied
+            label: Notifications off
+            images:
+              android: ${ref}/SettingsRedesignScreenshotTestKt/SettingsContentPermissionDeniedPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Settings-notifications-disabled.1.png"}
+          - id: snooze-sending
+            label: Snooze sending
+            images:
+              android: ${ref}/SettingsRedesignScreenshotTestKt/SettingsContentSnoozeInFlightPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Settings-snooze-sending.1.png"}
 
       - id: functions
         title: Function list
-        axis: Access
-        height: 420
-        variants:
-          - {id: granted, label: Granted}
-          - {id: denied, label: Denied}
-          - {id: test-notifications, label: Test notifications}
+        height: 300
         items:
-          - id: screen
-            label: Phone
+          - id: granted
+            label: Granted
             images:
-              granted:
-                android: ${ref}/ScreensScreenshotTestKt/FunctionListContentPreviewTest_{theme}_*.png
-                ios: {light: "${ios}/Functions-granted.1.png"}
-              denied:
-                android: ${ref}/ScreensScreenshotTestKt/FunctionListContentDeniedPreviewTest_{theme}_*.png
-                ios: {light: "${ios}/Functions-locked.1.png"}
-              test-notifications:
-                ios: {light: "${ios}/Functions-test-notifications.1.png"}
+              android: ${ref}/ScreensScreenshotTestKt/FunctionListContentPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Functions-granted.1.png"}
+          - id: denied
+            label: Denied
+            images:
+              android: ${ref}/ScreensScreenshotTestKt/FunctionListContentDeniedPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Functions-locked.1.png"}
+          - id: test-notifications
+            label: Test notifications
+            images:
+              ios: {light: "${ios}/Functions-test-notifications.1.png"}
 
       - id: diagnostics
         title: Diagnostics
-        axis: State
-        height: 420
-        variants:
-          - {id: default, label: Counters}
-          - {id: clearing, label: Clear in flight}
+        height: 300
         items:
-          - id: screen
-            label: Phone
+          - id: counters
+            label: Counters
             images:
-              default:
-                android: ${ref}/SettingsRedesignScreenshotTestKt/DiagnosticsContentPreviewTest_{theme}_*.png
-                ios: {light: "${ios}/Diagnostics-counters.1.png"}
-              clearing:
-                android: ${ref}/SettingsRedesignScreenshotTestKt/DiagnosticsContentClearInFlightPreviewTest_{theme}_*.png
+              android: ${ref}/SettingsRedesignScreenshotTestKt/DiagnosticsContentPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Diagnostics-counters.1.png"}
+          - id: clearing
+            label: Clear in flight
+            images:
+              android: ${ref}/SettingsRedesignScreenshotTestKt/DiagnosticsContentClearInFlightPreviewTest_{theme}_*.png
 
   - title: Sheets & dialogs
     rows:
       - id: sheet-snooze
         title: Snooze sheet
-        axis: State
-        height: 300
-        variants:
-          # "off"/"on"/"yes"/"no" must stay quoted: YAML 1.1 parses them as booleans.
-          - {id: "off", label: Nothing selected}
-          - {id: active, label: Option selected}
+        height: 240
+        maxw: 300
         items:
-          - id: sheet
-            label: Sheet
+          - id: "off"
+            label: Nothing selected
             images:
-              "off":
-                android: ${ref}/SettingsRedesignScreenshotTestKt/SnoozeSheetContentOffPreviewTest_{theme}_*.png
-                ios: {light: "${ios}/Snooze-sheet-nothing-selected.1.png"}
-              active:
-                android: ${ref}/SettingsRedesignScreenshotTestKt/SnoozeSheetContentActivePreviewTest_{theme}_*.png
-                ios: {light: "${ios}/Snooze-sheet-option-selected.1.png"}
+              android: ${ref}/SettingsRedesignScreenshotTestKt/SnoozeSheetContentOffPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Snooze-sheet-nothing-selected.1.png"}
+          - id: active
+            label: Option selected
+            images:
+              android: ${ref}/SettingsRedesignScreenshotTestKt/SnoozeSheetContentActivePreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Snooze-sheet-option-selected.1.png"}
 
       - id: sheet-account
         title: Account & version sheets
-        height: 300
+        height: 240
+        maxw: 300
         items:
           - id: account
             label: Account
@@ -244,7 +246,8 @@ sections:
 
       - id: info-sheets
         title: Info sheets
-        height: 300
+        height: 240
+        maxw: 300
         items:
           - id: door-status
             label: Door status
@@ -259,7 +262,8 @@ sections:
 
       - id: dialog-clear
         title: Clear diagnostics dialog
-        height: 240
+        height: 200
+        maxw: 300
         items:
           - id: dialog
             label: Dialog
@@ -270,7 +274,8 @@ sections:
     rows:
       - id: dashboard-widths
         title: Home dashboard by width
-        height: 280
+        height: 230
+        maxw: 520
         items:
           - id: tablet-home
             label: Home on tablet
@@ -295,7 +300,8 @@ sections:
 
       - id: rail
         title: Navigation rail
-        height: 280
+        height: 230
+        maxw: 520
         items:
           - id: home-700
             label: Home + rail (700 dp)
@@ -312,7 +318,8 @@ sections:
 
       - id: three-pane
         title: Three-pane dashboard
-        height: 280
+        height: 230
+        maxw: 520
         items:
           - id: phone-landscape
             label: Phone landscape
@@ -335,7 +342,7 @@ sections:
     rows:
       - id: door-canvas
         title: Door canvas
-        height: 170
+        height: 130
         note: The shared door drawing. iOS renders the same geometry from the KMP constants.
         items:
           - id: closed
@@ -379,7 +386,7 @@ sections:
 
       - id: door-grid-ios
         title: Door states grid (iOS)
-        height: 320
+        height: 260
         note: The iOS snapshot gallery captures all door states as one composite.
         items:
           - id: grid
@@ -389,7 +396,7 @@ sections:
 
       - id: garage-icon
         title: Garage icon
-        height: 120
+        height: 110
         items:
           - id: icon
             label: Icon
@@ -400,7 +407,7 @@ sections:
     rows:
       - id: door-button
         title: Garage door button
-        height: 150
+        height: 130
         note: The round remote button, one tile per ButtonStateMachine state.
         items:
           - id: ready
@@ -442,7 +449,7 @@ sections:
 
       - id: button-grid-ios
         title: Remote button states grid (iOS)
-        height: 320
+        height: 260
         items:
           - id: grid
             label: All states
@@ -451,45 +458,51 @@ sections:
 
       - id: remote-section
         title: Remote control section
-        axis: Button state
-        height: 240
-        note: The full-width Home section that hosts the button, flipped through states.
-        variants:
-          - {id: ready, label: Ready}
-          - {id: preparing, label: Preparing}
-          - {id: awaiting, label: Awaiting confirmation}
-          - {id: sending-server, label: Sending to server}
-          - {id: sending-door, label: Sending to door}
-          - {id: succeeded, label: Succeeded}
-          - {id: cancelled, label: Cancelled}
-          - {id: server-failed, label: Server failed}
-          - {id: door-failed, label: Door failed}
+        height: 180
+        maxw: 340
+        note: The full-width Home section that hosts the button, one tile per state.
         items:
-          - id: section
-            label: Section
+          - id: ready
+            label: Ready
             images:
-              ready:
-                android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentPreviewTest_{theme}_*.png
-              preparing:
-                android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentPreparingPreviewTest_{theme}_*.png
-              awaiting:
-                android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentAwaitingConfirmationPreviewTest_{theme}_*.png
-              sending-server:
-                android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentSendingToServerPreviewTest_{theme}_*.png
-              sending-door:
-                android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentSendingToDoorPreviewTest_{theme}_*.png
-              succeeded:
-                android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentSucceededPreviewTest_{theme}_*.png
-              cancelled:
-                android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentCancelledPreviewTest_{theme}_*.png
-              server-failed:
-                android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentServerFailedPreviewTest_{theme}_*.png
-              door-failed:
-                android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentDoorFailedPreviewTest_{theme}_*.png
+              android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentPreviewTest_{theme}_*.png
+          - id: preparing
+            label: Preparing
+            images:
+              android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentPreparingPreviewTest_{theme}_*.png
+          - id: awaiting
+            label: Awaiting confirmation
+            images:
+              android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentAwaitingConfirmationPreviewTest_{theme}_*.png
+          - id: sending-server
+            label: Sending to server
+            images:
+              android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentSendingToServerPreviewTest_{theme}_*.png
+          - id: sending-door
+            label: Sending to door
+            images:
+              android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentSendingToDoorPreviewTest_{theme}_*.png
+          - id: succeeded
+            label: Succeeded
+            images:
+              android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentSucceededPreviewTest_{theme}_*.png
+          - id: cancelled
+            label: Cancelled
+            images:
+              android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentCancelledPreviewTest_{theme}_*.png
+          - id: server-failed
+            label: Server failed
+            images:
+              android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentServerFailedPreviewTest_{theme}_*.png
+          - id: door-failed
+            label: Door failed
+            images:
+              android: ${ref}/ComponentsScreenshotTestKt/RemoteButtonContentDoorFailedPreviewTest_{theme}_*.png
 
       - id: network-diagram
         title: Network diagram
-        height: 150
+        height: 120
+        maxw: 320
         note: The phone-to-server-to-door progress diagram shown while a press is in flight.
         items:
           - id: idle
@@ -521,7 +534,8 @@ sections:
     rows:
       - id: checkin-pill
         title: Device check-in pill
-        height: 100
+        height: 80
+        maxw: 240
         items:
           - id: fresh
             label: Fresh
@@ -542,7 +556,8 @@ sections:
 
       - id: health-pill
         title: Remote button health pill
-        height: 100
+        height: 80
+        maxw: 240
         items:
           - id: available
             label: Available
@@ -563,7 +578,8 @@ sections:
 
       - id: offline-pill
         title: Remote offline pill
-        height: 100
+        height: 80
+        maxw: 240
         items:
           - id: fresh
             label: Fresh
@@ -584,7 +600,8 @@ sections:
 
       - id: status-card
         title: Door status card
-        height: 190
+        height: 160
+        maxw: 320
         items:
           - id: card
             label: Card
@@ -593,7 +610,8 @@ sections:
 
       - id: error-card
         title: Error card
-        height: 190
+        height: 160
+        maxw: 320
         items:
           - id: default
             label: Default
@@ -612,7 +630,7 @@ sections:
     rows:
       - id: wear-hero
         title: Hero flow
-        height: 220
+        height: 190
         note: The single wear screen through the press narrative. Emulator captures, clock pinned to 10:10.
         items:
           - id: closed
@@ -638,7 +656,7 @@ sections:
 
       - id: wear-signin
         title: Sign-in
-        height: 220
+        height: 190
         items:
           - id: signed-out
             label: Signed out
