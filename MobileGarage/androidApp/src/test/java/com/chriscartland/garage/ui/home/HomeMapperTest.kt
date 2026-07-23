@@ -79,6 +79,20 @@ class HomeMapperTest {
         val display = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(null))
         assertEquals(DoorPosition.UNKNOWN, display.doorPosition)
         assertNull(display.lastChangeTimeSeconds)
+        // No event at all → the calm connecting presentation, not the
+        // alarming "Unknown" + warning-badge look.
+        assertEquals(false, display.hasData)
+    }
+
+    @Test
+    fun toHomeStatusDisplay_real_unknown_event_keeps_warning_presentation() {
+        // A server-reported UNKNOWN is an actual event: hasData stays true so
+        // the full warning presentation (badge + "Unknown" label) renders.
+        val display = HomeMapper.toHomeStatusDisplay(
+            LoadingResult.Complete(event(DoorPosition.UNKNOWN)),
+        )
+        assertEquals(DoorPosition.UNKNOWN, display.doorPosition)
+        assertEquals(true, display.hasData)
     }
 
     @Test

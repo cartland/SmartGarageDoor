@@ -26,6 +26,7 @@
 
     <!-- Settings — Account section rows. -->
     <string name="settings_account_sign_in">Sign in with Google</string>
+    <string name="settings_account_checking">Checking sign-in…</string>
 
     <!-- Settings — Notifications section row + subtitle states. -->
     <string name="settings_notifications_row_title">Door open notifications</string>
@@ -152,6 +153,8 @@
 
     <!-- Home → Status card "Since X · Y" line + duration formatting. -->
     <string name="home_since_unknown">Last change time unknown</string>
+    <string name="home_door_state_connecting">Connecting…</string>
+    <string name="home_since_connecting">Waiting for the latest door status</string>
     <!-- "Since X · Y" line. %1$s is a time (e.g. "9:47 AM"); %2$s is a duration (e.g. "2 hr 14 min"). -->
     <string name="home_since_format">Since %1$s · %2$s</string>
     <!-- Duration when hours and minutes are both shown ("2 hr 14 min"). -->
