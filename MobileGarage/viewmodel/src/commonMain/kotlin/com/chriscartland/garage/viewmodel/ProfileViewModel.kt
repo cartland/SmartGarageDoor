@@ -58,6 +58,29 @@ private const val SNOOZE_ACTION_RESET_DELAY_MS = 10_000L
 private const val WATCH_INSTALL_ACTION_RESET_DELAY_MS = 10_000L
 
 /**
+ * State of the experimental voice-input playground (Settings →
+ * Developer → Voice input). Deliberately in-memory only: it lives in
+ * the screen ViewModel, so it survives rotation but evaporates when the
+ * user leaves the screen or the process dies. Nothing is written to
+ * DataStore/Room and no door action is ever taken from it.
+ */
+sealed interface VoiceExperimentState {
+    /** Nothing captured yet, or cleared by starting a new capture. */
+    data object Idle : VoiceExperimentState
+
+    /** The recognizer returned a transcript. */
+    data class Transcript(
+        val text: String,
+    ) : VoiceExperimentState
+
+    /** The capture ended without usable speech (silence, cancel, no match). */
+    data object NoSpeech : VoiceExperimentState
+
+    /** No speech recognizer exists on this device. */
+    data object Unavailable : VoiceExperimentState
+}
+
+/**
  * Drives the Settings screen — one VM per screen (ADR-026). Aggregates the
  * UseCases that the legacy `AuthViewModel` + `RemoteButtonViewModel` +
  * `AppSettingsViewModel` trio exposed to `ProfileContent.kt`. Phase 43 —
@@ -128,6 +151,28 @@ interface ProfileViewModel {
      * (snackbar; Failed also falls back to the phone Play Store).
      */
     val watchInstallAction: StateFlow<WatchInstallAction>
+
+    /**
+     * Experimental voice-input playground state. See
+     * [VoiceExperimentState] — in-memory only, never persisted, never
+     * wired to any action.
+     */
+    val voiceExperimentState: StateFlow<VoiceExperimentState>
+
+    /**
+     * Call when a new capture starts: clears the previous transcript so
+     * each prompt replaces the last one.
+     */
+    fun clearVoiceExperiment()
+
+    /**
+     * Report the recognizer outcome. Null or blank text means no usable
+     * speech was captured.
+     */
+    fun reportVoiceExperimentTranscript(text: String?)
+
+    /** Report that this device has no speech recognizer at all. */
+    fun reportVoiceExperimentUnavailable()
 
     fun signInWithGoogle(idToken: GoogleIdToken)
 
@@ -211,6 +256,10 @@ class DefaultProfileViewModel(
     private val _watchInstallAction = MutableStateFlow<WatchInstallAction>(WatchInstallAction.Idle)
     override val watchInstallAction: StateFlow<WatchInstallAction> = _watchInstallAction
 
+    private val _voiceExperimentState =
+        MutableStateFlow<VoiceExperimentState>(VoiceExperimentState.Idle)
+    override val voiceExperimentState: StateFlow<VoiceExperimentState> = _voiceExperimentState
+
     // Cached so the snooze action can attach the latest door change time
     // without the UI having to thread it through.
     private val currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
@@ -256,6 +305,22 @@ class DefaultProfileViewModel(
             }
             scheduleWatchInstallActionReset()
         }
+    }
+
+    override fun clearVoiceExperiment() {
+        _voiceExperimentState.value = VoiceExperimentState.Idle
+    }
+
+    override fun reportVoiceExperimentTranscript(text: String?) {
+        _voiceExperimentState.value = if (text.isNullOrBlank()) {
+            VoiceExperimentState.NoSpeech
+        } else {
+            VoiceExperimentState.Transcript(text)
+        }
+    }
+
+    override fun reportVoiceExperimentUnavailable() {
+        _voiceExperimentState.value = VoiceExperimentState.Unavailable
     }
 
     override fun signInWithGoogle(idToken: GoogleIdToken) {
