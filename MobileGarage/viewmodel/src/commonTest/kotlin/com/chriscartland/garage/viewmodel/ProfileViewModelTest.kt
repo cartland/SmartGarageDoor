@@ -418,6 +418,25 @@ class ProfileViewModelTest {
         }
 
     @Test
+    fun voiceExperimentClipboardSummaryIsStructured() =
+        runTest {
+            val viewModel = createViewModel()
+
+            viewModel.reportVoiceExperimentTranscript("can you open the door")
+            val state = viewModel.voiceExperimentState.value
+            assertTrue(state is VoiceExperimentState.Transcript)
+            assertEquals(
+                """
+                input: "can you open the door"
+                intent: OPEN
+                confidence: MEDIUM
+                engine: Rules v1
+                """.trimIndent(),
+                state.clipboardSummary(),
+            )
+        }
+
+    @Test
     fun voiceExperimentUnavailableIsReported() =
         runTest {
             val viewModel = createViewModel()

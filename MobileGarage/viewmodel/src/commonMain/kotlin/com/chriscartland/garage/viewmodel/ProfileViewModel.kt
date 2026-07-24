@@ -79,7 +79,21 @@ sealed interface VoiceExperimentState {
         val text: String,
         val classification: VoiceIntentClassification,
         val engineName: String,
-    ) : VoiceExperimentState
+    ) : VoiceExperimentState {
+        /**
+         * Paste-friendly structured summary for sharing/discussing
+         * classifier results. Uses raw enum names (locale-independent,
+         * stable across app versions) and quotes the input so leading/
+         * trailing whitespace is visible.
+         */
+        fun clipboardSummary(): String =
+            """
+            input: "$text"
+            intent: ${classification.intent.name}
+            confidence: ${classification.confidence.name}
+            engine: $engineName
+            """.trimIndent()
+    }
 
     /** The capture ended without usable speech (silence, cancel, no match). */
     data object NoSpeech : VoiceExperimentState
