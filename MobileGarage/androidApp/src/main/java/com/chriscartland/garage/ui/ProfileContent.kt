@@ -329,6 +329,20 @@ fun ProfileContent(
         VoiceInputBottomSheet(
             state = voiceExperimentState,
             onSpeakTap = onVoiceSpeakTap,
+            onCopy = { label, value ->
+                clipboardManager.setText(AnnotatedString(value))
+                // Android 13+ shows the OS clipboard chip after setText;
+                // an app Toast on top is duplicate noise (same gate as
+                // the Version sheet).
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    Toast
+                        .makeText(
+                            context,
+                            resources.getString(R.string.profile_version_toast_copied, label),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                }
+            },
             onDismiss = { voiceSheetOpen = false },
         )
     }

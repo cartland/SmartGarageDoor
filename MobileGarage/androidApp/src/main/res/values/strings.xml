@@ -92,6 +92,10 @@
     <string name="voice_confidence_high">High</string>
     <string name="voice_confidence_medium">Medium</string>
     <string name="voice_confidence_none">None</string>
+    <string name="voice_experiment_copy_hint">Tap the text or the verdict to copy</string>
+    <!-- Labels for the "Copied X" toast (Android 12 and older). -->
+    <string name="voice_copy_label_transcript">transcript</string>
+    <string name="voice_copy_label_verdict">verdict</string>
 
     <!-- Home screen — section labels. -->
     <string name="home_section_status">Status</string>

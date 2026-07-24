@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -37,6 +38,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -59,6 +61,7 @@ import com.chriscartland.garage.viewmodel.VoiceExperimentState
 fun VoiceInputBottomSheet(
     state: VoiceExperimentState,
     onSpeakTap: () -> Unit,
+    onCopy: (label: String, value: String) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -71,6 +74,7 @@ fun VoiceInputBottomSheet(
         VoiceInputSheetContent(
             state = state,
             onSpeakTap = onSpeakTap,
+            onCopy = onCopy,
         )
     }
 }
@@ -83,6 +87,7 @@ fun VoiceInputBottomSheet(
 fun VoiceInputSheetContent(
     state: VoiceExperimentState,
     onSpeakTap: () -> Unit,
+    onCopy: (label: String, value: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -124,10 +129,16 @@ fun VoiceInputSheetContent(
             is VoiceExperimentState.Transcript -> Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                val transcriptLabel = stringResource(R.string.voice_copy_label_transcript)
+                val verdictLabel = stringResource(R.string.voice_copy_label_verdict)
+                // Tap the transcript to copy the raw text.
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceContainerHighest,
                     shape = MaterialTheme.shapes.medium,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.medium)
+                        .clickable { onCopy(transcriptLabel, state.text) },
                 ) {
                     Text(
                         text = state.text,
@@ -135,19 +146,35 @@ fun VoiceInputSheetContent(
                         modifier = Modifier.padding(16.dp),
                     )
                 }
+                // Tap the verdict to copy the structured summary
+                // (input + intent + confidence + engine) for pasting
+                // into a discussion.
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.medium)
+                        .clickable { onCopy(verdictLabel, state.clipboardSummary()) },
+                ) {
+                    Text(
+                        text = stringResource(
+                            R.string.voice_experiment_classification,
+                            state.classification.intent.displayName(),
+                            state.classification.confidence.displayName(),
+                        ),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.voice_experiment_engine,
+                            state.engineName,
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Text(
-                    text = stringResource(
-                        R.string.voice_experiment_classification,
-                        state.classification.intent.displayName(),
-                        state.classification.confidence.displayName(),
-                    ),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(
-                    text = stringResource(
-                        R.string.voice_experiment_engine,
-                        state.engineName,
-                    ),
+                    text = stringResource(R.string.voice_experiment_copy_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
