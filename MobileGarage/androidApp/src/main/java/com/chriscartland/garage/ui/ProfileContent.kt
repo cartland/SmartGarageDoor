@@ -17,10 +17,15 @@
 
 package com.chriscartland.garage.ui
 
+import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.os.Build
+import android.speech.RecognizerIntent
 import android.widget.Toast
 import androidx.activity.compose.ReportDrawn
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -57,6 +62,7 @@ import com.chriscartland.garage.ui.settings.SettingsContent
 import com.chriscartland.garage.ui.settings.SnoozeBottomSheet
 import com.chriscartland.garage.ui.settings.SnoozeRowState
 import com.chriscartland.garage.ui.settings.VersionBottomSheet
+import com.chriscartland.garage.ui.settings.VoiceInputBottomSheet
 import com.chriscartland.garage.version.AppVersion
 import com.chriscartland.garage.viewmodel.ProfileViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -117,6 +123,41 @@ fun ProfileContent(
     var accountSheetOpen by rememberSaveable { mutableStateOf(false) }
     var versionSheetOpen by rememberSaveable { mutableStateOf(false) }
     var navRailSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var voiceSheetOpen by rememberSaveable { mutableStateOf(false) }
+
+    // Experimental voice-input playground (Settings → Developer → Voice
+    // input). The system speech dialog (RecognizerIntent) records and
+    // recognizes — this app never touches audio and needs no microphone
+    // permission. The transcript goes to the ViewModel's in-memory state
+    // and nowhere else; launching a new capture clears the previous one.
+    val voiceExperimentState by resolved.voiceExperimentState.collectAsState()
+    val voiceLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val transcript = if (result.resultCode == Activity.RESULT_OK) {
+            result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+        } else {
+            null
+        }
+        resolved.reportVoiceExperimentTranscript(transcript)
+    }
+    val voicePrompt = stringResource(R.string.voice_experiment_prompt)
+    val onVoiceSpeakTap = {
+        resolved.clearVoiceExperiment()
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            .putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
+            ).putExtra(RecognizerIntent.EXTRA_PROMPT, voicePrompt)
+            .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+        try {
+            voiceLauncher.launch(intent)
+        } catch (_: ActivityNotFoundException) {
+            resolved.reportVoiceExperimentUnavailable()
+        }
+    }
 
     // TTL-gated revalidate, once per screen entry (STATUS_CACHE_PLAN.md
     // D3). The cached snooze state renders instantly (hydrated across
@@ -231,6 +272,7 @@ fun ProfileContent(
             onDiagnosticsTap = onNavigateToDiagnostics,
             onLayoutDebugChange = resolved::setLayoutDebugEnabled,
             onNavRailTap = { navRailSheetOpen = true },
+            onVoiceInputTap = { voiceSheetOpen = true },
         )
         SnackbarHost(
             hostState = snackbarHostState,
@@ -280,6 +322,14 @@ fun ProfileContent(
                 }
             },
             onDismiss = { versionSheetOpen = false },
+        )
+    }
+
+    if (voiceSheetOpen) {
+        VoiceInputBottomSheet(
+            state = voiceExperimentState,
+            onSpeakTap = onVoiceSpeakTap,
+            onDismiss = { voiceSheetOpen = false },
         )
     }
 

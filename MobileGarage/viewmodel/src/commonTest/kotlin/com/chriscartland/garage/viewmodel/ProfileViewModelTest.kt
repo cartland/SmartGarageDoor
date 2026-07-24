@@ -368,4 +368,42 @@ class ProfileViewModelTest {
                 "NoWatchReachable surfaces as Failed so the UI falls back to the phone store",
             )
         }
+
+    @Test
+    fun voiceExperimentTranscriptIsHeldAndReplacedByClear() =
+        runTest {
+            val viewModel = createViewModel()
+            assertEquals(VoiceExperimentState.Idle, viewModel.voiceExperimentState.value)
+
+            viewModel.reportVoiceExperimentTranscript("open the garage door")
+            assertEquals(
+                VoiceExperimentState.Transcript("open the garage door"),
+                viewModel.voiceExperimentState.value,
+            )
+
+            // Starting a new capture deletes the previous text.
+            viewModel.clearVoiceExperiment()
+            assertEquals(VoiceExperimentState.Idle, viewModel.voiceExperimentState.value)
+        }
+
+    @Test
+    fun voiceExperimentNullOrBlankTranscriptIsNoSpeech() =
+        runTest {
+            val viewModel = createViewModel()
+
+            viewModel.reportVoiceExperimentTranscript(null)
+            assertEquals(VoiceExperimentState.NoSpeech, viewModel.voiceExperimentState.value)
+
+            viewModel.reportVoiceExperimentTranscript("   ")
+            assertEquals(VoiceExperimentState.NoSpeech, viewModel.voiceExperimentState.value)
+        }
+
+    @Test
+    fun voiceExperimentUnavailableIsReported() =
+        runTest {
+            val viewModel = createViewModel()
+
+            viewModel.reportVoiceExperimentUnavailable()
+            assertEquals(VoiceExperimentState.Unavailable, viewModel.voiceExperimentState.value)
+        }
 }

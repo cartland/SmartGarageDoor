@@ -69,6 +69,20 @@
     <string name="settings_developer_nav_rail_top_padding_increase">Increase padding</string>
     <string name="settings_developer_nav_rail_reset_button">Set default</string>
 
+    <!-- Settings → Developer → Voice input (experimental playground).
+         Speech becomes text on screen only: never persisted, never
+         wired to any door action. -->
+    <string name="settings_developer_voice_input_title">Voice input</string>
+    <string name="settings_developer_voice_input_subtitle">Experimental. Speech to text, display only.</string>
+    <string name="voice_experiment_sheet_title">Voice input</string>
+    <string name="voice_experiment_disclaimer">Experimental. Speech becomes text on this screen only. Nothing is saved and no door action is taken.</string>
+    <string name="voice_experiment_speak_button">Speak</string>
+    <!-- Prompt line shown inside the system speech dialog. -->
+    <string name="voice_experiment_prompt">Say something</string>
+    <string name="voice_experiment_hint">Tap Speak, then talk. The transcript appears here.</string>
+    <string name="voice_experiment_no_speech">No speech captured. Try again.</string>
+    <string name="voice_experiment_unavailable">Speech recognition is not available on this device.</string>
+
     <!-- Home screen — section labels. -->
     <string name="home_section_status">Status</string>
     <string name="home_section_remote_control">Remote control</string>
