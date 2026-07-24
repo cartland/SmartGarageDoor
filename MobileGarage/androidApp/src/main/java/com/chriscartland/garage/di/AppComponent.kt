@@ -65,6 +65,7 @@ import com.chriscartland.garage.datalocal.RoomAppLoggerRepository
 import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppConfig
+import com.chriscartland.garage.domain.model.VoiceIntentClassifier
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import com.chriscartland.garage.domain.repository.AuthRepository
@@ -90,6 +91,7 @@ import com.chriscartland.garage.usecase.BuildAppLogCsvUseCase
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.ChangeTestNotificationTopicUseCase
 import com.chriscartland.garage.usecase.CheckInStalenessManager
+import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.ClearDiagnosticsUseCase
 import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
 import com.chriscartland.garage.usecase.ComputeEffectiveSnoozeStateUseCase
@@ -122,6 +124,7 @@ import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import com.chriscartland.garage.usecase.RequestWatchAppInstallUseCase
 import com.chriscartland.garage.usecase.RevalidateSnoozeStatusUseCase
+import com.chriscartland.garage.usecase.RuleBasedVoiceIntentClassifier
 import com.chriscartland.garage.usecase.RunStartupDiagnosticsMaintenanceUseCase
 import com.chriscartland.garage.usecase.SeedDiagnosticsCountersFromRoomUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
@@ -370,6 +373,7 @@ abstract class AppComponent(
         observeFeatureAccess: ObserveFeatureAccessUseCase,
         observeWatchAppStatus: ObserveWatchAppStatusUseCase,
         requestWatchAppInstall: RequestWatchAppInstallUseCase,
+        classifyVoiceIntent: ClassifyVoiceIntentUseCase,
         signInWithGoogle: SignInWithGoogleUseCase,
         signOut: SignOutUseCase,
         fetchSnoozeStatus: FetchSnoozeStatusUseCase,
@@ -386,6 +390,7 @@ abstract class AppComponent(
             observeFeatureAccessUseCase = observeFeatureAccess,
             observeWatchAppStatusUseCase = observeWatchAppStatus,
             requestWatchAppInstallUseCase = requestWatchAppInstall,
+            classifyVoiceIntentUseCase = classifyVoiceIntent,
             signInWithGoogleUseCase = signInWithGoogle,
             signOutUseCase = signOut,
             fetchSnoozeStatusUseCase = fetchSnoozeStatus,
@@ -549,6 +554,13 @@ abstract class AppComponent(
             // release id, not BuildConfig.APPLICATION_ID.
             playStorePackageName = "com.chriscartland.garage",
         )
+
+    @Provides
+    fun provideVoiceIntentClassifier(): VoiceIntentClassifier = RuleBasedVoiceIntentClassifier()
+
+    @Provides
+    fun provideClassifyVoiceIntentUseCase(classifier: VoiceIntentClassifier): ClassifyVoiceIntentUseCase =
+        ClassifyVoiceIntentUseCase(classifier)
 
     @Provides
     fun provideObserveWatchAppStatusUseCase(wearCompanionRepository: WearCompanionRepository): ObserveWatchAppStatusUseCase =

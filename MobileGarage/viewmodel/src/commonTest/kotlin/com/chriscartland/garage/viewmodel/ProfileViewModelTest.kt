@@ -32,6 +32,8 @@ import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.User
+import com.chriscartland.garage.domain.model.VoiceIntent
+import com.chriscartland.garage.domain.model.VoiceIntentConfidence
 import com.chriscartland.garage.domain.model.WatchAppStatus
 import com.chriscartland.garage.domain.model.WatchInstallAction
 import com.chriscartland.garage.domain.model.WatchInstallResult
@@ -45,6 +47,7 @@ import com.chriscartland.garage.testcommon.FakeSnoozeRepository
 import com.chriscartland.garage.testcommon.FakeWearCompanionRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import com.chriscartland.garage.usecase.AppSettingsUseCase
+import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.ComputeEffectiveSnoozeStateUseCase
 import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
@@ -55,6 +58,7 @@ import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
 import com.chriscartland.garage.usecase.ObserveWatchAppStatusUseCase
 import com.chriscartland.garage.usecase.RequestWatchAppInstallUseCase
 import com.chriscartland.garage.usecase.RevalidateSnoozeStatusUseCase
+import com.chriscartland.garage.usecase.RuleBasedVoiceIntentClassifier
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
@@ -123,6 +127,7 @@ class ProfileViewModelTest {
             observeFeatureAccessUseCase = ObserveFeatureAccessUseCase(featureAllowlistRepository),
             observeWatchAppStatusUseCase = ObserveWatchAppStatusUseCase(wearCompanionRepository),
             requestWatchAppInstallUseCase = RequestWatchAppInstallUseCase(wearCompanionRepository),
+            classifyVoiceIntentUseCase = ClassifyVoiceIntentUseCase(RuleBasedVoiceIntentClassifier()),
             signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),
             signOutUseCase = SignOutUseCase(authRepository),
             fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
@@ -370,20 +375,34 @@ class ProfileViewModelTest {
         }
 
     @Test
-    fun voiceExperimentTranscriptIsHeldAndReplacedByClear() =
+    fun voiceExperimentTranscriptIsHeldClassifiedAndReplacedByClear() =
         runTest {
             val viewModel = createViewModel()
             assertEquals(VoiceExperimentState.Idle, viewModel.voiceExperimentState.value)
 
             viewModel.reportVoiceExperimentTranscript("open the garage door")
-            assertEquals(
-                VoiceExperimentState.Transcript("open the garage door"),
-                viewModel.voiceExperimentState.value,
-            )
+            val state = viewModel.voiceExperimentState.value
+            assertTrue(state is VoiceExperimentState.Transcript)
+            assertEquals("open the garage door", state.text)
+            assertEquals(VoiceIntent.OPEN, state.classification.intent)
+            assertEquals(VoiceIntentConfidence.HIGH, state.classification.confidence)
+            assertEquals("Rules v1", state.engineName)
 
             // Starting a new capture deletes the previous text.
             viewModel.clearVoiceExperiment()
             assertEquals(VoiceExperimentState.Idle, viewModel.voiceExperimentState.value)
+        }
+
+    @Test
+    fun voiceExperimentUnrecognizedTextClassifiesUnknown() =
+        runTest {
+            val viewModel = createViewModel()
+
+            viewModel.reportVoiceExperimentTranscript("hello world")
+            val state = viewModel.voiceExperimentState.value
+            assertTrue(state is VoiceExperimentState.Transcript)
+            assertEquals(VoiceIntent.UNKNOWN, state.classification.intent)
+            assertEquals(VoiceIntentConfidence.NONE, state.classification.confidence)
         }
 
     @Test
