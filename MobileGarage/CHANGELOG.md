@@ -15,6 +15,11 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.22.1
+
+- **Voice input playground (experimental, Developer section).** Settings → Developer gains a "Voice input" row that opens a sheet with a Speak button: one tap launches the system speech prompt and the recognized text displays in the sheet. Display only — not wired to any door action; each new capture replaces the previous text; nothing is saved (the transcript lives in screen memory and is gone when you leave Settings). Groundwork for evaluating speech-to-text quality before designing voice commands (`docs/VOICE_COMMANDS.md`).
+- **Internal:** #1110 — `VoiceExperimentState` in the shared `ProfileViewModel` (ctor unchanged, no DI churn), `VoiceInputBottomSheet` (NavRail-sheet pattern), `RecognizerIntent` launch in `ProfileContent` (no RECORD_AUDIO permission; system dialog records). Developer-gated experiment; patch.
+
 ## 2.22.0
 
 - **Install the watch app from your phone.** Settings gains a "Watch" section that appears when a paired watch is connected: a green check when the Wear OS app is already on the watch, or an "Install on your watch" action that opens the Play Store listing directly on the watch so you can finish the install from your wrist. If the watch can't be reached, the phone's own Play Store listing opens instead. The status updates live while the screen is open, so completing the install on the watch flips the row to the green check.
