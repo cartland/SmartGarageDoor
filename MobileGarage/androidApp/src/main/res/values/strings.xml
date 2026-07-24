@@ -82,6 +82,16 @@
     <string name="voice_experiment_hint">Tap Speak, then talk. The transcript appears here.</string>
     <string name="voice_experiment_no_speech">No speech captured. Try again.</string>
     <string name="voice_experiment_unavailable">Speech recognition is not available on this device.</string>
+    <!-- Classification line under the transcript. %1$s intent, %2$s confidence. -->
+    <string name="voice_experiment_classification">Intent: %1$s · Confidence: %2$s</string>
+    <!-- Engine caption. %1$s is the classifier engine name. -->
+    <string name="voice_experiment_engine">Engine: %1$s</string>
+    <string name="voice_intent_open">Open</string>
+    <string name="voice_intent_close">Close</string>
+    <string name="voice_intent_unknown">Unknown</string>
+    <string name="voice_confidence_high">High</string>
+    <string name="voice_confidence_medium">Medium</string>
+    <string name="voice_confidence_none">None</string>
 
     <!-- Home screen — section labels. -->
     <string name="home_section_status">Status</string>

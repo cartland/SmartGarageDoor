@@ -45,6 +45,7 @@ import com.chriscartland.garage.testcommon.FakeStatusSnapshotStore
 import com.chriscartland.garage.testcommon.FakeWearCompanionRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import com.chriscartland.garage.usecase.AppSettingsUseCase
+import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.ComputeEffectiveSnoozeStateUseCase
 import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
@@ -55,6 +56,7 @@ import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
 import com.chriscartland.garage.usecase.ObserveWatchAppStatusUseCase
 import com.chriscartland.garage.usecase.RequestWatchAppInstallUseCase
 import com.chriscartland.garage.usecase.RevalidateSnoozeStatusUseCase
+import com.chriscartland.garage.usecase.RuleBasedVoiceIntentClassifier
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
@@ -213,6 +215,7 @@ class RealNetworkSnoozeRepositoryPropagationTest {
                 observeFeatureAccessUseCase = ObserveFeatureAccessUseCase(featureAllowlistRepository),
                 observeWatchAppStatusUseCase = ObserveWatchAppStatusUseCase(FakeWearCompanionRepository()),
                 requestWatchAppInstallUseCase = RequestWatchAppInstallUseCase(FakeWearCompanionRepository()),
+                classifyVoiceIntentUseCase = ClassifyVoiceIntentUseCase(RuleBasedVoiceIntentClassifier()),
                 signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),
                 signOutUseCase = SignOutUseCase(authRepository),
                 fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),
@@ -321,6 +324,7 @@ class RealNetworkSnoozeRepositoryPropagationTest {
                 observeFeatureAccessUseCase = ObserveFeatureAccessUseCase(featureAllowlistRepository),
                 observeWatchAppStatusUseCase = ObserveWatchAppStatusUseCase(FakeWearCompanionRepository()),
                 requestWatchAppInstallUseCase = RequestWatchAppInstallUseCase(FakeWearCompanionRepository()),
+                classifyVoiceIntentUseCase = ClassifyVoiceIntentUseCase(RuleBasedVoiceIntentClassifier()),
                 signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),
                 signOutUseCase = SignOutUseCase(authRepository),
                 fetchSnoozeStatusUseCase = FetchSnoozeStatusUseCase(snoozeRepository),

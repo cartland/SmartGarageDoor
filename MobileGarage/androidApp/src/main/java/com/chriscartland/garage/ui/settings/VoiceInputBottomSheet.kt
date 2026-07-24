@@ -41,6 +41,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
+import com.chriscartland.garage.domain.model.VoiceIntent
+import com.chriscartland.garage.domain.model.VoiceIntentClassification
+import com.chriscartland.garage.domain.model.VoiceIntentConfidence
 import com.chriscartland.garage.viewmodel.VoiceExperimentState
 
 /**
@@ -118,15 +121,35 @@ fun VoiceInputSheetContent(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            is VoiceExperimentState.Transcript -> Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.fillMaxWidth(),
+            is VoiceExperimentState.Transcript -> Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = state.text,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
                 Text(
-                    text = state.text,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(16.dp),
+                    text = stringResource(
+                        R.string.voice_experiment_classification,
+                        state.classification.intent.displayName(),
+                        state.classification.confidence.displayName(),
+                    ),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = stringResource(
+                        R.string.voice_experiment_engine,
+                        state.engineName,
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             VoiceExperimentState.NoSpeech -> Text(
@@ -142,6 +165,24 @@ fun VoiceInputSheetContent(
         }
     }
 }
+
+// User-visible names for the classification result. UI-local mapping —
+// the domain enums stay display-free.
+@Composable
+private fun VoiceIntent.displayName(): String =
+    when (this) {
+        VoiceIntent.OPEN -> stringResource(R.string.voice_intent_open)
+        VoiceIntent.CLOSE -> stringResource(R.string.voice_intent_close)
+        VoiceIntent.UNKNOWN -> stringResource(R.string.voice_intent_unknown)
+    }
+
+@Composable
+private fun VoiceIntentConfidence.displayName(): String =
+    when (this) {
+        VoiceIntentConfidence.HIGH -> stringResource(R.string.voice_confidence_high)
+        VoiceIntentConfidence.MEDIUM -> stringResource(R.string.voice_confidence_medium)
+        VoiceIntentConfidence.NONE -> stringResource(R.string.voice_confidence_none)
+    }
 
 // `private` so `checkPreviewCoverage` exempts them (same rationale as
 // NavRailBottomSheet: developer-gated sheet verified on a real device;
@@ -162,7 +203,32 @@ private fun VoiceInputSheetContentIdlePreview() {
 private fun VoiceInputSheetContentTranscriptPreview() {
     Surface {
         VoiceInputSheetContent(
-            state = VoiceExperimentState.Transcript("open the garage door"),
+            state = VoiceExperimentState.Transcript(
+                text = "open the garage door",
+                classification = VoiceIntentClassification(
+                    intent = VoiceIntent.OPEN,
+                    confidence = VoiceIntentConfidence.HIGH,
+                ),
+                engineName = "Rules v1",
+            ),
+            onSpeakTap = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun VoiceInputSheetContentUnknownIntentPreview() {
+    Surface {
+        VoiceInputSheetContent(
+            state = VoiceExperimentState.Transcript(
+                text = "what a nice day",
+                classification = VoiceIntentClassification(
+                    intent = VoiceIntent.UNKNOWN,
+                    confidence = VoiceIntentConfidence.NONE,
+                ),
+                engineName = "Rules v1",
+            ),
             onSpeakTap = {},
         )
     }

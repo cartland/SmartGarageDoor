@@ -32,11 +32,13 @@ import com.chriscartland.garage.domain.model.NavigationRailLayout
 import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
+import com.chriscartland.garage.domain.model.VoiceIntentClassification
 import com.chriscartland.garage.domain.model.WatchAppStatus
 import com.chriscartland.garage.domain.model.WatchInstallAction
 import com.chriscartland.garage.domain.model.WatchInstallResult
 import com.chriscartland.garage.domain.model.toServer
 import com.chriscartland.garage.usecase.AppSettingsUseCase
+import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.ComputeEffectiveSnoozeStateUseCase
 import com.chriscartland.garage.usecase.FetchSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.LogAppEventUseCase
@@ -68,9 +70,15 @@ sealed interface VoiceExperimentState {
     /** Nothing captured yet, or cleared by starting a new capture. */
     data object Idle : VoiceExperimentState
 
-    /** The recognizer returned a transcript. */
+    /**
+     * The recognizer returned a transcript, classified into a door
+     * intent + confidence by the DI-selected engine. Classification is
+     * display-only in this experiment — nothing acts on it.
+     */
     data class Transcript(
         val text: String,
+        val classification: VoiceIntentClassification,
+        val engineName: String,
     ) : VoiceExperimentState
 
     /** The capture ended without usable speech (silence, cancel, no match). */
@@ -211,6 +219,7 @@ class DefaultProfileViewModel(
     private val observeFeatureAccessUseCase: ObserveFeatureAccessUseCase,
     private val observeWatchAppStatusUseCase: ObserveWatchAppStatusUseCase,
     private val requestWatchAppInstallUseCase: RequestWatchAppInstallUseCase,
+    private val classifyVoiceIntentUseCase: ClassifyVoiceIntentUseCase,
     private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
     private val signOutUseCase: SignOutUseCase,
     private val fetchSnoozeStatusUseCase: FetchSnoozeStatusUseCase,
@@ -315,7 +324,11 @@ class DefaultProfileViewModel(
         _voiceExperimentState.value = if (text.isNullOrBlank()) {
             VoiceExperimentState.NoSpeech
         } else {
-            VoiceExperimentState.Transcript(text)
+            VoiceExperimentState.Transcript(
+                text = text,
+                classification = classifyVoiceIntentUseCase(text),
+                engineName = classifyVoiceIntentUseCase.engineName,
+            )
         }
     }
 
