@@ -15,6 +15,11 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.22.2
+
+- **Voice playground classifies intent (experimental).** The Developer voice-input sheet now labels each transcript with a door intent (Open / Close / Unknown) and a confidence tier (High / Medium / None), plus the engine that produced it. Display only, no action taken. High requires an exact imperative ("please open the door"); loose phrasing ("can you open the door") is Medium; negation, questions about state, and anything ambiguous stay Unknown.
+- **Internal:** #1112 — `VoiceIntentClassifier` engine interface (`:domain`) + `RuleBasedVoiceIntentClassifier` "Rules v1" (`:usecase`, pure offline rules, 26-row table test, UNKNOWN⟺NONE invariant). `ClassifyVoiceIntentUseCase` wired into `ProfileViewModel` (both DI components). Developer-gated experiment; patch.
+
 ## 2.22.1
 
 - **Voice input playground (experimental, Developer section).** Settings → Developer gains a "Voice input" row that opens a sheet with a Speak button: one tap launches the system speech prompt and the recognized text displays in the sheet. Display only — not wired to any door action; each new capture replaces the previous text; nothing is saved (the transcript lives in screen memory and is gone when you leave Settings). Groundwork for evaluating speech-to-text quality before designing voice commands (`docs/VOICE_COMMANDS.md`).
