@@ -173,6 +173,32 @@ jobs:
       - name: Launch smoke test (Release, simulator)
         run: ./scripts/ios-launch-smoke.sh --configuration Release --screenshot-dir "$RUNNER_TEMP/launch-smoke"
 
+      # OLDEST-SUPPORTED-OS LEG — the ios/7 launch crash (HomeViewModelWrapper
+      # `self!` trap) reproduced ONLY on iOS 16.x: newer SwiftUI defers the
+      # Task timing that deallocates a discarded StateObject wrapper, so the
+      # newest-runtime smoke above stayed green while the app crashed on every
+      # launch on an iPhone X (capped at iOS 16 forever). This leg downloads
+      # the deployment-target runtime (iOS 16.4, ~6 GB — a few minutes on
+      # runner pipes) and re-runs the same smoke there. Blocking by design;
+      # release-lane only (too slow for per-PR CI).
+      - name: Launch smoke test (Release, iOS 16.4 deployment target)
+        run: |
+          xcodebuild -downloadPlatform iOS -buildVersion 16.4 2>&1 | tail -2
+          UDID=$(xcrun simctl create smoke-ios16 \
+            com.apple.CoreSimulator.SimDeviceType.iPhone-14 \
+            com.apple.CoreSimulator.SimRuntime.iOS-16-4)
+          ./scripts/ios-launch-smoke.sh --configuration Release --udid "$UDID" \
+            --screenshot-dir "$RUNNER_TEMP/launch-smoke-ios16"
+
+      - name: Upload iOS 16.4 launch-smoke screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: launch-smoke-screenshots-ios16
+          path: ${{ runner.temp }}/launch-smoke-ios16
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Upload launch-smoke screenshots
         if: always()
         uses: actions/upload-artifact@v4

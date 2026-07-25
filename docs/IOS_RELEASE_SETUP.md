@@ -162,6 +162,22 @@ the `ios/7` era did exactly that. The gate closes the class:
   before anything reaches App Store Connect. `ios-ci.yml` and
   `validate-ios.sh` run it against the Debug build on every iOS change
   (screenshots upload as the `launch-smoke-screenshots` artifact in CI).
+- **Oldest-supported-OS leg (release lane only).** The `ios/7` launch crash
+  (`HomeViewModelWrapper` `self!` trap, fixed in 0.1.1) reproduced **only on
+  iOS 16.x** — newer SwiftUI defers the Task timing that deallocates a
+  discarded `StateObject` wrapper, so the newest-runtime smoke stayed green
+  while the app crashed on every launch on an iPhone X (a device capped at
+  iOS 16 forever). `release-ios.yml` therefore downloads the deployment-target
+  runtime (`xcodebuild -downloadPlatform iOS -buildVersion 16.4`, ~6 GB) and
+  re-runs the Release smoke on an iOS 16.4 simulator. Blocking by design; not
+  in per-PR CI (too slow). If the deployment target in `project.yml` ever
+  rises, bump the `-buildVersion` here to match.
+- **`self!` is banned in iosApp Swift** (`scripts/check-ios-self-force-unwrap.sh`,
+  run by `validate-ios.sh` step 1 + an early `ios-ci.yml` step): the
+  `[weak self]` + `self!` Task pattern is exactly the class the OS-version leg
+  exists for — the grep kills it at PR time instead of release time. Safe
+  replacement: `guard let stream = self?.<flow> else { return }` + `self?.`
+  per iteration.
 - **Residual gaps (known, accepted):** (a) **signed-in-only crashes** — CI has
   no Google credentials, so the smoke always exercises the signed-out launch
   path; (b) **device-only crashes** — the smoke runs a simulator slice, not the
@@ -170,7 +186,11 @@ the `ios/7` era did exactly that. The gate closes the class:
   relaunch covers same-version persisted state only). If a TestFlight crash
   report ever lands in one of these classes, extend the gate rather than
   re-litigating it (e.g., a keychain-seeded fake-auth launch variant for (a),
-  a data-fixture install for (c)).
+  a data-fixture install for (c)). For retrieving TestFlight crash logs from
+  the command line, dispatch `.github/workflows/ios-crash-feedback.yml`
+  (`gh workflow run ios-crash-feedback.yml`) — it prints tester-shared crash
+  submissions + logs from App Store Connect (that is how the ios/7 crash was
+  root-caused).
 
 ### One-time: create the App Store Connect API key + GitHub secrets
 The workflow signs and uploads via an **App Store Connect API key** (no cert is

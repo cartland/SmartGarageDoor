@@ -97,9 +97,10 @@ final class HomeViewModelWrapper: ObservableObject {
         refreshNotificationPermission()
 
         // `guard let stream = self?...` + `self?.` per iteration — NEVER
-        // `self!`. `StateObject(wrappedValue:)` evaluates its autoclosure on
-        // every HomeScreen init but keeps only the first object; a discarded
-        // wrapper's Tasks run after it deallocates, and `self!` then traps.
+        // force-unwrap self. `StateObject(wrappedValue:)` evaluates its
+        // autoclosure on every HomeScreen init but keeps only the first
+        // object; a discarded wrapper's Tasks run after it deallocates, and a
+        // force-unwrap of the weak self then traps.
         // Empirical: ios/7 crashed on EVERY launch on iOS 16.3.1 (iPhone X)
         // with "Unexpectedly found nil while unwrapping an Optional value"
         // right here — newer OS versions dodge the timing, which is why the
