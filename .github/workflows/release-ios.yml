@@ -149,6 +149,39 @@ jobs:
         working-directory: MobileGarage/iosApp
         run: xcodegen generate
 
+      # LAUNCH GATE — build the Release app for the simulator and prove it
+      # launches (cold + warm) BEFORE anything is archived or uploaded. This is
+      # the same Kotlin/Native release-mode framework compile + Swift -O as the
+      # shipped artifact, built AFTER the server-config secret injection so the
+      # smoke exercises the same config path as the TestFlight build. Added
+      # after a TestFlight build (ios/7 era) shipped with a launch crash that
+      # no existing step could have caught — nothing in CI ever launched the
+      # app. Residual gaps (signed-in-only and device-only crashes) are
+      # documented in docs/IOS_RELEASE_SETUP.md § Launch smoke gate.
+      - name: Build Release app for simulator (launch gate)
+        working-directory: MobileGarage/iosApp
+        run: |
+          xcodebuild \
+            -project GarageControl.xcodeproj \
+            -scheme GarageControl \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            build \
+            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+
+      - name: Launch smoke test (Release, simulator)
+        run: ./scripts/ios-launch-smoke.sh --configuration Release --screenshot-dir "$RUNNER_TEMP/launch-smoke"
+
+      - name: Upload launch-smoke screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: launch-smoke-screenshots
+          path: ${{ runner.temp }}/launch-smoke
+          if-no-files-found: ignore
+          retention-days: 7
+
       # The pre-build Run Script builds shared.framework for device arm64 via Gradle.
       - name: Archive (Release)
         working-directory: MobileGarage/iosApp

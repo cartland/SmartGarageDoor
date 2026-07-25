@@ -28,6 +28,7 @@ on:
       - 'MobileGarage/settings.gradle.kts'
       - 'MobileGarage/build.gradle.kts'
       - '.github/workflows/ios-ci.yml'
+      - 'scripts/ios-launch-smoke.sh'
   pull_request:
     paths:
       - 'MobileGarage/iosApp/**'
@@ -42,6 +43,7 @@ on:
       - 'MobileGarage/settings.gradle.kts'
       - 'MobileGarage/build.gradle.kts'
       - '.github/workflows/ios-ci.yml'
+      - 'scripts/ios-launch-smoke.sh'
 
 concurrency:
   group: ios-ci-${{ github.ref }}
@@ -108,3 +110,21 @@ jobs:
             -destination 'generic/platform=iOS Simulator' \
             build \
             CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+
+      # Launch smoke — install the built app on a simulator, cold-launch, assert
+      # the process survives, then warm-relaunch and assert again. Compiling is
+      # not launching: before this step nothing in CI ever ran the app, so a
+      # build that crashes at launch (DI-graph init failure, dyld missing
+      # symbol, throwing AppDelegate path) went undetected. The release lane
+      # runs the same script against a Release-config build before archiving.
+      - name: Launch smoke test (simulator)
+        run: ./scripts/ios-launch-smoke.sh --configuration Debug --screenshot-dir "$RUNNER_TEMP/launch-smoke"
+
+      - name: Upload launch-smoke screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: launch-smoke-screenshots
+          path: ${{ runner.temp }}/launch-smoke
+          if-no-files-found: ignore
+          retention-days: 7
