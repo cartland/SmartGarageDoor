@@ -96,32 +96,50 @@ final class HomeViewModelWrapper: ObservableObject {
         // Async — rebuilds the alert stack again once the OS settings resolve.
         refreshNotificationPermission()
 
+        // `guard let stream = self?...` + `self?.` per iteration — NEVER
+        // `self!`. `StateObject(wrappedValue:)` evaluates its autoclosure on
+        // every HomeScreen init but keeps only the first object; a discarded
+        // wrapper's Tasks run after it deallocates, and `self!` then traps.
+        // Empirical: ios/7 crashed on EVERY launch on iOS 16.3.1 (iPhone X)
+        // with "Unexpectedly found nil while unwrapping an Optional value"
+        // right here — newer OS versions dodge the timing, which is why the
+        // simulator smoke (iOS 18/26) stayed green. Weak-per-iteration also
+        // lets `deinit` cancel these never-ending loops (mirrors
+        // SettingsViewModelWrapper's pattern from #1069).
         tasks.append(Task { @MainActor [weak self] in
-            for await v in self!.vm.authState { self?.applyAuth(v) }
+            guard let stream = self?.vm.authState else { return }
+            for await v in stream { self?.applyAuth(v) }
         })
         tasks.append(Task { @MainActor [weak self] in
-            for await v in self!.vm.currentDoorEvent { self?.applyDoor(v) }
+            guard let stream = self?.vm.currentDoorEvent else { return }
+            for await v in stream { self?.applyDoor(v) }
         })
         tasks.append(Task { @MainActor [weak self] in
-            for await v in self!.vm.warning { self?.applyWarning(v) }
+            guard let stream = self?.vm.warning else { return }
+            for await v in stream { self?.applyWarning(v) }
         })
         tasks.append(Task { @MainActor [weak self] in
-            for await v in self!.vm.sinceStatus { self?.applySince(v) }
+            guard let stream = self?.vm.sinceStatus else { return }
+            for await v in stream { self?.applySince(v) }
         })
         tasks.append(Task { @MainActor [weak self] in
-            for await v in self!.vm.buttonState { self?.applyButton(v) }
+            guard let stream = self?.vm.buttonState else { return }
+            for await v in stream { self?.applyButton(v) }
         })
         tasks.append(Task { @MainActor [weak self] in
-            for await v in self!.vm.buttonHealthDisplay { self?.applyHealth(v) }
+            guard let stream = self?.vm.buttonHealthDisplay else { return }
+            for await v in stream { self?.applyHealth(v) }
         })
         tasks.append(Task { @MainActor [weak self] in
-            for await v in self!.vm.isCheckInStale {
+            guard let stream = self?.vm.isCheckInStale else { return }
+            for await v in stream {
                 self?.isCheckInStale = v.boolValue
                 self?.rebuildAlerts()
             }
         })
         tasks.append(Task { @MainActor [weak self] in
-            for await v in self!.vm.nowEpochSeconds {
+            guard let stream = self?.vm.nowEpochSeconds else { return }
+            for await v in stream {
                 self?.latestNowEpochSeconds = v.int64Value
                 self?.rebuildCheckIn()
             }

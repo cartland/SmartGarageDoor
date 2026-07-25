@@ -19,6 +19,17 @@ Versioning mirrors Android (see `MobileGarage/CHANGELOG.md` § versioning):
 major = rewrite or core-experience shift; minor = a user-facing feature added or
 removed; patch = fixes, polish, refactors. iOS uses independent `ios/N` tags.
 
+## 0.1.1
+
+- Fix a launch crash on iOS 16 (crashed every launch on iPhone X / iOS 16.3.1,
+  build 7): `HomeViewModelWrapper.init` registered observation Tasks with
+  `[weak self]` + `self!`, and a wrapper instance discarded by
+  `StateObject(wrappedValue:)` re-evaluation deallocated before its Tasks ran,
+  trapping on the force-unwrap. All 8 sites now use the safe
+  `guard let stream = self?...` pattern (same as `SettingsViewModelWrapper`).
+  Root-caused from the TestFlight crash-feedback log (Incident
+  3AE511E1-9499-4E51-A1CB-0A3D99F26919).
+
 ## 0.1.0
 
 First TestFlight (Internal) release — a native SwiftUI iOS app that shares all
