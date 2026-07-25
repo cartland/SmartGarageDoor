@@ -97,8 +97,9 @@ if [ -z "$APP_PATH" ]; then
         -path "*/Build/Products/$CONFIG-iphonesimulator/GarageControl.app" -print0 2>/dev/null |
         xargs -0 stat -f '%m %N' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
 fi
-[ -n "$APP_PATH" ] && [ -d "$APP_PATH" ] ||
+if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
     fail "no GarageControl.app found for configuration '$CONFIG'. Build it first (xcodebuild -configuration $CONFIG -sdk iphonesimulator) or pass the .app path explicitly."
+fi
 
 BUNDLE_ID=$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Info.plist") ||
     fail "could not read CFBundleIdentifier from $APP_PATH/Info.plist"
