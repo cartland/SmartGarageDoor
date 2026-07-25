@@ -59,6 +59,15 @@ class RuleBasedVoiceIntentClassifierTest {
         Case("don't open the door", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
         Case("do not close the garage", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
         Case("never open the door", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
+        Case("i didnt say open the door", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
+        Case("the door wont close", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
+        // UNKNOWN — memory/reminder utterances are not commands (v2).
+        Case("remind me to close the garage tonight", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
+        Case("i forgot to close the garage", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
+        // UNKNOWN — leading state/past question words ask about the
+        // door, not for movement (v2). Polite "can you..." stays MEDIUM.
+        Case("is it possible to open the garage from here", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
+        Case("did you remember to close the door when you left", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
         // UNKNOWN — conflicting directions.
         Case("open and close the door", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
         // UNKNOWN — state descriptions (verb after object) are not commands.
@@ -107,6 +116,6 @@ class RuleBasedVoiceIntentClassifierTest {
     @Test
     fun engineNameIsStable() {
         assertTrue(classifier.name.isNotBlank())
-        assertEquals("Rules v1", classifier.name)
+        assertEquals("Rules v2", classifier.name)
     }
 }
