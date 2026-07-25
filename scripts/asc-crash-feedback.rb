@@ -15,6 +15,14 @@
 # NOTE: this surfaces only crashes a tester chose to share. General TestFlight
 # crash telemetry (no tester action) is visible only in Xcode Organizer.
 #
+# PRIVACY: this repo is PUBLIC, so Actions run logs (and artifacts) are
+# world-readable — GitHub redacts secrets, not API response bodies. Tester
+# email addresses are therefore MASKED before printing (c.***@gmail.com).
+# Device/OS/build/stack data prints in full (non-PII, diagnostically
+# essential). Tester comments print verbatim — they are short free-text a
+# tester typed into a share-with-the-developer prompt; if the tester pool
+# ever grows beyond the maintainer, revisit whether comments need masking too.
+#
 # Env:
 #   ASC_KEY_ID          App Store Connect API Key ID
 #   ASC_ISSUER_ID       App Store Connect API Issuer ID
@@ -107,6 +115,14 @@ if submissions.empty?
   exit 0
 end
 
+# Mask an email for public logs: keep the first character + domain.
+def mask_email(email)
+  return email unless email.is_a?(String) && email.include?('@')
+
+  local, domain = email.split('@', 2)
+  "#{local[0]}#{'*' * 3}@#{domain}"
+end
+
 puts "#{submissions.length} crash-feedback submission(s) for #{bundle_id} (newest first):"
 submissions.each_with_index do |sub, i|
   attrs = sub['attributes'] || {}
@@ -116,9 +132,10 @@ submissions.each_with_index do |sub, i|
   puts "=== [#{i + 1}] submission #{sub['id']} ==="
   puts "  created:  #{attrs['createdDate']}"
   puts "  build:    #{build_version} (ios/#{build_version} if tagged)"
-  %w[deviceModel osVersion appPlatform locale comment email architecture connectionType].each do |k|
+  %w[deviceModel osVersion appPlatform locale comment architecture connectionType].each do |k|
     puts "  #{k}: #{attrs[k]}" unless attrs[k].nil?
   end
+  puts "  email: #{mask_email(attrs['email'])}" unless attrs['email'].nil?
   # Any attributes not covered above still get printed (shape-tolerant).
   extra = attrs.reject { |k, _| %w[createdDate deviceModel osVersion appPlatform locale comment email architecture connectionType].include?(k) }
   puts "  other:    #{extra.to_json[0, 600]}" unless extra.empty?
