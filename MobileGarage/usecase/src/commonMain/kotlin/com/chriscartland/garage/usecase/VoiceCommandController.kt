@@ -326,8 +326,8 @@ class VoiceCommandController(
 
     companion object {
         const val DEFAULT_ARMED_WINDOW_MS = 3_000L
-        const val MIN_ARMED_WINDOW_MS = 2_000L
-        const val MAX_ARMED_WINDOW_MS = 5_000L
+        const val MIN_ARMED_WINDOW_MS = 500L
+        const val MAX_ARMED_WINDOW_MS = 3_000L
 
         /** How long an [VoiceCommandState.Ignored] explanation stays up. */
         const val IGNORED_DISMISS_MS = 4_000L

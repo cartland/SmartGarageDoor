@@ -311,16 +311,17 @@ class VoiceCommandControllerTest {
         runTest {
             val env = FakeVoiceCommandEnvironment()
             val controller = createController(env)
-            controller.setArmedWindowMs(VoiceCommandController.MAX_ARMED_WINDOW_MS)
+            controller.setArmedWindowMs(VoiceCommandController.MIN_ARMED_WINDOW_MS)
             controller.onMicTap()
             controller.onTranscript("open the garage door")
 
-            // The old default window elapsing must not commit.
-            advanceTimeBy(WINDOW)
+            // A shortened window still gives a real cancel opportunity...
+            advanceTimeBy(VoiceCommandController.MIN_ARMED_WINDOW_MS / 2)
             runCurrent()
             assertTrue(env.presses.isEmpty())
 
-            advanceTimeBy(VoiceCommandController.MAX_ARMED_WINDOW_MS - WINDOW)
+            // ...and commits at the shortened deadline, not the default.
+            advanceTimeBy(VoiceCommandController.MIN_ARMED_WINDOW_MS / 2)
             runCurrent()
             assertEquals(listOf(VoiceIntent.OPEN), env.presses)
 
@@ -329,6 +330,12 @@ class VoiceCommandControllerTest {
                 VoiceCommandController.MIN_ARMED_WINDOW_MS,
                 controller.armedWindowMs.value,
                 "Window must clamp to the safe minimum",
+            )
+            controller.setArmedWindowMs(10_000L)
+            assertEquals(
+                VoiceCommandController.MAX_ARMED_WINDOW_MS,
+                controller.armedWindowMs.value,
+                "Window must clamp to the maximum",
             )
         }
 

@@ -130,8 +130,8 @@
     <string name="voice_control_ignored_state_unknown">Door state is unknown</string>
     <string name="voice_control_ignored_state_changed">Door state changed before sending</string>
     <string name="voice_control_copy_hint">Tap the message to copy details</string>
-    <!-- Cancel-window stepper. %1$d is seconds. -->
-    <string name="voice_control_window_label">Cancel window: %1$d seconds</string>
+    <!-- Cancel-window stepper. %1$s is seconds, possibly fractional ("1.5"). -->
+    <string name="voice_control_window_label">Cancel window: %1$s seconds</string>
     <string name="voice_control_window_decrease">Shorten cancel window</string>
     <string name="voice_control_window_increase">Lengthen cancel window</string>
     <!-- Mic button content descriptions per state. -->
