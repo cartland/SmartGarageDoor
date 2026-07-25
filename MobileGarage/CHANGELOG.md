@@ -15,6 +15,11 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.22.4
+
+- **Stricter voice classification (Rules v2, experimental playground).** The voice-input classifier now refuses to assign a direction to negated contractions ("i didnt say open the door"), reminder requests ("remind me to close the garage tonight"), and questions about door state ("is it possible to open the garage from here", "did you remember to close the door"). Polite requests ("can you open the door") still classify at Medium. The playground shows "Rules v2" as the engine.
+- **Internal:** #1116 — strictness-based eval framework (`VoiceIntentEval`: exact best / stricter okay / less-strict bad, safety violations hard-gated at 0, action precision/recall) + an 87-case adversarially generated, dual-judge-consensus corpus (`VoiceEvalCorpus`). Rules v2 scorecard pinned as test baselines: 66/17/4 of 87, safety 0, precision 100%, recall 44.4%. All rule changes strictness-increasing only; patch.
+
 ## 2.22.3
 
 - **Voice playground results are copyable.** Tap the transcript to copy the raw text, or tap the verdict to copy a structured summary (input, intent, confidence, engine) ready to paste into a discussion about improving the classifier. A hint line marks both as tappable.
