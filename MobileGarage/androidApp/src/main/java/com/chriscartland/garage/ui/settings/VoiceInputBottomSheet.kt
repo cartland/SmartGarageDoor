@@ -236,7 +236,7 @@ private fun VoiceInputSheetContentTranscriptPreview() {
                     intent = VoiceIntent.OPEN,
                     confidence = VoiceIntentConfidence.HIGH,
                 ),
-                engineName = "Rules v2",
+                engineName = "Rules v3",
             ),
             onSpeakTap = {},
         )
@@ -254,7 +254,7 @@ private fun VoiceInputSheetContentUnknownIntentPreview() {
                     intent = VoiceIntent.UNKNOWN,
                     confidence = VoiceIntentConfidence.NONE,
                 ),
-                engineName = "Rules v2",
+                engineName = "Rules v3",
             ),
             onSpeakTap = {},
         )

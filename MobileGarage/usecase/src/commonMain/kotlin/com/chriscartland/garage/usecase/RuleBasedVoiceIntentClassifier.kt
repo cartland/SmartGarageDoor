@@ -26,34 +26,40 @@ import com.chriscartland.garage.domain.model.VoiceIntentConfidence
  * Deterministic rules engine — the first [VoiceIntentClassifier]
  * (docs/VOICE_COMMANDS.md decision 2: an allowlist grammar is the most
  * conservative confidence gate). Offline, pure, exhaustively
- * table-tested.
+ * table-tested, and scored against the adversarial eval corpus
+ * ([VoiceEvalCorpus] + [VoiceIntentEval]).
  *
  * Tiers, applied to the normalized utterance (lowercased, punctuation
  * stripped, whitespace collapsed):
  *
- * 1. **Deny-first**: empty text, a negation word ("don't", "didn't",
- *    "won't", "never", "stop"), a memory/reminder word ("remind",
- *    "remember", "forgot" — those utterances are about memory, not a
- *    command), a leading state/past question word ("is", "did",
- *    "who"... — but NOT "can"/"could"/"would", which stay recognizable
- *    polite requests at MEDIUM), or both an open verb and a close verb
- *    present — UNKNOWN. These checks run before anything else so
- *    "don't open the door" can never classify as OPEN. (v2 additions
- *    from the adversarial eval corpus — see VoiceEvalCorpus.)
- * 2. **HIGH** — the whole utterance is an exact imperative:
- *    `(please) open|close|shut (the|my|our) garage door|garage|door (please)`.
- *    Question forms ("can you open the door") never match because the
- *    leading words fail the whole-utterance grammar.
- * 3. **MEDIUM** — a single direction verb appears somewhere before a
- *    door object ("open up the garage for me", "can you close the
- *    door"). Recognizable but loose; a future action layer is expected
- *    to require HIGH.
+ * 1. **Deny-first** (checked before anything else, so "don't open the
+ *    door" can never classify as OPEN): empty text; a negation/
+ *    prohibition token ("dont", "didnt", "no", "nobody", "cancel",
+ *    "quit", "hold"); a memory/reminder token ("remind", "forgot");
+ *    a reported-speech token ("said", "told", "wants" — third-person
+ *    forms only, "i want you to..." stays recognizable); a self-plan
+ *    token ("ill", "gonna", "about", "need" — plans are not requests);
+ *    a leading state/past question word ("is", "did" — but NOT
+ *    "can"/"could"/"would", which stay polite requests at MEDIUM); or
+ *    both an open verb and a close verb present.
+ * 2. **HIGH** — the whole utterance is an exact imperative for the
+ *    GARAGE door: possessives are allowed only with garage objects
+ *    ("close my garage" yes; "open my door" NO — v3, red-team round 2
+ *    found the "my door" safety hole), and bare "door"/"doors" only
+ *    with "the" or nothing ("open the door", "open door").
+ * 3. **MEDIUM** — a single direction verb appears before a door object
+ *    AND the phrasing stays garage-plausible: the verb is followed by
+ *    a command-continuation token (kills "close call by the garage",
+ *    "shut down the computer in the garage"); "door"/"doors" is
+ *    qualified by "the"/"a"/"garage"/the verb itself (kills "close the
+ *    car door", "shut my bedroom door" — other doors are not this
+ *    system's door); "garage" is followed by a command continuation or
+ *    nothing (kills "close the garage store", "shut the garage or").
  * 4. **UNKNOWN/NONE** — everything else, including verb-after-object
- *    ("the door is open" describes state, not a command) and
- *    verb-without-object ("open the window").
+ *    state descriptions ("the door is open").
  */
 class RuleBasedVoiceIntentClassifier : VoiceIntentClassifier {
-    override val name: String = "Rules v2"
+    override val name: String = "Rules v3"
 
     override fun classify(text: String): VoiceIntentClassification {
         val normalized = normalize(text)
@@ -78,12 +84,30 @@ class RuleBasedVoiceIntentClassifier : VoiceIntentClassifier {
         }
 
         val verbIndex = if (intent == VoiceIntent.OPEN) openIndex else closeIndex
+
+        // v3: the verb must start a plausible command phrase ("close
+        // call", "shut eye", "open house" are idioms, not commands).
+        val afterVerb = tokens.getOrNull(verbIndex + 1) ?: return UNKNOWN_RESULT
+        if (afterVerb !in VERB_FOLLOWERS) return UNKNOWN_RESULT
+
         val objectIndex = tokens.indexOfFirst { it in DOOR_OBJECTS }
-        if (objectIndex > verbIndex) {
-            return VoiceIntentClassification(intent, VoiceIntentConfidence.MEDIUM)
+        if (objectIndex <= verbIndex) return UNKNOWN_RESULT
+
+        if (tokens[objectIndex] == "garage") {
+            // v3: "the garage <unknown noun>" is about a garage-thing,
+            // not the garage ("garage store", "garage or...").
+            val afterObject = tokens.getOrNull(objectIndex + 1)
+            if (afterObject != null && afterObject !in GARAGE_FOLLOWERS) return UNKNOWN_RESULT
+        } else {
+            // v3: an unqualified modifier before "door" means some OTHER
+            // door ("car door", "bedroom door", "grudge door").
+            val beforeObject = tokens.getOrNull(objectIndex - 1)
+            val qualified = beforeObject != null &&
+                (beforeObject in DOOR_QUALIFIERS || beforeObject in OPEN_VERBS || beforeObject in CLOSE_VERBS)
+            if (!qualified) return UNKNOWN_RESULT
         }
 
-        return UNKNOWN_RESULT
+        return VoiceIntentClassification(intent, VoiceIntentConfidence.MEDIUM)
     }
 
     private fun normalize(text: String): String =
@@ -103,18 +127,28 @@ class RuleBasedVoiceIntentClassifier : VoiceIntentClassifier {
         val CLOSE_VERBS = setOf("close", "shut")
         val DOOR_OBJECTS = setOf("door", "doors", "garage")
 
-        // Post-normalization tokens. ASR usually drops apostrophes
-        // ("dont"); when it keeps them, normalization splits the token
-        // ("don't" -> "don" + "t"), so both whole contractions and the
-        // unambiguous n-less stems are listed. "won"/"can" stems are
-        // deliberately absent (real words; "can you open" must stay
-        // recognizable).
+        // Negation/prohibition/cancellation. ASR usually drops
+        // apostrophes ("dont"); when it keeps them, normalization splits
+        // the token ("don't" -> "don" + "t"), so whole contractions and
+        // the unambiguous n-less stems are both listed. "won"/"can"
+        // stems are deliberately absent (real words; "can you open"
+        // must stay recognizable).
         val NEGATION_TOKENS = setOf(
             "don",
             "dont",
             "not",
+            "no",
             "never",
+            "nobody",
             "stop",
+            "cancel",
+            "cancels",
+            "cancelled",
+            "quit",
+            "hold",
+            "avoid",
+            "refrain",
+            "mistake",
             "didnt",
             "doesnt",
             "wont",
@@ -141,10 +175,13 @@ class RuleBasedVoiceIntentClassifier : VoiceIntentClassifier {
             "hasn",
         )
 
-        // Memory/reminder words: the utterance is about remembering to
-        // act, not a request to act now ("remind me to close the
-        // garage tonight").
+        // Utterances that are ABOUT acting rather than requests to act:
+        // memory/reminders, reported/quoted speech (third-person forms
+        // only — "wants" but not "want", so "i want you to close the
+        // door" stays a recognizable request), and the speaker's own
+        // future plans.
         val NON_COMMAND_TOKENS = setOf(
+            // memory / reminders
             "remind",
             "reminds",
             "reminder",
@@ -153,14 +190,46 @@ class RuleBasedVoiceIntentClassifier : VoiceIntentClassifier {
             "forgot",
             "forget",
             "forgetting",
+            // reported / quoted speech
+            "said",
+            "says",
+            "saying",
+            "told",
+            "tells",
+            "telling",
+            "wants",
+            "wanted",
+            "heard",
+            "hear",
+            "yelled",
+            "yell",
+            "shouted",
+            "shouting",
+            "texted",
+            "asked",
+            "asking",
+            "reminded",
+            // self-plans and hedged futures
+            "ill",
+            "gonna",
+            "going",
+            "plan",
+            "planning",
+            "plans",
+            "intend",
+            "intending",
+            "intends",
+            "might",
+            "probably",
+            "about",
+            "need",
+            "needs",
+            "needed",
         )
 
-        // A leading state/past/info question word means the utterance
-        // asks ABOUT the door, not for movement ("is it possible to
-        // open the garage from here", "did you remember to close the
-        // door"). "can"/"could"/"would"/"will"/"why" are deliberately
-        // NOT here: those polite-request forms stay recognizable at
-        // MEDIUM.
+        // A leading state/past/info question word asks ABOUT the door,
+        // not for movement. "can"/"could"/"would"/"will"/"why" are
+        // deliberately NOT here: polite-request forms stay MEDIUM.
         val QUESTION_LEAD_TOKENS = setOf(
             "is",
             "was",
@@ -175,7 +244,82 @@ class RuleBasedVoiceIntentClassifier : VoiceIntentClassifier {
             "how",
         )
 
+        // What may directly follow the direction verb in a command.
+        val VERB_FOLLOWERS = setOf(
+            "the",
+            "a",
+            "an",
+            "my",
+            "our",
+            "your",
+            "garage",
+            "door",
+            "doors",
+            "up",
+            "it",
+            "that",
+            "this",
+            "please",
+            "uh",
+            "um",
+        )
+
+        // What may qualify "door"/"doors" for it to mean THE garage
+        // door. Possessives are deliberately absent ("my door", "my
+        // bedroom door" are other doors; possessive garage forms go
+        // through the "garage" object or the HIGH grammar).
+        val DOOR_QUALIFIERS = setOf("the", "a", "garage")
+
+        // What may follow the bare object "garage" in a command
+        // (function words, continuations, adverbs). An unknown noun
+        // after "garage" means a garage-thing, not the garage.
+        val GARAGE_FOLLOWERS = setOf(
+            "door",
+            "doors",
+            "please",
+            "now",
+            "right",
+            "all",
+            "fully",
+            "a",
+            "an",
+            "and",
+            "then",
+            "so",
+            "for",
+            "when",
+            "while",
+            "before",
+            "after",
+            "unless",
+            "until",
+            "in",
+            "on",
+            "at",
+            "im",
+            "i",
+            "its",
+            "it",
+            "back",
+            "again",
+            "up",
+            "tonight",
+            "today",
+            "tomorrow",
+            "myself",
+            "behind",
+            "gently",
+            "slowly",
+        )
+
+        // Possessives only with garage objects; bare "door"/"doors"
+        // only with "the" or nothing ("open my door" is NOT the garage
+        // door — found by red-team round 2 as a HIGH safety hole).
         val HIGH_GRAMMAR =
-            Regex("^(please )?(open|close|shut) ((the|my|our) )?(garage door|garage|door)( please)?$")
+            Regex(
+                "^(please )?(open|close|shut) " +
+                    "((((the|my|our) )?(garage door|garage doors|garage))|((the )?(door|doors)))" +
+                    "( please)?$",
+            )
     }
 }

@@ -181,24 +181,34 @@ Pieces (all in `MobileGarage/usecase/src/commonTest/`):
 
 - `VoiceIntentEval` — engine-agnostic harness; run any
   `VoiceIntentClassifier` against any corpus, get a `VoiceEvalReport`.
-- `VoiceEvalCorpus` — 87 gold-labeled ASR-style transcripts across six
-  lenses (imperative, question, negation, asrnoise, smalltalk,
-  indirect). Generated 2026-07-24 by an adversarial multi-agent pass:
-  six generator lenses, then two independent judge agents labeled every
-  case from scratch against the labeling policy; cases kept only with
-  2-of-3 consensus, judge consensus overriding the generator. Grow it
-  freely — real device transcripts (copied from the playground) are the
-  best source of new cases.
+- `VoiceEvalCorpus` — 176 gold-labeled ASR-style transcripts across
+  twelve lenses. Round 1 (2026-07-24, 87 cases): imperative, question,
+  negation, asrnoise, smalltalk, indirect. Round 2 (same day, 89
+  cases): a red-team pass ARMED WITH the engine internals —
+  redteamnegation (negations outside the token list), wrongdoor (car/
+  front/bedroom doors), reported (quoted speech), future (self-plans),
+  highboundary (HIGH-grammar probes), asrnoise2. Both rounds: generator
+  lenses, then two independent judge agents labeled every case from
+  scratch; cases kept only with 2-of-3 consensus, judge consensus
+  overriding the generator. Grow it freely — real device transcripts
+  (copied from the playground) are the best source of new cases.
 - `RuleBasedVoiceIntentEvalTest` — runs Rules v2 over the corpus;
   hard-gates safety violations at 0 and pins the exact/stricter/
   lessStrict counts as baselines so any rule change's corpus effect is
   a deliberate, reviewed baseline update in the same PR.
 
-Rules v2 baseline (2026-07-24): 66/17/4 of 87 (76%/20%/4%), safety 0,
-action precision 100%, action recall 44.4%. The 4 lessStrict are
-mangled-object ASR cases at MEDIUM ("close the garage store") — known
-and bounded, deliberately not overfitted away; the recall ceiling is
-dominated by compound/preamble imperatives ("open the garage door and
-turn on the lights") that the exact-imperative HIGH grammar rejects by
-design. Both are the first candidates to revisit when promoting new
-patterns to HIGH or adding an engine.
+Rules v3 baseline (2026-07-24, post red-team round 2): 148/28/0 of 176
+(84%/16%/0%), safety 0, action precision 100%, action recall 35.4%.
+Round 2 found one true safety violation in Rules v2 — "open my door"
+matched the HIGH grammar via the possessive article but is not
+unambiguously the garage door — plus 64 MEDIUM over-commitments
+(wrong doors, reported speech, self-plans, no-token negations,
+idioms). Rules v3 fixed all of them: possessives only with garage
+objects in the HIGH grammar; expanded negation tokens (no/nobody/
+cancel/quit/hold); reported-speech markers (third-person forms only,
+"i want you to..." stays recognizable); self-plan markers (ill/gonna/
+about/need); verb-follower, door-qualifier, and garage-follower
+phrase checks. Zero lessStrict remain. The recall ceiling (35.4%) is
+the deliberate strictness cost: all 28 STRICTER cases are compound/
+preamble/adverbial imperatives held at MEDIUM — the ranked menu for
+any future promote-to-HIGH decision.
