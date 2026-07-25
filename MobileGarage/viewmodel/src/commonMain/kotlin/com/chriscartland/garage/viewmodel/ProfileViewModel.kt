@@ -50,7 +50,11 @@ import com.chriscartland.garage.usecase.RequestWatchAppInstallUseCase
 import com.chriscartland.garage.usecase.RevalidateSnoozeStatusUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
+import com.chriscartland.garage.usecase.SimulatedVoiceCommandEnvironment
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
+import com.chriscartland.garage.usecase.VoiceCommandController
+import com.chriscartland.garage.usecase.VoiceCommandState
+import com.chriscartland.garage.usecase.VoiceDoorState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -196,6 +200,41 @@ interface ProfileViewModel {
     /** Report that this device has no speech recognizer at all. */
     fun reportVoiceExperimentUnavailable()
 
+    /**
+     * Experimental voice-command UX playground (Settings → Developer →
+     * Voice control): the full mic → classify → gate → cancel-window →
+     * commit loop, running against a simulated door and a pretend
+     * button. The real door is never touched. State machine:
+     * [VoiceCommandController] in `:usecase`.
+     */
+    val voiceCommandState: StateFlow<VoiceCommandState>
+
+    /** The simulated door the playground's gate checks against. */
+    val voiceCommandDoorState: StateFlow<VoiceDoorState>
+
+    /** Cancel-window length, user-adjustable within the clamp range. */
+    val voiceCommandArmedWindowMs: StateFlow<Long>
+
+    /** Mic tap: always starts over; cancels a pending command first. */
+    fun voiceCommandMicTap()
+
+    /** Recognizer outcome for the command loop (null = no speech). */
+    fun voiceCommandTranscript(text: String?)
+
+    /** The recognizer launch failed: no recognizer on this device. */
+    fun voiceCommandCaptureUnavailable()
+
+    /**
+     * The playground left the screen: cancels a pending (Armed) command
+     * so nothing commits off-screen.
+     */
+    fun voiceCommandBackgrounded()
+
+    /** Place the simulated door directly to exercise gate paths. */
+    fun setVoiceCommandDoorState(state: VoiceDoorState)
+
+    fun setVoiceCommandArmedWindowMs(ms: Long)
+
     fun signInWithGoogle(idToken: GoogleIdToken)
 
     /** Open the app's Play Store listing on the connected watch. */
@@ -283,6 +322,19 @@ class DefaultProfileViewModel(
         MutableStateFlow<VoiceExperimentState>(VoiceExperimentState.Idle)
     override val voiceExperimentState: StateFlow<VoiceExperimentState> = _voiceExperimentState
 
+    // Voice-command playground: the real state machine wired to a fake
+    // world (simulated door + pretend button). viewModelScope-owned so
+    // the experiment's state evaporates with the screen VM.
+    private val voiceCommandEnvironment = SimulatedVoiceCommandEnvironment(scope = viewModelScope)
+    private val voiceCommandController = VoiceCommandController(
+        classify = classifyVoiceIntentUseCase,
+        environment = voiceCommandEnvironment,
+        scope = viewModelScope,
+    )
+    override val voiceCommandState: StateFlow<VoiceCommandState> = voiceCommandController.state
+    override val voiceCommandDoorState: StateFlow<VoiceDoorState> = voiceCommandEnvironment.doorState
+    override val voiceCommandArmedWindowMs: StateFlow<Long> = voiceCommandController.armedWindowMs
+
     // Cached so the snooze action can attach the latest door change time
     // without the UI having to thread it through.
     private val currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
@@ -349,6 +401,18 @@ class DefaultProfileViewModel(
     override fun reportVoiceExperimentUnavailable() {
         _voiceExperimentState.value = VoiceExperimentState.Unavailable
     }
+
+    override fun voiceCommandMicTap() = voiceCommandController.onMicTap()
+
+    override fun voiceCommandTranscript(text: String?) = voiceCommandController.onTranscript(text)
+
+    override fun voiceCommandCaptureUnavailable() = voiceCommandController.onCaptureUnavailable()
+
+    override fun voiceCommandBackgrounded() = voiceCommandController.onBackgrounded()
+
+    override fun setVoiceCommandDoorState(state: VoiceDoorState) = voiceCommandEnvironment.setDoorState(state)
+
+    override fun setVoiceCommandArmedWindowMs(ms: Long) = voiceCommandController.setArmedWindowMs(ms)
 
     override fun signInWithGoogle(idToken: GoogleIdToken) {
         viewModelScope.launch(dispatchers.io) {
