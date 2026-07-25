@@ -68,6 +68,24 @@ class RuleBasedVoiceIntentClassifierTest {
         // door, not for movement (v2). Polite "can you..." stays MEDIUM.
         Case("is it possible to open the garage from here", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
         Case("did you remember to close the door when you left", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
+        // UNKNOWN — v3 (red-team round 2): other doors are not this
+        // system's door, and "my door" is not unambiguously the garage.
+        Case("close the car door", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
+        Case("shut my bedroom door", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
+        Case("open my door", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
+        // UNKNOWN — v3: reported speech and self-plans are not requests.
+        Case("she said close the garage door", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
+        Case("mom wants you to close the garage", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
+        Case("ill close the garage later", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
+        // UNKNOWN — v3: negation phrasings without classic negation tokens.
+        Case("no need to open the garage door", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
+        Case("under no circumstances open the garage door", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
+        // UNKNOWN — v3: idioms and garage-thing phrases, not commands.
+        Case("close call by the garage", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
+        Case("close the garage store", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
+        // HIGH still works for possessive GARAGE forms and terse forms.
+        Case("close my garage", VoiceIntent.CLOSE, VoiceIntentConfidence.HIGH),
+        Case("open garage", VoiceIntent.OPEN, VoiceIntentConfidence.HIGH),
         // UNKNOWN — conflicting directions.
         Case("open and close the door", VoiceIntent.UNKNOWN, VoiceIntentConfidence.NONE),
         // UNKNOWN — state descriptions (verb after object) are not commands.
@@ -116,6 +134,6 @@ class RuleBasedVoiceIntentClassifierTest {
     @Test
     fun engineNameIsStable() {
         assertTrue(classifier.name.isNotBlank())
-        assertEquals("Rules v2", classifier.name)
+        assertEquals("Rules v3", classifier.name)
     }
 }

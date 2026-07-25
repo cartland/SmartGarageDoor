@@ -386,7 +386,7 @@ class ProfileViewModelTest {
             assertEquals("open the garage door", state.text)
             assertEquals(VoiceIntent.OPEN, state.classification.intent)
             assertEquals(VoiceIntentConfidence.HIGH, state.classification.confidence)
-            assertEquals("Rules v2", state.engineName)
+            assertEquals("Rules v3", state.engineName)
 
             // Starting a new capture deletes the previous text.
             viewModel.clearVoiceExperiment()
@@ -430,7 +430,7 @@ class ProfileViewModelTest {
                 input: "can you open the door"
                 intent: OPEN
                 confidence: MEDIUM
-                engine: Rules v2
+                engine: Rules v3
                 """.trimIndent(),
                 state.clipboardSummary(),
             )

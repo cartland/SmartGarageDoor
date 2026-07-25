@@ -49,15 +49,17 @@ class RuleBasedVoiceIntentEvalTest {
 
     @Test
     fun strictnessBaselines() {
-        // Rules v2 baseline (2026-07-24): 66 exact / 17 stricter /
-        // 4 lessStrict of 87; action precision 100%, recall 44.4%.
-        // The 4 lessStrict are mangled-object ASR cases at MEDIUM
-        // ("close the garage store") — known, bounded, display-tier
-        // only. The 17 stricter are mostly compound/preamble
-        // imperatives the HIGH grammar deliberately rejects.
-        assertEquals(87, report.total, report.textReport())
-        assertEquals(66, report.exact, "exact drifted.\n${report.textReport()}")
-        assertEquals(17, report.stricter, "stricter drifted.\n${report.textReport()}")
-        assertEquals(4, report.lessStrict, "lessStrict drifted.\n${report.textReport()}")
+        // Rules v3 baseline (2026-07-24, after red-team round 2):
+        // 148 exact / 28 stricter / 0 lessStrict of 176; action
+        // precision 100%, recall 35.4%. Zero over-commitments — the
+        // v3 qualifier/follower checks eliminated every round-1 and
+        // round-2 LESS_STRICT case. All 28 stricter are deliberate:
+        // compound/preamble imperatives and adverbial variants held at
+        // MEDIUM by the exact-imperative HIGH grammar — the ranked
+        // menu for any future promote-to-HIGH decision.
+        assertEquals(176, report.total, report.textReport())
+        assertEquals(148, report.exact, "exact drifted.\n${report.textReport()}")
+        assertEquals(28, report.stricter, "stricter drifted.\n${report.textReport()}")
+        assertEquals(0, report.lessStrict, "lessStrict drifted.\n${report.textReport()}")
     }
 }
