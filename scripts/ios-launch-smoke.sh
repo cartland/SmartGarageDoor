@@ -28,10 +28,13 @@ set -euo pipefail
 # USAGE
 #
 #   scripts/ios-launch-smoke.sh [APP_PATH] [--configuration Debug|Release] \
-#       [--screenshot-dir DIR]
+#       [--screenshot-dir DIR] [--udid UDID]
 #
 #   APP_PATH defaults to the newest built
 #   DerivedData/GarageControl-*/Build/Products/<CONFIG>-iphonesimulator/GarageControl.app
+#   --udid pins the run to a specific simulator (booted here if needed) — used
+#   by the release lane's oldest-supported-OS (iOS 16.4) leg, where the pick
+#   must NOT fall through to the newest runtime.
 #   SMOKE_WAIT_SECONDS (env, default 10) is how long the process must survive.
 
 RED='\033[0;31m'
@@ -42,6 +45,7 @@ RESET='\033[0m'
 CONFIG="Debug"
 APP_PATH=""
 SHOT_DIR=""
+UDID=""
 WAIT_SECONDS="${SMOKE_WAIT_SECONDS:-10}"
 
 while [ $# -gt 0 ]; do
@@ -52,6 +56,10 @@ while [ $# -gt 0 ]; do
             ;;
         --screenshot-dir)
             SHOT_DIR="$2"
+            shift 2
+            ;;
+        --udid)
+            UDID="$2"
             shift 2
             ;;
         -h | --help)
@@ -108,9 +116,11 @@ echo -e "${BOLD}=== iOS launch smoke ($CONFIG) ===${RESET}"
 echo "App:    $APP_PATH"
 echo "Bundle: $BUNDLE_ID"
 
-# --- Pick a simulator: an already-booted iPhone, else the newest-runtime
-# available iPhone (booted here). ---
-UDID=$(xcrun simctl list devices booted | grep -m1 "iPhone" | grep -oE '[0-9A-F]{8}-[0-9A-F-]{27}' || true)
+# --- Pick a simulator: an explicit --udid, else an already-booted iPhone,
+# else the newest-runtime available iPhone (booted here). ---
+if [ -z "$UDID" ]; then
+    UDID=$(xcrun simctl list devices booted | grep -m1 "iPhone" | grep -oE '[0-9A-F]{8}-[0-9A-F-]{27}' || true)
+fi
 if [ -z "$UDID" ]; then
     UDID=$(xcrun simctl list devices available -j | python3 -c '
 import json, re, sys

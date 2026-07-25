@@ -13,14 +13,16 @@ set -euo pipefail
 # iOS break is caught before the push instead of after the merge.
 #
 # WHAT IT RUNS (identical to ios-ci.yml, in the same order)
-#   1. :iosFramework:iosSimulatorArm64Test  — the NativeComponent DI-graph
+#   1. check-ios-self-force-unwrap.sh       — forbid `self!` in iosApp Swift
+#      (the ios/7 launch-crash pattern; cheap grep, fails fast).
+#   2. :iosFramework:iosSimulatorArm64Test  — the NativeComponent DI-graph
 #      identity test (40 cases); also warms the shared.framework the app embeds.
-#   2. xcodegen generate                     — regenerate the (gitignored) .xcodeproj.
-#   3. xcodebuild ... build                  — compile the SwiftUI app against the
+#   3. xcodegen generate                     — regenerate the (gitignored) .xcodeproj.
+#   4. xcodebuild ... build                  — compile the SwiftUI app against the
 #      framework for a generic iOS Simulator destination, signing disabled.
-#   4. ios-launch-smoke.sh                   — install + launch the built app on a
+#   5. ios-launch-smoke.sh                   — install + launch the built app on a
 #      simulator (cold + warm) and assert the process survives. Compiling is not
-#      launching: a launch crash is invisible to steps 1–3.
+#      launching: a launch crash is invisible to steps 1–4.
 #
 # This does NOT run the snapshot-gallery tests (Prefire) — those are
 # regenerate-don't-assert and are not a gating CI check. Regenerate them with
@@ -61,21 +63,27 @@ echo ""
 # Flake note (CLAUDE.md): a red here whose log shows "The daemon has terminated
 # unexpectedly on startup" with NO "Test Case ... failed" is a Gradle-daemon
 # infra flake, not a regression — rerun with --rerun-tasks to confirm.
-echo -e "${BOLD}[1/4] iosFramework simulator tests (:iosFramework:iosSimulatorArm64Test)${RESET}"
+echo -e "${BOLD}[1/5] Forbidden Swift patterns (check-ios-self-force-unwrap.sh)${RESET}"
+"$REPO_ROOT/scripts/check-ios-self-force-unwrap.sh" \
+    || fail "forbidden 'self!' found in iOS Swift sources (launch-crash pattern; see the check's output)."
+echo -e "${GREEN}[PASS] forbidden Swift patterns${RESET}"
+echo ""
+
+echo -e "${BOLD}[2/5] iosFramework simulator tests (:iosFramework:iosSimulatorArm64Test)${RESET}"
 "$REPO_ROOT/MobileGarage/gradlew" -p "$REPO_ROOT/MobileGarage" :iosFramework:iosSimulatorArm64Test \
     || fail "iosFramework simulator tests failed."
 echo -e "${GREEN}[PASS] iosFramework simulator tests${RESET}"
 echo ""
 
 # --- Step 2: regenerate the Xcode project from project.yml ---
-echo -e "${BOLD}[2/4] Generate Xcode project (xcodegen)${RESET}"
+echo -e "${BOLD}[3/5] Generate Xcode project (xcodegen)${RESET}"
 xcodegen generate --spec "$PROJECT_SPEC" --project "$IOS_APP_DIR" \
     || fail "xcodegen generate failed."
 echo -e "${GREEN}[PASS] xcodegen generate${RESET}"
 echo ""
 
 # --- Step 3: build the SwiftUI app for the simulator (signing disabled) ---
-echo -e "${BOLD}[3/4] Build iOS app (xcodebuild, generic iOS Simulator)${RESET}"
+echo -e "${BOLD}[4/5] Build iOS app (xcodebuild, generic iOS Simulator)${RESET}"
 xcodebuild \
     -project "$XCODEPROJ" \
     -scheme GarageControl \
@@ -89,7 +97,7 @@ echo -e "${GREEN}[PASS] iOS app build${RESET}"
 echo ""
 
 # --- Step 4: launch smoke — install + launch the app just built ---
-echo -e "${BOLD}[4/4] Launch smoke test (ios-launch-smoke.sh)${RESET}"
+echo -e "${BOLD}[5/5] Launch smoke test (ios-launch-smoke.sh)${RESET}"
 "$REPO_ROOT/scripts/ios-launch-smoke.sh" --configuration Debug \
     || fail "iOS launch smoke failed — the app crashed at launch. Fix before pushing (this is exactly what would ship broken to TestFlight)."
 echo -e "${GREEN}[PASS] launch smoke${RESET}"

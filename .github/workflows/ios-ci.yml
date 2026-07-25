@@ -29,6 +29,7 @@ on:
       - 'MobileGarage/build.gradle.kts'
       - '.github/workflows/ios-ci.yml'
       - 'scripts/ios-launch-smoke.sh'
+      - 'scripts/check-ios-self-force-unwrap.sh'
   pull_request:
     paths:
       - 'MobileGarage/iosApp/**'
@@ -44,6 +45,7 @@ on:
       - 'MobileGarage/build.gradle.kts'
       - '.github/workflows/ios-ci.yml'
       - 'scripts/ios-launch-smoke.sh'
+      - 'scripts/check-ios-self-force-unwrap.sh'
 
 concurrency:
   group: ios-ci-${{ github.ref }}
@@ -60,6 +62,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # Cheap grep, fails fast: `self!` is the ios/7 launch-crash pattern
+      # (StateObject-discarded wrapper's Task force-unwraps a deallocated weak
+      # self — crashed every launch on iOS 16; invisible to the newest-runtime
+      # smoke below).
+      - name: Check forbidden Swift patterns
+        run: ./scripts/check-ios-self-force-unwrap.sh
 
       - name: Set up JDK
         uses: actions/setup-java@v5
