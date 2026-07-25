@@ -15,6 +15,11 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.22.8
+
+- **Slower simulated door in the voice playground.** The fake door now takes 10 seconds to travel (was 2.5), roughly matching a real garage door. The old transit finished before the speech recognizer round-trip did, so it was impossible to speak a command at a moving door and watch the gate refuse it ("The door is moving") — now there's a real window to try exactly that.
+- **Internal:** #1127 — `SimulatedVoiceCommandEnvironment.TRANSIT_MS` 2500→10000; tests reference the constant and are unchanged. Developer-gated experiment; patch.
+
 ## 2.22.7
 
 - **Finer cancel-window control in the voice playground.** The Voice control sheet's cancel window now adjusts in 0.5-second steps from 0.5 to 3 seconds (was 1-second steps, 2 to 5), so shorter windows can be felt out on-device. The label shows fractional values ("Cancel window: 1.5 seconds"); default stays 3 seconds.
