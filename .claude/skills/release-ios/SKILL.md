@@ -38,6 +38,11 @@ git checkout main && git pull && git status
 # 6. Watch the deploy
 gh run list --workflow=release-ios.yml --limit 1
 gh run watch <run-id>
+# Workflow order: build-number pre-flight -> LAUNCH SMOKE GATE (Release sim
+# build, cold+warm launch must survive; scripts/ios-launch-smoke.sh) ->
+# archive -> upload. A launch-crashing build aborts before anything is
+# uploaded. Confirm the outcome with `gh run view <id> --json status,conclusion`
+# (the watch exit code is unreliable).
 ```
 
 ## What you should NOT do

@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-06-30
+last_verified: 2026-07-24
 ---
 
 # iOS App Setup & Release Runbook
@@ -130,12 +130,47 @@ Xcode (⌘R). Real push *delivery* requires a physical device.
 Mirrors the Android model. `scripts/release-ios.sh` computes the next `ios/N` tag
 (N = build number), gates on a clean tree + a `validate-ios.sh` marker + an
 `iosApp/CHANGELOG.md` entry for `MARKETING_VERSION`, and pushes the tag.
-`.github/workflows/release-ios.yml` (macOS) reacts to `ios/[0-9]*`: it archives the
-Release app (overriding `CURRENT_PROJECT_VERSION` to N so the tag owns the build
-number), then `xcodebuild -exportArchive` with `destination=upload` ships it to
+`.github/workflows/release-ios.yml` (macOS) reacts to `ios/[0-9]*`: it runs the
+**launch smoke gate** (below), archives the Release app (overriding
+`CURRENT_PROJECT_VERSION` to N so the tag owns the build number), then
+`xcodebuild -exportArchive` with `destination=upload` ships it to
 **TestFlight Internal**. Same flags + `--check` copy-paste workflow as
 `release-android.sh`. Deliberately **not Xcode Cloud** — keeps the release pipeline
 in GitHub Actions, consistent with Android/Firebase.
+
+### Launch smoke gate (`scripts/ios-launch-smoke.sh`)
+
+**Compiling is not launching.** Until 2026-07-24, no CI or release step ever
+*launched* the app — `ios-ci.yml` and `release-ios.yml` only compiled/archived it,
+so a build that compiles cleanly but crashes at launch (DI-graph init failure,
+dyld missing-symbol, a throwing `AppDelegate` path, a Kotlin/Native
+release-mode-only crash) shipped to TestFlight undetected. A TestFlight build in
+the `ios/7` era did exactly that. The gate closes the class:
+
+- **What it does:** fresh-installs the built app on a simulator, cold-launches
+  it, asserts the process is still alive after `SMOKE_WAIT_SECONDS` (default
+  10 s), screenshots, then terminates and warm-relaunches with the same
+  assertion (fresh-install and relaunch can differ — the #1055 render bug was
+  fresh-install-only). On failure it dumps any
+  `~/Library/Logs/DiagnosticReports/GarageControl-*.ips` crash report produced
+  during the run, so the CI log shows *why*, and exits non-zero. Trust the
+  printed `IOS LAUNCH SMOKE: PASS` / `[FAIL]` markers.
+- **Where it runs:** `release-ios.yml` builds a **Release**-configuration
+  simulator app (same Kotlin/Native release-mode compile + Swift `-O` as the
+  shipped artifact, with the injected server-config secret) and runs the smoke
+  **before the archive step** — a launch-crashing build aborts the release
+  before anything reaches App Store Connect. `ios-ci.yml` and
+  `validate-ios.sh` run it against the Debug build on every iOS change
+  (screenshots upload as the `launch-smoke-screenshots` artifact in CI).
+- **Residual gaps (known, accepted):** (a) **signed-in-only crashes** — CI has
+  no Google credentials, so the smoke always exercises the signed-out launch
+  path; (b) **device-only crashes** — the smoke runs a simulator slice, not the
+  TestFlight-signed device archive; (c) **upgrade-state crashes** — the smoke
+  fresh-installs, it does not migrate data written by an older build (the warm
+  relaunch covers same-version persisted state only). If a TestFlight crash
+  report ever lands in one of these classes, extend the gate rather than
+  re-litigating it (e.g., a keychain-seeded fake-auth launch variant for (a),
+  a data-fixture install for (c)).
 
 ### One-time: create the App Store Connect API key + GitHub secrets
 The workflow signs and uploads via an **App Store Connect API key** (no cert is
