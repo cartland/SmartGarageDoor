@@ -165,7 +165,8 @@ confirmation step, and v1 capture is `RecognizerIntent`, not a
 - **The door-state gate runs twice**: at arm time (open only when
   closed, close only when open; moving/unknown refuse) and again when
   the cancel window elapses — a door that moved mid-countdown aborts.
-- **The cancel window** (default 3s, adjustable 2–5s) renders as a
+- **The cancel window** (default 3s, adjustable 0.5–3s in 0.5s steps
+  for playground experimentation) renders as a
   filling ring around the button with a countdown line ("Opening in 3 ·
   Tap to cancel"). Ring completion commits; the ~1s Sending state is
   not cancellable (a press cannot be unsent) and the button disables.

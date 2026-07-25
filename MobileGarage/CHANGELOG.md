@@ -15,6 +15,11 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.22.7
+
+- **Finer cancel-window control in the voice playground.** The Voice control sheet's cancel window now adjusts in 0.5-second steps from 0.5 to 3 seconds (was 1-second steps, 2 to 5), so shorter windows can be felt out on-device. The label shows fractional values ("Cancel window: 1.5 seconds"); default stays 3 seconds.
+- **Internal:** #1126 — `MIN_ARMED_WINDOW_MS` 2000→500, `MAX` 5000→3000, stepper 500ms; clamp test covers both bounds. Developer-gated experiment; patch.
+
 ## 2.22.6
 
 - **Voice command loop with a cancel window (experimental playground, simulated door).** Settings → Developer gains a "Voice control" sheet that runs the full voice-to-action loop against a pretend door: tap the mic, speak, and a High-confidence command arms a 3-second cancel window (filling ring + "Opening in 3 · Tap to cancel"). Tapping during the window cancels and immediately re-listens; letting it complete presses a simulated button and the fake door moves. Anything non-actionable (loose phrasing, questions, wrong door state) shows a brief explanation instead, tappable to copy the verdict. A segmented control places the simulated door in any state to exercise the gate (already open, moving), and the cancel window is adjustable 2–5 seconds. The real door is never touched from this screen.

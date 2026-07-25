@@ -84,7 +84,7 @@ import com.chriscartland.garage.usecase.VoiceCommandState
 import com.chriscartland.garage.usecase.VoiceDoorState
 import kotlin.math.ceil
 
-private const val ARMED_WINDOW_STEP_MS = 1_000L
+private const val ARMED_WINDOW_STEP_MS = 500L
 
 /**
  * Experimental voice-command UX playground (Settings → Developer →
@@ -258,6 +258,13 @@ private object VoiceControlHelpers {
         windowMs: Long,
         progress: Float,
     ): Int = ceil((1f - progress) * windowMs / 1000f).toInt().coerceAtLeast(1)
+
+    // "0.5", "1", "1.5" — trims the trailing .0 on whole seconds.
+    fun windowSecondsLabel(windowMs: Long): String {
+        val seconds = windowMs / 1000f
+        val whole = seconds.toInt()
+        return if (seconds == whole.toFloat()) whole.toString() else seconds.toString()
+    }
 
     // Door-motion metaphor: up = opening, down = closing.
     fun directionIcon(intent: VoiceIntent): ImageVector =
@@ -474,7 +481,7 @@ private fun CancelWindowStepper(
         Text(
             text = stringResource(
                 R.string.voice_control_window_label,
-                (armedWindowMs / 1000L).toInt(),
+                VoiceControlHelpers.windowSecondsLabel(armedWindowMs),
             ),
             style = MaterialTheme.typography.bodyMedium,
         )
