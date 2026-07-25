@@ -1,0 +1,56 @@
+# Fetch TestFlight crash-feedback submissions from App Store Connect.
+#
+# Manual-dispatch diagnostic: when a TestFlight build crashes, the tester gets a
+# "share with the developer" prompt; shared submissions are the only crash
+# telemetry reachable outside Xcode Organizer. The deploy-capable ASC API key
+# lives ONLY in GitHub Actions secrets (see docs/IOS_RELEASE_SETUP.md), so this
+# is the one place those submissions can be fetched from the command line:
+#
+#   gh workflow run ios-crash-feedback.yml
+#   gh run watch $(gh run list --workflow=ios-crash-feedback.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+#
+# Prints submission metadata (device, OS, build number) + the crash log to the
+# run log. Read-only against App Store Connect.
+
+name: iOS Crash Feedback
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Max submissions to print (1-50)'
+        required: false
+        default: '10'
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    name: Fetch TestFlight crash feedback
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Write App Store Connect API key
+        env:
+          KEY_P8: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/asc_keys"
+          printf '%s\n' "$KEY_P8" > "$RUNNER_TEMP/asc_keys/AuthKey_${KEY_ID}.p8"
+          echo "ASC_KEY_PATH=$RUNNER_TEMP/asc_keys/AuthKey_${KEY_ID}.p8" >> "$GITHUB_ENV"
+
+      - name: Fetch crash-feedback submissions
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_BUNDLE_ID: com.chriscartland.garage
+          ASC_FEEDBACK_LIMIT: ${{ inputs.limit }}
+        run: ruby scripts/asc-crash-feedback.rb
+
+      - name: Clean key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/asc_keys"
