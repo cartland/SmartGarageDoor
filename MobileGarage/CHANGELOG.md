@@ -15,6 +15,11 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.22.5
+
+- **Rules v3 voice classification (experimental playground).** A second adversarial eval round, armed with the engine internals, found one real hole ("open my door" reached the actionable tier via the possessive, though it is not unambiguously the garage door) and 64 loose direction claims: other doors ("close the car door"), reported speech ("she said close the garage door"), self-plans ("ill close the garage later"), and negations without classic tokens ("no need to open the garage door"). All fixed: possessives now count only with garage objects, and new reported-speech, self-plan, and phrase-shape checks force Unknown. "i want you to close the door" and "can you open the door" still classify at Medium. The playground shows "Rules v3".
+- **Internal:** #1118 — corpus grown to 176 cases across twelve lenses (red-team round 2, dual-judge consensus); Rules v3 scorecard pinned: 148/28/0 exact/stricter/lessStrict, safety 0, precision 100%, recall 35.4% (zero over-commitments; all misses on the deliberate-strictness side). Patch.
+
 ## 2.22.4
 
 - **Stricter voice classification (Rules v2, experimental playground).** The voice-input classifier now refuses to assign a direction to negated contractions ("i didnt say open the door"), reminder requests ("remind me to close the garage tonight"), and questions about door state ("is it possible to open the garage from here", "did you remember to close the door"). Polite requests ("can you open the door") still classify at Medium. The playground shows "Rules v2" as the engine.
