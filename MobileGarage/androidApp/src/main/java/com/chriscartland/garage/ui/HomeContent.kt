@@ -38,7 +38,9 @@ import com.chriscartland.garage.permissions.rememberNotificationPermissionState
 import com.chriscartland.garage.presentation.HomeAlert
 import com.chriscartland.garage.presentation.HomeAlertMapper
 import com.chriscartland.garage.ui.home.DeviceCheckIn
+import com.chriscartland.garage.ui.home.HomeAuthState
 import com.chriscartland.garage.ui.home.HomeMapper
+import com.chriscartland.garage.ui.home.HomeVoiceControlSection
 import com.chriscartland.garage.ui.home.rememberSinceLine
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
 import com.chriscartland.garage.viewmodel.HomeViewModel
@@ -81,6 +83,12 @@ fun HomeContent(
     // brief "Checking…" flash on every fresh screen entry.
     val buttonHealthDisplay: ButtonHealthDisplay by resolved.buttonHealthDisplay
         .collectAsStateWithLifecycle()
+    // Voice control (shadow mode): gated by the same per-user flag as
+    // Settings → Developer. Shown only when signed in — it mirrors the
+    // remote button's availability even though the shadow press acts on
+    // nothing.
+    val developerAccess by resolved.developerAccess.collectAsState()
+    val voiceCommandState by resolved.voiceCommandState.collectAsState()
 
     val notificationPermissionState = rememberNotificationPermissionState()
     // Survives rotation + process death so the alert flicker on rotation
@@ -163,6 +171,22 @@ fun HomeContent(
             }
         },
         onSignIn = { googleSignIn.launchSignIn() },
+        voiceControlSection = if (
+            developerAccess == true &&
+            homeAuthState == HomeAuthState.SignedIn
+        ) {
+            {
+                HomeVoiceControlSection(
+                    state = voiceCommandState,
+                    onMicTap = resolved::voiceCommandMicTap,
+                    onTranscript = resolved::voiceCommandTranscript,
+                    onCaptureUnavailable = resolved::voiceCommandCaptureUnavailable,
+                    onBackgrounded = resolved::voiceCommandBackgrounded,
+                )
+            }
+        } else {
+            null
+        },
     )
     ReportDrawnWhen { currentDoorEvent is LoadingResult.Complete }
 }

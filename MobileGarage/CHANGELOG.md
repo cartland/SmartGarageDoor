@@ -15,6 +15,11 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.22.9
+
+- **Voice control card on the Home tab (experimental shadow mode).** Home gains a "Voice control" section — mic button, countdown ring, and a clear two-line status — visible only to Developer-flag users while signed in. The full loop runs against the real door state: commands are refused when the door is already there, moving, anomalous, or the device check-in is stale, so refusals always agree with the status card above. The button press itself is simulated (a "Simulated" pill in the header says so) — nothing is ever sent to the door. Fixed 3-second cancel window; tap during the ring to cancel and speak again.
+- **Internal:** #1128 — `VoiceDoorStateMapper` (DoorPosition → gate projection; anomalies + stale check-in → UNKNOWN → refuse; closes the wrong-direction hazard for future real wiring) + `ShadowVoiceCommandEnvironment` (real state in, no action out) with tests; `HomeViewModel` hosts the controller (both DI components updated); shared `VoiceCommandUi` vocabulary deduped from the playground sheet; voice section injected as a slot so Home fixtures are untouched. Developer-gated experiment; patch.
+
 ## 2.22.8
 
 - **Slower simulated door in the voice playground.** The fake door now takes 10 seconds to travel (was 2.5), roughly matching a real garage door. The old transit finished before the speech recognizer round-trip did, so it was impossible to speak a command at a moving door and watch the gate refuse it ("The door is moving") — now there's a real window to try exactly that.

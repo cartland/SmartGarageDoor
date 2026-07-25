@@ -38,9 +38,11 @@ import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import com.chriscartland.garage.testcommon.FakeDoorFcmRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
+import com.chriscartland.garage.testcommon.FakeFeatureAllowlistRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import com.chriscartland.garage.usecase.CheckInStalenessManager
+import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
 import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
@@ -49,7 +51,9 @@ import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
+import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
+import com.chriscartland.garage.usecase.RuleBasedVoiceIntentClassifier
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -144,6 +148,8 @@ class HomeViewModelTest {
         val vm = DefaultHomeViewModel(
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
             observeAuthState = ObserveAuthStateUseCase(authRepository),
+            observeFeatureAccessUseCase = ObserveFeatureAccessUseCase(FakeFeatureAllowlistRepository()),
+            classifyVoiceIntentUseCase = ClassifyVoiceIntentUseCase(RuleBasedVoiceIntentClassifier()),
             logAppEvent = LogAppEventUseCase(
                 appLoggerRepository,
                 FakeDiagnosticsCountersRepository(),

@@ -185,6 +185,22 @@ Promoting to the real thing is an environment swap (door repository
 projection + `PushRemoteButtonUseCase`) plus a Home-screen surface —
 the controller, gate, and tests carry over unchanged.
 
+**Home shadow surface (shipped 2.22.9, developer-flag-gated):** the
+Home tab renders the production-intent voice card (mic + countdown
+ring + stable two-line status, "Simulated" pill in the header) behind
+the same per-user flag as Settings → Developer, signed-in only, fixed
+3s window. It runs in **shadow mode** via
+`ShadowVoiceCommandEnvironment`: the gate reads the REAL observed door
+state — projected by `VoiceDoorStateMapper` (clean terminals →
+actionable, clean transits → MOVING, every anomaly [stuck too long,
+misaligned, sensor conflict] and a **stale check-in** → UNKNOWN →
+refuse) — so refusals always match the status card above, but the
+press is a no-op success. The projection is the promotion-critical
+safety mapping (it closes the wrong-direction hazard: stale cache says
+closed, door actually open, "open" would really close); promoting to
+the real door now means swapping only the environment's `pressButton`
+for `PushRemoteButtonUseCase`.
+
 ## Testing plan
 
 - Parser: table-driven accept/reject test mirroring the table above.
