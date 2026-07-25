@@ -173,33 +173,39 @@ confirmation step, and v1 capture is `RecognizerIntent`, not a
 - **Nothing commits off-screen**: lifecycle stop or sheet dismissal
   cancels a pending (Armed) command.
 
-Implementation (shipped 2.22.6, simulated only): the state machine is
+Implementation (shipped 2.22.6): the state machine is
 `VoiceCommandController` in `:usecase` (`Ready → Listening → Armed →
 Sending → Sent/Failed/Ignored`), acting on a `VoiceCommandEnvironment`
 (door state + `pressButton`). The Settings → Developer → **Voice
 control** sheet (`VoiceControlBottomSheet`) wires the real controller to
 `SimulatedVoiceCommandEnvironment` — an in-memory door with a pretend
 button and fake transit, plus a segmented control to place the door in
-any state to exercise every gate path. The real door is never touched.
-Promoting to the real thing is an environment swap (door repository
-projection + `PushRemoteButtonUseCase`) plus a Home-screen surface —
-the controller, gate, and tests carry over unchanged.
+any state to exercise every gate path. The playground never touches the
+real door. Promoting the Home surface to the real thing (2.23.0) was
+exactly the planned environment swap — the controller, gate, and tests
+carried over unchanged.
 
-**Home shadow surface (shipped 2.22.9, developer-flag-gated):** the
-Home tab renders the production-intent voice card (mic + countdown
-ring + stable two-line status, "Simulated" pill in the header) behind
-the same per-user flag as Settings → Developer, signed-in only, fixed
-3s window. It runs in **shadow mode** via
-`ShadowVoiceCommandEnvironment`: the gate reads the REAL observed door
-state — projected by `VoiceDoorStateMapper` (clean terminals →
-actionable, clean transits → MOVING, every anomaly [stuck too long,
-misaligned, sensor conflict] and a **stale check-in** → UNKNOWN →
-refuse) — so refusals always match the status card above, but the
-press is a no-op success. The projection is the promotion-critical
-safety mapping (it closes the wrong-direction hazard: stale cache says
-closed, door actually open, "open" would really close); promoting to
-the real door now means swapping only the environment's `pressButton`
-for `PushRemoteButtonUseCase`.
+**Home surface (shipped 2.22.9 in shadow mode; LIVE on the real door
+since 2.23.0; developer-flag-gated):** the Home tab renders the voice
+card (mic + countdown ring + stable two-line status) behind the same
+per-user flag as Settings → Developer, signed-in only, fixed 3s window.
+The gate reads the REAL observed door state — projected by
+`VoiceDoorStateMapper` (clean terminals → actionable, clean transits →
+MOVING, every anomaly [stuck too long, misaligned, sensor conflict] and
+a **stale check-in** → UNKNOWN → refuse) — so refusals always match the
+status card above. The projection is the safety mapping that closes the
+wrong-direction hazard (stale cache says closed, door actually open,
+"open" would really close). Since 2.23.0 a committed command presses
+the REAL remote garage button: `RemoteButtonVoiceCommandEnvironment`
+routes the press through `PushRemoteButtonUseCase` (the same auth-gated
+path as the manual two-tap button) and mints a fresh ack token per
+press, tagged `-voice` in the appVersion slot so server logs can tell
+voice presses from manual ones (the server compares the token only for
+ack equality — the format is opaque to it). The interim
+`ShadowVoiceCommandEnvironment` (real state in, no-op press out) was
+deleted with the promotion; end-to-end `HomeViewModelTest` coverage
+pins that a commit presses the button with a voice-tagged token and
+that refusals and signed-out commits never do.
 
 ## Testing plan
 

@@ -83,10 +83,10 @@ fun HomeContent(
     // brief "Checking…" flash on every fresh screen entry.
     val buttonHealthDisplay: ButtonHealthDisplay by resolved.buttonHealthDisplay
         .collectAsStateWithLifecycle()
-    // Voice control (shadow mode): gated by the same per-user flag as
-    // Settings → Developer. Shown only when signed in — it mirrors the
-    // remote button's availability even though the shadow press acts on
-    // nothing.
+    // Voice control (live): gated by the same per-user flag as
+    // Settings → Developer. Shown only when signed in — a committed
+    // command presses the real remote button through the same
+    // auth-gated path as the manual button.
     val developerAccess by resolved.developerAccess.collectAsState()
     val voiceCommandState by resolved.voiceCommandState.collectAsState()
 

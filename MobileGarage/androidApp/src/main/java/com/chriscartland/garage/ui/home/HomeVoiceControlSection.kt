@@ -38,7 +38,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -64,13 +63,13 @@ import com.chriscartland.garage.usecase.VoiceCommandIgnoreReason
 import com.chriscartland.garage.usecase.VoiceCommandState
 
 /**
- * Home-tab voice control section (developer-flag-gated, SHADOW MODE —
- * the gate reads the real door state, the press is a no-op; a
- * "Simulated" pill in the header keeps that honest). The mic button is
- * the whole interface: tap to speak, tap during the countdown ring to
- * cancel and immediately re-listen. Layout is a compact card row —
- * mic + ring on the left, a stable two-line status column on the right
- * — matching the Home section language (see [HomeSection]).
+ * Home-tab voice control section (developer-flag-gated, LIVE — the gate
+ * reads the real door state and a committed command presses the REAL
+ * remote garage button). The mic button is the whole interface: tap to
+ * speak, tap during the countdown ring to cancel and immediately
+ * re-listen. Layout is a compact card row — mic + ring on the left, a
+ * stable two-line status column on the right — matching the Home
+ * section language (see [HomeSection]).
  *
  * Owns the recognizer plumbing: launch is driven by the
  * [VoiceCommandState.Listening] state (not the tap), so "tap in Ready"
@@ -143,27 +142,9 @@ fun HomeVoiceControlSectionBody(
 ) {
     HomeSection(
         label = stringResource(R.string.home_section_voice),
-        trailing = { SimulatedPill() },
         modifier = modifier,
     ) {
         HomeVoiceCardBody(state = state, onMicTap = onMicTap)
-    }
-}
-
-/** Small header pill making shadow mode unmistakable. */
-@Composable
-private fun SimulatedPill(modifier: Modifier = Modifier) {
-    Surface(
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        shape = MaterialTheme.shapes.small,
-        modifier = modifier,
-    ) {
-        Text(
-            text = stringResource(R.string.home_voice_simulated_pill),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-        )
     }
 }
 
@@ -261,10 +242,10 @@ private fun HomeVoiceStatusColumn(
             ) to stringResource(R.string.voice_control_transcript_quote, state.transcript)
         is VoiceCommandState.Sending ->
             stringResource(R.string.voice_control_sending) to
-                stringResource(R.string.home_voice_shadow_subtitle)
+                stringResource(R.string.home_voice_sending_subtitle)
         is VoiceCommandState.Sent ->
             stringResource(R.string.voice_control_sent) to
-                stringResource(R.string.home_voice_shadow_subtitle)
+                stringResource(R.string.home_voice_sent_subtitle)
         is VoiceCommandState.Failed ->
             stringResource(R.string.voice_control_failed) to
                 stringResource(R.string.home_voice_failed_subtitle)

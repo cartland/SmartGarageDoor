@@ -55,6 +55,7 @@ import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RuleBasedVoiceIntentClassifier
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
+import com.chriscartland.garage.usecase.VoiceCommandState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -381,6 +382,97 @@ class HomeViewModelTest {
             val viewModel = createViewModel(scope = backgroundScope, fetchOnInit = false)
 
             assertNull(viewModel.sinceStatus.value)
+        }
+
+    /**
+     * End-to-end voice press: transcript → HIGH classification → gate
+     * (door CLOSED, "open" allowed) → 3s cancel window → commit →
+     * [com.chriscartland.garage.usecase.RemoteButtonVoiceCommandEnvironment]
+     * → PushRemoteButtonUseCase → the REAL remote-button repository, with
+     * a `voice`-tagged ack token so server logs can tell voice presses
+     * from manual ones.
+     */
+    @Test
+    fun voiceCommandCommitPressesRealButtonWithVoiceTaggedToken() =
+        runTest {
+            val viewModel = createViewModel(
+                scope = backgroundScope,
+                authState = AuthState.Authenticated(
+                    User(name = DisplayName("User"), email = Email("user@example.com")),
+                ),
+                fetchOnInit = false,
+            )
+
+            viewModel.voiceCommandMicTap()
+            testDispatcher.scheduler.runCurrent()
+            viewModel.voiceCommandTranscript("open the garage door")
+            testDispatcher.scheduler.runCurrent()
+            assertTrue(
+                viewModel.voiceCommandState.value is VoiceCommandState.Armed,
+                "HIGH-confidence open against a CLOSED door should arm",
+            )
+            assertEquals(0, remoteButtonRepository.pushCount, "Nothing sends during the window")
+
+            testDispatcher.scheduler.advanceTimeBy(3_001)
+            testDispatcher.scheduler.runCurrent()
+
+            assertEquals(1, remoteButtonRepository.pushCount)
+            val token = remoteButtonRepository.pushCalls.single().buttonAckToken
+            assertTrue(
+                token.contains("voice"),
+                "Voice presses tag the ack token for server-log correlation, was: $token",
+            )
+            assertTrue(viewModel.voiceCommandState.value is VoiceCommandState.Sent)
+        }
+
+    /**
+     * The promotion-critical safety property, end-to-end: a gate
+     * refusal (close command while the door is already CLOSED) must
+     * never reach the real button push path.
+     */
+    @Test
+    fun voiceCommandRefusalNeverPressesRealButton() =
+        runTest {
+            val viewModel = createViewModel(
+                scope = backgroundScope,
+                authState = AuthState.Authenticated(
+                    User(name = DisplayName("User"), email = Email("user@example.com")),
+                ),
+                fetchOnInit = false,
+            )
+
+            viewModel.voiceCommandMicTap()
+            testDispatcher.scheduler.runCurrent()
+            viewModel.voiceCommandTranscript("close the garage door")
+            advanceUntilIdle()
+
+            assertTrue(viewModel.voiceCommandState.value !is VoiceCommandState.Sent)
+            assertEquals(0, remoteButtonRepository.pushCount, "Refusals must never press")
+        }
+
+    /**
+     * Defense in depth: even if the signed-out UI gating ever regressed
+     * and let a command commit, the auth gate inside
+     * PushRemoteButtonUseCase fails the press without any network call.
+     */
+    @Test
+    fun voiceCommandCommitWhileSignedOutFailsWithoutPressing() =
+        runTest {
+            val viewModel = createViewModel(
+                scope = backgroundScope,
+                authState = AuthState.Unauthenticated,
+                fetchOnInit = false,
+            )
+
+            viewModel.voiceCommandMicTap()
+            testDispatcher.scheduler.runCurrent()
+            viewModel.voiceCommandTranscript("open the garage door")
+            testDispatcher.scheduler.runCurrent()
+            testDispatcher.scheduler.advanceTimeBy(3_001)
+            testDispatcher.scheduler.runCurrent()
+
+            assertEquals(0, remoteButtonRepository.pushCount)
+            assertTrue(viewModel.voiceCommandState.value is VoiceCommandState.Failed)
         }
 
     @Test

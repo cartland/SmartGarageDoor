@@ -18,29 +18,12 @@
 package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.model.DoorPosition
-import com.chriscartland.garage.domain.model.VoiceIntent
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
-class ShadowVoiceCommandEnvironmentTest {
-    @Test
-    fun pressSucceedsWithoutTouchingDoorState() =
-        runTest {
-            val door = MutableStateFlow(VoiceDoorState.CLOSED)
-            val env = ShadowVoiceCommandEnvironment(doorState = door, pressDelayMs = 0L)
-            assertTrue(env.pressButton(VoiceIntent.OPEN))
-            assertEquals(
-                VoiceDoorState.CLOSED,
-                door.value,
-                "Shadow press must never mutate door state",
-            )
-        }
-
-    // The projection is the promotion-critical safety mapping: only the
-    // two clean terminal positions are actionable; transits are MOVING;
+class VoiceDoorStateMapperTest {
+    // The projection is the live-wiring safety mapping: only the two
+    // clean terminal positions are actionable; transits are MOVING;
     // every anomaly and a stale check-in force UNKNOWN (gate refuses).
     @Test
     fun projectionMapsCleanStatesAndDeniesAnomalies() {
