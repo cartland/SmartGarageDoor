@@ -73,7 +73,13 @@ class SimulatedVoiceCommandEnvironment(
         /** Fake button-press round-trip. */
         const val PRESS_DELAY_MS = 600L
 
-        /** Fake door travel time from press to settled state. */
-        const val TRANSIT_MS = 2_500L
+        /**
+         * Fake door travel time from press to settled state. Roughly a
+         * real garage door's travel, and deliberately long enough to
+         * speak a command AT the moving door mid-transit and watch the
+         * gate refuse it (2.5s was over before the recognizer round-trip
+         * finished).
+         */
+        const val TRANSIT_MS = 10_000L
     }
 }
