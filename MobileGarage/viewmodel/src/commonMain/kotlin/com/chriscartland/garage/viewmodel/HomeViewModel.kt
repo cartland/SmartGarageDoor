@@ -38,6 +38,7 @@ import com.chriscartland.garage.usecase.ButtonAckToken
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
 import com.chriscartland.garage.usecase.ButtonStateMachine
 import com.chriscartland.garage.usecase.CheckInStalenessManager
+import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
@@ -45,8 +46,14 @@ import com.chriscartland.garage.usecase.LiveClock
 import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
+import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
+import com.chriscartland.garage.usecase.ShadowVoiceCommandEnvironment
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
+import com.chriscartland.garage.usecase.VoiceCommandController
+import com.chriscartland.garage.usecase.VoiceCommandState
+import com.chriscartland.garage.usecase.VoiceDoorState
+import com.chriscartland.garage.usecase.VoiceDoorStateMapper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -112,6 +119,38 @@ interface HomeViewModel {
      */
     val buttonHealthDisplay: StateFlow<ButtonHealthDisplay>
 
+    /**
+     * Per-user access for the Developer features (same server-maintained
+     * flag that gates Settings → Developer). Gates the Home voice-control
+     * section. Tri-state: `null` (loading or denied), `false`, `true`.
+     */
+    val developerAccess: StateFlow<Boolean?>
+
+    /**
+     * Experimental Home voice-control surface, SHADOW MODE: the gate
+     * reads the real observed door state (projected via
+     * [VoiceDoorStateMapper] — anomalies and stale check-ins refuse),
+     * but the button press is a no-op success. The door is never
+     * touched. Fixed 3s cancel window. State machine:
+     * [VoiceCommandController] in `:usecase`.
+     */
+    val voiceCommandState: StateFlow<VoiceCommandState>
+
+    /** Mic tap: always starts over; cancels a pending command first. */
+    fun voiceCommandMicTap()
+
+    /** Recognizer outcome for the command loop (null = no speech). */
+    fun voiceCommandTranscript(text: String?)
+
+    /** The recognizer launch failed: no recognizer on this device. */
+    fun voiceCommandCaptureUnavailable()
+
+    /**
+     * The Home screen left the foreground: cancels a pending (Armed)
+     * command so nothing commits off-screen.
+     */
+    fun voiceCommandBackgrounded()
+
     fun signInWithGoogle(idToken: GoogleIdToken)
 
     fun fetchCurrentDoorEvent()
@@ -134,6 +173,8 @@ interface HomeViewModel {
 class DefaultHomeViewModel(
     observeDoorEvents: ObserveDoorEventsUseCase,
     observeAuthState: ObserveAuthStateUseCase,
+    private val observeFeatureAccessUseCase: ObserveFeatureAccessUseCase,
+    private val classifyVoiceIntentUseCase: ClassifyVoiceIntentUseCase,
     private val logAppEvent: LogAppEventUseCase,
     private val dispatchers: DispatcherProvider,
     private val fetchCurrentDoorEventUseCase: FetchCurrentDoorEventUseCase,
@@ -205,6 +246,38 @@ class DefaultHomeViewModel(
     private val _isCheckInStale = MutableStateFlow(false)
     override val isCheckInStale: StateFlow<Boolean> = _isCheckInStale
 
+    private val _developerAccess = MutableStateFlow<Boolean?>(null)
+    override val developerAccess: StateFlow<Boolean?> = _developerAccess
+
+    // Shadow-mode voice control: the gate's door view projects the REAL
+    // observed state (stale check-in → UNKNOWN → refuse), so refusals
+    // always match the status card above — it combines the same two
+    // mirrors the card renders from. Seeded synchronously (Eagerly) so
+    // a fresh screen entry gates correctly on the first utterance,
+    // before the combine's first async emission.
+    private val voiceDoorState: StateFlow<VoiceDoorState> =
+        combine(
+            _currentDoorEvent,
+            _isCheckInStale,
+        ) { event, stale ->
+            VoiceDoorStateMapper.project(event.data?.doorPosition, stale)
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = VoiceDoorStateMapper.project(
+                _currentDoorEvent.value.data?.doorPosition,
+                _isCheckInStale.value,
+            ),
+        )
+
+    private val voiceCommandController = VoiceCommandController(
+        classify = classifyVoiceIntentUseCase,
+        environment = ShadowVoiceCommandEnvironment(doorState = voiceDoorState),
+        scope = viewModelScope,
+        // Fixed 3s window on Home (the playground keeps the stepper).
+    )
+    override val voiceCommandState: StateFlow<VoiceCommandState> = voiceCommandController.state
+
     private val stateMachine = ButtonStateMachine(
         doorPosition = observeDoorEvents.position(),
         onSubmit = ::submitButtonPress,
@@ -225,6 +298,9 @@ class DefaultHomeViewModel(
                 Logger.d { "currentDoorEvent collect: $it" }
                 _currentDoorEvent.value = LoadingResult.Complete(it)
             }
+        }
+        viewModelScope.launch(dispatchers.io) {
+            observeFeatureAccessUseCase.developer().collect { _developerAccess.value = it }
         }
         if (fetchOnInit) {
             viewModelScope.launch(dispatchers.io) {
@@ -282,6 +358,14 @@ class DefaultHomeViewModel(
     override fun onButtonTap() {
         stateMachine.onTap()
     }
+
+    override fun voiceCommandMicTap() = voiceCommandController.onMicTap()
+
+    override fun voiceCommandTranscript(text: String?) = voiceCommandController.onTranscript(text)
+
+    override fun voiceCommandCaptureUnavailable() = voiceCommandController.onCaptureUnavailable()
+
+    override fun voiceCommandBackgrounded() = voiceCommandController.onBackgrounded()
 
     override fun log(key: String) {
         viewModelScope.launch(dispatchers.io) {

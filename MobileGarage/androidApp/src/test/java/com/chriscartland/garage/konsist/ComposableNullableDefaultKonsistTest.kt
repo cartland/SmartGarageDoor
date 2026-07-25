@@ -45,7 +45,11 @@ import org.junit.Test
  *   Null distinct from `false` is intentional semantics.
  * - Function types (`(...) -> Unit?` or `((...) -> ...)? = null`) —
  *   optional callbacks. The Composable should still render when no
- *   handler is provided; this is independent of UI shape.
+ *   handler is provided; this is independent of UI shape. Includes
+ *   ANNOTATED function types (`(@Composable () -> Unit)? = null` —
+ *   optional composable slots for flag-gated sections; canonical:
+ *   `HomeContent.voiceControlSection`), whose AST type name collapses
+ *   to just the annotation.
  *
  * Konsist param type names are taken from the source AST. `String?` is
  * the type's nullable form; `String` is non-nullable. Default values
@@ -121,7 +125,15 @@ class ComposableNullableDefaultKonsistTest {
                             if (baseTypeName == "Boolean") return@filter false
                             // Skip function-type parameters — `(...) -> T`
                             // serializes with a `->` in the AST type string.
+                            // An ANNOTATED function type — e.g. the composable
+                            // slot `(@Composable () -> Unit)?` (canonical:
+                            // `HomeContent.voiceControlSection`, a flag-gated
+                            // optional section) — serializes as just
+                            // `@Composable`: the annotation swallows the
+                            // arrow. Treat any annotation-prefixed type name
+                            // as a function-type slot too.
                             if ("->" in baseTypeName) return@filter false
+                            if (baseTypeName.startsWith("@")) return@filter false
                             true
                         }.map { param -> Triple(file.path, fn.name, param) }
                 }

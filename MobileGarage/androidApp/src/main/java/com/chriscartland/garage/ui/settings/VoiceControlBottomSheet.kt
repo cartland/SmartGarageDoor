@@ -40,11 +40,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ArrowDownward
-import androidx.compose.material.icons.outlined.ArrowUpward
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -66,7 +61,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -78,11 +72,14 @@ import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.VoiceIntent
 import com.chriscartland.garage.domain.model.VoiceIntentClassification
 import com.chriscartland.garage.domain.model.VoiceIntentConfidence
+import com.chriscartland.garage.ui.VoiceCommandUi
+import com.chriscartland.garage.ui.displayText
+import com.chriscartland.garage.ui.micContentDescription
+import com.chriscartland.garage.ui.micIcon
 import com.chriscartland.garage.usecase.VoiceCommandController
 import com.chriscartland.garage.usecase.VoiceCommandIgnoreReason
 import com.chriscartland.garage.usecase.VoiceCommandState
 import com.chriscartland.garage.usecase.VoiceDoorState
-import kotlin.math.ceil
 
 private const val ARMED_WINDOW_STEP_MS = 500L
 
@@ -241,7 +238,7 @@ fun VoiceControlSheetContent(
         VoiceCommandStatus(
             state = state,
             armedSecondsLeft = armed?.let {
-                VoiceControlHelpers.secondsLeft(it.windowMs, armedProgress.value)
+                VoiceCommandUi.secondsLeft(it.windowMs, armedProgress.value)
             },
             onCopy = onCopy,
         )
@@ -250,25 +247,6 @@ fun VoiceControlSheetContent(
             onSetArmedWindowMs = onSetArmedWindowMs,
         )
     }
-}
-
-// ADR-009: non-Composable helpers live in a named object.
-private object VoiceControlHelpers {
-    fun secondsLeft(
-        windowMs: Long,
-        progress: Float,
-    ): Int = ceil((1f - progress) * windowMs / 1000f).toInt().coerceAtLeast(1)
-
-    // "0.5", "1", "1.5" — trims the trailing .0 on whole seconds.
-    fun windowSecondsLabel(windowMs: Long): String {
-        val seconds = windowMs / 1000f
-        val whole = seconds.toInt()
-        return if (seconds == whole.toFloat()) whole.toString() else seconds.toString()
-    }
-
-    // Door-motion metaphor: up = opening, down = closing.
-    fun directionIcon(intent: VoiceIntent): ImageVector =
-        if (intent == VoiceIntent.CLOSE) Icons.Outlined.ArrowDownward else Icons.Outlined.ArrowUpward
 }
 
 @Composable
@@ -376,7 +354,7 @@ private fun VoiceCommandStatus(
                         } else {
                             R.string.voice_control_armed_opening
                         },
-                        armedSecondsLeft ?: VoiceControlHelpers.secondsLeft(state.windowMs, 0f),
+                        armedSecondsLeft ?: VoiceCommandUi.secondsLeft(state.windowMs, 0f),
                     ),
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center,
@@ -481,7 +459,7 @@ private fun CancelWindowStepper(
         Text(
             text = stringResource(
                 R.string.voice_control_window_label,
-                VoiceControlHelpers.windowSecondsLabel(armedWindowMs),
+                VoiceCommandUi.windowSecondsLabel(armedWindowMs),
             ),
             style = MaterialTheme.typography.bodyMedium,
         )
@@ -506,51 +484,6 @@ private fun CancelWindowStepper(
         }
     }
 }
-
-private fun VoiceCommandState.micIcon(): ImageVector =
-    when (this) {
-        VoiceCommandState.Ready, is VoiceCommandState.Listening, is VoiceCommandState.Ignored ->
-            Icons.Outlined.Mic
-        is VoiceCommandState.Armed -> VoiceControlHelpers.directionIcon(intent)
-        is VoiceCommandState.Sending -> VoiceControlHelpers.directionIcon(intent)
-        is VoiceCommandState.Sent -> Icons.Outlined.Check
-        is VoiceCommandState.Failed -> Icons.Outlined.ErrorOutline
-    }
-
-@Composable
-private fun VoiceCommandState.micContentDescription(): String =
-    when (this) {
-        VoiceCommandState.Ready, is VoiceCommandState.Ignored ->
-            stringResource(R.string.voice_control_mic_cd_ready)
-        is VoiceCommandState.Listening -> stringResource(R.string.voice_control_mic_cd_listening)
-        is VoiceCommandState.Armed -> stringResource(R.string.voice_control_mic_cd_armed)
-        is VoiceCommandState.Sending -> stringResource(R.string.voice_control_mic_cd_sending)
-        is VoiceCommandState.Sent, is VoiceCommandState.Failed ->
-            stringResource(R.string.voice_control_mic_cd_ready)
-    }
-
-@Composable
-private fun VoiceCommandIgnoreReason.displayText(): String =
-    when (this) {
-        VoiceCommandIgnoreReason.NO_SPEECH ->
-            stringResource(R.string.voice_control_ignored_no_speech)
-        VoiceCommandIgnoreReason.RECOGNIZER_UNAVAILABLE ->
-            stringResource(R.string.voice_control_ignored_unavailable)
-        VoiceCommandIgnoreReason.NOT_A_COMMAND ->
-            stringResource(R.string.voice_control_ignored_not_a_command)
-        VoiceCommandIgnoreReason.NOT_CONFIDENT ->
-            stringResource(R.string.voice_control_ignored_not_confident)
-        VoiceCommandIgnoreReason.DOOR_ALREADY_OPEN ->
-            stringResource(R.string.voice_control_ignored_already_open)
-        VoiceCommandIgnoreReason.DOOR_ALREADY_CLOSED ->
-            stringResource(R.string.voice_control_ignored_already_closed)
-        VoiceCommandIgnoreReason.DOOR_MOVING ->
-            stringResource(R.string.voice_control_ignored_moving)
-        VoiceCommandIgnoreReason.DOOR_STATE_UNKNOWN ->
-            stringResource(R.string.voice_control_ignored_state_unknown)
-        VoiceCommandIgnoreReason.DOOR_STATE_CHANGED ->
-            stringResource(R.string.voice_control_ignored_state_changed)
-    }
 
 // `private` so `checkPreviewCoverage` exempts them (same rationale as
 // NavRailBottomSheet and VoiceInputBottomSheet: developer-gated sheet

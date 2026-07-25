@@ -167,6 +167,10 @@ fun HomeContent(
     onAlertAction: (HomeAlert) -> Unit = {},
     onRemoteButtonTap: () -> Unit = {},
     onSignIn: () -> Unit = {},
+    // Developer-flag-gated voice-control section (shadow mode). Null =
+    // hidden. A slot (not data + lambdas) so the recognizer plumbing
+    // stays in HomeVoiceControlSection and fixtures stay untouched.
+    voiceControlSection: (@Composable () -> Unit)? = null,
 ) {
     // Local UI state for the per-pill info bottom sheets. Tap a pill to
     // open the matching sheet; tap outside or drag down to dismiss. Pure
@@ -242,6 +246,12 @@ fun HomeContent(
                     }
                 }
             }
+
+            if (voiceControlSection != null) {
+                item(key = "voice") {
+                    voiceControlSection()
+                }
+            }
         }
     }
     when (openInfoSheet) {
@@ -263,15 +273,21 @@ fun HomeContent(
 private enum class HomeInfoSheet { DoorStatus, RemoteControl }
 
 @Composable
-private fun HomeSection(
+internal fun HomeSection(
     label: String,
+    modifier: Modifier = Modifier,
     trailing: @Composable () -> Unit = {},
     content: @Composable () -> Unit,
 ) {
     // Outer Column owns the gap between header row and body card via
     // spacedBy (parent-owns-gaps rule). Header row has no vertical
     // padding — the parent LazyColumn owns the gap above the section.
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.SectionHeaderBottom)) {
+    // `internal` (not private) so sibling Home sections in this package
+    // (HomeVoiceControlSection) share the exact section language.
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(Spacing.SectionHeaderBottom),
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

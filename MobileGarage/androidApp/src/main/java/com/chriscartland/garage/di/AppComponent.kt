@@ -337,6 +337,8 @@ abstract class AppComponent(
     fun provideHomeViewModel(
         observeDoorEvents: ObserveDoorEventsUseCase,
         observeAuthState: ObserveAuthStateUseCase,
+        observeFeatureAccess: ObserveFeatureAccessUseCase,
+        classifyVoiceIntent: ClassifyVoiceIntentUseCase,
         logAppEvent: LogAppEventUseCase,
         dispatchers: DispatcherProvider,
         fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
@@ -352,6 +354,8 @@ abstract class AppComponent(
         DefaultHomeViewModel(
             observeDoorEvents = observeDoorEvents,
             observeAuthState = observeAuthState,
+            observeFeatureAccessUseCase = observeFeatureAccess,
+            classifyVoiceIntentUseCase = classifyVoiceIntent,
             logAppEvent = logAppEvent,
             dispatchers = dispatchers,
             fetchCurrentDoorEventUseCase = fetchCurrentDoorEvent,
