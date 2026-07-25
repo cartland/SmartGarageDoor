@@ -18,9 +18,6 @@
 package com.chriscartland.garage.usecase
 
 import com.chriscartland.garage.domain.model.DoorPosition
-import com.chriscartland.garage.domain.model.VoiceIntent
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Projects the rich door model into the voice-command gate's view.
@@ -53,27 +50,5 @@ object VoiceDoorStateMapper {
             null,
             -> VoiceDoorState.UNKNOWN
         }
-    }
-}
-
-/**
- * Shadow-mode world for the Home voice surface: the gate reads the REAL
- * observed door state (so refusals always match the status card the
- * user is looking at), but [pressButton] is a no-op success — nothing
- * is ever sent to the door. Promoting to the real thing later swaps
- * only this class for one whose press calls `PushRemoteButtonUseCase`.
- */
-class ShadowVoiceCommandEnvironment(
-    override val doorState: StateFlow<VoiceDoorState>,
-    private val pressDelayMs: Long = PRESS_DELAY_MS,
-) : VoiceCommandEnvironment {
-    override suspend fun pressButton(intent: VoiceIntent): Boolean {
-        // Fake round-trip so Sending renders like the real thing.
-        delay(pressDelayMs)
-        return true
-    }
-
-    companion object {
-        const val PRESS_DELAY_MS = 600L
     }
 }

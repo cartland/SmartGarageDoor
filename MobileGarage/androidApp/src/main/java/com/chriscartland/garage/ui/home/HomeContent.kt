@@ -167,9 +167,10 @@ fun HomeContent(
     onAlertAction: (HomeAlert) -> Unit = {},
     onRemoteButtonTap: () -> Unit = {},
     onSignIn: () -> Unit = {},
-    // Developer-flag-gated voice-control section (shadow mode). Null =
-    // hidden. A slot (not data + lambdas) so the recognizer plumbing
-    // stays in HomeVoiceControlSection and fixtures stay untouched.
+    // Developer-flag-gated voice-control section (live: commits press
+    // the real remote button). Null = hidden. A slot (not data +
+    // lambdas) so the recognizer plumbing stays in
+    // HomeVoiceControlSection and fixtures stay untouched.
     voiceControlSection: (@Composable () -> Unit)? = null,
 ) {
     // Local UI state for the per-pill info bottom sheets. Tap a pill to

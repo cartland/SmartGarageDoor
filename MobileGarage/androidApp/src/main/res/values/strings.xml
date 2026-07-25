@@ -148,10 +148,10 @@
     <!-- Home — voice-control section (developer-flag-gated shadow mode:
          the gate reads real door state; the press is simulated). -->
     <string name="home_section_voice">Voice control</string>
-    <string name="home_voice_simulated_pill">Simulated</string>
     <string name="home_voice_ready_title">Voice command</string>
     <string name="home_voice_hint">Try “open the garage door”</string>
-    <string name="home_voice_shadow_subtitle">Simulated. Nothing was sent to the door.</string>
+    <string name="home_voice_sending_subtitle">Sending the command to the door</string>
+    <string name="home_voice_sent_subtitle">The door should respond shortly</string>
     <string name="home_voice_failed_subtitle">Try again</string>
 
     <!-- Home — signed-out remote-button placeholder. -->

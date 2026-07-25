@@ -48,7 +48,7 @@ import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
-import com.chriscartland.garage.usecase.ShadowVoiceCommandEnvironment
+import com.chriscartland.garage.usecase.RemoteButtonVoiceCommandEnvironment
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.VoiceCommandController
 import com.chriscartland.garage.usecase.VoiceCommandState
@@ -127,12 +127,13 @@ interface HomeViewModel {
     val developerAccess: StateFlow<Boolean?>
 
     /**
-     * Experimental Home voice-control surface, SHADOW MODE: the gate
+     * Home voice-control surface (developer-flag-gated), LIVE: the gate
      * reads the real observed door state (projected via
      * [VoiceDoorStateMapper] — anomalies and stale check-ins refuse),
-     * but the button press is a no-op success. The door is never
-     * touched. Fixed 3s cancel window. State machine:
-     * [VoiceCommandController] in `:usecase`.
+     * and a committed command presses the REAL remote garage button
+     * through the same auth-gated push path as the manual button.
+     * Fixed 3s cancel window. State machine: [VoiceCommandController]
+     * in `:usecase`.
      */
     val voiceCommandState: StateFlow<VoiceCommandState>
 
@@ -249,12 +250,12 @@ class DefaultHomeViewModel(
     private val _developerAccess = MutableStateFlow<Boolean?>(null)
     override val developerAccess: StateFlow<Boolean?> = _developerAccess
 
-    // Shadow-mode voice control: the gate's door view projects the REAL
-    // observed state (stale check-in → UNKNOWN → refuse), so refusals
-    // always match the status card above — it combines the same two
-    // mirrors the card renders from. Seeded synchronously (Eagerly) so
-    // a fresh screen entry gates correctly on the first utterance,
-    // before the combine's first async emission.
+    // Voice control: the gate's door view projects the REAL observed
+    // state (stale check-in → UNKNOWN → refuse), so refusals always
+    // match the status card above — it combines the same two mirrors
+    // the card renders from. Seeded synchronously (Eagerly) so a fresh
+    // screen entry gates correctly on the first utterance, before the
+    // combine's first async emission.
     private val voiceDoorState: StateFlow<VoiceDoorState> =
         combine(
             _currentDoorEvent,
@@ -272,7 +273,21 @@ class DefaultHomeViewModel(
 
     private val voiceCommandController = VoiceCommandController(
         classify = classifyVoiceIntentUseCase,
-        environment = ShadowVoiceCommandEnvironment(doorState = voiceDoorState),
+        environment = RemoteButtonVoiceCommandEnvironment(
+            doorState = voiceDoorState,
+            pushRemoteButton = pushRemoteButtonUseCase,
+            createButtonAckToken = {
+                // The `-voice` suffix rides in the appVersion slot so server
+                // logs can tell voice presses from manual ones; the server
+                // treats the token as opaque (ack-equality only).
+                ButtonAckToken.create(
+                    currentTimeMillis = kotlinx.datetime.Clock.System
+                        .now()
+                        .toEpochMilliseconds(),
+                    appVersion = "$appVersion-voice",
+                )
+            },
+        ),
         scope = viewModelScope,
         // Fixed 3s window on Home (the playground keeps the stepper).
     )

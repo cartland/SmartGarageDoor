@@ -139,8 +139,9 @@ sealed interface VoiceCommandState {
 /**
  * The world the voice-command loop acts on: the door's current state
  * and the one action it can take. The playground injects
- * [SimulatedVoiceCommandEnvironment]; a future Home-screen wiring
- * injects the real door repository + remote button press.
+ * [SimulatedVoiceCommandEnvironment]; the Home surface injects
+ * [RemoteButtonVoiceCommandEnvironment] (real door state in, real
+ * remote button press out).
  *
  * Contract: [pressButton] reports failure by returning `false`, never
  * by throwing.
