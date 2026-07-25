@@ -154,3 +154,51 @@ recognition quality is device-only, and that is Google's code, not ours.
 - VM: fake `SpeechInputBridge` drives Listening → outcome transitions.
 - Device gap: recognizer quality only; all accept/execute decisions are
   CLI-verified.
+
+## Eval framework (shipped with the classifier, `:usecase` commonTest)
+
+Beyond the grammar unit-test table, classifier engines are scored
+against a gold corpus on a **strictness axis** — correctness here is
+asymmetric, not pass/fail:
+
+- **EXACT** (best) — the predicted tier equals what the gold label
+  expects (UNKNOWN → ignored; recognizable-but-not-actionable → MEDIUM
+  with the right direction; actionable → HIGH with the right direction).
+- **STRICTER** (okay) — the engine under-committed: right direction at
+  a lower tier, or ignored something recognizable. Costs recall, never
+  safety.
+- **LESS_STRICT** (bad) — the engine over-committed: a higher tier than
+  the gold justifies, any direction claim on a gold-UNKNOWN utterance,
+  or a wrong direction at any tier. The subset at HIGH is a **safety
+  violation** and gates at ZERO — that assertion is never relaxed.
+
+Plus **action precision** (of HIGH predictions, fraction that should
+act — must stay 1.0) and **action recall** (of gold-actionable
+utterances, fraction acted on — the price of strictness, reported so
+grammar changes show their cost).
+
+Pieces (all in `MobileGarage/usecase/src/commonTest/`):
+
+- `VoiceIntentEval` — engine-agnostic harness; run any
+  `VoiceIntentClassifier` against any corpus, get a `VoiceEvalReport`.
+- `VoiceEvalCorpus` — 87 gold-labeled ASR-style transcripts across six
+  lenses (imperative, question, negation, asrnoise, smalltalk,
+  indirect). Generated 2026-07-24 by an adversarial multi-agent pass:
+  six generator lenses, then two independent judge agents labeled every
+  case from scratch against the labeling policy; cases kept only with
+  2-of-3 consensus, judge consensus overriding the generator. Grow it
+  freely — real device transcripts (copied from the playground) are the
+  best source of new cases.
+- `RuleBasedVoiceIntentEvalTest` — runs Rules v2 over the corpus;
+  hard-gates safety violations at 0 and pins the exact/stricter/
+  lessStrict counts as baselines so any rule change's corpus effect is
+  a deliberate, reviewed baseline update in the same PR.
+
+Rules v2 baseline (2026-07-24): 66/17/4 of 87 (76%/20%/4%), safety 0,
+action precision 100%, action recall 44.4%. The 4 lessStrict are
+mangled-object ASR cases at MEDIUM ("close the garage store") — known
+and bounded, deliberately not overfitted away; the recall ceiling is
+dominated by compound/preamble imperatives ("open the garage door and
+turn on the lights") that the exact-imperative HIGH grammar rejects by
+design. Both are the first candidates to revisit when promoting new
+patterns to HIGH or adding an engine.
