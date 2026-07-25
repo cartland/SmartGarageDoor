@@ -15,6 +15,11 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.22.6
+
+- **Voice command loop with a cancel window (experimental playground, simulated door).** Settings → Developer gains a "Voice control" sheet that runs the full voice-to-action loop against a pretend door: tap the mic, speak, and a High-confidence command arms a 3-second cancel window (filling ring + "Opening in 3 · Tap to cancel"). Tapping during the window cancels and immediately re-listens; letting it complete presses a simulated button and the fake door moves. Anything non-actionable (loose phrasing, questions, wrong door state) shows a brief explanation instead, tappable to copy the verdict. A segmented control places the simulated door in any state to exercise the gate (already open, moving), and the cancel window is adjustable 2–5 seconds. The real door is never touched from this screen.
+- **Internal:** #1120 — `VoiceCommandController` state machine + `VoiceCommandEnvironment` in `:usecase` (19 virtual-time tests: only HIGH arms, gate checked at arm AND commit, cancel-relisten, nothing commits off-screen, Sending not cancellable) + `SimulatedVoiceCommandEnvironment`. Confirmed UX design recorded in `docs/VOICE_COMMANDS.md` § Command UX. Real wiring later = environment swap + Home surface. Developer-gated experiment; patch.
+
 ## 2.22.5
 
 - **Rules v3 voice classification (experimental playground).** A second adversarial eval round, armed with the engine internals, found one real hole ("open my door" reached the actionable tier via the possessive, though it is not unambiguously the garage door) and 64 loose direction claims: other doors ("close the car door"), reported speech ("she said close the garage door"), self-plans ("ill close the garage later"), and negations without classic tokens ("no need to open the garage door"). All fixed: possessives now count only with garage objects, and new reported-speech, self-plan, and phrase-shape checks force Unknown. "i want you to close the door" and "can you open the door" still classify at Medium. The playground shows "Rules v3".

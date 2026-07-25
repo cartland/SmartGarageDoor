@@ -62,6 +62,7 @@ import com.chriscartland.garage.ui.settings.SettingsContent
 import com.chriscartland.garage.ui.settings.SnoozeBottomSheet
 import com.chriscartland.garage.ui.settings.SnoozeRowState
 import com.chriscartland.garage.ui.settings.VersionBottomSheet
+import com.chriscartland.garage.ui.settings.VoiceControlBottomSheet
 import com.chriscartland.garage.ui.settings.VoiceInputBottomSheet
 import com.chriscartland.garage.version.AppVersion
 import com.chriscartland.garage.viewmodel.ProfileViewModel
@@ -124,6 +125,7 @@ fun ProfileContent(
     var versionSheetOpen by rememberSaveable { mutableStateOf(false) }
     var navRailSheetOpen by rememberSaveable { mutableStateOf(false) }
     var voiceSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var voiceControlSheetOpen by rememberSaveable { mutableStateOf(false) }
 
     // Experimental voice-input playground (Settings → Developer → Voice
     // input). The system speech dialog (RecognizerIntent) records and
@@ -158,6 +160,13 @@ fun ProfileContent(
             resolved.reportVoiceExperimentUnavailable()
         }
     }
+
+    // Experimental voice-command playground (Settings → Developer →
+    // Voice control): the full command loop against a simulated door.
+    // Recognizer plumbing lives inside VoiceControlBottomSheet.
+    val voiceCommandState by resolved.voiceCommandState.collectAsState()
+    val voiceCommandDoorState by resolved.voiceCommandDoorState.collectAsState()
+    val voiceCommandArmedWindowMs by resolved.voiceCommandArmedWindowMs.collectAsState()
 
     // TTL-gated revalidate, once per screen entry (STATUS_CACHE_PLAN.md
     // D3). The cached snooze state renders instantly (hydrated across
@@ -273,6 +282,7 @@ fun ProfileContent(
             onLayoutDebugChange = resolved::setLayoutDebugEnabled,
             onNavRailTap = { navRailSheetOpen = true },
             onVoiceInputTap = { voiceSheetOpen = true },
+            onVoiceControlTap = { voiceControlSheetOpen = true },
         )
         SnackbarHost(
             hostState = snackbarHostState,
@@ -344,6 +354,34 @@ fun ProfileContent(
                 }
             },
             onDismiss = { voiceSheetOpen = false },
+        )
+    }
+
+    if (voiceControlSheetOpen) {
+        VoiceControlBottomSheet(
+            state = voiceCommandState,
+            doorState = voiceCommandDoorState,
+            armedWindowMs = voiceCommandArmedWindowMs,
+            onMicTap = resolved::voiceCommandMicTap,
+            onTranscript = resolved::voiceCommandTranscript,
+            onCaptureUnavailable = resolved::voiceCommandCaptureUnavailable,
+            onBackgrounded = resolved::voiceCommandBackgrounded,
+            onSetDoorState = resolved::setVoiceCommandDoorState,
+            onSetArmedWindowMs = resolved::setVoiceCommandArmedWindowMs,
+            onCopy = { label, value ->
+                clipboardManager.setText(AnnotatedString(value))
+                // Same Android 13+ gate as the Version sheet: the OS
+                // clipboard chip already confirms the copy there.
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    Toast
+                        .makeText(
+                            context,
+                            resources.getString(R.string.profile_version_toast_copied, label),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                }
+            },
+            onDismiss = { voiceControlSheetOpen = false },
         )
     }
 

@@ -144,6 +144,46 @@ recognition quality is device-only, and that is Google's code, not ours.
    proves too brittle in practice (revisit only with real missed-command
    data, and keep the imperative-only rule).
 
+## Command UX: cancel-window loop (confirmed design; simulated playground shipped)
+
+The interaction design for the action loop was settled 2026-07-24 and
+supersedes the sketches above where they differ (notably: the cancel
+window replaces the `ButtonStateMachine` confirmed-submit idea as the
+confirmation step, and v1 capture is `RecognizerIntent`, not a
+`SpeechRecognizer` bridge). Confirmed decisions:
+
+- **One button is the whole interface.** A tap always means "listen to
+  me now": it starts over from any pre-commit state, cancelling a
+  pending command and immediately re-listening (the correction flow —
+  "close… no wait, open" — is one tap + re-speak).
+- **Capture is `RecognizerIntent` for v1** (system dialog = the
+  recording state; no mic permission). An in-app `SpeechRecognizer`
+  icon-morph is a later polish option.
+- **Only HIGH arms.** MEDIUM/UNKNOWN/no-speech/gate-blocked render a
+  ~4s transient explanation chip (tap-to-copy the structured verdict,
+  feeding the eval corpus), then auto-return to Ready.
+- **The door-state gate runs twice**: at arm time (open only when
+  closed, close only when open; moving/unknown refuse) and again when
+  the cancel window elapses — a door that moved mid-countdown aborts.
+- **The cancel window** (default 3s, adjustable 2–5s) renders as a
+  filling ring around the button with a countdown line ("Opening in 3 ·
+  Tap to cancel"). Ring completion commits; the ~1s Sending state is
+  not cancellable (a press cannot be unsent) and the button disables.
+- **Nothing commits off-screen**: lifecycle stop or sheet dismissal
+  cancels a pending (Armed) command.
+
+Implementation (shipped 2.22.6, simulated only): the state machine is
+`VoiceCommandController` in `:usecase` (`Ready → Listening → Armed →
+Sending → Sent/Failed/Ignored`), acting on a `VoiceCommandEnvironment`
+(door state + `pressButton`). The Settings → Developer → **Voice
+control** sheet (`VoiceControlBottomSheet`) wires the real controller to
+`SimulatedVoiceCommandEnvironment` — an in-memory door with a pretend
+button and fake transit, plus a segmented control to place the door in
+any state to exercise every gate path. The real door is never touched.
+Promoting to the real thing is an environment swap (door repository
+projection + `PushRemoteButtonUseCase`) plus a Home-screen surface —
+the controller, gate, and tests carry over unchanged.
+
 ## Testing plan
 
 - Parser: table-driven accept/reject test mirroring the table above.

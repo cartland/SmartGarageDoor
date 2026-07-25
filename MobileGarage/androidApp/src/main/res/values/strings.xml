@@ -97,6 +97,49 @@
     <string name="voice_copy_label_transcript">transcript</string>
     <string name="voice_copy_label_verdict">verdict</string>
 
+    <!-- Settings → Developer → Voice control (experimental playground).
+         The full voice-command loop (mic → classify → gate → cancel
+         window → commit) against a SIMULATED door. No real door action
+         is ever taken from this screen. -->
+    <string name="settings_developer_voice_control_title">Voice control</string>
+    <string name="settings_developer_voice_control_subtitle">Experimental. Voice to action with a simulated door.</string>
+    <string name="voice_control_sheet_title">Voice control</string>
+    <string name="voice_control_disclaimer">Simulated playground. Commands press a pretend button and move a pretend door. The real door is never touched.</string>
+    <string name="voice_control_simulated_door_label">Simulated door</string>
+    <string name="voice_door_closed">Closed</string>
+    <string name="voice_door_open">Open</string>
+    <string name="voice_door_moving">Moving</string>
+    <string name="voice_door_unknown">Unknown</string>
+    <string name="voice_control_ready_hint">Tap the mic, then say a command like “open the garage door”</string>
+    <string name="voice_control_listening">Listening…</string>
+    <!-- Heard transcript, quoted. %1$s is the raw transcript. -->
+    <string name="voice_control_transcript_quote">“%1$s”</string>
+    <!-- Countdown line while a command is armed. %1$d is seconds left. -->
+    <string name="voice_control_armed_opening">Opening in %1$d · Tap to cancel</string>
+    <string name="voice_control_armed_closing">Closing in %1$d · Tap to cancel</string>
+    <string name="voice_control_sending">Pressing the button…</string>
+    <string name="voice_control_sent">Command sent</string>
+    <string name="voice_control_failed">Button press failed</string>
+    <string name="voice_control_ignored_no_speech">No speech captured</string>
+    <string name="voice_control_ignored_unavailable">Speech recognition is not available on this device</string>
+    <string name="voice_control_ignored_not_a_command">No command heard</string>
+    <string name="voice_control_ignored_not_confident">Heard a command, but not confident enough to act</string>
+    <string name="voice_control_ignored_already_open">The door is already open</string>
+    <string name="voice_control_ignored_already_closed">The door is already closed</string>
+    <string name="voice_control_ignored_moving">The door is moving</string>
+    <string name="voice_control_ignored_state_unknown">Door state is unknown</string>
+    <string name="voice_control_ignored_state_changed">Door state changed before sending</string>
+    <string name="voice_control_copy_hint">Tap the message to copy details</string>
+    <!-- Cancel-window stepper. %1$d is seconds. -->
+    <string name="voice_control_window_label">Cancel window: %1$d seconds</string>
+    <string name="voice_control_window_decrease">Shorten cancel window</string>
+    <string name="voice_control_window_increase">Lengthen cancel window</string>
+    <!-- Mic button content descriptions per state. -->
+    <string name="voice_control_mic_cd_ready">Start voice command</string>
+    <string name="voice_control_mic_cd_listening">Listening</string>
+    <string name="voice_control_mic_cd_armed">Cancel and speak again</string>
+    <string name="voice_control_mic_cd_sending">Sending command</string>
+
     <!-- Home screen — section labels. -->
     <string name="home_section_status">Status</string>
     <string name="home_section_remote_control">Remote control</string>

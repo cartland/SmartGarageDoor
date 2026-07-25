@@ -41,6 +41,7 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.NotificationsPaused
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.SettingsVoice
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.VerticalAlignCenter
 import androidx.compose.material.icons.outlined.Watch
@@ -144,6 +145,7 @@ fun SettingsContent(
     onLayoutDebugChange: (Boolean) -> Unit = {},
     onNavRailTap: () -> Unit = {},
     onVoiceInputTap: () -> Unit = {},
+    onVoiceControlTap: () -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -336,6 +338,14 @@ fun SettingsContent(
                         subtitle = stringResource(R.string.settings_developer_voice_input_subtitle),
                         showChevron = true,
                         onClick = onVoiceInputTap,
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
+                    SettingsRow(
+                        icon = Icons.Outlined.SettingsVoice,
+                        title = stringResource(R.string.settings_developer_voice_control_title),
+                        subtitle = stringResource(R.string.settings_developer_voice_control_subtitle),
+                        showChevron = true,
+                        onClick = onVoiceControlTap,
                     )
                 }
             }
