@@ -7,6 +7,12 @@ last_verified: 2026-07-25
 
 Status: draft for review. Companion to ADR-021 (state ownership), ADR-022 (observable types), ADR-019 (repository scope), ADR-034 (persisted status snapshots).
 
+**Execution order for the defects and tensions below lives in
+[`DATA_CACHING_REMEDIATION_PLAN.md`](DATA_CACHING_REMEDIATION_PLAN.md).**
+Start there before acting on anything in this document — the plan
+records which findings were independently verified and which were not,
+and it sequences the fixes so that earlier phases make later ones safe.
+
 All paths are relative to `MobileGarage/` unless prefixed with `scripts/` or `.github/`. Line numbers were read at the time of writing; treat them as anchors, not contracts.
 
 ---
