@@ -346,6 +346,56 @@ git checkout android/M                 # 1. move HEAD to the commit you want to 
 
 **Versioning rule (see [CHANGELOG.md](MobileGarage/CHANGELOG.md#versioning)):** major = rewrite or core-experience shift; minor = added or removed user-facing feature/capability; patch = fixes, polish, refactors. `CHANGELOG.md` logs every version; `distribution/whatsnew/` gets one line per minor/major (patches roll up).
 
+### Releasing from a git worktree (applies to android / ios / wear)
+
+Background jobs routinely run in a worktree under `.claude/worktrees/`, and
+`main` is normally checked out in the primary checkout. Git refuses to check
+out the same branch twice, so **a worktree session can never be "on main"** —
+which collides with the release scripts in several ways. Hit end-to-end
+releasing `android/272` + `ios/9` (2026-07-26).
+
+**1. The "must be on main" gate — `--confirm-hash` is the sanctioned override.**
+All three release scripts gate on `[ -z "$CONFIRM_HASH" ] && [ "$CURRENT_BRANCH" != "main" ]`
+(`release-android.sh:439`, `release-ios.sh:389`). The gate's own comment reads
+*"Must be on main (when tagging HEAD) — override via `--confirm-hash`"*, so this
+is the documented path, **not** a misuse of a rollback flag. Rollback is a
+*separate* gate (`--confirm-rollback-from`) that only engages when the target is
+behind the latest tag; releasing forward never trips it. Recipe:
+```bash
+git checkout -b release/<lane>-<N> origin/main
+git rev-parse HEAD; git rev-parse origin/main     # MUST be identical — this is what makes the override honest
+./scripts/validate.sh                              # marker is keyed to the commit
+./scripts/release-android.sh --dry-run --confirm-tag android/N --confirm-hash <sha>
+./scripts/release-android.sh          --confirm-tag android/N --confirm-hash <sha>
+```
+
+**2. `--check` does NOT know about this state — its printed command will fail.**
+`--check` assumes you're on `main` and prints a bare
+`--confirm-tag android/N`, which then dies at the branch gate. This is the one
+**exception to the "copy-paste exactly what `--check` prints" rule**; you must
+append `--confirm-hash <sha>` yourself. Everything else `--check` reports
+(validation state, changelog, next tag) is still authoritative.
+
+**3. The real safety net is server-side, so the override is not a blind spot.**
+Both `release-android.yml` and `release-ios.yml` run a **`Verify tagged commit is
+on main`** step before building. A tag cut from a commit that isn't an ancestor
+of `main` fails there, not in TestFlight/Play. Always confirm that step is
+`success` when reporting a release.
+
+**4. `gh pr merge --delete-branch` errors in a worktree — but the merge SUCCEEDED.**
+```
+failed to run git: fatal: 'main' is already used by worktree at '/…/SmartGarageDoor'
+```
+gh performs the remote merge first, then tries to check out `main` locally to
+delete the branch. Only that local cleanup fails. **Never re-run the merge** —
+verify with `gh pr view <N> --json state,mergedAt` (expect `MERGED`). Remote
+branch deletion still happens via the repo-level `delete_branch_on_merge: true`.
+
+**5. `ExitWorktree` cannot rescue you here.** It only acts on worktrees created
+by `EnterWorktree` *in the same session*. When the job *started* in a worktree
+(the normal background-job case), it is an explicit no-op. Don't burn a turn on
+it; use `--confirm-hash`.
+
 ### Play Store track-state log
 
 `.github/workflows/play-track-snapshot.yml` records the current Play Store release-track state (internal / alpha / beta / production: versionCode → versionName, status, staged-rollout %) onto a single long-lived GitHub issue labelled `play-track-log`. The **latest** snapshot is written to the issue **body** (overwritten each run) and **also** appended as a **comment** (immutable, append-only history). It rolls over to a fresh issue past 1000 comments. Read-only against the store: `edits.insert` → `edits.tracks.list` → `edits.delete` (never commits). Reuses the `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` secret (the same SA that uploads — it has read access).
@@ -570,7 +620,7 @@ Do not just tell the user to run it — the next Stop hook fires before they can
 
 ### Releasing iOS
 
-**SHIPPED + verified end-to-end (`ios/1` = 0.1.0 uploaded to TestFlight, 2026-06-30).** `scripts/release-ios.sh` + `.github/workflows/release-ios.yml` mirror the Android release model. Flow: `./scripts/validate-ios.sh` (writes `.claude/.ios-validation-passed`) → `./scripts/release-ios.sh --check` → `--confirm-tag ios/N`. The tag `ios/N` sets `CFBundleVersion = N`; `MARKETING_VERSION` (X.Y.Z, from `project.yml`) drives the `MobileGarage/iosApp/CHANGELOG.md` gate. Uploads to **TestFlight Internal only**.
+**SHIPPED + verified end-to-end (`ios/1` = 0.1.0 uploaded to TestFlight, 2026-06-30).** `scripts/release-ios.sh` + `.github/workflows/release-ios.yml` mirror the Android release model. Flow: `./scripts/validate-ios.sh` (writes `.claude/.ios-validation-passed`) → `./scripts/release-ios.sh --check` → `--confirm-tag ios/N`. (Releasing from a worktree session? See § "Releasing from a git worktree" — `--check`'s printed command needs `--confirm-hash` appended.) The tag `ios/N` sets `CFBundleVersion = N`; `MARKETING_VERSION` (X.Y.Z, from `project.yml`) drives the `MobileGarage/iosApp/CHANGELOG.md` gate. Uploads to **TestFlight Internal only**.
 
 **Full runbook — Apple/App Store Connect/Firebase setup, the secret-vs-committed map, build-numbering, and every gotcha: [`docs/IOS_RELEASE_SETUP.md`](docs/IOS_RELEASE_SETUP.md).** Load-bearing points:
 
