@@ -28,7 +28,9 @@ fixed first, before any new rule is written.
 Each phase makes the next one safe:
 
 1. **Phase 0** makes checks run at all, so later phases cannot silently regress.
-2. **Phase 1** fixes the one defect with real user-visible impact.
+2. **Phase 1** fixes the defects with real user-visible impact —
+   1a first (make the sign-out trigger trustworthy), then 1b (widen what
+   it clears).
 3. **Phase 2** makes existing checks capable of failing.
 4. **Phase 3** widens static analysis to the modules that hold the logic.
 5. **Phase 4** adds invariant tests for the rule *categories* prose can't express.
@@ -86,14 +88,69 @@ its siblings (a placeholder `google-services.json` on Dependabot runs).
 **Exit criteria.** A PR that violates any of the 33 rules fails CI
 without a human running anything locally.
 
-**Follow-on.** Keep the CI job and `validate.sh` in sync. The task list
-now lives in two places; a future cleanup could have both read one
-shared list, but duplicating 33 task names is not worth a build-script
-abstraction until it drifts once.
+**Implemented.** The `architectureChecks` aggregate task discovers
+membership by name (`check[A-Z]…` on the root project) rather than
+listing it, so registering a check opts it into CI on day one — a
+hand-maintained YAML list would silently omit the next one added. The
+two lists can now drift in one direction only: a new check is enforced
+by CI even if nobody adds a `validate.sh` step. The dangerous direction
+(runs locally, not in CI) is structurally impossible.
 
 ---
 
-## Phase 1 — P0: sign-out does not clear in-memory caches
+## Phase 1a — P0 prerequisite: iOS fires a spurious sign-out on every cold start
+
+**Status: Verified** by reading the whole path. This was found while
+preparing Phase 1b and it **reorders the plan** — 1b must not ship
+first, because it would amplify this bug rather than expose it.
+
+The chain, on a signed-in iOS cold start:
+
+1. `IosAuthUserStateHolder` holds
+   `MutableStateFlow<AuthUserInfo?>(null)` — pre-seeded `null`.
+2. It is a `StateFlow`, so its first collector immediately receives that
+   `null`; nothing distinguishes "not known yet" from "signed out".
+3. `FirebaseAuthRepository`'s collector maps `userInfo == null` to
+   `AuthState.Unauthenticated` and writes it to `_authState`.
+4. `SignOutCacheClearManager` projects `it is AuthState.Unauthenticated`
+   → `true` on its first emission, passes `distinctUntilChanged`, passes
+   `filter { it }`, and clears the user-scoped cache.
+5. **`ButtonHealthSnapshot`, `SnoozeSnapshot`, and `AllowlistSnapshot`
+   are wiped from disk.**
+6. Firebase's `addStateDidChangeListener` then delivers the real user
+   and state becomes `Authenticated`.
+
+So the ADR-034 persisted status cache is destroyed on precisely the
+scenario it was built for — the signed-in cold start it is supposed to
+render instantly instead of "Checking…".
+
+Android is not affected: its bridge has no pre-seeded `null` holder, and
+`_authState` starts at `AuthState.Unknown`, which the projection maps to
+`false`.
+
+**Why this must land before 1b.** 1b widens the same
+`Unauthenticated` edge to also reset in-memory repository state. Today
+the spurious edge costs iOS its disk snapshots but the in-memory values
+survive and keep the UI correct. Widen the clear first and the spurious
+edge takes both — turning a silent cache miss into a visible
+"Checking…" flash on every iOS launch. **The trigger must be made
+trustworthy before more is hung off it.**
+
+**Fix direction** (needs an iOS build to verify, so scope it alone):
+seed the holder from `Auth.auth().currentUser` in `FirebaseAuthBridge.init`
+*before* registering the listener — `getCurrentUser()` already reads
+exactly that, so the value is available. If the keychain restore turns
+out not to be reliably synchronous at that point, the alternative is a
+tri-state holder so `Unknown` is representable, which is a larger
+shared-contract change.
+
+**Exit criteria.** A signed-in cold start on iOS performs no
+`clearUserScopedEntries()` call. Assert on the manager's observable
+effect, not on timing.
+
+---
+
+## Phase 1b — P0: sign-out does not clear in-memory caches
 
 **Status:** Verified. `SignOutCacheClearManager` terminates at
 `userScopedCache.clearUserScopedEntries()`; `DefaultUserScopedCache`
@@ -120,7 +177,31 @@ Two aggravating factors:
 **Change.** Give each user-scoped in-memory repository the same
 auth-projection collector the disk path already has: reset in-memory
 state (including fetch timestamps) and drop subscriptions on the
-`Unauthenticated` edge.
+`Unauthenticated` edge. **Blocked on Phase 1a** — see above.
+
+**Split it, because the DI cost is not uniform.** `NetworkSnoozeRepository`
+and `NetworkButtonHealthRepository` already take both `authRepository`
+and `externalScope`, so they can self-clear with **no DI change in any
+of the three components**. `DefaultTestNotificationRepository` takes
+neither, so covering it means new constructor parameters and therefore
+edits to all three components. Ship the first two together; the third
+is a smaller-blast-radius follow-up (it is flag-gated behind
+`featureFunctionList`).
+
+**Reuse the clearing that already exists.** `NetworkButtonHealthRepository`
+already has `clearVerdict(reason:)`, which drops the verdict from both
+memory and disk on HTTP 401/403 — the sign-out path wants exactly that
+operation, on a different trigger. Do not write a second one.
+
+**Rejected design: a composite `UserScopedCache` in DI.** The tidy
+version — have `provideUserScopedCache` fan out to the repositories —
+forces them to be **constructed at app startup**, because
+`SignOutCacheClearManager` is created during `AppStartup.run()`.
+`NetworkSnoozeRepository`'s KDoc states it is deliberately constructed
+lazily on first Settings entry, and its `init` runs a hydrate plus a
+conditional fetch. Wiring the composite would therefore add a snooze
+network call to every cold start. Self-clearing repositories avoid this:
+a repository that was never constructed holds no state to clear.
 
 **Design constraint — follow the existing pattern, don't invent one.**
 `SignOutCacheClearManager` already projects `authState` to a boolean
@@ -148,12 +229,25 @@ timestamp is reset, and the test-notification subscription is dropped.
 
 ## Phase 2 — De-vacuum the checks that cannot fail
 
-**Status:** Reported (four items). Reproduce each before fixing — a
-check that "looks broken" may have a narrower intended scope.
+**Status:** `checkTestCoverage` **Verified**; the other three Reported.
+Reproduce before fixing — a check that "looks broken" may have a
+narrower intended scope.
 
-| Check | Reported defect | Live violations claimed |
+`checkTestCoverage` was confirmed by running it, which nothing in the
+repo had ever done (it is registered but absent from `validate.sh`):
+
+```
+=== Test Coverage Check ===
+Covered: 0
+All classes have test coverage.
+```
+
+It finds zero classes and reports success. Phase 0 wires it in, so
+fixing the regex is all that is needed to make it enforce.
+
+| Check | Defect | Live violations claimed |
 |---|---|---|
-| `checkTestCoverage` | Unwired, wrong scope, and its regex `(?:class\|object)\s+(\w+)\s` cannot match `class Foo(` | 100% dead |
+| `checkTestCoverage` | **Verified:** finds 0 classes, passes vacuously. Regex `(?:class\|object)\s+(\w+)\s` cannot match `class Foo(` | 100% dead |
 | `checkViewModelStateFlow` | `stateIn` regex is per-line; real calls use multi-line named arguments | 3 (`HomeViewModel.kt`) |
 | `checkUiLayerNoGraphAccess` | Matches `component.*UseCase`/`*Repository` but not `component.appSettings` | 3 (`Main.kt`) |
 | `checkPreviewCoverage` | Reports 100% while blind to 5 public previews | `TabPreviews.kt` |
@@ -283,12 +377,10 @@ came from the least-verified part of the review.
   backs up by default. If confirmed, door history rides into iCloud on
   iOS but is deliberately excluded on Android — the same data, opposite
   policies, one of them unexamined.
-- **Auth pre-seeded with `null`.** A signed-in cold start may emit a
-  spurious `Unauthenticated`, firing `SignOutCacheClearManager` and
-  wiping the very snapshots ADR-034 exists to display. Note this
-  interacts with Phase 1: widening the sign-out clear to in-memory state
-  makes a spurious `Unauthenticated` **more** damaging. **Verify this
-  one before Phase 1 ships**, not after.
+- **Auth pre-seeded with `null`** — **verified and promoted to Phase 1a.**
+  It was listed here as speculative; reading the path confirmed it, and
+  it turned out to be a prerequisite rather than a follow-up. Left as a
+  pointer so this section isn't read as still-open.
 - **Wrappers retain `self` in never-ending `for await`** (3 files), so
   `deinit` never runs. Same family as the `ios/7` launch crash, where a
   discarded `StateObject` wrapper's Task outlived its owner — worth
