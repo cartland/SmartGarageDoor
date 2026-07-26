@@ -66,6 +66,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -110,7 +111,16 @@ class ProfileViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel(authState: AuthState = AuthState.Unauthenticated): DefaultProfileViewModel {
+    private fun createViewModel(
+        authState: AuthState = AuthState.Unauthenticated,
+        // Overridable so a test can share ONE (singleton-scoped) use case
+        // across two ViewModels, the way the DI graph does across two
+        // navigations to Settings.
+        watchStatusUseCase: ObserveWatchAppStatusUseCase = ObserveWatchAppStatusUseCase(
+            wearCompanionRepository,
+            CoroutineScope(SupervisorJob() + testDispatcher),
+        ),
+    ): DefaultProfileViewModel {
         authRepository.setAuthState(authState)
         return DefaultProfileViewModel(
             observeAuthState = ObserveAuthStateUseCase(authRepository),
@@ -125,7 +135,7 @@ class ProfileViewModelTest {
             ),
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
             observeFeatureAccessUseCase = ObserveFeatureAccessUseCase(featureAllowlistRepository),
-            observeWatchAppStatusUseCase = ObserveWatchAppStatusUseCase(wearCompanionRepository),
+            observeWatchAppStatusUseCase = watchStatusUseCase,
             requestWatchAppInstallUseCase = RequestWatchAppInstallUseCase(wearCompanionRepository),
             classifyVoiceIntentUseCase = ClassifyVoiceIntentUseCase(RuleBasedVoiceIntentClassifier()),
             signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),
@@ -314,6 +324,12 @@ class ProfileViewModelTest {
     fun watchAppStatusPassesThroughFromRepository() =
         runTest {
             val viewModel = createViewModel()
+            // The status is cached with `WhileSubscribed`, so it tracks the
+            // repository only while something observes it. Compose's
+            // `collectAsState` is that observer in production; stand in for
+            // it here.
+            val observer = launch { viewModel.watchAppStatus.collect { } }
+            advanceUntilIdle()
             assertEquals(WatchAppStatus.Unknown, viewModel.watchAppStatus.value)
 
             wearCompanionRepository.setWatchAppStatus(WatchAppStatus.WatchNeedsApp)
@@ -323,6 +339,37 @@ class ProfileViewModelTest {
             wearCompanionRepository.setWatchAppStatus(WatchAppStatus.InstalledOnWatch)
             advanceUntilIdle()
             assertEquals(WatchAppStatus.InstalledOnWatch, viewModel.watchAppStatus.value)
+
+            observer.cancel()
+        }
+
+    /**
+     * The reason the cache exists: a SECOND ProfileViewModel — i.e. the
+     * next time the user navigates to Settings — must see the known
+     * status immediately instead of starting at Unknown. A one-frame
+     * Unknown would flip the Settings "Watch" section's
+     * `AppAnimatedVisibility` and replay its enter animation on every
+     * entry to the tab.
+     */
+    @Test
+    fun watchAppStatusIsAlreadyKnownForALaterViewModel() =
+        runTest {
+            val watchStatusUseCase = ObserveWatchAppStatusUseCase(
+                wearCompanionRepository,
+                CoroutineScope(SupervisorJob() + testDispatcher),
+            )
+            wearCompanionRepository.setWatchAppStatus(WatchAppStatus.InstalledOnWatch)
+
+            // First visit to Settings warms the shared cache.
+            val firstVisit = launch { watchStatusUseCase().collect { } }
+            advanceUntilIdle()
+            firstVisit.cancel()
+            advanceUntilIdle()
+
+            // Second visit constructs a brand-new ViewModel over the SAME
+            // (singleton) use case and reads the verdict synchronously.
+            val secondViewModel = createViewModel(watchStatusUseCase = watchStatusUseCase)
+            assertEquals(WatchAppStatus.InstalledOnWatch, secondViewModel.watchAppStatus.value)
         }
 
     @Test
