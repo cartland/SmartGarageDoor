@@ -270,7 +270,7 @@ class DefaultProfileViewModel(
     computeEffectiveSnoozeState: ComputeEffectiveSnoozeStateUseCase,
     private val observeDoorEvents: ObserveDoorEventsUseCase,
     private val observeFeatureAccessUseCase: ObserveFeatureAccessUseCase,
-    private val observeWatchAppStatusUseCase: ObserveWatchAppStatusUseCase,
+    observeWatchAppStatusUseCase: ObserveWatchAppStatusUseCase,
     private val requestWatchAppInstallUseCase: RequestWatchAppInstallUseCase,
     private val classifyVoiceIntentUseCase: ClassifyVoiceIntentUseCase,
     private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
@@ -312,8 +312,11 @@ class DefaultProfileViewModel(
         MutableStateFlow(NavigationRailLayout.DEFAULT_TOP_PADDING_DP)
     override val navigationRailTopPaddingDp: StateFlow<Int> = _navigationRailTopPaddingDp
 
-    private val _watchAppStatus = MutableStateFlow<WatchAppStatus>(WatchAppStatus.Unknown)
-    override val watchAppStatus: StateFlow<WatchAppStatus> = _watchAppStatus
+    // ADR-022: pass the UseCase's cached StateFlow through by reference.
+    // A VM-local mirror would re-seed to Unknown on every fresh
+    // NavBackStackEntry and replay the Settings "Watch" section's
+    // expand-in animation on every entry to the tab.
+    override val watchAppStatus: StateFlow<WatchAppStatus> = observeWatchAppStatusUseCase()
 
     private val _watchInstallAction = MutableStateFlow<WatchInstallAction>(WatchInstallAction.Idle)
     override val watchInstallAction: StateFlow<WatchInstallAction> = _watchInstallAction
@@ -361,9 +364,6 @@ class DefaultProfileViewModel(
             appSettings.observeNavigationRailTopPaddingDp().collect {
                 _navigationRailTopPaddingDp.value = it
             }
-        }
-        viewModelScope.launch(dispatchers.io) {
-            observeWatchAppStatusUseCase().collect { _watchAppStatus.value = it }
         }
     }
 

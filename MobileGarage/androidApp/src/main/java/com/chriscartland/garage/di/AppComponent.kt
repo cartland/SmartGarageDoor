@@ -228,6 +228,10 @@ abstract class AppComponent(
     abstract val doorResolvedFcmSubscriptionManager: DoorResolvedFcmSubscriptionManager
     abstract val initialDoorFetchManager: InitialDoorFetchManager
     abstract val computeButtonHealthDisplayUseCase: ComputeButtonHealthDisplayUseCase
+
+    // Entry point exists purely so kotlin-inject honors @Singleton on the
+    // provider (DI rule 1) — the UI reaches this only via ProfileViewModel.
+    abstract val observeWatchAppStatusUseCase: ObserveWatchAppStatusUseCase
     abstract val statusCacheStorage: StatusCacheStorage
     abstract val statusSnapshotStore: StatusSnapshotStore
     abstract val userScopedCache: UserScopedCache
@@ -566,9 +570,16 @@ abstract class AppComponent(
     fun provideClassifyVoiceIntentUseCase(classifier: VoiceIntentClassifier): ClassifyVoiceIntentUseCase =
         ClassifyVoiceIntentUseCase(classifier)
 
+    // @Singleton so the stateIn cache of the watch-app status is built
+    // once per process. Per-instance would give every screen entry its
+    // own cache seeded at Unknown, replaying the Settings "Watch"
+    // section's animation on every tab entry.
     @Provides
-    fun provideObserveWatchAppStatusUseCase(wearCompanionRepository: WearCompanionRepository): ObserveWatchAppStatusUseCase =
-        ObserveWatchAppStatusUseCase(wearCompanionRepository)
+    @Singleton
+    fun provideObserveWatchAppStatusUseCase(
+        wearCompanionRepository: WearCompanionRepository,
+        applicationScope: CoroutineScope,
+    ): ObserveWatchAppStatusUseCase = ObserveWatchAppStatusUseCase(wearCompanionRepository, applicationScope)
 
     @Provides
     fun provideRequestWatchAppInstallUseCase(wearCompanionRepository: WearCompanionRepository): RequestWatchAppInstallUseCase =

@@ -213,7 +213,10 @@ class RealNetworkSnoozeRepositoryPropagationTest {
                 ),
                 observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
                 observeFeatureAccessUseCase = ObserveFeatureAccessUseCase(featureAllowlistRepository),
-                observeWatchAppStatusUseCase = ObserveWatchAppStatusUseCase(FakeWearCompanionRepository()),
+                observeWatchAppStatusUseCase = ObserveWatchAppStatusUseCase(
+                    FakeWearCompanionRepository(),
+                    CoroutineScope(SupervisorJob() + testDispatcher),
+                ),
                 requestWatchAppInstallUseCase = RequestWatchAppInstallUseCase(FakeWearCompanionRepository()),
                 classifyVoiceIntentUseCase = ClassifyVoiceIntentUseCase(RuleBasedVoiceIntentClassifier()),
                 signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),
@@ -322,7 +325,10 @@ class RealNetworkSnoozeRepositoryPropagationTest {
                 ),
                 observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
                 observeFeatureAccessUseCase = ObserveFeatureAccessUseCase(featureAllowlistRepository),
-                observeWatchAppStatusUseCase = ObserveWatchAppStatusUseCase(FakeWearCompanionRepository()),
+                observeWatchAppStatusUseCase = ObserveWatchAppStatusUseCase(
+                    FakeWearCompanionRepository(),
+                    CoroutineScope(SupervisorJob() + testDispatcher),
+                ),
                 requestWatchAppInstallUseCase = RequestWatchAppInstallUseCase(FakeWearCompanionRepository()),
                 classifyVoiceIntentUseCase = ClassifyVoiceIntentUseCase(RuleBasedVoiceIntentClassifier()),
                 signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),

@@ -222,6 +222,10 @@ abstract class NativeComponent(
     abstract val doorResolvedFcmSubscriptionManager: DoorResolvedFcmSubscriptionManager
     abstract val initialDoorFetchManager: InitialDoorFetchManager
     abstract val computeButtonHealthDisplayUseCase: ComputeButtonHealthDisplayUseCase
+
+    // Entry point exists purely so kotlin-inject honors @SharedSingleton
+    // on the provider (rule 1) — Swift reaches this via ProfileViewModel.
+    abstract val observeWatchAppStatusUseCase: ObserveWatchAppStatusUseCase
     abstract val statusCacheStorage: StatusCacheStorage
     abstract val statusSnapshotStore: StatusSnapshotStore
     abstract val userScopedCache: UserScopedCache
@@ -547,9 +551,16 @@ abstract class NativeComponent(
     fun provideClassifyVoiceIntentUseCase(classifier: VoiceIntentClassifier): ClassifyVoiceIntentUseCase =
         ClassifyVoiceIntentUseCase(classifier)
 
+    // @SharedSingleton so the stateIn cache of the watch-app status is
+    // built once per process — mirrors AppComponent. iOS binds
+    // UnavailableWearCompanionRepository, so the cached value is a
+    // terminal Unavailable and the Watch section never shows.
     @Provides
-    fun provideObserveWatchAppStatusUseCase(wearCompanionRepository: WearCompanionRepository): ObserveWatchAppStatusUseCase =
-        ObserveWatchAppStatusUseCase(wearCompanionRepository)
+    @SharedSingleton
+    fun provideObserveWatchAppStatusUseCase(
+        wearCompanionRepository: WearCompanionRepository,
+        applicationScope: CoroutineScope,
+    ): ObserveWatchAppStatusUseCase = ObserveWatchAppStatusUseCase(wearCompanionRepository, applicationScope)
 
     @Provides
     fun provideRequestWatchAppInstallUseCase(wearCompanionRepository: WearCompanionRepository): RequestWatchAppInstallUseCase =

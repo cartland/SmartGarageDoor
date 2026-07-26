@@ -246,6 +246,22 @@ class ComponentGraphTest {
     }
 
     @Test
+    fun observeWatchAppStatusUseCaseIsSingleton() {
+        // Singleton-scoped because the use case caches the watch-app
+        // status in a `stateIn` over the repository's COLD polling flow.
+        // A non-singleton would give every ProfileViewModel — i.e. every
+        // NavBackStackEntry — its own cache seeded at Unknown, so the
+        // Settings "Watch" section would replay its expand-in animation
+        // on every entry to the tab.
+        val c = component
+        assertSame(
+            "ObserveWatchAppStatusUseCase must be singleton",
+            c.observeWatchAppStatusUseCase,
+            c.observeWatchAppStatusUseCase,
+        )
+    }
+
+    @Test
     fun initialDoorFetchManagerIsSingleton() {
         // Singleton-scoped so the cold-start fetch fires exactly once per
         // process even when MainActivity.onCreate fires multiple times

@@ -52,6 +52,11 @@ abstract class ViewModelStateFlowCheckTask : DefaultTask() {
         "SnoozeState",
         "AuthState",
         "FcmRegistrationStatus",
+        // Cached by ObserveWatchAppStatusUseCase's stateIn. A VM mirror
+        // re-seeds to Unknown on every fresh NavBackStackEntry, which
+        // replayed the Settings "Watch" section's expand-in animation on
+        // every entry to the tab.
+        "WatchAppStatus",
     )
 
     private val stateInPattern = Regex("""\.stateIn\s*\(\s*viewModelScope""")

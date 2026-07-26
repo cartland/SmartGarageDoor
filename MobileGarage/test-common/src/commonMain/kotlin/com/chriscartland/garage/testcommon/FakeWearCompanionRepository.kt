@@ -22,6 +22,9 @@ import com.chriscartland.garage.domain.model.WatchInstallResult
 import com.chriscartland.garage.domain.repository.WearCompanionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.yield
 
 /**
  * Fake [WearCompanionRepository] for unit testing.
@@ -31,8 +34,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 class FakeWearCompanionRepository : WearCompanionRepository {
     private val status = MutableStateFlow<WatchAppStatus>(WatchAppStatus.Unknown)
     private var installResult: WatchInstallResult = WatchInstallResult.OpenedOnWatch
+    private var coldSource: Boolean = false
 
     var installRequestCount: Int = 0
+        private set
+
+    /**
+     * How many times the cold source has been collected. Only meaningful
+     * after [useColdSource]; lets a test assert that a `WhileSubscribed`
+     * cache actually stopped and restarted the upstream.
+     */
+    var observeStartCount: Int = 0
         private set
 
     fun setWatchAppStatus(value: WatchAppStatus) {
@@ -43,7 +55,32 @@ class FakeWearCompanionRepository : WearCompanionRepository {
         installResult = value
     }
 
-    override fun observeWatchAppStatus(): Flow<WatchAppStatus> = status
+    /**
+     * Switch [observeWatchAppStatus] from the default hot [MutableStateFlow]
+     * to a COLD flow whose first value is not available synchronously —
+     * the shape `PlayServicesWearCompanionRepository` actually has (it
+     * polls Play Services only while collected, and the first result
+     * costs an IPC round-trip).
+     *
+     * The default hot flow cannot reproduce the class of bug that
+     * `ObserveWatchAppStatusUseCase` exists to fix, because a
+     * `MutableStateFlow` always replays its current value immediately.
+     */
+    fun useColdSource() {
+        coldSource = true
+    }
+
+    override fun observeWatchAppStatus(): Flow<WatchAppStatus> =
+        if (!coldSource) {
+            status
+        } else {
+            flow {
+                observeStartCount++
+                // The first poll result is never synchronous.
+                yield()
+                emitAll(status)
+            }
+        }
 
     override suspend fun requestInstallOnWatch(): WatchInstallResult {
         installRequestCount++

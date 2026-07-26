@@ -121,6 +121,17 @@ class NativeComponentTest {
     @Test
     fun statusCacheStorageIsSingleton() = assertSame(component.statusCacheStorage, component.statusCacheStorage, "statusCacheStorage")
 
+    // Caches the watch-app status in a stateIn over a cold flow. A
+    // non-singleton would give every ProfileViewModel its own cache
+    // seeded at Unknown — the Settings "Watch" section flicker.
+    @Test
+    fun observeWatchAppStatusUseCaseIsSingleton() =
+        assertSame(
+            component.observeWatchAppStatusUseCase,
+            component.observeWatchAppStatusUseCase,
+            "observeWatchAppStatusUseCase",
+        )
+
     @Test
     fun statusSnapshotStoreIsSingleton() = assertSame(component.statusSnapshotStore, component.statusSnapshotStore, "statusSnapshotStore")
 
