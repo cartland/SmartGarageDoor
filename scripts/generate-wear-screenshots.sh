@@ -13,11 +13,20 @@ set -euo pipefail
 #
 # Rendering is a real Wear emulator (AVD wear_capture, 454x454 round,
 # API 34 Wear OS image) — NOT Layoutlib — so TimeText, the round mask, and
-# animations render for real. Determinism: with the emulator clock pinned
-# to 10:10 (best effort; needs adb root, which the non-Play system image
-# allows), captures are byte-identical across runs — verified empirically,
-# all 7 stages — so a regen diff means a real visual change. Even the
-# `holding` stage is stable: animateFloatAsState initializes AT its target
+# animations render for real. Determinism: with the emulator clock re-pinned
+# to 10:10 before EVERY capture (best effort; needs adb root, which the
+# non-Play system image allows), captures are byte-identical across runs —
+# verified empirically by running twice back to back, 12 of 13 stages — so a
+# regen diff means a real visual change.
+#
+# The exception is `moving`, captured mid-animation: the door takes 12s to
+# travel and the settle is 4s, so the frame caught depends on render latency
+# and that one PNG can differ by a few hundred bytes on any regen. Mid-travel
+# IS the state being illustrated, so this is inherent rather than fixable by
+# waiting longer (waiting it out would just render `open`). Treat a
+# `moving`-only diff as noise.
+#
+# Even the `holding` stage is stable: animateFloatAsState initializes AT its target
 # on first composition, so the fixture's isHolding=true renders the ring
 # already full (mid-sweep is not capturable from a static fixture; the
 # full ring deterministically illustrates "ring filled -> press fires").
@@ -49,7 +58,14 @@ FIXTURE_ACTIVITY="$PACKAGE/com.chriscartland.garage.wear.debug.ScreenshotStagesA
 BOOT_TIMEOUT_SECONDS=180
 
 # Stage list mirrors ScreenshotStagesActivity.
-STAGES=(connecting closed inferred holding submitted moving open signed_out sign_in_error)
+STAGES=(
+    connecting closed inferred holding submitted moving open signed_out sign_in_error
+    # Voice demo (simulated). voice_armed captures its countdown ring already
+    # FULL: the settle below (4s) outlasts the cancel window (3s), so the
+    # animation has finished by capture time. Deterministic, which is what the
+    # fixture needs — mid-sweep would depend on emulator render latency.
+    voice_ready voice_armed voice_sent voice_refused
+)
 # Post-foreground settle: lets the system splash ("Starting…") dissolve and
 # the first real frame land. The foreground wait below handles slow cold
 # starts; this only covers render/splash latency after the activity resumes.
@@ -139,10 +155,23 @@ echo "Installing $(basename "$APK")..."
 # --- Pin the clock so TimeText is stable across regens (best effort) ---
 # 10:10 is the classic watch marketing time. Needs adb root (non-Play
 # image). If it fails, captures still proceed — TimeText just churns.
+CLOCK_PINNED=0
+
+# Re-pinned before EVERY capture, not just once up front: a full run is
+# comfortably longer than a minute, so a single pin lets the clock roll over
+# mid-run and TimeText renders 10:11 on the later stages. That is a real diff
+# on regen, which defeats the whole point of pinning. Pinning to :00 seconds
+# means the post-pin settle cannot push it into the next minute either.
+pin_clock() {
+    [ "$CLOCK_PINNED" -eq 1 ] || return 0
+    "$ADB" -s "$SERIAL" shell date 010110102026.00 >/dev/null 2>&1 || true
+}
+
 if "$ADB" -s "$SERIAL" root >/dev/null 2>&1; then
     "$ADB" -s "$SERIAL" wait-for-device
     "$ADB" -s "$SERIAL" shell settings put global auto_time 0 >/dev/null 2>&1 || true
     if "$ADB" -s "$SERIAL" shell date 010110102026.00 >/dev/null 2>&1; then
+        CLOCK_PINNED=1
         echo "Clock pinned to 10:10."
     else
         echo "WARN: clock pin failed — TimeText will show real time (PNGs churn on regen)."
@@ -186,6 +215,7 @@ for stage in "${STAGES[@]}"; do
     "$ADB" -s "$SERIAL" shell am force-stop "$PACKAGE"
     "$ADB" -s "$SERIAL" shell am start -n "$FIXTURE_ACTIVITY" -e stage "$stage" >/dev/null
     wait_for_fixture_focus "$stage"
+    pin_clock
     sleep "$DEFAULT_SETTLE_SECONDS"
     "$ADB" -s "$SERIAL" exec-out screencap -p > "$OUT_DIR/wear-$stage.png"
 done
@@ -200,6 +230,37 @@ done
 
 # --- Gallery README (this file IS the wear screenshot gallery) ---
 GALLERY="$OUT_DIR/README.md"
+
+# One row per STAGES entry, looked up here rather than hand-listed below.
+# The table used to be a hardcoded block, which meant adding a stage captured
+# the PNG but silently left it out of the gallery — exactly what happened when
+# the four voice stages landed. Now an undescribed stage is a hard failure.
+stage_description() {
+    case "$1" in
+        connecting) echo "Cold start, no data yet: \"Connecting…\", no warning badge" ;;
+        closed) echo "Closed door (affirmative sensor), \"Hold to open\"" ;;
+        inferred) echo "No affirmative sensor, so no prediction: \"Hold to press the remote\"" ;;
+        holding) echo "Hold completing: full radial ring, the instant before the press fires" ;;
+        submitted) echo "Press sent: ring completes in the sent colour, \"Waiting for the door\"" ;;
+        moving) echo "Door sliding open, up arrow" ;;
+        open) echo "Open door, \"Hold to close\"" ;;
+        signed_out) echo "Signed out: Sign in button (no mic chip — the voice demo is signed-in only)" ;;
+        sign_in_error) echo "Transient \"Sign-in failed\" caption" ;;
+        voice_ready) echo "Voice demo at rest: \"Simulated\" marker, \"Tap to speak\", demo door Closed" ;;
+        voice_armed) echo "Voice demo counting down: the action named conditionally, \"Would open the door\"" ;;
+        voice_sent) echo "Voice demo punchline: \"Nothing was sent\"; only the demo door reacts" ;;
+        voice_refused) echo "Voice demo gate refusing a command the demo door has outgrown" ;;
+        *) return 1 ;;
+    esac
+}
+
+# Validate before the redirect below, so a missing description fails loudly
+# instead of being written into the gallery file.
+for stage in "${STAGES[@]}"; do
+    stage_description "$stage" >/dev/null \
+        || fail "no gallery description for stage '$stage' — add one in stage_description()"
+done
+
 {
     echo "# Wear screenshots (generated — latest)"
     echo
@@ -208,19 +269,16 @@ GALLERY="$OUT_DIR/README.md"
     echo "\`$AVD_NAME\` emulator ($AVD_DEVICE, 454×454, API 34 Wear OS image) with the"
     echo "clock pinned to 10:10. This directory doubles as Play Store staging; the"
     echo "curated live subset is copied by hand to \`../../../distribution/playstore/wear/\`."
-    echo "Captures are byte-stable across regens — a diff means a real visual change."
+    echo
+    echo "Captures are byte-stable across regens **except \`moving\`**, which is caught"
+    echo "mid-animation (12s of door travel against a 4s settle) and can differ by a"
+    echo "frame. A diff in any other stage means a real visual change."
     echo
     echo "| Stage | Capture | Shows |"
     echo "|---|---|---|"
-    echo "| connecting | <img src=\"wear-connecting.png\" width=\"180\" alt=\"connecting\"> | Cold start, no data yet: \"Connecting…\", no warning badge |"
-    echo "| closed | <img src=\"wear-closed.png\" width=\"180\" alt=\"closed\"> | Closed door (affirmative sensor), \"Hold to open\" |"
-    echo "| inferred | <img src=\"wear-inferred.png\" width=\"180\" alt=\"inferred\"> | No affirmative sensor, so no prediction: \"Hold to press the remote\" |"
-    echo "| holding | <img src=\"wear-holding.png\" width=\"180\" alt=\"holding\"> | Hold completing: full radial ring, the instant before the press fires |"
-    echo "| submitted | <img src=\"wear-submitted.png\" width=\"180\" alt=\"submitted\"> | Press sent: ring completes in the sent colour, \"Waiting for the door\" |"
-    echo "| moving | <img src=\"wear-moving.png\" width=\"180\" alt=\"moving\"> | Door sliding open, up arrow |"
-    echo "| open | <img src=\"wear-open.png\" width=\"180\" alt=\"open\"> | Open door, \"Hold to close\" |"
-    echo "| signed_out | <img src=\"wear-signed_out.png\" width=\"180\" alt=\"signed out\"> | Signed out: Sign in button |"
-    echo "| sign_in_error | <img src=\"wear-sign_in_error.png\" width=\"180\" alt=\"sign-in error\"> | Transient \"Sign-in failed\" caption |"
+    for stage in "${STAGES[@]}"; do
+        echo "| $stage | <img src=\"wear-$stage.png\" width=\"180\" alt=\"${stage//_/ }\"> | $(stage_description "$stage") |"
+    done
 } > "$GALLERY"
 
 echo ""
