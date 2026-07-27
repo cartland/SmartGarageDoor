@@ -1,12 +1,18 @@
 ---
-description: Generate and update Google Play Store listing assets (app icon, feature graphic, phone + tablet screenshots). Uploading to the store is MANUAL; this explains the generate -> stage -> curate -> PR -> upload flow.
+description: Generate and update Google Play Store listing assets (app icon, feature graphic, phone + tablet + wear screenshots). Screenshots upload via the Play Listing Images workflow; icon and feature graphic are still manual. Explains the generate -> stage -> curate -> PR -> upload flow.
 ---
 
 # Play Store assets
 
-Uploading to the Play Store is a **manual process** — there is no automation
-wired up (the release workflow only ships the AAB + `whatsnew/`). This skill is
-the procedure for refreshing the **store listing** images.
+This skill is the procedure for refreshing the **store listing** images. The
+release workflows only ship the AAB + `whatsnew/`, never images.
+
+**Screenshots** are uploaded by the `Play Listing Images` workflow (see below).
+The **icon** and **feature graphic** are still a manual Console step.
+
+Curating which images go live stays a human decision reviewed in a PR — the
+workflow publishes what is committed under `distribution/playstore/`, it does
+not choose or generate anything.
 
 ## The two places assets live
 
@@ -83,10 +89,15 @@ All PNG, < 8 MB, sides within range.
 
    You don't have to copy all of them — pick the subset you want live. Phone
    needs 2–8; tablets are ≤8 and only required if targeting large screens.
+   Wear screenshots live in `distribution/playstore/wear/` (≤8, ≥384px;
+   the fixture renders 454×454). Name curated files with a numeric prefix
+   (`01_closed.png`) — Play shows screenshots in upload order, and the
+   uploader sorts by filename, so filename order IS the story a visitor sees.
 4. **Open a PR** with the new `distribution/playstore/` images. This is the
    record of what's live in the store.
-5. **After merge, upload manually** in Play Console (Store presence → Main store
-   listing), one field at a time per the table above. Save the listing.
+5. **After merge, run the `Play Listing Images` workflow** (dry run, then
+   `apply=true`) for screenshots. Icon and feature graphic are still uploaded
+   by hand in Play Console (Store presence → Main store listing).
 
 ## Important distinctions
 
@@ -110,10 +121,40 @@ Mac** (see root `CLAUDE.md`). So a true UI refresh of the *sources* needs a
 working environment / CI; `generate-store-screenshots.py` itself only re-composes
 whatever sources are currently committed.
 
-## Optional: automate the upload later
+## Uploading screenshots: automated (`Play Listing Images` workflow)
 
-If hand-uploading becomes tedious, the upload step can be automated with
-`fastlane supply` or the Play Developer API `edits.images.upload`, reusing the
-existing `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` secret (it would need the "Edit store
-listing" permission added). Gate it behind `workflow_dispatch` so it never fires
-on every release. Not built yet — intentionally manual.
+**Screenshots** no longer need a Console visit. `.github/workflows/play-listing-images.yml`
+syncs the curated sets to the live listing via the Play Developer API,
+reusing `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`.
+
+```bash
+# 1. Dry run FIRST. Uploads everything into a Play edit, then abandons it.
+gh workflow run play-listing-images.yml -f image_types=wearScreenshots -f apply=false
+
+# 2. Publish.
+gh workflow run play-listing-images.yml -f image_types=wearScreenshots -f apply=true
+```
+
+`image_types` is comma-separated; valid values are `wearScreenshots`,
+`phoneScreenshots`, `sevenInchScreenshots`, `tenInchScreenshots`. Only the
+types you name are touched — the rest of the listing is left alone.
+
+Why the dry run is worth doing every time: Play edits are **transactional**, so
+`apply=false` exercises the entire path — auth, the "Edit store listing"
+permission, image dimensions, count limits — and then discards the edit. It is
+a real rehearsal, not a simulation.
+
+Two safety properties are enforced in code (`.github/scripts/lib/listing-images.mjs`,
+unit-tested):
+
+- **An empty set is refused**, never treated as a no-op. Play has no "set"
+  operation, so syncing is `deleteall` + upload; a typo'd path that matched
+  zero files would otherwise silently wipe that section of the live listing.
+- **Only the curated tree is eligible.** The generated staging tree has a
+  `wear/` directory too, so matching on directory name alone would publish
+  un-curated candidate shots.
+
+**Still manual:** the store `icon-512.png` and `feature-graphic-1024x500.png`.
+They are single-image fields rather than ordered sets, they live outside the
+per-imageType directory layout, and they change far less often than
+screenshots. Upload those in Console per the table above.

@@ -1,0 +1,72 @@
+name: Play Listing Images
+
+# Syncs the CURATED Play Store listing screenshots
+# (MobileGarage/distribution/playstore/) to the live store listing.
+#
+# This automates what was previously a manual Play Console upload. Only the
+# AAB and whatsnew/ were automated, so listing images drifted from the app —
+# the Wear shots advertised a "Tap door to arm" interaction for a release
+# that no longer had one.
+#
+# SAFETY: manual dispatch only, and `apply` defaults to false. A dry run
+# performs the whole upload into a Play edit and then abandons it — Play
+# edits are transactional, so it proves auth, permissions, image validation
+# and count limits with zero public effect. Always dry-run first.
+#
+# This workflow does NOT generate screenshots. Regeneration is
+# ./scripts/generate-wear-screenshots.sh (Wear emulator) and the Android
+# screenshot pipeline; curating staged -> distribution/ stays a human
+# decision, reviewed in a PR. See .claude/skills/play-store-assets/SKILL.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_types:
+        description: 'Comma-separated Play imageTypes (wearScreenshots, phoneScreenshots, sevenInchScreenshots, tenInchScreenshots)'
+        required: true
+        default: 'wearScreenshots'
+      apply:
+        description: 'Publish to the live listing. Leave unchecked for a dry run.'
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # Play edits are transactional per package; overlapping runs would fight.
+  group: play-listing-images
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync listing images
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install Play API client
+        run: npm install --no-save googleapis
+
+      - name: Sync listing images
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          PACKAGE_NAME: com.chriscartland.garage
+          IMAGE_TYPES: ${{ inputs.image_types }}
+          APPLY: ${{ inputs.apply }}
+          LISTING_LANGUAGE: en-US
+        run: node .github/scripts/play-listing-images.mjs
+
+      - name: Summary
+        run: |
+          if [ "${{ inputs.apply }}" = "true" ]; then
+            echo "::notice title=Play Listing Images::Published ${{ inputs.image_types }} to the live en-US listing."
+          else
+            echo "::notice title=Play Listing Images (dry run)::Validated ${{ inputs.image_types }} against the Play API and abandoned the edit. Nothing was published. Re-run with apply=true to publish."
+          fi

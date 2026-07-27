@@ -14,12 +14,24 @@ Compose (`androidApp/.../ui/GarageDoorCanvas.kt`, `doorOffset = CLOSED_POSITION`
 This directory is the **curated set we keep in sync with the live store**. The
 generators do NOT write here — they write to the committed generated dir
 (`MobileGarage/screenshots/store/`) and you copy the images you want into this
-directory by hand, PR them, then upload them manually in the Play Console. Both
-dirs are committed. **The full procedure is the `play-store-assets` skill**
-(`/play-store-assets`).
+directory by hand, then PR them. Both dirs are committed. **The full procedure
+is the `play-store-assets` skill** (`/play-store-assets`).
 
-These are **manual uploads** — the release workflow (`release-android.yml`) only
-ships the AAB + `whatsnew/`, it does not push store graphics.
+**Screenshots** are published from here by the dispatch-only `Play Listing
+Images` workflow:
+
+```bash
+gh workflow run play-listing-images.yml -f image_types=wearScreenshots -f apply=false  # rehearse
+gh workflow run play-listing-images.yml -f image_types=wearScreenshots -f apply=true   # publish
+```
+
+Because Play edits are transactional, `apply=false` runs the entire upload into
+an edit and abandons it — a real rehearsal of auth, permissions and Play's
+image validation, with nothing published.
+
+The **icon and feature graphic are still manual** Console uploads (single-image
+fields, outside the per-imageType directory layout). No release workflow ever
+pushes store graphics.
 
 ## Curated files (what's live in the store)
 
@@ -27,6 +39,7 @@ ships the AAB + `whatsnew/`, it does not push store graphics.
 | --- | --- | --- |
 | `icon-512.png` | App icon (hi-res) | 512×512 PNG, 32-bit |
 | `feature-graphic-1024x500.png` | Feature graphic | 1024×500 PNG/JPG |
+| `wear/*.png` | Wear OS screenshots | ≤8, ≥384px, 1:1 (fixture renders 454×454) |
 | `screenshots/phoneScreenshots/*.png` | Phone screenshots | 2–8, 9:16 |
 | `screenshots/sevenInchScreenshots/*.png` | 7-inch tablet | ≤8, 16:9 |
 | `screenshots/tenInchScreenshots/*.png` | 10-inch tablet | ≤8, 16:9 |
