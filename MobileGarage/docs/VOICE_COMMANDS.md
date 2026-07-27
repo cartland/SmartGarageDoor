@@ -138,7 +138,17 @@ recognition quality is device-only, and that is Google's code, not ours.
    `docs/FEATURE_FLAGS.md`): mic button, listening indicator, outcome
    states, `RECORD_AUDIO` permission flow.
 3. **V3 — watch**: `RecognizerIntent` from the hero screen, reusing the
-   same shared parser + gate.
+   same shared parser + gate. **Shipped as a SIMULATION in Wear 0.3.0**: a
+   mic chip beside the door opens a dedicated demo screen driving the real
+   `VoiceCommandController` / classifier / gate against
+   `SimulatedVoiceCommandEnvironment`, so it names the action it would take
+   ("Would open the door") and then states that nothing was sent. It cannot
+   reach the remote button, and that is structural — the ViewModel has no
+   remote-button dependency, and the only environment in the Wear graph is
+   the simulated one (three tests plus two compile-time barriers; see
+   [`docs/WEAR_OS.md`](../../docs/WEAR_OS.md) § Voice demo). Promoting it to
+   the real door is the same environment swap the phone already did
+   (playground → `RemoteButtonVoiceCommandEnvironment` in 2.23.0).
 4. **Later, maybe**: iOS via `SFSpeechRecognizer` behind the same
    bridge; fuzzy matching behind the parser contract if strict matching
    proves too brittle in practice (revisit only with real missed-command

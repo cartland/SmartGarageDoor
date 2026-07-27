@@ -17,7 +17,6 @@
 
 package com.chriscartland.garage.wear.ui
 
-import android.view.HapticFeedbackConstants
 import androidx.annotation.StringRes
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -32,6 +31,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -59,6 +60,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.wear.compose.material3.Button
+import androidx.wear.compose.material3.FilledTonalIconButton
+import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
@@ -85,6 +88,7 @@ import kotlinx.coroutines.launch
 fun HeroScreen(
     viewModel: WearHomeViewModel,
     signInConfig: WearSignInConfig,
+    onVoiceDemoClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
@@ -109,7 +113,7 @@ fun HeroScreen(
     // is why the ring, not the buzz, stays the authoritative channel.
     LaunchedEffect(view, viewModel) {
         viewModel.hapticCues.collect { cue ->
-            view.performHapticFeedback(HeroScreenHaptics.constantFor(cue))
+            view.performHapticFeedback(WearHaptics.constantFor(cue))
         }
     }
 
@@ -142,6 +146,7 @@ fun HeroScreen(
         isHolding = isHolding,
         onHoldStart = viewModel::onHoldStart,
         onHoldEnd = viewModel::onHoldEnd,
+        onVoiceDemoClick = onVoiceDemoClick,
         signInError = signInError,
         onSignInClick = {
             viewModel.onSignInStarted()
@@ -181,6 +186,7 @@ fun HeroScreenContent(
     signInError: Boolean,
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit,
+    onVoiceDemoClick: () -> Unit,
     onSignInClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -248,6 +254,26 @@ fun HeroScreenContent(
                         minLines = 1,
                     )
                 }
+                // Voice demo entry point. Deliberately a SEPARATE target with a
+                // separate gesture: the door is the one and only path to the
+                // real garage, and its tap is deliberately dead so that only a
+                // continuous hold can reach it. Hanging voice off the door's tap
+                // would mean every sleeve brush (and every drift-cancelled hold,
+                // which is a tap as far as the gesture detector can tell) opened
+                // a full-screen mic.
+                //
+                // CenterEnd rather than the top: the top centre belongs to
+                // TimeText, and at the vertical centre the round screen's chord
+                // is at its widest, so a chip beside the door (which occupies
+                // only the middle 52%) clears both the door and the mask.
+                // Signed-in only — the signed-out screen has one job, and it has
+                // already been fixed once for overflow (0.1.2).
+                VoiceDemoChip(
+                    onClick = onVoiceDemoClick,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = VOICE_CHIP_EDGE_PADDING_DP.dp),
+                )
             } else {
                 // Signed-out/unknown: centered column. The smaller door keeps
                 // the door + label + chip + caption inside the round viewport
@@ -446,26 +472,30 @@ private fun GarageDoorTarget(
 }
 
 /**
- * Maps a [HapticCue] to the platform constant that expresses it.
+ * Small mic button that opens the simulated voice demo.
  *
- * All of these exist at the app's minSdk (30), so no version guard is
- * needed. The escalation is deliberate: a light tick to acknowledge, a
- * distinct tick at the midpoint, then CONFIRM — which is a two-beat pattern,
- * not merely a stronger tick — so "did it fire, or am I halfway?" is never
- * ambiguous by feel alone.
+ * Iconic rather than labelled: at the screen's edge there is no room for a
+ * "demo" caption that would not be clipped by the round mask, and the honesty
+ * burden belongs on the demo surface itself, which states that it is simulated
+ * and phrases every outcome conditionally. The content description carries the
+ * same information for screen readers.
  */
-internal object HeroScreenHaptics {
-    fun constantFor(cue: HapticCue): Int =
-        when (cue) {
-            HapticCue.HoldEngaged -> HapticFeedbackConstants.GESTURE_START
-            HapticCue.HoldHalfway -> HapticFeedbackConstants.CLOCK_TICK
-            HapticCue.PressCommitted -> HapticFeedbackConstants.CONFIRM
-            HapticCue.HoldAborted -> HapticFeedbackConstants.GESTURE_END
-            // Lighter than PressCommitted on purpose — this one arrives after
-            // the finger has gone, as news rather than gesture feedback.
-            HapticCue.PressSucceeded -> HapticFeedbackConstants.CONTEXT_CLICK
-            HapticCue.PressFailed -> HapticFeedbackConstants.REJECT
-        }
+@Composable
+private fun VoiceDemoChip(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val description = stringResource(R.string.cd_voice_demo)
+    FilledTonalIconButton(
+        onClick = onClick,
+        modifier = modifier.size(VOICE_CHIP_SIZE_DP.dp),
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_mic_24),
+            contentDescription = description,
+            modifier = Modifier.size(VOICE_CHIP_ICON_SIZE_DP.dp),
+        )
+    }
 }
 
 /** String/label mappers for the hero screen. */
@@ -575,6 +605,7 @@ private fun HeroScreenContentReadyPreview() {
             signInError = false,
             onHoldStart = {},
             onHoldEnd = {},
+            onVoiceDemoClick = {},
             onSignInClick = {},
         )
     }
@@ -595,6 +626,7 @@ private fun HeroScreenContentHoldingPreview() {
             signInError = false,
             onHoldStart = {},
             onHoldEnd = {},
+            onVoiceDemoClick = {},
             onSignInClick = {},
         )
     }
@@ -615,6 +647,7 @@ private fun HeroScreenContentInferredPositionPreview() {
             signInError = false,
             onHoldStart = {},
             onHoldEnd = {},
+            onVoiceDemoClick = {},
             onSignInClick = {},
         )
     }
@@ -634,6 +667,7 @@ private fun HeroScreenContentSignedOutPreview() {
             signInError = false,
             onHoldStart = {},
             onHoldEnd = {},
+            onVoiceDemoClick = {},
             onSignInClick = {},
         )
     }
@@ -671,3 +705,12 @@ private const val BOTTOM_TEXT_WIDTH_FRACTION = 0.56f
  * that a sliding sleeve does.
  */
 private const val HOLD_CANCEL_SLOP_DP = 20
+
+/**
+ * Voice-demo chip geometry. Sized to clear the door (which occupies the middle
+ * [DOOR_WIDTH_FRACTION] of the width) with room to spare on the smallest round
+ * watch, while staying a comfortable touch target.
+ */
+private const val VOICE_CHIP_SIZE_DP = 32
+private const val VOICE_CHIP_ICON_SIZE_DP = 18
+private const val VOICE_CHIP_EDGE_PADDING_DP = 6

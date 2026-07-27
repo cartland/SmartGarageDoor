@@ -52,8 +52,46 @@
     <string name="sign_in_failed">Sign-in failed</string>
     <string name="checking_sign_in">Checking sign-in…</string>
 
+    <!-- Voice demo (SIMULATED — never reaches the real garage door).
+
+         Wording rule for this surface: anything describing an action is
+         conditional ("Would open the door"), and the terminal state says
+         outright that nothing was sent. The door line is always labelled
+         "Demo door" so the thing visibly reacting is never mistaken for the
+         real one. -->
+    <string name="voice_demo_simulated">Simulated</string>
+    <string name="voice_demo_prompt">Say a door command</string>
+    <string name="voice_demo_ready">Tap to speak</string>
+    <string name="voice_demo_hint">Try \"open the garage door\"</string>
+    <string name="voice_demo_listening">Listening…</string>
+    <string name="voice_demo_would_open">Would open the door</string>
+    <string name="voice_demo_would_close">Would close the door</string>
+    <string name="voice_demo_cancel_hint">Tap to cancel</string>
+    <string name="voice_demo_committing">Would press the remote</string>
+    <string name="voice_demo_committed">Nothing was sent</string>
+    <string name="voice_demo_committed_hint">The demo door responds instead</string>
+    <string name="voice_demo_failed">Demo press failed</string>
+    <string name="voice_demo_transcript">\"%1$s\"</string>
+    <string name="voice_demo_door">Demo door: %1$s</string>
+    <string name="voice_demo_door_moving">Moving</string>
+
+    <!-- Refusals. Same gate as the real feature, so the demo teaches the real
+         rules: only a confident, unambiguous imperative acts, and only when
+         the door is settled on the opposite side. -->
+    <string name="voice_demo_ignored_no_speech">No speech heard</string>
+    <string name="voice_demo_ignored_unavailable">No voice input on this watch</string>
+    <string name="voice_demo_ignored_not_a_command">Not a door command</string>
+    <string name="voice_demo_ignored_not_confident">Not confident enough to act</string>
+    <string name="voice_demo_ignored_already_open">Demo door is already open</string>
+    <string name="voice_demo_ignored_already_closed">Demo door is already closed</string>
+    <string name="voice_demo_ignored_moving">Demo door is moving</string>
+    <string name="voice_demo_ignored_state_unknown">Demo door state is unknown</string>
+    <string name="voice_demo_ignored_state_changed">Demo door changed. Cancelled.</string>
+
     <!-- Content descriptions. -->
     <string name="cd_garage_door">Garage door</string>
+    <string name="cd_voice_demo">Voice demo, simulated</string>
+    <string name="cd_voice_demo_mic">Tap to speak a door command</string>
     <string name="cd_arrow_up">Up arrow</string>
     <string name="cd_arrow_down">Down arrow</string>
     <string name="cd_warning">Warning</string>
