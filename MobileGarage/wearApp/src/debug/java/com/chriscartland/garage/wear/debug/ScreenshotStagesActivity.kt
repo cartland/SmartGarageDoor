@@ -92,6 +92,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
                             partialTranscript = voiceFixture.partialTranscript,
                             listeningLevel = voiceFixture.listeningLevel,
                             onMicTap = {},
+                            onCancel = {},
                         )
                     } else {
                         HeroScreenContent(

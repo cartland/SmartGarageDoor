@@ -195,6 +195,31 @@ class VoiceCommandController(
         }
     }
 
+    /**
+     * Stop whatever is in progress and return to [VoiceCommandState.Ready].
+     *
+     * Distinct from [onMicTap] on purpose. A tap means "listen to me now" and
+     * therefore *restarts* from a pre-commit state, which is the right rule for
+     * a small on-screen mic button: correcting "close… no wait, open" costs one
+     * tap. It is the wrong rule when the whole screen is the tap target (Wear),
+     * where a brush during the countdown would drop the user into a live mic
+     * session they never asked for. Callers pick the verb that matches their
+     * surface; nothing here changes for existing [onMicTap] callers.
+     *
+     * [VoiceCommandState.Sending] is deliberately untouched — a press cannot be
+     * unsent — as are terminal states, which expire on their own.
+     */
+    fun onCancel() {
+        when (_state.value) {
+            is VoiceCommandState.Listening, is VoiceCommandState.Armed -> {
+                job?.cancel()
+                job = null
+                _state.value = VoiceCommandState.Ready
+            }
+            else -> Unit
+        }
+    }
+
     /** Recognizer outcome. Null or blank means no usable speech. */
     fun onTranscript(text: String?) {
         if (_state.value !is VoiceCommandState.Listening) return

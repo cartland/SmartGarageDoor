@@ -198,6 +198,33 @@ recognition quality, are only observable on a real watch. Everything else — th
 state machine, the gate, partial-text handling, the fallback decision — is
 CLI-tested.
 
+### The tap rule (0.3.3)
+
+**A tap starts what is not running and stops what is.** One sentence covers the
+whole screen.
+
+| State | Tap | Why |
+|---|---|---|
+| `Ready`, `Sent`, `Failed`, `Ignored` | start listening | nothing is running |
+| `Listening` | **cancel → `Ready`** | universal mic-toggle convention |
+| `Armed` | **cancel → `Ready`** | the on-screen label promises exactly this |
+| `Sending` | inert | a press cannot be unsent |
+
+This deliberately diverges from the phone, which uses
+`VoiceCommandController.onMicTap` — a tap there means "listen to me now" and so
+*restarts* from a pre-commit state, making the correction flow ("close… no
+wait, open") one tap. That is right for a small on-screen button and wrong when
+**the whole screen is the tap target**: a brush during the countdown would open
+a live mic nobody asked for. Wear therefore calls the additive
+`VoiceCommandController.onCancel` instead; nothing changes for `onMicTap`
+callers. It also makes the existing "Tap anywhere to cancel" label literally
+true, which it was not before.
+
+**Cancelling must stop the recognizer too**, not just the controller. A
+`LaunchedEffect` keyed on "is Listening" calls `WearSpeechCapture.cancel()` on
+the way out, so the microphone can never stay live behind a screen that says it
+is not listening. Harmless when the recognizer already finished on its own.
+
 ### The listening state gets the whole screen (0.3.2)
 
 "Is it hearing me?" has to be answerable without reading anything, so Listening

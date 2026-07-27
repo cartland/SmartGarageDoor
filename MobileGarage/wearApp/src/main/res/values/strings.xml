@@ -99,6 +99,7 @@
     <string name="cd_voice_demo_mic">Tap to speak a door command</string>
     <string name="cd_voice_demo_screen">Tap anywhere to cancel and speak again</string>
     <string name="cd_voice_demo_listening">Listening for a door command</string>
+    <string name="cd_voice_demo_cancel">Tap to stop</string>
     <string name="cd_arrow_up">Up arrow</string>
     <string name="cd_arrow_down">Down arrow</string>
     <string name="cd_warning">Warning</string>
