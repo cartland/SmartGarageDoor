@@ -198,6 +198,41 @@ recognition quality, are only observable on a real watch. Everything else — th
 state machine, the gate, partial-text handling, the fallback decision — is
 CLI-tested.
 
+### The listening state gets the whole screen (0.3.2)
+
+"Is it hearing me?" has to be answerable without reading anything, so Listening
+is a distinct full-screen layout rather than the normal one with a changed
+label: a large filled mic with concentric rings pulsing outward from it, the
+common idiom so it needs no explanation.
+
+**The two phases are driven by the microphone, not faked.** `onRmsChanged`
+supplies a live level (`VoiceLevel.normalize`, clamped to the nominal -2..10 dB
+and exponentially smoothed — raw RMS arrives ~10x/second and jitters enough to
+read as a flicker rather than a voice). Quiet: rings travel `IDLE_REACH_FRACTION`
+of the way to the bezel at low opacity, so silence still shows life. Loud: they
+reach the bezel, brighten, and the mic itself scales slightly. `VoiceLevelTest`
+pins the arithmetic — an unclamped level would push rings off-screen.
+
+`RING_COUNT` rings share **one** looping phase, offset evenly, so a single
+animation produces a continuous procession rather than N staggered ones.
+
+The level is UI-local state, not ViewModel state: it is continuous presentation
+data with no decision attached, and routing ~10 updates/second through a
+StateFlow would recompose the world for an animation. The ViewModel still owns
+everything meaningful (the state, the transcript).
+
+**Help text changes job partway through.** Before speech: one example command —
+load-bearing rather than decorative, because the classifier accepts a narrow
+imperative grammar, so the example is the difference between a command that
+works and one that is refused. Once words arrive, that same slot becomes the
+live transcript; the screen stops instructing the moment it has something to
+reflect. Deliberately absent: the "Demo door" line (irrelevant mid-capture) and
+any cancel hint (a tap during Listening is a no-op in the shared controller, so
+advertising one would be a lie). The "Simulated" marker **stays** — a
+full-screen animated mic is the frame most likely to be mistaken for a real
+assistant, so it is the one that can least afford to drop the label. It sits
+clear of `TimeText`, which owns the top arc.
+
 ### How it says "this is not real"
 
 Three independent signals, because one is easy to miss on a glance:
