@@ -22,6 +22,7 @@ import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.RuleBasedVoiceIntentClassifier
 import com.chriscartland.garage.usecase.SimulatedVoiceCommandEnvironment
+import com.chriscartland.garage.usecase.VoiceCommandController
 import com.chriscartland.garage.usecase.VoiceCommandIgnoreReason
 import com.chriscartland.garage.usecase.VoiceCommandState
 import com.chriscartland.garage.usecase.VoiceDoorState
@@ -299,7 +300,7 @@ class WearVoiceViewModelTest {
         }
 
     @Test
-    fun leavingTheScreenCancelsAPendingCommand() =
+    fun backgroundingTheAppCancelsAPendingCommand() =
         runTest {
             val viewModel = createViewModel()
             speak(viewModel, "open the garage door")
@@ -312,6 +313,117 @@ class WearVoiceViewModelTest {
             // The real assertion: the window's commit never ran.
             advanceUntilIdle()
             assertEquals(VoiceDoorState.CLOSED, viewModel.demoDoorState.value)
+        }
+
+    /**
+     * Swiping back out of the demo is **not** a lifecycle stop — the app stays
+     * perfectly foreground — so [WearVoiceViewModel.onBackgrounded] never fires
+     * for it and nothing else would stop the countdown.
+     *
+     * Until `onScreenLeft` existed, leaving mid-countdown left the demo running
+     * behind the hero screen: it committed off-screen, moved the demo door, and
+     * buzzed the wrist for a command the user had already walked away from.
+     * Asserting all three is the point — state alone would have passed while
+     * the door still moved.
+     */
+    @Test
+    fun poppingTheScreenMidCountdownCommitsNothing() =
+        runTest {
+            val viewModel = createViewModel()
+            val cues = recordCues(viewModel)
+            speak(viewModel, "open the garage door")
+            assertTrue(viewModel.state.value is VoiceCommandState.Armed)
+
+            viewModel.onScreenLeft()
+            runCurrent()
+            assertEquals(VoiceCommandState.Ready, viewModel.state.value)
+
+            // Well past the point the commit was scheduled for.
+            advanceTimeBy(WearVoiceViewModel.ARMED_WINDOW_MILLIS * 2)
+            runCurrent()
+            assertEquals(VoiceDoorState.CLOSED, viewModel.demoDoorState.value)
+            assertEquals(listOf(HapticCue.VoiceArmed), cues)
+        }
+
+    /**
+     * The microphone must not outlive the screen that opened it. Also covers
+     * the race it creates: the recognizer's callback can land after the pop,
+     * and must not resurrect a session the user has left.
+     */
+    @Test
+    fun poppingTheScreenStopsListening() =
+        runTest {
+            val viewModel = createViewModel()
+            viewModel.onMicTap()
+            runCurrent()
+            assertTrue(viewModel.state.value is VoiceCommandState.Listening)
+
+            viewModel.onScreenLeft()
+            runCurrent()
+            assertEquals(VoiceCommandState.Ready, viewModel.state.value)
+
+            viewModel.onTranscript("open the garage door")
+            runCurrent()
+            assertEquals(VoiceCommandState.Ready, viewModel.state.value)
+        }
+
+    /**
+     * "Nothing was sent" is the entire message of the demo, and it arrives with
+     * a second line explaining that the demo door reacts instead. The shared
+     * 1.5s default is sized for a receipt on the real button; two lines of new
+     * information on a wrist is not a 1.5-second read.
+     */
+    @Test
+    fun theOutcomeStaysUpLongEnoughToRead() =
+        runTest {
+            val viewModel = createViewModel()
+            speak(viewModel, "open the garage door")
+            advanceTimeBy(WearVoiceViewModel.ARMED_WINDOW_MILLIS + 1)
+            runCurrent()
+            advanceTimeBy(SimulatedVoiceCommandEnvironment.PRESS_DELAY_MS + 1)
+            runCurrent()
+            assertTrue(viewModel.state.value is VoiceCommandState.Sent)
+
+            // The moment the shared default would have cleared it.
+            advanceTimeBy(VoiceCommandController.RESULT_FLASH_MS)
+            runCurrent()
+            assertTrue(
+                "The demo's punchline must outlast the real button's receipt",
+                viewModel.state.value is VoiceCommandState.Sent,
+            )
+
+            advanceTimeBy(
+                WearVoiceViewModel.RESULT_FLASH_MILLIS - VoiceCommandController.RESULT_FLASH_MS,
+            )
+            runCurrent()
+            assertEquals(VoiceCommandState.Ready, viewModel.state.value)
+        }
+
+    /**
+     * A buzz is only useful at the instant it describes.
+     *
+     * These cues were Channel-backed, which *queues* for an absent collector —
+     * so cues emitted while no screen was subscribed were saved and replayed in
+     * a burst when one came back. Combined with a demo that used to keep
+     * running after being swiped away, returning to the screen buzzed twice for
+     * a command abandoned seconds earlier. Dropping is the right failure mode:
+     * a missed buzz is nothing, a late one is a lie.
+     */
+    @Test
+    fun cuesAreNotQueuedWhileNothingIsWatching() =
+        runTest {
+            val viewModel = createViewModel()
+
+            // No collector at all: this arms and then commits.
+            speak(viewModel, "open the garage door")
+            advanceTimeBy(WearVoiceViewModel.ARMED_WINDOW_MILLIS + 1)
+            runCurrent()
+
+            val cues = recordCues(viewModel)
+            advanceTimeBy(SimulatedVoiceCommandEnvironment.PRESS_DELAY_MS + 1)
+            runCurrent()
+
+            assertEquals(emptyList<HapticCue>(), cues)
         }
 
     @Test

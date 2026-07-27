@@ -63,11 +63,15 @@ class VoiceCommandControllerTest {
         }
     }
 
-    private fun TestScope.createController(environment: FakeVoiceCommandEnvironment): VoiceCommandController =
+    private fun TestScope.createController(
+        environment: FakeVoiceCommandEnvironment,
+        resultFlashMs: Long = VoiceCommandController.RESULT_FLASH_MS,
+    ): VoiceCommandController =
         VoiceCommandController(
             classify = ClassifyVoiceIntentUseCase(RuleBasedVoiceIntentClassifier()),
             environment = environment,
             scope = backgroundScope,
+            resultFlashMs = resultFlashMs,
         )
 
     @Test
@@ -385,6 +389,40 @@ class VoiceCommandControllerTest {
             runCurrent()
             assertEquals(VoiceCommandState.Failed(VoiceIntent.OPEN), controller.state.value)
             advanceTimeBy(FLASH)
+            runCurrent()
+            assertEquals(VoiceCommandState.Ready, controller.state.value)
+        }
+
+    /**
+     * How long the outcome stays up is a per-surface decision, so it has to be
+     * a parameter rather than a constant. On the real button the outcome is a
+     * receipt for something the user just watched happen and can be brief; on
+     * the Wear demo the outcome IS the message ("Nothing was sent") and needs
+     * long enough to read on a wrist.
+     *
+     * Pinned because the default and the override are read from different call
+     * sites and only the default is exercised by the phone — a regression that
+     * ignored the parameter would otherwise be invisible until someone counted
+     * seconds on a watch.
+     */
+    @Test
+    fun resultFlashDurationIsPerSurface() =
+        runTest {
+            val env = FakeVoiceCommandEnvironment()
+            val longFlash = FLASH * 3
+            val controller = createController(env, resultFlashMs = longFlash)
+            controller.onMicTap()
+            controller.onTranscript("open the garage door")
+            advanceTimeBy(WINDOW)
+            runCurrent()
+            assertEquals(VoiceCommandState.Sent(VoiceIntent.OPEN), controller.state.value)
+
+            // Still up at the moment the shared default would have cleared it.
+            advanceTimeBy(FLASH)
+            runCurrent()
+            assertEquals(VoiceCommandState.Sent(VoiceIntent.OPEN), controller.state.value)
+
+            advanceTimeBy(longFlash - FLASH)
             runCurrent()
             assertEquals(VoiceCommandState.Ready, controller.state.value)
         }

@@ -14,6 +14,32 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.3.4
+
+- **Leaving the voice demo now actually ends it.** Swiping back while a command
+  was counting down used to leave it running behind the home screen: it would
+  finish on its own, move the demo door, buzz your wrist for a command you had
+  walked away from, and still be showing that result when you went back in. It
+  now stops when you leave, and the microphone stops with it.
+- **Nothing on the demo screen jumps around any more.** The microphone and the
+  labels above it used to shift up and down by a few pixels every time the
+  wording changed, which happened three times during a single command. They now
+  stay exactly where they are, including when the screen switches to listening,
+  so the microphone grows in place instead of hopping.
+- **You can see how to stop it while it is listening.** Since the last release a
+  tap has cancelled, but the listening screen never said so, which left you
+  watching it with no visible way out. It now says the same thing the countdown
+  says.
+- **The ring no longer disappears at the moment it matters.** When the countdown
+  finishes, the ring completes and stays, the way the real garage button's ring
+  already does, instead of vanishing at the instant of commitment.
+- **"Nothing was sent" stays on screen long enough to read it.** It is the whole
+  point of the demo and it used to be gone in a second and a half.
+- The demo door is now shown while you speak, not just before, so you can see
+  what your command is about to be judged against.
+- Watching the garage door move, and the buzz when a press lands, no longer
+  depend on which screen you happen to be looking at.
+
 ## 0.3.3
 
 - **Tapping while it is listening now stops it.** Previously a tap did nothing

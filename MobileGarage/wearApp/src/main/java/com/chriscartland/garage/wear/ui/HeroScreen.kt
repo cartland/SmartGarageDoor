@@ -33,8 +33,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -47,7 +45,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -55,9 +52,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.FilledTonalIconButton
@@ -80,9 +74,13 @@ import com.chriscartland.garage.wear.ui.theme.WearDoorColors
 import kotlinx.coroutines.launch
 
 /**
- * Stateful hero screen: collects the ViewModel flows, owns the
- * visibility-driven refresh loop and the sign-in launcher, and delegates
- * rendering to [HeroScreenContent].
+ * Stateful hero screen: collects the ViewModel flows, owns the sign-in
+ * launcher, and delegates rendering to [HeroScreenContent].
+ *
+ * Deliberately owns no app-scoped effects. Polling, the screen-wake window and
+ * the press-outcome haptics belong to the app rather than to this screen being
+ * on top, so they live in `WearApp`'s `DoorSurfaceEffects` — see its KDoc for
+ * why that distinction matters once a second destination exists.
  */
 @Composable
 fun HeroScreen(
@@ -96,43 +94,6 @@ fun HeroScreen(
     val buttonState by viewModel.buttonState.collectAsStateWithLifecycle()
     val isHolding by viewModel.isHolding.collectAsStateWithLifecycle()
     val signInError by viewModel.signInError.collectAsStateWithLifecycle()
-    val keepScreenOn by viewModel.keepScreenOn.collectAsStateWithLifecycle()
-
-    // Hold the screen awake only while the ViewModel says something worth
-    // watching is happening (press in flight / door moving, 15s cap). The
-    // window flag is the irreducible platform write; the decision is the VM's.
-    val view = LocalView.current
-    LaunchedEffect(view, keepScreenOn) { view.keepScreenOn = keepScreenOn }
-    DisposableEffect(view) {
-        onDispose { view.keepScreenOn = false }
-    }
-
-    // Haptics: the ViewModel decides WHEN and WHAT (testable); this performs
-    // the platform write. View.performHapticFeedback needs no VIBRATE
-    // permission and respects the watch's own touch-feedback setting — which
-    // is why the ring, not the buzz, stays the authoritative channel.
-    LaunchedEffect(view, viewModel) {
-        viewModel.hapticCues.collect { cue ->
-            view.performHapticFeedback(WearHaptics.constantFor(cue))
-        }
-    }
-
-    // Foreground-only refresh: poll while the screen is visible, stop when hidden.
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner, viewModel) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_START -> viewModel.onVisible()
-                Lifecycle.Event.ON_STOP -> viewModel.onHidden()
-                else -> Unit
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            viewModel.onHidden()
-        }
-    }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()

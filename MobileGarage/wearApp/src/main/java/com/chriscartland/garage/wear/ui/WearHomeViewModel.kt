@@ -35,15 +35,15 @@ import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -125,14 +125,22 @@ class WearHomeViewModel(
     /** True after a failed sign-in attempt; cleared by [onSignInStarted]. */
     val signInError: StateFlow<Boolean> = _signInError
 
-    private val _hapticCues = Channel<HapticCue>(Channel.BUFFERED)
+    private val _hapticCues = MutableSharedFlow<HapticCue>(
+        replay = 0,
+        extraBufferCapacity = HAPTIC_BUFFER,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
 
     /**
-     * One-shot haptic moments for the UI to perform. A [Channel]-backed flow
-     * rather than a StateFlow on purpose: these are events, and StateFlow's
-     * conflation would drop a cue whose neighbour repeated.
+     * One-shot haptic moments for the UI to perform. Not a StateFlow: these are
+     * events, and conflation would drop a cue whose neighbour repeated.
+     *
+     * Not a Channel either, which is the subtler half. A Channel *queues* for
+     * an absent collector, so a cue emitted while no UI is subscribed is
+     * replayed later — a buzz arriving seconds after the thing it describes,
+     * which is worse than no buzz at all. `replay = 0` drops instead.
      */
-    val hapticCues: Flow<HapticCue> = _hapticCues.receiveAsFlow()
+    val hapticCues: Flow<HapticCue> = _hapticCues
 
     private val _keepScreenOn = MutableStateFlow(false)
 
@@ -163,10 +171,10 @@ class WearHomeViewModel(
         viewModelScope.launch(dispatchers.default) {
             stateMachine.state.drop(1).collect { state ->
                 when (state) {
-                    RemoteButtonState.Succeeded -> _hapticCues.trySend(HapticCue.PressSucceeded)
+                    RemoteButtonState.Succeeded -> _hapticCues.tryEmit(HapticCue.PressSucceeded)
                     RemoteButtonState.ServerFailed,
                     RemoteButtonState.DoorFailed,
-                    -> _hapticCues.trySend(HapticCue.PressFailed)
+                    -> _hapticCues.tryEmit(HapticCue.PressFailed)
                     else -> Unit
                 }
             }
@@ -187,14 +195,14 @@ class WearHomeViewModel(
         if (buttonState.value !is RemoteButtonState.Ready) return
         stateMachine.onTap()
         _isHolding.value = true
-        _hapticCues.trySend(HapticCue.HoldEngaged)
+        _hapticCues.tryEmit(HapticCue.HoldEngaged)
         holdJob = viewModelScope.launch(dispatchers.default) {
             delay(HOLD_HALFWAY_MILLIS)
-            _hapticCues.trySend(HapticCue.HoldHalfway)
+            _hapticCues.tryEmit(HapticCue.HoldHalfway)
             delay(HOLD_TO_CONFIRM_MILLIS - HOLD_HALFWAY_MILLIS)
             _isHolding.value = false
             if (buttonState.value is RemoteButtonState.AwaitingConfirmation) {
-                _hapticCues.trySend(HapticCue.PressCommitted)
+                _hapticCues.tryEmit(HapticCue.PressCommitted)
                 // The machine's second tap — submits the press via onSubmit.
                 stateMachine.onTap()
             }
@@ -214,7 +222,7 @@ class WearHomeViewModel(
         holdJob = null
         _isHolding.value = false
         if (incomplete) {
-            _hapticCues.trySend(HapticCue.HoldAborted)
+            _hapticCues.tryEmit(HapticCue.HoldAborted)
             stateMachine.reset()
         }
     }
@@ -363,5 +371,11 @@ class WearHomeViewModel(
          * false alarm.
          */
         const val DOOR_RESPONSE_TIMEOUT_MILLIS: Long = 15_000L
+
+        /**
+         * Room for the longest real burst (engaged, halfway, committed) plus
+         * slack. Overflow drops the oldest rather than blocking the hold timer.
+         */
+        private const val HAPTIC_BUFFER = 8
     }
 }
