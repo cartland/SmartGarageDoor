@@ -39,19 +39,20 @@ import com.chriscartland.garage.wear.ui.HeroScreenContent
  *
  * Launch (debug build only):
  *   adb shell am start -n com.chriscartland.garage.debug/com.chriscartland.garage.wear.debug.ScreenshotStagesActivity \
- *     -e stage connecting|closed|armed|holding|moving|open|signed_out|sign_in_error
+ *     -e stage connecting|closed|inferred|holding|moving|open|signed_out|sign_in_error
  *
  * Stages mirror the hero interaction narrative:
  *   connecting    — cold start, no door event yet: "Connecting…", no ⚠ badge
- *   closed        — green closed door, "Tap door to arm"
- *   armed         — armed with the faint hold ring, "Hold door to press"
- *   holding       — full hold ring ("ring filled, press about to fire").
+ *   closed        — green closed door, "Hold to open"
+ *   inferred      — a position with no affirmative sensor reading (Opening),
+ *                   so the hint stops predicting: "Hold to press the remote"
+ *   holding       — full hold ring, press about to fire, hint slot empty.
  *                   animateFloatAsState initializes AT its target on first
  *                   composition, so a static isHolding=true renders the
  *                   ring already full — deterministic; mid-sweep is not
  *                   capturable from a static fixture
- *   moving        — door sliding open with the up arrow, "Door is moving"
- *   open          — red open door
+ *   moving        — door sliding open with the up arrow
+ *   open          — red open door, "Hold to close"
  *   signed_out    — Sign in button under the door
  *   sign_in_error — transient "Sign-in failed" caption under the button
  */
@@ -71,10 +72,8 @@ class ScreenshotStagesActivity : ComponentActivity() {
                         buttonState = fixture.buttonState,
                         isHolding = fixture.isHolding,
                         signInError = fixture.signInError,
-                        onDoorTap = {},
                         onHoldStart = {},
                         onHoldEnd = {},
-                        onAnyTouch = {},
                         onSignInClick = {},
                     )
                 }
@@ -98,7 +97,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
                 RemoteButtonState.Ready,
                 hasDoorData = false,
             )
-            STAGE_ARMED -> StageFixture(DoorPosition.CLOSED, RemoteButtonState.AwaitingConfirmation)
+            STAGE_INFERRED -> StageFixture(DoorPosition.OPENING, RemoteButtonState.Ready)
             STAGE_HOLDING -> StageFixture(
                 DoorPosition.CLOSED,
                 RemoteButtonState.AwaitingConfirmation,
@@ -124,7 +123,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
         const val STAGE_EXTRA = "stage"
         const val STAGE_CONNECTING = "connecting"
         const val STAGE_CLOSED = "closed"
-        const val STAGE_ARMED = "armed"
+        const val STAGE_INFERRED = "inferred"
         const val STAGE_HOLDING = "holding"
         const val STAGE_MOVING = "moving"
         const val STAGE_OPEN = "open"

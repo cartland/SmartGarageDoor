@@ -1,48 +1,79 @@
 ---
 category: reference
 status: active
-last_verified: 2026-07-22
+last_verified: 2026-07-26
 ---
 
 # Wear OS App (`MobileGarage/wearApp/`)
 
 A standalone Wear OS app with a single hero experience: the animated garage
-door with tap-to-arm and a 2-second radial hold-to-confirm remote button.
-Built on the same shared KMP modules as the phone and iOS apps.
+door with a 2-second hold-to-press remote button. Built on the same shared
+KMP modules as the phone and iOS apps.
 
 ## The hero interaction
 
 The screen is one animated door (same `:domain` `DoorAnimation` spec, geometry,
 and palette as phone/iOS) with the door state label under it.
 
-1. **Tap the door** while signed in → arms the button
-   (`Ready → Preparing → AwaitingConfirmation` on the shared `ButtonStateMachine`).
-   A faint ring appears around the door: "this is holdable."
-2. **Press and hold the door for 2 seconds** while armed → a radial progress
-   ring sweeps around the door; when it completes, the machine's second tap
-   fires and the press is submitted (`SendingToServer → SendingToDoor →
-   Succeeded` when the door actually moves).
-3. **Release early** → the ring resets, nothing is sent, and the button
-   **stays armed**. Every touch anywhere on the screen (down and up, seen by
-   a non-consuming Initial-pass observer) restarts the machine's
-   confirmation timeout via `ButtonStateMachine.onUserInteraction()`, so
-   the armed window counts from the **last touch**: partial taps and
-   aborted holds keep it armed, and only ~8s with no touches disarms it
-   (`Cancelled → Ready`). Because finger-down restarts the window, a hold
-   started at the last instant always gets its full 2 seconds — the machine
-   can never disarm mid-hold (pre-0.1.4, a late hold could visually
-   complete its ring and then fire into an already-cancelled state).
+**One gesture: press and hold the door for 2 seconds.** A radial progress ring
+sweeps around the bezel; when it completes, the press is submitted
+(`SendingToServer → SendingToDoor → Succeeded` when the door actually moves).
+Releasing early sends nothing and resets to the starting state.
 
-A quick tap while armed never submits — it only keeps the window alive.
-This is deliberately stricter than the phone's second-tap confirm, because
-a watch face is much easier to touch accidentally. There is deliberately no
-hard cap on how long touches can keep the button armed: the execute gate is
-the continuous 2s hold, not the window length, and the quiet-period timeout
-handles abandonment. `WearHomeViewModelTest` pins these safety properties
-(stray tap never submits, early release never submits, signed-out is inert,
-late hold still completes, quiet period disarms); `ButtonStateMachineTest`
-pins that `onUserInteraction` extends only the armed window and never
-disturbs the machine's other timers (it has a single timer slot).
+**A tap does nothing at all.** There is no tap handler on the door — no arming
+step, no armed state, no confirm-the-confirm. Only a hold that runs its full
+duration can reach the real garage button.
+
+Under the hood this still drives the shared `ButtonStateMachine` rather than
+bypassing it. Finger-down sends the machine's first tap and starts the
+countdown together, so `Ready → Preparing → AwaitingConfirmation` elapses
+*under the user's finger* and its 500ms arming delay is never something the
+user waits on or reads about. The countdown's completion sends the second
+tap, which submits. An incomplete hold calls `reset()`, so
+`AwaitingConfirmation` exists only while a finger is down and `Cancelled`
+(reached via the machine's confirmation timeout) is unreachable here.
+
+### Why this is safe against accidental presses
+
+The old model used a separate arming tap as the guard. Hold-only replaces it
+with two others:
+
+- **Drift cancels the hold.** `GarageDoorTarget` abandons the gesture if the
+  finger moves more than ~20dp. A deliberate thumb press is steady; the
+  sustained accidental contact that would otherwise be dangerous (a sleeve, a
+  wrist against a surface) wanders.
+- **The hold announces itself.** Haptics fire at the start, midpoint, and
+  completion of the 2 seconds, so an accidental hold is buzzing the wrist a
+  full second before it could fire. That converts a silent countdown into an
+  actively-noticed one.
+
+`WearHomeViewModelTest` pins the safety property from every direction —
+signed out, released early, released one millisecond early, repeated aborted
+holds, and touches landing while a press is already in flight or while a
+terminal result is on screen. Verified to have teeth by mutation: shortening
+the hold threshold fails 12 of its 19 tests.
+
+### Which door states may predict what a press does
+
+The button sends **one remote press** and the garage decides what that does —
+open, close, or pause. Our door position is an interpretation of two sensors,
+so the resting hint only promises an outcome where an affirmative sensor
+reading backs it up:
+
+| Door state label | Hint | Why |
+|---|---|---|
+| Closed | "Hold to open" | closed sensor affirms, open sensor does not contradict |
+| Open | "Hold to close" | open sensor affirms, closed sensor does not contradict |
+| Opening / Closing / Unknown / Sensor conflict / Connecting… | "Hold to press the remote" | no affirmative sensor; position is inferred from history |
+
+`OPEN_MISALIGNED` is grouped with Open: it is a confident Open whose sensor
+dropped out for under 3 seconds, it is well tested in the field, and the door
+state label already renders it as "Open" — the hint must agree with the line
+directly above it. That "key off the displayed label, never the raw
+`DoorPosition`" rule is what keeps the two lines from ever disagreeing, and
+`HeroScreenMappersTest` pins it across the whole enum (a newly added
+`DoorPosition` defaults to not predicting until someone decides otherwise on
+purpose).
 
 ## Architecture
 
@@ -176,9 +207,11 @@ captured from a real Wear emulator by a single script.
   single enumeration of capture-worthy states (renders `HeroScreenContent`
   with canned values — no ViewModel, no network, no auth, no path to the
   real door). Eight stages tell the whole story: `connecting` (cold start,
-  no data yet — "Connecting…", no ⚠ badge) → `closed` → `armed` →
-  `holding` (full ring, press about to fire) → `moving` → `open`, plus
-  `signed_out` and `sign_in_error`. **When the hero screen gains a new
+  no data yet — "Connecting…", no ⚠ badge) → `closed` ("Hold to open") →
+  `inferred` (a position with no affirmative sensor, so the hint stops
+  predicting: "Hold to press the remote") → `holding` (full ring, press
+  about to fire, hint slot empty) → `moving` → `open` ("Hold to close"),
+  plus `signed_out` and `sign_in_error`. **When the hero screen gains a new
   visual state, add a stage** — that is the whole maintenance contract.
 - **Script** — creates/boots the `wear_capture` AVD headless
   (`wearos_large_round`, 454×454, `system-images;android-34;android-wear`;

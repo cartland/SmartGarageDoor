@@ -27,14 +27,22 @@
     <string name="door_state_closing">Closing</string>
     <string name="door_state_sensor_conflict">Sensor conflict</string>
 
-    <!-- Remote button hints. -->
-    <string name="button_hint_tap_to_arm">Tap door to arm</string>
-    <string name="button_hint_arming">Arming…</string>
-    <string name="button_hint_hold_to_press">Hold door to press</string>
-    <string name="button_hint_sending">Sending…</string>
-    <string name="button_hint_signaling_door">Signaling door…</string>
-    <string name="button_hint_succeeded">Door is moving</string>
-    <string name="button_hint_cancelled">Cancelled</string>
+    <!-- Remote button hints.
+
+         The "hold to …" hint is keyed off the door state LABEL shown directly
+         above it, never the raw DoorPosition, so the two lines always agree.
+
+         Only CLOSED and OPEN rest on an affirmative sensor reading (one sensor
+         says so and the other does not contradict it). Every other position is
+         inferred — both sensors are quiet and the direction comes from the
+         previous state — so those hints name OUR action (sending a remote
+         press) instead of predicting the door's response. The garage decides
+         what a press does: open, close, or pause. -->
+    <string name="button_hint_hold_to_open">Hold to open</string>
+    <string name="button_hint_hold_to_close">Hold to close</string>
+    <string name="button_hint_hold_to_press_remote">Hold to press the remote</string>
+    <string name="button_hint_sending">Sending</string>
+    <string name="button_hint_waiting_for_door">Waiting for the door</string>
     <string name="button_hint_server_failed">Server did not respond</string>
     <string name="button_hint_door_failed">Door did not move</string>
 

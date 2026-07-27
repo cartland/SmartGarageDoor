@@ -44,29 +44,33 @@ import kotlinx.coroutines.launch
 
 /**
  * ViewModel for the single Wear hero screen: animated door status plus the
- * tap-to-arm / hold-to-confirm remote button.
+ * hold-to-press remote button.
  *
- * Button flow (drives the shared [ButtonStateMachine], never bypasses it):
- *  1. [onDoorTap] while `Ready` (and signed in) arms the button —
- *     `Ready -> Preparing -> AwaitingConfirmation`.
- *  2. [onHoldStart] while armed starts the hold-to-confirm countdown
- *     ([HOLD_TO_CONFIRM_MILLIS]). If the finger stays down the whole time,
- *     the machine's second tap fires and the press is submitted.
- *  3. [onHoldEnd] (finger lifted early) cancels the countdown; the machine
- *     stays armed. Every touch on the screen — [onScreenTouch] from the
- *     UI's screen-wide observer, plus the hold callbacks themselves —
- *     restarts the machine's confirmation timeout, so the armed window
- *     counts from the LAST touch and expires only after a quiet period
- *     with no touches. Because finger-down restarts the window, a hold
- *     started at the last instant can always run its full 2 seconds; the
- *     machine can never disarm mid-hold.
+ * Button flow — ONE gesture, and it still drives the shared
+ * [ButtonStateMachine] rather than bypassing it:
+ *  1. [onHoldStart] (finger down on the door, signed in, button at rest)
+ *     sends the machine's first tap AND starts the [HOLD_TO_CONFIRM_MILLIS]
+ *     countdown. The machine's 500ms `Preparing` delay therefore elapses
+ *     *under the user's finger*, so `Ready -> Preparing ->
+ *     AwaitingConfirmation` is never something the user waits on or reads
+ *     about; it is an implementation detail of the same single hold.
+ *  2. When the countdown completes the machine's second tap fires and the
+ *     press is submitted.
+ *  3. [onHoldEnd] (finger lifted or drifted early) cancels the countdown
+ *     and resets the machine straight back to `Ready`.
  *
- * A quick tap while armed never submits — it only keeps the button armed.
- * Only a completed continuous hold confirms. This is deliberately stricter
- * than the phone's second-tap confirm; a watch face is far easier to touch
- * accidentally. There is deliberately no hard cap on how long touches can
- * keep the button armed: the execute gate is the continuous hold, not the
- * window length, and the quiet-period timeout handles abandonment.
+ * A tap does nothing whatsoever — the UI has no tap handler at all, and only
+ * a completed continuous hold can reach the real garage button. This is
+ * deliberately stricter than the phone's two-tap confirm; a watch face is
+ * far easier to touch accidentally. Protection against a *sustained*
+ * accidental contact (a sleeve, a wrist against a surface) comes from two
+ * places: the UI abandons the hold if the finger drifts, and the hold is
+ * long enough that the accompanying haptics announce it well before it
+ * fires.
+ *
+ * Because an incomplete hold resets the machine, `AwaitingConfirmation`
+ * exists only while a finger is down, and `Cancelled` — which the machine
+ * reaches via its confirmation timeout — is unreachable here.
  *
  * Freshness: the watch has no FCM registration, so [onVisible] starts a
  * foreground-only refresh loop (stopped by [onHidden]). While a press is
@@ -76,8 +80,8 @@ import kotlinx.coroutines.launch
  * Screen wake: [keepScreenOn] is true (for at most [KEEP_SCREEN_ON_MILLIS]
  * per trigger) only while a submitted press is in flight or the door is
  * physically moving — the moments the user needs to watch the screen.
- * Normal viewing, including the armed state, never holds the screen awake;
- * the battery cost is only paid while something is actually happening.
+ * Normal viewing, and the hold itself, never hold the screen awake; the
+ * battery cost is only paid while something is actually happening.
  *
  * Failure grace: the watch's network path (BT relay / Wi-Fi at the garage)
  * is less reliable than the phone's, and door-moved detection additionally
@@ -142,27 +146,19 @@ class WearHomeViewModel(
         }
     }
 
-    /** First tap on the door: arm the button. Gated on auth and `Ready`. */
-    fun onDoorTap() {
-        if (authState.value !is AuthState.Authenticated) return
-        if (buttonState.value is RemoteButtonState.Ready) {
-            stateMachine.onTap()
-        }
-    }
-
     /**
-     * Finger down on the door while armed: start the hold-to-confirm countdown.
-     * `Preparing` is accepted too so a press that starts during the short
-     * arming delay still counts from finger-down; the confirm itself is
-     * re-checked against `AwaitingConfirmation` when the countdown completes.
+     * Finger down on the door: begin the single hold-to-press gesture.
+     *
+     * Gated on being signed in and on the button being at rest, so touches
+     * landing while a press is already in flight (or while a terminal result
+     * is on screen) do nothing at all. The machine's first tap is sent here,
+     * which means its `Preparing` delay runs inside the hold and is invisible.
      */
     fun onHoldStart() {
-        // Any touch keeps the armed window alive (machine no-ops unless armed).
-        stateMachine.onUserInteraction()
-        val state = buttonState.value
-        val armedOrArming = state is RemoteButtonState.AwaitingConfirmation || state is RemoteButtonState.Preparing
-        if (!armedOrArming) return
+        if (authState.value !is AuthState.Authenticated) return
         if (holdJob?.isActive == true) return
+        if (buttonState.value !is RemoteButtonState.Ready) return
+        stateMachine.onTap()
         _isHolding.value = true
         holdJob = viewModelScope.launch(dispatchers.default) {
             delay(HOLD_TO_CONFIRM_MILLIS)
@@ -174,23 +170,19 @@ class WearHomeViewModel(
         }
     }
 
-    /** Finger lifted: cancel an incomplete hold (no-op after a completed one). */
+    /**
+     * Finger lifted or drifted away. An incomplete hold resets the machine to
+     * `Ready` rather than leaving it parked mid-sequence: with no separate
+     * arming step there is no half-armed state worth preserving, and the next
+     * hold should start from scratch. A completed hold already cleared
+     * [isHolding], so this is a no-op after one.
+     */
     fun onHoldEnd() {
-        // The quiet period runs from the LAST touch, so release also resets it.
-        stateMachine.onUserInteraction()
+        val incomplete = _isHolding.value
         holdJob?.cancel()
         holdJob = null
         _isHolding.value = false
-    }
-
-    /**
-     * Any touch observed anywhere on the screen (the UI's non-consuming
-     * screen-wide observer). While armed this restarts the machine's
-     * confirmation timeout so the button stays armed while the user keeps
-     * interacting; no-op in every other state.
-     */
-    fun onScreenTouch() {
-        stateMachine.onUserInteraction()
+        if (incomplete) stateMachine.reset()
     }
 
     /** Screen became visible: start the foreground refresh loop. */
@@ -252,7 +244,8 @@ class WearHomeViewModel(
      * The moments worth holding the screen awake for, as a distinct value per
      * trigger so the window restarts on each new phase (server ack, door
      * starts moving) but not on repeated identical emissions. Null = nothing
-     * happening; the armed state is deliberately NOT a trigger.
+     * happening; an in-progress hold is deliberately NOT a trigger (the
+     * user's finger is already on the screen, keeping it awake).
      */
     private fun keepScreenOnTrigger(
         buttonState: RemoteButtonState,
