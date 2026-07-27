@@ -14,6 +14,27 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.2.0
+
+- **Operating the door is now one gesture: press and hold the door for two
+  seconds.** There is no longer a separate tap to arm the button first, and
+  tapping the door does nothing at all. The screen no longer walks you
+  through arming states.
+- The hint now tells you what will happen instead of naming a mode: "Hold to
+  open" when the door is closed, "Hold to close" when it is open. When the
+  door is moving, or its position is not certain, it reads "Hold to press the
+  remote" — the button sends one remote press and the garage decides whether
+  that opens, closes, or pauses, so the app only promises an outcome when the
+  sensors confirm one.
+- The watch now vibrates through the press: once when your finger lands, once
+  halfway, and a distinct double when the press is sent and you can let go.
+  A shorter, softer buzz means you released early and nothing was sent. You
+  also feel it when the door actually moves, and when a press fails.
+- When the press is on its way, the ring completes and changes colour, and
+  stays that way until the door responds.
+- The hold is now abandoned if your finger slides while holding, so a sleeve
+  or a wrist resting against something cannot complete a press.
+
 ## 0.1.6
 
 - The watch app now announces itself to the paired phone, so the phone's

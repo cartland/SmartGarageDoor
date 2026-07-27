@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.wear.ui
 
+import android.view.HapticFeedbackConstants
 import androidx.annotation.StringRes
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -100,6 +101,16 @@ fun HeroScreen(
     LaunchedEffect(view, keepScreenOn) { view.keepScreenOn = keepScreenOn }
     DisposableEffect(view) {
         onDispose { view.keepScreenOn = false }
+    }
+
+    // Haptics: the ViewModel decides WHEN and WHAT (testable); this performs
+    // the platform write. View.performHapticFeedback needs no VIBRATE
+    // permission and respects the watch's own touch-feedback setting — which
+    // is why the ring, not the buzz, stays the authoritative channel.
+    LaunchedEffect(view, viewModel) {
+        viewModel.hapticCues.collect { cue ->
+            view.performHapticFeedback(HeroScreenHaptics.constantFor(cue))
+        }
     }
 
     // Foreground-only refresh: poll while the screen is visible, stop when hidden.
@@ -295,6 +306,8 @@ fun HeroScreenContent(
             // block the door's gestures).
             HoldRing(
                 holding = isHolding,
+                inFlight = buttonState is RemoteButtonState.SendingToServer ||
+                    buttonState is RemoteButtonState.SendingToDoor,
                 holdProgress = holdProgress,
                 modifier = Modifier
                     .fillMaxSize()
@@ -305,17 +318,30 @@ fun HeroScreenContent(
 }
 
 /**
- * The radial hold-to-confirm indicator, drawn at the bounds of whatever box
- * it's given — the hero screen gives it the full physical screen so the ring
- * is concentric with the bezel. Callers place it as the topmost layer.
+ * The radial indicator, drawn at the bounds of whatever box it's given — the
+ * hero screen gives it the full physical screen so the ring is concentric
+ * with the bezel. Callers place it as the topmost layer.
+ *
+ * Two jobs. While [holding] it sweeps to report progress toward the press.
+ * While [inFlight] it holds a *complete* ring in a different colour, which is
+ * the "your press was submitted" visual: the sweep does not just vanish at
+ * the moment of commitment, it completes and changes character, then stays up
+ * for as long as the press is actually outstanding.
+ *
+ * A brief flash at the commit instant was considered and rejected: a state is
+ * more useful than a transient here (it pairs with "Sending" / "Waiting for
+ * the door"), and unlike a 400ms animation it is deterministically capturable
+ * by the screenshot fixture.
  */
 @Composable
 private fun HoldRing(
     holding: Boolean,
+    inFlight: Boolean,
     holdProgress: Float,
     modifier: Modifier = Modifier,
 ) {
     val ringColor = MaterialTheme.colorScheme.primary
+    val sentColor = MaterialTheme.colorScheme.tertiary
     val trackColor = MaterialTheme.colorScheme.onSurfaceVariant
     Canvas(modifier = modifier) {
         val stroke = RING_STROKE_DP.dp.toPx()
@@ -334,7 +360,17 @@ private fun HoldRing(
                 style = Stroke(width = stroke),
             )
         }
-        if (holdProgress > 0f) {
+        if (inFlight) {
+            drawArc(
+                color = sentColor,
+                startAngle = ARC_START_ANGLE,
+                sweepAngle = FULL_SWEEP,
+                useCenter = false,
+                topLeft = Offset(inset, inset),
+                size = arcSize,
+                style = Stroke(width = stroke),
+            )
+        } else if (holdProgress > 0f) {
             drawArc(
                 color = ringColor,
                 startAngle = ARC_START_ANGLE,
@@ -407,6 +443,29 @@ private fun GarageDoorTarget(
             modifier = Modifier.fillMaxSize(),
         )
     }
+}
+
+/**
+ * Maps a [HapticCue] to the platform constant that expresses it.
+ *
+ * All of these exist at the app's minSdk (30), so no version guard is
+ * needed. The escalation is deliberate: a light tick to acknowledge, a
+ * distinct tick at the midpoint, then CONFIRM — which is a two-beat pattern,
+ * not merely a stronger tick — so "did it fire, or am I halfway?" is never
+ * ambiguous by feel alone.
+ */
+internal object HeroScreenHaptics {
+    fun constantFor(cue: HapticCue): Int =
+        when (cue) {
+            HapticCue.HoldEngaged -> HapticFeedbackConstants.GESTURE_START
+            HapticCue.HoldHalfway -> HapticFeedbackConstants.CLOCK_TICK
+            HapticCue.PressCommitted -> HapticFeedbackConstants.CONFIRM
+            HapticCue.HoldAborted -> HapticFeedbackConstants.GESTURE_END
+            // Lighter than PressCommitted on purpose — this one arrives after
+            // the finger has gone, as news rather than gesture feedback.
+            HapticCue.PressSucceeded -> HapticFeedbackConstants.CONTEXT_CLICK
+            HapticCue.PressFailed -> HapticFeedbackConstants.REJECT
+        }
 }
 
 /** String/label mappers for the hero screen. */

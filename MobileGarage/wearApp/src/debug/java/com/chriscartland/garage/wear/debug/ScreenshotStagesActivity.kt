@@ -39,7 +39,7 @@ import com.chriscartland.garage.wear.ui.HeroScreenContent
  *
  * Launch (debug build only):
  *   adb shell am start -n com.chriscartland.garage.debug/com.chriscartland.garage.wear.debug.ScreenshotStagesActivity \
- *     -e stage connecting|closed|inferred|holding|moving|open|signed_out|sign_in_error
+ *     -e stage connecting|closed|inferred|holding|submitted|moving|open|signed_out|sign_in_error
  *
  * Stages mirror the hero interaction narrative:
  *   connecting    — cold start, no door event yet: "Connecting…", no ⚠ badge
@@ -51,6 +51,10 @@ import com.chriscartland.garage.wear.ui.HeroScreenContent
  *                   composition, so a static isHolding=true renders the
  *                   ring already full — deterministic; mid-sweep is not
  *                   capturable from a static fixture
+ *   submitted     — the press is in flight: the ring completes and changes
+ *                   colour, "Waiting for the door". This is the "your press
+ *                   was sent" visual, and it is a STATE rather than a flash
+ *                   precisely so it is capturable here
  *   moving        — door sliding open with the up arrow
  *   open          — red open door, "Hold to close"
  *   signed_out    — Sign in button under the door
@@ -103,6 +107,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
                 RemoteButtonState.AwaitingConfirmation,
                 isHolding = true,
             )
+            STAGE_SUBMITTED -> StageFixture(DoorPosition.CLOSED, RemoteButtonState.SendingToDoor)
             STAGE_MOVING -> StageFixture(DoorPosition.OPENING, RemoteButtonState.Succeeded)
             STAGE_OPEN -> StageFixture(DoorPosition.OPEN, RemoteButtonState.Ready)
             STAGE_SIGNED_OUT -> StageFixture(
@@ -125,6 +130,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
         const val STAGE_CLOSED = "closed"
         const val STAGE_INFERRED = "inferred"
         const val STAGE_HOLDING = "holding"
+        const val STAGE_SUBMITTED = "submitted"
         const val STAGE_MOVING = "moving"
         const val STAGE_OPEN = "open"
         const val STAGE_SIGNED_OUT = "signed_out"

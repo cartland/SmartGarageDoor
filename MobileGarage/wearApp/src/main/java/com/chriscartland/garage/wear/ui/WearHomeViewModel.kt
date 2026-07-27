@@ -35,11 +35,15 @@ import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -121,6 +125,15 @@ class WearHomeViewModel(
     /** True after a failed sign-in attempt; cleared by [onSignInStarted]. */
     val signInError: StateFlow<Boolean> = _signInError
 
+    private val _hapticCues = Channel<HapticCue>(Channel.BUFFERED)
+
+    /**
+     * One-shot haptic moments for the UI to perform. A [Channel]-backed flow
+     * rather than a StateFlow on purpose: these are events, and StateFlow's
+     * conflation would drop a cue whose neighbour repeated.
+     */
+    val hapticCues: Flow<HapticCue> = _hapticCues.receiveAsFlow()
+
     private val _keepScreenOn = MutableStateFlow(false)
 
     /**
@@ -144,6 +157,20 @@ class WearHomeViewModel(
                 if (trigger != null) restartKeepScreenOnWindow() else clearKeepScreenOnWindow()
             }
         }
+        // Outcome haptics. drop(1) skips the StateFlow's initial Ready replay,
+        // and the machine only publishes on real transitions, so each terminal
+        // state buzzes exactly once.
+        viewModelScope.launch(dispatchers.default) {
+            stateMachine.state.drop(1).collect { state ->
+                when (state) {
+                    RemoteButtonState.Succeeded -> _hapticCues.trySend(HapticCue.PressSucceeded)
+                    RemoteButtonState.ServerFailed,
+                    RemoteButtonState.DoorFailed,
+                    -> _hapticCues.trySend(HapticCue.PressFailed)
+                    else -> Unit
+                }
+            }
+        }
     }
 
     /**
@@ -160,10 +187,14 @@ class WearHomeViewModel(
         if (buttonState.value !is RemoteButtonState.Ready) return
         stateMachine.onTap()
         _isHolding.value = true
+        _hapticCues.trySend(HapticCue.HoldEngaged)
         holdJob = viewModelScope.launch(dispatchers.default) {
-            delay(HOLD_TO_CONFIRM_MILLIS)
+            delay(HOLD_HALFWAY_MILLIS)
+            _hapticCues.trySend(HapticCue.HoldHalfway)
+            delay(HOLD_TO_CONFIRM_MILLIS - HOLD_HALFWAY_MILLIS)
             _isHolding.value = false
             if (buttonState.value is RemoteButtonState.AwaitingConfirmation) {
+                _hapticCues.trySend(HapticCue.PressCommitted)
                 // The machine's second tap — submits the press via onSubmit.
                 stateMachine.onTap()
             }
@@ -182,7 +213,10 @@ class WearHomeViewModel(
         holdJob?.cancel()
         holdJob = null
         _isHolding.value = false
-        if (incomplete) stateMachine.reset()
+        if (incomplete) {
+            _hapticCues.trySend(HapticCue.HoldAborted)
+            stateMachine.reset()
+        }
     }
 
     /** Screen became visible: start the foreground refresh loop. */
@@ -294,6 +328,14 @@ class WearHomeViewModel(
     companion object {
         /** Hold duration required to confirm a press (the radial indicator sweep time). */
         const val HOLD_TO_CONFIRM_MILLIS: Long = 2_000L
+
+        /**
+         * When the midpoint haptic fires. A pacing cue ("about one more
+         * second"), deliberately NOT a point of no return — releasing cancels
+         * right up to the end, which is a safety property worth more than
+         * tidier haptic semantics.
+         */
+        const val HOLD_HALFWAY_MILLIS: Long = HOLD_TO_CONFIRM_MILLIS / 2
 
         /** Foreground poll cadence while idle. */
         const val IDLE_POLL_MILLIS: Long = 10_000L

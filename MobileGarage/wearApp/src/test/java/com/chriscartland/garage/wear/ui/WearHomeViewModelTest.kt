@@ -37,6 +37,7 @@ import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -106,6 +107,18 @@ class WearHomeViewModelTest {
                 ),
             ),
         )
+    }
+
+    /**
+     * Start recording haptic cues. Must be called before the actions under
+     * test: `hapticCues` is Channel-backed, so a single collector receives
+     * each cue exactly once.
+     */
+    private fun TestScope.recordCues(viewModel: WearHomeViewModel): List<HapticCue> {
+        val cues = mutableListOf<HapticCue>()
+        backgroundScope.launch { viewModel.hapticCues.collect { cues += it } }
+        runCurrent()
+        return cues
     }
 
     /** Finger down, hold past the confirm duration, finger up. */
@@ -308,6 +321,117 @@ class WearHomeViewModelTest {
             )
             runCurrent()
             assertEquals(RemoteButtonState.DoorFailed, viewModel.buttonState.value)
+        }
+
+    // --- Haptics ---
+    //
+    // A buzz cannot be asserted from the command line, but the decision to
+    // buzz can, and that is where the logic lives. These pin the sequence.
+
+    @Test
+    fun completedHoldEmitsEngagedThenHalfwayThenCommitted() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            val cues = recordCues(viewModel)
+            viewModel.onHoldStart()
+            runCurrent()
+            assertEquals(listOf(HapticCue.HoldEngaged), cues)
+            advanceTimeBy(WearHomeViewModel.HOLD_HALFWAY_MILLIS + 1)
+            runCurrent()
+            assertEquals(listOf(HapticCue.HoldEngaged, HapticCue.HoldHalfway), cues)
+            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS)
+            runCurrent()
+            assertEquals(
+                listOf(HapticCue.HoldEngaged, HapticCue.HoldHalfway, HapticCue.PressCommitted),
+                cues.take(3),
+            )
+        }
+
+    @Test
+    fun abortedHoldEmitsAbortedAndNeverCommitted() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            val cues = recordCues(viewModel)
+            viewModel.onHoldStart()
+            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS - 1)
+            runCurrent()
+            viewModel.onHoldEnd()
+            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS)
+            runCurrent()
+            assertEquals(
+                listOf(HapticCue.HoldEngaged, HapticCue.HoldHalfway, HapticCue.HoldAborted),
+                cues,
+            )
+        }
+
+    @Test
+    fun abortBeforeHalfwayNeverEmitsHalfway() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            val cues = recordCues(viewModel)
+            viewModel.onHoldStart()
+            advanceTimeBy(WearHomeViewModel.HOLD_HALFWAY_MILLIS / 2)
+            viewModel.onHoldEnd()
+            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS)
+            runCurrent()
+            assertEquals(listOf(HapticCue.HoldEngaged, HapticCue.HoldAborted), cues)
+        }
+
+    @Test
+    fun signedOutHoldEmitsNothing() =
+        runTest {
+            val viewModel = createViewModel()
+            val cues = recordCues(viewModel)
+            completeHold(viewModel)
+            assertEquals(emptyList<HapticCue>(), cues)
+        }
+
+    @Test
+    fun doorMovedInResponseToOurPressEmitsSucceeded() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            val cues = recordCues(viewModel)
+            completeHold(viewModel)
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.OPENING, lastChangeTimeSeconds = 123L),
+            )
+            runCurrent()
+            assertEquals(HapticCue.PressSucceeded, cues.last())
+        }
+
+    @Test
+    fun doorMovedWithoutOurPressEmitsNothing() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            val cues = recordCues(viewModel)
+            // Someone else opened the door. The watch must stay silent — a
+            // buzz here would be a notification the user never asked for.
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.OPENING, lastChangeTimeSeconds = 123L),
+            )
+            runCurrent()
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.OPEN, lastChangeTimeSeconds = 140L),
+            )
+            runCurrent()
+            assertEquals(emptyList<HapticCue>(), cues)
+        }
+
+    @Test
+    fun failedPressEmitsFailed() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            remoteButtonRepository.setPushSucceeds(false)
+            val cues = recordCues(viewModel)
+            completeHold(viewModel)
+            assertEquals(RemoteButtonState.ServerFailed, viewModel.buttonState.value)
+            assertEquals(HapticCue.PressFailed, cues.last())
         }
 
     // --- Polling and screen wake ---

@@ -47,6 +47,54 @@ with two others:
   full second before it could fire. That converts a silent countdown into an
   actively-noticed one.
 
+### Haptics
+
+Six one-shot cues, decided by the ViewModel and performed by the UI:
+
+| Cue | When | Constant |
+|---|---|---|
+| `HoldEngaged` | finger lands | `GESTURE_START` |
+| `HoldHalfway` | 1.0s, pacing cue | `CLOCK_TICK` |
+| `PressCommitted` | 2.0s, press sent | `CONFIRM` |
+| `HoldAborted` | released or drifted early | `GESTURE_END` |
+| `PressSucceeded` | the door actually moved | `CONTEXT_CLICK` |
+| `PressFailed` | server or door failure | `REJECT` |
+
+Design notes worth not re-litigating:
+
+- **Three discrete cues, not a continuous ramp.** At a fixed 2s there is no
+  actionable quantity to convey, and wrist actuators are too coarse to read
+  intensity as progress anyway. The silence between cues is load-bearing: it
+  is what lets `PressCommitted` land with contrast instead of blending into a
+  stream of ticks. A ramp would win at 4–5s or at a variable duration.
+- **The last cue changes rhythm, not just intensity.** `CONFIRM` is a
+  two-beat pattern, so "did it fire, or am I halfway?" is never ambiguous.
+- **The midpoint is a pacing cue, not a point of no return.** Releasing
+  cancels right up to the end. Moving the commit point earlier would give the
+  haptic tidier semantics at the cost of a real safety property; not worth it.
+- **`View.performHapticFeedback`, not `Vibrator`.** No `VIBRATE` permission,
+  and it respects the watch's own touch-feedback setting — which is exactly
+  why the ring, not the buzz, stays the authoritative channel. Every constant
+  used exists at the app's `minSdk` (30), so no version guards.
+- **A door someone else opened never buzzes.** `PressSucceeded` derives from
+  a state only reachable after this watch submitted a press;
+  `doorMovedWithoutOurPressEmitsNothing` pins it.
+
+Cues are emitted as a `Channel`-backed `Flow`, not a `StateFlow` — they are
+events, and conflation would drop one whose neighbour repeated. Modelling them
+as ViewModel decisions rather than UI-inferred state transitions is what makes
+them testable: a buzz cannot be asserted from the command line, but the cue
+*sequence* can, and `WearHomeViewModelTest` asserts it for completed holds,
+aborts before and after the midpoint, signed-out, success, and failure.
+
+### Press-submitted feedback
+
+At the moment of commitment the ring **completes and changes colour**, and
+stays that way until the door responds (paired with "Sending" → "Waiting for
+the door"). A brief flash at the commit instant was considered and rejected:
+a state is more useful than a transient here, and unlike a 400ms animation it
+is deterministically capturable by the `submitted` screenshot stage.
+
 `WearHomeViewModelTest` pins the safety property from every direction —
 signed out, released early, released one millisecond early, repeated aborted
 holds, and touches landing while a press is already in flight or while a
@@ -210,7 +258,8 @@ captured from a real Wear emulator by a single script.
   no data yet — "Connecting…", no ⚠ badge) → `closed` ("Hold to open") →
   `inferred` (a position with no affirmative sensor, so the hint stops
   predicting: "Hold to press the remote") → `holding` (full ring, press
-  about to fire, hint slot empty) → `moving` → `open` ("Hold to close"),
+  about to fire, hint slot empty) → `submitted` (ring complete in the sent
+  colour, "Waiting for the door") → `moving` → `open` ("Hold to close"),
   plus `signed_out` and `sign_in_error`. **When the hero screen gains a new
   visual state, add a stage** — that is the whole maintenance contract.
 - **Script** — creates/boots the `wear_capture` AVD headless
