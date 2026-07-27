@@ -320,6 +320,16 @@ else
     fail "testBenchmarkUnitTest"
 fi
 
+# CI already runs these via the aggregate `./gradlew test` in the Unit Tests
+# job; validate.sh's other unit-test steps are :androidApp:-scoped, so without
+# this a wear-breaking change passes locally and only fails in CI.
+step "Unit Tests (wear)"
+if $GRADLE :wearApp:testDebugUnitTest; then
+    pass "wearApp testDebugUnitTest"
+else
+    fail "wearApp testDebugUnitTest"
+fi
+
 step "Build Debug APK"
 if $GRADLE :androidApp:assembleDebug; then
     pass "assembleDebug"
