@@ -6,9 +6,10 @@ Captured from the debug fixture `ScreenshotStagesActivity` on the
 clock pinned to 10:10. This directory doubles as Play Store staging; the
 curated live subset is copied by hand to `../../../distribution/playstore/wear/`.
 
-Captures are byte-stable across regens **except `moving`**, which is caught
-mid-animation (12s of door travel against a 4s settle) and can differ by a
-frame. A diff in any other stage means a real visual change.
+Captures are byte-stable across regens **except the mid-travel stages**
+(`moving` and `inferred`, both DoorPosition.OPENING), which are caught
+part-way through 12s of door animation against a 4s settle and can differ
+by a frame. A diff in any other stage means a real visual change.
 
 | Stage | Capture | Shows |
 |---|---|---|
@@ -22,6 +23,7 @@ frame. A diff in any other stage means a real visual change.
 | signed_out | <img src="wear-signed_out.png" width="180" alt="signed out"> | Signed out: Sign in button (no mic chip — the voice demo is signed-in only) |
 | sign_in_error | <img src="wear-sign_in_error.png" width="180" alt="sign in error"> | Transient "Sign-in failed" caption |
 | voice_ready | <img src="wear-voice_ready.png" width="180" alt="voice ready"> | Voice demo at rest: "Simulated" marker, "Tap to speak", demo door Closed |
+| voice_listening | <img src="wear-voice_listening.png" width="180" alt="voice listening"> | Voice demo hearing you: live interim text from the in-app recognizer |
 | voice_armed | <img src="wear-voice_armed.png" width="180" alt="voice armed"> | Voice demo counting down: the action named conditionally, "Would open the door" |
 | voice_sent | <img src="wear-voice_sent.png" width="180" alt="voice sent"> | Voice demo punchline: "Nothing was sent"; only the demo door reacts |
 | voice_refused | <img src="wear-voice_refused.png" width="180" alt="voice refused"> | Voice demo gate refusing a command the demo door has outgrown |

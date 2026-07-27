@@ -66,7 +66,7 @@
     <string name="voice_demo_listening">Listening…</string>
     <string name="voice_demo_would_open">Would open the door</string>
     <string name="voice_demo_would_close">Would close the door</string>
-    <string name="voice_demo_cancel_hint">Tap to cancel</string>
+    <string name="voice_demo_cancel_hint">Tap anywhere to cancel</string>
     <string name="voice_demo_committing">Would press the remote</string>
     <string name="voice_demo_committed">Nothing was sent</string>
     <string name="voice_demo_committed_hint">The demo door responds instead</string>
@@ -92,6 +92,7 @@
     <string name="cd_garage_door">Garage door</string>
     <string name="cd_voice_demo">Voice demo, simulated</string>
     <string name="cd_voice_demo_mic">Tap to speak a door command</string>
+    <string name="cd_voice_demo_screen">Tap anywhere to cancel and speak again</string>
     <string name="cd_arrow_up">Up arrow</string>
     <string name="cd_arrow_down">Down arrow</string>
     <string name="cd_warning">Warning</string>

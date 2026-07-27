@@ -19,12 +19,14 @@ set -euo pipefail
 # verified empirically by running twice back to back, 12 of 13 stages — so a
 # regen diff means a real visual change.
 #
-# The exception is `moving`, captured mid-animation: the door takes 12s to
-# travel and the settle is 4s, so the frame caught depends on render latency
-# and that one PNG can differ by a few hundred bytes on any regen. Mid-travel
-# IS the state being illustrated, so this is inherent rather than fixable by
-# waiting longer (waiting it out would just render `open`). Treat a
-# `moving`-only diff as noise.
+# The exceptions are the stages whose door is MID-TRAVEL — `moving` and
+# `inferred`, both of which render DoorPosition.OPENING. The door takes 12s to
+# travel and the settle is 4s, so the frame caught depends on render latency and
+# those PNGs can differ by a few hundred bytes on any regen (they do not always
+# differ, which is why an earlier note wrongly blamed `moving` alone).
+# Mid-travel IS the state being illustrated, so this is inherent rather than
+# fixable by waiting longer (waiting it out would just render `open`). Treat a
+# diff confined to those two as noise.
 #
 # Even the `holding` stage is stable: animateFloatAsState initializes AT its target
 # on first composition, so the fixture's isHolding=true renders the ring
@@ -64,7 +66,7 @@ STAGES=(
     # FULL: the settle below (4s) outlasts the cancel window (3s), so the
     # animation has finished by capture time. Deterministic, which is what the
     # fixture needs — mid-sweep would depend on emulator render latency.
-    voice_ready voice_armed voice_sent voice_refused
+    voice_ready voice_listening voice_armed voice_sent voice_refused
 )
 # Post-foreground settle: lets the system splash ("Starting…") dissolve and
 # the first real frame land. The foreground wait below handles slow cold
@@ -246,6 +248,7 @@ stage_description() {
         open) echo "Open door, \"Hold to close\"" ;;
         signed_out) echo "Signed out: Sign in button (no mic chip — the voice demo is signed-in only)" ;;
         sign_in_error) echo "Transient \"Sign-in failed\" caption" ;;
+        voice_listening) echo "Voice demo hearing you: live interim text from the in-app recognizer" ;;
         voice_ready) echo "Voice demo at rest: \"Simulated\" marker, \"Tap to speak\", demo door Closed" ;;
         voice_armed) echo "Voice demo counting down: the action named conditionally, \"Would open the door\"" ;;
         voice_sent) echo "Voice demo punchline: \"Nothing was sent\"; only the demo door reacts" ;;
@@ -270,9 +273,10 @@ done
     echo "clock pinned to 10:10. This directory doubles as Play Store staging; the"
     echo "curated live subset is copied by hand to \`../../../distribution/playstore/wear/\`."
     echo
-    echo "Captures are byte-stable across regens **except \`moving\`**, which is caught"
-    echo "mid-animation (12s of door travel against a 4s settle) and can differ by a"
-    echo "frame. A diff in any other stage means a real visual change."
+    echo "Captures are byte-stable across regens **except the mid-travel stages**"
+    echo "(\`moving\` and \`inferred\`, both DoorPosition.OPENING), which are caught"
+    echo "part-way through 12s of door animation against a 4s settle and can differ"
+    echo "by a frame. A diff in any other stage means a real visual change."
     echo
     echo "| Stage | Capture | Shows |"
     echo "|---|---|---|"

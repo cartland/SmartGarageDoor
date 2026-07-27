@@ -337,6 +337,59 @@ class WearVoiceViewModelTest {
             assertEquals(VoiceDoorState.OPEN, viewModel.demoDoorState.value)
         }
 
+    // --- Live partial text (in-app capture only) -----------------------------
+
+    @Test
+    fun partialTextIsShownWhileListening() =
+        runTest {
+            val viewModel = createViewModel()
+            viewModel.onMicTap()
+            runCurrent()
+
+            viewModel.onPartialTranscript("open the")
+            runCurrent()
+            assertEquals("open the", viewModel.partialTranscript.value)
+
+            viewModel.onPartialTranscript("open the garage")
+            runCurrent()
+            assertEquals("open the garage", viewModel.partialTranscript.value)
+        }
+
+    @Test
+    fun partialTextIsClearedWhenTheAttemptEnds() =
+        runTest {
+            val viewModel = createViewModel()
+            viewModel.onMicTap()
+            runCurrent()
+            viewModel.onPartialTranscript("open the garage")
+            runCurrent()
+
+            viewModel.onTranscript("open the garage door")
+            runCurrent()
+
+            // The outcome replaces it; stale interim text must not linger under
+            // "Would open the door".
+            assertEquals(null, viewModel.partialTranscript.value)
+        }
+
+    /**
+     * Recognizers can deliver a partial after the attempt is over. Accepting
+     * it would paint interim text from an abandoned capture over the outcome
+     * of whatever is on screen now.
+     */
+    @Test
+    fun partialTextArrivingAfterTheAttemptIsIgnored() =
+        runTest {
+            val viewModel = createViewModel()
+            speak(viewModel, "open the garage door")
+            assertTrue(viewModel.state.value is VoiceCommandState.Armed)
+
+            viewModel.onPartialTranscript("late straggler")
+            runCurrent()
+
+            assertEquals(null, viewModel.partialTranscript.value)
+        }
+
     // --- Haptics -------------------------------------------------------------
 
     /**

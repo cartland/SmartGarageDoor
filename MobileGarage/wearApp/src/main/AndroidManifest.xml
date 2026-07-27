@@ -22,6 +22,23 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Voice demo only, and requested at the moment you first tap the mic —
+         never on launch. It buys ONE-TAP speech: RecognizerIntent on Wear goes
+         to Gboard's text-entry activity, which makes you confirm the transcript
+         before returning it, while SpeechRecognizer hands back text directly.
+         Declining is a supported path: the demo falls back to the system flow.
+         The microphone is never used by the real remote button. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Android 11+ package visibility: without this, isRecognitionAvailable()
+         cannot see a RecognitionService in another package and always reports
+         false, silently forcing the slow fallback on every device. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
     <application
         android:name=".GarageWearApplication"
         android:icon="@mipmap/ic_launcher"
