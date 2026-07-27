@@ -27,6 +27,7 @@ import com.chriscartland.garage.usecase.VoiceCommandState
 import com.chriscartland.garage.usecase.VoiceDoorState
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -84,6 +85,18 @@ class WearVoiceViewModel(
     /** The simulated door the gate reads. Never the real one. */
     val demoDoorState: StateFlow<VoiceDoorState> = environment.doorState
 
+    private val _partialTranscript = MutableStateFlow<String?>(null)
+
+    /**
+     * What the recognizer thinks it is hearing, while it is still hearing it.
+     *
+     * Only populated by the in-app capture path; the system-dialog fallback
+     * draws its own UI and never reports partials. Without this, replacing a
+     * rich system screen with a static "Listening…" label would be a
+     * downgrade — this is what makes the in-app path feel responsive.
+     */
+    val partialTranscript: StateFlow<String?> = _partialTranscript
+
     private val _hapticCues = Channel<HapticCue>(Channel.BUFFERED)
 
     /**
@@ -103,6 +116,12 @@ class WearVoiceViewModel(
         // mid-flow would replay a non-Ready state and buzz on arrival.
         viewModelScope.launch(dispatchers.default) {
             controller.state.drop(1).collect { current ->
+                // Partial text belongs to exactly one capture attempt. Clearing
+                // it here, in the one place state transitions are observed,
+                // means it cannot survive into the outcome that replaces it.
+                if (current !is VoiceCommandState.Listening) {
+                    _partialTranscript.value = null
+                }
                 when (current) {
                     is VoiceCommandState.Armed -> _hapticCues.trySend(HapticCue.VoiceArmed)
                     // Sending, not Sent: this fires the instant the cancel
@@ -127,6 +146,17 @@ class WearVoiceViewModel(
 
     /** Recognizer returned. Null or blank means no usable speech. */
     fun onTranscript(text: String?) = controller.onTranscript(text)
+
+    /**
+     * Interim recognizer text. Ignored unless a capture is actually running,
+     * so a late callback from an abandoned attempt cannot paint text over the
+     * outcome of the next one.
+     */
+    fun onPartialTranscript(text: String) {
+        if (controller.state.value is VoiceCommandState.Listening) {
+            _partialTranscript.value = text
+        }
+    }
 
     /** The watch has no speech recognizer to launch. */
     fun onCaptureUnavailable() = controller.onCaptureUnavailable()

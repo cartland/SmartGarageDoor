@@ -153,6 +153,51 @@ the demo and think you are operating the real door. `SwipeToDismissBox` gives
 the standard Wear swipe-back, with the hero screen composed underneath as the
 background so returning does not re-run its cold-start fetch.
 
+On the demo screen the **whole screen is the button** (0.3.1). A 52dp target is
+a poor thing to have to hit to stop something already counting down, and the
+controller's model is "a tap always means listen to me now", so the tap area may
+as well be everything. No ripple (a full-screen one reads as a glitch) and
+disabled while `Sending`, because a press cannot be unsent. The mic button is a
+child, so its own click wins where they overlap, and gesture disambiguation
+still lets a horizontal drag reach `SwipeToDismissBox`.
+
+### Capture: in-app recognizer, system dialog as fallback (0.3.1)
+
+`RecognizerIntent.ACTION_RECOGNIZE_SPEECH` behaves differently on a watch than
+on a phone, and the difference is visible to the user. On Wear the intent
+resolves to **Gboard's `WearRemoteInputActivity`** — the general text-ENTRY
+surface, not a one-shot recognizer. Its job is to produce text for an input
+field, so it transcribes and then asks you to review/accept before returning.
+That review step is the point of that activity, so **no `EXTRA_*` turns it
+off**. Verify on any Wear image with:
+
+```bash
+adb shell pm query-activities --brief -a android.speech.action.RECOGNIZE_SPEECH
+```
+
+So 0.3.1 prefers `android.speech.SpeechRecognizer` (`WearSpeechCapture`), the
+headless API underneath: results arrive on `RecognitionListener` callbacks, the
+app draws everything, and speaking is one tap. Partial results feed a live
+transcript line, without which replacing a rich system screen with a static
+"Listening…" would be a downgrade.
+
+Two things make this safe to prefer rather than mandate:
+
+- **`RECORD_AUDIO` is requested on first mic tap, never at launch**, and
+  declining falls back to the system flow. The demo always works; it is just
+  slower. The microphone is never touched by the real remote button.
+- **`SpeechRecognizer` needs a `RecognitionService`, which is not guaranteed.**
+  `isRecognitionAvailable()` gates it, and the `wear_capture` emulator image has
+  **no such service at all** — so this path cannot be exercised locally and the
+  emulator always takes the fallback. The manifest needs a `<queries>` entry for
+  `android.speech.RecognitionService` or Android 11+ package visibility makes
+  `isRecognitionAvailable()` answer false on every device.
+
+**Verification gap:** whether the confirmation step is actually gone, and
+recognition quality, are only observable on a real watch. Everything else — the
+state machine, the gate, partial-text handling, the fallback decision — is
+CLI-tested.
+
 ### How it says "this is not real"
 
 Three independent signals, because one is easy to miss on a glance:

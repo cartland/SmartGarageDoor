@@ -14,6 +14,19 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.3.1
+
+- **Speaking a command is now one tap.** The watch used to hand you off to the
+  system text-entry screen, which transcribed what you said and then made you
+  confirm it before the app ever saw it. The demo now listens inside the app,
+  shows the words as you say them, and goes straight to the countdown. This
+  needs permission to use the microphone, which it asks for the first time you
+  tap the mic. Say no and it still works, just the long way round.
+- **Cancelling is much easier: tap anywhere on the screen.** You no longer have
+  to hit the small mic button to stop a command that is counting down.
+- The microphone is used only by the voice demo. It is never involved in
+  operating the real garage door, which is still hold the door for two seconds.
+
 ## 0.3.0
 
 - **New: a voice demo, and it is only a demo.** A small mic button beside the

@@ -17,9 +17,11 @@
 
 package com.chriscartland.garage.wear.ui
 
+import android.Manifest
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,6 +30,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,19 +43,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -72,12 +80,16 @@ import com.chriscartland.garage.wear.R
  * Stateful voice demo screen: owns the speech-recognizer plumbing and the
  * lifecycle hook, and delegates rendering to [VoiceDemoContent].
  *
- * Capture is `RecognizerIntent` (the system speech screen) rather than an
- * in-app `SpeechRecognizer`: it is the watch-idiomatic full-screen UI, it
- * needs no RECORD_AUDIO permission handling, and it returns text rather than
- * audio. Launch is driven by the controller's `Listening` state rather than
- * by the tap, so "tap while ready" and "tap to cancel, which re-listens"
- * share one path.
+ * Capture prefers an in-app [WearSpeechCapture] so that speaking is **one
+ * tap**. `RecognizerIntent` on Wear resolves to Gboard's text-ENTRY activity,
+ * which transcribes and then asks you to confirm before returning — fine for
+ * filling a text field, needless friction for a two-word command. It remains
+ * the fallback for watches with no `RecognitionService` and for a user who
+ * declines the microphone, so the demo always works; it is just slower.
+ *
+ * Launch is driven by the controller's `Listening` state rather than by the
+ * tap, so "tap while ready" and "tap to cancel, which re-listens" share one
+ * path regardless of which capture backend is in play.
  */
 @Composable
 fun VoiceDemoScreen(
@@ -86,6 +98,7 @@ fun VoiceDemoScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val demoDoorState by viewModel.demoDoorState.collectAsStateWithLifecycle()
+    val partialTranscript by viewModel.partialTranscript.collectAsStateWithLifecycle()
 
     val view = LocalView.current
     LaunchedEffect(view, viewModel) {
@@ -107,26 +120,59 @@ fun VoiceDemoScreen(
         viewModel.onTranscript(transcript)
     }
     val prompt = stringResource(R.string.voice_demo_prompt)
+
+    // Preferred path: capture in-app, so speaking is ONE tap. The system
+    // fallback below exists because RecognizerIntent on Wear resolves to
+    // Gboard's text-ENTRY activity, which makes you confirm the transcript
+    // before it returns (WearSpeechCapture has the full why).
+    val inAppCapture = rememberWearSpeechCapture(
+        onTranscript = viewModel::onTranscript,
+        onPartial = viewModel::onPartialTranscript,
+    )
+    val context = LocalContext.current
+    var micGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+                PackageManager.PERMISSION_GRANTED,
+        )
+    }
+
+    val launchSystemCapture = {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            .putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
+            ).putExtra(RecognizerIntent.EXTRA_PROMPT, prompt)
+            // Only the top-1 result is ever parsed: acting on alternative N
+            // is acting on something the recognizer thinks you probably
+            // did not say.
+            .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+        try {
+            voiceLauncher.launch(intent)
+        } catch (_: ActivityNotFoundException) {
+            // Watches with no speech input at all. Caught rather than
+            // pre-checked with resolveActivity, which Android 11+ package
+            // visibility would answer with a misleading null.
+            viewModel.onCaptureUnavailable()
+        }
+    }
+
+    // Denying the microphone degrades to the system flow rather than breaking
+    // the demo: more taps, but it still works.
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        micGranted = granted
+        if (granted) inAppCapture?.start() else launchSystemCapture()
+    }
+
     val listeningAttempt = (state as? VoiceCommandState.Listening)?.attempt
     LaunchedEffect(listeningAttempt) {
-        if (listeningAttempt != null) {
-            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-                .putExtra(
-                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
-                ).putExtra(RecognizerIntent.EXTRA_PROMPT, prompt)
-                // Only the top-1 result is ever parsed: acting on alternative N
-                // is acting on something the recognizer thinks you probably
-                // did not say.
-                .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-            try {
-                voiceLauncher.launch(intent)
-            } catch (_: ActivityNotFoundException) {
-                // Watches without a speech recognizer. Caught rather than
-                // pre-checked with resolveActivity, which Android 11+ package
-                // visibility would answer with a misleading null.
-                viewModel.onCaptureUnavailable()
-            }
+        if (listeningAttempt == null) return@LaunchedEffect
+        when {
+            inAppCapture == null -> launchSystemCapture()
+            micGranted -> inAppCapture.start()
+            else -> micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
 
@@ -142,6 +188,7 @@ fun VoiceDemoScreen(
     VoiceDemoContent(
         state = state,
         demoDoorState = demoDoorState,
+        partialTranscript = partialTranscript,
         onMicTap = viewModel::onMicTap,
         modifier = modifier,
     )
@@ -168,6 +215,7 @@ fun VoiceDemoScreen(
 fun VoiceDemoContent(
     state: VoiceCommandState,
     demoDoorState: VoiceDoorState,
+    partialTranscript: String?,
     onMicTap: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -188,7 +236,27 @@ fun VoiceDemoContent(
     }
 
     ScreenScaffold(modifier = modifier) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            // The WHOLE screen is the button, not just the mic. A 52dp target
+            // is a poor thing to have to hit to stop something that is already
+            // counting down, and the controller's model is "a tap always means
+            // listen to me now" — so the tap area may as well be everything.
+            //
+            // No ripple (a full-screen one reads as a glitch); the state change
+            // is the feedback. Disabled while Sending because a press cannot be
+            // unsent. The mic button is a child, so its own click wins where
+            // they overlap, and Compose's gesture disambiguation still lets a
+            // horizontal drag reach SwipeToDismissBox for swipe-to-go-back.
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    enabled = state !is VoiceCommandState.Sending,
+                    onClickLabel = stringResource(R.string.cd_voice_demo_screen),
+                    onClick = onMicTap,
+                ),
+        ) {
             Column(
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -222,7 +290,7 @@ fun VoiceDemoContent(
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = VoiceDemoMappers.secondaryLine(state),
+                    text = VoiceDemoMappers.secondaryLine(state, partialTranscript),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -322,8 +390,16 @@ internal object VoiceDemoMappers {
      * classifier says no.
      */
     @Composable
-    fun secondaryLine(state: VoiceCommandState): String =
+    fun secondaryLine(
+        state: VoiceCommandState,
+        partialTranscript: String?,
+    ): String =
         when (state) {
+            // Live text while the in-app recognizer is hearing it. The system
+            // fallback never reports partials, so it keeps the static hint.
+            is VoiceCommandState.Listening ->
+                partialTranscript?.let { stringResource(R.string.voice_demo_transcript, it) }
+                    ?: stringResource(R.string.voice_demo_hint)
             is VoiceCommandState.Armed -> stringResource(R.string.voice_demo_cancel_hint)
             is VoiceCommandState.Ignored ->
                 state.transcript?.let { stringResource(R.string.voice_demo_transcript, it) }
@@ -364,6 +440,7 @@ private fun VoiceDemoReadyPreview() {
         VoiceDemoContent(
             state = VoiceCommandState.Ready,
             demoDoorState = VoiceDoorState.CLOSED,
+            partialTranscript = null,
             onMicTap = {},
         )
     }
@@ -381,6 +458,7 @@ private fun VoiceDemoArmedPreview() {
                 windowMs = WearVoiceViewModel.ARMED_WINDOW_MILLIS,
             ),
             demoDoorState = VoiceDoorState.CLOSED,
+            partialTranscript = null,
             onMicTap = {},
         )
     }
@@ -394,6 +472,7 @@ private fun VoiceDemoSentPreview() {
         VoiceDemoContent(
             state = VoiceCommandState.Sent(intent = VoiceIntent.OPEN),
             demoDoorState = VoiceDoorState.MOVING,
+            partialTranscript = null,
             onMicTap = {},
         )
     }
@@ -412,6 +491,7 @@ private fun VoiceDemoIgnoredPreview() {
                 engineName = "Rules v3",
             ),
             demoDoorState = VoiceDoorState.OPEN,
+            partialTranscript = null,
             onMicTap = {},
         )
     }

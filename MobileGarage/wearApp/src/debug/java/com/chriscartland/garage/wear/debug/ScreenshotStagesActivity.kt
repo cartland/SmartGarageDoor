@@ -45,7 +45,7 @@ import com.chriscartland.garage.wear.ui.WearVoiceViewModel
  *
  * Launch (debug build only):
  *   adb shell am start -n com.chriscartland.garage.debug/com.chriscartland.garage.wear.debug.ScreenshotStagesActivity \
- *     -e stage connecting|closed|inferred|holding|submitted|moving|open|signed_out|sign_in_error|voice_ready|voice_armed|voice_sent|voice_refused
+ *     -e stage connecting|closed|inferred|holding|submitted|moving|open|signed_out|sign_in_error|voice_ready|voice_listening|voice_armed|voice_sent|voice_refused
  *
  * Stages mirror the hero interaction narrative:
  *   connecting    — cold start, no door event yet: "Connecting…", no ⚠ badge
@@ -70,6 +70,7 @@ import com.chriscartland.garage.wear.ui.WearVoiceViewModel
  * simulated by construction: the fixture passes canned VoiceCommandStates and
  * a canned demo door, with no controller and no environment at all.
  *   voice_ready   — at rest: "Simulated", "Tap to speak", demo door Closed
+ *   voice_listening — in-app capture: live interim text as you speak
  *   voice_armed   — "Would open the door": the action named conditionally
  *   voice_sent    — the punchline: "Nothing was sent", demo door Moving
  *   voice_refused — the gate refusing a command the demo door has outgrown
@@ -87,6 +88,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
                         VoiceDemoContent(
                             state = voiceFixture.state,
                             demoDoorState = voiceFixture.demoDoorState,
+                            partialTranscript = voiceFixture.partialTranscript,
                             onMicTap = {},
                         )
                     } else {
@@ -122,6 +124,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
     private data class VoiceStageFixture(
         val state: VoiceCommandState,
         val demoDoorState: VoiceDoorState,
+        val partialTranscript: String? = null,
     )
 
     private fun voiceFixtureFor(stage: String): VoiceStageFixture? =
@@ -129,6 +132,14 @@ class ScreenshotStagesActivity : ComponentActivity() {
             STAGE_VOICE_READY -> VoiceStageFixture(
                 VoiceCommandState.Ready,
                 VoiceDoorState.CLOSED,
+            )
+            // Live interim text from the in-app recognizer. Only reachable via
+            // SpeechRecognizer, which the emulator has no service for, so this
+            // canned fixture is the only way to see this state at all.
+            STAGE_VOICE_LISTENING -> VoiceStageFixture(
+                VoiceCommandState.Listening(attempt = 1),
+                VoiceDoorState.CLOSED,
+                partialTranscript = "open the gar",
             )
             STAGE_VOICE_ARMED -> VoiceStageFixture(
                 VoiceCommandState.Armed(
@@ -205,6 +216,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
         const val STAGE_SIGNED_OUT = "signed_out"
         const val STAGE_SIGN_IN_ERROR = "sign_in_error"
         const val STAGE_VOICE_READY = "voice_ready"
+        const val STAGE_VOICE_LISTENING = "voice_listening"
         const val STAGE_VOICE_ARMED = "voice_armed"
         const val STAGE_VOICE_SENT = "voice_sent"
         const val STAGE_VOICE_REFUSED = "voice_refused"
