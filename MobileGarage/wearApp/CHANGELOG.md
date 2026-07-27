@@ -14,6 +14,19 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.3.3
+
+- **Tapping while it is listening now stops it.** Previously a tap did nothing
+  at all until the recognizer gave up on its own. One rule now covers the whole
+  screen: a tap starts whatever is not running and stops whatever is.
+- **Cancelling a command now just cancels it.** Tapping during the countdown
+  used to cancel and immediately start listening again, which meant brushing
+  the screen dropped you into a live microphone you had not asked for. It now
+  returns to the start, and the microphone really does stop.
+- The microphone and the pulse rings are now properly concentric. The
+  microphone had been sitting slightly above the rings that were supposed to
+  be coming out of it.
+
 ## 0.3.2
 
 - **You can now tell it is listening at a glance.** Speaking takes over the

@@ -135,6 +135,89 @@ class VoiceCommandControllerTest {
             assertEquals(VoiceCommandState.Listening(attempt = 2), controller.state.value)
         }
 
+    /**
+     * [VoiceCommandController.onCancel] is the other verb: stop, rather than
+     * restart. Wear uses it because its whole screen is the tap target, so a
+     * brush during the countdown must not open a live mic; callers of
+     * [VoiceCommandController.onMicTap] are unaffected.
+     */
+    @Test
+    fun cancelDuringArmedStopsInsteadOfRelistening() =
+        runTest {
+            val env = FakeVoiceCommandEnvironment()
+            val controller = createController(env)
+            controller.onMicTap()
+            controller.onTranscript("open the garage door")
+            assertIs<VoiceCommandState.Armed>(controller.state.value)
+
+            advanceTimeBy(WINDOW / 2)
+            controller.onCancel()
+            assertEquals(VoiceCommandState.Ready, controller.state.value)
+
+            advanceTimeBy(WINDOW * 2)
+            runCurrent()
+            assertTrue(env.presses.isEmpty(), "Cancelled command must not send")
+            assertEquals(VoiceCommandState.Ready, controller.state.value)
+        }
+
+    @Test
+    fun cancelDuringListeningReturnsToReady() =
+        runTest {
+            val controller = createController(FakeVoiceCommandEnvironment())
+            controller.onMicTap()
+            assertIs<VoiceCommandState.Listening>(controller.state.value)
+
+            controller.onCancel()
+
+            assertEquals(VoiceCommandState.Ready, controller.state.value)
+        }
+
+    /** A late result from the abandoned capture must not resurrect it. */
+    @Test
+    fun transcriptArrivingAfterCancelIsDropped() =
+        runTest {
+            val env = FakeVoiceCommandEnvironment()
+            val controller = createController(env)
+            controller.onMicTap()
+            controller.onCancel()
+
+            controller.onTranscript("open the garage door")
+            runCurrent()
+
+            assertEquals(VoiceCommandState.Ready, controller.state.value)
+            advanceTimeBy(WINDOW * 2)
+            runCurrent()
+            assertTrue(env.presses.isEmpty(), "A cancelled capture must not send")
+        }
+
+    /** A press cannot be unsent, so cancel has nothing to offer here. */
+    @Test
+    fun cancelDuringSendingIsIgnored() =
+        runTest {
+            val env = FakeVoiceCommandEnvironment(pressDelayMs = 100)
+            val controller = createController(env)
+            controller.onMicTap()
+            controller.onTranscript("open the garage door")
+            advanceTimeBy(WINDOW + 1)
+            runCurrent()
+            assertIs<VoiceCommandState.Sending>(controller.state.value)
+
+            controller.onCancel()
+
+            assertIs<VoiceCommandState.Sending>(controller.state.value)
+            advanceTimeBy(200)
+            runCurrent()
+            assertEquals(listOf(VoiceIntent.OPEN), env.presses)
+        }
+
+    @Test
+    fun cancelFromReadyDoesNothing() =
+        runTest {
+            val controller = createController(FakeVoiceCommandEnvironment())
+            controller.onCancel()
+            assertEquals(VoiceCommandState.Ready, controller.state.value)
+        }
+
     @Test
     fun mediumConfidenceIsIgnoredNotConfident() =
         runTest {

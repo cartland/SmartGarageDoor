@@ -141,8 +141,18 @@ class WearVoiceViewModel(
         }
     }
 
-    /** Mic tapped. Always means "listen to me now" — see [VoiceCommandController]. */
+    /** Mic tapped while nothing is running: start listening. */
     fun onMicTap() = controller.onMicTap()
+
+    /**
+     * Tapped while something IS running: stop it and go back to Ready.
+     *
+     * The watch uses cancel-to-Ready rather than the phone's
+     * cancel-and-re-listen because here the whole screen is the tap target, so
+     * a brush during the countdown must not open a live mic. It also makes the
+     * on-screen promise ("Tap anywhere to cancel") literally true.
+     */
+    fun onCancel() = controller.onCancel()
 
     /** Recognizer returned. Null or blank means no usable speech. */
     fun onTranscript(text: String?) = controller.onTranscript(text)

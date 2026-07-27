@@ -95,8 +95,14 @@ import com.chriscartland.garage.wear.R
  * declines the microphone, so the demo always works; it is just slower.
  *
  * Launch is driven by the controller's `Listening` state rather than by the
- * tap, so "tap while ready" and "tap to cancel, which re-listens" share one
- * path regardless of which capture backend is in play.
+ * tap, so every route into a capture shares one path regardless of which
+ * backend is in play.
+ *
+ * Tap rule, one sentence: **a tap starts what is not running and stops what
+ * is.** `Listening` and `Armed` are the running states, so a tap there cancels
+ * back to `Ready`; anywhere else it begins a new capture. `Sending` is inert
+ * because a press cannot be unsent. This is deliberately not the phone's
+ * cancel-and-re-listen rule — see [WearVoiceViewModel.onCancel].
  */
 @Composable
 fun VoiceDemoScreen(
@@ -194,6 +200,16 @@ fun VoiceDemoScreen(
         }
     }
 
+    // Leaving Listening for ANY reason — cancelled, or the recognizer finished
+    // — must also stop the recognizer itself. Cancelling only the controller
+    // would leave the microphone live behind a screen that says it is not
+    // listening, which is both a privacy problem and a battery one. Harmless
+    // when the recognizer already completed on its own.
+    val isListening = state is VoiceCommandState.Listening
+    LaunchedEffect(isListening) {
+        if (!isListening) inAppCapture?.cancel()
+    }
+
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
@@ -209,6 +225,7 @@ fun VoiceDemoScreen(
         partialTranscript = partialTranscript,
         listeningLevel = listeningLevel,
         onMicTap = viewModel::onMicTap,
+        onCancel = viewModel::onCancel,
         modifier = modifier,
     )
 }
@@ -237,6 +254,7 @@ fun VoiceDemoContent(
     partialTranscript: String?,
     listeningLevel: Float,
     onMicTap: () -> Unit,
+    onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // One Animatable per Armed instance drives the countdown ring. A fresh
@@ -267,14 +285,24 @@ fun VoiceDemoContent(
             // unsent. The mic button is a child, so its own click wins where
             // they overlap, and Compose's gesture disambiguation still lets a
             // horizontal drag reach SwipeToDismissBox for swipe-to-go-back.
+            //
+            // ONE RULE: a tap starts what is not running and stops what is.
+            // Listening and Armed are the two "running" states, so a tap there
+            // cancels; everywhere else it starts a new capture.
             modifier = Modifier
                 .fillMaxSize()
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                     enabled = state !is VoiceCommandState.Sending,
-                    onClickLabel = stringResource(R.string.cd_voice_demo_screen),
-                    onClick = onMicTap,
+                    onClickLabel = stringResource(
+                        if (VoiceDemoMappers.isCancellable(state)) {
+                            R.string.cd_voice_demo_cancel
+                        } else {
+                            R.string.cd_voice_demo_screen
+                        },
+                    ),
+                    onClick = { if (VoiceDemoMappers.isCancellable(state)) onCancel() else onMicTap() },
                 ),
         ) {
             if (state is VoiceCommandState.Listening) {
@@ -302,7 +330,9 @@ fun VoiceDemoContent(
                     textAlign = TextAlign.Center,
                 )
                 FilledTonalIconButton(
-                    onClick = onMicTap,
+                    // Same rule as the whole-screen target: during the
+                    // countdown the mic is a stop button, not a restart one.
+                    onClick = { if (VoiceDemoMappers.isCancellable(state)) onCancel() else onMicTap() },
                     // A press cannot be unsent, so the real feature disables the
                     // button while sending. Mirrored here so the demo teaches
                     // the same affordance.
@@ -389,39 +419,43 @@ private fun ListeningTakeover(
                 .align(Alignment.TopCenter)
                 .padding(top = LISTENING_MARKER_TOP_DP.dp),
         )
-        Column(
+        // The mic is centred on the PHYSICAL screen, exactly like the hero
+        // screen's door, so it is concentric with the rings by construction.
+        // It previously shared a centred Column with the text below it, which
+        // put the Column's midpoint — not the mic's — at screen centre and left
+        // the mic sitting ~20dp above the rings it was supposed to emit.
+        // Anchoring the two independently makes that impossible rather than
+        // corrected-by-offset.
+        Box(
             modifier = Modifier
                 .align(Alignment.Center)
-                .fillMaxWidth(CONTENT_WIDTH_FRACTION),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(LISTENING_SPACING_DP.dp),
+                // Grows with your voice. Small gain on purpose: this reads
+                // as responsiveness, and anything larger reads as jitter.
+                .scale(1f + level * MIC_SCALE_GAIN)
+                .size(MIC_LISTENING_SIZE_DP.dp)
+                .background(MaterialTheme.colorScheme.tertiary, CircleShape),
+            contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier = Modifier
-                    // Grows with your voice. Small gain on purpose: this reads
-                    // as responsiveness, and anything larger reads as jitter.
-                    .scale(1f + level * MIC_SCALE_GAIN)
-                    .size(MIC_LISTENING_SIZE_DP.dp)
-                    .background(MaterialTheme.colorScheme.tertiary, CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_mic_24),
-                    contentDescription = stringResource(R.string.cd_voice_demo_listening),
-                    tint = MaterialTheme.colorScheme.onTertiary,
-                    modifier = Modifier.size(MIC_LISTENING_ICON_DP.dp),
-                )
-            }
-            Text(
-                text = partialTranscript
-                    ?.let { stringResource(R.string.voice_demo_transcript, it) }
-                    ?: stringResource(R.string.voice_demo_listening_prompt),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                minLines = 2,
+            Icon(
+                painter = painterResource(R.drawable.ic_mic_24),
+                contentDescription = stringResource(R.string.cd_voice_demo_listening),
+                tint = MaterialTheme.colorScheme.onTertiary,
+                modifier = Modifier.size(MIC_LISTENING_ICON_DP.dp),
             )
         }
+        Text(
+            text = partialTranscript
+                ?.let { stringResource(R.string.voice_demo_transcript, it) }
+                ?: stringResource(R.string.voice_demo_listening_prompt),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            minLines = 2,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(CONTENT_WIDTH_FRACTION)
+                .padding(bottom = LISTENING_TEXT_BOTTOM_DP.dp),
+        )
     }
 }
 
@@ -511,6 +545,13 @@ private fun CountdownRing(
 /** String mappers for the voice demo. */
 internal object VoiceDemoMappers {
     /**
+     * States where something is running, so a tap means "stop" rather than
+     * "start". Sending is excluded because a press cannot be unsent, and the
+     * terminal states expire on their own.
+     */
+    fun isCancellable(state: VoiceCommandState): Boolean = state is VoiceCommandState.Listening || state is VoiceCommandState.Armed
+
+    /**
      * The headline. Every wording that describes an action is conditional
      * ("Would open the door"), and the terminal state states plainly that
      * nothing was sent — the demo's whole job is to communicate the action it
@@ -592,6 +633,7 @@ private fun VoiceDemoReadyPreview() {
             partialTranscript = null,
             listeningLevel = 0f,
             onMicTap = {},
+            onCancel = {},
         )
     }
 }
@@ -611,6 +653,7 @@ private fun VoiceDemoArmedPreview() {
             partialTranscript = null,
             listeningLevel = 0f,
             onMicTap = {},
+            onCancel = {},
         )
     }
 }
@@ -626,6 +669,7 @@ private fun VoiceDemoSentPreview() {
             partialTranscript = null,
             listeningLevel = 0f,
             onMicTap = {},
+            onCancel = {},
         )
     }
 }
@@ -646,6 +690,7 @@ private fun VoiceDemoIgnoredPreview() {
             partialTranscript = null,
             listeningLevel = 0f,
             onMicTap = {},
+            onCancel = {},
         )
     }
 }
@@ -670,7 +715,7 @@ private const val MIC_LISTENING_ICON_DP = 40
  * the vertical room to spare, so it buys the separation.
  */
 private const val LISTENING_MARKER_TOP_DP = 36
-private const val LISTENING_SPACING_DP = 12
+private const val LISTENING_TEXT_BOTTOM_DP = 20
 
 /** Small on purpose: responsiveness, not jitter. */
 private const val MIC_SCALE_GAIN = 0.10f

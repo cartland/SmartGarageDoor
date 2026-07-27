@@ -337,6 +337,74 @@ class WearVoiceViewModelTest {
             assertEquals(VoiceDoorState.OPEN, viewModel.demoDoorState.value)
         }
 
+    // --- Cancelling --------------------------------------------------------
+    //
+    // One rule: a tap starts what is not running and stops what is. On the
+    // watch the whole screen is the tap target, so cancel must mean stop —
+    // not the phone's cancel-and-re-listen, which would open a live mic from
+    // a brush during the countdown.
+
+    @Test
+    fun tappingWhileListeningStopsInsteadOfDoingNothing() =
+        runTest {
+            val viewModel = createViewModel()
+            viewModel.onMicTap()
+            runCurrent()
+            assertTrue(viewModel.state.value is VoiceCommandState.Listening)
+
+            viewModel.onCancel()
+            runCurrent()
+
+            assertEquals(VoiceCommandState.Ready, viewModel.state.value)
+        }
+
+    @Test
+    fun cancellingTheCountdownReturnsToReadyWithoutReListening() =
+        runTest {
+            val viewModel = createViewModel()
+            speak(viewModel, "open the garage door")
+            assertTrue(viewModel.state.value is VoiceCommandState.Armed)
+
+            viewModel.onCancel()
+            runCurrent()
+
+            assertEquals(VoiceCommandState.Ready, viewModel.state.value)
+            // And the countdown it interrupted never reaches the demo door.
+            advanceTimeBy(WearVoiceViewModel.ARMED_WINDOW_MILLIS * 2)
+            runCurrent()
+            assertEquals(VoiceDoorState.CLOSED, viewModel.demoDoorState.value)
+        }
+
+    @Test
+    fun cancellingClearsAnyPartialText() =
+        runTest {
+            val viewModel = createViewModel()
+            viewModel.onMicTap()
+            runCurrent()
+            viewModel.onPartialTranscript("open the gar")
+            runCurrent()
+
+            viewModel.onCancel()
+            runCurrent()
+
+            assertEquals(null, viewModel.partialTranscript.value)
+        }
+
+    /** Cancelling is a silent, deliberate act — it is not a refusal. */
+    @Test
+    fun cancellingDoesNotBuzz() =
+        runTest {
+            val viewModel = createViewModel()
+            val cues = recordCues(viewModel)
+
+            speak(viewModel, "open the garage door")
+            viewModel.onCancel()
+            runCurrent()
+            advanceUntilIdle()
+
+            assertEquals(listOf(HapticCue.VoiceArmed), cues)
+        }
+
     // --- Live partial text (in-app capture only) -----------------------------
 
     @Test
