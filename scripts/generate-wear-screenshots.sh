@@ -49,7 +49,7 @@ FIXTURE_ACTIVITY="$PACKAGE/com.chriscartland.garage.wear.debug.ScreenshotStagesA
 BOOT_TIMEOUT_SECONDS=180
 
 # Stage list mirrors ScreenshotStagesActivity.
-STAGES=(connecting closed armed holding moving open signed_out sign_in_error)
+STAGES=(connecting closed inferred holding moving open signed_out sign_in_error)
 # Post-foreground settle: lets the system splash ("Starting…") dissolve and
 # the first real frame land. The foreground wait below handles slow cold
 # starts; this only covers render/splash latency after the activity resumes.
@@ -213,11 +213,11 @@ GALLERY="$OUT_DIR/README.md"
     echo "| Stage | Capture | Shows |"
     echo "|---|---|---|"
     echo "| connecting | <img src=\"wear-connecting.png\" width=\"180\" alt=\"connecting\"> | Cold start, no data yet: \"Connecting…\", no warning badge |"
-    echo "| closed | <img src=\"wear-closed.png\" width=\"180\" alt=\"closed\"> | Closed door, \"Tap door to arm\" |"
-    echo "| armed | <img src=\"wear-armed.png\" width=\"180\" alt=\"armed\"> | Armed: faint hold ring, \"Hold door to press\" |"
+    echo "| closed | <img src=\"wear-closed.png\" width=\"180\" alt=\"closed\"> | Closed door (affirmative sensor), \"Hold to open\" |"
+    echo "| inferred | <img src=\"wear-inferred.png\" width=\"180\" alt=\"inferred\"> | No affirmative sensor, so no prediction: \"Hold to press the remote\" |"
     echo "| holding | <img src=\"wear-holding.png\" width=\"180\" alt=\"holding\"> | Hold completing: full radial ring, the instant before the press fires |"
-    echo "| moving | <img src=\"wear-moving.png\" width=\"180\" alt=\"moving\"> | Door sliding open, up arrow, \"Door is moving\" |"
-    echo "| open | <img src=\"wear-open.png\" width=\"180\" alt=\"open\"> | Open door |"
+    echo "| moving | <img src=\"wear-moving.png\" width=\"180\" alt=\"moving\"> | Door sliding open, up arrow |"
+    echo "| open | <img src=\"wear-open.png\" width=\"180\" alt=\"open\"> | Open door, \"Hold to close\" |"
     echo "| signed_out | <img src=\"wear-signed_out.png\" width=\"180\" alt=\"signed out\"> | Signed out: Sign in button |"
     echo "| sign_in_error | <img src=\"wear-sign_in_error.png\" width=\"180\" alt=\"sign-in error\"> | Transient \"Sign-in failed\" caption |"
 } > "$GALLERY"

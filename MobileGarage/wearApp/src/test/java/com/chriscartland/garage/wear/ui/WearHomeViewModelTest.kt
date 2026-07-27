@@ -52,16 +52,22 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Unit tests for the Wear hero screen's tap-to-arm / hold-to-confirm flow.
+ * Unit tests for the Wear hero screen's single hold-to-press gesture.
  *
  * All network and auth boundaries are fakes ([FakeRemoteButtonRepository]
- * et al.) — nothing here can reach the real server or the real door. The
- * safety-critical properties pinned by these tests:
- *  - a quick tap while armed never submits a press (only a completed hold does)
- *  - releasing before the hold completes never submits
- *  - nothing arms or submits while signed out
- *  - touches keep the button armed (window counts from the last touch);
- *    only a quiet period with no touches disarms it
+ * et al.) — nothing here can reach the real server or the real door.
+ *
+ * The safety-critical property is one sentence: **only a hold that runs the
+ * full [WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS] while signed in and while
+ * the button is at rest ever submits a press.** These tests attack that from
+ * every direction — signed out, released early, released a millisecond early,
+ * repeated aborted holds, and touches landing while a press is already in
+ * flight.
+ *
+ * Not covered here, because it lives in the UI layer: the hold is also
+ * abandoned when the finger drifts past a slop threshold (see
+ * `GarageDoorTarget` in `HeroScreen.kt`). That path reaches this ViewModel as
+ * an ordinary [WearHomeViewModel.onHoldEnd], which `abortedHold*` pins.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class WearHomeViewModelTest {
@@ -102,38 +108,16 @@ class WearHomeViewModelTest {
         )
     }
 
-    /** Arm the button: tap, then run the Preparing delay out. */
-    private fun TestScope.arm(viewModel: WearHomeViewModel) {
-        viewModel.onDoorTap()
-        advanceTimeBy(PREPARING_DELAY_MILLIS + 1)
+    /** Finger down, hold past the confirm duration, finger up. */
+    private fun TestScope.completeHold(viewModel: WearHomeViewModel) {
+        viewModel.onHoldStart()
+        advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS + 1)
         runCurrent()
-        assertEquals(RemoteButtonState.AwaitingConfirmation, viewModel.buttonState.value)
+        viewModel.onHoldEnd()
+        runCurrent()
     }
 
-    @Test
-    fun tapWhileReadyArmsButton() =
-        runTest {
-            val viewModel = createViewModel()
-            signIn()
-            viewModel.onDoorTap()
-            runCurrent()
-            assertEquals(RemoteButtonState.Preparing, viewModel.buttonState.value)
-            advanceTimeBy(PREPARING_DELAY_MILLIS + 1)
-            runCurrent()
-            assertEquals(RemoteButtonState.AwaitingConfirmation, viewModel.buttonState.value)
-            assertEquals(0, remoteButtonRepository.pushCount)
-        }
-
-    @Test
-    fun tapWhileSignedOutDoesNothing() =
-        runTest {
-            val viewModel = createViewModel()
-            viewModel.onDoorTap()
-            advanceTimeBy(PREPARING_DELAY_MILLIS + 1)
-            runCurrent()
-            assertEquals(RemoteButtonState.Ready, viewModel.buttonState.value)
-            assertEquals(0, remoteButtonRepository.pushCount)
-        }
+    // --- The one gesture ---
 
     @Test
     fun completedHoldSubmitsPress() =
@@ -141,7 +125,6 @@ class WearHomeViewModelTest {
             val viewModel = createViewModel()
             signIn()
             authRepository.setIdTokenResult(null)
-            arm(viewModel)
             viewModel.onHoldStart()
             assertTrue(viewModel.isHolding.value)
             advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS + 1)
@@ -158,11 +141,55 @@ class WearHomeViewModelTest {
         }
 
     @Test
-    fun earlyReleaseDoesNotSubmit() =
+    fun armingDelayElapsesInsideTheHold() =
         runTest {
             val viewModel = createViewModel()
             signIn()
-            arm(viewModel)
+            // Finger down alone arms the machine — the user never taps first.
+            viewModel.onHoldStart()
+            runCurrent()
+            assertEquals(RemoteButtonState.Preparing, viewModel.buttonState.value)
+            // The machine finishes arming while the finger is still down, well
+            // before the hold completes, so the confirm always lands on an
+            // armed machine and nothing is visible to the user in between.
+            advanceTimeBy(PREPARING_DELAY_MILLIS + 1)
+            runCurrent()
+            assertEquals(RemoteButtonState.AwaitingConfirmation, viewModel.buttonState.value)
+            assertEquals(0, remoteButtonRepository.pushCount)
+            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS)
+            runCurrent()
+            assertEquals(1, remoteButtonRepository.pushCount)
+        }
+
+    @Test
+    fun releaseAfterCompletedHoldDoesNotResetTheMachine() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            // The finger is still down when the press fires; lifting it must
+            // not be mistaken for an abort and cancel the in-flight press.
+            completeHold(viewModel)
+            assertEquals(1, remoteButtonRepository.pushCount)
+            assertEquals(RemoteButtonState.SendingToDoor, viewModel.buttonState.value)
+        }
+
+    // --- Nothing else submits ---
+
+    @Test
+    fun holdWhileSignedOutDoesNothing() =
+        runTest {
+            val viewModel = createViewModel()
+            completeHold(viewModel)
+            assertEquals(RemoteButtonState.Ready, viewModel.buttonState.value)
+            assertEquals(0, remoteButtonRepository.pushCount)
+            assertFalse(viewModel.isHolding.value)
+        }
+
+    @Test
+    fun abortedHoldDoesNotSubmitAndReturnsToReady() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
             viewModel.onHoldStart()
             advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS / 2)
             viewModel.onHoldEnd()
@@ -170,115 +197,79 @@ class WearHomeViewModelTest {
             runCurrent()
             assertEquals(0, remoteButtonRepository.pushCount)
             assertFalse(viewModel.isHolding.value)
-            assertEquals(RemoteButtonState.AwaitingConfirmation, viewModel.buttonState.value)
+            // No lingering half-armed state: the next hold starts from scratch.
+            assertEquals(RemoteButtonState.Ready, viewModel.buttonState.value)
         }
 
     @Test
-    fun quickTapWhileArmedDoesNotSubmit() =
+    fun abortedHoldOneMillisecondEarlyDoesNotSubmit() =
         runTest {
             val viewModel = createViewModel()
             signIn()
-            arm(viewModel)
-            // A stray tap on the watch face must never fire the real button.
-            viewModel.onDoorTap()
+            viewModel.onHoldStart()
+            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS - 1)
             runCurrent()
-            assertEquals(RemoteButtonState.AwaitingConfirmation, viewModel.buttonState.value)
+            viewModel.onHoldEnd()
+            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS)
+            runCurrent()
             assertEquals(0, remoteButtonRepository.pushCount)
+            assertEquals(RemoteButtonState.Ready, viewModel.buttonState.value)
         }
 
     @Test
-    fun partialTapsKeepButtonArmed() =
+    fun repeatedAbortedHoldsNeverSubmit() =
         runTest {
             val viewModel = createViewModel()
             signIn()
-            arm(viewModel)
-            // Repeated aborted holds spanning well past the original window:
-            // every touch (down and up) restarts the disarm timer.
-            repeat(3) {
-                advanceTimeBy(ButtonStateMachine.DEFAULT_CONFIRMATION_TIMEOUT - 1_000L)
+            // Fidgeting on the watch face: many partial holds, none completed.
+            repeat(5) {
                 viewModel.onHoldStart()
-                advanceTimeBy(200L)
+                advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS - 100L)
                 viewModel.onHoldEnd()
                 runCurrent()
-                assertEquals(RemoteButtonState.AwaitingConfirmation, viewModel.buttonState.value)
+                assertEquals(RemoteButtonState.Ready, viewModel.buttonState.value)
             }
-            assertEquals(0, remoteButtonRepository.pushCount)
-            // A quiet period with no touches disarms.
-            advanceTimeBy(ButtonStateMachine.DEFAULT_CONFIRMATION_TIMEOUT + 1)
+            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS * 4)
             runCurrent()
-            assertEquals(RemoteButtonState.Cancelled, viewModel.buttonState.value)
             assertEquals(0, remoteButtonRepository.pushCount)
         }
 
     @Test
-    fun screenTouchKeepsButtonArmed() =
+    fun holdWhilePressInFlightDoesNotSubmitAgain() =
         runTest {
             val viewModel = createViewModel()
             signIn()
-            arm(viewModel)
-            // A touch anywhere on the screen (not just the door) keeps it armed.
-            advanceTimeBy(ButtonStateMachine.DEFAULT_CONFIRMATION_TIMEOUT - 1_000L)
-            viewModel.onScreenTouch()
-            runCurrent()
-            advanceTimeBy(ButtonStateMachine.DEFAULT_CONFIRMATION_TIMEOUT - 1_000L)
-            runCurrent()
-            assertEquals(RemoteButtonState.AwaitingConfirmation, viewModel.buttonState.value)
-            assertEquals(0, remoteButtonRepository.pushCount)
-        }
-
-    @Test
-    fun holdStartedLateInArmedWindowStillSubmits() =
-        runTest {
-            val viewModel = createViewModel()
-            signIn()
-            arm(viewModel)
-            // Finger down just before the original window would have expired:
-            // the touch restarts the timer, so the hold always gets its full
-            // 2 seconds. (Previously the machine could disarm mid-hold and a
-            // visually completed ring fired into a dead state.)
-            advanceTimeBy(ButtonStateMachine.DEFAULT_CONFIRMATION_TIMEOUT - 500L)
-            viewModel.onHoldStart()
-            runCurrent()
-            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS + 1)
-            runCurrent()
-            assertEquals(1, remoteButtonRepository.pushCount)
+            completeHold(viewModel)
             assertEquals(RemoteButtonState.SendingToDoor, viewModel.buttonState.value)
-        }
-
-    @Test
-    fun armedDisarmsAfterQuietPeriod() =
-        runTest {
-            val viewModel = createViewModel()
-            signIn()
-            arm(viewModel)
-            advanceTimeBy(ButtonStateMachine.DEFAULT_CONFIRMATION_TIMEOUT + 1)
-            runCurrent()
-            assertEquals(RemoteButtonState.Cancelled, viewModel.buttonState.value)
-            assertEquals(0, remoteButtonRepository.pushCount)
-        }
-
-    @Test
-    fun holdWhileReadyDoesNothing() =
-        runTest {
-            val viewModel = createViewModel()
-            signIn()
-            viewModel.onHoldStart()
+            // A second full hold landing while the first press is still in
+            // flight must not queue another real button press.
+            completeHold(viewModel)
+            assertEquals(1, remoteButtonRepository.pushCount)
             assertFalse(viewModel.isHolding.value)
-            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS + 1)
-            runCurrent()
-            assertEquals(RemoteButtonState.Ready, viewModel.buttonState.value)
-            assertEquals(0, remoteButtonRepository.pushCount)
         }
+
+    @Test
+    fun holdWhileTerminalResultOnScreenDoesNotSubmit() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            remoteButtonRepository.setPushSucceeds(false)
+            completeHold(viewModel)
+            assertEquals(RemoteButtonState.ServerFailed, viewModel.buttonState.value)
+            // Touching the door while the failure message is still showing
+            // must not fire a retry the user did not ask for.
+            completeHold(viewModel)
+            assertEquals(1, remoteButtonRepository.pushCount)
+        }
+
+    // --- Request lifecycle ---
 
     @Test
     fun doorMovementAfterSubmitSucceeds() =
         runTest {
             val viewModel = createViewModel()
             signIn()
-            arm(viewModel)
-            viewModel.onHoldStart()
-            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS + 1)
-            runCurrent()
+            completeHold(viewModel)
             assertEquals(RemoteButtonState.SendingToDoor, viewModel.buttonState.value)
             doorRepository.setCurrentDoorEvent(
                 DoorEvent(doorPosition = DoorPosition.OPENING, lastChangeTimeSeconds = 123L),
@@ -293,13 +284,33 @@ class WearHomeViewModelTest {
             val viewModel = createViewModel()
             signIn()
             remoteButtonRepository.setPushSucceeds(false)
-            arm(viewModel)
-            viewModel.onHoldStart()
-            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS + 1)
-            runCurrent()
+            completeHold(viewModel)
             assertEquals(1, remoteButtonRepository.pushCount)
             assertEquals(RemoteButtonState.ServerFailed, viewModel.buttonState.value)
         }
+
+    @Test
+    fun doorResponseGraceOutlastsSharedDefault() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            completeHold(viewModel)
+            assertEquals(RemoteButtonState.SendingToDoor, viewModel.buttonState.value)
+            // The shared default (10s) would already have declared DoorFailed
+            // here; the wear-specific grace keeps waiting.
+            advanceTimeBy(ButtonStateMachine.DEFAULT_NETWORK_TIMEOUT + 1_000L)
+            runCurrent()
+            assertEquals(RemoteButtonState.SendingToDoor, viewModel.buttonState.value)
+            // The grace eventually gives up if the door never responds.
+            advanceTimeBy(
+                WearHomeViewModel.DOOR_RESPONSE_TIMEOUT_MILLIS -
+                    ButtonStateMachine.DEFAULT_NETWORK_TIMEOUT,
+            )
+            runCurrent()
+            assertEquals(RemoteButtonState.DoorFailed, viewModel.buttonState.value)
+        }
+
+    // --- Polling and screen wake ---
 
     @Test
     fun visiblePollsUntilHidden() =
@@ -324,13 +335,14 @@ class WearHomeViewModelTest {
             signIn()
             runCurrent()
             assertFalse(viewModel.keepScreenOn.value)
-            // Armed alone must NOT hold the screen awake (normal viewing).
-            arm(viewModel)
+            // An in-progress hold must NOT hold the screen awake: the user's
+            // finger is already on the screen keeping it lit.
+            viewModel.onHoldStart()
+            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS / 2)
             runCurrent()
             assertFalse(viewModel.keepScreenOn.value)
             // A submitted press does.
-            viewModel.onHoldStart()
-            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS + 1)
+            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS)
             runCurrent()
             assertEquals(RemoteButtonState.SendingToDoor, viewModel.buttonState.value)
             assertTrue(viewModel.keepScreenOn.value)
@@ -364,29 +376,7 @@ class WearHomeViewModelTest {
             assertFalse(viewModel.keepScreenOn.value)
         }
 
-    @Test
-    fun doorResponseGraceOutlastsSharedDefault() =
-        runTest {
-            val viewModel = createViewModel()
-            signIn()
-            arm(viewModel)
-            viewModel.onHoldStart()
-            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS + 1)
-            runCurrent()
-            assertEquals(RemoteButtonState.SendingToDoor, viewModel.buttonState.value)
-            // The shared default (10s) would already have declared DoorFailed
-            // here; the wear-specific grace keeps waiting.
-            advanceTimeBy(ButtonStateMachine.DEFAULT_NETWORK_TIMEOUT + 1_000L)
-            runCurrent()
-            assertEquals(RemoteButtonState.SendingToDoor, viewModel.buttonState.value)
-            // The grace eventually gives up if the door never responds.
-            advanceTimeBy(
-                WearHomeViewModel.DOOR_RESPONSE_TIMEOUT_MILLIS -
-                    ButtonStateMachine.DEFAULT_NETWORK_TIMEOUT,
-            )
-            runCurrent()
-            assertEquals(RemoteButtonState.DoorFailed, viewModel.buttonState.value)
-        }
+    // --- Sign-in ---
 
     @Test
     fun signInDelegatesToUseCase() =

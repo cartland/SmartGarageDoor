@@ -17,13 +17,13 @@
 
 package com.chriscartland.garage.wear.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,7 +44,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -130,10 +129,8 @@ fun HeroScreen(
         authState = authState,
         buttonState = buttonState,
         isHolding = isHolding,
-        onDoorTap = viewModel::onDoorTap,
         onHoldStart = viewModel::onHoldStart,
         onHoldEnd = viewModel::onHoldEnd,
-        onAnyTouch = viewModel::onScreenTouch,
         signInError = signInError,
         onSignInClick = {
             viewModel.onSignInStarted()
@@ -152,17 +149,14 @@ fun HeroScreen(
 /**
  * Stateless hero layout (previewable): the animated door with the radial
  * hold-to-confirm indicator, the door state label, and the button hint or
- * sign-in chip. [onAnyTouch] fires for every pointer down AND up anywhere
- * on the screen (observed on the Initial pass, never consumed) — the
- * ViewModel uses it to keep the armed window alive while the user keeps
- * interacting.
+ * sign-in chip.
  *
  * Geometry: the hold ring is centered on the PHYSICAL screen and hugs the
  * bezel (like the platform's own progress rings), and in the signed-in
  * layout the door is centered on the screen too, with the state label and
  * hint anchored near the bottom edge. The signed-out/unknown layout keeps a
  * centered column (smaller door + sign-in chip + reserved caption slot —
- * the 0.1.2 overflow fix); the ring never shows there because arming
+ * the 0.1.2 overflow fix); the ring never shows there because holding
  * requires authentication.
  */
 @Composable
@@ -174,10 +168,8 @@ fun HeroScreenContent(
     buttonState: RemoteButtonState,
     isHolding: Boolean,
     signInError: Boolean,
-    onDoorTap: () -> Unit,
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit,
-    onAnyTouch: () -> Unit,
     onSignInClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -198,37 +190,14 @@ fun HeroScreenContent(
         label = "holdProgress",
     )
 
-    val currentOnAnyTouch by rememberUpdatedState(onAnyTouch)
     ScreenScaffold(modifier = modifier) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    // Observe (never consume) every gesture's down and up on
-                    // the Initial pass, so touches anywhere on the screen —
-                    // including ones handled by the door's own tap detector —
-                    // reach the ViewModel and restart the armed window.
-                    awaitEachGesture {
-                        awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                        currentOnAnyTouch()
-                        var anyPressed = true
-                        while (anyPressed) {
-                            val event = awaitPointerEvent(PointerEventPass.Initial)
-                            anyPressed = event.changes.any { it.pressed }
-                        }
-                        // Release counts too: the quiet period runs from the
-                        // LAST touch, so it starts at finger-up.
-                        currentOnAnyTouch()
-                    }
-                },
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             if (authState is AuthState.Authenticated) {
                 GarageDoorTarget(
                     doorPosition = doorPosition,
                     lastChangeTimeSeconds = lastChangeTimeSeconds,
                     animationMemory = animationMemory,
                     suppressWarningOverlay = !hasDoorData,
-                    onDoorTap = onDoorTap,
                     onHoldStart = onHoldStart,
                     onHoldEnd = onHoldEnd,
                     modifier = Modifier
@@ -238,6 +207,12 @@ fun HeroScreenContent(
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
+                        // Near the bottom of a round screen the usable chord is
+                        // far narrower than the full width, so an unconstrained
+                        // line is clipped by the mask at BOTH ends rather than
+                        // wrapping (this is what bit "Hold to press the remote").
+                        // Constrain to the safe chord and let long hints wrap.
+                        .fillMaxWidth(BOTTOM_TEXT_WIDTH_FRACTION)
                         .padding(bottom = BOTTOM_TEXT_PADDING_DP.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
@@ -246,15 +221,21 @@ fun HeroScreenContent(
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
                     )
-                    val hint = HeroScreenMappers.buttonHint(buttonState)
-                    if (hint != null) {
-                        Text(
-                            text = hint,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
+                    // Reserved slot: the hint goes empty mid-hold (the ring is
+                    // the progress channel there), and an empty line keeps the
+                    // state label from jumping when it does.
+                    Text(
+                        text = HeroScreenMappers
+                            .buttonHint(
+                                buttonState = buttonState,
+                                doorPosition = doorPosition,
+                                hasDoorData = hasDoorData,
+                            ).orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        minLines = 1,
+                    )
                 }
             } else {
                 // Signed-out/unknown: centered column. The smaller door keeps
@@ -271,7 +252,6 @@ fun HeroScreenContent(
                         lastChangeTimeSeconds = lastChangeTimeSeconds,
                         animationMemory = animationMemory,
                         suppressWarningOverlay = !hasDoorData,
-                        onDoorTap = onDoorTap,
                         onHoldStart = onHoldStart,
                         onHoldEnd = onHoldEnd,
                         modifier = Modifier.fillMaxWidth(DOOR_WIDTH_FRACTION_SIGNED_OUT),
@@ -314,7 +294,7 @@ fun HeroScreenContent(
             // draws on top of everything (it takes no input, so it can never
             // block the door's gestures).
             HoldRing(
-                armed = buttonState is RemoteButtonState.AwaitingConfirmation,
+                holding = isHolding,
                 holdProgress = holdProgress,
                 modifier = Modifier
                     .fillMaxSize()
@@ -331,7 +311,7 @@ fun HeroScreenContent(
  */
 @Composable
 private fun HoldRing(
-    armed: Boolean,
+    holding: Boolean,
     holdProgress: Float,
     modifier: Modifier = Modifier,
 ) {
@@ -341,8 +321,8 @@ private fun HoldRing(
         val stroke = RING_STROKE_DP.dp.toPx()
         val inset = stroke / 2f
         val arcSize = Size(size.width - stroke, size.height - stroke)
-        if (armed) {
-            // Faint full track while armed: "this is holdable".
+        if (holding) {
+            // Faint full track under the sweep: "here is how far you have to go".
             drawArc(
                 color = trackColor,
                 startAngle = ARC_START_ANGLE,
@@ -368,32 +348,53 @@ private fun HoldRing(
     }
 }
 
-/** The tappable/holdable door: gestures land exactly on the door's box. */
+/**
+ * The holdable door: gestures land exactly on the door's box.
+ *
+ * There is deliberately no tap handler — a tap does nothing at all, and only
+ * a continuous hold can reach the real garage button. The hold also cancels
+ * when the finger drifts more than [HOLD_CANCEL_SLOP_DP], which is what
+ * separates a deliberate thumb press (steady) from the sustained accidental
+ * contact a sleeve or a wrist against a surface produces (wandering). That
+ * drift check is the accidental-press protection that the old separate
+ * arming tap used to provide.
+ */
 @Composable
 private fun GarageDoorTarget(
     doorPosition: DoorPosition,
     lastChangeTimeSeconds: Long?,
     animationMemory: DoorAnimationMemory,
     suppressWarningOverlay: Boolean,
-    onDoorTap: () -> Unit,
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val doorDescription = stringResource(R.string.cd_garage_door)
+    val currentOnHoldStart by rememberUpdatedState(onHoldStart)
+    val currentOnHoldEnd by rememberUpdatedState(onHoldEnd)
     Box(
         modifier = modifier
             .aspectRatio(1f)
             .semantics { contentDescription = doorDescription }
             .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { onDoorTap() },
-                    onPress = {
-                        onHoldStart()
-                        tryAwaitRelease()
-                        onHoldEnd()
-                    },
-                )
+                val cancelSlopPx = HOLD_CANCEL_SLOP_DP.dp.toPx()
+                awaitEachGesture {
+                    val down = awaitFirstDown()
+                    currentOnHoldStart()
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val change = event.changes.firstOrNull { it.id == down.id }
+                        // Finger lifted, or this pointer vanished.
+                        if (change == null || !change.pressed) break
+                        // Drifted too far to be a deliberate press.
+                        if ((change.position - down.position).getDistance() > cancelSlopPx) break
+                    }
+                    // Fires for release AND drift-cancel; the ViewModel treats
+                    // an incomplete hold the same either way. awaitEachGesture
+                    // waits for all pointers to lift before restarting, so a
+                    // drift-cancelled finger cannot immediately re-arm.
+                    currentOnHoldEnd()
+                }
             },
         contentAlignment = Alignment.Center,
     ) {
@@ -409,7 +410,7 @@ private fun GarageDoorTarget(
 }
 
 /** String/label mappers for the hero screen. */
-private object HeroScreenMappers {
+internal object HeroScreenMappers {
     /**
      * No door event at all (cold start) renders the calm "Connecting…"
      * headline — mirrors the phone Home card. A real server-reported
@@ -442,42 +443,119 @@ private object HeroScreenMappers {
             },
         )
 
+    /** Null means "render nothing here" — the reserved slot stays empty. */
     @Composable
-    fun buttonHint(buttonState: RemoteButtonState): String? =
+    fun buttonHint(
+        buttonState: RemoteButtonState,
+        doorPosition: DoorPosition,
+        hasDoorData: Boolean,
+    ): String? =
         when (buttonState) {
-            RemoteButtonState.Ready -> stringResource(R.string.button_hint_tap_to_arm)
-            RemoteButtonState.Preparing -> stringResource(R.string.button_hint_arming)
-            RemoteButtonState.AwaitingConfirmation -> stringResource(R.string.button_hint_hold_to_press)
-            RemoteButtonState.Cancelled -> stringResource(R.string.button_hint_cancelled)
+            // At rest: say what a completed hold will do.
+            RemoteButtonState.Ready -> stringResource(holdHint(doorPosition, hasDoorData))
+            // Mid-hold. Both of these states now exist ONLY inside a hold
+            // (Preparing is the machine's 500ms arming delay, which elapses
+            // under the user's finger), and the sweeping ring already reports
+            // progress — text would just duplicate it.
+            RemoteButtonState.Preparing,
+            RemoteButtonState.AwaitingConfirmation,
+            -> null
+            // Unreachable on Wear: an incomplete hold resets the machine
+            // immediately, so the confirmation timeout can never fire. Kept
+            // for `when` exhaustiveness.
+            RemoteButtonState.Cancelled -> null
             RemoteButtonState.SendingToServer -> stringResource(R.string.button_hint_sending)
-            RemoteButtonState.SendingToDoor -> stringResource(R.string.button_hint_signaling_door)
-            RemoteButtonState.Succeeded -> stringResource(R.string.button_hint_succeeded)
+            RemoteButtonState.SendingToDoor -> stringResource(R.string.button_hint_waiting_for_door)
+            // The door state label directly above already reads Opening/Closing.
+            RemoteButtonState.Succeeded -> null
             RemoteButtonState.ServerFailed -> stringResource(R.string.button_hint_server_failed)
             RemoteButtonState.DoorFailed -> stringResource(R.string.button_hint_door_failed)
         }
+
+    /**
+     * The resting hint, keyed off what [doorStateLabel] will render rather
+     * than off the raw [DoorPosition], so the hint and the label above it can
+     * never disagree.
+     *
+     * Only CLOSED and OPEN rest on an affirmative sensor reading, so only
+     * they get to predict the door's response. OPEN_MISALIGNED is grouped
+     * with OPEN because the label already renders it as "Open" (it is a
+     * confident Open whose sensor dropped out for under 3 seconds, and it is
+     * well tested in the field). Everything else — including a cold start
+     * with no door event at all — names our own action instead: we send a
+     * remote press and the garage decides whether that opens, closes, or
+     * pauses the door.
+     */
+    @StringRes
+    fun holdHint(
+        doorPosition: DoorPosition,
+        hasDoorData: Boolean,
+    ): Int =
+        when {
+            !hasDoorData -> R.string.button_hint_hold_to_press_remote
+            doorPosition == DoorPosition.CLOSED -> R.string.button_hint_hold_to_open
+            doorPosition == DoorPosition.OPEN ||
+                doorPosition == DoorPosition.OPEN_MISALIGNED ->
+                R.string.button_hint_hold_to_close
+            else -> R.string.button_hint_hold_to_press_remote
+        }
 }
 
+/** At rest on a confidently-closed door: "Hold to open". */
 @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
 @Composable
-private fun HeroScreenContentArmedPreview() {
+private fun HeroScreenContentReadyPreview() {
     MaterialTheme {
         HeroScreenContent(
             doorPosition = DoorPosition.CLOSED,
             lastChangeTimeSeconds = null,
             hasDoorData = true,
-            authState = AuthState.Authenticated(
-                User(
-                    name = DisplayName("Preview User"),
-                    email = Email("preview@example.com"),
-                ),
-            ),
-            buttonState = RemoteButtonState.AwaitingConfirmation,
+            authState = PREVIEW_USER,
+            buttonState = RemoteButtonState.Ready,
             isHolding = false,
             signInError = false,
-            onDoorTap = {},
             onHoldStart = {},
             onHoldEnd = {},
-            onAnyTouch = {},
+            onSignInClick = {},
+        )
+    }
+}
+
+/** Mid-hold: ring sweeping, hint slot deliberately empty. */
+@Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
+@Composable
+private fun HeroScreenContentHoldingPreview() {
+    MaterialTheme {
+        HeroScreenContent(
+            doorPosition = DoorPosition.CLOSED,
+            lastChangeTimeSeconds = null,
+            hasDoorData = true,
+            authState = PREVIEW_USER,
+            buttonState = RemoteButtonState.AwaitingConfirmation,
+            isHolding = true,
+            signInError = false,
+            onHoldStart = {},
+            onHoldEnd = {},
+            onSignInClick = {},
+        )
+    }
+}
+
+/** An inferred position: no affirmative sensor, so no prediction. */
+@Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
+@Composable
+private fun HeroScreenContentInferredPositionPreview() {
+    MaterialTheme {
+        HeroScreenContent(
+            doorPosition = DoorPosition.OPENING,
+            lastChangeTimeSeconds = null,
+            hasDoorData = true,
+            authState = PREVIEW_USER,
+            buttonState = RemoteButtonState.Ready,
+            isHolding = false,
+            signInError = false,
+            onHoldStart = {},
+            onHoldEnd = {},
             onSignInClick = {},
         )
     }
@@ -495,14 +573,19 @@ private fun HeroScreenContentSignedOutPreview() {
             buttonState = RemoteButtonState.Ready,
             isHolding = false,
             signInError = false,
-            onDoorTap = {},
             onHoldStart = {},
             onHoldEnd = {},
-            onAnyTouch = {},
             onSignInClick = {},
         )
     }
 }
+
+private val PREVIEW_USER = AuthState.Authenticated(
+    User(
+        name = DisplayName("Preview User"),
+        email = Email("preview@example.com"),
+    ),
+)
 
 // Door sizes match the pre-centering effective sizes (the old width fraction
 // times the old inside-ring fraction) so the door itself reads the same.
@@ -515,3 +598,17 @@ private const val ARC_START_ANGLE = -90f
 private const val FULL_SWEEP = 360f
 private const val TRACK_ALPHA = 0.25f
 private const val BOTTOM_TEXT_PADDING_DP = 18
+
+/**
+ * Width of the bottom label/hint column, as a fraction of the screen. Sized
+ * to the round screen's chord at that height so text wraps instead of being
+ * clipped by the mask.
+ */
+private const val BOTTOM_TEXT_WIDTH_FRACTION = 0.56f
+
+/**
+ * How far the finger may drift before an in-progress hold is abandoned.
+ * Generous enough that a normal thumb press never trips it, tight enough
+ * that a sliding sleeve does.
+ */
+private const val HOLD_CANCEL_SLOP_DP = 20
