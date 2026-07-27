@@ -13,6 +13,7 @@ Captures are byte-stable across regens — a diff means a real visual change.
 | closed | <img src="wear-closed.png" width="180" alt="closed"> | Closed door (affirmative sensor), "Hold to open" |
 | inferred | <img src="wear-inferred.png" width="180" alt="inferred"> | No affirmative sensor, so no prediction: "Hold to press the remote" |
 | holding | <img src="wear-holding.png" width="180" alt="holding"> | Hold completing: full radial ring, the instant before the press fires |
+| submitted | <img src="wear-submitted.png" width="180" alt="submitted"> | Press sent: ring completes in the sent colour, "Waiting for the door" |
 | moving | <img src="wear-moving.png" width="180" alt="moving"> | Door sliding open, up arrow |
 | open | <img src="wear-open.png" width="180" alt="open"> | Open door, "Hold to close" |
 | signed_out | <img src="wear-signed_out.png" width="180" alt="signed out"> | Signed out: Sign in button |
