@@ -66,7 +66,8 @@ STAGES=(
     # FULL: the settle below (4s) outlasts the cancel window (3s), so the
     # animation has finished by capture time. Deterministic, which is what the
     # fixture needs — mid-sweep would depend on emulator render latency.
-    voice_ready voice_listening voice_hearing voice_armed voice_sent voice_refused
+    voice_ready voice_listening voice_hearing voice_armed voice_committing
+    voice_sent voice_refused
 )
 # Post-foreground settle: lets the system splash ("Starting…") dissolve and
 # the first real frame land. The foreground wait below handles slow cold
@@ -248,10 +249,11 @@ stage_description() {
         open) echo "Open door, \"Hold to close\"" ;;
         signed_out) echo "Signed out: Sign in button (no mic chip — the voice demo is signed-in only)" ;;
         sign_in_error) echo "Transient \"Sign-in failed\" caption" ;;
-        voice_listening) echo "Voice demo listening, nothing said yet: pulse rings and the example prompt" ;;
-        voice_hearing) echo "Voice demo mid-utterance: rings driven by mic level, prompt replaced by live text" ;;
+        voice_listening) echo "Voice demo listening, nothing said yet: pulse rings, the example prompt, and the way out" ;;
+        voice_hearing) echo "Voice demo mid-utterance: rings driven by mic level, prompt replaced by live text, cancel hint stepped aside" ;;
         voice_ready) echo "Voice demo at rest: \"Simulated\" marker, \"Tap to speak\", demo door Closed" ;;
         voice_armed) echo "Voice demo counting down: the action named conditionally, \"Would open the door\"" ;;
+        voice_committing) echo "Voice demo at the commit instant: the ring completes and holds rather than vanishing" ;;
         voice_sent) echo "Voice demo punchline: \"Nothing was sent\"; only the demo door reacts" ;;
         voice_refused) echo "Voice demo gate refusing a command the demo door has outgrown" ;;
         *) return 1 ;;

@@ -12,26 +12,42 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-WHATSNEW_DIR="MobileGarage/distribution/whatsnew"
+# EVERY directory a release lane uploads release notes from. The phone lane was
+# the only one checked until 2026-07-27, which meant the Wear lane — which sends
+# its own notes from wear-whatsnew/ — had no guard at all and would have hit the
+# same tombstone-tag failure the phone lane was protected from. Add a line here
+# when a new lane starts shipping notes.
+WHATSNEW_DIRS=(
+  "MobileGarage/distribution/whatsnew"
+  "MobileGarage/distribution/wear-whatsnew"
+)
 MAX_BYTES=500
 FAIL=0
 
-if [ ! -d "$WHATSNEW_DIR" ]; then
-  echo "check-whatsnew-length: directory $WHATSNEW_DIR not found"
-  exit 1
-fi
-
-for file in "$WHATSNEW_DIR"/whatsnew-*; do
-  [ -f "$file" ] || continue
-  bytes=$(wc -c < "$file" | tr -d ' ')
-  name=$(basename "$file")
-  if [ "$bytes" -gt "$MAX_BYTES" ]; then
-    echo "FAIL: $name is $bytes bytes (max $MAX_BYTES)"
-    echo "  Google Play rejects whatsnew files over $MAX_BYTES bytes per language."
-    echo "  Fix: trim $file or replace older entries (CHANGELOG.md is the permanent history)."
+for dir in "${WHATSNEW_DIRS[@]}"; do
+  if [ ! -d "$dir" ]; then
+    echo "check-whatsnew-length: directory $dir not found"
+    exit 1
+  fi
+  found=0
+  for file in "$dir"/whatsnew-*; do
+    [ -f "$file" ] || continue
+    found=1
+    bytes=$(wc -c < "$file" | tr -d ' ')
+    name="$(basename "$dir")/$(basename "$file")"
+    if [ "$bytes" -gt "$MAX_BYTES" ]; then
+      echo "FAIL: $name is $bytes bytes (max $MAX_BYTES)"
+      echo "  Google Play rejects whatsnew files over $MAX_BYTES bytes per language."
+      echo "  Fix: trim $file or replace older entries (CHANGELOG.md is the permanent history)."
+      FAIL=1
+    else
+      echo "OK:   $name ($bytes / $MAX_BYTES bytes)"
+    fi
+  done
+  # An empty directory would silently check nothing, which reads as a pass.
+  if [ "$found" -eq 0 ]; then
+    echo "FAIL: $dir contains no whatsnew-* files"
     FAIL=1
-  else
-    echo "OK:   $name ($bytes / $MAX_BYTES bytes)"
   fi
 done
 

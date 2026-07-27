@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-07-26
+last_verified: 2026-07-27
 ---
 
 # Wear OS App (`MobileGarage/wearApp/`)
@@ -80,12 +80,21 @@ Design notes worth not re-litigating:
   a state only reachable after this watch submitted a press;
   `doorMovedWithoutOurPressEmitsNothing` pins it.
 
-Cues are emitted as a `Channel`-backed `Flow`, not a `StateFlow` — they are
-events, and conflation would drop one whose neighbour repeated. Modelling them
-as ViewModel decisions rather than UI-inferred state transitions is what makes
-them testable: a buzz cannot be asserted from the command line, but the cue
-*sequence* can, and `WearHomeViewModelTest` asserts it for completed holds,
-aborts before and after the midpoint, signed-out, success, and failure.
+Cues are emitted as a `Flow`, not a `StateFlow` — they are events, and
+conflation would drop one whose neighbour repeated. Modelling them as ViewModel
+decisions rather than UI-inferred state transitions is what makes them testable:
+a buzz cannot be asserted from the command line, but the cue *sequence* can, and
+`WearHomeViewModelTest` asserts it for completed holds, aborts before and after
+the midpoint, signed-out, success, and failure.
+
+**Backed by a `MutableSharedFlow(replay = 0)`, not a `Channel` (0.3.4).** A
+Channel *queues* for an absent collector, so cues emitted while no screen was
+subscribed were saved and replayed in a burst when one came back — a buzz
+arriving seconds after the thing it describes. Combined with a demo that used to
+keep running after being swiped away, reopening it buzzed twice for a command
+abandoned earlier. Dropping is the right failure mode here: a missed buzz is
+nothing, a late one is a lie. `cuesAreNotQueuedWhileNothingIsWatching` pins it,
+and reverting the primitive fails it.
 
 ### Press-submitted feedback
 
@@ -150,8 +159,32 @@ Tapping it opens a dedicated screen rather than inlining the flow: the loop has
 seven states plus a transcript and a countdown, which does not fit beside the
 door, and the separation is itself a safety property — you cannot be looking at
 the demo and think you are operating the real door. `SwipeToDismissBox` gives
-the standard Wear swipe-back, with the hero screen composed underneath as the
-background so returning does not re-run its cold-start fetch.
+the standard Wear swipe-back. Both ViewModels are resolved at the app root and
+outlive either destination, so returning re-fetches nothing.
+
+**The door's app-scoped effects live at the root, not on the hero screen
+(0.3.4).** Foreground polling, the screen-wake window and the press-outcome
+haptics are about *the app being in the foreground with something outstanding*,
+not about the hero screen being visible. Hosting them inside `HeroScreen` made
+all three quietly dependent on whether `SwipeToDismissBox` keeps its background
+composed while the demo is on top — an implementation detail of the navigation
+container that this app should not have an opinion about. If it does not, then
+opening the demo mid-press would have stopped the very polling that detects the
+door moving, and deferred the outcome buzz until you came back. They now sit in
+`WearApp`'s `DoorSurfaceEffects`, which makes the behaviour identical either
+way: a press you started completes, wakes the screen and buzzes, whichever
+screen you are looking at.
+
+**Leaving the demo ends the demo session (0.3.4).** A swipe-back is *not* a
+lifecycle stop — the app stays perfectly foreground — so `onBackgrounded` never
+fires for it and nothing else told the controller to stop. Walking away
+mid-countdown therefore left the demo running behind the hero screen: it
+committed off-screen, moved the demo door, buzzed the wrist for a command the
+user had abandoned, and was still showing that outcome on the way back in. A
+`DisposableEffect` now calls `WearVoiceViewModel.onScreenLeft` (which is
+`onCancel`, so it stops `Listening` as well as `Armed` — the microphone must
+not outlive the screen that opened it). `Sending` is left alone for the usual
+reason, and the terminal states expire on their own.
 
 On the demo screen the **whole screen is the button** (0.3.1). A 52dp target is
 a poor thing to have to hit to stop something already counting down, and the
@@ -225,6 +258,45 @@ true, which it was not before.
 the way out, so the microphone can never stay live behind a screen that says it
 is not listening. Harmless when the recognizer already finished on its own.
 
+### One skeleton, every state (0.3.4)
+
+Three anchors, and none of them moves: a **header** pinned to the top
+("Simulated" plus the demo door), the **mic** on the screen's exact centre, and
+a **text block** pinned to the bottom. Listening changes what those slots
+contain — rings appear, the mic grows, the text becomes a live transcript — but
+not where any of them is.
+
+This replaced a vertically-centred column, whose height was a shared resource:
+any line-count change moved everything else in it. Measured on the 454px
+`wear_capture` emulator, the mic and the "Simulated" marker sat **18px higher**
+on "Demo door is already open" (two lines) than on "Tap to speak" (one), and
+moved again on the way to "Nothing was sent" — **three shifts per utterance**,
+on exactly the states the user is reading. Reserving the tall slots pinned the
+height too, but left blank gaps in the common case and could not fix the larger
+problem: the listening takeover already used absolute anchors, so the two modes
+disagreed about where the mic lived and entering one jumped.
+
+Only the two variable text lines can now move, they move only when their own
+text changes, and because the block is bottom-anchored they grow upward into
+empty space rather than pushing anything. The gallery is where a regression
+shows up: across every `voice_*` stage the header sits at y=65 and the resting
+mic disc at 175–278.
+
+Two consequences worth knowing before editing this screen:
+
+- **The demo-door line moved into the header and is now visible while
+  listening**, reversing its earlier "irrelevant mid-capture" rationale. It is
+  the opposite of irrelevant — it is what decides whether the sentence you are
+  about to say is accepted or refused, so the moment before speaking is when it
+  is most worth reading. Keeping it there is also what frees the centre for the
+  mic.
+- **Bottom width and bottom padding are one decision, not two.** On a round
+  screen the usable chord shrinks fast near the edge, so a wider block must sit
+  higher. Sized by measurement: at 34dp of bottom padding the widest single
+  line came out ~10px over the available chord and wrapped, orphaning a word.
+  At 38dp / 0.72 every stage clears the mask by ≥25px. Re-measure after
+  changing either.
+
 ### The listening state gets the whole screen (0.3.2)
 
 "Is it hearing me?" has to be answerable without reading anything, so Listening
@@ -251,20 +323,67 @@ everything meaningful (the state, the transcript).
 **Help text changes job partway through.** Before speech: one example command —
 load-bearing rather than decorative, because the classifier accepts a narrow
 imperative grammar, so the example is the difference between a command that
-works and one that is refused. Once words arrive, that same slot becomes the
-live transcript; the screen stops instructing the moment it has something to
-reflect. Deliberately absent: the "Demo door" line (irrelevant mid-capture) and
-any cancel hint (a tap during Listening is a no-op in the shared controller, so
-advertising one would be a lie). The "Simulated" marker **stays** — a
-full-screen animated mic is the frame most likely to be mistaken for a real
-assistant, so it is the one that can least afford to drop the label. It sits
-clear of `TimeText`, which owns the top arc.
+works and one that is refused — plus the way out. Once words arrive, that same
+slot becomes the live transcript and the cancel hint disappears entirely; the
+screen stops instructing the moment it has something to reflect, and someone
+mid-sentence is not looking for an exit.
+
+The "Simulated" marker **stays** — a full-screen animated mic is the frame most
+likely to be mistaken for a real assistant, so it is the one that can least
+afford to drop the label. It sits clear of `TimeText`, which owns the top arc.
+
+**The cancel hint was missing for a whole release, and its absence was a bug
+rather than restraint (fixed 0.3.4).** It had been omitted on the grounds that a
+tap during Listening was a no-op in the shared controller — true when written,
+and false from 0.3.3, when a tap started cancelling. That left Listening as the
+one state that could be escaped but never said so, which is the worse half of
+the original problem: a user stuck in a noisy room watching rings pulse had no
+visible way out short of swiping away the whole demo. It borrows `Armed`'s exact
+wording, because it is the same gesture with the same effect and two phrasings
+would imply otherwise.
+
+**The hint sits ABOVE the live line, and that ordering is load-bearing.** The
+block is bottom-anchored, so its last element is the one with a fixed position —
+and the last element has to be the line the user is actually watching. With the
+hint underneath, the prompt sat one line higher than the transcript replacing
+it, so the first word spoken shunted the text down; and while the hint was
+instead *reserved* as an empty line, the two stacked lines pushed the transcript
+up into the mic. Above, it occupies empty space and then stops.
+
+### The countdown ring completes and holds (0.3.4)
+
+The hero screen's hold ring has two jobs: it sweeps while counting, then holds a
+*complete* ring in a different colour for as long as the press is outstanding.
+That second job is deliberate — a state beats a transient, it pairs with the
+text, and unlike a flash it is capturable by a fixture.
+
+The demo's countdown ring only ever had the first job: it **vanished** at the
+instant of commitment, which is the one instant a user most wants confirmed. For
+a surface whose entire purpose is to rehearse the real interaction, teaching a
+different vocabulary was a straight inconsistency. It now holds a complete ring
+through `Sending`, with the faint track dropped (there is no longer any distance
+left to go) — the same character change the hero screen makes. `voice_committing`
+is the fixture stage; the state exists long enough to capture for exactly the
+reason the hero screen's `submitted` does.
+
+### The outcome stays up long enough to read (0.3.4)
+
+`VoiceCommandController`'s `resultFlashMs` is now a constructor parameter,
+defaulted to the shared 1.5s. That default is right on the real button, where
+the outcome is a receipt for something the user just watched happen. It is wrong
+here: "Nothing was sent" **is** the message of the whole demo, and it arrives
+with a second line explaining that the demo door responds instead. Two lines of
+new information on a wrist is not a 1.5-second read, so Wear passes the 4s that
+refusals already get. `resultFlashDurationIsPerSurface` pins the parameter;
+`theOutcomeStaysUpLongEnoughToRead` pins the Wear value end to end.
 
 ### How it says "this is not real"
 
 Three independent signals, because one is easy to miss on a glance:
 
-1. A persistent **"Simulated"** marker at the top of the column.
+1. A persistent **"Simulated"** marker in the header — and since 0.3.4 that
+   header is shared by every state, so the marker is present during the
+   listening takeover too, not just at rest.
 2. **Conditional wording throughout** — "Would open the door", never "Opening"
    — and a terminal state that says outright that **nothing was sent**.
 3. The door line is labelled **"Demo door"**, so the thing visibly reacting is
@@ -297,7 +416,7 @@ would have demoed the toy.
 
 ### Voice haptics
 
-Three more cues on the same `Channel`-backed flow, mapped in `WearHaptics`
+Three more cues on the same kind of flow, mapped in `WearHaptics`
 alongside the hold cues so the two surfaces cannot drift:
 
 | Cue | When | Constant |

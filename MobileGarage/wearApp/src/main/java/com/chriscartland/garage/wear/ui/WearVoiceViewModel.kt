@@ -25,12 +25,12 @@ import com.chriscartland.garage.usecase.VoiceCommandController
 import com.chriscartland.garage.usecase.VoiceCommandEnvironment
 import com.chriscartland.garage.usecase.VoiceCommandState
 import com.chriscartland.garage.usecase.VoiceDoorState
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -77,6 +77,7 @@ class WearVoiceViewModel(
         environment = environment,
         scope = viewModelScope,
         initialArmedWindowMs = ARMED_WINDOW_MILLIS,
+        resultFlashMs = RESULT_FLASH_MILLIS,
     )
 
     /** Pass-through of the controller's state (ADR-022 — no re-wrapping). */
@@ -97,15 +98,21 @@ class WearVoiceViewModel(
      */
     val partialTranscript: StateFlow<String?> = _partialTranscript
 
-    private val _hapticCues = Channel<HapticCue>(Channel.BUFFERED)
+    private val _hapticCues = MutableSharedFlow<HapticCue>(
+        replay = 0,
+        extraBufferCapacity = HAPTIC_BUFFER,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
 
     /**
-     * One-shot haptic moments, [Channel]-backed for the same reason as
-     * [WearHomeViewModel.hapticCues]: these are events, and a StateFlow's
-     * conflation would drop a cue whose neighbour repeated (two refusals in a
-     * row is exactly the case that matters here).
+     * One-shot haptic moments. Same primitive and same reasoning as
+     * [WearHomeViewModel.hapticCues]: a plain StateFlow would conflate a cue
+     * whose neighbour repeated (two refusals in a row is exactly the case that
+     * matters here), and a Channel would *queue* cues for a screen that is not
+     * on top and replay them all when it comes back. A buzz nobody can feel is
+     * dropped, not saved for later.
      */
-    val hapticCues: Flow<HapticCue> = _hapticCues.receiveAsFlow()
+    val hapticCues: Flow<HapticCue> = _hapticCues
 
     init {
         // What actually keeps opening the screen silent is the exhaustive
@@ -123,15 +130,15 @@ class WearVoiceViewModel(
                     _partialTranscript.value = null
                 }
                 when (current) {
-                    is VoiceCommandState.Armed -> _hapticCues.trySend(HapticCue.VoiceArmed)
+                    is VoiceCommandState.Armed -> _hapticCues.tryEmit(HapticCue.VoiceArmed)
                     // Sending, not Sent: this fires the instant the cancel
                     // window elapses, which is the moment the real feature
                     // would press the remote. Sent arrives a fake round-trip
                     // later and would put the buzz in the wrong place.
-                    is VoiceCommandState.Sending -> _hapticCues.trySend(HapticCue.VoiceCommitted)
+                    is VoiceCommandState.Sending -> _hapticCues.tryEmit(HapticCue.VoiceCommitted)
                     is VoiceCommandState.Ignored,
                     is VoiceCommandState.Failed,
-                    -> _hapticCues.trySend(HapticCue.VoiceRefused)
+                    -> _hapticCues.tryEmit(HapticCue.VoiceRefused)
                     VoiceCommandState.Ready,
                     is VoiceCommandState.Listening,
                     is VoiceCommandState.Sent,
@@ -171,8 +178,24 @@ class WearVoiceViewModel(
     /** The watch has no speech recognizer to launch. */
     fun onCaptureUnavailable() = controller.onCaptureUnavailable()
 
-    /** Screen left: cancels a pending command so nothing commits off-screen. */
+    /** App backgrounded: cancels a pending command so nothing commits off-screen. */
     fun onBackgrounded() = controller.onBackgrounded()
+
+    /**
+     * The demo screen was popped (swiped back), which ends the session.
+     *
+     * Distinct from [onBackgrounded], and needed because a swipe-back is not a
+     * lifecycle stop — the app is still perfectly foreground, so nothing else
+     * tells the controller to stop. Without this, walking away mid-flow left
+     * the countdown running behind the hero screen: it would commit off-screen,
+     * buzz the wrist for a command the user had abandoned, and still be sitting
+     * on that outcome when they came back.
+     *
+     * Cancels [VoiceCommandState.Listening] as well as `Armed`, so the
+     * microphone cannot outlive the screen that opened it. `Sending` is left
+     * alone for the usual reason, and the terminal states expire on their own.
+     */
+    fun onScreenLeft() = controller.onCancel()
 
     companion object {
         /**
@@ -181,5 +204,23 @@ class WearVoiceViewModel(
          * forgiving window the controller allows.
          */
         const val ARMED_WINDOW_MILLIS: Long = VoiceCommandController.MAX_ARMED_WINDOW_MS
+
+        /**
+         * How long the outcome stays up — deliberately longer than the shared
+         * 1.5s default, and equal to the time a refusal already gets.
+         *
+         * On the real button that default is right: the outcome is a receipt
+         * for something the user just watched happen. Here "Nothing was sent"
+         * is the entire point of the demo, and it arrives with a second line
+         * explaining that the demo door responds instead. Two lines of new
+         * information on a wrist is not a 1.5-second read.
+         */
+        const val RESULT_FLASH_MILLIS: Long = VoiceCommandController.IGNORED_DISMISS_MS
+
+        /**
+         * Room for the longest real burst (armed, then committed) plus slack.
+         * Overflow drops the oldest rather than blocking the state machine.
+         */
+        private const val HAPTIC_BUFFER = 8
     }
 }

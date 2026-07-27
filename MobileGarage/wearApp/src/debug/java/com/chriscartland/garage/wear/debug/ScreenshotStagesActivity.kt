@@ -45,7 +45,7 @@ import com.chriscartland.garage.wear.ui.WearVoiceViewModel
  *
  * Launch (debug build only):
  *   adb shell am start -n com.chriscartland.garage.debug/com.chriscartland.garage.wear.debug.ScreenshotStagesActivity \
- *     -e stage connecting|closed|inferred|holding|submitted|moving|open|signed_out|sign_in_error|voice_ready|voice_listening|voice_hearing|voice_armed|voice_sent|voice_refused
+ *     -e stage connecting|closed|inferred|holding|submitted|moving|open|signed_out|sign_in_error|voice_ready|voice_listening|voice_hearing|voice_armed|voice_committing|voice_sent|voice_refused
  *
  * Stages mirror the hero interaction narrative:
  *   connecting    — cold start, no door event yet: "Connecting…", no ⚠ badge
@@ -70,11 +70,19 @@ import com.chriscartland.garage.wear.ui.WearVoiceViewModel
  * simulated by construction: the fixture passes canned VoiceCommandStates and
  * a canned demo door, with no controller and no environment at all.
  *   voice_ready   — at rest: "Simulated", "Tap to speak", demo door Closed
- *   voice_listening — mic takeover, quiet: pulse rings + the example prompt
- *   voice_hearing — mid-utterance: rings at a loud level, live transcript
+ *   voice_listening — mic takeover, quiet: pulse rings, the example prompt,
+ *                   and the way out
+ *   voice_hearing — mid-utterance: rings at a loud level, a live transcript
+ *                   long enough to wrap, cancel hint stepped aside
  *   voice_armed   — "Would open the door": the action named conditionally
+ *   voice_committing — the commit instant: the ring completes and HOLDS
  *   voice_sent    — the punchline: "Nothing was sent", demo door Moving
  *   voice_refused — the gate refusing a command the demo door has outgrown
+ *
+ * Across the voice stages the "Simulated" marker and the mic must not move.
+ * That is not decoration: the resting column is vertically centred, so before
+ * the text slots reserved their height these two drifted 18px between states.
+ * The gallery is where a regression would be visible.
  */
 class ScreenshotStagesActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -149,9 +157,14 @@ class ScreenshotStagesActivity : ComponentActivity() {
             STAGE_VOICE_HEARING -> VoiceStageFixture(
                 VoiceCommandState.Listening(attempt = 1),
                 VoiceDoorState.CLOSED,
-                // Mid-utterance: prompt has given way to live text, and the
-                // rings are at a loud level.
-                partialTranscript = "open the gar",
+                // Mid-utterance: prompt has given way to live text, the cancel
+                // hint has stepped aside, and the rings are at a loud level.
+                //
+                // Deliberately long enough to WRAP. A short partial proves
+                // nothing about the one risk this block actually has — text
+                // pinned near the bottom of a round screen being clipped at
+                // both ends by the mask — and people do say whole sentences.
+                partialTranscript = "open the garage door please",
                 listeningLevel = 0.85f,
             )
             STAGE_VOICE_ARMED -> VoiceStageFixture(
@@ -160,6 +173,15 @@ class ScreenshotStagesActivity : ComponentActivity() {
                     transcript = "open the garage door",
                     windowMs = WearVoiceViewModel.ARMED_WINDOW_MILLIS,
                 ),
+                VoiceDoorState.CLOSED,
+            )
+            // The commit instant. Worth its own stage because the ring's second
+            // job — completing and HOLDING rather than vanishing — is only
+            // observable here, and the same reasoning that made the hero
+            // screen's `submitted` a state rather than a flash applies: a
+            // transient is not capturable.
+            STAGE_VOICE_COMMITTING -> VoiceStageFixture(
+                VoiceCommandState.Sending(intent = VoiceIntent.OPEN),
                 VoiceDoorState.CLOSED,
             )
             STAGE_VOICE_SENT -> VoiceStageFixture(
@@ -232,6 +254,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
         const val STAGE_VOICE_LISTENING = "voice_listening"
         const val STAGE_VOICE_HEARING = "voice_hearing"
         const val STAGE_VOICE_ARMED = "voice_armed"
+        const val STAGE_VOICE_COMMITTING = "voice_committing"
         const val STAGE_VOICE_SENT = "voice_sent"
         const val STAGE_VOICE_REFUSED = "voice_refused"
 

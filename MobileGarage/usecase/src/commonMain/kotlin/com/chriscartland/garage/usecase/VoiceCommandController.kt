@@ -66,9 +66,13 @@ enum class VoiceCommandIgnoreReason {
 
 /**
  * States of the voice-command loop. The mic button renders these; taps
- * feed back into [VoiceCommandController]. Design rule: a tap always
- * means "listen to me now" — it starts over from any pre-commit state,
- * cancelling a pending command if there is one.
+ * feed back into [VoiceCommandController].
+ *
+ * There are two verbs, and a surface picks the one that matches its tap
+ * target. [VoiceCommandController.onMicTap] means "listen to me now" and
+ * restarts from any pre-commit state, which is right for a small mic button.
+ * [VoiceCommandController.onCancel] means "stop", which is right when the
+ * whole screen is the target and a brush must not open a live mic.
  */
 sealed interface VoiceCommandState {
     /** Mic idle, waiting for a tap. */
@@ -84,8 +88,10 @@ sealed interface VoiceCommandState {
 
     /**
      * A HIGH-confidence command passed the door-state gate and is
-     * counting down. Tapping before [windowMs] elapses cancels and
-     * re-listens; letting it complete re-checks the gate and commits.
+     * counting down. Before [windowMs] elapses the surface can still call
+     * [VoiceCommandController.onMicTap] (cancel and re-listen) or
+     * [VoiceCommandController.onCancel] (cancel and stop); letting it
+     * complete re-checks the gate and commits.
      */
     data class Armed(
         val intent: VoiceIntent,
@@ -168,12 +174,24 @@ interface VoiceCommandEnvironment {
  * - [onMicTap] during [VoiceCommandState.Armed] cancels and immediately
  *   re-listens; during [VoiceCommandState.Sending] it is a no-op (the
  *   press is already on its way).
+ * - [onCancel] stops instead of restarting, for surfaces whose tap target
+ *   is large enough that an accidental touch must not open a live mic.
+ *   Also a no-op during [VoiceCommandState.Sending].
  */
 class VoiceCommandController(
     private val classify: ClassifyVoiceIntentUseCase,
     private val environment: VoiceCommandEnvironment,
     private val scope: CoroutineScope,
     initialArmedWindowMs: Long = DEFAULT_ARMED_WINDOW_MS,
+    /**
+     * How long [VoiceCommandState.Sent] / [VoiceCommandState.Failed] stay up
+     * before returning to [VoiceCommandState.Ready]. Configurable because the
+     * outcome carries different weight per surface: on the real button it is a
+     * receipt for something the user already watched happen, while on the Wear
+     * demo "nothing was sent" IS the point of the whole exercise and needs long
+     * enough to read on a wrist.
+     */
+    private val resultFlashMs: Long = RESULT_FLASH_MS,
 ) {
     private val _state = MutableStateFlow<VoiceCommandState>(VoiceCommandState.Ready)
     val state: StateFlow<VoiceCommandState> = _state
@@ -244,10 +262,16 @@ class VoiceCommandController(
     }
 
     /**
-     * The UI left the screen (lifecycle stop, sheet dismissed). Cancels
-     * a pending command so nothing commits off-screen. Other states are
-     * untouched: Listening is owned by the system dialog, and a Sending
-     * press cannot be recalled.
+     * The app went to the background (lifecycle stop). Cancels a pending
+     * command so nothing commits off-screen.
+     *
+     * [VoiceCommandState.Listening] is deliberately untouched: on a surface
+     * that captures speech with the *system* recognizer, the recognizer's own
+     * activity coming to the front is exactly what backgrounds us, so
+     * cancelling here would abort every capture at the moment it started. A
+     * surface with in-app capture, or one that wants "leaving ends the
+     * session", calls [onCancel] instead — see the Wear demo, which does both
+     * (this on stop, [onCancel] when its screen is popped).
      */
     fun onBackgrounded() {
         if (_state.value is VoiceCommandState.Armed) {
@@ -302,7 +326,7 @@ class VoiceCommandController(
             VoiceCommandState.Failed(classification.intent)
         }
         _state.value = result
-        scheduleReturnToReady(result, RESULT_FLASH_MS)
+        scheduleReturnToReady(result, resultFlashMs)
     }
 
     private fun ignore(
@@ -358,7 +382,7 @@ class VoiceCommandController(
         /** How long an [VoiceCommandState.Ignored] explanation stays up. */
         const val IGNORED_DISMISS_MS = 4_000L
 
-        /** How long the Sent/Failed confirmation stays up. */
+        /** Default for `resultFlashMs` — how long Sent/Failed stays up. */
         const val RESULT_FLASH_MS = 1_500L
     }
 }

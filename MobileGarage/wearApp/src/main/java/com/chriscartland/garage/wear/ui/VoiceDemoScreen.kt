@@ -36,8 +36,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -219,6 +219,17 @@ fun VoiceDemoScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // Swiping back ends the session. This is NOT covered by the lifecycle
+    // observer above: popping this screen leaves the app perfectly foreground,
+    // so ON_STOP never fires and nothing else would tell the controller to
+    // stop. Without it, walking away mid-countdown left the demo running
+    // behind the hero screen — committing off-screen, buzzing for a command
+    // the user had already abandoned, and still showing that outcome on the
+    // way back in.
+    DisposableEffect(viewModel) {
+        onDispose { viewModel.onScreenLeft() }
+    }
+
     VoiceDemoContent(
         state = state,
         demoDoorState = demoDoorState,
@@ -233,15 +244,39 @@ fun VoiceDemoScreen(
 /**
  * Stateless voice demo layout (previewable).
  *
- * Everything lives in one vertically-centred column constrained to
- * [CONTENT_WIDTH_FRACTION] of the screen, because that is where a round
- * screen's chord is widest — the same lesson the hero screen's bottom text
- * learned the hard way (an unconstrained line near an edge is clipped at both
- * ends rather than wrapping).
+ * ## One skeleton, every state
  *
- * Three independent signals say "this is not real", because one is easy to
- * miss on a glance:
- *  1. A persistent "Simulated" marker at the top of the column.
+ * Three anchors, and they never move: a **header** pinned to the top, the
+ * **mic** on the screen's exact centre, and a **text block** pinned to the
+ * bottom. Listening changes what those slots contain — rings appear, the mic
+ * grows, the text becomes a live transcript — but not where any of them is.
+ *
+ * This replaced a vertically-centred column, whose height was a shared
+ * resource: any line-count change moved everything else in it. Measured on a
+ * 454px round watch, the mic and the "Simulated" marker sat 18px higher on
+ * "Demo door is already open" (two lines) than on "Tap to speak" (one), and
+ * moved again on the way to "Nothing was sent" — three shifts per utterance,
+ * on exactly the states the user is reading. Reserving the tall slots would
+ * have pinned the height too, but at the cost of blank gaps in the common
+ * case, and it could not fix the larger problem: the takeover already used
+ * absolute anchors, so the two modes disagreed about where the mic lived and
+ * entering one jumped.
+ *
+ * Only the two variable text lines can now move, they move only when their own
+ * text changes, and because the block is bottom-anchored they grow upward into
+ * empty space rather than pushing anything.
+ *
+ * Widths are per-anchor: the header sits where a round screen's chord is wide,
+ * so it gets [CONTENT_WIDTH_FRACTION]; the bottom block is near the mask, so it
+ * gets the narrower [BOTTOM_TEXT_WIDTH_FRACTION] — an unconstrained line down
+ * there is clipped at both ends rather than wrapping, the lesson the hero
+ * screen learned the hard way.
+ *
+ * ## Three independent signals say "this is not real"
+ *
+ * Because one is easy to miss on a glance:
+ *  1. A persistent "Simulated" marker, now in the header and therefore present
+ *     in *every* state including the listening takeover.
  *  2. Conditional wording throughout — "Would open the door", never "Opening"
  *     — and a terminal state that says outright that nothing was sent.
  *  3. The door line is labelled "Demo door", so the thing visibly reacting is
@@ -305,57 +340,37 @@ fun VoiceDemoContent(
                     onClick = { if (VoiceDemoMappers.isCancellable(state)) onCancel() else onMicTap() },
                 ),
         ) {
-            if (state is VoiceCommandState.Listening) {
-                // Listening gets the whole screen rather than a changed label:
-                // at a glance, "is it hearing me?" has to be answerable without
-                // reading anything.
-                ListeningTakeover(
-                    level = listeningLevel,
-                    partialTranscript = partialTranscript,
-                    modifier = Modifier.fillMaxSize(),
-                )
-                return@Box
+            val listening = state is VoiceCommandState.Listening
+
+            // Rings first so everything else draws over them. Listening gets the
+            // whole screen rather than a changed label: at a glance, "is it
+            // hearing me?" has to be answerable without reading anything.
+            if (listening) {
+                PulseRings(level = listeningLevel, modifier = Modifier.fillMaxSize())
             }
+
+            // Header: what this is, and the door any command will be judged
+            // against. Both are persistent context rather than state, so they
+            // belong together and stay put.
+            //
+            // The door line used to be hidden during listening as "irrelevant
+            // mid-capture". It is the opposite of irrelevant: it is precisely
+            // what decides whether the sentence you are about to say will be
+            // accepted or refused, so the moment before speaking is when it is
+            // most worth reading. Keeping it is also what frees the screen's
+            // centre for the mic.
             Column(
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .fillMaxWidth(CONTENT_WIDTH_FRACTION),
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth(CONTENT_WIDTH_FRACTION)
+                    .padding(top = HEADER_TOP_DP.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(ITEM_SPACING_DP.dp),
             ) {
                 Text(
                     text = stringResource(R.string.voice_demo_simulated),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.tertiary,
                     textAlign = TextAlign.Center,
-                )
-                FilledTonalIconButton(
-                    // Same rule as the whole-screen target: during the
-                    // countdown the mic is a stop button, not a restart one.
-                    onClick = { if (VoiceDemoMappers.isCancellable(state)) onCancel() else onMicTap() },
-                    // A press cannot be unsent, so the real feature disables the
-                    // button while sending. Mirrored here so the demo teaches
-                    // the same affordance.
-                    enabled = state !is VoiceCommandState.Sending,
-                    modifier = Modifier.size(MIC_BUTTON_SIZE_DP.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_mic_24),
-                        contentDescription = stringResource(R.string.cd_voice_demo_mic),
-                        modifier = Modifier.size(MIC_ICON_SIZE_DP.dp),
-                    )
-                }
-                Text(
-                    text = stringResource(VoiceDemoMappers.primaryLine(state)),
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
-                )
-                Text(
-                    text = VoiceDemoMappers.secondaryLine(state, partialTranscript),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    minLines = 1,
                 )
                 Text(
                     text = stringResource(
@@ -367,11 +382,46 @@ fun VoiceDemoContent(
                     textAlign = TextAlign.Center,
                 )
             }
+
+            MicTarget(
+                listening = listening,
+                level = listeningLevel,
+                enabled = state !is VoiceCommandState.Sending,
+                // Same rule as the whole-screen target: while something is
+                // running the mic is a stop button, not a restart one.
+                onClick = { if (VoiceDemoMappers.isCancellable(state)) onCancel() else onMicTap() },
+            )
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(BOTTOM_TEXT_WIDTH_FRACTION)
+                    .padding(bottom = BOTTOM_TEXT_PADDING_DP.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                if (listening) {
+                    ListeningLines(partialTranscript = partialTranscript)
+                } else {
+                    Text(
+                        text = stringResource(VoiceDemoMappers.primaryLine(state)),
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
+                    )
+                    Text(
+                        text = VoiceDemoMappers.secondaryLine(state, partialTranscript),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        minLines = 1,
+                    )
+                }
+            }
             // Countdown ring at the bezel, matching the hero screen's language
             // for "something is counting toward committing". Drawn last so it
             // is on top; it takes no input so it can never block the mic.
             CountdownRing(
                 progress = if (armed != null) armedProgress.value else 0f,
+                committed = state is VoiceCommandState.Sending,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(RING_PADDING_DP.dp),
@@ -381,51 +431,26 @@ fun VoiceDemoContent(
 }
 
 /**
- * The listening state, given the whole screen.
+ * The mic, on the exact centre of the screen in every state.
  *
- * Two phases, and the difference between them is driven by the microphone
- * rather than faked: concentric rings breathe out from the mic on a slow loop
- * while nothing is being said, then travel further, brighter and with a larger
- * mic the louder you actually are ([level] comes from `onRmsChanged`).
+ * Its position is the layout's fixed point: concentric with the pulse rings by
+ * construction, and identical whether the demo is at rest or listening, so
+ * entering the listening state is a grow rather than a jump. Only its size and
+ * its skin change.
  *
- * Help text is deliberately minimal and *changes job* partway through:
- *  - Before speech, one example command. The classifier only accepts a narrow
- *    imperative grammar, so the example is load-bearing rather than decorative
- *    — it is the difference between a command that works and one that is
- *    refused.
- *  - Once words arrive, that same slot becomes the live transcript. The screen
- *    stops instructing the moment it has something to reflect instead.
- *
- * Deliberately absent: the "Demo door" line (irrelevant mid-capture) and any
- * cancel hint (a tap during Listening is a no-op in the shared controller, so
- * advertising one would be a lie). The "Simulated" marker stays — a full-screen
- * animated mic is the single frame most likely to be mistaken for a real
- * assistant, so it is the frame that can least afford to drop the label.
+ * At rest it is a real button — the affordance that invites the first tap. While
+ * listening it is a plain surface: there is nothing left to invite, the whole
+ * screen is already the stop target, and the accessible label on that target
+ * says so.
  */
 @Composable
-private fun ListeningTakeover(
+private fun BoxScope.MicTarget(
+    listening: Boolean,
     level: Float,
-    partialTranscript: String?,
-    modifier: Modifier = Modifier,
+    enabled: Boolean,
+    onClick: () -> Unit,
 ) {
-    Box(modifier = modifier) {
-        PulseRings(level = level, modifier = Modifier.fillMaxSize())
-        Text(
-            text = stringResource(R.string.voice_demo_simulated),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.tertiary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = LISTENING_MARKER_TOP_DP.dp),
-        )
-        // The mic is centred on the PHYSICAL screen, exactly like the hero
-        // screen's door, so it is concentric with the rings by construction.
-        // It previously shared a centred Column with the text below it, which
-        // put the Column's midpoint — not the mic's — at screen centre and left
-        // the mic sitting ~20dp above the rings it was supposed to emit.
-        // Anchoring the two independently makes that impossible rather than
-        // corrected-by-offset.
+    if (listening) {
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -443,20 +468,70 @@ private fun ListeningTakeover(
                 modifier = Modifier.size(MIC_LISTENING_ICON_DP.dp),
             )
         }
+    } else {
+        FilledTonalIconButton(
+            onClick = onClick,
+            // A press cannot be unsent, so the real feature disables the button
+            // while sending. Mirrored here so the demo teaches the same
+            // affordance.
+            enabled = enabled,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(MIC_BUTTON_SIZE_DP.dp),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_mic_24),
+                contentDescription = stringResource(R.string.cd_voice_demo_mic),
+                modifier = Modifier.size(MIC_ICON_SIZE_DP.dp),
+            )
+        }
+    }
+}
+
+/**
+ * The bottom text while listening, which *changes job* partway through:
+ *  - Before speech, one example command plus the way out. The classifier only
+ *    accepts a narrow imperative grammar, so the example is load-bearing rather
+ *    than decorative — it is the difference between a command that works and
+ *    one that is refused.
+ *  - Once words arrive, the example becomes the live transcript and the cancel
+ *    hint goes away entirely. The screen stops instructing the moment it has
+ *    something to reflect instead, and someone mid-sentence is not looking for
+ *    an exit.
+ *
+ * The cancel hint used to be omitted here on the grounds that a tap during
+ * Listening was a no-op in the shared controller. That stopped being true in
+ * 0.3.3, when a tap started cancelling — so for one release this was the one
+ * state that could be escaped but never said so, which is the worse half of the
+ * original problem. It borrows `Armed`'s exact wording, because it is the same
+ * gesture with the same effect and two phrasings would imply otherwise.
+ */
+@Composable
+private fun ListeningLines(partialTranscript: String?) {
+    // The hint sits ABOVE the live line, not below it, and that ordering is
+    // load-bearing rather than aesthetic. The block is bottom-anchored, so its
+    // last element is the one with a fixed position — and the last element has
+    // to be the line the user is actually watching. With the hint underneath,
+    // the prompt would sit one line higher than the transcript that replaces
+    // it, so the first word spoken would shunt the text down; and while the
+    // hint was still reserved, the two stacked lines pushed up into the mic.
+    // Above, it simply occupies empty space and then stops.
+    if (partialTranscript == null) {
         Text(
-            text = partialTranscript
-                ?.let { stringResource(R.string.voice_demo_transcript, it) }
-                ?: stringResource(R.string.voice_demo_listening_prompt),
-            style = MaterialTheme.typography.bodySmall,
+            text = stringResource(R.string.voice_demo_cancel_hint),
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            minLines = 2,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth(CONTENT_WIDTH_FRACTION)
-                .padding(bottom = LISTENING_TEXT_BOTTOM_DP.dp),
         )
     }
+    Text(
+        text = partialTranscript
+            ?.let { stringResource(R.string.voice_demo_transcript, it) }
+            ?: stringResource(R.string.voice_demo_listening_prompt),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
 }
 
 /**
@@ -507,33 +582,48 @@ private fun PulseRings(
  * concentric with the bezel. Deliberately a different colour from the hero
  * screen's hold ring: that one is counting toward a real garage press, this
  * one is not.
+ *
+ * Two jobs, the same two the hero screen's `HoldRing` has. While counting it
+ * sweeps over a faint track. Once [committed] it holds a *complete* ring with
+ * the track gone, for as long as the press is notionally outstanding.
+ *
+ * That second job used to be missing here, and its absence was the louder
+ * half: the ring simply vanished at the instant of commitment, which is the
+ * one instant the user most wants confirmed. The hero screen already argued
+ * this case — a state beats a transient, and unlike a flash it is capturable
+ * by the screenshot fixture — so the demo, whose whole job is to rehearse the
+ * real interaction, had no business teaching a different vocabulary.
  */
 @Composable
 private fun CountdownRing(
     progress: Float,
+    committed: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val ringColor = MaterialTheme.colorScheme.tertiary
     val trackColor = MaterialTheme.colorScheme.onSurfaceVariant
     Canvas(modifier = modifier) {
-        if (progress <= 0f) return@Canvas
+        if (!committed && progress <= 0f) return@Canvas
         val stroke = RING_STROKE_DP.dp.toPx()
         val inset = stroke / 2f
         val arcSize = Size(size.width - stroke, size.height - stroke)
-        drawArc(
-            color = trackColor,
-            startAngle = ARC_START_ANGLE,
-            sweepAngle = FULL_SWEEP,
-            useCenter = false,
-            topLeft = Offset(inset, inset),
-            size = arcSize,
-            alpha = TRACK_ALPHA,
-            style = Stroke(width = stroke),
-        )
+        if (!committed) {
+            // "Here is how far there is to go" — pointless once there is not.
+            drawArc(
+                color = trackColor,
+                startAngle = ARC_START_ANGLE,
+                sweepAngle = FULL_SWEEP,
+                useCenter = false,
+                topLeft = Offset(inset, inset),
+                size = arcSize,
+                alpha = TRACK_ALPHA,
+                style = Stroke(width = stroke),
+            )
+        }
         drawArc(
             color = ringColor,
             startAngle = ARC_START_ANGLE,
-            sweepAngle = FULL_SWEEP * progress,
+            sweepAngle = if (committed) FULL_SWEEP else FULL_SWEEP * progress,
             useCenter = false,
             topLeft = Offset(inset, inset),
             size = arcSize,
@@ -595,6 +685,12 @@ internal object VoiceDemoMappers {
                 state.transcript?.let { stringResource(R.string.voice_demo_transcript, it) }
                     ?: stringResource(R.string.voice_demo_hint)
             is VoiceCommandState.Sent -> stringResource(R.string.voice_demo_committed_hint)
+            // Nothing. The example command is an invitation to speak, and the
+            // one moment it must not be showing is while the screen is busy
+            // committing and the mic button is disabled. The slot stays (the
+            // block is bottom-anchored, so an absent line would drop the
+            // headline into it) — it is simply empty.
+            is VoiceCommandState.Sending -> ""
             else -> stringResource(R.string.voice_demo_hint)
         }
 
@@ -658,6 +754,22 @@ private fun VoiceDemoArmedPreview() {
     }
 }
 
+/** The commit instant: the ring completes and holds instead of vanishing. */
+@Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
+@Composable
+private fun VoiceDemoCommittingPreview() {
+    MaterialTheme {
+        VoiceDemoContent(
+            state = VoiceCommandState.Sending(intent = VoiceIntent.OPEN),
+            demoDoorState = VoiceDoorState.CLOSED,
+            partialTranscript = null,
+            listeningLevel = 0f,
+            onMicTap = {},
+            onCancel = {},
+        )
+    }
+}
+
 /** The punchline: the window elapsed and nothing was sent. */
 @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
 @Composable
@@ -695,8 +807,25 @@ private fun VoiceDemoIgnoredPreview() {
     }
 }
 
+/**
+ * Width of the header, which sits high enough that the round screen's chord is
+ * still generous.
+ */
 private const val CONTENT_WIDTH_FRACTION = 0.72f
-private const val ITEM_SPACING_DP = 4
+
+/**
+ * Width of the bottom text block, and how far its last line stays clear of the
+ * bottom edge. The two are one decision: on a round screen the usable chord
+ * shrinks fast as you approach the edge, so a wider block has to sit higher.
+ *
+ * Sized together against the deepest row this block can reach. Going narrow
+ * instead (the hero screen's 0.56, which works there because it carries at most
+ * two short lines) left this block wrapping almost every string and orphaning
+ * single words, which is worse than the clipping it avoids. Raising it buys
+ * back the width, at the cost of some empty screen below — which the round mask
+ * mostly eats anyway.
+ */
+private const val BOTTOM_TEXT_WIDTH_FRACTION = 0.72f
 private const val MIC_BUTTON_SIZE_DP = 52
 private const val MIC_ICON_SIZE_DP = 26
 private const val RING_PADDING_DP = 2
@@ -705,17 +834,23 @@ private const val ARC_START_ANGLE = -90f
 private const val FULL_SWEEP = 360f
 private const val TRACK_ALPHA = 0.25f
 
-// Listening takeover.
+// The mic while listening: bigger, and wearing the simulation's colour.
 private const val MIC_LISTENING_SIZE_DP = 84
 private const val MIC_LISTENING_ICON_DP = 40
 
 /**
  * Clear of `TimeText`, which owns the top arc. At 18dp the marker sat directly
- * under the clock with no gap and read as one crowded block; the takeover has
- * the vertical room to spare, so it buys the separation.
+ * under the clock with no gap and read as one crowded block; the screen has the
+ * vertical room to spare, so it buys the separation.
  */
-private const val LISTENING_MARKER_TOP_DP = 36
-private const val LISTENING_TEXT_BOTTOM_DP = 20
+private const val HEADER_TOP_DP = 30
+
+/**
+ * Paired with [BOTTOM_TEXT_WIDTH_FRACTION] — see its note. Measured, not
+ * guessed: at 34dp the widest single line the block has to render came out
+ * ~10px over the available chord and wrapped, orphaning one word.
+ */
+private const val BOTTOM_TEXT_PADDING_DP = 38
 
 /** Small on purpose: responsiveness, not jitter. */
 private const val MIC_SCALE_GAIN = 0.10f
