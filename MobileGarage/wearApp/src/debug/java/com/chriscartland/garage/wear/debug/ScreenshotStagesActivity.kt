@@ -78,6 +78,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
                         signInError = fixture.signInError,
                         onHoldStart = {},
                         onHoldEnd = {},
+                        onVoiceDemoClick = {},
                         onSignInClick = {},
                     )
                 }

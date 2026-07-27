@@ -14,6 +14,26 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.3.0
+
+- **New: a voice demo, and it is only a demo.** A small mic button beside the
+  door opens a separate screen where you can say "open the garage door" and
+  watch the whole thing happen: it repeats back what it would do, counts down
+  so you can cancel, and then tells you that nothing was sent. It never
+  touches the real garage door, and it says so on screen the entire time.
+- The demo has its own pretend door that reacts to your commands, so you can
+  see why a command gets refused. Open it by voice, and asking to open it
+  again is turned down with "Demo door is already open". Ask while it is
+  moving and it will wait for it to settle.
+- It is as strict as the real thing will be: it acts only on a clear
+  instruction. Questions ("can you open the door"), anything negative
+  ("don't open the door"), and half-heard speech are all turned down, and it
+  shows you what it thought you said.
+- The watch vibrates when a command is understood, again at the moment a real
+  press would be sent, and differently when a command is refused.
+- The door itself is unchanged: holding it for two seconds is still the only
+  way to operate the real garage.
+
 ## 0.2.0
 
 - **Operating the door is now one gesture: press and hold the door for two

@@ -123,6 +123,85 @@ directly above it. That "key off the displayed label, never the raw
 `DoorPosition` defaults to not predicting until someone decides otherwise on
 purpose).
 
+## Voice demo (simulated — 0.3.0)
+
+A second, deliberately-experimental surface: speak "open the garage door" and
+watch the whole command loop run **against a fake door**. It never presses the
+real remote button. This is the watch half of
+[`MobileGarage/docs/VOICE_COMMANDS.md`](../MobileGarage/docs/VOICE_COMMANDS.md)
+phase 3, shipped as a simulation first.
+
+### Why a mic chip, and not the other triggers
+
+| Candidate | Verdict |
+|---|---|
+| **Small mic chip on the hero screen** | **Chosen.** A separate target with a separate gesture, so the door keeps its single meaning. |
+| Single tap on the door launches voice | **Rejected.** The door's tap is *deliberately* dead so only a continuous hold can reach the garage. A tap is also the opening frame of every hold and of every drift-cancelled accidental touch, so tap-to-talk would make a sleeve brush open a full-screen mic — re-creating the accidental-activation problem 0.2.0 removed, aimed at a new target. |
+| Crown scroll opens a menu with a voice button | **Rejected for now.** The app is deliberately one hero screen; adding scroll navigation is a structural change, and it buries a demo two interactions deep. This is the natural home if the watch ever grows a third feature. |
+
+The chip sits at `CenterEnd`, not the top: the top centre belongs to
+`TimeText`, and at the vertical centre the round screen's chord is at its
+widest, so a chip beside the door (which occupies only the middle 52%) clears
+both the door and the mask without resizing anything. Signed-in only — the
+signed-out screen has one job and has already been fixed once for overflow
+(0.1.2).
+
+Tapping it opens a dedicated screen rather than inlining the flow: the loop has
+seven states plus a transcript and a countdown, which does not fit beside the
+door, and the separation is itself a safety property — you cannot be looking at
+the demo and think you are operating the real door. `SwipeToDismissBox` gives
+the standard Wear swipe-back, with the hero screen composed underneath as the
+background so returning does not re-run its cold-start fetch.
+
+### How it says "this is not real"
+
+Three independent signals, because one is easy to miss on a glance:
+
+1. A persistent **"Simulated"** marker at the top of the column.
+2. **Conditional wording throughout** — "Would open the door", never "Opening"
+   — and a terminal state that says outright that **nothing was sent**.
+3. The door line is labelled **"Demo door"**, so the thing visibly reacting is
+   never mistaken for the garage.
+
+The demo door is stateful, which is what makes it worth demonstrating: commit
+"open", watch it travel and settle Open, then say "open the garage door" again
+and the gate refuses with "Demo door is already open". Every refusal path is
+reachable by voice alone except `UNKNOWN`, which the simulation never enters.
+
+### Why it cannot press the real button
+
+Structural, not a runtime check, and pinned in three places:
+
+| Guarantee | Pinned by |
+|---|---|
+| `WearVoiceViewModel` has no remote-button dependency at all | `WearVoiceViewModelTest.cannotReachTheRealRemoteButton` (reflection over the constructor) |
+| The only `VoiceCommandEnvironment` in the Wear graph is the simulated one | `WearComponentGraphTest.theOnlyVoiceEnvironmentIsSimulated` |
+| That environment's `pressButton` touches nothing but its own in-memory `StateFlow` | `SimulatedVoiceCommandEnvironmentTest` (`:usecase`) |
+
+Two further layers show up if you try to break it: the kotlin-inject provider
+constructs the ViewModel explicitly, and the test constructs it explicitly, so
+adding a real-door dependency is a *compile* error in two files before the
+reflection test even runs. Verified by mutation — all three fire.
+
+Everything upstream of the press is the production path: the same
+`VoiceCommandController`, the same `RuleBasedVoiceIntentClassifier` (Rules v3),
+the same two-stage door gate, the same cancel window. Reimplementing a toy
+would have demoed the toy.
+
+### Voice haptics
+
+Three more cues on the same `Channel`-backed flow, mapped in `WearHaptics`
+alongside the hold cues so the two surfaces cannot drift:
+
+| Cue | When | Constant |
+|---|---|---|
+| `VoiceArmed` | a command passed the gate; countdown starts | `GESTURE_START` |
+| `VoiceCommitted` | the window elapsed (where a real press would go) | `CONFIRM` |
+| `VoiceRefused` | classifier or gate said no | `REJECT` |
+
+`VoiceCommitted` fires on `Sending`, not `Sent` — `Sent` arrives a fake
+round-trip later and would put the buzz in the wrong place.
+
 ## Architecture
 
 - **Module**: `:wearApp` (`com.chriscartland.garage.wear`), Compose for

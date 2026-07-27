@@ -33,19 +33,25 @@ import com.chriscartland.garage.data.repository.NetworkDoorRepository
 import com.chriscartland.garage.data.repository.NetworkRemoteButtonRepository
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppConfig
+import com.chriscartland.garage.domain.model.VoiceIntentClassifier
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.RemoteButtonRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
+import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
+import com.chriscartland.garage.usecase.RuleBasedVoiceIntentClassifier
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
+import com.chriscartland.garage.usecase.SimulatedVoiceCommandEnvironment
+import com.chriscartland.garage.usecase.VoiceCommandEnvironment
 import com.chriscartland.garage.wear.data.InMemoryLocalDoorDataSource
 import com.chriscartland.garage.wear.logging.LogcatAppLoggerRepository
 import com.chriscartland.garage.wear.ui.WearHomeViewModel
+import com.chriscartland.garage.wear.ui.WearVoiceViewModel
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -94,6 +100,14 @@ abstract class WearComponent(
 ) {
     // --- Entry points: ViewModels (per-screen, NOT singleton) ---
     abstract val wearHomeViewModel: WearHomeViewModel
+    abstract val wearVoiceViewModel: WearVoiceViewModel
+
+    /**
+     * Exposed so `WearComponentGraphTest` can assert the concrete type. The
+     * voice demo's "cannot touch the real door" property is structural, and
+     * this is one of the three places it is pinned (see [WearVoiceViewModel]).
+     */
+    abstract val voiceCommandEnvironment: VoiceCommandEnvironment
 
     // --- Entry points: @WearSingleton state owners ---
     abstract val applicationScope: CoroutineScope
@@ -131,6 +145,18 @@ abstract class WearComponent(
             appVersion = appVersion,
         )
 
+    @Provides
+    fun provideWearVoiceViewModel(
+        classifyVoiceIntent: ClassifyVoiceIntentUseCase,
+        voiceCommandEnvironment: VoiceCommandEnvironment,
+        dispatchers: DispatcherProvider,
+    ): WearVoiceViewModel =
+        WearVoiceViewModel(
+            classifyVoiceIntent = classifyVoiceIntent,
+            environment = voiceCommandEnvironment,
+            dispatchers = dispatchers,
+        )
+
     // --- UseCases (stateless, non-singleton) ---
 
     @Provides
@@ -151,6 +177,13 @@ abstract class WearComponent(
     @Provides
     fun provideFetchCurrentDoorEventUseCase(doorRepository: DoorRepository): FetchCurrentDoorEventUseCase =
         FetchCurrentDoorEventUseCase(doorRepository)
+
+    @Provides
+    fun provideVoiceIntentClassifier(): VoiceIntentClassifier = RuleBasedVoiceIntentClassifier()
+
+    @Provides
+    fun provideClassifyVoiceIntentUseCase(classifier: VoiceIntentClassifier): ClassifyVoiceIntentUseCase =
+        ClassifyVoiceIntentUseCase(classifier)
 
     // --- @WearSingleton providers (bodies take parameters so caching is honored) ---
 
@@ -185,6 +218,21 @@ abstract class WearComponent(
     @Provides
     @WearSingleton
     fun provideAppLoggerRepository(): AppLoggerRepository = LogcatAppLoggerRepository()
+
+    /**
+     * The ONLY [VoiceCommandEnvironment] in the Wear graph, and deliberately
+     * the simulated one: the watch's voice surface is an experiment, so it
+     * drives a fake in-memory door instead of the remote button. The real
+     * button stays reachable only by holding the door on the hero screen.
+     *
+     * `@WearSingleton` so the demo door keeps its state across visits to the
+     * screen (leave mid-transit, come back, it has settled) and so a fake
+     * transit started on one visit is not orphaned by a new instance.
+     */
+    @Provides
+    @WearSingleton
+    fun provideVoiceCommandEnvironment(applicationScope: CoroutineScope): VoiceCommandEnvironment =
+        SimulatedVoiceCommandEnvironment(applicationScope)
 
     @Provides
     @WearSingleton

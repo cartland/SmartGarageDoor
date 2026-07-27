@@ -18,7 +18,8 @@
 package com.chriscartland.garage.wear.ui
 
 /**
- * A one-shot haptic moment in the hold-to-press gesture.
+ * A one-shot haptic moment: the hold-to-press gesture on the hero screen, or
+ * the simulated voice command loop.
  *
  * These are *decisions*, made by [WearHomeViewModel] and emitted as events;
  * the UI performs the irreducible platform write (ADR-033). Two reasons it
@@ -62,4 +63,27 @@ enum class HapticCue {
 
     /** The press failed, at the server or at the door. "It did not happen." */
     PressFailed,
+
+    /**
+     * Voice demo: a spoken command was understood and passed the gate, so the
+     * cancel window is now running. Announces "I have a command" at the moment
+     * the countdown starts, which is the moment cancelling is still possible.
+     */
+    VoiceArmed,
+
+    /**
+     * Voice demo: the cancel window elapsed. Fires at the instant the real
+     * feature would press the remote — deliberately the same [PressCommitted]
+     * feel, because "this is the point of no return" is the same news, even
+     * though here nothing is sent.
+     */
+    VoiceCommitted,
+
+    /**
+     * Voice demo: the utterance was refused, whether by the classifier (not a
+     * command, not confident) or by the door-state gate (already open, moving).
+     * One cue for every refusal — the screen explains which; the wrist only
+     * needs to know it did not take.
+     */
+    VoiceRefused,
 }
