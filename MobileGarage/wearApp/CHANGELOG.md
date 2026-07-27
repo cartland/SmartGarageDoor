@@ -14,6 +14,18 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.3.2
+
+- **You can now tell it is listening at a glance.** Speaking takes over the
+  whole screen: the microphone becomes large and rings pulse outward from it,
+  so you no longer have to read the word "Listening" to know it is your turn.
+- **It reacts to your voice.** The rings travel further and get brighter the
+  louder you speak, and the microphone grows slightly with you. This is driven
+  by the actual microphone level, so silence looks different from talking.
+- **The words appear as you say them.** The example command is shown only
+  until you start speaking, and then that same line becomes the live
+  transcript. Nothing else competes for space while you talk.
+
 ## 0.3.1
 
 - **Speaking a command is now one tap.** The watch used to hand you off to the

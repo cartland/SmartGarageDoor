@@ -89,6 +89,38 @@ internal class WearSpeechCapture(
 }
 
 /**
+ * Turns the recognizer's raw signals into the 0..1 level the listening
+ * animation consumes. Pure, so the mapping is unit-testable — the animation
+ * itself is not, and this is the part with actual arithmetic in it.
+ */
+internal object VoiceLevel {
+    /**
+     * `onRmsChanged` reports dB in roughly [-2, 10] on Android. Values outside
+     * that are clamped rather than rescaled: a single loud spike should peg the
+     * animation, not redefine what "loud" means for the rest of the utterance.
+     */
+    fun normalize(rmsdB: Float): Float = ((rmsdB - RMS_FLOOR_DB) / (RMS_CEILING_DB - RMS_FLOOR_DB)).coerceIn(0f, 1f)
+
+    /**
+     * Exponential smoothing. Raw RMS arrives ~10x/second and jitters hard
+     * enough to read as a flicker rather than a voice; this keeps the rings
+     * moving with the speaker instead of vibrating.
+     */
+    fun smooth(
+        previous: Float,
+        next: Float,
+    ): Float = previous + (next - previous) * SMOOTHING
+
+    /** Above this, treat it as "someone is actually talking". */
+    fun isSpeaking(level: Float): Boolean = level > SPEAKING_THRESHOLD
+
+    private const val RMS_FLOOR_DB = -2f
+    private const val RMS_CEILING_DB = 10f
+    private const val SMOOTHING = 0.35f
+    private const val SPEAKING_THRESHOLD = 0.15f
+}
+
+/**
  * Creates a [WearSpeechCapture] bound to the composition, or null when the
  * device has no `RecognitionService` (callers fall back to the system flow).
  *
@@ -101,6 +133,7 @@ internal class WearSpeechCapture(
 internal fun rememberWearSpeechCapture(
     onTranscript: (String?) -> Unit,
     onPartial: (String) -> Unit,
+    onLevel: (Float) -> Unit,
 ): WearSpeechCapture? {
     val context = LocalContext.current
     // Availability is resolved into a value rather than an early return: an
@@ -110,6 +143,7 @@ internal fun rememberWearSpeechCapture(
 
     val currentOnTranscript by rememberUpdatedState(onTranscript)
     val currentOnPartial by rememberUpdatedState(onPartial)
+    val currentOnLevel by rememberUpdatedState(onLevel)
 
     val recognizer = remember(context, available) {
         if (available) SpeechRecognizer.createSpeechRecognizer(context) else null
@@ -138,15 +172,20 @@ internal fun rememberWearSpeechCapture(
                 // are not things a wrist can act on differently.
                 override fun onError(error: Int) = currentOnTranscript(null)
 
-                override fun onReadyForSpeech(params: Bundle?) = Unit
+                override fun onReadyForSpeech(params: Bundle?) = currentOnLevel(0f)
 
                 override fun onBeginningOfSpeech() = Unit
 
-                override fun onRmsChanged(rmsdB: Float) = Unit
+                // The live signal the listening animation runs on. Sent raw;
+                // normalising and smoothing happen at the call site so the
+                // arithmetic stays in one testable place ([VoiceLevel]).
+                override fun onRmsChanged(rmsdB: Float) = currentOnLevel(VoiceLevel.normalize(rmsdB))
 
                 override fun onBufferReceived(buffer: ByteArray?) = Unit
 
-                override fun onEndOfSpeech() = Unit
+                // Speech is over; drop the level so the rings settle instead of
+                // freezing at whatever the last syllable happened to be.
+                override fun onEndOfSpeech() = currentOnLevel(0f)
 
                 override fun onEvent(
                     eventType: Int,

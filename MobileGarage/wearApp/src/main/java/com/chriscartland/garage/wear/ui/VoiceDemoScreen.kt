@@ -28,8 +28,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -39,15 +43,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
@@ -121,6 +128,13 @@ fun VoiceDemoScreen(
     }
     val prompt = stringResource(R.string.voice_demo_prompt)
 
+    // Mic level lives in the UI, not the ViewModel: it is continuous
+    // presentation data (~10 updates/second) with no decision hanging off it,
+    // and routing it through a StateFlow would recompose the world for an
+    // animation. The VM still owns everything meaningful — the state and the
+    // transcript.
+    var listeningLevel by remember { mutableFloatStateOf(0f) }
+
     // Preferred path: capture in-app, so speaking is ONE tap. The system
     // fallback below exists because RecognizerIntent on Wear resolves to
     // Gboard's text-ENTRY activity, which makes you confirm the transcript
@@ -128,6 +142,7 @@ fun VoiceDemoScreen(
     val inAppCapture = rememberWearSpeechCapture(
         onTranscript = viewModel::onTranscript,
         onPartial = viewModel::onPartialTranscript,
+        onLevel = { listeningLevel = VoiceLevel.smooth(listeningLevel, it) },
     )
     val context = LocalContext.current
     var micGranted by remember {
@@ -168,6 +183,9 @@ fun VoiceDemoScreen(
 
     val listeningAttempt = (state as? VoiceCommandState.Listening)?.attempt
     LaunchedEffect(listeningAttempt) {
+        // Each attempt starts silent, so a previous utterance's level cannot
+        // leak in and make the rings look alive before anyone has spoken.
+        listeningLevel = 0f
         if (listeningAttempt == null) return@LaunchedEffect
         when {
             inAppCapture == null -> launchSystemCapture()
@@ -189,6 +207,7 @@ fun VoiceDemoScreen(
         state = state,
         demoDoorState = demoDoorState,
         partialTranscript = partialTranscript,
+        listeningLevel = listeningLevel,
         onMicTap = viewModel::onMicTap,
         modifier = modifier,
     )
@@ -216,6 +235,7 @@ fun VoiceDemoContent(
     state: VoiceCommandState,
     demoDoorState: VoiceDoorState,
     partialTranscript: String?,
+    listeningLevel: Float,
     onMicTap: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -257,6 +277,17 @@ fun VoiceDemoContent(
                     onClick = onMicTap,
                 ),
         ) {
+            if (state is VoiceCommandState.Listening) {
+                // Listening gets the whole screen rather than a changed label:
+                // at a glance, "is it hearing me?" has to be answerable without
+                // reading anything.
+                ListeningTakeover(
+                    level = listeningLevel,
+                    partialTranscript = partialTranscript,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                return@Box
+            }
             Column(
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -314,6 +345,124 @@ fun VoiceDemoContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(RING_PADDING_DP.dp),
+            )
+        }
+    }
+}
+
+/**
+ * The listening state, given the whole screen.
+ *
+ * Two phases, and the difference between them is driven by the microphone
+ * rather than faked: concentric rings breathe out from the mic on a slow loop
+ * while nothing is being said, then travel further, brighter and with a larger
+ * mic the louder you actually are ([level] comes from `onRmsChanged`).
+ *
+ * Help text is deliberately minimal and *changes job* partway through:
+ *  - Before speech, one example command. The classifier only accepts a narrow
+ *    imperative grammar, so the example is load-bearing rather than decorative
+ *    — it is the difference between a command that works and one that is
+ *    refused.
+ *  - Once words arrive, that same slot becomes the live transcript. The screen
+ *    stops instructing the moment it has something to reflect instead.
+ *
+ * Deliberately absent: the "Demo door" line (irrelevant mid-capture) and any
+ * cancel hint (a tap during Listening is a no-op in the shared controller, so
+ * advertising one would be a lie). The "Simulated" marker stays — a full-screen
+ * animated mic is the single frame most likely to be mistaken for a real
+ * assistant, so it is the frame that can least afford to drop the label.
+ */
+@Composable
+private fun ListeningTakeover(
+    level: Float,
+    partialTranscript: String?,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        PulseRings(level = level, modifier = Modifier.fillMaxSize())
+        Text(
+            text = stringResource(R.string.voice_demo_simulated),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.tertiary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = LISTENING_MARKER_TOP_DP.dp),
+        )
+        Column(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth(CONTENT_WIDTH_FRACTION),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(LISTENING_SPACING_DP.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    // Grows with your voice. Small gain on purpose: this reads
+                    // as responsiveness, and anything larger reads as jitter.
+                    .scale(1f + level * MIC_SCALE_GAIN)
+                    .size(MIC_LISTENING_SIZE_DP.dp)
+                    .background(MaterialTheme.colorScheme.tertiary, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_mic_24),
+                    contentDescription = stringResource(R.string.cd_voice_demo_listening),
+                    tint = MaterialTheme.colorScheme.onTertiary,
+                    modifier = Modifier.size(MIC_LISTENING_ICON_DP.dp),
+                )
+            }
+            Text(
+                text = partialTranscript
+                    ?.let { stringResource(R.string.voice_demo_transcript, it) }
+                    ?: stringResource(R.string.voice_demo_listening_prompt),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                minLines = 2,
+            )
+        }
+    }
+}
+
+/**
+ * Concentric rings expanding from the mic and fading as they go — the common
+ * "I am listening" idiom, so it needs no explanation.
+ *
+ * [RING_COUNT] rings share one looping phase, offset evenly, which produces a
+ * continuous procession from a single animation rather than N staggered ones.
+ * [level] widens their reach and raises their opacity, so silence still shows
+ * life (the app has not frozen) while speech is unmistakably different.
+ */
+@Composable
+private fun PulseRings(
+    level: Float,
+    modifier: Modifier = Modifier,
+) {
+    val transition = rememberInfiniteTransition(label = "listening")
+    val phase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(PULSE_PERIOD_MS, easing = LinearEasing),
+        ),
+        label = "pulsePhase",
+    )
+    val color = MaterialTheme.colorScheme.tertiary
+    Canvas(modifier = modifier) {
+        val start = MIC_LISTENING_SIZE_DP.dp.toPx() / 2f
+        val bezel = size.minDimension / 2f
+        val quiet = start + (bezel - start) * IDLE_REACH_FRACTION
+        val reach = quiet + (bezel - quiet) * level
+        val stroke = RING_STROKE_DP.dp.toPx()
+        repeat(RING_COUNT) { index ->
+            val progress = (phase + index.toFloat() / RING_COUNT) % 1f
+            val alpha = (1f - progress) * (IDLE_PEAK_ALPHA + (LOUD_PEAK_ALPHA - IDLE_PEAK_ALPHA) * level)
+            drawCircle(
+                color = color,
+                radius = start + (reach - start) * progress,
+                alpha = alpha,
+                style = Stroke(width = stroke),
             )
         }
     }
@@ -441,6 +590,7 @@ private fun VoiceDemoReadyPreview() {
             state = VoiceCommandState.Ready,
             demoDoorState = VoiceDoorState.CLOSED,
             partialTranscript = null,
+            listeningLevel = 0f,
             onMicTap = {},
         )
     }
@@ -459,6 +609,7 @@ private fun VoiceDemoArmedPreview() {
             ),
             demoDoorState = VoiceDoorState.CLOSED,
             partialTranscript = null,
+            listeningLevel = 0f,
             onMicTap = {},
         )
     }
@@ -473,6 +624,7 @@ private fun VoiceDemoSentPreview() {
             state = VoiceCommandState.Sent(intent = VoiceIntent.OPEN),
             demoDoorState = VoiceDoorState.MOVING,
             partialTranscript = null,
+            listeningLevel = 0f,
             onMicTap = {},
         )
     }
@@ -492,6 +644,7 @@ private fun VoiceDemoIgnoredPreview() {
             ),
             demoDoorState = VoiceDoorState.OPEN,
             partialTranscript = null,
+            listeningLevel = 0f,
             onMicTap = {},
         )
     }
@@ -506,3 +659,27 @@ private const val RING_STROKE_DP = 5
 private const val ARC_START_ANGLE = -90f
 private const val FULL_SWEEP = 360f
 private const val TRACK_ALPHA = 0.25f
+
+// Listening takeover.
+private const val MIC_LISTENING_SIZE_DP = 84
+private const val MIC_LISTENING_ICON_DP = 40
+
+/**
+ * Clear of `TimeText`, which owns the top arc. At 18dp the marker sat directly
+ * under the clock with no gap and read as one crowded block; the takeover has
+ * the vertical room to spare, so it buys the separation.
+ */
+private const val LISTENING_MARKER_TOP_DP = 36
+private const val LISTENING_SPACING_DP = 12
+
+/** Small on purpose: responsiveness, not jitter. */
+private const val MIC_SCALE_GAIN = 0.10f
+
+/** One full ring journey, mic edge to its reach. */
+private const val PULSE_PERIOD_MS = 1800
+private const val RING_COUNT = 3
+
+/** How far rings travel toward the bezel when nothing is being said. */
+private const val IDLE_REACH_FRACTION = 0.45f
+private const val IDLE_PEAK_ALPHA = 0.30f
+private const val LOUD_PEAK_ALPHA = 0.75f
