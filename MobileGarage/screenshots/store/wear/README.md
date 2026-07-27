@@ -5,7 +5,10 @@ Captured from the debug fixture `ScreenshotStagesActivity` on the
 `wear_capture` emulator (wearos_large_round, 454×454, API 34 Wear OS image) with the
 clock pinned to 10:10. This directory doubles as Play Store staging; the
 curated live subset is copied by hand to `../../../distribution/playstore/wear/`.
-Captures are byte-stable across regens — a diff means a real visual change.
+
+Captures are byte-stable across regens **except `moving`**, which is caught
+mid-animation (12s of door travel against a 4s settle) and can differ by a
+frame. A diff in any other stage means a real visual change.
 
 | Stage | Capture | Shows |
 |---|---|---|
@@ -16,5 +19,9 @@ Captures are byte-stable across regens — a diff means a real visual change.
 | submitted | <img src="wear-submitted.png" width="180" alt="submitted"> | Press sent: ring completes in the sent colour, "Waiting for the door" |
 | moving | <img src="wear-moving.png" width="180" alt="moving"> | Door sliding open, up arrow |
 | open | <img src="wear-open.png" width="180" alt="open"> | Open door, "Hold to close" |
-| signed_out | <img src="wear-signed_out.png" width="180" alt="signed out"> | Signed out: Sign in button |
-| sign_in_error | <img src="wear-sign_in_error.png" width="180" alt="sign-in error"> | Transient "Sign-in failed" caption |
+| signed_out | <img src="wear-signed_out.png" width="180" alt="signed out"> | Signed out: Sign in button (no mic chip — the voice demo is signed-in only) |
+| sign_in_error | <img src="wear-sign_in_error.png" width="180" alt="sign in error"> | Transient "Sign-in failed" caption |
+| voice_ready | <img src="wear-voice_ready.png" width="180" alt="voice ready"> | Voice demo at rest: "Simulated" marker, "Tap to speak", demo door Closed |
+| voice_armed | <img src="wear-voice_armed.png" width="180" alt="voice armed"> | Voice demo counting down: the action named conditionally, "Would open the door" |
+| voice_sent | <img src="wear-voice_sent.png" width="180" alt="voice sent"> | Voice demo punchline: "Nothing was sent"; only the demo door reacts |
+| voice_refused | <img src="wear-voice_refused.png" width="180" alt="voice refused"> | Voice demo gate refusing a command the demo door has outgrown |
