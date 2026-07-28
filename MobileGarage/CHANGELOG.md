@@ -28,7 +28,7 @@ Every version gets an entry in this file (internal history). Play Store `distrib
   garage door" and the pretend door opens; ask again and it turns you down for
   the same reason the real one would. Nothing on this screen can move the real
   garage door.
-- **Internal:** #TBD — deletes `VoiceInputBottomSheet` +
+- **Internal:** #1147 — deletes `VoiceInputBottomSheet` +
   `VoiceControlBottomSheet` (and `VoiceExperimentState` with its four
   `ProfileViewModel` members, the door-placement selector, and the
   `setArmedWindowMs` stepper) in favour of `SimulatedVoiceBottomSheet`. The
