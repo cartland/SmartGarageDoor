@@ -62,6 +62,9 @@ import com.chriscartland.garage.usecase.RuleBasedVoiceIntentClassifier
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.usecase.SignOutUseCase
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
+import com.chriscartland.garage.usecase.VoiceCommandIgnoreReason
+import com.chriscartland.garage.usecase.VoiceCommandState
+import com.chriscartland.garage.usecase.VoiceDoorState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -421,74 +424,150 @@ class ProfileViewModelTest {
             )
         }
 
+    // --- Simulated voice (Settings → Developer) ------------------------------
+    //
+    // The safety property — that this surface cannot reach the real remote
+    // button — is asserted structurally over the constructor by
+    // `SimulatedVoiceSafetyTest` in `:androidApp` (commonTest can't do JVM
+    // reflection). These cover the behaviour: the loop runs end to end, and
+    // it moves only the pretend door.
+
     @Test
-    fun voiceExperimentTranscriptIsHeldClassifiedAndReplacedByClear() =
+    fun aSpokenCommandMovesOnlyThePretendDoor() =
         runTest {
             val viewModel = createViewModel()
-            assertEquals(VoiceExperimentState.Idle, viewModel.voiceExperimentState.value)
+            assertEquals(VoiceDoorState.CLOSED, viewModel.voiceCommandDoorState.value)
 
-            viewModel.reportVoiceExperimentTranscript("open the garage door")
-            val state = viewModel.voiceExperimentState.value
-            assertTrue(state is VoiceExperimentState.Transcript)
-            assertEquals("open the garage door", state.text)
-            assertEquals(VoiceIntent.OPEN, state.classification.intent)
-            assertEquals(VoiceIntentConfidence.HIGH, state.classification.confidence)
-            assertEquals("Rules v3", state.engineName)
+            viewModel.voiceCommandMicTap()
+            viewModel.voiceCommandTranscript("open the garage door")
+            testDispatcher.scheduler.runCurrent()
 
-            // Starting a new capture deletes the previous text.
-            viewModel.clearVoiceExperiment()
-            assertEquals(VoiceExperimentState.Idle, viewModel.voiceExperimentState.value)
+            val armed = viewModel.voiceCommandState.value
+            assertTrue(
+                armed is VoiceCommandState.Armed,
+                "a confident open command arms against the pretend door, got $armed",
+            )
+            assertEquals(VoiceIntent.OPEN, armed.intent)
+
+            // Let the cancel window elapse, then the pretend press land.
+            advanceUntilIdle()
+            assertEquals(
+                VoiceDoorState.OPEN,
+                viewModel.voiceCommandDoorState.value,
+                "the pretend door settles open after the pretend button press",
+            )
         }
 
+    /**
+     * The gate's refusals stay reachable without a door-placement control:
+     * the pretend door reacts to commands, so opening it and asking again
+     * walks straight into DOOR_ALREADY_OPEN. This is what replaced the old
+     * playground's segmented door selector.
+     */
     @Test
-    fun voiceExperimentUnrecognizedTextClassifiesUnknown() =
+    fun thePretendDoorRefusesACommandItHasAlreadySatisfied() =
         runTest {
             val viewModel = createViewModel()
 
-            viewModel.reportVoiceExperimentTranscript("hello world")
-            val state = viewModel.voiceExperimentState.value
-            assertTrue(state is VoiceExperimentState.Transcript)
-            assertEquals(VoiceIntent.UNKNOWN, state.classification.intent)
-            assertEquals(VoiceIntentConfidence.NONE, state.classification.confidence)
+            viewModel.voiceCommandMicTap()
+            viewModel.voiceCommandTranscript("open the garage door")
+            advanceUntilIdle()
+            assertEquals(VoiceDoorState.OPEN, viewModel.voiceCommandDoorState.value)
+
+            viewModel.voiceCommandMicTap()
+            viewModel.voiceCommandTranscript("open the garage door")
+            testDispatcher.scheduler.runCurrent()
+
+            val ignored = viewModel.voiceCommandState.value
+            assertTrue(
+                ignored is VoiceCommandState.Ignored,
+                "an open command against an already-open pretend door is refused, got $ignored",
+            )
+            assertEquals(VoiceCommandIgnoreReason.DOOR_ALREADY_OPEN, ignored.reason)
         }
 
+    /**
+     * The verdict is the eval-corpus tool, so it has to be readable when
+     * the user gets round to reading it. The refusal chip auto-dismisses
+     * after ~4s; the latched verdict must not go with it.
+     */
     @Test
-    fun voiceExperimentNullOrBlankTranscriptIsNoSpeech() =
+    fun theVerdictOutlivesTheRefusalItExplains() =
         runTest {
             val viewModel = createViewModel()
+            assertNull(viewModel.lastVoiceVerdict.value)
 
-            viewModel.reportVoiceExperimentTranscript(null)
-            assertEquals(VoiceExperimentState.NoSpeech, viewModel.voiceExperimentState.value)
+            viewModel.voiceCommandMicTap()
+            viewModel.voiceCommandTranscript("can you open the garage door")
+            testDispatcher.scheduler.runCurrent()
 
-            viewModel.reportVoiceExperimentTranscript("   ")
-            assertEquals(VoiceExperimentState.NoSpeech, viewModel.voiceExperimentState.value)
-        }
+            // MEDIUM confidence: heard a direction, refused to act on it.
+            assertTrue(viewModel.voiceCommandState.value is VoiceCommandState.Ignored)
 
-    @Test
-    fun voiceExperimentClipboardSummaryIsStructured() =
-        runTest {
-            val viewModel = createViewModel()
+            // Let the refusal flash expire and the surface return to Ready.
+            advanceUntilIdle()
+            assertEquals(VoiceCommandState.Ready, viewModel.voiceCommandState.value)
 
-            viewModel.reportVoiceExperimentTranscript("can you open the door")
-            val state = viewModel.voiceExperimentState.value
-            assertTrue(state is VoiceExperimentState.Transcript)
+            val verdict = viewModel.lastVoiceVerdict.value
+            assertTrue(verdict != null, "the verdict survives the flash it explains")
+            assertEquals("can you open the garage door", verdict.transcript)
+            assertEquals(VoiceIntent.OPEN, verdict.classification.intent)
+            assertEquals(VoiceIntentConfidence.MEDIUM, verdict.classification.confidence)
+            assertEquals(VoiceCommandIgnoreReason.NOT_CONFIDENT, verdict.ignoreReason)
             assertEquals(
                 """
-                input: "can you open the door"
+                input: "can you open the garage door"
                 intent: OPEN
                 confidence: MEDIUM
                 engine: Rules v3
+                outcome: NOT_CONFIDENT
                 """.trimIndent(),
-                state.clipboardSummary(),
+                verdict.clipboardSummary(),
+            )
+        }
+
+    /** A command that armed is corpus-worthy too, and reads as ARMED. */
+    @Test
+    fun anArmedCommandAlsoProducesACopyableVerdict() =
+        runTest {
+            val viewModel = createViewModel()
+
+            viewModel.voiceCommandMicTap()
+            viewModel.voiceCommandTranscript("open the garage door")
+            testDispatcher.scheduler.runCurrent()
+
+            val verdict = viewModel.lastVoiceVerdict.value
+            assertTrue(verdict != null, "arming produces a verdict, not just refusals")
+            assertEquals(VoiceIntentConfidence.HIGH, verdict.classification.confidence)
+            assertNull(verdict.ignoreReason)
+            assertTrue(
+                verdict.clipboardSummary().endsWith("outcome: ARMED"),
+                "an armed capture is labelled ARMED, got ${verdict.clipboardSummary()}",
             )
         }
 
     @Test
-    fun voiceExperimentUnavailableIsReported() =
+    fun leavingTheScreenCancelsAPendingCommand() =
         runTest {
             val viewModel = createViewModel()
 
-            viewModel.reportVoiceExperimentUnavailable()
-            assertEquals(VoiceExperimentState.Unavailable, viewModel.voiceExperimentState.value)
+            viewModel.voiceCommandMicTap()
+            viewModel.voiceCommandTranscript("open the garage door")
+            testDispatcher.scheduler.runCurrent()
+            assertTrue(viewModel.voiceCommandState.value is VoiceCommandState.Armed)
+
+            viewModel.voiceCommandBackgrounded()
+            advanceUntilIdle()
+
+            assertEquals(
+                VoiceCommandState.Ready,
+                viewModel.voiceCommandState.value,
+                "a pending command is dropped when the sheet goes away",
+            )
+            assertEquals(
+                VoiceDoorState.CLOSED,
+                viewModel.voiceCommandDoorState.value,
+                "and nothing was pressed, so the pretend door never moved",
+            )
         }
 }

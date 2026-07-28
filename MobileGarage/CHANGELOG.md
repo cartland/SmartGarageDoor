@@ -15,6 +15,52 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.23.3
+
+- **The two voice experiments in Settings are now one, and it rehearses the
+  real thing.** Developer settings had a "Voice input" sheet that only turned
+  speech into text, and a "Voice control" playground with its own layout, its
+  own door switch and a cancel-window slider. Neither looked much like the
+  voice control on the Home tab, which is the thing that actually opens the
+  door. Both are replaced by a single "Simulated voice" sheet that is the Home
+  voice control exactly, running against a pretend door: same mic, same
+  countdown ring, same wording, same three seconds to cancel. Say "open the
+  garage door" and the pretend door opens; ask again and it turns you down for
+  the same reason the real one would. Nothing on this screen can move the real
+  garage door.
+- **The classifier's verdict is now readable at your own pace.** Under the
+  simulated control there is a panel showing what it heard, what it took that
+  to mean, how sure it was, and what it did about it. Tap to copy the lot.
+  Previously that detail only appeared inside the refusal message, which
+  clears itself after about four seconds, so deciding a phrase was worth
+  keeping and then copying it was a race you often lost. It now stays until
+  the next command.
+- **Internal:** #1147 — deletes `VoiceInputBottomSheet` +
+  `VoiceControlBottomSheet` (and `VoiceExperimentState` with its four
+  `ProfileViewModel` members, the door-placement selector, and the
+  `setArmedWindowMs` stepper) in favour of `SimulatedVoiceBottomSheet`. The
+  Home card body and its recognizer plumbing move to a shared
+  `ui/voice/VoiceControlCard.kt` (`VoiceControlCard` +
+  `VoiceRecognizerEffects`) which BOTH surfaces render, so the rehearsal
+  cannot drift from the live feature — they differ only in which
+  `VoiceCommandEnvironment` the ViewModel supplies. The no-real-door property
+  is structural and pinned: `DefaultProfileViewModel` has no
+  `PushRemoteButtonUseCase`, asserted by constructor reflection in the new
+  `:androidApp` `SimulatedVoiceSafetyTest` (mirrors the watch's
+  `cannotReachTheRealRemoteButton`); three `ProfileViewModelTest` cases cover
+  the loop end to end, the already-open refusal, and cancel-on-leave. The
+  eval-corpus copy tool survives as a `VerdictPanel` below the card, fed by a
+  new latched `ProfileViewModel.lastVoiceVerdict` (`VoiceVerdict`) instead of
+  the auto-dismissing `Ignored` state — the old playground's affordance
+  expired with the ~4s flash, making harvesting a race. It latches on both
+  `Armed` and `Ignored` and reclassifies the transcript so the two yield the
+  same shape (`Armed` carries no confidence; `Ignored`'s classification is
+  null for a no-speech capture); the classifier is pure, so this cannot
+  disagree with the verdict the gate acted on. Cancel window is now a fixed 3s
+  everywhere, matching Home. Every new test was mutation-verified. Patch: the
+  live Home voice feature and the real-door path are untouched; only
+  developer-gated simulated surfaces changed.
+
 ## 2.23.2
 
 - **A misaligned door can now be closed by voice.** Saying "close the garage

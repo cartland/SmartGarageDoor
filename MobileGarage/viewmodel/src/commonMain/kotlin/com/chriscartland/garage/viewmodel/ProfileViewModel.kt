@@ -53,6 +53,7 @@ import com.chriscartland.garage.usecase.SignOutUseCase
 import com.chriscartland.garage.usecase.SimulatedVoiceCommandEnvironment
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
 import com.chriscartland.garage.usecase.VoiceCommandController
+import com.chriscartland.garage.usecase.VoiceCommandIgnoreReason
 import com.chriscartland.garage.usecase.VoiceCommandState
 import com.chriscartland.garage.usecase.VoiceDoorState
 import kotlinx.coroutines.delay
@@ -64,46 +65,35 @@ private const val SNOOZE_ACTION_RESET_DELAY_MS = 10_000L
 private const val WATCH_INSTALL_ACTION_RESET_DELAY_MS = 10_000L
 
 /**
- * State of the experimental voice-input playground (Settings →
- * Developer → Voice input). Deliberately in-memory only: it lives in
- * the screen ViewModel, so it survives rotation but evaporates when the
- * user leaves the screen or the process dies. Nothing is written to
- * DataStore/Room and no door action is ever taken from it.
+ * What the classifier made of one capture on the simulated voice
+ * surface, latched so it can be read and copied at leisure.
+ *
+ * Exists to feed the eval corpus: real device transcripts are the best
+ * source of new cases (see `MobileGarage/docs/VOICE_COMMANDS.md`), and
+ * the interesting ones are exactly the surprises — a refusal you
+ * expected to act, or an action you expected to refuse. Display-free by
+ * design; the UI maps the enums to labels.
  */
-sealed interface VoiceExperimentState {
-    /** Nothing captured yet, or cleared by starting a new capture. */
-    data object Idle : VoiceExperimentState
-
+data class VoiceVerdict(
+    val transcript: String,
+    val classification: VoiceIntentClassification,
+    val engineName: String,
+    /** Why it was refused, or null when the command armed. */
+    val ignoreReason: VoiceCommandIgnoreReason?,
+) {
     /**
-     * The recognizer returned a transcript, classified into a door
-     * intent + confidence by the DI-selected engine. Classification is
-     * display-only in this experiment — nothing acts on it.
+     * Paste-friendly structured summary. Raw enum names
+     * (locale-independent, stable across app versions) and the input
+     * quoted so leading/trailing whitespace is visible.
      */
-    data class Transcript(
-        val text: String,
-        val classification: VoiceIntentClassification,
-        val engineName: String,
-    ) : VoiceExperimentState {
-        /**
-         * Paste-friendly structured summary for sharing/discussing
-         * classifier results. Uses raw enum names (locale-independent,
-         * stable across app versions) and quotes the input so leading/
-         * trailing whitespace is visible.
-         */
-        fun clipboardSummary(): String =
-            """
-            input: "$text"
-            intent: ${classification.intent.name}
-            confidence: ${classification.confidence.name}
-            engine: $engineName
-            """.trimIndent()
-    }
-
-    /** The capture ended without usable speech (silence, cancel, no match). */
-    data object NoSpeech : VoiceExperimentState
-
-    /** No speech recognizer exists on this device. */
-    data object Unavailable : VoiceExperimentState
+    fun clipboardSummary(): String =
+        """
+        input: "$transcript"
+        intent: ${classification.intent.name}
+        confidence: ${classification.confidence.name}
+        engine: $engineName
+        outcome: ${ignoreReason?.name ?: "ARMED"}
+        """.trimIndent()
 }
 
 /**
@@ -179,41 +169,31 @@ interface ProfileViewModel {
     val watchInstallAction: StateFlow<WatchInstallAction>
 
     /**
-     * Experimental voice-input playground state. See
-     * [VoiceExperimentState] — in-memory only, never persisted, never
-     * wired to any action.
-     */
-    val voiceExperimentState: StateFlow<VoiceExperimentState>
-
-    /**
-     * Call when a new capture starts: clears the previous transcript so
-     * each prompt replaces the last one.
-     */
-    fun clearVoiceExperiment()
-
-    /**
-     * Report the recognizer outcome. Null or blank text means no usable
-     * speech was captured.
-     */
-    fun reportVoiceExperimentTranscript(text: String?)
-
-    /** Report that this device has no speech recognizer at all. */
-    fun reportVoiceExperimentUnavailable()
-
-    /**
-     * Experimental voice-command UX playground (Settings → Developer →
-     * Voice control): the full mic → classify → gate → cancel-window →
-     * commit loop, running against a simulated door and a pretend
-     * button. The real door is never touched. State machine:
+     * Settings → Developer → Simulated voice: the Home tab's voice
+     * control, rehearsed safely. The same mic → classify → gate →
+     * cancel-window → commit loop and the same 3s cancel window as
+     * Home, but the commit presses a pretend button on a pretend door
+     * ([SimulatedVoiceCommandEnvironment]). The real door cannot be
+     * reached from here — this ViewModel has no
+     * `PushRemoteButtonUseCase`. State machine:
      * [VoiceCommandController] in `:usecase`.
      */
     val voiceCommandState: StateFlow<VoiceCommandState>
 
-    /** The simulated door the playground's gate checks against. */
+    /**
+     * The pretend door the gate checks against. Displayed read-only:
+     * refusals ("already open", "the door is moving") are unreadable
+     * without it, and it reacts to committed commands the way the real
+     * one does.
+     */
     val voiceCommandDoorState: StateFlow<VoiceDoorState>
 
-    /** Cancel-window length, user-adjustable within the clamp range. */
-    val voiceCommandArmedWindowMs: StateFlow<Long>
+    /**
+     * The last classified capture, or null before the first one. Latched
+     * rather than derived from [voiceCommandState] so it survives the
+     * ~4s refusal flash and stays copyable. See [VoiceVerdict].
+     */
+    val lastVoiceVerdict: StateFlow<VoiceVerdict?>
 
     /** Mic tap: always starts over; cancels a pending command first. */
     fun voiceCommandMicTap()
@@ -225,15 +205,10 @@ interface ProfileViewModel {
     fun voiceCommandCaptureUnavailable()
 
     /**
-     * The playground left the screen: cancels a pending (Armed) command
+     * The surface left the screen: cancels a pending (Armed) command
      * so nothing commits off-screen.
      */
     fun voiceCommandBackgrounded()
-
-    /** Place the simulated door directly to exercise gate paths. */
-    fun setVoiceCommandDoorState(state: VoiceDoorState)
-
-    fun setVoiceCommandArmedWindowMs(ms: Long)
 
     fun signInWithGoogle(idToken: GoogleIdToken)
 
@@ -321,13 +296,11 @@ class DefaultProfileViewModel(
     private val _watchInstallAction = MutableStateFlow<WatchInstallAction>(WatchInstallAction.Idle)
     override val watchInstallAction: StateFlow<WatchInstallAction> = _watchInstallAction
 
-    private val _voiceExperimentState =
-        MutableStateFlow<VoiceExperimentState>(VoiceExperimentState.Idle)
-    override val voiceExperimentState: StateFlow<VoiceExperimentState> = _voiceExperimentState
-
-    // Voice-command playground: the real state machine wired to a fake
-    // world (simulated door + pretend button). viewModelScope-owned so
-    // the experiment's state evaporates with the screen VM.
+    // Simulated voice: the real state machine wired to a fake world
+    // (pretend door + pretend button). viewModelScope-owned so the
+    // rehearsal's state evaporates with the screen VM. The cancel window
+    // is left at the default, which is the same 3s Home commits on — the
+    // point of this surface is to behave exactly like the live one.
     private val voiceCommandEnvironment = SimulatedVoiceCommandEnvironment(scope = viewModelScope)
     private val voiceCommandController = VoiceCommandController(
         classify = classifyVoiceIntentUseCase,
@@ -336,7 +309,9 @@ class DefaultProfileViewModel(
     )
     override val voiceCommandState: StateFlow<VoiceCommandState> = voiceCommandController.state
     override val voiceCommandDoorState: StateFlow<VoiceDoorState> = voiceCommandEnvironment.doorState
-    override val voiceCommandArmedWindowMs: StateFlow<Long> = voiceCommandController.armedWindowMs
+
+    private val _lastVoiceVerdict = MutableStateFlow<VoiceVerdict?>(null)
+    override val lastVoiceVerdict: StateFlow<VoiceVerdict?> = _lastVoiceVerdict
 
     // Cached so the snooze action can attach the latest door change time
     // without the UI having to thread it through.
@@ -365,6 +340,30 @@ class DefaultProfileViewModel(
                 _navigationRailTopPaddingDp.value = it
             }
         }
+        // Latch every classified capture so the verdict outlives the ~4s
+        // refusal flash. Copying a transcript is a deliberate, two-handed
+        // act (read it, decide it is interesting, tap); tying it to a
+        // state that auto-dismisses would make the corpus tool a race.
+        // Reclassifying here rather than reading Armed/Ignored's own
+        // fields is what makes the two states yield the SAME shape:
+        // Armed carries no confidence, and Ignored's classification is
+        // null for a no-speech capture. The classifier is pure, so this
+        // cannot disagree with the verdict the gate actually acted on.
+        viewModelScope.launch(dispatchers.default) {
+            voiceCommandController.state.collect { state ->
+                val transcript = when (state) {
+                    is VoiceCommandState.Armed -> state.transcript
+                    is VoiceCommandState.Ignored -> state.transcript
+                    else -> null
+                } ?: return@collect
+                _lastVoiceVerdict.value = VoiceVerdict(
+                    transcript = transcript,
+                    classification = classifyVoiceIntentUseCase(transcript),
+                    engineName = classifyVoiceIntentUseCase.engineName,
+                    ignoreReason = (state as? VoiceCommandState.Ignored)?.reason,
+                )
+            }
+        }
     }
 
     override fun installOnWatch() {
@@ -382,26 +381,6 @@ class DefaultProfileViewModel(
         }
     }
 
-    override fun clearVoiceExperiment() {
-        _voiceExperimentState.value = VoiceExperimentState.Idle
-    }
-
-    override fun reportVoiceExperimentTranscript(text: String?) {
-        _voiceExperimentState.value = if (text.isNullOrBlank()) {
-            VoiceExperimentState.NoSpeech
-        } else {
-            VoiceExperimentState.Transcript(
-                text = text,
-                classification = classifyVoiceIntentUseCase(text),
-                engineName = classifyVoiceIntentUseCase.engineName,
-            )
-        }
-    }
-
-    override fun reportVoiceExperimentUnavailable() {
-        _voiceExperimentState.value = VoiceExperimentState.Unavailable
-    }
-
     override fun voiceCommandMicTap() = voiceCommandController.onMicTap()
 
     override fun voiceCommandTranscript(text: String?) = voiceCommandController.onTranscript(text)
@@ -409,10 +388,6 @@ class DefaultProfileViewModel(
     override fun voiceCommandCaptureUnavailable() = voiceCommandController.onCaptureUnavailable()
 
     override fun voiceCommandBackgrounded() = voiceCommandController.onBackgrounded()
-
-    override fun setVoiceCommandDoorState(state: VoiceDoorState) = voiceCommandEnvironment.setDoorState(state)
-
-    override fun setVoiceCommandArmedWindowMs(ms: Long) = voiceCommandController.setArmedWindowMs(ms)
 
     override fun signInWithGoogle(idToken: GoogleIdToken) {
         viewModelScope.launch(dispatchers.io) {
