@@ -15,6 +15,29 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.23.2
+
+- **A misaligned door can now be closed by voice.** Saying "close the garage
+  door" while the door was open but its sensor had slipped used to be turned
+  down with "can't confirm the door state", which is the one situation where
+  closing it matters most. It now works. Asking to *open* it is still turned
+  down, the same as any other open door.
+- **Internal:** #1146 — `VoiceDoorStateMapper` maps `OPEN_MISALIGNED` to
+  `VoiceDoorState.OPEN` instead of `UNKNOWN`, revising the 2.22.9 decision to
+  treat it as an anomaly. It is not one: the server emits it only when the
+  **closed sensor reads NOT-closed** and the open sensor dropped out inside
+  `TOO_SHORT_DURATION_SECONDS` (`EventInterpreter.ts`), so the door is
+  definitively not closed. The wrong-direction hazard the mapper exists to close
+  therefore cannot arise here — CLOSE is the correct direction and OPEN is
+  refused as already-open — and it cannot mask a door that has since closed,
+  because the server transitions straight to `Closed` the moment the closed
+  sensor trips and the gate re-checks at commit time. This also makes voice
+  agree with every other surface, which already treated it as a confident Open
+  (status label, hold hint, door art). Stuck-transit positions stay UNKNOWN
+  deliberately. Pinned by `VoiceDoorStateMapperTest.misalignedProjectsToOpenSoItCanStillBeClosed`
+  plus two end-to-end `HomeViewModelTest` cases (closes through the real button
+  path; still refuses an open command). Patch; no capability change.
+
 ## 2.23.1
 
 - **The Settings "Watch" section no longer replays its slide-in animation every time you open the tab.** It now sits there quietly on arrival and animates only when something actually changes, like a watch connecting or the watch app finishing installing. Previously the watch status was worked out from scratch on every visit to Settings, so the section was briefly absent and then appeared, animating each time. The first visit after opening the app still animates, which is intended: that really is the moment the status becomes known.

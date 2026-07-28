@@ -14,6 +14,16 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.3.5
+
+- **The voice countdown now buzzes halfway round, like holding the door
+  does.** Both put a ring around the edge of the screen and fill it, but only
+  the hold buzzed at the start, the middle and the end. The countdown buzzed at
+  the two ends and went quiet in between, so the same picture felt different
+  depending on which screen drew it, and the longer of the two waits had the
+  least to go on. Cancelling still works right up to the last moment, and
+  cancelling early takes the middle buzz with it.
+
 ## 0.3.4
 
 - **Leaving the voice demo now actually ends it.** Swiping back while a command

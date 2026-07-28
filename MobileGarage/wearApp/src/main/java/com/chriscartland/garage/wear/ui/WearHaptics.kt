@@ -44,12 +44,15 @@ internal object WearHaptics {
             // the finger has gone, as news rather than gesture feedback.
             HapticCue.PressSucceeded -> HapticFeedbackConstants.CONTEXT_CLICK
             HapticCue.PressFailed -> HapticFeedbackConstants.REJECT
-            // Voice demo. Armed is an acknowledgement ("heard you, counting
-            // down"); Committed borrows the hold's CONFIRM double-beat because
-            // it marks the same kind of moment; Refused shares the press's
-            // REJECT so "it did not take" feels identical whichever input
-            // path produced it.
+            // Voice demo. Each cue borrows the constant of the hold cue at the
+            // same point of the journey, so a ring travelling the bezel feels
+            // the same whichever screen drew it: Armed acknowledges like a
+            // finger landing, Halfway ticks like the hold's midpoint, Committed
+            // borrows the CONFIRM double-beat because it marks the same kind of
+            // moment. Refused shares the press's REJECT so "it did not take"
+            // feels identical whichever input path produced it.
             HapticCue.VoiceArmed -> HapticFeedbackConstants.GESTURE_START
+            HapticCue.VoiceHalfway -> HapticFeedbackConstants.CLOCK_TICK
             HapticCue.VoiceCommitted -> HapticFeedbackConstants.CONFIRM
             HapticCue.VoiceRefused -> HapticFeedbackConstants.REJECT
         }

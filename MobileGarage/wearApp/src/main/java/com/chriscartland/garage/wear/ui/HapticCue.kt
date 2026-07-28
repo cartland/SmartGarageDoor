@@ -72,6 +72,20 @@ enum class HapticCue {
     VoiceArmed,
 
     /**
+     * Voice demo: halfway through the cancel window. The counterpart of
+     * [HoldHalfway], and it exists for the same reason.
+     *
+     * Both surfaces put a ring around the bezel and drive it from empty to
+     * full, so both should feel the same on the way round. The countdown had
+     * only its two endpoints, which made the identical-looking ring feel
+     * different depending on which screen drew it — and left the longest of
+     * the two journeys (3s, versus the hold's 2s) with the least to go on.
+     * Like [HoldHalfway] it is pacing, not a point of no return: cancelling
+     * works right up to the end.
+     */
+    VoiceHalfway,
+
+    /**
      * Voice demo: the cancel window elapsed. Fires at the instant the real
      * feature would press the remote — deliberately the same [PressCommitted]
      * feel, because "this is the point of no return" is the same news, even

@@ -46,7 +46,6 @@ class VoiceDoorStateMapperTest {
         val anomalies = listOf(
             DoorPosition.OPENING_TOO_LONG,
             DoorPosition.CLOSING_TOO_LONG,
-            DoorPosition.OPEN_MISALIGNED,
             DoorPosition.ERROR_SENSOR_CONFLICT,
             DoorPosition.UNKNOWN,
             null,
@@ -58,6 +57,24 @@ class VoiceDoorStateMapperTest {
                 "Anomalous position $position must project to UNKNOWN",
             )
         }
+    }
+
+    /**
+     * A misaligned door is an OPEN door with a flaky open sensor, and it is
+     * the one case where closing by voice matters most.
+     *
+     * The server only emits it when the closed sensor reads NOT-closed, so
+     * this is not a guess and the wrong-direction hazard cannot arise: CLOSE
+     * goes the right way, OPEN is refused as already-open. Every other surface
+     * already treats it as Open (label, hold hint, door art); voice refusing it
+     * was the outlier.
+     */
+    @Test
+    fun misalignedProjectsToOpenSoItCanStillBeClosed() {
+        assertEquals(
+            VoiceDoorState.OPEN,
+            VoiceDoorStateMapper.project(DoorPosition.OPEN_MISALIGNED, isCheckInStale = false),
+        )
     }
 
     @Test

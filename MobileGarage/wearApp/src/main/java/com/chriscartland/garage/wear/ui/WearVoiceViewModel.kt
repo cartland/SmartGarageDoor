@@ -25,7 +25,9 @@ import com.chriscartland.garage.usecase.VoiceCommandController
 import com.chriscartland.garage.usecase.VoiceCommandEnvironment
 import com.chriscartland.garage.usecase.VoiceCommandState
 import com.chriscartland.garage.usecase.VoiceDoorState
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -114,6 +116,9 @@ class WearVoiceViewModel(
      */
     val hapticCues: Flow<HapticCue> = _hapticCues
 
+    /** Pending midpoint tick for the running cancel window, if any. */
+    private var halfwayJob: Job? = null
+
     init {
         // What actually keeps opening the screen silent is the exhaustive
         // `when` below: the initial state is Ready, and Ready emits no cue.
@@ -129,8 +134,27 @@ class WearVoiceViewModel(
                 if (current !is VoiceCommandState.Listening) {
                     _partialTranscript.value = null
                 }
+                // Leaving Armed for ANY reason kills the pending midpoint tick.
+                // Cancelling and then feeling a pacing cue for a countdown that
+                // is no longer running would be worse than never having one.
+                if (current !is VoiceCommandState.Armed) {
+                    halfwayJob?.cancel()
+                    halfwayJob = null
+                }
                 when (current) {
-                    is VoiceCommandState.Armed -> _hapticCues.tryEmit(HapticCue.VoiceArmed)
+                    is VoiceCommandState.Armed -> {
+                        _hapticCues.tryEmit(HapticCue.VoiceArmed)
+                        // Scheduled rather than derived from a state change,
+                        // because the midpoint of the cancel window is not a
+                        // state — the same reason HoldEngaged/HoldHalfway are
+                        // timer points on the hero screen rather than
+                        // observable transitions.
+                        halfwayJob?.cancel()
+                        halfwayJob = viewModelScope.launch(dispatchers.default) {
+                            delay(current.windowMs / 2)
+                            _hapticCues.tryEmit(HapticCue.VoiceHalfway)
+                        }
+                    }
                     // Sending, not Sent: this fires the instant the cancel
                     // window elapses, which is the moment the real feature
                     // would press the remote. Sent arrives a fake round-trip

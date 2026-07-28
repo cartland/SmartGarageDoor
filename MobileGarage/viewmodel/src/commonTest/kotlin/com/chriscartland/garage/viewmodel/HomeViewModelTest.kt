@@ -451,6 +451,95 @@ class HomeViewModelTest {
         }
 
     /**
+     * A misaligned door must still be closeable by voice — end to end,
+     * through the real gate and onto the real button.
+     *
+     * This is the case where closing matters most, and it used to be refused:
+     * the gate's projection treated OPEN_MISALIGNED as an anomaly and answered
+     * "door state unknown". It is not an anomaly. The server only emits it when
+     * the closed sensor reads NOT-closed and the open sensor dropped out
+     * briefly, so the door is definitively not closed and CLOSE is the correct
+     * direction. Every other surface already agreed — the status card renders
+     * "Open", the hold hint offers "Hold to close" — so voice was the outlier.
+     *
+     * Asserted here rather than only on the projection because the projection
+     * passing in isolation would not prove the command actually reaches the
+     * button through the VM's own combine + gate.
+     */
+    @Test
+    fun voiceCommandCanCloseAMisalignedDoor() =
+        runTest {
+            val viewModel = createViewModel(
+                scope = backgroundScope,
+                authState = AuthState.Authenticated(
+                    User(name = DisplayName("User"), email = Email("user@example.com")),
+                ),
+                fetchOnInit = false,
+            )
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(
+                    doorPosition = DoorPosition.OPEN_MISALIGNED,
+                    message = "The door is open but misaligned.",
+                    lastCheckInTimeSeconds = 2000L,
+                    lastChangeTimeSeconds = 1900L,
+                ),
+            )
+            testDispatcher.scheduler.runCurrent()
+
+            viewModel.voiceCommandMicTap()
+            testDispatcher.scheduler.runCurrent()
+            viewModel.voiceCommandTranscript("close the garage door")
+            testDispatcher.scheduler.runCurrent()
+
+            assertTrue(
+                viewModel.voiceCommandState.value is VoiceCommandState.Armed,
+                "A misaligned door is an OPEN door, so closing it must arm",
+            )
+
+            testDispatcher.scheduler.advanceTimeBy(3_001)
+            testDispatcher.scheduler.runCurrent()
+
+            assertEquals(1, remoteButtonRepository.pushCount)
+            assertTrue(viewModel.voiceCommandState.value is VoiceCommandState.Sent)
+        }
+
+    /**
+     * The other half of the same rule: treating misaligned as OPEN must not
+     * become a way to send an *opening* command to a door that is already open.
+     * It is refused as already-open, which is the same answer a cleanly-open
+     * door gives — so nothing was loosened except the direction that was always
+     * correct.
+     */
+    @Test
+    fun voiceCommandStillRefusesOpeningAMisalignedDoor() =
+        runTest {
+            val viewModel = createViewModel(
+                scope = backgroundScope,
+                authState = AuthState.Authenticated(
+                    User(name = DisplayName("User"), email = Email("user@example.com")),
+                ),
+                fetchOnInit = false,
+            )
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(
+                    doorPosition = DoorPosition.OPEN_MISALIGNED,
+                    message = "The door is open but misaligned.",
+                    lastCheckInTimeSeconds = 2000L,
+                    lastChangeTimeSeconds = 1900L,
+                ),
+            )
+            testDispatcher.scheduler.runCurrent()
+
+            viewModel.voiceCommandMicTap()
+            testDispatcher.scheduler.runCurrent()
+            viewModel.voiceCommandTranscript("open the garage door")
+            advanceUntilIdle()
+
+            assertTrue(viewModel.voiceCommandState.value !is VoiceCommandState.Sent)
+            assertEquals(0, remoteButtonRepository.pushCount, "Refusals must never press")
+        }
+
+    /**
      * Defense in depth: even if the signed-out UI gating ever regressed
      * and let a command commit, the auth gate inside
      * PushRemoteButtonUseCase fails the press without any network call.
