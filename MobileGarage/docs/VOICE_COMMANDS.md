@@ -6,9 +6,15 @@ status: active
 # Voice commands for the door ("open the door" / "close the door")
 
 Design exploration for tap-to-talk voice control on the phone (and later
-the watch). Nothing here is implemented; this doc settles the API choice,
-the matching strategy, the safety gate, and the phasing so implementation
-can start from a reviewed baseline.
+the watch): the API choice, the matching strategy, the safety gate, and
+the phasing.
+
+**Status: shipped.** The design below is no longer a proposal — the
+phone's Home surface has pressed the real door since 2.23.0 (behind a
+per-user developer flag) and the watch ships a deliberate simulation.
+Sections are annotated with what actually shipped where they diverge
+from the original sketch; the earlier "nothing here is implemented"
+framing was left behind by the 2.22.x–2.23.x rollout.
 
 ## The safety principle (drives every decision below)
 
@@ -187,25 +193,54 @@ confirmation step, and v1 capture is `RecognizerIntent`, not a
 - **The door-state gate runs twice**: at arm time (open only when
   closed, close only when open; moving/unknown refuse) and again when
   the cancel window elapses — a door that moved mid-countdown aborts.
-- **The cancel window** (default 3s, adjustable 0.5–3s in 0.5s steps
-  for playground experimentation) renders as a
-  filling ring around the button with a countdown line ("Opening in 3 ·
-  Tap to cancel"). Ring completion commits; the ~1s Sending state is
-  not cancellable (a press cannot be unsent) and the button disables.
+- **The cancel window** is a fixed 3s on every shipped surface. It
+  renders as a filling ring around the button with a countdown line
+  ("Opening in 3 · Tap to cancel"). Ring completion commits; the ~1s
+  Sending state is not cancellable (a press cannot be unsent) and the
+  button disables. (2.22.7–2.23.2 exposed a 0.5–3s stepper in the
+  playground for tuning; it was removed in 2.23.3 along with the
+  playground itself, once the window was settled.)
 - **Nothing commits off-screen**: lifecycle stop or sheet dismissal
   cancels a pending (Armed) command.
 
 Implementation (shipped 2.22.6): the state machine is
 `VoiceCommandController` in `:usecase` (`Ready → Listening → Armed →
 Sending → Sent/Failed/Ignored`), acting on a `VoiceCommandEnvironment`
-(door state + `pressButton`). The Settings → Developer → **Voice
-control** sheet (`VoiceControlBottomSheet`) wires the real controller to
-`SimulatedVoiceCommandEnvironment` — an in-memory door with a pretend
-button and fake transit, plus a segmented control to place the door in
-any state to exercise every gate path. The playground never touches the
-real door. Promoting the Home surface to the real thing (2.23.0) was
-exactly the planned environment swap — the controller, gate, and tests
-carried over unchanged.
+(door state + `pressButton`). Promoting the Home surface to the real
+thing (2.23.0) was exactly the planned environment swap — the
+controller, gate, and tests carried over unchanged.
+
+**Simulated surface (Settings → Developer → Simulated voice; replaced
+the two playgrounds in 2.23.3):** a rehearsal of the Home feature, not
+an imitation of it. `SimulatedVoiceBottomSheet` renders literally the
+same `VoiceControlCard` composable and the same `VoiceRecognizerEffects`
+plumbing that Home does, driven by the same controller, classifier,
+gate and 3s window. Exactly one thing differs: `DefaultProfileViewModel`
+hands the controller a `SimulatedVoiceCommandEnvironment` (in-memory
+door, pretend button, 10s fake transit) instead of the remote-button
+one, so a commit moves only the pretend door. Sharing the card is what
+keeps the two from drifting — there is only one of them.
+
+That the sheet *cannot* reach the real door is structural, not a
+convention: `DefaultProfileViewModel` has no `PushRemoteButtonUseCase`
+at all, pinned by `SimulatedVoiceSafetyTest` in `:androidApp` (constructor
+reflection, mirroring the watch's `cannotReachTheRealRemoteButton`).
+
+What 2.23.3 removed, and why it is not a loss of coverage:
+- **The transcription-only "Voice input" sheet.** Its whole job — see
+  what the recognizer heard and how the classifier scored it — is
+  covered by the refusal chip on both live surfaces, which names the
+  reason and quotes the transcript. `RuleBasedVoiceIntentEvalTest` is
+  where classifier accuracy is actually measured.
+- **The playground's door-placement selector.** The pretend door reacts
+  to commands, so the refusals stay reachable by using it: open it and
+  ask again for `DOOR_ALREADY_OPEN`, speak mid-transit for `DOOR_MOVING`
+  (`ProfileViewModelTest.thePretendDoorRefusesACommandItHasAlreadySatisfied`
+  walks the first). The one path this cannot reach is
+  `DOOR_STATE_UNKNOWN`, which the live Home surface reaches naturally
+  via a stale check-in and which `VoiceCommandControllerTest` covers
+  directly.
+- **The cancel-window stepper**, per the settled fixed 3s above.
 
 **Home surface (shipped 2.22.9 in shadow mode; LIVE on the real door
 since 2.23.0; developer-flag-gated):** the Home tab renders the voice
@@ -275,8 +310,14 @@ Pieces (all in `MobileGarage/usecase/src/commonTest/`):
   highboundary (HIGH-grammar probes), asrnoise2. Both rounds: generator
   lenses, then two independent judge agents labeled every case from
   scratch; cases kept only with 2-of-3 consensus, judge consensus
-  overriding the generator. Grow it freely — real device transcripts
-  (copied from the playground) are the best source of new cases.
+  overriding the generator. Grow it freely — real device transcripts are
+  the best source of new cases. Read them off the refusal chip on either
+  voice surface, which quotes what it heard. (Through 2.23.2 the
+  playground sheets offered tap-to-copy of a structured
+  `input/intent/confidence/engine` verdict; that went away with them in
+  2.23.3. If harvesting by hand proves annoying in practice, adding the
+  copy affordance back to the simulated sheet is a small change — it is
+  a developer tool, so it belongs there and not on the live Home card.)
 - `RuleBasedVoiceIntentEvalTest` — runs Rules v2 over the corpus;
   hard-gates safety violations at 0 and pins the exact/stricter/
   lessStrict counts as baselines so any rule change's corpus effect is

@@ -15,6 +15,41 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.23.3
+
+- **The two voice experiments in Settings are now one, and it rehearses the
+  real thing.** Developer settings had a "Voice input" sheet that only turned
+  speech into text, and a "Voice control" playground with its own layout, its
+  own door switch and a cancel-window slider. Neither looked much like the
+  voice control on the Home tab, which is the thing that actually opens the
+  door. Both are replaced by a single "Simulated voice" sheet that is the Home
+  voice control exactly, running against a pretend door: same mic, same
+  countdown ring, same wording, same three seconds to cancel. Say "open the
+  garage door" and the pretend door opens; ask again and it turns you down for
+  the same reason the real one would. Nothing on this screen can move the real
+  garage door.
+- **Internal:** #TBD — deletes `VoiceInputBottomSheet` +
+  `VoiceControlBottomSheet` (and `VoiceExperimentState` with its four
+  `ProfileViewModel` members, the door-placement selector, and the
+  `setArmedWindowMs` stepper) in favour of `SimulatedVoiceBottomSheet`. The
+  Home card body and its recognizer plumbing move to a shared
+  `ui/voice/VoiceControlCard.kt` (`VoiceControlCard` +
+  `VoiceRecognizerEffects`) which BOTH surfaces render, so the rehearsal
+  cannot drift from the live feature — they differ only in which
+  `VoiceCommandEnvironment` the ViewModel supplies. The no-real-door property
+  is structural and pinned: `DefaultProfileViewModel` has no
+  `PushRemoteButtonUseCase`, asserted by constructor reflection in the new
+  `:androidApp` `SimulatedVoiceSafetyTest` (mirrors the watch's
+  `cannotReachTheRealRemoteButton`); three `ProfileViewModelTest` cases cover
+  the loop end to end, the already-open refusal, and cancel-on-leave. Both
+  new tests were mutation-verified. Removed with them: the tap-to-copy
+  structured verdict used to harvest eval-corpus cases (see
+  `docs/VOICE_COMMANDS.md` for how to grow the corpus without it, and how to
+  add it back to the simulated sheet if hand-harvesting annoys). Cancel window
+  is now a fixed 3s everywhere, matching Home. Patch: the live Home voice
+  feature and the real-door path are untouched; only developer-gated
+  simulated surfaces changed.
+
 ## 2.23.2
 
 - **A misaligned door can now be closed by voice.** Saying "close the garage

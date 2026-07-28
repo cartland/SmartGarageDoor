@@ -36,7 +36,6 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.NotificationsPaused
@@ -144,8 +143,7 @@ fun SettingsContent(
     onDiagnosticsTap: () -> Unit = {},
     onLayoutDebugChange: (Boolean) -> Unit = {},
     onNavRailTap: () -> Unit = {},
-    onVoiceInputTap: () -> Unit = {},
-    onVoiceControlTap: () -> Unit = {},
+    onSimulatedVoiceTap: () -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -333,19 +331,11 @@ fun SettingsContent(
                     )
                     HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
                     SettingsRow(
-                        icon = Icons.Outlined.Mic,
-                        title = stringResource(R.string.settings_developer_voice_input_title),
-                        subtitle = stringResource(R.string.settings_developer_voice_input_subtitle),
-                        showChevron = true,
-                        onClick = onVoiceInputTap,
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
-                    SettingsRow(
                         icon = Icons.Outlined.SettingsVoice,
-                        title = stringResource(R.string.settings_developer_voice_control_title),
-                        subtitle = stringResource(R.string.settings_developer_voice_control_subtitle),
+                        title = stringResource(R.string.settings_developer_simulated_voice_title),
+                        subtitle = stringResource(R.string.settings_developer_simulated_voice_subtitle),
                         showChevron = true,
-                        onClick = onVoiceControlTap,
+                        onClick = onSimulatedVoiceTap,
                     )
                 }
             }

@@ -17,48 +17,15 @@
 
 package com.chriscartland.garage.ui.home
 
-import android.app.Activity
-import android.content.ActivityNotFoundException
-import android.content.Intent
-import android.speech.RecognizerIntent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.VoiceIntent
-import com.chriscartland.garage.ui.VoiceCommandUi
-import com.chriscartland.garage.ui.displayText
-import com.chriscartland.garage.ui.micContentDescription
-import com.chriscartland.garage.ui.micIcon
-import com.chriscartland.garage.ui.theme.CardPadding
 import com.chriscartland.garage.ui.theme.PreviewComponentSurface
+import com.chriscartland.garage.ui.voice.VoiceControlCard
+import com.chriscartland.garage.ui.voice.VoiceRecognizerEffects
 import com.chriscartland.garage.usecase.VoiceCommandIgnoreReason
 import com.chriscartland.garage.usecase.VoiceCommandState
 
@@ -67,14 +34,12 @@ import com.chriscartland.garage.usecase.VoiceCommandState
  * reads the real door state and a committed command presses the REAL
  * remote garage button). The mic button is the whole interface: tap to
  * speak, tap during the countdown ring to cancel and immediately
- * re-listen. Layout is a compact card row — mic + ring on the left, a
- * stable two-line status column on the right — matching the Home
- * section language (see [HomeSection]).
+ * re-listen.
  *
- * Owns the recognizer plumbing: launch is driven by the
- * [VoiceCommandState.Listening] state (not the tap), so "tap in Ready"
- * and "tap cancels Armed" share one path; lifecycle ON_STOP cancels a
- * pending command (nothing commits off-screen).
+ * The card itself and the recognizer plumbing are shared with the
+ * simulated rehearsal in Settings → Developer → Simulated voice (see
+ * [VoiceControlCard]); this file only supplies the Home section
+ * chrome and the live wiring.
  */
 @Composable
 fun HomeVoiceControlSection(
@@ -85,44 +50,12 @@ fun HomeVoiceControlSection(
     onBackgrounded: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val voiceLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult(),
-    ) { result ->
-        val transcript = if (result.resultCode == Activity.RESULT_OK) {
-            result.data
-                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                ?.firstOrNull()
-        } else {
-            null
-        }
-        onTranscript(transcript)
-    }
-    val voicePrompt = stringResource(R.string.voice_experiment_prompt)
-    val listeningAttempt = (state as? VoiceCommandState.Listening)?.attempt
-    LaunchedEffect(listeningAttempt) {
-        if (listeningAttempt != null) {
-            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-                .putExtra(
-                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
-                ).putExtra(RecognizerIntent.EXTRA_PROMPT, voicePrompt)
-                .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-            try {
-                voiceLauncher.launch(intent)
-            } catch (_: ActivityNotFoundException) {
-                onCaptureUnavailable()
-            }
-        }
-    }
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) onBackgrounded()
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-
+    VoiceRecognizerEffects(
+        state = state,
+        onTranscript = onTranscript,
+        onCaptureUnavailable = onCaptureUnavailable,
+        onBackgrounded = onBackgrounded,
+    )
     HomeVoiceControlSectionBody(
         state = state,
         onMicTap = onMicTap,
@@ -144,142 +77,13 @@ fun HomeVoiceControlSectionBody(
         label = stringResource(R.string.home_section_voice),
         modifier = modifier,
     ) {
-        HomeVoiceCardBody(state = state, onMicTap = onMicTap)
-    }
-}
-
-@Composable
-private fun HomeVoiceCardBody(
-    state: VoiceCommandState,
-    onMicTap: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    // One shared progress drives the ring AND the countdown text so the
-    // two can never disagree; a fresh Animatable per Armed instance.
-    val armed = state as? VoiceCommandState.Armed
-    val armedProgress = remember(armed) { Animatable(0f) }
-    LaunchedEffect(armed) {
-        if (armed != null) {
-            armedProgress.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(
-                    durationMillis = armed.windowMs.toInt(),
-                    easing = LinearEasing,
-                ),
-            )
-        }
-    }
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(CardPadding.Standard),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier.size(64.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            when (state) {
-                is VoiceCommandState.Armed -> CircularProgressIndicator(
-                    progress = { armedProgress.value },
-                    modifier = Modifier.fillMaxSize(),
-                    strokeWidth = 3.dp,
-                )
-                is VoiceCommandState.Sending -> CircularProgressIndicator(
-                    modifier = Modifier.fillMaxSize(),
-                    strokeWidth = 3.dp,
-                )
-                else -> Unit
-            }
-            FilledTonalIconButton(
-                onClick = onMicTap,
-                enabled = state !is VoiceCommandState.Sending,
-                modifier = Modifier.size(56.dp),
-            ) {
-                Icon(
-                    imageVector = state.micIcon(),
-                    contentDescription = state.micContentDescription(),
-                    modifier = Modifier.size(28.dp),
-                )
-            }
-        }
-        HomeVoiceStatusColumn(
-            state = state,
-            armedSecondsLeft = armed?.let {
-                VoiceCommandUi.secondsLeft(it.windowMs, armedProgress.value)
-            },
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-/**
- * Stable two-line status: primary line (what is happening) + secondary
- * line (transcript or guidance). Every state fills both lines so the
- * card height never jumps mid-flow.
- */
-@Composable
-private fun HomeVoiceStatusColumn(
-    state: VoiceCommandState,
-    armedSecondsLeft: Int?,
-    modifier: Modifier = Modifier,
-) {
-    val hint = stringResource(R.string.home_voice_hint)
-    val (primary, secondary) = when (state) {
-        VoiceCommandState.Ready ->
-            stringResource(R.string.home_voice_ready_title) to hint
-        is VoiceCommandState.Listening ->
-            stringResource(R.string.voice_control_listening) to hint
-        is VoiceCommandState.Armed ->
-            stringResource(
-                if (state.intent == VoiceIntent.CLOSE) {
-                    R.string.voice_control_armed_closing
-                } else {
-                    R.string.voice_control_armed_opening
-                },
-                armedSecondsLeft ?: VoiceCommandUi.secondsLeft(state.windowMs, 0f),
-            ) to stringResource(R.string.voice_control_transcript_quote, state.transcript)
-        is VoiceCommandState.Sending ->
-            stringResource(R.string.voice_control_sending) to
-                stringResource(R.string.home_voice_sending_subtitle)
-        is VoiceCommandState.Sent ->
-            stringResource(R.string.voice_control_sent) to
-                stringResource(R.string.home_voice_sent_subtitle)
-        is VoiceCommandState.Failed ->
-            stringResource(R.string.voice_control_failed) to
-                stringResource(R.string.home_voice_failed_subtitle)
-        is VoiceCommandState.Ignored ->
-            state.reason.displayText() to (
-                state.transcript?.let {
-                    stringResource(R.string.voice_control_transcript_quote, it)
-                } ?: hint
-            )
-    }
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        Text(
-            text = primary,
-            style = MaterialTheme.typography.titleMedium,
-            color = if (state is VoiceCommandState.Failed) {
-                MaterialTheme.colorScheme.error
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
-        )
-        Text(
-            text = secondary,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        VoiceControlCard(state = state, onMicTap = onMicTap)
     }
 }
 
 // `private` so `checkPreviewCoverage` exempts them (developer-flag-gated
 // surface verified on a real device; Android Studio references only —
-// same rationale as the voice playground sheet).
+// same rationale as the simulated voice sheet).
 @Preview
 @Composable
 private fun HomeVoiceControlReadyPreview() {

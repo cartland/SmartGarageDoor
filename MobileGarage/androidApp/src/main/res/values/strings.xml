@@ -69,48 +69,25 @@
     <string name="settings_developer_nav_rail_top_padding_increase">Increase padding</string>
     <string name="settings_developer_nav_rail_reset_button">Set default</string>
 
-    <!-- Settings → Developer → Voice input (experimental playground).
-         Speech becomes text on screen only: never persisted, never
-         wired to any door action. -->
-    <string name="settings_developer_voice_input_title">Voice input</string>
-    <string name="settings_developer_voice_input_subtitle">Experimental. Speech to text, display only.</string>
-    <string name="voice_experiment_sheet_title">Voice input</string>
-    <string name="voice_experiment_disclaimer">Experimental. Speech becomes text on this screen only. Nothing is saved and no door action is taken.</string>
-    <string name="voice_experiment_speak_button">Speak</string>
-    <!-- Prompt line shown inside the system speech dialog. -->
-    <string name="voice_experiment_prompt">Say something</string>
-    <string name="voice_experiment_hint">Tap Speak, then talk. The transcript appears here.</string>
-    <string name="voice_experiment_no_speech">No speech captured. Try again.</string>
-    <string name="voice_experiment_unavailable">Speech recognition is not available on this device.</string>
-    <!-- Classification line under the transcript. %1$s intent, %2$s confidence. -->
-    <string name="voice_experiment_classification">Intent: %1$s · Confidence: %2$s</string>
-    <!-- Engine caption. %1$s is the classifier engine name. -->
-    <string name="voice_experiment_engine">Engine: %1$s</string>
-    <string name="voice_intent_open">Open</string>
-    <string name="voice_intent_close">Close</string>
-    <string name="voice_intent_unknown">Unknown</string>
-    <string name="voice_confidence_high">High</string>
-    <string name="voice_confidence_medium">Medium</string>
-    <string name="voice_confidence_none">None</string>
-    <string name="voice_experiment_copy_hint">Tap the text or the verdict to copy</string>
-    <!-- Labels for the "Copied X" toast (Android 12 and older). -->
-    <string name="voice_copy_label_transcript">transcript</string>
-    <string name="voice_copy_label_verdict">verdict</string>
-
-    <!-- Settings → Developer → Voice control (experimental playground).
-         The full voice-command loop (mic → classify → gate → cancel
-         window → commit) against a SIMULATED door. No real door action
-         is ever taken from this screen. -->
-    <string name="settings_developer_voice_control_title">Voice control</string>
-    <string name="settings_developer_voice_control_subtitle">Experimental. Voice to action with a simulated door.</string>
-    <string name="voice_control_sheet_title">Voice control</string>
-    <string name="voice_control_disclaimer">Simulated playground. Commands press a pretend button and move a pretend door. The real door is never touched.</string>
-    <string name="voice_control_simulated_door_label">Simulated door</string>
+    <!-- Settings → Developer → Simulated voice. The Home tab's voice
+         control rehearsed against a PRETEND door: same controller, same
+         classifier, same gate, same card. The real door is never
+         touched from this sheet. -->
+    <string name="settings_developer_simulated_voice_title">Simulated voice</string>
+    <string name="settings_developer_simulated_voice_subtitle">The Home voice control, with a pretend door.</string>
+    <string name="simulated_voice_sheet_title">Simulated voice</string>
+    <string name="simulated_voice_disclaimer">The same voice control as the Home tab, running against a pretend door. Commands press a pretend button. The real garage door is never touched.</string>
+    <!-- Read-only state of the pretend door. %1$s is the door state. -->
+    <string name="simulated_voice_door_label">Pretend door: %1$s</string>
     <string name="voice_door_closed">Closed</string>
     <string name="voice_door_open">Open</string>
     <string name="voice_door_moving">Moving</string>
     <string name="voice_door_unknown">Unknown</string>
-    <string name="voice_control_ready_hint">Tap the mic, then say a command like “open the garage door”</string>
+
+    <!-- Voice-command loop, shared by the Home card and the simulated
+         sheet (mic → classify → gate → cancel window → commit). -->
+    <!-- Prompt line shown inside the system speech dialog. -->
+    <string name="voice_prompt">Say something</string>
     <string name="voice_control_listening">Listening…</string>
     <!-- Heard transcript, quoted. %1$s is the raw transcript. -->
     <string name="voice_control_transcript_quote">“%1$s”</string>
@@ -129,11 +106,6 @@
     <string name="voice_control_ignored_moving">The door is moving</string>
     <string name="voice_control_ignored_state_unknown">Door state is unknown</string>
     <string name="voice_control_ignored_state_changed">Door state changed before sending</string>
-    <string name="voice_control_copy_hint">Tap the message to copy details</string>
-    <!-- Cancel-window stepper. %1$s is seconds, possibly fractional ("1.5"). -->
-    <string name="voice_control_window_label">Cancel window: %1$s seconds</string>
-    <string name="voice_control_window_decrease">Shorten cancel window</string>
-    <string name="voice_control_window_increase">Lengthen cancel window</string>
     <!-- Mic button content descriptions per state. -->
     <string name="voice_control_mic_cd_ready">Start voice command</string>
     <string name="voice_control_mic_cd_listening">Listening</string>
@@ -145,8 +117,10 @@
     <string name="home_section_remote_control">Remote control</string>
     <string name="home_section_sign_in">Sign in</string>
 
-    <!-- Home — voice-control section (developer-flag-gated shadow mode:
-         the gate reads real door state; the press is simulated). -->
+    <!-- Home — voice-control section (developer-flag-gated, LIVE since
+         2.23.0: the gate reads real door state and a committed command
+         presses the real remote button). Rehearse it safely via
+         Settings → Developer → Simulated voice. -->
     <string name="home_section_voice">Voice control</string>
     <string name="home_voice_ready_title">Voice command</string>
     <string name="home_voice_hint">Try “open the garage door”</string>
