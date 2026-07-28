@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -37,11 +38,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.VoiceIntent
+import com.chriscartland.garage.domain.model.VoiceIntentClassification
+import com.chriscartland.garage.domain.model.VoiceIntentConfidence
 import com.chriscartland.garage.ui.voice.VoiceControlCard
 import com.chriscartland.garage.ui.voice.VoiceRecognizerEffects
 import com.chriscartland.garage.usecase.VoiceCommandIgnoreReason
 import com.chriscartland.garage.usecase.VoiceCommandState
 import com.chriscartland.garage.usecase.VoiceDoorState
+import com.chriscartland.garage.viewmodel.VoiceVerdict
 
 /**
  * Settings → Developer → Simulated voice: the Home tab's voice control,
@@ -70,10 +74,12 @@ import com.chriscartland.garage.usecase.VoiceDoorState
 fun SimulatedVoiceBottomSheet(
     state: VoiceCommandState,
     doorState: VoiceDoorState,
+    lastVerdict: VoiceVerdict?,
     onMicTap: () -> Unit,
     onTranscript: (String?) -> Unit,
     onCaptureUnavailable: () -> Unit,
     onBackgrounded: () -> Unit,
+    onCopy: (label: String, value: String) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -97,7 +103,9 @@ fun SimulatedVoiceBottomSheet(
         SimulatedVoiceSheetContent(
             state = state,
             doorState = doorState,
+            lastVerdict = lastVerdict,
             onMicTap = onMicTap,
+            onCopy = onCopy,
         )
     }
 }
@@ -111,7 +119,9 @@ fun SimulatedVoiceBottomSheet(
 fun SimulatedVoiceSheetContent(
     state: VoiceCommandState,
     doorState: VoiceDoorState,
+    lastVerdict: VoiceVerdict?,
     onMicTap: () -> Unit,
+    onCopy: (label: String, value: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -151,8 +161,90 @@ fun SimulatedVoiceSheetContent(
         ) {
             VoiceControlCard(state = state, onMicTap = onMicTap)
         }
+        // Developer tool, deliberately BELOW the rehearsal and outside
+        // the card: it is not part of the feature being rehearsed, and
+        // it must never appear on the live Home card.
+        if (lastVerdict != null) {
+            VerdictPanel(verdict = lastVerdict, onCopy = onCopy)
+        }
     }
 }
+
+/**
+ * The classifier's verdict on the last capture, tap-to-copy for the
+ * eval corpus (`MobileGarage/docs/VOICE_COMMANDS.md`).
+ *
+ * Reads from the latched [VoiceVerdict] rather than the live command
+ * state so it outlives the ~4s refusal flash — deciding a transcript is
+ * worth keeping takes longer than the flash lasts.
+ */
+@Composable
+private fun VerdictPanel(
+    verdict: VoiceVerdict,
+    onCopy: (label: String, value: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val verdictLabel = stringResource(R.string.voice_copy_label_verdict)
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        shape = MaterialTheme.shapes.medium,
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .clickable { onCopy(verdictLabel, verdict.clipboardSummary()) },
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+        ) {
+            Text(
+                text = stringResource(
+                    R.string.voice_control_transcript_quote,
+                    verdict.transcript,
+                ),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = stringResource(
+                    R.string.voice_verdict_classification,
+                    verdict.classification.intent.displayName(),
+                    verdict.classification.confidence.displayName(),
+                ),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = stringResource(R.string.voice_verdict_engine, verdict.engineName),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(R.string.voice_verdict_copy_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+// User-visible names for the classification result. UI-local mapping —
+// the domain enums stay display-free.
+@Composable
+private fun VoiceIntent.displayName(): String =
+    when (this) {
+        VoiceIntent.OPEN -> stringResource(R.string.voice_intent_open)
+        VoiceIntent.CLOSE -> stringResource(R.string.voice_intent_close)
+        VoiceIntent.UNKNOWN -> stringResource(R.string.voice_intent_unknown)
+    }
+
+@Composable
+private fun VoiceIntentConfidence.displayName(): String =
+    when (this) {
+        VoiceIntentConfidence.HIGH -> stringResource(R.string.voice_confidence_high)
+        VoiceIntentConfidence.MEDIUM -> stringResource(R.string.voice_confidence_medium)
+        VoiceIntentConfidence.NONE -> stringResource(R.string.voice_confidence_none)
+    }
 
 private fun VoiceDoorState.labelRes(): Int =
     when (this) {
@@ -172,6 +264,7 @@ private fun SimulatedVoiceSheetContentReadyPreview() {
         SimulatedVoiceSheetContent(
             state = VoiceCommandState.Ready,
             doorState = VoiceDoorState.CLOSED,
+            lastVerdict = null,
             onMicTap = {},
         )
     }
@@ -188,6 +281,41 @@ private fun SimulatedVoiceSheetContentArmedPreview() {
                 windowMs = 3_000L,
             ),
             doorState = VoiceDoorState.CLOSED,
+            lastVerdict = VoiceVerdict(
+                transcript = "open the garage door",
+                classification = VoiceIntentClassification(
+                    intent = VoiceIntent.OPEN,
+                    confidence = VoiceIntentConfidence.HIGH,
+                ),
+                engineName = "Rules v3",
+                ignoreReason = null,
+            ),
+            onMicTap = {},
+        )
+    }
+}
+
+/**
+ * The case the verdict panel exists for: a capture that was refused,
+ * still readable and copyable after the refusal flash has passed
+ * (hence Ready above a non-null verdict).
+ */
+@Preview
+@Composable
+private fun SimulatedVoiceSheetContentVerdictAfterRefusalPreview() {
+    Surface {
+        SimulatedVoiceSheetContent(
+            state = VoiceCommandState.Ready,
+            doorState = VoiceDoorState.CLOSED,
+            lastVerdict = VoiceVerdict(
+                transcript = "can you open the garage door",
+                classification = VoiceIntentClassification(
+                    intent = VoiceIntent.OPEN,
+                    confidence = VoiceIntentConfidence.MEDIUM,
+                ),
+                engineName = "Rules v3",
+                ignoreReason = VoiceCommandIgnoreReason.NOT_CONFIDENT,
+            ),
             onMicTap = {},
         )
     }
@@ -205,6 +333,15 @@ private fun SimulatedVoiceSheetContentIgnoredPreview() {
                 engineName = "Rules v3",
             ),
             doorState = VoiceDoorState.OPEN,
+            lastVerdict = VoiceVerdict(
+                transcript = "open the garage door",
+                classification = VoiceIntentClassification(
+                    intent = VoiceIntent.OPEN,
+                    confidence = VoiceIntentConfidence.HIGH,
+                ),
+                engineName = "Rules v3",
+                ignoreReason = VoiceCommandIgnoreReason.DOOR_ALREADY_OPEN,
+            ),
             onMicTap = {},
         )
     }
@@ -217,6 +354,7 @@ private fun SimulatedVoiceSheetContentSentPreview() {
         SimulatedVoiceSheetContent(
             state = VoiceCommandState.Sent(intent = VoiceIntent.OPEN),
             doorState = VoiceDoorState.MOVING,
+            lastVerdict = null,
             onMicTap = {},
         )
     }

@@ -226,12 +226,33 @@ convention: `DefaultProfileViewModel` has no `PushRemoteButtonUseCase`
 at all, pinned by `SimulatedVoiceSafetyTest` in `:androidApp` (constructor
 reflection, mirroring the watch's `cannotReachTheRealRemoteButton`).
 
+Below the card sits the **verdict panel**: what the classifier made of
+the last capture (transcript, intent, confidence, engine, outcome),
+tap-to-copy in the structured format the eval corpus wants. It is
+deliberately outside the card and below it — a developer tool, not part
+of the feature being rehearsed, and it must never appear on the live
+Home card.
+
+The verdict is **latched** in the ViewModel (`VoiceVerdict`,
+`ProfileViewModel.lastVoiceVerdict`) rather than derived from the live
+command state, so it outlives the ~4s refusal flash. Deciding a
+transcript is worth keeping takes longer than the flash lasts; the old
+playground tied its copy affordance to the auto-dismissing `Ignored`
+state, which made harvesting a race. It latches on both `Armed` and
+`Ignored`, and reclassifies the transcript rather than reading those
+states' own fields so the two yield the same shape (`Armed` carries no
+confidence; `Ignored`'s classification is null for a no-speech capture).
+The classifier is pure, so this cannot disagree with the verdict the
+gate acted on. Pinned by
+`ProfileViewModelTest.theVerdictOutlivesTheRefusalItExplains` and
+`anArmedCommandAlsoProducesACopyableVerdict`.
+
 What 2.23.3 removed, and why it is not a loss of coverage:
 - **The transcription-only "Voice input" sheet.** Its whole job — see
-  what the recognizer heard and how the classifier scored it — is
-  covered by the refusal chip on both live surfaces, which names the
-  reason and quotes the transcript. `RuleBasedVoiceIntentEvalTest` is
-  where classifier accuracy is actually measured.
+  what the recognizer heard and how the classifier scored it — is now
+  done by the verdict panel above, on the surface where you are already
+  exercising commands. `RuleBasedVoiceIntentEvalTest` is where
+  classifier accuracy is actually measured.
 - **The playground's door-placement selector.** The pretend door reacts
   to commands, so the refusals stay reachable by using it: open it and
   ask again for `DOOR_ALREADY_OPEN`, speak mid-transit for `DOOR_MOVING`
@@ -311,13 +332,12 @@ Pieces (all in `MobileGarage/usecase/src/commonTest/`):
   lenses, then two independent judge agents labeled every case from
   scratch; cases kept only with 2-of-3 consensus, judge consensus
   overriding the generator. Grow it freely — real device transcripts are
-  the best source of new cases. Read them off the refusal chip on either
-  voice surface, which quotes what it heard. (Through 2.23.2 the
-  playground sheets offered tap-to-copy of a structured
-  `input/intent/confidence/engine` verdict; that went away with them in
-  2.23.3. If harvesting by hand proves annoying in practice, adding the
-  copy affordance back to the simulated sheet is a small change — it is
-  a developer tool, so it belongs there and not on the live Home card.)
+  the best source of new cases. Harvest them from the **verdict panel**
+  under Settings → Developer → Simulated voice: speak at the pretend
+  door, then tap the verdict to copy
+  `input/intent/confidence/engine/outcome` straight into a corpus entry.
+  Since 2.23.3 it is latched, so it waits for you instead of vanishing
+  with the refusal flash.
 - `RuleBasedVoiceIntentEvalTest` — runs Rules v2 over the corpus;
   hard-gates safety violations at 0 and pins the exact/stricter/
   lessStrict counts as baselines so any rule change's corpus effect is

@@ -32,6 +32,7 @@ import com.chriscartland.garage.domain.model.NavigationRailLayout
 import com.chriscartland.garage.domain.model.SnoozeAction
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
+import com.chriscartland.garage.domain.model.VoiceIntentClassification
 import com.chriscartland.garage.domain.model.WatchAppStatus
 import com.chriscartland.garage.domain.model.WatchInstallAction
 import com.chriscartland.garage.domain.model.WatchInstallResult
@@ -52,6 +53,7 @@ import com.chriscartland.garage.usecase.SignOutUseCase
 import com.chriscartland.garage.usecase.SimulatedVoiceCommandEnvironment
 import com.chriscartland.garage.usecase.SnoozeNotificationsUseCase
 import com.chriscartland.garage.usecase.VoiceCommandController
+import com.chriscartland.garage.usecase.VoiceCommandIgnoreReason
 import com.chriscartland.garage.usecase.VoiceCommandState
 import com.chriscartland.garage.usecase.VoiceDoorState
 import kotlinx.coroutines.delay
@@ -61,6 +63,38 @@ import kotlinx.coroutines.launch
 
 private const val SNOOZE_ACTION_RESET_DELAY_MS = 10_000L
 private const val WATCH_INSTALL_ACTION_RESET_DELAY_MS = 10_000L
+
+/**
+ * What the classifier made of one capture on the simulated voice
+ * surface, latched so it can be read and copied at leisure.
+ *
+ * Exists to feed the eval corpus: real device transcripts are the best
+ * source of new cases (see `MobileGarage/docs/VOICE_COMMANDS.md`), and
+ * the interesting ones are exactly the surprises — a refusal you
+ * expected to act, or an action you expected to refuse. Display-free by
+ * design; the UI maps the enums to labels.
+ */
+data class VoiceVerdict(
+    val transcript: String,
+    val classification: VoiceIntentClassification,
+    val engineName: String,
+    /** Why it was refused, or null when the command armed. */
+    val ignoreReason: VoiceCommandIgnoreReason?,
+) {
+    /**
+     * Paste-friendly structured summary. Raw enum names
+     * (locale-independent, stable across app versions) and the input
+     * quoted so leading/trailing whitespace is visible.
+     */
+    fun clipboardSummary(): String =
+        """
+        input: "$transcript"
+        intent: ${classification.intent.name}
+        confidence: ${classification.confidence.name}
+        engine: $engineName
+        outcome: ${ignoreReason?.name ?: "ARMED"}
+        """.trimIndent()
+}
 
 /**
  * Drives the Settings screen — one VM per screen (ADR-026). Aggregates the
@@ -153,6 +187,13 @@ interface ProfileViewModel {
      * one does.
      */
     val voiceCommandDoorState: StateFlow<VoiceDoorState>
+
+    /**
+     * The last classified capture, or null before the first one. Latched
+     * rather than derived from [voiceCommandState] so it survives the
+     * ~4s refusal flash and stays copyable. See [VoiceVerdict].
+     */
+    val lastVoiceVerdict: StateFlow<VoiceVerdict?>
 
     /** Mic tap: always starts over; cancels a pending command first. */
     fun voiceCommandMicTap()
@@ -269,6 +310,9 @@ class DefaultProfileViewModel(
     override val voiceCommandState: StateFlow<VoiceCommandState> = voiceCommandController.state
     override val voiceCommandDoorState: StateFlow<VoiceDoorState> = voiceCommandEnvironment.doorState
 
+    private val _lastVoiceVerdict = MutableStateFlow<VoiceVerdict?>(null)
+    override val lastVoiceVerdict: StateFlow<VoiceVerdict?> = _lastVoiceVerdict
+
     // Cached so the snooze action can attach the latest door change time
     // without the UI having to thread it through.
     private val currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
@@ -294,6 +338,30 @@ class DefaultProfileViewModel(
         viewModelScope.launch(dispatchers.io) {
             appSettings.observeNavigationRailTopPaddingDp().collect {
                 _navigationRailTopPaddingDp.value = it
+            }
+        }
+        // Latch every classified capture so the verdict outlives the ~4s
+        // refusal flash. Copying a transcript is a deliberate, two-handed
+        // act (read it, decide it is interesting, tap); tying it to a
+        // state that auto-dismisses would make the corpus tool a race.
+        // Reclassifying here rather than reading Armed/Ignored's own
+        // fields is what makes the two states yield the SAME shape:
+        // Armed carries no confidence, and Ignored's classification is
+        // null for a no-speech capture. The classifier is pure, so this
+        // cannot disagree with the verdict the gate actually acted on.
+        viewModelScope.launch(dispatchers.default) {
+            voiceCommandController.state.collect { state ->
+                val transcript = when (state) {
+                    is VoiceCommandState.Armed -> state.transcript
+                    is VoiceCommandState.Ignored -> state.transcript
+                    else -> null
+                } ?: return@collect
+                _lastVoiceVerdict.value = VoiceVerdict(
+                    transcript = transcript,
+                    classification = classifyVoiceIntentUseCase(transcript),
+                    engineName = classifyVoiceIntentUseCase.engineName,
+                    ignoreReason = (state as? VoiceCommandState.Ignored)?.reason,
+                )
             }
         }
     }

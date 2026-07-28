@@ -33,6 +33,7 @@ import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.domain.model.VoiceIntent
+import com.chriscartland.garage.domain.model.VoiceIntentConfidence
 import com.chriscartland.garage.domain.model.WatchAppStatus
 import com.chriscartland.garage.domain.model.WatchInstallAction
 import com.chriscartland.garage.domain.model.WatchInstallResult
@@ -483,6 +484,66 @@ class ProfileViewModelTest {
                 "an open command against an already-open pretend door is refused, got $ignored",
             )
             assertEquals(VoiceCommandIgnoreReason.DOOR_ALREADY_OPEN, ignored.reason)
+        }
+
+    /**
+     * The verdict is the eval-corpus tool, so it has to be readable when
+     * the user gets round to reading it. The refusal chip auto-dismisses
+     * after ~4s; the latched verdict must not go with it.
+     */
+    @Test
+    fun theVerdictOutlivesTheRefusalItExplains() =
+        runTest {
+            val viewModel = createViewModel()
+            assertNull(viewModel.lastVoiceVerdict.value)
+
+            viewModel.voiceCommandMicTap()
+            viewModel.voiceCommandTranscript("can you open the garage door")
+            testDispatcher.scheduler.runCurrent()
+
+            // MEDIUM confidence: heard a direction, refused to act on it.
+            assertTrue(viewModel.voiceCommandState.value is VoiceCommandState.Ignored)
+
+            // Let the refusal flash expire and the surface return to Ready.
+            advanceUntilIdle()
+            assertEquals(VoiceCommandState.Ready, viewModel.voiceCommandState.value)
+
+            val verdict = viewModel.lastVoiceVerdict.value
+            assertTrue(verdict != null, "the verdict survives the flash it explains")
+            assertEquals("can you open the garage door", verdict.transcript)
+            assertEquals(VoiceIntent.OPEN, verdict.classification.intent)
+            assertEquals(VoiceIntentConfidence.MEDIUM, verdict.classification.confidence)
+            assertEquals(VoiceCommandIgnoreReason.NOT_CONFIDENT, verdict.ignoreReason)
+            assertEquals(
+                """
+                input: "can you open the garage door"
+                intent: OPEN
+                confidence: MEDIUM
+                engine: Rules v3
+                outcome: NOT_CONFIDENT
+                """.trimIndent(),
+                verdict.clipboardSummary(),
+            )
+        }
+
+    /** A command that armed is corpus-worthy too, and reads as ARMED. */
+    @Test
+    fun anArmedCommandAlsoProducesACopyableVerdict() =
+        runTest {
+            val viewModel = createViewModel()
+
+            viewModel.voiceCommandMicTap()
+            viewModel.voiceCommandTranscript("open the garage door")
+            testDispatcher.scheduler.runCurrent()
+
+            val verdict = viewModel.lastVoiceVerdict.value
+            assertTrue(verdict != null, "arming produces a verdict, not just refusals")
+            assertEquals(VoiceIntentConfidence.HIGH, verdict.classification.confidence)
+            assertNull(verdict.ignoreReason)
+            assertTrue(
+                verdict.clipboardSummary().endsWith("outcome: ARMED"),
+                "an armed capture is labelled ARMED, got ${verdict.clipboardSummary()}",
+            )
         }
 
     @Test

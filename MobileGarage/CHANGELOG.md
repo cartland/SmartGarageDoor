@@ -28,6 +28,13 @@ Every version gets an entry in this file (internal history). Play Store `distrib
   garage door" and the pretend door opens; ask again and it turns you down for
   the same reason the real one would. Nothing on this screen can move the real
   garage door.
+- **The classifier's verdict is now readable at your own pace.** Under the
+  simulated control there is a panel showing what it heard, what it took that
+  to mean, how sure it was, and what it did about it. Tap to copy the lot.
+  Previously that detail only appeared inside the refusal message, which
+  clears itself after about four seconds, so deciding a phrase was worth
+  keeping and then copying it was a race you often lost. It now stays until
+  the next command.
 - **Internal:** #1147 — deletes `VoiceInputBottomSheet` +
   `VoiceControlBottomSheet` (and `VoiceExperimentState` with its four
   `ProfileViewModel` members, the door-placement selector, and the
@@ -41,14 +48,18 @@ Every version gets an entry in this file (internal history). Play Store `distrib
   `PushRemoteButtonUseCase`, asserted by constructor reflection in the new
   `:androidApp` `SimulatedVoiceSafetyTest` (mirrors the watch's
   `cannotReachTheRealRemoteButton`); three `ProfileViewModelTest` cases cover
-  the loop end to end, the already-open refusal, and cancel-on-leave. Both
-  new tests were mutation-verified. Removed with them: the tap-to-copy
-  structured verdict used to harvest eval-corpus cases (see
-  `docs/VOICE_COMMANDS.md` for how to grow the corpus without it, and how to
-  add it back to the simulated sheet if hand-harvesting annoys). Cancel window
-  is now a fixed 3s everywhere, matching Home. Patch: the live Home voice
-  feature and the real-door path are untouched; only developer-gated
-  simulated surfaces changed.
+  the loop end to end, the already-open refusal, and cancel-on-leave. The
+  eval-corpus copy tool survives as a `VerdictPanel` below the card, fed by a
+  new latched `ProfileViewModel.lastVoiceVerdict` (`VoiceVerdict`) instead of
+  the auto-dismissing `Ignored` state — the old playground's affordance
+  expired with the ~4s flash, making harvesting a race. It latches on both
+  `Armed` and `Ignored` and reclassifies the transcript so the two yield the
+  same shape (`Armed` carries no confidence; `Ignored`'s classification is
+  null for a no-speech capture); the classifier is pure, so this cannot
+  disagree with the verdict the gate acted on. Cancel window is now a fixed 3s
+  everywhere, matching Home. Every new test was mutation-verified. Patch: the
+  live Home voice feature and the real-door path are untouched; only
+  developer-gated simulated surfaces changed.
 
 ## 2.23.2
 

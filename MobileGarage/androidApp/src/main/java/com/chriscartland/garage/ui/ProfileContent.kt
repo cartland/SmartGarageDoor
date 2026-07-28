@@ -127,6 +127,7 @@ fun ProfileContent(
     // inside SimulatedVoiceBottomSheet.
     val voiceCommandState by resolved.voiceCommandState.collectAsState()
     val voiceCommandDoorState by resolved.voiceCommandDoorState.collectAsState()
+    val lastVoiceVerdict by resolved.lastVoiceVerdict.collectAsState()
 
     // TTL-gated revalidate, once per screen entry (STATUS_CACHE_PLAN.md
     // D3). The cached snooze state renders instantly (hydrated across
@@ -298,10 +299,24 @@ fun ProfileContent(
         SimulatedVoiceBottomSheet(
             state = voiceCommandState,
             doorState = voiceCommandDoorState,
+            lastVerdict = lastVoiceVerdict,
             onMicTap = resolved::voiceCommandMicTap,
             onTranscript = resolved::voiceCommandTranscript,
             onCaptureUnavailable = resolved::voiceCommandCaptureUnavailable,
             onBackgrounded = resolved::voiceCommandBackgrounded,
+            onCopy = { label, value ->
+                clipboardManager.setText(AnnotatedString(value))
+                // Same Android 13+ gate as the Version sheet: the OS
+                // clipboard chip already confirms the copy there.
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    Toast
+                        .makeText(
+                            context,
+                            resources.getString(R.string.profile_version_toast_copied, label),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                }
+            },
             onDismiss = { simulatedVoiceSheetOpen = false },
         )
     }
