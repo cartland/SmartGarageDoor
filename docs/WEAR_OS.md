@@ -422,8 +422,21 @@ alongside the hold cues so the two surfaces cannot drift:
 | Cue | When | Constant |
 |---|---|---|
 | `VoiceArmed` | a command passed the gate; countdown starts | `GESTURE_START` |
+| `VoiceHalfway` | halfway through the cancel window | `CLOCK_TICK` |
 | `VoiceCommitted` | the window elapsed (where a real press would go) | `CONFIRM` |
 | `VoiceRefused` | classifier or gate said no | `REJECT` |
+
+Each borrows the constant of the **hold** cue at the same point of the journey,
+because both surfaces put a ring around the bezel and drive it from empty to
+full — the same picture should feel the same whichever screen drew it.
+`VoiceHalfway` was missing until 0.3.5, which left the identical-looking ring
+silent in the middle, and left the *longer* of the two journeys (3s against the
+hold's 2s) with the least to go on. Like `HoldHalfway` it is pacing, not a point
+of no return: cancelling works right up to the end.
+
+It is scheduled rather than derived from a state change — the midpoint of the
+cancel window is not a state — and leaving `Armed` for any reason cancels the
+pending tick, so a cancelled countdown never buzzes afterwards.
 
 `VoiceCommitted` fires on `Sending`, not `Sent` — `Sent` arrives a fake
 round-trip later and would put the buzz in the wrong place.

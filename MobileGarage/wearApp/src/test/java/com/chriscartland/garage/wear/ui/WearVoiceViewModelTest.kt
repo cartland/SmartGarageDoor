@@ -591,7 +591,7 @@ class WearVoiceViewModelTest {
         }
 
     @Test
-    fun aCommittedCommandBuzzesWhenArmedAndAgainAtTheCommitInstant() =
+    fun aCommittedCommandBuzzesWhenArmedHalfwayAndAtTheCommitInstant() =
         runTest {
             val viewModel = createViewModel()
             val cues = recordCues(viewModel)
@@ -601,7 +601,58 @@ class WearVoiceViewModelTest {
 
             advanceTimeBy(WearVoiceViewModel.ARMED_WINDOW_MILLIS + 1)
             runCurrent()
-            assertEquals(listOf(HapticCue.VoiceArmed, HapticCue.VoiceCommitted), cues)
+            assertEquals(
+                listOf(HapticCue.VoiceArmed, HapticCue.VoiceHalfway, HapticCue.VoiceCommitted),
+                cues,
+            )
+        }
+
+    /**
+     * The countdown ring travels the bezel exactly like the hero screen's hold
+     * ring, so it has to feel the same on the way round. It used to have only
+     * its two endpoints, which left the longer of the two journeys (3s, against
+     * the hold's 2s) with the least to go on.
+     *
+     * Asserted at the midpoint rather than only at the end, because "the cue
+     * fires" and "the cue fires *when the ring is halfway*" are different
+     * claims and only the second one is the feature.
+     */
+    @Test
+    fun theCancelWindowTicksAtItsMidpointLikeTheHold() =
+        runTest {
+            val viewModel = createViewModel()
+            val cues = recordCues(viewModel)
+
+            speak(viewModel, "open the garage door")
+
+            // Just before halfway: still only the arming cue.
+            advanceTimeBy(WearVoiceViewModel.ARMED_WINDOW_MILLIS / 2 - 1)
+            runCurrent()
+            assertEquals(listOf(HapticCue.VoiceArmed), cues)
+
+            advanceTimeBy(2)
+            runCurrent()
+            assertEquals(listOf(HapticCue.VoiceArmed, HapticCue.VoiceHalfway), cues)
+        }
+
+    /**
+     * Cancelling before the midpoint must take the pending tick with it — a
+     * pacing cue for a countdown that is no longer running would be worse than
+     * never having one at all.
+     */
+    @Test
+    fun cancellingBeforeTheMidpointKillsThePendingTick() =
+        runTest {
+            val viewModel = createViewModel()
+            val cues = recordCues(viewModel)
+
+            speak(viewModel, "open the garage door")
+            viewModel.onCancel()
+            runCurrent()
+
+            advanceTimeBy(WearVoiceViewModel.ARMED_WINDOW_MILLIS * 2)
+            runCurrent()
+            assertEquals(listOf(HapticCue.VoiceArmed), cues)
         }
 
     @Test

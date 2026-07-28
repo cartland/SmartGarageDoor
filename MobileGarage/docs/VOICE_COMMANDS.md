@@ -81,10 +81,22 @@ staleness at decision time:
 | Current `DoorPosition` | "open the door" | "close the door" |
 | --- | --- | --- |
 | `CLOSED` | **Accept** | Reject: already closed |
-| `OPEN` | Reject: already open | **Accept** |
+| `OPEN`, `OPEN_MISALIGNED` | Reject: already open | **Accept** |
 | `OPENING`, `CLOSING` | Reject: door is moving | Reject: door is moving |
-| `OPENING_TOO_LONG`, `CLOSING_TOO_LONG` | Reject: door is moving | Reject: door is moving |
-| `OPEN_MISALIGNED`, `ERROR_SENSOR_CONFLICT`, `UNKNOWN`, no event | Reject: can't confirm door state | Reject: can't confirm door state |
+| `OPENING_TOO_LONG`, `CLOSING_TOO_LONG` | Reject: can't confirm door state | Reject: can't confirm door state |
+| `ERROR_SENSOR_CONFLICT`, `UNKNOWN`, no event | Reject: can't confirm door state | Reject: can't confirm door state |
+
+`OPEN_MISALIGNED` moved out of the reject row in 2.23.2. It reads like an
+anomaly but is not one: the server emits it only when the **closed sensor
+reads NOT-closed** and the open sensor dropped out inside
+`TOO_SHORT_DURATION_SECONDS` (`EventInterpreter.ts`), so the door is
+definitively not closed — a confident Open with a flaky sensor. Rejecting it
+meant a misaligned door could not be closed by voice, which is the case where
+closing matters most. The wrong-direction hazard cannot arise (CLOSE is the
+correct direction; OPEN is refused as already-open), it cannot mask a door that
+has since closed (the server transitions straight to `Closed` the moment the
+closed sensor trips, and the gate re-checks at commit), and every other surface
+already treated it as Open — the status label, the hold hint, the door art.
 
 Additional gates, all typed rejections:
 
@@ -200,10 +212,10 @@ since 2.23.0; developer-flag-gated):** the Home tab renders the voice
 card (mic + countdown ring + stable two-line status) behind the same
 per-user flag as Settings → Developer, signed-in only, fixed 3s window.
 The gate reads the REAL observed door state — projected by
-`VoiceDoorStateMapper` (clean terminals → actionable, clean transits →
-MOVING, every anomaly [stuck too long, misaligned, sensor conflict] and
-a **stale check-in** → UNKNOWN → refuse) — so refusals always match the
-status card above. The projection is the safety mapping that closes the
+`VoiceDoorStateMapper` (clean terminals → actionable, **misaligned →
+OPEN** since 2.23.2, clean transits → MOVING, every genuine anomaly
+[stuck too long, sensor conflict] and a **stale check-in** → UNKNOWN →
+refuse) — so refusals always match the status card above. The projection is the safety mapping that closes the
 wrong-direction hazard (stale cache says closed, door actually open,
 "open" would really close). Since 2.23.0 a committed command presses
 the REAL remote garage button: `RemoteButtonVoiceCommandEnvironment`
