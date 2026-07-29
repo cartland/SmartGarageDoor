@@ -29,6 +29,11 @@ enum GarageColors {
     static let statusOpen = Color.orange
     /// Surface that reads "warning / unknown / error".
     static let statusWarning = Color.red
+    /// Advisory tone for informational annotations — a history row noting that a
+    /// past event took longer than usual, not a fault needing attention. Red is
+    /// reserved for things the user should act on; Android draws the same tags
+    /// in `colorScheme.tertiary` for exactly this distinction.
+    static let statusCaution = Color.orange
     /// Neutral container background for cards.
     static let cardBackground = Color(uiColor: .secondarySystemBackground)
 }

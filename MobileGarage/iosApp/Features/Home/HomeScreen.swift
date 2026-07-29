@@ -37,12 +37,13 @@ struct HomeScreen: View {
             isCheckInStale: wrapper.isCheckInStale,
             buttonItem: wrapper.buttonItem,
             buttonHealth: wrapper.buttonHealth,
-            signedIn: wrapper.signedIn,
+            authState: wrapper.authState,
+            hasDoorData: wrapper.hasDoorData,
             alerts: wrapper.alerts,
             checkIn: wrapper.checkIn,
             onButtonTap: { wrapper.onButtonTap() },
             onSignIn: { wrapper.signInWithGoogle() },
-            onRefresh: { wrapper.refresh() },
+            onRefresh: { await wrapper.refresh() },
             onAlertAction: { wrapper.onAlertAction($0) }
         )
     }
@@ -75,7 +76,16 @@ struct HomeContentView: View {
     /// "Remote control" section header, mirroring Android's
     /// `RemoteButtonHealthPill`. Nil = hidden-until-verdict: no pill at all.
     let buttonHealth: ButtonHealthItem?
-    let signedIn: Bool
+    /// Tri-state: `.checking` renders a neutral placeholder instead of the
+    /// sign-in call to action, so an already-signed-in user is never asked to
+    /// sign in while Firebase resolves the session (mirrors Android's
+    /// `HomeAuthLoadingBody`).
+    let authState: AuthDisplayState
+    /// False on a cold start with an empty cache. Drives the Connecting headline
+    /// and suppresses the door's warning overlay — `.unknown` then means "not
+    /// heard yet", which should not look like a fault. Mirrors Android's
+    /// `HomeStatusDisplay.hasData`.
+    let hasDoorData: Bool
     /// Resolved alert banners (ADR-031 Phase 4) shown above the Status card.
     /// Empty in the steady state; the shared `HomeAlertMapper` decides when a
     /// stale / permission / fetch-error banner applies.
@@ -88,7 +98,9 @@ struct HomeContentView: View {
     /// remote button is replaced by a sign-in CTA (mirrors Android's signed-out
     /// Home, which hides the button and shows a "Sign in" card).
     let onSignIn: () -> Void
-    let onRefresh: () -> Void
+    /// Async so `.refreshable` holds the system indicator for the real duration
+    /// of the fetch rather than dismissing it immediately.
+    let onRefresh: () async -> Void
     let onAlertAction: (HomeAlertItem.Kind) -> Void
 
     /// Which per-pill info sheet is open. Pure local UI state (no VM data),
@@ -107,12 +119,13 @@ struct HomeContentView: View {
         isCheckInStale: Bool,
         buttonItem: RemoteButtonItem,
         buttonHealth: ButtonHealthItem?,
-        signedIn: Bool,
+        authState: AuthDisplayState,
+        hasDoorData: Bool,
         alerts: [HomeAlertItem],
         checkIn: DeviceCheckInItem,
         onButtonTap: @escaping () -> Void,
         onSignIn: @escaping () -> Void,
-        onRefresh: @escaping () -> Void,
+        onRefresh: @escaping () async -> Void,
         onAlertAction: @escaping (HomeAlertItem.Kind) -> Void
     ) {
         self.doorPosition = doorPosition
@@ -122,7 +135,8 @@ struct HomeContentView: View {
         self.isCheckInStale = isCheckInStale
         self.buttonItem = buttonItem
         self.buttonHealth = buttonHealth
-        self.signedIn = signedIn
+        self.authState = authState
+        self.hasDoorData = hasDoorData
         self.alerts = alerts
         self.checkIn = checkIn
         self.onButtonTap = onButtonTap
@@ -152,20 +166,29 @@ struct HomeContentView: View {
                         position: doorPosition,
                         isStale: isCheckInStale,
                         animated: true,
-                        lastChangeTimeSeconds: lastChangeTimeSeconds
+                        lastChangeTimeSeconds: lastChangeTimeSeconds,
+                        // Nothing has been heard yet, so there is nothing to warn
+                        // about — an alarm badge here would blame the door for
+                        // the app's own empty cache.
+                        suppressWarningOverlay: !hasDoorData
                     )
                     .frame(height: 160)
                     .frame(maxWidth: .infinity)
                     VStack(spacing: GarageSpacing.tight) {
-                        Text(doorPosition.statusLabel)
+                        Text(hasDoorData ? doorPosition.statusLabel : "Connecting…")
                             .font(.title2.weight(.semibold))
-                        if let sinceLine {
+                        if !hasDoorData {
+                            Text("Waiting for the latest door status")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                        } else if let sinceLine {
                             Text(sinceLine)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
                         }
-                        if let warningText {
+                        if hasDoorData, let warningText {
                             DoorWarningChip(text: warningText)
                         }
                         // Staleness now surfaces via the top Stale banner +
@@ -184,19 +207,30 @@ struct HomeContentView: View {
                     DeviceCheckInPill(item: checkIn)
                         .contentShape(Capsule())
                         .onTapGesture { activeInfoSheet = .doorStatus }
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityHint("Shows door status info")
                 }
             }
 
             Section {
-                if signedIn {
+                switch authState {
+                case .signedIn:
                     RemoteButtonView(item: buttonItem, onTap: onButtonTap)
                         .padding(.vertical, GarageSpacing.tight)
-                } else {
+                case .signedOut:
                     // Signed out — the remote action requires auth (the shared use
                     // case returns NotAuthenticated). A tappable sign-in row
                     // mirrors Android's `HomeSignInBody` ListItem (leading icon,
                     // title + subtitle, chevron) — the whole row starts sign-in.
                     HomeSignInRow(onSignIn: onSignIn)
+                case .checking:
+                    // Firebase has not resolved the session yet. Showing the
+                    // sign-in row here would ask an already-signed-in user to
+                    // sign in on every launch.
+                    Text("Checking sign-in…")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, GarageSpacing.tight)
                 }
             } header: {
                 // Health pill right-aligned in the header, mirroring Android's
@@ -205,12 +239,19 @@ struct HomeContentView: View {
                 // redundant with the CTA) — matching Android, which also swaps
                 // the section label to "Sign in" when signed out.
                 HStack {
-                    Text(signedIn ? "Remote control" : "Sign in")
+                    // "Remote control" while checking: the section is about the
+                    // remote either way, and it avoids a label that flips.
+                    Text(authState == .signedOut ? "Sign in" : "Remote control")
                     Spacer()
-                    if signedIn, let buttonHealth {
+                    if authState.isSignedIn, let buttonHealth {
                         RemoteButtonHealthPill(item: buttonHealth)
                             .contentShape(Capsule())
                             .onTapGesture { activeInfoSheet = .remoteControl }
+                            // The pill opens an explainer sheet, so VoiceOver
+                            // must announce it as actionable — a tap gesture
+                            // alone carries no role.
+                            .accessibilityAddTraits(.isButton)
+                            .accessibilityHint("Shows remote control info")
                     }
                 }
             }
@@ -220,7 +261,7 @@ struct HomeContentView: View {
             // Remote button section above (signed-out → sign-in CTA).
         }
         .navigationTitle("Garage")
-        .refreshable { onRefresh() }
+        .refreshable { await onRefresh() }
         .sheet(item: $activeInfoSheet) { sheet in
             HomeInfoSheetView(sheet: sheet)
                 .presentationDetents([.medium, .large])
@@ -504,7 +545,16 @@ private struct DeviceCheckInPill: View {
                 : Color(uiColor: .tertiarySystemFill))
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(item.isStale ? "Device offline" : "Device online")
+        // Include the age: sighted users get "23 min ago" from the label, so an
+        // announcement of bare "Device offline" drops information rather than
+        // summarizing it.
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var accessibilityLabel: String {
+        let state = item.isStale ? "Device offline" : "Device online"
+        guard let label = item.label else { return state }
+        return "\(state), last check-in \(label)"
     }
 }
 
@@ -654,7 +704,8 @@ private struct HomeInfoSheetView: View {
             isCheckInStale: true,
             buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
             buttonHealth: ButtonHealthItem(label: "Unauthorized", kind: .unauthorized),
-            signedIn: false,
+            authState: .signedOut,
+            hasDoorData: true,
             alerts: [],
             checkIn: DeviceCheckInItem(label: "23 min ago", isStale: true),
             onButtonTap: {},
@@ -675,7 +726,8 @@ private struct HomeInfoSheetView: View {
             isCheckInStale: false,
             buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
             buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
-            signedIn: true,
+            authState: .signedIn,
+            hasDoorData: true,
             alerts: [],
             checkIn: DeviceCheckInItem(label: "1 min ago", isStale: false),
             onButtonTap: {},
@@ -696,7 +748,8 @@ private struct HomeInfoSheetView: View {
             isCheckInStale: false,
             buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
             buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
-            signedIn: true,
+            authState: .signedIn,
+            hasDoorData: true,
             alerts: [],
             checkIn: DeviceCheckInItem(label: "1 min ago", isStale: false),
             onButtonTap: {},
@@ -717,7 +770,8 @@ private struct HomeInfoSheetView: View {
             isCheckInStale: true,
             buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
             buttonHealth: ButtonHealthItem(label: "Unavailable · 11 min ago", kind: .offline),
-            signedIn: true,
+            authState: .signedIn,
+            hasDoorData: true,
             alerts: [
                 HomeAlertItem(
                     id: "stale",
@@ -810,6 +864,56 @@ private struct HomeInfoSheetView: View {
     }
 }
 
+/// Cold start with an empty cache: `.unknown` position, but the copy says
+/// Connecting and the door wears no warning badge — the app has not heard yet,
+/// which is not the door's fault. Mirrors Android's `HomeContentConnectingPreview`.
+#Preview("Home connecting") {
+    NavigationStack {
+        HomeContentView(
+            doorPosition: .unknown,
+            lastChangeTimeSeconds: nil,
+            sinceLine: nil,
+            warningText: nil,
+            isCheckInStale: false,
+            buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
+            buttonHealth: nil,
+            authState: .signedIn,
+            hasDoorData: false,
+            alerts: [],
+            checkIn: DeviceCheckInItem(label: nil, isStale: false),
+            onButtonTap: {},
+            onSignIn: {},
+            onRefresh: {},
+            onAlertAction: { _ in }
+        )
+    }
+}
+
+/// Firebase has not resolved the session yet. The remote section says so rather
+/// than showing a sign-in call to action an already-signed-in user would see
+/// flash on every launch.
+#Preview("Home checking sign-in") {
+    NavigationStack {
+        HomeContentView(
+            doorPosition: .closed,
+            lastChangeTimeSeconds: nil,
+            sinceLine: "Since 11:22 AM · 38 min",
+            warningText: nil,
+            isCheckInStale: false,
+            buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
+            buttonHealth: nil,
+            authState: .checking,
+            hasDoorData: true,
+            alerts: [],
+            checkIn: DeviceCheckInItem(label: "1 min ago", isStale: false),
+            onButtonTap: {},
+            onSignIn: {},
+            onRefresh: {},
+            onAlertAction: { _ in }
+        )
+    }
+}
+
 #Preview("Home confirm state") {
     NavigationStack {
         HomeContentView(
@@ -820,7 +924,8 @@ private struct HomeInfoSheetView: View {
             isCheckInStale: false,
             buttonItem: RemoteButtonItem(kind: .confirm, title: "Door will move.", subtitle: "Tap again to confirm", phase: .armed),
             buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
-            signedIn: true,
+            authState: .signedIn,
+            hasDoorData: true,
             alerts: [],
             checkIn: DeviceCheckInItem(label: "1 min ago", isStale: false),
             onButtonTap: {},

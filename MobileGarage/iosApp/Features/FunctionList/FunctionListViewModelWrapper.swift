@@ -43,13 +43,17 @@ final class FunctionListViewModelWrapper: ObservableObject {
         accessGranted = vm.accessGranted.value?.boolValue
         applyTestState(vm.testNotificationState.value)
 
+        // `guard let stream = self?...` + `self?.` per iteration — NEVER
+        // `guard let self` up front: these loops never end, so a strong self
+        // keeps the wrapper (and the Kotlin ViewModel behind it) alive for the
+        // life of the process and `deinit` never runs.
         tasks.append(Task { @MainActor [weak self] in
-            guard let self else { return }
-            for await v in self.vm.accessGranted { self.accessGranted = v?.boolValue }
+            guard let stream = self?.vm.accessGranted else { return }
+            for await v in stream { self?.accessGranted = v?.boolValue }
         })
         tasks.append(Task { @MainActor [weak self] in
-            guard let self else { return }
-            for await v in self.vm.testNotificationState { self.applyTestState(v) }
+            guard let stream = self?.vm.testNotificationState else { return }
+            for await v in stream { self?.applyTestState(v) }
         })
     }
 

@@ -37,6 +37,14 @@ struct MainScreen: View {
             ForEach(MainTab.allCases) { tab in
                 NavigationStack {
                     screen(for: tab)
+                        // Cap the reading width and center it. This app is a
+                        // single column of rows, and on an iPad those rows would
+                        // otherwise stretch the full ~1300pt width, leaving each
+                        // label marooned from its value. Wider than any iPhone,
+                        // so this is a no-op on phones. Android caps every route
+                        // at the same 640 (`ContentWidth.Standard`).
+                        .frame(maxWidth: GarageSpacing.contentWidth)
+                        .frame(maxWidth: .infinity)
                 }
                 .tabItem {
                     Label(tab.title, systemImage: tab.systemImage)

@@ -23,8 +23,16 @@ import UserNotifications
 /// for the shared observe pattern.
 @MainActor
 final class HomeViewModelWrapper: ObservableObject {
-    @Published private(set) var signedIn: Bool = false
+    /// Tri-state so the sign-in call to action is never shown while Firebase is
+    /// still resolving the session (see `AuthDisplayState`).
+    @Published private(set) var authState: AuthDisplayState = .checking
     @Published private(set) var doorPosition: DoorPosition = .unknown
+    /// False until a door event has been observed at all (cold start with an
+    /// empty cache). The door position is `.unknown` in that window, but the
+    /// cause is "we have not heard yet", not "the sensor is confused" — so the
+    /// UI says Connecting rather than accusing the door. Mirrors Android's
+    /// `HomeStatusDisplay.hasData`.
+    @Published private(set) var hasDoorData: Bool = false
     /// Pre-formatted "Since 9:47 AM · 2 hr 14 min" status line, resolved from
     /// the shared VM's typed `SinceStatus` (ADR-031); `nil` when the last-change
     /// time is unknown. The elapsed-bucket *logic* is shared; the clock-time +
@@ -62,6 +70,11 @@ final class HomeViewModelWrapper: ObservableObject {
     /// The shared `HomeAlertMapper` decides WHICH banners to show from typed
     /// inputs; this wrapper resolves each typed `HomeAlert` to iOS banner copy.
     @Published private(set) var alerts: [HomeAlertItem] = []
+    /// True from the moment a user-initiated refresh is triggered until the door
+    /// result settles. `refresh()` awaits this so the system refresh control
+    /// stays up for the real duration of the fetch (Android binds its indicator
+    /// to `LoadingResult.Loading` the same way).
+    @Published private(set) var isRefreshing: Bool = false
 
     private let shared: SharedViewModel<DefaultHomeViewModel>
     private var tasks: [Task<Void, Never>] = []
@@ -148,16 +161,16 @@ final class HomeViewModelWrapper: ObservableObject {
     }
 
     private func applyAuth(_ state: AuthState) {
-        if case .authenticated = onEnum(of: state) {
-            signedIn = true
-        } else {
-            signedIn = false
-        }
+        authState = AuthDisplayState.from(state)
     }
 
     private func applyDoor(_ result: LoadingResult<DoorEvent>) {
         latestDoorResult = result
+        if !(result is LoadingResultLoading) {
+            isRefreshing = false
+        }
         let event = result.data
+        hasDoorData = event != nil
         doorPosition = event?.doorPosition ?? .unknown
         lastChangeTimeSeconds = event?.lastChangeTimeSeconds?.int64Value
         rebuildAlerts()
@@ -202,6 +215,7 @@ final class HomeViewModelWrapper: ObservableObject {
     /// user has denied, iOS silently returns the existing status without
     /// re-prompting — the escalation lines then point them at Settings.
     private func requestNotificationPermission() {
+        vm.log(key: AppLoggerKeys.shared.USER_REQUESTED_NOTIFICATION_PERMISSION)
         notificationRequestCount += 1
         rebuildAlerts()
         UNUserNotificationCenter.current()
@@ -272,15 +286,17 @@ final class HomeViewModelWrapper: ObservableObject {
 
     private static let timeOnlyFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US")
-        formatter.dateFormat = "h:mm a"
+        // A localized template, not a fixed pattern: the device decides 12- vs
+        // 24-hour and field order. Pinning "h:mm a" + en_US shows AM/PM to a
+        // user whose phone is set to 24-hour time. Android uses
+        // `DateTimeFormatter.ofLocalizedTime` for the same reason.
+        formatter.setLocalizedDateFormatFromTemplate("jmm")
         return formatter
     }()
 
     private static let dateTimeFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US")
-        formatter.dateFormat = "MMM d, h:mm a"
+        formatter.setLocalizedDateFormatFromTemplate("MMMdjmm")
         return formatter
     }()
 
@@ -437,9 +453,31 @@ final class HomeViewModelWrapper: ObservableObject {
         }
     }
 
-    func refresh() {
+    /// Async so `.refreshable` keeps the system indicator up until the fetch
+    /// actually settles. A synchronous body returns immediately, which dismisses
+    /// the control while the request is still in flight — the user sees a
+    /// refresh that appears to do nothing.
+    func refresh() async {
+        vm.log(key: AppLoggerKeys.shared.USER_FETCH_CURRENT_DOOR)
+        // Set before triggering so the wait below cannot observe a stale `false`
+        // and return before the fetch has started.
+        isRefreshing = true
         vm.fetchCurrentDoorEvent()
         vm.refreshButtonHealth()
+        await awaitRefreshCompletion()
+    }
+
+    /// Waits for `applyDoor` to clear `isRefreshing`, with a hard ceiling.
+    ///
+    /// Polls rather than awaiting the flow: it stays on the main actor with no
+    /// extra concurrency machinery, and the timeout is unconditional, so a fetch
+    /// that never settles cannot park the refresh control forever.
+    private func awaitRefreshCompletion() async {
+        let deadline = Date().addingTimeInterval(15)
+        while isRefreshing, Date() < deadline {
+            try? await Task.sleep(nanoseconds: 120_000_000)
+        }
+        isRefreshing = false
     }
 
     /// Handles a tap on a banner's action button. Mirrors Android's

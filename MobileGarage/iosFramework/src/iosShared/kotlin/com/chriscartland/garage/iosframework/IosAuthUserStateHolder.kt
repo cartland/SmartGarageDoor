@@ -37,9 +37,25 @@ import kotlinx.coroutines.flow.MutableStateFlow
  * One shared `StateFlow` + a single listener registered in the bridge's init
  * replaces Android's per-collector `callbackFlow`; all collectors observe the
  * latest value, which is the intended semantics.
+ *
+ * [initialUser] is load-bearing and must be the session Firebase has already
+ * restored (`Auth.auth().currentUser`), NOT null. A `StateFlow` always has a
+ * value, so whatever it is seeded with is published to collectors before the
+ * platform listener has said anything — and `FirebaseAuthRepository` maps null
+ * to `Unauthenticated`, not to "not known yet". Seeding null therefore asserts
+ * "signed out" on every cold start: `SignOutCacheClearManager` believes it and
+ * deletes the button-health, snooze, and allowlist snapshots that ADR-034
+ * exists to render instantly. Android has no equivalent hazard because its
+ * bridge is a cold `callbackFlow` that emits nothing until Firebase does.
+ *
+ * The seed is a constructor parameter rather than a post-construction `update`
+ * call so the wrong order cannot be written: there is no window between
+ * construction and seeding for a collector to observe.
  */
-class IosAuthUserStateHolder {
-    private val state = MutableStateFlow<AuthUserInfo?>(null)
+class IosAuthUserStateHolder(
+    initialUser: AuthUserInfo? = null,
+) {
+    private val state = MutableStateFlow(initialUser)
 
     /**
      * The backing flow as `Flow<AuthUserInfo?>`. SKIE bridges this return type

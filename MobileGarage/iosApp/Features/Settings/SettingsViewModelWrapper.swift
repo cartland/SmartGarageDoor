@@ -22,10 +22,12 @@ import UserNotifications
 /// Bridges `DefaultProfileViewModel` to SwiftUI (the Settings tab).
 @MainActor
 final class SettingsViewModelWrapper: ObservableObject {
-    @Published private(set) var signedIn: Bool = false
+    /// Tri-state so the sign-in call to action is never shown while Firebase is
+    /// still resolving the session (see `AuthDisplayState`).
+    @Published private(set) var authState: AuthDisplayState = .checking
     @Published private(set) var displayName: String?
     @Published private(set) var email: String?
-    @Published private(set) var snoozeLabel: String = "Not snoozing"
+    @Published private(set) var snoozeLabel: String = "Notifications enabled"
     /// Whether a snooze is currently active — drives the Settings row icon
     /// (bell vs bell.slash), mirroring Android's `SnoozeRowState` icon swap.
     @Published private(set) var snoozeSnoozing: Bool = false
@@ -46,18 +48,27 @@ final class SettingsViewModelWrapper: ObservableObject {
 
     /// Duration options exposed to the UI, in display order.
     let durations: [(label: String, option: SnoozeDurationUIOption)] = [
-        ("Do not snooze", .none),
+        ("Don't snooze", .none),
         ("1 hour", .oneHour),
         ("4 hours", .fourHours),
         ("8 hours", .eightHours),
         ("12 hours", .twelveHours),
     ]
 
+    /// Server-config gate for the whole snooze surface, read once from the
+    /// component's `AppConfig` (it is fixed for the process). Android hides its
+    /// Notifications section on the same flag.
+    let snoozeOptionEnabled: Bool
+
     private let shared: SharedViewModel<DefaultProfileViewModel>
+    /// Bumped on every `snoozeState` emission; `refreshSnooze()` waits for it to
+    /// move rather than guessing how long a fetch takes.
+    private var snoozeRevision: UInt = 0
     private var tasks: [Task<Void, Never>] = []
     private var vm: DefaultProfileViewModel { shared.instance }
 
     init(component: NativeComponent) {
+        snoozeOptionEnabled = component.appConfig.snoozeNotificationsOption
         shared = SharedViewModel(component.profileViewModel)
         applyAuth(vm.authState.value)
         applySnooze(vm.snoozeState.value)
@@ -93,21 +104,23 @@ final class SettingsViewModelWrapper: ObservableObject {
     }
 
     private func applyAuth(_ state: AuthState) {
+        authState = AuthDisplayState.from(state)
         if case .authenticated(let authed) = onEnum(of: state) {
-            signedIn = true
             // `User.name`/`.email` are Kotlin value classes (DisplayName / Email)
             // erased to their underlying String at the ObjC boundary (typed `id`),
             // so they bridge to Swift as `Any` holding an NSString.
             displayName = authed.user.name as? String
             email = authed.user.email as? String
         } else {
-            signedIn = false
             displayName = nil
             email = nil
         }
     }
 
     private func applySnooze(_ state: SnoozeState) {
+        // Counts emissions so `refreshSnooze()` can tell "the fetch came back"
+        // from "nothing has happened yet".
+        snoozeRevision &+= 1
         switch onEnum(of: state) {
         case .snoozing(let snoozing):
             let date = Date(timeIntervalSince1970: TimeInterval(snoozing.untilEpochSeconds))
@@ -117,7 +130,7 @@ final class SettingsViewModelWrapper: ObservableObject {
             snoozeLabel = "Loading…"
             snoozeSnoozing = false
         case .notSnoozing:
-            snoozeLabel = "Not snoozing"
+            snoozeLabel = "Notifications enabled"
             snoozeSnoozing = false
         }
     }
@@ -160,7 +173,23 @@ final class SettingsViewModelWrapper: ObservableObject {
     }
 
     func signOut() { vm.signOut() }
-    func refreshSnooze() { vm.fetchSnoozeStatus() }
+
+    /// Async so `.refreshable` keeps the system indicator up while the fetch is
+    /// in flight; a synchronous body dismisses it instantly and the pull reads
+    /// as a no-op.
+    ///
+    /// The snooze fetch exposes no `LoadingResult`, so completion is inferred
+    /// from the next `snoozeState` emission with a short ceiling — a re-fetch
+    /// that returns an unchanged value is deduped by `StateFlow` and would
+    /// otherwise never resolve.
+    func refreshSnooze() async {
+        let before = snoozeRevision
+        vm.fetchSnoozeStatus()
+        let deadline = Date().addingTimeInterval(3)
+        while snoozeRevision == before, Date() < deadline {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+    }
 
     /// TTL-gated screen-entry revalidate (STATUS_CACHE_PLAN.md D3):
     /// the cached snooze state renders instantly; the shared repo fetches

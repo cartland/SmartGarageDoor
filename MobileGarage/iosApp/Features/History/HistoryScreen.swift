@@ -34,7 +34,7 @@ struct HistoryScreen: View {
             isLoading: wrapper.isLoading,
             canLoadMore: wrapper.canLoadMore,
             isLoadingMore: wrapper.isLoadingMore,
-            onRefresh: { wrapper.refresh() },
+            onRefresh: { await wrapper.refresh() },
             onLoadMore: { wrapper.loadMore() },
             showStaleBanner: wrapper.showStaleBanner,
             onResetStale: { wrapper.resetFcmAndRefetch() }
@@ -53,7 +53,9 @@ struct HistoryContentView: View {
     var canLoadMore: Bool = false
     /// An older-page fetch is in flight — shows the footer spinner.
     var isLoadingMore: Bool = false
-    let onRefresh: () -> Void
+    /// Async so `.refreshable` holds the system indicator for the real duration
+    /// of the fetch rather than dismissing it immediately.
+    let onRefresh: () async -> Void
     /// Fires when the bottom footer scrolls into view with more to load. The
     /// shared repo guards re-entrancy, so an extra fire is harmless.
     var onLoadMore: () -> Void = {}
@@ -66,13 +68,37 @@ struct HistoryContentView: View {
     var onResetStale: () -> Void = {}
 
     var body: some View {
-        List {
-            if showStaleBanner {
-                Section {
+        listContent
+            // Pinned above the list rather than scrolling with it: this is an
+            // actionable "you are not receiving updates" warning, and scrolling
+            // it out of view hides both the problem and its Retry. Android
+            // renders the same banner outside its scrollable.
+            //
+            // `safeAreaInset` rather than a VStack: it keeps the List as the
+            // navigation content, so the large title still collapses on scroll
+            // and the banner's tint stays out of the navigation bar.
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if showStaleBanner {
+                    // The tint stays on the banner card itself, not on the band
+                    // it occupies: a full-width wash would also colour the
+                    // navigation title sitting beside it, which reads as a
+                    // rendering bug rather than an alert.
                     HistoryStaleBanner(onRetry: onResetStale)
+                        .padding(GarageSpacing.card)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(GarageColors.statusWarning.opacity(0.12))
+                        )
+                        .padding(.horizontal, GarageSpacing.card)
+                        .padding(.bottom, GarageSpacing.tight)
                 }
-                .listRowBackground(GarageColors.statusWarning.opacity(0.12))
             }
+            .navigationTitle("History")
+    }
+
+    private var listContent: some View {
+        List {
             if days.isEmpty {
                 HistoryEmptyState(isLoading: isLoading)
                     .frame(maxWidth: .infinity)
@@ -98,8 +124,7 @@ struct HistoryContentView: View {
                     }
             }
         }
-        .navigationTitle("History")
-        .refreshable { onRefresh() }
+        .refreshable { await onRefresh() }
     }
 }
 
@@ -117,9 +142,12 @@ private struct HistoryRow: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 ForEach(entry.warnings, id: \.self) { warning in
+                    // Caution, not error: these annotate a past event ("took
+                    // longer than usual"), so red would overstate them. Android
+                    // uses its muted tertiary tone here.
                     Label(warning, systemImage: "exclamationmark.triangle")
                         .font(.caption)
-                        .foregroundStyle(GarageColors.statusWarning)
+                        .foregroundStyle(GarageColors.statusCaution)
                 }
             }
         }

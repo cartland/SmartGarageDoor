@@ -74,31 +74,33 @@ final class HistoryViewModelWrapper: ObservableObject {
         applyStale(vm.isCheckInStale.value.boolValue)
         rebuild()
 
+        // `guard let stream = self?...` + `self?.` per iteration — NEVER
+        // `guard let self` up front. These loops never end, so holding self
+        // strongly keeps the wrapper (and with it the Kotlin ViewModel and its
+        // collectors) alive for the life of the process: `deinit` can't run, so
+        // `SharedViewModel.deinit` never clears the store, and every re-entry
+        // into History stacks another live VM. Mirrors Home/Settings.
         tasks.append(Task { @MainActor [weak self] in
-            guard let self else { return }
-            for await result in self.vm.recentDoorEvents {
-                self.apply(result)
-                self.rebuild()
+            guard let stream = self?.vm.recentDoorEvents else { return }
+            for await result in stream {
+                self?.apply(result)
+                self?.rebuild()
             }
         })
         tasks.append(Task { @MainActor [weak self] in
-            guard let self else { return }
-            for await stale in self.vm.isCheckInStale {
-                self.applyStale(stale.boolValue)
+            guard let stream = self?.vm.isCheckInStale else { return }
+            for await stale in stream { self?.applyStale(stale.boolValue) }
+        })
+        tasks.append(Task { @MainActor [weak self] in
+            guard let stream = self?.vm.nowEpochSeconds else { return }
+            for await tick in stream {
+                self?.nowEpochSeconds = tick.int64Value
+                self?.rebuild()
             }
         })
         tasks.append(Task { @MainActor [weak self] in
-            guard let self else { return }
-            for await tick in self.vm.nowEpochSeconds {
-                self.nowEpochSeconds = tick.int64Value
-                self.rebuild()
-            }
-        })
-        tasks.append(Task { @MainActor [weak self] in
-            guard let self else { return }
-            for await state in self.vm.paginationState {
-                self.applyPagination(state)
-            }
+            guard let stream = self?.vm.paginationState else { return }
+            for await state in stream { self?.applyPagination(state) }
         })
     }
 
@@ -287,25 +289,42 @@ final class HistoryViewModelWrapper: ObservableObject {
 
     private static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US")
-        formatter.dateFormat = "h:mm a"
+        // A localized template, not a fixed pattern: the device decides 12- vs
+        // 24-hour and field order. Pinning "h:mm a" + en_US shows AM/PM to a
+        // user whose phone is set to 24-hour time. Android uses
+        // `DateTimeFormatter.ofLocalizedTime` for the same reason.
+        formatter.setLocalizedDateFormatFromTemplate("jmm")
         return formatter
     }()
 
     private static let dateLabelFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US")
-        formatter.dateFormat = "EEE, MMM d"
+        formatter.setLocalizedDateFormatFromTemplate("EEEMMMd")
         return formatter
     }()
 
-    func refresh() { vm.fetchRecentDoorEvents() }
+    /// Async so `.refreshable` keeps the system indicator up until the fetch
+    /// settles; a synchronous body dismisses it immediately and the pull reads
+    /// as a no-op. Also records the user action in the shared diagnostics log,
+    /// which Android has always done and iOS was silently skipping.
+    func refresh() async {
+        vm.log(key: AppLoggerKeys.shared.USER_FETCH_RECENT_DOOR)
+        isLoading = true
+        vm.fetchRecentDoorEvents()
+        let deadline = Date().addingTimeInterval(15)
+        while isLoading, Date() < deadline {
+            try? await Task.sleep(nanoseconds: 120_000_000)
+        }
+    }
 
     /// Page in the next older window. Appended events flow back through
     /// `recentDoorEvents`; `isLoadingMore` / `canLoadMore` update via
     /// `paginationState`. The shared repo guards against re-entrant fetches, so
     /// a duplicate scroll-trigger fire is a no-op.
-    func loadMore() { vm.fetchOlderDoorEvents() }
+    func loadMore() {
+        vm.log(key: AppLoggerKeys.shared.USER_LOAD_MORE_DOOR)
+        vm.fetchOlderDoorEvents()
+    }
 
     /// Stale-banner recovery: deregister FCM (so it re-subscribes fresh) and
     /// refetch recent events. Mirrors Android's `DoorHistoryContent` reset-FCM

@@ -50,20 +50,63 @@ SNAP_DIR="$PROJ/SnapshotTests"
 DD="$PROJ/.derivedData-snapshots"
 LOG="${TMPDIR:-/tmp}/ios-snapshots.log"
 
-# Resolve a concrete simulator destination. The snapshot layout is fixed by the
-# generated test's DeviceConfig, so any iPhone simulator produces identical
-# output — pick whatever is available. Order: explicit override, a booted
-# iPhone, else a fallback name (xcodebuild boots it).
+# Resolve a concrete simulator destination.
+#
+# PIN THE DEVICE. The generated test's DeviceConfig fixes the canvas *size*, but
+# not what the OS draws inside it: iOS runtimes differ in status-bar height and
+# list metrics, so recording on a different runtime shifts every view vertically
+# and rewrites all 31 PNGs with no source change.
+#
+# This previously preferred "whatever iPhone is booted", which made the gallery a
+# function of the machine's state — running the iOS 16.4 leg of the launch smoke
+# first (release-ios.yml does exactly that) left an iOS 16 device booted, and the
+# next regen silently re-recorded the entire gallery against it.
+#
+# The device name alone is also ambiguous once two runtimes provide it (an
+# "iPhone 16 Pro" exists on both iOS 26.2 and 26.5 here, and xcodebuild refuses
+# to guess), so resolve the name to one concrete udid: the newest runtime that
+# offers it.
+#
 #   IOS_SNAPSHOT_DESTINATION  full -destination string (overrides everything)
-#   IOS_SNAPSHOT_SIMULATOR    fallback device name (default "iPhone 16 Pro")
+#   IOS_SNAPSHOT_SIMULATOR    device name (default "iPhone 16 Pro")
 DEST="${IOS_SNAPSHOT_DESTINATION:-}"
 if [ -z "$DEST" ]; then
-  BOOTED_ID=$(xcrun simctl list devices booted 2>/dev/null | grep -m1 "iPhone" | grep -oE "[0-9A-F]{8}-[0-9A-F-]{27}")
-  if [ -n "$BOOTED_ID" ]; then
-    DEST="id=$BOOTED_ID"
-  else
-    DEST="platform=iOS Simulator,name=${IOS_SNAPSHOT_SIMULATOR:-iPhone 16 Pro}"
+  WANT="${IOS_SNAPSHOT_SIMULATOR:-iPhone 16 Pro}"
+  UDID=$(xcrun simctl list devices available -j | python3 -c '
+import json, sys
+want = sys.argv[1]
+data = json.load(sys.stdin)["devices"]
+
+def key(runtime):
+    # "com.apple.CoreSimulator.SimRuntime.iOS-26-5" -> (26, 5)
+    try:
+        return tuple(int(p) for p in runtime.rsplit("iOS-", 1)[1].split("-"))
+    except (IndexError, ValueError):
+        return (0,)
+
+best = None
+for runtime, devices in data.items():
+    if "iOS" not in runtime:
+        continue
+    for d in devices:
+        if d.get("name") == want and d.get("isAvailable"):
+            if best is None or key(runtime) > best[0]:
+                best = (key(runtime), d["udid"])
+print(best[1] if best else "")
+' "$WANT")
+  if [ -z "$UDID" ]; then
+    echo "No available simulator named '$WANT'. Set IOS_SNAPSHOT_SIMULATOR or IOS_SNAPSHOT_DESTINATION." >&2
+    exit 1
   fi
+  DEST="id=$UDID"
+
+  # Appearance is part of the render, and a simulator remembers whatever it was
+  # last switched to — so an unpinned appearance re-records all 31 PNGs in dark
+  # mode the first time someone toggles a simulator and forgets. The gallery is
+  # the light-mode reference; dark rendering is verified by running the app.
+  xcrun simctl boot "$UDID" >/dev/null 2>&1 || true
+  xcrun simctl bootstatus "$UDID" >/dev/null 2>&1 || true
+  xcrun simctl ui "$UDID" appearance "${IOS_SNAPSHOT_APPEARANCE:-light}" >/dev/null 2>&1 || true
 fi
 
 # Passed through to the build. Default NO so the Gradle prebuild runs and embeds
