@@ -53,14 +53,17 @@ import com.chriscartland.garage.wear.ui.WearVoiceViewModel
  *   inferred      — a position with no affirmative sensor reading (Opening),
  *                   so the hint stops predicting: "Hold to press the remote"
  *   holding       — full hold ring, press about to fire, hint slot empty.
- *                   animateFloatAsState initializes AT its target on first
- *                   composition, so a static isHolding=true renders the
- *                   ring already full — deterministic; mid-sweep is not
- *                   capturable from a static fixture
- *   submitted     — the press is in flight: the ring completes and changes
- *                   colour, "Waiting for the door". This is the "your press
- *                   was sent" visual, and it is a STATE rather than a flash
- *                   precisely so it is capturable here
+ *                   The sweep animates from empty over HOLD_TO_CONFIRM_MILLIS
+ *                   (2s) and the capture settle is 4s, so a static
+ *                   isHolding=true reliably lands on the finished ring.
+ *                   Mid-sweep is not capturable from a static fixture
+ *   submitted     — the press is in flight: a GAPPED ring rotating slowly,
+ *                   "Waiting for the door". The rotation phase at capture
+ *                   time is arbitrary, so this PNG legitimately differs
+ *                   between regens (same as the voice pulse stages); the
+ *                   settle also outlasts the ~700ms commit bloom, so what is
+ *                   captured is the steady in-flight state and never the
+ *                   bloom mid-flight
  *   moving        — door sliding open with the up arrow
  *   open          — red open door, "Hold to close"
  *   signed_out    — Sign in button under the door

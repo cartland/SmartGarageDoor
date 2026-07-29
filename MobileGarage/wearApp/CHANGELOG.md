@@ -14,6 +14,31 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.3.6
+
+- **Letting go early now rewinds the ring instead of blanking it.** The ring is
+  the only thing that records that you held the door at all, so watching it run
+  back to empty is what tells you nothing was sent. It used to disappear in a
+  seventh of a second, which reads as a glitch rather than a cancellation.
+- **Starting a fresh hold always starts from empty.** If you let go and
+  immediately pressed again, the new hold used to pick up wherever the old one
+  had got to and show a ring that was already part full. That was a promise the
+  timer never made: the countdown always starts from zero, so now the ring does
+  too.
+- **Completing the hold is now a real moment.** The ring closes inward until the
+  whole screen is a solid disc, pauses there, and opens back out into a ring.
+  Your wrist gets two beats instead of one to match. Previously the sweep just
+  vanished and a plain ring took its place, which was the quietest thing on
+  screen at the one point of no return in the whole gesture.
+- **While the press is on its way, the ring turns.** Waiting for the server and
+  then for the door to actually start moving can take ten seconds or more, and a
+  motionless ring through all of that looks like an app that has stopped
+  responding. It is now a gapped ring rotating slowly, so waiting looks like
+  waiting.
+- The big finish only ever plays for a press that really was sent. A hold you
+  abandoned cannot trigger it, even in the moment before the app has worked out
+  which of the two happened.
+
 ## 0.3.5
 
 - **The voice countdown now buzzes halfway round, like holding the door

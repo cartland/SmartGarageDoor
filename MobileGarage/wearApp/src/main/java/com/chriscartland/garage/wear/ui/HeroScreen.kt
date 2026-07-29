@@ -18,8 +18,13 @@
 package com.chriscartland.garage.wear.ui
 
 import androidx.annotation.StringRes
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -33,6 +38,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -71,6 +77,7 @@ import com.chriscartland.garage.wear.R
 import com.chriscartland.garage.wear.auth.WearGoogleSignIn
 import com.chriscartland.garage.wear.di.WearSignInConfig
 import com.chriscartland.garage.wear.ui.theme.WearDoorColors
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -153,20 +160,81 @@ fun HeroScreenContent(
 ) {
     val animationMemory = remember { DoorAnimationMemory() }
 
+    val inFlight = HeroRing.isInFlight(buttonState)
+    val ringPhase = HeroRing.phaseFor(isHolding = isHolding, buttonState = buttonState)
+
     // Visual sweep of the radial indicator. The ViewModel's countdown is
     // authoritative for firing the press; this animation only mirrors it.
-    val holdProgress by animateFloatAsState(
-        targetValue = if (isHolding) 1f else 0f,
-        animationSpec = if (isHolding) {
-            tween(
-                durationMillis = WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS.toInt(),
-                easing = LinearEasing,
-            )
-        } else {
-            tween(durationMillis = RING_RELEASE_MILLIS)
-        },
-        label = "holdProgress",
-    )
+    // An Animatable rather than animateFloatAsState because the transitions
+    // are not all the same shape: a new hold SNAPS to empty, an abandoned
+    // one UNWINDS, and a committed one blooms.
+    val sweep = remember { Animatable(0f) }
+    val bloom = remember { Animatable(0f) }
+    LaunchedEffect(ringPhase) {
+        when (ringPhase) {
+            RingPhase.Sweeping -> {
+                bloom.snapTo(0f)
+                // A new hold always starts from empty. Without this it would
+                // inherit whatever the previous unwind had left on screen and
+                // over-report progress against the ViewModel's countdown,
+                // which always starts from zero — the ring would promise a
+                // press sooner than the timer will deliver one.
+                sweep.snapTo(0f)
+                sweep.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(
+                        durationMillis = WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS.toInt(),
+                        easing = LinearEasing,
+                    ),
+                )
+            }
+            // Deliberately does nothing: see RingPhase.Settling.
+            RingPhase.Settling -> Unit
+            RingPhase.Committed -> {
+                sweep.snapTo(1f)
+                bloom.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(BLOOM_FILL_MILLIS, easing = FastOutLinearInEasing),
+                )
+                // Beat at full solid, so "it filled" is a moment you see
+                // rather than an inflection you might miss.
+                delay(BLOOM_SOLID_MILLIS.toLong())
+                bloom.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(BLOOM_RECEDE_MILLIS, easing = LinearOutSlowInEasing),
+                )
+            }
+            RingPhase.Idle -> {
+                bloom.snapTo(0f)
+                // Unwind, never snap. The sweep is handed back at a speed you
+                // can follow, which is what makes "nothing was sent" legible:
+                // a ring that vanishes reads as a glitch, one that runs
+                // backwards reads as a cancellation.
+                sweep.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(RING_UNWIND_MILLIS, easing = LinearOutSlowInEasing),
+                )
+            }
+        }
+    }
+
+    // Rotation for the in-flight ring. Composed ONLY while a press is
+    // outstanding: an infinite transition renders frames for as long as it
+    // exists, and this is a watch.
+    val rotation = if (inFlight) {
+        val transition = rememberInfiniteTransition(label = "inFlight")
+        val angle by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = FULL_SWEEP,
+            animationSpec = infiniteRepeatable(
+                animation = tween(ROTATION_PERIOD_MILLIS, easing = LinearEasing),
+            ),
+            label = "inFlightRotation",
+        )
+        angle
+    } else {
+        0f
+    }
 
     ScreenScaffold(modifier = modifier) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -292,10 +360,11 @@ fun HeroScreenContent(
             // draws on top of everything (it takes no input, so it can never
             // block the door's gestures).
             HoldRing(
-                holding = isHolding,
-                inFlight = buttonState is RemoteButtonState.SendingToServer ||
-                    buttonState is RemoteButtonState.SendingToDoor,
-                holdProgress = holdProgress,
+                sweep = sweep.value,
+                bloom = bloom.value,
+                rotation = rotation,
+                inFlight = inFlight,
+                showTrack = ringPhase == RingPhase.Sweeping,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(RING_PADDING_DP.dp),
@@ -305,26 +374,84 @@ fun HeroScreenContent(
 }
 
 /**
+ * What the hold indicator is currently saying.
+ *
+ * Derived from the ViewModel's two signals together, never from `isHolding`
+ * alone: that flag falls for a completed hold and an abandoned one alike, so
+ * on its own it cannot tell the ring which way to go.
+ */
+internal enum class RingPhase {
+    /** Nothing outstanding: give back whatever sweep is left. */
+    Idle,
+
+    /** Finger down, counting toward the press. */
+    Sweeping,
+
+    /**
+     * The gesture ended and the state machine has not yet said which way it
+     * went. `onTap` and `reset` both post to a Channel, so for a frame or two
+     * `AwaitingConfirmation` is exactly as consistent with a completed hold as
+     * with an abandoned one. Holding the ring still is the only honest thing
+     * to draw: unwinding here would flinch on a press that succeeded, and
+     * blooming here would claim a press that was never sent.
+     */
+    Settling,
+
+    /**
+     * The press really was submitted — the only state reachable by actually
+     * calling the server. This is what the bloom is allowed to key off.
+     */
+    Committed,
+}
+
+/** Ring state derivation, kept pure so the honesty rules above are testable. */
+internal object HeroRing {
+    /**
+     * Whether a press is genuinely outstanding — submitted to the server, or
+     * submitted and waiting for the door to move. Only reachable by actually
+     * calling the server, which is what makes it safe to celebrate.
+     */
+    fun isInFlight(buttonState: RemoteButtonState): Boolean =
+        buttonState is RemoteButtonState.SendingToServer ||
+            buttonState is RemoteButtonState.SendingToDoor
+
+    fun phaseFor(
+        isHolding: Boolean,
+        buttonState: RemoteButtonState,
+    ): RingPhase =
+        when {
+            isHolding -> RingPhase.Sweeping
+            isInFlight(buttonState) -> RingPhase.Committed
+            buttonState is RemoteButtonState.AwaitingConfirmation -> RingPhase.Settling
+            else -> RingPhase.Idle
+        }
+}
+
+/**
  * The radial indicator, drawn at the bounds of whatever box it's given — the
  * hero screen gives it the full physical screen so the ring is concentric
  * with the bezel. Callers place it as the topmost layer.
  *
- * Two jobs. While [holding] it sweeps to report progress toward the press.
- * While [inFlight] it holds a *complete* ring in a different colour, which is
- * the "your press was submitted" visual: the sweep does not just vanish at
- * the moment of commitment, it completes and changes character, then stays up
- * for as long as the press is actually outstanding.
+ * Three jobs, in the order the gesture meets them:
  *
- * A brief flash at the commit instant was considered and rejected: a state is
- * more useful than a transient here (it pairs with "Sending" / "Waiting for
- * the door"), and unlike a 400ms animation it is deterministically capturable
- * by the screenshot fixture.
+ *  - [sweep] reports progress toward the press, over a faint [showTrack].
+ *  - [bloom] is the commit: the ring thickens inward until its inner edge
+ *    reaches the centre and the whole screen is a solid disc, then recedes
+ *    back to a ring. Big on purpose — this is the one irreversible moment in
+ *    the gesture, and it used to be the quietest thing on screen (the sweep
+ *    simply vanished and a static ring took its place).
+ *  - [inFlight] then rotates a gapped ring for as long as the press is
+ *    actually outstanding, which is frequently many seconds: the server has to
+ *    answer and the door has to start moving. Motion is what separates
+ *    "working on it" from "stalled"; the previous static ring could not.
  */
 @Composable
 private fun HoldRing(
-    holding: Boolean,
+    sweep: Float,
+    bloom: Float,
+    rotation: Float,
     inFlight: Boolean,
-    holdProgress: Float,
+    showTrack: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val ringColor = MaterialTheme.colorScheme.primary
@@ -334,7 +461,9 @@ private fun HoldRing(
         val stroke = RING_STROKE_DP.dp.toPx()
         val inset = stroke / 2f
         val arcSize = Size(size.width - stroke, size.height - stroke)
-        if (holding) {
+        val radius = minOf(arcSize.width, arcSize.height) / 2f
+
+        if (showTrack) {
             // Faint full track under the sweep: "here is how far you have to go".
             drawArc(
                 color = trackColor,
@@ -347,21 +476,40 @@ private fun HoldRing(
                 style = Stroke(width = stroke),
             )
         }
-        if (inFlight) {
-            drawArc(
+        when {
+            // Grown as a stroke rather than as a filled circle so it reads as
+            // THIS ring swelling shut, not a new shape appearing over it. A
+            // stroke of width w centred on the ring covers [r - w/2, r + w/2],
+            // so w = 2r is exactly the width at which the inner edge reaches
+            // the centre and the disc closes.
+            bloom > 0f -> drawArc(
                 color = sentColor,
                 startAngle = ARC_START_ANGLE,
                 sweepAngle = FULL_SWEEP,
                 useCenter = false,
                 topLeft = Offset(inset, inset),
                 size = arcSize,
-                style = Stroke(width = stroke),
+                style = Stroke(width = stroke + (2f * radius - stroke) * bloom),
             )
-        } else if (holdProgress > 0f) {
-            drawArc(
+            inFlight -> {
+                val segment = FULL_SWEEP / IN_FLIGHT_SEGMENTS
+                val visible = segment * IN_FLIGHT_SEGMENT_FILL
+                repeat(IN_FLIGHT_SEGMENTS) { index ->
+                    drawArc(
+                        color = sentColor,
+                        startAngle = ARC_START_ANGLE + rotation + index * segment,
+                        sweepAngle = visible,
+                        useCenter = false,
+                        topLeft = Offset(inset, inset),
+                        size = arcSize,
+                        style = Stroke(width = stroke, cap = StrokeCap.Round),
+                    )
+                }
+            }
+            sweep > 0f -> drawArc(
                 color = ringColor,
                 startAngle = ARC_START_ANGLE,
-                sweepAngle = FULL_SWEEP * holdProgress,
+                sweepAngle = FULL_SWEEP * sweep,
                 useCenter = false,
                 topLeft = Offset(inset, inset),
                 size = arcSize,
@@ -647,10 +795,33 @@ private const val DOOR_WIDTH_FRACTION = 0.52f
 private const val DOOR_WIDTH_FRACTION_SIGNED_OUT = 0.42f
 private const val RING_PADDING_DP = 2
 private const val RING_STROKE_DP = 5
-private const val RING_RELEASE_MILLIS = 150
 private const val ARC_START_ANGLE = -90f
 private const val FULL_SWEEP = 360f
 private const val TRACK_ALPHA = 0.25f
+
+/**
+ * How long an abandoned hold takes to give its sweep back.
+ *
+ * Long enough to read as a rewind rather than a disappearance — the sweep is
+ * the only record that the gesture happened, and watching it run backwards is
+ * what makes "nothing was sent" land. Deliberately much shorter than the 2s it
+ * took to build up: this is a retraction, not a second gesture.
+ */
+private const val RING_UNWIND_MILLIS = 450
+
+/** Commit bloom: ring closes to a solid disc, beats, then reopens. */
+private const val BLOOM_FILL_MILLIS = 220
+private const val BLOOM_SOLID_MILLIS = 120
+private const val BLOOM_RECEDE_MILLIS = 380
+
+/**
+ * In-flight ring: how long one full turn takes, and how much of each segment
+ * is drawn. Slow enough to read as deliberate progress rather than a spinner
+ * in a hurry — it can be on screen for ten seconds or more.
+ */
+private const val ROTATION_PERIOD_MILLIS = 1_600
+private const val IN_FLIGHT_SEGMENTS = 3
+private const val IN_FLIGHT_SEGMENT_FILL = 0.62f
 private const val BOTTOM_TEXT_PADDING_DP = 18
 
 /**

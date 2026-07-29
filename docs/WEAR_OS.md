@@ -55,7 +55,7 @@ Six one-shot cues, decided by the ViewModel and performed by the UI:
 |---|---|---|
 | `HoldEngaged` | finger lands | `GESTURE_START` |
 | `HoldHalfway` | 1.0s, pacing cue | `CLOCK_TICK` |
-| `PressCommitted` | 2.0s, press sent | `CONFIRM` |
+| `PressCommitted` | 2.0s, press sent — **emitted twice**, 110ms apart (0.3.6) | `CONFIRM` |
 | `HoldAborted` | released or drifted early | `GESTURE_END` |
 | `PressSucceeded` | the door actually moved | `CONTEXT_CLICK` |
 | `PressFailed` | server or door failure | `REJECT` |
@@ -69,6 +69,15 @@ Design notes worth not re-litigating:
   stream of ticks. A ramp would win at 4–5s or at a variable duration.
 - **The last cue changes rhythm, not just intensity.** `CONFIRM` is a
   two-beat pattern, so "did it fire, or am I halfway?" is never ambiguous.
+- **The commit is emitted TWICE (0.3.6).** Since the screen now marks that
+  instant with a full-screen bloom, a single tick underneath read as an
+  understatement. A wrist actuator cannot express "harder", so more is
+  expressed as *again*. It rides on its **own job**, not `holdJob`: lifting
+  your finger cancels `holdJob`, and on a completed hold that typically
+  happens well inside the 110ms gap, so sharing the job would have let how
+  fast you let go decide whether the press felt acknowledged.
+  `theSecondCommitBeatSurvivesAnImmediateFingerLift` pins it, and inlining the
+  beat back onto `holdJob` fails exactly that test.
 - **The midpoint is a pacing cue, not a point of no return.** Releasing
   cancels right up to the end. Moving the commit point earlier would give the
   haptic tidier semantics at the cost of a real safety property; not worth it.
@@ -96,13 +105,72 @@ abandoned earlier. Dropping is the right failure mode here: a missed buzz is
 nothing, a late one is a lie. `cuesAreNotQueuedWhileNothingIsWatching` pins it,
 and reverting the primitive fails it.
 
-### Press-submitted feedback
+### The ring's four phases (0.3.6)
 
-At the moment of commitment the ring **completes and changes colour**, and
-stays that way until the door responds (paired with "Sending" → "Waiting for
-the door"). A brief flash at the commit instant was considered and rejected:
-a state is more useful than a transient here, and unlike a 400ms animation it
-is deterministically capturable by the `submitted` screenshot stage.
+The ring is the only channel that reports whether a press happened, so what it
+does at each moment is a correctness question, not a decorative one. It is
+driven by `HeroRing.phaseFor(isHolding, buttonState)` — pure, and unit-tested
+by `HeroRingTest`, because a Composable is not reachable from the command line
+and "did it celebrate a press that never happened?" is exactly the kind of
+claim that must be.
+
+| Phase | When | What it draws |
+|---|---|---|
+| `Sweeping` | finger down | **Snaps to empty**, then sweeps over 2s on a faint track |
+| `Settling` | gesture over, machine has not said which way | nothing changes — holds still |
+| `Committed` | `SendingToServer` / `SendingToDoor` | bloom to a solid disc, then a slowly rotating gapped ring |
+| `Idle` | anything else | **unwinds** the sweep back to empty over 450ms |
+
+Four decisions worth not re-litigating:
+
+- **A new hold snaps to zero; it never inherits.** Previously the sweep
+  animated from wherever the last one had got to, so a hold begun during the
+  previous release started part-full and promised a press sooner than the
+  ViewModel's countdown — which always starts from zero — would deliver one.
+- **An abandoned hold unwinds rather than vanishing.** The sweep is the only
+  record that the gesture happened; watching it run backwards is what makes
+  "nothing was sent" legible, where a disappearance reads as a glitch. 450ms,
+  much shorter than the 2s it took to build: a retraction, not a second
+  gesture.
+- **`Settling` exists because `AwaitingConfirmation` is ambiguous.**
+  `ButtonStateMachine.onTap()` and `reset()` both post to a Channel, so for a
+  frame or two after the finger leaves that state is exactly as consistent
+  with a completed hold as with an abandoned one. Neither answer may be drawn
+  yet: unwinding would flinch on a press that succeeded, and blooming would
+  claim a press that was never sent. Doing nothing is the honest option, and
+  it costs one or two frames of delay on a genuine abort.
+- **Only a real submission blooms.** The bloom keys off the two states
+  reachable *only* by calling the server, never off the hold timer or off
+  `AwaitingConfirmation`. `onlyARealSubmissionCommits` enumerates every other
+  state; mapping `AwaitingConfirmation` to `Committed` fails it and
+  `theAmbiguousFrameHoldsStillInsteadOfGuessing` together.
+
+**Why the in-flight ring rotates.** It can be on screen for ten seconds or
+more — the server has to answer and then the door has to physically start
+moving. A static ring cannot distinguish "working on it" from "stalled"; a
+rotating gapped one can, and it costs nothing because the screen is already
+being held awake for exactly this window. The infinite transition is composed
+**only** while a press is outstanding, since it renders frames for as long as
+it exists and this is a watch.
+
+The trade the previous static ring bought was determinism: the `submitted`
+screenshot stage now captures an arbitrary rotation phase, so that PNG
+legitimately differs between regens. The voice pulse stages already had this
+property, and the 4s capture settle still guarantees the bloom (~720ms) is
+over, so what is captured is always the steady in-flight state.
+
+**Why the demo does not bloom.** 0.3.4 argued that the demo, whose whole job is
+to rehearse the real interaction, should not teach a different vocabulary — and
+that argument still holds for the *shape* of the countdown, which is why the
+demo ring still completes and holds. It does **not** extend to the bloom. The
+bloom's meaning is precisely "a real press has been sent to the real door";
+that is why it is gated on `SendingToServer`/`SendingToDoor` and refused during
+the ambiguous frame. Spending it on a surface that by construction sends
+nothing would make it mean "something happened" instead, which is the same
+class of dishonesty `RingPhase.Settling` exists to prevent — and it would
+undercut the demo's own punchline ("Nothing was sent"). Rehearsing an
+interaction does not require borrowing its receipt. Do not "fix" this
+divergence without an argument that survives that point.
 
 `WearHomeViewModelTest` pins the safety property from every direction —
 signed out, released early, released one millisecond early, repeated aborted
@@ -351,6 +419,11 @@ instead *reserved* as an empty line, the two stacked lines pushed the transcript
 up into the mic. Above, it occupies empty space and then stops.
 
 ### The countdown ring completes and holds (0.3.4)
+
+> **Superseded for the hero screen in 0.3.6** — see "The ring's four phases"
+> above. The hero ring now blooms at commit and rotates while in flight. The
+> demo ring still completes and holds, and that divergence is **deliberate**:
+> see "Why the demo does not bloom" below.
 
 The hero screen's hold ring has two jobs: it sweeps while counting, then holds a
 *complete* ring in a different colour for as long as the press is outstanding.
