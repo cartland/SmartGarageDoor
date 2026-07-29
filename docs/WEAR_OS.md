@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-07-27
+last_verified: 2026-07-28
 ---
 
 # Wear OS App (`MobileGarage/wearApp/`)
@@ -513,6 +513,66 @@ pending tick, so a cancelled countdown never buzzes afterwards.
 
 `VoiceCommitted` fires on `Sending`, not `Sent` — `Sent` arrives a fake
 round-trip later and would put the buzz in the wrong place.
+
+## Menu: which build, and a way to the store (0.4.0)
+
+The three-dot chip at `CenterStart` (mirroring the voice chip across the screen)
+opens a leaf screen showing the running build and a **Check for update** button
+that opens this app's listing in the **watch's own Play Store**.
+
+It exists because the watch is updated far more often than it is configured, and
+until 0.4.0 it could answer neither "what am I running?" nor "is there anything
+newer?" without going through the phone. Wear OS does update apps by itself, but
+on its own schedule, which is no help when the build you want was cut minutes
+ago.
+
+**`market://` is load-bearing and is NOT interchangeable with the phone's
+`https://play.google.com/...` idiom.** On Wear OS the two resolve to different
+apps. Measured with `adb shell cmd package resolve-activity` against a Wear OS 5
+image:
+
+```
+market://details?id=…    -> com.android.vending/…WearMainActivity    (watch Play Store)
+https://play.google.com/ -> …wearable.settings/…ResolverActivity     ("open on your phone")
+```
+
+So copying `ProfileContent`'s https form here would punt the user to their phone
+instead of showing the Update button on the watch in their hand — the opposite
+of the point. Verified end-to-end on the emulator: tapping the button focuses
+`com.android.vending`.
+
+Three further constraints, all encoded in `WearStoreLink`:
+
+- **The package name is hardcoded** (`com.chriscartland.garage`), not read from
+  `BuildConfig.APPLICATION_ID`. Debug builds carry `applicationIdSuffix =
+  ".debug"`, so deriving it would open a "not found" page on exactly the builds
+  a developer is testing with. The phone hardcodes `playStorePackageName` in
+  `AppComponent` for the same reason.
+- **Failure is caught, not pre-checked.** A pre-flight `resolveActivity` would
+  report "no Play Store" on watches that have one, because Android 11 package
+  visibility hides it from that query unless the manifest declares a matching
+  `<queries>` element. Launching is not filtered that way, so the launcher tries
+  and catches `ActivityNotFoundException`, reporting the result back so the
+  screen can say so rather than leaving a button that looks broken. There is no
+  Wear OS 2 fallback to write: `minSdk = 30` means every device that can install
+  this app has the on-watch Play Store.
+- **The version row names the release tag** (`wear/15`), recovered from
+  `BuildConfig.WEAR_TAG_NUMBER`. `versionName` alone cannot tell two builds cut
+  from one version apart, and the raw versionCode (`1000000 + N`) is not what the
+  tag is called anywhere else. A build with no tag says **Local build** rather
+  than claiming to be `wear/0` — "this is not a release" and "you are 15 releases
+  behind" are different answers, and the menu exists to tell them apart.
+
+The chip sits **outside** the signed-in/signed-out branch, unlike the voice chip.
+It is the one affordance whose value does not depend on being signed in: it
+exists to get a newer build onto the watch, and a build broken enough to leave
+you stuck at the sign-in screen is exactly when reaching the store matters most.
+
+Navigation went from a boolean to the `WearDestination` enum at the same time.
+Every destination other than the hero screen is still a leaf reached from it, so
+the graph is "which one is on top" and `SwipeToDismissBox` still supplies
+swipe-right-to-go-back; the enum is what keeps the `when` exhaustive, so a third
+leaf is a compile error at each site rather than a silently unreachable screen.
 
 ## Architecture
 

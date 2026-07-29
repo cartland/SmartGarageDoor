@@ -14,6 +14,26 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.4.0
+
+- **New: a menu, reached by the three dots beside the door.** It tells you which
+  version is running and gives you a button that opens this app's page in the
+  watch's own Play Store. The watch gets updated far more often than it gets
+  configured, and until now it could answer neither "what am I running?" nor "is
+  there anything newer?" without going through the phone. Wear OS does update
+  apps on its own, but on its own schedule, which is no help when the build you
+  want to try was cut a few minutes ago.
+- **It shows the running build next to the store link, not just the link.** The
+  store can tell you what the newest version is; only the watch can tell you what
+  it actually installed, and after tapping Update that is the question you come
+  back to ask. A build cut from a release names itself the same way the release
+  tags do, so it can be compared directly; a build that never came from a release
+  says so instead of pretending to be one.
+- The menu is reachable whether or not you are signed in. It is the one thing
+  here whose usefulness does not depend on being signed in: it exists to get a
+  newer version onto the watch, and a version broken enough to leave you stuck at
+  the sign-in screen is exactly when that matters most.
+
 ## 0.3.6
 
 - **Letting go early now rewinds the ring instead of blanking it.** The ring is

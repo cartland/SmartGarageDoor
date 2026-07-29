@@ -93,8 +93,14 @@
     <string name="voice_demo_ignored_state_unknown">Demo door state is unknown</string>
     <string name="voice_demo_ignored_state_changed">Demo door changed. Cancelled.</string>
 
+    <!-- Menu: which build is running, and the way to the Play Store. -->
+    <string name="menu_local_build">Local build</string>
+    <string name="menu_open_store">Check for update</string>
+    <string name="menu_store_unavailable">No Play Store on this watch</string>
+
     <!-- Content descriptions. -->
     <string name="cd_garage_door">Garage door</string>
+    <string name="cd_menu">Menu and app version</string>
     <string name="cd_voice_demo">Voice demo, simulated</string>
     <string name="cd_voice_demo_mic">Tap to speak a door command</string>
     <string name="cd_voice_demo_screen">Tap anywhere to cancel and speak again</string>

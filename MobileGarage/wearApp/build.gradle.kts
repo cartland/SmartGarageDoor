@@ -91,6 +91,12 @@ android {
             "BASE_URL",
             "\"https://us-central1-escape-echo.cloudfunctions.net/\"",
         )
+        // The wear/N tag this build was cut from, or 0 for a local build.
+        // Surfaced in the watch's menu so a tester can name the running build
+        // the same way the release tags and the Play track log do. versionCode
+        // carries the same number but offset by wearVersionCodeOffset, and
+        // versionName cannot tell two builds cut from one version apart.
+        buildConfigField("int", "WEAR_TAG_NUMBER", "${tagVersionCode ?: 0}")
     }
 
     signingConfigs {
