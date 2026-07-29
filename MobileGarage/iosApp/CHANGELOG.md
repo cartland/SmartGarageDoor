@@ -19,6 +19,36 @@ Versioning mirrors Android (see `MobileGarage/CHANGELOG.md` § versioning):
 major = rewrite or core-experience shift; minor = a user-facing feature added or
 removed; patch = fixes, polish, refactors. iOS uses independent `ios/N` tags.
 
+## 0.1.2
+
+- **The app stops forgetting what it knew.** On every launch while signed in, it
+  briefly believed you were signed out — long enough for the cleanup that runs
+  on sign-out to delete the cached remote-button status, snooze state, and
+  feature access it had just restored. The visible cost was a few seconds of
+  missing pills and late-appearing rows on each cold start. It now knows about
+  your session from the first moment.
+- **It no longer asks signed-in people to sign in.** Home and Settings treated
+  "we have not heard from Firebase yet" as "signed out", so the sign-in row
+  flashed at the start of every launch. Both now say "Checking sign-in…" until
+  the answer is actually known.
+- **A first launch no longer looks like a fault.** With nothing cached yet, the
+  door read "Unknown" with a warning badge — blaming the door for the app having
+  no data. It now says "Connecting…" with no badge.
+- **Pull to refresh waits for the refresh.** The spinner used to disappear the
+  instant you let go, while the request was still in flight, so the gesture
+  looked like it did nothing. On Home, History, and Settings it now stays until
+  the data actually arrives.
+- **The "not receiving updates" warning stays put.** In History it used to
+  scroll away with the list, taking its Retry button with it.
+- Leaving History, Functions, or Diagnostics now releases their work instead of
+  leaving it running for the rest of the session. History's "took longer than
+  usual" tags are amber rather than alarm red. Times follow your device's
+  12- or 24-hour setting. VoiceOver announces the status pills as buttons and
+  reads the check-in age. Exported diagnostics files are timestamped instead of
+  overwriting each other. On iPad, content no longer stretches the full width of
+  the screen. The account sheet scrolls, so "Sign out" is reachable at large
+  text sizes.
+
 ## 0.1.1
 
 - Fix a launch crash on iOS 16 (crashed every launch on iPhone X / iOS 16.3.1,
