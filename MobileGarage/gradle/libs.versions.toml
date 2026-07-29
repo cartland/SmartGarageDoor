@@ -57,7 +57,7 @@ lifecycle = "2.9.1"
 mockito = "5.23.0"
 playServicesAuth = "21.6.0"
 playServicesWearable = "20.0.1"
-wearRemoteInteractions = "1.0.0"
+wearRemoteInteractions = "1.2.0"
 concurrentFuturesKtx = "1.3.0"
 room = "2.7.2"
 # sqlite is PINNED at 2.5.0 (same as kermit/datastore above: 2.7.0's iOS KLIBs
