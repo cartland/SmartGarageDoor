@@ -329,7 +329,7 @@ class WearHomeViewModelTest {
     // buzz can, and that is where the logic lives. These pin the sequence.
 
     @Test
-    fun completedHoldEmitsEngagedThenHalfwayThenCommitted() =
+    fun completedHoldEmitsEngagedThenHalfwayThenCommittedTwice() =
         runTest {
             val viewModel = createViewModel()
             signIn()
@@ -340,11 +340,57 @@ class WearHomeViewModelTest {
             advanceTimeBy(WearHomeViewModel.HOLD_HALFWAY_MILLIS + 1)
             runCurrent()
             assertEquals(listOf(HapticCue.HoldEngaged, HapticCue.HoldHalfway), cues)
-            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS)
+            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS - WearHomeViewModel.HOLD_HALFWAY_MILLIS)
             runCurrent()
             assertEquals(
                 listOf(HapticCue.HoldEngaged, HapticCue.HoldHalfway, HapticCue.PressCommitted),
-                cues.take(3),
+                cues,
+            )
+            // The commit is a DOUBLE beat. The screen marks this moment with a
+            // full-screen bloom; one tick under that reads as an
+            // understatement, and a wrist actuator cannot express "harder", so
+            // more is expressed as again.
+            advanceTimeBy(WearHomeViewModel.COMMIT_BEAT_GAP_MILLIS + 1)
+            runCurrent()
+            assertEquals(
+                listOf(
+                    HapticCue.HoldEngaged,
+                    HapticCue.HoldHalfway,
+                    HapticCue.PressCommitted,
+                    HapticCue.PressCommitted,
+                ),
+                cues,
+            )
+        }
+
+    /**
+     * The second beat is scheduled ~110ms after the commit, and a user
+     * typically lifts their finger well inside that. Lifting cancels the hold
+     * job, so a beat living on that job would be swallowed by exactly the
+     * behaviour it is meant to confirm — how fast you let go would decide
+     * whether the press felt acknowledged.
+     */
+    @Test
+    fun theSecondCommitBeatSurvivesAnImmediateFingerLift() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            val cues = recordCues(viewModel)
+            viewModel.onHoldStart()
+            advanceTimeBy(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS + 1)
+            runCurrent()
+            viewModel.onHoldEnd()
+            runCurrent()
+            advanceTimeBy(WearHomeViewModel.COMMIT_BEAT_GAP_MILLIS + 1)
+            runCurrent()
+            assertEquals(
+                listOf(
+                    HapticCue.HoldEngaged,
+                    HapticCue.HoldHalfway,
+                    HapticCue.PressCommitted,
+                    HapticCue.PressCommitted,
+                ),
+                cues,
             )
         }
 

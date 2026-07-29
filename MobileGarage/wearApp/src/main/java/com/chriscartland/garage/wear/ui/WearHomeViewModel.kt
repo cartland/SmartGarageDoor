@@ -153,6 +153,7 @@ class WearHomeViewModel(
     val keepScreenOn: StateFlow<Boolean> = _keepScreenOn
 
     private var holdJob: Job? = null
+    private var commitBeatJob: Job? = null
     private var refreshJob: Job? = null
     private var signInErrorJob: Job? = null
     private var keepScreenOnJob: Job? = null
@@ -205,7 +206,30 @@ class WearHomeViewModel(
                 _hapticCues.tryEmit(HapticCue.PressCommitted)
                 // The machine's second tap — submits the press via onSubmit.
                 stateMachine.onTap()
+                emitSecondCommitBeat()
             }
+        }
+    }
+
+    /**
+     * The second half of the commit buzz, on its own job.
+     *
+     * The commit is the one irreversible moment in the gesture and the screen
+     * now marks it with a full-screen bloom; a single tick under that reads as
+     * an understatement. Two beats is the doubling — wrist actuators are too
+     * coarse to convey "harder", so more is expressed as again.
+     *
+     * Deliberately NOT inside [holdJob]: that job is cancelled by [onHoldEnd]
+     * the instant the finger lifts, which on a completed hold is typically
+     * within a few tens of milliseconds. Sharing the job would make the second
+     * beat depend on how slowly the user let go. Emitted after
+     * [ButtonStateMachine.onTap] so the haptic can never delay the press.
+     */
+    private fun emitSecondCommitBeat() {
+        commitBeatJob?.cancel()
+        commitBeatJob = viewModelScope.launch(dispatchers.default) {
+            delay(COMMIT_BEAT_GAP_MILLIS)
+            _hapticCues.tryEmit(HapticCue.PressCommitted)
         }
     }
 
@@ -344,6 +368,13 @@ class WearHomeViewModel(
          * tidier haptic semantics.
          */
         const val HOLD_HALFWAY_MILLIS: Long = HOLD_TO_CONFIRM_MILLIS / 2
+
+        /**
+         * Gap between the two beats of the commit buzz. Long enough to be felt
+         * as two events rather than one smeared one, short enough to still be
+         * the same event — and it lands under the screen's commit bloom.
+         */
+        const val COMMIT_BEAT_GAP_MILLIS: Long = 110L
 
         /** Foreground poll cadence while idle. */
         const val IDLE_POLL_MILLIS: Long = 10_000L
