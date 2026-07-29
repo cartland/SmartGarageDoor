@@ -17,14 +17,19 @@
 
 package com.chriscartland.garage.wear.ui
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -34,54 +39,109 @@ import androidx.wear.compose.foundation.rememberSwipeToDismissBoxState
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.SwipeToDismissBox
+import co.touchlab.kermit.Logger
+import com.chriscartland.garage.wear.BuildConfig
 import com.chriscartland.garage.wear.di.WearComponent
+
+/** Where the app is: the hero screen, or one of its two leaves. */
+internal enum class WearDestination {
+    Hero,
+    VoiceDemo,
+    Menu,
+}
 
 /**
  * Compose root for the Wear app: theme + app scaffold (time text) + the hero
- * screen, with the simulated voice demo layered over it.
+ * screen, with the voice demo and the menu layered over it.
  *
- * Navigation is one boolean rather than a nav library: there are exactly two
- * destinations and the second is a leaf. [SwipeToDismissBox] supplies the
- * standard Wear swipe-right-to-go-back gesture and its reveal animation, so
- * the demo behaves like any other watch screen without pulling in
- * wear-compose-navigation for a single edge.
+ * Navigation is one enum rather than a nav library: every destination other
+ * than the hero screen is a leaf reached from it, so the whole graph is "which
+ * one is on top". [SwipeToDismissBox] supplies the standard Wear
+ * swipe-right-to-go-back gesture and its reveal animation, so a leaf behaves
+ * like any other watch screen without pulling in wear-compose-navigation for a
+ * one-level tree. It was a boolean while there was exactly one leaf; the enum
+ * is what keeps the `when` below exhaustive, so adding a third leaf is a
+ * compile error at each site that has to handle it rather than a silently
+ * unreachable screen.
  *
  * ViewModels are resolved from the kotlin-inject component via the
  * `viewModel { }` initializer, mirroring the phone's
  * `viewModel { component.<x>ViewModel }` pattern. Both ViewModels are resolved
- * here and outlive either destination, so nothing is re-fetched on the way
- * back from the demo.
+ * here and outlive every destination, so nothing is re-fetched on the way back
+ * from a leaf.
  */
 @Composable
 fun WearApp(component: WearComponent) {
     val wearHomeViewModel: WearHomeViewModel = viewModel { component.wearHomeViewModel }
     val wearVoiceViewModel: WearVoiceViewModel = viewModel { component.wearVoiceViewModel }
-    var showVoiceDemo by rememberSaveable { mutableStateOf(false) }
+    var destination by rememberSaveable { mutableStateOf(WearDestination.Hero) }
     val swipeState = rememberSwipeToDismissBoxState()
+    val openStore = rememberStoreLauncher()
 
     DoorSurfaceEffects(wearHomeViewModel)
 
     MaterialTheme {
         AppScaffold {
             SwipeToDismissBox(
-                onDismissed = { showVoiceDemo = false },
+                onDismissed = { destination = WearDestination.Hero },
                 state = swipeState,
                 // Nothing to dismiss when the hero screen is already showing;
                 // without this, swiping on the hero screen would try to pop a
                 // destination that is not there.
-                userSwipeEnabled = showVoiceDemo,
-                backgroundKey = HERO_KEY,
-                contentKey = if (showVoiceDemo) VOICE_DEMO_KEY else HERO_KEY,
+                userSwipeEnabled = destination != WearDestination.Hero,
+                backgroundKey = WearDestination.Hero.name,
+                contentKey = destination.name,
             ) { isBackground ->
-                if (isBackground || !showVoiceDemo) {
-                    HeroScreen(
-                        viewModel = wearHomeViewModel,
-                        signInConfig = component.signInConfig,
-                        onVoiceDemoClick = { showVoiceDemo = true },
-                    )
-                } else {
-                    VoiceDemoScreen(viewModel = wearVoiceViewModel)
+                // The background layer is always the hero screen: it is what a
+                // leaf reveals as it is swiped away.
+                val shown = if (isBackground) WearDestination.Hero else destination
+                when (shown) {
+                    WearDestination.Hero ->
+                        HeroScreen(
+                            viewModel = wearHomeViewModel,
+                            signInConfig = component.signInConfig,
+                            onVoiceDemoClick = { destination = WearDestination.VoiceDemo },
+                            onMenuClick = { destination = WearDestination.Menu },
+                        )
+
+                    WearDestination.VoiceDemo ->
+                        VoiceDemoScreen(viewModel = wearVoiceViewModel)
+
+                    WearDestination.Menu ->
+                        WearMenuScreen(
+                            versionName = BuildConfig.VERSION_NAME,
+                            tagNumber = BuildConfig.WEAR_TAG_NUMBER,
+                            onOpenStore = openStore,
+                        )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Opens this app's listing in the watch's own Play Store, reporting whether it
+ * found one.
+ *
+ * The irreducible platform write for the menu: the decision of *where* to go is
+ * [WearStoreLink]'s (and unit-tested there), while `startActivity` can only
+ * happen here. Failure is caught rather than pre-checked — see [WearStoreLink]
+ * for why asking first would give the wrong answer on Android 11+.
+ */
+@Composable
+private fun rememberStoreLauncher(): () -> Boolean {
+    val context = LocalContext.current
+    return remember(context) {
+        {
+            try {
+                context.startActivity(
+                    Intent(Intent.ACTION_VIEW, WearStoreLink.listingUri().toUri())
+                        .addCategory(Intent.CATEGORY_BROWSABLE),
+                )
+                true
+            } catch (e: ActivityNotFoundException) {
+                Logger.w { "WearMenu: no Play Store on this watch: $e" }
+                false
             }
         }
     }
@@ -145,6 +205,3 @@ private fun DoorSurfaceEffects(viewModel: WearHomeViewModel) {
         }
     }
 }
-
-private const val HERO_KEY = "hero"
-private const val VOICE_DEMO_KEY = "voice-demo"

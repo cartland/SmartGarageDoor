@@ -117,6 +117,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
                             onHoldStart = {},
                             onHoldEnd = {},
                             onVoiceDemoClick = {},
+                            onMenuClick = {},
                             onSignInClick = {},
                         )
                     }
