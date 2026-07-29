@@ -37,9 +37,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -135,6 +135,19 @@ sealed interface Screen : NavKey {
 
 /**
  * Navigation tab definition linking a screen to its UI metadata.
+ *
+ * Icon pairing with iOS (`MainTab.swift`) — the two icon systems can't share a
+ * literal glyph, so the intended match is recorded here and there:
+ *
+ * | Tab      | Android Material    | iOS SF Symbol           |
+ * |----------|---------------------|-------------------------|
+ * | Home     | `Home`              | `house`                 |
+ * | History  | `History`           | `clock.arrow.circlepath`|
+ * | Settings | `Settings`          | `gearshape`             |
+ *
+ * History was `DateRange` (a calendar) and Settings was `Person` — the latter a
+ * leftover from when this tab was called Profile, which left a person glyph
+ * sitting under the word "Settings".
  */
 enum class Tab(
     val screen: Screen,
@@ -142,8 +155,8 @@ enum class Tab(
     val icon: ImageVector,
 ) {
     Home(Screen.Home, "Home", Icons.Filled.Home),
-    History(Screen.History, "History", Icons.Filled.DateRange),
-    Profile(Screen.Profile, "Settings", Icons.Filled.Person),
+    History(Screen.History, "History", Icons.Filled.History),
+    Profile(Screen.Profile, "Settings", Icons.Filled.Settings),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -203,10 +216,17 @@ private fun AppScaffold(
                 currentScreen is Screen.Diagnostics
             TopAppBar(
                 title = {
+                    // Named per screen rather than a constant "Garage": the bar
+                    // is the only thing that says where you are once the tab bar
+                    // is off-screen (rail and 3-pane modes have no tab labels),
+                    // and "Garage" on the History tab tells the user nothing they
+                    // did not already know. Home keeps the app name.
                     Text(
                         text = when (currentScreen) {
                             is Screen.FunctionList -> "Function list"
                             is Screen.Diagnostics -> "Diagnostics"
+                            is Screen.History -> "History"
+                            is Screen.Profile -> "Settings"
                             else -> "Garage"
                         },
                     )

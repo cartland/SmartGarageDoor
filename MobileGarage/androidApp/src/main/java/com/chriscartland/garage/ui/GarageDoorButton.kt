@@ -17,20 +17,26 @@
 
 package com.chriscartland.garage.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 import com.chriscartland.garage.ui.theme.cautionContainer
@@ -39,9 +45,19 @@ import com.chriscartland.garage.ui.theme.onCautionContainer
 /**
  * Material3 button for the garage door remote.
  *
- * - Ready: "Garage Door Button" (tonal, tappable)
- * - AwaitingConfirmation: "Door will move." + "Confirm?" (amber, tappable)
- * - All other states: disabled with status text
+ * - Ready: "Tap to open or close" (tonal, tappable)
+ * - AwaitingConfirmation: "Door will move." + "Tap again to confirm" (amber, tappable)
+ * - All other states: disabled with status text; the two in-flight states also
+ *   show a spinner, per the in-flight button pattern (icon swapped for a 20 dp
+ *   indicator while the action is disabled).
+ *
+ * The labels are instructions, not nouns: "Tap to open or close" says what the
+ * button does, where "Garage Door Button" only repeated where the user already
+ * knew they were. The two failure states are named separately — the shared
+ * [RemoteButtonState] distinguishes "the server refused" from "the door never
+ * moved", and those call for different reactions, so collapsing both to
+ * "Failed" throws away the only information the user has. Copy is shared with
+ * iOS, which arrived at these first.
  *
  * The parent controls width via [modifier]. The button fills that width
  * in all states for visual stability.
@@ -61,7 +77,7 @@ fun GarageDoorButton(
                     .heightIn(min = 64.dp),
             ) {
                 Text(
-                    text = "Garage Door Button",
+                    text = stringResource(R.string.remote_button_ready),
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center,
                 )
@@ -80,12 +96,12 @@ fun GarageDoorButton(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Door will move.",
+                        text = stringResource(R.string.remote_button_confirm_title),
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
                     )
                     Text(
-                        text = "Confirm?",
+                        text = stringResource(R.string.remote_button_confirm_subtitle),
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
                     )
@@ -104,25 +120,43 @@ fun GarageDoorButton(
                     disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 ),
             ) {
-                Text(
-                    text = state.disabledLabel(),
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    // Only the two states that are genuinely waiting on the
+                    // network spin. Cancelled / Succeeded / Failed are outcomes,
+                    // and a spinner on an outcome reads as "still working".
+                    if (state == RemoteButtonState.SendingToServer ||
+                        state == RemoteButtonState.SendingToDoor
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        )
+                    }
+                    Text(
+                        text = state.disabledLabel(),
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
     }
 }
 
+@Composable
 private fun RemoteButtonState.disabledLabel(): String =
     when (this) {
-        RemoteButtonState.Preparing -> "Garage Door Button"
-        RemoteButtonState.Cancelled -> "Cancelled"
-        RemoteButtonState.SendingToServer -> "Sending..."
-        RemoteButtonState.SendingToDoor -> "Waiting..."
-        RemoteButtonState.Succeeded -> "Done!"
-        RemoteButtonState.ServerFailed -> "Failed"
-        RemoteButtonState.DoorFailed -> "Failed"
+        RemoteButtonState.Preparing -> stringResource(R.string.remote_button_preparing)
+        RemoteButtonState.Cancelled -> stringResource(R.string.remote_button_cancelled)
+        RemoteButtonState.SendingToServer -> stringResource(R.string.remote_button_sending)
+        RemoteButtonState.SendingToDoor -> stringResource(R.string.remote_button_waiting)
+        RemoteButtonState.Succeeded -> stringResource(R.string.remote_button_succeeded)
+        RemoteButtonState.ServerFailed -> stringResource(R.string.remote_button_server_failed)
+        RemoteButtonState.DoorFailed -> stringResource(R.string.remote_button_door_failed)
         // Ready and AwaitingConfirmation are handled above, not here.
         RemoteButtonState.Ready,
         RemoteButtonState.AwaitingConfirmation,

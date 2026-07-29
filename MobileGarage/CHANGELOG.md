@@ -15,6 +15,33 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.23.4
+
+- **The remote button says what it does, and names the two ways it can fail.**
+  The idle label was "Garage Door Button", which told you where you were rather
+  than what would happen; it now reads "Tap to open or close", and the confirm
+  step says "Tap again to confirm". A failed press used to say "Failed" whether
+  the server refused the request or the door never moved — two problems with
+  different responses. They are now "Server error" and "Door did not move". The
+  two states that are genuinely waiting on the network also show a spinner.
+- **The Settings tab no longer has a person for an icon.** It was a leftover
+  from when the tab was called Profile, and History used a calendar. They are
+  now a gear and a history clock, matching what the labels say and pairing with
+  the iOS icons.
+- **Launching in dark mode no longer flashes a white screen.** The launch theme
+  had no dark variant, so the system splash was drawn light before the app
+  could render.
+- **Screen readers get the send progress.** The phone/server/door diagram
+  announced nothing, so a blind user got the button label and no sense of where
+  a press had got to. It now announces the phase. The door's arrow and warning
+  badges stopped announcing themselves, since the status text already says it.
+- Signing in from Settings says what it unlocks. The stale-connection alert uses
+  the same no-signal icon as the device pill instead of a second metaphor. The
+  Functions locked state reads as a deliberate state rather than a page that
+  failed to load. Each tab titles its own screen. "Privacy Policy" is sentence
+  case. Exporting diagnostics no longer writes from an unmanaged coroutine
+  scope that outlives the screen.
+
 ## 2.23.3
 
 - **The two voice experiments in Settings are now one, and it rehearses the

@@ -199,8 +199,8 @@ private fun DoorIconBox(
         )
         when (DoorAnimation.overlayFor(doorPosition)) {
             DoorOverlayKind.NONE -> Unit
-            DoorOverlayKind.ARROW_UP -> DirectionOverlay(-90f, "Up Arrow")
-            DoorOverlayKind.ARROW_DOWN -> DirectionOverlay(90f, "Down Arrow")
+            DoorOverlayKind.ARROW_UP -> DirectionOverlay(-90f, contentDescription = null)
+            DoorOverlayKind.ARROW_DOWN -> DirectionOverlay(90f, contentDescription = null)
             DoorOverlayKind.WARNING -> if (!suppressWarningOverlay) WarningOverlay()
         }
     }
