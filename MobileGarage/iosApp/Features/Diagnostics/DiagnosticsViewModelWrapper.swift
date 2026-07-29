@@ -55,10 +55,14 @@ final class DiagnosticsViewModelWrapper: ObservableObject {
         observeCounter(vm.exceededExpectedTimeWithoutFcmCount)
         observeCounter(vm.timeWithoutFcmInExpectedRangeCount)
 
+        // `guard let stream = self?...` + `self?.` per iteration — NEVER
+        // `guard let self` up front: these loops never end, so a strong self
+        // keeps the wrapper (and the Kotlin ViewModel behind it) alive for the
+        // life of the process and `deinit` never runs.
         tasks.append(Task { @MainActor [weak self] in
-            guard let self else { return }
-            for await value in self.vm.clearInFlight {
-                self.clearInFlight = value.boolValue
+            guard let stream = self?.vm.clearInFlight else { return }
+            for await value in stream {
+                self?.clearInFlight = value.boolValue
             }
         })
     }

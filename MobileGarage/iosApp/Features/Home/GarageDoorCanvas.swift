@@ -59,6 +59,11 @@ struct GarageDoorView: View {
     /// motion event so the slide replays once per event (cold-open / first
     /// view), not on every re-appearance. Only consulted when `animated`.
     var lastChangeTimeSeconds: Int64?
+    /// Hide the warning badge even when the position would earn one. Set while
+    /// there is no door data at all: `.unknown` then reflects an empty cache,
+    /// not a door in trouble, and a warning badge would misattribute it.
+    /// Mirrors Android's `GarageIcon(suppressWarningOverlay = )`.
+    var suppressWarningOverlay: Bool = false
 
     @Environment(\.colorScheme) private var scheme
     /// Shared replay memory (`:domain` `DoorAnimationMemory`), injected at the
@@ -102,7 +107,9 @@ struct GarageDoorView: View {
         case .arrowDown:
             DoorOverlayBadge(systemName: "arrow.down", iconScale: 0.9)
         case .warning:
-            DoorOverlayBadge(systemName: "exclamationmark.triangle.fill", iconScale: 0.6)
+            if !suppressWarningOverlay {
+                DoorOverlayBadge(systemName: "exclamationmark.triangle.fill", iconScale: 0.6)
+            }
         }
     }
 }

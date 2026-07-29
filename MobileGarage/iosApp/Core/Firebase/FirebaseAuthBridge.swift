@@ -31,16 +31,34 @@ import FirebaseAuth
 /// The auth-state listener is registered once in `init` and pushes into the
 /// holder; this single shared StateFlow replaces Android's per-collector
 /// `callbackFlow` (ADR-018) with equivalent observable semantics.
+///
+/// The holder is seeded with the session Firebase has already restored from the
+/// keychain, because `addStateDidChangeListener` delivers asynchronously while
+/// the holder's `StateFlow` publishes a value immediately. An unseeded holder
+/// therefore tells the shared layer "signed out" for the first moments of every
+/// launch, and `SignOutCacheClearManager` acts on that by deleting the cached
+/// snapshots ADR-034 exists to display. See `IosAuthUserStateHolder`'s KDoc.
 final class FirebaseAuthBridge: DataAuthBridge {
-    private let holder = IosAuthUserStateHolder()
+    private let holder: IosAuthUserStateHolder
     private var listenerHandle: AuthStateDidChangeListenerHandle?
 
     init() {
+        // `Auth.auth().currentUser` is populated synchronously from the keychain
+        // when Firebase is configured, so a signed-in user is known here — well
+        // before the listener fires.
+        holder = IosAuthUserStateHolder(initialUser: Self.restoredUser())
         listenerHandle = Auth.auth().addStateDidChangeListener { [holder] _, user in
             holder.update(user: user.map {
                 DataAuthUserInfo(displayName: $0.displayName ?? "", email: $0.email ?? "")
             })
         }
+    }
+
+    /// The currently restored Firebase session as the shared layer's type.
+    /// `static` so `init` can call it before `self` is fully formed.
+    private static func restoredUser() -> DataAuthUserInfo? {
+        guard let user = Auth.auth().currentUser else { return nil }
+        return DataAuthUserInfo(displayName: user.displayName ?? "", email: user.email ?? "")
     }
 
     deinit {
@@ -49,10 +67,7 @@ final class FirebaseAuthBridge: DataAuthBridge {
         }
     }
 
-    func getCurrentUser() -> DataAuthUserInfo? {
-        guard let user = Auth.auth().currentUser else { return nil }
-        return DataAuthUserInfo(displayName: user.displayName ?? "", email: user.email ?? "")
-    }
+    func getCurrentUser() -> DataAuthUserInfo? { Self.restoredUser() }
 
     func observeAuthUser() -> SkieSwiftOptionalFlow<DataAuthUserInfo> {
         holder.asFlow()

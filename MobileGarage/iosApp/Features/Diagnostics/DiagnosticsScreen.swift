@@ -162,9 +162,17 @@ struct DiagnosticsContentView: View {
         }
     }
 
+    /// Timestamped filename, matching Android's
+    /// `garage-app-log-<yyyy-MM-dd-HH-mm-ss>.csv`. A fixed name makes every
+    /// export collide with the last one — in Files, in Mail, and in whatever the
+    /// share sheet hands it to — so exports taken minutes apart are
+    /// indistinguishable.
     private func writeTempCsv(_ csv: String) -> URL? {
+        let stamp = DateFormatter()
+        stamp.locale = Locale(identifier: "en_US_POSIX")
+        stamp.dateFormat = "yyyy-MM-dd-HH-mm-ss"
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("garage-app-log.csv")
+            .appendingPathComponent("garage-app-log-\(stamp.string(from: Date())).csv")
         do {
             try csv.write(to: url, atomically: true, encoding: .utf8)
             return url
