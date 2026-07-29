@@ -27,8 +27,12 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 
@@ -61,15 +65,50 @@ fun RemoteButtonContent(
             onTap = onTap,
             modifier = Modifier.fillMaxWidth(),
         )
+        // The diagram is the only thing that says *where* a send is: at the
+        // server, at the door, or stalled. Its icons are individually
+        // decorative, so without a description on the group a screen-reader
+        // user gets the button label and nothing else. Collapsed into one node
+        // announcing the phase, mirroring iOS's `RemoteProgressDiagram`.
+        val phaseDescription = state.phaseDescription()
         NetworkProgressDiagram(
             state = state.toNetworkDiagramState(),
             icons = GARAGE_DIAGRAM_ICONS,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 8.dp)
+                .then(
+                    if (phaseDescription == null) {
+                        Modifier
+                    } else {
+                        Modifier.semantics(mergeDescendants = true) {
+                            contentDescription = phaseDescription
+                        }
+                    },
+                ),
         )
     }
 }
+
+/**
+ * Spoken description of what the diagram is currently showing, or null while
+ * the button is idle (nothing has been sent, so there is no progress to
+ * report). Wording mirrors iOS's phase labels.
+ */
+@Composable
+private fun RemoteButtonState.phaseDescription(): String? =
+    when (this) {
+        RemoteButtonState.SendingToServer -> stringResource(R.string.remote_diagram_sending_to_server)
+        RemoteButtonState.SendingToDoor -> stringResource(R.string.remote_diagram_sending_to_door)
+        RemoteButtonState.Succeeded -> stringResource(R.string.remote_diagram_succeeded)
+        RemoteButtonState.ServerFailed -> stringResource(R.string.remote_diagram_server_failed)
+        RemoteButtonState.DoorFailed -> stringResource(R.string.remote_diagram_door_failed)
+        RemoteButtonState.AwaitingConfirmation -> stringResource(R.string.remote_diagram_armed)
+        RemoteButtonState.Ready,
+        RemoteButtonState.Preparing,
+        RemoteButtonState.Cancelled,
+        -> null
+    }
 
 // region Previews
 

@@ -64,7 +64,10 @@ val DEFAULT_GARAGE_DOOR_ANIMATION_DURATION: Duration =
 @Composable
 internal fun DirectionOverlay(
     rotationDegrees: Float,
-    contentDescription: String,
+    // Nullable and normally null: the arrow restates the door status the
+    // headline already announces, so describing it makes a screen reader say
+    // the same thing twice.
+    contentDescription: String?,
 ) {
     Box(
         modifier = Modifier
@@ -96,7 +99,9 @@ internal fun WarningOverlay() {
         Icon(
             imageVector = Icons.Filled.Warning,
             tint = MaterialTheme.colorScheme.onBackground,
-            contentDescription = "Warning Symbol",
+            // Decorative: the status headline and the warning chip already
+            // announce this state, so naming the glyph just repeats them.
+            contentDescription = null,
             modifier = Modifier.fillMaxSize(0.6f),
         )
     }

@@ -39,9 +39,13 @@ import java.util.Locale
  */
 object HistoryFormatter {
     /**
-     * Format an epoch-seconds time as a locale-aware "h:mm a" string
-     * (e.g. "9:47 AM"). Tests use [Locale.US] for reproducibility —
-     * production renders in the device locale.
+     * Format an epoch-seconds time as "h:mm a" (e.g. "9:47 AM").
+     *
+     * The pattern and [Locale.US] are fixed, in production as well as in tests
+     * — this is NOT locale-aware, despite what this comment used to claim. A
+     * device set to 24-hour time still sees AM/PM here. iOS renders History the
+     * same way, so the two platforms agree; if this is ever localized, both
+     * sides should change together.
      */
     fun formatTime(
         timeSeconds: Long,

@@ -25,9 +25,33 @@
     <string name="settings_section_about">About</string>
     <string name="settings_section_developer">Developer</string>
 
+    <!-- Home — remote button states. The two failure states are named
+         separately: the shared RemoteButtonState distinguishes a server refusal
+         from a door that never moved, and those call for different reactions. -->
+    <string name="remote_button_ready">Tap to open or close</string>
+    <string name="remote_button_confirm_title">Door will move.</string>
+    <string name="remote_button_confirm_subtitle">Tap again to confirm</string>
+    <string name="remote_button_preparing">Preparing…</string>
+    <string name="remote_button_cancelled">Cancelled</string>
+    <string name="remote_button_sending">Sending…</string>
+    <string name="remote_button_waiting">Waiting for door…</string>
+    <string name="remote_button_succeeded">Done</string>
+    <string name="remote_button_server_failed">Server error</string>
+    <string name="remote_button_door_failed">Door did not move</string>
+
+    <!-- Home — spoken description of the phone/server/door progress diagram.
+         The icons are decorative individually; the group announces the phase. -->
+    <string name="remote_diagram_armed">Armed, waiting for confirmation</string>
+    <string name="remote_diagram_sending_to_server">Sending to server</string>
+    <string name="remote_diagram_sending_to_door">Waiting for the door to respond</string>
+    <string name="remote_diagram_succeeded">Door responded</string>
+    <string name="remote_diagram_server_failed">Server did not accept the request</string>
+    <string name="remote_diagram_door_failed">Door did not respond</string>
+
     <!-- Settings — Account section rows. -->
     <string name="settings_account_sign_in">Sign in with Google</string>
     <string name="settings_account_checking">Checking sign-in…</string>
+    <string name="settings_account_sign_in_subtitle">Unlocks the remote button and snooze</string>
 
     <!-- Settings — Notifications section row + subtitle states. -->
     <string name="settings_notifications_row_title">Door open notifications</string>
@@ -50,7 +74,7 @@
     <!-- Version row subtitle. %1$s is the versionName, %2$s is the versionCode. -->
     <string name="settings_about_version_subtitle">%1$s (build %2$s)</string>
     <string name="settings_about_play_store_title">Play Store</string>
-    <string name="settings_about_privacy_policy_title">Privacy Policy</string>
+    <string name="settings_about_privacy_policy_title">Privacy policy</string>
 
     <!-- Settings — Developer section rows. -->
     <string name="settings_developer_diagnostics_title">Diagnostics</string>
@@ -249,6 +273,7 @@
 
     <!-- Function List screen — warning paragraph + per-action button labels. -->
     <string name="function_list_warning">Each button below performs a real action immediately. No confirmation prompts. Tapping triggers calls to the server, modifies app state, or wipes local data. Double-check the label before tapping.</string>
+    <string name="function_list_access_denied_title">Functions unavailable</string>
     <string name="function_list_access_denied">Access not enabled for your account.</string>
     <string name="function_list_door_action">Open or close garage door</string>
     <string name="function_list_refresh_door_status">Refresh door status</string>

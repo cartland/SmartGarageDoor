@@ -47,6 +47,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -67,8 +68,6 @@ import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.ui.theme.safeListContentPadding
 import com.chriscartland.garage.viewmodel.DiagnosticsViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -121,12 +120,16 @@ fun DiagnosticsScreen(
     )
 
     val clearInFlight by diagnosticsViewModel.clearInFlight.collectAsState()
+    val exportScope = rememberCoroutineScope()
 
     val csvLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { result ->
         val uri = result.data?.data ?: return@rememberLauncherForActivityResult
-        CoroutineScope(Dispatchers.IO).launch {
+        // A composition-scoped scope, not a bare `CoroutineScope(Dispatchers.IO)`:
+        // an unmanaged scope is never cancelled, so leaving the screen mid-export
+        // leaves the write running against a screen that is gone.
+        exportScope.launch {
             // ADR-033: the CSV is built by the VM; the UI does only the write.
             writeCsvToUri(diagnosticsViewModel.buildExportCsv(), context, uri)
         }

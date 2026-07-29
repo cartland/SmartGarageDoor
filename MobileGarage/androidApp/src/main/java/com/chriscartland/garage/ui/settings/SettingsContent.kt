@@ -163,7 +163,9 @@ fun SettingsContent(
                     AccountRowState.SignedOut -> SettingsRow(
                         icon = Icons.AutoMirrored.Outlined.Login,
                         title = stringResource(R.string.settings_account_sign_in),
-                        subtitle = null,
+                        // Says why it is worth doing, rather than leaving the
+                        // user to guess what signing in buys them.
+                        subtitle = stringResource(R.string.settings_account_sign_in_subtitle),
                         showChevron = false,
                         onClick = onSignInTap,
                     )

@@ -34,7 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.NotificationsActive
-import androidx.compose.material.icons.outlined.SignalWifiOff
+import androidx.compose.material.icons.outlined.SensorsOff
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -600,7 +600,10 @@ private fun HomeAlertCard(
     onAction: () -> Unit,
 ) {
     val icon = when (alert) {
-        HomeAlert.Stale -> Icons.Outlined.SignalWifiOff
+        // Same Sensors family as DeviceCheckInPill: both mean "the device
+        // stopped checking in", so they should not use two different
+        // no-signal metaphors on one screen.
+        HomeAlert.Stale -> Icons.Outlined.SensorsOff
         is HomeAlert.PermissionMissing -> Icons.Outlined.NotificationsActive
         is HomeAlert.FetchError -> Icons.Outlined.WarningAmber
     }

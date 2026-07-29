@@ -20,10 +20,15 @@ package com.chriscartland.garage.ui
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -190,17 +195,39 @@ private fun FunctionListWarning() {
     )
 }
 
+/**
+ * Shown when the account is not on the allowlist. A lone sentence on a blank
+ * page reads like a failure to load; an icon + title + explanation reads like a
+ * deliberate state, which is what this is. Mirrors iOS's locked state.
+ */
 @Composable
 private fun FunctionListAccessDeniedContent(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier.padding(32.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = stringResource(R.string.function_list_access_denied),
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Lock,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(48.dp),
+            )
+            Text(
+                text = stringResource(R.string.function_list_access_denied_title),
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = stringResource(R.string.function_list_access_denied),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 
