@@ -239,26 +239,26 @@ private struct HistoryEmptyState: View {
             days: [
                 .init(id: "today", title: .copy("Today"), entries: [
                     .init(id: "t0", position: .open, headline: "Open",
-                          supporting: .copy("Since 10:15 AM · 12 min and counting"), warnings: []),
-                    .init(id: "t1", position: .closed, headline: "Closed at 9:53 AM",
-                          supporting: .copy("Closed for 22 min"), warnings: []),
-                    .init(id: "t2", position: .open, headline: "Opened at 9:47 AM",
-                          supporting: .copy("Open for 6 min"),
-                          warnings: ["Took 4 min to open, longer than expected"]),
+                          supporting: .data("Since 10:15 AM · 12 min and counting"), warnings: []),
+                    .init(id: "t1", position: .closed, headline: previewText("Closed at 9:53 AM"),
+                          supporting: .data("Closed for 22 min"), warnings: []),
+                    .init(id: "t2", position: .open, headline: previewText("Opened at 9:47 AM"),
+                          supporting: .data("Open for 6 min"),
+                          warnings: [previewText("Took 4 min to open, longer than expected")]),
                 ]),
                 .init(id: "yesterday", title: .copy("Yesterday"), entries: [
                     .init(id: "y0", position: .errorSensorConflict, headline: "Sensor conflict",
                           supporting: .data("11:42 PM"), warnings: []),
-                    .init(id: "y1", position: .closed, headline: "Closed at 8:30 PM",
-                          supporting: .copy("Closed for 10 hr 12 min"), warnings: []),
-                    .init(id: "y2", position: .open, headline: "Opened at 6:30 PM",
-                          supporting: .copy("Open for 2 hr"), warnings: []),
+                    .init(id: "y1", position: .closed, headline: previewText("Closed at 8:30 PM"),
+                          supporting: .data("Closed for 10 hr 12 min"), warnings: []),
+                    .init(id: "y2", position: .open, headline: previewText("Opened at 6:30 PM"),
+                          supporting: .data("Open for 2 hr"), warnings: []),
                 ]),
                 .init(id: "2026-4-27", title: .data("Mon, Apr 27"), entries: [
                     .init(id: "d0", position: .openingTooLong, headline: "Stuck opening",
                           supporting: .data("5:30 PM"), warnings: []),
-                    .init(id: "d1", position: .closed, headline: "Closed at 7:18 AM",
-                          supporting: .copy("Closed for 10 hr 12 min"), warnings: []),
+                    .init(id: "d1", position: .closed, headline: previewText("Closed at 7:18 AM"),
+                          supporting: .data("Closed for 10 hr 12 min"), warnings: []),
                 ]),
             ],
             isLoading: false,
@@ -273,10 +273,10 @@ private struct HistoryEmptyState: View {
             days: [
                 .init(id: "today", title: .copy("Today"), entries: [
                     .init(id: "t0", position: .closed, headline: "Closed",
-                          supporting: .copy("Since 11:30 AM · 47 min and counting"),
-                          warnings: ["Took 3 min to close, longer than expected"]),
-                    .init(id: "t1", position: .openMisaligned, headline: "Opened at 11:20 AM",
-                          supporting: .copy("Open for 10 min"), warnings: ["Door was misaligned"]),
+                          supporting: .data("Since 11:30 AM · 47 min and counting"),
+                          warnings: [previewText("Took 3 min to close, longer than expected")]),
+                    .init(id: "t1", position: .openMisaligned, headline: previewText("Opened at 11:20 AM"),
+                          supporting: .data("Open for 10 min"), warnings: ["Door was misaligned"]),
                 ]),
                 .init(id: "2026-4-27", title: .data("Mon, Apr 27"), entries: [
                     .init(id: "d0", position: .closingTooLong, headline: "Stuck closing",
@@ -302,8 +302,8 @@ private struct HistoryEmptyState: View {
         HistoryContentView(
             days: [
                 .init(id: "today", title: .copy("Today"), entries: [
-                    .init(id: "t0", position: .closed, headline: "Closed at 9:53 AM",
-                          supporting: .copy("Closed for 22 min"), warnings: []),
+                    .init(id: "t0", position: .closed, headline: previewText("Closed at 9:53 AM"),
+                          supporting: .data("Closed for 22 min"), warnings: []),
                 ]),
             ],
             isLoading: false,
@@ -322,10 +322,10 @@ private struct HistoryEmptyState: View {
         HistoryContentView(
             days: [
                 .init(id: "today", title: .copy("Today"), entries: [
-                    .init(id: "t0", position: .closed, headline: "Closed at 9:53 AM",
-                          supporting: .copy("Closed for 22 min"), warnings: []),
-                    .init(id: "t1", position: .open, headline: "Opened at 9:47 AM",
-                          supporting: .copy("Open for 6 min"), warnings: []),
+                    .init(id: "t0", position: .closed, headline: previewText("Closed at 9:53 AM"),
+                          supporting: .data("Closed for 22 min"), warnings: []),
+                    .init(id: "t1", position: .open, headline: previewText("Opened at 9:47 AM"),
+                          supporting: .data("Open for 6 min"), warnings: []),
                 ]),
             ],
             isLoading: false,
@@ -342,8 +342,8 @@ private struct HistoryEmptyState: View {
         HistoryContentView(
             days: [
                 .init(id: "today", title: .copy("Today"), entries: [
-                    .init(id: "t0", position: .closed, headline: "Closed at 9:53 AM",
-                          supporting: .copy("Closed for 22 min"), warnings: []),
+                    .init(id: "t0", position: .closed, headline: previewText("Closed at 9:53 AM"),
+                          supporting: .data("Closed for 22 min"), warnings: []),
                 ]),
             ],
             isLoading: false,

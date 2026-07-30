@@ -692,7 +692,7 @@ private struct CopyableValueRow: View {
     let durations: [(label: LocalizedStringResource, option: SnoozeDurationUIOption)] =
         SnoozeDurationUIOption.allCases.map { (SnoozeDurationLabels.text(for: $0), $0) }
     return SnoozeSheetContentView(
-        currentLabel: "Snoozing until 9:00 PM",
+        currentLabel: previewText("Snoozing until 9:00 PM"),
         durations: durations,
         selected: .fourHours,
         onSelect: { _ in },

@@ -115,7 +115,37 @@ if [ -n "$exempt_paths" ]; then
     fi
 fi
 
+# `previewText(...)` deliberately hides a string from the compiler's extractor so
+# `#Preview` sample data stays out of the String Catalog. That makes it a loaded
+# gun in production: a call there silently un-localizes real copy, with exactly
+# the no-warning failure mode this whole check exists to catch.
+#
+# Enforced positionally: every call must sit after the file's first `#Preview`
+# MACRO INVOCATION. Anchored to the start of a line on purpose — matching
+# `#Preview` anywhere also matches doc comments that merely mention it (e.g.
+# HomeScreen.swift:54, "`#Preview`s and snapshot gallery capture"), which set the
+# flag before any real preview and made the whole check pass vacuously.
+misuse=$(
+    for f in $(git grep -l 'previewText(' -- 'MobileGarage/iosApp/**/*.swift' || true); do
+        # Skip the helper's own definition.
+        [ "$f" = "MobileGarage/iosApp/Core/PreviewText.swift" ] && continue
+        awk -v file="$f" '
+            /^#Preview/ { seen = 1 }
+            /previewText\(/ && !seen { printf "  %s:%d: %s\n", file, NR, $0 }
+        ' "$f"
+    done
+)
+
+if [ -n "${misuse//[$'\n' ]/}" ]; then
+    echo "FAIL: previewText() used outside a #Preview body." >&2
+    echo "It suppresses string extraction, so in production it silently makes copy" >&2
+    echo "untranslatable. Use a plain literal in a LocalizedStringResource position." >&2
+    echo "" >&2
+    printf '%s\n' "$misuse" >&2
+    failed=1
+fi
+
 [ "$failed" -eq 0 ] || exit 1
 
 remaining=$(printf '%s\n' "$exempt_paths" | grep -cvE '^$' || true)
-echo "PASS: no value-typed Text()/Label() outside the fence ($remaining file(s) listed)."
+echo "PASS: no value-typed Text()/Label() outside the fence ($remaining file(s) listed); previewText confined to previews."
