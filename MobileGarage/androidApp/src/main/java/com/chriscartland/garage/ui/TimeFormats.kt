@@ -23,14 +23,12 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalInspectionMode
-import com.chriscartland.garage.domain.model.FriendlyDuration
 import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import kotlin.time.toKotlinDuration
 
 /**
  * Convert Unix timestamp seconds to a human-readable date string.
@@ -59,10 +57,27 @@ fun Long.toFriendlyTimeShort(): String? =
 /**
  * Convert a [java.time.Duration] to a human-readable string.
  *
- * Delegates to [FriendlyDuration.format] (shared KMP code) after converting
- * from java.time.Duration to kotlin.time.Duration.
+ * Android-side on purpose. This used to live in `:domain` as `FriendlyDuration`,
+ * whose KDoc claimed "no locale or platform dependencies" while it built
+ * `"2 days, 3h 4m 5s"` — English words and English pluralization ("day" plus an
+ * "s") compiled into shared code that iOS would have inherited. The shared layer
+ * was not deciding anything here that a platform cannot decide from the
+ * [Duration] it already holds, so the whole thing belongs on this side of the
+ * boundary.
  */
-fun Duration.toFriendlyDuration(): String = FriendlyDuration.format(this.toKotlinDuration())
+fun Duration.toFriendlyDuration(): String {
+    val totalSeconds = this.seconds
+    val days = totalSeconds / 86_400
+    val hours = (totalSeconds % 86_400) / 3_600
+    val minutes = (totalSeconds % 3_600) / 60
+    val seconds = totalSeconds % 60
+    return when {
+        days > 0 -> "$days day${if (days > 1) "s" else ""}, ${hours}h ${minutes}m ${seconds}s"
+        hours > 0 -> "${hours}h ${minutes}m ${seconds}s"
+        minutes > 0 -> "${minutes}m ${seconds}s"
+        else -> "${seconds}s"
+    }
+}
 
 /**
  * Returns a [State] holding the live [Duration] since [time], updated every second.

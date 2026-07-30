@@ -46,8 +46,15 @@ sealed interface ButtonHealthDisplay {
     /** Server confirmed ONLINE. */
     data object Online : ButtonHealthDisplay
 
-    /** Server confirmed OFFLINE. The ONLY arm that renders the pill. */
+    /**
+     * Server confirmed OFFLINE. The ONLY arm that renders the pill.
+     *
+     * Carries a typed [age] plus which timestamp it was measured from, rather
+     * than a formatted string: the bucketing is a shared decision, the wording
+     * belongs to each platform so it can be translated.
+     */
     data class Offline(
-        val durationLabel: String,
+        val age: ButtonOfflineAge,
+        val source: ButtonOfflineAgeSource,
     ) : ButtonHealthDisplay
 }

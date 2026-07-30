@@ -40,11 +40,16 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.R
+import com.chriscartland.garage.ui.home.RemoteOfflineText
 import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
+import com.chriscartland.garage.usecase.ButtonOfflineAge
+import com.chriscartland.garage.usecase.ButtonOfflineAgeSource
 
 /**
  * Pill that renders every VERDICT arm of [ButtonHealthDisplay] — and
@@ -131,7 +136,13 @@ private data class PillContents(
 )
 
 private object RemoteButtonHealthPillContents {
-    /** Null = render nothing (the no-verdict arm has no pill). */
+    /**
+     * Null = render nothing (the no-verdict arm has no pill).
+     *
+     * `@Composable` because the offline arm reads string resources: the shared
+     * layer hands over a typed age bucket and the words are looked up here.
+     */
+    @Composable
     fun from(display: ButtonHealthDisplay): PillContents? =
         when (display) {
             is ButtonHealthDisplay.Unauthorized -> PillContents(
@@ -150,11 +161,14 @@ private object RemoteButtonHealthPillContents {
                 icon = Icons.Outlined.Sensors,
                 iconDescription = "Remote button available",
             )
-            is ButtonHealthDisplay.Offline -> PillContents(
-                label = "Unavailable · ${display.durationLabel}",
-                icon = Icons.Outlined.SensorsOff,
-                iconDescription = "Remote button unavailable, last seen ${display.durationLabel}",
-            )
+            is ButtonHealthDisplay.Offline -> {
+                val ageText = RemoteOfflineText.label(display)
+                PillContents(
+                    label = stringResource(R.string.remote_offline_pill_label, ageText),
+                    icon = Icons.Outlined.SensorsOff,
+                    iconDescription = stringResource(R.string.remote_offline_pill_description, ageText),
+                )
+            }
         }
 }
 
@@ -187,7 +201,7 @@ fun RemoteButtonHealthPillAvailablePreview() {
 fun RemoteButtonHealthPillUnavailablePreview() {
     PreviewComponentSurface {
         RemoteButtonHealthPill(
-            display = ButtonHealthDisplay.Offline(durationLabel = "11 min ago"),
+            display = ButtonHealthDisplay.Offline(age = ButtonOfflineAge.Minutes(11), source = ButtonOfflineAgeSource.LAST_SEEN),
         )
     }
 }

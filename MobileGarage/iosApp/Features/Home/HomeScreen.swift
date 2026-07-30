@@ -175,8 +175,18 @@ struct HomeContentView: View {
                     .frame(height: 160)
                     .frame(maxWidth: .infinity)
                     VStack(spacing: GarageSpacing.tight) {
-                        Text(hasDoorData ? doorPosition.statusLabel : "Connecting…")
-                            .font(.title2.weight(.semibold))
+                        // Written as if/else, not a ternary. `statusLabel` is a
+                        // String, so `cond ? statusLabel : "Connecting…"` unifies
+                        // the whole expression to String and the literal loses
+                        // its LocalizedStringKey treatment — it would never be
+                        // extracted for translation, silently.
+                        if hasDoorData {
+                            Text(doorPosition.statusLabel)
+                                .font(.title2.weight(.semibold))
+                        } else {
+                            Text("Connecting…")
+                                .font(.title2.weight(.semibold))
+                        }
                         if !hasDoorData {
                             Text("Waiting for the latest door status")
                                 .font(.subheadline)

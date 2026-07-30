@@ -1961,3 +1961,90 @@ A persisted last-known-value cache in the KMP layer; repositories **hydrate-then
 - `STATUS_CACHE_PLAN.md` — full design + review-verified tradeoff magnitudes (shipped).
 - ADR-015 (managers), ADR-019 (externalScope writes), ADR-022 (repo-owned StateFlow), ADR-023 (Complete-on-Success) — the conventions this composes with.
 - `buildSrc/.../BackupRulesExcludeCheckTask.kt`, `DataStoreSingletonCheckTask.kt` — enforcement.
+
+---
+
+## ADR-035: User-visible strings belong to the platform; the shared layer expresses meaning, not words
+
+**Status:** Adopted (2026-07-30)
+
+### Decision
+
+The KMP layer never holds text a user reads. It expresses *what is true* as a typed
+value — an `enum class` or a `sealed interface` — and each platform maps those cases
+to its own localized words: Android through `strings.xml` / `plurals.xml`, iOS through
+its own catalog.
+
+The rule is scoped by a single test:
+
+> **Does shared logic decide which variant the user sees?**
+
+- **Yes** → the shared layer owns the decision as a typed value. The platform owns the wording.
+- **No** → the shared layer stays out of it entirely. A fixed heading, a button whose
+  label never changes, a list of static labels — those are plain platform strings and
+  need no shared type at all.
+
+This is deliberately *not* a mandate to model every string. There is **no global enum
+of UI strings**, and none should be created. Types are small and scoped to the one
+concept they describe (`ButtonOfflineAge`, `DoorWarning`, `CheckInAge`), because a
+catalog-shaped type would couple unrelated screens and re-create the coupling this ADR
+exists to remove.
+
+### Why
+
+Three properties, in order of how much they cost when lost:
+
+1. **Localization is per-platform by construction.** Each platform already has a mature
+   localization mechanism its tooling, translators, and OS understand. A string in
+   `commonMain` can use neither, so shipping one forecloses translating that screen on
+   *both* platforms at once.
+2. **Pluralization is not a shared concept.** `"day" + if (n == 1) "" else "s"` encodes
+   English's two-form rule. Android's `plurals.xml` and iOS's catalog know each locale's
+   actual rule; hand-picking the form throws that away.
+3. **A typed value is exhaustively checked; a string is not.** Adding a case to a sealed
+   type is a compile error in both UIs. Adding a case to a formatter is a silent
+   divergence.
+
+### What this does NOT cover
+
+Not every string in shared code is a violation. These stay:
+
+- **Wire and protocol values** — FCM topic names, JSON keys, HTTP paths, Firestore
+  fields, Room table/column names, DataStore keys, `AppLoggerKeys`, `SnoozeDurationServerOption`'s
+  `"0h".."12h"`. Changing these breaks contracts (see CLAUDE.md § FCM safety). They are
+  not user-visible; they only look like text.
+- **Log and diagnostic text** — Kermit bodies, `require` messages, exception text.
+  Developer-facing.
+- **Preview and test fixtures.**
+- **Server-supplied prose** — `DoorWarning.ServerMessage` is the documented escape hatch.
+  It cannot be localized client-side; every other arm of that type is a typed `data object`.
+
+### Consequences
+
+The boundary moves the *decision* into shared code and the *vocabulary* out of it, so a
+platform can be translated without touching Kotlin, and neither platform can quietly
+disagree about which state is true.
+
+The cost is one mapping site per platform per type — an exhaustive `when` / `switch`.
+That is the same cost ADR-031 already accepted, and it is what makes a new case
+impossible to miss.
+
+Two known consequences that are **not** yet resolved:
+
+- **Android maps some typed values to Kotlin literals rather than `strings.xml`**
+  (`DeviceCheckIn.format`, `RemoteButtonHealthPillContents`). The layer is right, the
+  mechanism is not localizable. The existing `checkNoLiteralStringsInCompose` lint only
+  scans Composables, so plain objects escape it.
+- **iOS has no localization mechanism at all** — every user-visible string is a bare
+  Swift literal, and roughly two-thirds sit in `String`-typed wrapper properties that
+  SwiftUI cannot extract even with a catalog present. See `IOS_LOCALIZATION.md`.
+
+Neither blocks this ADR: both are about *how* a platform stores its words, which is
+precisely the platform's business. This ADR only fixes where the words are decided.
+
+### References
+
+- ADR-031 (`presentation-model` typed display state) — this ADR is its localization
+  corollary, and the mappers it introduced are the reference implementation.
+- `IOS_LOCALIZATION.md` — the iOS-side gap and its remediation path.
+- `ButtonOfflineAge` / `ButtonOfflineAgeMapper` — the fix that motivated writing this down.

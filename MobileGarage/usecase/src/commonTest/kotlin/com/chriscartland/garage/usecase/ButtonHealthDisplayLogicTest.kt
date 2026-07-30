@@ -126,7 +126,8 @@ class ButtonHealthDisplayLogicTest {
             nowSeconds = now,
         )
         val offline = assertIs<ButtonHealthDisplay.Offline>(display)
-        assertEquals("11 min ago", offline.durationLabel)
+        assertEquals(ButtonOfflineAge.Minutes(11), offline.age)
+        assertEquals(ButtonOfflineAgeSource.STATE_CHANGED, offline.source)
     }
 
     @Test
@@ -146,6 +147,7 @@ class ButtonHealthDisplayLogicTest {
             nowSeconds = now,
         )
         val offline = assertIs<ButtonHealthDisplay.Offline>(display)
-        assertEquals("last seen 6 min ago", offline.durationLabel)
+        assertEquals(ButtonOfflineAge.Minutes(6), offline.age)
+        assertEquals(ButtonOfflineAgeSource.LAST_SEEN, offline.source)
     }
 }

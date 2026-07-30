@@ -84,6 +84,8 @@ import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.doorColorState
 import com.chriscartland.garage.ui.theme.safeListContentPadding
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
+import com.chriscartland.garage.usecase.ButtonOfflineAge
+import com.chriscartland.garage.usecase.ButtonOfflineAgeSource
 import java.time.Instant
 import java.time.ZoneId
 
@@ -916,7 +918,10 @@ fun HomeContentRemotePillOfflinePreview() =
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
             deviceCheckIn = HomePreviewData.freshCheckIn,
-            buttonHealthDisplay = ButtonHealthDisplay.Offline(durationLabel = "11 min ago"),
+            buttonHealthDisplay = ButtonHealthDisplay.Offline(
+                age = ButtonOfflineAge.Minutes(11),
+                source = ButtonOfflineAgeSource.LAST_SEEN,
+            ),
             modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }
