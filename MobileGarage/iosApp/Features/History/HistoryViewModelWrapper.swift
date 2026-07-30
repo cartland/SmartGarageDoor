@@ -175,57 +175,68 @@ final class HistoryViewModelWrapper: ObservableObject {
         }
     }
 
-    // MARK: - Entry resolution (mirrors HistoryContent.HistoryEntryRow)
+    // MARK: - Entry resolution (words for the shared HistoryRowMapper)
 
+    /// Every decision this row makes — door art, which of six headlines, which
+    /// supporting line, which tags and whether one is suppressed — comes from
+    /// `HistoryRowMapper`. This only supplies the words, and the `id`.
     private static func resolve(_ entry: HistoryEntry, index: Int) -> Entry {
+        let row = HistoryRowMapper.shared.forEntry(entry: entry)
+        return Entry(
+            id: "\(entryTimeSeconds(entry))-\(index)",
+            position: row.doorPosition,
+            headline: headlineText(row.headline),
+            supporting: supportingText(row.supporting),
+            warnings: row.tags.map { tagText($0) }
+        )
+    }
+
+    /// iOS wording for one shared `HistoryHeadline`.
+    private static func headlineText(_ headline: HistoryHeadline) -> LocalizedStringResource {
+        switch onEnum(of: headline) {
+        case .openNow:
+            return "Open"
+        case .openNowMisaligned:
+            return "Open (misaligned)"
+        case .openedAt(let h):
+            return "Opened at \(clockText(h.timeSeconds))"
+        case .closedNow:
+            return "Closed"
+        case .closedAt(let h):
+            return "Closed at \(clockText(h.timeSeconds))"
+        case .anomaly(let h):
+            return anomalyTitle(h.kind)
+        }
+    }
+
+    /// iOS wording for one shared `HistorySupporting`.
+    private static func supportingText(_ supporting: HistorySupporting) -> DisplayText {
+        switch onEnum(of: supporting) {
+        case .sinceWithSpan(let s):
+            let span = String(localized: stateSpanText(s.span))
+            return .copy("Since \(clockText(s.timeSeconds)) · \(span)")
+        case .span(let s):
+            return .copy(stateSpanText(s.span))
+        case .clockTime(let s):
+            // An already-locale-formatted clock time: data, not copy.
+            return .data(clockText(s.timeSeconds))
+        }
+    }
+
+    /// iOS wording for one shared `HistoryTag`.
+    private static func tagText(_ tag: HistoryTag) -> LocalizedStringResource {
+        switch onEnum(of: tag) {
+        case .transit(let t): return transitText(t.warning)
+        case .misaligned: return "Door was misaligned"
+        }
+    }
+
+    /// The row's own timestamp, used only to build a stable list identity.
+    private static func entryTimeSeconds(_ entry: HistoryEntry) -> Int64 {
         switch onEnum(of: entry) {
-        case .opened(let opened):
-            let time = clockText(opened.timeSeconds)
-            let duration = stateDuration(opened.durationSeconds, isCurrent: opened.isCurrent, isOpen: true)
-            let headline: LocalizedStringResource
-            if opened.isCurrent && opened.misaligned {
-                headline = "Open (misaligned)"
-            } else if opened.isCurrent {
-                headline = "Open"
-            } else {
-                headline = "Opened at \(time)"
-            }
-            var warnings: [LocalizedStringResource] = []
-            if let warning = opened.transitWarning { warnings.append(transitText(warning)) }
-            // Suppressed when the headline already says "(misaligned)" — the tag
-            // would just repeat it.
-            if opened.misaligned && !opened.isCurrent { warnings.append("Door was misaligned") }
-            return Entry(
-                id: "\(opened.timeSeconds)-\(index)",
-                position: opened.misaligned ? .openMisaligned : .open,
-                headline: headline,
-                supporting: opened.isCurrent
-                    ? .copy("Since \(time) · \(String(localized: duration))")
-                    : .copy(duration),
-                warnings: warnings
-            )
-        case .closed(let closed):
-            let time = clockText(closed.timeSeconds)
-            let duration = stateDuration(closed.durationSeconds, isCurrent: closed.isCurrent, isOpen: false)
-            var warnings: [LocalizedStringResource] = []
-            if let warning = closed.transitWarning { warnings.append(transitText(warning)) }
-            return Entry(
-                id: "\(closed.timeSeconds)-\(index)",
-                position: .closed,
-                headline: closed.isCurrent ? "Closed" : "Closed at \(time)",
-                supporting: closed.isCurrent
-                    ? .copy("Since \(time) · \(String(localized: duration))")
-                    : .copy(duration),
-                warnings: warnings
-            )
-        case .anomaly(let anomaly):
-            return Entry(
-                id: "\(anomaly.timeSeconds)-\(index)",
-                position: anomaly.doorPosition,
-                headline: anomalyTitle(anomaly.kind),
-                supporting: .data(clockText(anomaly.timeSeconds)),
-                warnings: []
-            )
+        case .opened(let e): return e.timeSeconds
+        case .closed(let e): return e.timeSeconds
+        case .anomaly(let e): return e.timeSeconds
         }
     }
 
@@ -247,12 +258,7 @@ final class HistoryViewModelWrapper: ObservableObject {
     /// this supplies the words. Both were previously reimplemented here against
     /// Android's `stateDurationDisplay`, on the highest-traffic surface in the
     /// app — every row of the history list.
-    private static func stateDuration(_ seconds: Int64, isCurrent: Bool, isOpen: Bool) -> LocalizedStringResource {
-        let display = HistoryDurationMapper.shared.stateSpan(
-            seconds: seconds,
-            isCurrent: isCurrent,
-            isOpen: isOpen
-        )
+    private static func stateSpanText(_ display: StateSpanDisplay) -> LocalizedStringResource {
         let text = stateDurationText(display.duration)
         switch display.framing {
         case .andCounting: return "\(text) and counting"

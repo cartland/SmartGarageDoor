@@ -85,7 +85,25 @@
     "Closed": {
       "extractionState": "manual"
     },
+    "Closed at %@": {
+      "extractionState": "manual"
+    },
+    "Closed at 7:18 AM": {
+      "extractionState": "manual"
+    },
+    "Closed at 8:30 PM": {
+      "extractionState": "manual"
+    },
+    "Closed at 9:53 AM": {
+      "extractionState": "manual"
+    },
     "Closed for %@": {
+      "extractionState": "manual"
+    },
+    "Closed for 10 hr 12 min": {
+      "extractionState": "manual"
+    },
+    "Closed for 22 min": {
       "extractionState": "manual"
     },
     "Closing": {
@@ -142,6 +160,9 @@
     "Door status": {
       "extractionState": "manual"
     },
+    "Door was misaligned": {
+      "extractionState": "manual"
+    },
     "Double tap to copy": {
       "extractionState": "manual"
     },
@@ -196,13 +217,37 @@
     "Open": {
       "extractionState": "manual"
     },
+    "Open (misaligned)": {
+      "extractionState": "manual"
+    },
     "Open / close door": {
       "extractionState": "manual"
     },
     "Open for %@": {
       "extractionState": "manual"
     },
+    "Open for 10 min": {
+      "extractionState": "manual"
+    },
+    "Open for 2 hr": {
+      "extractionState": "manual"
+    },
+    "Open for 6 min": {
+      "extractionState": "manual"
+    },
     "Open or close the garage and check back here.": {
+      "extractionState": "manual"
+    },
+    "Opened at %@": {
+      "extractionState": "manual"
+    },
+    "Opened at 11:20 AM": {
+      "extractionState": "manual"
+    },
+    "Opened at 6:30 PM": {
+      "extractionState": "manual"
+    },
+    "Opened at 9:47 AM": {
       "extractionState": "manual"
     },
     "Opening": {
@@ -274,6 +319,15 @@
     "Silences the open-door warning for the selected time. Currently: %@.": {
       "extractionState": "manual"
     },
+    "Since %@ · %@": {
+      "extractionState": "manual"
+    },
+    "Since 10:15 AM · 12 min and counting": {
+      "extractionState": "manual"
+    },
+    "Since 11:30 AM · 47 min and counting": {
+      "extractionState": "manual"
+    },
     "Snooze 1 hour": {
       "extractionState": "manual"
     },
@@ -295,6 +349,12 @@
     "Status": {
       "extractionState": "manual"
     },
+    "Stuck closing": {
+      "extractionState": "manual"
+    },
+    "Stuck opening": {
+      "extractionState": "manual"
+    },
     "Subscribe test notifications": {
       "extractionState": "manual"
     },
@@ -307,10 +367,19 @@
     "This developer panel is gated to allowlisted accounts.": {
       "extractionState": "manual"
     },
+    "Today": {
+      "extractionState": "manual"
+    },
     "Took %@ to close, longer than expected": {
       "extractionState": "manual"
     },
     "Took %@ to open, longer than expected": {
+      "extractionState": "manual"
+    },
+    "Took 3 min to close, longer than expected": {
+      "extractionState": "manual"
+    },
+    "Took 4 min to open, longer than expected": {
       "extractionState": "manual"
     },
     "Topic": {
@@ -320,6 +389,9 @@
       "extractionState": "manual"
     },
     "Unknown": {
+      "extractionState": "manual"
+    },
+    "Unknown state": {
       "extractionState": "manual"
     },
     "Unlocks the remote button and snooze": {
@@ -335,6 +407,9 @@
       "extractionState": "manual"
     },
     "Waiting for the latest door status": {
+      "extractionState": "manual"
+    },
+    "Yesterday": {
       "extractionState": "manual"
     },
     "You can manage permissions in the iOS Settings app.": {

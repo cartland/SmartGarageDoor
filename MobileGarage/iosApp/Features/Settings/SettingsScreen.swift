@@ -218,8 +218,8 @@ struct SettingsContentView: View {
                         SettingsRowLabel(
                             icon: "person.crop.circle.fill",
                             // The person's own name when known, our copy when not.
-                            title: displayName.map(SettingsRowText.data) ?? .copy("Signed in"),
-                            subtitle: email.map(SettingsRowText.data),
+                            title: displayName.map(DisplayText.data) ?? .copy("Signed in"),
+                            subtitle: email.map(DisplayText.data),
                             showChevron: true
                         )
                     }
@@ -345,41 +345,10 @@ struct SettingsContentView: View {
 /// state text, optional chevron / in-flight spinner. The SwiftUI analog of
 /// Android's `SettingsRow` ListItem (icon, headline, supporting text, trailing
 /// chevron, in-flight indicator). `internal` for previews.
-/// Text in a settings row: either translatable copy, or data that must be shown
-/// exactly as-is.
-///
-/// The distinction is load-bearing. The account row's title is the signed-in
-/// person's name when there is one and the literal "Signed in" when there is
-/// not, and its subtitle is their email address. A single `String` parameter
-/// erases which is which — and a `String` parameter also silently swallows the
-/// literals, since SwiftUI only extracts what it can see as a
-/// `LocalizedStringResource` (see MobileGarage/docs/IOS_LOCALIZATION.md).
-///
-/// Deliberately NOT `ExpressibleByStringLiteral`. That would let call sites keep
-/// writing bare literals, but the literal would arrive as a plain `String`
-/// through `init(stringLiteral:)` and never be extracted — reintroducing exactly
-/// the silent failure this type exists to prevent, while looking tidier.
-enum SettingsRowText {
-    /// Translatable copy. Write the literal inline so the compiler extracts it.
-    case copy(LocalizedStringResource)
-    /// User or system data — a name, an email address, a version. Rendered
-    /// verbatim; translating it would be meaningless or actively wrong.
-    case data(String)
-
-    /// No `@ViewBuilder`: it would wrap the switch in `_ConditionalContent`,
-    /// and the callers apply `Text`-only modifiers (`.font`) to the result.
-    var view: Text {
-        switch self {
-        case .copy(let resource): return Text(resource)
-        case .data(let string): return Text(verbatim: string)
-        }
-    }
-}
-
 struct SettingsRowLabel: View {
     let icon: String
-    let title: SettingsRowText
-    var subtitle: SettingsRowText?
+    let title: DisplayText
+    var subtitle: DisplayText?
     var showChevron: Bool = false
     var inFlight: Bool = false
 
