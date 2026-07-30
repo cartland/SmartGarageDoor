@@ -61,8 +61,12 @@ import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.presentation.AnomalyKind
 import com.chriscartland.garage.presentation.DayLabel
 import com.chriscartland.garage.presentation.HistoryDay
+import com.chriscartland.garage.presentation.HistoryDurationMapper
 import com.chriscartland.garage.presentation.HistoryEntry
 import com.chriscartland.garage.presentation.HistoryMapper
+import com.chriscartland.garage.presentation.StateSpanDuration
+import com.chriscartland.garage.presentation.StateSpanFraming
+import com.chriscartland.garage.presentation.TransitSpanDuration
 import com.chriscartland.garage.presentation.TransitWarning
 import com.chriscartland.garage.ui.GarageIcon
 import com.chriscartland.garage.ui.theme.DividerInset
@@ -353,9 +357,12 @@ private fun anomalyTitle(kind: AnomalyKind): String =
     }
 
 /**
- * Assemble the localized "Open for X" / "Closed for X" / "X and counting"
- * string for a state-span duration, picking plural / single-unit / multi-unit
- * granularity based on [HistoryFormatter.stateDurationParts].
+ * Android wording for a shared [StateSpanDisplay].
+ *
+ * The bucket and the framing are decided by [HistoryDurationMapper]; this maps
+ * each arm to a localized resource. Plurals go through `plurals.xml` rather
+ * than a hand-picked suffix, because how many plural forms a language has is
+ * not something this app should be deciding.
  */
 @Composable
 private fun stateDurationDisplay(
@@ -363,31 +370,30 @@ private fun stateDurationDisplay(
     isCurrent: Boolean,
     isOpenState: Boolean,
 ): String {
-    val parts = remember(durationSeconds) { HistoryFormatter.stateDurationParts(durationSeconds) }
-    val durationText = when {
-        parts.days >= 1 -> {
-            if (parts.hours == 0) {
-                pluralStringResource(R.plurals.home_duration_days, parts.days, parts.days)
-            } else {
-                stringResource(R.string.history_state_duration_days_with_hours, parts.days, parts.hours)
-            }
-        }
-        parts.hours >= 1 -> {
-            if (parts.minutes == 0) {
-                stringResource(R.string.history_state_duration_hours_only, parts.hours)
-            } else {
-                stringResource(R.string.home_duration_hours_minutes, parts.hours, parts.minutes)
-            }
-        }
-        parts.minutes >= 1 ->
-            pluralStringResource(R.plurals.home_duration_minutes, parts.minutes, parts.minutes)
-        else ->
-            pluralStringResource(R.plurals.home_duration_seconds, parts.seconds, parts.seconds)
+    val display = remember(durationSeconds, isCurrent, isOpenState) {
+        HistoryDurationMapper.stateSpan(durationSeconds, isCurrent = isCurrent, isOpen = isOpenState)
     }
-    return when {
-        isCurrent -> stringResource(R.string.history_state_duration_and_counting, durationText)
-        isOpenState -> stringResource(R.string.history_state_duration_open_for, durationText)
-        else -> stringResource(R.string.history_state_duration_closed_for, durationText)
+    val durationText = when (val d = display.duration) {
+        is StateSpanDuration.Days ->
+            pluralStringResource(R.plurals.home_duration_days, d.days, d.days)
+        is StateSpanDuration.DaysHours ->
+            stringResource(R.string.history_state_duration_days_with_hours, d.days, d.hours)
+        is StateSpanDuration.Hours ->
+            stringResource(R.string.history_state_duration_hours_only, d.hours)
+        is StateSpanDuration.HoursMinutes ->
+            stringResource(R.string.home_duration_hours_minutes, d.hours, d.minutes)
+        is StateSpanDuration.Minutes ->
+            pluralStringResource(R.plurals.home_duration_minutes, d.minutes, d.minutes)
+        is StateSpanDuration.Seconds ->
+            pluralStringResource(R.plurals.home_duration_seconds, d.seconds, d.seconds)
+    }
+    return when (display.framing) {
+        StateSpanFraming.AND_COUNTING ->
+            stringResource(R.string.history_state_duration_and_counting, durationText)
+        StateSpanFraming.OPEN_FOR ->
+            stringResource(R.string.history_state_duration_open_for, durationText)
+        StateSpanFraming.CLOSED_FOR ->
+            stringResource(R.string.history_state_duration_closed_for, durationText)
     }
 }
 
@@ -397,26 +403,20 @@ private fun stateDurationDisplay(
  */
 @Composable
 private fun transitWarningText(warning: TransitWarning): String {
-    val parts = remember(warning.transitSeconds) {
-        HistoryFormatter.transitDurationParts(warning.transitSeconds)
+    val duration = remember(warning.transitSeconds) {
+        HistoryDurationMapper.transitSpan(warning.transitSeconds)
     }
-    val durationText = when {
-        parts.hours >= 1 -> {
-            if (parts.minutes == 0) {
-                stringResource(R.string.history_state_duration_hours_only, parts.hours)
-            } else {
-                stringResource(R.string.home_duration_hours_minutes, parts.hours, parts.minutes)
-            }
-        }
-        parts.minutes >= 1 -> {
-            if (parts.seconds == 0) {
-                pluralStringResource(R.plurals.home_duration_minutes, parts.minutes, parts.minutes)
-            } else {
-                stringResource(R.string.history_transit_minutes_seconds, parts.minutes, parts.seconds)
-            }
-        }
-        else ->
-            pluralStringResource(R.plurals.home_duration_seconds, parts.seconds, parts.seconds)
+    val durationText = when (duration) {
+        is TransitSpanDuration.Hours ->
+            stringResource(R.string.history_state_duration_hours_only, duration.hours)
+        is TransitSpanDuration.HoursMinutes ->
+            stringResource(R.string.home_duration_hours_minutes, duration.hours, duration.minutes)
+        is TransitSpanDuration.Minutes ->
+            pluralStringResource(R.plurals.home_duration_minutes, duration.minutes, duration.minutes)
+        is TransitSpanDuration.MinutesSeconds ->
+            stringResource(R.string.history_transit_minutes_seconds, duration.minutes, duration.seconds)
+        is TransitSpanDuration.Seconds ->
+            pluralStringResource(R.plurals.home_duration_seconds, duration.seconds, duration.seconds)
     }
     return when (warning) {
         is TransitWarning.ToOpen ->

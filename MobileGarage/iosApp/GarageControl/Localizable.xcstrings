@@ -1,7 +1,34 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ and counting": {
+      "extractionState": "manual"
+    },
     "%lld": {
+      "extractionState": "manual"
+    },
+    "%lld day %lld hr": {
+      "extractionState": "manual"
+    },
+    "%lld days": {
+      "extractionState": "manual"
+    },
+    "%lld hr": {
+      "extractionState": "manual"
+    },
+    "%lld hr %lld min": {
+      "extractionState": "manual"
+    },
+    "%lld min": {
+      "extractionState": "manual"
+    },
+    "%lld min %lld sec": {
+      "extractionState": "manual"
+    },
+    "%lld sec": {
+      "extractionState": "manual"
+    },
+    "1 day": {
       "extractionState": "manual"
     },
     "1 hour": {
@@ -50,6 +77,9 @@
       "extractionState": "manual"
     },
     "Closed": {
+      "extractionState": "manual"
+    },
+    "Closed for %@": {
       "extractionState": "manual"
     },
     "Closing": {
@@ -148,6 +178,9 @@
     "Open / close door": {
       "extractionState": "manual"
     },
+    "Open for %@": {
+      "extractionState": "manual"
+    },
     "Open or close the garage and check back here.": {
       "extractionState": "manual"
     },
@@ -236,6 +269,12 @@
       "extractionState": "manual"
     },
     "This developer panel is gated to allowlisted accounts.": {
+      "extractionState": "manual"
+    },
+    "Took %@ to close, longer than expected": {
+      "extractionState": "manual"
+    },
+    "Took %@ to open, longer than expected": {
       "extractionState": "manual"
     },
     "Topic": {
