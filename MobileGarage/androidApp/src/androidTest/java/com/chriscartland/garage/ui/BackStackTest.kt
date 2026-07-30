@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso
 import com.chriscartland.garage.MainActivity
+import com.chriscartland.garage.ui.NavigationTestMatchers.onSelectableNodeWithText
 import org.junit.Rule
 import org.junit.Test
 
@@ -70,8 +71,9 @@ class BackStackTest {
         composeTestRule.onNodeWithText("History").performClick()
         composeTestRule.waitForIdle()
 
-        // Tap History again
-        composeTestRule.onNodeWithText("History").performClick()
+        // Tap History again. Target the nav item explicitly: the bar now also
+        // reads "History" on this tab, so a bare text match is ambiguous.
+        composeTestRule.onSelectableNodeWithText("History").performClick()
         composeTestRule.waitForIdle()
 
         // Still on History, Back still goes to Home

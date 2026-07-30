@@ -22,6 +22,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.chriscartland.garage.MainActivity
+import com.chriscartland.garage.ui.NavigationTestMatchers.assertTopBarTitle
 import org.junit.Rule
 import org.junit.Test
 
@@ -39,7 +40,7 @@ class NavigationSmokeTest {
     @Test
     fun homeScreenDisplays() {
         // Home is the start destination — should show the top bar
-        composeTestRule.onNodeWithText("Garage").assertIsDisplayed()
+        composeTestRule.assertTopBarTitle("Garage")
     }
 
     @Test
@@ -53,16 +54,17 @@ class NavigationSmokeTest {
     fun navigateToHistory() {
         composeTestRule.onNodeWithText("History").performClick()
         composeTestRule.waitForIdle()
-        // If we get here without crashing, the History screen rendered
-        composeTestRule.onNodeWithText("Garage").assertIsDisplayed()
+        // If we get here without crashing, the History screen rendered. Titles
+        // are per screen, so this also pins which screen we landed on.
+        composeTestRule.assertTopBarTitle("History")
     }
 
     @Test
     fun navigateToProfile() {
         composeTestRule.onNodeWithText("Settings").performClick()
         composeTestRule.waitForIdle()
-        // If we get here without crashing, the Profile screen rendered
-        composeTestRule.onNodeWithText("Garage").assertIsDisplayed()
+        // If we get here without crashing, the Settings screen rendered
+        composeTestRule.assertTopBarTitle("Settings")
     }
 
     @Test
@@ -72,7 +74,7 @@ class NavigationSmokeTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Home").performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Garage").assertIsDisplayed()
+        composeTestRule.assertTopBarTitle("Garage")
     }
 
     @Test
@@ -87,6 +89,6 @@ class NavigationSmokeTest {
         composeTestRule.onNodeWithText("Home").performClick()
         composeTestRule.waitForIdle()
 
-        composeTestRule.onNodeWithText("Garage").assertIsDisplayed()
+        composeTestRule.assertTopBarTitle("Garage")
     }
 }
