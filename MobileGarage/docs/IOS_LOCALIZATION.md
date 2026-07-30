@@ -8,13 +8,12 @@ last_verified: 2026-07-29
 
 Android localizes through `strings.xml` (209 entries).
 
-**Status.** iOS now has the mechanism: `Localizable.xcstrings` +
-`SWIFT_EMIT_LOC_STRINGS: YES` + `scripts/sync-ios-string-catalog.sh` (step 1 below,
-shipped in #1159), and the fence lint from step 3 (shipped 2026-07-29). Step 2 — the
-`String` → `LocalizedStringResource` type sweep — is **in progress**: the catalog holds
-~103 keys, against roughly 189 user-visible strings, because the rest are still flattened
-to `String` before they reach a `Text`. Re-check the real number with
-`./scripts/sync-ios-string-catalog.sh` rather than trusting this paragraph.
+**Status.** iOS has the mechanism (`Localizable.xcstrings` +
+`SWIFT_EMIT_LOC_STRINGS: YES` + `scripts/sync-ios-string-catalog.sh`, #1159) and the
+fence lint (step 3, #1164). The step-2 type sweep has covered **Settings** (#1165),
+**History** (#1166) and **Home**; **Function list** and **Diagnostics** remain. The
+catalog holds ~189 keys. Re-measure with `./scripts/sync-ios-string-catalog.sh` rather
+than trusting this paragraph.
 
 ADR-035 governs *where* a string is decided (platform, not shared). This document covers
 the separate question of *how* iOS stores its words once it has them.
@@ -90,6 +89,47 @@ gitignored and the whole workflow is `validate-ios.sh` → `xcodebuild`, adoptin
 needs either opening Xcode once per string-adding PR, or a
 `scripts/sync-ios-string-catalog.sh` that merges keys from `$STRINGSDATA_DIR/*.stringsdata`
 (plain plists, `plutil -p` readable).
+
+## Three things the sweep surfaced
+
+**1. `#Preview` fixture text lands in the catalog — ~20 keys today, unfixed.**
+Once a field is typed `LocalizedStringResource`, the literals `#Preview` bodies pass into
+it are literals *in resource position*, so the compiler extracts them. The catalog now
+carries `"Since 11:22 AM · 38 min"`, `"Closed for 22 min"`, `"23 min ago"` and similar —
+sample data, never shipped, and meaningless to translate. Harmless while the catalog is
+English-only (nothing is translated yet), but it should be cleaned before any locale is
+added. The fix, when someone does it:
+
+```swift
+/// Sample text for `#Preview` fixtures. Takes a runtime `String`, so the
+/// compiler never sees a literal in `LocalizedStringResource` position and the
+/// sample never reaches the catalog.
+func previewText(_ value: String) -> LocalizedStringResource {
+    LocalizedStringResource(stringLiteral: value)
+}
+```
+
+Must be `internal` (a `#Preview` body is embedded verbatim into the generated snapshot
+test, which cannot see `private` symbols).
+
+**2. Interpolate the bridged `Int32` directly; do not wrap it in `Int(...)`.**
+A Kotlin `Int` bridges to Swift `Int32`, which interpolates into a catalog key as `%d`.
+Wrapping it (`Int(d.days)`) widens to `Int` and yields `%lld` — so the same phrase gets
+two keys (`"%d min"` *and* `"%lld min"`) and a translator is asked for both. History
+originally used the wrapped form and Home the bare one; unified on `%d`. The stale `%lld`
+keys had to be pruned by hand, because the sync script only ever adds.
+
+**3. A lone number must be formatted, not localized.**
+`Text("\(counter.value)")` produced a catalog key of literally `"%lld"` — meaningless to
+a translator, and it collides with every other bare-integer interpolation in the app. A
+number wants locale *formatting*, not translation:
+`Text(verbatim: counter.value.formatted())`.
+
+**Do not try to fix (1) by extracting in Release configuration.** `#Preview` bodies are
+excluded from a Release build, so it looks like the obvious answer. Measured: a Release
+build with `SWIFT_EMIT_LOC_STRINGS=YES` yields **zero** usable keys — production strings
+like `"Retry"` and `"Connecting…"` vanish too, not just the fixtures. Switching the sync
+script to Release would silently stop it finding anything.
 
 ## `Localizable.xcstrings` conflicts on every parallel PR — regenerate, don't merge
 

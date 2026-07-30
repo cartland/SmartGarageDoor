@@ -4,37 +4,67 @@
     "%@ and counting": {
       "extractionState": "manual"
     },
-    "%lld": {
+    "%d day %d hr": {
       "extractionState": "manual"
     },
-    "%lld day %lld hr": {
+    "%d days": {
       "extractionState": "manual"
     },
-    "%lld days": {
+    "%d days ago": {
       "extractionState": "manual"
     },
-    "%lld hr": {
+    "%d hr": {
       "extractionState": "manual"
     },
-    "%lld hr %lld min": {
+    "%d hr %d min": {
       "extractionState": "manual"
     },
-    "%lld min": {
+    "%d hr %d min ago": {
       "extractionState": "manual"
     },
-    "%lld min %lld sec": {
+    "%d hr ago": {
       "extractionState": "manual"
     },
-    "%lld sec": {
+    "%d min": {
+      "extractionState": "manual"
+    },
+    "%d min %d sec": {
+      "extractionState": "manual"
+    },
+    "%d min %d sec ago": {
+      "extractionState": "manual"
+    },
+    "%d min ago": {
+      "extractionState": "manual"
+    },
+    "%d sec": {
+      "extractionState": "manual"
+    },
+    "%d sec ago": {
       "extractionState": "manual"
     },
     "1 day": {
       "extractionState": "manual"
     },
+    "1 day ago": {
+      "extractionState": "manual"
+    },
     "1 hour": {
       "extractionState": "manual"
     },
+    "1 min": {
+      "extractionState": "manual"
+    },
+    "1 min ago": {
+      "extractionState": "manual"
+    },
+    "1 sec": {
+      "extractionState": "manual"
+    },
     "12 hours": {
+      "extractionState": "manual"
+    },
+    "23 min ago": {
       "extractionState": "manual"
     },
     "4 hours": {
@@ -49,7 +79,13 @@
     "Account": {
       "extractionState": "manual"
     },
+    "Allow": {
+      "extractionState": "manual"
+    },
     "Auth": {
+      "extractionState": "manual"
+    },
+    "Available": {
       "extractionState": "manual"
     },
     "Build": {
@@ -62,6 +98,9 @@
       "extractionState": "manual"
     },
     "Cancel": {
+      "extractionState": "manual"
+    },
+    "Cancelled": {
       "extractionState": "manual"
     },
     "Change test topic": {
@@ -109,6 +148,9 @@
     "Closing": {
       "extractionState": "manual"
     },
+    "Closing, taking longer than expected": {
+      "extractionState": "manual"
+    },
     "Confirm": {
       "extractionState": "manual"
     },
@@ -145,13 +187,25 @@
     "Door": {
       "extractionState": "manual"
     },
+    "Door did not move": {
+      "extractionState": "manual"
+    },
+    "Door did not respond": {
+      "extractionState": "manual"
+    },
     "Door failed": {
       "extractionState": "manual"
     },
     "Door history": {
       "extractionState": "manual"
     },
+    "Door is open and misaligned": {
+      "extractionState": "manual"
+    },
     "Door open notifications": {
+      "extractionState": "manual"
+    },
+    "Door responded": {
       "extractionState": "manual"
     },
     "Door state changed before snooze could apply. Try again.": {
@@ -163,7 +217,13 @@
     "Door was misaligned": {
       "extractionState": "manual"
     },
+    "Door will move.": {
+      "extractionState": "manual"
+    },
     "Double tap to copy": {
+      "extractionState": "manual"
+    },
+    "Error fetching current door event: %@": {
       "extractionState": "manual"
     },
     "Export CSV": {
@@ -188,6 +248,18 @@
       "extractionState": "manual"
     },
     "Home": {
+      "extractionState": "manual"
+    },
+    "If contact stops, this shows when we last heard from it. Tapping the button may not work until it reconnects.": {
+      "extractionState": "manual"
+    },
+    "If we don't hear from it on schedule, this shows \"no signal\" so you know the sensor may be offline.": {
+      "extractionState": "manual"
+    },
+    "Just now": {
+      "extractionState": "manual"
+    },
+    "Last seen %@": {
       "extractionState": "manual"
     },
     "Loading…": {
@@ -253,7 +325,13 @@
     "Opening": {
       "extractionState": "manual"
     },
+    "Opening, taking longer than expected": {
+      "extractionState": "manual"
+    },
     "Package": {
+      "extractionState": "manual"
+    },
+    "Preparing…": {
       "extractionState": "manual"
     },
     "Privacy policy": {
@@ -265,6 +343,9 @@
     "Ready": {
       "extractionState": "manual"
     },
+    "Ready to send": {
+      "extractionState": "manual"
+    },
     "Refresh": {
       "extractionState": "manual"
     },
@@ -272,6 +353,9 @@
       "extractionState": "manual"
     },
     "Remote button %@": {
+      "extractionState": "manual"
+    },
+    "Remote button idle": {
       "extractionState": "manual"
     },
     "Remote control": {
@@ -289,7 +373,22 @@
     "Sending": {
       "extractionState": "manual"
     },
+    "Sending to server": {
+      "extractionState": "manual"
+    },
+    "Sending…": {
+      "extractionState": "manual"
+    },
     "Sensor conflict": {
+      "extractionState": "manual"
+    },
+    "Sensor conflict. Check the door.": {
+      "extractionState": "manual"
+    },
+    "Server did not accept the request": {
+      "extractionState": "manual"
+    },
+    "Server error": {
       "extractionState": "manual"
     },
     "Settings": {
@@ -325,7 +424,19 @@
     "Since 10:15 AM · 12 min and counting": {
       "extractionState": "manual"
     },
+    "Since 11:22 AM · 38 min": {
+      "extractionState": "manual"
+    },
     "Since 11:30 AM · 47 min and counting": {
+      "extractionState": "manual"
+    },
+    "Since 12:01 PM · 4 min": {
+      "extractionState": "manual"
+    },
+    "Since 8:15 AM · 1 hr 5 min": {
+      "extractionState": "manual"
+    },
+    "Since 9:47 AM · 2 hr 14 min": {
       "extractionState": "manual"
     },
     "Snooze 1 hour": {
@@ -361,7 +472,19 @@
     "Succeeded": {
       "extractionState": "manual"
     },
+    "Tap again to confirm": {
+      "extractionState": "manual"
+    },
+    "Tap to open or close": {
+      "extractionState": "manual"
+    },
     "Test notifications": {
+      "extractionState": "manual"
+    },
+    "The door sensor checks in every 10 minutes, or whenever the door moves.": {
+      "extractionState": "manual"
+    },
+    "The remote button checks in frequently. \"Available\" means it just told us it's ready to open or close the door.": {
       "extractionState": "manual"
     },
     "This developer panel is gated to allowlisted accounts.": {
@@ -388,6 +511,15 @@
     "Turn on notifications to get alerted when the door is left open.": {
       "extractionState": "manual"
     },
+    "Unauthorized": {
+      "extractionState": "manual"
+    },
+    "Unavailable · %@": {
+      "extractionState": "manual"
+    },
+    "Unavailable · 11 min ago": {
+      "extractionState": "manual"
+    },
     "Unknown": {
       "extractionState": "manual"
     },
@@ -406,6 +538,12 @@
     "Waiting for door": {
       "extractionState": "manual"
     },
+    "Waiting for door…": {
+      "extractionState": "manual"
+    },
+    "Waiting for the door to respond": {
+      "extractionState": "manual"
+    },
     "Waiting for the latest door status": {
       "extractionState": "manual"
     },
@@ -422,6 +560,12 @@
       "extractionState": "manual"
     },
     "iOS may be blocking requests because the permission was denied multiple times.": {
+      "extractionState": "manual"
+    },
+    "just now": {
+      "extractionState": "manual"
+    },
+    "unknown": {
       "extractionState": "manual"
     }
   },
