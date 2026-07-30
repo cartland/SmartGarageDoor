@@ -12,11 +12,11 @@ Android localizes through `strings.xml` (209 entries).
 `SWIFT_EMIT_LOC_STRINGS: YES` + `scripts/sync-ios-string-catalog.sh`, #1159), the fence
 lint (#1164), and the step-2 type sweep now covers **every** feature area — Settings
 (#1165), History (#1166), Home (#1169), Function list and Diagnostics. The catalog holds
-~198 keys. Re-measure with `./scripts/sync-ios-string-catalog.sh` rather than trusting
-this paragraph.
+~175 keys, all of them production copy. Re-measure with
+`./scripts/sync-ios-string-catalog.sh` rather than trusting this paragraph.
 
-One known wart remains: ~20 of those keys are `#Preview` fixture text, not shipped copy —
-see "Three things the sweep surfaced" below. Fixing that is the only outstanding item.
+The catalog is English-only — every entry is its own key, so nothing is translated yet.
+Adding a locale is now a matter of filling in translations, not of changing code.
 
 ADR-035 governs *where* a string is decided (platform, not shared). This document covers
 the separate question of *how* iOS stores its words once it has them.
@@ -95,25 +95,32 @@ needs either opening Xcode once per string-adding PR, or a
 
 ## Three things the sweep surfaced
 
-**1. `#Preview` fixture text lands in the catalog — ~20 keys today, unfixed.**
+**1. `#Preview` fixture text lands in the catalog — fixed.**
 Once a field is typed `LocalizedStringResource`, the literals `#Preview` bodies pass into
-it are literals *in resource position*, so the compiler extracts them. The catalog now
-carries `"Since 11:22 AM · 38 min"`, `"Closed for 22 min"`, `"23 min ago"` and similar —
-sample data, never shipped, and meaningless to translate. Harmless while the catalog is
-English-only (nothing is translated yet), but it should be cleaned before any locale is
-added. The fix, when someone does it:
+it are literals *in resource position*, so the compiler extracts them. The catalog was
+carrying `"Since 11:22 AM · 38 min"`, `"Closed for 22 min"`, `"23 min ago"` and 21 more —
+sample data, never shipped, meaningless to translate.
+
+Fixture text now goes through `Core/PreviewText.swift`:
 
 ```swift
-/// Sample text for `#Preview` fixtures. Takes a runtime `String`, so the
-/// compiler never sees a literal in `LocalizedStringResource` position and the
-/// sample never reaches the catalog.
 func previewText(_ value: String) -> LocalizedStringResource {
     LocalizedStringResource(stringLiteral: value)
 }
 ```
 
-Must be `internal` (a `#Preview` body is embedded verbatim into the generated snapshot
-test, which cannot see `private` symbols).
+Routing the sample through a runtime `String` means the compiler never sees a literal in
+resource position, so nothing is extracted; rendering is unchanged, because an unknown key
+falls back to itself. `internal`, not `private` — a `#Preview` body is embedded verbatim
+into the generated snapshot test, which cannot see `private` symbols. For a `DisplayText`
+field, prefer `.data("…")`, which takes a plain `String` and is already not extracted.
+
+**`previewText` must never appear in production code** — it would silently un-localize real
+copy, the exact failure this whole effort exists to prevent.
+`scripts/check-ios-localizable-text.sh` enforces that positionally: every call must sit
+after the file's first `#Preview` **macro invocation**. Anchored to the line start, because
+matching `#Preview` anywhere also matches doc comments that merely mention it — one such
+comment at `HomeScreen.swift:54` made the first version of the check pass vacuously.
 
 **2. Interpolate the bridged `Int32` directly; do not wrap it in `Int(...)`.**
 A Kotlin `Int` bridges to Swift `Int32`, which interpolates into a catalog key as `%d`.

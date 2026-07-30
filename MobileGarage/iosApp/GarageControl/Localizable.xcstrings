@@ -55,16 +55,10 @@
     "1 min": {
       "extractionState": "manual"
     },
-    "1 min ago": {
-      "extractionState": "manual"
-    },
     "1 sec": {
       "extractionState": "manual"
     },
     "12 hours": {
-      "extractionState": "manual"
-    },
-    "23 min ago": {
       "extractionState": "manual"
     },
     "4 hours": {
@@ -127,22 +121,7 @@
     "Closed at %@": {
       "extractionState": "manual"
     },
-    "Closed at 7:18 AM": {
-      "extractionState": "manual"
-    },
-    "Closed at 8:30 PM": {
-      "extractionState": "manual"
-    },
-    "Closed at 9:53 AM": {
-      "extractionState": "manual"
-    },
     "Closed for %@": {
-      "extractionState": "manual"
-    },
-    "Closed for 10 hr 12 min": {
-      "extractionState": "manual"
-    },
-    "Closed for 22 min": {
       "extractionState": "manual"
     },
     "Closing": {
@@ -313,28 +292,10 @@
     "Open for %@": {
       "extractionState": "manual"
     },
-    "Open for 10 min": {
-      "extractionState": "manual"
-    },
-    "Open for 2 hr": {
-      "extractionState": "manual"
-    },
-    "Open for 6 min": {
-      "extractionState": "manual"
-    },
     "Open or close the garage and check back here.": {
       "extractionState": "manual"
     },
     "Opened at %@": {
-      "extractionState": "manual"
-    },
-    "Opened at 11:20 AM": {
-      "extractionState": "manual"
-    },
-    "Opened at 6:30 PM": {
-      "extractionState": "manual"
-    },
-    "Opened at 9:47 AM": {
       "extractionState": "manual"
     },
     "Opening": {
@@ -439,24 +400,6 @@
     "Since %@ · %@": {
       "extractionState": "manual"
     },
-    "Since 10:15 AM · 12 min and counting": {
-      "extractionState": "manual"
-    },
-    "Since 11:22 AM · 38 min": {
-      "extractionState": "manual"
-    },
-    "Since 11:30 AM · 47 min and counting": {
-      "extractionState": "manual"
-    },
-    "Since 12:01 PM · 4 min": {
-      "extractionState": "manual"
-    },
-    "Since 8:15 AM · 1 hr 5 min": {
-      "extractionState": "manual"
-    },
-    "Since 9:47 AM · 2 hr 14 min": {
-      "extractionState": "manual"
-    },
     "Snooze 1 hour": {
       "extractionState": "manual"
     },
@@ -470,9 +413,6 @@
       "extractionState": "manual"
     },
     "Snoozing until %@": {
-      "extractionState": "manual"
-    },
-    "Snoozing until 9:00 PM": {
       "extractionState": "manual"
     },
     "Status": {
@@ -520,12 +460,6 @@
     "Took %@ to open, longer than expected": {
       "extractionState": "manual"
     },
-    "Took 3 min to close, longer than expected": {
-      "extractionState": "manual"
-    },
-    "Took 4 min to open, longer than expected": {
-      "extractionState": "manual"
-    },
     "Topic": {
       "extractionState": "manual"
     },
@@ -536,9 +470,6 @@
       "extractionState": "manual"
     },
     "Unavailable · %@": {
-      "extractionState": "manual"
-    },
-    "Unavailable · 11 min ago": {
       "extractionState": "manual"
     },
     "Unknown": {
