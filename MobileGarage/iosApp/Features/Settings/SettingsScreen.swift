@@ -126,8 +126,8 @@ struct SettingsContentView: View {
     /// the view responsible for their precedence.
     let snoozeRow: SnoozeRowDisplay
     let snoozeSending: Bool
-    let snoozeError: String?
-    let durations: [(label: String, option: SnoozeDurationUIOption)]
+    let snoozeError: LocalizedStringResource?
+    let durations: [(label: LocalizedStringResource, option: SnoozeDurationUIOption)]
     let developerAccess: Bool?
     let functionListAccess: Bool?
     let appVersion: String
@@ -160,8 +160,8 @@ struct SettingsContentView: View {
         email: String?,
         snoozeRow: SnoozeRowDisplay,
         snoozeSending: Bool,
-        snoozeError: String?,
-        durations: [(label: String, option: SnoozeDurationUIOption)],
+        snoozeError: LocalizedStringResource?,
+        durations: [(label: LocalizedStringResource, option: SnoozeDurationUIOption)],
         developerAccess: Bool?,
         functionListAccess: Bool?,
         appVersion: String,
@@ -206,7 +206,7 @@ struct SettingsContentView: View {
                     // already-signed-in user to sign in on every launch.
                     SettingsRowLabel(
                         icon: "person.crop.circle.dashed",
-                        title: "Checking sign-in…",
+                        title: .copy("Checking sign-in…"),
                         subtitle: nil,
                         showChevron: false
                     )
@@ -217,8 +217,9 @@ struct SettingsContentView: View {
                     Button { accountSheetOpen = true } label: {
                         SettingsRowLabel(
                             icon: "person.crop.circle.fill",
-                            title: displayName ?? "Signed in",
-                            subtitle: email,
+                            // The person's own name when known, our copy when not.
+                            title: displayName.map(SettingsRowText.data) ?? .copy("Signed in"),
+                            subtitle: email.map(SettingsRowText.data),
                             showChevron: true
                         )
                     }
@@ -229,8 +230,8 @@ struct SettingsContentView: View {
                     Button(action: onSignIn) {
                         SettingsRowLabel(
                             icon: "person.crop.circle.badge.plus",
-                            title: "Sign in with Google",
-                            subtitle: "Unlocks the remote button and snooze",
+                            title: .copy("Sign in with Google"),
+                            subtitle: .copy("Unlocks the remote button and snooze"),
                             showChevron: false
                         )
                     }
@@ -256,8 +257,8 @@ struct SettingsContentView: View {
                     } label: {
                         SettingsRowLabel(
                             icon: snoozeRow.icon,
-                            title: "Door open notifications",
-                            subtitle: snoozeRow.subtitle,
+                            title: .copy("Door open notifications"),
+                            subtitle: .copy(snoozeRow.subtitle),
                             showChevron: snoozeRow.opensDurationSheet && !snoozeSending,
                             inFlight: snoozeSending
                         )
@@ -344,10 +345,41 @@ struct SettingsContentView: View {
 /// state text, optional chevron / in-flight spinner. The SwiftUI analog of
 /// Android's `SettingsRow` ListItem (icon, headline, supporting text, trailing
 /// chevron, in-flight indicator). `internal` for previews.
+/// Text in a settings row: either translatable copy, or data that must be shown
+/// exactly as-is.
+///
+/// The distinction is load-bearing. The account row's title is the signed-in
+/// person's name when there is one and the literal "Signed in" when there is
+/// not, and its subtitle is their email address. A single `String` parameter
+/// erases which is which — and a `String` parameter also silently swallows the
+/// literals, since SwiftUI only extracts what it can see as a
+/// `LocalizedStringResource` (see MobileGarage/docs/IOS_LOCALIZATION.md).
+///
+/// Deliberately NOT `ExpressibleByStringLiteral`. That would let call sites keep
+/// writing bare literals, but the literal would arrive as a plain `String`
+/// through `init(stringLiteral:)` and never be extracted — reintroducing exactly
+/// the silent failure this type exists to prevent, while looking tidier.
+enum SettingsRowText {
+    /// Translatable copy. Write the literal inline so the compiler extracts it.
+    case copy(LocalizedStringResource)
+    /// User or system data — a name, an email address, a version. Rendered
+    /// verbatim; translating it would be meaningless or actively wrong.
+    case data(String)
+
+    /// No `@ViewBuilder`: it would wrap the switch in `_ConditionalContent`,
+    /// and the callers apply `Text`-only modifiers (`.font`) to the result.
+    var view: Text {
+        switch self {
+        case .copy(let resource): return Text(resource)
+        case .data(let string): return Text(verbatim: string)
+        }
+    }
+}
+
 struct SettingsRowLabel: View {
     let icon: String
-    let title: String
-    var subtitle: String?
+    let title: SettingsRowText
+    var subtitle: SettingsRowText?
     var showChevron: Bool = false
     var inFlight: Bool = false
 
@@ -364,11 +396,11 @@ struct SettingsRowLabel: View {
             }
             .frame(width: 32, height: 32)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                title.view
                     .font(.body)
                     .foregroundStyle(.primary)
                 if let subtitle {
-                    Text(subtitle)
+                    subtitle.view
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -389,16 +421,16 @@ struct SettingsRowLabel: View {
 /// selected** (Save disabled) — the user must actively pick, mirroring
 /// Android's deliberate no-preselection `SnoozeBottomSheet` semantics.
 struct SnoozeSheetView: View {
-    let currentLabel: String
-    let durations: [(label: String, option: SnoozeDurationUIOption)]
+    let currentLabel: LocalizedStringResource
+    let durations: [(label: LocalizedStringResource, option: SnoozeDurationUIOption)]
     let onSave: (SnoozeDurationUIOption) -> Void
     let onCancel: () -> Void
 
     @State private var selected: SnoozeDurationUIOption?
 
     init(
-        currentLabel: String,
-        durations: [(label: String, option: SnoozeDurationUIOption)],
+        currentLabel: LocalizedStringResource,
+        durations: [(label: LocalizedStringResource, option: SnoozeDurationUIOption)],
         onSave: @escaping (SnoozeDurationUIOption) -> Void,
         onCancel: @escaping () -> Void
     ) {
@@ -427,8 +459,8 @@ struct SnoozeSheetView: View {
 /// (radio-style), Cancel + Save. Save stays disabled until the user picks an
 /// option. Pure values so the snapshot gallery renders it directly.
 struct SnoozeSheetContentView: View {
-    let currentLabel: String
-    let durations: [(label: String, option: SnoozeDurationUIOption)]
+    let currentLabel: LocalizedStringResource
+    let durations: [(label: LocalizedStringResource, option: SnoozeDurationUIOption)]
     let selected: SnoozeDurationUIOption?
     let onSelect: (SnoozeDurationUIOption) -> Void
     let onCancel: () -> Void
@@ -438,7 +470,7 @@ struct SnoozeSheetContentView: View {
         NavigationStack {
             List {
                 Section {
-                    ForEach(durations, id: \.label) { entry in
+                    ForEach(durations, id: \.option) { entry in
                         Button {
                             onSelect(entry.option)
                         } label: {
@@ -462,7 +494,7 @@ struct SnoozeSheetContentView: View {
                         .buttonStyle(.plain)
                     }
                 } footer: {
-                    Text("Silences the open-door warning for the selected time. Currently: \(currentLabel.lowercased()).")
+                    Text("Silences the open-door warning for the selected time. Currently: \(String(localized: currentLabel).lowercased()).")
                 }
             }
             .navigationTitle("Snooze notifications")
@@ -501,10 +533,15 @@ struct AccountSheetContentView: View {
                         .font(.system(size: 56))
                         .foregroundStyle(.tint)
                     VStack(spacing: GarageSpacing.tight) {
-                        Text(displayName)
+                        // verbatim: this is the signed-in person's own name and
+                        // address. Passing user data through the localization
+                        // machinery is meaningless at best, and a name that
+                        // happened to collide with a catalog key would be
+                        // rewritten into someone else's.
+                        Text(verbatim: displayName)
                             .font(.title3.weight(.semibold))
                         if let email {
-                            Text(email)
+                            Text(verbatim: email)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
@@ -534,7 +571,11 @@ struct AccountSheetContentView: View {
 /// `@State` is internal to this row, so it doesn't affect `SettingsContentView`'s
 /// memberwise init / the generated snapshot test.
 private struct CopyableValueRow: View {
-    let label: String
+    /// Row name ("Version", "Build") — UI copy, so translatable.
+    let label: LocalizedStringResource
+    /// The value itself (a version string, a bundle identifier). Rendered with
+    /// `Text(verbatim:)`: it is data, not copy, and translating a build number
+    /// would be wrong.
     let value: String
     @State private var copied = false
 
@@ -556,7 +597,7 @@ private struct CopyableValueRow: View {
                         .labelStyle(.titleAndIcon)
                         .foregroundStyle(.secondary)
                 } else {
-                    Text(value)
+                    Text(verbatim: value)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -574,7 +615,7 @@ private struct CopyableValueRow: View {
 // — never a `private` file-scope helper. Hence the durations are inlined here.
 
 #Preview("Settings signed out") {
-    let durations: [(label: String, option: SnoozeDurationUIOption)] =
+    let durations: [(label: LocalizedStringResource, option: SnoozeDurationUIOption)] =
         SnoozeDurationUIOption.allCases.map { (SnoozeDurationLabels.text(for: $0), $0) }
     return NavigationStack {
         SettingsContentView(
@@ -597,7 +638,7 @@ private struct CopyableValueRow: View {
 }
 
 #Preview("Settings signed in developer") {
-    let durations: [(label: String, option: SnoozeDurationUIOption)] =
+    let durations: [(label: LocalizedStringResource, option: SnoozeDurationUIOption)] =
         SnoozeDurationUIOption.allCases.map { (SnoozeDurationLabels.text(for: $0), $0) }
     return NavigationStack {
         SettingsContentView(
@@ -620,7 +661,7 @@ private struct CopyableValueRow: View {
 }
 
 #Preview("Settings snooze sending") {
-    let durations: [(label: String, option: SnoozeDurationUIOption)] =
+    let durations: [(label: LocalizedStringResource, option: SnoozeDurationUIOption)] =
         SnoozeDurationUIOption.allCases.map { (SnoozeDurationLabels.text(for: $0), $0) }
     return NavigationStack {
         SettingsContentView(
@@ -643,7 +684,7 @@ private struct CopyableValueRow: View {
 }
 
 #Preview("Settings notifications disabled") {
-    let durations: [(label: String, option: SnoozeDurationUIOption)] =
+    let durations: [(label: LocalizedStringResource, option: SnoozeDurationUIOption)] =
         SnoozeDurationUIOption.allCases.map { (SnoozeDurationLabels.text(for: $0), $0) }
     return NavigationStack {
         SettingsContentView(
@@ -666,7 +707,7 @@ private struct CopyableValueRow: View {
 }
 
 #Preview("Snooze sheet nothing selected") {
-    let durations: [(label: String, option: SnoozeDurationUIOption)] =
+    let durations: [(label: LocalizedStringResource, option: SnoozeDurationUIOption)] =
         SnoozeDurationUIOption.allCases.map { (SnoozeDurationLabels.text(for: $0), $0) }
     return SnoozeSheetContentView(
         currentLabel: "Not snoozing",
@@ -679,7 +720,7 @@ private struct CopyableValueRow: View {
 }
 
 #Preview("Snooze sheet option selected") {
-    let durations: [(label: String, option: SnoozeDurationUIOption)] =
+    let durations: [(label: LocalizedStringResource, option: SnoozeDurationUIOption)] =
         SnoozeDurationUIOption.allCases.map { (SnoozeDurationLabels.text(for: $0), $0) }
     return SnoozeSheetContentView(
         currentLabel: "Snoozing until 9:00 PM",
