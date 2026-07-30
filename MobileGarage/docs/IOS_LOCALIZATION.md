@@ -86,6 +86,27 @@ needs either opening Xcode once per string-adding PR, or a
 `scripts/sync-ios-string-catalog.sh` that merges keys from `$STRINGSDATA_DIR/*.stringsdata`
 (plain plists, `plutil -p` readable).
 
+## `Localizable.xcstrings` conflicts on every parallel PR — regenerate, don't merge
+
+The catalog is a **generated** artifact keyed by string, so any two PRs that add strings
+conflict in it, even when they touch unrelated features. Hit three times in a row across
+#1161 → #1162 → #1163.
+
+Do not hand-merge the JSON. The deterministic resolution mirrors the
+`SCREENSHOT_GALLERY.md` recipe: take main's copy, then re-run the sync, which re-adds your
+keys on top.
+
+```bash
+git checkout --ours MobileGarage/iosApp/GarageControl/Localizable.xcstrings
+git add MobileGarage/iosApp/GarageControl/Localizable.xcstrings
+git rebase --continue
+./scripts/sync-ios-string-catalog.sh          # re-adds this branch's keys
+git add MobileGarage/iosApp/GarageControl/Localizable.xcstrings && git commit --amend --no-edit
+```
+
+The script only ever adds keys, so the result is the union of both branches. Sanity-check
+the printed total: it should equal main's count plus your PR's new keys.
+
 ## Recommended path
 
 Use a **String Catalog** (`.xcstrings`), not classic `.strings`. No downside at Xcode 26 /

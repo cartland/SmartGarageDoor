@@ -227,32 +227,51 @@ final class HistoryViewModelWrapper: ObservableObject {
 
     // MARK: - Duration formatting (mirrors HistoryContent + HistoryFormatter)
 
-    /// "Open for X" / "Closed for X" / "X and counting". Granularity mirrors
-    /// Android's `stateDurationDisplay`: days dominate (with hours), then hours
-    /// (with minutes), then minutes, then seconds.
+    /// "Open for X" / "Closed for X" / "X and counting".
+    ///
+    /// The bucket and the framing come from the shared `HistoryDurationMapper`;
+    /// this supplies the words. Both were previously reimplemented here against
+    /// Android's `stateDurationDisplay`, on the highest-traffic surface in the
+    /// app — every row of the history list.
     private static func stateDuration(_ seconds: Int64, isCurrent: Bool, isOpen: Bool) -> String {
-        let safe = max(seconds, 0)
-        let days = Int(safe / 86_400)
-        let hours = Int((safe % 86_400) / 3_600)
-        let minutes = Int((safe % 3_600) / 60)
-        let secs = Int(safe % 60)
-        let text: String
-        if days >= 1 {
-            text = hours == 0 ? plural(days, "day") : "\(days) day \(hours) hr"
-        } else if hours >= 1 {
-            text = minutes == 0 ? "\(hours) hr" : "\(hours) hr \(minutes) min"
-        } else if minutes >= 1 {
-            text = "\(minutes) min"
-        } else {
-            text = "\(secs) sec"
+        let display = HistoryDurationMapper.shared.stateSpan(
+            seconds: seconds,
+            isCurrent: isCurrent,
+            isOpen: isOpen
+        )
+        let text = stateDurationText(display.duration)
+        switch display.framing {
+        case .andCounting: return String(localized: "\(text) and counting")
+        case .openFor: return String(localized: "Open for \(text)")
+        case .closedFor: return String(localized: "Closed for \(text)")
         }
-        if isCurrent { return "\(text) and counting" }
-        return isOpen ? "Open for \(text)" : "Closed for \(text)"
     }
 
-    /// "Took X to open/close, longer than expected". Transit granularity mirrors
-    /// Android's `transitWarningText`: hours (with minutes), then minutes (with
-    /// seconds), then seconds.
+    /// iOS wording for one shared `StateSpanDuration` arm.
+    private static func stateDurationText(_ duration: StateSpanDuration) -> String {
+        switch onEnum(of: duration) {
+        case .days(let d):
+            return d.days == 1
+                ? String(localized: "1 day")
+                : String(localized: "\(Int(d.days)) days")
+        case .daysHours(let d):
+            return String(localized: "\(Int(d.days)) day \(Int(d.hours)) hr")
+        case .hours(let d):
+            return String(localized: "\(Int(d.hours)) hr")
+        case .hoursMinutes(let d):
+            return String(localized: "\(Int(d.hours)) hr \(Int(d.minutes)) min")
+        case .minutes(let d):
+            return String(localized: "\(Int(d.minutes)) min")
+        case .seconds(let d):
+            return String(localized: "\(Int(d.seconds)) sec")
+        }
+    }
+
+    /// "Took X to open/close, longer than expected".
+    ///
+    /// Uses the transit ladder, which deliberately keeps seconds at minute
+    /// scale — for a slow door the seconds are the interesting part. See
+    /// `TransitSpanDuration`.
     private static func transitText(_ warning: TransitWarning) -> String {
         let seconds: Int64
         let opening: Bool
@@ -260,25 +279,26 @@ final class HistoryViewModelWrapper: ObservableObject {
         case .toOpen(let w): seconds = w.transitSeconds; opening = true
         case .toClose(let w): seconds = w.transitSeconds; opening = false
         }
-        let safe = max(seconds, 0)
-        let hours = Int(safe / 3_600)
-        let minutes = Int((safe % 3_600) / 60)
-        let secs = Int(safe % 60)
-        let text: String
-        if hours >= 1 {
-            text = minutes == 0 ? "\(hours) hr" : "\(hours) hr \(minutes) min"
-        } else if minutes >= 1 {
-            text = secs == 0 ? "\(minutes) min" : "\(minutes) min \(secs) sec"
-        } else {
-            text = "\(secs) sec"
-        }
+        let text = transitDurationText(HistoryDurationMapper.shared.transitSpan(seconds: seconds))
         return opening
-            ? "Took \(text) to open, longer than expected"
-            : "Took \(text) to close, longer than expected"
+            ? String(localized: "Took \(text) to open, longer than expected")
+            : String(localized: "Took \(text) to close, longer than expected")
     }
 
-    private static func plural(_ value: Int, _ unit: String) -> String {
-        value == 1 ? "\(value) \(unit)" : "\(value) \(unit)s"
+    /// iOS wording for one shared `TransitSpanDuration` arm.
+    private static func transitDurationText(_ duration: TransitSpanDuration) -> String {
+        switch onEnum(of: duration) {
+        case .hours(let d):
+            return String(localized: "\(Int(d.hours)) hr")
+        case .hoursMinutes(let d):
+            return String(localized: "\(Int(d.hours)) hr \(Int(d.minutes)) min")
+        case .minutes(let d):
+            return String(localized: "\(Int(d.minutes)) min")
+        case .minutesSeconds(let d):
+            return String(localized: "\(Int(d.minutes)) min \(Int(d.seconds)) sec")
+        case .seconds(let d):
+            return String(localized: "\(Int(d.seconds)) sec")
+        }
     }
 
     // MARK: - Clock formatting (mirrors HistoryFormatter.formatTime)

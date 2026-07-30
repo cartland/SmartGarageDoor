@@ -26,15 +26,10 @@ import java.time.ZoneOffset
 /**
  * Tests for [HistoryFormatter].
  *
- * Phase 2E of the string-resource migration plan
- * (`MobileGarage/docs/PENDING_FOLLOWUPS.md` item #1) — `formatTime`,
- * `stateDurationParts`, `transitDurationParts`, and `formatDate` were
- * moved here from `HistoryMapper`. The Composable layer assembles the
- * final localized strings via `stringResource` + `pluralStringResource`.
- *
- * Tests cover the pure-function decomposition; the localized
- * "Open for X" / "Took Y to open" assembly is screenshot-tested in the
- * `HistoryContent` previews.
+ * Covers clock-time and date-label formatting. The duration-bucket tests
+ * that used to live here moved to `HistoryDurationMapperTest` in
+ * `presentation-model` along with the logic — the ladders are shared now, so
+ * testing them once covers both platforms.
  */
 class HistoryFormatterTest {
     // ---------- formatTime ----------
@@ -80,75 +75,5 @@ class HistoryFormatterTest {
     @Test
     fun formatDate_wednesday() {
         assertEquals("Wed, Apr 22", HistoryFormatter.formatDate(LocalDate.parse("2026-04-22")))
-    }
-
-    // ---------- stateDurationParts ----------
-
-    @Test
-    fun stateDurationParts_zero() {
-        assertEquals(StateDurationParts(0, 0, 0, 0), HistoryFormatter.stateDurationParts(0))
-    }
-
-    @Test
-    fun stateDurationParts_negativeClampsToZero() {
-        assertEquals(StateDurationParts(0, 0, 0, 0), HistoryFormatter.stateDurationParts(-100))
-    }
-
-    @Test
-    fun stateDurationParts_secondsOnly() {
-        assertEquals(StateDurationParts(0, 0, 0, 30), HistoryFormatter.stateDurationParts(30))
-        assertEquals(StateDurationParts(0, 0, 0, 59), HistoryFormatter.stateDurationParts(59))
-    }
-
-    @Test
-    fun stateDurationParts_minutesOnly() {
-        assertEquals(StateDurationParts(0, 0, 1, 0), HistoryFormatter.stateDurationParts(60))
-        assertEquals(StateDurationParts(0, 0, 6, 0), HistoryFormatter.stateDurationParts(6 * 60))
-        assertEquals(StateDurationParts(0, 0, 59, 0), HistoryFormatter.stateDurationParts(59 * 60))
-    }
-
-    @Test
-    fun stateDurationParts_hours() {
-        assertEquals(StateDurationParts(0, 1, 0, 0), HistoryFormatter.stateDurationParts(60 * 60))
-        assertEquals(StateDurationParts(0, 1, 30, 0), HistoryFormatter.stateDurationParts(90 * 60))
-        assertEquals(StateDurationParts(0, 13, 17, 0), HistoryFormatter.stateDurationParts((13 * 60 + 17) * 60L))
-    }
-
-    @Test
-    fun stateDurationParts_days() {
-        assertEquals(StateDurationParts(1, 0, 0, 0), HistoryFormatter.stateDurationParts(24 * 60 * 60))
-        assertEquals(StateDurationParts(1, 1, 0, 0), HistoryFormatter.stateDurationParts(25 * 60 * 60))
-        assertEquals(StateDurationParts(3, 0, 0, 0), HistoryFormatter.stateDurationParts(3 * 24 * 60 * 60))
-    }
-
-    // ---------- transitDurationParts ----------
-
-    @Test
-    fun transitDurationParts_zero() {
-        assertEquals(TransitDurationParts(0, 0, 0), HistoryFormatter.transitDurationParts(0))
-    }
-
-    @Test
-    fun transitDurationParts_negativeClamps() {
-        assertEquals(TransitDurationParts(0, 0, 0), HistoryFormatter.transitDurationParts(-50))
-    }
-
-    @Test
-    fun transitDurationParts_secondsOnly() {
-        assertEquals(TransitDurationParts(0, 0, 30), HistoryFormatter.transitDurationParts(30))
-    }
-
-    @Test
-    fun transitDurationParts_minutes() {
-        assertEquals(TransitDurationParts(0, 1, 0), HistoryFormatter.transitDurationParts(60))
-        assertEquals(TransitDurationParts(0, 1, 30), HistoryFormatter.transitDurationParts(90))
-        assertEquals(TransitDurationParts(0, 4, 0), HistoryFormatter.transitDurationParts(240))
-    }
-
-    @Test
-    fun transitDurationParts_hours() {
-        assertEquals(TransitDurationParts(1, 0, 0), HistoryFormatter.transitDurationParts(60 * 60))
-        assertEquals(TransitDurationParts(1, 30, 0), HistoryFormatter.transitDurationParts(90 * 60))
-        assertEquals(TransitDurationParts(14, 30, 8), HistoryFormatter.transitDurationParts(14 * 3600 + 30 * 60 + 8L))
     }
 }
