@@ -6,6 +6,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
 import com.chriscartland.garage.MainActivity
+import com.chriscartland.garage.ui.NavigationTestMatchers.assertTopBarTitle
+import com.chriscartland.garage.ui.NavigationTestMatchers.onSelectableNodeWithText
 import org.junit.Rule
 import org.junit.Test
 
@@ -35,11 +37,11 @@ class ConfigurationChangeTest {
      */
     @Test
     fun appSurvivesActivityRecreation() {
-        composeTestRule.onNodeWithText("Garage").assertIsDisplayed()
+        composeTestRule.assertTopBarTitle("Garage")
 
         composeTestRule.activityRule.scenario.recreate()
 
-        composeTestRule.onNodeWithText("Garage").assertIsDisplayed()
+        composeTestRule.assertTopBarTitle("Garage")
     }
 
     /**
@@ -47,13 +49,13 @@ class ConfigurationChangeTest {
      *
      * Depth-1 to a non-Home destination is the load-bearing assertion:
      * pre-PR-A this would always reset to Home regardless of where the
-     * user was. Asserting that "Privacy Policy" (a Settings-only row)
+     * user was. Asserting that "Privacy policy" (a Settings-only row)
      * is still displayed post-recreate proves the back stack survived.
      *
      * Why not navigate to a sub-screen? Diagnostics and FunctionList
      * are gated by the developer allowlist (`functionListAccess`), so
      * they're not reachable from a fresh install in test conditions.
-     * "Privacy Policy" is in the always-visible "About" section of
+     * "Privacy policy" is in the always-visible "About" section of
      * Settings — independent of auth state, allowlist, or feature flags.
      */
     @Test
@@ -61,13 +63,13 @@ class ConfigurationChangeTest {
         // Navigate to Settings tab.
         composeTestRule.onNodeWithText("Settings").performClick()
         composeTestRule.waitForIdle()
-        // "Privacy Policy" row is unique to Settings and always visible.
-        composeTestRule.onNodeWithText("Privacy Policy").assertIsDisplayed()
+        // "Privacy policy" row is unique to Settings and always visible.
+        composeTestRule.onNodeWithText("Privacy policy").assertIsDisplayed()
 
         composeTestRule.activityRule.scenario.recreate()
 
         // Back stack survived: still on Settings.
-        composeTestRule.onNodeWithText("Privacy Policy").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Privacy policy").assertIsDisplayed()
     }
 
     /**
@@ -80,13 +82,15 @@ class ConfigurationChangeTest {
      */
     @Test
     fun allTabsSurviveRecreation() {
+        // Home's bar keeps the app name; the other tabs title themselves.
+        val expectedTitle = mapOf("Home" to "Garage", "History" to "History", "Settings" to "Settings")
         for (tab in listOf("Home", "History", "Settings")) {
-            composeTestRule.onNodeWithText(tab).performClick()
+            composeTestRule.onSelectableNodeWithText(tab).performClick()
             composeTestRule.waitForIdle()
 
             composeTestRule.activityRule.scenario.recreate()
 
-            composeTestRule.onNodeWithText("Garage").assertIsDisplayed()
+            composeTestRule.assertTopBarTitle(expectedTitle.getValue(tab))
         }
     }
 }

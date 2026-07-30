@@ -60,6 +60,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
@@ -132,6 +133,15 @@ sealed interface Screen : NavKey {
     @Serializable
     data object Diagnostics : Screen
 }
+
+/**
+ * Test tag on the top app bar's title.
+ *
+ * Titles are now per screen, so "History" and "Settings" each appear twice on
+ * their own tab: once in the bar, once as the nav label. Instrumented tests must
+ * be able to say which one they mean.
+ */
+const val TOP_BAR_TITLE_TEST_TAG: String = "topBarTitle"
 
 /**
  * Navigation tab definition linking a screen to its UI metadata.
@@ -229,6 +239,7 @@ private fun AppScaffold(
                             is Screen.Profile -> "Settings"
                             else -> "Garage"
                         },
+                        modifier = Modifier.testTag(TOP_BAR_TITLE_TEST_TAG),
                     )
                 },
                 navigationIcon = {
