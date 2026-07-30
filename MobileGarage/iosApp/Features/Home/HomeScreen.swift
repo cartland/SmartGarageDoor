@@ -68,7 +68,7 @@ struct HomeContentView: View {
     /// `DoorWarning` in the wrapper). Non-nil only for stuck/anomalous states.
     let warningText: String?
     let isCheckInStale: Bool
-    /// View-ready remote-button state — styling kind + copy + progress phase.
+    /// View-ready remote-button state — styling kind + copy + the shared diagram.
     /// All logic lives in the shared `ButtonStateMachine`; this is display data
     /// (mirrors Android's `GarageDoorButton` + `NetworkProgressDiagram`).
     let buttonItem: RemoteButtonItem
@@ -341,7 +341,7 @@ struct RemoteButtonView: View {
             .tint(buttonTint)
             .foregroundStyle(buttonForeground)
             .disabled(!isTappable)
-            RemoteProgressDiagram(phase: item.phase)
+            RemoteProgressDiagram(diagram: item.diagram)
         }
         .animation(.easeInOut(duration: 0.2), value: item.kind)
     }
@@ -374,116 +374,77 @@ struct RemoteButtonView: View {
 }
 
 /// Phone → cloud → house progress diagram under the remote button — the SwiftUI
-/// analog of Android's `NetworkProgressDiagram`. Node/edge activation follows
-/// Android's `RemoteButtonDiagramMapping` table: sending-to-server animates the
-/// first leg, sending-to-door completes it and animates the second, success
-/// fills everything, failure marks the failing leg red. `internal` for previews.
+/// analog of Android's `NetworkProgressDiagram`.
+///
+/// Which element takes which status is NOT decided here. It comes from the
+/// shared `RemoteButtonDiagramMapper`, so Android and iOS cannot answer the
+/// question differently. This view owns only how a status looks.
+///
+/// This used to be five computed properties over a local `Phase` enum that
+/// collapsed `Preparing` and `AwaitingConfirmation` into one case and encoded
+/// `Cancelled` as `nil` — a representation that could not express states the
+/// shared machine has. `internal` for previews.
 struct RemoteProgressDiagram: View {
-    let phase: RemoteButtonItem.Phase?
+    /// Nil while the button is idle and there is no send to describe.
+    let diagram: RemoteButtonDiagram?
 
     var body: some View {
         HStack(spacing: GarageSpacing.tight) {
-            node("iphone", status: phoneStatus)
-            edge(status: firstEdge)
-            node("cloud", status: cloudStatus)
-            edge(status: secondEdge)
-            node("house", status: houseStatus)
+            node("iphone", status: diagram?.phone)
+            edge(status: diagram?.toServer)
+            node("cloud", status: diagram?.server)
+            edge(status: diagram?.toDoor)
+            node("house", status: diagram?.door)
         }
         .padding(.horizontal, GarageSpacing.card)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityText)
     }
 
-    private enum NodeStatus { case idle, active, succeeded, failed }
-    private enum EdgeStatus { case notStarted, inProgress, succeeded, failed }
-
-    private var phoneStatus: NodeStatus {
-        switch phase {
-        case nil: return .idle
-        // Android lights the phone node while armed (Preparing /
-        // AwaitingConfirmation) — no leg underway yet.
-        case .armed, .sendingToServer: return .active
-        case .sendingToDoor, .succeeded: return .succeeded
-        case .serverFailed: return .failed
-        case .doorFailed: return .succeeded
-        }
-    }
-
-    private var cloudStatus: NodeStatus {
-        switch phase {
-        case nil, .armed, .sendingToServer, .serverFailed: return .idle
-        case .sendingToDoor: return .active
-        case .succeeded: return .succeeded
-        case .doorFailed: return .failed
-        }
-    }
-
-    private var houseStatus: NodeStatus {
-        switch phase {
-        case .succeeded: return .succeeded
-        default: return .idle
-        }
-    }
-
-    private var firstEdge: EdgeStatus {
-        switch phase {
-        case nil, .armed: return .notStarted
-        case .sendingToServer: return .inProgress
-        case .sendingToDoor, .succeeded, .doorFailed: return .succeeded
-        case .serverFailed: return .failed
-        }
-    }
-
-    private var secondEdge: EdgeStatus {
-        switch phase {
-        case nil, .armed, .sendingToServer, .serverFailed: return .notStarted
-        case .sendingToDoor: return .inProgress
-        case .succeeded: return .succeeded
-        case .doorFailed: return .failed
-        }
-    }
-
-    private func node(_ systemName: String, status: NodeStatus) -> some View {
+    private func node(_ systemName: String, status: DiagramNodeStatus?) -> some View {
         Image(systemName: systemName)
             .font(.footnote)
             .foregroundStyle(color(for: status))
     }
 
-    private func color(for status: NodeStatus) -> Color {
+    private func color(for status: DiagramNodeStatus?) -> Color {
         switch status {
-        case .idle: return Color(uiColor: .tertiaryLabel)
-        case .active: return .accentColor
-        case .succeeded: return .green
-        case .failed: return .red
+        case .none, .some(.idle): return Color(uiColor: .tertiaryLabel)
+        case .some(.active): return .accentColor
+        case .some(.succeeded): return .green
+        case .some(.failed): return .red
+        default: return Color(uiColor: .tertiaryLabel)
         }
     }
 
-    private func edge(status: EdgeStatus) -> some View {
+    private func edge(status: DiagramEdgeStatus?) -> some View {
         RoundedRectangle(cornerRadius: 1)
             .fill(edgeColor(for: status))
             .frame(maxWidth: .infinity)
             .frame(height: 2)
     }
 
-    private func edgeColor(for status: EdgeStatus) -> Color {
+    private func edgeColor(for status: DiagramEdgeStatus?) -> Color {
         switch status {
-        case .notStarted: return Color(uiColor: .tertiarySystemFill)
-        case .inProgress: return .accentColor
-        case .succeeded: return .green
-        case .failed: return .red
+        case .none, .some(.notStarted): return Color(uiColor: .tertiarySystemFill)
+        case .some(.inProgress): return .accentColor
+        case .some(.succeeded): return .green
+        case .some(.failed): return .red
+        default: return Color(uiColor: .tertiarySystemFill)
         }
     }
 
+    /// Spoken summary, derived from the shared statuses rather than a second
+    /// phase enum — so it cannot describe a state the diagram is not drawing.
     private var accessibilityText: String {
-        switch phase {
-        case nil: return "Remote button idle"
-        case .armed: return "Ready to send"
-        case .sendingToServer: return "Sending to server"
-        case .sendingToDoor: return "Waiting for the door"
-        case .succeeded: return "Command delivered"
-        case .serverFailed: return "Server error"
-        case .doorFailed: return "Door did not respond"
-        }
+        guard let diagram else { return "Remote button idle" }
+        if diagram.toDoor == .failed { return "Door did not respond" }
+        if diagram.toServer == .failed { return "Server did not accept the request" }
+        if diagram.door == .succeeded { return "Door responded" }
+        if diagram.toDoor == .inProgress { return "Waiting for the door to respond" }
+        if diagram.toServer == .inProgress { return "Sending to server" }
+        if diagram.phone == .active { return "Ready to send" }
+        return "Remote button idle"
     }
 }
 
@@ -835,31 +796,31 @@ private struct HomeInfoSheetView: View {
         }
         Section("Confirm") {
             RemoteButtonView(
-                item: RemoteButtonItem(kind: .confirm, title: "Door will move.", subtitle: "Tap again to confirm", phase: .armed),
+                item: RemoteButtonItem(kind: .confirm, title: "Door will move.", subtitle: "Tap again to confirm", diagram: RemoteButtonDiagramMapper.shared.forState(state: RemoteButtonStateAwaitingConfirmation.shared)),
                 onTap: {}
             )
         }
         Section("Sending") {
             RemoteButtonView(
-                item: RemoteButtonItem(kind: .busy, title: "Sending…", subtitle: nil, phase: .sendingToServer),
+                item: RemoteButtonItem(kind: .busy, title: "Sending…", subtitle: nil, diagram: RemoteButtonDiagramMapper.shared.forState(state: RemoteButtonStateSendingToServer.shared)),
                 onTap: {}
             )
         }
         Section("Waiting for door") {
             RemoteButtonView(
-                item: RemoteButtonItem(kind: .busy, title: "Waiting for door…", subtitle: nil, phase: .sendingToDoor),
+                item: RemoteButtonItem(kind: .busy, title: "Waiting for door…", subtitle: nil, diagram: RemoteButtonDiagramMapper.shared.forState(state: RemoteButtonStateSendingToDoor.shared)),
                 onTap: {}
             )
         }
         Section("Succeeded") {
             RemoteButtonView(
-                item: RemoteButtonItem(kind: .succeeded, title: "Done", subtitle: nil, phase: .succeeded),
+                item: RemoteButtonItem(kind: .succeeded, title: "Done", subtitle: nil, diagram: RemoteButtonDiagramMapper.shared.forState(state: RemoteButtonStateSucceeded.shared)),
                 onTap: {}
             )
         }
         Section("Door failed") {
             RemoteButtonView(
-                item: RemoteButtonItem(kind: .failed, title: "Door did not move", subtitle: nil, phase: .doorFailed),
+                item: RemoteButtonItem(kind: .failed, title: "Door did not move", subtitle: nil, diagram: RemoteButtonDiagramMapper.shared.forState(state: RemoteButtonStateDoorFailed.shared)),
                 onTap: {}
             )
         }
@@ -932,7 +893,7 @@ private struct HomeInfoSheetView: View {
             sinceLine: "Since 11:22 AM · 38 min",
             warningText: nil,
             isCheckInStale: false,
-            buttonItem: RemoteButtonItem(kind: .confirm, title: "Door will move.", subtitle: "Tap again to confirm", phase: .armed),
+            buttonItem: RemoteButtonItem(kind: .confirm, title: "Door will move.", subtitle: "Tap again to confirm", diagram: RemoteButtonDiagramMapper.shared.forState(state: RemoteButtonStateAwaitingConfirmation.shared)),
             buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
             authState: .signedIn,
             hasDoorData: true,

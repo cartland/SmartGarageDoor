@@ -34,6 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.RemoteButtonState
+import com.chriscartland.garage.presentation.RemoteButtonDiagramMapper
 import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 
 private val GARAGE_DIAGRAM_ICONS = listOf(
@@ -72,7 +73,9 @@ fun RemoteButtonContent(
         // announcing the phase, mirroring iOS's `RemoteProgressDiagram`.
         val phaseDescription = state.phaseDescription()
         NetworkProgressDiagram(
-            state = state.toNetworkDiagramState(),
+            state = RemoteButtonDiagramMapper.forState(state).let {
+                NetworkDiagramState(nodes = it.nodes, edges = it.edges)
+            },
             icons = GARAGE_DIAGRAM_ICONS,
             modifier = Modifier
                 .fillMaxWidth()

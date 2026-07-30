@@ -437,33 +437,34 @@ final class HomeViewModelWrapper: ObservableObject {
     /// Maps the shared `RemoteButtonState` to view-ready display data. The
     /// two-line confirm copy ("Door will move." / "Tap again to confirm")
     /// mirrors Android's amber `AwaitingConfirmation` button; the progress
-    /// `phase` drives the phone → cloud → house diagram exactly like Android's
-    /// `RemoteButtonDiagramMapping`.
+    /// The diagram comes from the shared `RemoteButtonDiagramMapper` — the same
+    /// table Android reads — so the two platforms cannot disagree about which
+    /// leg is lit. Only the copy is decided here.
     private static func item(for state: RemoteButtonState) -> RemoteButtonItem {
         switch onEnum(of: state) {
         case .ready:
-            return RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil)
+            return RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil, diagram: nil)
         case .preparing:
-            return RemoteButtonItem(kind: .busy, title: "Preparing…", subtitle: nil, phase: .armed)
+            return RemoteButtonItem(kind: .busy, title: "Preparing…", subtitle: nil, diagram: RemoteButtonDiagramMapper.shared.forState(state: state))
         case .awaitingConfirmation:
             return RemoteButtonItem(
                 kind: .confirm,
                 title: "Door will move.",
                 subtitle: "Tap again to confirm",
-                phase: .armed
+                diagram: RemoteButtonDiagramMapper.shared.forState(state: state)
             )
         case .cancelled:
-            return RemoteButtonItem(kind: .idle, title: "Cancelled", subtitle: nil)
+            return RemoteButtonItem(kind: .idle, title: "Cancelled", subtitle: nil, diagram: nil)
         case .sendingToServer:
-            return RemoteButtonItem(kind: .busy, title: "Sending…", subtitle: nil, phase: .sendingToServer)
+            return RemoteButtonItem(kind: .busy, title: "Sending…", subtitle: nil, diagram: RemoteButtonDiagramMapper.shared.forState(state: state))
         case .sendingToDoor:
-            return RemoteButtonItem(kind: .busy, title: "Waiting for door…", subtitle: nil, phase: .sendingToDoor)
+            return RemoteButtonItem(kind: .busy, title: "Waiting for door…", subtitle: nil, diagram: RemoteButtonDiagramMapper.shared.forState(state: state))
         case .succeeded:
-            return RemoteButtonItem(kind: .succeeded, title: "Done", subtitle: nil, phase: .succeeded)
+            return RemoteButtonItem(kind: .succeeded, title: "Done", subtitle: nil, diagram: RemoteButtonDiagramMapper.shared.forState(state: state))
         case .serverFailed:
-            return RemoteButtonItem(kind: .failed, title: "Server error", subtitle: nil, phase: .serverFailed)
+            return RemoteButtonItem(kind: .failed, title: "Server error", subtitle: nil, diagram: RemoteButtonDiagramMapper.shared.forState(state: state))
         case .doorFailed:
-            return RemoteButtonItem(kind: .failed, title: "Door did not move", subtitle: nil, phase: .doorFailed)
+            return RemoteButtonItem(kind: .failed, title: "Door did not move", subtitle: nil, diagram: RemoteButtonDiagramMapper.shared.forState(state: state))
         }
     }
 
@@ -568,7 +569,7 @@ struct ButtonHealthItem {
 
 /// View-ready remote-button display data. `kind` drives the button's styling
 /// (tint / amber confirm / disabled busy / green success / red failure);
-/// `phase` drives the phone → cloud → house progress diagram (the SwiftUI
+/// `diagram` drives the phone → cloud → house progress diagram (the SwiftUI
 /// analog of Android's `NetworkProgressDiagram` + `RemoteButtonDiagramMapping`).
 /// `internal` so `#Preview` fixtures can build it.
 struct RemoteButtonItem {
@@ -577,17 +578,18 @@ struct RemoteButtonItem {
     /// Which leg of phone → cloud → house is underway (nil = at rest).
     /// `armed` = the phone node is active but no leg has started — Android's
     /// Preparing / AwaitingConfirmation diagram state.
-    enum Phase { case armed, sendingToServer, sendingToDoor, succeeded, serverFailed, doorFailed }
 
     let kind: Kind
     let title: String
     let subtitle: String?
-    var phase: Phase?
+    /// The shared diagram table's answer for this state, or nil while idle.
+    /// Previously a local `Phase` enum that could not express every shared state.
+    var diagram: RemoteButtonDiagram?
 
-    init(kind: Kind, title: String, subtitle: String?, phase: Phase? = nil) {
+    init(kind: Kind, title: String, subtitle: String?, diagram: RemoteButtonDiagram? = nil) {
         self.kind = kind
         self.title = title
         self.subtitle = subtitle
-        self.phase = phase
+        self.diagram = diagram
     }
 }

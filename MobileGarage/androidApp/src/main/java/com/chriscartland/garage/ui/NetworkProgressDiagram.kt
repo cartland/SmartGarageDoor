@@ -46,23 +46,24 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.presentation.DiagramEdgeStatus
+import com.chriscartland.garage.presentation.DiagramNodeStatus
 import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 import com.chriscartland.garage.ui.theme.networkFailed
 import com.chriscartland.garage.ui.theme.networkNotStarted
 import com.chriscartland.garage.ui.theme.networkSucceeded
 
-/** Status of a node (phone, server, door) in the diagram. */
-enum class NodeStatus { Idle, Active, Succeeded, Failed }
-
-/** Status of an edge (connection line) between two nodes. */
-enum class EdgeStatus { NotStarted, InProgress, Succeeded, Failed }
+// Node/edge statuses come from `:presentation-model`. They used to be declared
+// here and mapped from RemoteButtonState by a nine-arm table in
+// RemoteButtonDiagramMapping.kt, with iOS keeping its own parallel version —
+// see RemoteButtonDiagramMapper for why that decision is now shared.
 
 /**
  * State for a network progress diagram with N nodes and N-1 edges.
  */
 data class NetworkDiagramState(
-    val nodes: List<NodeStatus>,
-    val edges: List<EdgeStatus>,
+    val nodes: List<DiagramNodeStatus>,
+    val edges: List<DiagramEdgeStatus>,
 ) {
     init {
         require(edges.size == nodes.size - 1) {
@@ -134,14 +135,14 @@ fun NetworkProgressDiagram(
 @Composable
 private fun NodeIcon(
     icon: ImageVector,
-    status: NodeStatus,
+    status: DiagramNodeStatus,
     size: Dp,
 ) {
     val tint = when (status) {
-        NodeStatus.Idle -> networkNotStarted
-        NodeStatus.Active -> MaterialTheme.colorScheme.primary
-        NodeStatus.Succeeded -> networkSucceeded
-        NodeStatus.Failed -> networkFailed
+        DiagramNodeStatus.IDLE -> networkNotStarted
+        DiagramNodeStatus.ACTIVE -> MaterialTheme.colorScheme.primary
+        DiagramNodeStatus.SUCCEEDED -> networkSucceeded
+        DiagramNodeStatus.FAILED -> networkFailed
     }
     Icon(
         imageVector = icon,
@@ -153,16 +154,16 @@ private fun NodeIcon(
 
 @Composable
 private fun EdgeLine(
-    status: EdgeStatus,
+    status: DiagramEdgeStatus,
     animationPhase: Float,
     modifier: Modifier = Modifier,
     thickness: Float = 4f,
 ) {
     val color = when (status) {
-        EdgeStatus.NotStarted -> networkNotStarted
-        EdgeStatus.InProgress -> MaterialTheme.colorScheme.primary
-        EdgeStatus.Succeeded -> networkSucceeded
-        EdgeStatus.Failed -> networkFailed
+        DiagramEdgeStatus.NOT_STARTED -> networkNotStarted
+        DiagramEdgeStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primary
+        DiagramEdgeStatus.SUCCEEDED -> networkSucceeded
+        DiagramEdgeStatus.FAILED -> networkFailed
     }
 
     Box(modifier = modifier.height(thickness.dp)) {
@@ -172,7 +173,7 @@ private fun EdgeLine(
             val endX = size.width
 
             when (status) {
-                EdgeStatus.NotStarted -> {
+                DiagramEdgeStatus.NOT_STARTED -> {
                     // Gray dashed line.
                     drawLine(
                         color = color,
@@ -185,7 +186,7 @@ private fun EdgeLine(
                         ),
                     )
                 }
-                EdgeStatus.InProgress -> {
+                DiagramEdgeStatus.IN_PROGRESS -> {
                     // Animated dots moving left to right.
                     val dashLength = 12f
                     val gapLength = 8f
@@ -203,7 +204,7 @@ private fun EdgeLine(
                         ),
                     )
                 }
-                EdgeStatus.Succeeded -> {
+                DiagramEdgeStatus.SUCCEEDED -> {
                     // Solid green line.
                     drawLine(
                         color = color,
@@ -212,7 +213,7 @@ private fun EdgeLine(
                         strokeWidth = thickness,
                     )
                 }
-                EdgeStatus.Failed -> {
+                DiagramEdgeStatus.FAILED -> {
                     // Solid red line.
                     drawLine(
                         color = color,
@@ -240,8 +241,8 @@ fun NetworkDiagramIdlePreview() {
     PreviewComponentSurface {
         NetworkProgressDiagram(
             state = NetworkDiagramState(
-                nodes = listOf(NodeStatus.Idle, NodeStatus.Idle, NodeStatus.Idle),
-                edges = listOf(EdgeStatus.NotStarted, EdgeStatus.NotStarted),
+                nodes = listOf(DiagramNodeStatus.IDLE, DiagramNodeStatus.IDLE, DiagramNodeStatus.IDLE),
+                edges = listOf(DiagramEdgeStatus.NOT_STARTED, DiagramEdgeStatus.NOT_STARTED),
             ),
             icons = DIAGRAM_ICONS,
         )
@@ -254,8 +255,8 @@ fun NetworkDiagramSendingToServerPreview() {
     PreviewComponentSurface {
         NetworkProgressDiagram(
             state = NetworkDiagramState(
-                nodes = listOf(NodeStatus.Active, NodeStatus.Idle, NodeStatus.Idle),
-                edges = listOf(EdgeStatus.InProgress, EdgeStatus.NotStarted),
+                nodes = listOf(DiagramNodeStatus.ACTIVE, DiagramNodeStatus.IDLE, DiagramNodeStatus.IDLE),
+                edges = listOf(DiagramEdgeStatus.IN_PROGRESS, DiagramEdgeStatus.NOT_STARTED),
             ),
             icons = DIAGRAM_ICONS,
         )
@@ -268,8 +269,8 @@ fun NetworkDiagramSendingToDoorPreview() {
     PreviewComponentSurface {
         NetworkProgressDiagram(
             state = NetworkDiagramState(
-                nodes = listOf(NodeStatus.Succeeded, NodeStatus.Active, NodeStatus.Idle),
-                edges = listOf(EdgeStatus.Succeeded, EdgeStatus.InProgress),
+                nodes = listOf(DiagramNodeStatus.SUCCEEDED, DiagramNodeStatus.ACTIVE, DiagramNodeStatus.IDLE),
+                edges = listOf(DiagramEdgeStatus.SUCCEEDED, DiagramEdgeStatus.IN_PROGRESS),
             ),
             icons = DIAGRAM_ICONS,
         )
@@ -282,8 +283,8 @@ fun NetworkDiagramSucceededPreview() {
     PreviewComponentSurface {
         NetworkProgressDiagram(
             state = NetworkDiagramState(
-                nodes = listOf(NodeStatus.Succeeded, NodeStatus.Succeeded, NodeStatus.Succeeded),
-                edges = listOf(EdgeStatus.Succeeded, EdgeStatus.Succeeded),
+                nodes = listOf(DiagramNodeStatus.SUCCEEDED, DiagramNodeStatus.SUCCEEDED, DiagramNodeStatus.SUCCEEDED),
+                edges = listOf(DiagramEdgeStatus.SUCCEEDED, DiagramEdgeStatus.SUCCEEDED),
             ),
             icons = DIAGRAM_ICONS,
         )
@@ -296,8 +297,8 @@ fun NetworkDiagramServerFailedPreview() {
     PreviewComponentSurface {
         NetworkProgressDiagram(
             state = NetworkDiagramState(
-                nodes = listOf(NodeStatus.Failed, NodeStatus.Idle, NodeStatus.Idle),
-                edges = listOf(EdgeStatus.Failed, EdgeStatus.NotStarted),
+                nodes = listOf(DiagramNodeStatus.FAILED, DiagramNodeStatus.IDLE, DiagramNodeStatus.IDLE),
+                edges = listOf(DiagramEdgeStatus.FAILED, DiagramEdgeStatus.NOT_STARTED),
             ),
             icons = DIAGRAM_ICONS,
         )
@@ -310,8 +311,8 @@ fun NetworkDiagramDoorFailedPreview() {
     PreviewComponentSurface {
         NetworkProgressDiagram(
             state = NetworkDiagramState(
-                nodes = listOf(NodeStatus.Succeeded, NodeStatus.Failed, NodeStatus.Idle),
-                edges = listOf(EdgeStatus.Succeeded, EdgeStatus.Failed),
+                nodes = listOf(DiagramNodeStatus.SUCCEEDED, DiagramNodeStatus.FAILED, DiagramNodeStatus.IDLE),
+                edges = listOf(DiagramEdgeStatus.SUCCEEDED, DiagramEdgeStatus.FAILED),
             ),
             icons = DIAGRAM_ICONS,
         )
