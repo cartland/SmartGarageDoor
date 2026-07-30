@@ -35,7 +35,10 @@ final class SettingsViewModelWrapper: ObservableObject {
     /// projection (see `SnoozeRowDisplay`).
     @Published private(set) var snoozeRow: SnoozeRowDisplay = .off
     @Published private(set) var snoozeSending: Bool = false
-    @Published private(set) var snoozeError: String?
+    /// Typed copy for the last snooze failure. `LocalizedStringResource` so the
+    /// message reaches the String Catalog — as a plain `String` it was invisible
+    /// to the extractor and could never be translated.
+    @Published private(set) var snoozeError: LocalizedStringResource?
     /// Whether notification authorization is granted. Feeds the shared mapper,
     /// which gives a denied permission precedence over any snooze state.
     /// Defaults `true` so the prompt doesn't flash before the async read
@@ -61,7 +64,7 @@ final class SettingsViewModelWrapper: ObservableObject {
     /// Swift enum conforming to `CaseIterable`, and the label switch below is
     /// exhaustive — adding a duration in shared is a compile error here until it
     /// has wording, instead of an option that never appears in the sheet.
-    let durations: [(label: String, option: SnoozeDurationUIOption)] =
+    let durations: [(label: LocalizedStringResource, option: SnoozeDurationUIOption)] =
         SnoozeDurationUIOption.allCases.map { (SnoozeDurationLabels.text(for: $0), $0) }
 
     /// Server-config gate for the whole snooze surface, read once from the

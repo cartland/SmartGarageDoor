@@ -41,19 +41,21 @@ enum SnoozeRowDisplay: Equatable {
 
     /// Row subtitle.
     ///
-    /// `String(localized:)` rather than a bare literal so these are extracted
-    /// into the String Catalog — a plain `String` reaching a `Text` is invisible
-    /// to the compiler's extractor (see `docs/IOS_LOCALIZATION.md`).
-    var subtitle: String {
+    /// `LocalizedStringResource`, not `String`: a `String` handed to a `Text`
+    /// is invisible to the compiler's string extractor, so the subtitle could
+    /// never be translated (see `docs/IOS_LOCALIZATION.md`). Callers that need
+    /// actual characters — the snooze sheet's footer lowercases this — resolve
+    /// it with `String(localized:)`.
+    var subtitle: LocalizedStringResource {
         switch self {
         case .loading:
-            return String(localized: "Loading…")
+            return "Loading…"
         case .permissionDenied:
-            return String(localized: "Notifications disabled. Tap to enable.")
+            return "Notifications disabled. Tap to enable."
         case .off:
-            return String(localized: "Notifications enabled")
+            return "Notifications enabled"
         case .snoozingUntil(let time):
-            return String(localized: "Snoozing until \(time)")
+            return "Snoozing until \(time)"
         }
     }
 }
@@ -64,13 +66,13 @@ enum SnoozeRowDisplay: Equatable {
 /// exhaustive so a duration added to shared fails the build here until it has a
 /// label.
 enum SnoozeDurationLabels {
-    static func text(for option: SnoozeDurationUIOption) -> String {
+    static func text(for option: SnoozeDurationUIOption) -> LocalizedStringResource {
         switch option {
-        case .none: return String(localized: "Don't snooze")
-        case .oneHour: return String(localized: "1 hour")
-        case .fourHours: return String(localized: "4 hours")
-        case .eightHours: return String(localized: "8 hours")
-        case .twelveHours: return String(localized: "12 hours")
+        case .none: return "Don't snooze"
+        case .oneHour: return "1 hour"
+        case .fourHours: return "4 hours"
+        case .eightHours: return "8 hours"
+        case .twelveHours: return "12 hours"
         }
     }
 }

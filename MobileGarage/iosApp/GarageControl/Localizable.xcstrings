@@ -52,6 +52,12 @@
     "Auth": {
       "extractionState": "manual"
     },
+    "Build": {
+      "extractionState": "manual"
+    },
+    "Built": {
+      "extractionState": "manual"
+    },
     "Button health": {
       "extractionState": "manual"
     },
@@ -127,6 +133,12 @@
     "Door history": {
       "extractionState": "manual"
     },
+    "Door open notifications": {
+      "extractionState": "manual"
+    },
+    "Door state changed before snooze could apply. Try again.": {
+      "extractionState": "manual"
+    },
     "Door status": {
       "extractionState": "manual"
     },
@@ -163,7 +175,13 @@
     "No events yet": {
       "extractionState": "manual"
     },
+    "No recent door event available. Try again in a moment.": {
+      "extractionState": "manual"
+    },
     "Not receiving updates from server": {
+      "extractionState": "manual"
+    },
+    "Not snoozing": {
       "extractionState": "manual"
     },
     "Notifications": {
@@ -188,6 +206,9 @@
       "extractionState": "manual"
     },
     "Opening": {
+      "extractionState": "manual"
+    },
+    "Package": {
       "extractionState": "manual"
     },
     "Privacy policy": {
@@ -238,16 +259,25 @@
     "Sign in": {
       "extractionState": "manual"
     },
+    "Sign in to snooze notifications.": {
+      "extractionState": "manual"
+    },
     "Sign in with Google": {
       "extractionState": "manual"
     },
     "Sign out": {
       "extractionState": "manual"
     },
+    "Signed in": {
+      "extractionState": "manual"
+    },
     "Silences the open-door warning for the selected time. Currently: %@.": {
       "extractionState": "manual"
     },
     "Snooze 1 hour": {
+      "extractionState": "manual"
+    },
+    "Snooze did not apply. Check your connection and try again.": {
       "extractionState": "manual"
     },
     "Snooze notifications": {
@@ -257,6 +287,9 @@
       "extractionState": "manual"
     },
     "Snoozing until %@": {
+      "extractionState": "manual"
+    },
+    "Snoozing until 9:00 PM": {
       "extractionState": "manual"
     },
     "Status": {
@@ -289,7 +322,13 @@
     "Unknown": {
       "extractionState": "manual"
     },
+    "Unlocks the remote button and snooze": {
+      "extractionState": "manual"
+    },
     "Unsubscribe test notifications": {
+      "extractionState": "manual"
+    },
+    "Version": {
       "extractionState": "manual"
     },
     "Waiting for door": {
