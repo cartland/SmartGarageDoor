@@ -1,0 +1,219 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "%lld": {
+      "extractionState": "manual"
+    },
+    "About": {
+      "extractionState": "manual"
+    },
+    "Account": {
+      "extractionState": "manual"
+    },
+    "Auth": {
+      "extractionState": "manual"
+    },
+    "Button health": {
+      "extractionState": "manual"
+    },
+    "Cancel": {
+      "extractionState": "manual"
+    },
+    "Change test topic": {
+      "extractionState": "manual"
+    },
+    "Checking sign-in…": {
+      "extractionState": "manual"
+    },
+    "Clear all": {
+      "extractionState": "manual"
+    },
+    "Clear all diagnostics": {
+      "extractionState": "manual"
+    },
+    "Clear all diagnostics?": {
+      "extractionState": "manual"
+    },
+    "Clearing…": {
+      "extractionState": "manual"
+    },
+    "Confirm": {
+      "extractionState": "manual"
+    },
+    "Connecting…": {
+      "extractionState": "manual"
+    },
+    "Copied": {
+      "extractionState": "manual"
+    },
+    "Copy auth token": {
+      "extractionState": "manual"
+    },
+    "Copy test topic": {
+      "extractionState": "manual"
+    },
+    "Counters": {
+      "extractionState": "manual"
+    },
+    "Deregister FCM": {
+      "extractionState": "manual"
+    },
+    "Developer": {
+      "extractionState": "manual"
+    },
+    "Diagnostics": {
+      "extractionState": "manual"
+    },
+    "Done": {
+      "extractionState": "manual"
+    },
+    "Door": {
+      "extractionState": "manual"
+    },
+    "Door failed": {
+      "extractionState": "manual"
+    },
+    "Door history": {
+      "extractionState": "manual"
+    },
+    "Door status": {
+      "extractionState": "manual"
+    },
+    "Double tap to copy": {
+      "extractionState": "manual"
+    },
+    "Export CSV": {
+      "extractionState": "manual"
+    },
+    "Exporting…": {
+      "extractionState": "manual"
+    },
+    "FCM": {
+      "extractionState": "manual"
+    },
+    "Function list": {
+      "extractionState": "manual"
+    },
+    "Functions unavailable": {
+      "extractionState": "manual"
+    },
+    "Garage": {
+      "extractionState": "manual"
+    },
+    "History": {
+      "extractionState": "manual"
+    },
+    "Loading…": {
+      "extractionState": "manual"
+    },
+    "No events yet": {
+      "extractionState": "manual"
+    },
+    "Not receiving updates from server": {
+      "extractionState": "manual"
+    },
+    "Notifications": {
+      "extractionState": "manual"
+    },
+    "Open / close door": {
+      "extractionState": "manual"
+    },
+    "Open or close the garage and check back here.": {
+      "extractionState": "manual"
+    },
+    "Privacy policy": {
+      "extractionState": "manual"
+    },
+    "Prune diagnostics log": {
+      "extractionState": "manual"
+    },
+    "Ready": {
+      "extractionState": "manual"
+    },
+    "Refresh": {
+      "extractionState": "manual"
+    },
+    "Register FCM": {
+      "extractionState": "manual"
+    },
+    "Remote button %@": {
+      "extractionState": "manual"
+    },
+    "Remote control": {
+      "extractionState": "manual"
+    },
+    "Required to use the remote button": {
+      "extractionState": "manual"
+    },
+    "Retry": {
+      "extractionState": "manual"
+    },
+    "Save": {
+      "extractionState": "manual"
+    },
+    "Sending": {
+      "extractionState": "manual"
+    },
+    "Settings": {
+      "extractionState": "manual"
+    },
+    "Shows door status info": {
+      "extractionState": "manual"
+    },
+    "Shows remote control info": {
+      "extractionState": "manual"
+    },
+    "Sign in": {
+      "extractionState": "manual"
+    },
+    "Sign in with Google": {
+      "extractionState": "manual"
+    },
+    "Sign out": {
+      "extractionState": "manual"
+    },
+    "Silences the open-door warning for the selected time. Currently: %@.": {
+      "extractionState": "manual"
+    },
+    "Snooze 1 hour": {
+      "extractionState": "manual"
+    },
+    "Snooze notifications": {
+      "extractionState": "manual"
+    },
+    "Snooze status": {
+      "extractionState": "manual"
+    },
+    "Status": {
+      "extractionState": "manual"
+    },
+    "Subscribe test notifications": {
+      "extractionState": "manual"
+    },
+    "Succeeded": {
+      "extractionState": "manual"
+    },
+    "Test notifications": {
+      "extractionState": "manual"
+    },
+    "This developer panel is gated to allowlisted accounts.": {
+      "extractionState": "manual"
+    },
+    "Topic": {
+      "extractionState": "manual"
+    },
+    "Unsubscribe test notifications": {
+      "extractionState": "manual"
+    },
+    "Waiting for door": {
+      "extractionState": "manual"
+    },
+    "Waiting for the latest door status": {
+      "extractionState": "manual"
+    },
+    "You've reached the beginning of your history": {
+      "extractionState": "manual"
+    }
+  },
+  "version": "1.0"
+}
