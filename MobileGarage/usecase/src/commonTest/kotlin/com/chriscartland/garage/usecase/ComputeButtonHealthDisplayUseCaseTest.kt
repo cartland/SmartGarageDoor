@@ -104,7 +104,7 @@ class ComputeButtonHealthDisplayUseCaseTest {
             ).invoke().awaitComputed()
 
             val offline = assertIs<ButtonHealthDisplay.Offline>(display)
-            assertEquals("11 min ago", offline.durationLabel)
+            assertEquals(ButtonOfflineAge.Minutes(11), offline.age)
         }
 
     /**

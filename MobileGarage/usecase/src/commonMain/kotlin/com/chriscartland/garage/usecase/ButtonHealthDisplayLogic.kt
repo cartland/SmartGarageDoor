@@ -71,18 +71,18 @@ object ButtonHealthDisplayLogic {
                             // and (b) bootstrap-no-poll edge where no poll
                             // record exists at all.
                             val lastSeenSeconds = data.lastPollAtSeconds
-                            val durationLabel = if (lastSeenSeconds != null) {
-                                "last seen " + ButtonHealthDurationFormatter.formatAgo(
-                                    lastSeenSeconds,
-                                    nowSeconds,
-                                )
+                            val source = if (lastSeenSeconds != null) {
+                                ButtonOfflineAgeSource.LAST_SEEN
                             } else {
-                                ButtonHealthDurationFormatter.formatAgo(
-                                    data.stateChangedAtSeconds,
-                                    nowSeconds,
-                                )
+                                ButtonOfflineAgeSource.STATE_CHANGED
                             }
-                            ButtonHealthDisplay.Offline(durationLabel = durationLabel)
+                            ButtonHealthDisplay.Offline(
+                                age = ButtonOfflineAgeMapper.forTimestamp(
+                                    stateChangedAtSeconds = lastSeenSeconds ?: data.stateChangedAtSeconds,
+                                    nowSeconds = nowSeconds,
+                                ),
+                                source = source,
+                            )
                         }
                     }
                 }

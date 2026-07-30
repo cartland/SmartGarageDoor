@@ -35,11 +35,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.R
+import com.chriscartland.garage.ui.home.RemoteOfflineText
 import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 import com.chriscartland.garage.ui.theme.Spacing
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
+import com.chriscartland.garage.usecase.ButtonOfflineAge
+import com.chriscartland.garage.usecase.ButtonOfflineAgeSource
 
 /**
  * Compact rounded-pill indicator that the remote-button device is offline.
@@ -77,8 +82,9 @@ fun RemoteOfflinePill(
                 .padding(start = 8.dp, end = 4.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                val ageText = RemoteOfflineText.label(display)
                 Text(
-                    text = "Unavailable · ${display.durationLabel}",
+                    text = stringResource(R.string.remote_offline_pill_label, ageText),
                     style = MaterialTheme.typography.labelSmall,
                 )
                 Spacer(modifier = Modifier.width(Spacing.Tight))
@@ -86,7 +92,7 @@ fun RemoteOfflinePill(
                     modifier = Modifier.size(17.dp),
                     imageVector = Icons.Outlined.SensorsOff,
                     tint = LocalContentColor.current,
-                    contentDescription = "Remote button unavailable, last seen ${display.durationLabel}",
+                    contentDescription = stringResource(R.string.remote_offline_pill_description, ageText),
                 )
             }
         }
@@ -98,7 +104,9 @@ fun RemoteOfflinePill(
 fun RemoteOfflinePillFreshPreview() {
     PreviewComponentSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            RemoteOfflinePill(display = ButtonHealthDisplay.Offline(durationLabel = "1 min ago"))
+            RemoteOfflinePill(
+                display = ButtonHealthDisplay.Offline(age = ButtonOfflineAge.Minutes(1), source = ButtonOfflineAgeSource.LAST_SEEN),
+            )
         }
     }
 }
@@ -108,7 +116,9 @@ fun RemoteOfflinePillFreshPreview() {
 fun RemoteOfflinePillAgingPreview() {
     PreviewComponentSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            RemoteOfflinePill(display = ButtonHealthDisplay.Offline(durationLabel = "11 min ago"))
+            RemoteOfflinePill(
+                display = ButtonHealthDisplay.Offline(age = ButtonOfflineAge.Minutes(11), source = ButtonOfflineAgeSource.LAST_SEEN),
+            )
         }
     }
 }
@@ -118,7 +128,9 @@ fun RemoteOfflinePillAgingPreview() {
 fun RemoteOfflinePillStalePreview() {
     PreviewComponentSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            RemoteOfflinePill(display = ButtonHealthDisplay.Offline(durationLabel = "2 hr ago"))
+            RemoteOfflinePill(
+                display = ButtonHealthDisplay.Offline(age = ButtonOfflineAge.Hours(2), source = ButtonOfflineAgeSource.LAST_SEEN),
+            )
         }
     }
 }
@@ -128,7 +140,9 @@ fun RemoteOfflinePillStalePreview() {
 fun RemoteOfflinePillVeryStalePreview() {
     PreviewComponentSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            RemoteOfflinePill(display = ButtonHealthDisplay.Offline(durationLabel = "3 days ago"))
+            RemoteOfflinePill(
+                display = ButtonHealthDisplay.Offline(age = ButtonOfflineAge.Days(3), source = ButtonOfflineAgeSource.STATE_CHANGED),
+            )
         }
     }
 }

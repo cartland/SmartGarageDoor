@@ -48,6 +48,15 @@
     <string name="remote_diagram_server_failed">Server did not accept the request</string>
     <string name="remote_diagram_door_failed">Door did not respond</string>
 
+    <!-- Home — remote button offline age. The shared layer hands over a typed
+         bucket; these supply the words. Counts use plurals so each locale can
+         use its own plural rules rather than English's one-vs-many. -->
+    <string name="remote_offline_last_seen">Last seen %1$s</string>
+    <string name="remote_offline_age_unknown">unknown</string>
+    <string name="remote_offline_age_just_now">just now</string>
+    <string name="remote_offline_pill_label">Unavailable · %1$s</string>
+    <string name="remote_offline_pill_description">Remote button unavailable, %1$s</string>
+
     <!-- Settings — Account section rows. -->
     <string name="settings_account_sign_in">Sign in with Google</string>
     <string name="settings_account_checking">Checking sign-in…</string>
@@ -351,4 +360,22 @@
          DoorNotificationPresenter (foreground warning + resolved). Keep these
          in sync via this resource — do not hardcode the literal again. -->
     <string name="door_notification_channel_id" translatable="false">garage_door</string>
+
+    <!-- Remote button offline age counts. -->
+    <plurals name="remote_offline_age_seconds">
+        <item quantity="one">%1$d sec ago</item>
+        <item quantity="other">%1$d sec ago</item>
+    </plurals>
+    <plurals name="remote_offline_age_minutes">
+        <item quantity="one">%1$d min ago</item>
+        <item quantity="other">%1$d min ago</item>
+    </plurals>
+    <plurals name="remote_offline_age_hours">
+        <item quantity="one">%1$d hr ago</item>
+        <item quantity="other">%1$d hr ago</item>
+    </plurals>
+    <plurals name="remote_offline_age_days">
+        <item quantity="one">%1$d day ago</item>
+        <item quantity="other">%1$d days ago</item>
+    </plurals>
 </resources>

@@ -284,6 +284,32 @@ final class HomeViewModelWrapper: ObservableObject {
         sinceLine = "Since \(Self.clockText(for: date)) · \(Self.durationText(for: status.elapsed))"
     }
 
+    /// Words for the shared typed offline age. Mirrors Android's
+    /// `RemoteOfflineText`; each platform owns its own phrasing so it can be
+    /// translated independently.
+    private static func offlineAgeText(_ offline: UsecaseButtonHealthDisplayOffline) -> String {
+        let age: String
+        switch onEnum(of: offline.age) {
+        case .unknown:
+            age = "unknown"
+        case .justNow:
+            age = "just now"
+        case .seconds(let v):
+            age = "\(v.seconds) sec ago"
+        case .minutes(let v):
+            age = "\(v.minutes) min ago"
+        case .hours(let v):
+            age = "\(v.hours) hr ago"
+        case .days(let v):
+            age = v.days == 1 ? "1 day ago" : "\(v.days) days ago"
+        }
+        switch offline.source {
+        case .lastSeen: return "Last seen \(age)"
+        case .stateChanged: return age
+        default: return age
+        }
+    }
+
     private static let timeOnlyFormatter: DateFormatter = {
         let formatter = DateFormatter()
         // A localized template, not a fixed pattern: the device decides 12- vs
@@ -349,11 +375,15 @@ final class HomeViewModelWrapper: ObservableObject {
     /// `RemoteButtonHealthPillContents` verbatim ("Available" / "Unavailable · X"
     /// / "Unauthorized" / "Unknown") so both platforms read identically; the
     /// shared `Hidden` arm maps to nil — no pill while there is no verdict.
-    /// The `Offline.durationLabel` is the shared pre-formatted "… ago" string.
+    /// `Offline` carries a typed age bucket, not a formatted string — the shared
+    /// layer decides the bucket, this decides the words (see `ButtonOfflineAge`).
     private func applyHealth(_ display: UsecaseButtonHealthDisplay) {
         switch onEnum(of: display) {
         case .offline(let offline):
-            buttonHealth = ButtonHealthItem(label: "Unavailable · \(offline.durationLabel)", kind: .offline)
+            buttonHealth = ButtonHealthItem(
+                label: "Unavailable · \(Self.offlineAgeText(offline))",
+                kind: .offline
+            )
         case .online:
             buttonHealth = ButtonHealthItem(label: "Available", kind: .online)
         case .hidden:

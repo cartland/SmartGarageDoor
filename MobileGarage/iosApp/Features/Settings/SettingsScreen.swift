@@ -255,7 +255,11 @@ struct SettingsContentView: View {
                         // row + SnoozeBottomSheet pattern).
                         Button { snoozeSheetOpen = true } label: {
                             SettingsRowLabel(
-                                icon: snoozeSnoozing ? "bell.slash" : "bell",
+                                // bell.badge.slash = snoozed by you; bell.slash =
+                                // blocked by the OS (below). Distinct on purpose:
+                                // sharing one glyph made a snooze you set look
+                                // identical to notifications you cannot receive.
+                                icon: snoozeSnoozing ? "bell.badge.slash" : "bell",
                                 title: "Door open notifications",
                                 subtitle: snoozeLabel,
                                 showChevron: !snoozeSending,
