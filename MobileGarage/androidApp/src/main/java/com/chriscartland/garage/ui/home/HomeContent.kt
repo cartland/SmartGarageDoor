@@ -62,9 +62,13 @@ import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.RemoteButtonState
+import com.chriscartland.garage.presentation.DoorHeadline
+import com.chriscartland.garage.presentation.DoorHeadlineMapper
 import com.chriscartland.garage.presentation.DoorWarning
 import com.chriscartland.garage.presentation.ElapsedDuration
 import com.chriscartland.garage.presentation.HomeAlert
+import com.chriscartland.garage.presentation.PermissionNagLine
+import com.chriscartland.garage.presentation.PermissionNagMapper
 import com.chriscartland.garage.presentation.SinceStatus
 import com.chriscartland.garage.ui.DeviceCheckInPill
 import com.chriscartland.garage.ui.DoorStatusInfoBottomSheet
@@ -446,57 +450,51 @@ private fun doorWarningText(warning: DoorWarning): String =
  */
 @Composable
 private fun notificationJustificationText(attemptCount: Int): String {
-    val base = stringResource(R.string.notification_justification_base)
-    val attempt = attemptCount
-    val attempt3 = if (attempt > 2) {
-        stringResource(R.string.notification_justification_attempt_3)
-    } else {
-        null
-    }
-    val attempt4 = if (attempt > 3) {
-        stringResource(R.string.notification_justification_attempt_4)
-    } else {
-        null
-    }
-    val attempt5 = if (attempt > 4) {
-        stringResource(R.string.notification_justification_attempt_5, attempt)
-    } else {
-        null
-    }
+    // A plain loop, not joinToString: `stringResource` is @Composable and
+    // cannot be called from a lambda passed to a non-inline function.
+    val lines = PermissionNagMapper.linesFor(attemptCount)
     return buildString {
-        append(base)
-        attempt3?.let { append("\n").append(it) }
-        attempt4?.let { append("\n").append(it) }
-        attempt5?.let { append("\n").append(it) }
+        lines.forEachIndexed { index, line ->
+            if (index > 0) append("\n")
+            append(notificationJustificationLine(line, attemptCount))
+        }
     }
 }
 
+/** Android wording for one shared [PermissionNagLine]. */
+@Composable
+private fun notificationJustificationLine(
+    line: PermissionNagLine,
+    attemptCount: Int,
+): String =
+    when (line) {
+        PermissionNagLine.BASE ->
+            stringResource(R.string.notification_justification_base)
+        PermissionNagLine.MENTION_SETTINGS ->
+            stringResource(R.string.notification_justification_attempt_3)
+        PermissionNagLine.MENTION_REPEATED_DENIAL ->
+            stringResource(R.string.notification_justification_attempt_4)
+        PermissionNagLine.ATTEMPT_COUNT ->
+            stringResource(R.string.notification_justification_attempt_5, attemptCount)
+    }
+
 /**
- * Resolves a [DoorPosition] to the headline label string for the Status card.
+ * Android wording for the shared [DoorHeadline].
  *
- * Multiple positions share a label by design: `OPENING` and `OPENING_TOO_LONG`
- * both render "Opening"; `OPEN` and `OPEN_MISALIGNED` both render "Open";
- * `CLOSING` and `CLOSING_TOO_LONG` both render "Closing". The anomalous
- * variants surface their distinguishing detail in the [DoorWarning] chip
- * below, not in the headline.
- *
- * Phase 2B of the string-resource migration plan — replaces the previous
- * `HomeMapper.stateLabel(DoorPosition): String` function. The mapper no
- * longer emits user-visible text for the door state; the Composable
- * resolves position to a localized resource at render time.
+ * Which of the nine [DoorPosition]s collapse onto the same headline is decided
+ * in [DoorHeadlineMapper] so both platforms name the door identically; this
+ * only picks the words. The anomalous variants surface what makes them
+ * anomalous in the [DoorWarning] chip below, not here.
  */
 @Composable
 private fun doorStateLabel(doorPosition: DoorPosition): String =
-    when (doorPosition) {
-        DoorPosition.OPEN -> stringResource(R.string.home_door_state_open)
-        DoorPosition.OPEN_MISALIGNED -> stringResource(R.string.home_door_state_open)
-        DoorPosition.CLOSED -> stringResource(R.string.home_door_state_closed)
-        DoorPosition.UNKNOWN -> stringResource(R.string.home_door_state_unknown)
-        DoorPosition.OPENING -> stringResource(R.string.home_door_state_opening)
-        DoorPosition.OPENING_TOO_LONG -> stringResource(R.string.home_door_state_opening)
-        DoorPosition.CLOSING -> stringResource(R.string.home_door_state_closing)
-        DoorPosition.CLOSING_TOO_LONG -> stringResource(R.string.home_door_state_closing)
-        DoorPosition.ERROR_SENSOR_CONFLICT -> stringResource(R.string.home_door_state_sensor_conflict)
+    when (DoorHeadlineMapper.forPosition(doorPosition)) {
+        DoorHeadline.OPEN -> stringResource(R.string.home_door_state_open)
+        DoorHeadline.CLOSED -> stringResource(R.string.home_door_state_closed)
+        DoorHeadline.OPENING -> stringResource(R.string.home_door_state_opening)
+        DoorHeadline.CLOSING -> stringResource(R.string.home_door_state_closing)
+        DoorHeadline.UNKNOWN -> stringResource(R.string.home_door_state_unknown)
+        DoorHeadline.SENSOR_CONFLICT -> stringResource(R.string.home_door_state_sensor_conflict)
     }
 
 /**

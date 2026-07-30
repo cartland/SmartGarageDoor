@@ -420,16 +420,20 @@ private extension Color {
 // MARK: - Door state label (mirror HomeContent.doorStateLabel)
 
 extension DoorPosition {
-    /// User-visible label for the door state. Mirrors Android's
-    /// `doorStateLabel(DoorPosition)` + `home_door_state_*` strings.
+    /// iOS wording for the shared `DoorHeadline`.
+    ///
+    /// Which positions collapse onto the same headline is decided by
+    /// `DoorHeadlineMapper`, so the two apps cannot end up naming the same door
+    /// differently; this picks only the words. Anomalous variants say what makes
+    /// them anomalous in the warning chip, not here.
     var statusLabel: String {
-        switch self {
-        case .open, .openMisaligned: return "Open"
-        case .closed: return "Closed"
-        case .unknown: return "Unknown"
-        case .opening, .openingTooLong: return "Opening"
-        case .closing, .closingTooLong: return "Closing"
-        case .errorSensorConflict: return "Sensor conflict"
+        switch DoorHeadlineMapper.shared.forPosition(position: self) {
+        case .open: return String(localized: "Open")
+        case .closed: return String(localized: "Closed")
+        case .opening: return String(localized: "Opening")
+        case .closing: return String(localized: "Closing")
+        case .unknown: return String(localized: "Unknown")
+        case .sensorConflict: return String(localized: "Sensor conflict")
         }
     }
 }

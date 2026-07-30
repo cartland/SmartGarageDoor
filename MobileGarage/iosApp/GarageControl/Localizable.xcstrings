@@ -49,6 +49,12 @@
     "Clearing…": {
       "extractionState": "manual"
     },
+    "Closed": {
+      "extractionState": "manual"
+    },
+    "Closing": {
+      "extractionState": "manual"
+    },
     "Confirm": {
       "extractionState": "manual"
     },
@@ -136,10 +142,16 @@
     "Notifications enabled": {
       "extractionState": "manual"
     },
+    "Open": {
+      "extractionState": "manual"
+    },
     "Open / close door": {
       "extractionState": "manual"
     },
     "Open or close the garage and check back here.": {
+      "extractionState": "manual"
+    },
+    "Opening": {
       "extractionState": "manual"
     },
     "Privacy policy": {
@@ -173,6 +185,9 @@
       "extractionState": "manual"
     },
     "Sending": {
+      "extractionState": "manual"
+    },
+    "Sensor conflict": {
       "extractionState": "manual"
     },
     "Settings": {
@@ -226,6 +241,12 @@
     "Topic": {
       "extractionState": "manual"
     },
+    "Turn on notifications to get alerted when the door is left open.": {
+      "extractionState": "manual"
+    },
+    "Unknown": {
+      "extractionState": "manual"
+    },
     "Unsubscribe test notifications": {
       "extractionState": "manual"
     },
@@ -235,7 +256,16 @@
     "Waiting for the latest door status": {
       "extractionState": "manual"
     },
+    "You can manage permissions in the iOS Settings app.": {
+      "extractionState": "manual"
+    },
+    "You have tapped the button %d times.": {
+      "extractionState": "manual"
+    },
     "You've reached the beginning of your history": {
+      "extractionState": "manual"
+    },
+    "iOS may be blocking requests because the permission was denied multiple times.": {
       "extractionState": "manual"
     }
   },
