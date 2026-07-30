@@ -31,7 +31,9 @@ final class HistoryViewModelWrapper: ObservableObject {
     /// One day section: a localized header + its rows (newest-first).
     struct DaySection: Identifiable {
         let id: String
-        let title: String
+        /// "Today"/"Yesterday" are copy; an explicit date is already
+        /// locale-formatted, so it is data. See `DisplayText`.
+        let title: DisplayText
         let entries: [Entry]
     }
 
@@ -40,9 +42,13 @@ final class HistoryViewModelWrapper: ObservableObject {
     struct Entry: Identifiable {
         let id: String
         let position: DoorPosition
-        let headline: String
-        let supporting: String
-        let warnings: [String]
+        /// `LocalizedStringResource`, not `String`: as a `String` these were
+        /// invisible to the compiler's extractor and could never be translated.
+        let headline: LocalizedStringResource
+        /// Copy for the state-duration lines; data for the anomaly rows, whose
+        /// supporting text is just an already-formatted clock time.
+        let supporting: DisplayText
+        let warnings: [LocalizedStringResource]
     }
 
     @Published private(set) var days: [DaySection] = []
@@ -151,19 +157,21 @@ final class HistoryViewModelWrapper: ObservableObject {
         }
     }
 
-    private static func dayTitle(_ label: DayLabel) -> String {
+    private static func dayTitle(_ label: DayLabel) -> DisplayText {
         switch onEnum(of: label) {
-        case .today: return "Today"
-        case .yesterday: return "Yesterday"
+        case .today: return .copy("Today")
+        case .yesterday: return .copy("Yesterday")
         case .date(let d):
             var components = DateComponents()
             components.year = Int(d.year)
             components.month = Int(d.monthNumber)
             components.day = Int(d.dayOfMonth)
             guard let date = Calendar.current.date(from: components) else {
-                return "\(d.monthNumber)/\(d.dayOfMonth)"
+                return .data("\(d.monthNumber)/\(d.dayOfMonth)")
             }
-            return dateLabelFormatter.string(from: date)
+            // Already formatted for the user's locale by the formatter — data,
+            // not copy, so it must not be looked up in the catalog.
+            return .data(dateLabelFormatter.string(from: date))
         }
     }
 
@@ -174,7 +182,7 @@ final class HistoryViewModelWrapper: ObservableObject {
         case .opened(let opened):
             let time = clockText(opened.timeSeconds)
             let duration = stateDuration(opened.durationSeconds, isCurrent: opened.isCurrent, isOpen: true)
-            let headline: String
+            let headline: LocalizedStringResource
             if opened.isCurrent && opened.misaligned {
                 headline = "Open (misaligned)"
             } else if opened.isCurrent {
@@ -182,26 +190,32 @@ final class HistoryViewModelWrapper: ObservableObject {
             } else {
                 headline = "Opened at \(time)"
             }
-            var warnings: [String] = []
+            var warnings: [LocalizedStringResource] = []
             if let warning = opened.transitWarning { warnings.append(transitText(warning)) }
+            // Suppressed when the headline already says "(misaligned)" — the tag
+            // would just repeat it.
             if opened.misaligned && !opened.isCurrent { warnings.append("Door was misaligned") }
             return Entry(
                 id: "\(opened.timeSeconds)-\(index)",
                 position: opened.misaligned ? .openMisaligned : .open,
                 headline: headline,
-                supporting: opened.isCurrent ? "Since \(time) · \(duration)" : duration,
+                supporting: opened.isCurrent
+                    ? .copy("Since \(time) · \(String(localized: duration))")
+                    : .copy(duration),
                 warnings: warnings
             )
         case .closed(let closed):
             let time = clockText(closed.timeSeconds)
             let duration = stateDuration(closed.durationSeconds, isCurrent: closed.isCurrent, isOpen: false)
-            var warnings: [String] = []
+            var warnings: [LocalizedStringResource] = []
             if let warning = closed.transitWarning { warnings.append(transitText(warning)) }
             return Entry(
                 id: "\(closed.timeSeconds)-\(index)",
                 position: .closed,
                 headline: closed.isCurrent ? "Closed" : "Closed at \(time)",
-                supporting: closed.isCurrent ? "Since \(time) · \(duration)" : duration,
+                supporting: closed.isCurrent
+                    ? .copy("Since \(time) · \(String(localized: duration))")
+                    : .copy(duration),
                 warnings: warnings
             )
         case .anomaly(let anomaly):
@@ -209,13 +223,13 @@ final class HistoryViewModelWrapper: ObservableObject {
                 id: "\(anomaly.timeSeconds)-\(index)",
                 position: anomaly.doorPosition,
                 headline: anomalyTitle(anomaly.kind),
-                supporting: clockText(anomaly.timeSeconds),
+                supporting: .data(clockText(anomaly.timeSeconds)),
                 warnings: []
             )
         }
     }
 
-    private static func anomalyTitle(_ kind: AnomalyKind) -> String {
+    private static func anomalyTitle(_ kind: AnomalyKind) -> LocalizedStringResource {
         switch onEnum(of: kind) {
         case .sensorConflict: return "Sensor conflict"
         case .unknownState: return "Unknown state"
@@ -233,7 +247,7 @@ final class HistoryViewModelWrapper: ObservableObject {
     /// this supplies the words. Both were previously reimplemented here against
     /// Android's `stateDurationDisplay`, on the highest-traffic surface in the
     /// app — every row of the history list.
-    private static func stateDuration(_ seconds: Int64, isCurrent: Bool, isOpen: Bool) -> String {
+    private static func stateDuration(_ seconds: Int64, isCurrent: Bool, isOpen: Bool) -> LocalizedStringResource {
         let display = HistoryDurationMapper.shared.stateSpan(
             seconds: seconds,
             isCurrent: isCurrent,
@@ -241,9 +255,9 @@ final class HistoryViewModelWrapper: ObservableObject {
         )
         let text = stateDurationText(display.duration)
         switch display.framing {
-        case .andCounting: return String(localized: "\(text) and counting")
-        case .openFor: return String(localized: "Open for \(text)")
-        case .closedFor: return String(localized: "Closed for \(text)")
+        case .andCounting: return "\(text) and counting"
+        case .openFor: return "Open for \(text)"
+        case .closedFor: return "Closed for \(text)"
         }
     }
 
@@ -272,7 +286,7 @@ final class HistoryViewModelWrapper: ObservableObject {
     /// Uses the transit ladder, which deliberately keeps seconds at minute
     /// scale — for a slow door the seconds are the interesting part. See
     /// `TransitSpanDuration`.
-    private static func transitText(_ warning: TransitWarning) -> String {
+    private static func transitText(_ warning: TransitWarning) -> LocalizedStringResource {
         let seconds: Int64
         let opening: Bool
         switch onEnum(of: warning) {
@@ -281,8 +295,8 @@ final class HistoryViewModelWrapper: ObservableObject {
         }
         let text = transitDurationText(HistoryDurationMapper.shared.transitSpan(seconds: seconds))
         return opening
-            ? String(localized: "Took \(text) to open, longer than expected")
-            : String(localized: "Took \(text) to close, longer than expected")
+            ? "Took \(text) to open, longer than expected"
+            : "Took \(text) to close, longer than expected"
     }
 
     /// iOS wording for one shared `TransitSpanDuration` arm.

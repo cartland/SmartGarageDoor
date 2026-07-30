@@ -110,7 +110,7 @@ struct HistoryContentView: View {
                             HistoryRow(entry: entry)
                         }
                     } header: {
-                        Text(day.title)
+                        day.title.view
                     }
                 }
                 // Bottom-of-list pagination footer: spinner while an older page
@@ -138,10 +138,13 @@ private struct HistoryRow: View {
                 .frame(width: 40, height: 40)
             VStack(alignment: .leading, spacing: GarageSpacing.tight) {
                 Text(entry.headline)
-                Text(entry.supporting)
+                entry.supporting.view
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                ForEach(entry.warnings, id: \.self) { warning in
+                // Keyed by position: LocalizedStringResource is not a
+                // dependable identity, and two warnings on one row are
+                // positional anyway.
+                ForEach(Array(entry.warnings.enumerated()), id: \.offset) { _, warning in
                     // Caution, not error: these annotate a past event ("took
                     // longer than usual"), so red would overstate them. Android
                     // uses its muted tertiary tone here.
@@ -234,28 +237,28 @@ private struct HistoryEmptyState: View {
     NavigationStack {
         HistoryContentView(
             days: [
-                .init(id: "today", title: "Today", entries: [
+                .init(id: "today", title: .copy("Today"), entries: [
                     .init(id: "t0", position: .open, headline: "Open",
-                          supporting: "Since 10:15 AM · 12 min and counting", warnings: []),
+                          supporting: .copy("Since 10:15 AM · 12 min and counting"), warnings: []),
                     .init(id: "t1", position: .closed, headline: "Closed at 9:53 AM",
-                          supporting: "Closed for 22 min", warnings: []),
+                          supporting: .copy("Closed for 22 min"), warnings: []),
                     .init(id: "t2", position: .open, headline: "Opened at 9:47 AM",
-                          supporting: "Open for 6 min",
+                          supporting: .copy("Open for 6 min"),
                           warnings: ["Took 4 min to open, longer than expected"]),
                 ]),
-                .init(id: "yesterday", title: "Yesterday", entries: [
+                .init(id: "yesterday", title: .copy("Yesterday"), entries: [
                     .init(id: "y0", position: .errorSensorConflict, headline: "Sensor conflict",
-                          supporting: "11:42 PM", warnings: []),
+                          supporting: .data("11:42 PM"), warnings: []),
                     .init(id: "y1", position: .closed, headline: "Closed at 8:30 PM",
-                          supporting: "Closed for 10 hr 12 min", warnings: []),
+                          supporting: .copy("Closed for 10 hr 12 min"), warnings: []),
                     .init(id: "y2", position: .open, headline: "Opened at 6:30 PM",
-                          supporting: "Open for 2 hr", warnings: []),
+                          supporting: .copy("Open for 2 hr"), warnings: []),
                 ]),
-                .init(id: "2026-4-27", title: "Mon, Apr 27", entries: [
+                .init(id: "2026-4-27", title: .data("Mon, Apr 27"), entries: [
                     .init(id: "d0", position: .openingTooLong, headline: "Stuck opening",
-                          supporting: "5:30 PM", warnings: []),
+                          supporting: .data("5:30 PM"), warnings: []),
                     .init(id: "d1", position: .closed, headline: "Closed at 7:18 AM",
-                          supporting: "Closed for 10 hr 12 min", warnings: []),
+                          supporting: .copy("Closed for 10 hr 12 min"), warnings: []),
                 ]),
             ],
             isLoading: false,
@@ -268,18 +271,18 @@ private struct HistoryEmptyState: View {
     NavigationStack {
         HistoryContentView(
             days: [
-                .init(id: "today", title: "Today", entries: [
+                .init(id: "today", title: .copy("Today"), entries: [
                     .init(id: "t0", position: .closed, headline: "Closed",
-                          supporting: "Since 11:30 AM · 47 min and counting",
+                          supporting: .copy("Since 11:30 AM · 47 min and counting"),
                           warnings: ["Took 3 min to close, longer than expected"]),
                     .init(id: "t1", position: .openMisaligned, headline: "Opened at 11:20 AM",
-                          supporting: "Open for 10 min", warnings: ["Door was misaligned"]),
+                          supporting: .copy("Open for 10 min"), warnings: ["Door was misaligned"]),
                 ]),
-                .init(id: "2026-4-27", title: "Mon, Apr 27", entries: [
+                .init(id: "2026-4-27", title: .data("Mon, Apr 27"), entries: [
                     .init(id: "d0", position: .closingTooLong, headline: "Stuck closing",
-                          supporting: "4:00 PM", warnings: []),
+                          supporting: .data("4:00 PM"), warnings: []),
                     .init(id: "d1", position: .unknown, headline: "Unknown state",
-                          supporting: "11:00 AM", warnings: []),
+                          supporting: .data("11:00 AM"), warnings: []),
                 ]),
             ],
             isLoading: false,
@@ -298,9 +301,9 @@ private struct HistoryEmptyState: View {
     NavigationStack {
         HistoryContentView(
             days: [
-                .init(id: "today", title: "Today", entries: [
+                .init(id: "today", title: .copy("Today"), entries: [
                     .init(id: "t0", position: .closed, headline: "Closed at 9:53 AM",
-                          supporting: "Closed for 22 min", warnings: []),
+                          supporting: .copy("Closed for 22 min"), warnings: []),
                 ]),
             ],
             isLoading: false,
@@ -318,11 +321,11 @@ private struct HistoryEmptyState: View {
     NavigationStack {
         HistoryContentView(
             days: [
-                .init(id: "today", title: "Today", entries: [
+                .init(id: "today", title: .copy("Today"), entries: [
                     .init(id: "t0", position: .closed, headline: "Closed at 9:53 AM",
-                          supporting: "Closed for 22 min", warnings: []),
+                          supporting: .copy("Closed for 22 min"), warnings: []),
                     .init(id: "t1", position: .open, headline: "Opened at 9:47 AM",
-                          supporting: "Open for 6 min", warnings: []),
+                          supporting: .copy("Open for 6 min"), warnings: []),
                 ]),
             ],
             isLoading: false,
@@ -338,9 +341,9 @@ private struct HistoryEmptyState: View {
     NavigationStack {
         HistoryContentView(
             days: [
-                .init(id: "today", title: "Today", entries: [
+                .init(id: "today", title: .copy("Today"), entries: [
                     .init(id: "t0", position: .closed, headline: "Closed at 9:53 AM",
-                          supporting: "Closed for 22 min", warnings: []),
+                          supporting: .copy("Closed for 22 min"), warnings: []),
                 ]),
             ],
             isLoading: false,
