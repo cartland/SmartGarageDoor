@@ -38,13 +38,16 @@ final class HomeViewModelWrapper: ObservableObject {
     /// time is unknown. The elapsed-bucket *logic* is shared; the clock-time +
     /// localized-unit formatting happen here (mirrors Android's
     /// `rememberSinceLine`).
-    @Published private(set) var sinceLine: String?
+    @Published private(set) var sinceLine: LocalizedStringResource?
     /// Localized text for the typed `DoorWarning` exposed by the shared VM
     /// (ADR-031), or `nil` when the current state warrants no warning. The
     /// shared layer emits a *typed* warning; this wrapper resolves it to a
     /// string here (iOS's localization boundary) — mirrors Android's
     /// `doorWarningText` Composable + `strings.xml`.
-    @Published private(set) var warningText: String?
+    /// `DisplayText` because one arm is a SERVER-SUPPLIED message. Routing that
+    /// through the catalog would look the server's sentence up as a key — a
+    /// collision would silently replace it. The fallbacks are our own copy.
+    @Published private(set) var warningText: DisplayText?
     @Published private(set) var lastChangeTimeSeconds: Int64?
     @Published private(set) var isCheckInStale: Bool = false
     /// Resolved device check-in pill (ADR-031 Phase 5). The shared
@@ -233,21 +236,22 @@ final class HomeViewModelWrapper: ObservableObject {
             return HomeAlertItem(
                 id: "stale",
                 kind: .stale,
-                message: "Not receiving updates from server",
+                message: .copy("Not receiving updates from server"),
                 actionLabel: "Retry"
             )
         case .permissionMissing(let permission):
             return HomeAlertItem(
                 id: "permission",
                 kind: .permission,
-                message: justificationText(attemptCount: permission.attemptCount),
+                // Already-localized multi-line block; see HomeAlertItem.message.
+                message: .data(justificationText(attemptCount: permission.attemptCount)),
                 actionLabel: "Allow"
             )
         case .fetchError(let fetchError):
             return HomeAlertItem(
                 id: "fetchError",
                 kind: .fetchError,
-                message: "Error fetching current door event: \(fetchError.truncatedException)",
+                message: .copy("Error fetching current door event: \(fetchError.truncatedException)"),
                 actionLabel: "Retry"
             )
         }
@@ -293,14 +297,15 @@ final class HomeViewModelWrapper: ObservableObject {
             return
         }
         let date = Date(timeIntervalSince1970: TimeInterval(status.sinceEpochSeconds))
-        sinceLine = "Since \(Self.clockText(for: date)) · \(Self.durationText(for: status.elapsed))"
+        let elapsed = String(localized: Self.durationText(for: status.elapsed))
+        sinceLine = "Since \(Self.clockText(for: date)) · \(elapsed)"
     }
 
     /// Words for the shared typed offline age. Mirrors Android's
     /// `RemoteOfflineText`; each platform owns its own phrasing so it can be
     /// translated independently.
-    private static func offlineAgeText(_ offline: UsecaseButtonHealthDisplayOffline) -> String {
-        let age: String
+    private static func offlineAgeText(_ offline: UsecaseButtonHealthDisplayOffline) -> LocalizedStringResource {
+        let age: LocalizedStringResource
         switch onEnum(of: offline.age) {
         case .unknown:
             age = "unknown"
@@ -316,7 +321,9 @@ final class HomeViewModelWrapper: ObservableObject {
             age = v.days == 1 ? "1 day ago" : "\(v.days) days ago"
         }
         switch offline.source {
-        case .lastSeen: return "Last seen \(age)"
+        // Resolved to characters only here, so the age can be interpolated into
+        // the wrapper's own catalog entry ("Last seen %@").
+        case .lastSeen: return "Last seen \(String(localized: age))"
         case .stateChanged: return age
         default: return age
         }
@@ -343,7 +350,7 @@ final class HomeViewModelWrapper: ObservableObject {
         return formatter.string(from: date)
     }
 
-    private static func durationText(for elapsed: ElapsedDuration) -> String {
+    private static func durationText(for elapsed: ElapsedDuration) -> LocalizedStringResource {
         switch onEnum(of: elapsed) {
         case .days(let days):
             return days.days == 1 ? "1 day" : "\(days.days) days"
@@ -366,15 +373,16 @@ final class HomeViewModelWrapper: ObservableObject {
         }
         switch onEnum(of: warning) {
         case .serverMessage(let message):
-            warningText = message.text
+            // Server text: render exactly as received.
+            warningText = .data(message.text)
         case .openingTooLong:
-            warningText = "Opening, taking longer than expected"
+            warningText = .copy("Opening, taking longer than expected")
         case .closingTooLong:
-            warningText = "Closing, taking longer than expected"
+            warningText = .copy("Closing, taking longer than expected")
         case .openMisaligned:
-            warningText = "Door is open and misaligned"
+            warningText = .copy("Door is open and misaligned")
         case .sensorConflict:
-            warningText = "Sensor conflict. Check the door."
+            warningText = .copy("Sensor conflict. Check the door.")
         }
     }
 
@@ -431,7 +439,7 @@ final class HomeViewModelWrapper: ObservableObject {
 
     /// Formats a typed `CheckInAge` bucket as "… ago". Mirrors Android's
     /// `DeviceCheckIn.label` verbatim so both platforms read identically.
-    private static func agoText(_ age: CheckInAge) -> String {
+    private static func agoText(_ age: CheckInAge) -> LocalizedStringResource {
         switch onEnum(of: age) {
         case .justNow:
             return "Just now"
@@ -551,8 +559,11 @@ struct HomeAlertItem: Identifiable {
 
     let id: String
     let kind: Kind
-    let message: String
-    let actionLabel: String
+    /// Copy for the single-sentence alerts. The permission banner is `.data`
+    /// because it is a multi-line block already assembled from several catalog
+    /// entries — re-looking it up would search for the whole paragraph as a key.
+    let message: DisplayText
+    let actionLabel: LocalizedStringResource
 }
 
 /// View-ready device check-in pill data (ADR-031 Phase 5). The shared
@@ -562,7 +573,7 @@ struct HomeAlertItem: Identifiable {
 /// `internal` so `#Preview` fixtures can build it (the generated snapshot test
 /// embeds preview bodies verbatim and can't see `private` symbols).
 struct DeviceCheckInItem {
-    let label: String?
+    let label: LocalizedStringResource?
     let isStale: Bool
 }
 
@@ -575,7 +586,7 @@ struct DeviceCheckInItem {
 struct ButtonHealthItem {
     enum Kind { case unauthorized, unknown, online, offline }
 
-    let label: String
+    let label: LocalizedStringResource
     let kind: Kind
 }
 
@@ -592,13 +603,18 @@ struct RemoteButtonItem {
     /// Preparing / AwaitingConfirmation diagram state.
 
     let kind: Kind
-    let title: String
-    let subtitle: String?
+    let title: LocalizedStringResource
+    let subtitle: LocalizedStringResource?
     /// The shared diagram table's answer for this state, or nil while idle.
     /// Previously a local `Phase` enum that could not express every shared state.
     var diagram: RemoteButtonDiagram?
 
-    init(kind: Kind, title: String, subtitle: String?, diagram: RemoteButtonDiagram? = nil) {
+    init(
+        kind: Kind,
+        title: LocalizedStringResource,
+        subtitle: LocalizedStringResource?,
+        diagram: RemoteButtonDiagram? = nil
+    ) {
         self.kind = kind
         self.title = title
         self.subtitle = subtitle

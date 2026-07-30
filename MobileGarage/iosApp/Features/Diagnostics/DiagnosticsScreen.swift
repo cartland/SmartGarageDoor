@@ -84,7 +84,12 @@ struct DiagnosticsContentView: View {
                     HStack {
                         Text(counter.label)
                         Spacer()
-                        Text("\(counter.value)")
+                        // verbatim + .formatted(): a counter is a NUMBER, so it wants
+                        // locale digit grouping, not a catalog lookup. Written as
+                        // Text("\(value)") it produced a literal "%lld" catalog key —
+                        // meaningless to a translator, and it would collide with every
+                        // other bare-integer interpolation in the app.
+                        Text(verbatim: counter.value.formatted())
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }

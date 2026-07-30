@@ -63,10 +63,10 @@ struct HomeContentView: View {
     /// Pre-formatted "Since 9:47 AM · 2 hr 14 min" line (resolved from the shared
     /// typed `SinceStatus` in the wrapper); `nil` when the last-change time is
     /// unknown. Mirrors Android's status line; replaces the old raw door message.
-    let sinceLine: String?
+    let sinceLine: LocalizedStringResource?
     /// Already-localized warning text (resolved from the shared typed
     /// `DoorWarning` in the wrapper). Non-nil only for stuck/anomalous states.
-    let warningText: String?
+    let warningText: DisplayText?
     let isCheckInStale: Bool
     /// View-ready remote-button state — styling kind + copy + the shared diagram.
     /// All logic lives in the shared `ButtonStateMachine`; this is display data
@@ -114,8 +114,8 @@ struct HomeContentView: View {
     init(
         doorPosition: DoorPosition,
         lastChangeTimeSeconds: Int64?,
-        sinceLine: String?,
-        warningText: String?,
+        sinceLine: LocalizedStringResource?,
+        warningText: DisplayText?,
         isCheckInStale: Bool,
         buttonItem: RemoteButtonItem,
         buttonHealth: ButtonHealthItem?,
@@ -291,7 +291,7 @@ private struct HomeAlertBanner: View {
         HStack(alignment: .top, spacing: GarageSpacing.card) {
             Image(systemName: icon)
                 .foregroundStyle(GarageColors.statusWarning)
-            Text(alert.message)
+            alert.message.view
                 .font(.footnote)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Button(alert.actionLabel, action: onAction)
@@ -436,7 +436,9 @@ struct RemoteProgressDiagram: View {
 
     /// Spoken summary, derived from the shared statuses rather than a second
     /// phase enum — so it cannot describe a state the diagram is not drawing.
-    private var accessibilityText: String {
+    /// `LocalizedStringResource` so the announcement is translatable — a
+    /// screen-reader label is user-visible text like any other.
+    private var accessibilityText: LocalizedStringResource {
         guard let diagram else { return "Remote button idle" }
         if diagram.toDoor == .failed { return "Door did not respond" }
         if diagram.toServer == .failed { return "Server did not accept the request" }
@@ -576,10 +578,12 @@ private struct RemoteButtonHealthPill: View {
 /// Android's errorContainer warning Surface in `HomeContent`. Renders the
 /// already-localized `text` (resolved from the shared typed `DoorWarning`).
 private struct DoorWarningChip: View {
-    let text: String
+    /// `DisplayText`: one arm of the shared `DoorWarning` is a server-supplied
+    /// message, which must render verbatim rather than through the catalog.
+    let text: DisplayText
 
     var body: some View {
-        Label(text, systemImage: "exclamationmark.triangle.fill")
+        Label { text.view } icon: { Image(systemName: "exclamationmark.triangle.fill") }
             .font(.footnote)
             .multilineTextAlignment(.leading)
             .padding(.horizontal, 12)
@@ -601,14 +605,14 @@ enum HomeInfoSheet: String, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
+    var title: LocalizedStringResource {
         switch self {
         case .doorStatus: return "Door status"
         case .remoteControl: return "Remote control"
         }
     }
 
-    var paragraphs: [String] {
+    var paragraphs: [LocalizedStringResource] {
         switch self {
         case .doorStatus:
             return [
@@ -630,8 +634,8 @@ enum HomeInfoSheet: String, Identifiable {
 /// of its own; tall content on a short viewport would otherwise clip). Pure
 /// values so it renders in the snapshot gallery without a live component.
 struct HomeInfoSheetContentView: View {
-    let title: String
-    let paragraphs: [String]
+    let title: LocalizedStringResource
+    let paragraphs: [LocalizedStringResource]
 
     var body: some View {
         ScrollView {
@@ -715,7 +719,7 @@ private struct HomeInfoSheetView: View {
             doorPosition: .openingTooLong,
             lastChangeTimeSeconds: nil,
             sinceLine: "Since 12:01 PM · 4 min",
-            warningText: "Opening, taking longer than expected",
+            warningText: .copy("Opening, taking longer than expected"),
             isCheckInStale: false,
             buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
             buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
@@ -747,13 +751,13 @@ private struct HomeInfoSheetView: View {
                 HomeAlertItem(
                     id: "stale",
                     kind: .stale,
-                    message: "Not receiving updates from server",
+                    message: .copy("Not receiving updates from server"),
                     actionLabel: "Retry"
                 ),
                 HomeAlertItem(
                     id: "permission",
                     kind: .permission,
-                    message: "Turn on notifications to get alerted when the door is left open.",
+                    message: .copy("Turn on notifications to get alerted when the door is left open."),
                     actionLabel: "Allow"
                 ),
             ],

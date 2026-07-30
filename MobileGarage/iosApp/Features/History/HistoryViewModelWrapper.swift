@@ -259,7 +259,9 @@ final class HistoryViewModelWrapper: ObservableObject {
     /// Android's `stateDurationDisplay`, on the highest-traffic surface in the
     /// app — every row of the history list.
     private static func stateSpanText(_ display: StateSpanDisplay) -> LocalizedStringResource {
-        let text = stateDurationText(display.duration)
+        // Resolved here so it can be interpolated into the framing's own
+        // catalog entry ("Open for %@").
+        let text = String(localized: stateDurationText(display.duration))
         switch display.framing {
         case .andCounting: return "\(text) and counting"
         case .openFor: return "Open for \(text)"
@@ -268,22 +270,22 @@ final class HistoryViewModelWrapper: ObservableObject {
     }
 
     /// iOS wording for one shared `StateSpanDuration` arm.
-    private static func stateDurationText(_ duration: StateSpanDuration) -> String {
+    private static func stateDurationText(_ duration: StateSpanDuration) -> LocalizedStringResource {
         switch onEnum(of: duration) {
         case .days(let d):
             return d.days == 1
-                ? String(localized: "1 day")
-                : String(localized: "\(Int(d.days)) days")
+                ? "1 day"
+                : "\(d.days) days"
         case .daysHours(let d):
-            return String(localized: "\(Int(d.days)) day \(Int(d.hours)) hr")
+            return "\(d.days) day \(d.hours) hr"
         case .hours(let d):
-            return String(localized: "\(Int(d.hours)) hr")
+            return "\(d.hours) hr"
         case .hoursMinutes(let d):
-            return String(localized: "\(Int(d.hours)) hr \(Int(d.minutes)) min")
+            return "\(d.hours) hr \(d.minutes) min"
         case .minutes(let d):
-            return String(localized: "\(Int(d.minutes)) min")
+            return "\(d.minutes) min"
         case .seconds(let d):
-            return String(localized: "\(Int(d.seconds)) sec")
+            return "\(d.seconds) sec"
         }
     }
 
@@ -299,25 +301,25 @@ final class HistoryViewModelWrapper: ObservableObject {
         case .toOpen(let w): seconds = w.transitSeconds; opening = true
         case .toClose(let w): seconds = w.transitSeconds; opening = false
         }
-        let text = transitDurationText(HistoryDurationMapper.shared.transitSpan(seconds: seconds))
+        let text = String(localized: transitDurationText(HistoryDurationMapper.shared.transitSpan(seconds: seconds)))
         return opening
             ? "Took \(text) to open, longer than expected"
             : "Took \(text) to close, longer than expected"
     }
 
     /// iOS wording for one shared `TransitSpanDuration` arm.
-    private static func transitDurationText(_ duration: TransitSpanDuration) -> String {
+    private static func transitDurationText(_ duration: TransitSpanDuration) -> LocalizedStringResource {
         switch onEnum(of: duration) {
         case .hours(let d):
-            return String(localized: "\(Int(d.hours)) hr")
+            return "\(d.hours) hr"
         case .hoursMinutes(let d):
-            return String(localized: "\(Int(d.hours)) hr \(Int(d.minutes)) min")
+            return "\(d.hours) hr \(d.minutes) min"
         case .minutes(let d):
-            return String(localized: "\(Int(d.minutes)) min")
+            return "\(d.minutes) min"
         case .minutesSeconds(let d):
-            return String(localized: "\(Int(d.minutes)) min \(Int(d.seconds)) sec")
+            return "\(d.minutes) min \(d.seconds) sec"
         case .seconds(let d):
-            return String(localized: "\(Int(d.seconds)) sec")
+            return "\(d.seconds) sec"
         }
     }
 
