@@ -63,7 +63,12 @@ import com.chriscartland.garage.presentation.DayLabel
 import com.chriscartland.garage.presentation.HistoryDay
 import com.chriscartland.garage.presentation.HistoryDurationMapper
 import com.chriscartland.garage.presentation.HistoryEntry
+import com.chriscartland.garage.presentation.HistoryHeadline
 import com.chriscartland.garage.presentation.HistoryMapper
+import com.chriscartland.garage.presentation.HistoryRowMapper
+import com.chriscartland.garage.presentation.HistorySupporting
+import com.chriscartland.garage.presentation.HistoryTag
+import com.chriscartland.garage.presentation.StateSpanDisplay
 import com.chriscartland.garage.presentation.StateSpanDuration
 import com.chriscartland.garage.presentation.StateSpanFraming
 import com.chriscartland.garage.presentation.TransitSpanDuration
@@ -251,84 +256,68 @@ private fun HistoryEntryRow(
     entry: HistoryEntry,
     zone: ZoneId,
 ) {
-    when (entry) {
-        is HistoryEntry.Opened -> {
-            val timeDisplay = remember(entry.timeSeconds, zone) {
-                HistoryFormatter.formatTime(entry.timeSeconds, zone)
-            }
-            val durationDisplay = stateDurationDisplay(
-                durationSeconds = entry.durationSeconds,
-                isCurrent = entry.isCurrent,
-                isOpenState = true,
-            )
-            HistoryStateRow(
-                // When misaligned, render the OPEN_MISALIGNED door art so the
-                // misalignment is visible even on a row that's just an "Opened"
-                // event with the misalignment property set.
-                doorPosition = if (entry.misaligned) DoorPosition.OPEN_MISALIGNED else DoorPosition.OPEN,
-                headline = when {
-                    entry.isCurrent && entry.misaligned ->
-                        stringResource(R.string.history_headline_open_misaligned)
-                    entry.isCurrent ->
-                        stringResource(R.string.history_headline_open)
-                    else ->
-                        stringResource(R.string.history_headline_opened_at, timeDisplay)
-                },
-                supporting = if (entry.isCurrent) {
-                    stringResource(R.string.history_supporting_since_format, timeDisplay, durationDisplay)
-                } else {
-                    durationDisplay
-                },
-                warnings = listOfNotNull(
-                    entry.transitWarning?.let { transitWarningText(it) },
-                    // For past Opened rows, surface misalignment as a tag below
-                    // the duration. When isCurrent, the headline already says
-                    // "Open (misaligned)" — no need for a duplicate tag.
-                    if (entry.misaligned && !entry.isCurrent) {
-                        stringResource(R.string.history_warning_misaligned)
-                    } else {
-                        null
-                    },
-                ),
-            )
-        }
-        is HistoryEntry.Closed -> {
-            val timeDisplay = remember(entry.timeSeconds, zone) {
-                HistoryFormatter.formatTime(entry.timeSeconds, zone)
-            }
-            val durationDisplay = stateDurationDisplay(
-                durationSeconds = entry.durationSeconds,
-                isCurrent = entry.isCurrent,
-                isOpenState = false,
-            )
-            HistoryStateRow(
-                doorPosition = DoorPosition.CLOSED,
-                headline = if (entry.isCurrent) {
-                    stringResource(R.string.history_headline_closed)
-                } else {
-                    stringResource(R.string.history_headline_closed_at, timeDisplay)
-                },
-                supporting = if (entry.isCurrent) {
-                    stringResource(R.string.history_supporting_since_format, timeDisplay, durationDisplay)
-                } else {
-                    durationDisplay
-                },
-                warnings = listOfNotNull(entry.transitWarning?.let { transitWarningText(it) }),
-            )
-        }
-        is HistoryEntry.Anomaly -> {
-            val timeDisplay = remember(entry.timeSeconds, zone) {
-                HistoryFormatter.formatTime(entry.timeSeconds, zone)
-            }
-            HistoryStateRow(
-                doorPosition = entry.doorPosition,
-                headline = anomalyTitle(entry.kind),
-                supporting = timeDisplay,
-                warnings = emptyList(),
-            )
-        }
-    }
+    // Every decision this row makes — door art, which headline, which supporting
+    // line, which tags and whether to suppress one — comes from the shared
+    // mapper. This Composable only supplies words.
+    val row = remember(entry) { HistoryRowMapper.forEntry(entry) }
+    HistoryStateRow(
+        doorPosition = row.doorPosition,
+        headline = historyHeadlineText(row.headline, zone),
+        supporting = historySupportingText(row.supporting, zone),
+        warnings = row.tags.map { historyTagText(it) },
+    )
 }
+
+/** Android wording for a shared [HistoryHeadline]. */
+@Composable
+private fun historyHeadlineText(
+    headline: HistoryHeadline,
+    zone: ZoneId,
+): String =
+    when (headline) {
+        HistoryHeadline.OpenNow ->
+            stringResource(R.string.history_headline_open)
+        HistoryHeadline.OpenNowMisaligned ->
+            stringResource(R.string.history_headline_open_misaligned)
+        is HistoryHeadline.OpenedAt ->
+            stringResource(R.string.history_headline_opened_at, clockText(headline.timeSeconds, zone))
+        HistoryHeadline.ClosedNow ->
+            stringResource(R.string.history_headline_closed)
+        is HistoryHeadline.ClosedAt ->
+            stringResource(R.string.history_headline_closed_at, clockText(headline.timeSeconds, zone))
+        is HistoryHeadline.Anomaly ->
+            anomalyTitle(headline.kind)
+    }
+
+/** Android wording for a shared [HistorySupporting]. */
+@Composable
+private fun historySupportingText(
+    supporting: HistorySupporting,
+    zone: ZoneId,
+): String =
+    when (supporting) {
+        is HistorySupporting.SinceWithSpan -> stringResource(
+            R.string.history_supporting_since_format,
+            clockText(supporting.timeSeconds, zone),
+            stateSpanText(supporting.span),
+        )
+        is HistorySupporting.Span -> stateSpanText(supporting.span)
+        is HistorySupporting.ClockTime -> clockText(supporting.timeSeconds, zone)
+    }
+
+/** Android wording for a shared [HistoryTag]. */
+@Composable
+private fun historyTagText(tag: HistoryTag): String =
+    when (tag) {
+        is HistoryTag.Transit -> transitWarningText(tag.warning)
+        HistoryTag.Misaligned -> stringResource(R.string.history_warning_misaligned)
+    }
+
+@Composable
+private fun clockText(
+    timeSeconds: Long,
+    zone: ZoneId,
+): String = remember(timeSeconds, zone) { HistoryFormatter.formatTime(timeSeconds, zone) }
 
 /**
  * Resolve a [DayLabel] to a localized day-section header string.
@@ -365,14 +354,7 @@ private fun anomalyTitle(kind: AnomalyKind): String =
  * not something this app should be deciding.
  */
 @Composable
-private fun stateDurationDisplay(
-    durationSeconds: Long,
-    isCurrent: Boolean,
-    isOpenState: Boolean,
-): String {
-    val display = remember(durationSeconds, isCurrent, isOpenState) {
-        HistoryDurationMapper.stateSpan(durationSeconds, isCurrent = isCurrent, isOpen = isOpenState)
-    }
+private fun stateSpanText(display: StateSpanDisplay): String {
     val durationText = when (val d = display.duration) {
         is StateSpanDuration.Days ->
             pluralStringResource(R.plurals.home_duration_days, d.days, d.days)
