@@ -27,19 +27,27 @@ final class SettingsViewModelWrapper: ObservableObject {
     @Published private(set) var authState: AuthDisplayState = .checking
     @Published private(set) var displayName: String?
     @Published private(set) var email: String?
-    @Published private(set) var snoozeLabel: String = "Notifications enabled"
-    /// Whether a snooze is currently active — drives the Settings row icon
-    /// (bell vs bell.slash), mirroring Android's `SnoozeRowState` icon swap.
-    @Published private(set) var snoozeSnoozing: Bool = false
+    /// What the snooze row says, as one exhaustive value.
+    ///
+    /// This used to be `snoozeLabel: String` + `snoozeSnoozing: Bool` alongside
+    /// `notificationsGranted`, leaving the view to re-derive which of them wins.
+    /// The shared `SnoozeRowStatusMapper` decides that now; this is its rendered
+    /// projection (see `SnoozeRowDisplay`).
+    @Published private(set) var snoozeRow: SnoozeRowDisplay = .off
     @Published private(set) var snoozeSending: Bool = false
     @Published private(set) var snoozeError: String?
-    /// Whether notification authorization is granted. Drives the snooze section:
-    /// when `false`, the snooze controls are replaced by a "tap to enable" row
-    /// (mirrors Android's `SnoozeRowState.PermissionDenied`). Defaults `true` so
-    /// the prompt doesn't flash before the async read resolves. The notification
-    /// read/request mirror `HomeViewModelWrapper` (per-UI `UNUserNotificationCenter`,
-    /// the analog of Android's runtime permission).
-    @Published private(set) var notificationsGranted: Bool = true
+    /// Whether notification authorization is granted. Feeds the shared mapper,
+    /// which gives a denied permission precedence over any snooze state.
+    /// Defaults `true` so the prompt doesn't flash before the async read
+    /// resolves. The notification read/request mirror `HomeViewModelWrapper`
+    /// (per-UI `UNUserNotificationCenter`, the analog of Android's runtime
+    /// permission).
+    @Published private(set) var notificationsGranted: Bool = true {
+        didSet { recomputeSnoozeRow() }
+    }
+    /// Last snooze state seen from shared, kept so the row can be recomputed
+    /// when the permission changes without a new snooze emission.
+    private var lastSnoozeState: SnoozeState = SnoozeStateNotSnoozing.shared
     /// Tri-state allowlist flags (`nil` = not yet known). The Developer section
     /// is shown only when `developerAccess == true`; the Functions row inside it
     /// only when `functionListAccess == true` — mirrors Android. See FEATURE_FLAGS.md.
@@ -47,13 +55,14 @@ final class SettingsViewModelWrapper: ObservableObject {
     @Published private(set) var functionListAccess: Bool?
 
     /// Duration options exposed to the UI, in display order.
-    let durations: [(label: String, option: SnoozeDurationUIOption)] = [
-        ("Don't snooze", .none),
-        ("1 hour", .oneHour),
-        ("4 hours", .fourHours),
-        ("8 hours", .eightHours),
-        ("12 hours", .twelveHours),
-    ]
+    ///
+    /// Iterated from the shared enum rather than hand-listed, so the set and its
+    /// order stay a single shared decision. `SnoozeDurationUIOption` bridges to a
+    /// Swift enum conforming to `CaseIterable`, and the label switch below is
+    /// exhaustive — adding a duration in shared is a compile error here until it
+    /// has wording, instead of an option that never appears in the sheet.
+    let durations: [(label: String, option: SnoozeDurationUIOption)] =
+        SnoozeDurationUIOption.allCases.map { (SnoozeDurationLabels.text(for: $0), $0) }
 
     /// Server-config gate for the whole snooze surface, read once from the
     /// component's `AppConfig` (it is fixed for the process). Android hides its
@@ -121,17 +130,31 @@ final class SettingsViewModelWrapper: ObservableObject {
         // Counts emissions so `refreshSnooze()` can tell "the fetch came back"
         // from "nothing has happened yet".
         snoozeRevision &+= 1
-        switch onEnum(of: state) {
-        case .snoozing(let snoozing):
-            let date = Date(timeIntervalSince1970: TimeInterval(snoozing.untilEpochSeconds))
-            snoozeLabel = "Snoozing until \(date.formatted(date: .omitted, time: .shortened))"
-            snoozeSnoozing = true
+        lastSnoozeState = state
+        recomputeSnoozeRow()
+    }
+
+    /// Runs the shared precedence, then renders the one arm that carries a time.
+    ///
+    /// Formatting stays here rather than in the view so the stateless
+    /// `SettingsContentView` keeps taking display-ready text — which is what
+    /// lets its snapshots pass a fixed `"9:00 PM"` and stay independent of the
+    /// machine's time zone.
+    private func recomputeSnoozeRow() {
+        let status = SnoozeRowStatusMapper.shared.forState(
+            snoozeState: lastSnoozeState,
+            notificationsGranted: notificationsGranted
+        )
+        switch onEnum(of: status) {
         case .loading:
-            snoozeLabel = "Loading…"
-            snoozeSnoozing = false
-        case .notSnoozing:
-            snoozeLabel = "Notifications enabled"
-            snoozeSnoozing = false
+            snoozeRow = .loading
+        case .permissionDenied:
+            snoozeRow = .permissionDenied
+        case .off:
+            snoozeRow = .off
+        case .snoozingUntil(let snoozing):
+            let date = Date(timeIntervalSince1970: TimeInterval(snoozing.untilEpochSeconds))
+            snoozeRow = .snoozingUntil(date.formatted(date: .omitted, time: .shortened))
         }
     }
 

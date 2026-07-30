@@ -52,6 +52,25 @@ import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.SnoozeDurationUIOption
 
 /**
+ * Android wording for the shared [SnoozeDurationUIOption] set.
+ *
+ * The option list and its order are a shared product decision; the words are
+ * not. Keeping the mapping exhaustive means adding a duration to the shared
+ * enum is a compile error here until it has a label, rather than an option that
+ * quietly never renders.
+ */
+private object SnoozeDurationLabels {
+    fun resourceFor(option: SnoozeDurationUIOption): Int =
+        when (option) {
+            SnoozeDurationUIOption.None -> R.string.settings_snooze_option_none
+            SnoozeDurationUIOption.OneHour -> R.string.settings_snooze_option_one_hour
+            SnoozeDurationUIOption.FourHours -> R.string.settings_snooze_option_four_hours
+            SnoozeDurationUIOption.EightHours -> R.string.settings_snooze_option_eight_hours
+            SnoozeDurationUIOption.TwelveHours -> R.string.settings_snooze_option_twelve_hours
+        }
+}
+
+/**
  * Production wrapper. Shows the sheet content inside a [ModalBottomSheet].
  * Tracks the user's pending selection locally; only commits via [onSave].
  *
@@ -122,35 +141,18 @@ fun SnoozeSheetContent(
             style = MaterialTheme.typography.titleLarge,
         )
 
-        SnoozeOptionRow(
-            label = stringResource(R.string.settings_snooze_option_none),
-            selected = selectedOption == SnoozeDurationUIOption.None,
-            onClick = { onOptionSelected(SnoozeDurationUIOption.None) },
-        )
-        HorizontalDivider()
-        SnoozeOptionRow(
-            label = stringResource(R.string.settings_snooze_option_one_hour),
-            selected = selectedOption == SnoozeDurationUIOption.OneHour,
-            onClick = { onOptionSelected(SnoozeDurationUIOption.OneHour) },
-        )
-        HorizontalDivider()
-        SnoozeOptionRow(
-            label = stringResource(R.string.settings_snooze_option_four_hours),
-            selected = selectedOption == SnoozeDurationUIOption.FourHours,
-            onClick = { onOptionSelected(SnoozeDurationUIOption.FourHours) },
-        )
-        HorizontalDivider()
-        SnoozeOptionRow(
-            label = stringResource(R.string.settings_snooze_option_eight_hours),
-            selected = selectedOption == SnoozeDurationUIOption.EightHours,
-            onClick = { onOptionSelected(SnoozeDurationUIOption.EightHours) },
-        )
-        HorizontalDivider()
-        SnoozeOptionRow(
-            label = stringResource(R.string.settings_snooze_option_twelve_hours),
-            selected = selectedOption == SnoozeDurationUIOption.TwelveHours,
-            onClick = { onOptionSelected(SnoozeDurationUIOption.TwelveHours) },
-        )
+        // Driven off the shared enum rather than five hand-written rows, so a
+        // duration added there appears here (and on iOS) instead of silently
+        // existing in the model with no way to pick it. The label `when` is
+        // exhaustive, so a new option fails the build until it has wording.
+        SnoozeDurationUIOption.entries.forEachIndexed { index, option ->
+            if (index > 0) HorizontalDivider()
+            SnoozeOptionRow(
+                label = stringResource(SnoozeDurationLabels.resourceFor(option)),
+                selected = selectedOption == option,
+                onClick = { onOptionSelected(option) },
+            )
+        }
 
         Spacer(Modifier.height(8.dp))
         Row(
