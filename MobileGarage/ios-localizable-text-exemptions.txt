@@ -1,0 +1,33 @@
+# Files with known `Text(x)` / `Label(x, ...)` call sites where x is a value
+# rather than a literal.
+#
+# WHAT THIS LIST IS FOR: it lets scripts/check-ios-localizable-text.sh stop the
+# pattern from spreading to files that do not have it yet, without failing on the
+# existing backlog. It is a "do not spread" fence, not a scorecard.
+#
+# WHAT THE CHECK CANNOT SEE: whether x is a `String` (unlocalizable) or a
+# `LocalizedStringResource` (correct). Shell has no type information, so a file
+# whose declarations have been properly converted STILL matches textually and
+# still belongs here. MainScreen.swift is exactly that case as of this commit —
+# `MainTab.title` is now a `LocalizedStringResource` and `Label(tab.title, ...)`
+# is correct, but the line still reads as a match.
+#
+# So an entry leaving this list means "this file no longer passes any value to
+# Text()/Label()" — NOT "this file is localized". The authoritative measure of
+# localization is the String Catalog: run ./scripts/sync-ios-string-catalog.sh and
+# check whether the string appears in Localizable.xcstrings. That is
+# compiler-derived and cannot be fooled by a grep that happens to match.
+#
+# The check also fails on a stale entry (a listed file with zero matches), so the
+# list cannot silently accumulate dead weight.
+#
+# Seeded 2026-07-29 from an audit: 28 call sites across 8 files. Burn-down plan
+# and the three shapes this takes: MobileGarage/docs/IOS_LOCALIZATION.md.
+MobileGarage/iosApp/Features/Diagnostics/DiagnosticsScreen.swift
+MobileGarage/iosApp/Features/FunctionList/AuthTokenCopier.swift
+MobileGarage/iosApp/Features/FunctionList/FunctionListScreen.swift
+MobileGarage/iosApp/Features/History/HistoryScreen.swift
+MobileGarage/iosApp/Features/Home/GarageDoorCanvas.swift
+MobileGarage/iosApp/Features/Home/HomeScreen.swift
+MobileGarage/iosApp/Features/Main/MainScreen.swift
+MobileGarage/iosApp/Features/Settings/SettingsScreen.swift
