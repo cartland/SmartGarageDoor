@@ -19,6 +19,23 @@ Versioning mirrors Android (see `MobileGarage/CHANGELOG.md` § versioning):
 major = rewrite or core-experience shift; minor = a user-facing feature added or
 removed; patch = fixes, polish, refactors. iOS uses independent `ios/N` tags.
 
+## 0.1.3
+
+- **The app can now be translated.** Every screen's text was built as plain
+  Swift strings, which the compiler cannot collect — so there was nothing for a
+  translator to translate, and no warning that this was the case. All five tabs
+  now carry text in a form that reaches the app's string catalog: 175 entries,
+  covering everything you can read. English is unchanged; adding a language is
+  now a matter of supplying translations rather than changing code.
+- **Two things that should never be translated no longer can be.** Your own name
+  and email address on the account row, and the notification topic identifier in
+  the developer panel, were being routed through the same machinery as ordinary
+  copy. Version numbers and diagnostic counters are now formatted as numbers
+  rather than looked up as text.
+- Several decisions about what to display moved into code shared with the
+  Android app — door-state headlines, the snooze row, history durations and row
+  layout — so the two apps cannot quietly disagree. Nothing on screen changes.
+
 ## 0.1.2
 
 - **The app stops forgetting what it knew.** On every launch while signed in, it
