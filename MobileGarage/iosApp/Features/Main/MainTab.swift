@@ -28,7 +28,13 @@ enum MainTab: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
+    /// Tab-bar label.
+    ///
+    /// `LocalizedStringResource`, not `String`: a `String` reaching `Label(_:)`
+    /// is invisible to SwiftUI's string extractor, so the tab titles would never
+    /// reach the String Catalog and could never be translated — silently. See
+    /// MobileGarage/docs/IOS_LOCALIZATION.md.
+    var title: LocalizedStringResource {
         switch self {
         case .home: return "Home"
         case .history: return "History"

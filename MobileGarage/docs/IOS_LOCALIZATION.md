@@ -1,15 +1,20 @@
 ---
 category: reference
 status: active
-last_verified: 2026-07-30
+last_verified: 2026-07-29
 ---
 
 # iOS localization — current state and the path to it
 
-Android localizes through `strings.xml` (209 entries). iOS has **no localization
-mechanism at all**: every user-visible string is a bare Swift literal, and there is no
-`Localizable.strings`, no `.xcstrings`, no `.lproj`, and no `NSLocalizedString` anywhere
-in the tree.
+Android localizes through `strings.xml` (209 entries).
+
+**Status.** iOS now has the mechanism: `Localizable.xcstrings` +
+`SWIFT_EMIT_LOC_STRINGS: YES` + `scripts/sync-ios-string-catalog.sh` (step 1 below,
+shipped in #1159), and the fence lint from step 3 (shipped 2026-07-29). Step 2 — the
+`String` → `LocalizedStringResource` type sweep — is **in progress**: the catalog holds
+~103 keys, against roughly 189 user-visible strings, because the rest are still flattened
+to `String` before they reach a `Text`. Re-check the real number with
+`./scripts/sync-ios-string-catalog.sh` rather than trusting this paragraph.
 
 ADR-035 governs *where* a string is decided (platform, not shared). This document covers
 the separate question of *how* iOS stores its words once it has them.
@@ -124,9 +129,33 @@ In dependency order:
    `LocalizedStringKey` because it is `Equatable`/`Codable` for `@Published` use and can be
    resolved back with `String(localized:)` — required by the `.lowercased()` call in the
    snooze sheet.
-3. **Ratchet.** An iOS shell lint in the style of `scripts/check-ios-self-force-unwrap.sh`
-   flagging `Text(` / `Label(` on `String`-typed expressions, with an exemption file that
-   starts full and burns down — mirroring Android's `checkNoLiteralStringsInCompose`.
+3. **Ratchet — shipped, with a limit worth knowing.** `scripts/check-ios-localizable-text.sh`
+   (in `validate-ios.sh` + `ios-ci.yml`) flags `Text(x)` / `Label(x, …)` where `x` is a
+   value rather than a literal, against the fence list in
+   `MobileGarage/ios-localizable-text-exemptions.txt`.
+
+   **It cannot tell `String` from `LocalizedStringResource`** — shell has no type
+   information, so both match. What it enforces is therefore "do not introduce this
+   pattern into a file that does not already have it". It is a fence against spreading,
+   not a per-file verdict, and the list does **not** burn down to empty as files are
+   fixed. Two consequences:
+
+   - Confirm a fix with the **catalog**, not with the lint's silence: run
+     `./scripts/sync-ios-string-catalog.sh` and check the key appears in
+     `Localizable.xcstrings`. That is compiler-derived. (This is how the `MainTab.title`
+     conversion was verified — `"Home"` was genuinely absent from the catalog beforehand
+     and present after, while the lint's view of `MainScreen.swift` never changed.)
+   - `Text(verbatim:)` is the never-flagged escape hatch for values that genuinely should
+     not be translated (version numbers, build hashes, auth tokens, raw server text). It
+     also documents that intent at the call site.
+
+   Two traps encountered building it, both of the "silently passes" family:
+   `git grep -E` uses POSIX ERE where **`\b` is not a word boundary**, so the first
+   pattern matched zero of the ~40 real call sites and the check passed vacuously — the
+   same failure mode as the Konsist `file.name` trap. The script now uses an explicit
+   `[^A-Za-z0-9_.]` class and carries a **scope-sanity guard** that fails if the broad
+   `Text(`/`Label(` form matches nothing at all, so a future glob or dialect change
+   cannot resurrect the vacuous pass.
 
 Do **not** bundle this with moving resolvers into shared Kotlin. The type change alone
 achieves localizability; the two are separable and mixing them makes both harder to review.

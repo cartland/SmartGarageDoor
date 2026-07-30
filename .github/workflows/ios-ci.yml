@@ -30,6 +30,8 @@ on:
       - '.github/workflows/ios-ci.yml'
       - 'scripts/ios-launch-smoke.sh'
       - 'scripts/check-ios-self-force-unwrap.sh'
+      - 'scripts/check-ios-localizable-text.sh'
+      - 'MobileGarage/ios-localizable-text-exemptions.txt'
   pull_request:
     paths:
       - 'MobileGarage/iosApp/**'
@@ -46,6 +48,8 @@ on:
       - '.github/workflows/ios-ci.yml'
       - 'scripts/ios-launch-smoke.sh'
       - 'scripts/check-ios-self-force-unwrap.sh'
+      - 'scripts/check-ios-localizable-text.sh'
+      - 'MobileGarage/ios-localizable-text-exemptions.txt'
 
 concurrency:
   group: ios-ci-${{ github.ref }}
@@ -69,6 +73,12 @@ jobs:
       # smoke below).
       - name: Check forbidden Swift patterns
         run: ./scripts/check-ios-self-force-unwrap.sh
+
+      # Cheap grep: a String reaching Text() is invisible to SwiftUI's string
+      # extractor, so the text can never be translated — silently, with no
+      # warning. Burn-down list in MobileGarage/ios-localizable-text-exemptions.txt.
+      - name: Check localizable Text()/Label()
+        run: ./scripts/check-ios-localizable-text.sh
 
       - name: Set up JDK
         uses: actions/setup-java@v5
