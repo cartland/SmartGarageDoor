@@ -15,6 +15,18 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.23.5
+
+- **The snooze time now reads correctly outside the US.** It was formatted with
+  a hardcoded 12-hour AM/PM pattern, so a device set to a 24-hour locale still
+  saw "5:30 PM". Whether a clock is 12- or 24-hour is a property of the
+  language, not of this app.
+- Under the hood, several decisions the app makes about what to show you moved
+  into one place shared with the iOS app: how door states are grouped into a
+  headline, what the snooze row says, how history durations are rounded, and how
+  a history row is assembled. Both apps previously worked these out separately
+  and could drift apart without anyone noticing. Nothing on screen changes.
+
 ## 2.23.4
 
 - **The remote button says what it does, and names the two ways it can fail.**
