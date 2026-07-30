@@ -47,9 +47,10 @@ import com.chriscartland.garage.di.rememberAppComponent
 import com.chriscartland.garage.domain.model.AppLinks
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.SnoozeAction
-import com.chriscartland.garage.domain.model.SnoozeState
 import com.chriscartland.garage.domain.model.WatchInstallAction
 import com.chriscartland.garage.permissions.rememberNotificationPermissionState
+import com.chriscartland.garage.presentation.SnoozeRowStatus
+import com.chriscartland.garage.presentation.SnoozeRowStatusMapper
 import com.chriscartland.garage.ui.settings.AccountBottomSheet
 import com.chriscartland.garage.ui.settings.AccountRowState
 import com.chriscartland.garage.ui.settings.NavRailBottomSheet
@@ -65,6 +66,7 @@ import com.google.accompanist.permissions.isGranted
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 /**
  * Settings screen — bottom-nav destination. Sectioned-list redesign
@@ -192,12 +194,11 @@ fun ProfileContent(
         // Cold start: don't flash the sign-in CTA before Firebase resolves.
         AuthState.Unknown -> AccountRowState.Checking
     }
-    val notificationsGranted = notificationPermissionState.status.isGranted
-    val snoozeRowState = if (notificationsGranted) {
-        ProfileContentHelpers.snoozeRowStateOf(snoozeState)
-    } else {
-        SnoozeRowState.PermissionDenied
-    }
+    val snoozeRowStatus = SnoozeRowStatusMapper.forState(
+        snoozeState = snoozeState,
+        notificationsGranted = notificationPermissionState.status.isGranted,
+    )
+    val snoozeRowState = ProfileContentHelpers.displayFor(snoozeRowStatus)
 
     Box(modifier = modifier) {
         SettingsContent(
@@ -218,7 +219,9 @@ fun ProfileContent(
             onAccountTap = { accountSheetOpen = true },
             onSignInTap = { googleSignIn.launchSignIn() },
             onSnoozeTap = {
-                if (notificationsGranted) {
+                // Branch on the same status the row rendered from, so the tap
+                // target can never disagree with the label above it.
+                if (snoozeRowStatus !is SnoozeRowStatus.PermissionDenied) {
                     // Force-refresh (not TTL-gated): the sheet pre-selects
                     // from the current state, and opening it is the one
                     // user gesture that deserves an immediate uncached
@@ -337,13 +340,31 @@ fun ProfileContent(
 }
 
 private object ProfileContentHelpers {
-    private val snoozeTimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
+    /**
+     * Localized short time — "5:30 PM" in the US, "17:30" where that is the
+     * convention. Was a hardcoded `ofPattern("h:mm a")`, which forced 12-hour
+     * AM/PM on every locale; whether a clock is 12- or 24-hour is a property of
+     * the locale, not of this app.
+     */
+    private val snoozeTimeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
 
-    fun snoozeRowStateOf(state: SnoozeState): SnoozeRowState =
-        when (state) {
-            SnoozeState.Loading -> SnoozeRowState.Loading
-            SnoozeState.NotSnoozing -> SnoozeRowState.Off
-            is SnoozeState.Snoozing -> SnoozeRowState.SnoozingUntil(formatSnoozeTime(state.untilEpochSeconds))
+    /**
+     * Renders the shared [SnoozeRowStatus] into the display-ready shape the
+     * stateless [SettingsContent] takes.
+     *
+     * The shared type carries an instant; this is where it becomes text. The
+     * two types look near-identical on purpose — the difference is that one is
+     * the decision (shared, testable, platform-neutral) and the other is a
+     * preview-friendly render input, which is why previews can pass a fixed
+     * `"5:30 PM"` and stay independent of the machine's time zone.
+     */
+    fun displayFor(status: SnoozeRowStatus): SnoozeRowState =
+        when (status) {
+            SnoozeRowStatus.Loading -> SnoozeRowState.Loading
+            SnoozeRowStatus.PermissionDenied -> SnoozeRowState.PermissionDenied
+            SnoozeRowStatus.Off -> SnoozeRowState.Off
+            is SnoozeRowStatus.SnoozingUntil ->
+                SnoozeRowState.SnoozingUntil(formatSnoozeTime(status.untilEpochSeconds))
         }
 
     fun formatSnoozeTime(epochSeconds: Long): String =

@@ -4,6 +4,18 @@
     "%lld": {
       "extractionState": "manual"
     },
+    "1 hour": {
+      "extractionState": "manual"
+    },
+    "12 hours": {
+      "extractionState": "manual"
+    },
+    "4 hours": {
+      "extractionState": "manual"
+    },
+    "8 hours": {
+      "extractionState": "manual"
+    },
     "About": {
       "extractionState": "manual"
     },
@@ -64,6 +76,9 @@
     "Diagnostics": {
       "extractionState": "manual"
     },
+    "Don't snooze": {
+      "extractionState": "manual"
+    },
     "Done": {
       "extractionState": "manual"
     },
@@ -113,6 +128,12 @@
       "extractionState": "manual"
     },
     "Notifications": {
+      "extractionState": "manual"
+    },
+    "Notifications disabled. Tap to enable.": {
+      "extractionState": "manual"
+    },
+    "Notifications enabled": {
       "extractionState": "manual"
     },
     "Open / close door": {
@@ -182,6 +203,9 @@
       "extractionState": "manual"
     },
     "Snooze status": {
+      "extractionState": "manual"
+    },
+    "Snoozing until %@": {
       "extractionState": "manual"
     },
     "Status": {

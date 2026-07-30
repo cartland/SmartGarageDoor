@@ -69,8 +69,7 @@ struct SettingsScreen: View {
             authState: wrapper.authState,
             displayName: wrapper.displayName,
             email: wrapper.email,
-            snoozeLabel: wrapper.snoozeLabel,
-            snoozeSnoozing: wrapper.snoozeSnoozing,
+            snoozeRow: wrapper.snoozeRow,
             snoozeSending: wrapper.snoozeSending,
             snoozeError: wrapper.snoozeError,
             durations: wrapper.durations,
@@ -80,7 +79,6 @@ struct SettingsScreen: View {
             appBuild: Self.appBuild,
             appPackage: Self.appPackage,
             appBuilt: Self.appBuilt,
-            notificationsGranted: wrapper.notificationsGranted,
             snoozeOptionEnabled: wrapper.snoozeOptionEnabled,
             onSignIn: { wrapper.signInWithGoogle() },
             onSignOut: { wrapper.signOut() },
@@ -123,10 +121,10 @@ struct SettingsContentView: View {
     let authState: AuthDisplayState
     let displayName: String?
     let email: String?
-    let snoozeLabel: String
-    /// Whether a snooze is currently active — drives the row icon
-    /// (mirrors Android's `SnoozeRowState.SnoozingUntil` icon swap).
-    var snoozeSnoozing: Bool = false
+    /// The whole snooze row as one value: which state, and (when snoozing) the
+    /// already-formatted time. Replaced a label/flag/permission trio that made
+    /// the view responsible for their precedence.
+    let snoozeRow: SnoozeRowDisplay
     let snoozeSending: Bool
     let snoozeError: String?
     let durations: [(label: String, option: SnoozeDurationUIOption)]
@@ -136,7 +134,6 @@ struct SettingsContentView: View {
     let appBuild: String
     let appPackage: String
     let appBuilt: String
-    var notificationsGranted: Bool = true
     /// Server-config gate (`AppConfig.snoozeNotificationsOption`). Android hides
     /// the whole Notifications section when the server turns snooze off; this
     /// mirrors it so the two platforms honor the same switch. Defaults to the
@@ -161,8 +158,7 @@ struct SettingsContentView: View {
         authState: AuthDisplayState,
         displayName: String?,
         email: String?,
-        snoozeLabel: String,
-        snoozeSnoozing: Bool = false,
+        snoozeRow: SnoozeRowDisplay,
         snoozeSending: Bool,
         snoozeError: String?,
         durations: [(label: String, option: SnoozeDurationUIOption)],
@@ -172,7 +168,6 @@ struct SettingsContentView: View {
         appBuild: String,
         appPackage: String,
         appBuilt: String,
-        notificationsGranted: Bool = true,
         snoozeOptionEnabled: Bool = true,
         onSignIn: @escaping () -> Void,
         onSignOut: @escaping () -> Void,
@@ -183,8 +178,7 @@ struct SettingsContentView: View {
         self.authState = authState
         self.displayName = displayName
         self.email = email
-        self.snoozeLabel = snoozeLabel
-        self.snoozeSnoozing = snoozeSnoozing
+        self.snoozeRow = snoozeRow
         self.snoozeSending = snoozeSending
         self.snoozeError = snoozeError
         self.durations = durations
@@ -194,7 +188,6 @@ struct SettingsContentView: View {
         self.appBuild = appBuild
         self.appPackage = appPackage
         self.appBuilt = appBuilt
-        self.notificationsGranted = notificationsGranted
         self.snoozeOptionEnabled = snoozeOptionEnabled
         self.onSignIn = onSignIn
         self.onSignOut = onSignOut
@@ -249,44 +242,32 @@ struct SettingsContentView: View {
             // mirroring Android's `showSnoozeRow` gate.
             if snoozeOptionEnabled {
                 Section("Notifications") {
-                    if notificationsGranted {
-                        // The duration picker lives in a sheet this row opens —
-                        // current state reads as the subtitle (Android's snooze
-                        // row + SnoozeBottomSheet pattern).
-                        Button { snoozeSheetOpen = true } label: {
-                            SettingsRowLabel(
-                                // bell.badge.slash = snoozed by you; bell.slash =
-                                // blocked by the OS (below). Distinct on purpose:
-                                // sharing one glyph made a snooze you set look
-                                // identical to notifications you cannot receive.
-                                icon: snoozeSnoozing ? "bell.badge.slash" : "bell",
-                                title: "Door open notifications",
-                                subtitle: snoozeLabel,
-                                showChevron: !snoozeSending,
-                                inFlight: snoozeSending
-                            )
+                    // One row for all four states. Icon, subtitle and tap target
+                    // all read from `snoozeRow`, so they cannot disagree with each
+                    // other — the previous two-branch form derived them from
+                    // separate booleans, which is how a snooze you set came to look
+                    // identical to notifications you could not receive.
+                    Button {
+                        if snoozeRow.opensDurationSheet {
+                            snoozeSheetOpen = true
+                        } else {
+                            onEnableNotifications()
                         }
-                        .buttonStyle(.plain)
-                        .disabled(snoozeSending)
-                        if let error = snoozeError {
-                            Label(error, systemImage: "exclamationmark.triangle")
-                                .font(.footnote)
-                                .foregroundStyle(GarageColors.statusWarning)
-                        }
-                    } else {
-                        // Notifications denied — snoozing is meaningless without them,
-                        // so replace the controls with a tap-to-enable row (mirrors
-                        // Android's SnoozeRowState.PermissionDenied, whose tap calls
-                        // launchPermissionRequest()).
-                        Button(action: onEnableNotifications) {
-                            SettingsRowLabel(
-                                icon: "bell.slash",
-                                title: "Door open notifications",
-                                subtitle: "Notifications disabled. Tap to enable.",
-                                showChevron: false
-                            )
-                        }
-                        .buttonStyle(.plain)
+                    } label: {
+                        SettingsRowLabel(
+                            icon: snoozeRow.icon,
+                            title: "Door open notifications",
+                            subtitle: snoozeRow.subtitle,
+                            showChevron: snoozeRow.opensDurationSheet && !snoozeSending,
+                            inFlight: snoozeSending
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(snoozeSending)
+                    if let error = snoozeError {
+                        Label(error, systemImage: "exclamationmark.triangle")
+                            .font(.footnote)
+                            .foregroundStyle(GarageColors.statusWarning)
                     }
                 }
             }
@@ -334,7 +315,7 @@ struct SettingsContentView: View {
         .refreshable { await onRefresh() }
         .sheet(isPresented: $snoozeSheetOpen) {
             SnoozeSheetView(
-                currentLabel: snoozeLabel,
+                currentLabel: snoozeRow.subtitle,
                 durations: durations,
                 onSave: { option in
                     onSnooze(option)
@@ -593,16 +574,14 @@ private struct CopyableValueRow: View {
 // — never a `private` file-scope helper. Hence the durations are inlined here.
 
 #Preview("Settings signed out") {
-    let durations: [(label: String, option: SnoozeDurationUIOption)] = [
-        ("Don't snooze", .none), ("1 hour", .oneHour), ("4 hours", .fourHours),
-        ("8 hours", .eightHours), ("12 hours", .twelveHours),
-    ]
+    let durations: [(label: String, option: SnoozeDurationUIOption)] =
+        SnoozeDurationUIOption.allCases.map { (SnoozeDurationLabels.text(for: $0), $0) }
     return NavigationStack {
         SettingsContentView(
             authState: .signedOut,
             displayName: nil,
             email: nil,
-            snoozeLabel: "Notifications enabled",
+            snoozeRow: .off,
             snoozeSending: false,
             snoozeError: nil,
             durations: durations,
@@ -618,17 +597,14 @@ private struct CopyableValueRow: View {
 }
 
 #Preview("Settings signed in developer") {
-    let durations: [(label: String, option: SnoozeDurationUIOption)] = [
-        ("Don't snooze", .none), ("1 hour", .oneHour), ("4 hours", .fourHours),
-        ("8 hours", .eightHours), ("12 hours", .twelveHours),
-    ]
+    let durations: [(label: String, option: SnoozeDurationUIOption)] =
+        SnoozeDurationUIOption.allCases.map { (SnoozeDurationLabels.text(for: $0), $0) }
     return NavigationStack {
         SettingsContentView(
             authState: .signedIn,
             displayName: "Chris Cartland",
             email: "chris@example.com",
-            snoozeLabel: "Snoozing until 9:00 PM",
-            snoozeSnoozing: true,
+            snoozeRow: .snoozingUntil("9:00 PM"),
             snoozeSending: false,
             snoozeError: nil,
             durations: durations,
@@ -644,16 +620,14 @@ private struct CopyableValueRow: View {
 }
 
 #Preview("Settings snooze sending") {
-    let durations: [(label: String, option: SnoozeDurationUIOption)] = [
-        ("Don't snooze", .none), ("1 hour", .oneHour), ("4 hours", .fourHours),
-        ("8 hours", .eightHours), ("12 hours", .twelveHours),
-    ]
+    let durations: [(label: String, option: SnoozeDurationUIOption)] =
+        SnoozeDurationUIOption.allCases.map { (SnoozeDurationLabels.text(for: $0), $0) }
     return NavigationStack {
         SettingsContentView(
             authState: .signedIn,
             displayName: "Chris Cartland",
             email: "chris@example.com",
-            snoozeLabel: "Notifications enabled",
+            snoozeRow: .off,
             snoozeSending: true,
             snoozeError: nil,
             durations: durations,
@@ -669,16 +643,14 @@ private struct CopyableValueRow: View {
 }
 
 #Preview("Settings notifications disabled") {
-    let durations: [(label: String, option: SnoozeDurationUIOption)] = [
-        ("Don't snooze", .none), ("1 hour", .oneHour), ("4 hours", .fourHours),
-        ("8 hours", .eightHours), ("12 hours", .twelveHours),
-    ]
+    let durations: [(label: String, option: SnoozeDurationUIOption)] =
+        SnoozeDurationUIOption.allCases.map { (SnoozeDurationLabels.text(for: $0), $0) }
     return NavigationStack {
         SettingsContentView(
             authState: .signedIn,
             displayName: "Chris Cartland",
             email: "chris@example.com",
-            snoozeLabel: "Notifications enabled",
+            snoozeRow: .permissionDenied,
             snoozeSending: false,
             snoozeError: nil,
             durations: durations,
@@ -688,17 +660,14 @@ private struct CopyableValueRow: View {
             appBuild: "1",
             appPackage: "com.chriscartland.garage",
             appBuilt: "2026-01-15 12:00:00 UTC",
-            notificationsGranted: false,
             onSignIn: {}, onSignOut: {}, onSnooze: { _ in }, onRefresh: {}
         )
     }
 }
 
 #Preview("Snooze sheet nothing selected") {
-    let durations: [(label: String, option: SnoozeDurationUIOption)] = [
-        ("Don't snooze", .none), ("1 hour", .oneHour), ("4 hours", .fourHours),
-        ("8 hours", .eightHours), ("12 hours", .twelveHours),
-    ]
+    let durations: [(label: String, option: SnoozeDurationUIOption)] =
+        SnoozeDurationUIOption.allCases.map { (SnoozeDurationLabels.text(for: $0), $0) }
     return SnoozeSheetContentView(
         currentLabel: "Not snoozing",
         durations: durations,
@@ -710,10 +679,8 @@ private struct CopyableValueRow: View {
 }
 
 #Preview("Snooze sheet option selected") {
-    let durations: [(label: String, option: SnoozeDurationUIOption)] = [
-        ("Don't snooze", .none), ("1 hour", .oneHour), ("4 hours", .fourHours),
-        ("8 hours", .eightHours), ("12 hours", .twelveHours),
-    ]
+    let durations: [(label: String, option: SnoozeDurationUIOption)] =
+        SnoozeDurationUIOption.allCases.map { (SnoozeDurationLabels.text(for: $0), $0) }
     return SnoozeSheetContentView(
         currentLabel: "Snoozing until 9:00 PM",
         durations: durations,
