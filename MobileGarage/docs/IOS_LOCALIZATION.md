@@ -8,12 +8,15 @@ last_verified: 2026-07-29
 
 Android localizes through `strings.xml` (209 entries).
 
-**Status.** iOS has the mechanism (`Localizable.xcstrings` +
-`SWIFT_EMIT_LOC_STRINGS: YES` + `scripts/sync-ios-string-catalog.sh`, #1159) and the
-fence lint (step 3, #1164). The step-2 type sweep has covered **Settings** (#1165),
-**History** (#1166) and **Home**; **Function list** and **Diagnostics** remain. The
-catalog holds ~189 keys. Re-measure with `./scripts/sync-ios-string-catalog.sh` rather
-than trusting this paragraph.
+**Status.** All three steps are done. iOS has the mechanism (`Localizable.xcstrings` +
+`SWIFT_EMIT_LOC_STRINGS: YES` + `scripts/sync-ios-string-catalog.sh`, #1159), the fence
+lint (#1164), and the step-2 type sweep now covers **every** feature area — Settings
+(#1165), History (#1166), Home (#1169), Function list and Diagnostics. The catalog holds
+~198 keys. Re-measure with `./scripts/sync-ios-string-catalog.sh` rather than trusting
+this paragraph.
+
+One known wart remains: ~20 of those keys are `#Preview` fixture text, not shipped copy —
+see "Three things the sweep surfaced" below. Fixing that is the only outstanding item.
 
 ADR-035 governs *where* a string is decided (platform, not shared). This document covers
 the separate question of *how* iOS stores its words once it has them.

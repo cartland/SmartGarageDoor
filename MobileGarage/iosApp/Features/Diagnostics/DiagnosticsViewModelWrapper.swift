@@ -28,7 +28,12 @@ import SwiftUI
 final class DiagnosticsViewModelWrapper: ObservableObject {
     struct Counter: Identifiable {
         let id: String
-        let label: String
+        /// `LocalizedStringResource`: a `String` reaching `Text` is invisible to
+        /// the compiler's string extractor, so these row names could never be
+        /// translated. See MobileGarage/docs/IOS_LOCALIZATION.md.
+        let label: LocalizedStringResource
+        /// Rendered with `Text(verbatim:)` + `.formatted()` — a count wants
+        /// locale digit grouping, not a catalog lookup.
         let value: Int64
     }
 

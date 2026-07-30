@@ -25,7 +25,6 @@
 # and the three shapes this takes: MobileGarage/docs/IOS_LOCALIZATION.md.
 MobileGarage/iosApp/Features/Diagnostics/DiagnosticsScreen.swift
 MobileGarage/iosApp/Features/FunctionList/AuthTokenCopier.swift
-MobileGarage/iosApp/Features/FunctionList/FunctionListScreen.swift
 MobileGarage/iosApp/Features/History/HistoryScreen.swift
 MobileGarage/iosApp/Features/Home/GarageDoorCanvas.swift
 MobileGarage/iosApp/Features/Home/HomeScreen.swift

@@ -226,6 +226,9 @@
     "Error fetching current door event: %@": {
       "extractionState": "manual"
     },
+    "Exceeded expected time without FCM": {
+      "extractionState": "manual"
+    },
     "Export CSV": {
       "extractionState": "manual"
     },
@@ -233,6 +236,12 @@
       "extractionState": "manual"
     },
     "FCM": {
+      "extractionState": "manual"
+    },
+    "FCM door events received": {
+      "extractionState": "manual"
+    },
+    "FCM topic subscribes": {
       "extractionState": "manual"
     },
     "Function list": {
@@ -254,6 +263,12 @@
       "extractionState": "manual"
     },
     "If we don't hear from it on schedule, this shows \"no signal\" so you know the sensor may be offline.": {
+      "extractionState": "manual"
+    },
+    "Init current door": {
+      "extractionState": "manual"
+    },
+    "Init recent door": {
       "extractionState": "manual"
     },
     "Just now": {
@@ -403,6 +418,9 @@
     "Sign in": {
       "extractionState": "manual"
     },
+    "Sign in to copy auth token": {
+      "extractionState": "manual"
+    },
     "Sign in to snooze notifications.": {
       "extractionState": "manual"
     },
@@ -490,6 +508,9 @@
     "This developer panel is gated to allowlisted accounts.": {
       "extractionState": "manual"
     },
+    "Time without FCM in range": {
+      "extractionState": "manual"
+    },
     "Today": {
       "extractionState": "manual"
     },
@@ -530,6 +551,12 @@
       "extractionState": "manual"
     },
     "Unsubscribe test notifications": {
+      "extractionState": "manual"
+    },
+    "User fetch current": {
+      "extractionState": "manual"
+    },
+    "User fetch recent": {
       "extractionState": "manual"
     },
     "Version": {
