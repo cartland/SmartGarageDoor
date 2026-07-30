@@ -59,7 +59,10 @@ struct CopyAuthTokenButton: View {
     @State private var flash: Flash?
 
     private struct Flash {
-        let text: String
+        /// `LocalizedStringResource`: as a `String` this confirmation was
+        /// invisible to the compiler's string extractor and could never be
+        /// translated. See MobileGarage/docs/IOS_LOCALIZATION.md.
+        let text: LocalizedStringResource
         let systemImage: String
     }
 

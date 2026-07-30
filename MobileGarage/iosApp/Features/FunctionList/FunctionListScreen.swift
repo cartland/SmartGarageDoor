@@ -175,7 +175,11 @@ struct TestNotificationSectionView: View {
     var body: some View {
         Section("Test notifications") {
             LabeledContent("Topic") {
-                Text(topic)
+                // verbatim: an FCM topic name is a WIRE IDENTIFIER, not copy.
+                // Translating it would break the subscription, and CLAUDE.md
+                // lists topic names among the things that must never become
+                // shared/localized strings. The monospaced font says the same.
+                Text(verbatim: topic)
                     .font(.footnote.monospaced())
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
