@@ -254,20 +254,32 @@ final class HomeViewModelWrapper: ObservableObject {
     }
 
     /// Assembles the multi-line permission justification from the attempt count.
-    /// Mirrors Android's `notificationJustificationText` escalation (3+, 4+, 5+)
-    /// but with iOS-appropriate wording.
+    ///
+    /// How far the banner escalates is decided by `PermissionNagMapper` — the
+    /// thresholds used to be written out here *and* in Android's
+    /// `notificationJustificationText`, so how insistent the app is about
+    /// notifications was two independent decisions that happened to agree. The
+    /// wording stays here, and stays iOS-specific (it names the iOS Settings
+    /// app).
     private static func justificationText(attemptCount: Int32) -> String {
-        var lines = ["Turn on notifications to get alerted when the door is left open."]
-        if attemptCount > 2 {
-            lines.append("You can manage permissions in the iOS Settings app.")
+        PermissionNagMapper.shared
+            .linesFor(attemptCount: Int32(attemptCount))
+            .map { line(for: $0, attemptCount: attemptCount) }
+            .joined(separator: "\n")
+    }
+
+    /// iOS wording for one shared `PermissionNagLine`.
+    private static func line(for line: PermissionNagLine, attemptCount: Int32) -> String {
+        switch line {
+        case .base:
+            return String(localized: "Turn on notifications to get alerted when the door is left open.")
+        case .mentionSettings:
+            return String(localized: "You can manage permissions in the iOS Settings app.")
+        case .mentionRepeatedDenial:
+            return String(localized: "iOS may be blocking requests because the permission was denied multiple times.")
+        case .attemptCount:
+            return String(localized: "You have tapped the button \(attemptCount) times.")
         }
-        if attemptCount > 3 {
-            lines.append("iOS may be blocking requests because the permission was denied multiple times.")
-        }
-        if attemptCount > 4 {
-            lines.append("You have tapped the button \(attemptCount) times.")
-        }
-        return lines.joined(separator: "\n")
     }
 
     /// Builds the "Since {time} · {duration}" line from the shared typed
