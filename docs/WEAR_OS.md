@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-07-30
+last_verified: 2026-07-31
 ---
 
 # Wear OS App (`MobileGarage/wearApp/`)
@@ -660,6 +660,28 @@ is a silent visual bug, not a compile error.
 about 15dp horizontally, which is more than the list spec asks for. The angled
 ends a row grows near the top and bottom of the screen are the surface
 transformation working, not clipping.
+
+**The end of a list needs bottom content padding, or the last row parks on the
+bottom arc.** Without it a list stops scrolling as soon as the last item is
+technically on screen — which is against the bottom of the circle, where there
+is least width, so the curve takes the ends off whatever rests there. This is
+the one real "content hidden by the rounded corners" failure on a scrolling
+Wear screen; the middle of the screen is full width and is fine.
+
+`ScalingLazyColumn` has **`AutoCenteringParams`** for exactly this.
+`TransformingLazyColumn` **dropped it**, and content padding is the documented
+replacement, so padding the end is the sanctioned mechanism rather than a
+workaround. `WearSettingsScreen` adds `0.35 × screen height` past the last item
+(`LAST_ITEM_CENTERING_FRACTION`), which lands it just above centre; half a screen
+carries it past centre and leaves a large void under a list that has already
+ended.
+
+**The failure is at the END, so do not "fix" it by narrowing rows.** Constraining
+every row's width to survive the corners makes the common case worse — a
+full-width email wraps mid-word in the *widest* part of the screen — to address
+something that only happens at rest at the very bottom. Tried and reverted in
+0.5.3; the regenerated gallery's top-of-list PNG being byte-identical is the
+check that an end-of-list fix changed only the end.
 
 The gallery has a **`settings_bottom`** stage for the same class of reason the
 `bloom` stage exists: a settle-then-capture fixture only ever opens at scroll
