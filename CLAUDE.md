@@ -288,6 +288,26 @@ A future "rules in sync" check could automate this, but isn't worth building unt
 
 **When NOT to use Konsist:** rules that depend on Gradle's project / dependency graph (e.g., the existing `architecture` task that walks `Project.configurations`) belong in `buildSrc/` — Konsist has no Gradle awareness.
 
+### "Release all the apps" — decide per lane, don't release on autopilot
+
+There are four independent lanes (`android/N`, `ios/N`, `wear/N`, `server/N`) and a request to release rarely means all four. A lane with no functional change is pure churn: it burns a version number, adds a Play/TestFlight build testers may install for nothing, and carries the nonzero risk any deploy does. Establish per lane whether there is anything to ship **before** bumping anything:
+
+```bash
+# 1. Did the lane's own code change since its last tag?
+git diff --stat <lane-tag>..HEAD -- MobileGarage/wearApp/          # or androidApp/, iosApp/, FirebaseServer/
+
+# 2. If not: does it consume a shared module that DID change?
+grep -n "implementation(project" MobileGarage/wearApp/build.gradle.kts
+git diff --name-only <lane-tag>..HEAD -- MobileGarage/usecase/ MobileGarage/domain/
+
+# 3. If it does: does it actually reference the changed SYMBOLS?
+git grep -l "ChangedType\|changedFunction" -- 'MobileGarage/wearApp/**'
+```
+
+Step 3 is the one that decides it. A shared module changing is not the same as a lane being affected — on 2026-07-31 `:domain` and `:usecase` had both changed, but `wearApp/` referenced none of the changed symbols, so a Wear release would have shipped a functionally identical app. Wear and Firebase were skipped; Android and iOS shipped. **When a lane's diff turns out to be empty or non-user-facing, ask rather than assume** (the maintainer's standing preference — see the test-only-versionName rule in `docs/RELEASE_STRATEGY.md`).
+
+Confirm what actually landed from the authoritative source, not the workflow's exit code: the `play-track-log` issue body for Play tracks (it names the versionCode/versionName per track), and App Store Connect / the run's own upload step for TestFlight.
+
 ### Releasing Android
 Use `./scripts/release-android.sh` — never create or push tags directly (hooks block `git tag`). For the *why* behind the release model (layered rules, conformance audit, deviations), see [`docs/RELEASE_STRATEGY.md`](docs/RELEASE_STRATEGY.md).
 
@@ -495,6 +515,15 @@ A guardrail hook blocks `git push` when auto-merge is active on the target PR. I
 **Compound-command trap:** the same `\bmain\b` regex is greedy across the entire command line, so chaining `git push -u origin <feature-branch> && gh pr create --base main ...` is blocked even when the push itself is fine — the hook sees `git push` + `\bmain\b` (in `--base main`) together. Workaround: run them as **two separate Bash calls** (push first, then `gh pr create`). Same trap fires for any chained command after `git push` that includes `main` literally (e.g. `git push && open https://github.com/.../tree/main`).
 
 **Compound-command trap variant 2 — current-branch check fires before checkout runs:** `git checkout -b feature/X origin/main && ... && git push -u origin feature/X` is blocked with `BLOCKED: You are on 'main'. Switch to a feature branch before pushing.`, even though the checkout earlier in the chain would put you on `feature/X` before push runs. The hook is a `PreToolUse` that evaluates `git rev-parse --abbrev-ref HEAD` at hook-eval time, before bash runs anything. The earlier `git checkout` in the same compound call doesn't help. Workaround: split into **two Bash calls** — `git checkout -b feature/X origin/main && git add ... && git commit ...` first, then `git push -u origin feature/X` separately.
+
+**Compound-command trap variant 3 — a blocked call runs NOTHING, so the mutation you chained before the push silently did not happen.** This is the dangerous one, because the failure is invisible: the hook is `PreToolUse`, so when it rejects `git add … && git commit … && git push …`, the **`add` and `commit` never execute either**. The tree is left dirty (or the commit un-amended) while the transcript shows only the push being refused, which reads like "push blocked, everything else fine."
+
+Two ways this bites, both hit for real:
+
+- **Silent partial merge.** `git add X && git commit --amend && git push` was blocked (auto-merge was on). After disabling auto-merge, a bare `git push --force-with-lease` succeeded — pushing the **un-amended** commit. PR #1166 merged missing 25 String Catalog keys and a type unification, and the follow-up report gave a wrong key count. Fixed forward in #1168.
+- **`gh pr create` says "No commits between main and …".** The branch was pushed but the commit never happened, because `add && commit && push` had been rejected for an unrelated reason (a `release/*` branch name, below). The empty-PR error is the *first* visible symptom.
+
+**Rule: never chain a repository mutation with `git push` in one Bash call.** Stage and commit in one call, push in the next. After any blocked call, run `git status` before assuming what state you are in — and after any `--force-with-lease` push that followed a block, confirm the pushed commit actually contains what you intended (`git show --stat HEAD`).
 
 **Branch name collision with existing refs:** a long-lived `release` branch exists on `origin`. Pushing a new branch with a path like `release/server-14-changelog` fails with `! [remote rejected] ... (directory file conflict)` because git refuses to create a ref nested under an existing branch name. Use `changelog/*`, `docs/*`, `hardening/*`, or similar prefix instead of `release/*` for ordinary work.
 
