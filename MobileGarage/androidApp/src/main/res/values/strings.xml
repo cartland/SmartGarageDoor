@@ -73,6 +73,10 @@
     <!-- Settings — Watch section (shown only when a watch is connected). -->
     <string name="settings_watch_installed_title">Watch app installed</string>
     <string name="settings_watch_installed_subtitle">The app is on your watch</string>
+    <!-- Shown instead of the line above once the watch has published which
+         build it is running. Older watch apps never publish it, so both
+         wordings stay reachable. -->
+    <string name="settings_watch_installed_version_subtitle">Version %1$s on your watch</string>
     <string name="settings_watch_install_title">Install on your watch</string>
     <string name="settings_watch_install_subtitle">Open the Play Store on your watch</string>
     <string name="watch_install_opened_snackbar">Check your watch to finish installing</string>

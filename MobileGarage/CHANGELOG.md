@@ -15,6 +15,16 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.23.6
+
+- **Settings now names the version on your watch, not just that there is one.**
+  The Watch row could say the app was installed and nothing more, which is the
+  half of the question you already knew: after tapping Update on the watch, what
+  you actually want to know is which build ended up there. It reads "Version
+  0.5.2 on your watch" once the watch has said. A watch running an older build
+  than the one that started reporting this says nothing, and so does the row.
+  Requires watch app 0.5.2 or newer.
+
 ## 2.23.5
 
 - **The snooze time now reads correctly outside the US.** It was formatted with

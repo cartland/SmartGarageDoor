@@ -59,13 +59,13 @@ class ObserveWatchAppStatusUseCaseTest {
     fun retainsLastStatusForALaterCollector() =
         runTest {
             val repository = FakeWearCompanionRepository().apply { useColdSource() }
-            repository.setWatchAppStatus(WatchAppStatus.InstalledOnWatch)
+            repository.setWatchAppStatus(WatchAppStatus.InstalledOnWatch())
             val useCase = ObserveWatchAppStatusUseCase(repository, backgroundScope)
 
             // First Settings entry: collect until the poll result lands.
             val firstEntry = launch { useCase().collect { } }
             runCurrent()
-            assertEquals(WatchAppStatus.InstalledOnWatch, useCase().value)
+            assertEquals(WatchAppStatus.InstalledOnWatch(), useCase().value)
 
             // Leave the tab, and wait well past the stop timeout so the
             // upstream is genuinely torn down.
@@ -76,7 +76,7 @@ class ObserveWatchAppStatusUseCaseTest {
             // Second entry reads the cached verdict synchronously. The
             // section is already visible on first composition, so
             // AppAnimatedVisibility has nothing to animate.
-            assertEquals(WatchAppStatus.InstalledOnWatch, useCase().value)
+            assertEquals(WatchAppStatus.InstalledOnWatch(), useCase().value)
         }
 
     /**
@@ -90,7 +90,7 @@ class ObserveWatchAppStatusUseCaseTest {
     fun stopsObservingWhenNoCollectorsRemain() =
         runTest {
             val repository = FakeWearCompanionRepository().apply { useColdSource() }
-            repository.setWatchAppStatus(WatchAppStatus.InstalledOnWatch)
+            repository.setWatchAppStatus(WatchAppStatus.InstalledOnWatch())
             val useCase = ObserveWatchAppStatusUseCase(repository, backgroundScope)
 
             val entry = launch { useCase().collect { } }
@@ -107,7 +107,7 @@ class ObserveWatchAppStatusUseCaseTest {
             // re-entering restarts the poll and corrects it.
             repository.setWatchAppStatus(WatchAppStatus.NoWatch)
             runCurrent()
-            assertEquals(WatchAppStatus.InstalledOnWatch, useCase().value)
+            assertEquals(WatchAppStatus.InstalledOnWatch(), useCase().value)
 
             val reEntry = launch { useCase().collect { } }
             runCurrent()
@@ -133,9 +133,9 @@ class ObserveWatchAppStatusUseCaseTest {
             assertEquals(WatchAppStatus.WatchNeedsApp, useCase().value)
 
             // The install completes on the watch.
-            repository.setWatchAppStatus(WatchAppStatus.InstalledOnWatch)
+            repository.setWatchAppStatus(WatchAppStatus.InstalledOnWatch())
             runCurrent()
-            assertEquals(WatchAppStatus.InstalledOnWatch, useCase().value)
+            assertEquals(WatchAppStatus.InstalledOnWatch(), useCase().value)
 
             entry.cancel()
         }
@@ -151,7 +151,7 @@ class ObserveWatchAppStatusUseCaseTest {
     fun startsUnknownBeforeTheFirstPollResult() =
         runTest {
             val repository = FakeWearCompanionRepository().apply { useColdSource() }
-            repository.setWatchAppStatus(WatchAppStatus.InstalledOnWatch)
+            repository.setWatchAppStatus(WatchAppStatus.InstalledOnWatch())
             val useCase = ObserveWatchAppStatusUseCase(repository, backgroundScope)
 
             assertEquals(WatchAppStatus.Unknown, useCase().value)
