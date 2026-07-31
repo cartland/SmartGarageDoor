@@ -22,7 +22,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The menu's link out to Play, and how a build names itself beside it.
+ * The settings link out to Play, and how a build names itself beside it.
  *
  * Both rules here are ones the compiler is happy to let you break, and neither
  * fails loudly at runtime: the wrong URI scheme opens the wrong app on the
@@ -87,7 +87,7 @@ class WearStoreLinkTest {
     /**
      * A build that never came from a tag is still told apart from a released
      * one — "this is not a release" and "you are 15 releases behind" are
-     * different answers, and the menu exists to tell them apart.
+     * different answers, and settings exists to tell them apart.
      */
     @Test
     fun aBuildWithNoTagIsNotPassedOffAsARelease() {

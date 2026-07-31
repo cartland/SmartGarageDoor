@@ -48,7 +48,7 @@ import com.chriscartland.garage.wear.ui.WearVoiceViewModel
  *
  * Launch (debug build only):
  *   adb shell am start -n com.chriscartland.garage.debug/com.chriscartland.garage.wear.debug.ScreenshotStagesActivity \
- *     -e stage connecting|closed|inferred|holding|submitted|bloom|moving|open|signed_out|sign_in_error|menu|menu_local|voice_ready|voice_listening|voice_hearing|voice_armed|voice_committing|voice_sent|voice_refused
+ *     -e stage connecting|closed|inferred|holding|submitted|bloom|moving|open|signed_out|sign_in_error|settings|settings_bottom|settings_local|voice_ready|voice_listening|voice_hearing|voice_armed|voice_committing|voice_sent|voice_refused
  *
  * Stages mirror the hero interaction narrative:
  *   connecting    — cold start, no door event yet: "Connecting…", no ⚠ badge
@@ -72,13 +72,23 @@ import com.chriscartland.garage.wear.ui.WearVoiceViewModel
  *   open          — red open door, "Hold to close"
  *   signed_out    — Sign in button under the door
  *   sign_in_error — transient "Sign-in failed" caption under the button
- *   menu          — the menu on a RELEASED build: name, version, store
- *                   button. Deliberately does NOT name the release tag it
- *                   was cut from; that is internal plumbing. Only a fixture
- *                   can show this state, since a local build always has
+ *   settings      — the settings PAGE (one swipe left of the door) on a
+ *                   RELEASED build, signed in: header, account, version.
+ *                   Deliberately does NOT name the release tag it was cut
+ *                   from; that is internal plumbing. Only a fixture can show
+ *                   this state, since a local build always has
  *                   WEAR_TAG_NUMBER = 0
- *   menu_local    — the same menu on a build that never came from a
- *                   release, which still says so
+ *   settings_bottom — the end of that same list. The update button is below
+ *                   the fold, and a settle-then-capture fixture always opens
+ *                   at scroll position 0, so the screen's only action would
+ *                   otherwise appear in no screenshot at all
+ *   settings_local — the same list signed out and on a build that never came
+ *                   from a release, which is the one case that still names
+ *                   itself. Also the signed-out half of the account row,
+ *                   which must not look like the signed-in one
+ *
+ * Note the settings stages render WearSettingsScreen directly, so they carry
+ * no page indicator — in the app it is drawn by the pager one level up.
  *
  * Voice demo stages (a different Composable — VoiceDemoContent). All are
  * simulated by construction: the fixture passes canned VoiceCommandStates and

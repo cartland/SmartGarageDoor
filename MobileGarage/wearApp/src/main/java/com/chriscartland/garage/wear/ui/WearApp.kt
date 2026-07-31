@@ -192,7 +192,7 @@ private const val HOME_PAGE_COUNT = 2
  * Opens this app's listing in the watch's own Play Store, reporting whether it
  * found one.
  *
- * The irreducible platform write for the menu: the decision of *where* to go is
+ * The irreducible platform write for settings: the decision of *where* to go is
  * [WearStoreLink]'s (and unit-tested there), while `startActivity` can only
  * happen here. Failure is caught rather than pre-checked — see [WearStoreLink]
  * for why asking first would give the wrong answer on Android 11+.
@@ -209,7 +209,7 @@ private fun rememberStoreLauncher(): () -> Boolean {
                 )
                 true
             } catch (e: ActivityNotFoundException) {
-                Logger.w { "WearMenu: no Play Store on this watch: $e" }
+                Logger.w { "WearSettings: no Play Store on this watch: $e" }
                 false
             }
         }

@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-07-28
+last_verified: 2026-07-30
 ---
 
 # Wear OS App (`MobileGarage/wearApp/`)
@@ -214,14 +214,31 @@ phase 3, shipped as a simulation first.
 |---|---|
 | **Small mic chip on the hero screen** | **Chosen.** A separate target with a separate gesture, so the door keeps its single meaning. |
 | Single tap on the door launches voice | **Rejected.** The door's tap is *deliberately* dead so only a continuous hold can reach the garage. A tap is also the opening frame of every hold and of every drift-cancelled accidental touch, so tap-to-talk would make a sleeve brush open a full-screen mic — re-creating the accidental-activation problem 0.2.0 removed, aimed at a new target. |
-| Crown scroll opens a menu with a voice button | **Rejected for now.** The app is deliberately one hero screen; adding scroll navigation is a structural change, and it buries a demo two interactions deep. This is the natural home if the watch ever grows a third feature. |
+| Crown scroll opens a menu with a voice button | **Still rejected (0.5.0).** The crown now scrolls the settings list, and settings is a swipe away rather than a scroll away — but putting the mic *there* would bury it two interactions deep, which was the original objection and is unchanged. |
 
 The chip sits at `CenterEnd`, not the top: the top centre belongs to
 `TimeText`, and at the vertical centre the round screen's chord is at its
-widest, so a chip beside the door (which occupies only the middle 52%) clears
+widest, so a chip beside the door (which occupies only the middle 46%) clears
 both the door and the mask without resizing anything. Signed-in only — the
 signed-out screen has one job and has already been fixed once for overflow
 (0.1.2).
+
+Since 0.5.0 it is the **only** chip on the hero screen; the settings entry point
+that used to mirror it at `CenterStart` is gone (see below). The mic survived
+that cull for a specific reason: what it opens is not a peer surface but a live
+microphone, and a surface with that effect has to be entered deliberately rather
+than arrived at by a stray horizontal swipe.
+
+**Opening the demo starts listening (0.5.0).** Reaching it already takes a
+deliberate press of the chip, so the `Ready` "Tap to speak" state was asking for
+the same intent a second time — most of the interaction, on a device whose whole
+proposition is to say two words and put your arm down. `Ready` is still reachable
+and still worded the same way; it is now where a *finished* command lands rather
+than where a new one starts. Entry is the only automatic trigger: a demo that
+reopened the mic every time it finished would be a live mic nobody asked to keep
+open. On a watch with no recognizer at all this surfaces the refusal ("No voice
+input on this watch") immediately instead of after a tap, which is strictly more
+useful.
 
 Tapping it opens a dedicated screen rather than inlining the flow: the loop has
 seven states plus a transcript and a countdown, which does not fit beside the
@@ -514,11 +531,11 @@ pending tick, so a cancelled countdown never buzzes afterwards.
 `VoiceCommitted` fires on `Sending`, not `Sent` — `Sent` arrives a fake
 round-trip later and would put the buzz in the wrong place.
 
-## Menu: which build, and a way to the store (0.4.0)
+## Settings: a page beside the door (0.4.0, reshaped in 0.5.0)
 
-The three-dot chip at `CenterStart` (mirroring the voice chip across the screen)
-opens a leaf screen showing the running build and a **Check for update** button
-that opens this app's listing in the **watch's own Play Store**.
+Swipe **left** from the door to reach settings and **right** to come back. It
+shows which account is signed in, the running build, and a **Check for update**
+button that opens this app's listing in the **watch's own Play Store**.
 
 It exists because the watch is updated far more often than it is configured, and
 until 0.4.0 it could answer neither "what am I running?" nor "is there anything
@@ -556,23 +573,99 @@ Three further constraints, all encoded in `WearStoreLink`:
   screen can say so rather than leaving a button that looks broken. There is no
   Wear OS 2 fallback to write: `minSdk = 30` means every device that can install
   this app has the on-watch Play Store.
-- **The version row names the release tag** (`wear/15`), recovered from
-  `BuildConfig.WEAR_TAG_NUMBER`. `versionName` alone cannot tell two builds cut
-  from one version apart, and the raw versionCode (`1000000 + N`) is not what the
-  tag is called anywhere else. A build with no tag says **Local build** rather
-  than claiming to be `wear/0` — "this is not a release" and "you are 15 releases
-  behind" are different answers, and the menu exists to tell them apart.
+- **`BuildConfig.WEAR_TAG_NUMBER` is reduced to a BOOLEAN** (`isReleaseBuild`),
+  never rendered. Through 0.4.0 the version row printed the tag it was cut from
+  (`wear/15`); 0.4.1 removed that, because a `wear/N` tag means something against
+  this repo's tags and the Play track log and nothing at all to someone wearing
+  the watch, who already has the version number directly above it. A build with
+  no tag still says **Local build**, because "this is not a release" and "this is
+  an old release" are genuinely different answers and `versionName` cannot tell
+  them apart.
 
-The chip sits **outside** the signed-in/signed-out branch, unlike the voice chip.
-It is the one affordance whose value does not depend on being signed in: it
-exists to get a newer build onto the watch, and a build broken enough to leave
-you stuck at the sign-in screen is exactly when reaching the store matters most.
+Settings is reachable **whether or not you are signed in**. It is the one surface
+whose value does not depend on a session: it exists to get a newer build onto the
+watch, and a build broken enough to leave you stuck at the sign-in screen is
+exactly when reaching the store matters most.
 
-Navigation went from a boolean to the `WearDestination` enum at the same time.
-Every destination other than the hero screen is still a leaf reached from it, so
-the graph is "which one is on top" and `SwipeToDismissBox` still supplies
-swipe-right-to-go-back; the enum is what keeps the `when` exhaustive, so a third
-leaf is a compile error at each site rather than a silently unreachable screen.
+### Why it stopped being a chip and a leaf (0.5.0)
+
+Through 0.4.x this was a leaf screen behind a three-dot chip at `CenterStart`,
+mirroring the voice chip. Both parts of that were wrong for the platform:
+
+- **`⋮` is a phone glyph.** It refers to an overflow menu, a convention Wear does
+  not have, so it named nothing. Meanwhile it spent hero pixels advertising a
+  destination the platform already has a gesture *and* a persistent visible
+  indicator for.
+- **A leaf is the wrong relationship.** Settings is not somewhere you finish and
+  return from; it is the other half of the app. Peer pages say that; a pushed
+  screen says the opposite.
+
+So the door and settings are now pages of one `HorizontalPagerScaffold`, and the
+voice demo remains the single `SwipeToDismissBox` leaf. Two axes, each meaning
+one thing: **sideways is a peer, forward is a leaf.**
+
+Three things about this composition are load-bearing:
+
+- **`PagerDefaults.gestureInclusion` (the default) is what keeps swipe-to-dismiss
+  working.** It reserves the left edge on page 0 so a swipe starting there is
+  handed to the enclosing `SwipeToDismissBox` rather than eaten as a page change.
+  Verified: a left-edge swipe on the door still leaves the app.
+- **Rotary is explicitly `null` on the pager.** The crown belongs to whatever
+  scrolls — the settings list — and a crown that paged instead would leave the
+  app's one genuinely scrollable surface unreachable by the watch's main input.
+- **The door is page 0** because it is why the app exists. Opening the garage
+  must never cost a swipe, and a cold launch has to land on it every time.
+
+### The list, and the crown
+
+Settings is a `TransformingLazyColumn`, not a `Column` + `verticalScroll`. Two
+reasons, and the second one was invisible:
+
+1. A centred column is the wrong growth model for something meant to accumulate
+   settings — items arrange outward from the middle, so anything added moves
+   everything already there, and once it outgrows the screen the top is simply
+   gone with nothing to suggest it. A list grows downward; adding a setting is
+   one `item { }`.
+2. **`Modifier.verticalScroll` has no rotary support.** On the app's *only*
+   scrollable surface, the crown did nothing at all — and that is invisible in
+   testing, because touch scrolling works fine. `TransformingLazyColumn` wires
+   rotary itself, including the hierarchical focus rotary needs to reach it.
+
+Confirmed empirically rather than by reading the API: inject `REL_WHEEL` on the
+emulator's rotary node and watch the list move.
+
+```bash
+adb shell getevent -pl | grep -A4 rotary       # find the node (event12 here)
+adb shell 'sendevent /dev/input/event12 2 8 -1; sendevent /dev/input/event12 0 0 0'
+```
+
+Components that wire rotary for you: `ScalingLazyColumn`,
+`TransformingLazyColumn`, `Picker`, `AlertDialog`. Components that do **not**:
+`Column` + `verticalScroll`, and `ScreenScaffold` (it draws the scroll indicator,
+not the input handling).
+
+**`EdgeButton` does not work on a pager page.** It is the Material 3 component
+for a screen's single action and was the obvious choice for **Check for update**,
+but the pager's page indicator owns the same bottom arc and does **not** fade
+while the page is idle — measured on a 454px round emulator, still drawn nine
+seconds after the swipe. They overlap. The action is a plain list row instead.
+
+**Every list surface needs `SurfaceTransformation` + `transformedHeight`.** Wear
+Material 3 applies neither for you, and without them a full-width row stays
+rectangular and is cut by the round mask instead of shaping to it. Forgetting it
+is a silent visual bug, not a compile error.
+
+**Do not reach for `PaddingDefaults` to fix apparent edge crowding — it is
+`internal`, and the premise is usually wrong.** `ScreenScaffold` already insets
+about 15dp horizontally, which is more than the list spec asks for. The angled
+ends a row grows near the top and bottom of the screen are the surface
+transformation working, not clipping.
+
+The gallery has a **`settings_bottom`** stage for the same class of reason the
+`bloom` stage exists: a settle-then-capture fixture only ever opens at scroll
+position 0, so the screen's one action sits below the fold and would appear in no
+screenshot at all. `WearSettingsScreen` takes an `initialAnchorItemIndex` that
+production never passes.
 
 ## Architecture
 
