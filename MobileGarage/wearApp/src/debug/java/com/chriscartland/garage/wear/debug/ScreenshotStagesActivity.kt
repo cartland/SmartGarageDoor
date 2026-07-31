@@ -35,7 +35,8 @@ import com.chriscartland.garage.usecase.VoiceDoorState
 import com.chriscartland.garage.wear.ui.ConfirmRingState
 import com.chriscartland.garage.wear.ui.HeroScreenContent
 import com.chriscartland.garage.wear.ui.HeroScreenLayout
-import com.chriscartland.garage.wear.ui.VoiceDemoContent
+import com.chriscartland.garage.wear.ui.VoiceContent
+import com.chriscartland.garage.wear.ui.VoiceSurfaceMode
 import com.chriscartland.garage.wear.ui.WearSettingsScreen
 import com.chriscartland.garage.wear.ui.WearVoiceViewModel
 
@@ -90,23 +91,28 @@ import com.chriscartland.garage.wear.ui.WearVoiceViewModel
  * Note the settings stages render WearSettingsScreen directly, so they carry
  * no page indicator — in the app it is drawn by the pager one level up.
  *
- * Voice demo stages (a different Composable — VoiceDemoContent). All are
- * simulated by construction: the fixture passes canned VoiceCommandStates and
- * a canned demo door, with no controller and no environment at all.
- *   voice_ready   — at rest: "Simulated", "Tap to speak", demo door Closed
- *   voice_listening — mic takeover, quiet: TWO lines total (the marker and the
- *                   example), with the pulse rings capped to clear both
+ * Voice stages (a different Composable — VoiceContent). Every one of these is
+ * a canned VoiceCommandState with no controller and no environment behind it,
+ * so nothing here can reach a door of any kind; `mode` decides only which
+ * wording and which ring colour is drawn.
+ *   voice_ready   — the LIVE surface at rest: "Tap to speak", real door Closed
+ *   voice_listening — mic takeover, quiet: ONE line (the example), with the
+ *                   pulse rings capped to clear it
  *   voice_hearing — mid-utterance: rings at a loud level, and ONE line of live
  *                   transcript, long enough that it has to ellipsize — at the
  *                   START, so the newest words are the ones you can read
- *   voice_armed   — "Would open the door": the action named conditionally,
- *                   under the SAME white ring the real button draws
+ *   voice_armed   — "Opening the door": a real press three seconds away, under
+ *                   the SAME white ring the hold-to-confirm button draws
  *   voice_committing — just after the commit: that ring post-bloom, holding
  *                   complete. The bloom's peak frame is the `bloom` stage —
  *                   it is literally the same component, so capturing it twice
  *                   would pin the same pixels
- *   voice_sent    — the punchline: "Nothing was sent", demo door Moving
- *   voice_refused — the gate refusing a command the demo door has outgrown
+ *   voice_sent    — the live receipt: "Command sent", door Moving
+ *   voice_refused — the gate refusing a command the real door has outgrown
+ *   voice_sim_ready / voice_sim_armed / voice_sim_sent — the SAME three
+ *                   moments on the rehearsal, which is the comparison worth
+ *                   having in the gallery: identical layout, and then the
+ *                   SIMULATION marker, the azure ring and "Nothing was sent"
  *
  * Across the voice stages the "Simulated" marker and the mic must not move.
  * That is not decoration: the resting column is vertically centred, so before
@@ -146,12 +152,12 @@ class ScreenshotStagesActivity : ComponentActivity() {
                                 SCREENSHOT_USER
                             },
                             onOpenStore = { true },
+                            onSimulatedVoiceClick = {},
                             // The end of the list, which a settle-then-capture
                             // fixture cannot otherwise reach: it always opens at
-                            // scroll position 0, so the screen's only action —
-                            // the update button — would never appear in the
-                            // gallery at all. Anchoring past the last item lands
-                            // the list at its end.
+                            // scroll position 0, so the update button would never
+                            // appear in the gallery at all. Anchoring past the
+                            // last item lands the list at its end.
                             initialAnchorItemIndex = if (stage == STAGE_SETTINGS_BOTTOM) {
                                 SETTINGS_LAST_ITEM_INDEX
                             } else {
@@ -159,9 +165,10 @@ class ScreenshotStagesActivity : ComponentActivity() {
                             },
                         )
                     } else if (voiceFixture != null) {
-                        VoiceDemoContent(
+                        VoiceContent(
                             state = voiceFixture.state,
-                            demoDoorState = voiceFixture.demoDoorState,
+                            mode = voiceFixture.mode,
+                            doorState = voiceFixture.doorState,
                             partialTranscript = voiceFixture.partialTranscript,
                             listeningLevel = voiceFixture.listeningLevel,
                             onMicTap = {},
@@ -183,7 +190,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
                             ring = fixture.ring,
                             onHoldStart = {},
                             onHoldEnd = {},
-                            onVoiceDemoClick = {},
+                            onVoiceClick = {},
                             onSignInClick = {},
                         )
                     } else {
@@ -197,7 +204,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
                             signInError = fixture.signInError,
                             onHoldStart = {},
                             onHoldEnd = {},
-                            onVoiceDemoClick = {},
+                            onVoiceClick = {},
                             onSignInClick = {},
                         )
                     }
@@ -218,7 +225,8 @@ class ScreenshotStagesActivity : ComponentActivity() {
      */
     private data class VoiceStageFixture(
         val state: VoiceCommandState,
-        val demoDoorState: VoiceDoorState,
+        val doorState: VoiceDoorState,
+        val mode: VoiceSurfaceMode = VoiceSurfaceMode.Live,
         val partialTranscript: String? = null,
         val listeningLevel: Float = 0f,
     )
@@ -280,6 +288,29 @@ class ScreenshotStagesActivity : ComponentActivity() {
                     engineName = "Rules v3",
                 ),
                 VoiceDoorState.OPEN,
+            )
+            // The rehearsal's counterparts. Only three, and deliberately the
+            // three where the two surfaces DIFFER most: the marker at rest,
+            // the tinted countdown ring, and the punchline that the live
+            // surface has no equivalent of.
+            STAGE_VOICE_SIM_READY -> VoiceStageFixture(
+                VoiceCommandState.Ready,
+                VoiceDoorState.CLOSED,
+                mode = VoiceSurfaceMode.Simulated,
+            )
+            STAGE_VOICE_SIM_ARMED -> VoiceStageFixture(
+                VoiceCommandState.Armed(
+                    intent = VoiceIntent.OPEN,
+                    transcript = "open the garage door",
+                    windowMs = WearVoiceViewModel.ARMED_WINDOW_MILLIS,
+                ),
+                VoiceDoorState.CLOSED,
+                mode = VoiceSurfaceMode.Simulated,
+            )
+            STAGE_VOICE_SIM_SENT -> VoiceStageFixture(
+                VoiceCommandState.Sent(intent = VoiceIntent.OPEN),
+                VoiceDoorState.MOVING,
+                mode = VoiceSurfaceMode.Simulated,
             )
             else -> null
         }
@@ -359,7 +390,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
          * that stops short of the bottom — visible in the very screenshot this
          * exists to produce, so it fails loudly rather than silently.
          */
-        const val SETTINGS_LAST_ITEM_INDEX = 5
+        const val SETTINGS_LAST_ITEM_INDEX = 7
         const val STAGE_MOVING = "moving"
         const val STAGE_OPEN = "open"
         const val STAGE_SIGNED_OUT = "signed_out"
@@ -371,6 +402,9 @@ class ScreenshotStagesActivity : ComponentActivity() {
         const val STAGE_VOICE_COMMITTING = "voice_committing"
         const val STAGE_VOICE_SENT = "voice_sent"
         const val STAGE_VOICE_REFUSED = "voice_refused"
+        const val STAGE_VOICE_SIM_READY = "voice_sim_ready"
+        const val STAGE_VOICE_SIM_ARMED = "voice_sim_armed"
+        const val STAGE_VOICE_SIM_SENT = "voice_sim_sent"
 
         val SCREENSHOT_USER = AuthState.Authenticated(
             User(

@@ -43,40 +43,39 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Unit tests for the **simulated** Wear voice demo.
+ * Unit tests for the **simulated** Wear voice surface.
  *
  * Two things are under test, and the second matters more than the first:
  *
  *  1. The loop behaves — a confident imperative arms, counts down, and
  *     commits; everything else is refused with the reason the screen shows.
- *  2. **It can never operate the real garage door.** The demo runs the real
- *     shared controller, classifier and gate, so the only thing standing
- *     between it and a real press is which [VoiceCommandEnvironment] it was
- *     given. [cannotReachTheRealRemoteButton] pins that structurally over the
+ *  2. **It can never operate the real garage door.** It runs the same shared
+ *     controller, classifier and gate the LIVE surface does, so the only thing
+ *     standing between it and a real press is the environment it builds.
+ *     [cannotReachTheRealRemoteButton] pins that structurally over the
  *     constructor, and every behavioural test below additionally asserts on
  *     the *demo* door, which is the only door in reach.
  *
- * The DI half of the same property (that the Wear graph binds the simulated
- * environment and nothing else) lives in `WearComponentGraphTest`.
+ * This matters more now than it did when the watch had no live voice at all:
+ * a sibling class one file away does press the real button, so "which one am I
+ * looking at" is a question the type system has to answer rather than a reader.
+ *
+ * The DI half of the same property lives in `WearComponentGraphTest`.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class WearVoiceViewModelTest {
-    private lateinit var environment: SimulatedVoiceCommandEnvironment
-
+class WearSimulatedVoiceViewModelTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
     }
 
-    private fun TestScope.createViewModel(): WearVoiceViewModel {
+    private fun TestScope.createViewModel(): WearSimulatedVoiceViewModel {
         val testDispatcher = StandardTestDispatcher(testScheduler)
         Dispatchers.setMain(testDispatcher)
-        environment = SimulatedVoiceCommandEnvironment(backgroundScope)
-        return WearVoiceViewModel(
-            // The real classifier, not a stub: the point of the experiment is
-            // to feel the production grammar's strictness on a watch.
+        return WearSimulatedVoiceViewModel(
+            // The real classifier, not a stub: the point is to feel the
+            // production grammar's strictness on a watch.
             classifyVoiceIntent = ClassifyVoiceIntentUseCase(RuleBasedVoiceIntentClassifier()),
-            environment = environment,
             dispatchers = TestDispatcherProvider(testDispatcher),
         )
     }
@@ -95,7 +94,7 @@ class WearVoiceViewModelTest {
 
     /** Tap the mic and hand the recognizer's answer back. */
     private fun TestScope.speak(
-        viewModel: WearVoiceViewModel,
+        viewModel: WearSimulatedVoiceViewModel,
         transcript: String?,
     ) {
         viewModel.onMicTap()
@@ -107,11 +106,17 @@ class WearVoiceViewModelTest {
     // --- The safety property -------------------------------------------------
 
     /**
-     * The watch voice surface is an experiment, so it must have no way to
-     * reach the remote button. Asserted over the constructor rather than by
-     * observing behaviour, because behaviour only proves the paths a test
-     * happens to walk — this fails the moment someone *wires in* a real-door
-     * dependency, which is the actual regression to guard.
+     * The rehearsal must have no way to reach the remote button. Asserted over
+     * the constructor rather than by observing behaviour, because behaviour
+     * only proves the paths a test happens to walk — this fails the moment
+     * someone *wires in* a real-door dependency, which is the actual
+     * regression to guard.
+     *
+     * `ObserveDoorEventsUseCase` is on the list even though it cannot press
+     * anything: it is how [WearLiveVoiceViewModel] reaches the real door, and a
+     * simulation gated on the real door's position would be a rehearsal you
+     * could not run while the garage was open — which is most of what it is
+     * for.
      */
     @Test
     fun cannotReachTheRealRemoteButton() {
@@ -120,18 +125,43 @@ class WearVoiceViewModelTest {
             "RemoteButtonRepository",
             "NetworkButtonDataSource",
             "ButtonStateMachine",
+            "ObserveDoorEventsUseCase",
+            "DoorRepository",
             "WearHomeViewModel",
+            "WearLiveVoiceViewModel",
         )
-        val dependencies = WearVoiceViewModel::class.java.constructors
+        val dependencies = WearSimulatedVoiceViewModel::class.java.constructors
             .flatMap { it.parameterTypes.asList() }
             .map { it.simpleName }
             .toSet()
         val violations = dependencies intersect forbidden
         assertTrue(
-            "WearVoiceViewModel must not depend on $violations. The watch voice " +
-                "surface is simulated; the remote button stays reachable only by " +
-                "holding the door on the hero screen.",
+            "WearSimulatedVoiceViewModel must not depend on $violations. Settings " +
+                "-> Simulated voice is a rehearsal; the real button is reachable " +
+                "only from the door screen (hold it, or its mic).",
             violations.isEmpty(),
+        )
+    }
+
+    /**
+     * The inverse, and the reason the pair is meaningful: the sibling class
+     * that IS live really does hold the button.
+     *
+     * Without this, deleting the live surface's dependency on
+     * `PushRemoteButtonUseCase` — breaking voice control outright — would leave
+     * every safety test in this file passing more comfortably than before. A
+     * guard that gets happier as the feature dies is not measuring the feature.
+     */
+    @Test
+    fun theLiveSurfaceDoesReachTheRealRemoteButton() {
+        val dependencies = WearLiveVoiceViewModel::class.java.constructors
+            .flatMap { it.parameterTypes.asList() }
+            .map { it.simpleName }
+            .toSet()
+        assertTrue(
+            "WearLiveVoiceViewModel must depend on PushRemoteButtonUseCase — it is " +
+                "the surface that presses the real garage button. Found: $dependencies",
+            "PushRemoteButtonUseCase" in dependencies,
         )
     }
 
@@ -162,11 +192,11 @@ class WearVoiceViewModelTest {
             advanceTimeBy(SimulatedVoiceCommandEnvironment.PRESS_DELAY_MS + 1)
             runCurrent()
             assertTrue(viewModel.state.value is VoiceCommandState.Sent)
-            assertEquals(VoiceDoorState.MOVING, viewModel.demoDoorState.value)
+            assertEquals(VoiceDoorState.MOVING, viewModel.doorState.value)
 
             advanceTimeBy(SimulatedVoiceCommandEnvironment.TRANSIT_MS + 1)
             runCurrent()
-            assertEquals(VoiceDoorState.OPEN, viewModel.demoDoorState.value)
+            assertEquals(VoiceDoorState.OPEN, viewModel.doorState.value)
         }
 
     @Test
@@ -183,7 +213,7 @@ class WearVoiceViewModelTest {
                     SimulatedVoiceCommandEnvironment.TRANSIT_MS + 1,
             )
             runCurrent()
-            assertEquals(VoiceDoorState.OPEN, viewModel.demoDoorState.value)
+            assertEquals(VoiceDoorState.OPEN, viewModel.doorState.value)
 
             // Same words, different world: the gate now refuses.
             speak(viewModel, "open the garage door")
@@ -205,7 +235,7 @@ class WearVoiceViewModelTest {
     fun aMovingDemoDoorRefusesBothDirections() =
         runTest {
             val viewModel = createViewModel()
-            environment.setDoorState(VoiceDoorState.MOVING)
+            viewModel.demoDoor.setDoorState(VoiceDoorState.MOVING)
 
             speak(viewModel, "open the garage door")
             assertEquals(
@@ -224,7 +254,7 @@ class WearVoiceViewModelTest {
     fun anUnknownDemoDoorStateRefusesRatherThanGuesses() =
         runTest {
             val viewModel = createViewModel()
-            environment.setDoorState(VoiceDoorState.UNKNOWN)
+            viewModel.demoDoor.setDoorState(VoiceDoorState.UNKNOWN)
 
             speak(viewModel, "open the garage door")
             assertEquals(
@@ -241,7 +271,7 @@ class WearVoiceViewModelTest {
 
             val ignored = viewModel.state.value as VoiceCommandState.Ignored
             assertEquals(VoiceCommandIgnoreReason.NOT_A_COMMAND, ignored.reason)
-            assertEquals(VoiceDoorState.CLOSED, viewModel.demoDoorState.value)
+            assertEquals(VoiceDoorState.CLOSED, viewModel.doorState.value)
         }
 
     @Test
@@ -252,7 +282,7 @@ class WearVoiceViewModelTest {
 
             val ignored = viewModel.state.value as VoiceCommandState.Ignored
             assertEquals(VoiceCommandIgnoreReason.NOT_CONFIDENT, ignored.reason)
-            assertEquals(VoiceDoorState.CLOSED, viewModel.demoDoorState.value)
+            assertEquals(VoiceDoorState.CLOSED, viewModel.doorState.value)
         }
 
     @Test
@@ -296,7 +326,7 @@ class WearVoiceViewModelTest {
 
             assertEquals(2, (viewModel.state.value as VoiceCommandState.Listening).attempt)
             advanceUntilIdle()
-            assertEquals(VoiceDoorState.CLOSED, viewModel.demoDoorState.value)
+            assertEquals(VoiceDoorState.CLOSED, viewModel.doorState.value)
         }
 
     @Test
@@ -312,7 +342,7 @@ class WearVoiceViewModelTest {
             assertEquals(VoiceCommandState.Ready, viewModel.state.value)
             // The real assertion: the window's commit never ran.
             advanceUntilIdle()
-            assertEquals(VoiceDoorState.CLOSED, viewModel.demoDoorState.value)
+            assertEquals(VoiceDoorState.CLOSED, viewModel.doorState.value)
         }
 
     /**
@@ -341,7 +371,7 @@ class WearVoiceViewModelTest {
             // Well past the point the commit was scheduled for.
             advanceTimeBy(WearVoiceViewModel.ARMED_WINDOW_MILLIS * 2)
             runCurrent()
-            assertEquals(VoiceDoorState.CLOSED, viewModel.demoDoorState.value)
+            assertEquals(VoiceDoorState.CLOSED, viewModel.doorState.value)
             assertEquals(listOf(HapticCue.VoiceArmed), cues)
         }
 
@@ -433,7 +463,7 @@ class WearVoiceViewModelTest {
             speak(viewModel, "open the garage door")
 
             // Someone opened the (demo) door while the countdown ran.
-            environment.setDoorState(VoiceDoorState.OPEN)
+            viewModel.demoDoor.setDoorState(VoiceDoorState.OPEN)
             advanceTimeBy(WearVoiceViewModel.ARMED_WINDOW_MILLIS + 1)
             runCurrent()
 
@@ -446,7 +476,7 @@ class WearVoiceViewModelTest {
                 (viewModel.state.value as VoiceCommandState.Ignored).reason,
             )
             // And nothing was pressed, not even in the simulation.
-            assertEquals(VoiceDoorState.OPEN, viewModel.demoDoorState.value)
+            assertEquals(VoiceDoorState.OPEN, viewModel.doorState.value)
         }
 
     // --- Cancelling --------------------------------------------------------
@@ -484,7 +514,7 @@ class WearVoiceViewModelTest {
             // And the countdown it interrupted never reaches the demo door.
             advanceTimeBy(WearVoiceViewModel.ARMED_WINDOW_MILLIS * 2)
             runCurrent()
-            assertEquals(VoiceDoorState.CLOSED, viewModel.demoDoorState.value)
+            assertEquals(VoiceDoorState.CLOSED, viewModel.doorState.value)
         }
 
     @Test

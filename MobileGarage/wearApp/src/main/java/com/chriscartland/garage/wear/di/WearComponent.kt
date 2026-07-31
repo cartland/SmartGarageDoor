@@ -46,12 +46,11 @@ import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RuleBasedVoiceIntentClassifier
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
-import com.chriscartland.garage.usecase.SimulatedVoiceCommandEnvironment
-import com.chriscartland.garage.usecase.VoiceCommandEnvironment
 import com.chriscartland.garage.wear.data.InMemoryLocalDoorDataSource
 import com.chriscartland.garage.wear.logging.LogcatAppLoggerRepository
 import com.chriscartland.garage.wear.ui.WearHomeViewModel
-import com.chriscartland.garage.wear.ui.WearVoiceViewModel
+import com.chriscartland.garage.wear.ui.WearLiveVoiceViewModel
+import com.chriscartland.garage.wear.ui.WearSimulatedVoiceViewModel
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -100,14 +99,18 @@ abstract class WearComponent(
 ) {
     // --- Entry points: ViewModels (per-screen, NOT singleton) ---
     abstract val wearHomeViewModel: WearHomeViewModel
-    abstract val wearVoiceViewModel: WearVoiceViewModel
 
     /**
-     * Exposed so `WearComponentGraphTest` can assert the concrete type. The
-     * voice demo's "cannot touch the real door" property is structural, and
-     * this is one of the three places it is pinned (see [WearVoiceViewModel]).
+     * The two voice surfaces are two TYPES, not one type configured two ways.
+     *
+     * That is the whole safety design: there is no `VoiceCommandEnvironment`
+     * binding in this graph to point at the wrong door, because each surface
+     * builds its own and only [WearLiveVoiceViewModel] has the ingredients for
+     * a real one. Swapping them would mean changing a declared type at the call
+     * site, not flipping a provider — see [WearSimulatedVoiceViewModel].
      */
-    abstract val voiceCommandEnvironment: VoiceCommandEnvironment
+    abstract val wearLiveVoiceViewModel: WearLiveVoiceViewModel
+    abstract val wearSimulatedVoiceViewModel: WearSimulatedVoiceViewModel
 
     // --- Entry points: @WearSingleton state owners ---
     abstract val applicationScope: CoroutineScope
@@ -145,15 +148,35 @@ abstract class WearComponent(
             appVersion = appVersion,
         )
 
+    /** Voice against the real door. Needs the button; the simulated one does not. */
     @Provides
-    fun provideWearVoiceViewModel(
+    fun provideWearLiveVoiceViewModel(
         classifyVoiceIntent: ClassifyVoiceIntentUseCase,
-        voiceCommandEnvironment: VoiceCommandEnvironment,
+        observeDoorEvents: ObserveDoorEventsUseCase,
+        pushRemoteButton: PushRemoteButtonUseCase,
         dispatchers: DispatcherProvider,
-    ): WearVoiceViewModel =
-        WearVoiceViewModel(
+        appVersion: String,
+    ): WearLiveVoiceViewModel =
+        WearLiveVoiceViewModel(
             classifyVoiceIntent = classifyVoiceIntent,
-            environment = voiceCommandEnvironment,
+            observeDoorEvents = observeDoorEvents,
+            pushRemoteButton = pushRemoteButton,
+            dispatchers = dispatchers,
+            appVersion = appVersion,
+        )
+
+    /**
+     * Voice against a pretend door. Note what is NOT a parameter here: no
+     * button, no repository, no door. There is nothing to pass it that could
+     * reach the garage, which is the point.
+     */
+    @Provides
+    fun provideWearSimulatedVoiceViewModel(
+        classifyVoiceIntent: ClassifyVoiceIntentUseCase,
+        dispatchers: DispatcherProvider,
+    ): WearSimulatedVoiceViewModel =
+        WearSimulatedVoiceViewModel(
+            classifyVoiceIntent = classifyVoiceIntent,
             dispatchers = dispatchers,
         )
 
@@ -218,21 +241,6 @@ abstract class WearComponent(
     @Provides
     @WearSingleton
     fun provideAppLoggerRepository(): AppLoggerRepository = LogcatAppLoggerRepository()
-
-    /**
-     * The ONLY [VoiceCommandEnvironment] in the Wear graph, and deliberately
-     * the simulated one: the watch's voice surface is an experiment, so it
-     * drives a fake in-memory door instead of the remote button. The real
-     * button stays reachable only by holding the door on the hero screen.
-     *
-     * `@WearSingleton` so the demo door keeps its state across visits to the
-     * screen (leave mid-transit, come back, it has settled) and so a fake
-     * transit started on one visit is not orphaned by a new instance.
-     */
-    @Provides
-    @WearSingleton
-    fun provideVoiceCommandEnvironment(applicationScope: CoroutineScope): VoiceCommandEnvironment =
-        SimulatedVoiceCommandEnvironment(applicationScope)
 
     @Provides
     @WearSingleton

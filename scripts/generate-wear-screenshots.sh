@@ -63,12 +63,15 @@ BOOT_TIMEOUT_SECONDS=180
 STAGES=(
     connecting closed inferred holding submitted bloom moving open signed_out sign_in_error
     settings settings_bottom settings_local
-    # Voice demo (simulated). voice_armed captures its countdown ring already
+    # Voice. The unprefixed stages are the LIVE surface (the real feature);
+    # voice_sim_* are the rehearsal, captured at the three moments where the
+    # two visibly differ. voice_armed captures its countdown ring already
     # FULL: the settle below (4s) outlasts the cancel window (3s), so the
     # animation has finished by capture time. Deterministic, which is what the
     # fixture needs — mid-sweep would depend on emulator render latency.
     voice_ready voice_listening voice_hearing voice_armed voice_committing
     voice_sent voice_refused
+    voice_sim_ready voice_sim_armed voice_sim_sent
 )
 # Post-foreground settle: lets the system splash ("Starting…") dissolve and
 # the first real frame land. The foreground wait below handles slow cold

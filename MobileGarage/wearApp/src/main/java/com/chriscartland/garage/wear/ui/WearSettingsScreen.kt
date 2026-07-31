@@ -97,6 +97,7 @@ fun WearSettingsScreen(
     tagNumber: Int,
     authState: AuthState,
     onOpenStore: () -> Boolean,
+    onSimulatedVoiceClick: () -> Unit,
     modifier: Modifier = Modifier,
     initialAnchorItemIndex: Int = 0,
 ) {
@@ -146,6 +147,33 @@ fun WearSettingsScreen(
             }
             item {
                 AccountValue(account = WearSettingsMappers.account(authState))
+            }
+            item {
+                ListSubHeader(
+                    transformation = SurfaceTransformation(transformSpec),
+                    modifier = Modifier.transformedHeight(this, transformSpec),
+                ) {
+                    Text(text = stringResource(R.string.settings_voice))
+                }
+            }
+            // The rehearsal lives HERE, not next to the door, and that placement
+            // is the point: the mic on the door screen is the real one, so the
+            // pretend one must never sit where a hand reaching for the real
+            // control might find it. Settings is a place you go on purpose.
+            item {
+                Button(
+                    onClick = onSimulatedVoiceClick,
+                    transformation = SurfaceTransformation(transformSpec),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .transformedHeight(this, transformSpec),
+                    label = {
+                        Text(text = stringResource(R.string.settings_simulated_voice))
+                    },
+                    secondaryLabel = {
+                        Text(text = stringResource(R.string.voice_sim_subtitle))
+                    },
+                )
             }
             item {
                 ListSubHeader(
@@ -309,6 +337,7 @@ private fun WearSettingsScreenReleasePreview() {
             tagNumber = 18,
             authState = PREVIEW_SETTINGS_USER,
             onOpenStore = { true },
+            onSimulatedVoiceClick = {},
         )
     }
 }
@@ -323,6 +352,7 @@ private fun WearSettingsScreenLocalBuildPreview() {
             tagNumber = 0,
             authState = AuthState.Unauthenticated,
             onOpenStore = { true },
+            onSimulatedVoiceClick = {},
         )
     }
 }

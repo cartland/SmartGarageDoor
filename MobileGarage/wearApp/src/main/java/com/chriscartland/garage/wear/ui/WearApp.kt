@@ -49,10 +49,15 @@ import com.chriscartland.garage.wear.BuildConfig
 import com.chriscartland.garage.wear.di.WearComponent
 import com.chriscartland.garage.wear.di.WearSignInConfig
 
-/** Where the app is: home (the door and its pages), or the one leaf. */
+/** Where the app is: home (the door and its pages), or one of its leaves. */
 internal enum class WearDestination {
     Home,
-    VoiceDemo,
+
+    /** Voice against the real garage door, entered from the door page's mic. */
+    Voice,
+
+    /** Voice against a pretend door, entered from settings. */
+    SimulatedVoice,
 }
 
 /**
@@ -67,11 +72,12 @@ internal enum class WearDestination {
  * is right: settings is not a place you finish and come back from, it is the
  * other half of the app.
  *
- * **Forward** is a leaf. The voice demo is pushed by
- * [SwipeToDismissBox] and dismissed by swiping right, the standard Wear
- * go-back. It is a leaf rather than a third page on purpose: arriving on it
- * opens a live microphone, and a surface with that effect must be entered
- * deliberately, never brushed into by a stray horizontal swipe.
+ * **Forward** is a leaf. Both voice surfaces are pushed by [SwipeToDismissBox]
+ * and dismissed by swiping right, the standard Wear go-back. They are leaves
+ * rather than further pages on purpose: arriving on one opens a live
+ * microphone, and on the live surface that microphone can end in the garage
+ * door moving. A surface with that effect must be entered deliberately, never
+ * brushed into by a stray horizontal swipe.
  *
  * This replaced a flat "which screen is on top" enum whose settings entry point
  * was a floating overflow chip on the hero screen. Two floating chips at the
@@ -87,7 +93,12 @@ internal enum class WearDestination {
 @Composable
 fun WearApp(component: WearComponent) {
     val wearHomeViewModel: WearHomeViewModel = viewModel { component.wearHomeViewModel }
-    val wearVoiceViewModel: WearVoiceViewModel = viewModel { component.wearVoiceViewModel }
+    // Two ViewModels, not one configured twice — see WearComponent. Both are
+    // resolved here so a surface keeps its state across a visit: the live one
+    // keeps its projected door, the simulated one its pretend door mid-transit.
+    val liveVoiceViewModel: WearLiveVoiceViewModel = viewModel { component.wearLiveVoiceViewModel }
+    val simulatedVoiceViewModel: WearSimulatedVoiceViewModel =
+        viewModel(key = "simulatedVoice") { component.wearSimulatedVoiceViewModel }
     var destination by rememberSaveable { mutableStateOf(WearDestination.Home) }
     val swipeState = rememberSwipeToDismissBoxState()
     val openStore = rememberStoreLauncher()
@@ -115,12 +126,24 @@ fun WearApp(component: WearComponent) {
                         HomePages(
                             homeViewModel = wearHomeViewModel,
                             signInConfig = component.signInConfig,
-                            onVoiceDemoClick = { destination = WearDestination.VoiceDemo },
+                            onVoiceClick = { destination = WearDestination.Voice },
+                            onSimulatedVoiceClick = {
+                                destination = WearDestination.SimulatedVoice
+                            },
                             onOpenStore = openStore,
                         )
 
-                    WearDestination.VoiceDemo ->
-                        VoiceDemoScreen(viewModel = wearVoiceViewModel)
+                    WearDestination.Voice ->
+                        VoiceScreen(
+                            viewModel = liveVoiceViewModel,
+                            mode = VoiceSurfaceMode.Live,
+                        )
+
+                    WearDestination.SimulatedVoice ->
+                        VoiceScreen(
+                            viewModel = simulatedVoiceViewModel,
+                            mode = VoiceSurfaceMode.Simulated,
+                        )
                 }
             }
         }
@@ -147,7 +170,8 @@ fun WearApp(component: WearComponent) {
 private fun HomePages(
     homeViewModel: WearHomeViewModel,
     signInConfig: WearSignInConfig,
-    onVoiceDemoClick: () -> Unit,
+    onVoiceClick: () -> Unit,
+    onSimulatedVoiceClick: () -> Unit,
     onOpenStore: () -> Boolean,
 ) {
     val pagerState = rememberPagerState(pageCount = { HOME_PAGE_COUNT })
@@ -165,7 +189,7 @@ private fun HomePages(
                         HeroScreen(
                             viewModel = homeViewModel,
                             signInConfig = signInConfig,
-                            onVoiceDemoClick = onVoiceDemoClick,
+                            onVoiceClick = onVoiceClick,
                         )
 
                     else ->
@@ -174,6 +198,7 @@ private fun HomePages(
                             tagNumber = BuildConfig.WEAR_TAG_NUMBER,
                             authState = authState,
                             onOpenStore = onOpenStore,
+                            onSimulatedVoiceClick = onSimulatedVoiceClick,
                         )
                 }
             }

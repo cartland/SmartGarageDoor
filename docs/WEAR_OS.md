@@ -200,13 +200,40 @@ directly above it. That "key off the displayed label, never the raw
 `DoorPosition` defaults to not predicting until someone decides otherwise on
 purpose).
 
-## Voice demo (simulated — 0.3.0)
+## Voice (live since 0.6.0; simulated 0.3.0–0.5.4)
 
-A second, deliberately-experimental surface: speak "open the garage door" and
-watch the whole command loop run **against a fake door**. It never presses the
-real remote button. This is the watch half of
+Speak "open the garage door" and the whole command loop runs. This is the watch
+half of
 [`MobileGarage/docs/VOICE_COMMANDS.md`](../MobileGarage/docs/VOICE_COMMANDS.md)
-phase 3, shipped as a simulation first.
+phase 3.
+
+It shipped as a **simulation** in 0.3.0 and stayed one for six releases, which
+was the right order: the interaction was unproven on a wrist, and a fake door
+made every refusal path reachable at a desk. 0.6.0 promoted it — the mic on the
+door screen now presses the real garage button — and moved the rehearsal to
+**Settings → Simulated voice**, where it remains permanently. Both run the same
+loop; see [Two surfaces, one loop](#two-surfaces-one-loop).
+
+### Two surfaces, one loop
+
+| | Live | Simulated |
+|---|---|---|
+| Entry point | Mic chip on the door screen | Settings → Simulated voice |
+| ViewModel | `WearLiveVoiceViewModel` | `WearSimulatedVoiceViewModel` |
+| Environment | `RemoteButtonVoiceCommandEnvironment` | `SimulatedVoiceCommandEnvironment` |
+| Door the gate reads | The real observed door | An in-memory one |
+| A committed command | Presses the real button | Presses nothing |
+| Ring colour | White | **Azure** |
+| Header | Door line only | `SIMULATION` + "Demo door" |
+
+Everything else — layout, timings, gestures, classifier, gate, cancel window,
+haptics — is the shared `WearVoiceViewModel` base class. That is deliberate: a
+rehearsal that looked or behaved differently from the real thing would teach
+the wrong interaction, and two copies of the loop would drift.
+
+**Placement is part of the design.** The rehearsal lives in Settings and not
+beside the door, because the mic on the door screen is now the real control and
+a pretend one must never sit where a hand reaching for the real one might land.
 
 ### Why a mic chip, and not the other triggers
 
@@ -467,42 +494,92 @@ new information on a wrist is not a 1.5-second read, so Wear passes the 4s that
 refusals already get. `resultFlashDurationIsPerSurface` pins the parameter;
 `theOutcomeStaysUpLongEnoughToRead` pins the Wear value end to end.
 
-### How it says "this is not real"
+### How the simulation says "this is not real"
 
-Three independent signals, because one is easy to miss on a glance:
+**Four** independent signals since 0.6.0, up from three, because the stakes
+changed: before, everything on the watch was a simulation and the marker only
+had to say so; now an almost-identical screen one swipe away really does open
+the garage.
 
-1. A persistent **"Simulated"** marker in the header — and since 0.3.4 that
-   header is shared by every state, so the marker is present during the
-   listening takeover too, not just at rest.
-2. **Conditional wording throughout** — "Would open the door", never "Opening"
+1. A persistent **`SIMULATION`** marker in the header. Since 0.3.4 the header
+   is shared by every state, so it is present during the listening takeover
+   too, not just at rest. Upper case is not styling — it has to survive being
+   glanced at over a moving animation.
+2. **An azure ring** instead of the real one's white (`WearRingColors.simulated`).
+   This is the signal added in 0.6.0, and the one that carries the most: hue is
+   what reads while the ring is sweeping and the words are not being read. It
+   deliberately inverts the rule that gave the real ring its neutral greys —
+   see `WearRingColors`' KDoc for why azure specifically (it is the one hue
+   with no existing job; green and red are the door's, amber would read as a
+   warning about the press).
+3. **Conditional wording throughout** — "Would open the door", never "Opening"
    — and a terminal state that says outright that **nothing was sent**.
-3. The door line is labelled **"Demo door"**, so the thing visibly reacting is
+4. The door line is labelled **"Demo door"**, so the thing visibly reacting is
    never mistaken for the garage.
 
-The demo door is stateful, which is what makes it worth demonstrating: commit
-"open", watch it travel and settle Open, then say "open the garage door" again
-and the gate refuses with "Demo door is already open". Every refusal path is
-reachable by voice alone except `UNKNOWN`, which the simulation never enters.
+Signals 1 and 2 are the ones that work without reading, which is the case that
+matters: the risk is not misreading the screen, it is not reading it.
 
-### Why it cannot press the real button
+The demo door is stateful, which is what makes it worth rehearsing against:
+commit "open", watch it travel and settle Open, then say "open the garage door"
+again and the gate refuses with "Demo door is already open". Reaching those
+refusals on the live surface would mean genuinely cycling the garage.
 
-Structural, not a runtime check, and pinned in three places:
+### Why the rehearsal cannot press the real button
+
+Structural, not a runtime check. **There is no `VoiceCommandEnvironment`
+binding in the Wear DI graph** — each surface constructs its own literally, so
+the two are separated by a declared type at the call site rather than by a
+provider that could be re-bound.
 
 | Guarantee | Pinned by |
 |---|---|
-| `WearVoiceViewModel` has no remote-button dependency at all | `WearVoiceViewModelTest.cannotReachTheRealRemoteButton` (reflection over the constructor) |
-| The only `VoiceCommandEnvironment` in the Wear graph is the simulated one | `WearComponentGraphTest.theOnlyVoiceEnvironmentIsSimulated` |
-| That environment's `pressButton` touches nothing but its own in-memory `StateFlow` | `SimulatedVoiceCommandEnvironmentTest` (`:usecase`) |
+| `WearSimulatedVoiceViewModel` has no remote-button dependency — nor `ObserveDoorEventsUseCase`, so it cannot even be *gated* on the real door | `WearSimulatedVoiceViewModelTest.cannotReachTheRealRemoteButton` (reflection over the constructor) |
+| `WearLiveVoiceViewModel` **does** hold the button | `…Test.theLiveSurfaceDoesReachTheRealRemoteButton` |
+| The two are distinct types, and the simulated one owns a simulated door | `WearComponentGraphTest.theTwoVoiceSurfacesAreDistinctTypes` |
+| Every action-describing state is worded per surface | `VoiceStringsTest` |
+| The fake's `pressButton` touches nothing but its own in-memory `StateFlow` | `SimulatedVoiceCommandEnvironmentTest` (`:usecase`) |
 
-Two further layers show up if you try to break it: the kotlin-inject provider
-constructs the ViewModel explicitly, and the test constructs it explicitly, so
-adding a real-door dependency is a *compile* error in two files before the
-reflection test even runs. Verified by mutation — all three fire.
+The second row is the one that is easy to leave out and shouldn't be: without
+it, deleting voice control outright would make every other safety test in the
+file pass *more* comfortably than before. A guard that gets happier as the
+feature dies is not measuring the feature.
 
-Everything upstream of the press is the production path: the same
-`VoiceCommandController`, the same `RuleBasedVoiceIntentClassifier` (Rules v3),
-the same two-stage door gate, the same cancel window. Reimplementing a toy
-would have demoed the toy.
+### What protects the live surface
+
+The same four things that protect the hold-to-confirm button, from the same
+places — voice is not a side door:
+
+- **Auth.** `PushRemoteButtonUseCase` refuses before touching the network
+  unless the session is authenticated (ADR-027). The mic chip is signed-in-only
+  anyway.
+- **The grammar.** Only a HIGH-confidence imperative arms. "Is the garage door
+  open" contains every keyword and means the opposite of a command; it is
+  refused.
+- **The door gate, twice.** The real door is projected through
+  `VoiceDoorStateMapper` (deny-by-default: every anomaly maps to `UNKNOWN`, and
+  `UNKNOWN` refuses both directions). The gate is re-checked at commit, so a
+  door that moves during the countdown — someone hitting the wall button —
+  cancels the press instead of completing it.
+- **The cancel window.** Three seconds, the controller's maximum, during which
+  a tap anywhere on the screen calls it off. Leaving the screen or
+  backgrounding the app cancels too, so nothing commits off-screen.
+
+`WearLiveVoiceViewModelTest` walks each of these, asserting on
+`FakeRemoteButtonRepository.pushCount` rather than on UI state — the question
+is always "did a sentence reach the garage", never "did the screen look right".
+
+One documented gap: the watch passes `isCheckInStale = false` to the mapper,
+because `CheckInStalenessManager` is phone-only. That is not a claim the
+reading is fresh; it is the absence of the phone's extra suspicion on top of
+the mapper's own rules. Voice inherits exactly the exposure the hold-to-confirm
+button already has, which is the right bar — both act on the same mirror.
+Closing it means giving the watch a staleness signal, which is a change to the
+door surface as a whole, not to voice. See `LiveVoiceDoor`.
+
+The press is tagged: the ack token carries a `-voice` marker in the appVersion
+slot, so server logs can tell a spoken press from a held one. (The server
+compares the token for ack equality only — the format is opaque to it.)
 
 ### Voice haptics
 
@@ -528,14 +605,16 @@ It is scheduled rather than derived from a state change — the midpoint of the
 cancel window is not a state — and leaving `Armed` for any reason cancels the
 pending tick, so a cancelled countdown never buzzes afterwards.
 
-`VoiceCommitted` fires on `Sending`, not `Sent` — `Sent` arrives a fake
-round-trip later and would put the buzz in the wrong place.
+`VoiceCommitted` fires on `Sending`, not `Sent` — `Sent` arrives a round-trip
+later and would put the buzz after the moment the press actually happened.
 
 ## Settings: a page beside the door (0.4.0, reshaped in 0.5.0)
 
 Swipe **left** from the door to reach settings and **right** to come back. It
-shows which account is signed in, the running build, and a **Check for update**
-button that opens this app's listing in the **watch's own Play Store**.
+shows which account is signed in, the running build, a **Simulated voice** entry
+(0.6.0 — the rehearsal, deliberately housed here and not beside the door), and a
+**Check for update** button that opens this app's listing in the **watch's own
+Play Store**.
 
 It exists because the watch is updated far more often than it is configured, and
 until 0.4.0 it could answer neither "what am I running?" nor "is there anything
@@ -601,8 +680,15 @@ mirroring the voice chip. Both parts of that were wrong for the platform:
   screen says the opposite.
 
 So the door and settings are now pages of one `HorizontalPagerScaffold`, and the
-voice demo remains the single `SwipeToDismissBox` leaf. Two axes, each meaning
-one thing: **sideways is a peer, forward is a leaf.**
+voice surfaces are `SwipeToDismissBox` leaves — the live one entered from the
+door's mic, the rehearsal from settings. Two axes, each meaning one thing:
+**sideways is a peer, forward is a leaf.**
+
+Voice stays a leaf rather than becoming a third page for a reason that got
+sharper in 0.6.0: arriving on it opens a live microphone, and on the live
+surface that microphone can end with the garage door moving. A surface with that
+effect must be entered deliberately, never brushed into by a stray horizontal
+swipe.
 
 Three things about this composition are load-bearing:
 
@@ -953,9 +1039,13 @@ captured from a real Wear emulator by a single script.
    from the internal tracks), live door status accuracy, the foreground
    refresh cadence, and the tap-to-arm → hold-to-confirm press. Only the
    maintainer can run that last one: **the remote button operates the
-   physical door.** The signed-out app is inert (`PushRemoteButtonUseCase`
-   gates on `Authenticated` before any network call), so signed-out
-   exploration is always safe.
+   physical door.** Since 0.6.0 that applies to the **live voice surface**
+   too — speaking a confident command into the door screen's mic and not
+   cancelling within three seconds moves the real door. The signed-out app
+   is inert on both paths (`PushRemoteButtonUseCase` gates on
+   `Authenticated` before any network call, and the mic chip is
+   signed-in-only), so signed-out exploration is always safe, as is
+   Settings → Simulated voice at any time.
 2. **R8 for the Wear release build.** Minification is deliberately OFF in
    the release build type — the phone needed hand-tuned keep rules for
    kotlinx.serialization (ADR-020) and there is no CLI way to verify a
@@ -969,6 +1059,11 @@ captured from a real Wear emulator by a single script.
    activity simply stops polling when hidden).
 6. **Check-in staleness on the watch** (`CheckInStalenessManager` is shared
    and available; the door currently always renders the FRESH palette).
+   Since 0.6.0 this also bounds the live voice gate: `LiveVoiceDoor` passes
+   `isCheckInStale = false` because the watch has no staleness signal to
+   pass, so voice inherits exactly the exposure the hold-to-confirm button
+   already has — a door whose last known position is clean but whose device
+   has stopped reporting. Wiring staleness fixes both at once.
 7. **Hoist the duplicated `FirebaseAuthBridge`** (phone + wear copies) into
    a shared Android library module.
 8. **True standalone auth** (no phone dependency). The per-call phone

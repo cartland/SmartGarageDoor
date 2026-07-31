@@ -79,7 +79,7 @@ import kotlinx.coroutines.launch
 fun HeroScreen(
     viewModel: WearHomeViewModel,
     signInConfig: WearSignInConfig,
-    onVoiceDemoClick: () -> Unit,
+    onVoiceClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
@@ -100,7 +100,7 @@ fun HeroScreen(
         isHolding = isHolding,
         onHoldStart = viewModel::onHoldStart,
         onHoldEnd = viewModel::onHoldEnd,
-        onVoiceDemoClick = onVoiceDemoClick,
+        onVoiceClick = onVoiceClick,
         signInError = signInError,
         onSignInClick = {
             viewModel.onSignInStarted()
@@ -139,7 +139,7 @@ fun HeroScreenContent(
     signInError: Boolean,
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit,
-    onVoiceDemoClick: () -> Unit,
+    onVoiceClick: () -> Unit,
     onSignInClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -166,7 +166,7 @@ fun HeroScreenContent(
         ring = ring,
         onHoldStart = onHoldStart,
         onHoldEnd = onHoldEnd,
-        onVoiceDemoClick = onVoiceDemoClick,
+        onVoiceClick = onVoiceClick,
         onSignInClick = onSignInClick,
         modifier = modifier,
     )
@@ -199,7 +199,7 @@ internal fun HeroScreenLayout(
     ring: ConfirmRingState,
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit,
-    onVoiceDemoClick: () -> Unit,
+    onVoiceClick: () -> Unit,
     onSignInClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -281,8 +281,8 @@ internal fun HeroScreenLayout(
                 // platform's own swipe with the platform's own indicator. This
                 // one stays because what it opens is not a peer surface — it is
                 // a live microphone, and that must be asked for explicitly.
-                VoiceDemoChip(
-                    onClick = onVoiceDemoClick,
+                VoiceChip(
+                    onClick = onVoiceClick,
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .padding(end = VOICE_CHIP_EDGE_PADDING_DP.dp),
@@ -438,20 +438,21 @@ private fun GarageDoorTarget(
 }
 
 /**
- * Small mic button that opens the simulated voice demo.
+ * Small mic button that opens the LIVE voice surface.
  *
  * Iconic rather than labelled: at the screen's edge there is no room for a
- * "demo" caption that would not be clipped by the round mask, and the honesty
- * burden belongs on the demo surface itself, which states that it is simulated
- * and phrases every outcome conditionally. The content description carries the
- * same information for screen readers.
+ * caption that would not be clipped by the round mask. That is acceptable here
+ * because opening this is not itself an action — it starts listening, and a
+ * press still needs a confident command plus a three-second window in which a
+ * tap anywhere calls it off. The rehearsal version lives in settings, out of
+ * reach of a hand going for the real control.
  */
 @Composable
-private fun VoiceDemoChip(
+private fun VoiceChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val description = stringResource(R.string.cd_voice_demo)
+    val description = stringResource(R.string.cd_voice)
     FilledTonalIconButton(
         onClick = onClick,
         modifier = modifier.size(VOICE_CHIP_SIZE_DP.dp),
@@ -571,7 +572,7 @@ private fun HeroScreenContentReadyPreview() {
             signInError = false,
             onHoldStart = {},
             onHoldEnd = {},
-            onVoiceDemoClick = {},
+            onVoiceClick = {},
             onSignInClick = {},
         )
     }
@@ -592,7 +593,7 @@ private fun HeroScreenContentHoldingPreview() {
             signInError = false,
             onHoldStart = {},
             onHoldEnd = {},
-            onVoiceDemoClick = {},
+            onVoiceClick = {},
             onSignInClick = {},
         )
     }
@@ -613,7 +614,7 @@ private fun HeroScreenContentInferredPositionPreview() {
             signInError = false,
             onHoldStart = {},
             onHoldEnd = {},
-            onVoiceDemoClick = {},
+            onVoiceClick = {},
             onSignInClick = {},
         )
     }
@@ -633,7 +634,7 @@ private fun HeroScreenContentSignedOutPreview() {
             signInError = false,
             onHoldStart = {},
             onHoldEnd = {},
-            onVoiceDemoClick = {},
+            onVoiceClick = {},
             onSignInClick = {},
         )
     }

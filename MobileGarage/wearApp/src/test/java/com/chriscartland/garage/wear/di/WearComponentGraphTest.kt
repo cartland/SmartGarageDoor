@@ -20,6 +20,8 @@ package com.chriscartland.garage.wear.di
 import com.chriscartland.garage.domain.model.AppConfig
 import com.chriscartland.garage.testcommon.FakeAuthBridge
 import com.chriscartland.garage.usecase.SimulatedVoiceCommandEnvironment
+import com.chriscartland.garage.wear.ui.WearLiveVoiceViewModel
+import com.chriscartland.garage.wear.ui.WearSimulatedVoiceViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -77,9 +79,6 @@ class WearComponentGraphTest {
         assertSame(component.networkDoorDataSource, component.networkDoorDataSource)
         assertSame(component.networkConfigDataSource, component.networkConfigDataSource)
         assertSame(component.networkButtonDataSource, component.networkButtonDataSource)
-        // Singleton so the demo door keeps its state across visits to the
-        // voice screen, and so a fake transit is not orphaned by a new instance.
-        assertSame(component.voiceCommandEnvironment, component.voiceCommandEnvironment)
     }
 
     @Test
@@ -89,32 +88,45 @@ class WearComponentGraphTest {
         Dispatchers.setMain(StandardTestDispatcher())
         val component = createComponent()
         assertNotSame(component.wearHomeViewModel, component.wearHomeViewModel)
-        assertNotSame(component.wearVoiceViewModel, component.wearVoiceViewModel)
+        assertNotSame(component.wearLiveVoiceViewModel, component.wearLiveVoiceViewModel)
+        assertNotSame(component.wearSimulatedVoiceViewModel, component.wearSimulatedVoiceViewModel)
     }
 
     /**
-     * The watch's voice surface is an experiment and must never reach the real
-     * garage door. That is guaranteed structurally rather than by a runtime
-     * check, and this is the DI half of it: the only [VoiceCommandEnvironment]
-     * the graph can hand to [WearVoiceViewModel] is the simulated one, whose
-     * `pressButton` touches nothing but its own in-memory StateFlow.
+     * The watch has TWO voice surfaces, and the graph must keep them apart.
      *
-     * The other halves: `WearVoiceViewModelTest.cannotReachTheRealRemoteButton`
-     * (the ViewModel has no remote-button dependency at all) and
+     * Since 0.6.0 the one behind the door screen's mic presses the real garage
+     * button; the one in settings rehearses against a pretend door. What
+     * separates them is that they are different TYPES rather than one type
+     * given different collaborators — so there is no `VoiceCommandEnvironment`
+     * binding here that could be pointed at the wrong door, and mixing them up
+     * would mean changing a declared type at a call site.
+     *
+     * This test pins the DI half. The other halves:
+     * `WearSimulatedVoiceViewModelTest.cannotReachTheRealRemoteButton` (the
+     * rehearsal's constructor cannot hold a real-door dependency),
+     * `theLiveSurfaceDoesReachTheRealRemoteButton` (the live one does — so a
+     * silently-dead feature fails too), and
      * `SimulatedVoiceCommandEnvironmentTest` in `:usecase` (the fake really is
-     * inert). Swapping this binding for a real environment fails here, loudly,
-     * with the reason attached.
+     * inert).
      */
     @Test
-    fun theOnlyVoiceEnvironmentIsSimulated() {
+    fun theTwoVoiceSurfacesAreDistinctTypes() {
+        Dispatchers.setMain(StandardTestDispatcher())
         val component = createComponent()
-        val environment = component.voiceCommandEnvironment
+        val live: WearLiveVoiceViewModel = component.wearLiveVoiceViewModel
+        val simulated: WearSimulatedVoiceViewModel = component.wearSimulatedVoiceViewModel
+        assertNotSame(
+            "The live and simulated voice surfaces must be separate instances; " +
+                "sharing one would mean one loop with one door.",
+            live as Any,
+            simulated as Any,
+        )
         assertTrue(
-            "The Wear voice demo must be wired to SimulatedVoiceCommandEnvironment, " +
-                "but the graph provided ${environment::class.java.simpleName}. The watch " +
-                "voice surface is a simulation; the remote button stays reachable only " +
-                "by holding the door on the hero screen.",
-            environment is SimulatedVoiceCommandEnvironment,
+            "The simulated surface must own a SimulatedVoiceCommandEnvironment — " +
+                "it is the only door it is allowed to move. Found " +
+                "${simulated.demoDoor::class.java.simpleName}.",
+            simulated.demoDoor is SimulatedVoiceCommandEnvironment,
         )
     }
 }
