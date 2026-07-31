@@ -36,6 +36,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import com.chriscartland.garage.wear.ui.theme.WearRingColorScheme
 import com.chriscartland.garage.wear.ui.theme.WearRingColors
 import kotlinx.coroutines.delay
 
@@ -54,11 +55,16 @@ import kotlinx.coroutines.delay
  *
  * Callers place it as the topmost layer over the full screen; it takes no input,
  * so it can never block a gesture underneath.
+ *
+ * @param colors which world this ring is counting in. Defaults to the real one,
+ *   so a surface has to ASK to look like the simulation — a new caller that
+ *   forgets gets the honest ring, not a rehearsal-coloured one.
  */
 @Composable
 internal fun ConfirmRing(
     ring: ConfirmRingState,
     modifier: Modifier = Modifier,
+    colors: WearRingColorScheme = WearRingColors.neutral,
 ) {
     Canvas(modifier = modifier) {
         val stroke = HeroLayout.RING_STROKE_DP.dp.toPx()
@@ -68,7 +74,7 @@ internal fun ConfirmRing(
         if (ring.showTrack) {
             // Faint full track under the sweep: "here is how far you have to go".
             drawArc(
-                color = WearRingColors.track,
+                color = colors.track,
                 startAngle = ConfirmRingSpec.ARC_START_ANGLE,
                 sweepAngle = ConfirmRingSpec.FULL_SWEEP,
                 useCenter = false,
@@ -94,7 +100,7 @@ internal fun ConfirmRing(
                     .dp
                     .toPx()
                 drawArc(
-                    color = WearRingColors.committed,
+                    color = colors.committed,
                     startAngle = ConfirmRingSpec.ARC_START_ANGLE,
                     sweepAngle = ConfirmRingSpec.FULL_SWEEP,
                     useCenter = false,
@@ -108,7 +114,7 @@ internal fun ConfirmRing(
                 val visible = segment * ConfirmRingSpec.IN_FLIGHT_SEGMENT_FILL
                 repeat(ConfirmRingSpec.IN_FLIGHT_SEGMENTS) { index ->
                     drawArc(
-                        color = WearRingColors.committed,
+                        color = colors.committed,
                         startAngle = ConfirmRingSpec.ARC_START_ANGLE +
                             ring.rotation +
                             index * segment,
@@ -121,7 +127,7 @@ internal fun ConfirmRing(
                 }
             }
             ring.sweep > 0f -> drawArc(
-                color = WearRingColors.sweep,
+                color = colors.sweep,
                 startAngle = ConfirmRingSpec.ARC_START_ANGLE,
                 sweepAngle = ConfirmRingSpec.FULL_SWEEP * ring.sweep,
                 useCenter = false,

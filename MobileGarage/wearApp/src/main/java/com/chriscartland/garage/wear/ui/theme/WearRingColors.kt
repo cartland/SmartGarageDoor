@@ -20,30 +20,66 @@ package com.chriscartland.garage.wear.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * Colors for the hold-to-confirm ring.
+ * One ring's palette: the faint track, the sweep that counts toward a commit,
+ * and the fill that reports one.
  *
- * Deliberately NOT `MaterialTheme.colorScheme.primary` / `.tertiary`, which is
- * what these used to be. Wear Material3's baseline palette resolves those to
- * `Primary90` (#E9DDFF, pale lavender) and `Tertiary90` (#FFDCC2, pale peach) —
- * both visibly tinted, and the peach in particular read as an orange warning
- * ring at exactly the moment the ring is reporting success.
+ * Brightness carries the progression *within* a scheme — [sweep] is dimmed so
+ * [committed] has somewhere brighter to go — while hue carries which world the
+ * ring belongs to. See [WearRingColors].
+ */
+data class WearRingColorScheme(
+    /** Faint full-circle track under the sweep, drawn at a low alpha. */
+    val track: Color,
+    /** Progress toward the press: dimmed, so the commit has somewhere to go. */
+    val sweep: Color,
+    /** The press was submitted — commit bloom and the in-flight ring. */
+    val committed: Color,
+)
+
+/**
+ * Palettes for the hold-to-confirm ring, one per world it can be counting in.
+ *
+ * ## Why the real ring is grey and not themed
+ *
+ * These used to be `MaterialTheme.colorScheme.primary` / `.tertiary`. Wear
+ * Material3's baseline palette resolves those to `Primary90` (#E9DDFF, pale
+ * lavender) and `Tertiary90` (#FFDCC2, pale peach) — both visibly tinted, and
+ * the peach in particular read as an orange warning ring at exactly the moment
+ * the ring was reporting success.
  *
  * The ring is a progress instrument on a black OLED watch face, not a branded
- * surface, so it wants neutral greys. The door already owns the screen's color
- * (green closed, red open); a tinted ring competes with the one element whose
- * hue actually carries meaning.
+ * surface, so the real one wants neutral greys. The door already owns the
+ * screen's colour (green closed, red open); a tinted ring competes with the one
+ * element whose hue actually carries meaning.
  *
- * Brightness, not hue, carries the ring's own progression: [sweep] is a dimmed
- * white that reads as "counting", [committed] is full white for the press that
- * really was sent.
+ * ## Why the simulated ring IS tinted
+ *
+ * That reasoning inverts once a second, consequence-free surface exists. The
+ * simulation's job is to be unmistakable, and hue is the signal that survives a
+ * glance at a moving animation — a word can be missed while you are watching a
+ * countdown, a colour cannot. [simulated] is therefore deliberately the one
+ * ring in the app that is not white.
+ *
+ * Azure specifically, for the same reason the peach was rejected: it is the one
+ * hue with no existing job here. Green and red belong to the door, amber would
+ * read as a warning about the press itself, and white is the real ring. Blue
+ * says only "this is the other one".
  */
 object WearRingColors {
-    /** Faint full-circle track under the sweep, drawn at a low alpha. */
-    val track = Color(0xFFFFFFFF)
+    /** The real press: neutral, authoritative. */
+    val neutral = WearRingColorScheme(
+        track = Color(0xFFFFFFFF),
+        sweep = Color(0xFFDDDDDD),
+        committed = Color(0xFFFFFFFF),
+    )
 
-    /** Progress toward the press: dimmed, so the commit has somewhere to go. */
-    val sweep = Color(0xFFDDDDDD)
-
-    /** The press was submitted — commit bloom and the in-flight ring. */
-    val committed = Color(0xFFFFFFFF)
+    /** The rehearsal: same animation, unmistakably not the same ring. */
+    val simulated = WearRingColorScheme(
+        // The track stays white-at-low-alpha in both. It is the unlit part of
+        // the dial rather than part of the message, and tinting it made the
+        // whole circle read as a coloured object rather than as a ring filling.
+        track = Color(0xFFFFFFFF),
+        sweep = Color(0xFF6FB4D8),
+        committed = Color(0xFF9CD8F5),
+    )
 }

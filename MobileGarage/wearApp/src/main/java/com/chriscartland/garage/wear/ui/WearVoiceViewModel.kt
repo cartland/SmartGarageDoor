@@ -25,6 +25,7 @@ import com.chriscartland.garage.usecase.VoiceCommandController
 import com.chriscartland.garage.usecase.VoiceCommandEnvironment
 import com.chriscartland.garage.usecase.VoiceCommandState
 import com.chriscartland.garage.usecase.VoiceDoorState
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
@@ -36,44 +37,53 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel for the **simulated** voice-command demo.
+ * Shared implementation of the watch's voice surface: the controller, the
+ * haptics, and the live transcript. Subclasses supply the one thing that
+ * differs — the [VoiceCommandEnvironment], which is to say which door a
+ * committed command actually moves.
  *
- * ## This can never operate the real garage door
+ * ## Two surfaces, one loop
  *
- * The demo drives the same shared [VoiceCommandController] the phone uses —
- * same classifier, same door-state gate, same cancel window — but points it at
- * a [VoiceCommandEnvironment] that is a fake in-memory door. The safety
- * property is *structural*, not a runtime check, and rests on three things
- * that are each pinned by a test:
+ * [WearLiveVoiceViewModel] presses the REAL remote button against the REAL
+ * observed door. [WearSimulatedVoiceViewModel] presses a pretend button against
+ * an in-memory one. Everything else — the classifier, the two-stage door gate,
+ * the cancel window, the haptic choreography — is this class, so the simulation
+ * rehearses the real interaction rather than resembling it. A second copy of
+ * this loop would drift from the first, and a rehearsal that has drifted
+ * teaches the wrong thing.
  *
- *  1. This class has no reference to the remote button whatsoever: no
- *     `PushRemoteButtonUseCase`, no `RemoteButtonRepository`, no
- *     `ButtonStateMachine`. `WearVoiceViewModelTest` asserts that over the
- *     constructor by reflection, so wiring one in later fails a test rather
- *     than quietly shipping.
- *  2. The only [VoiceCommandEnvironment] in the Wear DI graph is
- *     `SimulatedVoiceCommandEnvironment` (`WearComponentGraphTest`).
- *  3. That environment's `pressButton` touches nothing but its own in-memory
- *     StateFlow (`SimulatedVoiceCommandEnvironmentTest`, in `:usecase`).
+ * ## Why an abstract class
  *
- * The real remote button remains reachable only by holding the door on the
- * hero screen ([WearHomeViewModel]).
+ * The repo's standing rule is interface + `Default*` rather than open classes,
+ * because `open` is usually there so a test can substitute behaviour. This is
+ * the other case: nothing substitutes this, it is shared *implementation* for
+ * two concrete surfaces that must not diverge. The subclass boundary is also
+ * what carries the safety property — see [WearSimulatedVoiceViewModel], whose
+ * constructor is asserted to have no route to the remote button. A single class
+ * taking an environment could make no such promise, because the promise would
+ * then depend on the call site rather than on the type.
  *
- * ## Why route it through the real controller at all
- *
- * The point of the experiment is to learn whether the interaction works on a
- * watch — the recognizer round-trip, the cancel window, how refusals read on
- * a tiny screen. Reimplementing a toy version would demo the toy. Everything
- * except the final press is the production path.
- *
- * [demoDoorState] is exposed so the UI can show the fake door the gate is
- * reasoning about; without it, a refusal like "already open" looks arbitrary.
+ * The environment is built from [viewModelScope] rather than injected so it
+ * lives and dies with the surface that owns it: a fake transit or a projected
+ * door state cannot outlive the screen, and nothing has to remember to tear it
+ * down.
  */
-class WearVoiceViewModel(
+abstract class WearVoiceViewModel(
     classifyVoiceIntent: ClassifyVoiceIntentUseCase,
-    environment: VoiceCommandEnvironment,
     dispatchers: DispatcherProvider,
+    environmentFactory: (CoroutineScope) -> VoiceCommandEnvironment,
 ) : ViewModel() {
+    /**
+     * The world this surface acts on. Constructed here, from this ViewModel's
+     * own scope, so a subclass never has to hold a scope just to build one.
+     *
+     * `protected` only so a subclass can re-expose it at a narrower type when
+     * that is useful — see [WearSimulatedVoiceViewModel.demoDoor]. Nothing may
+     * widen it: the whole design is that the environment is decided by which
+     * class you constructed, not by who can reach it afterwards.
+     */
+    protected val environment: VoiceCommandEnvironment = environmentFactory(viewModelScope)
+
     private val controller = VoiceCommandController(
         classify = classifyVoiceIntent,
         environment = environment,
@@ -85,8 +95,12 @@ class WearVoiceViewModel(
     /** Pass-through of the controller's state (ADR-022 — no re-wrapping). */
     val state: StateFlow<VoiceCommandState> = controller.state
 
-    /** The simulated door the gate reads. Never the real one. */
-    val demoDoorState: StateFlow<VoiceDoorState> = environment.doorState
+    /**
+     * The door the gate is reasoning about, so the screen can show it. Real on
+     * the live surface, pretend on the simulated one — without it a refusal
+     * like "already open" reads as arbitrary.
+     */
+    val doorState: StateFlow<VoiceDoorState> = environment.doorState
 
     private val _partialTranscript = MutableStateFlow<String?>(null)
 
@@ -206,7 +220,7 @@ class WearVoiceViewModel(
     fun onBackgrounded() = controller.onBackgrounded()
 
     /**
-     * The demo screen was popped (swiped back), which ends the session.
+     * The voice screen was popped (swiped back), which ends the session.
      *
      * Distinct from [onBackgrounded], and needed because a swipe-back is not a
      * lifecycle stop — the app is still perfectly foreground, so nothing else
@@ -224,8 +238,10 @@ class WearVoiceViewModel(
     companion object {
         /**
          * Cancel window. The shared maximum (3s), chosen deliberately: a watch
-         * is glanced at rather than watched, so the demo wants the most
-         * forgiving window the controller allows.
+         * is glanced at rather than watched, so the wrist wants the most
+         * forgiving window the controller allows. It is also the window in
+         * which a real press can still be called off, which is its own argument
+         * for taking the maximum.
          */
         const val ARMED_WINDOW_MILLIS: Long = VoiceCommandController.MAX_ARMED_WINDOW_MS
 
@@ -233,11 +249,11 @@ class WearVoiceViewModel(
          * How long the outcome stays up — deliberately longer than the shared
          * 1.5s default, and equal to the time a refusal already gets.
          *
-         * On the real button that default is right: the outcome is a receipt
-         * for something the user just watched happen. Here "Nothing was sent"
-         * is the entire point of the demo, and it arrives with a second line
-         * explaining that the demo door responds instead. Two lines of new
-         * information on a wrist is not a 1.5-second read.
+         * On the phone that default is right: the outcome is a receipt for
+         * something the user is already looking at. On a wrist the outcome
+         * carries two lines — what happened and what to expect next — and two
+         * lines of new information is not a 1.5-second read. The simulation
+         * needs the time even more, since "Nothing was sent" is its punchline.
          */
         const val RESULT_FLASH_MILLIS: Long = VoiceCommandController.IGNORED_DISMISS_MS
 

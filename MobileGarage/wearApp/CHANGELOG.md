@@ -14,6 +14,34 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.6.0
+
+- **The mic beside the door now opens the real garage door.** Speaking to the
+  watch has been a simulation since 0.3.0 — it would name the action it was
+  about to take and then tell you nothing had been sent. It sends now. Say
+  "open the garage door", and unless you tap the screen within three seconds,
+  the door opens. Everything that guarded the hold-to-confirm button guards
+  this too: it only listens while you are signed in, only an unambiguous
+  command counts, it refuses anything the door contradicts (asking it to open
+  while it is already open, or while it is moving, or when its position is not
+  known), and it re-checks at the last moment, so a door that starts moving
+  during the countdown cancels the press instead of completing it. Walking away
+  from the screen cancels too.
+
+- **The simulation moved to Settings, and is now unmistakable.** It is the same
+  screen and the same interaction, running against a pretend door, so the whole
+  thing can still be rehearsed at a desk — including the refusals, which on the
+  real door would mean cycling the garage to reach. Four things now say it is
+  not real, where there used to be three: a SIMULATION marker that stays on
+  screen in every state, wording that stays conditional ("Would open the door",
+  ending in "Nothing was sent"), a door labelled "Demo door", and — new — a
+  **blue countdown ring** instead of the real one's white. The colour is the
+  one that reads while the ring is moving and you are not reading the words.
+
+- Settings gained a Voice section for it. It lives there, and not next to the
+  door, on purpose: the mic on the door screen is the real control now, so the
+  practice one should not sit where a hand reaching for the real one might land.
+
 ## 0.5.4
 
 - The spacing at the top and bottom of Settings is now Material 3's own

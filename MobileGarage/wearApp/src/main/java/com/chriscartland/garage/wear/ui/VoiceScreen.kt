@@ -25,7 +25,6 @@ import android.content.pm.PackageManager
 import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.StringRes
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -81,8 +80,13 @@ import com.chriscartland.garage.usecase.VoiceDoorState
 import com.chriscartland.garage.wear.R
 
 /**
- * Stateful voice demo screen: owns the speech-recognizer plumbing and the
- * lifecycle hook, and delegates rendering to [VoiceDemoContent].
+ * Stateful voice screen: owns the speech-recognizer plumbing and the lifecycle
+ * hook, and delegates rendering to [VoiceContent].
+ *
+ * ONE screen serves both worlds. [WearLiveVoiceViewModel] presses the real
+ * garage button; [WearSimulatedVoiceViewModel] presses a pretend one. Which is
+ * in play is [mode], and it changes only the wording and the colour — see
+ * [VoiceSurfaceMode] for the four independent ways the simulation says so.
  *
  * Capture prefers an in-app [WearSpeechCapture] so that speaking is **one
  * tap**. `RecognizerIntent` on Wear resolves to Gboard's text-ENTRY activity,
@@ -107,12 +111,13 @@ import com.chriscartland.garage.wear.R
  * rather than where a new one starts.
  */
 @Composable
-fun VoiceDemoScreen(
+fun VoiceScreen(
     viewModel: WearVoiceViewModel,
+    mode: VoiceSurfaceMode,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val demoDoorState by viewModel.demoDoorState.collectAsStateWithLifecycle()
+    val doorState by viewModel.doorState.collectAsStateWithLifecycle()
     val partialTranscript by viewModel.partialTranscript.collectAsStateWithLifecycle()
 
     val view = LocalView.current
@@ -134,7 +139,7 @@ fun VoiceDemoScreen(
         }
         viewModel.onTranscript(transcript)
     }
-    val prompt = stringResource(R.string.voice_demo_prompt)
+    val prompt = stringResource(R.string.voice_prompt)
 
     // Mic level lives in the UI, not the ViewModel: it is continuous
     // presentation data (~10 updates/second) with no decision hanging off it,
@@ -250,9 +255,10 @@ fun VoiceDemoScreen(
         onDispose { viewModel.onScreenLeft() }
     }
 
-    VoiceDemoContent(
+    VoiceContent(
         state = state,
-        demoDoorState = demoDoorState,
+        mode = mode,
+        doorState = doorState,
         partialTranscript = partialTranscript,
         listeningLevel = listeningLevel,
         onMicTap = viewModel::onMicTap,
@@ -303,9 +309,10 @@ fun VoiceDemoScreen(
  *     never mistaken for the garage.
  */
 @Composable
-fun VoiceDemoContent(
+fun VoiceContent(
     state: VoiceCommandState,
-    demoDoorState: VoiceDoorState,
+    mode: VoiceSurfaceMode,
+    doorState: VoiceDoorState,
     partialTranscript: String?,
     listeningLevel: Float,
     onMicTap: () -> Unit,
@@ -313,18 +320,18 @@ fun VoiceDemoContent(
     modifier: Modifier = Modifier,
 ) {
     // The SAME ring the real garage button draws, driven by the same hook —
-    // see ConfirmRing. The demo's whole job is to rehearse the real
-    // interaction, so the countdown and the commit have to speak the hero
-    // screen's vocabulary rather than a dialect of it.
+    // see ConfirmRing. Voice's whole job on the simulated side is to rehearse
+    // the real interaction, so the countdown and the commit have to speak the
+    // hero screen's vocabulary rather than a dialect of it.
     val armed = state as? VoiceCommandState.Armed
     val ring = rememberConfirmRingState(
         phase = VoiceRing.phaseFor(state),
         sweepDurationMillis = (armed?.windowMs ?: WearVoiceViewModel.ARMED_WINDOW_MILLIS).toInt(),
-        // Never in flight: the demo has nothing genuinely outstanding. The
-        // hero's rotating ring means "the server has not answered and the door
-        // has not moved yet", and there is no server and no door here. Drawing
-        // it would be the one piece of the vocabulary that would be a lie.
-        inFlight = false,
+        // Only the live surface has something genuinely outstanding while it
+        // commits — a real request the server has not answered. The simulation
+        // must not draw the rotating ring, which is precisely the claim it
+        // cannot make; see VoiceSurfaceMode.hasRealRoundTrip.
+        inFlight = mode.hasRealRoundTrip && state is VoiceCommandState.Sending,
     )
 
     ScreenScaffold(modifier = modifier) {
@@ -350,13 +357,13 @@ fun VoiceDemoContent(
                     indication = null,
                     enabled = state !is VoiceCommandState.Sending,
                     onClickLabel = stringResource(
-                        if (VoiceDemoMappers.isCancellable(state)) {
-                            R.string.cd_voice_demo_cancel
+                        if (VoiceStrings.isCancellable(state)) {
+                            R.string.cd_voice_cancel
                         } else {
-                            R.string.cd_voice_demo_screen
+                            R.string.cd_voice_screen
                         },
                     ),
-                    onClick = { if (VoiceDemoMappers.isCancellable(state)) onCancel() else onMicTap() },
+                    onClick = { if (VoiceStrings.isCancellable(state)) onCancel() else onMicTap() },
                 ),
         ) {
             val listening = state is VoiceCommandState.Listening
@@ -372,17 +379,20 @@ fun VoiceDemoContent(
             // against. Both are persistent context rather than state, so they
             // belong together and stay put.
             //
-            // WHILE LISTENING the door line steps aside, leaving only the
-            // "Simulated" marker. 0.3.4 had added it back to this state on the
-            // grounds that the door is exactly what decides whether the sentence
-            // you are about to say gets accepted, so the moment before speaking
-            // is when it is worth reading — which was true when `Ready` was a
-            // separate screen you sat on first. It is a straight cost now: the
-            // screen carried four lines of text during listening and the pulse
-            // rings swept through all of them. The marker is the one that cannot
-            // go (it is the safety signal that must be present in EVERY state,
-            // including this takeover); the door line is present in every other
-            // state, including the refusal that would explain itself with it.
+            // WHILE LISTENING the door line steps aside. 0.3.4 had kept it on
+            // the grounds that the door is exactly what decides whether the
+            // sentence you are about to say gets accepted, so the moment before
+            // speaking is when it is worth reading — which was true when `Ready`
+            // was a separate screen you sat on first. It is a straight cost now:
+            // the screen carried four lines of text during listening and the
+            // pulse rings swept through all of them. The door line is present in
+            // every other state, including the refusal that would explain itself
+            // with it.
+            //
+            // The SIMULATION marker is the one thing that never steps aside. It
+            // is the safety signal, so it has to survive the takeover that hides
+            // everything else — that state is exactly when someone is looking at
+            // the animation rather than reading the screen.
             Column(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -390,17 +400,19 @@ fun VoiceDemoContent(
                     .padding(top = HEADER_TOP_DP.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = stringResource(R.string.voice_demo_simulated),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    textAlign = TextAlign.Center,
-                )
+                if (mode == VoiceSurfaceMode.Simulated) {
+                    Text(
+                        text = stringResource(R.string.voice_sim_marker),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        textAlign = TextAlign.Center,
+                    )
+                }
                 if (!listening) {
                     Text(
                         text = stringResource(
-                            R.string.voice_demo_door,
-                            stringResource(VoiceDemoMappers.demoDoorLabel(demoDoorState)),
+                            VoiceStrings.doorLine(mode),
+                            stringResource(VoiceStrings.doorLabel(doorState)),
                         ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.tertiary,
@@ -411,11 +423,12 @@ fun VoiceDemoContent(
 
             MicTarget(
                 listening = listening,
+                mode = mode,
                 level = listeningLevel,
                 enabled = state !is VoiceCommandState.Sending,
                 // Same rule as the whole-screen target: while something is
                 // running the mic is a stop button, not a restart one.
-                onClick = { if (VoiceDemoMappers.isCancellable(state)) onCancel() else onMicTap() },
+                onClick = { if (VoiceStrings.isCancellable(state)) onCancel() else onMicTap() },
             )
 
             Column(
@@ -438,12 +451,12 @@ fun VoiceDemoContent(
                     ListeningLine(partialTranscript = partialTranscript)
                 } else {
                     Text(
-                        text = stringResource(VoiceDemoMappers.primaryLine(state)),
+                        text = stringResource(VoiceStrings.primaryLine(state, mode)),
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
                     )
                     Text(
-                        text = VoiceDemoMappers.secondaryLine(state, partialTranscript),
+                        text = VoiceStrings.secondaryLine(state, mode, partialTranscript),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -458,6 +471,10 @@ fun VoiceDemoContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(HeroLayout.RING_EDGE_PADDING_DP.dp),
+                // The loudest of the simulation's four signals: hue is what
+                // reads while the ring is moving and the words are not being
+                // read.
+                colors = mode.ringColors,
             )
         }
     }
@@ -479,6 +496,7 @@ fun VoiceDemoContent(
 @Composable
 private fun BoxScope.MicTarget(
     listening: Boolean,
+    mode: VoiceSurfaceMode,
     level: Float,
     enabled: Boolean,
     onClick: () -> Unit,
@@ -491,13 +509,26 @@ private fun BoxScope.MicTarget(
                 // as responsiveness, and anything larger reads as jitter.
                 .scale(1f + level * MIC_SCALE_GAIN)
                 .size(MIC_LISTENING_SIZE_DP.dp)
-                .background(MaterialTheme.colorScheme.tertiary, CircleShape),
+                // The listening mic is the screen's largest object, so it is
+                // the natural place for the second glanceable signal after the
+                // ring: `primary` when this is really listening for the garage,
+                // `tertiary` when it is a rehearsal.
+                .background(
+                    when (mode) {
+                        VoiceSurfaceMode.Live -> MaterialTheme.colorScheme.primary
+                        VoiceSurfaceMode.Simulated -> MaterialTheme.colorScheme.tertiary
+                    },
+                    CircleShape,
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_mic_24),
-                contentDescription = stringResource(R.string.cd_voice_demo_listening),
-                tint = MaterialTheme.colorScheme.onTertiary,
+                contentDescription = stringResource(R.string.cd_voice_listening),
+                tint = when (mode) {
+                    VoiceSurfaceMode.Live -> MaterialTheme.colorScheme.onPrimary
+                    VoiceSurfaceMode.Simulated -> MaterialTheme.colorScheme.onTertiary
+                },
                 modifier = Modifier.size(MIC_LISTENING_ICON_DP.dp),
             )
         }
@@ -514,7 +545,7 @@ private fun BoxScope.MicTarget(
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_mic_24),
-                contentDescription = stringResource(R.string.cd_voice_demo_mic),
+                contentDescription = stringResource(R.string.cd_voice_mic),
                 modifier = Modifier.size(MIC_ICON_SIZE_DP.dp),
             )
         }
@@ -545,8 +576,8 @@ private fun BoxScope.MicTarget(
 private fun ListeningLine(partialTranscript: String?) {
     Text(
         text = partialTranscript
-            ?.let { stringResource(R.string.voice_demo_transcript, it) }
-            ?: stringResource(R.string.voice_demo_listening_prompt),
+            ?.let { stringResource(R.string.voice_transcript, it) }
+            ?: stringResource(R.string.voice_listening_prompt),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
@@ -682,100 +713,19 @@ internal object VoiceLayout {
             .coerceAtLeast(micRadiusDp)
 }
 
-/** String mappers for the voice demo. */
-internal object VoiceDemoMappers {
-    /**
-     * States where something is running, so a tap means "stop" rather than
-     * "start". Sending is excluded because a press cannot be unsent, and the
-     * terminal states expire on their own.
-     */
-    fun isCancellable(state: VoiceCommandState): Boolean = state is VoiceCommandState.Listening || state is VoiceCommandState.Armed
-
-    /**
-     * The headline. Every wording that describes an action is conditional
-     * ("Would open the door"), and the terminal state states plainly that
-     * nothing was sent — the demo's whole job is to communicate the action it
-     * would take without ever taking it.
-     */
-    @StringRes
-    fun primaryLine(state: VoiceCommandState): Int =
-        when (state) {
-            VoiceCommandState.Ready -> R.string.voice_demo_ready
-            is VoiceCommandState.Listening -> R.string.voice_demo_listening
-            is VoiceCommandState.Armed ->
-                if (state.intent == VoiceIntent.CLOSE) {
-                    R.string.voice_demo_would_close
-                } else {
-                    R.string.voice_demo_would_open
-                }
-            is VoiceCommandState.Sending -> R.string.voice_demo_committing
-            is VoiceCommandState.Sent -> R.string.voice_demo_committed
-            is VoiceCommandState.Failed -> R.string.voice_demo_failed
-            is VoiceCommandState.Ignored -> ignoredLine(state.reason)
-        }
-
-    /**
-     * The supporting line. Armed offers the way out; refusals quote what was
-     * actually heard, which is the single most useful thing to see when the
-     * classifier says no.
-     */
-    @Composable
-    fun secondaryLine(
-        state: VoiceCommandState,
-        partialTranscript: String?,
-    ): String =
-        when (state) {
-            // Live text while the in-app recognizer is hearing it. The system
-            // fallback never reports partials, so it keeps the static hint.
-            is VoiceCommandState.Listening ->
-                partialTranscript?.let { stringResource(R.string.voice_demo_transcript, it) }
-                    ?: stringResource(R.string.voice_demo_hint)
-            is VoiceCommandState.Armed -> stringResource(R.string.voice_demo_cancel_hint)
-            is VoiceCommandState.Ignored ->
-                state.transcript?.let { stringResource(R.string.voice_demo_transcript, it) }
-                    ?: stringResource(R.string.voice_demo_hint)
-            is VoiceCommandState.Sent -> stringResource(R.string.voice_demo_committed_hint)
-            // Nothing. The example command is an invitation to speak, and the
-            // one moment it must not be showing is while the screen is busy
-            // committing and the mic button is disabled. The slot stays (the
-            // block is bottom-anchored, so an absent line would drop the
-            // headline into it) — it is simply empty.
-            is VoiceCommandState.Sending -> ""
-            else -> stringResource(R.string.voice_demo_hint)
-        }
-
-    @StringRes
-    fun ignoredLine(reason: VoiceCommandIgnoreReason): Int =
-        when (reason) {
-            VoiceCommandIgnoreReason.NO_SPEECH -> R.string.voice_demo_ignored_no_speech
-            VoiceCommandIgnoreReason.RECOGNIZER_UNAVAILABLE -> R.string.voice_demo_ignored_unavailable
-            VoiceCommandIgnoreReason.NOT_A_COMMAND -> R.string.voice_demo_ignored_not_a_command
-            VoiceCommandIgnoreReason.NOT_CONFIDENT -> R.string.voice_demo_ignored_not_confident
-            VoiceCommandIgnoreReason.DOOR_ALREADY_OPEN -> R.string.voice_demo_ignored_already_open
-            VoiceCommandIgnoreReason.DOOR_ALREADY_CLOSED -> R.string.voice_demo_ignored_already_closed
-            VoiceCommandIgnoreReason.DOOR_MOVING -> R.string.voice_demo_ignored_moving
-            VoiceCommandIgnoreReason.DOOR_STATE_UNKNOWN -> R.string.voice_demo_ignored_state_unknown
-            VoiceCommandIgnoreReason.DOOR_STATE_CHANGED -> R.string.voice_demo_ignored_state_changed
-        }
-
-    @StringRes
-    fun demoDoorLabel(state: VoiceDoorState): Int =
-        when (state) {
-            VoiceDoorState.CLOSED -> R.string.door_state_closed
-            VoiceDoorState.OPEN -> R.string.door_state_open
-            VoiceDoorState.MOVING -> R.string.voice_demo_door_moving
-            VoiceDoorState.UNKNOWN -> R.string.door_state_unknown
-        }
-}
-
-/** At rest: what to say, and the demo door it will be judged against. */
+/**
+ * The two surfaces side by side at rest, which is the pair worth reviewing:
+ * everything about them is identical except the marker, the wording and the
+ * colour, and that is exactly the claim the design makes.
+ */
 @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
 @Composable
-private fun VoiceDemoReadyPreview() {
+private fun VoiceLiveReadyPreview() {
     MaterialTheme {
-        VoiceDemoContent(
+        VoiceContent(
             state = VoiceCommandState.Ready,
-            demoDoorState = VoiceDoorState.CLOSED,
+            mode = VoiceSurfaceMode.Live,
+            doorState = VoiceDoorState.CLOSED,
             partialTranscript = null,
             listeningLevel = 0f,
             onMicTap = {},
@@ -784,18 +734,61 @@ private fun VoiceDemoReadyPreview() {
     }
 }
 
-/** Counting down: the action is named conditionally, and is still cancellable. */
+/** The same state on the rehearsal: marked, and named as a demo door. */
 @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
 @Composable
-private fun VoiceDemoArmedPreview() {
+private fun VoiceSimulatedReadyPreview() {
     MaterialTheme {
-        VoiceDemoContent(
+        VoiceContent(
+            state = VoiceCommandState.Ready,
+            mode = VoiceSurfaceMode.Simulated,
+            doorState = VoiceDoorState.CLOSED,
+            partialTranscript = null,
+            listeningLevel = 0f,
+            onMicTap = {},
+            onCancel = {},
+        )
+    }
+}
+
+/**
+ * Counting down a REAL press: the neutral ring, and an action stated as fact.
+ * This is the frame in which a garage door is three seconds from moving, so it
+ * is the one that has to be unambiguous.
+ */
+@Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
+@Composable
+private fun VoiceLiveArmedPreview() {
+    MaterialTheme {
+        VoiceContent(
             state = VoiceCommandState.Armed(
                 intent = VoiceIntent.OPEN,
                 transcript = "open the garage door",
                 windowMs = WearVoiceViewModel.ARMED_WINDOW_MILLIS,
             ),
-            demoDoorState = VoiceDoorState.CLOSED,
+            mode = VoiceSurfaceMode.Live,
+            doorState = VoiceDoorState.CLOSED,
+            partialTranscript = null,
+            listeningLevel = 0f,
+            onMicTap = {},
+            onCancel = {},
+        )
+    }
+}
+
+/** The same countdown, rehearsed: azure ring, conditional wording. */
+@Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
+@Composable
+private fun VoiceSimulatedArmedPreview() {
+    MaterialTheme {
+        VoiceContent(
+            state = VoiceCommandState.Armed(
+                intent = VoiceIntent.OPEN,
+                transcript = "open the garage door",
+                windowMs = WearVoiceViewModel.ARMED_WINDOW_MILLIS,
+            ),
+            mode = VoiceSurfaceMode.Simulated,
+            doorState = VoiceDoorState.CLOSED,
             partialTranscript = null,
             listeningLevel = 0f,
             onMicTap = {},
@@ -807,11 +800,12 @@ private fun VoiceDemoArmedPreview() {
 /** The commit instant: the ring completes and holds instead of vanishing. */
 @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
 @Composable
-private fun VoiceDemoCommittingPreview() {
+private fun VoiceSimulatedCommittingPreview() {
     MaterialTheme {
-        VoiceDemoContent(
+        VoiceContent(
             state = VoiceCommandState.Sending(intent = VoiceIntent.OPEN),
-            demoDoorState = VoiceDoorState.CLOSED,
+            mode = VoiceSurfaceMode.Simulated,
+            doorState = VoiceDoorState.CLOSED,
             partialTranscript = null,
             listeningLevel = 0f,
             onMicTap = {},
@@ -820,14 +814,15 @@ private fun VoiceDemoCommittingPreview() {
     }
 }
 
-/** The punchline: the window elapsed and nothing was sent. */
+/** The live receipt: the press really went to the server. */
 @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
 @Composable
-private fun VoiceDemoSentPreview() {
+private fun VoiceLiveSentPreview() {
     MaterialTheme {
-        VoiceDemoContent(
+        VoiceContent(
             state = VoiceCommandState.Sent(intent = VoiceIntent.OPEN),
-            demoDoorState = VoiceDoorState.MOVING,
+            mode = VoiceSurfaceMode.Live,
+            doorState = VoiceDoorState.MOVING,
             partialTranscript = null,
             listeningLevel = 0f,
             onMicTap = {},
@@ -836,19 +831,59 @@ private fun VoiceDemoSentPreview() {
     }
 }
 
-/** A gate refusal, quoting what was heard. */
+/** The rehearsal's punchline: the window elapsed and nothing was sent. */
 @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
 @Composable
-private fun VoiceDemoIgnoredPreview() {
+private fun VoiceSimulatedSentPreview() {
     MaterialTheme {
-        VoiceDemoContent(
+        VoiceContent(
+            state = VoiceCommandState.Sent(intent = VoiceIntent.OPEN),
+            mode = VoiceSurfaceMode.Simulated,
+            doorState = VoiceDoorState.MOVING,
+            partialTranscript = null,
+            listeningLevel = 0f,
+            onMicTap = {},
+            onCancel = {},
+        )
+    }
+}
+
+/** A gate refusal against the REAL door, quoting what was heard. */
+@Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
+@Composable
+private fun VoiceLiveIgnoredPreview() {
+    MaterialTheme {
+        VoiceContent(
             state = VoiceCommandState.Ignored(
                 reason = VoiceCommandIgnoreReason.DOOR_ALREADY_OPEN,
                 transcript = "open the garage door",
                 classification = null,
                 engineName = "Rules v3",
             ),
-            demoDoorState = VoiceDoorState.OPEN,
+            mode = VoiceSurfaceMode.Live,
+            doorState = VoiceDoorState.OPEN,
+            partialTranscript = null,
+            listeningLevel = 0f,
+            onMicTap = {},
+            onCancel = {},
+        )
+    }
+}
+
+/** The same refusal, rehearsed — reachable here without cycling a real door. */
+@Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
+@Composable
+private fun VoiceSimulatedIgnoredPreview() {
+    MaterialTheme {
+        VoiceContent(
+            state = VoiceCommandState.Ignored(
+                reason = VoiceCommandIgnoreReason.DOOR_ALREADY_OPEN,
+                transcript = "open the garage door",
+                classification = null,
+                engineName = "Rules v3",
+            ),
+            mode = VoiceSurfaceMode.Simulated,
+            doorState = VoiceDoorState.OPEN,
             partialTranscript = null,
             listeningLevel = 0f,
             onMicTap = {},

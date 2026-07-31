@@ -52,46 +52,71 @@
     <string name="sign_in_failed">Sign-in failed</string>
     <string name="checking_sign_in">Checking sign-in…</string>
 
-    <!-- Voice demo (SIMULATED — never reaches the real garage door).
+    <!-- Voice control. TWO surfaces share one loop and one screen: the LIVE
+         one (reached from the mic on the door screen) presses the real garage
+         button, and the SIMULATED one (Settings -> Simulated voice) rehearses
+         it against a pretend door.
 
-         Wording rule for this surface: anything describing an action is
-         conditional ("Would open the door"), and the terminal state says
-         outright that nothing was sent. The door line is always labelled
-         "Demo door" so the thing visibly reacting is never mistaken for the
-         real one. -->
-    <string name="voice_demo_simulated">Simulated</string>
-    <string name="voice_demo_prompt">Say a door command</string>
-    <string name="voice_demo_ready">Tap to speak</string>
-    <string name="voice_demo_hint">Try \"open the garage door\"</string>
-    <string name="voice_demo_listening">Listening…</string>
+         Keys are grouped accordingly: voice_* is wording both surfaces share,
+         voice_live_* speaks about the real door, voice_sim_* about the
+         pretend one.
+
+         Wording rule for the simulated set: anything describing an action is
+         conditional ("Would open the door"), the terminal state says outright
+         that nothing was sent, and the door is always labelled "Demo door" so
+         the thing visibly reacting is never mistaken for the real one. -->
+    <string name="voice_prompt">Say a door command</string>
+    <string name="voice_ready">Tap to speak</string>
+    <string name="voice_hint">Try \"open the garage door\"</string>
+    <string name="voice_listening">Listening…</string>
     <!-- Shown on the listening screen ONLY until words arrive, then replaced by
          the live transcript. The example is load-bearing rather than
          decorative: the classifier accepts a narrow imperative grammar, so
          this is the difference between a command that works and one refused. -->
-    <string name="voice_demo_listening_prompt">Say \"open the garage door\"</string>
-    <string name="voice_demo_would_open">Would open the door</string>
-    <string name="voice_demo_would_close">Would close the door</string>
-    <string name="voice_demo_cancel_hint">Tap anywhere to cancel</string>
-    <string name="voice_demo_committing">Would press the remote</string>
-    <string name="voice_demo_committed">Nothing was sent</string>
-    <string name="voice_demo_committed_hint">The demo door responds instead</string>
-    <string name="voice_demo_failed">Demo press failed</string>
-    <string name="voice_demo_transcript">\"%1$s\"</string>
-    <string name="voice_demo_door">Demo door: %1$s</string>
-    <string name="voice_demo_door_moving">Moving</string>
+    <string name="voice_listening_prompt">Say \"open the garage door\"</string>
+    <string name="voice_cancel_hint">Tap anywhere to cancel</string>
+    <string name="voice_transcript">\"%1$s\"</string>
+    <string name="voice_door_moving">Moving</string>
 
-    <!-- Refusals. Same gate as the real feature, so the demo teaches the real
-         rules: only a confident, unambiguous imperative acts, and only when
-         the door is settled on the opposite side. -->
-    <string name="voice_demo_ignored_no_speech">No speech heard</string>
-    <string name="voice_demo_ignored_unavailable">No voice input on this watch</string>
-    <string name="voice_demo_ignored_not_a_command">Not a door command</string>
-    <string name="voice_demo_ignored_not_confident">Not confident enough to act</string>
-    <string name="voice_demo_ignored_already_open">Demo door is already open</string>
-    <string name="voice_demo_ignored_already_closed">Demo door is already closed</string>
-    <string name="voice_demo_ignored_moving">Demo door is moving</string>
-    <string name="voice_demo_ignored_state_unknown">Demo door state is unknown</string>
-    <string name="voice_demo_ignored_state_changed">Demo door changed. Cancelled.</string>
+    <!-- Refusals whose wording does not depend on which door is in play. -->
+    <string name="voice_ignored_no_speech">No speech heard</string>
+    <string name="voice_ignored_unavailable">No voice input on this watch</string>
+    <string name="voice_ignored_not_a_command">Not a door command</string>
+    <string name="voice_ignored_not_confident">Not confident enough to act</string>
+
+    <!-- LIVE surface: this really does press the garage button, so every line
+         states what IS happening rather than what would. -->
+    <string name="voice_live_door">Door: %1$s</string>
+    <string name="voice_live_opening">Opening the door</string>
+    <string name="voice_live_closing">Closing the door</string>
+    <string name="voice_live_committing">Pressing the remote…</string>
+    <string name="voice_live_committed">Command sent</string>
+    <string name="voice_live_committed_hint">The door should start moving</string>
+    <string name="voice_live_failed">Button press failed</string>
+    <string name="voice_live_ignored_already_open">The door is already open</string>
+    <string name="voice_live_ignored_already_closed">The door is already closed</string>
+    <string name="voice_live_ignored_moving">The door is moving</string>
+    <string name="voice_live_ignored_state_unknown">Door state is unknown</string>
+    <string name="voice_live_ignored_state_changed">The door changed. Cancelled.</string>
+
+    <!-- SIMULATED surface. The marker is the one line that must appear in
+         EVERY state, including the listening takeover, because it is the
+         safety signal. Upper case is not styling here: it has to survive being
+         glanced at over a moving animation. -->
+    <string name="voice_sim_marker">SIMULATION</string>
+    <string name="voice_sim_subtitle">The real voice control, pretend door</string>
+    <string name="voice_sim_door">Demo door: %1$s</string>
+    <string name="voice_sim_would_open">Would open the door</string>
+    <string name="voice_sim_would_close">Would close the door</string>
+    <string name="voice_sim_committing">Would press the remote</string>
+    <string name="voice_sim_committed">Nothing was sent</string>
+    <string name="voice_sim_committed_hint">The demo door responds instead</string>
+    <string name="voice_sim_failed">Demo press failed</string>
+    <string name="voice_sim_ignored_already_open">Demo door is already open</string>
+    <string name="voice_sim_ignored_already_closed">Demo door is already closed</string>
+    <string name="voice_sim_ignored_moving">Demo door is moving</string>
+    <string name="voice_sim_ignored_state_unknown">Demo door state is unknown</string>
+    <string name="voice_sim_ignored_state_changed">Demo door changed. Cancelled.</string>
 
     <!-- Settings: the page to the door's left. Who you are signed in as, which
          build is running, and the way to the Play Store. -->
@@ -102,18 +127,22 @@
          takes its session from the paired phone that is a visible moment at
          every cold start, and claiming signed-out during it would be wrong. -->
     <string name="settings_account_resolving">Checking…</string>
+    <string name="settings_voice">Voice</string>
     <string name="settings_version">App version</string>
     <string name="settings_local_build">Local build</string>
     <string name="settings_check_for_update">Check for update</string>
+    <!-- Opens the live voice screen against a pretend door, so the interaction
+         can be exercised at a desk without the garage moving. -->
+    <string name="settings_simulated_voice">Simulated voice</string>
     <string name="settings_store_unavailable">No Play Store on this watch</string>
 
     <!-- Content descriptions. -->
     <string name="cd_garage_door">Garage door</string>
-    <string name="cd_voice_demo">Speak a door command, simulated</string>
-    <string name="cd_voice_demo_mic">Tap to speak a door command</string>
-    <string name="cd_voice_demo_screen">Tap anywhere to cancel and speak again</string>
-    <string name="cd_voice_demo_listening">Listening for a door command</string>
-    <string name="cd_voice_demo_cancel">Tap to stop</string>
+    <string name="cd_voice">Speak a door command</string>
+    <string name="cd_voice_mic">Tap to speak a door command</string>
+    <string name="cd_voice_screen">Tap anywhere to cancel and speak again</string>
+    <string name="cd_voice_listening">Listening for a door command</string>
+    <string name="cd_voice_cancel">Tap to stop</string>
     <string name="cd_arrow_up">Up arrow</string>
     <string name="cd_arrow_down">Down arrow</string>
     <string name="cd_warning">Warning</string>
