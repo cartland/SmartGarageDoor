@@ -362,7 +362,10 @@ is the documented path, **not** a misuse of a rollback flag. Rollback is a
 *separate* gate (`--confirm-rollback-from`) that only engages when the target is
 behind the latest tag; releasing forward never trips it. Recipe:
 ```bash
-git checkout -b release/<lane>-<N> origin/main
+# NOT release/* — that prefix collides with origin's long-lived `release`
+# branch and the guardrails hook refuses to push it (see "Branch name
+# collision with existing refs"). Any other prefix is fine.
+git checkout -b changelog/<lane>-<N> origin/main
 git rev-parse HEAD; git rev-parse origin/main     # MUST be identical — this is what makes the override honest
 ./scripts/validate.sh                              # marker is keyed to the commit
 ./scripts/release-android.sh --dry-run --confirm-tag android/N --confirm-hash <sha>
