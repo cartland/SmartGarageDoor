@@ -18,6 +18,10 @@
 package com.chriscartland.garage.wear.ui
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
@@ -26,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -114,91 +119,111 @@ fun WearSettingsScreen(
         scrollState = listState,
         modifier = modifier,
     ) { contentPadding ->
-        TransformingLazyColumn(
-            state = listState,
-            // ScreenScaffold's own padding, unmodified. It already insets about
-            // 15dp horizontally, which is more than the Material 3 list spec
-            // asks for, so a full-width row is not actually running out of
-            // screen — the angled ends it grows near the top and bottom are the
-            // surface transformation shaping it to the circle, which is the
-            // intended look rather than clipping.
-            contentPadding = contentPadding,
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            item {
-                ListHeader(
-                    transformation = SurfaceTransformation(transformSpec),
-                    modifier = Modifier.transformedHeight(this, transformSpec),
-                ) {
-                    Text(text = stringResource(R.string.settings_title))
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            // Room past the last item, so the end of the list can be scrolled up
+            // to the middle of the screen instead of stopping as soon as it is
+            // technically on screen.
+            //
+            // Without it the last row comes to rest against the bottom arc,
+            // where a round screen has least width, and the curve takes its
+            // ends. That is the ONLY place this list had a problem: the middle
+            // of the screen is full width and was always fine. (An earlier
+            // attempt at this narrowed every row to fit the corners, which
+            // "fixed" it by making the rows worse everywhere else, and wrapped
+            // an email address in the widest part of the screen for no reason.)
+            //
+            // ScalingLazyColumn has `AutoCenteringParams` for exactly this.
+            // TransformingLazyColumn dropped it, and content padding is the
+            // documented replacement — so this is the sanctioned mechanism
+            // rather than a workaround for a missing one.
+            val endSpacer = maxHeight * LAST_ITEM_CENTERING_FRACTION
+            TransformingLazyColumn(
+                state = listState,
+                contentPadding = PaddingValues(
+                    // ScreenScaffold's own values everywhere except the bottom:
+                    // it knows about TimeText and the scroll indicator.
+                    start = contentPadding.calculateStartPadding(LocalLayoutDirection.current),
+                    end = contentPadding.calculateEndPadding(LocalLayoutDirection.current),
+                    top = contentPadding.calculateTopPadding(),
+                    bottom = contentPadding.calculateBottomPadding() + endSpacer,
+                ),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                item {
+                    ListHeader(
+                        transformation = SurfaceTransformation(transformSpec),
+                        modifier = Modifier.transformedHeight(this, transformSpec),
+                    ) {
+                        Text(text = stringResource(R.string.settings_title))
+                    }
                 }
-            }
-            item {
-                ListSubHeader(
-                    transformation = SurfaceTransformation(transformSpec),
-                    modifier = Modifier.transformedHeight(this, transformSpec),
-                ) {
-                    Text(text = stringResource(R.string.settings_account))
+                item {
+                    ListSubHeader(
+                        transformation = SurfaceTransformation(transformSpec),
+                        modifier = Modifier.transformedHeight(this, transformSpec),
+                    ) {
+                        Text(text = stringResource(R.string.settings_account))
+                    }
                 }
-            }
-            item {
-                AccountValue(account = WearSettingsMappers.account(authState))
-            }
-            item {
-                ListSubHeader(
-                    transformation = SurfaceTransformation(transformSpec),
-                    modifier = Modifier.transformedHeight(this, transformSpec),
-                ) {
-                    Text(text = stringResource(R.string.settings_version))
+                item {
+                    AccountValue(account = WearSettingsMappers.account(authState))
                 }
-            }
-            item {
-                Text(
-                    text = versionName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                )
-            }
-            // Only a build that never came from a release says anything here.
-            // A released build's version number above is the whole answer; the
-            // tag it was cut from is internal plumbing and means nothing to
-            // someone wearing the watch. "Not a release" is a genuinely
-            // different thing from "an old release", though, and the version
-            // number alone cannot tell you which one you have.
-            if (!WearStoreLink.isReleaseBuild(tagNumber)) {
+                item {
+                    ListSubHeader(
+                        transformation = SurfaceTransformation(transformSpec),
+                        modifier = Modifier.transformedHeight(this, transformSpec),
+                    ) {
+                        Text(text = stringResource(R.string.settings_version))
+                    }
+                }
                 item {
                     Text(
-                        text = stringResource(R.string.settings_local_build),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = versionName,
+                        style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                     )
                 }
-            }
-            item {
-                Button(
-                    onClick = { storeUnavailable = !onOpenStore() },
-                    transformation = SurfaceTransformation(transformSpec),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .transformedHeight(this, transformSpec),
-                    label = {
-                        Text(text = stringResource(R.string.settings_check_for_update))
-                    },
-                )
-            }
-            // Discovered by trying, not by asking first — see WearStoreLink for
-            // why a pre-check gives the wrong answer on Android 11+. No
-            // reserved slot is needed here (unlike the old centred column):
-            // appending to a top-anchored list moves nothing above it.
-            if (storeUnavailable) {
+                // Only a build that never came from a release says anything here.
+                // A released build's version number above is the whole answer; the
+                // tag it was cut from is internal plumbing and means nothing to
+                // someone wearing the watch. "Not a release" is a genuinely
+                // different thing from "an old release", though, and the version
+                // number alone cannot tell you which one you have.
+                if (!WearStoreLink.isReleaseBuild(tagNumber)) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.settings_local_build),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
                 item {
-                    Text(
-                        text = stringResource(R.string.settings_store_unavailable),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        textAlign = TextAlign.Center,
+                    Button(
+                        onClick = { storeUnavailable = !onOpenStore() },
+                        transformation = SurfaceTransformation(transformSpec),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .transformedHeight(this, transformSpec),
+                        label = {
+                            Text(text = stringResource(R.string.settings_check_for_update))
+                        },
                     )
+                }
+                // Discovered by trying, not by asking first — see WearStoreLink for
+                // why a pre-check gives the wrong answer on Android 11+. No
+                // reserved slot is needed here (unlike the old centred column):
+                // appending to a top-anchored list moves nothing above it.
+                if (storeUnavailable) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.settings_store_unavailable),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
             }
         }
@@ -311,3 +336,17 @@ private val PREVIEW_SETTINGS_USER = AuthState.Authenticated(
         email = Email("preview@example.com"),
     ),
 )
+
+/**
+ * How far past the last item the list can scroll, as a fraction of the screen's
+ * height.
+ *
+ * Half a screen is what lets the final row travel from the bottom arc — where a
+ * round screen is narrowest and clips it — to the middle, where it is not
+ * clipped at all. Less leaves it short of centre; more only buys empty space
+ * below a list that has already ended.
+ *
+ * A fraction rather than a dp because the thing being centred is the screen
+ * itself, so this scales exactly right on every watch size.
+ */
+private const val LAST_ITEM_CENTERING_FRACTION = 0.35f
