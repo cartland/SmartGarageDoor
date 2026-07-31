@@ -3,7 +3,7 @@
 
 # Preview Screenshot Coverage
 
-**102 / 102 (100%)**
+**103 / 103 (100%)**
 
 ## Covered
 
@@ -100,6 +100,7 @@
 - `SettingsContentSnoozeInFlightPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/SettingsContent.kt`
 - `SettingsContentWatchInstallPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/SettingsContent.kt`
 - `SettingsContentWatchInstalledPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/SettingsContent.kt`
+- `SettingsContentWatchInstalledUnknownVersionPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/SettingsContent.kt`
 - `SettingsTabPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/TabPreviews.kt`
 - `SnoozeSheetContentActivePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/SnoozeBottomSheet.kt`
 - `SnoozeSheetContentOffPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/SnoozeBottomSheet.kt`

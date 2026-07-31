@@ -218,15 +218,22 @@ fun SettingsContent(
             // hide it; the poll flips it live if a watch connects.
             AppAnimatedVisibility(
                 visible = watchAppStatus == WatchAppStatus.WatchNeedsApp ||
-                    watchAppStatus == WatchAppStatus.InstalledOnWatch,
+                    watchAppStatus is WatchAppStatus.InstalledOnWatch,
                 label = "Watch section",
             ) {
                 SettingsSection(label = stringResource(R.string.settings_section_watch)) {
-                    if (watchAppStatus == WatchAppStatus.InstalledOnWatch) {
+                    if (watchAppStatus is WatchAppStatus.InstalledOnWatch) {
                         SettingsRow(
                             icon = Icons.Outlined.Watch,
                             title = stringResource(R.string.settings_watch_installed_title),
-                            subtitle = stringResource(R.string.settings_watch_installed_subtitle),
+                            // The watch names its own build; nothing in the
+                            // Wearable API would tell us otherwise. A watch
+                            // running a version older than the one that started
+                            // publishing it says nothing, and so do we —
+                            // "installed, version unknown" rather than a guess.
+                            subtitle = watchAppStatus.versionName?.let {
+                                stringResource(R.string.settings_watch_installed_version_subtitle, it)
+                            } ?: stringResource(R.string.settings_watch_installed_subtitle),
                             showChevron = false,
                             onClick = {},
                             trailingIcon = Icons.Filled.CheckCircle,
@@ -616,8 +623,9 @@ fun SettingsContentWatchInstallPreview() {
     }
 }
 
-// Watch app detected: the Watch section shows the installed row with a
-// green check.
+// Watch app detected AND it has said which build it is running: the row
+// names the version. Nothing in the Wearable API reports another node's app
+// version, so this line exists only because the watch publishes it.
 @Preview
 @Composable
 fun SettingsContentWatchInstalledPreview() {
@@ -631,7 +639,35 @@ fun SettingsContentWatchInstalledPreview() {
             showSnoozeRow = true,
             showDeveloperSection = false,
             showFunctionListRow = false,
-            watchAppStatus = WatchAppStatus.InstalledOnWatch,
+            watchAppStatus = WatchAppStatus.InstalledOnWatch(versionName = "0.5.1"),
+            versionName = "2.6.1",
+            versionCode = "182",
+            layoutDebugEnabled = false,
+            navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
+        )
+    }
+}
+
+// The same row when the watch has NOT said which build it is running — a
+// watch on a version older than the one that started publishing it, or a
+// Data Layer copy that has not arrived yet. Both are "installed, version
+// unknown", which is a different claim from any particular version, and the
+// two must not be able to look interchangeable.
+@Preview
+@Composable
+fun SettingsContentWatchInstalledUnknownVersionPreview() {
+    PreviewScreenSurface {
+        SettingsContent(
+            accountState = AccountRowState.SignedIn(
+                displayName = "Chris Cartland",
+                email = "chris@example.com",
+            ),
+            snoozeState = SnoozeRowState.Off,
+            showSnoozeRow = true,
+            showDeveloperSection = false,
+            showFunctionListRow = false,
+            watchAppStatus = WatchAppStatus.InstalledOnWatch(versionName = null),
             versionName = "2.6.1",
             versionCode = "182",
             layoutDebugEnabled = false,

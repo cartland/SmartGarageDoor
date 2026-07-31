@@ -19,14 +19,17 @@ package com.chriscartland.garage.wearrelay
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.concurrent.futures.await
 import androidx.core.net.toUri
 import androidx.wear.remote.interactions.RemoteActivityHelper
 import co.touchlab.kermit.Logger
+import com.chriscartland.garage.data.wearrelay.WearAppInfoProtocol
 import com.chriscartland.garage.domain.model.WatchAppStatus
 import com.chriscartland.garage.domain.model.WatchInstallResult
 import com.chriscartland.garage.domain.repository.WearCompanionRepository
 import com.google.android.gms.wearable.CapabilityClient
+import com.google.android.gms.wearable.PutDataRequest
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -81,7 +84,7 @@ class PlayServicesWearCompanionRepository(
                 ).await()
                 .nodes
             if (capabilityNodes.isNotEmpty()) {
-                WatchAppStatus.InstalledOnWatch
+                WatchAppStatus.InstalledOnWatch(versionName = readWatchVersionName())
             } else {
                 val connected = Wearable.getNodeClient(context).connectedNodes.await()
                 if (connected.isEmpty()) WatchAppStatus.NoWatch else WatchAppStatus.WatchNeedsApp
@@ -89,6 +92,52 @@ class PlayServicesWearCompanionRepository(
         } catch (e: Exception) {
             Logger.d { "WearCompanion: wearable status query failed: $e" }
             WatchAppStatus.Unavailable
+        }
+
+    /**
+     * The version the watch app published about itself, or null if it has not.
+     *
+     * Null is a real answer and is rendered as such: a watch running a build
+     * older than the one that started publishing this says nothing, and the
+     * Data Layer's local copy may simply not have arrived yet. Reporting
+     * "installed" while admitting the version is unknown beats guessing.
+     *
+     * Read from the LOCAL replica — no round trip, so this stays cheap enough
+     * to sit inside the 15s status poll and works with the watch asleep or out
+     * of range.
+     */
+    @Suppress("TooGenericExceptionCaught")
+    private suspend fun readWatchVersionName(): String? =
+        try {
+            val uri = Uri
+                .Builder()
+                .scheme(PutDataRequest.WEAR_URI_SCHEME)
+                // Any node, not a specific one: the phone does not know (and
+                // should not care) which watch wrote it, and hardcoding a node
+                // id would break the moment a second watch is paired.
+                .authority(ANY_NODE)
+                .path(WearAppInfoProtocol.APP_INFO_PATH)
+                .build()
+            val items = Wearable.getDataClient(context).getDataItems(uri).await()
+            try {
+                // With more than one watch paired this picks the first that has
+                // published. The row is singular ("your watch"), so naming one
+                // build is the honest simplification until the UI is plural.
+                items
+                    .asSequence()
+                    .mapNotNull { it.data }
+                    .mapNotNull { WearAppInfoProtocol.decode(it) }
+                    .firstOrNull()
+                    ?.versionName
+            } finally {
+                // DataItemBuffer holds native memory and does NOT free itself.
+                // Leaking it inside a 15s poll would accumulate for as long as
+                // Settings is open.
+                items.release()
+            }
+        } catch (e: Exception) {
+            Logger.d { "WearCompanion: watch version read failed: $e" }
+            null
         }
 
     @Suppress("TooGenericExceptionCaught")
@@ -128,5 +177,8 @@ class PlayServicesWearCompanionRepository(
     private companion object {
         /** Re-query cadence while the Settings screen is collecting. */
         const val STATUS_POLL_MILLIS: Long = 15_000L
+
+        /** Data Layer wildcard authority: match the item on any paired node. */
+        const val ANY_NODE = "*"
     }
 }

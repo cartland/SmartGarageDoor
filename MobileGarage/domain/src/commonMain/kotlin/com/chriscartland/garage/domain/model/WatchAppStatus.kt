@@ -40,8 +40,19 @@ sealed interface WatchAppStatus {
     /** A watch is connected but does not have the app installed. */
     data object WatchNeedsApp : WatchAppStatus
 
-    /** At least one paired watch has the app installed. */
-    data object InstalledOnWatch : WatchAppStatus
+    /**
+     * At least one paired watch has the app installed.
+     *
+     * [versionName] is the build on the watch, when it has said. It is nullable
+     * and must stay nullable: a watch running a version older than the one that
+     * started publishing its version says nothing, and the Data Layer copy can
+     * also simply not have arrived yet. Both cases are "installed, version
+     * unknown" — which is a different claim from any particular version, and the
+     * UI has to be able to make it.
+     */
+    data class InstalledOnWatch(
+        val versionName: String? = null,
+    ) : WatchAppStatus
 }
 
 /**

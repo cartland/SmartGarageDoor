@@ -339,9 +339,9 @@ class ProfileViewModelTest {
             advanceUntilIdle()
             assertEquals(WatchAppStatus.WatchNeedsApp, viewModel.watchAppStatus.value)
 
-            wearCompanionRepository.setWatchAppStatus(WatchAppStatus.InstalledOnWatch)
+            wearCompanionRepository.setWatchAppStatus(WatchAppStatus.InstalledOnWatch())
             advanceUntilIdle()
-            assertEquals(WatchAppStatus.InstalledOnWatch, viewModel.watchAppStatus.value)
+            assertEquals(WatchAppStatus.InstalledOnWatch(), viewModel.watchAppStatus.value)
 
             observer.cancel()
         }
@@ -361,7 +361,7 @@ class ProfileViewModelTest {
                 wearCompanionRepository,
                 CoroutineScope(SupervisorJob() + testDispatcher),
             )
-            wearCompanionRepository.setWatchAppStatus(WatchAppStatus.InstalledOnWatch)
+            wearCompanionRepository.setWatchAppStatus(WatchAppStatus.InstalledOnWatch())
 
             // First visit to Settings warms the shared cache.
             val firstVisit = launch { watchStatusUseCase().collect { } }
@@ -372,7 +372,7 @@ class ProfileViewModelTest {
             // Second visit constructs a brand-new ViewModel over the SAME
             // (singleton) use case and reads the verdict synchronously.
             val secondViewModel = createViewModel(watchStatusUseCase = watchStatusUseCase)
-            assertEquals(WatchAppStatus.InstalledOnWatch, secondViewModel.watchAppStatus.value)
+            assertEquals(WatchAppStatus.InstalledOnWatch(), secondViewModel.watchAppStatus.value)
         }
 
     @Test

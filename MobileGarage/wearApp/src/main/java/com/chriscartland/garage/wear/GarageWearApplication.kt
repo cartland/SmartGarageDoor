@@ -25,6 +25,7 @@ import com.chriscartland.garage.wear.config.WearAppConfigFactory
 import com.chriscartland.garage.wear.di.WearComponent
 import com.chriscartland.garage.wear.di.WearSignInConfig
 import com.chriscartland.garage.wear.di.create
+import kotlinx.coroutines.launch
 
 /**
  * Wear OS application. Owns the kotlin-inject [WearComponent] — the
@@ -53,5 +54,17 @@ class GarageWearApplication : Application() {
         // Materialize the graph eagerly so always-on collectors
         // (auth state, door cache) start with the process.
         component
+
+        // Tell the phone which build is on the wrist. Fire-and-forget on an
+        // application-lifetime scope: nothing on the watch waits for it, and it
+        // must not be tied to a screen — the phone reads this most often when
+        // the watch app is not open at all.
+        component.applicationScope.launch {
+            WearAppInfoPublisher.publish(
+                context = this@GarageWearApplication,
+                versionName = BuildConfig.VERSION_NAME,
+                versionCode = BuildConfig.VERSION_CODE.toLong(),
+            )
+        }
     }
 }

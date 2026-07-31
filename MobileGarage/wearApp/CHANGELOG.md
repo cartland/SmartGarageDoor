@@ -14,6 +14,14 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.5.2
+
+- The watch now tells the paired phone which version it is running, so the
+  phone's Settings can say "Version 0.5.2 on your watch" instead of only that
+  the app is installed. Nothing in the Wear APIs reports another device's app
+  version, so the watch has to volunteer it. No visible change on the watch
+  itself; needs phone app 2.23.6 to be read.
+
 ## 0.5.1
 
 - **The voice demo now draws the same ring as the real button.** Its countdown
