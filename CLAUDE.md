@@ -162,6 +162,45 @@ The `compileDebugAndroidTestKotlin` step (added after #604) catches signature-br
 
 Drive the file list with **`git grep -l`** / `git ls-files`, **NOT `rg`** — `rg` skips dotfiles and dot-directories by default (no `--hidden` flag), so it silently omits `.github/` (CI workflows, actions, dependabot), `.claude/` (hooks, skills, settings), and `.gitignore`. Those are exactly the load-bearing files a rename must update; missing them ships broken CI that PR checks can't always catch. Empirical: the `AndroidGarage → MobileGarage` rename (#1032) — the first `rg -l0 | xargs sed` pass reported "0 remaining" but had skipped all 21 hidden files (every workflow + the hooks + `.gitignore`); `git grep -l` surfaced them. Verify completeness with **`git grep <oldname>`** afterwards (expect zero, modulo intentional keeps like a historical-path fallback). Note: `git mv <dir> <newdir>` also moves gitignored/untracked contents (e.g. `local.properties`, `Secrets.local.xcconfig`) along with the tracked files, so local builds keep working with no manual step.
 
+### Read the library's own KDoc before hand-rolling a platform workaround
+
+**Download the sources jar from Google Maven and grep it.** The AARs in the
+Gradle cache carry no KDoc, and `javap` gives signatures without the prose that
+usually contains the answer. Sources are one `curl` away and are the
+authoritative statement of what an API is for:
+
+```bash
+B=https://dl.google.com/dl/android/maven2/androidx/wear/compose
+curl -sfL "$B/compose-material3/1.6.2/compose-material3-1.6.2-sources.jar" -o /tmp/m3-src.jar
+unzip -oq /tmp/m3-src.jar -d /tmp/m3 && grep -rn "roundScreen\|clipped" /tmp/m3
+```
+
+(Same URL shape for any AndroidX artifact: `…/maven2/<group as path>/<artifact>/<version>/<artifact>-<version>-sources.jar`.)
+
+**Why this is a rule and not a tip.** On 2026-07-31 a round-screen clipping bug
+on the watch was "fixed" twice by hand — first by narrowing every list row
+(which made the common case worse), then by reserving `0.35 × screen height` at
+the end of the list with a `BoxWithConstraints`. The library had
+`Modifier.minimumVerticalContentPadding` all along, whose KDoc names the exact
+symptom — *"to avoid the item being clipped by edges of a round screen"* — and
+Material 3 publishes the value to pass it
+(`ButtonDefaults.minimumVerticalListContentPadding`, 0.23 × screen height). Two
+releases were spent arriving at a worse version of something already shipped in
+the dependency. **If a platform problem feels like it needs a magic constant,
+that constant probably has a name in a `*Defaults` object.**
+
+Two corollaries worth knowing:
+
+- **`javap` still answers the visibility question the sources cannot.** Kotlin
+  `internal` compiles to `public` in bytecode, so an API can look reachable in
+  javap output and be rejected by the compiler (`PaddingDefaults`,
+  `SurfaceTransformation.applyContentTransformation`). Read sources for intent,
+  compile for access.
+- **A grep that returns zero over `.class` files may be lying.** `grep -rl` skips
+  binaries silently; use `grep -rla`. Run a positive control (something you know
+  is present) before trusting a zero result — the same vacuous-pass family as the
+  Konsist `file.name` and POSIX-ERE `\b` traps.
+
 ### Instrumented Tests
 Run `./scripts/run-instrumented-tests.sh` when changing Room entities/DAOs, DI wiring (AppComponent), navigation, or Activity lifecycle code. Requires a connected device or emulator. Not part of `validate.sh` (too slow for every run). A git hook warns on push when these files are changed.
 

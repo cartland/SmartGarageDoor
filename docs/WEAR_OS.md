@@ -711,6 +711,52 @@ position 0, so the screen's one action sits below the fold and would appear in n
 screenshot at all. `WearSettingsScreen` takes an `initialAnchorItemIndex` that
 production never passes.
 
+## Telling the phone which build is on the wrist (0.5.2 + phone 2.23.6)
+
+The phone's Settings → Watch row names the watch app's version ("Version 0.5.2
+on your watch"), not just that it is installed.
+
+**Nothing in the Wearable API reports another node's app version.** The
+capability the watch advertises (`WATCH_APP_CAPABILITY`) is a boolean and carries
+nothing else, so the watch has to volunteer the version. It writes a retained
+`DataItem`; the phone reads its own local replica during the Settings status
+poll it already runs.
+
+**A DataItem, not a `MessageClient` RPC** — the opposite shape from the auth
+relay, and for a specific reason. The relay asks a live question only a running
+phone can answer. This is a fact that rarely changes, which the phone wants to
+read at moments when the watch app is usually *not* running. The Data Layer
+retains and replicates it, so the read works with the watch asleep or out of
+range, and it costs no round trip. Data items are also owned by the app that
+wrote them, so uninstalling the watch app removes this one — the phone cannot
+end up naming a version that is gone.
+
+**JSON bytes in `:data` commonMain, not a `DataMap`.** `DataMap` is an Android
+type and would strand the protocol in `androidMain`, leaving writer and reader
+free to disagree about key names. `WearAppInfoProtocol` is one codec both sides
+must go through, the same reason `WearAuthRelayProtocol` is shaped that way.
+
+**`WatchAppStatus.InstalledOnWatch.versionName` is nullable, and must stay
+nullable.** A watch older than 0.5.2 publishes nothing, and the replica may
+simply not have arrived yet. Both are "installed, version unknown" — a different
+claim from any particular version — and the row falls back to "The app is on your
+watch". Two Settings previews cover the two branches so they cannot drift into
+looking interchangeable.
+
+**Verifying a silently-failing Data Layer read.** `wear://*/…` (the wildcard
+authority) returns an empty buffer rather than an error when it is wrong, so it
+is worth proving rather than assuming. Temporarily add a read-back next to the
+write, using the *reader's* exact URI construction, run it on the emulator, and
+delete it:
+
+```
+WearAppInfo: published 0.5.1 (1000000)
+WearAppInfo: TEMP-VERIFY read back count=1 value=WearAppInfo(versionName=0.5.1, versionCode=1000000)
+```
+
+That covers everything except the cross-node sync itself, which needs a real
+phone+watch pairing.
+
 ## Architecture
 
 - **Module**: `:wearApp` (`com.chriscartland.garage.wear`), Compose for
