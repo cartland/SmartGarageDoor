@@ -14,6 +14,16 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.5.4
+
+- The spacing at the top and bottom of Settings is now Material 3's own
+  recommendation rather than a number we picked. 0.5.3 fixed the last row being
+  clipped by the bottom of the round screen by reserving space by hand; the Wear
+  library turns out to have an API for exactly this, which each row uses to ask
+  for the room it needs, and which the list grants only to the rows that are
+  actually at an edge. Slightly tighter than our guess at the bottom, and the
+  heading at the top now sits where the design system puts it.
+
 ## 0.5.3
 
 - **The end of Settings can now be scrolled up into the middle of the screen.**
