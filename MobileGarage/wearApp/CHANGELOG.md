@@ -14,6 +14,31 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.5.0
+
+- **Settings is now a page beside the door, not a button on top of it.** Swipe
+  left from the door to reach it and right to come back, and two dots at the
+  bottom of the screen say which of the two you are looking at. The three-dot
+  button it replaces was borrowed from phones, where an overflow menu is a
+  thing people recognise; on a watch it was a small target spending screen on
+  an errand the platform already has a gesture for. The door keeps every pixel
+  it had.
+- **Settings scrolls, including with the crown.** It was a centred column
+  before, which is the wrong shape for something meant to grow: items were
+  arranged outward from the middle, so anything added moved everything already
+  there, and once the column outgrew the screen the top of it was simply gone.
+  It is a proper list now, and it turns with the crown, which until this
+  release did nothing anywhere in the app.
+- **It says which account is signed in.** Nothing anywhere on the watch did.
+  While the watch is still asking the phone who you are it says so, rather than
+  claiming for that moment that you are signed out.
+- **Speaking is one tap again.** The mic beside the door used to take you to a
+  screen that then asked you to tap a second time to start listening, which is
+  most of the interaction when the whole point is to say two words and put your
+  arm down. It now starts listening the moment it opens. Nothing else changed:
+  it is still a simulation, it still never touches the real garage door, and
+  holding the door is still the only thing that does.
+
 ## 0.4.1
 
 - **The ring is white now, not peach.** It had been picking up the watch

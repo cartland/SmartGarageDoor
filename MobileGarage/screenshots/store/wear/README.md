@@ -23,8 +23,9 @@ by a frame. A diff in any other stage means a real visual change.
 | open | <img src="wear-open.png" width="180" alt="open"> | Open door, "Hold to close" |
 | signed_out | <img src="wear-signed_out.png" width="180" alt="signed out"> | Signed out: Sign in button (no mic chip — the voice demo is signed-in only) |
 | sign_in_error | <img src="wear-sign_in_error.png" width="180" alt="sign in error"> | Transient "Sign-in failed" caption |
-| menu | <img src="wear-menu.png" width="180" alt="menu"> | Menu on a released build: name, version, store button — deliberately NOT the release tag it was cut from |
-| menu_local | <img src="wear-menu_local.png" width="180" alt="menu local"> | The same menu on a build that never came from a release, which still says so |
+| settings | <img src="wear-settings.png" width="180" alt="settings"> | Settings, one swipe left of the door: a scrolling list (crown included) with the signed-in account, the version, and an edge button to the store |
+| settings_bottom | <img src="wear-settings_bottom.png" width="180" alt="settings bottom"> | The end of the same list, which a settle-then-capture fixture cannot otherwise reach: the update button is below the fold at scroll position 0 |
+| settings_local | <img src="wear-settings_local.png" width="180" alt="settings local"> | The same list signed out and on a build that never came from a release, which is the one case that still names itself |
 | voice_ready | <img src="wear-voice_ready.png" width="180" alt="voice ready"> | Voice demo at rest: "Simulated" marker, "Tap to speak", demo door Closed |
 | voice_listening | <img src="wear-voice_listening.png" width="180" alt="voice listening"> | Voice demo listening, nothing said yet: pulse rings, the example prompt, and the way out |
 | voice_hearing | <img src="wear-voice_hearing.png" width="180" alt="voice hearing"> | Voice demo mid-utterance: rings driven by mic level, prompt replaced by live text, cancel hint stepped aside |

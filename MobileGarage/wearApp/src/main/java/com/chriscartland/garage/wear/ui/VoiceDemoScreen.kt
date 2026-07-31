@@ -103,6 +103,11 @@ import com.chriscartland.garage.wear.R
  * back to `Ready`; anywhere else it begins a new capture. `Sending` is inert
  * because a press cannot be unsent. This is deliberately not the phone's
  * cancel-and-re-listen rule — see [WearVoiceViewModel.onCancel].
+ *
+ * **Opening the screen counts as that first tap**, so speaking really is one
+ * gesture from the door and not two. The `Ready` state is still reachable and
+ * still says "Tap to speak" — it is simply where a finished command lands
+ * rather than where a new one starts.
  */
 @Composable
 fun VoiceDemoScreen(
@@ -186,6 +191,24 @@ fun VoiceDemoScreen(
         micGranted = granted
         if (granted) inAppCapture?.start() else launchSystemCapture()
     }
+
+    // Arriving here IS the tap. Reaching this screen takes a deliberate press
+    // of the mic chip on the hero screen, and that press already said "I want
+    // to speak" — so landing on a "Tap to speak" button asked for the same
+    // intent a second time. On a wrist, where the whole point is to say two
+    // words and put your arm down, a mandatory second tap was most of the
+    // interaction.
+    //
+    // Deliberately unconditional rather than guarded by a "did we already do
+    // this" latch: this composable exists only while the demo is the current
+    // destination, so it runs exactly once per visit, and leaving disposes it
+    // (see onScreenLeft below, which stops the recognizer). Re-entering SHOULD
+    // listen again — that is what tapping the mic means.
+    //
+    // Only entry is automatic. Once a command completes the screen returns to
+    // Ready and stays there, because a demo that re-opened the microphone every
+    // time it finished would be a live mic nobody asked to keep open.
+    LaunchedEffect(Unit) { viewModel.onMicTap() }
 
     val listeningAttempt = (state as? VoiceCommandState.Listening)?.attempt
     LaunchedEffect(listeningAttempt) {

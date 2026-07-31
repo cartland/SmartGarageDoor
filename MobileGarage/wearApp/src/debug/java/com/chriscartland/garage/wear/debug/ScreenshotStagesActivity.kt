@@ -36,7 +36,7 @@ import com.chriscartland.garage.wear.ui.HeroRingState
 import com.chriscartland.garage.wear.ui.HeroScreenContent
 import com.chriscartland.garage.wear.ui.HeroScreenLayout
 import com.chriscartland.garage.wear.ui.VoiceDemoContent
-import com.chriscartland.garage.wear.ui.WearMenuScreen
+import com.chriscartland.garage.wear.ui.WearSettingsScreen
 import com.chriscartland.garage.wear.ui.WearVoiceViewModel
 
 /**
@@ -107,17 +107,41 @@ class ScreenshotStagesActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 AppScaffold {
-                    if (stage == STAGE_MENU || stage == STAGE_MENU_LOCAL) {
-                        // The menu, in both of the states it has. The RELEASED
-                        // one cannot be reached from a local build at all —
-                        // BuildConfig.WEAR_TAG_NUMBER is 0 unless the build came
-                        // from a release tag — so without a fixture the only
-                        // version of this screen anyone could ever look at was
-                        // the one real users never see.
-                        WearMenuScreen(
-                            versionName = "0.4.1",
-                            tagNumber = if (stage == STAGE_MENU) 17 else 0,
+                    if (stage == STAGE_SETTINGS ||
+                        stage == STAGE_SETTINGS_LOCAL ||
+                        stage == STAGE_SETTINGS_BOTTOM
+                    ) {
+                        // Settings, in the two states worth reviewing. The
+                        // RELEASED + signed-in one cannot be reached from a
+                        // local build at all — BuildConfig.WEAR_TAG_NUMBER is 0
+                        // unless the build came from a release tag — so without
+                        // a fixture the only version of this screen anyone could
+                        // ever look at was the one real users never see.
+                        //
+                        // The pair also covers both account branches, which is
+                        // the part a screenshot can actually adjudicate: a
+                        // signed-in row renders an address, a signed-out one
+                        // renders copy, and they must not look interchangeable.
+                        WearSettingsScreen(
+                            versionName = "0.5.0",
+                            tagNumber = if (stage == STAGE_SETTINGS_LOCAL) 0 else 18,
+                            authState = if (stage == STAGE_SETTINGS_LOCAL) {
+                                AuthState.Unauthenticated
+                            } else {
+                                SCREENSHOT_USER
+                            },
                             onOpenStore = { true },
+                            // The end of the list, which a settle-then-capture
+                            // fixture cannot otherwise reach: it always opens at
+                            // scroll position 0, so the screen's only action —
+                            // the update button — would never appear in the
+                            // gallery at all. Anchoring past the last item lands
+                            // the list at its end.
+                            initialAnchorItemIndex = if (stage == STAGE_SETTINGS_BOTTOM) {
+                                SETTINGS_LAST_ITEM_INDEX
+                            } else {
+                                0
+                            },
                         )
                     } else if (voiceFixture != null) {
                         VoiceDemoContent(
@@ -145,7 +169,6 @@ class ScreenshotStagesActivity : ComponentActivity() {
                             onHoldStart = {},
                             onHoldEnd = {},
                             onVoiceDemoClick = {},
-                            onMenuClick = {},
                             onSignInClick = {},
                         )
                     } else {
@@ -160,7 +183,6 @@ class ScreenshotStagesActivity : ComponentActivity() {
                             onHoldStart = {},
                             onHoldEnd = {},
                             onVoiceDemoClick = {},
-                            onMenuClick = {},
                             onSignInClick = {},
                         )
                     }
@@ -307,8 +329,22 @@ class ScreenshotStagesActivity : ComponentActivity() {
         const val STAGE_HOLDING = "holding"
         const val STAGE_SUBMITTED = "submitted"
         const val STAGE_BLOOM = "bloom"
-        const val STAGE_MENU = "menu"
-        const val STAGE_MENU_LOCAL = "menu_local"
+        const val STAGE_SETTINGS = "settings"
+        const val STAGE_SETTINGS_LOCAL = "settings_local"
+        const val STAGE_SETTINGS_BOTTOM = "settings_bottom"
+
+        /**
+         * Last item of the RELEASED, signed-in settings list: header, account
+         * sub-header, account value, version sub-header, version, update
+         * button. The local-build caption and the store-unavailable caption are
+         * both absent in that shape, which is what makes this a fixed number.
+         *
+         * Coupled to [com.chriscartland.garage.wear.ui.WearSettingsScreen]'s
+         * item list by hand. Adding an item there and not here costs a gallery
+         * that stops short of the bottom — visible in the very screenshot this
+         * exists to produce, so it fails loudly rather than silently.
+         */
+        const val SETTINGS_LAST_ITEM_INDEX = 5
         const val STAGE_MOVING = "moving"
         const val STAGE_OPEN = "open"
         const val STAGE_SIGNED_OUT = "signed_out"

@@ -93,15 +93,23 @@
     <string name="voice_demo_ignored_state_unknown">Demo door state is unknown</string>
     <string name="voice_demo_ignored_state_changed">Demo door changed. Cancelled.</string>
 
-    <!-- Menu: which build is running, and the way to the Play Store. -->
-    <string name="menu_local_build">Local build</string>
-    <string name="menu_open_store">Check for update</string>
-    <string name="menu_store_unavailable">No Play Store on this watch</string>
+    <!-- Settings: the page to the door's left. Who you are signed in as, which
+         build is running, and the way to the Play Store. -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_account">Account</string>
+    <string name="settings_account_signed_out">Not signed in</string>
+    <!-- Never "Not signed in" while auth is still resolving: on a watch that
+         takes its session from the paired phone that is a visible moment at
+         every cold start, and claiming signed-out during it would be wrong. -->
+    <string name="settings_account_resolving">Checking…</string>
+    <string name="settings_version">App version</string>
+    <string name="settings_local_build">Local build</string>
+    <string name="settings_check_for_update">Check for update</string>
+    <string name="settings_store_unavailable">No Play Store on this watch</string>
 
     <!-- Content descriptions. -->
     <string name="cd_garage_door">Garage door</string>
-    <string name="cd_menu">Menu and app version</string>
-    <string name="cd_voice_demo">Voice demo, simulated</string>
+    <string name="cd_voice_demo">Speak a door command, simulated</string>
     <string name="cd_voice_demo_mic">Tap to speak a door command</string>
     <string name="cd_voice_demo_screen">Tap anywhere to cancel and speak again</string>
     <string name="cd_voice_demo_listening">Listening for a door command</string>
