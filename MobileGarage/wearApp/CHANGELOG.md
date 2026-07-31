@@ -14,6 +14,16 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.5.3
+
+- **The end of Settings can now be scrolled up into the middle of the screen.**
+  The list used to stop as soon as the last row was technically on screen, which
+  parked it against the bottom of the round display, where there is least width
+  and the curve cuts the ends off whatever is sitting there. There is room past
+  the last row now, so it comes to rest where the screen is at its widest and you
+  can read all of it. The rest of the list is unchanged: the middle of the screen
+  was never the problem.
+
 ## 0.5.2
 
 - The watch now tells the paired phone which version it is running, so the
