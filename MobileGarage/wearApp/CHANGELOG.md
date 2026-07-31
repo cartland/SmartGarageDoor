@@ -14,6 +14,26 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.5.1
+
+- **The voice demo now draws the same ring as the real button.** Its countdown
+  was still the old pale orange, and its commit just snapped to a finished ring
+  rather than swelling into one. The door's ring went neutral white and gained
+  that swell in 0.4.1, and the two drifting apart is the one thing the demo must
+  not do: its entire job is to rehearse the real interaction, so it has no
+  business teaching a different vocabulary for the same moment. It is now
+  literally the same ring, driven by the same code, so they cannot drift again.
+- **The listening screen had four lines of text and rings drawn through all of
+  them.** The pulse rings expanded all the way to the edge of the screen, which
+  meant every one of them crossed the words it was supposed to be accompanying.
+  They now stop short of the text. The screen is down to two lines: what this is,
+  and what to say.
+- **What you are saying stays on one line, and it is the end of it you see.**
+  A long sentence used to wrap and push itself back up into the rings. It now
+  trims from the front, so the words that just arrived are the ones on screen.
+- The microphone is slightly smaller while listening, which is what gives the
+  rings room to travel now that they stop early.
+
 ## 0.5.0
 
 - **Settings is now a page beside the door, not a button on top of it.** Swipe

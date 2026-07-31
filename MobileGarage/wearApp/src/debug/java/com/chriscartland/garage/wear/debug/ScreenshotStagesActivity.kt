@@ -32,7 +32,7 @@ import com.chriscartland.garage.domain.model.VoiceIntent
 import com.chriscartland.garage.usecase.VoiceCommandIgnoreReason
 import com.chriscartland.garage.usecase.VoiceCommandState
 import com.chriscartland.garage.usecase.VoiceDoorState
-import com.chriscartland.garage.wear.ui.HeroRingState
+import com.chriscartland.garage.wear.ui.ConfirmRingState
 import com.chriscartland.garage.wear.ui.HeroScreenContent
 import com.chriscartland.garage.wear.ui.HeroScreenLayout
 import com.chriscartland.garage.wear.ui.VoiceDemoContent
@@ -94,12 +94,17 @@ import com.chriscartland.garage.wear.ui.WearVoiceViewModel
  * simulated by construction: the fixture passes canned VoiceCommandStates and
  * a canned demo door, with no controller and no environment at all.
  *   voice_ready   — at rest: "Simulated", "Tap to speak", demo door Closed
- *   voice_listening — mic takeover, quiet: pulse rings, the example prompt,
- *                   and the way out
- *   voice_hearing — mid-utterance: rings at a loud level, a live transcript
- *                   long enough to wrap, cancel hint stepped aside
- *   voice_armed   — "Would open the door": the action named conditionally
- *   voice_committing — the commit instant: the ring completes and HOLDS
+ *   voice_listening — mic takeover, quiet: TWO lines total (the marker and the
+ *                   example), with the pulse rings capped to clear both
+ *   voice_hearing — mid-utterance: rings at a loud level, and ONE line of live
+ *                   transcript, long enough that it has to ellipsize — at the
+ *                   START, so the newest words are the ones you can read
+ *   voice_armed   — "Would open the door": the action named conditionally,
+ *                   under the SAME white ring the real button draws
+ *   voice_committing — just after the commit: that ring post-bloom, holding
+ *                   complete. The bloom's peak frame is the `bloom` stage —
+ *                   it is literally the same component, so capturing it twice
+ *                   would pin the same pixels
  *   voice_sent    — the punchline: "Nothing was sent", demo door Moving
  *   voice_refused — the gate refusing a command the demo door has outgrown
  *
@@ -287,7 +292,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
         val signInError: Boolean = false,
         val hasDoorData: Boolean = true,
         /** Non-null pins the ring directly instead of letting it animate. */
-        val ring: HeroRingState? = null,
+        val ring: ConfirmRingState? = null,
     )
 
     private fun fixtureFor(stage: String): StageFixture =
@@ -313,7 +318,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
             STAGE_BLOOM -> StageFixture(
                 DoorPosition.CLOSED,
                 RemoteButtonState.SendingToServer,
-                ring = HeroRingState(sweep = 1f, bloom = 1f),
+                ring = ConfirmRingState(sweep = 1f, bloom = 1f),
             )
             STAGE_MOVING -> StageFixture(DoorPosition.OPENING, RemoteButtonState.Succeeded)
             STAGE_OPEN -> StageFixture(DoorPosition.OPEN, RemoteButtonState.Ready)

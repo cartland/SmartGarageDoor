@@ -26,7 +26,6 @@ import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -55,15 +54,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -315,21 +312,20 @@ fun VoiceDemoContent(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // One Animatable per Armed instance drives the countdown ring. A fresh
-    // instance per state means a cancel-and-re-arm restarts from zero.
+    // The SAME ring the real garage button draws, driven by the same hook —
+    // see ConfirmRing. The demo's whole job is to rehearse the real
+    // interaction, so the countdown and the commit have to speak the hero
+    // screen's vocabulary rather than a dialect of it.
     val armed = state as? VoiceCommandState.Armed
-    val armedProgress = remember(armed) { Animatable(0f) }
-    LaunchedEffect(armed) {
-        if (armed != null) {
-            armedProgress.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(
-                    durationMillis = armed.windowMs.toInt(),
-                    easing = LinearEasing,
-                ),
-            )
-        }
-    }
+    val ring = rememberConfirmRingState(
+        phase = VoiceRing.phaseFor(state),
+        sweepDurationMillis = (armed?.windowMs ?: WearVoiceViewModel.ARMED_WINDOW_MILLIS).toInt(),
+        // Never in flight: the demo has nothing genuinely outstanding. The
+        // hero's rotating ring means "the server has not answered and the door
+        // has not moved yet", and there is no server and no door here. Drawing
+        // it would be the one piece of the vocabulary that would be a lie.
+        inFlight = false,
+    )
 
     ScreenScaffold(modifier = modifier) {
         Box(
@@ -376,12 +372,17 @@ fun VoiceDemoContent(
             // against. Both are persistent context rather than state, so they
             // belong together and stay put.
             //
-            // The door line used to be hidden during listening as "irrelevant
-            // mid-capture". It is the opposite of irrelevant: it is precisely
-            // what decides whether the sentence you are about to say will be
-            // accepted or refused, so the moment before speaking is when it is
-            // most worth reading. Keeping it is also what frees the screen's
-            // centre for the mic.
+            // WHILE LISTENING the door line steps aside, leaving only the
+            // "Simulated" marker. 0.3.4 had added it back to this state on the
+            // grounds that the door is exactly what decides whether the sentence
+            // you are about to say gets accepted, so the moment before speaking
+            // is when it is worth reading — which was true when `Ready` was a
+            // separate screen you sat on first. It is a straight cost now: the
+            // screen carried four lines of text during listening and the pulse
+            // rings swept through all of them. The marker is the one that cannot
+            // go (it is the safety signal that must be present in EVERY state,
+            // including this takeover); the door line is present in every other
+            // state, including the refusal that would explain itself with it.
             Column(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -395,15 +396,17 @@ fun VoiceDemoContent(
                     color = MaterialTheme.colorScheme.tertiary,
                     textAlign = TextAlign.Center,
                 )
-                Text(
-                    text = stringResource(
-                        R.string.voice_demo_door,
-                        stringResource(VoiceDemoMappers.demoDoorLabel(demoDoorState)),
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    textAlign = TextAlign.Center,
-                )
+                if (!listening) {
+                    Text(
+                        text = stringResource(
+                            R.string.voice_demo_door,
+                            stringResource(VoiceDemoMappers.demoDoorLabel(demoDoorState)),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
 
             MicTarget(
@@ -419,11 +422,20 @@ fun VoiceDemoContent(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth(BOTTOM_TEXT_WIDTH_FRACTION)
-                    .padding(bottom = BOTTOM_TEXT_PADDING_DP.dp),
+                    // Listening sits lower, because it is one line rather than
+                    // two and every dp it gives back is a dp the pulse rings can
+                    // travel before they reach it.
+                    .padding(
+                        bottom = if (listening) {
+                            VoiceLayout.LISTENING_TEXT_PADDING_DP.dp
+                        } else {
+                            BOTTOM_TEXT_PADDING_DP.dp
+                        },
+                    ),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 if (listening) {
-                    ListeningLines(partialTranscript = partialTranscript)
+                    ListeningLine(partialTranscript = partialTranscript)
                 } else {
                     Text(
                         text = stringResource(VoiceDemoMappers.primaryLine(state)),
@@ -439,15 +451,13 @@ fun VoiceDemoContent(
                     )
                 }
             }
-            // Countdown ring at the bezel, matching the hero screen's language
-            // for "something is counting toward committing". Drawn last so it
-            // is on top; it takes no input so it can never block the mic.
-            CountdownRing(
-                progress = if (armed != null) armedProgress.value else 0f,
-                committed = state is VoiceCommandState.Sending,
+            // Literally the hero screen's ring, not a lookalike. Drawn last so
+            // it is on top; it takes no input so it can never block the mic.
+            ConfirmRing(
+                ring = ring,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(RING_PADDING_DP.dp),
+                    .padding(HeroLayout.RING_EDGE_PADDING_DP.dp),
             )
         }
     }
@@ -512,41 +522,27 @@ private fun BoxScope.MicTarget(
 }
 
 /**
- * The bottom text while listening, which *changes job* partway through:
- *  - Before speech, one example command plus the way out. The classifier only
- *    accepts a narrow imperative grammar, so the example is load-bearing rather
- *    than decorative — it is the difference between a command that works and
- *    one that is refused.
- *  - Once words arrive, the example becomes the live transcript and the cancel
- *    hint goes away entirely. The screen stops instructing the moment it has
- *    something to reflect instead, and someone mid-sentence is not looking for
- *    an exit.
+ * The bottom text while listening: **one line**, which changes job partway
+ * through.
  *
- * The cancel hint used to be omitted here on the grounds that a tap during
- * Listening was a no-op in the shared controller. That stopped being true in
- * 0.3.3, when a tap started cancelling — so for one release this was the one
- * state that could be escaped but never said so, which is the worse half of the
- * original problem. It borrows `Armed`'s exact wording, because it is the same
- * gesture with the same effect and two phrasings would imply otherwise.
+ * Before speech it is an example command. The classifier accepts a narrow
+ * imperative grammar, so the example is load-bearing rather than decorative — it
+ * is the difference between a command that works and one that is refused. Once
+ * words arrive it becomes the live transcript, because the screen should stop
+ * instructing the moment it has something to reflect instead.
+ *
+ * It used to be TWO lines: the example plus "Tap anywhere to cancel", added in
+ * 0.3.4 to fix a real gap (0.3.3 made a tap cancel, and this was the one state
+ * that could be escaped but never said so). The hint is dropped here because
+ * the listening screen was carrying four lines of text with pulse rings sweeping
+ * through them, and of the four this is the one whose absence costs least: the
+ * gesture is unchanged, the accessible label on the full-screen target still
+ * announces it, and `Armed` — the state that follows, and the one where
+ * cancelling actually matters, because it is about to commit — still spells it
+ * out. What listening needs to say is what to say.
  */
 @Composable
-private fun ListeningLines(partialTranscript: String?) {
-    // The hint sits ABOVE the live line, not below it, and that ordering is
-    // load-bearing rather than aesthetic. The block is bottom-anchored, so its
-    // last element is the one with a fixed position — and the last element has
-    // to be the line the user is actually watching. With the hint underneath,
-    // the prompt would sit one line higher than the transcript that replaces
-    // it, so the first word spoken would shunt the text down; and while the
-    // hint was still reserved, the two stacked lines pushed up into the mic.
-    // Above, it simply occupies empty space and then stops.
-    if (partialTranscript == null) {
-        Text(
-            text = stringResource(R.string.voice_demo_cancel_hint),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-    }
+private fun ListeningLine(partialTranscript: String?) {
     Text(
         text = partialTranscript
             ?.let { stringResource(R.string.voice_demo_transcript, it) }
@@ -554,6 +550,17 @@ private fun ListeningLines(partialTranscript: String?) {
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
+        // Exactly one line, because [VoiceLayout] reserves exactly one. A
+        // transcript that wrapped would push its own top edge up into the
+        // annulus the pulse rings were just capped to fit, and the overlap this
+        // whole change removes would come back for long sentences only — the
+        // worst kind of regression, since the short test phrase would keep
+        // looking right.
+        maxLines = 1,
+        // START, not end: this is a live transcript, so the words you want are
+        // the ones that just arrived. Ellipsizing the tail would pin the screen
+        // to the beginning of the sentence and hide the part still being said.
+        overflow = TextOverflow.StartEllipsis,
     )
 }
 
@@ -583,10 +590,17 @@ private fun PulseRings(
     val color = MaterialTheme.colorScheme.tertiary
     Canvas(modifier = modifier) {
         val start = MIC_LISTENING_SIZE_DP.dp.toPx() / 2f
-        val bezel = size.minDimension / 2f
-        val quiet = start + (bezel - start) * IDLE_REACH_FRACTION
-        val reach = quiet + (bezel - quiet) * level
-        val stroke = RING_STROKE_DP.dp.toPx()
+        // NOT the bezel: the outer band belongs to the confirm ring and the
+        // bottom band to the listening line. See VoiceLayout.
+        val limit = VoiceLayout
+            .pulseMaxRadiusDp(
+                diameterDp = size.minDimension.toDp().value,
+                micRadiusDp = MIC_LISTENING_SIZE_DP / 2f,
+            ).dp
+            .toPx()
+        val quiet = start + (limit - start) * IDLE_REACH_FRACTION
+        val reach = quiet + (limit - quiet) * level
+        val stroke = PULSE_STROKE_DP.dp.toPx()
         repeat(RING_COUNT) { index ->
             val progress = (phase + index.toFloat() / RING_COUNT) % 1f
             val alpha = (1f - progress) * (IDLE_PEAK_ALPHA + (LOUD_PEAK_ALPHA - IDLE_PEAK_ALPHA) * level)
@@ -601,58 +615,71 @@ private fun PulseRings(
 }
 
 /**
- * The cancel-window indicator, drawn at the bounds it is given so it is
- * concentric with the bezel. Deliberately a different colour from the hero
- * screen's hold ring: that one is counting toward a real garage press, this
- * one is not.
- *
- * Two jobs, the same two the hero screen's `HoldRing` has. While counting it
- * sweeps over a faint track. Once [committed] it holds a *complete* ring with
- * the track gone, for as long as the press is notionally outstanding.
- *
- * That second job used to be missing here, and its absence was the louder
- * half: the ring simply vanished at the instant of commitment, which is the
- * one instant the user most wants confirmed. The hero screen already argued
- * this case — a state beats a transient, and unlike a flash it is capturable
- * by the screenshot fixture — so the demo, whose whole job is to rehearse the
- * real interaction, had no business teaching a different vocabulary.
+ * Which [RingPhase] each demo state is, kept pure so the honesty rules are
+ * testable — the same treatment `HeroRing` gets, because they are the same
+ * rules.
  */
-@Composable
-private fun CountdownRing(
-    progress: Float,
-    committed: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val ringColor = MaterialTheme.colorScheme.tertiary
-    val trackColor = MaterialTheme.colorScheme.onSurfaceVariant
-    Canvas(modifier = modifier) {
-        if (!committed && progress <= 0f) return@Canvas
-        val stroke = RING_STROKE_DP.dp.toPx()
-        val inset = stroke / 2f
-        val arcSize = Size(size.width - stroke, size.height - stroke)
-        if (!committed) {
-            // "Here is how far there is to go" — pointless once there is not.
-            drawArc(
-                color = trackColor,
-                startAngle = ARC_START_ANGLE,
-                sweepAngle = FULL_SWEEP,
-                useCenter = false,
-                topLeft = Offset(inset, inset),
-                size = arcSize,
-                alpha = TRACK_ALPHA,
-                style = Stroke(width = stroke),
-            )
+internal object VoiceRing {
+    fun phaseFor(state: VoiceCommandState): RingPhase =
+        when (state) {
+            // Counting down the cancel window, exactly as a hold counts down to
+            // a press.
+            is VoiceCommandState.Armed -> RingPhase.Sweeping
+            // BOTH halves of the commit. `Sending` alone lasts 600ms and the
+            // bloom takes ~720ms, so keying off it would cut the celebration
+            // off mid-recede. They are one moment anyway: "would press the
+            // remote" and "nothing was sent" are the two beats of a single
+            // simulated commit, and the ring should not flinch between them.
+            is VoiceCommandState.Sending,
+            is VoiceCommandState.Sent,
+            -> RingPhase.Committed
+            // Everything else unwinds. `Failed` is deliberately here and not
+            // with the commit: a bloom is the app saying "that worked", so a
+            // failed press must never get one — the same rule that keeps the
+            // hero screen's bloom reachable only by actually calling the
+            // server. A refusal likewise gets the rewind, which is what makes
+            // "nothing happened" legible.
+            VoiceCommandState.Ready,
+            is VoiceCommandState.Listening,
+            is VoiceCommandState.Failed,
+            is VoiceCommandState.Ignored,
+            -> RingPhase.Idle
         }
-        drawArc(
-            color = ringColor,
-            startAngle = ARC_START_ANGLE,
-            sweepAngle = if (committed) FULL_SWEEP else FULL_SWEEP * progress,
-            useCenter = false,
-            topLeft = Offset(inset, inset),
-            size = arcSize,
-            style = Stroke(width = stroke, cap = StrokeCap.Round),
-        )
-    }
+}
+
+/**
+ * Where the listening takeover's pulse rings are allowed to go.
+ *
+ * A FRACTION of the radius would be wrong here for the reason [HeroLayout]
+ * exists: the text band is a fixed dp height, so the fraction it occupies grows
+ * as the screen shrinks, and a cap that clears the text on a large round watch
+ * is swallowed by it on a small one. Derive it from the band instead.
+ */
+internal object VoiceLayout {
+    /**
+     * How far the listening line's TOP edge sits from the bottom of the screen:
+     * its padding plus roughly one line of `bodySmall`.
+     */
+    const val LISTENING_TEXT_PADDING_DP: Float = 30f
+    private const val LISTENING_TEXT_LINE_DP: Float = 20f
+
+    /** Gap between the outermost ring and that text, so they never touch. */
+    private const val PULSE_CLEARANCE_DP: Float = 6f
+
+    /**
+     * Outermost radius a pulse ring may reach. Rings used to travel all the way
+     * to the bezel, which meant every one of them crossed both the header and
+     * the bottom text on its way out — the animation was drawn straight through
+     * the words it was supposed to be accompanying.
+     */
+    fun pulseMaxRadiusDp(
+        diameterDp: Float,
+        micRadiusDp: Float,
+    ): Float =
+        (diameterDp / 2f - LISTENING_TEXT_PADDING_DP - LISTENING_TEXT_LINE_DP - PULSE_CLEARANCE_DP)
+            // A watch small enough for the band to swallow the whole annulus
+            // gets a halo hugging the mic rather than an inverted radius.
+            .coerceAtLeast(micRadiusDp)
 }
 
 /** String mappers for the voice demo. */
@@ -851,15 +878,22 @@ private const val CONTENT_WIDTH_FRACTION = 0.72f
 private const val BOTTOM_TEXT_WIDTH_FRACTION = 0.72f
 private const val MIC_BUTTON_SIZE_DP = 52
 private const val MIC_ICON_SIZE_DP = 26
-private const val RING_PADDING_DP = 2
-private const val RING_STROKE_DP = 5
-private const val ARC_START_ANGLE = -90f
-private const val FULL_SWEEP = 360f
-private const val TRACK_ALPHA = 0.25f
 
-// The mic while listening: bigger, and wearing the simulation's colour.
-private const val MIC_LISTENING_SIZE_DP = 84
-private const val MIC_LISTENING_ICON_DP = 40
+/** Pulse rings only — the confirm ring's own stroke lives in [HeroLayout]. */
+private const val PULSE_STROKE_DP = 5
+
+/**
+ * The mic while listening: bigger than the resting button, and wearing the
+ * simulation's colour.
+ *
+ * Trimmed from 84dp when the pulse rings were capped. The rings now have to fit
+ * between this circle and the reserved text band, and at 84dp that annulus was
+ * thin enough on a small round watch to read as a static halo rather than
+ * motion. 68dp is still a third larger than the 52dp resting button, so
+ * entering the listening state still visibly grows it.
+ */
+private const val MIC_LISTENING_SIZE_DP = 68
+private const val MIC_LISTENING_ICON_DP = 34
 
 /**
  * Clear of `TimeText`, which owns the top arc. At 18dp the marker sat directly
