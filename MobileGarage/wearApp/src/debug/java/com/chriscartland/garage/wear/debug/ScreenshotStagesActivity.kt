@@ -144,8 +144,14 @@ class ScreenshotStagesActivity : ComponentActivity() {
                         // signed-in row renders an address, a signed-out one
                         // renders copy, and they must not look interchangeable.
                         WearSettingsScreen(
-                            versionName = "0.5.0",
-                            tagNumber = if (stage == STAGE_SETTINGS_LOCAL) 0 else 18,
+                            // Pinned, not read from BuildConfig: a version that
+                            // tracked the build would churn these PNGs on every
+                            // release, for the same reason the emulator clock is
+                            // pinned to 10:10. Bump it by hand at feature
+                            // releases so the gallery does not drift far from
+                            // what the watch actually shows.
+                            versionName = "0.6.0",
+                            tagNumber = if (stage == STAGE_SETTINGS_LOCAL) 0 else 23,
                             authState = if (stage == STAGE_SETTINGS_LOCAL) {
                                 AuthState.Unauthenticated
                             } else {
