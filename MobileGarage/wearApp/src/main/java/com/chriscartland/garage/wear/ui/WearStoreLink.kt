@@ -61,17 +61,19 @@ internal object WearStoreLink {
     fun listingUri(packageName: String = PLAY_STORE_PACKAGE_NAME): String = "market://details?id=$packageName"
 
     /**
-     * How this build names itself, or null for a build that was never released.
+     * Whether this build came from a release tag at all.
      *
-     * The release tag is the identity that matters when updates come thick and
-     * fast: `versionName` alone cannot tell two builds cut from the same version
-     * apart, and the raw versionCode (`1000000 + N`) is not what the tag is
-     * called anywhere else. Recovering `wear/N` means the row can be compared
-     * directly against the release tags and against the Play track log.
+     * Deliberately a BOOLEAN, not the `wear/N` tag it is derived from. The menu
+     * used to render that tag, and it is internal release plumbing — it means
+     * something against this repo's tags and the Play track log, and nothing to
+     * anyone wearing the watch. Returning a boolean keeps the tag string out of
+     * the app entirely rather than relying on every future caller choosing not
+     * to display it.
      *
-     * Local builds have no tag number (Gradle falls back to 0), and saying so is
-     * more useful than inventing `wear/0` — it is the difference between "you are
-     * behind" and "this did not come from a release at all".
+     * The distinction it does keep is the one worth surfacing: a build that
+     * never came from a release is a different thing from an old one, and
+     * `versionName` alone cannot say which you are holding. Local builds have no
+     * tag number (Gradle falls back to 0).
      */
-    fun releaseTag(tagNumber: Int): String? = if (tagNumber > 0) "wear/$tagNumber" else null
+    fun isReleaseBuild(tagNumber: Int): Boolean = tagNumber > 0
 }

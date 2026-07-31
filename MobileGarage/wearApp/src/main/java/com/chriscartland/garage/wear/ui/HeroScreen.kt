@@ -31,6 +31,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -79,6 +80,7 @@ import com.chriscartland.garage.wear.R
 import com.chriscartland.garage.wear.auth.WearGoogleSignIn
 import com.chriscartland.garage.wear.di.WearSignInConfig
 import com.chriscartland.garage.wear.ui.theme.WearDoorColors
+import com.chriscartland.garage.wear.ui.theme.WearRingColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -135,17 +137,16 @@ fun HeroScreen(
 }
 
 /**
- * Stateless hero layout (previewable): the animated door with the radial
- * hold-to-confirm indicator, the door state label, and the button hint or
- * sign-in chip.
+ * Drives the hold ring's animation from the ViewModel's signals and hands the
+ * resulting frame to [HeroScreenLayout], which does the drawing.
  *
- * Geometry: the hold ring is centered on the PHYSICAL screen and hugs the
- * bezel (like the platform's own progress rings), and in the signed-in
- * layout the door is centered on the screen too, with the state label and
- * hint anchored near the bottom edge. The signed-out/unknown layout keeps a
- * centered column (smaller door + sign-in chip + reserved caption slot —
- * the 0.1.2 overflow fix); the ring never shows there because holding
- * requires authentication.
+ * The split exists so the ring's transient states are reachable from a static
+ * fixture. The commit bloom lasts about 700ms and is the single most
+ * consequential thing the screen draws — it is the app saying "your press was
+ * sent" — yet as one inseparable animated Composable it could never be
+ * screenshotted, so the one frame most worth reviewing was the one frame no
+ * gallery could show. `ScreenshotStagesActivity` calls [HeroScreenLayout] with
+ * a canned [HeroRingState] instead.
  */
 @Composable
 fun HeroScreenContent(
@@ -163,8 +164,6 @@ fun HeroScreenContent(
     onSignInClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val animationMemory = remember { DoorAnimationMemory() }
-
     val inFlight = HeroRing.isInFlight(buttonState)
     val ringPhase = HeroRing.phaseFor(isHolding = isHolding, buttonState = buttonState)
 
@@ -241,8 +240,77 @@ fun HeroScreenContent(
         0f
     }
 
+    HeroScreenLayout(
+        doorPosition = doorPosition,
+        lastChangeTimeSeconds = lastChangeTimeSeconds,
+        hasDoorData = hasDoorData,
+        authState = authState,
+        buttonState = buttonState,
+        signInError = signInError,
+        ring = HeroRingState(
+            sweep = sweep.value,
+            bloom = bloom.value,
+            rotation = rotation,
+            inFlight = inFlight,
+            showTrack = ringPhase == RingPhase.Sweeping,
+        ),
+        onHoldStart = onHoldStart,
+        onHoldEnd = onHoldEnd,
+        onVoiceDemoClick = onVoiceDemoClick,
+        onMenuClick = onMenuClick,
+        onSignInClick = onSignInClick,
+        modifier = modifier,
+    )
+}
+
+/** One frame of the hold ring, so a fixture can pin any of them. */
+internal data class HeroRingState(
+    val sweep: Float = 0f,
+    val bloom: Float = 0f,
+    val rotation: Float = 0f,
+    val inFlight: Boolean = false,
+    val showTrack: Boolean = false,
+)
+
+/**
+ * Stateless hero layout (previewable): the door, the state label, the button
+ * hint or sign-in chip, and the ring drawn over all of it.
+ *
+ * Geometry: the hold ring is centered on the PHYSICAL screen and hugs the
+ * bezel (like the platform's own progress rings), and in the signed-in
+ * layout the door is centered on the screen too, with the state label and
+ * hint anchored near the bottom edge. The signed-out/unknown layout keeps a
+ * centered column (smaller door + sign-in chip + reserved caption slot —
+ * the 0.1.2 overflow fix); the ring never shows there because holding
+ * requires authentication.
+ *
+ * Content never picks its own distance from the edge: every inset comes from
+ * [HeroLayout], which reserves the outer band for the ring. See its KDoc for
+ * why a bottom label sized against the screen's own circle is not enough.
+ */
+@Composable
+internal fun HeroScreenLayout(
+    doorPosition: DoorPosition,
+    lastChangeTimeSeconds: Long?,
+    hasDoorData: Boolean,
+    authState: AuthState,
+    buttonState: RemoteButtonState,
+    signInError: Boolean,
+    ring: HeroRingState,
+    onHoldStart: () -> Unit,
+    onHoldEnd: () -> Unit,
+    onVoiceDemoClick: () -> Unit,
+    onMenuClick: () -> Unit,
+    onSignInClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val animationMemory = remember { DoorAnimationMemory() }
     ScreenScaffold(modifier = modifier) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            // A round watch window is square, so either edge is the diameter.
+            val diameterDp = maxWidth.value
+            val bottomTextWidthDp = diameterDp * BOTTOM_TEXT_WIDTH_FRACTION
+            val bottomTextInset = HeroLayout.bottomInsetDp(diameterDp, bottomTextWidthDp).dp
             if (authState is AuthState.Authenticated) {
                 GarageDoorTarget(
                     doorPosition = doorPosition,
@@ -264,7 +332,13 @@ fun HeroScreenContent(
                         // wrapping (this is what bit "Hold to press the remote").
                         // Constrain to the safe chord and let long hints wrap.
                         .fillMaxWidth(BOTTOM_TEXT_WIDTH_FRACTION)
-                        .padding(bottom = BOTTOM_TEXT_PADDING_DP.dp),
+                        // DERIVED, never hand-tuned: the block's bottom corners
+                        // sit exactly on HeroLayout's content circle. A constant
+                        // cannot work here — the block's width scales with the
+                        // screen while the ring's thickness does not, so a value
+                        // that clears the ring on a small watch is swallowed by
+                        // it on a large one.
+                        .padding(bottom = bottomTextInset),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
@@ -381,14 +455,10 @@ fun HeroScreenContent(
             // draws on top of everything (it takes no input, so it can never
             // block the door's gestures).
             HoldRing(
-                sweep = sweep.value,
-                bloom = bloom.value,
-                rotation = rotation,
-                inFlight = inFlight,
-                showTrack = ringPhase == RingPhase.Sweeping,
+                ring = ring,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(RING_PADDING_DP.dp),
+                    .padding(HeroLayout.RING_EDGE_PADDING_DP.dp),
             )
         }
     }
@@ -455,39 +525,33 @@ internal object HeroRing {
  *
  * Three jobs, in the order the gesture meets them:
  *
- *  - [sweep] reports progress toward the press, over a faint [showTrack].
- *  - [bloom] is the commit: the ring thickens inward until its inner edge
- *    reaches the centre and the whole screen is a solid disc, then recedes
- *    back to a ring. Big on purpose — this is the one irreversible moment in
- *    the gesture, and it used to be the quietest thing on screen (the sweep
- *    simply vanished and a static ring took its place).
- *  - [inFlight] then rotates a gapped ring for as long as the press is
+ *  - `sweep` reports progress toward the press, over a faint `showTrack`.
+ *  - `bloom` is the commit: the ring thickens INWARD to fill
+ *    [HeroLayout.RING_BAND_DP] and brightens to full white, holds a beat, then
+ *    recedes. It used to grow until it swallowed the whole screen, which made
+ *    the point at the cost of painting over the door and both labels at the
+ *    exact moment they matter most; the band is what lets it stay emphatic
+ *    without borrowing anyone else's pixels. Brightness carries what the extra
+ *    thickness used to.
+ *  - `inFlight` then rotates a gapped ring for as long as the press is
  *    actually outstanding, which is frequently many seconds: the server has to
  *    answer and the door has to start moving. Motion is what separates
  *    "working on it" from "stalled"; the previous static ring could not.
  */
 @Composable
 private fun HoldRing(
-    sweep: Float,
-    bloom: Float,
-    rotation: Float,
-    inFlight: Boolean,
-    showTrack: Boolean,
+    ring: HeroRingState,
     modifier: Modifier = Modifier,
 ) {
-    val ringColor = MaterialTheme.colorScheme.primary
-    val sentColor = MaterialTheme.colorScheme.tertiary
-    val trackColor = MaterialTheme.colorScheme.onSurfaceVariant
     Canvas(modifier = modifier) {
-        val stroke = RING_STROKE_DP.dp.toPx()
+        val stroke = HeroLayout.RING_STROKE_DP.dp.toPx()
         val inset = stroke / 2f
         val arcSize = Size(size.width - stroke, size.height - stroke)
-        val radius = minOf(arcSize.width, arcSize.height) / 2f
 
-        if (showTrack) {
+        if (ring.showTrack) {
             // Faint full track under the sweep: "here is how far you have to go".
             drawArc(
-                color = trackColor,
+                color = WearRingColors.track,
                 startAngle = ARC_START_ANGLE,
                 sweepAngle = FULL_SWEEP,
                 useCenter = false,
@@ -499,26 +563,36 @@ private fun HoldRing(
         }
         when {
             // Grown as a stroke rather than as a filled circle so it reads as
-            // THIS ring swelling shut, not a new shape appearing over it. A
-            // stroke of width w centred on the ring covers [r - w/2, r + w/2],
-            // so w = 2r is exactly the width at which the inner edge reaches
-            // the centre and the disc closes.
-            bloom > 0f -> drawArc(
-                color = sentColor,
-                startAngle = ARC_START_ANGLE,
-                sweepAngle = FULL_SWEEP,
-                useCenter = false,
-                topLeft = Offset(inset, inset),
-                size = arcSize,
-                style = Stroke(width = stroke + (2f * radius - stroke) * bloom),
-            )
-            inFlight -> {
+            // THIS ring swelling, not a new shape appearing over it.
+            //
+            // Its own arc rect, not the resting one: a stroke widens about its
+            // centreline, so reusing the resting geometry would push half the
+            // growth off-screen and send the other half inward past the band.
+            // Re-inset by half the CURRENT stroke instead, which pins the outer
+            // edge and spends every added pixel inward, where the band is.
+            ring.bloom > 0f -> {
+                val bloomStroke = HeroLayout.bloomStrokeDp(ring.bloom).dp.toPx()
+                val bloomInset = HeroLayout
+                    .bloomArcInsetDp(HeroLayout.bloomStrokeDp(ring.bloom))
+                    .dp
+                    .toPx()
+                drawArc(
+                    color = WearRingColors.committed,
+                    startAngle = ARC_START_ANGLE,
+                    sweepAngle = FULL_SWEEP,
+                    useCenter = false,
+                    topLeft = Offset(bloomInset, bloomInset),
+                    size = Size(size.width - bloomStroke, size.height - bloomStroke),
+                    style = Stroke(width = bloomStroke),
+                )
+            }
+            ring.inFlight -> {
                 val segment = FULL_SWEEP / IN_FLIGHT_SEGMENTS
                 val visible = segment * IN_FLIGHT_SEGMENT_FILL
                 repeat(IN_FLIGHT_SEGMENTS) { index ->
                     drawArc(
-                        color = sentColor,
-                        startAngle = ARC_START_ANGLE + rotation + index * segment,
+                        color = WearRingColors.committed,
+                        startAngle = ARC_START_ANGLE + ring.rotation + index * segment,
                         sweepAngle = visible,
                         useCenter = false,
                         topLeft = Offset(inset, inset),
@@ -527,10 +601,10 @@ private fun HoldRing(
                     )
                 }
             }
-            sweep > 0f -> drawArc(
-                color = ringColor,
+            ring.sweep > 0f -> drawArc(
+                color = WearRingColors.sweep,
                 startAngle = ARC_START_ANGLE,
-                sweepAngle = FULL_SWEEP * sweep,
+                sweepAngle = FULL_SWEEP * ring.sweep,
                 useCenter = false,
                 topLeft = Offset(inset, inset),
                 size = arcSize,
@@ -840,12 +914,17 @@ private val PREVIEW_USER = AuthState.Authenticated(
     ),
 )
 
-// Door sizes match the pre-centering effective sizes (the old width fraction
-// times the old inside-ring fraction) so the door itself reads the same.
-private const val DOOR_WIDTH_FRACTION = 0.52f
+/**
+ * Door size, as a fraction of the screen.
+ *
+ * Trimmed from 0.52 when the bottom block moved inward to clear the ring band:
+ * the label rises with it, and the door is the one element with slack to give.
+ * Text crossing the door's lower half is long-standing and fine — it is empty
+ * whenever the door is open — but a label landing on the solid panels of a
+ * CLOSED door is not, and 0.48 is what keeps the resting one-line case clear.
+ */
+private const val DOOR_WIDTH_FRACTION = 0.46f
 private const val DOOR_WIDTH_FRACTION_SIGNED_OUT = 0.42f
-private const val RING_PADDING_DP = 2
-private const val RING_STROKE_DP = 5
 private const val ARC_START_ANGLE = -90f
 private const val FULL_SWEEP = 360f
 private const val TRACK_ALPHA = 0.25f
@@ -873,14 +952,18 @@ private const val BLOOM_RECEDE_MILLIS = 380
 private const val ROTATION_PERIOD_MILLIS = 1_600
 private const val IN_FLIGHT_SEGMENTS = 3
 private const val IN_FLIGHT_SEGMENT_FILL = 0.62f
-private const val BOTTOM_TEXT_PADDING_DP = 18
 
 /**
- * Width of the bottom label/hint column, as a fraction of the screen. Sized
- * to the round screen's chord at that height so text wraps instead of being
- * clipped by the mask.
+ * Width of the bottom label/hint column, as a fraction of the screen.
+ *
+ * The block's distance from the bottom edge is NOT a constant — it is derived
+ * from this width by [HeroLayout.bottomInsetDp], because the two are one
+ * decision: a wider block must sit higher to keep its corners inside the
+ * content circle. Narrower is not automatically safer, either. Below about 0.44
+ * every hint wraps to two lines, which makes the block taller and pushes it
+ * further up over the door than the width saved.
  */
-private const val BOTTOM_TEXT_WIDTH_FRACTION = 0.56f
+private const val BOTTOM_TEXT_WIDTH_FRACTION = 0.46f
 
 /**
  * How far the finger may drift before an in-progress hold is abandoned.
