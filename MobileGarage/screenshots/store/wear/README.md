@@ -21,15 +21,18 @@ by a frame. A diff in any other stage means a real visual change.
 | bloom | <img src="wear-bloom.png" width="180" alt="bloom"> | The commit instant (pinned, not animated): ring thickened inward to fill its reserved band and gone full white, with the door and both labels still readable |
 | moving | <img src="wear-moving.png" width="180" alt="moving"> | Door sliding open, up arrow |
 | open | <img src="wear-open.png" width="180" alt="open"> | Open door, "Hold to close" |
-| signed_out | <img src="wear-signed_out.png" width="180" alt="signed out"> | Signed out: Sign in button (no mic chip — the voice demo is signed-in only) |
+| signed_out | <img src="wear-signed_out.png" width="180" alt="signed out"> | Signed out: Sign in button (no mic chip — voice is signed-in only) |
 | sign_in_error | <img src="wear-sign_in_error.png" width="180" alt="sign in error"> | Transient "Sign-in failed" caption |
 | settings | <img src="wear-settings.png" width="180" alt="settings"> | Settings, one swipe left of the door: a scrolling list (crown included) with the signed-in account, the version, and an edge button to the store |
 | settings_bottom | <img src="wear-settings_bottom.png" width="180" alt="settings bottom"> | The end of the same list, which a settle-then-capture fixture cannot otherwise reach: the update button is below the fold at scroll position 0 |
 | settings_local | <img src="wear-settings_local.png" width="180" alt="settings local"> | The same list signed out and on a build that never came from a release, which is the one case that still names itself |
-| voice_ready | <img src="wear-voice_ready.png" width="180" alt="voice ready"> | Voice demo at rest: "Simulated" marker, "Tap to speak", demo door Closed |
-| voice_listening | <img src="wear-voice_listening.png" width="180" alt="voice listening"> | Voice demo listening, nothing said yet: two lines total, and pulse rings capped so they clear both |
-| voice_hearing | <img src="wear-voice_hearing.png" width="180" alt="voice hearing"> | Voice demo mid-utterance: rings driven by mic level, prompt replaced by ONE line of live text, ellipsized at the START so the newest words stay visible |
-| voice_armed | <img src="wear-voice_armed.png" width="180" alt="voice armed"> | Voice demo counting down: the action named conditionally, "Would open the door" |
-| voice_committing | <img src="wear-voice_committing.png" width="180" alt="voice committing"> | Voice demo just after the commit: the hero screen's ring, post-bloom, holding complete (the bloom peak itself is the  stage — same component) |
-| voice_sent | <img src="wear-voice_sent.png" width="180" alt="voice sent"> | Voice demo punchline: "Nothing was sent"; only the demo door reacts |
-| voice_refused | <img src="wear-voice_refused.png" width="180" alt="voice refused"> | Voice demo gate refusing a command the demo door has outgrown |
+| voice_ready | <img src="wear-voice_ready.png" width="180" alt="voice ready"> | Voice at rest against the REAL door: "Tap to speak", door Closed |
+| voice_listening | <img src="wear-voice_listening.png" width="180" alt="voice listening"> | Voice listening, nothing said yet: one line, and pulse rings capped so they clear it |
+| voice_hearing | <img src="wear-voice_hearing.png" width="180" alt="voice hearing"> | Voice mid-utterance: rings driven by mic level, prompt replaced by ONE line of live text, ellipsized at the START so the newest words stay visible |
+| voice_armed | <img src="wear-voice_armed.png" width="180" alt="voice armed"> | Voice counting down a REAL press: "Opening the door", cancellable for three seconds |
+| voice_committing | <img src="wear-voice_committing.png" width="180" alt="voice committing"> | Voice just after the commit: the hero screen's ring, post-bloom, holding complete (the bloom peak itself is the bloom stage — same component) |
+| voice_sent | <img src="wear-voice_sent.png" width="180" alt="voice sent"> | Voice receipt: "Command sent"; the real door is moving |
+| voice_refused | <img src="wear-voice_refused.png" width="180" alt="voice refused"> | Voice gate refusing a command the real door has outgrown |
+| voice_sim_ready | <img src="wear-voice_sim_ready.png" width="180" alt="voice sim ready"> | The rehearsal at rest: SIMULATION marker and a "Demo door" label — same layout as voice_ready, unmistakably not it |
+| voice_sim_armed | <img src="wear-voice_sim_armed.png" width="180" alt="voice sim armed"> | The rehearsal counting down: an AZURE ring instead of white, and "Would open the door" instead of "Opening" |
+| voice_sim_sent | <img src="wear-voice_sim_sent.png" width="180" alt="voice sim sent"> | The rehearsal's punchline: "Nothing was sent"; only the demo door reacts |

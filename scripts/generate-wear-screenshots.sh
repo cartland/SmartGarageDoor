@@ -252,18 +252,21 @@ stage_description() {
         bloom) echo "The commit instant (pinned, not animated): ring thickened inward to fill its reserved band and gone full white, with the door and both labels still readable" ;;
         moving) echo "Door sliding open, up arrow" ;;
         open) echo "Open door, \"Hold to close\"" ;;
-        signed_out) echo "Signed out: Sign in button (no mic chip — the voice demo is signed-in only)" ;;
+        signed_out) echo "Signed out: Sign in button (no mic chip — voice is signed-in only)" ;;
         sign_in_error) echo "Transient \"Sign-in failed\" caption" ;;
         settings) echo "Settings, one swipe left of the door: a scrolling list (crown included) with the signed-in account, the version, and an edge button to the store" ;;
         settings_bottom) echo "The end of the same list, which a settle-then-capture fixture cannot otherwise reach: the update button is below the fold at scroll position 0" ;;
         settings_local) echo "The same list signed out and on a build that never came from a release, which is the one case that still names itself" ;;
-        voice_listening) echo "Voice demo listening, nothing said yet: two lines total, and pulse rings capped so they clear both" ;;
-        voice_hearing) echo "Voice demo mid-utterance: rings driven by mic level, prompt replaced by ONE line of live text, ellipsized at the START so the newest words stay visible" ;;
-        voice_ready) echo "Voice demo at rest: \"Simulated\" marker, \"Tap to speak\", demo door Closed" ;;
-        voice_armed) echo "Voice demo counting down: the action named conditionally, \"Would open the door\"" ;;
-        voice_committing) echo "Voice demo just after the commit: the hero screen's ring, post-bloom, holding complete (the bloom peak itself is the `bloom` stage — same component)" ;;
-        voice_sent) echo "Voice demo punchline: \"Nothing was sent\"; only the demo door reacts" ;;
-        voice_refused) echo "Voice demo gate refusing a command the demo door has outgrown" ;;
+        voice_listening) echo "Voice listening, nothing said yet: one line, and pulse rings capped so they clear it" ;;
+        voice_hearing) echo "Voice mid-utterance: rings driven by mic level, prompt replaced by ONE line of live text, ellipsized at the START so the newest words stay visible" ;;
+        voice_ready) echo "Voice at rest against the REAL door: \"Tap to speak\", door Closed" ;;
+        voice_armed) echo "Voice counting down a REAL press: \"Opening the door\", cancellable for three seconds" ;;
+        voice_committing) echo "Voice just after the commit: the hero screen's ring, post-bloom, holding complete (the bloom peak itself is the bloom stage — same component)" ;;
+        voice_sent) echo "Voice receipt: \"Command sent\"; the real door is moving" ;;
+        voice_refused) echo "Voice gate refusing a command the real door has outgrown" ;;
+        voice_sim_ready) echo "The rehearsal at rest: SIMULATION marker and a \"Demo door\" label — same layout as voice_ready, unmistakably not it" ;;
+        voice_sim_armed) echo "The rehearsal counting down: an AZURE ring instead of white, and \"Would open the door\" instead of \"Opening\"" ;;
+        voice_sim_sent) echo "The rehearsal's punchline: \"Nothing was sent\"; only the demo door reacts" ;;
         *) return 1 ;;
     esac
 }
